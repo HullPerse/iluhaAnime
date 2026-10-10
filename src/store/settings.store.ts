@@ -1,11 +1,12 @@
 import { tauriTransport } from "@/api/transport.api";
 import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
+import { DITHER_PLACEHOLDER_ID } from "@/config/utils/dither.config";
 import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Cell, SignalStore } from "@/lib/state/signal.store";
 import type { MigrationState, MigrationTransform } from "@/lib/store/migrate.utils";
 import { resolveWithDefaults, runTransforms } from "@/lib/store/migrate.utils";
@@ -13,7 +14,7 @@ import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 39;
+export const SETTINGS_SCHEMA_VERSION = 42;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -152,6 +153,21 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     migrate: (state) => {
       const schedule = state.themeSchedule as { enabled?: unknown } | undefined;
       if (schedule && typeof schedule === "object") schedule.enabled = false;
+    },
+  },
+  {
+    from: 40,
+    migrate: (state) => {
+      if (state.selectedDitherId === DITHER_PLACEHOLDER_ID) state.selectedDitherId = null;
+    },
+  },
+  {
+    from: 41,
+    migrate: (state) => {
+      delete state.thumbPreviews;
+      delete state.spriteBurstMpv;
+      delete state.spriteFillPlayback;
+      delete state.spriteNeighborCount;
     },
   },
 ];
@@ -343,6 +359,7 @@ export function createSettingsSignalStore(
   const data: SettingsData = persisted
     ? { ...base, ...(persisted.data as Partial<SettingsData>) }
     : base;
+  if (data.selectedDitherId === DITHER_PLACEHOLDER_ID) data.selectedDitherId = null;
   const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
   const atoms = buildAtoms(store, data, mirror);
 

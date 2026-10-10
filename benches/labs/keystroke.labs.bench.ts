@@ -49,7 +49,7 @@ const HISTORY = [
 const INDEX_8000 = makeIndex(8000);
 const PREFIXES = ['f', 'fr', 'fri', 'frie', 'frier', 'friere', 'frieren'];
 
-group('keystroke @search', () => {
+group('keystroke @search @quick', () => {
   bench('typing frieren x7 prefixes N=8000 (suggest + spell + group)', () => {
     let checksum = 0;
     for (const q of PREFIXES) {

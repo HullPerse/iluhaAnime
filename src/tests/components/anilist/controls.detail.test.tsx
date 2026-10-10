@@ -162,6 +162,33 @@ describe("AniListActionControls score formats", () => {
   });
 });
 
+describe("AniListActionControls save diagnostics", () => {
+  it("shows the failure reason instead of a generic message", async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "save_anilist_entry")
+        return Promise.reject(new Error("429 Too Many Requests"));
+      return Promise.resolve(null);
+    });
+    renderControls("POINT_10");
+    await user.click(saveButton());
+    expect(await screen.findByText("Failed to save: 429 Too Many Requests")).toBeTruthy();
+  });
+
+  it("shows no error text on a successful save", async () => {
+    const user = userEvent.setup();
+    renderControls("POINT_10");
+    await user.click(saveButton());
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith(
+        "save_anilist_entry",
+        expect.objectContaining({ mediaId: MEDIA_ID })
+      )
+    );
+    expect(screen.queryByText(/Failed to save/u)).toBeNull();
+  });
+});
+
 describe("AniListActionControls delete", () => {
   function renderWithUser() {
     const client = new QueryClient();

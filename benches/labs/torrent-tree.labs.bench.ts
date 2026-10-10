@@ -52,7 +52,7 @@ const HXH_OPEN = openAll(HXH_TREE.nodes);
 const BIG_TREE = buildTorrentTree(BIG_6K);
 const BIG_OPEN = openAll(BIG_TREE.nodes);
 
-group('torrent-tree @torrent', () => {
+group('torrent-tree @torrent @quick', () => {
   bench('build 148 files (HxH release shape)', () => {
     const t = buildTorrentTree(HXH_148);
     return t.nodes.length + t.rootFiles.length;

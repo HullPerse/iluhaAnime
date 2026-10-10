@@ -129,4 +129,18 @@ describe("TorrentApi", () => {
     expect(calls[0]?.args).toMatchObject({ username: "user", password: "pass" });
     expect(calls[1]?.args).toMatchObject({ apiKey: "key" });
   });
+
+  it("gates the webview proxy on the toggle", () => {
+    const enabled = new TorrentApi({
+      proxies: { rutracker: "socks5://127.0.0.1:10808" },
+      webviewProxyEnabled: true,
+    });
+    expect(enabled.webviewProxyFor("rutracker")).toBe("socks5://127.0.0.1:10808");
+
+    const disabled = new TorrentApi({
+      proxies: { rutracker: "socks5://127.0.0.1:10808" },
+      webviewProxyEnabled: false,
+    });
+    expect(disabled.webviewProxyFor("rutracker")).toBeUndefined();
+  });
 });

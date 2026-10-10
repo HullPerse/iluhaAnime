@@ -180,7 +180,6 @@ export default defineConfig({
     "react/exhaustive-effect-dependencies": "off",
     "no-console": ["warn", { allow: ["warn", "error"] }],
     "no-else-return": "off",
-    "typescript/await-thenable": "error",
     "typescript/consistent-return": "warn",
     "typescript/consistent-type-exports": "off",
     "typescript/dot-notation": "off",
@@ -243,4 +242,12 @@ export default defineConfig({
     "no-void": "error",
     ...Object.fromEntries(legacyRulesToDisable.map((rule) => [rule, "off"])),
   },
+  overrides: [
+    {
+      files: ["scripts/**"],
+      rules: {
+        "no-console": "off",
+      },
+    },
+  ],
 });

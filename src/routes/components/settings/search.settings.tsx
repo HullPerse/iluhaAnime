@@ -24,6 +24,7 @@ export default function SettingsSearch() {
   const defaultSearchSource = useCell(settingsAtoms.defaultSearchSource);
   const visibleSources = useCell(settingsAtoms.visibleSources);
   const searchProxyUrls = useCell(settingsAtoms.searchProxyUrls);
+  const webviewProxyEnabled = useCell(settingsAtoms.webviewProxyEnabled);
   const pageSize = useCell(settingsAtoms.pageSize);
   const anilistMaxPages = useCell(settingsAtoms.anilistMaxPages);
   const searchHistoryMaxItems = useCell(settingsAtoms.searchHistoryMaxItems);
@@ -243,6 +244,14 @@ export default function SettingsSearch() {
                 {t("settings.search.no.visible.sources")}
               </span>
             )}
+            <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+              <Checkbox
+                checked={webviewProxyEnabled}
+                onChange={() => patchSettings({ webviewProxyEnabled: !webviewProxyEnabled })}
+              />
+              <span className="text-xs font-bold">{t("settings.search.proxy.webview")}</span>
+            </label>
+            <span className="text-hint text-[12px]">{t("settings.search.proxy.webview.hint")}</span>
           </div>
         </div>
       </section>

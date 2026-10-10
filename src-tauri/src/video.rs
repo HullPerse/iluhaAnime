@@ -199,7 +199,10 @@ fn parse_ffmpeg_time(s: &str) -> Option<f64> {
 
 static VIDEO_DURATION_CACHE: OnceLock<Mutex<HashMap<String, f64>>> = OnceLock::new();
 
-async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result<f64, String> {
+pub(crate) async fn get_video_duration(
+    app_handle: &tauri::AppHandle,
+    path: &str,
+) -> Result<f64, String> {
     if let Some(cache) = VIDEO_DURATION_CACHE.get() {
         if let Ok(map) = cache.lock() {
             if let Some(&d) = map.get(path) {
@@ -493,7 +496,7 @@ fn preview_timestamps(duration: f64, count: usize) -> Vec<f64> {
         .collect()
 }
 
-async fn extract_preview_frame(
+pub(crate) async fn extract_preview_frame(
     app_handle: &tauri::AppHandle,
     input_path: &str,
     timestamp: f64,

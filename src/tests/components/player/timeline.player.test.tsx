@@ -1,80 +1,63 @@
-import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
-
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
-
-import Timeline, { selectThumbUrl } from "@/routes/components/player/media/timeline.player";
+import Timeline from "@/routes/components/player/media/timeline.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
 
-function hoverCalls(): Array<{ path?: string }> {
-  return invokeMock.mock.calls
-    .filter(([command]) => command === "player_hover_thumb")
-    .map(([, args]) => args as { path?: string });
-}
-
 beforeEach(() => {
-  vi.useFakeTimers();
   patchSettings({ language: "en" });
   playbackAtoms.timePos.set(0);
-  invokeMock.mockReset();
-  invokeMock.mockImplementation((command: unknown) => {
-    if (command === "player_hover_thumb")
-      return Promise.resolve({ url: "thumb.jpg", captured: false });
-    return Promise.resolve(undefined);
-  });
-  playbackAtoms.path.set("/a.mkv");
 });
 
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
 });
 
-function renderTimeline(duration = 1400) {
+function renderTimeline(duration = 1400, chapters = [{ time: 0, title: "Opening", end: 89 }]) {
   const callbacks = { onScrub: vi.fn(), onCommitSeek: vi.fn() };
   const result = render(
-    <Timeline duration={duration} chapters={[]} seekTarget={null} {...callbacks} />
+    <Timeline duration={duration} chapters={chapters} seekTarget={null} {...callbacks} />
   );
   const bar = result.container.querySelector(".h-4");
   if (!bar) throw new Error("timeline bar not found");
   return { ...result, bar, ...callbacks };
 }
 
-describe("Timeline hover captures", () => {
-  it("does not capture thumbnails while scrubbing", async () => {
-    const { bar } = renderTimeline();
-    fireEvent.mouseDown(bar, { clientX: 100 });
-    fireEvent.mouseMove(document, { clientX: 150 });
-    await vi.advanceTimersByTimeAsync(500);
-    expect(hoverCalls()).toHaveLength(0);
+describe("Timeline hover tooltip", () => {
+  it("shows time with no thumbnail image", () => {
+    const { bar, container } = renderTimeline();
+    fireEvent.mouseMove(bar, { clientX: 100 });
+    const tooltip = container.querySelector(".bottom-full");
+    expect(tooltip).not.toBeNull();
+    expect(tooltip?.textContent).toContain("0:00");
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector('[role="img"]')).toBeNull();
   });
 
-  it("captures for the drop position once the drag ends", async () => {
-    const { bar, container, onCommitSeek } = renderTimeline();
-    fireEvent.mouseDown(bar, { clientX: 100 });
-    fireEvent.mouseMove(document, { clientX: 150 });
-    fireEvent.mouseUp(document, { clientX: 150 });
-    expect(onCommitSeek).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(300);
-    });
-    expect(hoverCalls()).toHaveLength(1);
-    expect(container.querySelector('img[src*="thumb"]')).not.toBeNull();
+  it("shows the chapter title under the cursor", () => {
+    const { bar, container } = renderTimeline();
+    fireEvent.mouseMove(bar, { clientX: 100 });
+    expect(container.textContent).toContain("Opening");
+  });
+
+  it("clears the tooltip when the cursor leaves the bar", () => {
+    const { bar, container } = renderTimeline();
+    fireEvent.mouseMove(bar, { clientX: 100 });
+    expect(container.querySelector(".bottom-full")).not.toBeNull();
+    fireEvent.mouseLeave(bar);
+    expect(container.querySelector(".bottom-full")).toBeNull();
   });
 });
 
-describe("selectThumbUrl", () => {
-  it("shows only the capture matching the current hover position", () => {
-    expect(selectThumbUrl({ url: "a.jpg", time: 10 }, 10)).toBe("a.jpg");
-    expect(selectThumbUrl({ url: "a.jpg", time: 10 }, 20)).toBeNull();
-    expect(selectThumbUrl({ url: "a.jpg", time: 10 }, null)).toBeNull();
-    expect(selectThumbUrl(null, 10)).toBeNull();
+describe("Timeline scrub", () => {
+  it("scrubs live and commits on release", () => {
+    const { bar, onScrub, onCommitSeek } = renderTimeline();
+    fireEvent.mouseDown(bar, { clientX: 100 });
+    fireEvent.mouseMove(document, { clientX: 150 });
+    expect(onScrub).toHaveBeenCalled();
+    fireEvent.mouseUp(document, { clientX: 150 });
+    expect(onCommitSeek).toHaveBeenCalledTimes(1);
   });
 });
 

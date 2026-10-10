@@ -73,17 +73,13 @@ static APP_DATA_WRITE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 ///
 /// The guard must wrap synchronous database sections only and never be held
 /// across `.await`: it is a plain blocking mutex, not an async one.
-pub fn lock_app_data_write_timeout(
-    timeout: Duration,
-) -> Result<MutexGuard<'static, ()>, String> {
+pub fn lock_app_data_write_timeout(timeout: Duration) -> Result<MutexGuard<'static, ()>, String> {
     let mutex = APP_DATA_WRITE_LOCK.get_or_init(|| Mutex::new(()));
     let deadline = Instant::now() + timeout;
     loop {
         match mutex.try_lock() {
             Ok(guard) => return Ok(guard),
-            Err(std::sync::TryLockError::Poisoned(poisoned)) => {
-                return Ok(poisoned.into_inner())
-            }
+            Err(std::sync::TryLockError::Poisoned(poisoned)) => return Ok(poisoned.into_inner()),
             Err(std::sync::TryLockError::WouldBlock) => {
                 if Instant::now() >= deadline {
                     return Err(
@@ -117,10 +113,12 @@ mod tests {
     #[test]
     fn write_lock_timeout_fails_fast_when_held() {
         let _held = lock_app_data_write_timeout(Duration::from_secs(5)).expect("acquire guard");
-        let contested = std::thread::spawn(|| {
-            lock_app_data_write_timeout(Duration::from_millis(50)).map(drop)
-        });
-        let error = contested.join().expect("probe thread").expect_err("must time out");
+        let contested =
+            std::thread::spawn(|| lock_app_data_write_timeout(Duration::from_millis(50)).map(drop));
+        let error = contested
+            .join()
+            .expect("probe thread")
+            .expect_err("must time out");
         assert!(error.contains("busy"), "unexpected error: {error}");
     }
 
@@ -128,8 +126,7 @@ mod tests {
     fn write_lock_timeout_succeeds_once_released() {
         let (started_tx, started_rx) = std::sync::mpsc::channel::<()>();
         let holder = std::thread::spawn(move || {
-            let _held =
-                lock_app_data_write_timeout(Duration::from_secs(5)).expect("acquire guard");
+            let _held = lock_app_data_write_timeout(Duration::from_secs(5)).expect("acquire guard");
             started_tx.send(()).expect("signal holder started");
             std::thread::sleep(Duration::from_millis(150));
         });

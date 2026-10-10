@@ -1,5 +1,5 @@
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
@@ -28,6 +28,7 @@ import {
   resetSearchFilters as resetFilters,
   searchAtoms,
   setCrossSearchQuery,
+  setResultSource,
   setSearchFilters as setFilters,
   setSearchSortBy as setSortBy,
   setSearchSortDirection as setSortDirection,
@@ -54,6 +55,8 @@ export function useSearchQuery(): SearchQueryController {
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [searchRequest, setSearchRequest] = useState(0);
   const [source, setSource] = useState<Source>(initialSource as Source);
+  const resultSource = useCell(searchAtoms.resultSource);
+  const fetchSourceRef = useRef<Source | null>(null);
   const [lastDefaultSource, setLastDefaultSource] = useState(defaultSource);
   const queryClient = useQueryClient();
   const [showLogin, setShowLogin] = useState(false);
@@ -113,21 +116,32 @@ export function useSearchQuery(): SearchQueryController {
     ]
   );
 
-  const fetchBySource = (): Promise<Anime[]> =>
-    torrentApi.searchBySource(source, {
+  const fetchBySource = (): Promise<Anime[]> => {
+    fetchSourceRef.current = source;
+    return torrentApi.searchBySource(source, {
       query: submittedQuery,
       page: nyaaPage,
       sort: sortBy,
       order: sortDirection,
     });
+  };
 
-  const { data, isLoading, isError, error, refetch } = useAppQuery("slow", {
-    queryKey,
-    queryFn: fetchBySource,
-    enabled: Boolean(submittedQuery),
-    retry: false,
-    placeholderData: keepPreviousData,
-  });
+  const { data, dataUpdatedAt, isLoading, isFetching, isError, error, refetch } = useAppQuery(
+    "slow",
+    {
+      queryKey,
+      queryFn: fetchBySource,
+      enabled: Boolean(submittedQuery),
+      retry: false,
+      placeholderData: keepPreviousData,
+    }
+  );
+
+  useEffect(() => {
+    if (!isFetching && data !== undefined && fetchSourceRef.current !== null) {
+      setResultSource(fetchSourceRef.current);
+    }
+  }, [data, dataUpdatedAt, isFetching]);
 
   useEffect(() => {
     if (!isError || source !== "rutracker") return;
@@ -221,7 +235,7 @@ export function useSearchQuery(): SearchQueryController {
   const copyMagnetFor = (item: Anime) => copyMagnet(item, magnets, setMagnets, setLoadingMagnet);
   const openMagnetFor = (item: Anime) => openMagnet(item, magnets, setMagnets, setLoadingMagnet);
   const downloadMagnetFor = (item: Anime) =>
-    downloadMagnet(item, magnets, setMagnets, setLoadingMagnet, source);
+    downloadMagnet(item, magnets, setMagnets, setLoadingMagnet, resultSource ?? source);
 
   const field = useSearchField({
     scope: "torrent",
@@ -241,25 +255,22 @@ export function useSearchQuery(): SearchQueryController {
       symSpell: searchSymSpellEnabled,
     });
   }, [submittedQuery, isLoading, data, searchHistory, animeIndex, searchSymSpellEnabled]);
-  const applySubmitQuery = useCallback(
-    (query: string) => {
-      const { cleanQuery, tags } = parseTorrentTags(query);
-      const text = cleanQuery || query.trim();
-      if (tags.length > 0) {
-        const mapped = torrentTagsToFilters(tags);
-        if (Object.keys(mapped.filters).length > 0) setFilters(mapped.filters);
-        setSearchParams(text);
-        if (mapped.source) {
-          setSource(mapped.source);
-          setNyaaPage(1);
-        }
+  const applySubmitQuery = useCallback((query: string) => {
+    const { cleanQuery, tags } = parseTorrentTags(query);
+    const text = cleanQuery || query.trim();
+    if (tags.length > 0) {
+      const mapped = torrentTagsToFilters(tags);
+      if (Object.keys(mapped.filters).length > 0) setFilters(mapped.filters);
+      setSearchParams(text);
+      if (mapped.source) {
+        setSource(mapped.source);
+        setNyaaPage(1);
       }
-      setSubmittedQuery(text);
-      setSearchRequest((request) => request + 1);
-      setMaxPage(Number.POSITIVE_INFINITY);
-    },
-    []
-  );
+    }
+    setSubmittedQuery(text);
+    setSearchRequest((request) => request + 1);
+    setMaxPage(Number.POSITIVE_INFINITY);
+  }, []);
 
   const applyDidYouMean = () => {
     if (!didYouMean) return;
@@ -269,8 +280,10 @@ export function useSearchQuery(): SearchQueryController {
 
   return {
     source,
+    resultSource,
     sourceOptions,
     isLoading,
+    isFetching,
     searchParams,
     submittedQuery,
     didYouMean,

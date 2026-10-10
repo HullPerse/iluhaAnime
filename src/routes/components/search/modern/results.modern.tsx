@@ -27,6 +27,7 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
     setNyaaPage,
     resultsPerPage,
     source,
+    resultSource,
     loadingMagnet,
     copyMagnetFor,
     openMagnetFor,
@@ -60,7 +61,7 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
             <SearchResultItem
               key={`${item.link}-${index}`}
               item={item}
-              source={source}
+              source={resultSource ?? source}
               loadingMagnet={loadingMagnet}
               onCopyMagnet={(i) => copyMagnetFor(i)}
               onOpenMagnet={(i) => openMagnetFor(i)}
@@ -69,7 +70,7 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
                 const [, error] = await attempt(openUrl(i.link));
                 if (error) return console.warn("openUrl failed", error);
               }}
-              onOpenDetails={(i) => setSelectedTorrent({ item: i, source })}
+              onOpenDetails={(i) => setSelectedTorrent({ item: i, source: resultSource ?? source })}
             />
           ))}
         </section>

@@ -1148,7 +1148,7 @@
     "codec": "h264",
     "res": "1280x720",
     "audio": "aac",
-    "g": ["AniDub", "eNd"],
+    "g": ["AniDub"],
     "x": "anitomy ep null, group null, langs null"
   },
   {
@@ -1190,5 +1190,68 @@
     "special": "NCED",
     "k": "special",
     "g": ["Nekomoe kissaten", "VCB-Studio"]
+  },
+  {
+    "id": "F126",
+    "t": "Youjo Senki II",
+    "s": 2,
+    "e": 1,
+    "eOf": 12,
+    "y": 2026,
+    "k": "tv",
+    "lang": ["rus", "jpn"],
+    "subs": ["sub"],
+    "codec": "AVC",
+    "src": "WEB-DL",
+    "service": "CR",
+    "audio": "AAC",
+    "res": "1080",
+    "x": "rutracker folder vocab: (ТВ-2) season, 12 из 12 total, RUS(int)/JAP+Sub langs, comma year, bare 1080"
+  },
+  {
+    "id": "F127",
+    "t": "Touhai Densetsu Akagi",
+    "st": "Touhai Densetsu Akagi",
+    "e": 1,
+    "ea": 26,
+    "k": "tv",
+    "g": ["Erai-raws"],
+    "res": "480p",
+    "subVariant": "Multiple Subtitle",
+    "x": "tilde episode range with multi-sub tag"
+  },
+  {
+    "id": "F128",
+    "t": "Touhai Densetsu Akagi",
+    "st": "Touhai Densetsu Akagi",
+    "e": 1,
+    "ea": 26,
+    "k": "tv",
+    "g": ["Erai-raws"],
+    "res": "480p",
+    "x": "fullwidth tilde episode range"
+  },
+  {
+    "id": "F129",
+    "t": "Touhai Densetsu Akagi",
+    "st": "Touhai Densetsu Akagi",
+    "e": 1,
+    "ea": 26,
+    "k": "tv",
+    "g": ["Erai-raws"],
+    "res": "480p",
+    "x": "spaceless wave-dash episode range"
+  },
+  {
+    "id": "F130",
+    "t": "Sousou no Frieren",
+    "st": "Sousou no Frieren",
+    "e": 27,
+    "k": "tv",
+    "g": ["Erai-raws"],
+    "lang": ["eng", "por", "spa", "ara", "fre", "ger", "ita", "rus"],
+    "res": "1080p",
+    "subVariant": "Multiple Subtitle",
+    "x": "erai subtitle lang list with lang-region pairs"
   }
 ]

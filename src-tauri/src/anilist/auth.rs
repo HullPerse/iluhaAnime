@@ -584,15 +584,17 @@ pub async fn get_anilist_custom_lists(
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    Ok(json["data"]["Viewer"]["mediaListOptions"]["animeList"]["customLists"]
-        .as_array()
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|name| name.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_default())
+    Ok(
+        json["data"]["Viewer"]["mediaListOptions"]["animeList"]["customLists"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|name| name.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
+    )
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -731,8 +733,35 @@ pub async fn save_anilist_entry(
         )
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    let started = std::time::Instant::now();
+    let outcome = graphql_request(body, Some(&token), proxy.as_deref()).await;
+    let json = match outcome {
+        Ok(json) => json,
+        Err(error) => {
+            tracing::warn!(
+                media_id,
+                status = status.as_str(),
+                progress,
+                elapsed_ms = started.elapsed().as_millis(),
+                error = error.as_str(),
+                "save_anilist_entry transport failed"
+            );
+            return Err(error);
+        }
+    };
     if json.get("errors").is_some() {
+        tracing::warn!(
+            media_id,
+            status = status.as_str(),
+            progress,
+            elapsed_ms = started.elapsed().as_millis(),
+            errors = format!("{:?}", json["errors"])
+                .chars()
+                .take(500)
+                .collect::<String>()
+                .as_str(),
+            "save_anilist_entry returned GraphQL errors"
+        );
         return Err(format!("{:?}", json["errors"]));
     }
     Ok(())

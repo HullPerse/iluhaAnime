@@ -1,6 +1,8 @@
+import { useState } from "react";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
-import { confirm } from "@tauri-apps/plugin-dialog";
+import { confirm, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { Check, RefreshCw, X } from "lucide-react";
 
 import { sqliteApi } from "@/api/sqlite.api";
@@ -21,8 +23,10 @@ import {
   withFallback,
 } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { showError, showInfo } from "@/lib/utils/notification.utils";
+import { buildReproFrontend } from "@/lib/utils/repro.utils";
 import { searchAtoms } from "@/store/search.store";
-import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import { getSettingsSnapshot, patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { SettingsTab } from "@/types/settings";
 import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/sqlite";
@@ -96,6 +100,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const unknown = t("settings.summary.unknown");
   const data = storage.data;
   const newestBackup = data?.backups[0] ?? null;
+  const [collecting, setCollecting] = useState(false);
 
   const openSqlite = () => {
     if (!sqliteBrowserEnabled) patchSettings({ sqliteBrowserEnabled: true });
@@ -118,6 +123,33 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
 
   const handleClearImages = () => {
     clearImages().catch((error) => reportBackgroundError("summary.images.clear", error));
+  };
+
+  const collectRepro = async () => {
+    const [target, dialogError] = await attempt(
+      saveDialog({ defaultPath: "iluha-repro.zip", filters: [{ extensions: ["zip"], name: "Zip" }] })
+    );
+    if (dialogError !== null || !target) return;
+    setCollecting(true);
+    const [saved, collectError] = await attempt((async () => {
+      const [version] = await attempt(getVersion());
+      const frontend = buildReproFrontend({
+        counts: { animeIndex: indexCount, history: historyCount, queryStats: queryStatCount },
+        settings: getSettingsSnapshot(),
+        version: version ?? "?",
+      });
+      return systemApi.collectReproBundle(frontend, target);
+    })());
+    setCollecting(false);
+    if (collectError !== null) {
+      showError(t("settings.summary.repro.error"), collectError.message);
+      return;
+    }
+    showInfo(t("settings.summary.repro.done"), saved);
+  };
+
+  const handleCollectRepro = () => {
+    collectRepro().catch((error) => reportBackgroundError("summary.repro.collect", error));
   };
 
   return (
@@ -167,6 +199,13 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
             )
           }
           busy={ffmpeg.data === undefined}
+        />
+        <SummaryRow
+          label={t("settings.summary.repro")}
+          value={t("settings.summary.repro.hint")}
+          busy={collecting}
+          actionLabel={t("settings.summary.repro.save")}
+          onAction={handleCollectRepro}
         />
       </SummarySection>
 

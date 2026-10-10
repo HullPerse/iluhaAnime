@@ -5,8 +5,8 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use super::collection::{
-    list_collection_items, list_custom_field_defs, upsert_collection_item, upsert_custom_field_def,
-    CollectionItemInput, CollectionItemRow, CustomFieldDefRow,
+    insert_collection_item_connection, list_collection_items, list_custom_field_defs,
+    upsert_custom_field_def, CollectionItemInput, CollectionItemRow, CustomFieldDefRow,
 };
 use super::db::{database_path, lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT};
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,8 +87,8 @@ pub fn import_collection_data(
                 summary.skipped += 1;
             }
             (Some(existing_id), ImportStrategy::Overwrite) => {
-                upsert_collection_item(
-                    app.clone(),
+                insert_collection_item_connection(
+                    &connection,
                     CollectionItemInput {
                         id: existing_id.to_string(),
                         title: item.title.clone(),
@@ -132,8 +132,8 @@ pub fn import_collection_data(
             }
             (Some(_), ImportStrategy::CreateNew) | (None, _) => {
                 let new_id = unique_import_id(&item.id, index);
-                upsert_collection_item(
-                    app.clone(),
+                insert_collection_item_connection(
+                    &connection,
                     CollectionItemInput {
                         id: new_id.clone(),
                         title: item.title.clone(),

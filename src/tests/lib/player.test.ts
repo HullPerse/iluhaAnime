@@ -388,6 +388,12 @@ describe("player/title", () => {
       ).toBe("Boku no Hero Academia Illegals, Сезон 2, Серия 1");
     });
 
+    it("keeps the arc in the display title for arc movies", () => {
+      expect(
+        formatParsedTitle("Overlord - Sei Oukoku Hen [BDRip 1080p HEVC 10bits FLAC].mkv", ru)
+      ).toBe("Overlord: Sei Oukoku-hen");
+    });
+
     it("uses the folder for number-prefixed files", () => {
       expect(
         formatParsedTitle(

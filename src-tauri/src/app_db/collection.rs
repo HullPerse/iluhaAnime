@@ -320,7 +320,7 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
         .map_err(|e| format!("read collection items: {e}"))
 }
 
-fn insert_collection_item_connection(
+pub(super) fn insert_collection_item_connection(
     connection: &Connection,
     item: CollectionItemInput,
 ) -> Result<(), String> {

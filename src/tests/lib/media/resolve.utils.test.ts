@@ -203,3 +203,48 @@ describe("resolveMediaFile sidecars", () => {
     );
   });
 });
+
+describe("resolveMediaFile rutracker folder vocabulary", () => {
+  it("reads an explicit Cyrillic TV season over TV-plus-count", () => {
+    expect(
+      resolveMediaFile("Anime/Show (ТВ-2) [TV] [12 из 12]", "Show - 01 [WEB-DL 1080p].mkv")
+    ).toMatchObject({
+      title: "Show",
+      season: 2,
+      episode: { number: 1, ofTotal: 12 },
+    });
+  });
+
+  it("reads bare resolutions inside tech brackets", () => {
+    expect(resolveMediaFile("Anime", "Show - 01 [WEB-DL 1080 AAC].mkv")).toMatchObject({
+      title: "Show",
+      episode: { number: 1 },
+      resolution: "1080",
+    });
+  });
+
+  it("reads compact lang pairs like JAP+Sub", () => {
+    expect(
+      resolveMediaFile("Anime/[RUS(int), JAP+Sub]", "Show - 01 [1080p].mkv")
+    ).toMatchObject({
+      title: "Show",
+      lang: ["rus", "jpn"],
+    });
+  });
+
+  it("reads years glued to commas in brackets", () => {
+    expect(resolveMediaFile("Anime/[2026, WEB-DL]", "Show - 01 [1080p].mkv")).toMatchObject({
+      title: "Show",
+      year: 2026,
+    });
+  });
+
+  it("surfaces subtitle markers from the folder", () => {
+    expect(
+      resolveMediaFile("Anime/[RUS(int), JAP+Sub]", "Show - 01 [1080p].mkv")
+    ).toMatchObject({
+      title: "Show",
+      subs: ["sub"],
+    });
+  });
+});

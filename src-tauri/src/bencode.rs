@@ -13,6 +13,77 @@ struct TorrentFile {
     announce: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct InfoFiles {
+    #[serde(default)]
+    name: Option<serde_bytes::ByteBuf>,
+    #[serde(default, alias = "name.utf-8")]
+    name_utf8: Option<serde_bytes::ByteBuf>,
+    #[serde(default)]
+    length: Option<i64>,
+    #[serde(default)]
+    files: Option<Vec<RawFileEntry>>,
+}
+
+#[derive(Deserialize)]
+struct RawFileEntry {
+    #[serde(default)]
+    length: Option<i64>,
+    #[serde(default)]
+    path: Option<Vec<serde_bytes::ByteBuf>>,
+    #[serde(default, alias = "path.utf-8")]
+    path_utf8: Option<Vec<serde_bytes::ByteBuf>>,
+}
+
+fn lossy_path(segments: &[serde_bytes::ByteBuf]) -> String {
+    segments
+        .iter()
+        .map(|segment| String::from_utf8_lossy(segment).into_owned())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// File list from the torrent metadata itself: `(path, size_bytes)`.
+///
+/// Multi-file torrents expose `info.files`; single-file torrents expose
+/// `info.name` + `info.length`. Path segments are decoded lossily so
+/// non-UTF-8 (e.g. cp1251) names never fail the whole parse.
+pub fn extract_torrent_files(torrent_bytes: &[u8]) -> Result<Vec<(String, u64)>, String> {
+    const MAX_FILES: usize = 500;
+    let info_bytes = find_info_value_bytes(torrent_bytes)?;
+    let info: InfoFiles = serde_bencode::from_bytes(info_bytes)
+        .map_err(|e| format!("Failed to parse info dict: {e}"))?;
+    if let Some(files) = info.files {
+        let mut out = Vec::new();
+        for entry in files {
+            let segments = entry.path_utf8.or(entry.path).unwrap_or_default();
+            let path = lossy_path(&segments);
+            if path.is_empty() {
+                continue;
+            }
+            let size = entry
+                .length
+                .and_then(|len| u64::try_from(len).ok())
+                .unwrap_or(0);
+            out.push((path, size));
+            if out.len() >= MAX_FILES {
+                break;
+            }
+        }
+        return Ok(out);
+    }
+    let name_bytes = info.name_utf8.or(info.name).unwrap_or_default();
+    let name = String::from_utf8_lossy(&name_bytes).into_owned();
+    if name.is_empty() {
+        return Err("No files found".to_string());
+    }
+    let size = info
+        .length
+        .and_then(|len| u64::try_from(len).ok())
+        .unwrap_or(0);
+    Ok(vec![(name, size)])
+}
+
 pub fn extract_info_hash(torrent_bytes: &[u8]) -> Result<String, String> {
     let info_bytes = find_info_value_bytes(torrent_bytes)?;
     let mut hasher = sha1::Sha1::new();
@@ -213,5 +284,40 @@ mod tests {
     fn find_info_value_bytes_rejects_non_dict_roots() {
         assert!(find_info_value_bytes(b"li42ee").is_err());
         assert!(find_info_value_bytes(b"").is_err());
+    }
+
+    #[test]
+    fn extract_torrent_files_reads_multi_file_list() {
+        let torrent = b"d4:infod5:filesld6:lengthi100e4:pathl3:dir9:file1.txteed6:lengthi200e4:pathl9:file2.mkveee4:name4:root12:piece lengthi16384e6:pieces20:01234567890123456789ee";
+        let files = extract_torrent_files(torrent).unwrap();
+        assert_eq!(
+            files,
+            vec![
+                ("dir/file1.txt".to_string(), 100),
+                ("file2.mkv".to_string(), 200),
+            ]
+        );
+    }
+
+    #[test]
+    fn extract_torrent_files_reads_single_file_torrent() {
+        let torrent = b"d4:infod6:lengthi1000e4:name9:movie.mkv12:piece lengthi16384e6:pieces20:01234567890123456789ee";
+        let files = extract_torrent_files(torrent).unwrap();
+        assert_eq!(files, vec![("movie.mkv".to_string(), 1000)]);
+    }
+
+    #[test]
+    fn extract_torrent_files_decodes_non_utf8_names_lossily() {
+        let torrent = b"d4:infod6:lengthi10e4:name6:\xCF\xF0\xE8\xE2\xE5\xF212:piece lengthi16384e6:pieces20:01234567890123456789ee";
+        let files = extract_torrent_files(torrent).unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].1, 10);
+        assert!(!files[0].0.is_empty());
+    }
+
+    #[test]
+    fn extract_torrent_files_errors_without_files_or_name() {
+        let torrent = b"d4:infod12:piece lengthi16384e6:pieces20:01234567890123456789ee";
+        assert!(extract_torrent_files(torrent).is_err());
     }
 }

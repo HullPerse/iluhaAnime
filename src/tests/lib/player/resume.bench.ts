@@ -12,7 +12,7 @@ test('resume decision path cost', async ({ bench }) => {
   const b1 = bench('resolveLoadPosition resume branch x50k', () => {
     let checksum = 0;
     for (let i = 0; i < 50000; i++) {
-      checksum += resolveLoadPosition(null, 0, 100 + (i & 15), 200);
+      checksum += resolveLoadPosition(null, 100 + (i & 15), 200);
     }
     return checksum;
   });
@@ -20,7 +20,7 @@ test('resume decision path cost', async ({ bench }) => {
   const b2 = bench('resolveLoadPosition entry branch x50k', () => {
     let checksum = 0;
     for (let i = 0; i < 50000; i++) {
-      checksum += resolveLoadPosition(null, i & 3, 100, 200 + (i & 15));
+      checksum += resolveLoadPosition(null, undefined, 200 + (i & 15));
     }
     return checksum;
   });
@@ -28,7 +28,7 @@ test('resume decision path cost', async ({ bench }) => {
   const b3 = bench('resolveLoadPosition reload branch x50k', () => {
     let checksum = 0;
     for (let i = 0; i < 50000; i++) {
-      checksum += resolveLoadPosition(RELOAD, 0, 100, 200);
+      checksum += resolveLoadPosition(RELOAD, 100, 200);
     }
     return checksum;
   });

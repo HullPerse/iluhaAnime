@@ -46,3 +46,6 @@ typecheck.txt
 
 # labs benchmark results (bench sources are tracked, only run results are ignored)
 benches/.labs/
+# live E2E harness: everything it writes (reports, screenshots, torrent source,
+# ffmpeg clip, repro bundle) lands in the Rust target dir, which Vite ignores
+src-tauri/target-e2e/

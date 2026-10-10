@@ -5,8 +5,6 @@ import {
   ListVideo,
   Pause,
   Play,
-  SkipBack,
-  SkipForward,
   Square,
   SquareX,
   Volume,
@@ -23,6 +21,7 @@ import { useCell } from "@/lib/state/signal.hook";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
+import NeighborFileButton from "./neighbor.player";
 import Tracks from "./tracks.player";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -239,30 +238,26 @@ function Controls({
       </section>
 
       <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
-        <Button
-          size="icon"
-          className="size-6"
+        <NeighborFileButton
+          direction="prev"
+          hasTarget={hasPrev}
           title={t("player.media.controls.previous.file")}
-          aria-label={t("player.media.controls.previous.file")}
-          onClick={() => {
+          ariaLabel={t("player.media.controls.previous.file")}
+          onActivate={() => {
             if (!hasPrev) showBoundaryMsg(t("player.media.boundary.first"));
             else onFilePrev();
           }}
-        >
-          <SkipBack className="size-4" />
-        </Button>
-        <Button
-          size="icon"
-          className="size-6"
+        />
+        <NeighborFileButton
+          direction="next"
+          hasTarget={hasNext}
           title={t("player.media.controls.next.file")}
-          aria-label={t("player.media.controls.next.file")}
-          onClick={() => {
+          ariaLabel={t("player.media.controls.next.file")}
+          onActivate={() => {
             if (!hasNext) showBoundaryMsg(t("player.media.boundary.last"));
             else onFileNext();
           }}
-        >
-          <SkipForward className="size-4" />
-        </Button>
+        />
       </section>
 
       <section className="border-muted flex h-6 items-center gap-0.5 border-r-2 px-1">

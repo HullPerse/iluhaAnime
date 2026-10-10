@@ -38,11 +38,11 @@ describe("readDuration", () => {
 });
 
 describe("readPlaylistIndex", () => {
-  it("returns the mpv playlist-index property", async () => {
+  it("returns the mpv playlist-pos property", async () => {
     mockInvoke.mockResolvedValue(0);
     await expect(readPlaylistIndex()).resolves.toBe(0);
     expect(mockInvoke).toHaveBeenCalledWith("player_get_property", {
-      name: "playlist-index",
+      name: "playlist-pos",
       format: "int64",
     });
   });

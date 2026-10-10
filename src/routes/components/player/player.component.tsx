@@ -2,7 +2,6 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { cn } from "cn";
 import {
-
   useCallback,
   useEffect,
   useRef,
@@ -23,7 +22,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
-import { scheduleCardPrefetch } from "@/lib/player/cardCache.utils";
+import { fileNameFromPath } from "@/lib/media/parse.utils";
+import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/player/cardCache.utils";
 import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
@@ -63,7 +63,6 @@ import {
   readPath,
   readDuration,
   readPlaylistEntries,
-  readPlaylistIndex,
   removePlaylistIndex,
   saveWatch,
   seekTo,
@@ -77,8 +76,6 @@ import {
   takePendingOpen,
   transformOptions,
 } from "@/lib/player/playback.utils";
-import { fileNameFromPath } from "@/lib/media/parse.utils";
-import { formatParsedTitle } from "@/lib/player/title.utils";
 import {
   RESUME_END_MARGIN,
   RESUME_MIN,
@@ -87,10 +84,11 @@ import {
   shouldSkipFrontendSeek,
   type HwdecReload,
 } from "@/lib/player/resume.utils";
+import { formatParsedTitle } from "@/lib/player/title.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import { useCell } from "@/lib/state/signal.hook";
 import {
   getMediaEntry,
   hydrateMediaEntry,
@@ -286,11 +284,7 @@ function PlayerComponent() {
 
   const readMargins = useCallback((): VideoMargins => {
     const rect = videoRef.current?.getBoundingClientRect();
-    return computeVideoMargins(
-      window.innerWidth || 1,
-      window.innerHeight || 1,
-      rect ?? undefined
-    );
+    return computeVideoMargins(window.innerWidth || 1, window.innerHeight || 1, rect ?? undefined);
   }, []);
 
   const measureMargins = useCallback(
@@ -300,6 +294,13 @@ function PlayerComponent() {
 
   const sendMargins = useCallback((next: VideoMargins, force: boolean) => {
     if (!force && lastMarginsRef.current && marginsCloseEnough(lastMarginsRef.current, next)) {
+      return;
+    }
+    // No mpv instance before the first snapshot: skip silently instead of
+    // firing a doomed IPC that only litters the console. The retry stays
+    // intact — lastMarginsRef keeps null and the next sync resends.
+    if (!playbackAtoms.ready.get()) {
+      lastMarginsRef.current = null;
       return;
     }
     // Record only acknowledged values: setVideoMarginRatio fails while mpv
@@ -422,7 +423,7 @@ function PlayerComponent() {
       if (request && request.files.length > 0) {
         resumeRef.current = request.resume;
         setLoadingFile(true);
-        await loadQueue(request.files, request.resume);
+        await loadQueue(request.files, request.resume, request.startIndex);
       }
     };
 
@@ -523,7 +524,6 @@ function PlayerComponent() {
     const loaded = await readPath();
     if (!loaded || !isCurrent()) return;
     const reload = hwdecReloadRef.current;
-
     const entry = await hydrateMediaEntry(loaded);
     if (!isCurrent()) return;
 
@@ -535,18 +535,14 @@ function PlayerComponent() {
 
     const resume = resumeRef.current;
     resumeRef.current = undefined;
-    // Live mpv values, not atoms: at file-loaded time the atoms still hold
+    // Live mpv value, not atoms: at file-loaded time the atoms still hold
     // the previous file (snapshots arrive on the next backend tick), which
     // used to silently drop resume or misjudge the watchable range.
-    const [liveIndex, liveDuration] = await Promise.all([
-      readPlaylistIndex(),
-      readDuration(),
-    ]);
+    const liveDuration = await readDuration();
     if (!isCurrent()) return;
-    const position = resolveLoadPosition(reload, liveIndex, resume, entry?.position);
+    const position = resolveLoadPosition(reload, resume, entry?.position);
     const inside =
-      position > RESUME_MIN &&
-      (liveDuration <= 0 || position < liveDuration - RESUME_END_MARGIN);
+      position > RESUME_MIN && (liveDuration <= 0 || position < liveDuration - RESUME_END_MARGIN);
     if (!shouldSkipFrontendSeek(reload, resume, position)) {
       if (needsExactSeek(reload, position, inside)) await seekTo(position, "exact");
     }
@@ -564,7 +560,7 @@ function PlayerComponent() {
       resumeRef.current = request.resume;
       setFinished(false);
       setLoadingFile(true);
-      ignore(loadQueue(request.files, request.resume));
+      ignore(loadQueue(request.files, request.resume, request.startIndex));
     },
     onFileLoaded: () => {
       ignore(handleFileLoaded());
@@ -643,25 +639,25 @@ function PlayerComponent() {
   }, []);
 
   useEffect(() => {
-    // Card art is consumed exclusively by the playlist panel: with it
-    // closed there is nobody to show prefetched ffmpeg thumbnails, while
-    // each uncached file costs ~1 s of CPU decode contention against mpv
-    // startup. Rows fetch lazily themselves once the panel opens.
-    if (!path || playlistCount === 0 || !playlistOpen) return;
+    // Neighbor cards (prev/next files) warm on every file change, even with
+    // the playlist closed: the prev/next buttons show them on hover. The full
+    // list warms only with the panel open; already cached neighbors are
+    // skipped by both schedulers, so opening the panel never refetches them.
+    if (!path || playlistCount === 0) return;
     let cancelled = false;
+    const index = playlistIndex;
     readPlaylistEntries()
       .then((entries) => {
-        if (!cancelled)
-          scheduleCardPrefetch(
-            entries.map((entry) => entry.filename),
-            path
-          );
+        if (cancelled) return;
+        const filenames = entries.map((entry) => entry.filename);
+        if (playlistOpen) scheduleCardPrefetch(filenames, path);
+        else scheduleNeighborPrefetch(filenames, path, index);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [path, playlistCount, playlistOpen]);
+  }, [path, playlistCount, playlistIndex, playlistOpen]);
 
   useTauriEvent<{ paths: string[] }>(
     "tauri://drag-drop",
@@ -844,10 +840,7 @@ function PlayerComponent() {
     const duration = playbackAtoms.duration.get();
     const timePos = playbackAtoms.timePos.get();
     const mode = playerAtoms.seekMode.get();
-    const target = Math.max(
-      0,
-      Math.min(duration || Number.MAX_SAFE_INTEGER, timePos + seconds)
-    );
+    const target = Math.max(0, Math.min(duration || Number.MAX_SAFE_INTEGER, timePos + seconds));
     setSeekTarget(target);
     ignore(seekTo(target, mode));
   }, []);
@@ -1086,9 +1079,7 @@ function PlayerComponent() {
     <div className={rootClass(hasFile, failed, cursorHidden)}>
       <Keyboard
         onAction={onKeyboardAction}
-        onWheel={(direction) =>
-          onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)
-        }
+        onWheel={(direction) => onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)}
       />
 
       <div className={barClass("top", immersive, barsHidden)}>

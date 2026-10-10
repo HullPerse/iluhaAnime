@@ -117,6 +117,7 @@ export interface SearchStore {
   animeProfileId: number | null;
   crossSearchQuery: string | null;
   anilistSearchQuery: string | null;
+  resultSource: Source | null;
   sortBy: SortKey;
   sortDirection: SortDirection;
   filters: SearchFilters;
@@ -140,6 +141,7 @@ export interface SearchStore {
   clearAllLearning: () => Promise<void>;
   setCrossSearchQuery: (query: string | null) => void;
   setAnilistSearchQuery: (query: string | null) => void;
+  setResultSource: (source: Source | null) => void;
   setSortBy: (sort: SortKey) => void;
   setSortDirection: (dir: SortDirection) => void;
   setFilters: (filters: Partial<SearchFilters>) => void;
@@ -243,6 +245,7 @@ export type EraiErrorCode =
   | "webview_save"
   | "webview_not_found"
   | "no_session"
+  | "proxy_invalid"
   | "network";
 
 export type RutrackerErrorCode =
@@ -349,8 +352,10 @@ export interface SelectedSearchTorrent {
 
 export interface SearchQueryController {
   source: Source;
+  resultSource: Source | null;
   sourceOptions: { value: string; label: string }[];
   isLoading: boolean;
+  isFetching: boolean;
   searchParams: string;
   submittedQuery: string;
   didYouMean: string | null;

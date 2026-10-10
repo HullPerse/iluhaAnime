@@ -2,67 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { assetUrl } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { formatClock } from "@/lib/utils/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter } from "@/types/videoPlayer";
 
 const TOOLTIP_WIDTH = 128;
 const LIVE_SCRUB_INTERVAL = 80;
-const HOVER_THUMB_DEBOUNCE = 200;
-
-interface HoverThumbResponse {
-  url: string | null;
-  captured: boolean;
-}
-
-function useHoverThumb(
-  path: string,
-  duration: number,
-  hoverTime: number | null
-): HoverThumb | null {
-  const [thumb, setThumb] = useState<HoverThumb | null>(null);
-  const requestedRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    requestedRef.current = null;
-    setThumb(null);
-    if (hoverTime === null || !path || duration <= 0) {
-      return;
-    }
-    const target = hoverTime;
-    requestedRef.current = target;
-    const timer = window.setTimeout(() => {
-      attempt(
-        invokeTyped<HoverThumbResponse>("player_hover_thumb", { path, timestamp: target })
-      ).then(([res]) => {
-        if (requestedRef.current !== target) return;
-        setThumb(res?.url ? { url: assetUrl(res.url), time: target } : null);
-      });
-    }, HOVER_THUMB_DEBOUNCE);
-    return () => window.clearTimeout(timer);
-  }, [hoverTime, path, duration]);
-
-  return thumb;
-}
-
-interface HoverThumb {
-  url: string;
-  time: number;
-}
-
-/**
- * Render gate for hover thumbnails: a resolved capture belongs to exactly
- * one hover position, but the cleanup that clears a stale capture runs in an
- * effect — after paint. Without this check the stale image renders at the
- * new tooltip position for one frame (a flash of the old frame).
- */
-export function selectThumbUrl(thumb: HoverThumb | null, hoverTime: number | null): string | null {
-  if (!thumb || hoverTime === null) return null;
-  return thumb.time === hoverTime ? thumb.url : null;
-}
 
 type HoverInfo = { time: number; x: number; chapter?: string };
 
@@ -99,20 +44,12 @@ function Timeline({
   onCommitSeek: (time: number) => void;
 }) {
   const timePos = useCell(playbackAtoms.timePos);
-  const path = useCell(playbackAtoms.path);
   const { t } = useI18n();
   const barRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [showRemaining, setShowRemaining] = useState(false);
-  const hoverTime = hover?.time ?? null;
-  // No captures while scrubbing: a capture seeks mpv away and back, which
-  // freezes snapshots (see the capturing guard on the backend ticker) right
-  // when the timeline needs fresh positions most. The tooltip keeps showing
-  // time + chapter; the image arrives once the drag ends.
-  const thumb = useHoverThumb(path, duration, dragging ? null : hoverTime);
-  const thumbUrl = selectThumbUrl(thumb, hoverTime);
 
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
@@ -209,9 +146,6 @@ function Timeline({
             style={{ left: `${hover.x}px`, transform: "translateX(-50%)" }}
           >
             <div className="windows95-border bg-primary windows95-text text-text flex w-max max-w-56 min-w-32 flex-col items-center gap-px px-1.5 py-0.5">
-              {thumbUrl ? (
-                <img src={thumbUrl} alt="" className="h-auto w-32" draggable={false} />
-              ) : null}
               {hover.chapter ? (
                 <span
                   className="text-text w-full truncate text-center text-xs font-bold whitespace-nowrap"

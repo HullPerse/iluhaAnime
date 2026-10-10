@@ -211,10 +211,15 @@ export async function applyAudioOptions(settings: PlayerSettings): Promise<void>
   await applyProperties(audioOptions(settings));
 }
 
-export async function openPlayer(files: string[], resume?: number): Promise<void> {
+export async function openPlayer(
+  files: string[],
+  resume?: number,
+  startIndex?: number
+): Promise<void> {
   await invokeTyped("player_open", {
     files,
     resume,
+    startIndex,
   });
 }
 
@@ -234,8 +239,12 @@ export async function closePlayerWindow(): Promise<void> {
   await invokeTyped("player_close_window");
 }
 
-export async function loadQueue(files: string[], resume?: number): Promise<void> {
-  await invokeTyped("player_load", { files, resume });
+export async function loadQueue(
+  files: string[],
+  resume?: number,
+  startIndex?: number
+): Promise<void> {
+  await invokeTyped("player_load", { files, resume, startIndex });
 }
 
 async function runMpvCommand(name: string, args: unknown[] = []): Promise<void> {
@@ -387,6 +396,6 @@ export async function readDuration(): Promise<number> {
 }
 
 export async function readPlaylistIndex(): Promise<number> {
-  const [value] = await attempt(getMpvProperty<number>("playlist-index", "int64"));
+  const [value] = await attempt(getMpvProperty<number>("playlist-pos", "int64"));
   return typeof value === "number" && Number.isFinite(value) ? value : -1;
 }

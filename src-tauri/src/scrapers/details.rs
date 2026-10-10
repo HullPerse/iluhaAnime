@@ -2,7 +2,10 @@ use futures::StreamExt;
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::LazyLock;
+
+use ego_tree::NodeRef;
 
 use crate::auth::{
     load_erai_cookies, load_nekobt_api_key, load_rutracker_cookies, load_rutracker_user_agent,
@@ -11,9 +14,9 @@ use crate::auth::{
 
 use super::clients::{
     absolute_detail_url, acquire_scraper_slot, build_client, build_nekobt_client,
-    build_rutracker_client_with_ua, cookies_to_header, decode_rutracker_page,
-    is_rutracker_challenge, parse_rus_number, resolve_proxy, rutracker_challenge_error,
-    RUTRACKER_DEFAULT_UA,
+    build_rutracker_client_with_ua, cookies_to_header, decode_rutracker_page, fetch_torrent_bytes,
+    format_file_size, is_rutracker_challenge, parse_rus_number, resolve_proxy,
+    rutracker_challenge_error, RUTRACKER_DEFAULT_UA,
 };
 
 fn hardcoded_selector(raw: &str) -> Selector {
@@ -33,6 +36,13 @@ static NESTED_LIST_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector
 static IMAGE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("img"));
 static POST_BODY_SEL: LazyLock<Selector> =
     LazyLock::new(|| hardcoded_selector(".post_body, .post-message, .postcontent"));
+static POSTER_IMG_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("img.postImg"));
+static VAR_POSTIMG_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("var.postImg"));
+static NICK_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".poster_info .nick, .poster-info .nick"));
+static BREADCRUMB_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".t-breadcrumb-top a"));
+static PRE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("pre.post-pre"));
 static SPOILER_SEL: LazyLock<Selector> = LazyLock::new(|| {
     hardcoded_selector(".sp-wrap, .spoiler, .spoil, [class*='spoiler'], .screenshots, #screenshots")
 });
@@ -52,11 +62,21 @@ static COMMENT_MSG_SEL: LazyLock<Selector> =
     LazyLock::new(|| hardcoded_selector(".comment_message, .user_message_c"));
 static BODY_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("body"));
 static FILE_ROW_SEL: LazyLock<Selector> = LazyLock::new(|| {
-    hardcoded_selector("#tor-filelist li, #tor-filelist tr, #tor-filelist .file, #tor-filelist .ft-file, .filetree li, .filetree tr")
+    hardcoded_selector("#tor-filelist li, #tor-filelist tr, #tor-filelist .file, #tor-filelist .ft-file, .filetree li, .filetree tr, .ftree li, .ftree .file, li.file, li.dir")
 });
 static FILE_CELL_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("td, th, span, a"));
 static FILE_NESTED_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("li, tr"));
+static FTREE_FILE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("li.file > div"));
+static FTREE_NAME_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("b"));
+static FTREE_SIZE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("i"));
 static ANCHOR_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("a"));
+static NEKO_TOOLTIP_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("span.tooltip[data-tip]"));
+static NEKO_COVER_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("a[href^=\"/media/\"] img"));
+static NEKO_FILE_ROW_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("ul.menu > li"));
+static NEKO_SERIES_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector(".card-body h2"));
+static SPAN_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("span"));
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -80,6 +100,22 @@ pub struct TorrentDetailComment {
     pub text: String,
 }
 
+/// One rich block of a rutracker release description, in document order.
+///
+/// Anything the renderer does not understand degrades to [`DescriptionBlock::Text`],
+/// so old frontends keep working: they ignore unknown `kind` values.
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum DescriptionBlock {
+    Heading { text: String },
+    Text { text: String },
+    Field { label: String, value: String },
+    Image { src: String },
+    Spoiler { title: String, body: String },
+    Code { text: String },
+    Link { text: String, href: String },
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TorrentDetails {
@@ -101,6 +137,10 @@ pub struct TorrentDetails {
     pub fields: Vec<TorrentDetailField>,
     pub files: Vec<TorrentDetailFile>,
     pub screenshots: Vec<String>,
+    pub poster: Option<String>,
+    pub mediainfo: Option<String>,
+    pub author: String,
+    pub description_blocks: Vec<DescriptionBlock>,
     pub comments: Vec<TorrentDetailComment>,
     pub notice: Option<String>,
 }
@@ -176,6 +216,41 @@ fn clean_detail_text_multiline(value: impl Into<String>) -> String {
         cleaned.push_str(&line);
     }
     cleaned
+}
+
+const FOOTER_WORDS: &[&str] = &["помощь", "донаты", "donations", "donate"];
+
+fn is_footer_line(line: &str) -> bool {
+    let mut words = 0;
+    for token in line.split(['|', '·', '•', '/', '\\']) {
+        let token = token
+            .trim()
+            .trim_matches(|c: char| "—–-·•*:;\"'«»()".contains(c))
+            .trim()
+            .to_lowercase();
+        if token.is_empty() {
+            continue;
+        }
+        if !FOOTER_WORDS.contains(&token.as_str()) {
+            return false;
+        }
+        words += 1;
+    }
+    words > 0
+}
+
+/// Drops trailing forum-footer lines ("Помощь | Донаты | Donations")
+/// that releases append after the actual description.
+fn strip_trailing_footer(text: &str) -> String {
+    let mut lines: Vec<&str> = text.lines().collect();
+    while let Some(last) = lines.last() {
+        if last.trim().is_empty() || is_footer_line(last) {
+            lines.pop();
+        } else {
+            break;
+        }
+    }
+    lines.join("\n")
 }
 
 fn element_text(element: scraper::ElementRef<'_>) -> String {
@@ -463,10 +538,45 @@ fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
 }
 
 const IMAGE_NOISE: &[&str] = &[
-    "logo", "avatar", "icon", "emoji", "emoticon", "smilie", "smiley", "captcha", "spacer",
-    "pixel", "blank", "rating", "bullet", "arrow", "banner", "favicon", "imageset", "/styles/",
-    "loading", "userbar", "1x1", "q_icon", "edited", "online", "offline", "flag_",
+    "logo",
+    "avatar",
+    "icon",
+    "emoji",
+    "emoticon",
+    "smilie",
+    "smiley",
+    "captcha",
+    "spacer",
+    "pixel",
+    "blank",
+    "rating",
+    "bullet",
+    "arrow",
+    "banner",
+    "favicon",
+    "imageset",
+    "/styles/",
+    "loading",
+    "userbar",
+    "1x1",
+    "q_icon",
+    "edited",
+    "online",
+    "offline",
+    "flag_",
+    "smiles",
+    "/flags/",
+    "imdb",
+    "kinopoisk",
 ];
+
+const POSTIMG_SMILEY_CLASS: &str = "postimg1em";
+
+fn is_postimg_smiley(class: &str) -> bool {
+    class
+        .split_whitespace()
+        .any(|token| token == POSTIMG_SMILEY_CLASS)
+}
 
 fn is_image_noise(class: &str, src_lower: &str) -> bool {
     let hay = format!("{class} {src_lower}");
@@ -479,9 +589,19 @@ fn push_image_src(src: &str, origin: &str, images: &mut Vec<String>) {
         return;
     }
     let url = absolute_detail_url(origin, src);
+    let url = upgrade_to_https(url);
     if url.starts_with("https://") && !images.contains(&url) {
         images.push(url);
     }
+}
+
+/// Rutracker topics mix `http://` and `https://` image hosts. Web views
+/// block plain-http subresources on secure pages, so normalize everything
+/// to `https://` — the image hosts rutracker uses all serve TLS.
+fn upgrade_to_https(url: String) -> String {
+    url.strip_prefix("http://")
+        .map(|rest| format!("https://{rest}"))
+        .unwrap_or(url)
 }
 
 fn collect_imgs(
@@ -507,6 +627,32 @@ fn collect_imgs(
             break;
         }
     }
+    if images.len() >= limit {
+        return;
+    }
+    collect_var_postimgs(element, origin, images, limit);
+}
+
+/// Rutracker renders attached images as `<var class="postImg" title="URL">`
+/// (thumbnail inside a link to the full image). Plain `img` collection
+/// misses them entirely.
+fn collect_var_postimgs(
+    element: scraper::ElementRef<'_>,
+    origin: &str,
+    images: &mut Vec<String>,
+    limit: usize,
+) {
+    let var_sel = VAR_POSTIMG_SEL.clone();
+    for var in element.select(&var_sel) {
+        let title = var.value().attr("title").unwrap_or_default();
+        if title.trim().is_empty() {
+            continue;
+        }
+        push_image_src(title, origin, images);
+        if images.len() >= limit {
+            break;
+        }
+    }
 }
 
 fn collect_markdown_imgs(
@@ -527,6 +673,564 @@ fn collect_markdown_imgs(
             }
         }
     }
+}
+
+const POSTER_LINK_EXTS: &[&str] = &[".jpg", ".jpeg", ".png", ".webp", ".gif"];
+
+fn poster_link_target(href: &str) -> Option<&str> {
+    let clean = href.split(['?', '#']).next().unwrap_or_default();
+    let lower = clean.to_lowercase();
+    POSTER_LINK_EXTS
+        .iter()
+        .any(|ext| lower.ends_with(ext))
+        .then_some(href)
+}
+
+fn pick_poster_src(src: &str, class: &str, origin: &str) -> Option<String> {
+    if src.trim().is_empty() || is_image_noise(class, &src.to_lowercase()) {
+        return None;
+    }
+    let url = upgrade_to_https(absolute_detail_url(origin, src));
+    url.starts_with("https://").then_some(url)
+}
+
+fn is_aligned_poster(class: &str) -> bool {
+    class
+        .split_whitespace()
+        .any(|token| token == "postimgaligned" || token == "img-right")
+}
+
+fn image_src<'a>(value: &'a scraper::ElementRef<'a>) -> &'a str {
+    let element = value.value();
+    element
+        .attr("data-original")
+        .or_else(|| element.attr("data-src"))
+        .or_else(|| element.attr("src"))
+        .unwrap_or_default()
+}
+
+fn spoiler_is_screenshots(spoiler: &scraper::ElementRef<'_>) -> bool {
+    let heading = spoiler
+        .select(&SPOILER_HEAD_SEL.clone())
+        .next()
+        .map(element_text)
+        .unwrap_or_default()
+        .to_lowercase();
+    let class = spoiler
+        .value()
+        .attr("class")
+        .unwrap_or_default()
+        .to_lowercase();
+    heading.contains("скриншот") || heading.contains("screenshot") || class.contains("screenshot")
+}
+
+fn spoiler_src_sets(post: &scraper::ElementRef<'_>) -> (HashSet<String>, HashSet<String>) {
+    let mut screenshots = HashSet::new();
+    let mut others = HashSet::new();
+    let spoiler_sel = SPOILER_SEL.clone();
+    let image_sel = IMAGE_SEL.clone();
+    let anchor_sel = ANCHOR_SEL.clone();
+    for spoiler in post.select(&spoiler_sel) {
+        let target = if spoiler_is_screenshots(&spoiler) {
+            &mut screenshots
+        } else {
+            &mut others
+        };
+        for image in spoiler.select(&image_sel) {
+            target.insert(image_src(&image).to_string());
+        }
+        for var in spoiler.select(&VAR_POSTIMG_SEL.clone()) {
+            target.insert(var.value().attr("title").unwrap_or_default().to_string());
+        }
+        for link in spoiler.select(&anchor_sel) {
+            target.insert(link.value().attr("href").unwrap_or_default().to_string());
+        }
+    }
+    (screenshots, others)
+}
+
+fn element_class(value: &scraper::ElementRef<'_>) -> String {
+    value
+        .value()
+        .attr("class")
+        .unwrap_or_default()
+        .to_lowercase()
+}
+
+fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
+    let post = doc.select(&POST_BODY_SEL.clone()).next()?;
+    let (screenshot_srcs, other_spoiler_srcs) = spoiler_src_sets(&post);
+    let outside_spoilers =
+        |src: &str| !screenshot_srcs.contains(src) && !other_spoiler_srcs.contains(src);
+    let not_screenshot = |src: &str| !screenshot_srcs.contains(src);
+    let real_poster = |image: &scraper::ElementRef<'_>| {
+        let class = element_class(image);
+        if is_postimg_smiley(&class) {
+            return None;
+        }
+        pick_poster_src(image_src(image), &class, origin)
+    };
+    for image in post.select(&POSTER_IMG_SEL.clone()) {
+        let class = element_class(&image);
+        if !is_aligned_poster(&class) {
+            continue;
+        }
+        let src = image_src(&image);
+        if !outside_spoilers(src) {
+            continue;
+        }
+        if let Some(url) = real_poster(&image) {
+            return Some(url);
+        }
+    }
+    for image in post.select(&POSTER_IMG_SEL.clone()) {
+        let src = image_src(&image);
+        if !outside_spoilers(src) {
+            continue;
+        }
+        if let Some(url) = real_poster(&image) {
+            return Some(url);
+        }
+    }
+    // Poster can also be a `<var class="postImg" title="URL">` outside spoilers.
+    for var in post.select(&VAR_POSTIMG_SEL.clone()) {
+        let title = var.value().attr("title").unwrap_or_default();
+        if !outside_spoilers(title) {
+            continue;
+        }
+        if let Some(url) = pick_poster_src(title, &element_class(&var), origin) {
+            return Some(url);
+        }
+    }
+    for image in post.select(&POSTER_IMG_SEL.clone()) {
+        let src = image_src(&image);
+        if !not_screenshot(src) {
+            continue;
+        }
+        if let Some(url) = real_poster(&image) {
+            return Some(url);
+        }
+    }
+    for image in post.select(&IMAGE_SEL.clone()) {
+        let src = image_src(&image);
+        if !outside_spoilers(src) {
+            continue;
+        }
+        if let Some(url) = real_poster(&image) {
+            return Some(url);
+        }
+    }
+    for link in post.select(&ANCHOR_SEL.clone()) {
+        let href = link.value().attr("href").unwrap_or_default();
+        let Some(target) = poster_link_target(href) else {
+            continue;
+        };
+        if !not_screenshot(target) {
+            continue;
+        }
+        if let Some(url) = pick_poster_src(target, &element_class(&link), origin) {
+            return Some(url);
+        }
+    }
+    None
+}
+
+fn spoiler_is_mediainfo(spoiler: &scraper::ElementRef<'_>) -> bool {
+    spoiler
+        .select(&SPOILER_HEAD_SEL.clone())
+        .next()
+        .map(element_text)
+        .unwrap_or_default()
+        .to_lowercase()
+        .contains("mediainfo")
+}
+
+const MAX_MEDIAINFO_CHARS: usize = 8000;
+
+fn looks_like_mediainfo(text: &str) -> bool {
+    text.contains("General") && (text.contains("Complete name") || text.contains("File size"))
+}
+
+fn truncate_mediainfo(text: String) -> String {
+    if text.len() > MAX_MEDIAINFO_CHARS {
+        let mut cut = text[..MAX_MEDIAINFO_CHARS].to_string();
+        cut.push_str("\n…");
+        cut
+    } else {
+        text
+    }
+}
+
+/// Raw `MediaInfo` dump from the `MediaInfo` spoiler, if the topic has one.
+fn parse_rutracker_mediainfo(doc: &Html) -> Option<String> {
+    let post = doc.select(&POST_BODY_SEL.clone()).next()?;
+    let body_sel = SPOILER_BODY_SEL.clone();
+    for spoiler in post.select(&SPOILER_SEL.clone()) {
+        if !spoiler_is_mediainfo(&spoiler) {
+            continue;
+        }
+        let area = spoiler.select(&body_sel).next().unwrap_or(spoiler);
+        let text = element_text_multiline(area);
+        let text = text.trim().to_string();
+        if text.is_empty() {
+            continue;
+        }
+        return Some(truncate_mediainfo(text));
+    }
+    // Fallback: MediaInfo is often pasted as `<pre class="post-pre">` under
+    // a differently-titled spoiler (or none at all).
+    for pre in post.select(&PRE_SEL.clone()) {
+        let text = element_text_multiline(pre);
+        let text = text.trim().to_string();
+        if looks_like_mediainfo(&text) {
+            return Some(truncate_mediainfo(text));
+        }
+    }
+    None
+}
+
+/// Show poster from an erai-raws.info anime page: the first content
+/// upload image, skipping plugin emoticons and theme chrome.
+fn parse_erai_poster(doc: &Html, origin: &str) -> Option<String> {
+    doc.select(&IMAGE_SEL.clone()).find_map(|image| {
+        let src = image_src(&image);
+        let lower = src.to_lowercase();
+        if !lower.contains("/wp-content/uploads/") {
+            return None;
+        }
+        pick_poster_src(src, &element_class(&image), origin)
+    })
+}
+
+/// Uploader nick from the first post (`.poster_info .nick`).
+fn parse_rutracker_author(doc: &Html) -> String {
+    doc.select(&NICK_SEL.clone())
+        .next()
+        .map(element_text)
+        .unwrap_or_default()
+}
+
+/// Forum breadcrumb, e.g. "Аниме / Японская анимация".
+fn parse_rutracker_category(doc: &Html) -> String {
+    doc.select(&BREADCRUMB_SEL.clone())
+        .map(element_text)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" / ")
+}
+
+/// Forum titles use inline `font-size: 24px` / `20px` headings.
+fn bb_font_size_px(style: &str) -> Option<u32> {
+    for part in style.split(';') {
+        let (name, value) = part.split_once(':')?;
+        if name.trim().eq_ignore_ascii_case("font-size") {
+            let digits: String = value
+                .trim()
+                .chars()
+                .take_while(char::is_ascii_digit)
+                .collect();
+            if let Ok(size) = digits.parse() {
+                return Some(size);
+            }
+        }
+    }
+    None
+}
+
+fn node_classes(node: NodeRef<'_, scraper::node::Node>) -> String {
+    node.value()
+        .as_element()
+        .map(|el| el.attr("class").unwrap_or_default().to_lowercase())
+        .unwrap_or_default()
+}
+
+fn node_text(node: NodeRef<'_, scraper::node::Node>) -> String {
+    if let Some(text) = node.value().as_text() {
+        let slice: &str = text;
+        return slice.to_string();
+    }
+    node.descendants()
+        .filter_map(|child| {
+            child.value().as_text().map(|text| {
+                let slice: &str = text;
+                slice.to_string()
+            })
+        })
+        .collect::<String>()
+}
+
+struct DescriptionBuilder<'a> {
+    origin: &'a str,
+    blocks: Vec<DescriptionBlock>,
+    paragraph: String,
+}
+
+const MAX_DESCRIPTION_BLOCKS: usize = 200;
+const HEADING_MIN_PX: u32 = 18;
+
+impl DescriptionBuilder<'_> {
+    fn push_text(&mut self, text: &str) {
+        if text.trim().is_empty() {
+            return;
+        }
+        if !self.paragraph.is_empty() && !self.paragraph.ends_with(' ') {
+            self.paragraph.push(' ');
+        }
+        self.paragraph.push_str(text.trim());
+    }
+
+    fn flush_paragraph(&mut self) {
+        let text = clean_detail_text(std::mem::take(&mut self.paragraph));
+        if !text.is_empty() {
+            self.blocks.push(DescriptionBlock::Text { text });
+        }
+    }
+
+    fn push_image(&mut self, src: &str) {
+        self.flush_paragraph();
+        if self.blocks.len() >= MAX_DESCRIPTION_BLOCKS {
+            return;
+        }
+        if let Some(url) = pick_poster_src(src, "", self.origin) {
+            self.blocks.push(DescriptionBlock::Image { src: url });
+        }
+    }
+
+    fn is_full(&self) -> bool {
+        self.blocks.len() >= MAX_DESCRIPTION_BLOCKS
+    }
+}
+
+fn walk_description_children(
+    element: scraper::ElementRef<'_>,
+    builder: &mut DescriptionBuilder<'_>,
+) {
+    let children: Vec<_> = element.children().collect();
+    let mut index = 0;
+    while index < children.len() && !builder.is_full() {
+        index = visit_description_child(builder, &children, index);
+    }
+    builder.flush_paragraph();
+}
+
+fn visit_description_child(
+    builder: &mut DescriptionBuilder<'_>,
+    siblings: &[NodeRef<'_, scraper::node::Node>],
+    index: usize,
+) -> usize {
+    let node = siblings[index];
+    if node.value().as_text().is_some() {
+        builder.push_text(&node_text(node));
+        return index + 1;
+    }
+    let Some(element) = scraper::ElementRef::wrap(node) else {
+        return index + 1;
+    };
+    let name = element.value().name();
+    let class = node_classes(node);
+    match name {
+        "br" | "hr" => {
+            builder.flush_paragraph();
+        }
+        "img" => {
+            let src = image_src(&element);
+            let is_smiley = class.split_whitespace().any(|token| {
+                token == "smile"
+                    || token == POSTIMG_SMILEY_CLASS
+                    || token.contains("smiley")
+                    || token.contains("smilie")
+            });
+            if !is_smiley && !src.trim().is_empty() {
+                builder.push_image(src);
+            }
+        }
+        "var" if class.split_whitespace().any(|token| token == "postimg") => {
+            let title = element.value().attr("title").unwrap_or_default();
+            builder.push_image(title);
+        }
+        "span" | "font" | "b" | "u" | "i" | "em" | "strong" | "big" | "small" => {
+            if class.split_whitespace().any(|token| token == "post-b") {
+                return visit_post_field(builder, siblings, index, element);
+            }
+            let big_title = element
+                .value()
+                .attr("style")
+                .and_then(bb_font_size_px)
+                .is_some_and(|size| size >= HEADING_MIN_PX)
+                || class.split_whitespace().any(|token| token == "post-align");
+            if big_title {
+                builder.flush_paragraph();
+                let text = clean_detail_text(node_text(*element));
+                if !text.is_empty() {
+                    builder.blocks.push(DescriptionBlock::Heading { text });
+                }
+            } else {
+                builder.push_text(&node_text(*element));
+            }
+        }
+        "a" => {
+            return visit_description_link(builder, siblings, index, element);
+        }
+        "div"
+            if class.split_whitespace().any(|token| token == "sp-wrap")
+                || class.contains("spoiler")
+                || class.contains("spoil") =>
+        {
+            builder.flush_paragraph();
+            if !spoiler_is_screenshots(&element) {
+                let title = element
+                    .select(&SPOILER_HEAD_SEL.clone())
+                    .next()
+                    .map(element_text)
+                    .unwrap_or_default();
+                let body = element
+                    .select(&SPOILER_BODY_SEL.clone())
+                    .next()
+                    .map(element_text_multiline)
+                    .unwrap_or_default();
+                let body = strip_trailing_footer(&body);
+                if !body.trim().is_empty() && !builder.is_full() {
+                    builder.blocks.push(DescriptionBlock::Spoiler {
+                        title: title.trim().to_string(),
+                        body: body.trim().to_string(),
+                    });
+                }
+            }
+        }
+        "pre" => {
+            builder.flush_paragraph();
+            let text = element_text_multiline(element).trim().to_string();
+            if !text.is_empty() && !looks_like_mediainfo(&text) && !builder.is_full() {
+                builder.blocks.push(DescriptionBlock::Code { text });
+            }
+        }
+        "ul" | "ol" => {
+            builder.flush_paragraph();
+            for item in element.children().filter_map(scraper::ElementRef::wrap) {
+                if item.value().name() == "li" && !builder.is_full() {
+                    let text = clean_detail_text(node_text(*item));
+                    if !text.is_empty() {
+                        builder.blocks.push(DescriptionBlock::Text {
+                            text: format!("• {text}"),
+                        });
+                    }
+                }
+            }
+        }
+        "table" | "script" | "style" => {}
+        _ => {
+            walk_description_children(element, builder);
+        }
+    }
+    index + 1
+}
+
+/// `<span class="post-b">Label</span>: value<br>` rows become fields.
+fn visit_post_field(
+    builder: &mut DescriptionBuilder<'_>,
+    siblings: &[NodeRef<'_, scraper::node::Node>],
+    index: usize,
+    element: scraper::ElementRef<'_>,
+) -> usize {
+    builder.flush_paragraph();
+    let label = clean_detail_text(node_text(*element))
+        .trim_end_matches(':')
+        .trim()
+        .to_string();
+    let mut value = String::new();
+    let mut cursor = index + 1;
+    while cursor < siblings.len() {
+        let sibling = siblings[cursor];
+        if let Some(el) = scraper::ElementRef::wrap(sibling) {
+            let sibling_name = el.value().name();
+            if ["br", "hr", "div", "table", "pre", "ul", "ol"].contains(&sibling_name) {
+                break;
+            }
+            if sibling_name == "span"
+                && node_classes(sibling)
+                    .split_whitespace()
+                    .any(|token| token == "post-b")
+            {
+                break;
+            }
+            value.push_str(&node_text(sibling));
+            value.push(' ');
+        } else {
+            value.push_str(&node_text(sibling));
+            value.push(' ');
+        }
+        cursor += 1;
+    }
+    let value = clean_detail_text(value);
+    let value = value.trim_start_matches(':').trim().to_string();
+    if !label.is_empty() && !value.is_empty() && !builder.is_full() {
+        builder
+            .blocks
+            .push(DescriptionBlock::Field { label, value });
+    } else if !value.is_empty() {
+        builder.push_text(&value);
+    }
+    cursor
+}
+
+fn visit_description_link(
+    builder: &mut DescriptionBuilder<'_>,
+    siblings: &[NodeRef<'_, scraper::node::Node>],
+    index: usize,
+    element: scraper::ElementRef<'_>,
+) -> usize {
+    let href = element.value().attr("href").unwrap_or_default();
+    if href.starts_with("magnet:") {
+        return index + 1;
+    }
+    let image_sel = IMAGE_SEL.clone();
+    let var_sel = VAR_POSTIMG_SEL.clone();
+    let shot = element
+        .select(&image_sel)
+        .next()
+        .map(|image| image_src(&image).to_string())
+        .filter(|src| !src.trim().is_empty())
+        .or_else(|| {
+            element
+                .select(&var_sel)
+                .next()
+                .map(|var| var.value().attr("title").unwrap_or_default().to_string())
+                .filter(|title| !title.trim().is_empty())
+        });
+    if let Some(src) = shot {
+        builder.push_image(&src);
+        return index + 1;
+    }
+    let _ = siblings;
+    builder.flush_paragraph();
+    let text = clean_detail_text(node_text(*element));
+    if text.is_empty() {
+        return index + 1;
+    }
+    if href.trim().is_empty() || href.starts_with('#') {
+        builder.push_text(&text);
+    } else if !builder.is_full() {
+        let absolute = absolute_detail_url(builder.origin, href);
+        builder.blocks.push(DescriptionBlock::Link {
+            text,
+            href: absolute,
+        });
+    }
+    index + 1
+}
+
+/// Rich release-description blocks from the first post, in document order.
+fn parse_rutracker_description_blocks(doc: &Html, origin: &str) -> Vec<DescriptionBlock> {
+    let Some(post) = doc.select(&POST_BODY_SEL.clone()).next() else {
+        return Vec::new();
+    };
+    let mut builder = DescriptionBuilder {
+        origin,
+        blocks: Vec::new(),
+        paragraph: String::new(),
+    };
+    walk_description_children(post, &mut builder);
+    builder.blocks
 }
 
 fn description_container<'a>(doc: &'a Html, source: &str) -> Option<scraper::ElementRef<'a>> {
@@ -574,21 +1278,7 @@ fn collect_rutracker_screenshots(doc: &Html, origin: &str) -> Vec<String> {
     let mut images = Vec::new();
 
     for spoiler in post.select(&spoiler_sel) {
-        let heading = spoiler
-            .select(&heading_sel)
-            .next()
-            .map(element_text)
-            .unwrap_or_default()
-            .to_lowercase();
-        let class = spoiler
-            .value()
-            .attr("class")
-            .unwrap_or_default()
-            .to_lowercase();
-        let is_screenshot_spoiler = heading.contains("скриншот")
-            || heading.contains("screenshot")
-            || class.contains("screenshot");
-        if !is_screenshot_spoiler {
+        if !spoiler_is_screenshots(&spoiler) {
             continue;
         }
 
@@ -794,6 +1484,13 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
         })
         .unwrap_or_else(|| response.to_string());
     let doc = Html::parse_document(&html);
+    // Exact pass for the native `.ftree` markup:
+    // `li.file > div > b` (name) + `i` (size). `li.dir` folders are
+    // containers by construction and never match `li.file > div`.
+    let exact = parse_rutracker_ftree_files(&doc);
+    if !exact.is_empty() {
+        return exact;
+    }
     let row_sel = FILE_ROW_SEL.clone();
     let cell_sel = FILE_CELL_SEL.clone();
     let nested_sel = FILE_NESTED_SEL.clone();
@@ -838,6 +1535,52 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
         }
     }
     files
+}
+
+fn parse_rutracker_ftree_files(doc: &Html) -> Vec<TorrentDetailFile> {
+    const MAX_FTREE_FILES: usize = 500;
+    let mut files = Vec::new();
+    for row in doc.select(&FTREE_FILE_SEL.clone()) {
+        let name = row
+            .select(&FTREE_NAME_SEL.clone())
+            .next()
+            .map(element_text)
+            .unwrap_or_default();
+        if name.is_empty() || name.len() > 500 {
+            continue;
+        }
+        let size = row
+            .select(&FTREE_SIZE_SEL.clone())
+            .next()
+            .map(element_text)
+            .filter(|size| looks_like_file_size(size))
+            .unwrap_or_default();
+        if !files
+            .iter()
+            .any(|file: &TorrentDetailFile| file.name == name)
+        {
+            files.push(TorrentDetailFile { name, size });
+        }
+        if files.len() >= MAX_FTREE_FILES {
+            break;
+        }
+    }
+    files
+}
+
+/// File list decoded from raw `.torrent` bytes (pure, no network).
+fn files_from_torrent_bytes(bytes: &[u8]) -> Vec<TorrentDetailFile> {
+    crate::bencode::extract_torrent_files(bytes)
+        .map(|entries| {
+            entries
+                .into_iter()
+                .map(|(name, size)| TorrentDetailFile {
+                    name,
+                    size: format_file_size(size as f64),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 async fn fetch_rutracker_file_tree(
@@ -994,7 +1737,119 @@ fn parse_animetosho_file(doc: &Html) -> Vec<TorrentDetailFile> {
     Vec::new()
 }
 
-fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDetails {
+#[derive(Default)]
+struct NekobtMeta {
+    seeders: u32,
+    leechers: u32,
+    downloads: u32,
+    size: String,
+    uploader: String,
+    uploaded_at: String,
+    info_hash: String,
+}
+
+fn is_relative_time_tip(tip: &str) -> bool {
+    let tip = tip.trim().to_lowercase();
+    ["second", "minute", "hour", "day", "week", "month", "year"]
+        .iter()
+        .any(|unit| tip.contains(unit) && tip.contains("ago"))
+}
+
+/// Stats live in `span.tooltip[data-tip="Seeders|Leechers|…"]`; the span
+/// text after the icon svg is the value.
+fn parse_nekobt_meta(doc: &Html) -> NekobtMeta {
+    let mut meta = NekobtMeta::default();
+    for span in doc.select(&NEKO_TOOLTIP_SEL.clone()) {
+        let tip = span
+            .value()
+            .attr("data-tip")
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+        let value = element_text(span);
+        match tip.as_str() {
+            "Seeders" => meta.seeders = parse_rus_number(&value),
+            "Leechers" => meta.leechers = parse_rus_number(&value),
+            "Downloads" => meta.downloads = parse_rus_number(&value),
+            "Total Size" => meta.size = value,
+            "Uploader" => meta.uploader = value,
+            "Infohash" => meta.info_hash = value.to_lowercase(),
+            _ => {
+                if is_relative_time_tip(&tip) && meta.uploaded_at.is_empty() {
+                    meta.uploaded_at = value;
+                }
+            }
+        }
+    }
+    meta
+}
+
+/// Sidebar cover: `a[href^="/media/"] img` (AniList CDN).
+fn parse_nekobt_cover(doc: &Html, origin: &str) -> Option<String> {
+    doc.select(&NEKO_COVER_SEL.clone())
+        .next()
+        .and_then(|image| image.value().attr("src"))
+        .and_then(|src| {
+            let url = absolute_detail_url(origin, src);
+            url.starts_with("https://").then_some(url)
+        })
+}
+
+/// File rows: `ul.menu > li > span(flex justify-between)` with the name in
+/// the first *leaf* span and the size in the last one (container spans
+/// aggregate the whole row text and must be skipped).
+fn parse_nekobt_files(doc: &Html) -> Vec<TorrentDetailFile> {
+    const MAX_NEKO_FILES: usize = 500;
+    let mut files = Vec::new();
+    for row in doc.select(&NEKO_FILE_ROW_SEL.clone()) {
+        let spans: Vec<String> = row
+            .select(&SPAN_SEL.clone())
+            .filter(|span| span.select(&SPAN_SEL.clone()).next().is_none())
+            .map(element_text)
+            .filter(|part| !part.is_empty())
+            .collect();
+        if spans.len() < 2 {
+            continue;
+        }
+        let name = spans[0].clone();
+        let size = spans[spans.len() - 1].clone();
+        if name.is_empty() || name.len() > 500 {
+            continue;
+        }
+        if !files
+            .iter()
+            .any(|file: &TorrentDetailFile| file.name == name)
+        {
+            files.push(TorrentDetailFile { name, size });
+        }
+        if files.len() >= MAX_NEKO_FILES {
+            break;
+        }
+    }
+    files
+}
+
+/// Direct `.torrent` download served by the JSON API endpoint.
+fn parse_nekobt_torrent_url(doc: &Html, origin: &str) -> String {
+    let link_sel = ANCHOR_SEL.clone();
+    for link in doc.select(&link_sel) {
+        let href = link.value().attr("href").unwrap_or_default();
+        if href.contains("/api/v1/torrents/") && href.contains("download") {
+            return absolute_detail_url(origin, href);
+        }
+    }
+    String::new()
+}
+
+/// Series title from the sidebar card (`h2`).
+fn parse_nekobt_series(doc: &Html) -> String {
+    doc.select(&NEKO_SERIES_SEL.clone())
+        .next()
+        .map(element_text)
+        .unwrap_or_default()
+}
+
+pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDetails {
     let origin = detail_origin_for_url(source, url)
         .or_else(|| detail_origin(source))
         .unwrap_or("");
@@ -1070,6 +1925,9 @@ fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDeta
     if description.is_empty() && source == "erai-raws" {
         description = parse_animetosho_comment(&doc);
     }
+    if source == "rutracker" {
+        description = strip_trailing_footer(&description);
+    }
     let mut magnet = String::new();
     let mut torrent_url = String::new();
     let link_sel = ANCHOR_SEL.clone();
@@ -1090,13 +1948,33 @@ fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDeta
                     || candidate
                         .strip_prefix(origin)
                         .is_some_and(|rest| rest.starts_with('/'));
-                if same_origin {
+                // Erai-raws serves files from its own CDN host.
+                let erai_cdn = source == "erai-raws"
+                    && url::Url::parse(&candidate)
+                        .ok()
+                        .and_then(|parsed| parsed.host_str().map(str::to_string))
+                        .is_some_and(|host| {
+                            host == "ddl.erai-raws.info" || host.ends_with(".erai-raws.info")
+                        });
+                if same_origin || erai_cdn {
                     torrent_url = candidate;
                 }
             }
         }
     }
-    let category = detail_field(&fields, &["category", "раздел", "категория"]);
+    if source == "nekobt" && torrent_url.is_empty() {
+        torrent_url = parse_nekobt_torrent_url(&doc, origin);
+    }
+    let category = if source == "rutracker" {
+        let breadcrumb = parse_rutracker_category(&doc);
+        if breadcrumb.is_empty() {
+            detail_field(&fields, &["category", "раздел", "категория"])
+        } else {
+            breadcrumb
+        }
+    } else {
+        detail_field(&fields, &["category", "раздел", "категория"])
+    };
     let parsed_size = detail_field(&fields, &["size", "размер"]);
     let size = if topic_size.is_empty() || !looks_like_file_size(&topic_size) {
         parsed_size
@@ -1144,19 +2022,79 @@ fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDeta
     };
     let info_hash = detail_field(&fields, &["info hash", "hash", "хеш"]);
     let downloads = topic_downloads;
+    let neko_meta = if source == "nekobt" {
+        parse_nekobt_meta(&doc)
+    } else {
+        NekobtMeta::default()
+    };
+    let neko_series = if source == "nekobt" {
+        parse_nekobt_series(&doc)
+    } else {
+        String::new()
+    };
+    let (size, uploaded_at, seeders, leechers, downloads, info_hash) = if source == "nekobt" {
+        (
+            neko_meta.size.clone(),
+            neko_meta.uploaded_at.clone(),
+            neko_meta.seeders,
+            neko_meta.leechers,
+            neko_meta.downloads,
+            neko_meta.info_hash.clone(),
+        )
+    } else {
+        (size, uploaded_at, seeders, leechers, downloads, info_hash)
+    };
+    if source == "nekobt" && description.is_empty() && !neko_series.is_empty() {
+        description = neko_series.clone();
+    }
     let files = if source == "rutracker" {
         Vec::new()
+    } else if source == "nekobt" {
+        parse_nekobt_files(&doc)
     } else if source == "erai-raws" && parse_detail_files(&doc).is_empty() {
         parse_animetosho_file(&doc)
     } else {
         parse_detail_files(&doc)
     };
-    let screenshots = parse_detail_screenshots(&doc, origin, source);
+    let mut screenshots = parse_detail_screenshots(&doc, origin, source);
+    let poster = if source == "rutracker" {
+        parse_rutracker_poster(&doc, origin)
+    } else if source == "nekobt" {
+        parse_nekobt_cover(&doc, origin)
+    } else if source == "erai-raws" {
+        parse_erai_poster(&doc, origin)
+    } else {
+        None
+    };
+    if let Some(url) = &poster {
+        if !screenshots.contains(url) {
+            screenshots.insert(0, url.clone());
+        }
+    }
+    let mediainfo = if source == "rutracker" {
+        parse_rutracker_mediainfo(&doc)
+    } else {
+        None
+    };
+    let author = if source == "rutracker" {
+        parse_rutracker_author(&doc)
+    } else if source == "nekobt" {
+        neko_meta.uploader.clone()
+    } else {
+        String::new()
+    };
+    let description_blocks = if source == "rutracker" {
+        parse_rutracker_description_blocks(&doc, origin)
+    } else {
+        Vec::new()
+    };
     let comments = parse_detail_comments(&doc, source);
     let has_details = !description.is_empty()
         || !fields.is_empty()
         || !files.is_empty()
         || !screenshots.is_empty()
+        || mediainfo.is_some()
+        || !description_blocks.is_empty()
         || !comments.is_empty()
         || !magnet.is_empty()
         || !torrent_url.is_empty();
@@ -1185,6 +2123,10 @@ fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDeta
         fields,
         files,
         screenshots,
+        poster,
+        mediainfo,
+        author,
+        description_blocks,
         comments,
         notice,
     }
@@ -1200,7 +2142,7 @@ pub async fn get_torrent_details(
     proxyUrl: Option<String>,
 ) -> Result<TorrentDetails, String> {
     let origin = validate_detail_url(&source, &url)?;
-    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
     let client = if source == "nekobt" {
         build_nekobt_client(proxy.as_deref())?
     } else if source == "rutracker" {
@@ -1220,11 +2162,13 @@ pub async fn get_torrent_details(
     } else if source == "erai-raws"
         && detail_origin_for_url(&source, &url) == Some("https://www.erai-raws.info")
     {
+        // Public pages (title, poster) work anonymously, like search;
+        // episode content unlocks once the user logs in, so attach
+        // cookies only when a session exists instead of hard-failing.
         let cookies = load_erai_cookies();
-        if cookies.is_empty() {
-            return Err("Not authenticated. Please login to Erai-Raws first.".to_string());
+        if !cookies.is_empty() {
+            request = request.header("Cookie", cookies_to_header(&cookies));
         }
-        request = request.header("Cookie", cookies_to_header(&cookies));
     } else if source == "nekobt" {
         let key = load_nekobt_api_key(&app_handle);
         if key.is_empty() {
@@ -1288,12 +2232,40 @@ pub async fn get_torrent_details(
             {
                 details.files = parse_rutracker_file_tree(&file_tree);
             }
+            // The `viewtorrent.php` fragment can come back empty (or fail
+            // silently on challenges). The `.torrent` itself always carries
+            // the exact file list, so use it as the fallback source.
+            if details.files.is_empty() {
+                if let Ok(bytes) = crate::auth::rutracker_get_torrent_bytes(
+                    app_handle.clone(),
+                    topic_id,
+                    proxy_url.clone(),
+                    proxyUrl.clone(),
+                )
+                .await
+                {
+                    details.files = files_from_torrent_bytes(&bytes);
+                }
+            }
         }
     }
 
     if details.title.is_empty() {
         details.title = origin.to_string();
     }
+
+    // Non-rutracker sources have no separate file-list endpoint: when the
+    // page carries no files but points at a `.torrent`, decode the list
+    // from the torrent metadata itself.
+    if source != "rutracker" && details.files.is_empty() && details.torrent_url.starts_with("http")
+    {
+        if let Ok(bytes) =
+            fetch_torrent_bytes(details.torrent_url.clone(), proxy_url, proxyUrl).await
+        {
+            details.files = files_from_torrent_bytes(&bytes);
+        }
+    }
+
     Ok(details)
 }
 
@@ -1446,6 +2418,97 @@ mod tests {
     }
 
     #[test]
+    fn nekobt_tooltip_stats_cover_files_and_torrent_url() {
+        let html = r#"
+            <html><body>
+              <span class="flex-0 inline-flex items-center gap-0.5 tooltip" data-tip="Seeders"><svg></svg> 177</span>
+              <span class="flex-0 inline-flex items-center gap-0.5 tooltip" data-tip="Leechers"><svg></svg> 1</span>
+              <span class="flex-0 inline-flex items-center gap-0.5 tooltip" data-tip="Downloads"><svg></svg> 2645</span>
+              <span class="flex-0 inline-flex items-center gap-0.5 tooltip" data-tip="Total Size"><svg></svg> 1.35 GiB</span>
+              <span class="flex-0 inline-flex items-center gap-0.5 tooltip" data-tip="Uploader"><svg></svg> Erai-raws</span>
+              <span class="flex-0 inline-flex items-center gap-0.5 tooltip" data-tip="16 days ago">2026-09-23 13:30:54</span>
+              <span class="flex-0 inline-flex items-center gap-0.5 tooltip" data-tip="Infohash"><svg></svg> 965C2B17A72B05515E8193EF33FCAA748C78CFEF</span>
+              <div class="col-span-12 md:col-span-3"><div class="card bg-base-200"><div class="card-body text-center">
+                <a href="/media/s1453?al=135865"><img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx135865-T7XIPMAbqcxN.png"></a>
+                <h2 class="w-fit text-xl mx-auto">Saga of Tanya the Evil<span>(2017)</span></h2>
+              </div></div></div>
+              <h2>Files</h2>
+              <ul class="menu w-full"><li><span class="flex justify-between items-center">
+                <span class="flex-1 min-w-0"><span style="overflow-wrap: anywhere">[Erai-raws] Youjo Senki II - 12.mkv</span></span>
+                <span>1.35 GiB</span>
+              </span></li></ul>
+              <a class="link-blue" href="magnet:?xt=urn:btih:965c2b17a72b05515e8193ef33fcaa748c78cfef">Magnet</a>
+              <a class="link-blue" href="/api/v1/torrents/13947047670024/download?public=true">dl</a>
+            </body></html>
+        "#;
+        let details =
+            parse_torrent_detail_html("nekobt", "https://nekobt.to/torrents/13947047670024", html);
+        assert_eq!(details.seeders, 177);
+        assert_eq!(details.leechers, 1);
+        assert_eq!(details.downloads, 2645);
+        assert_eq!(details.size, "1.35 GiB");
+        assert_eq!(details.uploaded_at, "2026-09-23 13:30:54");
+        assert_eq!(details.author, "Erai-raws");
+        assert_eq!(
+            details.info_hash,
+            "965c2b17a72b05515e8193ef33fcaa748c78cfef"
+        );
+        assert_eq!(
+            details.poster.as_deref(),
+            Some("https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx135865-T7XIPMAbqcxN.png")
+        );
+        assert_eq!(details.files.len(), 1);
+        assert_eq!(details.files[0].name, "[Erai-raws] Youjo Senki II - 12.mkv");
+        assert_eq!(details.files[0].size, "1.35 GiB");
+        assert_eq!(
+            details.torrent_url,
+            "https://nekobt.to/api/v1/torrents/13947047670024/download?public=true"
+        );
+        assert!(details.magnet.starts_with("magnet:?xt=urn:btih:"));
+    }
+
+    #[test]
+    fn erai_poster_prefers_content_uploads_over_emoticons() {
+        let html = r#"
+            <html><body>
+              <article><div class="inside-article">
+                <img src="https://www.erai-raws.info/wp-content/uploads/2026/01/Show-768x1100.jpg">
+                <img src="https://www.erai-raws.info/wp-content/plugins/wpdiscuz-emoticons/emoticons/img/smile.svg" class="wpdem-editor-sticker">
+              </div></article>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "erai-raws",
+            "https://www.erai-raws.info/anime-list/show/",
+            html,
+        );
+        assert_eq!(
+            details.poster.as_deref(),
+            Some("https://www.erai-raws.info/wp-content/uploads/2026/01/Show-768x1100.jpg")
+        );
+    }
+
+    #[test]
+    fn erai_torrent_download_allows_own_cdn_host() {
+        let html = r#"
+            <html><body>
+              <table><tr><td>Source Links</td></tr>
+              <tr><td><a href="https://ddl.erai-raws.info/Torrent/2005/Fall/Akagi/[Erai-raws] Akagi.torrent">Torrent Download</a></td></tr>
+              <tr><td><a href="https://evil.example/file.torrent">evil</a></td></tr>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "erai-raws",
+            "https://animetosho.org/view/erai-raws-akagi.n1",
+            html,
+        );
+        assert_eq!(
+            details.torrent_url,
+            "https://ddl.erai-raws.info/Torrent/2005/Fall/Akagi/[Erai-raws] Akagi.torrent"
+        );
+    }
+
+    #[test]
     fn rutracker_topic_stats_and_comments_use_their_own_sections() {
         let html = r#"
             <html><body>
@@ -1488,6 +2551,305 @@ mod tests {
             rutracker_topic_id("https://rutracker.org/forum/viewtopic.php?t=3512528"),
             Some("3512528".to_string())
         );
+    }
+
+    #[test]
+    fn rutracker_footer_lines_are_stripped_from_description() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                Real description here.
+                <br>Помощь | Донаты | Donations
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=9",
+            html,
+        );
+        assert_eq!(details.description, "Real description here.");
+        assert!(!details.description.contains("Донаты"));
+    }
+
+    #[test]
+    fn rutracker_poster_prefers_postimg_outside_spoilers() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                <img class="postImg" src="https://img.rutracker.org/f/009/poster.jpg">
+                <div class="sp-wrap">
+                  <div class="sp-head">Скриншоты</div>
+                  <div class="sp-body"><img src="https://img.rutracker.org/f/009/shot1.jpg"></div>
+                </div>
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=9",
+            html,
+        );
+        assert_eq!(
+            details.poster.as_deref(),
+            Some("https://img.rutracker.org/f/009/poster.jpg")
+        );
+        assert_eq!(
+            details.screenshots[0],
+            "https://img.rutracker.org/f/009/poster.jpg"
+        );
+    }
+
+    #[test]
+    fn rutracker_screenshots_include_var_postimg_thumbs() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                <img class="postImg postImgAligned img-right" src="https://i2.imageban.ru/out/2023/11/16/poster.jpg">
+                <div class="sp-wrap">
+                  <div class="sp-head folded"><span>Скриншоты</span></div>
+                  <div class="sp-body">
+                    <a href="https://imageban.ru/show/2023/11/16/aaa/png" class="postLink"><var class="postImg" title="https://i5.imageban.ru/thumbs/2023.11.16/aaa.png"></var></a>
+                    <a href="https://imageban.ru/show/2023/11/16/bbb/png" class="postLink"><var class="postImg" title="https://i3.imageban.ru/thumbs/2023.11.16/bbb.png"></var></a>
+                  </div>
+                </div>
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=6442370",
+            html,
+        );
+        assert_eq!(
+            details.poster.as_deref(),
+            Some("https://i2.imageban.ru/out/2023/11/16/poster.jpg")
+        );
+        assert!(details
+            .screenshots
+            .contains(&"https://i5.imageban.ru/thumbs/2023.11.16/aaa.png".to_string()));
+        assert!(details
+            .screenshots
+            .contains(&"https://i3.imageban.ru/thumbs/2023.11.16/bbb.png".to_string()));
+    }
+
+    #[test]
+    fn rutracker_poster_ignores_smiley_and_rating_buttons() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                <img class="postImg postImg1em" alt="pic" src="https://static.rutracker.cc/smiles/143.gif">
+                <img class="postImg" src="https://static.rutracker.cc/pic/buttons/imdb.png">
+                <img class="postImg" src="http://www.kinopoisk.ru/rating/5078200.gif">
+                <img class="postImg postImgAligned img-right" src="https://i2.imageban.ru/out/2023/11/16/poster.jpg">
+                <div class="sp-wrap">
+                  <div class="sp-head folded"><span>Скриншоты</span></div>
+                  <div class="sp-body"><var class="postImg" title="https://i5.imageban.ru/thumbs/2023.11.16/aaa.png"></var></div>
+                </div>
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=6442370",
+            html,
+        );
+        assert_eq!(
+            details.poster.as_deref(),
+            Some("https://i2.imageban.ru/out/2023/11/16/poster.jpg")
+        );
+    }
+
+    #[test]
+    fn rutracker_poster_upgrades_http_and_prefers_aligned() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                <img class="postImg" src="https://static.rutracker.cc/pic/buttons/imdb.png">
+                <img class="postImg postImgAligned img-right" alt="pic" src="http://i2.imageban.ru/out/2023/11/16/poster.jpg">
+                <div class="sp-wrap">
+                  <div class="sp-head folded"><span>Скриншоты</span></div>
+                  <div class="sp-body"><var class="postImg" title="https://i5.imageban.ru/thumbs/2023.11.16/aaa.png"></var></div>
+                </div>
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=6442370",
+            html,
+        );
+        assert_eq!(
+            details.poster.as_deref(),
+            Some("https://i2.imageban.ru/out/2023/11/16/poster.jpg")
+        );
+    }
+
+    #[test]
+    fn rutracker_mediainfo_author_and_category_are_extracted() {
+        let html = r#"
+            <html><body>
+              <table><tbody><tr><td class="nav t-breadcrumb-top w100 pad_2">
+                <a href="https://rutracker.org/forum/index.php?c=2">Кино, Видео и ТВ</a>
+                <em>|</em> <a href="https://rutracker.org/forum/viewforum.php?f=33">Мульты</a>
+              </td></tr></tbody></table>
+              <table><tbody id="post_1" class="row1"><tr>
+                <td class="poster_info td1"><p class="nick nick-author">Edik1d1</p></td>
+                <td class="message td2"><div class="post_body">
+                  <img class="postImg" src="https://i2.imageban.ru/out/poster.jpg">
+                  <div class="sp-wrap">
+                    <div class="sp-head folded"><span>MediaInfo</span></div>
+                    <div class="sp-body"><pre class="post-pre">General<br>Format : Matroska<br>File size : 3.56 GiB</pre></div>
+                  </div>
+                </div></td>
+              </tr></tbody></table>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=6442370",
+            html,
+        );
+        assert_eq!(details.author, "Edik1d1");
+        assert_eq!(details.category, "Кино, Видео и ТВ / Мульты");
+        let mediainfo = details.mediainfo.expect("mediainfo must be extracted");
+        assert!(mediainfo.contains("General"));
+        assert!(mediainfo.contains("3.56 GiB"));
+    }
+
+    #[test]
+    fn rutracker_mediainfo_falls_back_to_bare_pre_block() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                <div class="sp-wrap">
+                  <div class="sp-head folded"><span>Технические данные</span></div>
+                  <div class="sp-body"><pre class="post-pre">General<br>Complete name : movie.mkv<br>File size : 1.00 GiB</pre></div>
+                </div>
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=9",
+            html,
+        );
+        let mediainfo = details.mediainfo.expect("mediainfo must be extracted");
+        assert!(mediainfo.contains("General"));
+        assert!(mediainfo.contains("1.00 GiB"));
+    }
+
+    #[test]
+    fn rutracker_mediainfo_ignores_unrelated_pre_blocks() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                <pre class="post-pre">Just some formatted text</pre>
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=9",
+            html,
+        );
+        assert!(details.mediainfo.is_none());
+    }
+
+    #[test]
+    fn files_from_torrent_bytes_formats_entries() {
+        let torrent = b"d4:infod5:filesld6:lengthi1048576e4:pathl11:episode.mkveed6:lengthi2097152e4:pathl9:other.mkveee4:name4:root12:piece lengthi16384e6:pieces20:01234567890123456789ee";
+        let files = files_from_torrent_bytes(torrent);
+        assert_eq!(files.len(), 2);
+        assert_eq!(files[0].name, "episode.mkv");
+        assert_eq!(files[0].size, "1.00 MiB");
+        assert_eq!(files[1].size, "2.00 MiB");
+        assert!(files_from_torrent_bytes(b"not a torrent").is_empty());
+    }
+
+    #[test]
+    fn rutracker_file_tree_counts_only_leaf_files_inside_dirs() {
+        let html = r#"
+            <div id="tor-filelist"><ul class="ftree">
+              <li class="dir"><div><b>Season 1</b><s>2 files</s></div><ul>
+                <li class="file"><div><b>episode-01.mkv</b><i>635 MiB</i></div></li>
+                <li class="file"><div><b>episode-02.mkv</b><i>640 MiB</i></div></li>
+              </ul></li>
+            </ul></div>
+        "#;
+        let files = parse_rutracker_file_tree(html);
+        assert_eq!(files.len(), 2);
+        assert_eq!(files[0].name, "episode-01.mkv");
+        assert_eq!(files[0].size, "635 MiB");
+        assert_eq!(files[1].name, "episode-02.mkv");
+    }
+
+    #[test]
+    fn rutracker_description_blocks_capture_release_structure() {
+        let html = r#"
+            <html><body>
+              <div class="post_body">
+                <span class="post-align" style="text-align: center;"><span style="font-size: 24px;">Monster / Goodbye Monster</span></span>
+                <img class="postImg postImgAligned img-right" src="https://i2.imageban.ru/out/poster.jpg">
+                <span class="post-b">Год выпуска</span>: 2022<br>
+                <span class="post-b">Студия</span>: Sunac Pictures<br>
+                Some intro text here.
+                <div class="sp-wrap">
+                  <div class="sp-head folded"><span>Доп. информация</span></div>
+                  <div class="sp-body">Extra details inside.</div>
+                </div>
+                <div class="sp-wrap">
+                  <div class="sp-head folded"><span>Скриншоты</span></div>
+                  <div class="sp-body"><var class="postImg" title="https://i5.imageban.ru/thumbs/shot.png"></var></div>
+                </div>
+                <a class="postLink" href="https://www.kinopoisk.ru/film/123/">Kinopoisk page</a>
+              </div>
+            </body></html>
+        "#;
+        let details = parse_torrent_detail_html(
+            "rutracker",
+            "https://rutracker.org/forum/viewtopic.php?t=6442370",
+            html,
+        );
+        let kinds: Vec<&str> = details
+            .description_blocks
+            .iter()
+            .map(|block| match block {
+                DescriptionBlock::Heading { .. } => "heading",
+                DescriptionBlock::Text { .. } => "text",
+                DescriptionBlock::Field { .. } => "field",
+                DescriptionBlock::Image { .. } => "image",
+                DescriptionBlock::Spoiler { .. } => "spoiler",
+                DescriptionBlock::Code { .. } => "code",
+                DescriptionBlock::Link { .. } => "link",
+            })
+            .collect();
+        assert!(kinds.contains(&"heading"), "kinds: {kinds:?}");
+        assert!(kinds.contains(&"field"), "kinds: {kinds:?}");
+        assert!(kinds.contains(&"image"), "kinds: {kinds:?}");
+        assert!(kinds.contains(&"spoiler"), "kinds: {kinds:?}");
+        assert!(kinds.contains(&"link"), "kinds: {kinds:?}");
+        assert!(
+            !kinds.contains(&"code"),
+            "screenshots spoiler must not leak into blocks: {kinds:?}"
+        );
+        let field = details
+            .description_blocks
+            .iter()
+            .find_map(|block| match block {
+                DescriptionBlock::Field { label, value } => Some((label.clone(), value.clone())),
+                _ => None,
+            });
+        assert_eq!(field, Some(("Год выпуска".to_string(), "2022".to_string())));
+        let spoiler = details
+            .description_blocks
+            .iter()
+            .find_map(|block| match block {
+                DescriptionBlock::Spoiler { title, body } => Some((title.clone(), body.clone())),
+                _ => None,
+            });
+        assert!(spoiler.is_some());
+        assert!(spoiler.unwrap_or_default().0.contains("Доп. информация"));
     }
 
     #[test]

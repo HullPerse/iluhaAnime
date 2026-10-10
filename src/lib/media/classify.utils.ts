@@ -53,9 +53,14 @@ const RES_RX = /^\d{3,4}[pix]$/i;
 const DIM_RX = /^\d{3,4}x\d{3,4}$/i;
 const DEPTH_RX = /^(ma)?(10|12)p$|^(10|12)(bit|bits|b)$/i;
 const YEAR_RX = /^(19|20)\d{2}$/;
-const RANGE_RX = /^\d{1,3}-\d{1,3}$/;
+const RANGE_RX = /^\d{1,3}[-~～〜]\d{1,3}$/;
 const COUNTED_LANG_RX = /^\d+x[a-z]+$/i;
 const PLAIN_DIGITS_RX = /^\d{1,3}$/;
+const MULTI_SUB_RX = /^multisubs?$|^multiple[ _-]+subtitles?$/i;
+// Subtitle variant tags glued as lang-region pairs: [POR-BR], [SPA-LA].
+// Without this the pair expands into loose words and the region half
+// (BR, LA) leaks into the release title.
+const LANG_REGION_RX = /^([a-z]{2,3})-([a-z]{2})$/;
 
 interface SingleRule {
   test: (value: string, lower: string, enclosed: MediaTokenEnclosed) => boolean;
@@ -69,9 +74,12 @@ const SINGLE_RULES: SingleRule[] = [
   { test: (_v, l) => SOURCE_SET.has(l), kind: "source" },
   { test: (_v, l) => CODEC_SET.has(l), kind: "codec" },
   { test: (_v, l) => AUDIO_SET.has(l), kind: "audio" },
-  { test: (_v, l) => LANG_SET.has(l) || l in LANG_ALIASES, kind: "lang" },
+  { test: (_v, l) => LANG_SET.has(l) || l in LANG_ALIASES || isLangRegionPair(l), kind: "lang" },
   { test: (_v, l) => DUB_SET.has(l), kind: "dub" },
-  { test: (_v, l) => SUBS_SET.has(l) || SUB_VARIANT_SET.has(l), kind: "subs" },
+  {
+    test: (_v, l) => SUBS_SET.has(l) || SUB_VARIANT_SET.has(l) || MULTI_SUB_RX.test(l),
+    kind: "subs",
+  },
   { test: (_v, l) => TYPE_SET.has(l), kind: "type" },
   { test: (v) => SPECIAL_RX.test(v), kind: "special" },
   { test: (v) => SEASON_EPISODE_RX.test(v), kind: "seasonEpisode" },
@@ -100,7 +108,7 @@ export function classifyTokenValue(value: string, enclosed: MediaTokenEnclosed):
   return enclosed === "plain" ? "title" : "unknown";
 }
 
-const INNER_SPLIT_RX = /[ _.-]+/;
+const INNER_SPLIT_RX = /[ _.,;()+-]+/;
 const AMP_RX = /\s*&\s*/;
 const URL_RX = /^(www\.)?[\w-]+\.(org|com|net|ru|to|si|info)$/i;
 
@@ -172,13 +180,53 @@ function mergePairs(tokens: MediaClassifiedToken[]): MediaClassifiedToken[] {
   return merged;
 }
 
+function isLangRegionPair(lower: string): boolean {
+  const match = LANG_REGION_RX.exec(lower);
+  if (!match?.[1]) return false;
+  return canonicalLang(match[1]) !== null;
+}
+
 export function canonicalLang(value: string): string | null {
   const cleaned = value.replace(/^\d+x/i, "");
   const aliased = LANG_ALIASES[cleaned] ?? LANG_ALIASES[cleaned.toLowerCase()];
   if (aliased) return aliased;
   const lower = cleaned.toLowerCase();
   if (LANG_SET.has(lower)) return lower;
+  const pair = LANG_REGION_RX.exec(lower);
+  if (pair?.[1]) return canonicalLang(pair[1]);
   return null;
+}
+
+const BARE_RES_RX = /^(480|720|1080|2160)$/;
+const RES_SIBLING_KINDS: ReadonlySet<MediaTokenKind> = new Set([
+  "source",
+  "service",
+  "codec",
+  "audio",
+  "resolution",
+  "depth",
+  "lang",
+  "group",
+  "studio",
+  "crc",
+  "year",
+]);
+
+function resolveBareResolutions(tokens: MediaClassifiedToken[]): MediaClassifiedToken[] {
+  const techGroups = new Set<number>();
+  for (const token of tokens) {
+    if (token.bracketGroup !== undefined && RES_SIBLING_KINDS.has(token.kind)) {
+      techGroups.add(token.bracketGroup);
+    }
+  }
+  return tokens.map((token) =>
+    token.kind === "title" &&
+    token.bracketGroup !== undefined &&
+    BARE_RES_RX.test(token.value) &&
+    techGroups.has(token.bracketGroup)
+      ? { ...token, kind: "resolution" }
+      : token
+  );
 }
 
 export function classifyMediaTokens(tokens: MediaNameToken[]): MediaClassifiedToken[] {
@@ -194,7 +242,7 @@ export function classifyMediaTokens(tokens: MediaNameToken[]): MediaClassifiedTo
       }
     }
   }
-  return mergePairs(flat);
+  return resolveBareResolutions(mergePairs(flat));
 }
 
 interface TechRule {

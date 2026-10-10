@@ -14,9 +14,11 @@ vi.mock("@/lib/utils/image.utils", async (importOriginal) => {
 import {
   fetchVideoCard,
   getCachedCard,
+  neighborCardPaths,
   orderCardPaths,
   resetCardCache,
   scheduleCardPrefetch,
+  scheduleNeighborPrefetch,
 } from "@/lib/player/cardCache.utils";
 
 beforeEach(() => {
@@ -79,5 +81,76 @@ describe("scheduleCardPrefetch", () => {
       expect(getCachedCard("a.mkv")).not.toBeNull();
       expect(getCachedCard("c.mkv")).not.toBeNull();
     });
+  });
+});
+
+describe("neighborCardPaths", () => {
+  it("returns the immediate prev and next files", () => {
+    expect(neighborCardPaths(["a.mkv", "b.mkv", "c.mkv", "d.mkv"], "b.mkv")).toEqual([
+      "a.mkv",
+      "c.mkv",
+    ]);
+  });
+
+  it("returns only the existing side at the playlist edges", () => {
+    expect(neighborCardPaths(["a.mkv", "b.mkv"], "a.mkv")).toEqual(["b.mkv"]);
+    expect(neighborCardPaths(["a.mkv", "b.mkv"], "b.mkv")).toEqual(["a.mkv"]);
+  });
+
+  it("matches the active file case-insensitively", () => {
+    expect(neighborCardPaths(["A.mkv", "b.mkv", "c.mkv"], "a.mkv")).toEqual(["b.mkv"]);
+  });
+
+  it("drops empty paths and duplicates", () => {
+    expect(neighborCardPaths(["a.mkv", "", "a.mkv", "b.mkv"], "a.mkv")).toEqual(["b.mkv"]);
+  });
+
+  it("returns empty for empty input", () => {
+    expect(neighborCardPaths([], "a.mkv")).toEqual([]);
+  });
+
+  it("trusts the backend index when the path repeats in the queue", () => {
+    expect(
+      neighborCardPaths(["D:/a.mkv", "D:/b.mkv", "D:/c.mkv", "D:/b.mkv"], "D:/b.mkv", 3)
+    ).toEqual(["D:/c.mkv"]);
+  });
+
+  it("falls back to path search on a stale index", () => {
+    expect(
+      neighborCardPaths(["D:/a.mkv", "D:/b.mkv", "D:/c.mkv", "D:/b.mkv"], "D:/b.mkv", 0)
+    ).toEqual(["D:/a.mkv", "D:/c.mkv"]);
+  });
+});
+
+describe("scheduleNeighborPrefetch", () => {
+  it("warms only the two neighbors, not the active file or far entries", async () => {
+    scheduleNeighborPrefetch(["a.mkv", "b.mkv", "c.mkv", "d.mkv", "e.mkv"], "c.mkv");
+    await vi.waitFor(() => {
+      expect(getCachedCard("b.mkv")).not.toBeNull();
+      expect(getCachedCard("d.mkv")).not.toBeNull();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(getCachedCard("a.mkv")).toBeNull();
+    expect(getCachedCard("c.mkv")).toBeNull();
+    expect(getCachedCard("e.mkv")).toBeNull();
+    const fetched = invokeMock.mock.calls
+      .filter(([command]) => command === "get_video_card")
+      .map(([, args]) => (args as { path?: string }).path)
+      .sort();
+    expect(fetched).toEqual(["b.mkv", "d.mkv"]);
+  });
+
+  it("skips already cached neighbors without extra fetches", async () => {
+    await fetchVideoCard("a.mkv");
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    scheduleNeighborPrefetch(["a.mkv", "b.mkv", "c.mkv"], "b.mkv");
+    await vi.waitFor(() => {
+      expect(getCachedCard("c.mkv")).not.toBeNull();
+    });
+    const aFetches = invokeMock.mock.calls.filter(
+      ([command, args]) =>
+        command === "get_video_card" && (args as { path?: string }).path === "a.mkv"
+    );
+    expect(aFetches).toHaveLength(1);
   });
 });

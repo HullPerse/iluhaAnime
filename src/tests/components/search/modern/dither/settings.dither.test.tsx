@@ -292,14 +292,14 @@ describe("DitherSettings database images", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("selects the placeholder when nothing is stored", async () => {
+  it("stores null when the placeholder is saved", async () => {
     const user = userEvent.setup();
     mockInvoke.mockImplementation(serveLibrary([FIRST]));
     const onClose = vi.fn();
     renderPanel(onClose);
     await waitFor(() => expect(screen.getByAltText("Placeholder")).toBeTruthy());
     await user.click(screen.getByRole("button", { name: "Save" }));
-    expect(settingsAtoms.selectedDitherId.get()).toBe("placeholder");
+    expect(settingsAtoms.selectedDitherId.get()).toBe(null);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

@@ -129,7 +129,7 @@ describe("ProgressStepper", () => {
               media: makeMedia(),
               progress: 20,
               score: null,
-              list_status: "CURRENT",
+              list_status: "COMPLETED",
               created_at: null,
               updated_at: null,
               completed_at: null,
@@ -167,6 +167,95 @@ describe("ProgressStepper", () => {
         expect.objectContaining({ mediaId: MEDIA_ID, progress: 21, status: "COMPLETED" })
       )
     );
+  });
+});
+
+describe("ProgressStepper coalescing", () => {
+  function renderCoalescing() {
+    const client = new QueryClient();
+    client.setQueryData(["anilist_data"], {
+      user: { id: 7 },
+      lists: [
+        {
+          name: "Completed",
+          entries: [
+            {
+              media: makeMedia(),
+              progress: 20,
+              score: null,
+              list_status: "CURRENT",
+              created_at: null,
+              updated_at: null,
+              completed_at: null,
+              started_at: null,
+              notes: null,
+              repeat: null,
+            },
+          ],
+        },
+      ],
+      favourites: [],
+      people: { staff: [], characters: [] },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <AniListCard
+          item={makeMedia()}
+          entryLookup={makeLookup(null)}
+          isFavorite={false}
+          scoreFormat="POINT_10"
+          onClick={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    return client;
+  }
+
+  function saveCalls(invoke: ReturnType<typeof vi.fn>) {
+    return invoke.mock.calls.filter((call) => call[0] === "save_anilist_entry");
+  }
+
+  it("applies rapid clicks instantly and syncs the trailing target", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    const client = renderCoalescing();
+    const plus = screen.getByRole("button", { name: "Watch one more episode" });
+    fireEvent.click(plus);
+    fireEvent.click(plus);
+    fireEvent.click(plus);
+    await waitFor(() => {
+      const last = saveCalls(vi.mocked(invoke)).at(-1);
+      expect(last?.[1]).toEqual(
+        expect.objectContaining({ mediaId: MEDIA_ID, progress: 23 })
+      );
+    });
+    const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
+      "anilist_data",
+    ]);
+    expect(data?.lists[0].entries[0].progress).toBe(23);
+    expect(saveCalls(vi.mocked(invoke)).length).toBeLessThanOrEqual(2);
+  });
+
+  it("rolls back to the confirmed value and retries on failure", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    vi.mocked(invoke).mockRejectedValueOnce(new Error("429 Too Many Requests"));
+    const client = renderCoalescing();
+    fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+    expect(await screen.findByRole("button", { name: "Retry" })).toBeTruthy();
+    const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
+      "anilist_data",
+    ]);
+    expect(data?.lists[0].entries[0].progress).toBe(20);
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => {
+      const calls = saveCalls(vi.mocked(invoke));
+      expect(calls.length).toBe(2);
+      expect(calls[1][1]).toEqual(
+        expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 })
+      );
+    });
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
   });
 });
 

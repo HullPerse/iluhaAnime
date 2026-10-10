@@ -11,7 +11,7 @@ interface Fixture {
 
 const PATHS = (fixtureRows as Fixture[]).map((f) => `${f.dir}/${f.file}`);
 
-group('parse @pilot @media', () => {
+group('parse @pilot @media @quick', () => {
   bench('corpus cold x125 (cache cleared)', () => {
     clearMediaParseCache();
     let checksum = 0;

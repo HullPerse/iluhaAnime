@@ -100,6 +100,7 @@ const anilist = {
   "anilist.controls.custom.lists": "Списки:",
   "anilist.controls.save": "Сохранить",
   "anilist.controls.save.error": "Не удалось сохранить",
+  "anilist.controls.save.error.detail": "Не удалось сохранить: {{error}}",
   "anilist.controls.saving": "Сохранение...",
   "anilist.controls.delete": "Удалить",
   "anilist.controls.delete.error": "Не удалось удалить",

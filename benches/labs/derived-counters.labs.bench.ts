@@ -72,7 +72,7 @@ const statsDerived = store.derive([itemsCell], (args) => {
   return calculateCollectionStats(args[0] as CollectionItem[], []);
 });
 
-group('derived-counters @derived', () => {
+group('derived-counters @derived @quick', () => {
   bench('manual stats x10k (recompute each read)', () => {
     let checksum = 0;
     for (let i = 0; i < 5; i++) {

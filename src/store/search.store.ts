@@ -87,6 +87,40 @@ function updateStat(
 // `upsert unified index: database is locked`.
 let indexChain: Promise<unknown> = Promise.resolve();
 
+const ANIME_SYNC_KEY_STORAGE = "animeIndexSyncKey";
+
+function readStoredSyncKey(): string | null {
+  const [value] = attemptSync(() => localStorage.getItem(ANIME_SYNC_KEY_STORAGE));
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function writeStoredSyncKey(key: string | null): void {
+  attemptSync(() => {
+    if (key === null) localStorage.removeItem(ANIME_SYNC_KEY_STORAGE);
+    else localStorage.setItem(ANIME_SYNC_KEY_STORAGE, key);
+  });
+}
+
+function animeIndexSyncKey(
+  animeIndex: SearchAnimeSuggestion[],
+  profileId: number | null
+): string {
+  let hash = 0;
+  const mix = (text: string): void => {
+    for (const char of text) hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
+  };
+  mix(`profile:${profileId ?? 0}|n:${animeIndex.length}`);
+  for (const anime of animeIndex) {
+    mix(`#${anime.id}|${anime.title}|${anime.status}|${anime.score ?? 0}|${anime.favourite ? 1 : 0}`);
+    for (const alias of anime.aliases) mix(`@${alias}`);
+  }
+  return `${animeIndex.length}:${hash}`;
+}
+
+export function invalidateAnimeIndexSync(): void {
+  writeStoredSyncKey(null);
+}
+
 function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): void {
   if (entries.length === 0) return;
   for (let offset = 0; offset < entries.length; offset += INDEX_BATCH_SIZE) {
@@ -192,6 +226,7 @@ type SearchActionKeys =
   | "deleteFilterPreset"
   | "setAnilistSearchQuery"
   | "setCrossSearchQuery"
+  | "setResultSource"
   | "setFilters"
   | "setSortBy"
   | "setSortDirection"
@@ -209,6 +244,7 @@ const DEFAULT_SEARCH_DATA: SearchData = {
   animeProfileId: null,
   crossSearchQuery: null,
   anilistSearchQuery: null,
+  resultSource: null,
   sortBy: "seeders",
   sortDirection: "desc",
   filters: { ...defaultFilters },
@@ -274,6 +310,7 @@ export interface SearchSignalStore {
   deleteFilterPreset: (name: string) => void;
   setAnilistSearchQuery: (query: string | null) => void;
   setCrossSearchQuery: (query: string | null) => void;
+  setResultSource: (source: SearchStore["resultSource"]) => void;
   setFilters: (partial: Partial<SearchFilters>) => void;
   setSortBy: (sort: SearchData["sortBy"]) => void;
   setSortDirection: (dir: SearchData["sortDirection"]) => void;
@@ -355,7 +392,10 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
         atoms.animeIndex.set(animeIndex);
         atoms.animeProfileId.set(profileId);
       });
-      syncUnifiedIndex(
+      const syncKey = animeIndexSyncKey(animeIndex, profileId);
+      if (syncKey !== readStoredSyncKey()) {
+        writeStoredSyncKey(syncKey);
+        syncUnifiedIndex(
         animeIndex.flatMap((anime) => [
           {
             id: `anime:${anime.id}`,
@@ -382,6 +422,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
           })),
         ])
       );
+      }
     },
     recordSuggestion: (value, scope = "global") => {
       if (settingsAtoms.autocompleteMode.get() === "off") return;
@@ -421,11 +462,15 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
       atoms.queryStats.set(purgeExpired(atoms.queryStats.get()));
       atoms.suggestionStats.set(purgeExpired(atoms.suggestionStats.get()));
     },
-    clearScope: (scope) => dropUnifiedScope(scope, "scope.prune"),
+    clearScope: (scope) => {
+      if (scope === "anilist") invalidateAnimeIndexSync();
+      return dropUnifiedScope(scope, "scope.prune");
+    },
     clearAllLearning: async () => {
       atoms.history.set([]);
       atoms.queryStats.set({});
       atoms.suggestionStats.set({});
+      invalidateAnimeIndexSync();
       const scopes = ["global", "anilist", "torrent", "player", "filter"];
       for (const scope of scopes) await dropUnifiedScope(scope, "learning.prune");
     },
@@ -445,6 +490,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
     },
     setAnilistSearchQuery: (query) => atoms.anilistSearchQuery.set(query),
     setCrossSearchQuery: (query) => atoms.crossSearchQuery.set(query),
+    setResultSource: (source) => atoms.resultSource.set(source),
     setFilters: (partial) => atoms.filters.set({ ...atoms.filters.get(), ...partial }),
     setSortBy: (sort) => atoms.sortBy.set(sort),
     setSortDirection: (dir) => atoms.sortDirection.set(dir),
@@ -476,6 +522,7 @@ export const saveSearchFilterPreset = search.saveFilterPreset;
 export const deleteSearchFilterPreset = search.deleteFilterPreset;
 export const setAnilistSearchQuery = search.setAnilistSearchQuery;
 export const setCrossSearchQuery = search.setCrossSearchQuery;
+export const setResultSource = search.setResultSource;
 export const setSearchFilters = search.setFilters;
 export const setSearchSortBy = search.setSortBy;
 export const setSearchSortDirection = search.setSortDirection;

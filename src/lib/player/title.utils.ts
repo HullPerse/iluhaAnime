@@ -8,6 +8,8 @@ export function formatParsedTitle(
 ): string {
   const parsed = dir === null ? parseMediaPath(input) : parseMediaFile(dir, input);
 
+  const displayTitle = parsed.arc ? `${parsed.title}: ${parsed.arc}` : parsed.title;
+
   const season = parsed.season ? t("player.title.season", { n: parsed.season }) : "";
 
   const epNum = parsed.episode.number ?? parsed.episode.numberAlt;
@@ -25,5 +27,5 @@ export function formatParsedTitle(
     episodeStr = t("player.title.episode.colon", { title: epTitle });
   }
 
-  return [parsed.title, season, episodeStr].filter((part) => part && part.trim()).join(", ");
+  return [displayTitle, season, episodeStr].filter((part) => part && part.trim()).join(", ");
 }

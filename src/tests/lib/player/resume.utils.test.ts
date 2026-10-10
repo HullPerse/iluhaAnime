@@ -11,35 +11,22 @@ const RELOAD: HwdecReload = { position: 321, paused: true };
 
 describe("resolveLoadPosition", () => {
   it("prefers the hwdec reload position over everything", () => {
-    expect(resolveLoadPosition(RELOAD, 0, 100, 200)).toBe(321);
-    expect(resolveLoadPosition(RELOAD, -1, undefined, undefined)).toBe(321);
+    expect(resolveLoadPosition(RELOAD, 100, 200)).toBe(321);
+    expect(resolveLoadPosition(RELOAD, undefined, undefined)).toBe(321);
   });
 
-  it("uses the open-request resume for the first playlist entry", () => {
-    expect(resolveLoadPosition(null, 0, 100, 200)).toBe(100);
-    expect(resolveLoadPosition(null, 0, 100, undefined)).toBe(100);
-    expect(resolveLoadPosition(null, 0, 0, 200)).toBe(0);
+  it("uses the open-request resume for the entry the player started on", () => {
+    expect(resolveLoadPosition(null, 100, 200)).toBe(100);
+    expect(resolveLoadPosition(null, 100, undefined)).toBe(100);
+    expect(resolveLoadPosition(null, 0, 200)).toBe(0);
   });
 
   it("falls back to the persisted watch position for later entries", () => {
-    expect(resolveLoadPosition(null, 3, 100, 200)).toBe(200);
-    expect(resolveLoadPosition(null, 3, undefined, 200)).toBe(200);
+    expect(resolveLoadPosition(null, undefined, 200)).toBe(200);
   });
 
   it("starts from zero without any stored position", () => {
-    expect(resolveLoadPosition(null, 3, undefined, undefined)).toBe(0);
-  });
-
-  it("documents the stale-index quirk: a fresh open reads playlistIndex -1, so resume is dropped in favor of the watch entry", () => {
-    // Backend already started mpv at `resume` via loadfile start=, but the
-    // frontend decision sees the pre-snapshot index here. When both sources
-    // agree this is a harmless redundant seek; when they disagree the
-    // player visibly jumps between two positions.
-    expect(resolveLoadPosition(null, -1, 100, 200)).toBe(200);
-  });
-
-  it("documents the stale-index quirk: an open into a running player sees the previous index, so resume is dropped", () => {
-    expect(resolveLoadPosition(null, 2, 100, 200)).toBe(200);
+    expect(resolveLoadPosition(null, undefined, undefined)).toBe(0);
   });
 });
 

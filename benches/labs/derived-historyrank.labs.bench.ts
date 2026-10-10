@@ -35,7 +35,7 @@ const rankedDerived = store.derive([historyCell, statsCell], (args) => {
   return rankHistoryEntries(history, stats, 8);
 });
 
-group('derived-historyrank @derived', () => {
+group('derived-historyrank @derived @quick', () => {
   bench('manual rank x500 (recompute each read)', () => {
     let checksum = 0;
     for (let i = 0; i < 10; i++) {

@@ -2,7 +2,7 @@ import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import type { Event } from "@tauri-apps/api/event";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showError, showInfo, showWarning } from "@/lib/utils/notification.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { cacheAtoms, removeSeedPreference } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";
@@ -223,27 +224,75 @@ export function useTorrentFilesMap(
           queryFn: () => fetchTorrentFiles(queryClient, id),
           staleTime: 5000,
           enabled,
-          refetchInterval: enabled ? refetchMs : false,
-          refetchIntervalInBackground: false,
           retry: false,
         };
       }),
-    [ids, queryClient, refetchMs, enabledIds]
+    [ids, queryClient, enabledIds]
   );
   const results = useQueries({ queries: queriesInput });
+
+  const pollIds = useMemo(() => {
+    if (refetchMs === false) return [];
+    const wanted = (enabledIds ? ids.filter((id) => enabledIds.has(id)) : ids).map(String);
+    return wanted.sort();
+  }, [enabledIds, ids, refetchMs]);
+  const [pollingIds, setPollingIds] = useState<Set<string>>(new Set());
+  const [pollErrors, setPollErrors] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (refetchMs === false || pollIds.length === 0) return;
+    let disposed = false;
+    const sweep = async () => {
+      const idsToFetch = pollIds.map(Number);
+      setPollingIds(new Set(pollIds));
+      const [entries] = await attempt(torrentApi.runningTorrentFilesBatch(idsToFetch));
+      if (disposed) return;
+      setPollingIds(new Set());
+      setPollErrors((prev) => {
+        const next: Record<number, string> = { ...prev };
+        for (const entry of entries ?? []) {
+          if (entry.error !== null) {
+            next[entry.id] = entry.error;
+            continue;
+          }
+          delete next[entry.id];
+          const files = entry.files ?? [];
+          const key = queryKeys.torrentFiles(entry.id);
+          const cached = queryClient.getQueryData<TorrentFileInfo[]>(key);
+          queryClient.setQueryData(
+            key,
+            cached &&
+              cached.length === files.length &&
+              cached.every((file, index) => sameFileInfo(file, files[index]!))
+              ? cached
+              : files
+          );
+        }
+        return next;
+      });
+    };
+    ignore(sweep());
+    const timer = window.setInterval(() => ignore(sweep()), refetchMs);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [pollIds, queryClient, refetchMs]);
+
   return useMemo(() => {
     const files: Record<number, TorrentFileInfo[] | undefined> = {};
     const pendingIds = new Set<number>();
     const errors: Record<number, string> = {};
     ids.forEach((id, index) => {
       files[id] = results[index]?.data;
-      if (results[index]?.isFetching) pendingIds.add(id);
+      if (results[index]?.isFetching || pollingIds.has(String(id))) pendingIds.add(id);
       const failure = results[index]?.error;
       if (failure !== undefined && failure !== null)
         errors[id] = failure instanceof Error ? failure.message : String(failure);
+      else if (pollErrors[id] !== undefined) errors[id] = pollErrors[id]!;
     });
     return { files, pendingIds, errors };
-  }, [ids, results]);
+  }, [ids, pollErrors, pollingIds, results]);
 }
 
 function setOpInFlight(id: number, op: "pause" | "resume" | "remove" | null): void {

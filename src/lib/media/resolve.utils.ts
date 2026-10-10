@@ -1,9 +1,9 @@
 import { AUDIO_EXTS, SUBTITLE_EXTS } from "@/config/media/tokens.config";
 import { classifyMediaTokens, collectFields } from "@/lib/media/classify.utils";
-import { extractSeason, extractTvSeason } from "@/lib/media/episode.utils";
+import { extractSeason, extractTvSeason, isCountPair } from "@/lib/media/episode.utils";
 import { parseSidecarSuffix, splitSidecarStem } from "@/lib/media/sidecar.utils";
 import { stripMediaExtension, tokenizeMediaName } from "@/lib/media/tokenize.utils";
-import { resolveVideo } from "@/lib/media/video.utils";
+import { absorbStrings, resolveVideo } from "@/lib/media/video.utils";
 import { createLruCache } from "@/lib/utils/lruCache.utils";
 import type { DirContext, MediaFileParse } from "@/types/media";
 
@@ -17,9 +17,12 @@ function splitDir(dir: string | null): string[] {
 
 const ROOT_NAMES = new Set(["anime", "movies"]);
 
-function analyzeSegment(segment: string): {
+interface DirPart {
   titleWords: string[];
   season?: number;
+  ofTotal?: number;
+  subs: string[];
+  subVariant?: string;
   year?: number;
   source?: string;
   service?: string;
@@ -28,7 +31,9 @@ function analyzeSegment(segment: string): {
   groups: string[];
   langs: string[];
   special: boolean;
-} {
+}
+
+function analyzeSegment(segment: string): DirPart {
   const tokens = classifyMediaTokens(tokenizeMediaName(segment));
   const seasonHit = extractSeason(tokens);
   const consumed = new Set(seasonHit.consumed);
@@ -37,11 +42,22 @@ function analyzeSegment(segment: string): {
     const tvHit = extractTvSeason(tokens, consumed);
     if (tvHit) season = tvHit.season;
   }
+  let ofTotal: number | undefined;
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens.at(index);
+    if (!token || token.kind !== "episode" || !/^\d{1,3}$/.test(token.value)) continue;
+    if (!isCountPair(tokens, index)) continue;
+    const total = tokens.at(index + 2);
+    if (total) ofTotal = Number.parseInt(total.value, 10);
+  }
   const bag = collectFields(tokens, consumed);
   const titleWords = tokens.filter((token) => token.kind === "title").map((token) => token.value);
   return {
     titleWords,
     season,
+    ofTotal,
+    subs: bag.subs,
+    subVariant: bag.subVariant,
     year: bag.year,
     source: bag.source,
     service: bag.service,
@@ -53,21 +69,12 @@ function analyzeSegment(segment: string): {
   };
 }
 
-function mergeDirPart(
-  ctx: DirContext,
-  part: {
-    season?: number;
-    year?: number;
-    source?: string;
-    service?: string;
-    codec?: string;
-    resolution?: string;
-    groups: string[];
-    langs: string[];
-    special: boolean;
-  }
-): void {
+function mergeDirScalars(ctx: DirContext, part: DirPart): void {
   if (part.season !== undefined && ctx.season === undefined) ctx.season = part.season;
+  if (part.ofTotal !== undefined && ctx.ofTotal === undefined) ctx.ofTotal = part.ofTotal;
+  if (part.subVariant !== undefined && ctx.subVariant === undefined) {
+    ctx.subVariant = part.subVariant;
+  }
   if (part.year !== undefined && ctx.year === undefined) ctx.year = part.year;
   if (part.source !== undefined && ctx.source === undefined) ctx.source = part.source;
   if (part.service !== undefined && ctx.service === undefined) ctx.service = part.service;
@@ -75,13 +82,14 @@ function mergeDirPart(
   if (part.resolution !== undefined && ctx.resolution === undefined) {
     ctx.resolution = part.resolution;
   }
+}
+
+function mergeDirPart(ctx: DirContext, part: DirPart): void {
+  mergeDirScalars(ctx, part);
   if (part.special) ctx.hasSpecial = true;
-  for (const group of part.groups) {
-    if (!ctx.groups.includes(group)) ctx.groups.push(group);
-  }
-  for (const lang of part.langs) {
-    if (!ctx.langs.includes(lang)) ctx.langs.push(lang);
-  }
+  absorbStrings(ctx.groups, part.groups);
+  absorbStrings(ctx.langs, part.langs);
+  absorbStrings(ctx.subs, part.subs);
 }
 
 function analyzeDir(segments: string[]): DirContext {
@@ -89,6 +97,7 @@ function analyzeDir(segments: string[]): DirContext {
     titleWords: [],
     groups: [],
     langs: [],
+    subs: [],
     hasMovieRoot: false,
     hasSpecial: false,
   };

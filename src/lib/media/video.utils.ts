@@ -15,7 +15,19 @@ import { resolveSegments } from "@/lib/media/segments.utils";
 import { tokenizeMediaName } from "@/lib/media/tokenize.utils";
 import type { DirContext, FieldBag, MediaClassifiedToken, MediaFileParse } from "@/types/media";
 
-const ROMAN_SEASON: Record<string, number> = { ii: 2, iii: 3, iv: 4, v: 5, vi: 6 };
+const ROMAN_SEASON: Record<string, number> = {
+  ii: 2,
+  iii: 3,
+  iv: 4,
+  v: 5,
+  vi: 6,
+  vii: 7,
+  viii: 8,
+  ix: 9,
+  x: 10,
+  xi: 11,
+  xii: 12,
+};
 const SINGLE_KEEP_RX = /^[vix]$/i;
 
 export function dropTrailingSingle(words: string[]): string[] {
@@ -161,6 +173,10 @@ export function finalizeSearchTitle(params: {
   const aliased = aliasSearchTitle(params.title, params.aliases);
   if (aliased) return aliased;
   if (params.season !== undefined && params.season > 1) {
+    const tail = params.title.split(/\s+/).at(-1)?.toLowerCase() ?? "";
+    const tailSeason =
+      ROMAN_SEASON[tail] ?? (/^\d+$/.test(tail) ? Number.parseInt(tail, 10) : undefined);
+    if (tailSeason === params.season) return params.title;
     return `${params.title} ${params.season}${seasonOrdinal(params.season)} Season`;
   }
   return params.title;
@@ -169,13 +185,17 @@ export function finalizeSearchTitle(params: {
 export function extractEpTitle(
   tokens: MediaClassifiedToken[],
   atomIndex: number,
-  consumed: Set<number>
+  consumed: Set<number>,
+  fallbackIndex: number
 ): { title?: string; ignored: string[] } {
-  if (atomIndex < 0) return { ignored: [] };
+  if (atomIndex < 0 && fallbackIndex < 0) return { ignored: [] };
+  const fallbackToken = tokens.at(fallbackIndex);
+  if (!fallbackToken || /^\d{1,3}$/.test(fallbackToken.value)) return { ignored: [] };
+  const start = atomIndex >= 0 ? atomIndex : fallbackIndex;
   const words: string[] = [];
   const ignored: string[] = [];
-  let end = atomIndex + 1;
-  for (let index = atomIndex + 1; index < tokens.length; index += 1) {
+  let end = start + 1;
+  for (let index = start + 1; index < tokens.length; index += 1) {
     const token = tokens.at(index);
     if (!token) break;
     if (token.kind === "title") {
@@ -201,7 +221,7 @@ export function extractEpTitle(
     break;
   }
   if (words.length === 0) return { ignored };
-  for (let index = atomIndex + 1; index < end; index += 1) consumed.add(index);
+  for (let index = start + 1; index < end; index += 1) consumed.add(index);
   return { title: words.join(" "), ignored };
 }
 
@@ -233,6 +253,7 @@ interface VideoHead {
   part?: number;
   episode?: number;
   episodeAlt?: number;
+  episodeVersion?: number;
   ofTotal?: number;
   atomIndex: number;
   fallbackIndex: number;
@@ -276,6 +297,16 @@ function initSeasonField(
   return { season, variant };
 }
 
+function absorbConsumed(into: Set<number>, from: Set<number>): void {
+  for (const index of from) into.add(index);
+}
+
+export function absorbStrings(into: string[], from: string[]): void {
+  for (const value of from) {
+    if (!into.includes(value)) into.push(value);
+  }
+}
+
 function startVideoHead(ctx: DirContext, stem: string): VideoHead {
   const leadingMatch = LEADING_NUMBER_RX.exec(stem);
   const leading = (leadingMatch?.[2]?.includes(" ") ?? false) ? leadingMatch : null;
@@ -285,10 +316,12 @@ function startVideoHead(ctx: DirContext, stem: string): VideoHead {
   const { season: parsedSeason, variant } = initSeasonField(tokens, consumed);
   let season = parsedSeason;
   const partHit = extractPart(tokens);
-  for (const index of partHit.consumed) consumed.add(index);
+  absorbConsumed(consumed, partHit.consumed);
   const episodeHit = extractEpisode(tokens);
-  for (const index of episodeHit.consumed) consumed.add(index);
+  absorbConsumed(consumed, episodeHit.consumed);
   const bag = collectFields(tokens, consumed);
+  absorbStrings(bag.subs, ctx.subs);
+  if (bag.subVariant === undefined) bag.subVariant = ctx.subVariant;
 
   let confidence = 1;
   if (season === undefined && ctx.season !== undefined) {
@@ -315,7 +348,8 @@ function startVideoHead(ctx: DirContext, stem: string): VideoHead {
     part: partHit.part,
     episode,
     episodeAlt: episodeHit.numberAlt,
-    ofTotal: episodeHit.ofTotal,
+    episodeVersion: episodeHit.version,
+    ofTotal: episodeHit.ofTotal ?? ctx.ofTotal,
     atomIndex: episodeHit.atomIndex,
     fallbackIndex: episodeHit.fallbackIndex,
     bag,
@@ -436,7 +470,7 @@ function buildVideoTitle(
   dirRaw: string,
   stem: string
 ): { title: string; arc?: string; prefix?: string; epTitle?: string; movieHint?: boolean } {
-  const epTitleHit = extractEpTitle(head.tokens, head.atomIndex, head.consumed);
+  const epTitleHit = extractEpTitle(head.tokens, head.atomIndex, head.consumed, head.fallbackIndex);
   for (const ignored of epTitleHit.ignored) head.tags.push(ignored);
   const titleWords = assembleTitleWords(head.tokens, head.consumed, head.tags, head.titleExtras);
   const romanTail = titleWords.at(-1)?.toLowerCase();
@@ -505,7 +539,7 @@ function buildVideoResult(
     searchTitle,
     ...(head.season !== undefined ? { season: head.season } : {}),
     ...(head.part !== undefined ? { part: head.part } : {}),
-    ...videoEpisodePart(head.episode, head.episodeAlt, epTitle, head.ofTotal),
+    ...videoEpisodePart(head.episode, head.episodeAlt, epTitle, head.episodeVersion, head.ofTotal),
     ...(head.year !== undefined ? { year: head.year } : {}),
     kind: head.kind,
     ...videoTechPart({
@@ -562,12 +596,14 @@ function videoEpisodePart(
   episode?: number,
   episodeAlt?: number,
   epTitle?: string,
+  episodeVersion?: number,
   ofTotal?: number
 ): Pick<MediaFileParse, "episode"> {
   return {
     episode: {
       ...(episode !== undefined ? { number: episode } : {}),
       ...(episodeAlt !== undefined ? { numberAlt: episodeAlt } : {}),
+      ...(episodeVersion !== undefined ? { version: episodeVersion } : {}),
       ...(epTitle ? { title: epTitle } : {}),
       ...(ofTotal !== undefined ? { ofTotal } : {}),
     },

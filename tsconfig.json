@@ -23,7 +23,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "benches"],
   "references": [
     {
       "path": "./tsconfig.node.json"

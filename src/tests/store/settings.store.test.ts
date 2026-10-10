@@ -226,6 +226,41 @@ describe("wallpaper effect settings v25 migration", () => {
   });
 });
 
+describe("dither placeholder v40 migration", () => {
+  it("normalizes a persisted placeholder sentinel to null", () => {
+    const result = settings.migrateSettingsData(
+      { language: "en", selectedDitherId: "placeholder" },
+      39
+    );
+    expect(result.selectedDitherId).toBe(null);
+  });
+
+  it("keeps a real wallpaper selection", () => {
+    const result = settings.migrateSettingsData({ language: "en", selectedDitherId: "aaa" }, 39);
+    expect(result.selectedDitherId).toBe("aaa");
+  });
+});
+
+describe("sprite settings v41 migration", () => {
+  it("drops the removed sprite keys and falls back to defaults", () => {
+    const result = settings.migrateSettingsData(
+      {
+        language: "en",
+        thumbPreviews: true,
+        spriteBurstMpv: false,
+        spriteFillPlayback: false,
+        spriteNeighborCount: 5,
+      },
+      40
+    );
+    const raw = result as unknown as Record<string, unknown>;
+    expect(raw.thumbPreviews).toBeUndefined();
+    expect(raw.spriteBurstMpv).toBeUndefined();
+    expect(raw.spriteFillPlayback).toBeUndefined();
+    expect(raw.spriteNeighborCount).toBeUndefined();
+  });
+});
+
 describe("anilist list sort v26 migration", () => {
   it("keeps a valid persisted list sort", () => {
     const result = settings.migrateSettingsData(
@@ -429,12 +464,44 @@ describe("anilist adult content preference", () => {
 
     expect(DEFAULT_SETTINGS.anilistAdultContent).toBe(false);
   });
-
   it("round-trips through the settings store", () => {
     settings.patchSettings({ anilistAdultContent: true });
 
     expect(settings.settingsAtoms.anilistAdultContent.get()).toBe(true);
 
     settings.patchSettings({ anilistAdultContent: false });
+  });
+});
+
+describe("torrent covers preference", () => {
+  it("defaults to hidden", async () => {
+    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+
+    expect(DEFAULT_SETTINGS.torrentCoversEnabled).toBe(false);
+  });
+
+  it("round-trips through the settings store", () => {
+    settings.patchSettings({ torrentCoversEnabled: true });
+
+    expect(settings.settingsAtoms.torrentCoversEnabled.get()).toBe(true);
+
+    settings.patchSettings({ torrentCoversEnabled: false });
+  });
+});
+
+describe("webview proxy preference", () => {
+  it("defaults to enabled", async () => {
+    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+
+    expect(DEFAULT_SETTINGS.webviewProxyEnabled).toBe(true);
+  });
+
+  it("fills the default for persisted state without the flag", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 41).webviewProxyEnabled).toBe(true);
+  });
+
+  it("keeps an explicit opt-out", () => {
+    const result = settings.migrateSettingsData({ language: "en", webviewProxyEnabled: false }, 41);
+    expect(result.webviewProxyEnabled).toBe(false);
   });
 });

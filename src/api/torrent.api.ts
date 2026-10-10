@@ -23,6 +23,13 @@ import { tauriTransport } from "./transport.api";
 export interface TorrentApiConfig {
   transport?: ApiTransport;
   proxies?: Record<string, string> | null | (() => Record<string, string> | null);
+  webviewProxyEnabled?: boolean | (() => boolean);
+}
+
+export interface TorrentFilesBatchEntry {
+  id: number;
+  files: TorrentFileInfo[] | null;
+  error: string | null;
 }
 
 export interface TorrentSearchArgs {
@@ -58,16 +65,32 @@ export interface ScannedExtraFile {
 export class TorrentApi {
   private readonly transport: ApiTransport;
   private readonly proxies: Record<string, string> | null | (() => Record<string, string> | null);
+  private readonly webviewProxyEnabled: boolean | (() => boolean);
 
   constructor(config: TorrentApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
     this.proxies = config.proxies ?? null;
+    this.webviewProxyEnabled = config.webviewProxyEnabled ?? true;
   }
 
   proxyFor(source: string): string | undefined {
     const proxies =
       typeof this.proxies === "function" ? (this.proxies() ?? {}) : (this.proxies ?? {});
     return proxies[source] || undefined;
+  }
+
+  webviewProxyFor(source: string): string | undefined {
+    const enabled =
+      typeof this.webviewProxyEnabled === "function"
+        ? this.webviewProxyEnabled()
+        : this.webviewProxyEnabled;
+    if (!enabled) return undefined;
+    return this.proxyFor(source);
+  }
+
+  private webviewProxyArgs(source: string): Record<string, string | undefined> {
+    const proxy = this.webviewProxyFor(source);
+    return { proxyUrl: proxy, proxy_url: proxy };
   }
 
   private proxyArgs(source?: string): Record<string, string | undefined> {
@@ -130,7 +153,7 @@ export class TorrentApi {
   }
 
   rutrackerWebviewLogin(): Promise<string> {
-    return this.call("rutracker_webview_login", { ...this.proxyArgs("rutracker") });
+    return this.call("rutracker_webview_login", { ...this.webviewProxyArgs("rutracker") });
   }
 
   rutrackerFinishWebviewLogin(): Promise<string> {
@@ -138,7 +161,7 @@ export class TorrentApi {
   }
 
   eraiWebviewLogin(): Promise<string> {
-    return this.call("erai_webview_login");
+    return this.call("erai_webview_login", { ...this.webviewProxyArgs("erai-raws") });
   }
 
   eraiFinishWebviewLogin(): Promise<string> {
@@ -192,6 +215,10 @@ export class TorrentApi {
 
   runningTorrentFiles(id: number): Promise<TorrentFileInfo[]> {
     return this.call("get_running_torrent_files", { id });
+  }
+
+  runningTorrentFilesBatch(ids: readonly number[]): Promise<TorrentFilesBatchEntry[]> {
+    return this.call("get_running_torrent_files_batch", { ids });
   }
 
   pauseTorrent(id: number, infoHash?: string): Promise<void> {
@@ -348,4 +375,5 @@ export class TorrentApi {
 
 export const torrentApi = new TorrentApi({
   proxies: () => settingsAtoms.searchProxyUrls.get(),
+  webviewProxyEnabled: () => settingsAtoms.webviewProxyEnabled.get(),
 });

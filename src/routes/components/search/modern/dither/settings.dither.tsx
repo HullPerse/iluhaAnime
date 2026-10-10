@@ -12,7 +12,6 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import Slider from "@/components/ui/range.component";
 import {
-
   WALLPAPER_DISPLAY_PRESETS,
   WALLPAPER_DISPLAY_SLIDERS,
 } from "@/config/settings/wallpaper.config";
@@ -150,7 +149,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
   };
 
   const save = () => {
-    patchSettings({ selectedDitherId: selected });
+    patchSettings({ selectedDitherId: isPlaceholderSelected ? null : selected });
     queryClient.invalidateQueries({ queryKey: ["dither-wallpaper"] });
     onClose();
   };

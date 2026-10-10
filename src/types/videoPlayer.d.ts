@@ -1,6 +1,7 @@
 export interface PlayerOpenRequest {
   files: string[];
   resume?: number;
+  startIndex?: number;
 }
 
 export interface PlaybackSnapshot {

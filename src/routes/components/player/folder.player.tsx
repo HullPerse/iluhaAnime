@@ -20,7 +20,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseMediaPath } from "@/lib/media/parse.utils";
-import { loadWatch, openPlayer, rotateQueue } from "@/lib/player/playback.utils";
+import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -108,9 +108,14 @@ function FolderView({
       const folder = findFolderContainingFile(node, path);
       const paths = folder ? folderFilePaths(folder) : [];
       const index = paths.indexOf(path);
-      const queue = index > 0 ? rotateQueue(paths, index) : paths;
       const resume = stored && stored.position > 0 ? stored.position : undefined;
-      await openPlayer(queue.length > 0 ? queue : [path], resume).catch((error: unknown) => {
+      // Keep the queue in its sorted order and let the backend start at the
+      // chosen episode, so the playlist reads 1..N instead of rotating.
+      await openPlayer(
+        paths.length > 0 ? paths : [path],
+        resume,
+        index > 0 ? index : 0
+      ).catch((error: unknown) => {
         showError(t("player.folder.open.failed.player"), String(error));
       });
     },

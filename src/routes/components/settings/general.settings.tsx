@@ -13,6 +13,7 @@ import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
+import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
@@ -27,6 +28,8 @@ export default function SettingsGeneral() {
   const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
   const parseTitlesTorrent = useCell(settingsAtoms.parseTitlesTorrent);
   const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
+  const torrentCoversEnabled = useCell(settingsAtoms.torrentCoversEnabled);
+  const { user: anilistUser } = useUserAnilistData();
   const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
@@ -508,6 +511,19 @@ export default function SettingsGeneral() {
                 />
                 <span>{t("settings.parse.search")}</span>
               </label>
+              <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+                <Checkbox
+                  checked={torrentCoversEnabled}
+                  disabled={!anilistUser}
+                  onChange={(v) => {
+                    patchSettings({ torrentCoversEnabled: v });
+                  }}
+                />
+                <span>{t("settings.torrent.covers")}</span>
+                {!anilistUser ? (
+                  <span className="text-hint text-xs">{t("settings.torrent.covers.login")}</span>
+                ) : null}
+              </label>
             </div>
           </div>
         </div>
@@ -562,6 +578,7 @@ export default function SettingsGeneral() {
                 "notifications",
                 "lobbyConnections",
                 "sessionIdentity",
+                "animeIndexSyncKey",
               ]) {
                 localStorage.removeItem(key);
               }

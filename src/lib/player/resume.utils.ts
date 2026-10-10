@@ -9,21 +9,20 @@ export interface HwdecReload {
 /**
  * Picks the start position for a freshly loaded file.
  *
- * `resume` comes from the open request, `entryPosition` from the persisted
- * watch state. NOTE: `playlistIndex` is read from the playback atoms, which
- * are updated by asynchronous `player-state` snapshots — at `file-loaded`
- * time it still holds the *previous* file's index (or -1 on a fresh open),
- * so the resume branch is timing-dependent. Pinned by tests, see
+ * `resume` comes from the open request and is cleared after the first
+ * `file-loaded` of that request, so it only ever applies to the file the
+ * player actually started on — whatever its playlist index, since the queue
+ * is no longer rotated. `entryPosition` is the persisted watch position,
+ * used for later auto-advanced entries. Pinned by tests, see
  * `resume.utils.test.ts`.
  */
 export function resolveLoadPosition(
   reload: HwdecReload | null,
-  playlistIndex: number,
   resume: number | undefined,
   entryPosition: number | undefined
 ): number {
   if (reload) return reload.position;
-  if (playlistIndex === 0 && resume !== undefined) return resume;
+  if (resume !== undefined) return resume;
   return entryPosition ?? 0;
 }
 

@@ -92,7 +92,7 @@ function extCurrent(name: string): string {
   return (dot === -1 ? name : name.slice(dot + 1)).toLowerCase();
 }
 
-group('player-scan @player-scan', () => {
+group('player-scan @player-scan @quick', () => {
   bench('buildTree 5k slash paths (legacy)', () => {
     return buildTreeLegacy(SLASH_5K, 'D:/Anime').files.length;
   });

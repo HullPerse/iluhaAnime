@@ -873,5 +873,33 @@
     "file": "[Nekomoe kissaten&VCB-Studio] Seiyuu Radio no Uraomote [NCED][Ma10p_1080p][x265_flac].mkv",
     "skeleton": "manual",
     "count": 1
+  },
+  {
+    "id": "F127",
+    "dir": "",
+    "file": "[Erai-raws] Touhai Densetsu Akagi - 01 ~ 26 [480p][Multiple Subtitle]",
+    "skeleton": "manual",
+    "count": 1
+  },
+  {
+    "id": "F128",
+    "dir": "",
+    "file": "[Erai-raws] Touhai Densetsu Akagi - 01 ～ 26 [480p]",
+    "skeleton": "manual",
+    "count": 1
+  },
+  {
+    "id": "F129",
+    "dir": "",
+    "file": "[Erai-raws] Touhai Densetsu Akagi - 01〜26 [480p]",
+    "skeleton": "manual",
+    "count": 1
+  },
+  {
+    "id": "F130",
+    "dir": "",
+    "file": "[Erai-raws] Sousou no Frieren - 27 [1080p][Multiple Subtitle] [ENG][POR-BR][SPA-LA][SPA][ARA][FRE][GER][ITA][RUS]",
+    "skeleton": "manual",
+    "count": 1
   }
 ]

@@ -38,7 +38,7 @@ const STATS = makeStats(5000);
 const HISTORY = ['naruto shippuden', 'one piece', 'attack on titan'];
 const QUERIES = ['friren', 'naruto ship', 'attack', 'one', 'steins'];
 
-group('suggest-pipeline @search', () => {
+group('suggest-pipeline @search @quick', () => {
   bench('suggest x5k steady state (per keystroke)', () => {
     let checksum = 0;
     for (const q of QUERIES) {

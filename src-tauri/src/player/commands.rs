@@ -31,7 +31,7 @@ fn observed_properties() -> Value {
         "speed": "double",
         "volume": "double",
         "mute": "flag",
-        "playlist-index": "int64",
+        "playlist-pos": "int64",
         "playlist-count": "int64",
         "path": "string",
         "track-list": "node",
@@ -103,24 +103,41 @@ fn core(app: &AppHandle) -> LibmpvCore {
     LibmpvCore::new(app.clone())
 }
 
+/// Drops the legacy hover-frame/sprite cache. The spritemap pipeline was
+/// removed, so frames already on disk would otherwise sit there forever.
+fn drop_legacy_hover_cache(app: &AppHandle) {
+    let dir = crate::video::thumbnail_cache_dir(app).join("player-hover");
+    if dir.is_dir() {
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
 fn load_queue(
     app: &AppHandle,
     window: &str,
     files: &[String],
     resume: Option<f64>,
+    start_index: Option<usize>,
 ) -> Result<(), String> {
-    let Some(first) = files.first() else {
+    if files.is_empty() {
         return Err("no file to play".to_string());
-    };
+    }
     let backend = core(app);
-    let mut args: Vec<Value> = vec![json!(first), json!("replace")];
+    // Playback starts at `start_index`, but the mpv playlist is still built
+    // in the given (sorted) order: the start file loads first so the resume
+    // `start=` applies to it, then the files before it are inserted at the
+    // front in order and the rest appended. Previously the frontend rotated
+    // the queue, which reordered the whole playlist (e.g. 9..12 then 1..8).
+    let start = start_index.unwrap_or(0).min(files.len() - 1);
+    let start_file = &files[start];
+    let mut args: Vec<Value> = vec![json!(start_file), json!("replace")];
     if let Some(position) = resume {
         if position > 0.0 {
             args.push(json!(-1));
             args.push(json!(format!("start={position}")));
         }
     }
-    tracing::debug!("load_queue: first file {first}");
+    tracing::debug!("load_queue: start file {start_file} (index {start})");
     match backend.command("loadfile", &args, window) {
         Ok(()) => tracing::debug!("load_queue: loadfile ok"),
         Err(error) => {
@@ -128,17 +145,25 @@ fn load_queue(
             return Err(error);
         }
     }
-    for file in &files[1..] {
-        if let Err(error) =
-            backend.command("loadfile", &[json!(file), json!("append-play")], window)
-        {
+    for file in &files[start + 1..] {
+        if let Err(error) = backend.command("loadfile", &[json!(file), json!("append")], window) {
             tracing::warn!("load_queue: append failed for {file}: {error}");
+            return Err(error);
+        }
+    }
+    for (index, file) in files[..start].iter().enumerate() {
+        if let Err(error) = backend.command(
+            "loadfile",
+            &[json!(file), json!("insert-at"), json!(index)],
+            window,
+        ) {
+            tracing::warn!("load_queue: insert failed for {file}: {error}");
             return Err(error);
         }
     }
     if window == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
-        host.set_current_path(first.clone());
+        host.set_current_path(start_file.clone());
         host.clear_pending_open();
         host.mark_dirty();
     }
@@ -150,11 +175,17 @@ pub async fn player_open(
     app: AppHandle,
     files: Vec<String>,
     resume: Option<f64>,
+    start_index: Option<usize>,
 ) -> Result<(), String> {
+    drop_legacy_hover_cache(&app);
     if files.iter().any(|file| file.is_empty()) {
         return Err("player_open received an empty file path".to_string());
     }
-    let request = PlayerOpenRequest { files, resume };
+    let request = PlayerOpenRequest {
+        files,
+        resume,
+        start_index,
+    };
 
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
         let host = app.state::<PlayerHost>();
@@ -290,10 +321,14 @@ pub async fn player_load(
     window: WebviewWindow,
     files: Vec<String>,
     resume: Option<f64>,
+    start_index: Option<usize>,
 ) -> Result<(), String> {
     let label = window.label().to_string();
-    tracing::debug!("player_load: {} file(s) resume={resume:?}", files.len());
-    load_queue(&app, &label, &files, resume)
+    tracing::debug!(
+        "player_load: {} file(s) resume={resume:?} start={start_index:?}",
+        files.len()
+    );
+    load_queue(&app, &label, &files, resume, start_index)
 }
 
 #[tauri::command]
@@ -316,224 +351,10 @@ pub async fn player_append_files(
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HoverThumb {
-    pub url: Option<String>,
-    pub captured: bool,
-}
-
-static HOVER_LOCK: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
-
-fn hover_lock() -> &'static tokio::sync::Mutex<()> {
-    HOVER_LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
-}
-
-/// Suppresses `player-state` snapshots while alive so thumbnail-seek
-/// excursions never reach the timeline. Cleared on drop, which covers every
-/// early return below.
-struct HoverCaptureGuard {
-    app: AppHandle,
-}
-
-impl HoverCaptureGuard {
-    fn arm(app: &AppHandle) -> Self {
-        app.state::<PlayerHost>().set_capturing(true);
-        Self { app: app.clone() }
-    }
-}
-
-impl Drop for HoverCaptureGuard {
-    fn drop(&mut self) {
-        self.app.state::<PlayerHost>().set_capturing(false);
-    }
-}
-
-/// Whether the capture must seek back to the pre-capture position.
-/// Skips the restore when the user visibly intervened mid-capture (pressed
-/// play or scrubbed elsewhere): yanking playback back would be worse than
-/// leaving it where the user put it. On an unsettled capture with playback
-/// still paused, restores best-effort like before.
-fn thumb_should_restore(
-    settled: bool,
-    now_pos: Option<f64>,
-    target: f64,
-    paused_now: bool,
-) -> bool {
-    if !paused_now {
-        return false;
-    }
-    if !settled {
-        return true;
-    }
-    now_pos.is_some_and(|position| (position - target).abs() <= 5.0)
-}
-
-fn hover_cache_key(path: &str, mtime: u64, size: u64, rounded: u64) -> String {
-    use sha1::Digest;
-    hex::encode(sha1::Sha1::digest(
-        format!("{path}|{mtime}|{size}|{rounded}").as_bytes(),
-    ))
-}
-
-async fn wait_for_file(path: &std::path::Path, timeout: std::time::Duration) -> bool {
-    let deadline = std::time::Instant::now() + timeout;
-    while std::time::Instant::now() < deadline {
-        if path.is_file() {
-            return true;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    }
-    path.is_file()
-}
-
 #[tauri::command]
-pub async fn player_hover_thumb(
-    app: AppHandle,
+pub async fn player_save_frame(
     window: WebviewWindow,
-    path: String,
-    timestamp: f64,
-) -> Result<HoverThumb, String> {
-    if path.trim().is_empty() || !timestamp.is_finite() || timestamp < 0.0 {
-        return Err("hover thumb needs a file path and timestamp".to_string());
-    }
-    let label = window.label().to_string();
-    if label != PLAYER_WINDOW_LABEL {
-        return Err("hover thumbs only work in the player window".to_string());
-    }
-    let meta = std::fs::metadata(&path).map_err(|error| format!("hover thumb metadata: {error}"))?;
-    let mtime = meta
-        .modified()
-        .ok()
-        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|age| age.as_secs())
-        .unwrap_or(0);
-    let rounded = timestamp.max(0.0).round() as u64;
-    let key = hover_cache_key(&path, mtime, meta.len(), rounded);
-    let dir = crate::video::thumbnail_cache_dir(&app).join("player-hover");
-    std::fs::create_dir_all(&dir).map_err(|error| format!("hover thumb dir: {error}"))?;
-    let out = dir.join(format!("{key}.jpg"));
-    if out.is_file() {
-        return Ok(HoverThumb {
-            url: Some(out.to_string_lossy().to_string()),
-            captured: false,
-        });
-    }
-    if app.state::<PlayerHost>().current_path() != path {
-        return Ok(HoverThumb {
-            url: None,
-            captured: false,
-        });
-    }
-    let backend = core(&app);
-    let paused = backend
-        .get_property("pause", "flag", &label)
-        .ok()
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false);
-    if !paused {
-        return Ok(HoverThumb {
-            url: None,
-            captured: false,
-        });
-    }
-    let _guard = hover_lock()
-        .try_lock()
-        .map_err(|_| "hover capture busy".to_string())?;
-    if out.is_file() {
-        return Ok(HoverThumb {
-            url: Some(out.to_string_lossy().to_string()),
-            captured: false,
-        });
-    }
-    // Re-check pause: the user may have resumed between the first check and
-    // the lock acquisition; capturing over playing playback is worse than
-    // skipping this thumbnail.
-    let paused_again = backend
-        .get_property("pause", "flag", &label)
-        .ok()
-        .and_then(|value| value.as_bool())
-        .unwrap_or(true);
-    if !paused_again {
-        return Ok(HoverThumb {
-            url: None,
-            captured: false,
-        });
-    }
-    let _capture = HoverCaptureGuard::arm(&app);
-    let current = backend
-        .get_property("time-pos", "double", &label)
-        .ok()
-        .and_then(|value| value.as_f64())
-        .unwrap_or(0.0);
-    backend.command("seek", &[json!(timestamp), json!("absolute")], &label)?;
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
-    let settled: bool;
-    loop {
-        let reached = backend
-            .get_property("time-pos", "double", &label)
-            .ok()
-            .and_then(|value| value.as_f64())
-            .is_some_and(|position| (position - timestamp).abs() <= 5.0);
-        if reached || std::time::Instant::now() >= deadline {
-            settled = reached;
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    }
-    let tmp = dir.join(format!("{key}.full.jpg"));
-    let shot = backend.command(
-        "screenshot-to-file",
-        &[json!(tmp.to_string_lossy())],
-        &label,
-    );
-    let mut ready =
-        shot.is_ok() && wait_for_file(&tmp, std::time::Duration::from_secs(3)).await;
-    if ready {
-        let from = tmp.clone();
-        let to = out.clone();
-        let downscaled = tokio::task::spawn_blocking(move || -> Result<(), String> {
-            let img =
-                image::open(&from).map_err(|error| format!("hover thumb decode: {error}"))?;
-            img.thumbnail(160, 160)
-                .save(&to)
-                .map_err(|error| format!("hover thumb save: {error}"))?;
-            let _ = std::fs::remove_file(&from);
-            Ok(())
-        })
-        .await
-        .map_err(|error| format!("hover thumb task: {error}"))?;
-        if downscaled.is_err() {
-            let _ = std::fs::remove_file(&tmp);
-            let _ = std::fs::remove_file(&out);
-            ready = false;
-        }
-    }
-    let paused_now = backend
-        .get_property("pause", "flag", &label)
-        .ok()
-        .and_then(|value| value.as_bool())
-        .unwrap_or(true);
-    let now_pos = backend
-        .get_property("time-pos", "double", &label)
-        .ok()
-        .and_then(|value| value.as_f64());
-    if thumb_should_restore(settled, now_pos, timestamp, paused_now) {
-        let _ = backend.command("seek", &[json!(current), json!("absolute")], &label);
-    }
-    // No pause touch: entry guarantees paused, and forcing pause back onto a
-    // user who resumed mid-capture would steal their playback.
-    if !ready {
-        return Err("hover capture failed".to_string());
-    }
-    Ok(HoverThumb {
-        url: Some(out.to_string_lossy().to_string()),
-        captured: true,
-    })
-}
-
-#[tauri::command]
-pub async fn player_save_frame(window: WebviewWindow) -> Result<crate::screenshot::SavedScreenshot, String> {
+) -> Result<crate::screenshot::SavedScreenshot, String> {
     let label = window.label().to_string();
     if label != PLAYER_WINDOW_LABEL {
         return Err("clean frames only work in the player window".to_string());
@@ -551,8 +372,8 @@ pub async fn player_save_frame(window: WebviewWindow) -> Result<crate::screensho
     )?;
     let target_clone = target.clone();
     let (width, height) = tokio::task::spawn_blocking(move || -> Result<(u32, u32), String> {
-        let img = image::open(&target_clone)
-            .map_err(|error| format!("read the clean frame: {error}"))?;
+        let img =
+            image::open(&target_clone).map_err(|error| format!("read the clean frame: {error}"))?;
         use image::GenericImageView;
         Ok(img.dimensions())
     })
@@ -741,7 +562,7 @@ pub fn player_apply_file_state(
 
 #[cfg(test)]
 mod tests {
-    use super::{eof_properties, thumb_should_restore};
+    use super::eof_properties;
 
     #[test]
     fn eof_modes_map_to_mpv_keep_open_and_loop_properties() {
@@ -755,20 +576,5 @@ mod tests {
     fn unknown_eof_mode_maps_to_nothing() {
         assert_eq!(eof_properties("loop-everything"), None);
         assert_eq!(eof_properties(""), None);
-    }
-
-    #[test]
-    fn thumb_restore_seeks_back_only_when_undisturbed() {
-        // Settled at target, still paused: restore.
-        assert!(thumb_should_restore(true, Some(100.0), 100.0, true));
-        // User pressed play mid-capture: hands off.
-        assert!(!thumb_should_restore(true, Some(100.0), 100.0, false));
-        // User scrubbed elsewhere mid-capture: hands off.
-        assert!(!thumb_should_restore(true, Some(300.0), 100.0, true));
-        assert!(!thumb_should_restore(true, None, 100.0, true));
-        // Unsettled capture with playback still paused: best-effort restore.
-        assert!(thumb_should_restore(false, Some(50.0), 100.0, true));
-        // Unsettled and playing: hands off.
-        assert!(!thumb_should_restore(false, Some(50.0), 100.0, false));
     }
 }

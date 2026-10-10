@@ -27,8 +27,10 @@ function SearchDefault() {
   const { t } = useI18n();
   const {
     source,
+    resultSource,
     sourceOptions,
     isLoading,
+    isFetching,
     searchParams,
     submittedQuery,
     didYouMean,
@@ -103,9 +105,9 @@ function SearchDefault() {
           variant="default"
           size="icon"
           onClick={handleSearch}
-          disabled={isLoading || sourceOptions.length === 0}
+          disabled={isFetching || sourceOptions.length === 0}
         >
-          {isLoading ? <SmallLoader /> : <Search className="pointer-events-none" />}
+          {isFetching ? <SmallLoader /> : <Search className="pointer-events-none" />}
         </Button>
         <span className="ui-toolbar-separator" aria-hidden />
         <Select
@@ -174,7 +176,7 @@ function SearchDefault() {
             <SearchResultItem
               key={`${item.link}-${index}`}
               item={item}
-              source={source}
+              source={resultSource ?? source}
               loadingMagnet={loadingMagnet}
               onCopyMagnet={(i) => copyMagnetFor(i)}
               onOpenMagnet={(i) => openMagnetFor(i)}
@@ -183,7 +185,7 @@ function SearchDefault() {
                 const [, error] = await attempt(openUrl(i.link));
                 if (error) return console.warn("openUrl failed", error);
               }}
-              onOpenDetails={(i) => setSelectedTorrent({ item: i, source })}
+              onOpenDetails={(i) => setSelectedTorrent({ item: i, source: resultSource ?? source })}
             />
           ))}
         </section>
@@ -193,7 +195,7 @@ function SearchDefault() {
         <SearchPager
           page={nyaaPage}
           pageFull={pageFull}
-          isLoading={isLoading}
+          isLoading={isFetching}
           onPageChange={setNyaaPage}
         />
       )}

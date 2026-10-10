@@ -1,4 +1,5 @@
 import { normalizeSearchText } from "./normalize.utils";
+import { isRomanNumeral } from "./roman.utils";
 
 const MAX_EDIT_DISTANCE = 2;
 
@@ -17,8 +18,8 @@ export class SymSpell {
   private deletesMap = new Map<string, Set<string>>();
   private words = new Set<string>();
 
-  addWord(raw: string): void {
-    const word = normalizeSearchText(raw).split(" ")[0] ?? "";
+  /** Adds a word that is already normalized (skips the normalize pass). */
+  addNormalizedWord(word: string): void {
     if (!word || word.length < 3) return;
     if (this.words.has(word)) return;
     this.words.add(word);
@@ -34,12 +35,20 @@ export class SymSpell {
     this.deletesMap.set(word, selfSet);
   }
 
+  addWord(raw: string): void {
+    this.addNormalizedWord(normalizeSearchText(raw).split(" ")[0] ?? "");
+  }
+
   addWords(words: string[]): void {
     for (const w of words) {
       for (const part of normalizeSearchText(w).split(" ")) {
         if (part) this.addWord(part);
       }
     }
+  }
+
+  has(word: string): boolean {
+    return this.words.has(word);
   }
 
   private collectCandidates(
@@ -93,7 +102,7 @@ export class SymSpell {
 
   correctMany(input: string, limit = 3): string[] {
     const word = normalizeSearchText(input).split(" ")[0] ?? "";
-    if (!word || this.words.has(word)) return [];
+    if (!word || this.words.has(word) || isRomanNumeral(word)) return [];
     const candidates = new Map<string, number>();
     const visited = new Set<string>();
     this.collectCandidates(word, candidates, visited);
@@ -102,7 +111,7 @@ export class SymSpell {
 
   correct(input: string): string | null {
     const word = normalizeSearchText(input).split(" ")[0] ?? "";
-    if (!word || this.words.has(word)) return null;
+    if (!word || this.words.has(word) || isRomanNumeral(word)) return null;
     const candidates = new Map<string, number>();
     const visited = new Set<string>();
     this.collectCandidates(word, candidates, visited);
@@ -150,7 +159,25 @@ export class SymSpell {
 }
 
 export function buildSymSpellFromTitles(titles: string[]): SymSpell {
+  return buildSymSpellFromWords(normalizedSpellWords(titles));
+}
+
+/** Unique normalized words (length >= 3) the spell index is built from. */
+export function normalizedSpellWords(titles: string[]): string[] {
+  const words: string[] = [];
+  const seen = new Set<string>();
+  for (const title of titles) {
+    for (const word of normalizeSearchText(title).split(" ")) {
+      if (word.length < 3 || seen.has(word)) continue;
+      seen.add(word);
+      words.push(word);
+    }
+  }
+  return words;
+}
+
+export function buildSymSpellFromWords(words: readonly string[]): SymSpell {
   const s = new SymSpell();
-  s.addWords(titles);
+  for (const word of words) s.addNormalizedWord(word);
   return s;
 }

@@ -13,6 +13,8 @@ const search = {
   "search.details.hash": "Хеш",
   "search.details.information": "Информация",
   "search.details.leechers": "Личеры",
+  "search.details.author": "Залил",
+  "search.details.mediainfo": "MediaInfo",
   "search.details.loading": "Загрузка страницы торрента...",
   "search.details.magnet": "Магнит",
   "search.details.no.comments": "Комментариев не найдено.",
@@ -68,7 +70,6 @@ const search = {
   "search.suggestion.spell": "Исправление",
   "search.suggestion.torrent": "Торрент",
   "search.magnet": "Магнит",
-  "search.more": "Подробнее",
   "search.more.available": "есть ещё",
   "search.nekobt.api.key": "API ключ nekoBT",
   "search.nekobt.placeholder": "API ключ",
@@ -77,6 +78,8 @@ const search = {
   "search.erai.err.network": "Не удаётся подключиться к Erai-Raws.",
   "search.erai.err.no.session":
     "Сессия Erai-Raws не найдена. Сначала войдите во встроенном браузере, затем сохраните её.",
+  "search.erai.err.proxy.invalid":
+    "Некорректный прокси для erai-raws. Формат: http://host:port или socks5://host:port.",
   "search.erai.err.unknown": "Не удалось войти в Erai-Raws. Попробуйте ещё раз.",
   "search.erai.err.webview.not.found":
     "Окно встроенного браузера не открыто. Сначала откройте его.",
@@ -216,6 +219,17 @@ const search = {
 
   "search.find.submit": "Найти",
   "search.title": "Поиск",
+  "search.cover.correct.title": "Не та обложка?",
+  "search.cover.correct.menu": "Не та обложка?",
+  "search.cover.correct.manual": "Привязано вручную",
+  "search.cover.correct.apply": "Применить",
+  "search.cover.correct.cancel": "Отмена",
+  "search.cover.correct.find": "Найти другое аниме...",
+  "search.cover.correct.clear": "Автообложка",
+  "search.cover.correct.applied": "Обложка обновлена",
+  "search.cover.correct.empty": "Кандидатов пока нет",
+  "search.cover.page.poster": "Со страницы раздачи",
+  "search.cover.refresh": "Обновить обложку",
 } as const;
 
 export default search;

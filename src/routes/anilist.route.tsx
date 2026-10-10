@@ -40,7 +40,6 @@ import {
 import { consumeAuthDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { addNotification } from "@/store/notification.store";
 import {
-  indexSearchAniList,
   searchAtoms,
   setAnilistSearchQuery,
   subscribeSearch,
@@ -153,10 +152,6 @@ function AnilistRoute() {
     () => new Set(people.characters.map((p) => p.id)),
     [people]
   );
-  useEffect(() => {
-    if (user) indexSearchAniList(lists, favourites, user.id);
-  }, [favourites, lists, user]);
-
   const friends = useCell(anilistFriendsAtoms.friends);
   const friendIds = useMemo(() => [...new Set(friends.map((friend) => friend.id))], [friends]);
 
@@ -245,6 +240,7 @@ function AnilistRoute() {
 
   const handleLogout = useCallback(async () => {
     await anilistApi.logout();
+    patchSettings({ torrentCoversEnabled: false });
     queryClient.setQueryData(["anilist_data"], {
       user: null,
       lists: [],

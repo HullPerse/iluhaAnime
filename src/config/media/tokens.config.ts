@@ -11,7 +11,6 @@ export const RELEASE_GROUPS: readonly string[] = [
   "SweetSub",
   "Kawaiika-Raws",
   "AniDub",
-  "eNd",
   "YMDR",
   "ViPHD",
   "MALD",
@@ -85,12 +84,22 @@ export const LANG_ALIASES: Readonly<Record<string, string>> = {
   jp: "jpn",
   Jpn: "jpn",
   JPN: "jpn",
+  JAP: "jpn",
+  jap: "jpn",
   jpn: "jpn",
   Ukr: "ukr",
   CHI: "chi",
+  por: "por",
+  spa: "spa",
+  ara: "ara",
+  fre: "fre",
+  fra: "fre",
+  ger: "ger",
+  deu: "ger",
+  ita: "ita",
 };
 
-export const SUB_FORMATS: readonly string[] = ["ASS", "SRT", "SSA"];
+export const SUB_FORMATS: readonly string[] = ["ASS", "SRT", "SSA", "SUB"];
 
 export const SUB_VARIANTS: readonly string[] = ["GB", "BIG5", "CHS", "CHT"];
 

@@ -27,6 +27,15 @@ export interface TorrentDetailComment {
   text: string;
 }
 
+export type DescriptionBlock =
+  | { kind: "heading"; text: string }
+  | { kind: "text"; text: string }
+  | { kind: "field"; label: string; value: string }
+  | { kind: "image"; src: string }
+  | { kind: "spoiler"; title: string; body: string }
+  | { kind: "code"; text: string }
+  | { kind: "link"; text: string; href: string };
+
 export interface TorrentDetails {
   source: string;
   url: string;
@@ -46,6 +55,10 @@ export interface TorrentDetails {
   fields: TorrentDetailField[];
   files: TorrentDetailFile[];
   screenshots: string[];
+  poster: string | null;
+  mediainfo: string | null;
+  author: string;
+  descriptionBlocks: DescriptionBlock[];
   comments: TorrentDetailComment[];
   notice: string | null;
 }
@@ -278,6 +291,10 @@ export interface TorrentView {
   fields: TorrentDetailField[];
   files: TorrentDetailFile[];
   screenshots: string[];
+  poster: string | null;
+  mediainfo: string | null;
+  author: string;
+  descriptionBlocks: DescriptionBlock[];
   comments: TorrentDetailComment[];
   notice: string | null;
 }

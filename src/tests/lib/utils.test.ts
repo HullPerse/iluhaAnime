@@ -79,6 +79,12 @@ import { clamp } from "@/lib/utils/math.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { hashStringToUint32, mulberry32 } from "@/lib/utils/random.utils";
 import {
+  buildReproFrontend,
+  isSecretKey,
+  redactProxyUrl,
+  sanitizeReproValue,
+} from "@/lib/utils/repro.utils";
+import {
   andThen,
   attemptResult,
   attemptResultSync,
@@ -2577,6 +2583,66 @@ describe("utils/time", () => {
       { secs: 125, t: en, expected: "2 min 5 sec" },
     ] as const)("formats %s as %s", ({ secs, t, expected }) => {
       expect(formatElapsed(secs, t)).toBe(expected);
+    });
+  });
+});
+
+describe("utils/repro", () => {
+  describe("isSecretKey", () => {
+    it.each([
+      ["authToken", true],
+      ["tmdb_api_key", true],
+      ["proxyPassword", true],
+      ["cookie", true],
+      ["theme", false],
+      ["proxyUrl", false],
+    ] as const)("classifies %s as %s", (key, expected) => {
+      expect(isSecretKey(key)).toBe(expected);
+    });
+  });
+
+  describe("redactProxyUrl", () => {
+    it("strips userinfo keeping host", () => {
+      expect(redactProxyUrl("socks5://user:pass@host:1080")).toBe("socks5://***@host:1080");
+    });
+    it("leaves clean urls alone", () => {
+      expect(redactProxyUrl("socks5://host:1080")).toBe("socks5://host:1080");
+    });
+  });
+
+  describe("sanitizeReproValue", () => {
+    it("redacts secret keys", () => {
+      const out = sanitizeReproValue({ authToken: "abc", theme: "win95" }) as Record<string, unknown>;
+      expect(out.theme).toBe("win95");
+      expect(out.authToken).toBe("[redacted]");
+    });
+    it("redacts proxy userinfo", () => {
+      const out = sanitizeReproValue({ torrentProxyUrl: "socks5://u:p@h:1080" }) as Record<string, unknown>;
+      expect(out.torrentProxyUrl).toBe("socks5://***@h:1080");
+    });
+    it("truncates long strings and caps arrays", () => {
+      const out = sanitizeReproValue({
+        list: Array.from({ length: 250 }, (_, i) => i),
+        s: "x".repeat(600),
+      }) as { s: string; list: unknown[] };
+      expect(out.s).toHaveLength(500 + "[truncated]".length);
+      expect(out.list).toHaveLength(200);
+    });
+    it("stringifies bigints and drops functions", () => {
+      const out = sanitizeReproValue({ big: 10n, fn: () => 1 }) as Record<string, unknown>;
+      expect(out.big).toBe("10");
+      expect(out.fn).toBeUndefined();
+    });
+  });
+
+  describe("buildReproFrontend", () => {
+    it("emits version plus sanitized settings plus counts", () => {
+      const parsed = JSON.parse(
+        buildReproFrontend({ counts: { history: 3 }, settings: { authToken: "x" }, version: "5.0.0" })
+      ) as { version: string; settings: { authToken: string }; counts: { history: number } };
+      expect(parsed.version).toBe("5.0.0");
+      expect(parsed.settings.authToken).toBe("[redacted]");
+      expect(parsed.counts.history).toBe(3);
     });
   });
 });

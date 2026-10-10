@@ -222,6 +222,7 @@ function AniListActionControls({
     const hadEntry = listEntry !== undefined;
     const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
     if (hadEntry) patchListEntry(queryClient, anime.id, values);
+    const startedAt = performance.now();
     const [, error] = await attempt(
       anilistApi.saveEntry({
         mediaId: anime.id,
@@ -234,7 +235,16 @@ function AniListActionControls({
     );
     if (error) {
       if (hadEntry) queryClient.setQueryData(["anilist_data"], previous);
-      setSaveError(t("anilist.controls.save.error"));
+      const message = error instanceof Error ? error.message : String(error);
+      const reason = message.length > 300 ? `${message.slice(0, 300)}...` : message;
+      console.warn("anilist.save.failed", {
+        elapsedMs: Math.round(performance.now() - startedAt),
+        mediaId: anime.id,
+        progress: values.progress,
+        status: values.list_status,
+        error: reason,
+      });
+      setSaveError(t("anilist.controls.save.error.detail", { error: reason }));
       setSaving(false);
       return;
     }

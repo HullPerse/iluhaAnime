@@ -22,6 +22,8 @@ const SINGLE_ORACLE: [string, "bracket" | "paren" | "plain", string][] = [
   ["Rus", "plain", "lang"],
   ["jpn", "plain", "lang"],
   ["2xRus", "plain", "lang"],
+  ["POR-BR", "bracket", "lang"],
+  ["SPA-LA", "bracket", "lang"],
   ["DUB", "bracket", "dub"],
   ["ASS", "plain", "subs"],
   ["TV", "bracket", "type"],

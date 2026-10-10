@@ -21,6 +21,8 @@ pub struct PlayerOpenRequest {
     pub files: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resume: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_index: Option<usize>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -72,7 +74,6 @@ pub struct PlayerHost {
     watchdog: Mutex<WatchdogState>,
     last_snapshot: Mutex<Option<PlaybackSnapshot>>,
     zero_streak: Mutex<u32>,
-    capturing: AtomicBool,
 }
 
 #[derive(Default, Clone)]
@@ -132,14 +133,6 @@ impl PlayerHost {
         self.active.store(active, Ordering::Relaxed);
     }
 
-    pub fn set_capturing(&self, capturing: bool) {
-        self.capturing.store(capturing, Ordering::Relaxed);
-    }
-
-    pub fn is_capturing(&self) -> bool {
-        self.capturing.load(Ordering::Relaxed)
-    }
-
     pub fn is_active(&self) -> bool {
         self.active.load(Ordering::Relaxed)
     }
@@ -186,17 +179,9 @@ pub fn attach(app: &AppHandle) {
                 watchdog_tick(&ticker);
             }
             if host.dirty.swap(false, Ordering::Relaxed) {
-                if host.is_capturing() {
-                    // A hover capture is seeking mpv away and back: snapshots
-                    // taken now would show the thumbnail position, not the
-                    // user's. Stay dirty so the post-capture tick emits one
-                    // fresh snapshot instead.
-                    host.mark_dirty();
-                } else {
-                    let snapshot = read_snapshot(&ticker);
-                    let snapshot = smooth_snapshot(&ticker, snapshot);
-                    let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
-                }
+                let snapshot = read_snapshot(&ticker);
+                let snapshot = smooth_snapshot(&ticker, snapshot);
+                let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
             }
             ticks = ticks.wrapping_add(1);
             if ticks % WATCH_SAVE_TICKS == 0 {
@@ -378,7 +363,8 @@ fn smooth_snapshot(app: &AppHandle, next: PlaybackSnapshot) -> PlaybackSnapshot 
     emitted
 }
 
-fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {    let metrics = app.state::<PlayerHost>().metrics();
+fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
+    let metrics = app.state::<PlayerHost>().metrics();
     PlaybackSnapshot {
         time_pos: number_property(app, "time-pos").unwrap_or_default(),
         duration: number_property(app, "duration").unwrap_or_default(),
@@ -387,7 +373,7 @@ fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {    let metrics = app.sta
         speed: number_property(app, "speed").unwrap_or(1.0),
         volume: number_property(app, "volume").unwrap_or_default(),
         muted: flag_property(app, "mute").unwrap_or(false),
-        playlist_index: int_property(app, "playlist-index").unwrap_or(-1),
+        playlist_index: int_property(app, "playlist-pos").unwrap_or(-1),
         playlist_count: int_property(app, "playlist-count").unwrap_or_default(),
         path: string_property(app, "path").unwrap_or_default(),
         fps_render: metrics.fps_render,

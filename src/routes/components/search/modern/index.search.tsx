@@ -13,6 +13,7 @@ import { useCell } from "@/lib/state/signal.hook";
 import { showError } from "@/lib/utils/notification.utils";
 import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper/wallpaper.utils";
 import { settingsAtoms } from "@/store/settings.store";
+
 import DitherSettings from "./dither/settings.dither";
 import InputSearch from "./input.search";
 import WallpaperCanvas from "./wallpaper.canvas";
@@ -24,7 +25,6 @@ function SearchModern() {
   const [ditherModal, setDitherModal] = useState<boolean>(false);
   const filters = useCell(settingsAtoms.wallpaperFilters);
   const displayShadow = useCell(settingsAtoms.wallpaperShadow);
-  const selectedId = useCell(settingsAtoms.selectedDitherId);
   const scanlines = useCell(settingsAtoms.wallpaperScanlines);
   const showMascot = useCell(settingsAtoms.searchMascotEnabled);
   const [docked, setDocked] = useState<boolean>(false);
@@ -32,7 +32,7 @@ function SearchModern() {
   const [mascot, setMascot] = useState<HTMLDivElement | null>(null);
   const [dimmed, setDimmed] = useState<boolean>(false);
   const stageRef = useRef<HTMLElement>(null);
-  const { data, isError } = useWallpaperImage();
+  const { data, isError, isLoading } = useWallpaperImage();
   const wallpaperShadowStyle = buildShadowGradients(displayShadow);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ function SearchModern() {
 
   const mascotVisible = showMascot && !docked;
 
-  if (selectedId !== null && data === undefined && !isError) {
+  if (isLoading) {
     return <TabLoader className="absolute inset-0 z-20 flex items-center justify-center" />;
   }
   return (

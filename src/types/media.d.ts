@@ -36,6 +36,7 @@ export interface MediaEpisode {
   numberAlt?: number;
   title?: string;
   ofTotal?: number;
+  version?: number;
 }
 
 export interface MediaFileParse {
@@ -129,6 +130,9 @@ export interface FieldBag {
 export interface DirContext {
   titleWords: string[];
   season?: number;
+  ofTotal?: number;
+  subs: string[];
+  subVariant?: string;
   year?: number;
   source?: string;
   service?: string;
@@ -155,6 +159,8 @@ export interface EpisodeHit {
   number?: number;
   numberAlt?: number;
   ofTotal?: number;
+  version?: number;
+  title?: string;
   atomIndex: number;
   fallbackIndex: number;
   consumed: Set<number>;

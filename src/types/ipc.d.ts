@@ -20,6 +20,7 @@ export type CommandName =
   | "check_tmdb_session"
   | "clear_remote_image_cache"
   | "clear_unified_index_scope"
+  | "collect_repro_bundle"
   | "convert_video"
   | "copy_screenshot"
   | "create_torrent_from_folder"
@@ -77,6 +78,7 @@ export type CommandName =
   | "get_remote_images_stats"
   | "get_profile_recommendations"
   | "get_running_torrent_files"
+  | "get_running_torrent_files_batch"
   | "get_sqlite_cell"
   | "get_sqlite_cell_image"
   | "get_sqlite_rows"
@@ -119,7 +121,6 @@ export type CommandName =
   | "player_destroy"
   | "player_eof_mode"
   | "player_get_property"
-  | "player_hover_thumb"
   | "player_init"
   | "player_load"
   | "player_load_watch"
@@ -162,6 +163,7 @@ export type CommandName =
   | "save_session_config"
   | "scan_extra_files"
   | "scan_video_folder"
+  | "scan_video_folders"
   | "search_anilist"
   | "search_anilist_by_genre"
   | "search_anilist_by_studio"
@@ -229,4 +231,3 @@ export interface FilterPage {
   media: AniMedia[];
   total: number;
 }
-  | "scan_video_folders"

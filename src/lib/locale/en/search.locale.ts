@@ -13,6 +13,8 @@ const search = {
   "search.details.hash": "Hash",
   "search.details.information": "Information",
   "search.details.leechers": "Leechers",
+  "search.details.author": "Uploader",
+  "search.details.mediainfo": "MediaInfo",
   "search.details.loading": "Loading torrent page...",
   "search.details.magnet": "Magnet",
   "search.details.no.comments": "No comments found.",
@@ -68,7 +70,6 @@ const search = {
   "search.suggestion.spell": "Correction",
   "search.suggestion.torrent": "Torrent",
   "search.magnet": "Magnet",
-  "search.more": "More",
   "search.more.available": "more available",
   "search.nekobt.api.key": "nekoBT API key",
   "search.nekobt.placeholder": "API key",
@@ -77,6 +78,8 @@ const search = {
   "search.erai.err.network": "Cannot connect to Erai-Raws.",
   "search.erai.err.no.session":
     "No Erai-Raws session was found. Sign in in the browser first, then save.",
+  "search.erai.err.proxy.invalid":
+    "The erai-raws proxy URL is invalid. Use http://host:port or socks5://host:port.",
   "search.erai.err.unknown": "Erai-Raws login failed. Try again.",
   "search.erai.err.webview.not.found": "The in-app browser window is not open. Open it first.",
   "search.erai.err.webview.open": "Could not open the Erai-Raws browser window.",
@@ -212,6 +215,17 @@ const search = {
   "search.dither.title": "Dither settings",
   "search.find.submit": "Search",
   "search.title": "Search",
+  "search.cover.correct.title": "Wrong cover?",
+  "search.cover.correct.menu": "Wrong cover?",
+  "search.cover.correct.manual": "Bound manually",
+  "search.cover.correct.apply": "Apply",
+  "search.cover.correct.cancel": "Cancel",
+  "search.cover.correct.find": "Find another anime...",
+  "search.cover.correct.clear": "Use auto cover",
+  "search.cover.correct.applied": "Cover updated",
+  "search.cover.correct.empty": "No candidates yet",
+  "search.cover.page.poster": "From torrent page",
+  "search.cover.refresh": "Refresh cover",
 } as const;
 
 export default search;

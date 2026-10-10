@@ -128,6 +128,10 @@ export class SystemApi {
     return this.call("check_ffprobe");
   }
 
+  collectReproBundle(frontendJson: string, outPath: string): Promise<string> {
+    return this.call("collect_repro_bundle", { frontendJson, outPath });
+  }
+
   getHostStats(): Promise<HostStats> {
     return this.call("get_host_stats");
   }

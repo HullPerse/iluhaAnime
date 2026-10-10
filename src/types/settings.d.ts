@@ -28,6 +28,7 @@ export interface SettingsStore {
   defaultSearchSource: string;
   visibleSources: string[];
   searchProxyUrls: Record<string, string>;
+  webviewProxyEnabled: boolean;
   resultsPerPage: number;
   pageSize: number;
   anilistMaxPages: number;
@@ -78,6 +79,7 @@ export interface SettingsStore {
   parseTitlesPlayer: boolean;
   parseTitlesTorrent: boolean;
   parseTitlesSearch: boolean;
+  torrentCoversEnabled: boolean;
   anilistReleaseNotifications: boolean;
   notifyNewEpisodes: boolean;
   notifyStatusChanges: boolean;

@@ -48,11 +48,14 @@ beforeEach(() => {
   patchSettings({ language: "en" });
   patchPlayerSettings({ ...DEFAULT_PLAYER_SETTINGS });
   vi.useFakeTimers();
-  vi.stubGlobal("ResizeObserver", class {
-    observe(): void {}
-    unobserve(): void {}
-    disconnect(): void {}
-  });
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+  );
   vi.stubGlobal("requestAnimationFrame", () => 0);
   vi.stubGlobal("cancelAnimationFrame", () => undefined);
 });

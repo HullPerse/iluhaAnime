@@ -158,12 +158,18 @@ pub async fn graphql_request(
             Ok(r) => r,
             Err(e) => {
                 last_err = format!("AniList request failed: {e}");
+                tracing::warn!(attempt, error = last_err.as_str(), "anilist network error");
                 tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
                 continue;
             }
         };
 
         if resp.status() == reqwest::StatusCode::FORBIDDEN {
+            tracing::warn!(
+                attempt,
+                authenticated = token.is_some(),
+                "anilist forbidden response"
+            );
             return Err(forbidden_error(token.is_some()));
         }
 
@@ -188,6 +194,7 @@ pub async fn graphql_request(
             }
             let delay = rate_limit_delay_secs(retry_after, reset, now_unix_secs(), 1 << attempt);
             last_err = "AniList rate limit exceeded".to_string();
+            tracing::warn!(attempt, delay_secs = delay, "anilist rate limited");
             tokio::time::sleep(Duration::from_secs(delay)).await;
             continue;
         }
@@ -212,6 +219,11 @@ pub async fn graphql_request(
             } else {
                 format!("AniList HTTP {status}: {snippet}")
             };
+            tracing::warn!(
+                attempt,
+                error = last_err.as_str(),
+                "anilist http error response"
+            );
             tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
             continue;
         }
@@ -225,7 +237,9 @@ pub async fn graphql_request(
             .and_then(serde_json::Value::as_array)
             .is_some_and(|errors| !errors.is_empty())
         {
-            return Err(graphql_error_message(&json["errors"]));
+            let message = graphql_error_message(&json["errors"]);
+            tracing::warn!(attempt, error = message.as_str(), "anilist graphql errors");
+            return Err(message);
         }
         return Ok(json);
     }

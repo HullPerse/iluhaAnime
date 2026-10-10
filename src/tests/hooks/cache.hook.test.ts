@@ -11,6 +11,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { assetUrl } from "@/lib/utils/image.utils";
+import { setCoverBlob } from "@/store/cover.store";
 import { patchSettings } from "@/store/settings.store";
 
 let resolveGate!: (value: { id: string; path: string }) => void;
@@ -94,6 +95,22 @@ describe("useCoverCache", () => {
       expect(invokeMock).toHaveBeenCalledTimes(1);
     });
     remounted.unmount();
+  });
+
+  it("serves a persisted blob without downloading", async () => {
+    setCoverBlob("https://example.com/persisted.jpg", "blob-p");
+    invokeMock.mockImplementation(async (command: unknown) => {
+      if (command === "get_user_image") return { id: "blob-p", path: "C:/images/p.png" };
+      return null;
+    });
+    const { result, unmount } = renderHook(() =>
+      useCoverCache("https://example.com/persisted.jpg", null)
+    );
+    await waitFor(() => {
+      expect(result.current.cachedUrl).toBe(assetUrl("C:/images/p.png"));
+    });
+    expect(invokeMock).not.toHaveBeenCalledWith("download_remote_image", expect.anything());
+    unmount();
   });
 });
 

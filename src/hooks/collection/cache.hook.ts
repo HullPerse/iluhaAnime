@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { attempt } from "@/lib/utils/attempt.utils";
 import { useCell } from "@/lib/state/signal.hook";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl, isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
+import { coverCorrectionsAtoms, setCoverBlob } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/userimage";
 
@@ -44,6 +45,7 @@ function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<stri
       (img) => {
         const url = assetUrl(img.path);
         coverCache.set(remoteUrl, { url, blobId: img.id });
+        setCoverBlob(remoteUrl, img.id);
         return url;
       },
       () => null
@@ -80,8 +82,23 @@ export function useCoverCache(
         setCoverUrl(remoteUrl);
         return;
       }
-      downloadCover(remoteUrl, tmdbProxyUrl).then((url) => {
-        if (!cancelled && url) setCoverUrl(url);
+      const persistedId = coverCorrectionsAtoms.blobs.get()[remoteUrl];
+      if (!persistedId) {
+        downloadCover(remoteUrl, tmdbProxyUrl).then((downloaded) => {
+          if (!cancelled && downloaded) setCoverUrl(downloaded);
+        });
+        return;
+      }
+      resolveCachedImage(persistedId).then((url) => {
+        if (cancelled) return;
+        if (url) {
+          coverCache.set(remoteUrl, { url, blobId: persistedId });
+          setCoverUrl(url);
+          return;
+        }
+        downloadCover(remoteUrl, tmdbProxyUrl).then((downloaded) => {
+          if (!cancelled && downloaded) setCoverUrl(downloaded);
+        });
       });
     };
     if (blobId) {
@@ -117,6 +134,7 @@ export function useCoverCache(
     if (error) return null;
     const url = assetUrl(img.path);
     coverCache.set(remoteUrl, { url, blobId: img.id });
+    setCoverBlob(remoteUrl, img.id);
     setCoverUrl(url);
     return img.id;
   }, [remoteUrl, tmdbProxyUrl]);

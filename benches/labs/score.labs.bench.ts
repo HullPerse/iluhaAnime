@@ -41,7 +41,7 @@ const CANDIDATES = [
 
 const NORM_CANDIDATES = CANDIDATES.map(normalizeSearchText);
 
-group('score @pilot @search', () => {
+group('score @pilot @search @quick', () => {
   bench('query-aware x200 (normalize + parse per call)', () => {
     let checksum = 0;
     for (const q of QUERIES) {

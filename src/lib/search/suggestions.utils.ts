@@ -11,6 +11,7 @@ import type {
 } from "@/types/search";
 
 import { isTagLikeQuery } from "./intent.utils";
+import { LazySpellIndex } from "./lazySpellIndex.utils";
 import { normalizeSearchText } from "./normalize.utils";
 import { recencyBoost } from "./ranking.utils";
 import {
@@ -20,7 +21,8 @@ import {
   parseOperatorTerms,
 } from "./score.utils";
 import type { OperatorTerm } from "./score.utils";
-import { buildSymSpellFromTitles, type SymSpell } from "./symspell.utils";
+import { readCachedSpellWords, writeCachedSpellWords } from "./spellIndexCache.utils";
+import { normalizedSpellWords } from "./symspell.utils";
 
 export { fuzzyMatchScore };
 
@@ -98,31 +100,37 @@ function getNormalizedAnimeTitles(animeIndex: SearchAnimeSuggestion[]): string[]
   animeNormalizedTitlesCache.set(animeIndex, titles);
   return titles;
 }
-const symSpellCache = new WeakMap<object, { fingerprint: string; sym: SymSpell }>();
+const symSpellCache = new WeakMap<object, { fingerprint: string; sym: LazySpellIndex }>();
 const SYM_SPELL_LRU_MAX = 3;
-const symSpellByFingerprint = new Map<string, SymSpell>();
+const symSpellByFingerprint = new Map<string, LazySpellIndex>();
 const animeFingerprintCache = new WeakMap<SearchAnimeSuggestion[], string>();
 
+// Hashes only the titles the dictionary is actually built from, so the
+// fingerprint cannot invalidate on alias edits that never reach the index.
 function animeTitlesFingerprint(animeIndex: SearchAnimeSuggestion[] | undefined): string {
   if (!animeIndex) return "";
   const cached = animeFingerprintCache.get(animeIndex);
   if (cached !== undefined) return cached;
   let hash = 0;
   for (const anime of animeIndex) {
-    for (const title of [anime.title, ...anime.aliases]) {
-      for (const char of title) {
-        hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
-      }
-      hash = Math.trunc(Math.imul(hash, 31) + 1);
+    for (const char of anime.title) {
+      hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
     }
+    hash = Math.trunc(Math.imul(hash, 31) + 1);
   }
   const fingerprint = `${animeIndex.length}:${hash}`;
   animeFingerprintCache.set(animeIndex, fingerprint);
   return fingerprint;
 }
 
-function symSpellFor(titles: string[], basis: object | undefined, fingerprint: string): SymSpell {
-  if (!basis) return buildSymSpellFromTitles(titles);
+function symSpellFor(
+  titles: string[],
+  basis: object | undefined,
+  fingerprint: string
+): LazySpellIndex {
+  const build = () =>
+    new LazySpellIndex(readCachedSpellWords(fingerprint) ?? normalizedSpellWords(titles));
+  if (!basis) return build();
   const hit = symSpellCache.get(basis);
   if (hit && hit.fingerprint === fingerprint) return hit.sym;
   const shared = symSpellByFingerprint.get(fingerprint);
@@ -130,7 +138,7 @@ function symSpellFor(titles: string[], basis: object | undefined, fingerprint: s
     symSpellCache.set(basis, { fingerprint, sym: shared });
     return shared;
   }
-  const sym = buildSymSpellFromTitles(titles);
+  const sym = build();
   if (symSpellByFingerprint.size >= SYM_SPELL_LRU_MAX) {
     const oldest = symSpellByFingerprint.keys().next();
     if (!oldest.done) symSpellByFingerprint.delete(oldest.value);
@@ -315,7 +323,7 @@ function applySymSpellFallback(
   ];
   if (titlesForSymSpell.length === 0) return;
   const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
-  const fingerprint = `${titlesForSymSpell.length}|${animeTitlesFingerprint(options.animeIndex)}|h${history.length}|e${extra.length}`;
+  const fingerprint = `${animeTitlesFingerprint(options.animeIndex)}|h${history.map(normalizeSearchText).join("\n")}|e${extra.map(normalizeSearchText).join("\n")}`;
   const sym = symSpellFor(titlesForSymSpell, basis, fingerprint);
   const corrected = sym.suggest(query);
   if (!corrected) return;
@@ -325,7 +333,9 @@ function applySymSpellFallback(
     put({ ...c, score: c.score - 50, subtitle: `${c.subtitle ?? c.kind} (did you mean)` });
   }
 }
-function spellTitles(options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues">): {
+function spellTitles(
+  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues">
+): {
   titles: string[];
   basis: object | undefined;
   fingerprint: string;
@@ -334,13 +344,16 @@ function spellTitles(options: Pick<SearchSuggestionOptions, "history" | "animeIn
   const extra = options.extraValues?.map((entry) => entry.value) ?? [];
   const titles = [...history, ...(options.animeIndex?.map((entry) => entry.title) ?? []), ...extra];
   const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
-  const fingerprint = `${titles.length}|${animeTitlesFingerprint(options.animeIndex)}|h${history.length}|e${extra.length}`;
+  const fingerprint = `${animeTitlesFingerprint(options.animeIndex)}|h${history.map(normalizeSearchText).join("\n")}|e${extra.map(normalizeSearchText).join("\n")}`;
   return { titles, basis, fingerprint };
 }
 
 export function suggestSpellings(
   query: string,
-  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell"> = {},
+  options: Pick<
+    SearchSuggestionOptions,
+    "history" | "animeIndex" | "extraValues" | "symSpell"
+  > = {},
   limit = 3
 ): string[] {
   const normalizedQuery = normalizeSearchText(query);
@@ -356,6 +369,55 @@ export function suggestSpelling(
   options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell"> = {}
 ): string | null {
   return suggestSpellings(query, options, 1)[0] ?? null;
+}
+
+const SPELL_PUMP_BATCH = 500;
+const IDLE_TIMEOUT_MS = 2000;
+const IDLE_FALLBACK_MS = 300;
+const CAN_USE_IDLE =
+  typeof window !== "undefined" && typeof window.requestIdleCallback === "function";
+
+function scheduleIdle(run: () => void): number {
+  if (CAN_USE_IDLE) return window.requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS });
+  return window.setTimeout(run, IDLE_FALLBACK_MS);
+}
+
+function cancelIdle(handle: number): void {
+  if (CAN_USE_IDLE) {
+    window.cancelIdleCallback(handle);
+    return;
+  }
+  window.clearTimeout(handle);
+}
+
+/**
+ * Builds the did-you-mean index in idle slices so the first lookup is already
+ * warm instead of blocking a render. Returns a cancel function for cleanup.
+ */
+export function prewarmSpelling(
+  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell">
+): () => void {
+  if (options.symSpell === false) return () => {};
+  const { titles, basis, fingerprint } = spellTitles(options);
+  if (titles.length === 0) return () => {};
+  const index = symSpellFor(titles, basis, fingerprint);
+  if (index.ready) return () => {};
+  let cancelled = false;
+  let handle: number | undefined;
+  const step = () => {
+    handle = undefined;
+    if (cancelled) return;
+    if (index.pump(SPELL_PUMP_BATCH)) {
+      writeCachedSpellWords(fingerprint, index.normalizedWords());
+      return;
+    }
+    handle = scheduleIdle(step);
+  };
+  handle = scheduleIdle(step);
+  return () => {
+    cancelled = true;
+    if (handle !== undefined) cancelIdle(handle);
+  };
 }
 
 export function getSearchSuggestions(

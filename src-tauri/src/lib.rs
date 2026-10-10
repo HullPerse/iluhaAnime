@@ -20,6 +20,11 @@ mod app_db;
 #[doc(hidden)]
 pub mod benchmark_api {
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
+    pub use crate::scrapers::clients::{
+        acquire_scraper_slot, build_client, build_nekobt_client, build_rutracker_client_with_ua,
+        decode_rutracker_page, is_rutracker_challenge, RUTRACKER_DEFAULT_UA,
+    };
+    pub use crate::scrapers::details::{parse_torrent_detail_html, TorrentDetails};
 }
 mod auth;
 mod bencode;
@@ -34,6 +39,7 @@ mod jikan;
 mod player;
 mod progress;
 mod realcugan;
+mod repro;
 mod rife;
 mod scrapers;
 mod screenshot;
@@ -917,6 +923,37 @@ async fn get_running_torrent_files(
         .get_running_torrent_files(id)
 }
 
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TorrentFilesBatchEntry {
+    pub id: usize,
+    pub files: Option<Vec<TorrentFileInfo>>,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+async fn get_running_torrent_files_batch(
+    ids: Vec<usize>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Vec<TorrentFilesBatchEntry>, String> {
+    backend_manager(&manager).await.map(|manager| {
+        ids.into_iter()
+            .map(|id| match manager.get_running_torrent_files(id) {
+                Ok(files) => TorrentFilesBatchEntry {
+                    id,
+                    files: Some(files),
+                    error: None,
+                },
+                Err(error) => TorrentFilesBatchEntry {
+                    id,
+                    files: None,
+                    error: Some(error),
+                },
+            })
+            .collect()
+    })
+}
+
 #[tauri::command]
 async fn save_session_config(
     config: torrent::SessionConfig,
@@ -1079,9 +1116,11 @@ async fn set_torrent_source(
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     let backend = backend_manager(&manager).await?;
-    tokio::task::spawn_blocking(move || backend.set_torrent_source(id, info_hash.as_deref(), source, url))
-        .await
-        .map_err(|error| format!("source task failed: {error}"))?
+    tokio::task::spawn_blocking(move || {
+        backend.set_torrent_source(id, info_hash.as_deref(), source, url)
+    })
+    .await
+    .map_err(|error| format!("source task failed: {error}"))?
 }
 
 #[tauri::command]
@@ -1480,6 +1519,7 @@ pub fn run() {
             handle.manage(std::sync::Mutex::new(NotificationConfig::default()));
             handle.manage(CancelFlag::new());
             handle.manage(ActiveChildren::new());
+            auth::init_keyring_service(app.handle());
             handle.manage(progress::StreamRegistry::new());
             handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
@@ -1500,7 +1540,8 @@ pub fn run() {
                         let trigger_start = std::time::Instant::now();
                         tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
                         if let Err(error) =
-                            player::player_open(trigger_handle.clone(), vec![path], None).await
+                            player::player_open(trigger_handle.clone(), vec![path], None, None)
+                                .await
                         {
                             tracing::warn!("dev player trigger failed: {error}");
                             return;
@@ -1680,7 +1721,6 @@ pub fn run() {
             player::player_close_window,
             player::player_load,
             player::player_append_files,
-            player::player_hover_thumb,
             player::player_save_frame,
             player::player_command,
             player::player_set_property,
@@ -1691,9 +1731,6 @@ pub fn run() {
             player::player_save_watch,
             player::player_load_watch,
             player::player_apply_file_state,
-            player::sprite::sprite_ensure,
-            player::sprite::sprite_progress,
-            player::sprite::sprite_cancel,
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,
@@ -1758,6 +1795,7 @@ pub fn run() {
             stop_watching_folders,
             set_global_speed_limits,
             get_running_torrent_files,
+            get_running_torrent_files_batch,
             save_session_config,
             torrent_listen_port,
             update_torrent_only_files,
@@ -1791,6 +1829,7 @@ pub fn run() {
             screenshot::save_screenshot,
             screenshot::copy_screenshot,
             screenshot::discard_screenshot,
+            repro::collect_repro_bundle,
             search_file_index,
             deeplink::take_pending_deep_links,
         ])

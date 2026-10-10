@@ -128,7 +128,7 @@ function shortQueryLegacy(list: CollectionItem[], query: string): CollectionItem
   });
 }
 
-group('collection-filter @pilot @collection', () => {
+group('collection-filter @pilot @collection @quick', () => {
   bench('1k empty query + date sort', () => {
     return checksumOf(
       filterCollectionItems(ITEMS_1K, ITEMS_1K, 'all', '', DEFAULT_FILTERS, 'date', 'desc')

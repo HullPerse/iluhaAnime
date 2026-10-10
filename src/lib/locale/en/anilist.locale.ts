@@ -94,6 +94,7 @@ const anilist = {
   "anilist.controls.custom.lists": "Lists:",
   "anilist.controls.save": "Save",
   "anilist.controls.save.error": "Failed to save",
+  "anilist.controls.save.error.detail": "Failed to save: {{error}}",
   "anilist.controls.saving": "Saving...",
   "anilist.controls.delete": "Delete",
   "anilist.controls.delete.error": "Failed to delete",

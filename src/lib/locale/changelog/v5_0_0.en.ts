@@ -225,6 +225,8 @@ const changelog500 = {
     "Remote covers no longer flash the placeholder file while the bytes download; the fallback picture appears only when a cover cannot be resolved at all",
   "changelog.5_0_0.fixed.collection.import_lock":
     "Collection import no longer fails with a database-is-locked error after half a minute and loses part of the items: the import command asked for the app data write lock it was already holding and timed out against itself",
+  "changelog.5_0_0.fixed.search.socks_remote_dns":
+    "SOCKS proxies now resolve tracker and API hostnames through the proxy for search, AniList, TMDB, and covers instead of resolving DNS locally",
 } as const;
 
 export default changelog500;

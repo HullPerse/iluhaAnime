@@ -134,6 +134,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.player.parser_roman_dedup", "player"),
       entry("changelog.5_0_0.fixed.player.parser_subtitle_langs", "player"),
       entry("changelog.5_0_0.fixed.search.cover_flash", "search"),
+      entry("changelog.5_0_0.fixed.collection.import_lock", "collection"),
     ],
   },
   {

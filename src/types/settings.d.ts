@@ -173,7 +173,13 @@ export interface SessionConfigPayload {
   fileOrder: FileOrder;
 }
 
-export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
+export type TabId =
+  | "search"
+  | "torrent"
+  | "player"
+  | "anilist"
+  | "collection"
+  | "settings";
 
 export interface SpeedSchedule {
   enabled: boolean;

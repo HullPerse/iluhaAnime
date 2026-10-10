@@ -350,7 +350,6 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Roboto",
     label: "AniList",
     name: "anilist",
-    overlay: "grid",
     components: { titlebarArt: true },
     radius: "all",
   },

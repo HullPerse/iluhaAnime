@@ -487,6 +487,31 @@ impl TorrentManager {
             .unwrap_or(false)
     }
 
+    fn torrent_is_initializing(&self, id: usize) -> bool {
+        self.session
+            .with_torrents(|iter| {
+                for (torrent_id, handle) in iter {
+                    if torrent_id == id {
+                        return Some(matches!(
+                            handle.stats().state,
+                            TorrentStatsState::Initializing { .. }
+                        ));
+                    }
+                }
+                None
+            })
+            .unwrap_or(false)
+    }
+
+    async fn wait_for_settled(&self, id: usize) {
+        for _ in 0..200 {
+            if !self.torrent_is_initializing(id) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+
     pub async fn set_torrent_limits(
         self: &Arc<Self>,
         id: usize,
@@ -1737,6 +1762,10 @@ impl TorrentManager {
         if let Some(check) = &check {
             self.missing_files.insert(new_id, !check.missing.is_empty());
         }
+        // The re-added torrent is still initializing (async checksum and
+        // file setup); snapshotting before it settles captures mid-init
+        // lengths and mtimes that the next watch would flag as external.
+        self.wait_for_settled(new_id).await;
         self.snapshot_torrent_files(new_id);
         Ok(TorrentResumeResult {
             id: new_id,

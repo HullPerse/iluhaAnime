@@ -1,6 +1,7 @@
 import * as z from "zod/mini";
 
 import { tauriTransport } from "@/api/transport.api";
+import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/utils/dither.config";
 import { listSortKeys } from "@/lib/anilist/entries.utils";
@@ -17,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 42;
+export const SETTINGS_SCHEMA_VERSION = 43;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -171,6 +172,23 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       delete state.spriteBurstMpv;
       delete state.spriteFillPlayback;
       delete state.spriteNeighborCount;
+    },
+  },
+  {
+    from: 43,
+    migrate: (state) => {
+      const order: string[] = SOURCE_INFOS.map((info) => info.value);
+      const rank = new Map(order.map((value, index): [string, number] => [value, index]));
+      if (Array.isArray(state.visibleSources)) {
+        const kept = state.visibleSources.filter(
+          (value): value is string => typeof value === "string"
+        );
+        state.visibleSources = [
+          ...order.filter((value) => kept.includes(value)),
+          ...kept.filter((value) => !rank.has(value)),
+        ];
+      }
+      if (state.defaultSearchSource === "erai-raws") state.defaultSearchSource = "rutracker";
     },
   },
 ];

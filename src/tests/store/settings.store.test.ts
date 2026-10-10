@@ -505,3 +505,61 @@ describe("webview proxy preference", () => {
     expect(result.webviewProxyEnabled).toBe(false);
   });
 });
+
+describe("search source order v43 migration", () => {
+  it("lists rutracker, nekobt, erai-raws first", async () => {
+    const { SOURCE_INFOS } = await import("@/config/search/sources.config");
+    expect(SOURCE_INFOS.map((info) => info.value)).toEqual([
+      "rutracker",
+      "nekobt",
+      "erai-raws",
+      "nyaa",
+      "sukebei",
+    ]);
+  });
+
+  it("defaults to rutracker first", async () => {
+    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    expect(DEFAULT_SETTINGS.defaultSearchSource).toBe("rutracker");
+    expect(DEFAULT_SETTINGS.visibleSources).toEqual(["rutracker", "nekobt", "erai-raws", "nyaa"]);
+  });
+
+  it("reorders stored sources and moves the legacy default to rutracker", () => {
+    const result = settings.migrateSettingsData(
+      {
+        language: "en",
+        visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
+        defaultSearchSource: "erai-raws",
+      },
+      42
+    );
+    expect(result.visibleSources).toEqual(["rutracker", "nekobt", "erai-raws", "nyaa"]);
+    expect(result.defaultSearchSource).toBe("rutracker");
+  });
+
+  it("keeps visibility choices and unknown sources at the end", () => {
+    const result = settings.migrateSettingsData(
+      {
+        language: "en",
+        visibleSources: ["sukebei", "nyaa", "custom"],
+        defaultSearchSource: "nyaa",
+      },
+      42
+    );
+    expect(result.visibleSources).toEqual(["nyaa", "sukebei", "custom"]);
+    expect(result.defaultSearchSource).toBe("nyaa");
+  });
+
+  it("leaves already migrated state untouched", () => {
+    const result = settings.migrateSettingsData(
+      {
+        language: "en",
+        visibleSources: ["rutracker", "erai-raws"],
+        defaultSearchSource: "erai-raws",
+      },
+      43
+    );
+    expect(result.visibleSources).toEqual(["rutracker", "erai-raws"]);
+    expect(result.defaultSearchSource).toBe("erai-raws");
+  });
+});

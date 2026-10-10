@@ -79,9 +79,12 @@ export default function SettingsSearch() {
   );
 
   const toggleSource = (value: string) => {
+    const order: string[] = SOURCE_INFOS.map((info) => info.value);
+    const rank = new Map(order.map((item, index): [string, number] => [item, index]));
     const next = visibleSources.includes(value)
       ? visibleSources.filter((v) => v !== value)
       : [...visibleSources, value];
+    next.sort((a, b) => (rank.get(a) ?? rank.size) - (rank.get(b) ?? rank.size));
     patchSettings({ visibleSources: next });
     if (!next.includes(defaultSearchSource) && next.length > 0) {
       patchSettings({ defaultSearchSource: next[0] });

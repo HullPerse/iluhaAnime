@@ -227,6 +227,8 @@ const changelog500 = {
     "Collection import no longer fails with a database-is-locked error after half a minute and loses part of the items: the import command asked for the app data write lock it was already holding and timed out against itself",
   "changelog.5_0_0.fixed.search.socks_remote_dns":
     "SOCKS proxies now resolve tracker and API hostnames through the proxy for search, AniList, TMDB, and covers instead of resolving DNS locally",
+  "changelog.5_0_0.changed.search.source_order":
+    "Search sources are ordered Rutracker, nekoBT, Erai-Raws, Nyaa.si, Sukebei with Rutracker as the default source, and stored settings migrate to the new order",
 } as const;
 
 export default changelog500;

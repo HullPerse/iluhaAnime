@@ -30,6 +30,14 @@ function item(title: string, link: string): Anime {
 const ITEM_A = item("[Erai] Naruto - 01", "https://erai/1");
 const ITEM_B = item("Naruto [1080p]", "https://rutracker/2");
 
+function commandFor(source: Source): string {
+  return source === "rutracker" ? "search_rutracker" : "search_erairaws";
+}
+
+function itemFor(source: Source): Anime {
+  return source === "rutracker" ? ITEM_B : ITEM_A;
+}
+
 function renderSearch() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderHook(() => useSearchQuery(), {
@@ -88,26 +96,24 @@ describe("useSearchQuery result source", () => {
   });
 
   it("reports fetching while a background search replaces stale rows", async () => {
+    const { result } = renderSearch();
+    const firstSource = result.current.source as Source;
+    const other: Source = firstSource === "rutracker" ? "erai-raws" : "rutracker";
     let resolveSecond!: (value: Anime[]) => void;
     mockInvoke.mockImplementation(async (command: unknown) => {
-      if (command === "search_rutracker") {
+      if (command === commandFor(other)) {
         return new Promise<Anime[]>((resolve) => {
           resolveSecond = resolve;
         });
       }
-      if (command === "search_erairaws") return [ITEM_A];
+      if (command === commandFor(firstSource)) return [itemFor(firstSource)];
       if (typeof command === "string" && command.includes("session")) return true;
       return null;
     });
-    const { result } = renderSearch();
     act(() => {
       setCrossSearchQuery("naruto");
     });
     await waitFor(() => expect(result.current.displayItems?.length).toBe(1));
-    const other: Source =
-      (result.current.resultSource ?? result.current.source) === "rutracker"
-        ? "erai-raws"
-        : "rutracker";
     act(() => {
       result.current.changeSource(other);
       setCrossSearchQuery("naruto");
@@ -115,15 +121,18 @@ describe("useSearchQuery result source", () => {
     await waitFor(() => expect(result.current.isFetching).toBe(true));
     expect(result.current.isLoading).toBe(false);
     await act(async () => {
-      resolveSecond([ITEM_B]);
+      resolveSecond([itemFor(other)]);
     });
     await waitFor(() => expect(result.current.resultSource).toBe(other));
   });
 
   it("keeps the fetched source on stale rows until the next search settles", async () => {
+    const { result } = renderSearch();
+    const firstSource = result.current.source as Source;
+    const other: Source = firstSource === "rutracker" ? "erai-raws" : "rutracker";
     const resolvers: Array<(value: Anime[]) => void> = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
-      if (command === "search_rutracker" || command === "search_erairaws") {
+      if (command === commandFor(firstSource) || command === commandFor(other)) {
         return new Promise<Anime[]>((resolve) => {
           resolvers.push(resolve);
         });
@@ -131,19 +140,18 @@ describe("useSearchQuery result source", () => {
       if (typeof command === "string" && command.includes("session")) return true;
       return null;
     });
-    const { result } = renderSearch();
     act(() => {
       setCrossSearchQuery("naruto");
     });
     await act(async () => {
       const resolveFirst = resolvers.at(0);
       if (!resolveFirst) throw new Error("missing pending search");
-      resolveFirst([ITEM_A]);
+      resolveFirst([itemFor(firstSource)]);
     });
     await waitFor(() => expect(result.current.displayItems?.length).toBe(1));
     await waitFor(() => expect(result.current.resultSource).not.toBeNull());
     const fetched = result.current.resultSource as Source;
-    const other: Source = fetched === "rutracker" ? "erai-raws" : "rutracker";
+    expect(fetched).toBe(firstSource);
     act(() => {
       result.current.changeSource(other);
       setCrossSearchQuery("naruto");
@@ -153,7 +161,7 @@ describe("useSearchQuery result source", () => {
     await act(async () => {
       const resolveLast = resolvers.at(-1);
       if (!resolveLast) throw new Error("missing pending search");
-      resolveLast(other === "rutracker" ? [ITEM_B] : [ITEM_A]);
+      resolveLast([itemFor(other)]);
     });
     await waitFor(() => expect(result.current.resultSource).toBe(other));
   });

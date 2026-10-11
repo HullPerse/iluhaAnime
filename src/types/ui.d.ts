@@ -82,6 +82,8 @@ export interface SelectDialogProps {
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
+  onResetCache?: () => void;
+  onReloadPage?: () => void;
 }
 
 export interface ErrorBoundaryState {

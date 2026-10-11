@@ -9,8 +9,9 @@ import { useScreenshot } from "@/hooks/screenshot.hook";
 import { useEnsureAnimeIndex, usePrewarmSpellIndex } from "@/hooks/search/animeIndex.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
+import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { cacheAtoms } from "@/store/cache.store";
 import {
@@ -68,12 +69,16 @@ export default function App() {
   }, [isPending]);
 
   const prefetchTab = (id: TabId) => {
+    if (isCurrentSessionSafe()) return;
     if (prefetchedTabs.current.has(id)) return;
     if (tabs.some((tab) => tab.id === id && tab.disabled)) return;
     prefetchedTabs.current.add(id);
     (async () => {
       const [, error] = await attempt(TAB_PREFETCH[id]());
-      if (error) prefetchedTabs.current.delete(id);
+      if (error) {
+        prefetchedTabs.current.delete(id);
+        reportBackgroundError("tab.prefetch", error);
+      }
     })();
   };
 

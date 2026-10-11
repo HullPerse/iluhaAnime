@@ -233,6 +233,8 @@ const changelog500 = {
     "Player file search understands filter tokens: *.mkv and ext:mp4,avi narrow by extension, !sample/ skips folders, and !*.nfo drops an extension",
   "changelog.5_0_0.changed.search.cover_refresh":
     "Re-downloaded covers no longer rewrite the stored picture when the pixels match: identical re-encodes keep the cached file instead of replacing it",
+  "changelog.5_0_0.added.app.fatal_bsod":
+    "Fatal error screens: render crashes, dead module loads, startup failures, and repeated errors now show a fullscreen blue screen with the error type, the message, expandable details with copy, and reload with cache reset. Windows 95, XP, and 7 themes get their own screens, other themes get a matching one, and safe reload forces the default theme",
 } as const;
 
 export default changelog500;

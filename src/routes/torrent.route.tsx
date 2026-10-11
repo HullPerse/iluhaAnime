@@ -14,6 +14,7 @@ import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
+import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrent/search.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
@@ -48,6 +49,7 @@ import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { attemptAllLimit } from "@/lib/utils/result.utils";
+import { torrentRoute } from "@/routes/__root";
 import {
   cacheAtoms,
   moveTorrentOrder,
@@ -68,7 +70,7 @@ import {
 } from "@/store/download.store";
 import { addNotification, updateNotification } from "@/store/notification.store";
 import { getSettingsSnapshot } from "@/store/settings.store";
-import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
+import type { TorrentInfo } from "@/types/torrent";
 
 import { BulkLimitsModal, BulkTrackerModal } from "./components/torrent/bulk.torrent";
 import CreateTorrentModal from "./components/torrent/create.torrent";
@@ -107,14 +109,48 @@ function TorrentRoute() {
   const [magnetPrefill, setMagnetPrefill] = useState<string | null>(null);
   const torrentTarget = useCell(deeplinkAtoms.torrentTarget);
   const magnetTarget = useCell(deeplinkAtoms.magnetTarget);
-  const [filterQuery, setFilterQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed" | "custom">("name");
-  const [sortAsc, setSortAsc] = useState(true);
-  const [page, setPage] = useState(1);
+  const torrentSearch = torrentRoute.useSearch();
+  const navigate = torrentRoute.useNavigate();
+  const filterQuery = torrentSearch.q;
+  const sortBy = torrentSearch.sort;
+  const sortAsc = torrentSearch.dir === "asc";
+  const page = torrentSearch.page;
+
+  const setFilterQuery = useCallback(
+    (value: string) => {
+      navigate({ search: (prev) => ({ ...prev, q: value, page: 1 }), replace: true });
+    },
+    [navigate]
+  );
+
+  const setSort = useCallback(
+    (value: TorrentSort) => {
+      navigate({ search: (prev) => ({ ...prev, sort: value, page: 1 }) });
+    },
+    [navigate]
+  );
+
+  const toggleSortDir = useCallback(() => {
+    navigate({ search: (prev) => ({ ...prev, dir: prev.dir === "asc" ? "desc" : "asc" }) });
+  }, [navigate]);
+
+  const setPage = useCallback(
+    (next: number) => {
+      navigate({ search: (prev) => ({ ...prev, page: next }) });
+    },
+    [navigate]
+  );
   const listRef = useRef<HTMLElement>(null);
   const { t } = useI18n();
   const hostStats = useHostStats(true);
-  const [lifecycleFilter, setLifecycleFilter] = useState<TorrentLifecycle | "all">("all");
+  const lifecycleFilter = torrentSearch.lifecycle;
+
+  const setLifecycleFilter = useCallback(
+    (value: TorrentLifecycleFilter) => {
+      navigate({ search: (prev) => ({ ...prev, lifecycle: value, page: 1 }) });
+    },
+    [navigate]
+  );
   const queueSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -361,12 +397,10 @@ function TorrentRoute() {
   });
 
   useEffect(() => {
-    setPage(1);
-  }, []);
-
-  useEffect(() => {
-    setPage((current) => Math.min(current, lastPage));
-  }, [lastPage]);
+    if (page > lastPage) {
+      navigate({ search: (prev) => ({ ...prev, page: lastPage }), replace: true });
+    }
+  }, [page, lastPage, navigate]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -505,7 +539,7 @@ function TorrentRoute() {
         <Select
           className="h-6 w-24"
           value={sortBy}
-          onChange={(v) => setSortBy(v as typeof sortBy)}
+          onChange={(v) => setSort(v as TorrentSort)}
           options={[
             { value: "name", label: t("torrent.sort.name") },
             { value: "size", label: t("torrent.sort.size") },
@@ -517,7 +551,7 @@ function TorrentRoute() {
         <Button
           size="icon"
           className="size-5"
-          onClick={() => setSortAsc((v) => !v)}
+          onClick={toggleSortDir}
           disabled={sortBy === "custom"}
           title={sortAsc ? t("torrent.sort.asc") : t("torrent.sort.desc")}
         >

@@ -1,4 +1,7 @@
+import * as z from "zod/mini";
+
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { withFallback } from "@/lib/utils/schema.utils";
 import type { SettingsTab, TabId, TabSettings } from "@/types/settings";
 
 const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
@@ -46,3 +49,9 @@ export const SETTINGS_TABS = new Set<SettingsTab>([
   "sqlite",
   "changelog",
 ]);
+
+export const settingsSearchSchema = z.object({
+  tab: withFallback(z.enum([...SETTINGS_TABS]), "general"),
+});
+
+export type SettingsSearch = z.infer<typeof settingsSearchSchema>;

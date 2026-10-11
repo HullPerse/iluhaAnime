@@ -1,0 +1,59 @@
+import { afterEach, describe, expect, it } from "vitest";
+
+import { enabledTabPaths, firstEnabledTabPath, isEnabledTabPath } from "@/lib/tabs.utils";
+import { patchSettings } from "@/store/settings.store";
+
+afterEach(() => {
+  patchSettings({
+    collectionTabEnabled: true,
+    anilistTabEnabled: true,
+    searchTabEnabled: true,
+    torrentTabEnabled: true,
+    playerTabEnabled: true,
+  });
+});
+
+describe("tabs visibility", () => {
+  it("lists every enabled tab path by default", () => {
+    expect(enabledTabPaths()).toEqual([
+      "/",
+      "/torrent",
+      "/player",
+      "/anilist",
+      "/collection",
+      "/settings",
+    ]);
+  });
+
+  it("drops a tab disabled in settings", () => {
+    patchSettings({ torrentTabEnabled: false });
+
+    expect(enabledTabPaths()).not.toContain("/torrent");
+    expect(isEnabledTabPath("/torrent")).toBe(false);
+    expect(isEnabledTabPath("/player")).toBe(true);
+  });
+
+  it("treats unknown paths as enabled", () => {
+    expect(isEnabledTabPath("/definitely-not-a-route")).toBe(true);
+    expect(isEnabledTabPath("/player-window")).toBe(true);
+  });
+
+  it("falls back through the visible order when early tabs are disabled", () => {
+    patchSettings({ searchTabEnabled: false, torrentTabEnabled: false });
+
+    expect(firstEnabledTabPath()).toBe("/player");
+  });
+
+  it("keeps settings as the always-visible tab", () => {
+    patchSettings({
+      collectionTabEnabled: false,
+      anilistTabEnabled: false,
+      searchTabEnabled: false,
+      torrentTabEnabled: false,
+      playerTabEnabled: false,
+    });
+
+    expect(enabledTabPaths()).toEqual(["/settings"]);
+    expect(firstEnabledTabPath()).toBe("/settings");
+  });
+});

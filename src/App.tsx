@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { openPath } from "@tauri-apps/plugin-opener";
-import type { ReactElement } from "react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 
 import { DbScreen } from "@/components/shared/db/screen.db";
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
+import { tabIdFromPath, tabPathFromId } from "@/config/tabs/paths.config";
 import { useApp } from "@/hooks/app.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDayNightScheduler } from "@/hooks/schedule.hook";
@@ -27,20 +28,12 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { TabId } from "@/types/settings";
 
-import { SmallLoader, TabLoader } from "./components/shared/loader.component";
 import NotificationTray from "./components/shared/notification/tray.notification";
 import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
 import StatusBar from "./components/shared/status.component";
 import Tabs from "./components/shared/tabs.component";
 import TitleBar from "./components/shared/titlebar.component";
 import Updater from "./components/shared/updater.component";
-
-const SearchRoute = lazy(() => import("@/routes/search.route"));
-const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
-const PlayerRoute = lazy(() => import("@/routes/player.route"));
-const AniListRoute = lazy(() => import("@/routes/anilist.route"));
-const SettingsRoute = lazy(() => import("@/routes/settings.route"));
-const CollectionRoute = lazy(() => import("@/routes/collection.route"));
 
 const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   anilist: () => import("@/routes/anilist.route"),
@@ -53,9 +46,10 @@ const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
 
 export default function App() {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<TabId>("search");
-  const { tabs, isPending, setActiveTabTransition, data, updateAvailable, setUpdateAvailable } =
-    useApp(activeTab, (tab) => setActiveTab(tab));
+  const navigate = useNavigate();
+  const { tabs, data, updateAvailable, setUpdateAvailable } = useApp();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeTab = tabIdFromPath(pathname) ?? "search";
 
   const queryClient = useQueryClient();
   const pendingTorrent = useCell(torrentAtoms.pendingTorrent);
@@ -66,14 +60,10 @@ export default function App() {
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
   const currentTheme = useCell(themeAtoms.currentTheme);
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
-  const [showPending, setShowPending] = useState(false);
 
-  useEffect(() => {
-    if (!isPending) return setShowPending(false);
-
-    const timer = window.setTimeout(() => setShowPending(true), 150);
-    return () => window.clearTimeout(timer);
-  }, [isPending]);
+  const goToTab = (id: TabId) => {
+    navigate({ to: tabPathFromId(id) });
+  };
 
   const prefetchTab = (id: TabId) => {
     if (isCurrentSessionSafe()) return;
@@ -89,7 +79,7 @@ export default function App() {
     })();
   };
 
-  useTray(tabs, setActiveTabTransition);
+  useTray(tabs, goToTab);
   useDayNightScheduler();
   useEnsureAnimeIndex();
   usePrewarmSpellIndex();
@@ -101,18 +91,6 @@ export default function App() {
       const [, error] = await attempt(openPath(dir));
       if (error) reportBackgroundError("database.open-folder", error);
     })();
-  };
-
-  const getComponent = () => {
-    const tabMap: Record<TabId, ReactElement> = {
-      anilist: <AniListRoute />,
-      player: <PlayerRoute />,
-      search: <SearchRoute />,
-      settings: <SettingsRoute />,
-      torrent: <TorrentRoute />,
-      collection: <CollectionRoute />,
-    };
-    return tabMap[activeTab];
   };
 
   const splash = useSplashStages(tabs.length > 0);
@@ -173,19 +151,14 @@ export default function App() {
                 ariaLabel={t("common.sections")}
                 tabs={tabs}
                 activeTab={activeTab}
-                onChange={(id) => setActiveTabTransition(id)}
-                onPrefetch={(id) => prefetchTab(id)}
+                onChange={goToTab}
+                onPrefetch={prefetchTab}
               />
               <NotificationTray />
             </div>
           </div>
           <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden">
-            <Suspense fallback={<TabLoader />}>{getComponent()}</Suspense>
-            {showPending && (
-              <div className="bg-surface/70 absolute inset-0 flex items-center justify-center">
-                <SmallLoader size={6} />
-              </div>
-            )}
+            <Outlet />
           </div>
           {statusBarEnabled && (
             <div className="relative">

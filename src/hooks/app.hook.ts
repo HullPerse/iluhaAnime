@@ -1,11 +1,13 @@
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { visibleTabs } from "@/config/settings/tabs.config";
+import { tabIdFromPath, tabPathFromId } from "@/config/tabs/paths.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -60,9 +62,18 @@ import type { FolderNode } from "@/types/torrent";
 
 const NOTIFICATION_TYPES = new Set<NotificationType>(["info", "success", "warning", "error"]);
 
-export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
+export function useApp() {
   const { t } = useI18n();
   const isOnline = useOnlineStatus();
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeTab = tabIdFromPath(pathname) ?? "search";
+  const goToTab = useCallback(
+    (tab: TabId) => {
+      navigate({ to: tabPathFromId(tab) });
+    },
+    [navigate]
+  );
 
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
@@ -98,20 +109,12 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     ...tab,
     disabledReason: tab.disabled ? t("tabs.offlineUnavailable") : undefined,
   }));
-  const [isPending, startTransition] = useTransition();
-  const setActiveTabTransition = useCallback(
-    (tab: TabId) => startTransition(() => setActiveTab(tab)),
-    [setActiveTab]
-  );
-
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const { data } = useAppQuery("static", {
     queryFn: async (): Promise<Update | null> => checkForUpdates(),
     queryKey: queryKeys.appUpdates(),
     enabled: isOnline,
   });
-
-  const initTabsRef = useRef(false);
 
   useEffect(() => {
     if (data) {
@@ -134,13 +137,25 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     if (prev === isOnline) return;
     prevOnlineRef.current = isOnline;
     if (!isOnline) {
-      addNotification(t("network.offline.title"), "warning", t("network.offline.body"), "network-offline", {
-        system: false,
-      });
+      addNotification(
+        t("network.offline.title"),
+        "warning",
+        t("network.offline.body"),
+        "network-offline",
+        {
+          system: false,
+        }
+      );
     } else {
-      addNotification(t("network.online.title"), "info", t("network.online.body"), "network-online", {
-        system: false,
-      });
+      addNotification(
+        t("network.online.title"),
+        "info",
+        t("network.online.body"),
+        "network-online",
+        {
+          system: false,
+        }
+      );
     }
   }, [isOnline, t]);
 
@@ -175,30 +190,11 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   }, []);
 
   useEffect(() => {
-    if (activeTab === ("preview" as TabId)) return;
-    if (!initTabsRef.current && tabs.length > 0) {
-      initTabsRef.current = true;
-      const target = tabs.find((tab) => !tab.disabled)?.id ?? tabs[0].id;
-      if (target !== activeTab) startTransition(() => setActiveTab(target as TabId));
-    }
-  }, [activeTab, tabs, setActiveTab]);
-
-  useEffect(() => {
-    if (activeTab === ("preview" as TabId)) return;
-    const isActiveUsable = tabs.some((x) => x.id === activeTab && !x.disabled);
-    if (!isActiveUsable && tabs.length > 0) {
-      const fallback = tabs.find((x) => !x.disabled) ?? tabs[0];
-      startTransition(() => setActiveTab(fallback.id as TabId));
-    }
-  }, [activeTab, tabs, setActiveTab]);
-
-  useEffect(() => {
-    if (activeTab === ("preview" as TabId)) return;
-    if (!collectionTabEnabled && activeTab === "collection")
-      startTransition(() => setActiveTab("search"));
-    if (!anilistTabEnabled && activeTab === "anilist")
-      startTransition(() => setActiveTab("search"));
-  }, [activeTab, collectionTabEnabled, anilistTabEnabled, setActiveTab]);
+    const isUsable = tabs.some((tab) => tab.id === activeTab && !tab.disabled);
+    if (isUsable || tabs.length === 0) return;
+    const fallback = (tabs.find((tab) => !tab.disabled) ?? tabs[0]).id;
+    if (fallback !== activeTab) goToTab(fallback);
+  }, [activeTab, tabs, goToTab]);
 
   const altDigitDefs: HotkeyDef<TabId>[] = visibleTabs({
     collectionTabEnabled,
@@ -214,41 +210,40 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         showWarning(t("network.offline.title"), t("network.action.unavailable"));
         return;
       }
-      startTransition(() => setActiveTab(tab));
+      goToTab(tab);
     },
   });
 
   useEffect(() => {
     if (!isOnline) return;
     const current = searchAtoms.crossSearchQuery.get();
-    if (current) startTransition(() => setActiveTab("search"));
+    if (current) goToTab("search");
     let previousCross = current;
     return subscribeSearch(() => {
       const next = searchAtoms.crossSearchQuery.get();
-      if (next && next !== previousCross) startTransition(() => setActiveTab("search"));
+      if (next && next !== previousCross) goToTab("search");
       previousCross = next;
     });
-  }, [isOnline, setActiveTab]);
+  }, [isOnline, goToTab]);
 
   useEffect(() => {
     if (!isOnline) return;
     const current = searchAtoms.anilistSearchQuery.get();
-    if (current && settingsAtoms.anilistTabEnabled.get())
-      startTransition(() => setActiveTab("anilist"));
+    if (current && settingsAtoms.anilistTabEnabled.get()) goToTab("anilist");
     let previousAnilist = current;
     return subscribeSearch(() => {
       const next = searchAtoms.anilistSearchQuery.get();
       if (next && next !== previousAnilist) {
         if (!settingsAtoms.anilistTabEnabled.get()) return;
-        startTransition(() => setActiveTab("anilist"));
+        goToTab("anilist");
       }
       previousAnilist = next;
     });
-  }, [isOnline, setActiveTab]);
+  }, [isOnline, goToTab]);
   useEffect(() => {
     const switchToCollection = () => {
       if (!settingsAtoms.collectionTabEnabled.get()) return;
-      startTransition(() => setActiveTab("collection"));
+      goToTab("collection");
     };
     if (collectionAtoms.wizardPrefill.get()) switchToCollection();
     let previousPrefill = collectionAtoms.wizardPrefill.get();
@@ -257,7 +252,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       if (next && next !== previousPrefill) switchToCollection();
       previousPrefill = next;
     });
-  }, [setActiveTab]);
+  }, [goToTab]);
 
   useTauriEvent<ShowNotificationPayload>(
     "show-notification",
@@ -265,10 +260,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       const type = NOTIFICATION_TYPES.has(event.payload.type as NotificationType)
         ? (event.payload.type as NotificationType)
         : "info";
-      const { title, body } = resolveNotificationText(
-        event.payload,
-        settingsAtoms.language.get()
-      );
+      const { title, body } = resolveNotificationText(event.payload, settingsAtoms.language.get());
       addNotification(title, type, body, event.payload.eventKey, { target: event.payload.action });
     },
     { errorTag: "notifications" }
@@ -316,7 +308,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
             return;
           }
           openTorrentDeepLink(link);
-          setActiveTabTransition("torrent");
+          goToTab("torrent");
         },
         (rawUrl) => {
           if (!settingsAtoms.collectionTabEnabled.get()) {
@@ -335,7 +327,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         }
       );
     },
-    [isOnline, t, setActiveTabTransition]
+    [isOnline, t, goToTab]
   );
 
   useEffect(() => {
@@ -365,7 +357,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
         return false;
       }
-      if (activeTab !== "torrent") setActiveTabTransition("torrent");
+      goToTab("torrent");
       return true;
     };
     const handler = (event: ClipboardEvent) => {
@@ -413,12 +405,12 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     };
     window.addEventListener("paste", handler);
     return () => window.removeEventListener("paste", handler);
-  }, [isOnline, t, activeTab, setActiveTabTransition]);
+  }, [isOnline, t, activeTab, goToTab]);
   useEffect(() => {
     const switchToAnilist = () => {
       if (!isOnline) return;
       if (!settingsAtoms.anilistTabEnabled.get()) return;
-      startTransition(() => setActiveTab("anilist"));
+      goToTab("anilist");
     };
     if (deeplinkAtoms.target.get()) switchToAnilist();
     let previousTarget = deeplinkAtoms.target.get();
@@ -427,12 +419,12 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       if (next && next !== previousTarget) switchToAnilist();
       previousTarget = next;
     });
-  }, [isOnline, setActiveTab]);
+  }, [isOnline, goToTab]);
 
   useEffect(() => {
     const switchToCollection = () => {
       if (!settingsAtoms.collectionTabEnabled.get()) return;
-      startTransition(() => setActiveTab("collection"));
+      goToTab("collection");
     };
     if (deeplinkAtoms.shareTarget.get()) switchToCollection();
     let previousShare = deeplinkAtoms.shareTarget.get();
@@ -441,13 +433,13 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       if (next && next !== previousShare) switchToCollection();
       previousShare = next;
     });
-  }, [setActiveTab]);
+  }, [goToTab]);
 
   useEffect(() => {
     const switchToAnilist = () => {
       if (!isOnline) return;
       if (!settingsAtoms.anilistTabEnabled.get()) return;
-      startTransition(() => setActiveTab("anilist"));
+      goToTab("anilist");
     };
     if (deeplinkAtoms.authTarget.get()) switchToAnilist();
     let previousAuth = deeplinkAtoms.authTarget.get();
@@ -456,7 +448,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       if (next && next !== previousAuth) switchToAnilist();
       previousAuth = next;
     });
-  }, [isOnline, setActiveTab]);
+  }, [isOnline, goToTab]);
 
   const releaseSignature = `${anilistReleaseNotifications}:${anilistPollIntervalMin}:${anilistTabEnabled}`;
   const prevReleaseSignatureRef = useRef(releaseSignature);
@@ -620,8 +612,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
 
   return {
     tabs,
-    isPending,
-    setActiveTabTransition,
     data,
     updateAvailable,
     setUpdateAvailable,

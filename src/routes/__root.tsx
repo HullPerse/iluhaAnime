@@ -2,6 +2,8 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
+  redirect,
   useNavigate,
   type RouterHistory,
 } from "@tanstack/react-router";
@@ -9,13 +11,17 @@ import { Home, SearchX } from "lucide-react";
 import { lazy } from "react";
 
 import { BootPending } from "@/components/shared/bootPending.component";
-import { BigLoader } from "@/components/shared/loader.component";
+import { BigLoader, TabLoader } from "@/components/shared/loader.component";
 import OutletComponent from "@/components/shared/outlet.component";
 import { RouteErrorScreen } from "@/components/shared/routeError.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { PLAYER_ROUTE } from "@/config/player/player-route.config";
+import { settingsSearchSchema } from "@/config/settings/tabs.config";
+import { APP_LAYOUT_ROUTE_ID } from "@/config/tabs/routes.config";
+import { torrentSearchSchema } from "@/config/torrent/search.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { firstEnabledTabPath, isEnabledTabPath } from "@/lib/tabs.utils";
 
 const App = lazy(() => import("@/App"));
 
@@ -53,13 +59,66 @@ const rootRoute = createRootRoute({
   notFoundComponent: NotFoundScreen,
 });
 
-const indexRoute = createRoute({
+/** Pathless app shell with the tab strip; every tab surface is a child route. */
+const appLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/",
+  id: APP_LAYOUT_ROUTE_ID,
   component: App,
   pendingComponent: BootPending,
+  beforeLoad: ({ location }) => {
+    if (!isEnabledTabPath(location.pathname)) {
+      throw redirect({ to: firstEnabledTabPath() });
+    }
+  },
 });
 
+const searchRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/",
+  component: lazyRouteComponent(() => import("@/routes/search.route")),
+  pendingComponent: TabLoader,
+});
+
+/** Exported so the surfaces can use the route-bound typed hooks. */
+export const torrentRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/torrent",
+  component: lazyRouteComponent(() => import("@/routes/torrent.route")),
+  validateSearch: torrentSearchSchema.parse,
+  pendingComponent: TabLoader,
+});
+
+const playerRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/player",
+  component: lazyRouteComponent(() => import("@/routes/player.route")),
+  pendingComponent: TabLoader,
+});
+
+const anilistRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/anilist",
+  component: lazyRouteComponent(() => import("@/routes/anilist.route")),
+  pendingComponent: TabLoader,
+});
+
+const collectionRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/collection",
+  component: lazyRouteComponent(() => import("@/routes/collection.route")),
+  pendingComponent: TabLoader,
+});
+
+/** Exported so the settings surface can use the route-bound typed hooks. */
+export const settingsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/settings",
+  component: lazyRouteComponent(() => import("@/routes/settings.route")),
+  validateSearch: settingsSearchSchema.parse,
+  pendingComponent: TabLoader,
+});
+
+/** Separate Tauri window, rendered without the app shell. */
 const playerWindowRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: PLAYER_ROUTE,
@@ -67,10 +126,24 @@ const playerWindowRoute = createRoute({
   pendingComponent: BigLoader,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, playerWindowRoute]);
+const routeTree = rootRoute.addChildren([
+  appLayoutRoute.addChildren([
+    searchRoute,
+    torrentRoute,
+    playerRoute,
+    anilistRoute,
+    collectionRoute,
+    settingsRoute,
+  ]),
+  playerWindowRoute,
+]);
 
 export function createAppRouter(history?: RouterHistory) {
-  return createRouter({ routeTree, history });
+  return createRouter({
+    routeTree,
+    history,
+    defaultPendingMs: 150,
+  });
 }
 
 export const router = createAppRouter();

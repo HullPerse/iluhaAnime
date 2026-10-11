@@ -9,9 +9,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { searchSettingsFind } from "@/lib/settings/find.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/lib/settings/find.utils";
-import { readSettingsTab } from "@/lib/settings/tab.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attemptSync } from "@/lib/utils/attempt.utils";
+import { settingsRoute } from "@/routes/__root";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import { FindBox } from "@/routes/components/settings/findBox.settings";
 import { FindResults } from "@/routes/components/settings/findResults.settings";
@@ -31,7 +30,8 @@ const FIND_LIST_ID = "settings-find-listbox";
 export default function SettingsRoute() {
   const { t } = useI18n();
   const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
-  const [activeTab, setActiveTab] = useState<SettingsTab>(() => readSettingsTab());
+  const navigate = settingsRoute.useNavigate();
+  const activeTab = settingsRoute.useSearch().tab;
   const [findQuery, setFindQuery] = useState("");
   const [findOpen, setFindOpen] = useState(false);
   const [findActive, setFindActive] = useState(0);
@@ -54,13 +54,10 @@ export default function SettingsRoute() {
     ? [...SETTINGS_TAB_KEYS, { id: "sqlite" as const, key: "settings.sqlite" as TranslationKey }]
     : SETTINGS_TAB_KEYS;
   useEffect(() => {
-    if (!sqliteBrowserEnabled && activeTab === "sqlite") setActiveTab("general");
-  }, [activeTab, sqliteBrowserEnabled]);
-
-  useEffect(() => {
-    const [, error] = attemptSync(() => sessionStorage.setItem("settingsTab", activeTab));
-    if (error) console.error(error);
-  }, [activeTab]);
+    if (!sqliteBrowserEnabled && activeTab === "sqlite") {
+      navigate({ search: (prev) => ({ ...prev, tab: "general" }) });
+    }
+  }, [activeTab, sqliteBrowserEnabled, navigate]);
 
   const handleFindChange = (value: string) => {
     setFindQuery(value);
@@ -68,7 +65,7 @@ export default function SettingsRoute() {
   };
 
   const handleFindJump = (hit: SettingsFindHit) => {
-    setActiveTab(hit.entry.tab);
+    navigate({ search: (prev) => ({ ...prev, tab: hit.entry.tab }) });
     setFindOpen(false);
     setFlashSection(hit.entry.sectionId);
     setFlashNonce((nonce) => nonce + 1);
@@ -80,7 +77,7 @@ export default function SettingsRoute() {
   };
 
   const handleTabSelect = (tab: SettingsTab) => {
-    setActiveTab(tab);
+    navigate({ search: (prev) => ({ ...prev, tab }) });
     setFindOpen(false);
   };
 

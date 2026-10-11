@@ -102,4 +102,21 @@ describe("SplashScreen", () => {
     render(<SplashScreen {...props({ themeName: "win7" })} />);
     expect(screen.getByText("Starting Windows")).toBeDefined();
   });
+
+  it("shows honest meter progress on the xp and win7 boot screens", () => {
+    const full: SplashStage[] = [
+      { id: "theme", status: "done" },
+      { id: "cache", status: "done" },
+      { id: "tabs", status: "done" },
+    ];
+    const { unmount } = render(<SplashScreen {...props({ themeName: "xp", stages: full })} />);
+    const xpBar = screen.getByRole("progressbar");
+    expect(xpBar.getAttribute("aria-valuenow")).toBe("100");
+    expect((xpBar.querySelector(".xp-fill") as HTMLElement).style.width).toBe("100%");
+    unmount();
+    render(<SplashScreen {...props({ themeName: "win7" })} />);
+    const winBar = screen.getByRole("progressbar");
+    expect(winBar.getAttribute("aria-valuenow")).toBe("33");
+    expect((winBar.querySelector(".win7-meter > div") as HTMLElement).style.width).toBe("33%");
+  });
 });

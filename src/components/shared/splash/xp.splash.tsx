@@ -27,19 +27,10 @@ export function XpSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: Spla
             aria-valuemax={100}
             aria-label={texts.loading}
           >
-            <span className="xp-block" />
-            <span className="xp-block" />
-            <span className="xp-block" />
-          </div>
-          <div
-            className="xp-static mt-10"
-            role="progressbar"
-            aria-valuenow={percent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={texts.loading}
-          >
-            <div style={{ width: `${percent}%` }} />
+            <div className="xp-fill" aria-hidden style={{ width: `${percent}%` }} />
+            <span className="xp-block" aria-hidden />
+            <span className="xp-block" aria-hidden />
+            <span className="xp-block" aria-hidden />
           </div>
           <ul className="mt-6 w-full text-base leading-relaxed opacity-70">
             {stages.map((stage) => (

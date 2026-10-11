@@ -26,7 +26,7 @@ export function Win7Splash({ stages, texts, fastLaunch, onToggleFastLaunch }: Sp
         <p className="mt-8 text-4xl font-light">{texts.win7Brand}</p>
         <p className="mt-2 text-base opacity-60">{texts.win7Copyright}</p>
         <div
-          className="win7-static mt-8"
+          className="win7-meter mt-8"
           role="progressbar"
           aria-valuenow={percent}
           aria-valuemin={0}

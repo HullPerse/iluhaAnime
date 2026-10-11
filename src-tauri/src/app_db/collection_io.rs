@@ -257,6 +257,7 @@ pub async fn export_collection_zip(app: tauri::AppHandle, out_path: String) -> R
                 if cover_url.starts_with("http://") || cover_url.starts_with("https://") {
                     let client = reqwest::Client::builder()
                         .user_agent("iluhaAnime/3.0")
+                        .timeout(std::time::Duration::from_secs(15))
                         .build()
                         .map_err(|e| format!("image http client: {e}"))?;
                     match client.get(cover_url).send().await {

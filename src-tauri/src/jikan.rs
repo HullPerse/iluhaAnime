@@ -9,6 +9,7 @@ const API_HOST: &str = "https://api.jikan.moe/v4";
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .user_agent("iluhaAnime/3.0 (https://github.com/iluhanime)")
+        .timeout(Duration::from_secs(15))
         .build()
         .expect("failed to build Jikan reqwest client")
 });

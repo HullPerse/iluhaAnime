@@ -122,6 +122,7 @@ export type CommandName =
   | "player_eof_mode"
   | "player_get_property"
   | "player_init"
+  | "player_insert_files"
   | "player_load"
   | "player_load_watch"
   | "player_open"

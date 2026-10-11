@@ -1,12 +1,16 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { openPath } from "@tauri-apps/plugin-opener";
 import type { ReactElement } from "react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
+import { DbScreen } from "@/components/shared/db/screen.db";
+import { SplashScreen } from "@/components/shared/splash/screen.splash";
 import { useApp } from "@/hooks/app.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDayNightScheduler } from "@/hooks/schedule.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { useEnsureAnimeIndex, usePrewarmSpellIndex } from "@/hooks/search/animeIndex.hook";
+import { useSplashStages } from "@/hooks/splash.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
@@ -19,7 +23,8 @@ import {
   confirmTorrentDownload as confirmDownload,
   torrentAtoms,
 } from "@/store/download.store";
-import { settingsAtoms } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import { themeAtoms } from "@/store/theme.store";
 import type { TabId } from "@/types/settings";
 
 import { SmallLoader, TabLoader } from "./components/shared/loader.component";
@@ -58,6 +63,8 @@ export default function App() {
   const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
   const customTitleBarEnabled = useCell(settingsAtoms.customTitleBarEnabled);
   const statusBarEnabled = useCell(settingsAtoms.statusBarEnabled);
+  const fastLaunch = useCell(settingsAtoms.fastLaunch);
+  const currentTheme = useCell(themeAtoms.currentTheme);
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
   const [showPending, setShowPending] = useState(false);
 
@@ -88,6 +95,14 @@ export default function App() {
   usePrewarmSpellIndex();
   const { capture: screenshot, close: closeScreenshot } = useScreenshot();
 
+  const openDataFolder = (dir: string) => {
+    if (!dir) return;
+    (async () => {
+      const [, error] = await attempt(openPath(dir));
+      if (error) reportBackgroundError("database.open-folder", error);
+    })();
+  };
+
   const getComponent = () => {
     const tabMap: Record<TabId, ReactElement> = {
       anilist: <AniListRoute />,
@@ -99,6 +114,33 @@ export default function App() {
     };
     return tabMap[activeTab];
   };
+
+  const splash = useSplashStages(tabs.length > 0);
+  if (!fastLaunch && !splash.done && !splash.dbFailed) {
+    return (
+      <SplashScreen
+        stages={splash.stages}
+        themeName={currentTheme}
+        safe={isCurrentSessionSafe()}
+        fastLaunch={false}
+        onToggleFastLaunch={() => patchSettings({ fastLaunch: true })}
+      />
+    );
+  }
+
+  if (splash.dbFailed) {
+    return (
+      <DbScreen
+        error={splash.dbError ?? ""}
+        themeName={currentTheme}
+        safe={isCurrentSessionSafe()}
+        dataDir={splash.dbStatus?.dataDir ?? ""}
+        onRetry={() => splash.retryDatabase()}
+        onReload={() => window.location.reload()}
+        onOpenFolder={() => openDataFolder(splash.dbStatus?.dataDir ?? "")}
+      />
+    );
+  }
 
   return (
     <main

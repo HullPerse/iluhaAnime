@@ -8,6 +8,7 @@ import {
   requestSafeMode,
   subscribeFatal,
 } from "@/lib/fatal/report.utils";
+import { readThemeName } from "@/lib/fatal/theme.utils";
 import { attemptSync } from "@/lib/utils/attempt.utils";
 import type { FatalInfo } from "@/types/fatal";
 import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types/ui";
@@ -18,18 +19,6 @@ interface FatalBoundaryState extends ErrorBoundaryState {
   info: FatalInfo | null;
   live: FatalInfo | null;
   retries: number;
-}
-
-function readThemeName(): string {
-  const dataset = typeof document !== "undefined" ? document.documentElement?.dataset : undefined;
-  if (dataset?.theme) return dataset.theme;
-  if (typeof localStorage === "undefined") return "win95";
-  const [raw, readError] = attemptSync(() => localStorage.getItem("themeVars"));
-  if (readError !== null || !raw) return "win95";
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || typeof parsed !== "object" || parsed === null) return "win95";
-  const name = (parsed as { themeName?: unknown }).themeName;
-  return typeof name === "string" ? name : "win95";
 }
 
 function readRoute(): string {
@@ -50,7 +39,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundarySt
   componentDidMount() {
     clearFatal();
     this.stopLive = subscribeFatal((live) => {
-      if (live) this.setState({ live });
+      if (live && !this.state.info) this.setState({ live });
     });
   }
 
@@ -64,8 +53,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundarySt
       ...toFatalInfo(error, { scope: "render", route: readRoute(), themeName: readThemeName() }),
       retryCount: this.state.retries,
     };
-    reportFatal(info);
     this.setState((state) => ({ info, retries: state.retries + 1 }));
+    reportFatal(info);
   }
 
   private reload(safe: boolean): void {

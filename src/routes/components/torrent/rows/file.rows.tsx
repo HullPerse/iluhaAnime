@@ -1,21 +1,79 @@
 import { openPath } from "@tauri-apps/plugin-opener";
 import { cn } from "cn";
 import { ArrowDownNarrowWide, RefreshCw } from "lucide-react";
+import type { MouseEvent } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { parseMediaPath } from "@/lib/media/parse.utils";
+import { fileNameFromPath, isTrackFileName, parseMediaPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { joinMediaPath } from "@/lib/utils/media.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
 
 import { PlayerFileActions } from "../actions.torrent";
+
+interface PlayerRowTarget {
+  resolvedPath: string | undefined;
+  track: boolean;
+  busy: boolean;
+}
+
+function resolvePlayerRowTarget(
+  file: TorrentTreeFile,
+  fullPath: string | undefined,
+  saveDir: string | undefined,
+  queueMap: Map<string, string>,
+  trackExts: Set<string>
+): PlayerRowTarget {
+  const resolvedPath = fullPath ?? (saveDir ? joinMediaPath(saveDir, file.name) : undefined);
+  const track = isTrackFileName(fileNameFromPath(resolvedPath ?? file.displayName), trackExts);
+  const queueStatus = resolvedPath ? queueMap.get(resolvedPath) : undefined;
+  return {
+    resolvedPath,
+    track,
+    busy: queueStatus === "queued" || queueStatus === "processing",
+  };
+}
+
+function searchPlayerFile(
+  type: "torrent" | "player",
+  track: boolean,
+  resolvedPath: string | undefined,
+  displayName: string
+): void {
+  if (type !== "player" || track) return;
+  setAnilistSearchQuery(parseMediaPath(resolvedPath ?? displayName).searchTitle);
+}
+
+function handlePlayerContextMenu(
+  event: MouseEvent,
+  args: {
+    type: "torrent" | "player";
+    track: boolean;
+    busy: boolean;
+    completed: boolean;
+    exists: boolean;
+    resolvedPath: string | undefined;
+    saveDir: string | undefined;
+    onOpenInApp?: (fullPath: string) => void;
+  }
+): void {
+  event.preventDefault();
+  if (args.type !== "player") return;
+  if (event.ctrlKey || event.metaKey) {
+    if (args.track || args.busy || !args.completed || !args.exists || !args.resolvedPath) return;
+    args.onOpenInApp?.(args.resolvedPath);
+    return;
+  }
+  openPath(String(args.saveDir));
+}
 
 export function TorrentFileRow({
   file,
@@ -30,6 +88,7 @@ export function TorrentFileRow({
   onDeleteExtraFile,
   onUpscaleDone,
   onPlay,
+  onOpenInApp,
   onRedownload,
   sequential,
 }: {
@@ -47,10 +106,16 @@ export function TorrentFileRow({
   onUpscaleDone?: () => void;
   onRedownload?: (fileIndex: number) => void;
   onPlay?: (path: string, name: string) => void;
+  onOpenInApp?: (fullPath: string) => void;
 }) {
   const { t } = useI18n();
   const parseTitles = useCell(settingsAtoms.parseTitlesTorrent);
+  const audioExtensions = useCell(settingsAtoms.audioExtensions);
+  const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
   const fullPath = (file as TorrentTreeFileWithPath).fullPath;
+  const trackExts = new Set([...audioExtensions, ...subtitleExtensions]);
+  const target = resolvePlayerRowTarget(file, fullPath, path, queueMap, trackExts);
+  const { resolvedPath, track, busy } = target;
 
   return (
     <div
@@ -79,12 +144,19 @@ export function TorrentFileRow({
         className="flex-1 truncate"
         title={file.displayName}
         onContextMenu={(e) => {
-          e.preventDefault();
-          if (type === "player") openPath(String(path));
+          handlePlayerContextMenu(e, {
+            type,
+            track,
+            busy,
+            completed: file.completed,
+            exists: file.exists,
+            resolvedPath,
+            saveDir: path,
+            onOpenInApp,
+          });
         }}
         onClick={() => {
-          if (type === "torrent") return;
-          setAnilistSearchQuery(parseMediaPath(fullPath ?? file.displayName).searchTitle);
+          searchPlayerFile(type, track, resolvedPath, file.displayName);
         }}
       >
         {type === "player" && parseTitles

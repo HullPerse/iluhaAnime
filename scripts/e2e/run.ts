@@ -26,11 +26,12 @@ import {
 } from "./harness";
 import { boot } from "./scenarios/boot";
 import { collection } from "./scenarios/collection";
+import { livePlaylist } from "./scenarios/livePlaylist";
 import { player } from "./scenarios/player";
 import { repro } from "./scenarios/repro";
 import { torrent } from "./scenarios/torrent";
 
-const ALL: Scenario[] = [boot, collection, torrent, player, repro];
+const ALL: Scenario[] = [boot, collection, torrent, player, livePlaylist, repro];
 
 interface ChildLog {
   text: string;

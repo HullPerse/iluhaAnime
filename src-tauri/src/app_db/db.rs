@@ -1,5 +1,6 @@
 use super::schema::initialize_schema;
 use rusqlite::Connection;
+use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, OnceLock};
@@ -55,6 +56,41 @@ pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
     }
     initialize_schema(&connection)?;
     Ok(connection)
+}
+
+#[derive(Serialize)]
+pub struct DatabaseStatus {
+    pub ok: bool,
+    pub version: Option<i64>,
+    pub data_dir: String,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub fn get_database_status(app: tauri::AppHandle) -> Result<DatabaseStatus, String> {
+    let data_dir = database_path(&app)?
+        .parent()
+        .map(|parent| parent.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let opened = open_database(&app).and_then(|connection| {
+        connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|error| format!("read app database version: {error}"))
+    });
+    match opened {
+        Ok(version) => Ok(DatabaseStatus {
+            ok: true,
+            version: Some(version),
+            data_dir,
+            error: None,
+        }),
+        Err(error) => Ok(DatabaseStatus {
+            ok: false,
+            version: None,
+            data_dir,
+            error: Some(error),
+        }),
+    }
 }
 
 static APP_DATA_WRITE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();

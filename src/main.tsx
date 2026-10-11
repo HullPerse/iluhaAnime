@@ -9,24 +9,12 @@ import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
 import { QUERY_CONFIG } from "@/config/store/query.config";
 import { noteGlobalError, toFatalInfo } from "@/lib/fatal/classify.utils";
 import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/fatal/report.utils";
+import { readThemeName } from "@/lib/fatal/theme.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { attemptSync } from "@/lib/utils/attempt.utils";
 import { router } from "@/routes/__root";
 import { addNotification } from "@/store/notification.store";
 
 if (consumeSafeMode()) markSessionSafe();
-
-function readThemeName(): string {
-  const dataset = typeof document !== "undefined" ? document.documentElement?.dataset : undefined;
-  if (dataset?.theme) return dataset.theme;
-  if (typeof localStorage === "undefined") return "win95";
-  const [raw, readError] = attemptSync(() => localStorage.getItem("themeVars"));
-  if (readError !== null || !raw) return "win95";
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || typeof parsed !== "object" || parsed === null) return "win95";
-  const name = (parsed as { themeName?: unknown }).themeName;
-  return typeof name === "string" ? name : "win95";
-}
 
 function escalate(value: unknown): boolean {
   if (!noteGlobalError(Date.now())) return false;

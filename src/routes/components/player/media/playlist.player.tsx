@@ -155,6 +155,19 @@ function entryLabel(entry: PlaylistEntry, parseTitles: boolean, t: TFunc): strin
   return parseTitles && entry.filename ? formatParsedTitle(entry.filename, t) : name;
 }
 
+// React key by filename, not mpv index: live inserts shift every index
+// below the insertion point, and index-based keys would unmount and remount
+// all of those cards (thumbnail flash). Duplicates of one file share the
+// name, so later occurrences carry a suffix to stay unique.
+function playlistCardKey(entries: PlaylistEntry[], position: number): string {
+  const entry = entries[position];
+  if (!entry) return `missing:${position}`;
+  const occurrence = entries
+    .slice(0, position + 1)
+    .filter((candidate) => candidate.filename === entry.filename).length;
+  return occurrence > 1 ? `${entry.filename}#${occurrence}` : entry.filename;
+}
+
 const PLAYLIST_VIRTUALIZE_AFTER = 50;
 
 function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
@@ -172,6 +185,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   const virtualizer = useVirtualizer({
     count: entries.length,
     getScrollElement: () => scrollRef.current,
+    getItemKey: (index) => playlistCardKey(entries, index),
     estimateSize: () => 56,
     overscan: 8,
     enabled: entries.length > PLAYLIST_VIRTUALIZE_AFTER,
@@ -319,7 +333,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
               const current = entry.index === activeIndex;
               return (
                 <PlaylistCard
-                  key={`${entry.filename}:${entry.index}`}
+                  key={playlistCardKey(entries, position)}
                   entry={entry}
                   position={position}
                   current={current}

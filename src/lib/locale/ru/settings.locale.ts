@@ -402,6 +402,9 @@ const settings = {
   "settings.tray.minimize": "Сворачивать в трей при закрытии",
   "settings.tray.minimize.description": "Крестик скрывает окно, приложение продолжает работать.",
   "settings.tray.quit": "Выйти",
+  "settings.startup": "Запуск",
+  "settings.startup.fastLaunch": "Быстрый запуск",
+  "settings.startup.fastLaunch.hint": "Пропускать заставку, грузить все в фоне.",
 } as const;
 
 export default settings;

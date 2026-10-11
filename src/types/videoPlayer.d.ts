@@ -2,6 +2,16 @@ export interface PlayerOpenRequest {
   files: string[];
   resume?: number;
   startIndex?: number;
+  watch?: PlaylistWatch | null;
+}
+
+export type PlaylistWatch =
+  | { kind: "torrent"; torrentId: number; saveDir: string; anchor: string }
+  | { kind: "folder"; root: string; anchor: string };
+
+export interface PlaylistInsert {
+  path: string;
+  index: number;
 }
 
 export interface PlaybackSnapshot {

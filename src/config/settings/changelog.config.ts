@@ -66,6 +66,11 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.torrents.file_icons", "torrents"),
       entry("changelog.5_0_0.added.settings.repro_bundle", "settings"),
       entry("changelog.5_0_0.added.player.file_constraints", "player"),
+      entry("changelog.5_0_0.added.player.live_playlist", "player"),
+      entry("changelog.5_0_0.added.app.fatal_bsod", "app"),
+      entry("changelog.5_0_0.added.app.splash", "app"),
+      entry("changelog.5_0_0.added.app.fast_launch", "app"),
+      entry("changelog.5_0_0.added.app.db_gate", "app"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),

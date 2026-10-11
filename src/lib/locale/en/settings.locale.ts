@@ -401,6 +401,9 @@ const settings = {
   "settings.tray.minimize": "Minimize to tray on close",
   "settings.tray.minimize.description": "The close button hides the window, the app keeps running.",
   "settings.tray.quit": "Quit",
+  "settings.startup": "Startup",
+  "settings.startup.fastLaunch": "Fast launch",
+  "settings.startup.fastLaunch.hint": "Skip the splash screen, load everything in the background.",
 } as const;
 
 export default settings;

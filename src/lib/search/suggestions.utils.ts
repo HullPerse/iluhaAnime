@@ -1,6 +1,7 @@
 import { KIND_ORDER } from "@/config/search/autocomplete.config";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { ANIME_STATUS_BOOST } from "@/config/search/status.config";
+import { markSpellingReady } from "@/lib/splash/signals.utils";
 import type {
   AnilistSuggestionBoost,
   SearchAnimeSuggestion,
@@ -461,11 +462,20 @@ function cancelIdle(handle: number): void {
 export function prewarmSpelling(
   options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell">
 ): () => void {
-  if (options.symSpell === false) return () => {};
+  if (options.symSpell === false) {
+    markSpellingReady();
+    return () => {};
+  }
   const { titles, basis, fingerprint } = spellTitles(options);
-  if (titles.length === 0) return () => {};
+  if (titles.length === 0) {
+    markSpellingReady();
+    return () => {};
+  }
   const index = symSpellFor(titles, basis, fingerprint);
-  if (index.ready) return () => {};
+  if (index.ready) {
+    markSpellingReady();
+    return () => {};
+  }
   let cancelled = false;
   let handle: number | undefined;
   const step = () => {
@@ -473,6 +483,7 @@ export function prewarmSpelling(
     if (cancelled) return;
     if (index.pump(SPELL_PUMP_BATCH)) {
       writeCachedSpellWords(fingerprint, index.normalizedWords());
+      markSpellingReady();
       return;
     }
     handle = scheduleIdle(step);

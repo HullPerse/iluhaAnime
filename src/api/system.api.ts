@@ -168,6 +168,15 @@ export class SystemApi {
   deleteAppCache(namespace: string, key: string): Promise<void> {
     return this.call("delete_app_cache", { key, namespace });
   }
+
+  getDatabaseStatus(): Promise<{
+    ok: boolean;
+    version: number | null;
+    dataDir: string;
+    error: string | null;
+  }> {
+    return this.call("get_database_status");
+  }
 }
 
 export const systemApi = new SystemApi();

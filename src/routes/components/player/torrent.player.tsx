@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { TorrentPlayerProps as Props } from "@/types/player";
@@ -39,6 +40,12 @@ export default function TorrentFilesPlayerSection({
   }, [refetch]);
 
   const { t } = useI18n();
+  const openInAppPlayer = useTorrentInAppPlayer(
+    files,
+    item.save_dir,
+    data.map((entry) => entry.fullPath),
+    item.id
+  );
 
   return (
     <section className="windows95-active-border bg-primary flex flex-col gap-1">
@@ -107,6 +114,7 @@ export default function TorrentFilesPlayerSection({
               extraFiles={data}
               onUpscaleDone={handleUpscaleDone}
               onDeleteExtraFile={handleDeleteExtraFile}
+              onOpenInApp={openInAppPlayer}
             />
           )}
         </section>

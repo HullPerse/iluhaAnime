@@ -27,6 +27,7 @@ import { withFallback } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { openFileInPlayer } from "@/lib/utils/media.utils";
 import { showError } from "@/lib/utils/notification.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { upscaleItems } from "@/store/upscale.store";
@@ -111,11 +112,14 @@ function FolderView({
       const resume = stored && stored.position > 0 ? stored.position : undefined;
       // Keep the queue in its sorted order and let the backend start at the
       // chosen episode, so the playlist reads 1..N instead of rotating.
-      await openPlayer(paths.length > 0 ? paths : [path], resume, Math.max(index, 0)).catch(
-        (error: unknown) => {
-          showError(t("player.folder.open.failed.player"), String(error));
-        }
-      );
+      await openPlayer(
+        paths.length > 0 ? paths : [path],
+        resume,
+        Math.max(index, 0),
+        folder ? { kind: "folder", root: folder.path, anchor: path } : undefined
+      ).catch((error: unknown) => {
+        showError(t("player.folder.open.failed.player"), String(error));
+      });
     },
     [node, t]
   );
@@ -324,9 +328,19 @@ function FolderView({
                     className="windows95-text flex-1 truncate select-none hover:cursor-pointer"
                     onContextMenu={(e) => {
                       e.preventDefault();
+                      if (e.ctrlKey || e.metaKey) {
+                        if (disabled || busy || !file.path) return;
+                        ignore(openInAppPlayer(file.path));
+                        return;
+                      }
                       openPath(file.path.replace(file.name, ""));
                     }}
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (e.ctrlKey || e.metaKey) {
+                        if (disabled || busy || !file.path) return;
+                        setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
+                        return;
+                      }
                       if (!disabled && !busy && file.path) openFileInPlayer(file.path);
                     }}
                   >
@@ -373,7 +387,7 @@ function FolderView({
                   <Button
                     size="icon"
                     className="h-4 w-4"
-                    disabled={busy}
+                    disabled={disabled || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);

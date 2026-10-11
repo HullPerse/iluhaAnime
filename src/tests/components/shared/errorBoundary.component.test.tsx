@@ -78,4 +78,18 @@ describe("ErrorBoundary fatal contract", () => {
     expect(screen.getByText("Repeated errors")).toBeDefined();
     expect(screen.getByText("repeated unhandled rejection")).toBeDefined();
   });
+
+  it("keeps its own crash screen when a live fatal arrives later", () => {
+    render(
+      <ErrorBoundary>
+        <Bomb blow />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText("kaboom render")).toBeDefined();
+    act(() => {
+      reportFatal(liveInfo());
+    });
+    expect(screen.getByText("kaboom render")).toBeDefined();
+    expect(screen.queryByText("repeated unhandled rejection")).toBeNull();
+  });
 });

@@ -48,6 +48,7 @@ export interface SettingsStore {
   customScrollbar: boolean;
   customTitleBarEnabled: boolean;
   statusBarEnabled: boolean;
+  fastLaunch: boolean;
   minimizeToTray: boolean;
   roundedWindowCorners: boolean;
   windowEffect: WindowEffect;

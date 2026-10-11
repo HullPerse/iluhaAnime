@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 44;
+export const SETTINGS_SCHEMA_VERSION = 45;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"

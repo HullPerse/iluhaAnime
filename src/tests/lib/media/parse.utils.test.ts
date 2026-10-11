@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { clearMediaParseCache, parseMediaFile } from "@/lib/media/parse.utils";
+import {
+  clearMediaParseCache,
+  isTrackFileName,
+  mediaFileExtension,
+  parseMediaFile,
+} from "@/lib/media/parse.utils";
 import type { MediaFileParse } from "@/types/media";
 
 import expectedRows from "./expected.json";
@@ -85,4 +90,34 @@ describe("parseMediaFile corpus fixtures", () => {
     expect(second).toBe(first);
     clearMediaParseCache();
   });
+});
+
+describe("mediaFileExtension", () => {
+  it.each([
+    ["episode.mkv", "mkv"],
+    ["EP01.MKV", "mkv"],
+    ["song.flac", "flac"],
+    ["subs.ass", "ass"],
+    ["noext", ""],
+    ["archive.tar.gz", "gz"],
+  ])("reads %s as %s", (name, ext) => {
+    expect(mediaFileExtension(name)).toBe(ext);
+  });
+});
+
+describe("isTrackFileName", () => {
+  const tracks = new Set(["mp3", "flac", "srt", "ass"]);
+  it.each([["song.mp3"], ["song.FLAC"], ["subs.ass"], ["C:\\Anime\\ep.srt"]])(
+    "flags %s as a track file",
+    (name) => {
+      expect(isTrackFileName(name, tracks)).toBe(true);
+    }
+  );
+
+  it.each([["episode.mkv"], ["movie.mp4"], ["noext"], ["subs.txt"]])(
+    "keeps %s playable",
+    (name) => {
+      expect(isTrackFileName(name, tracks)).toBe(false);
+    }
+  );
 });

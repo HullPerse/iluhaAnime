@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MAX_TIMEOUT_MS, normalizeMaxWait, normalizeWait, resolveEnabled, scheduleTask } from "@/lib/pacer/shared.utils";
+import {
+  MAX_TIMEOUT_MS,
+  normalizeMaxWait,
+  normalizeWait,
+  resolveEnabled,
+  scheduleTask,
+  sleep,
+} from "@/lib/pacer/shared.utils";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -102,5 +109,33 @@ describe("scheduleTask", () => {
     vi.advanceTimersByTime(1000);
     runFrames();
     expect(task).not.toHaveBeenCalled();
+  });
+});
+
+describe("sleep", () => {
+  it("resolves after the wait", async () => {
+    const task = sleep(100);
+    let settled = false;
+    task.done.then(() => {
+      settled = true;
+    });
+    vi.advanceTimersByTime(99);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    vi.advanceTimersByTime(1);
+    await task.done;
+    expect(settled).toBe(true);
+  });
+
+  it("settles immediately on cancel without firing the timer", async () => {
+    const callback = vi.fn();
+    const task = sleep(100);
+    task.done.then(callback);
+    task.cancel();
+    await task.done;
+    expect(callback).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1000);
+    await Promise.resolve();
+    expect(callback).toHaveBeenCalledTimes(1);
   });
 });

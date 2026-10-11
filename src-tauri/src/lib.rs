@@ -1542,9 +1542,14 @@ pub fn run() {
                     tauri::async_runtime::spawn(async move {
                         let trigger_start = std::time::Instant::now();
                         tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
-                        if let Err(error) =
-                            player::player_open(trigger_handle.clone(), vec![path], None, None)
-                                .await
+                        if let Err(error) = player::player_open(
+                            trigger_handle.clone(),
+                            vec![path],
+                            None,
+                            None,
+                            None,
+                        )
+                        .await
                         {
                             tracing::warn!("dev player trigger failed: {error}");
                             return;
@@ -1724,6 +1729,7 @@ pub fn run() {
             player::player_close_window,
             player::player_load,
             player::player_append_files,
+            player::player_insert_files,
             player::player_save_frame,
             player::player_command,
             player::player_set_property,
@@ -1737,6 +1743,7 @@ pub fn run() {
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,
+            app_db::get_database_status,
             app_db::upsert_unified_index,
             app_db::clear_unified_index_scope,
             app_db::delete_unified_index_entry,

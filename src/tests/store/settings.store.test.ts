@@ -32,6 +32,13 @@ describe("settings signal migration", () => {
     expect(result.pageSize).toBe(10);
   });
 
+  it("defaults fastLaunch to false on v45 and keeps an explicit opt-out", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 44).fastLaunch).toBe(false);
+    expect(settings.migrateSettingsData({ language: "en", fastLaunch: true }, 44).fastLaunch).toBe(
+      true
+    );
+  });
+
   it("migrates legacy dlLimit/ulLimit into limits.download/upload", () => {
     const result = settings.migrateSettingsData({ dlLimit: 500, ulLimit: 100, language: "en" }, 14);
     expect(result.language).toBe("en");

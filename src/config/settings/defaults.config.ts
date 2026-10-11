@@ -106,6 +106,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   sqliteBrowserEnabled: false,
   sqliteShowImages: false,
   statusBarEnabled: true,
+  fastLaunch: false,
   minimizeToTray: false,
   subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
   uiDensity: "comfortable",

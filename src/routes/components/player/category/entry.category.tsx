@@ -1,4 +1,5 @@
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
@@ -22,6 +23,12 @@ export function TorrentCategoryEntry({
   });
 
   const files = (torrentFilesMap[tor.id] || []).filter((f) => f.completed);
+  const openInAppPlayer = useTorrentInAppPlayer(
+    files,
+    tor.save_dir,
+    data.map((entry) => entry.fullPath),
+    tor.id
+  );
   if (files.length === 0) return null;
 
   const handleUpscaleDone = () => refetch();
@@ -36,6 +43,7 @@ export function TorrentCategoryEntry({
       extraFiles={data}
       onUpscaleDone={handleUpscaleDone}
       onDeleteExtraFile={handleDeleteExtraFile}
+      onOpenInApp={openInAppPlayer}
     />
   );
 }

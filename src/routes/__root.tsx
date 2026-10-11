@@ -2,9 +2,11 @@ import { createRootRoute, createRoute, createRouter, useNavigate } from "@tansta
 import { CircleX } from "lucide-react";
 import { lazy, useEffect } from "react";
 
+import { BootPending } from "@/components/shared/bootPending.component";
 import { BigError } from "@/components/shared/error.component";
 import { BigLoader } from "@/components/shared/loader.component";
 import OutletComponent from "@/components/shared/outlet.component";
+import { RouteErrorScreen } from "@/components/shared/routeError.component";
 import { PLAYER_ROUTE } from "@/config/player/player-route.config";
 import { translate } from "@/lib/locale/i18n.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -20,13 +22,14 @@ const PlayerWindow = lazy(() =>
 
 const rootRoute = createRootRoute({
   component: OutletComponent,
+  errorComponent: RouteErrorScreen,
 });
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: App,
-  pendingComponent: BigLoader,
+  pendingComponent: BootPending,
 });
 
 const ErrorPage = () => {

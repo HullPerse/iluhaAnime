@@ -23,6 +23,17 @@ export function fileNameFromPath(p: string): string {
   return name || p;
 }
 
+export function mediaFileExtension(name: string): string {
+  const dot = name.lastIndexOf(".");
+  if (dot === -1) return "";
+  return name.slice(dot + 1).toLowerCase();
+}
+
+export function isTrackFileName(name: string, trackExts: Set<string>): boolean {
+  const ext = mediaFileExtension(name);
+  return ext !== "" && trackExts.has(ext);
+}
+
 export function parseMediaPath(fullPath: string): MediaFileParse {
   const normalized = fullPath.replaceAll(/\\/g, "/");
   const cut = normalized.lastIndexOf("/");

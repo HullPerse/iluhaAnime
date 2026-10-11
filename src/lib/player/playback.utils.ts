@@ -1,13 +1,17 @@
 import { PLAYER_PROFILES } from "@/config/player/profiles.config";
+import { fileNameFromPath, isTrackFileName } from "@/lib/media/parse.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { clamp } from "@/lib/utils/math.utils";
+import { joinMediaPath } from "@/lib/utils/media.utils";
 import type {
   EndOfFileMode,
   HwdecMode,
   PlayerOpenRequest,
   PlayerProfileId,
   PlayerSettings,
+  PlaylistInsert,
+  PlaylistWatch,
   SeekMode,
   VideoMarginRatio,
   WatchState,
@@ -17,6 +21,41 @@ export function rotateQueue(files: string[], startIndex: number): string[] {
   if (files.length === 0) return files;
   const index = ((startIndex % files.length) + files.length) % files.length;
   return [...files.slice(index), ...files.slice(0, index)];
+}
+
+const PLAYLIST_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+export interface TorrentPlaylistSource {
+  name: string;
+  fullPath?: string;
+  completed: boolean;
+  exists: boolean;
+}
+
+export function buildTorrentPlayerPlaylist(
+  files: TorrentPlaylistSource[],
+  saveDir: string,
+  clickedFullPath: string,
+  trackExts?: Set<string>,
+  extraFullPaths?: string[]
+): { files: string[]; startIndex: number } | null {
+  const paths: string[] = [];
+  for (const file of files) {
+    if (!file.completed || !file.exists) continue;
+    const full = file.fullPath ?? joinMediaPath(saveDir, file.name);
+    if (trackExts && isTrackFileName(fileNameFromPath(full), trackExts)) continue;
+    paths.push(full);
+  }
+  if (extraFullPaths) {
+    for (const full of extraFullPaths) {
+      if (trackExts && isTrackFileName(fileNameFromPath(full), trackExts)) continue;
+      paths.push(full);
+    }
+  }
+  const deduped = [...new Set(paths)].sort((a, b) => PLAYLIST_COLLATOR.compare(a, b));
+  const startIndex = deduped.indexOf(clickedFullPath);
+  if (deduped.length === 0 || startIndex === -1) return null;
+  return { files: deduped, startIndex };
 }
 
 const TIMECODE_INT = /^\d+$/;
@@ -214,12 +253,14 @@ export async function applyAudioOptions(settings: PlayerSettings): Promise<void>
 export async function openPlayer(
   files: string[],
   resume?: number,
-  startIndex?: number
+  startIndex?: number,
+  watch?: PlaylistWatch
 ): Promise<void> {
   await invokeTyped("player_open", {
     files,
     resume,
     startIndex,
+    watch,
   });
 }
 
@@ -343,6 +384,11 @@ export async function appendFiles(files: string[]): Promise<void> {
 export async function appendFilesQuiet(files: string[]): Promise<void> {
   if (files.length === 0) return;
   await invokeTyped("player_append_files", { files, mode: "append" });
+}
+
+export async function insertPlaylistFiles(items: PlaylistInsert[]): Promise<void> {
+  if (items.length === 0) return;
+  await invokeTyped("player_insert_files", { items });
 }
 
 export interface PlaylistEntry {

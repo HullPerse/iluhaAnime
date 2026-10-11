@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import { prewarmSpelling } from "@/lib/search/suggestions.utils";
+import { markIndexReady } from "@/lib/splash/signals.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { indexSearchAniList, searchAtoms } from "@/store/search.store";
@@ -10,6 +11,7 @@ export function useEnsureAnimeIndex(): void {
   const { favourites, lists, user } = useUserAnilistData();
   useEffect(() => {
     if (user) indexSearchAniList(lists, favourites, user.id);
+    markIndexReady();
   }, [favourites, lists, user]);
 }
 

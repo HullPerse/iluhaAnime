@@ -31,6 +31,7 @@ function TorrentFilesSection({
   onDeleteExtraFile,
   onRedownload,
   onPlay,
+  onOpenInApp,
   sequentialFile,
 }: {
   id: number;
@@ -46,6 +47,7 @@ function TorrentFilesSection({
   onDeleteExtraFile?: () => void;
   onRedownload?: (fileIndex: number) => void;
   onPlay?: (path: string, name: string) => void;
+  onOpenInApp?: (fullPath: string) => void;
 }) {
   const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
   const fileOrder = useCell(settingsAtoms.fileOrder);
@@ -182,6 +184,7 @@ function TorrentFilesSection({
               onDeleteExtraFile={onDeleteExtraFile}
               onUpscaleDone={onUpscaleDone}
               onPlay={onPlay}
+              onOpenInApp={onOpenInApp}
               onRedownload={onRedownload}
               sequential={sequentialFile === file.index}
             />

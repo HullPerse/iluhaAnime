@@ -34,6 +34,7 @@ export default function SettingsGeneral() {
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
+  const fastLaunch = useCell(settingsAtoms.fastLaunch);
   const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
   const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
@@ -120,6 +121,26 @@ export default function SettingsGeneral() {
                   onChange={(v) => patchSettings({ sqliteBrowserEnabled: v })}
                 />
                 <span className="text-xs">{t("settings.sqlite")}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="ui-panel">
+        <div className="ui-titlebar">
+          <span className="text-title-text font-bold">{t("settings.startup")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+            <span />
+            <div className="flex flex-col gap-4">
+              <label
+                className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none"
+                title={t("settings.startup.fastLaunch.hint")}
+              >
+                <Checkbox checked={fastLaunch} onChange={(v) => patchSettings({ fastLaunch: v })} />
+                <span className="text-xs">{t("settings.startup.fastLaunch")}</span>
               </label>
             </div>
           </div>

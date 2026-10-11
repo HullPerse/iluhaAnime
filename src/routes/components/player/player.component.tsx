@@ -20,6 +20,7 @@ import {
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
+import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
@@ -127,6 +128,7 @@ import type {
   MpvTrack,
   PlayerProfileId,
   PlayerSettings,
+  PlaylistWatch,
   SeekMode,
 } from "@/types/videoPlayer";
 
@@ -248,6 +250,9 @@ function PlayerComponent() {
   const [failed, setFailed] = useState(false);
   const [loadingFile, setLoadingFile] = useState(false);
   const [hasShownFrame, setHasShownFrame] = useState(false);
+  const [liveWatch, setLiveWatch] = useState<PlaylistWatch | null>(null);
+
+  useLivePlaylistSync(liveWatch);
 
   const videoRef = useRef<HTMLDivElement>(null);
   const resumeRef = useRef<number | undefined>(undefined);
@@ -422,6 +427,7 @@ function PlayerComponent() {
       if (disposed) return;
       if (request && request.files.length > 0) {
         resumeRef.current = request.resume;
+        setLiveWatch(request.watch ?? null);
         setLoadingFile(true);
         await loadQueue(request.files, request.resume, request.startIndex);
       }
@@ -558,6 +564,7 @@ function PlayerComponent() {
       if (request.files.length === 0) return;
       loadEpochRef.current += 1;
       resumeRef.current = request.resume;
+      setLiveWatch(request.watch ?? null);
       setFinished(false);
       setLoadingFile(true);
       ignore(loadQueue(request.files, request.resume, request.startIndex));

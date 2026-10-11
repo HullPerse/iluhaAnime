@@ -15,6 +15,8 @@ import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
 import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { markCacheReady } from "@/lib/splash/signals.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import {
@@ -30,7 +32,6 @@ import {
   showError,
   showWarning,
 } from "@/lib/utils/notification.utils";
-import { useCell } from "@/lib/state/signal.hook";
 import { checkForUpdates } from "@/lib/utils/update.utils";
 import { anilistNotificationsAtoms } from "@/store/anilist.store";
 import { cacheAtoms, setEpisodeTracker, setFolderTrees, setLastSaveDir } from "@/store/cache.store";
@@ -532,31 +533,36 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       readAppCache<Record<number, boolean>>("torrent", "seedPreferences"),
       readAppCache<Record<number, number>>("player", "episodeTracker"),
       readAppCache<SearchLearningSnapshot>("search", "learning"),
-    ]).then(([folderTrees, lastSaveDir, seedPreferences, episodeTracker, learning]) => {
-      if (disposed) return;
-      if (folderTrees?.payload) setFolderTrees(folderTrees.payload);
-      if (lastSaveDir?.payload) {
-        setLastSaveDir(lastSaveDir.payload);
-      }
-      if (seedPreferences?.payload)
-        cacheAtoms.seedPreferences.set(seedPreferences.payload);
-      if (episodeTracker?.payload) setEpisodeTracker(episodeTracker.payload);
-      if (learning?.payload) {
-        const ttlMs = 90 * 24 * 60 * 60 * 1000;
-        const now = Date.now();
-        const isExpired = (stat: { lastUsedAt: number }) => now - stat.lastUsedAt > ttlMs;
-        const filterStats = <T extends Record<string, { lastUsedAt: number }>>(stats: T): T => {
-          const out: Record<string, unknown> = {};
-          for (const [k, v] of Object.entries(stats ?? {})) {
-            if (!isExpired(v as { lastUsedAt: number })) out[k] = v;
-          }
-          return out as T;
-        };
-        searchAtoms.history.set(learning.payload.history ?? []);
-        searchAtoms.queryStats.set(filterStats(learning.payload.queryStats ?? {}));
-        searchAtoms.suggestionStats.set(filterStats(learning.payload.suggestionStats ?? {}));
-      }
-    });
+    ])
+      .then(([folderTrees, lastSaveDir, seedPreferences, episodeTracker, learning]) => {
+        if (disposed) return;
+        if (folderTrees?.payload) setFolderTrees(folderTrees.payload);
+        if (lastSaveDir?.payload) {
+          setLastSaveDir(lastSaveDir.payload);
+        }
+        if (seedPreferences?.payload) cacheAtoms.seedPreferences.set(seedPreferences.payload);
+        if (episodeTracker?.payload) setEpisodeTracker(episodeTracker.payload);
+        if (learning?.payload) {
+          const ttlMs = 90 * 24 * 60 * 60 * 1000;
+          const now = Date.now();
+          const isExpired = (stat: { lastUsedAt: number }) => now - stat.lastUsedAt > ttlMs;
+          const filterStats = <T extends Record<string, { lastUsedAt: number }>>(stats: T): T => {
+            const out: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(stats ?? {})) {
+              if (!isExpired(v as { lastUsedAt: number })) out[k] = v;
+            }
+            return out as T;
+          };
+          searchAtoms.history.set(learning.payload.history ?? []);
+          searchAtoms.queryStats.set(filterStats(learning.payload.queryStats ?? {}));
+          searchAtoms.suggestionStats.set(filterStats(learning.payload.suggestionStats ?? {}));
+        }
+        markCacheReady();
+      })
+      .catch((error: unknown) => {
+        reportBackgroundError("cache.hydrate", error);
+        markCacheReady();
+      });
     return () => {
       disposed = true;
     };

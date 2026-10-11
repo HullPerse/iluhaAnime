@@ -75,3 +75,23 @@ export function scheduleTask(mode: PacerMode, waitMs: number, run: () => void): 
     },
   };
 }
+
+export interface SleepTask {
+  readonly done: Promise<void>;
+  cancel: () => void;
+}
+
+export function sleep(waitMs: number): SleepTask {
+  let settle: () => void = () => {};
+  const done = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  const task = scheduleTask("timeout", waitMs, settle);
+  return {
+    done,
+    cancel: () => {
+      task.cancel();
+      settle();
+    },
+  };
+}

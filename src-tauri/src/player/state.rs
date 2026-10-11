@@ -23,6 +23,30 @@ pub struct PlayerOpenRequest {
     pub resume: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub start_index: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub watch: Option<PlaylistWatch>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TorrentWatch {
+    pub torrent_id: i64,
+    pub save_dir: String,
+    pub anchor: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderWatch {
+    pub root: String,
+    pub anchor: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum PlaylistWatch {
+    Torrent(TorrentWatch),
+    Folder(FolderWatch),
 }
 
 #[derive(Debug, Clone, Default, Serialize)]

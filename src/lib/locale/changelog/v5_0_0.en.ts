@@ -241,6 +241,14 @@ const changelog500 = {
     "Fatal error screens: render crashes, dead module loads, startup failures, and repeated errors now show a fullscreen blue screen with the error type, the message, expandable details with copy, and reload with cache reset. Windows 95, XP, and 7 themes get their own screens, other themes get a matching one, and safe reload forces the default theme",
   "changelog.5_0_0.changed.search.cover_modes":
     "Torrent search covers are a three-state setting: off, tracker covers only, or tracker plus AniList covers, with full mode auto-enabled after AniList login until you pick a value",
+  "changelog.5_0_0.added.player.live_playlist":
+    "Player playlist grows while you watch: episodes that finish downloading land in sorted order without moving the current file",
+  "changelog.5_0_0.added.app.splash":
+    "Themed startup splash with honest boot stages: theme, migrations, cache, database, spelling, anime index, and tabs, each paced so the progress reads instead of flashing by",
+  "changelog.5_0_0.added.app.fast_launch":
+    "Fast launch option in Settings Startup plus a skip checkbox on the splash itself: skips the splash and loads everything in the background",
+  "changelog.5_0_0.added.app.db_gate":
+    "Database health check at startup: a corrupt or locked database now shows a recovery screen with retry, reload, details copy, and the data folder instead of a toast storm",
 } as const;
 
 export default changelog500;

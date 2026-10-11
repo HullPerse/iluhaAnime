@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{
     AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
@@ -7,7 +7,7 @@ use tauri::{
 use tauri_plugin_libmpv::{MpvConfig, VideoMarginRatio};
 
 use super::core::{LibmpvCore, PlayerCore};
-use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest};
+use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch};
 use super::watch::{self, WatchState};
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
 use crate::app_db;
@@ -176,6 +176,7 @@ pub async fn player_open(
     files: Vec<String>,
     resume: Option<f64>,
     start_index: Option<usize>,
+    watch: Option<PlaylistWatch>,
 ) -> Result<(), String> {
     drop_legacy_hover_cache(&app);
     if files.iter().any(|file| file.is_empty()) {
@@ -185,6 +186,7 @@ pub async fn player_open(
         files,
         resume,
         start_index,
+        watch,
     };
 
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
@@ -347,6 +349,41 @@ pub async fn player_append_files(
         if let Err(error) = backend.command("loadfile", &[json!(file), json!(mode)], &label) {
             return Err(error);
         }
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistInsert {
+    pub path: String,
+    pub index: usize,
+}
+
+#[tauri::command]
+pub async fn player_insert_files(
+    app: AppHandle,
+    window: WebviewWindow,
+    items: Vec<PlaylistInsert>,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    if label != PLAYER_WINDOW_LABEL {
+        return Err("playlist inserts only work in the player window".to_string());
+    }
+    let backend = core(&app);
+    for item in &items {
+        if item.path.is_empty() {
+            return Err("player_insert_files received an empty file path".to_string());
+        }
+        backend.command("loadfile", &[json!(item.path), json!("append")], &label)?;
+        // Move straight after appending: playlist-move keeps the entry count,
+        // so no intermediate playlist-count sample can expose the tail slot.
+        let count = scalar_int(&app, &label, "playlist-count").unwrap_or(0);
+        let from = count - 1;
+        if from < 0 {
+            return Err(format!("playlist is empty after appending {}", item.path));
+        }
+        backend.command("playlist-move", &[json!(from), json!(item.index)], &label)?;
     }
     Ok(())
 }
@@ -563,6 +600,7 @@ pub fn player_apply_file_state(
 #[cfg(test)]
 mod tests {
     use super::eof_properties;
+    use super::{PlayerOpenRequest, PlaylistWatch};
 
     #[test]
     fn eof_modes_map_to_mpv_keep_open_and_loop_properties() {
@@ -576,5 +614,36 @@ mod tests {
     fn unknown_eof_mode_maps_to_nothing() {
         assert_eq!(eof_properties("loop-everything"), None);
         assert_eq!(eof_properties(""), None);
+    }
+
+    #[test]
+    fn open_request_watch_roundtrips_as_camel_case() {
+        use super::super::state::TorrentWatch;
+        let request = PlayerOpenRequest {
+            files: vec!["C:/T/ep1.mkv".to_string()],
+            resume: None,
+            start_index: Some(0),
+            watch: Some(PlaylistWatch::Torrent(TorrentWatch {
+                torrent_id: 7,
+                save_dir: "C:/T".to_string(),
+                anchor: "C:/T/ep1.mkv".to_string(),
+            })),
+        };
+        let json = serde_json::to_value(&request).expect("request serializes");
+        assert_eq!(json["watch"]["kind"], "torrent");
+        assert_eq!(json["watch"]["torrentId"], 7);
+        assert_eq!(json["watch"]["saveDir"], "C:/T");
+        assert_eq!(json["watch"]["anchor"], "C:/T/ep1.mkv");
+        let back: PlayerOpenRequest = serde_json::from_value(json).expect("request deserializes");
+        assert!(matches!(back.watch, Some(PlaylistWatch::Torrent(_))));
+    }
+
+    #[test]
+    fn open_request_without_watch_deserializes() {
+        let back: PlayerOpenRequest =
+            serde_json::from_str(r#"{"files":["a.mkv"]}"#).expect("request deserializes");
+        assert!(back.watch.is_none());
+        assert!(back.resume.is_none());
+        assert!(back.start_index.is_none());
     }
 }

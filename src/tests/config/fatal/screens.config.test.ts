@@ -11,7 +11,7 @@ describe("fatal screens mapping", () => {
 
   it("falls back to the generic screen for other and custom themes", () => {
     expect(resolveFatalVariant("gruvbox-dark", false)).toBe("generic");
-    expect(resolveFatalVariant("terminal", false)).toBe("generic");
+    expect(resolveFatalVariant("anilist", false)).toBe("generic");
     expect(resolveFatalVariant("custom-123", false)).toBe("generic");
     expect(resolveFatalVariant("", false)).toBe("generic");
   });
@@ -35,5 +35,14 @@ describe("fatal screens mapping", () => {
     expect(resolveFatalVariant("yorha", false)).toBe("yorha");
     expect(resolveSplashVariant("yorha", true)).toBe("win95");
     expect(resolveFatalVariant("yorha", true)).toBe("win95");
+  });
+
+  it("maps terminal and retroism to their own screens", () => {
+    expect(resolveSplashVariant("terminal", false)).toBe("terminal");
+    expect(resolveFatalVariant("terminal", false)).toBe("terminal");
+    expect(resolveSplashVariant("retroism", false)).toBe("retroism");
+    expect(resolveFatalVariant("retroism", false)).toBe("retroism");
+    expect(resolveSplashVariant("terminal", true)).toBe("win95");
+    expect(resolveFatalVariant("retroism", true)).toBe("win95");
   });
 });

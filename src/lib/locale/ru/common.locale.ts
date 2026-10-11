@@ -24,6 +24,10 @@ const common = {
   "splash.fastLaunch": "Не показывать заставку",
   "splash.yorha.title": "ILUHAANIME",
   "splash.yorha.tagline": "You LOSE?! А, не...",
+  "splash.xp.brand": "Windows XP",
+  "splash.xp.copyright": "HullPerse Corporation",
+  "splash.win7.brand": "Starting Windows",
+  "splash.win7.copyright": "HullPerse Corporation",
   "db.title": "Ошибка базы данных",
   "db.hint":
     "База данных приложения не открывается. Медиафайлы целы, затронуты только данные библиотеки.",

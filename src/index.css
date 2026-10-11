@@ -758,3 +758,113 @@ html[data-theme="yorha"] .yorha-grid {
     repeating-linear-gradient(-90deg, #000000, #000000 1px, transparent 1px, transparent 3px);
   opacity: 0.25;
 }
+
+/* Boot clones: XP sliding blocks and Win7 orbs. Ambient looping runs only on
+   transient fullscreen boot screens; reduced motion falls back to static bars. */
+.xp-track {
+  position: relative;
+  width: 180px;
+  height: 15px;
+  overflow: hidden;
+  border: 1px solid #9db9d8;
+}
+
+.xp-block {
+  position: absolute;
+  top: 1px;
+  width: 11px;
+  height: 11px;
+  background-color: #3d8bef;
+  animation: xp-block-slide 1.2s linear infinite;
+}
+
+.xp-block:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.xp-block:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes xp-block-slide {
+  from {
+    left: -13px;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.xp-static {
+  display: none;
+  width: 180px;
+  height: 15px;
+  border: 1px solid #9db9d8;
+}
+
+.xp-static > div {
+  height: 100%;
+  background-color: #3d8bef;
+}
+
+.win7-orb {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  animation: win7-orb-pulse 2s ease-in-out infinite;
+}
+
+.win7-orb:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.win7-orb:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+.win7-orb:nth-child(4) {
+  animation-delay: 0.75s;
+}
+
+@keyframes win7-orb-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.win7-static {
+  display: none;
+  width: 16rem;
+  max-width: 100%;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.win7-static > div {
+  height: 100%;
+  background-color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-track {
+    display: none;
+  }
+  .xp-static {
+    display: block;
+  }
+  .win7-motion {
+    display: none;
+  }
+  .win7-static {
+    display: block;
+  }
+  .win7-orb {
+    animation: none;
+  }
+}

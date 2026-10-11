@@ -53,11 +53,9 @@ describe("SplashScreen", () => {
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("20");
   });
 
-  it("uses the xp screen for the xp theme", () => {
+  it("uses the xp boot screen for the xp theme", () => {
     render(<SplashScreen {...props({ themeName: "xp" })} />);
-    expect((screen.getByRole("status") as HTMLElement).style.backgroundColor).toBe(
-      "rgb(0, 51, 153)"
-    );
+    expect((screen.getByRole("status") as HTMLElement).style.backgroundColor).toBe("rgb(0, 0, 0)");
   });
 
   it("falls back to the themed generic screen", () => {
@@ -80,5 +78,28 @@ describe("SplashScreen", () => {
     expect(screen.getByText("ILUHAANIME")).toBeDefined();
     expect(screen.getByText(/BOOTING SYSTEM/)).toBeDefined();
     expect(screen.getByText((_content, el) => el?.textContent === "[ ] Cache_")).toBeDefined();
+  });
+
+  it("renders the terminal boot log for the terminal theme", () => {
+    render(<SplashScreen {...props({ themeName: "terminal" })} />);
+    expect(screen.getByText("iluhaAnime terminal boot")).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[  ..  ] Cache_")).toBeDefined();
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("33");
+  });
+
+  it("renders the dos boot for the retroism theme", () => {
+    render(<SplashScreen {...props({ themeName: "retroism" })} />);
+    expect(screen.getByText("Starting MS-DOS...")).toBeDefined();
+    expect(screen.getByText("C:\\> boot 33%")).toBeDefined();
+  });
+
+  it("renders the xp boot clone for the xp theme", () => {
+    const { unmount } = render(<SplashScreen {...props({ themeName: "xp" })} />);
+    expect(screen.getByText("Windows XP")).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Cache")).toBeDefined();
+    expect((screen.getByRole("status") as HTMLElement).style.backgroundColor).toBe("rgb(0, 0, 0)");
+    unmount();
+    render(<SplashScreen {...props({ themeName: "win7" })} />);
+    expect(screen.getByText("Starting Windows")).toBeDefined();
   });
 });

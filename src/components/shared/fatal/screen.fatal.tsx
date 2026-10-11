@@ -7,7 +7,9 @@ import { attempt } from "@/lib/utils/attempt.utils";
 import type { FatalInfo } from "@/types/fatal";
 
 import { GenericBsod } from "./generic.fatal";
+import { RetroismBsod } from "./retroism.fatal";
 import { formatFatalCopy } from "./shared.fatal";
+import { TerminalBsod } from "./terminal.fatal";
 import { Win7Bsod } from "./win7.fatal";
 import { Win95Bsod } from "./win95.fatal";
 import { XpBsod } from "./xp.fatal";
@@ -81,5 +83,7 @@ export function FatalScreen({
   if (variant === "xp") return <XpBsod {...shared} />;
   if (variant === "win7") return <Win7Bsod {...shared} />;
   if (variant === "yorha") return <YorhaBsod {...shared} />;
+  if (variant === "terminal") return <TerminalBsod {...shared} />;
+  if (variant === "retroism") return <RetroismBsod {...shared} />;
   return <GenericBsod {...shared} />;
 }

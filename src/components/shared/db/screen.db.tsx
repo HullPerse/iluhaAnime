@@ -29,6 +29,16 @@ const WRAP: Record<FatalVariant, { backgroundColor: string; color: string; fontF
     color: "#ffffff",
     fontFamily: '"Perfect DOS VGA 437", monospace',
   },
+  terminal: {
+    backgroundColor: "#0c0c0c",
+    color: "#00ff41",
+    fontFamily: '"Perfect DOS VGA 437", monospace',
+  },
+  retroism: {
+    backgroundColor: "#000000",
+    color: "#d8d8d8",
+    fontFamily: '"Perfect DOS VGA 437", monospace',
+  },
   generic: {
     backgroundColor: "var(--color-background, #222222)",
     color: "var(--color-text, #000000)",

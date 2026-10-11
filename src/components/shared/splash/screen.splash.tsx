@@ -6,7 +6,9 @@ import { resolveFatalLocale, resolveSplashTexts } from "@/lib/fatal/texts.utils"
 import type { FatalVariant } from "@/types/fatal";
 
 import { GenericSplash } from "./generic.splash";
+import { RetroismSplash } from "./retroism.splash";
 import type { SplashVariantProps } from "./shared.splash";
+import { TerminalSplash } from "./terminal.splash";
 import { Win7Splash } from "./win7.splash";
 import { Win95Splash } from "./win95.splash";
 import { XpSplash } from "./xp.splash";
@@ -26,6 +28,8 @@ const VARIANTS: Record<FatalVariant, ComponentType<SplashVariantProps>> = {
   win7: Win7Splash,
   generic: GenericSplash,
   yorha: YorhaSplash,
+  terminal: TerminalSplash,
+  retroism: RetroismSplash,
 };
 
 export function SplashScreen({

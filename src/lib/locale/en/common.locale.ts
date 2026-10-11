@@ -24,6 +24,10 @@ const common = {
   "splash.fastLaunch": "Skip splash on startup",
   "splash.yorha.title": "ILUHAANIME",
   "splash.yorha.tagline": "You LOSE?! А, не...",
+  "splash.xp.brand": "Windows XP",
+  "splash.xp.copyright": "HullPerse Corporation",
+  "splash.win7.brand": "Starting Windows",
+  "splash.win7.copyright": "HullPerse Corporation",
   "db.title": "Database error",
   "db.hint":
     "The app data database cannot be opened. Your media files are safe, only the library data is affected.",

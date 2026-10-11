@@ -25,7 +25,7 @@ export function TerminalSplash({
       style={{ backgroundColor: "#0c0c0c", color: "#00ff41", fontFamily: FONT }}
     >
       <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-8 py-14">
-        <p className="text-2xl font-bold tracking-[0.2em]">iluhaAnime terminal boot</p>
+        <p className="text-xl font-bold tracking-[0.2em]">iluhaAnime terminal boot</p>
         <ul className="mt-8 space-y-1 text-xl leading-relaxed">
           {stages.map((stage) => (
             <li key={stage.id} className={stage.status === "pending" ? "opacity-50" : undefined}>
@@ -42,7 +42,10 @@ export function TerminalSplash({
           aria-valuemin={0}
           aria-valuemax={100}
         >
-          <div className="h-full" style={{ width: `${Math.round(progress * 100)}%`, backgroundColor: "#00ff41" }} />
+          <div
+            className="h-full"
+            style={{ width: `${Math.round(progress * 100)}%`, backgroundColor: "#00ff41" }}
+          />
         </div>
         <label className="mt-8 flex cursor-pointer items-center gap-2 text-xl">
           <input

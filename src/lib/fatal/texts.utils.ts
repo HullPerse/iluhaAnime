@@ -15,6 +15,10 @@ export interface SplashTexts {
   fastLaunch: string;
   yorhaTitle: string;
   yorhaTagline: string;
+  xpBrand: string;
+  xpCopyright: string;
+  win7Brand: string;
+  win7Copyright: string;
 }
 
 export interface DbTexts {
@@ -72,6 +76,10 @@ export function resolveSplashTexts(locale: Locale): SplashTexts {
     fastLaunch: pick("splash.fastLaunch"),
     yorhaTitle: pick("splash.yorha.title"),
     yorhaTagline: pick("splash.yorha.tagline"),
+    xpBrand: pick("splash.xp.brand"),
+    xpCopyright: pick("splash.xp.copyright"),
+    win7Brand: pick("splash.win7.brand"),
+    win7Copyright: pick("splash.win7.copyright"),
   };
 }
 

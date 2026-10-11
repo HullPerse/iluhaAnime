@@ -251,6 +251,8 @@ const changelog500 = {
     "Database health check at startup: a corrupt or locked database now shows a recovery screen with retry, reload, details copy, and the data folder instead of a toast storm",
   "changelog.5_0_0.added.app.yorha_splash":
     "YoRHa terminal boot screen for the YoRHa theme: glitch loading header, live boot stages, and a branded ILUHAANIME watermark",
+  "changelog.5_0_0.added.settings.theme_boots":
+    "Unique startup and error screens per theme: terminal boots a kernel log with a matching panic screen, retroism boots MS-DOS style, and XP and 7 show their classic black boot screens",
   "changelog.5_0_0.changed.settings.yorha_canon":
     "YoRHa theme matches the game interface: dark menu-bar selection, dark-brown text, and a black pod-style error screen instead of the generic one",
 } as const;

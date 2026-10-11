@@ -125,4 +125,15 @@ describe("FatalScreen", () => {
       "rgb(31, 27, 24)"
     );
   });
+
+  it("uses the terminal and retroism screens for their themes", () => {
+    localStorage.clear();
+    const { unmount } = render(
+      <FatalScreen info={baseInfo({ themeName: "terminal" })} {...handlers()} />
+    );
+    expect(screen.getByText("Kernel panic - not syncing")).toBeDefined();
+    unmount();
+    render(<FatalScreen info={baseInfo({ themeName: "retroism" })} {...handlers()} />);
+    expect(screen.getByText("Abort, Retry, Fail? _")).toBeDefined();
+  });
 });

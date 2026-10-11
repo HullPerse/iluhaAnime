@@ -4,6 +4,8 @@ const HISTORICAL_VARIANTS: Record<string, FatalVariant> = {
   win7: "win7",
   win95: "win95",
   xp: "xp",
+  terminal: "terminal",
+  retroism: "retroism",
 };
 
 export function resolveFatalVariant(themeName: string, safe: boolean): FatalVariant {

@@ -44,6 +44,14 @@ describe("DbScreen", () => {
     );
   });
 
+  it("uses the matching backdrops for terminal and retroism themes", () => {
+    const { unmount } = render(<DbScreen {...props({ themeName: "terminal" })} />);
+    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe("rgb(12, 12, 12)");
+    unmount();
+    render(<DbScreen {...props({ themeName: "retroism" })} />);
+    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe("rgb(0, 0, 0)");
+  });
+
   it("hides the folder button without a data dir", () => {
     render(<DbScreen {...props({ dataDir: "" })} />);
     expect(screen.queryByRole("button", { name: "Open data folder" })).toBeNull();

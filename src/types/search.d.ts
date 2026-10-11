@@ -37,6 +37,7 @@ export interface SearchQueryStat {
   selectedCount: number;
   ignoredCount?: number;
   lastIgnoredAt?: number;
+  lastReason?: CorrectionReason;
 }
 
 export type SearchSuggestionScope = "anilist" | "torrent" | "player" | "filter";
@@ -94,11 +95,28 @@ export interface SearchAnimeSuggestion {
   id: number;
   title: string;
   aliases: string[];
+  typedTitles?: AnimeTitle[];
   status: string;
   score: number | null;
   favourite: boolean;
   season?: string | null;
   seasonYear?: number | null;
+}
+
+export type AnimeTitleKind =
+  | "official"
+  | "romaji"
+  | "native"
+  | "abbreviation"
+  | "alias"
+  | "obsolete";
+
+export interface AnimeTitle {
+  animeId: number;
+  title: string;
+  language: string | null;
+  kind: AnimeTitleKind;
+  source: string | null;
 }
 
 export interface SearchLearningSnapshot {
@@ -217,6 +235,23 @@ export interface HighlightRange {
 
 export type SpellSeverity = "warn" | "error";
 
+export type CorrectionReason =
+  | "typo"
+  | "transliteration"
+  | "alias"
+  | "wrong_season"
+  | "wrong_format"
+  | "partial"
+  | "unknown";
+
+export interface CorrectionEvidence {
+  season?: number;
+  episode?: number;
+  tag?: string;
+  prefix?: boolean;
+  layout?: boolean;
+}
+
 export interface SpellWordSpan {
   start: number;
   end: number;
@@ -227,6 +262,7 @@ export interface SpellWordSpan {
 
 export interface SpellCheck {
   correction: string;
+  reason?: CorrectionReason;
   start: number;
   end: number;
   severity: SpellSeverity;

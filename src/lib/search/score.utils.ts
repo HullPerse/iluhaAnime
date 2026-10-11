@@ -50,8 +50,11 @@ function wordMatchScore(queryWord: string, targetWord: string): number | null {
   return null;
 }
 
-function multiWordScore(queryWords: string[], target: string): number | null {
-  const targetWords = target.split(" ");
+function multiWordScore(
+  queryWords: string[],
+  target: string,
+  targetWords: string[] = target.split(" ")
+): number | null {
   const used = new Set<number>();
   let total = 0;
   let previousIndex = -1;
@@ -86,9 +89,13 @@ function scorePrefix(q: string, target: string): number | null {
   return target.startsWith(q) ? 900 - Math.min(120, target.length - q.length) : null;
 }
 
-function scoreMultiWord(queryWords: string[], target: string): number | null {
+function scoreMultiWord(
+  queryWords: string[],
+  target: string,
+  targetWords: string[] = target.split(" ")
+): number | null {
   if (queryWords.length <= 1) return null;
-  return multiWordScore(queryWords, target);
+  return multiWordScore(queryWords, target, targetWords);
 }
 
 function scoreIncludes(q: string, target: string): number | null {
@@ -96,6 +103,7 @@ function scoreIncludes(q: string, target: string): number | null {
 }
 
 function scoreGapped(q: string, target: string): number | null {
+  if (target.length < q.length) return null;
   let queryIndex = 0;
   let gaps = 0;
   let firstMatchAtBoundary = false;
@@ -120,11 +128,16 @@ function scoreLevenshtein(q: string, target: string): number | null {
   return 300 - distance * 35;
 }
 
-function normalizedMatchScore(q: string, target: string, queryWords: string[]): number | null {
+function normalizedMatchScore(
+  q: string,
+  target: string,
+  queryWords: string[],
+  targetWords?: string[]
+): number | null {
   return (
     scoreExact(q, target) ??
     scorePrefix(q, target) ??
-    scoreMultiWord(queryWords, target) ??
+    scoreMultiWord(queryWords, target, targetWords ?? target.split(" ")) ??
     scoreIncludes(q, target) ??
     (q.length < 3 ? null : (scoreGapped(q, target) ?? scoreLevenshtein(q, target)))
   );
@@ -236,8 +249,10 @@ export function operatorTextLength(query: string): number {
 export function fuzzyMatchScorePreNormalized(
   normalizedQuery: string,
   normalizedCandidate: string,
-  queryWords: string[] = normalizedQuery.split(" ")
+  queryWords: string[] = normalizedQuery.split(" "),
+  // Hot paths must pass pre-split title words: the default allocates per call.
+  targetWords?: string[]
 ): number | null {
   if (!normalizedQuery || !normalizedCandidate) return null;
-  return normalizedMatchScore(normalizedQuery, normalizedCandidate, queryWords);
+  return normalizedMatchScore(normalizedQuery, normalizedCandidate, queryWords, targetWords);
 }

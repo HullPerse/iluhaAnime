@@ -1,7 +1,130 @@
+import { keyboardWordDistance } from "./keyboard.utils";
 import { normalizeSearchText } from "./normalize.utils";
 import { isRomanNumeral } from "./roman.utils";
 
 const MAX_EDIT_DISTANCE = 2;
+
+/**
+ * Lookup budget by token length, mirroring the Meilisearch rule: tiny tokens
+ * are exact-only (a 1-char edit on "no" or "s5" matches almost anything),
+ * mid tokens allow one edit, long tokens two. The index itself is always
+ * built with MAX_EDIT_DISTANCE; this only caps the lookup walk.
+ */
+export function maxEditDistanceFor(word: string): number {
+  if (word.length < 3) return 0;
+  if (word.length <= 4) return 1;
+  return MAX_EDIT_DISTANCE;
+}
+
+/**
+ * True Damerau-Levenshtein distance: adjacent transposition counts as one
+ * edit (teh -> the), unlike plain Levenshtein which charges two.
+ */
+export function damerauLevenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  const alphabet = new Map<string, number>();
+  const sizeA = a.length;
+  const sizeB = b.length;
+  const dist: number[][] = Array.from({ length: sizeA + 2 }, (_, i) =>
+    Array.from({ length: sizeB + 2 }, (_, j) => (i === 0 ? j - 1 : j === 0 ? i - 1 : 0))
+  );
+  let maxDist = sizeA + sizeB;
+  for (let i = 1; i <= sizeA; i++) {
+    let db = 0;
+    for (let j = 1; j <= sizeB; j++) {
+      const i1 = alphabet.get(b[j - 1] ?? "") ?? 0;
+      const j1 = db;
+      let cost = 1;
+      if (a[i - 1] === b[j - 1]) {
+        cost = 0;
+        db = j;
+      }
+      const substitution = (dist[i][j] ?? 0) + cost;
+      const insertion = (dist[i + 1][j] ?? 0) + 1;
+      const deletion = (dist[i][j + 1] ?? 0) + 1;
+      const transposition = (dist[i1][j1] ?? maxDist) + (i - i1 - 1) + 1 + (j - j1 - 1);
+      dist[i + 1][j + 1] = Math.min(substitution, insertion, deletion, transposition);
+    }
+    alphabet.set(a[i - 1] ?? "", i);
+    maxDist = dist[sizeA + 1][sizeB + 1] ?? maxDist;
+  }
+  return dist[sizeA + 1][sizeB + 1] ?? Math.max(sizeA, sizeB);
+}
+
+// Pure digit runs never join with a neighbor ("3" + "gatsu" is two title
+// words, not a split word); the full-string scorer still resolves them.
+const NUMERIC_RE = /^\d+$/;
+
+// Short glue words that never enter the dictionary (length < 3) but are valid
+// title pieces: romaji particles plus English stopwords from real titles.
+const STOPWORDS = new Set([
+  "no",
+  "wa",
+  "ga",
+  "ni",
+  "to",
+  "de",
+  "e",
+  "o",
+  "na",
+  "ha",
+  "wo",
+  "mo",
+  "ka",
+  "ya",
+  "ne",
+  "yo",
+  "x",
+  "the",
+  "of",
+  "on",
+  "and",
+  "or",
+  "a",
+  "an",
+  "vs",
+]);
+
+function isKnownPiece(piece: string, words: Set<string>): boolean {
+  return words.has(piece) || STOPWORDS.has(piece);
+}
+
+/** Glue words (romaji particles, title stopwords) that never need correction. */
+export function isKnownGlueWord(word: string): boolean {
+  return STOPWORDS.has(word);
+}
+
+/** True for tokens worth a lookup walk: long enough and not a numeral. */
+function isCorrectableToken(word: string, words: Set<string>): boolean {
+  return word.length >= 3 && !words.has(word) && !isRomanNumeral(word);
+}
+
+/**
+ * Segments a glued token (sousounofrieren) into dictionary words and glue
+ * pieces. Returns null when the token is already known or cannot be fully
+ * covered. Fewer pieces win.
+ */
+export function segmentToken(token: string, words: Set<string>): string[] | null {
+  const word = normalizeSearchText(token).split(" ")[0] ?? "";
+  if (!word || words.has(word) || word.length < 6) return null;
+  const maxPiece = Math.min(15, word.length);
+  const best: Array<string[] | null> = Array.from({ length: word.length + 1 }, () => null);
+  best[0] = [];
+  for (let end = 1; end <= word.length; end++) {
+    for (let start = Math.max(0, end - maxPiece); start < end; start++) {
+      const prefix = best[start];
+      if (!prefix) continue;
+      const piece = word.slice(start, end);
+      if (piece.length < 2 && !STOPWORDS.has(piece)) continue;
+      if (!isKnownPiece(piece, words)) continue;
+      const candidate = [...prefix, piece];
+      if (!best[end] || candidate.length < (best[end]?.length ?? 0)) best[end] = candidate;
+    }
+  }
+  const full = best[word.length];
+  if (!full || full.length < 2) return null;
+  return full;
+}
 
 function generateDeletes(word: string, maxDistance: number, deletes: Set<string>): void {
   if (maxDistance === 0) return;
@@ -54,14 +177,15 @@ export class SymSpell {
   private collectCandidates(
     word: string,
     candidates: Map<string, number>,
-    visited: Set<string>
+    visited: Set<string>,
+    budget: number
   ): void {
     const queue: Array<{ text: string; dist: number }> = [{ text: word, dist: 0 }];
     visited.add(word);
     while (queue.length > 0) {
       const cur = queue.shift()!;
       this.collectForCur(cur, candidates);
-      if (cur.dist >= MAX_EDIT_DISTANCE) continue;
+      if (cur.dist >= budget) continue;
       this.expandDeletes(cur, queue, visited);
     }
   }
@@ -90,33 +214,41 @@ export class SymSpell {
     }
   }
 
-  private pickBest(candidates: Map<string, number>): string | null {
-    return this.rankCandidates(candidates)[0] ?? null;
+  private pickBest(query: string, candidates: Map<string, number>): string | null {
+    return this.rankCandidates(query, candidates)[0] ?? null;
   }
 
-  private rankCandidates(candidates: Map<string, number>): string[] {
+  private rankCandidates(query: string, candidates: Map<string, number>): string[] {
     return [...candidates.entries()]
-      .sort((left, right) => left[1] - right[1] || left[0].localeCompare(right[0]))
+      .sort(
+        (left, right) =>
+          left[1] - right[1] ||
+          damerauLevenshtein(query, left[0]) - damerauLevenshtein(query, right[0]) ||
+          keyboardWordDistance(query, left[0]) - keyboardWordDistance(query, right[0]) ||
+          left[0].localeCompare(right[0])
+      )
       .map(([word]) => word);
   }
 
   correctMany(input: string, limit = 3): string[] {
     const word = normalizeSearchText(input).split(" ")[0] ?? "";
     if (!word || this.words.has(word) || isRomanNumeral(word)) return [];
+    if (maxEditDistanceFor(word) === 0) return [];
     const candidates = new Map<string, number>();
     const visited = new Set<string>();
-    this.collectCandidates(word, candidates, visited);
-    return this.rankCandidates(candidates).slice(0, Math.max(1, limit));
+    this.collectCandidates(word, candidates, visited, maxEditDistanceFor(word));
+    return this.rankCandidates(word, candidates).slice(0, Math.max(1, limit));
   }
 
   correct(input: string): string | null {
     const word = normalizeSearchText(input).split(" ")[0] ?? "";
     if (!word || this.words.has(word) || isRomanNumeral(word)) return null;
+    if (maxEditDistanceFor(word) === 0) return null;
     const candidates = new Map<string, number>();
     const visited = new Set<string>();
-    this.collectCandidates(word, candidates, visited);
+    this.collectCandidates(word, candidates, visited, maxEditDistanceFor(word));
     if (candidates.size === 0) return null;
-    const best = this.pickBest(candidates);
+    const best = this.pickBest(word, candidates);
     if (best === word) return null;
     return best;
   }
@@ -125,22 +257,75 @@ export class SymSpell {
     return this.suggestMany(query, 1)[0] ?? null;
   }
 
+  private correctedToken(part: string): string {
+    return this.correctMany(part, 1)[0] ?? part;
+  }
+
+  private joinShapes(parts: string[]): string[][] {
+    const shapes: string[][] = [];
+    for (let index = 0; index < parts.length - 1; index++) {
+      const left = parts[index] ?? "";
+      const right = parts[index + 1] ?? "";
+      if (NUMERIC_RE.test(left) || NUMERIC_RE.test(right)) continue;
+      const leftKnown = !isCorrectableToken(left, this.words);
+      const rightKnown = !isCorrectableToken(right, this.words);
+      if (leftKnown && rightKnown) continue;
+      const joined = `${left}${right}`;
+      // A join must lead somewhere: an unknown, uncorrectable glue token
+      // ("aono") is worse than the two mistyped words it came from.
+      if (!this.words.has(joined) && this.correctMany(joined, 1).length === 0) continue;
+      shapes.push([...parts.slice(0, index), joined, ...parts.slice(index + 2)]);
+    }
+    return shapes;
+  }
+
+  private splitShapes(parts: string[]): string[][] {
+    const shapes: string[][] = [];
+    for (let index = 0; index < parts.length; index++) {
+      const pieces = segmentToken(parts[index] ?? "", this.words);
+      if (!pieces) continue;
+      shapes.push([...parts.slice(0, index), ...pieces, ...parts.slice(index + 1)]);
+    }
+    return shapes;
+  }
+
   suggestMany(query: string, limit = 3): string[] {
     const cap = Math.max(1, limit);
-    const parts = query.trim().split(/\s+/);
-    const alternates = parts.map((part) => this.correctMany(part, cap));
-    if (alternates.every((list) => list.length === 0)) return [];
-    const normalizedQuery = normalizeSearchText(query);
-    const best = parts.map((part, index) => alternates[index]?.[0] ?? part);
-    const variants: string[][] = [best];
-    for (let word = 0; word < parts.length && variants.length < cap; word++) {
-      for (let rank = 1; rank < (alternates[word]?.length ?? 0); rank++) {
-        if (variants.length >= cap) break;
-        const next = [...best];
-        next[word] = alternates[word]?.[rank] ?? next[word];
-        variants.push(next);
+    // Work with normalized single words throughout: raw parts may carry
+    // hyphens or dots ("3-gtsu" normalizes to two words, and correcting only
+    // its head would silently keep the typo).
+    const parts = query
+      .trim()
+      .split(/\s+/)
+      .flatMap((part) => normalizeSearchText(part).split(" "))
+      .filter((word) => word.length > 0);
+    const shapes = [parts, ...this.joinShapes(parts), ...this.splitShapes(parts)];
+    const variants: string[][] = [];
+    for (const shape of shapes) {
+      variants.push(shape.map((part) => this.correctedToken(part)));
+    }
+    // Rank swaps only widen the first (raw) shape, so structural fixes from
+    // joins and splits are never cut off by the limit.
+    if (variants.length > 0) {
+      const first = shapes[0] ?? [];
+      const corrected = variants[0] ?? [];
+      const alternates = first.map((part) => this.correctMany(part, cap));
+      for (let word = 0; word < first.length && variants.length < cap + 4; word++) {
+        for (let rank = 1; rank < (alternates[word]?.length ?? 0); rank++) {
+          const next = [...corrected];
+          next[word] = alternates[word]?.[rank] ?? next[word];
+          variants.push(next);
+        }
       }
     }
+    if (
+      variants.every(
+        (words) =>
+          words.length === parts.length && words.every((word, index) => word === parts[index])
+      )
+    )
+      return [];
+    const normalizedQuery = normalizeSearchText(query);
     const seen = new Set<string>();
     return variants
       .map((words) => words.join(" "))

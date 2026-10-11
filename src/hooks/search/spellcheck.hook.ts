@@ -3,7 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SPELL_CORRECTION_LIMIT } from "@/config/search/autocomplete.config";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { normalizeSearchText } from "@/lib/search/normalize.utils";
-import { suggestSpelling, suggestSpellings } from "@/lib/search/suggestions.utils";
+import { suggestSpellingWithReason } from "@/lib/search/resolve.utils";
+import { suggestSpellings } from "@/lib/search/suggestions.utils";
+import { damerauLevenshtein } from "@/lib/search/symspell.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { searchAtoms } from "@/store/search.store";
 import type { SearchAnimeSuggestion, SpellCheck, SpellWordSpan } from "@/types/search";
@@ -16,18 +18,10 @@ interface SpellCheckOptions {
   debounceMs?: number;
 }
 
-function editDistance(a: string, b: string): number {
-  if (a === b) return 0;
-  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i++) {
-    const curr = [i];
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min((curr[j - 1] ?? 0) + 1, (prev[j] ?? 0) + 1, (prev[j - 1] ?? 0) + cost);
-    }
-    prev = curr;
-  }
-  return prev[b.length] ?? 0;
+function spellSeverity(word: string, corrected: string): SpellCheck["severity"] {
+  return damerauLevenshtein(normalizeSearchText(word), normalizeSearchText(corrected)) <= 1
+    ? "warn"
+    : "error";
 }
 
 interface SpellCacheDeps {
@@ -119,12 +113,6 @@ function diffWordSpan(
   return diffWordSpans(query, correction)[0] ?? null;
 }
 
-function spellSeverity(word: string, corrected: string): SpellCheck["severity"] {
-  return editDistance(normalizeSearchText(word), normalizeSearchText(corrected)) <= 1
-    ? "warn"
-    : "error";
-}
-
 export function spellSpansOf(check: SpellCheck | null): SpellWordSpan[] {
   if (!check) return [];
   if (check.spans && check.spans.length > 0) return check.spans;
@@ -144,6 +132,7 @@ function sameSpellCheck(left: SpellCheck | null, right: SpellCheck | null): bool
   if (!left || !right) return false;
   if (
     left.correction !== right.correction ||
+    left.reason !== right.reason ||
     left.start !== right.start ||
     left.end !== right.end ||
     left.severity !== right.severity ||
@@ -250,29 +239,46 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
     const deps: SpellCacheDeps = { history, animeIndex, extraValues, symSpell, dictionary };
     const cached = readQueryCache(trimmed, deps);
     if (cached !== undefined) return cached;
-    const correction = suggestSpelling(trimmed, { history, animeIndex, extraValues, symSpell });
+    const withReason = suggestSpellingWithReason(trimmed, {
+      animeIndex,
+      extraValues,
+      history,
+      symSpell,
+    });
+    // Only word-level fixes highlight inline. Alias and partial inputs are
+    // valid or incomplete, while wrong_season and wrong_format are query-level
+    // issues surfaced through did-you-mean instead of a word span.
+    if (!withReason || (withReason.reason !== "typo" && withReason.reason !== "transliteration")) {
+      writeQueryCache(trimmed, deps, null);
+      return null;
+    }
+    const correction = withReason.correction;
     let result: SpellCheck | null = null;
     if (correction) {
       const dict = dictionarySetOf(dictionary);
       const leading = query.length - query.trimStart().length;
-      const spans = diffWordSpans(trimmed, correction)
-        .map((span) => ({
+      // Phrase-aware spans arrive in absolute query coordinates from the
+      // resolver; the positional diff is the fallback for legacy reasons.
+      const spans = (
+        withReason.spans ??
+        diffWordSpans(trimmed, correction).map((span) => ({
           start: span.start + leading,
           end: span.end + leading,
           severity: spellSeverity(span.word, span.corrected),
           word: span.word,
           corrected: span.corrected,
         }))
-        .filter((span) => !dict.has(normalizeSearchText(span.word)));
+      ).filter((span) => !dict.has(normalizeSearchText(span.word)));
       const first = spans[0];
       if (first) {
         result = {
           correction,
-          start: first.start,
           end: first.end,
+          reason: withReason.reason,
           severity: first.severity,
-          word: first.word,
           spans,
+          start: first.start,
+          word: first.word,
         };
       }
     }

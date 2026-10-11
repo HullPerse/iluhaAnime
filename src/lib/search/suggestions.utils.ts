@@ -23,6 +23,7 @@ import {
 import type { OperatorTerm } from "./score.utils";
 import { readCachedSpellWords, writeCachedSpellWords } from "./spellIndexCache.utils";
 import { normalizedSpellWords } from "./symspell.utils";
+import { titleKindBonus, typedTitlesOf } from "./title.utils";
 
 export { fuzzyMatchScore };
 
@@ -90,15 +91,30 @@ function animeBoost(anime: SearchAnimeSuggestion, boost: AnilistSuggestionBoost)
 }
 
 const animeNormalizedTitlesCache = new WeakMap<SearchAnimeSuggestion[], string[][]>();
+const animeTitleBonusCache = new WeakMap<SearchAnimeSuggestion[], number[][]>();
 
 function getNormalizedAnimeTitles(animeIndex: SearchAnimeSuggestion[]): string[][] {
   const cached = animeNormalizedTitlesCache.get(animeIndex);
   if (cached) return cached;
   const titles = animeIndex.map((anime) =>
-    [anime.title, ...anime.aliases].map(normalizeSearchText)
+    anime.typedTitles && anime.typedTitles.length > 0
+      ? anime.typedTitles.map((entry) => normalizeSearchText(entry.title))
+      : [anime.title, ...anime.aliases].map(normalizeSearchText)
   );
   animeNormalizedTitlesCache.set(animeIndex, titles);
   return titles;
+}
+
+function getAnimeTitleBonuses(animeIndex: SearchAnimeSuggestion[]): number[][] {
+  const cached = animeTitleBonusCache.get(animeIndex);
+  if (cached) return cached;
+  const bonuses = animeIndex.map((anime) =>
+    anime.typedTitles && anime.typedTitles.length > 0
+      ? anime.typedTitles.map((entry) => titleKindBonus(entry.kind))
+      : [anime.title, ...anime.aliases].map(() => 0)
+  );
+  animeTitleBonusCache.set(animeIndex, bonuses);
+  return bonuses;
 }
 const symSpellCache = new WeakMap<object, { fingerprint: string; sym: LazySpellIndex }>();
 const SYM_SPELL_LRU_MAX = 3;
@@ -116,18 +132,20 @@ export function resetSymSpellCache(): void {
   symSpellByFingerprint.clear();
 }
 
-// Hashes only the titles the dictionary is actually built from, so the
-// fingerprint cannot invalidate on alias edits that never reach the index.
+// Hashes every typed variant the dictionary is built from, so alias edits
+// invalidate the shared index instead of serving stale corrections.
 function animeTitlesFingerprint(animeIndex: SearchAnimeSuggestion[] | undefined): string {
   if (!animeIndex) return "";
   const cached = animeFingerprintCache.get(animeIndex);
   if (cached !== undefined) return cached;
   let hash = 0;
   for (const anime of animeIndex) {
-    for (const char of anime.title) {
-      hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
+    for (const entry of typedTitlesOf(anime)) {
+      for (const char of entry.title) {
+        hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
+      }
+      hash = Math.trunc(Math.imul(hash, 31) + 1);
     }
-    hash = Math.trunc(Math.imul(hash, 31) + 1);
   }
   const fingerprint = `${animeIndex.length}:${hash}`;
   animeFingerprintCache.set(animeIndex, fingerprint);
@@ -187,11 +205,13 @@ export function matchNormalizedTitle(
   normalizedQuery: string,
   title: string,
   // Hot paths must pass pre-split words: the default allocates per call.
-  queryWords: string[] = normalizedQuery.split(" ")
+  queryWords: string[] = normalizedQuery.split(" "),
+  // Same for pre-split title words; defaults to a fresh split.
+  targetWords?: string[]
 ): number | null {
   return terms
     ? matchOperatorTerms(terms, title)
-    : fuzzyMatchScorePreNormalized(normalizedQuery, title, queryWords);
+    : fuzzyMatchScorePreNormalized(normalizedQuery, title, queryWords, targetWords);
 }
 
 function addAnimeSuggestions(
@@ -203,13 +223,19 @@ function addAnimeSuggestions(
 ): void {
   if (options.scope === "player" || options.scope === "filter") return;
   const normalizedTitles = getNormalizedAnimeTitles(options.animeIndex ?? []);
+  const titleBonuses = getAnimeTitleBonuses(options.animeIndex ?? []);
   for (let index = 0; index < normalizedTitles.length; index++) {
     const anime = options.animeIndex?.[index];
     if (!anime) continue;
+    const bonuses = titleBonuses[index] ?? [];
     let best = -Infinity;
-    for (const title of normalizedTitles[index] ?? []) {
+    for (let titleIndex = 0; titleIndex < (normalizedTitles[index] ?? []).length; titleIndex++) {
+      const title = (normalizedTitles[index] ?? [])[titleIndex] ?? "";
       const match = matchNormalizedTitle(terms, normalizedQuery, title, queryWords);
-      if (match != null && match > best) best = match;
+      if (match != null) {
+        const scored = match + (bonuses[titleIndex] ?? 0);
+        if (scored > best) best = scored;
+      }
     }
     if (!Number.isFinite(best)) continue;
     put({
@@ -351,7 +377,7 @@ function applySymSpellFallback(
     put({ ...c, score: c.score - 50, subtitle: `${c.subtitle ?? c.kind} (did you mean)` });
   }
 }
-function spellTitles(
+export function spellTitles(
   options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues">
 ): {
   titles: string[];
@@ -360,10 +386,30 @@ function spellTitles(
 } {
   const history = options.history ?? [];
   const extra = options.extraValues?.map((entry) => entry.value) ?? [];
-  const titles = [...history, ...(options.animeIndex?.map((entry) => entry.title) ?? []), ...extra];
+  // The spell dictionary covers every typed variant (romaji, aliases), not
+  // just the main title: romaji-only words like "sousou" must be correctable.
+  const animeTitles = (options.animeIndex ?? []).flatMap((entry) =>
+    entry.typedTitles && entry.typedTitles.length > 0
+      ? entry.typedTitles.map((typed) => typed.title)
+      : [entry.title, ...entry.aliases]
+  );
+  const titles = [...history, ...animeTitles, ...extra];
   const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
   const fingerprint = `${animeTitlesFingerprint(options.animeIndex)}|h${history.map(normalizeSearchText).join("\n")}|e${extra.map(normalizeSearchText).join("\n")}`;
   return { titles, basis, fingerprint };
+}
+
+export function spellKnownWords(
+  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues">
+): Set<string> {
+  const { titles } = spellTitles(options);
+  const words = new Set<string>();
+  for (const title of titles) {
+    for (const word of normalizeSearchText(title).split(" ")) {
+      if (word) words.add(word);
+    }
+  }
+  return words;
 }
 
 export function suggestSpellings(

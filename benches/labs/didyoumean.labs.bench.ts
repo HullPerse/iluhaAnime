@@ -2,6 +2,7 @@ import { bench, group } from "@pmndrs/labs";
 
 import { LazySpellIndex } from "../../src/lib/search/lazySpellIndex.utils";
 import { normalizeSearchText } from "../../src/lib/search/normalize.utils";
+import { suggestSpellingWithReason } from "../../src/lib/search/resolve.utils";
 import { suggestSpelling } from "../../src/lib/search/suggestions.utils";
 import { buildSymSpellFromTitles, normalizedSpellWords } from "../../src/lib/search/symspell.utils";
 import type { SearchAnimeSuggestion } from "../../src/types/search";
@@ -204,5 +205,23 @@ group("did-you-mean @didyoumean @slow", () => {
     const index = new LazySpellIndex(WORDS_32K);
     index.pump(Number.MAX_SAFE_INTEGER);
     return yield () => index.suggestMany(QUERY, 1).length;
+  });
+
+  bench("after: phrase rerank N=8k over a typo set", function* phraseRerank8k() {
+    const index = INDEX_8K;
+    const queries = [
+      "firen",
+      "sousou no frriren",
+      "shingeki no kyoujin",
+      "attackontitan",
+      "friren s5",
+    ];
+    return yield () => {
+      let hits = 0;
+      for (const query of queries) {
+        if (suggestSpellingWithReason(query, { history: HISTORY, animeIndex: index })) hits++;
+      }
+      return hits;
+    };
   });
 });

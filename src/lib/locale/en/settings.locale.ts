@@ -404,6 +404,10 @@ const settings = {
   "settings.startup": "Startup",
   "settings.startup.fastLaunch": "Fast launch",
   "settings.startup.fastLaunch.hint": "Skip the splash screen, load everything in the background.",
+  "settings.find.placeholder": "Find a setting...",
+  "settings.find.footer.hint": "Enter jump - Up/Down choose - Esc clear",
+  "settings.find.results": "{{count}} matches",
+  "settings.find.results.one": "{{count}} match",
 } as const;
 
 export default settings;

@@ -33,7 +33,7 @@ export default function SettingsMedia() {
   };
 
   return (
-    <section className="ui-panel">
+    <section className="ui-panel" data-find-section="general.media">
       <div className="ui-titlebar">
         <span className="text-title-text font-bold">{t("settings.media.title")}</span>
       </div>

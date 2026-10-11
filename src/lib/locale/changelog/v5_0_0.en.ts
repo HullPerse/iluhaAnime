@@ -257,6 +257,8 @@ const changelog500 = {
     "Unique startup and error screens per theme: terminal boots a kernel log with a matching panic screen, retroism boots MS-DOS style, and XP and 7 show their classic black boot screens",
   "changelog.5_0_0.changed.settings.yorha_canon":
     "YoRHa theme matches the game interface: dark menu-bar selection, dark-brown text, and a black pod-style error screen instead of the generic one",
+  "changelog.5_0_0.added.settings.find":
+    "Global settings search: find any parameter across all settings tabs in Russian or English, with highlighted matches, per-tab result counts, jump to the section, and Ctrl+K to focus the field",
 } as const;
 
 export default changelog500;

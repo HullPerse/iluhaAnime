@@ -98,7 +98,7 @@ export default function SettingsSearch() {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="search.sources">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.search.sources")}</span>
         </div>
@@ -261,7 +261,7 @@ export default function SettingsSearch() {
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="search.results">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.search.results")}</span>
         </div>

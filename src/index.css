@@ -431,6 +431,30 @@
   font-weight: 700;
 }
 
+[data-find-section] {
+  scroll-margin-top: 2.75rem;
+}
+
+[data-find-section][data-find-match="true"] {
+  outline: 1px dotted var(--color-text);
+  outline-offset: -3px;
+}
+
+.settings-find-flash[data-find-section] {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: -3px;
+  animation: settings-find-flash 1.2s ease-out 1;
+}
+
+@keyframes settings-find-flash {
+  from {
+    outline-color: var(--color-highlight);
+  }
+  to {
+    outline-color: transparent;
+  }
+}
+
 [data-ui-density="compact"] {
   --ui-control-height: 20px;
   --ui-panel-gap: 0.125rem;
@@ -848,6 +872,9 @@ html[data-theme="yorha"] .yorha-grid {
 
 @media (prefers-reduced-motion: reduce) {
   .xp-block {
+    animation: none;
+  }
+  .settings-find-flash[data-find-section] {
     animation: none;
   }
   .win7-motion {

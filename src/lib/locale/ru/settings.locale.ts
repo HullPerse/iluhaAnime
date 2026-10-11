@@ -405,6 +405,12 @@ const settings = {
   "settings.startup": "Запуск",
   "settings.startup.fastLaunch": "Быстрый запуск",
   "settings.startup.fastLaunch.hint": "Пропускать заставку, грузить все в фоне.",
+  "settings.find.placeholder": "Найти параметр...",
+  "settings.find.footer.hint": "Enter перейти - ↑/↓ выбор - Esc очистить",
+  "settings.find.results": "{{count}} совпадений",
+  "settings.find.results.one": "{{count}} совпадение",
+  "settings.find.results.few": "{{count}} совпадения",
+  "settings.find.results.many": "{{count}} совпадений",
 } as const;
 
 export default settings;

@@ -105,7 +105,7 @@ export default function SettingsTorrent() {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="torrent.limits">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.torrent.speed.limits")}</span>
         </div>
@@ -144,7 +144,7 @@ export default function SettingsTorrent() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="torrent.schedule">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.torrent.schedule")}</span>
         </div>
@@ -237,7 +237,7 @@ export default function SettingsTorrent() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="torrent.search">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.torrent.search")}</span>
         </div>
@@ -260,7 +260,7 @@ export default function SettingsTorrent() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="torrent.files">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.torrent.files")}</span>
         </div>
@@ -287,7 +287,7 @@ export default function SettingsTorrent() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="torrent.notifications">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.torrent.notifications")}</span>
         </div>
@@ -320,7 +320,7 @@ export default function SettingsTorrent() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="torrent.session">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.torrent.session")}</span>
         </div>
@@ -350,7 +350,7 @@ export default function SettingsTorrent() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="torrent.network">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.torrent.network")}</span>
         </div>

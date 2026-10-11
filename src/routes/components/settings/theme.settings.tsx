@@ -91,7 +91,7 @@ export default function SettingsTheme() {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.themes">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.theme")}</span>
         </div>
@@ -136,7 +136,7 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.schedule">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.theme.schedule")}</span>
         </div>
@@ -199,7 +199,7 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.retro">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.theme.retro.style")}</span>
         </div>
@@ -245,7 +245,7 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.retro">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">
             {t("settings.theme.collection.headers")}
@@ -281,7 +281,7 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.progress">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.progress.style")}</span>
         </div>
@@ -307,7 +307,7 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.font">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.font.title")}</span>
         </div>
@@ -316,7 +316,7 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.effects">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.theme.effects")}</span>
         </div>
@@ -337,7 +337,7 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="theme.experimental">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.theme.experimental")}</span>
         </div>

@@ -90,7 +90,7 @@ export default function SettingsGeneral() {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="general.tabs">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.tabs")}</span>
         </div>
@@ -127,7 +127,7 @@ export default function SettingsGeneral() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="general.startup">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.startup")}</span>
         </div>
@@ -147,7 +147,7 @@ export default function SettingsGeneral() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="general.window">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.window")}</span>
         </div>
@@ -172,7 +172,7 @@ export default function SettingsGeneral() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="general.language">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.language")}</span>
         </div>
@@ -220,7 +220,7 @@ export default function SettingsGeneral() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="general.tmdb">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.tmdb.api.key")}</span>
         </div>
@@ -361,7 +361,7 @@ export default function SettingsGeneral() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="general.anilist">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.anilist.proxy.title")}</span>
         </div>
@@ -502,7 +502,7 @@ export default function SettingsGeneral() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="general.parse">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.parse.titles")}</span>
         </div>
@@ -572,7 +572,10 @@ export default function SettingsGeneral() {
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+      <div
+        className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5"
+        data-find-section="general.reset"
+      >
         <span className="windows95-text text-destructive text-xs font-bold">
           {t("settings.reset.data")}
         </span>

@@ -89,7 +89,7 @@ export default function SettingsNotifications() {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="notifications.system">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.notifications.system")}</span>
         </div>
@@ -102,7 +102,7 @@ export default function SettingsNotifications() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="notifications.anilist">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.anilist")}
@@ -201,7 +201,7 @@ export default function SettingsNotifications() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="notifications.torrents">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.torrents")}
@@ -216,7 +216,7 @@ export default function SettingsNotifications() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="notifications.player">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.player")}
@@ -231,7 +231,7 @@ export default function SettingsNotifications() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="notifications.tasks">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.tasks")}
@@ -256,7 +256,7 @@ export default function SettingsNotifications() {
         </div>
       </section>
 
-      <section className="ui-panel">
+      <section className="ui-panel" data-find-section="notifications.app">
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.notifications.group.app")}</span>
         </div>

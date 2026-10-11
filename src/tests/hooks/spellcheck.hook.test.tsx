@@ -184,6 +184,51 @@ describe("useSpellCheck", () => {
     rerender({ query: "frirenx" });
     expect(result.current).toBeNull();
   });
+
+  it("highlights the whole title when the fix resolves to one anime", () => {
+    const animeIndex = [
+      {
+        aliases: [],
+        favourite: false,
+        id: 1,
+        score: null,
+        status: "FINISHED",
+        title: "Frieren: Beyond Journey's End",
+        typedTitles: [
+          {
+            animeId: 1,
+            kind: "official" as const,
+            language: "en" as const,
+            source: "anilist",
+            title: "Frieren: Beyond Journey's End",
+          },
+          {
+            animeId: 1,
+            kind: "romaji" as const,
+            language: "ro" as const,
+            source: "anilist",
+            title: "Sousou no Frieren",
+          },
+        ],
+      },
+    ];
+    const { result } = renderHook(() => useSpellCheck("sousou no frriren", { animeIndex }));
+    settle();
+    expect(result.current).toMatchObject({
+      correction: "Sousou no Frieren",
+      start: 0,
+      end: 17,
+      word: "sousou no frriren",
+      spans: [
+        {
+          start: 0,
+          end: 17,
+          word: "sousou no frriren",
+          corrected: "Sousou no Frieren",
+        },
+      ],
+    });
+  });
 });
 
 describe("useSpellCorrections", () => {

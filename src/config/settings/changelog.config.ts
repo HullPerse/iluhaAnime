@@ -116,6 +116,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.player.parser_folders", "player"),
       entry("changelog.5_0_0.changed.search.source_order", "search"),
       entry("changelog.5_0_0.changed.search.cover_refresh", "search"),
+      entry("changelog.5_0_0.changed.search.cover_modes", "search"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

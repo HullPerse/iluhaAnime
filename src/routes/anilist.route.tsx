@@ -18,7 +18,6 @@ import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
-
   pickDisplayEntries,
   hasAnyFavourites,
   isLocalSearch,
@@ -39,12 +38,8 @@ import {
 } from "@/store/anilist.store";
 import { consumeAuthDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { addNotification } from "@/store/notification.store";
-import {
-  searchAtoms,
-  setAnilistSearchQuery,
-  subscribeSearch,
-} from "@/store/search.store";
-import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import { searchAtoms, setAnilistSearchQuery, subscribeSearch } from "@/store/search.store";
+import { patchSettings, settingsAtoms, syncCoverModeWithAnilistAuth } from "@/store/settings.store";
 import type {
   AniFriend,
   AniFriendMinimal,
@@ -240,7 +235,7 @@ function AnilistRoute() {
 
   const handleLogout = useCallback(async () => {
     await anilistApi.logout();
-    patchSettings({ torrentCoversEnabled: false });
+    syncCoverModeWithAnilistAuth(false);
     queryClient.setQueryData(["anilist_data"], {
       user: null,
       lists: [],
@@ -358,6 +353,7 @@ function AnilistRoute() {
   const handleAuthSuccess = useCallback(
     (authUser: AniUser) => {
       handleCloseModal("auth");
+      syncCoverModeWithAnilistAuth(true);
       queryClient.setQueryData(["anilist_data"], {
         user: authUser,
         lists: [],
@@ -383,18 +379,15 @@ function AnilistRoute() {
     })();
   }, [authTarget, handleAuthSuccess]);
 
-  const handleAddFriend = useCallback(
-    (profile: AniUserProfile) => {
-      addAnilistFriend({
-        id: profile.id,
-        name: profile.name,
-        avatar: profile.avatar,
-        added_at: Date.now(),
-      });
-      cacheAnilistProfile(profile);
-    },
-    []
-  );
+  const handleAddFriend = useCallback((profile: AniUserProfile) => {
+    addAnilistFriend({
+      id: profile.id,
+      name: profile.name,
+      avatar: profile.avatar,
+      added_at: Date.now(),
+    });
+    cacheAnilistProfile(profile);
+  }, []);
 
   const handleAddManyFriends = useCallback((minimal: AniFriendMinimal[]) => {
     for (const friend of minimal) addAnilistFriend({ ...friend, added_at: Date.now() });

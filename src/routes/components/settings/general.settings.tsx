@@ -13,10 +13,10 @@ import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
+import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
@@ -28,7 +28,7 @@ export default function SettingsGeneral() {
   const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
   const parseTitlesTorrent = useCell(settingsAtoms.parseTitlesTorrent);
   const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
-  const torrentCoversEnabled = useCell(settingsAtoms.torrentCoversEnabled);
+  const coverMode = useCell(settingsAtoms.torrentCoverMode);
   const { user: anilistUser } = useUserAnilistData();
   const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
@@ -137,7 +137,10 @@ export default function SettingsGeneral() {
             </span>
             <div className="flex flex-col gap-0.5">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                <Checkbox checked={minimizeToTray} onChange={(v) => patchSettings({ minimizeToTray: v })} />
+                <Checkbox
+                  checked={minimizeToTray}
+                  onChange={(v) => patchSettings({ minimizeToTray: v })}
+                />
                 <span className="text-xs">{t("settings.tray.minimize")}</span>
               </label>
               <span className="text-hint text-[12px]">
@@ -406,7 +409,9 @@ export default function SettingsGeneral() {
                 <Input
                   ref={anilistProxyInputRef}
                   value={anilistProxyUrl ?? ""}
-                  onChange={(e) => patchSettings({ anilistProxyUrl: e.target.value.trim() || null })}
+                  onChange={(e) =>
+                    patchSettings({ anilistProxyUrl: e.target.value.trim() || null })
+                  }
                   placeholder="socks5://127.0.0.1:10808"
                   spellCheck={false}
                   className="w-full max-w-70"
@@ -445,7 +450,9 @@ export default function SettingsGeneral() {
               <Select
                 value={anilistTitleLanguage}
                 onChange={(value) =>
-                  patchSettings({ anilistTitleLanguage: value as SettingsStore["anilistTitleLanguage"] })
+                  patchSettings({
+                    anilistTitleLanguage: value as SettingsStore["anilistTitleLanguage"],
+                  })
                 }
                 options={[
                   { value: "account", label: t("settings.anilist.title.account") },
@@ -511,19 +518,30 @@ export default function SettingsGeneral() {
                 />
                 <span>{t("settings.parse.search")}</span>
               </label>
-              <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-                <Checkbox
-                  checked={torrentCoversEnabled}
-                  disabled={!anilistUser}
-                  onChange={(v) => {
-                    patchSettings({ torrentCoversEnabled: v });
-                  }}
+              <div className="flex flex-col gap-0.5">
+                <span className="windows95-text text-text text-xs">
+                  {t("settings.torrent.covers")}
+                </span>
+                <Select
+                  value={coverMode}
+                  onChange={(value) =>
+                    patchSettings({
+                      torrentCoverMode: value as SettingsStore["torrentCoverMode"],
+                      torrentCoverModeManual: true,
+                    })
+                  }
+                  options={[
+                    { value: "off", label: t("settings.torrent.covers.off") },
+                    { value: "pages", label: t("settings.torrent.covers.pages") },
+                    { value: "full", label: t("settings.torrent.covers.full") },
+                  ]}
+                  className="w-52"
+                  label={t("settings.torrent.covers")}
                 />
-                <span>{t("settings.torrent.covers")}</span>
                 {!anilistUser ? (
                   <span className="text-hint text-xs">{t("settings.torrent.covers.login")}</span>
                 ) : null}
-              </label>
+              </div>
             </div>
           </div>
         </div>

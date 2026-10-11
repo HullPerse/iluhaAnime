@@ -62,11 +62,11 @@ function renderResults(controller: Partial<SearchQueryController>) {
 
 afterEach(() => {
   cleanup();
-  patchSettings({ torrentCoversEnabled: false });
+  patchSettings({ torrentCoverMode: "off" });
 });
 
 beforeEach(() => {
-  patchSettings({ language: "en", torrentCoversEnabled: false });
+  patchSettings({ language: "en", torrentCoverMode: "off" });
   mockInvoke.mockReset();
   mockInvoke.mockImplementation(async () => null);
 });

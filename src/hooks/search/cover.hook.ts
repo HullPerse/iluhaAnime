@@ -22,6 +22,7 @@ import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt
 import { coverCorrectionsAtoms, coverKey, setResolvedCover } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
 import type { AniMedia } from "@/types/anilist";
+import type { TorrentCoverMode } from "@/types/settings";
 
 export type TorrentCoverStatus = "override" | "page" | "resolved" | "pending" | "empty";
 
@@ -54,7 +55,9 @@ async function pagePoster(source: string, url: string | null): Promise<string | 
   if (!url) return null;
   const [host] = attemptSync(() => new URL(url).host.toLowerCase());
   const site = host ?? "unparseable";
-  if (source !== "rutracker" || site !== "rutracker.org") return null;
+  if (source === "rutracker" && site !== "rutracker.org") return null;
+  if (source === "nekobt" && site !== "nekobt.to") return null;
+  if (source !== "rutracker" && source !== "nekobt") return null;
   const task = torrentApi.getTorrentDetails(source, url).then(
     (details) => details.poster ?? null,
     (error: unknown) => {
@@ -95,10 +98,10 @@ function buildCoverSnapshot(parsed: {
   };
 }
 
-function useCoverPoster(pageUrl: string | null, enabled: boolean) {
+function useCoverPoster(source: string, pageUrl: string | null, enabled: boolean) {
   return useAppQuery("slow", {
     queryKey: ["torrent_poster", pageUrl],
-    queryFn: () => pagePoster("rutracker", pageUrl),
+    queryFn: () => pagePoster(source, pageUrl),
     enabled: enabled && pageUrl !== null,
     retry: false,
   });
@@ -223,7 +226,7 @@ function useCoverContext(
   }, [animeIndex]);
 
   const { source, url } = options;
-  const pageUrl = source === "rutracker" ? (url ?? null) : null;
+  const pageUrl = source === "rutracker" || source === "nekobt" ? (url ?? null) : null;
 
   const snapshot = useMemo(() => buildCoverSnapshot(parsed), [parsed]);
   const trustedIds = useMemo(() => new Set(localMatch ? [localMatch.id] : []), [localMatch]);
@@ -276,11 +279,13 @@ function toCoverState(
 
 export function useTorrentCover(
   torrentTitle: string,
-  options: { source?: string; url?: string | null; enabled?: boolean } = {}
+  options: { source?: string; url?: string | null; mode?: TorrentCoverMode } = {}
 ): TorrentCoverState {
-  const { enabled = true } = options;
-  const ctx = useCoverContext(torrentTitle, options);
-  const poster = useCoverPoster(ctx.pageUrl, !ctx.override && enabled);
+  const { mode = "full", source = "", url = null } = options;
+  const pageEnabled = mode !== "off";
+  const anilistEnabled = mode === "full";
+  const ctx = useCoverContext(torrentTitle, { source, url });
+  const poster = useCoverPoster(source, ctx.pageUrl, !ctx.override && pageEnabled);
   const resolved = useCoverCascade(
     ctx.key,
     ctx.snapshot,
@@ -291,7 +296,7 @@ export function useTorrentCover(
     ctx.trustedIds,
     ctx.profileById,
     torrentTitle,
-    enabled && !ctx.override && ctx.parsedTitle.length > 0
+    anilistEnabled && !ctx.override && ctx.parsedTitle.length > 0
   );
 
   const remoteUrl =

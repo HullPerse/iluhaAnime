@@ -13,6 +13,7 @@ export default function DetailsHero({
   source,
   busy,
   poster,
+  hidePoster = false,
   onCopyMagnet,
   onOpenMagnet,
   onDownload,
@@ -24,6 +25,7 @@ export default function DetailsHero({
   source: Source;
   busy: boolean;
   poster: string | null;
+  hidePoster?: boolean;
   onCopyMagnet: (item: Anime) => void;
   onOpenMagnet: (item: Anime) => void;
   onDownload: (item: Anime) => void;
@@ -33,7 +35,7 @@ export default function DetailsHero({
   const { t } = useI18n();
   return (
     <div className="windows95-border bg-surface flex flex-col gap-2 p-1.5 sm:flex-row">
-      {poster ? (
+      {!hidePoster && poster ? (
         <button
           type="button"
           className="border-muted h-52 w-full shrink-0 cursor-zoom-in border p-0 hover:brightness-110 sm:w-36"
@@ -43,7 +45,7 @@ export default function DetailsHero({
         >
           <ImageComponent src={poster} alt="" className="h-full w-full object-cover" />
         </button>
-      ) : (
+      ) : hidePoster ? null : (
         <div className="border-muted h-52 w-full shrink-0 border sm:w-36" aria-hidden>
           <ImageComponent
             src="/images/unknown_source.png"

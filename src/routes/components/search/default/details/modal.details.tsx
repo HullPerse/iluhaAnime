@@ -365,9 +365,10 @@ function TorrentDetailsModal({
   const tabs = useMemo(() => (view ? buildDetailTabs(view, t) : []), [t, view]);
   const activeTab = resolveActiveTab(tabs, tab);
   const busy = loadingMagnet[item.link] ?? false;
-  const coversEnabled = useCell(settingsAtoms.torrentCoversEnabled);
-  const cover = useTorrentCover(item.title, { source, url: detailUrl, enabled: coversEnabled });
-  const poster = heroPoster(view, cover.coverUrl, cover.remoteUrl);
+  const coverMode = useCell(settingsAtoms.torrentCoverMode);
+  const cover = useTorrentCover(item.title, { source, url: detailUrl, mode: coverMode });
+  const poster = coverMode === "off" ? null : heroPoster(view, cover.coverUrl, cover.remoteUrl);
+  const hidePoster = coverMode === "off" || (coverMode === "pages" && poster === null);
   const openOriginal = () => {
     ignore(openOriginalUrl(source, item, view, detailUrl));
   };
@@ -413,6 +414,7 @@ function TorrentDetailsModal({
               source={source}
               busy={busy}
               poster={poster}
+              hidePoster={hidePoster}
               onCopyMagnet={onCopyMagnet}
               onOpenMagnet={onOpenMagnet}
               onDownload={onDownload}

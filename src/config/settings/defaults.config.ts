@@ -1,5 +1,10 @@
 import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
-import type { SettingsDefaults, WallpaperDisplayFilters, WallpaperShadow } from "@/types/settings";
+import type {
+  SettingsDefaults,
+  TorrentCoverMode,
+  WallpaperDisplayFilters,
+  WallpaperShadow,
+} from "@/types/settings";
 
 export const DEFAULT_WALLPAPER_FILTERS: WallpaperDisplayFilters = {
   brightness: 75,
@@ -131,7 +136,8 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   anilistTitleLanguage: "account",
   anilistAdultContent: false,
   torrentProxyUrl: null as string | null,
-  torrentCoversEnabled: false,
+  torrentCoverMode: "off" as TorrentCoverMode,
+  torrentCoverModeManual: false,
   collectionTabEnabled: true,
   anilistTabEnabled: true,
   searchTabEnabled: true,

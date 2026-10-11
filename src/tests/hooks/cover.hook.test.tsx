@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useTorrentCover } from "@/hooks/search/cover.hook";
 import {
+  coverCorrectionsAtoms,
   coverKey,
   removeCoverOverride,
   removeResolvedCover,
@@ -12,6 +13,7 @@ import {
 } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
 import type { AniMedia } from "@/types/anilist";
+import type { TorrentCoverMode } from "@/types/settings";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -59,7 +61,7 @@ const NARUTO = media({
 
 function renderCover(
   title: string,
-  options?: { source?: string; url?: string | null; enabled?: boolean }
+  options?: { source?: string; url?: string | null; mode?: TorrentCoverMode }
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderHook(() => useTorrentCover(title, options), {
@@ -78,6 +80,7 @@ afterEach(() => {
   removeResolvedCover("sousou no frieren|2");
   removeResolvedCover("sousou no frieren|0");
   removeResolvedCover(coverKey("Атака титанов"));
+  coverCorrectionsAtoms.blobs.set({});
 });
 
 beforeEach(() => {
@@ -166,7 +169,7 @@ describe("useTorrentCover", () => {
     expect(result.current.coverUrl).toContain("http://asset.localhost/");
   });
 
-  it("fires no queries when disabled", async () => {
+  it("fires no queries when the mode is off", async () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
@@ -175,10 +178,46 @@ describe("useTorrentCover", () => {
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
       source: "rutracker",
       url: "https://rutracker.org/forum/viewtopic.php?t=9",
-      enabled: false,
+      mode: "off",
     });
     await waitFor(() => expect(result.current.status).toBe("empty"));
     expect(calls).toEqual([]);
+  });
+
+  it("resolves the tracker page poster for nekobt in pages mode", async () => {
+    const calls: unknown[] = [];
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      calls.push(command);
+      if (command === "get_torrent_details") {
+        return { poster: "https://s4.anilist.co/file/anilistcdn/cover.png" };
+      }
+      if (command === "download_remote_image") return { id: "blob4", path: "covers/neko.jpg" };
+      return null;
+    });
+    const { result } = renderCover("[Erai-raws] Youjo Senki II - 12 [1080p].mkv", {
+      source: "nekobt",
+      url: "https://nekobt.to/torrents/13947047670024",
+      mode: "pages",
+    });
+    await waitFor(() => expect(result.current.status).toBe("page"));
+    expect(result.current.anilistId).toBeNull();
+    expect(calls).not.toContain("search_anilist");
+  });
+
+  it("skips the anilist cascade in pages mode when the page has no poster", async () => {
+    const calls: unknown[] = [];
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      calls.push(command);
+      if (command === "get_torrent_details") return { poster: null };
+      return null;
+    });
+    const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
+      source: "rutracker",
+      url: "https://rutracker.org/forum/viewtopic.php?t=9",
+      mode: "pages",
+    });
+    await waitFor(() => expect(result.current.status).toBe("empty"));
+    expect(calls).not.toContain("search_anilist");
   });
 
   it("falls back to anilist when the page has no poster", async () => {
@@ -238,6 +277,7 @@ describe("useTorrentCover", () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
+      if (command === "download_remote_image") throw new Error("offline");
       return null;
     });
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv");

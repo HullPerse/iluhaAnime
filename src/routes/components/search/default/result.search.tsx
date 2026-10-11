@@ -17,12 +17,19 @@ import CoverCorrectionModal from "@/routes/components/search/default/correction.
 import { removeResolvedCover } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ResultSearchProps as Props } from "@/types/search";
+import type { TorrentCoverMode } from "@/types/settings";
 
 type CoverVisual = { mode: "hidden" } | { mode: "waiting" } | { mode: "show"; src: string };
 
-function coverVisual(cover: TorrentCoverState, enabled: boolean): CoverVisual {
-  if (!enabled) return { mode: "hidden" };
+function coverVisual(cover: TorrentCoverState, mode: TorrentCoverMode): CoverVisual {
+  if (mode === "off") return { mode: "hidden" };
   if (cover.status === "pending") return { mode: "waiting" };
+  if (mode === "pages") {
+    if (cover.status !== "page" && cover.status !== "override") return { mode: "hidden" };
+    const src = cover.coverUrl ?? cover.remoteUrl;
+    if (!src) return { mode: "hidden" };
+    return { mode: "show", src };
+  }
   return { mode: "show", src: cover.coverUrl ?? cover.remoteUrl ?? "/images/unknown_source.png" };
 }
 
@@ -44,9 +51,9 @@ export default function SearchResultItem({
   const hasMagnet = Boolean(item.magnet) || source === "rutracker";
   const releaseAge = formatReleaseAge(item.date);
   const [correcting, setCorrecting] = useState(false);
-  const coversEnabled = useCell(settingsAtoms.torrentCoversEnabled);
-  const cover = useTorrentCover(item.title, { source, url: item.link, enabled: coversEnabled });
-  const visual = coverVisual(cover, coversEnabled);
+  const coverMode = useCell(settingsAtoms.torrentCoverMode);
+  const cover = useTorrentCover(item.title, { source, url: item.link, mode: coverMode });
+  const visual = coverVisual(cover, coverMode);
   const queryClient = useQueryClient();
   const refreshCover = () => {
     removeResolvedCover(cover.coverKey);

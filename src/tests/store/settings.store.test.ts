@@ -1,6 +1,6 @@
-import { mockInvoke } from "../mocks";
 import { describe, expect, it, vi, beforeAll } from "vitest";
 
+import { mockInvoke } from "../mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -473,19 +473,71 @@ describe("anilist adult content preference", () => {
   });
 });
 
-describe("torrent covers preference", () => {
-  it("defaults to hidden", async () => {
+describe("torrent cover mode preference", () => {
+  it("defaults to hidden without a manual choice", async () => {
     const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
 
-    expect(DEFAULT_SETTINGS.torrentCoversEnabled).toBe(false);
+    expect(DEFAULT_SETTINGS.torrentCoverMode).toBe("off");
+    expect(DEFAULT_SETTINGS.torrentCoverModeManual).toBe(false);
   });
 
   it("round-trips through the settings store", () => {
-    settings.patchSettings({ torrentCoversEnabled: true });
+    settings.patchSettings({ torrentCoverMode: "full", torrentCoverModeManual: true });
 
-    expect(settings.settingsAtoms.torrentCoversEnabled.get()).toBe(true);
+    expect(settings.settingsAtoms.torrentCoverMode.get()).toBe("full");
+    expect(settings.settingsAtoms.torrentCoverModeManual.get()).toBe(true);
 
-    settings.patchSettings({ torrentCoversEnabled: false });
+    settings.patchSettings({ torrentCoverMode: "off", torrentCoverModeManual: false });
+  });
+
+  it("migrates a legacy enabled flag into a manual full mode", () => {
+    const result = settings.migrateSettingsData({ language: "en", torrentCoversEnabled: true }, 43);
+    expect(result.torrentCoverMode).toBe("full");
+    expect(result.torrentCoverModeManual).toBe(true);
+    expect("torrentCoversEnabled" in result).toBe(false);
+  });
+
+  it("migrates a legacy disabled flag into the automatic off mode", () => {
+    const result = settings.migrateSettingsData(
+      { language: "en", torrentCoversEnabled: false },
+      43
+    );
+    expect(result.torrentCoverMode).toBe("off");
+    expect(result.torrentCoverModeManual).toBe(false);
+  });
+
+  it("repairs an unknown persisted mode to the default", () => {
+    const result = settings.migrateSettingsData({ language: "en", torrentCoverMode: "bogus" }, 44);
+    expect(result.torrentCoverMode).toBe("off");
+  });
+});
+
+describe("torrent cover mode anilist sync", () => {
+  it("enables full covers on login when the user never chose", () => {
+    settings.patchSettings({ torrentCoverMode: "off", torrentCoverModeManual: false });
+
+    settings.syncCoverModeWithAnilistAuth(true);
+
+    expect(settings.settingsAtoms.torrentCoverMode.get()).toBe("full");
+  });
+
+  it("restores off on logout when the user never chose", () => {
+    settings.patchSettings({ torrentCoverMode: "full", torrentCoverModeManual: false });
+
+    settings.syncCoverModeWithAnilistAuth(false);
+
+    expect(settings.settingsAtoms.torrentCoverMode.get()).toBe("off");
+  });
+
+  it("keeps a manual choice on auth changes", () => {
+    settings.patchSettings({ torrentCoverMode: "pages", torrentCoverModeManual: true });
+
+    settings.syncCoverModeWithAnilistAuth(true);
+    settings.syncCoverModeWithAnilistAuth(false);
+
+    expect(settings.settingsAtoms.torrentCoverMode.get()).toBe("pages");
+
+    settings.patchSettings({ torrentCoverMode: "off", torrentCoverModeManual: false });
   });
 });
 

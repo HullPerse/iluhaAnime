@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SearchResultItem from "@/routes/components/search/default/result.search";
-import { removeResolvedCover } from "@/store/cover.store";
+import { coverCorrectionsAtoms, removeResolvedCover } from "@/store/cover.store";
 import { patchSettings } from "@/store/settings.store";
 import type { Anime } from "@/types/torrent";
 
@@ -36,13 +36,17 @@ const NARUTO_MEDIA = {
   cover_url: "https://s4.anilist.co/file/naruto.jpg",
 };
 
-function renderRow(handlers?: { onOpenDetails?: (item: Anime) => void }) {
+function renderRow(
+  handlers?: { onOpenDetails?: (item: Anime) => void },
+  item: Anime = ITEM,
+  source = "erai-raws"
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <SearchResultItem
-        item={ITEM}
-        source="erai-raws"
+        item={item}
+        source={source}
         loadingMagnet={{}}
         onCopyMagnet={vi.fn()}
         onOpenMagnet={vi.fn()}
@@ -54,10 +58,16 @@ function renderRow(handlers?: { onOpenDetails?: (item: Anime) => void }) {
   );
 }
 
+const RUTRACKER_ITEM: Anime = {
+  ...ITEM,
+  link: "https://rutracker.org/forum/viewtopic.php?t=1",
+};
+
 afterEach(() => {
   cleanup();
   removeResolvedCover("naruto|0");
-  patchSettings({ torrentCoversEnabled: false });
+  coverCorrectionsAtoms.blobs.set({});
+  patchSettings({ torrentCoverMode: "off" });
 });
 
 beforeEach(() => {
@@ -66,7 +76,7 @@ beforeEach(() => {
 
 describe("SearchResultItem covers", () => {
   it("renders no thumbnail while the setting is off and fires no cover queries", async () => {
-    patchSettings({ torrentCoversEnabled: false });
+    patchSettings({ torrentCoverMode: "off" });
     const { container } = renderRow();
     await waitFor(() => expect(screen.getByText(ITEM.title)).toBeDefined());
     const cover = container.querySelector(
@@ -77,7 +87,7 @@ describe("SearchResultItem covers", () => {
   });
 
   it("resolves and renders the cover through the full pipeline", async () => {
-    patchSettings({ torrentCoversEnabled: true });
+    patchSettings({ torrentCoverMode: "full" });
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
@@ -95,7 +105,7 @@ describe("SearchResultItem covers", () => {
   });
 
   it("renders the remote url while bytes download instead of the fallback", async () => {
-    patchSettings({ torrentCoversEnabled: true });
+    patchSettings({ torrentCoverMode: "full" });
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
       if (command === "download_remote_image") return new Promise(() => {});
@@ -110,7 +120,7 @@ describe("SearchResultItem covers", () => {
   });
 
   it("renders the fallback only when nothing resolves", async () => {
-    patchSettings({ torrentCoversEnabled: true });
+    patchSettings({ torrentCoverMode: "full" });
     mockInvoke.mockImplementation(async () => null);
     const { container } = renderRow();
     await waitFor(
@@ -123,7 +133,7 @@ describe("SearchResultItem covers", () => {
   });
 
   it("opens details from the title and refetches the cover from the thumbnail", async () => {
-    patchSettings({ torrentCoversEnabled: true });
+    patchSettings({ torrentCoverMode: "full" });
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
@@ -147,5 +157,39 @@ describe("SearchResultItem covers", () => {
     await waitFor(() => {
       expect(mockInvoke.mock.calls.some(([command]) => command === "search_anilist")).toBe(true);
     });
+  });
+
+  it("shows the tracker page poster in pages mode without AniList search", async () => {
+    patchSettings({ torrentCoverMode: "pages" });
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (command === "get_torrent_details")
+        return { poster: "https://img.rutracker.org/f/009/poster.jpg" };
+      if (command === "download_remote_image") return { id: "blob2", path: "covers/rt.jpg" };
+      if (command === "get_user_image") return { id: "blob2", path: "covers/rt.jpg" };
+      return null;
+    });
+    const { container } = renderRow(undefined, RUTRACKER_ITEM, "rutracker");
+    await waitFor(
+      () => {
+        expect(container.querySelector("img")).not.toBeNull();
+      },
+      { timeout: 5000 }
+    );
+    expect(container.querySelector('img[src*="unknown_source"]')).toBeNull();
+    expect(mockInvoke.mock.calls.some(([command]) => command === "search_anilist")).toBe(false);
+  });
+
+  it("hides the thumbnail slot in pages mode when the page has no poster", async () => {
+    patchSettings({ torrentCoverMode: "pages" });
+    mockInvoke.mockImplementation(async () => null);
+    const { container } = renderRow(undefined, RUTRACKER_ITEM, "rutracker");
+    await waitFor(
+      () => {
+        expect(container.querySelector(".animate-pulse")).toBeNull();
+      },
+      { timeout: 5000 }
+    );
+    expect(container.querySelector("img")).toBeNull();
+    expect(mockInvoke.mock.calls.some(([command]) => command === "search_anilist")).toBe(false);
   });
 });

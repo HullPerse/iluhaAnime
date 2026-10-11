@@ -79,7 +79,8 @@ export interface SettingsStore {
   parseTitlesPlayer: boolean;
   parseTitlesTorrent: boolean;
   parseTitlesSearch: boolean;
-  torrentCoversEnabled: boolean;
+  torrentCoverMode: TorrentCoverMode;
+  torrentCoverModeManual: boolean;
   anilistReleaseNotifications: boolean;
   notifyNewEpisodes: boolean;
   notifyStatusChanges: boolean;
@@ -173,13 +174,9 @@ export interface SessionConfigPayload {
   fileOrder: FileOrder;
 }
 
-export type TabId =
-  | "search"
-  | "torrent"
-  | "player"
-  | "anilist"
-  | "collection"
-  | "settings";
+export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
+
+export type TorrentCoverMode = "off" | "pages" | "full";
 
 export interface SpeedSchedule {
   enabled: boolean;

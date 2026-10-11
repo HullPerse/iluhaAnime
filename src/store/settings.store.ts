@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 43;
+export const SETTINGS_SCHEMA_VERSION = 44;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -191,12 +191,26 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       if (state.defaultSearchSource === "erai-raws") state.defaultSearchSource = "rutracker";
     },
   },
+  {
+    from: 44,
+    migrate: (state) => {
+      const legacy = state.torrentCoversEnabled;
+      delete state.torrentCoversEnabled;
+      if (state.torrentCoverMode === undefined) {
+        state.torrentCoverMode = legacy === true ? "full" : "off";
+      }
+      if (state.torrentCoverModeManual === undefined) {
+        state.torrentCoverModeManual = legacy === true;
+      }
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   searchType: toValidator(z.enum(["default", "modern"])),
   progressStyle: toValidator(z.enum(["blocks", "solid"])),
   screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
+  torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),
   anilistDisplayMode: toValidator(z.enum(["scroll", "pagination"])),
   anilistListSort: toValidator(
     z.object({
@@ -483,6 +497,10 @@ export const settingsPersistor = settings.persistor;
 export const getSettingsSnapshot = settings.snapshot;
 export const rehydrateSettings = settings.rehydrate;
 export const patchSettings = settings.patch;
+export function syncCoverModeWithAnilistAuth(loggedIn: boolean): void {
+  if (settingsAtoms.torrentCoverModeManual.get()) return;
+  settings.patch({ torrentCoverMode: loggedIn ? "full" : "off" });
+}
 export const hidePlayerFolder = settings.hidePlayerFolder;
 export const unhidePlayerFolder = settings.unhidePlayerFolder;
 export const hidePlayerTorrent = settings.hidePlayerTorrent;
@@ -498,7 +516,7 @@ const INITIAL_SETTINGS_SNAPSHOT: SettingsData = getSettingsSnapshot();
  * Restores every settings atom to the worker-start snapshot without running
  * patch side effects (no UI mutations, no window-chrome invoke, no tmdb
  * drain). Test setup calls this before every test so files cannot leak
- * flags like `torrentCoversEnabled` into each other when the suite shares
+ * flags like `torrentCoverMode` into each other when the suite shares
  * one module registry per worker.
  */
 export function resetSettingsAtoms(): void {

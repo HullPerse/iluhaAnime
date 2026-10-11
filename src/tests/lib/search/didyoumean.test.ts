@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { suggestSpellingWithReason } from "@/lib/search/resolve.utils";
+import { resolveTitleQuery, suggestSpellingWithReason } from "@/lib/search/resolve.utils";
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
 import { buildSymSpellFromTitles } from "@/lib/search/symspell.utils";
 import type { AnimeTitle, SearchAnimeSuggestion } from "@/types/search";
@@ -197,7 +197,9 @@ describe("search/didyoumean transliteration", () => {
 
 describe("search/didyoumean season siblings", () => {
   it("attributes a typo to the season whose title actually matches", () => {
-    expect(suggestSpellingWithReason("3-gtsu no Lion 2nd Season", { animeIndex: INDEX })).toMatchObject({
+    expect(
+      suggestSpellingWithReason("3-gtsu no Lion 2nd Season", { animeIndex: INDEX })
+    ).toMatchObject({
       correction: "3-gatsu no Lion 2nd Season",
       titleId: 22,
     });
@@ -206,6 +208,38 @@ describe("search/didyoumean season siblings", () => {
   it("keeps exact season titles silent", () => {
     expect(
       suggestSpellingWithReason("3-gatsu no Lion 2nd Season", { animeIndex: INDEX })
+    ).toBeNull();
+  });
+
+  it("breaks remainder ties by the season number in the title", () => {
+    const seasons = [
+      entry(23, "Shingeki no Kyojin Season 3", "Shingeki no Kyojin Season 3"),
+      entry(24, "Shingeki no Kyojin Season 4", "Shingeki no Kyojin Season 4"),
+    ];
+    expect(
+      resolveTitleQuery("Shingeki no Kyojin 4th Season", { animeIndex: seasons })[0]
+    ).toMatchObject({
+      animeId: 24,
+      season: 4,
+    });
+    expect(
+      resolveTitleQuery("Shingeki no Kyojin 3rd Season", { animeIndex: seasons })[0]
+    ).toMatchObject({
+      animeId: 23,
+      season: 3,
+    });
+  });
+
+  it("reads filenames that say Gekijouban where AniList says Movie", () => {
+    const movies = [entry(25, "Kimetsu no Yaiba Movie: Mugen Ressha-hen")];
+    expect(
+      resolveTitleQuery("Gekijouban Kimetsu no Yaiba Mugen Ressha Hen", { animeIndex: movies })[0]
+    ).toMatchObject({ animeId: 25 });
+    // No typo, so did-you-mean stays silent: the live search resolves it.
+    expect(
+      suggestSpellingWithReason("Gekijouban Kimetsu no Yaiba Mugen Ressha Hen", {
+        animeIndex: movies,
+      })
     ).toBeNull();
   });
 });

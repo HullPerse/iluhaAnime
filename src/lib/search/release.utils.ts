@@ -33,6 +33,7 @@ const RELEASE_TOKENS = new Set(
     "hi10p",
     "dual",
     "multi",
+    "gekijouban",
     "rus",
     "eng",
     "jpn",

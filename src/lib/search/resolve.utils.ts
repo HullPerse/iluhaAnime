@@ -489,9 +489,7 @@ function scoreCorrectionText(
   // hand the sibling season's id to a correct text.
   const index = options.animeIndex ?? [];
   const fromTitles =
-    index.length > 0
-      ? scoreAgainstTitles(text, full, full, full.split(" "), index, penalty)
-      : null;
+    index.length > 0 ? scoreAgainstTitles(text, full, full, full.split(" "), index, penalty) : null;
   const fromStrings = scoreAgainstStrings(text, full, options, penalty);
   if (fromTitles && fromStrings) {
     return fromTitles.score >= fromStrings.score ? fromTitles : fromStrings;
@@ -728,6 +726,31 @@ export function suggestSpellingWithReason(
   );
 }
 
+/**
+ * Season number carried by a title itself ("... Season 4", "... 2nd Season").
+ * Years ("... 2011") never qualify: seasons cap at 50.
+ */
+function titleSeasonNumber(normalizedTitle: string): number | null {
+  const tokens = normalizedTitle.split(" ");
+  const last = tokens.at(-1) ?? "";
+  if (/^\d{1,2}$/.test(last)) {
+    const value = Number(last);
+    return value >= 1 && value <= 50 ? value : null;
+  }
+  const ordinal = last.match(/^(\d{1,2})(?:st|nd|rd|th)$/);
+  if (ordinal?.[1] && tokens.at(-2) === "season") {
+    const value = Number(ordinal[1]);
+    return value >= 1 && value <= 50 ? value : null;
+  }
+  return null;
+}
+
+function animeMatchesSeasonNumber(anime: SearchAnimeSuggestion, season: number): boolean {
+  return typedTitlesOf(anime).some(
+    (entry) => titleSeasonNumber(normalizeSearchText(entry.title)) === season
+  );
+}
+
 export function resolveTitleQuery(
   query: string,
   options: { animeIndex?: SearchAnimeSuggestion[]; limit?: number } = {}
@@ -751,7 +774,13 @@ export function resolveTitleQuery(
   }
   const out: TitleHypothesis[] = [];
   for (const interp of interpretations) {
-    const normalized = normalizeSearchText(interp.remainder);
+    // Filenames say "Gekijouban" where AniList says "Movie": drop the word
+    // before matching so theatrical releases resolve to their entries.
+    const remainder = interp.remainder
+      .replace(/\bgekijouban\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const normalized = normalizeSearchText(remainder);
     if (!normalized) continue;
     const words = normalized.split(" ");
     let bestAnime: SearchAnimeSuggestion | null = null;
@@ -760,6 +789,19 @@ export function resolveTitleQuery(
       const scored = scoreRemainder(normalized, words, anime);
       if (scored != null && scored > bestScore) {
         bestScore = scored;
+        bestAnime = anime;
+        continue;
+      }
+      // Season siblings tie on the remainder ("Season 3" vs "Season 4"):
+      // prefer the entry whose own title carries the requested number.
+      if (
+        scored != null &&
+        scored === bestScore &&
+        bestAnime &&
+        interp.season != null &&
+        animeMatchesSeasonNumber(anime, interp.season) &&
+        !animeMatchesSeasonNumber(bestAnime, interp.season)
+      ) {
         bestAnime = anime;
       }
     }

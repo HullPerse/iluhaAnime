@@ -16,6 +16,7 @@ describe("search/release noise", () => {
     ["[SubsPlus+] Oshi No Ko S2 [WEB-DL 1080p x264 DDP]", "Oshi No Ko S2"],
     ["Ксам'д - Позабывший невзгоды [BDRip 1080]", "Ксам'д - Позабывший невзгоды"],
     ["Haikyu!! 2nd Season [BDRip 1080p HEVC 10bit FLAC]", "Haikyu!! 2nd Season"],
+    ["Gekijouban Kimetsu no Yaiba Mugen Ressha Hen [BDRemux]", "Kimetsu no Yaiba Mugen Ressha Hen"],
     ["frieren s2", "frieren s2"],
     ["spy x family", "spy x family"],
   ];

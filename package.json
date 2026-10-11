@@ -19,7 +19,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "bun scripts/e2e/run.ts",
-    "screens": "bun scripts/screens.ts",
     "bench:labs": "labs",
     "bench:labs:compare": "labs compare",
     "bench:all": "labs \"@quick\"",

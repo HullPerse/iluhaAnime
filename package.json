@@ -25,6 +25,7 @@
     "bench:full": "labs",
     "bench:slow": "labs \"@slow\"",
     "bench:rust": "cargo bench --manifest-path src-tauri/Cargo.toml",
+    "bench:ipc": "bun scripts/e2e/measure-ipc.ts",
     "check": "ultracite check src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts",
     "fix": "ultracite fix src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts"
   },

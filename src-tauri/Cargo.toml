@@ -117,6 +117,14 @@ harness = false
 name = "file_query"
 harness = false
 
+[[bench]]
+name = "anilist_detail_bundle"
+harness = false
+
+[[bench]]
+name = "anilist_list_trim"
+harness = false
+
 [dev-dependencies]
 # Test-only response builder for the body-cap tests. Already in the
 # lockfile through reqwest, so this adds no new supply-chain surface.

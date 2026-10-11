@@ -114,6 +114,7 @@ export type CommandName =
   | "optimize_unified_index"
   | "patch_collection_item"
   | "pause_torrent"
+  | "ping"
   | "player_append_files"
   | "player_apply_file_state"
   | "player_close_window"

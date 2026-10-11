@@ -64,6 +64,12 @@ fn rate_per_second(now: Instant, at: Instant, current: u64, previous: u64) -> u6
 }
 
 #[tauri::command]
+#[must_use]
+pub const fn ping() -> &'static str {
+    "pong"
+}
+
+#[tauri::command]
 pub fn get_host_stats() -> HostStats {
     let Ok(mut state) = STATE.lock() else {
         return zero_stats();

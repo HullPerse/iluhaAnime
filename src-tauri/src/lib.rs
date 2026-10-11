@@ -19,6 +19,7 @@ mod app_db;
 
 #[doc(hidden)]
 pub mod benchmark_api {
+    pub use crate::anilist::library::anime_full_query;
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
     pub use crate::file_index::{parse_file_query, FileIndexer};
     pub use crate::scrapers::clients::{
@@ -1797,6 +1798,7 @@ pub fn run() {
             remove_torrent,
             list_system_fonts,
             host_stats::get_host_stats,
+            host_stats::ping,
             scan_video_folder,
             scan_video_folders,
             scan_extra_files,

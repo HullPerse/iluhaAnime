@@ -13,6 +13,8 @@ export interface SplashTexts {
   index: string;
   loading: string;
   fastLaunch: string;
+  yorhaTitle: string;
+  yorhaTagline: string;
 }
 
 export interface DbTexts {
@@ -43,6 +45,7 @@ export function resolveFatalTexts(locale: Locale, kind: FatalInfo["kind"]): Fata
   const pick = (key: TranslationKey): string => translate(locale, key);
   return {
     kindLabel: pick(`fatal.kind.${kind}` as TranslationKey),
+    yorhaBanner: pick("fatal.yorha.banner"),
     hint: pick("fatal.hint"),
     details: pick("fatal.details"),
     copy: pick("fatal.copy"),
@@ -67,6 +70,8 @@ export function resolveSplashTexts(locale: Locale): SplashTexts {
     index: pick("splash.stage.index"),
     loading: pick("splash.loading"),
     fastLaunch: pick("splash.fastLaunch"),
+    yorhaTitle: pick("splash.yorha.title"),
+    yorhaTagline: pick("splash.yorha.tagline"),
   };
 }
 

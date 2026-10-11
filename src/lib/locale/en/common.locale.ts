@@ -22,6 +22,8 @@ const common = {
   "splash.stage.index": "Anime index",
   "splash.loading": "Loading...",
   "splash.fastLaunch": "Skip splash on startup",
+  "splash.yorha.title": "ILUHAANIME",
+  "splash.yorha.tagline": "You LOSE?! А, не...",
   "db.title": "Database error",
   "db.hint":
     "The app data database cannot be opened. Your media files are safe, only the library data is affected.",
@@ -35,6 +37,7 @@ const common = {
   "fatal.kind.chunk": "Chunk load error",
   "fatal.kind.startup": "Startup error",
   "fatal.kind.global-loop": "Repeated errors",
+  "fatal.yorha.banner": "ERROR // SYSTEM FAILURE",
   "fatal.hint": "The application cannot continue. Reload to restore it.",
   "fatal.details": "Details",
   "fatal.copy": "Copy details",

@@ -12,6 +12,8 @@ describe("fatal texts contract", () => {
     expect(resolveSplashTexts("en").database).toBe("Database");
     expect(resolveSplashTexts("en").spelling).toBe("Spelling");
     expect(resolveSplashTexts("en").index).toBe("Anime index");
+    expect(resolveSplashTexts("en").yorhaTitle).toBe("ILUHAANIME");
+    expect(resolveSplashTexts("en").yorhaTagline).toBe("You LOSE?! А, не...");
   });
 
   it("reads the persisted settings language", () => {
@@ -29,5 +31,10 @@ describe("fatal texts contract", () => {
     expect(resolveFatalLocale()).toBe("en");
     localStorage.setItem("iluha.v1.settings", JSON.stringify({ data: { language: "fr" } }));
     expect(resolveFatalLocale()).toBe("en");
+  });
+
+  it("resolves the yorha pod banner in both languages", () => {
+    expect(resolveFatalTexts("en", "chunk").yorhaBanner).toBe("ERROR // SYSTEM FAILURE");
+    expect(resolveFatalTexts("ru", "chunk").yorhaBanner).toBe("ERROR // SYSTEM FAILURE");
   });
 });

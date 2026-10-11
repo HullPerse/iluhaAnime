@@ -37,6 +37,13 @@ describe("DbScreen", () => {
     expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe("rgb(0, 0, 170)");
   });
 
+  it("uses the dark terminal backdrop for the yorha theme", () => {
+    render(<DbScreen {...props({ themeName: "yorha" })} />);
+    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe(
+      "rgb(31, 27, 24)"
+    );
+  });
+
   it("hides the folder button without a data dir", () => {
     render(<DbScreen {...props({ dataDir: "" })} />);
     expect(screen.queryByRole("button", { name: "Open data folder" })).toBeNull();

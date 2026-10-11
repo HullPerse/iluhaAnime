@@ -116,4 +116,13 @@ describe("FatalScreen", () => {
     expect(screen.getByText("Ошибка загрузки модуля")).toBeDefined();
     expect(screen.getByRole("button", { name: "Перезапустить" })).toBeDefined();
   });
+
+  it("uses the yorha screen for the yorha theme", () => {
+    localStorage.clear();
+    render(<FatalScreen info={baseInfo({ themeName: "yorha" })} {...handlers()} />);
+    expect(screen.getByText("ERROR // SYSTEM FAILURE")).toBeDefined();
+    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe(
+      "rgb(31, 27, 24)"
+    );
+  });
 });

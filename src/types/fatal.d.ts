@@ -1,6 +1,6 @@
 export type FatalKind = "render" | "chunk" | "startup" | "global-loop";
 
-export type FatalVariant = "win95" | "xp" | "win7" | "generic";
+export type FatalVariant = "win95" | "xp" | "win7" | "generic" | "yorha";
 
 export interface FatalContext {
   scope: string;
@@ -21,6 +21,7 @@ export interface FatalInfo {
 
 export interface FatalTexts {
   kindLabel: string;
+  yorhaBanner: string;
   hint: string;
   details: string;
   copy: string;

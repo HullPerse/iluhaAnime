@@ -22,6 +22,8 @@ const common = {
   "splash.stage.index": "Индекс аниме",
   "splash.loading": "Загрузка...",
   "splash.fastLaunch": "Не показывать заставку",
+  "splash.yorha.title": "ILUHAANIME",
+  "splash.yorha.tagline": "You LOSE?! А, не...",
   "db.title": "Ошибка базы данных",
   "db.hint":
     "База данных приложения не открывается. Медиафайлы целы, затронуты только данные библиотеки.",
@@ -35,6 +37,7 @@ const common = {
   "fatal.kind.chunk": "Ошибка загрузки модуля",
   "fatal.kind.startup": "Ошибка запуска",
   "fatal.kind.global-loop": "Повторяющиеся ошибки",
+  "fatal.yorha.banner": "ERROR // SYSTEM FAILURE",
   "fatal.hint": "Приложение не может продолжать работу. Перезагрузите его.",
   "fatal.details": "Подробности",
   "fatal.copy": "Скопировать детали",

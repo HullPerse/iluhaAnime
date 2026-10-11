@@ -24,6 +24,11 @@ const WRAP: Record<FatalVariant, { backgroundColor: string; color: string; fontF
   },
   xp: { backgroundColor: "#003399", color: "#ffffff", fontFamily: "Tahoma, sans-serif" },
   win7: { backgroundColor: "#1b5aa6", color: "#ffffff", fontFamily: '"Segoe UI", sans-serif' },
+  yorha: {
+    backgroundColor: "#1f1b18",
+    color: "#ffffff",
+    fontFamily: '"Perfect DOS VGA 437", monospace',
+  },
   generic: {
     backgroundColor: "var(--color-background, #222222)",
     color: "var(--color-text, #000000)",
@@ -69,7 +74,7 @@ export function DbScreen({
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed inset-0 z-[100] overflow-y-auto"
+      className="fixed inset-0 z-[100] overflow-x-clip overflow-y-auto"
       style={wrap}
     >
       <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-center px-6 py-14">

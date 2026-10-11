@@ -337,6 +337,34 @@
   );
 }
 
+.yorha-glitch {
+  text-shadow:
+    -2px -2px 1px #008000,
+    2px 2px 3px #ff0000;
+}
+
+.yorha-grid {
+  background-size: 5px 5px;
+  background-image:
+    repeating-linear-gradient(0deg, #000000, #000000 2px, transparent 1px, transparent 5px),
+    repeating-linear-gradient(-90deg, #000000, #000000 2px, transparent 1px, transparent 5px);
+  opacity: 0.5;
+}
+
+@keyframes yorha-blink {
+  from,
+  to {
+    color: transparent;
+  }
+  50% {
+    color: inherit;
+  }
+}
+
+.yorha-cursor {
+  animation: yorha-blink 1s step-end infinite;
+}
+
 *:focus-visible {
   outline: 1px dotted currentColor;
   outline-offset: -3px;
@@ -711,7 +739,22 @@ html[data-theme-titlebar-art="on"] .ui-titlebar {
     linear-gradient(to bottom, var(--titlebar-from), var(--titlebar-to));
 }
 
+/* YoRHa theme: canon menu details measured from game screenshots.
+   Selection is the dark menu bar with parchment text; titlebars track wide;
+   the boot grid is finer than the shared coarse grid. */
 html[data-theme="yorha"] ::selection {
-  background: var(--color-destructive);
-  color: var(--color-primary);
+  background: #57544a;
+  color: #dad4bb;
+}
+
+html[data-theme="yorha"] .ui-titlebar {
+  letter-spacing: 0.15em;
+}
+
+html[data-theme="yorha"] .yorha-grid {
+  background-size: 3px 3px;
+  background-image:
+    repeating-linear-gradient(0deg, #000000, #000000 1px, transparent 1px, transparent 3px),
+    repeating-linear-gradient(-90deg, #000000, #000000 1px, transparent 1px, transparent 3px);
+  opacity: 0.25;
 }

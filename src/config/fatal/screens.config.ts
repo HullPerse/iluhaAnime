@@ -8,5 +8,12 @@ const HISTORICAL_VARIANTS: Record<string, FatalVariant> = {
 
 export function resolveFatalVariant(themeName: string, safe: boolean): FatalVariant {
   if (safe) return "win95";
+  if (themeName === "yorha") return "yorha";
   return HISTORICAL_VARIANTS[themeName] ?? "generic";
+}
+
+export function resolveSplashVariant(themeName: string, safe: boolean): FatalVariant {
+  if (safe) return "win95";
+  if (themeName === "yorha") return "yorha";
+  return resolveFatalVariant(themeName, false);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveFatalVariant } from "@/config/fatal/screens.config";
+import { resolveFatalVariant, resolveSplashVariant } from "@/config/fatal/screens.config";
 
 describe("fatal screens mapping", () => {
   it("maps windows themes to their historical screens", () => {
@@ -19,5 +19,21 @@ describe("fatal screens mapping", () => {
   it("forces win95 in safe mode regardless of theme", () => {
     expect(resolveFatalVariant("xp", true)).toBe("win95");
     expect(resolveFatalVariant("custom-123", true)).toBe("win95");
+  });
+
+  it("maps yorha to its own splash screen", () => {
+    expect(resolveSplashVariant("yorha", false)).toBe("yorha");
+    expect(resolveSplashVariant("win95", false)).toBe("win95");
+    expect(resolveSplashVariant("xp", false)).toBe("xp");
+    expect(resolveSplashVariant("win7", false)).toBe("win7");
+    expect(resolveSplashVariant("gruvbox-dark", false)).toBe("generic");
+    expect(resolveSplashVariant("yorha", true)).toBe("win95");
+  });
+
+  it("maps yorha to the yorha splash and fatal screens", () => {
+    expect(resolveSplashVariant("yorha", false)).toBe("yorha");
+    expect(resolveFatalVariant("yorha", false)).toBe("yorha");
+    expect(resolveSplashVariant("yorha", true)).toBe("win95");
+    expect(resolveFatalVariant("yorha", true)).toBe("win95");
   });
 });

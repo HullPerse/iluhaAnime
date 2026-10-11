@@ -11,6 +11,7 @@ import { formatFatalCopy } from "./shared.fatal";
 import { Win7Bsod } from "./win7.fatal";
 import { Win95Bsod } from "./win95.fatal";
 import { XpBsod } from "./xp.fatal";
+import { YorhaBsod } from "./yorha.fatal";
 
 export interface FatalScreenProps {
   info: FatalInfo;
@@ -79,5 +80,6 @@ export function FatalScreen({
   if (variant === "win95") return <Win95Bsod {...shared} />;
   if (variant === "xp") return <XpBsod {...shared} />;
   if (variant === "win7") return <Win7Bsod {...shared} />;
+  if (variant === "yorha") return <YorhaBsod {...shared} />;
   return <GenericBsod {...shared} />;
 }

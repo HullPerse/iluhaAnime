@@ -199,7 +199,7 @@ export interface SearchField {
   deferredQuery: string;
   history: string[];
   removeQuery: (query: string) => void;
-  recordSuggestion: (value: string) => void;
+  recordSuggestion: (value: string, reason?: CorrectionReason) => void;
   recordSuggestionIgnored: (value: string) => void;
   spellCheck: SpellCheck | null;
   spellCorrections: string[];

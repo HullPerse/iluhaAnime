@@ -54,6 +54,31 @@ const SOURCES = new Set(["erai-raws", "rutracker", "nyaa", "nekobt", "sukebei"])
 
 const TOKEN_RE = /(\S+?)(>=|<=|!=|=|>|<)(\S+)/;
 
+function splitTagToken(raw: string): { key: string; op: string; value: string } | null {
+  const tokenMatch = TOKEN_RE.exec(raw);
+  if (!tokenMatch) return null;
+  const keyRaw = tokenMatch[1] ?? "";
+  const op = tokenMatch[2] ?? "";
+  const valueRaw = tokenMatch[3] ?? "";
+  const value =
+    valueRaw.startsWith('"') && valueRaw.endsWith('"') ? valueRaw.slice(1, -1) : valueRaw;
+  const key = keyRaw.toLowerCase();
+  if (!key || !value) return null;
+  return { key, op, value };
+}
+
+export function findInvalidTorrentTag(query: string): { key: string; raw: string } | null {
+  const tokenRe = /"[^"]*"|\S+/g;
+  let match: RegExpExecArray | null;
+  while ((match = tokenRe.exec(query)) !== null) {
+    const raw = match[0];
+    const split = splitTagToken(raw);
+    if (!split || !KNOWN_TAG_KEYS.has(split.key)) continue;
+    if (!validTag(split.key, split.op, split.value)) return { key: split.key, raw };
+  }
+  return null;
+}
+
 function parseSeeds(value: string): number | undefined {
   if (!/^\d+$/.test(value)) return undefined;
   const num = Number(value);
@@ -81,6 +106,8 @@ function validTag(key: string, op: string, value: string): TorrentTagKey | null 
   if (!validate || !validate(op, value)) return null;
   return key as TorrentTagKey;
 }
+
+const KNOWN_TAG_KEYS = new Set(Object.keys(TAG_VALIDATORS));
 
 export function normalizeTagValue(tag: TorrentTag): string {
   if (tag.key === "quality") return QUALITIES[tag.value.toLowerCase()] ?? tag.value;
@@ -142,23 +169,22 @@ export function parseTorrentTags(query: string): ParsedTorrentTags {
   let match: RegExpExecArray | null;
   while ((match = tokenRe.exec(query)) !== null) {
     const raw = match[0];
-    const tokenMatch = TOKEN_RE.exec(raw);
-    if (tokenMatch) {
-      const [, keyRaw, op, valueRaw] = tokenMatch;
-      const value =
-        valueRaw.startsWith('"') && valueRaw.endsWith('"') ? valueRaw.slice(1, -1) : valueRaw;
-      const key = validTag(keyRaw.toLowerCase(), op, value);
-      if (key && value) {
-        tags.push({
-          key,
-          op,
-          value,
-          raw,
-          start: match.index,
-          end: match.index + raw.length,
-        });
-        continue;
-      }
+    const split = splitTagToken(raw);
+    if (!split) {
+      kept.push(raw);
+      continue;
+    }
+    const key = validTag(split.key, split.op, split.value);
+    if (key && split.value) {
+      tags.push({
+        end: match.index + raw.length,
+        key,
+        op: split.op,
+        raw,
+        start: match.index,
+        value: split.value,
+      });
+      continue;
     }
     kept.push(raw);
   }

@@ -15,6 +15,7 @@ import {
 } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { SearchField, SearchFieldParams } from "@/types/collection";
+import type { CorrectionReason } from "@/types/search";
 
 export function useSearchField(params: SearchFieldParams): SearchField {
   const {
@@ -65,6 +66,13 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     limit,
   });
 
+  const learningScope = historyScope ?? scope;
+
+  const recordSelect = useCallback(
+    (value: string, reason?: CorrectionReason) => recordSuggestion(value, learningScope, reason),
+    [learningScope]
+  );
+
   const spellCheck = useSpellCheck(query, { history, animeIndex, extraValues });
   const spellCorrections = useSpellCorrections(query, { history, animeIndex, extraValues });
   const applySpellCorrection = useCallback(
@@ -73,11 +81,14 @@ export function useSearchField(params: SearchFieldParams): SearchField {
       const span = spanIndex == null ? undefined : spellCheck.spans?.[spanIndex];
       if (!span) {
         setQuery(spellCheck.correction);
+        recordSelect(spellCheck.correction, spellCheck.reason);
         return;
       }
-      setQuery(query.slice(0, span.start) + span.corrected + query.slice(span.end));
+      const next = query.slice(0, span.start) + span.corrected + query.slice(span.end);
+      setQuery(next);
+      recordSelect(next, spellCheck.reason);
     },
-    [spellCheck, setQuery, query]
+    [spellCheck, setQuery, query, recordSelect]
   );
   const addWordToDictionary = useCallback(
     (spanIndex?: number) => {
@@ -91,20 +102,14 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     [spellCheck]
   );
 
-  const learningScope = historyScope ?? scope;
-
-  const recordSelect = useCallback(
-    (value: string) => recordSuggestion(value, learningScope),
-    [learningScope]
-  );
   const applySpellCorrectionAt = useCallback(
     (correction: string) => {
       const trimmed = correction.trim();
       if (!trimmed) return;
-      recordSelect(trimmed);
+      recordSelect(trimmed, trimmed === spellCheck?.correction ? spellCheck.reason : undefined);
       setQuery(trimmed);
     },
-    [recordSelect, setQuery]
+    [recordSelect, setQuery, spellCheck]
   );
   const recordIgnore = useCallback(
     (value: string) => recordSuggestionIgnored(value, learningScope),

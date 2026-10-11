@@ -8,6 +8,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collection/search.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
+import { resolveTitleQuery } from "@/lib/search/resolve.utils";
 import { operatorTextLength } from "@/lib/search/score.utils";
 import type {
   CollectionDataResult,
@@ -66,7 +67,8 @@ async function fetchCollectionData(): Promise<CollectionDataState> {
 }
 
 export function useCollectionSearch(query: string, allItems: CollectionItem[]): CollectionItem[] {
-  const intent = parseIntent(query);
+  const resolved = resolveTitleQuery(query)[0]?.remainder ?? query;
+  const intent = parseIntent(resolved);
   const trimmed = intent.cleanQuery.trim();
   const index = useMemo(() => buildCollectionSearchIndex(allItems), [allItems]);
   return operatorTextLength(trimmed) < 3 ? allItems : searchCollectionIndex(index, trimmed);

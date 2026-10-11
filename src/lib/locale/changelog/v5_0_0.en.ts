@@ -145,6 +145,8 @@ const changelog500 = {
     "Did-you-mean suggestions now highlight what changed in the correction",
   "changelog.5_0_0.changed.search.did_you_mean_phrase":
     "Did-you-mean understands whole titles: glued and split words get fixed, keyboard slips and romaji variants rank higher, pasted release names are cleaned before the check, and a confident title match highlights the full correction",
+  "changelog.5_0_0.changed.search.did_you_mean_reason":
+    "Did-you-mean tells seasons apart from typos: fan abbreviations expand to the official title, season and episode markers survive spelling fixes, and broken quality tags are dropped from the suggestion",
   "changelog.5_0_0.changed.search.spell_quickfix":
     "Spell quick-fix card in search fields: the typo popup shows the correction with buttons, Tab applies it while typing and Ctrl+Tab saves the word to the personal dictionary",
   "changelog.5_0_0.changed.search.spell_menu":

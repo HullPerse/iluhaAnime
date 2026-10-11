@@ -19,7 +19,7 @@ import {
   resolveInitialSource,
   serverSideSortSource,
 } from "@/lib/search/route.utils";
-import { suggestSpelling } from "@/lib/search/suggestions.utils";
+import { suggestSpellingWithReason } from "@/lib/search/resolve.utils";
 import { parseTorrentTags, torrentTagsToFilters } from "@/lib/search/torrentTags.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
@@ -249,11 +249,13 @@ export function useSearchQuery(): SearchQueryController {
   const searchHistory = useCell(searchAtoms.history);
   const didYouMean = useMemo(() => {
     if (!submittedQuery || isLoading || (data?.length ?? 0) > 0) return null;
-    return suggestSpelling(submittedQuery, {
-      history: searchHistory,
-      animeIndex,
-      symSpell: searchSymSpellEnabled,
-    });
+    return (
+      suggestSpellingWithReason(submittedQuery, {
+        animeIndex,
+        history: searchHistory,
+        symSpell: searchSymSpellEnabled,
+      })?.correction ?? null
+    );
   }, [submittedQuery, isLoading, data, searchHistory, animeIndex, searchSymSpellEnabled]);
   const applySubmitQuery = useCallback((query: string) => {
     const { cleanQuery, tags } = parseTorrentTags(query);

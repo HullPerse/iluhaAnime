@@ -89,6 +89,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.search.pacing", "search"),
       entry("changelog.5_0_0.changed.search.did_you_mean_highlight", "search"),
       entry("changelog.5_0_0.changed.search.did_you_mean_phrase", "search"),
+      entry("changelog.5_0_0.changed.search.did_you_mean_reason", "search"),
       entry("changelog.5_0_0.changed.search.spell_quickfix", "search"),
       entry("changelog.5_0_0.changed.search.spell_menu", "search"),
       entry("changelog.5_0_0.changed.app.state_engine", "app"),

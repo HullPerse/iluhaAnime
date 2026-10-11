@@ -2,6 +2,7 @@ import { collectionApi } from "@/api/collection.api";
 import type { UnifiedIndexEntryInput } from "@/api/collection.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { buildTypedTitles } from "@/lib/search/title.utils";
 import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
@@ -9,6 +10,7 @@ import { settingsAtoms } from "@/store/settings.store";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 import type {
+  CorrectionReason,
   SearchAnimeSuggestion,
   SearchFilters,
   SearchPersistedState,
@@ -54,7 +56,8 @@ function updateStat(
   stats: Record<string, SearchQueryStat>,
   value: string,
   selected = false,
-  ignored = false
+  ignored = false,
+  reason?: CorrectionReason
 ): Record<string, SearchQueryStat> {
   const key = normalize(value);
   if (!key) return stats;
@@ -65,6 +68,7 @@ function updateStat(
     [key]: {
       count: (current?.count ?? 0) + (selected || ignored ? 0 : 1),
       lastIgnoredAt: ignored ? Date.now() : current?.lastIgnoredAt,
+      lastReason: reason ?? current?.lastReason,
       lastUsedAt: Date.now(),
       selectedCount: (current?.selectedCount ?? 0) + (selected ? 1 : 0),
       ignoredCount: (current?.ignoredCount ?? 0) + (ignored ? 1 : 0),
@@ -113,6 +117,7 @@ function animeIndexSyncKey(
   for (const anime of animeIndex) {
     mix(`#${anime.id}|${anime.title}|${anime.status}|${anime.score ?? 0}|${anime.favourite ? 1 : 0}`);
     for (const alias of anime.aliases) mix(`@${alias}`);
+    for (const typed of anime.typedTitles ?? []) mix(`:${typed.kind}=${typed.title}`);
   }
   return `${animeIndex.length}:${hash}`;
 }
@@ -160,6 +165,13 @@ function buildAnimeIndex(
         seasonYear: media.season_year,
         status: entry.list_status,
         title: media.title,
+        typedTitles: buildTypedTitles(media.id, {
+          title: media.title,
+          title_english: media.title_english,
+          title_native: media.title_native,
+          title_romaji: media.title_romaji,
+          titles: media.titles,
+        }),
       });
     }
   }
@@ -167,9 +179,10 @@ function buildAnimeIndex(
   for (const favourite of favourites) {
     if (entries.has(favourite.id)) continue;
     const romaji = favourite.title.romaji;
-    const title = favourite.title.english ?? romaji;
+    const english = favourite.title.english;
+    const title = english ?? romaji;
     entries.set(favourite.id, {
-      aliases: [romaji, favourite.title.english ?? ""].filter((alias) => alias && alias !== title),
+      aliases: [romaji, english ?? ""].filter((alias) => alias && alias !== title),
       favourite: true,
       id: favourite.id,
       score: favourite.mean_score,
@@ -177,6 +190,12 @@ function buildAnimeIndex(
       seasonYear: null,
       status: "FAVOURITE",
       title,
+      typedTitles: buildTypedTitles(favourite.id, {
+        title,
+        title_english: english,
+        title_romaji: romaji,
+        titles: [romaji, favourite.title.english ?? ""],
+      }),
     });
   }
 
@@ -298,7 +317,7 @@ export interface SearchSignalStore {
     favourites: FavouriteAnime[],
     profileId: number | null
   ) => void;
-  recordSuggestion: (value: string, scope?: string) => void;
+  recordSuggestion: (value: string, scope?: string, reason?: CorrectionReason) => void;
   recordSuggestionIgnored: (value: string, scope?: string) => void;
   removeQuery: (query: string, scope?: string) => void;
   addSpellWord: (word: string) => void;
@@ -424,9 +443,9 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
       );
       }
     },
-    recordSuggestion: (value, scope = "global") => {
+    recordSuggestion: (value, scope = "global", reason?: CorrectionReason) => {
       if (settingsAtoms.autocompleteMode.get() === "off") return;
-      atoms.suggestionStats.set(updateStat(atoms.suggestionStats.get(), value, true));
+      atoms.suggestionStats.set(updateStat(atoms.suggestionStats.get(), value, true, false, reason));
       collectionApi
         .recordUnifiedIndexAction("select", `history:${scope}:${normalize(value)}`)
         .catch((error) => reportBackgroundError("learning.select", error));

@@ -1,3 +1,4 @@
+import { mockInvoke } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -11,9 +12,8 @@ import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 import type { AniMedia } from "@/types/anilist";
 import type { SearchFilters } from "@/types/search";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

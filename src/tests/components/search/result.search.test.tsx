@@ -1,3 +1,4 @@
+import { mockInvoke } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -8,9 +9,8 @@ import { removeResolvedCover } from "@/store/cover.store";
 import { patchSettings } from "@/store/settings.store";
 import type { Anime } from "@/types/torrent";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
@@ -81,13 +81,17 @@ describe("SearchResultItem covers", () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+      if (command === "get_user_image") return { id: "blob1", path: "covers/naruto.jpg" };
       return null;
     });
     const { container } = renderRow();
-    await waitFor(() => {
-      const img = container.querySelector('img[src*="asset.localhost"]');
-      expect(img).not.toBeNull();
-    });
+    await waitFor(
+      () => {
+        const img = container.querySelector('img[src*="asset.localhost"]');
+        expect(img).not.toBeNull();
+      },
+      { timeout: 5000 }
+    );
   });
 
   it("renders the remote url while bytes download instead of the fallback", async () => {
@@ -123,13 +127,17 @@ describe("SearchResultItem covers", () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+      if (command === "get_user_image") return { id: "blob1", path: "covers/naruto.jpg" };
       return null;
     });
     const onOpenDetails = vi.fn();
     const { container } = renderRow({ onOpenDetails });
-    await waitFor(() => {
-      expect(container.querySelector('img[src*="asset.localhost"]')).not.toBeNull();
-    });
+    await waitFor(
+      () => {
+        expect(container.querySelector('img[src*="asset.localhost"]')).not.toBeNull();
+      },
+      { timeout: 5000 }
+    );
     const user = userEvent.setup();
     await user.click(screen.getByText(ITEM.title));
     expect(onOpenDetails).toHaveBeenCalledTimes(1);

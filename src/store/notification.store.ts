@@ -352,6 +352,18 @@ export const clearAllNotifications = notifications.clearAll;
 export const markAllNotificationsRead = notifications.markAllRead;
 export const markNotificationRead = notifications.markRead;
 
+/**
+ * Empties the notification store including the id counter. Test setup calls
+ * this before every test so dismissed signatures and ids cannot leak
+ * between files when the suite shares one module registry per worker.
+ */
+export function resetNotificationAtoms(): void {
+  notificationAtoms.items.set([]);
+  notificationAtoms.dismissed.set([]);
+  notificationAtoms.unreadCount.set(0);
+  nextNotificationId = 1;
+}
+
 if (
   typeof window !== "undefined" &&
   typeof window.addEventListener === "function" &&

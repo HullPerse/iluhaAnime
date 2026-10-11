@@ -1,3 +1,4 @@
+import { mockInvoke as invokeMock } from "../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -8,10 +9,9 @@ import { useEnsureAnimeIndex } from "@/hooks/search/animeIndex.hook";
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
 import { searchAtoms } from "@/store/search.store";
 
-const invokeMock = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
+  invoke: invokeMock,
 }));
 
 let client: QueryClient;

@@ -1,9 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { mockInvoke } from "../mocks";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.resolve(null),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
+
+beforeEach(() => {
+  mockInvoke.mockResolvedValue(null);
+});
 
 import { createMediaSignalStore } from "@/store/media.store";
 import { createPlayerSignalStore } from "@/store/player.store";

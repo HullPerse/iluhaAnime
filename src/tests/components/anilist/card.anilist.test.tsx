@@ -1,3 +1,4 @@
+import { mockInvoke } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,8 +9,9 @@ import { patchSettings } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { AniMedia } from "@/types/anilist";
 
+
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn().mockResolvedValue(null),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
@@ -84,6 +86,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  mockInvoke.mockResolvedValue(null);
   patchSettings({ language: "en" });
 });
 

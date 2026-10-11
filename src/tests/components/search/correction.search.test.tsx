@@ -1,3 +1,4 @@
+import { mockInvoke } from "../../mocks";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,9 +7,8 @@ import type { TorrentCoverState } from "@/hooks/search/cover.hook";
 import CoverCorrectionModal from "@/routes/components/search/default/correction.search";
 import { coverCorrectionsAtoms, removeCoverOverride } from "@/store/cover.store";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

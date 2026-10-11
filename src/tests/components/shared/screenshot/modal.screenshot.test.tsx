@@ -1,3 +1,4 @@
+import { mockInvoke, mockDialogOpen as mockOpen, mockWriteImage, mockOpenPath } from "../../../mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,25 +8,21 @@ import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SavedScreenshot, ScreenshotCapture } from "@/types/screenshot";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-const mockOpen = vi.fn();
 vi.mock("@tauri-apps/plugin-dialog", () => ({
-  open: (...args: unknown[]) => mockOpen(...args),
+  open: mockOpen,
 }));
 
-const mockWriteImage = vi.fn();
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
-  writeImage: (...args: unknown[]) => mockWriteImage(...args),
+  writeImage: mockWriteImage,
 }));
 
-const mockOpenPath = vi.fn();
 vi.mock("@tauri-apps/plugin-opener", () => ({
-  openPath: (...args: unknown[]) => mockOpenPath(...args),
+  openPath: mockOpenPath,
 }));
 
 const CAPTURE: ScreenshotCapture = {

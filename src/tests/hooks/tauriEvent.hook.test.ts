@@ -1,3 +1,4 @@
+import { mockListen } from "../mocks";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -44,15 +45,18 @@ const tauri = vi.hoisted(() => {
   return { listen, calls, last, reset };
 });
 
+
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: (event: string, handler: (event: TauriEvent) => void): Promise<Unlisten> =>
-    tauri.listen(event, handler),
+  listen: mockListen,
 }));
 
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 
 beforeEach(() => {
   tauri.reset();
+  mockListen.mockImplementation((event: string, handler: (event: TauriEvent) => void) =>
+    tauri.listen(event, handler)
+  );
 });
 
 describe("useTauriEvent", () => {

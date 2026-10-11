@@ -1,9 +1,9 @@
+import { mockInvoke } from "../mocks";
 import { describe, expect, it, vi, beforeAll } from "vitest";
 
-const mockInvoke = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

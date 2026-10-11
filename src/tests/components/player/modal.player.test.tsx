@@ -1,7 +1,8 @@
+import { mockInvoke } from "../../mocks";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke }));
 
 import Select from "@/components/ui/select.component";
 import PlayerModal from "@/routes/components/player/media/modal.player";

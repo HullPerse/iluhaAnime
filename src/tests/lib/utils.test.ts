@@ -1,3 +1,4 @@
+import { mockInvoke } from "../mocks";
 import type { KeyboardEvent } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -97,7 +98,9 @@ import { formatClock, formatElapsed, formatETA } from "@/lib/utils/time.utils";
 import type { CollectionItem } from "@/types/collection";
 import type { DitherEffectOptions } from "@/types/dither";
 
+
 vi.mock("@tauri-apps/api/core", () => ({
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

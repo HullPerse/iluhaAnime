@@ -1,14 +1,14 @@
+import { mockInvoke as invokeMock, mockDialogOpen } from "../../mocks";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
+  invoke: invokeMock,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({
-  open: () => Promise.resolve(null),
+  open: mockDialogOpen,
 }));
 
 import { fetchVideoCard, resetCardCache } from "@/lib/player/cardCache.utils";
@@ -38,6 +38,7 @@ beforeEach(() => {
       return Promise.resolve({ path: "thumb.jpg", duration: 10, size: 100 });
     return Promise.resolve(undefined);
   });
+  mockDialogOpen.mockResolvedValue(null);
   patchSettings({ language: "en" });
 });
 

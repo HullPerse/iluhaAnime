@@ -1,3 +1,4 @@
+import { mockInvoke as invokeMock } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,9 +9,8 @@ import { patchSettings } from "@/store/settings.store";
 import type { AniListCollection, AniListEntry, AniMedia, AniUser } from "@/types/anilist";
 import type { CollectionItem } from "@/types/collection";
 
-const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
+  invoke: invokeMock,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

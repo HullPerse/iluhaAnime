@@ -1,3 +1,4 @@
+import { mockInvoke as invokeMock } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -7,9 +8,8 @@ import {
   tauriTransport,
 } from "@/api/transport.api";
 
-const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
+  invoke: invokeMock,
 }));
 
 beforeEach(() => {

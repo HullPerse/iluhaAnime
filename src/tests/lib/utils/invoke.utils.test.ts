@@ -1,20 +1,16 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { mockInvoke } from "../../mocks";
+import { describe, expect, it } from "vitest";
 import * as z from "zod/mini";
 
 import { err, ok } from "@/lib/utils/result.utils";
+import { invokeValidated } from "@/lib/utils/invoke.utils";
 
 const StatusSchema = z.object({ id: z.number().check(z.gt(0)), name: z.string() });
 
 async function invokeWith(impl: (command: string, args?: Record<string, unknown>) => unknown) {
-  vi.resetModules();
-  vi.doMock("@tauri-apps/api/core", () => ({ invoke: impl }));
-  const { invokeValidated: validated } = await import("@/lib/utils/invoke.utils");
-  return validated;
+  mockInvoke.mockImplementation(impl);
+  return invokeValidated;
 }
-
-afterEach(() => {
-  vi.doUnmock("@tauri-apps/api/core");
-});
 
 describe("invokeValidated contract", () => {
   it("returns the parsed payload when the shape matches", async () => {

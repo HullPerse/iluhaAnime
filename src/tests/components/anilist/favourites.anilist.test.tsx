@@ -1,3 +1,4 @@
+import { mockInvoke } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -7,36 +8,9 @@ import AniListFavouritesModal from "@/routes/components/anilist/favourites.anili
 import { patchSettings } from "@/store/settings.store";
 import type { FavouriteAnime, FavouritePeople } from "@/types/anilist";
 
+
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn((command: string) => {
-    if (command === "get_character_detail") {
-      return Promise.resolve({
-        id: 11,
-        name: "Char One",
-        native_name: null,
-        image: null,
-        favourites: null,
-        site_url: null,
-        media: [],
-      });
-    }
-    if (command === "get_staff_characters") {
-      return Promise.resolve({
-        id: 22,
-        name: "Staff One",
-        native_name: null,
-        image: null,
-        about: null,
-        favourites: null,
-        site_url: null,
-        character_count: 0,
-        media_count: 0,
-        characters: [],
-        media: [],
-      });
-    }
-    return Promise.resolve(null);
-  }),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
@@ -84,6 +58,35 @@ function renderOpen(overrides: Partial<Parameters<typeof AniListFavouritesModal>
 afterEach(() => cleanup());
 
 beforeEach(() => {
+  mockInvoke.mockImplementation((command: string) => {
+    if (command === "get_character_detail") {
+      return Promise.resolve({
+        id: 11,
+        name: "Char One",
+        native_name: null,
+        image: null,
+        favourites: null,
+        site_url: null,
+        media: [],
+      });
+    }
+    if (command === "get_staff_characters") {
+      return Promise.resolve({
+        id: 22,
+        name: "Staff One",
+        native_name: null,
+        image: null,
+        about: null,
+        favourites: null,
+        site_url: null,
+        character_count: 0,
+        media_count: 0,
+        characters: [],
+        media: [],
+      });
+    }
+    return Promise.resolve(null);
+  });
   patchSettings({ language: "en" });
 });
 

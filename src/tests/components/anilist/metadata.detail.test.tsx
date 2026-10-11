@@ -1,3 +1,4 @@
+import { mockInvoke } from "../../mocks";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -5,9 +6,8 @@ import AniListMetadata from "@/routes/components/anilist/detail/metadata.detail"
 import { patchSettings } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

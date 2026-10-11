@@ -1,3 +1,4 @@
+import { mockInvoke as invokeSpy, mockOpenUrl as openUrlSpy, mockWriteText as writeTextSpy } from "../mocks";
 import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -36,23 +37,20 @@ import { patchSettings } from "@/store/settings.store";
 import type { TFunc, TranslationVariables } from "@/types/i18n";
 import type { Anime, TorrentCheckResult, TorrentInfo, TorrentTreeNode } from "@/types/torrent";
 
-const invokeSpy = vi.fn();
-const writeTextSpy = vi.fn();
-const openUrlSpy = vi.fn();
 const prepareTorrentDownloadSpy = vi.fn();
 const prepareTorrentDownloadFromBytesSpy = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeSpy(...args),
+  invoke: invokeSpy,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
-  writeText: (...args: unknown[]) => writeTextSpy(...args),
+  writeText: writeTextSpy,
 }));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: (...args: unknown[]) => openUrlSpy(...args),
+  openUrl: openUrlSpy,
 }));
 
 vi.mock("@/store/download.store", async (importOriginal) => {

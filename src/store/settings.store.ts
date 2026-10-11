@@ -492,6 +492,23 @@ export function subscribeSettings(listener: () => void): () => void {
   return settings.subscribeAll(listener);
 }
 
+const INITIAL_SETTINGS_SNAPSHOT: SettingsData = getSettingsSnapshot();
+
+/**
+ * Restores every settings atom to the worker-start snapshot without running
+ * patch side effects (no UI mutations, no window-chrome invoke, no tmdb
+ * drain). Test setup calls this before every test so files cannot leak
+ * flags like `torrentCoversEnabled` into each other when the suite shares
+ * one module registry per worker.
+ */
+export function resetSettingsAtoms(): void {
+  const atoms = settingsAtoms as unknown as Record<string, Cell<unknown>>;
+  const source = INITIAL_SETTINGS_SNAPSHOT as unknown as Record<string, unknown>;
+  for (const key of Object.keys(source)) {
+    atoms[key].set(source[key]);
+  }
+}
+
 if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
   window.addEventListener("beforeunload", () => settingsPersistor.flush());
 }

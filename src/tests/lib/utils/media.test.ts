@@ -1,20 +1,16 @@
+import { mockOpenPath as openPathSpy } from "../../mocks";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { joinMediaPath, openFileInPlayer } from "@/lib/utils/media.utils";
 
-const openPathSpy = vi.fn();
 const showErrorSpy = vi.fn();
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
-  openPath: (...args: unknown[]) => openPathSpy(...args),
+  openPath: openPathSpy,
 }));
 
 vi.mock("@/lib/utils/notification.utils", () => ({
   showError: (...args: unknown[]) => showErrorSpy(...args),
-}));
-
-vi.mock("@/store/settings.store", () => ({
-  settingsAtoms: { language: { get: () => "en" } },
 }));
 
 beforeEach(() => {

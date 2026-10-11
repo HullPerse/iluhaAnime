@@ -1,3 +1,4 @@
+import { mockInvoke, mockDialogOpen as mockOpenDialog } from "../../../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -9,15 +10,13 @@ import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/userimage";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-const mockOpenDialog = vi.fn();
 vi.mock("@tauri-apps/plugin-dialog", () => ({
-  open: (...args: unknown[]) => mockOpenDialog(...args),
+  open: mockOpenDialog,
 }));
 
 vi.mock("@/components/shared/dither.component", () => {

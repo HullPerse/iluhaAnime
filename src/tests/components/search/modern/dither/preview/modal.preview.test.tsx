@@ -1,3 +1,4 @@
+import { mockInvoke } from "../../../../../mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, type Ref } from "react";
@@ -9,9 +10,8 @@ import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
 import type { UserImage, UserImageFile } from "@/types/userimage";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

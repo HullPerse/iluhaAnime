@@ -1,3 +1,4 @@
+import { mockInvoke } from "../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -5,9 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useWallpaperImage } from "@/hooks/wallpaper.hook";
 import { patchSettings } from "@/store/settings.store";
 
-const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

@@ -1,21 +1,16 @@
+import { mockInvoke, mockListen } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 
-const mockInvoke = vi.fn();
 const listeners = new Map<string, (event: { payload: unknown }) => void>();
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: (event: string, handler: (event: { payload: unknown }) => void) => {
-    listeners.set(event, handler);
-    return Promise.resolve(() => {
-      listeners.delete(event);
-    });
-  },
+  listen: mockListen,
 }));
 
 import { createUpscaleSignalStore, type UpscaleSignalStore } from "@/store/upscale.store";
@@ -44,6 +39,14 @@ beforeEach(() => {
   mockInvoke.mockReset();
   mockInvoke.mockResolvedValue(undefined);
   listeners.clear();
+  mockListen.mockImplementation(
+    (event: string, handler: (event: { payload: unknown }) => void) => {
+      listeners.set(event, handler);
+      return Promise.resolve(() => {
+        listeners.delete(event);
+      });
+    }
+  );
 });
 
 describe("upscale queue", () => {

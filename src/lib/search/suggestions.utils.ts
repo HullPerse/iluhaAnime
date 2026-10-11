@@ -105,6 +105,17 @@ const SYM_SPELL_LRU_MAX = 3;
 const symSpellByFingerprint = new Map<string, LazySpellIndex>();
 const animeFingerprintCache = new WeakMap<SearchAnimeSuggestion[], string>();
 
+/**
+ * Clears the shared SymSpell index pool. The pool is keyed by title
+ * fingerprint, so without a reset a previous test file can leave a `ready`
+ * index behind and a later file's prewarm path silently no-ops (nothing to
+ * persist). Test setup calls this before every test, mirroring per-file
+ * isolation.
+ */
+export function resetSymSpellCache(): void {
+  symSpellByFingerprint.clear();
+}
+
 // Hashes only the titles the dictionary is actually built from, so the
 // fingerprint cannot invalidate on alias edits that never reach the index.
 function animeTitlesFingerprint(animeIndex: SearchAnimeSuggestion[] | undefined): string {

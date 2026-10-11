@@ -1,3 +1,4 @@
+import { mockInvoke as invokeMock } from "../mocks";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -6,9 +7,8 @@ import { useDiscoveryQueue, useRandomDiscovery } from "@/hooks/anilist/discovery
 import { patchSettings } from "@/store/settings.store";
 import type { AniListFilters, AniMedia } from "@/types/anilist";
 
-const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
+  invoke: invokeMock,
 }));
 
 function makeMedia(id: number, title: string): AniMedia {

@@ -1,17 +1,14 @@
+import { mockInvoke as invokeMock, mockListen as listenMock, mockDialogOpen } from "../mocks";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { invokeMock, listenMock } = vi.hoisted(() => ({
-  invokeMock: vi.fn(),
-  listenMock: vi.fn(),
-}));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
+  invoke: invokeMock,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: (...args: unknown[]) => listenMock(...args),
+  listen: listenMock,
 }));
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
@@ -20,7 +17,7 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({
-  open: () => Promise.resolve(null),
+  open: mockDialogOpen,
 }));
 
 import PlayerComponent from "@/routes/components/player/player.component";
@@ -45,6 +42,7 @@ beforeEach(() => {
   invokeMock.mockResolvedValue(undefined);
   listenMock.mockReset();
   listenMock.mockResolvedValue(() => undefined);
+  mockDialogOpen.mockResolvedValue(null);
   patchSettings({ language: "en" });
   patchPlayerSettings({ ...DEFAULT_PLAYER_SETTINGS });
   vi.useFakeTimers();

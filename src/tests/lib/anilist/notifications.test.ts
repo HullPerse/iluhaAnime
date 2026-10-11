@@ -1,3 +1,4 @@
+import { mockInvoke } from "../../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
@@ -23,8 +24,9 @@ vi.mock("@/api/anilist.api", () => ({
   },
 }));
 
+
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.resolve(),
+  invoke: mockInvoke,
 }));
 
 const t = ((key: string) => key) as TFunc;

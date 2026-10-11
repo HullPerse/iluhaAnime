@@ -1,6 +1,6 @@
+import { mockInvoke as invokeMock } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const invokeMock = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (command: string, args?: Record<string, unknown>) => invokeMock(command, args),

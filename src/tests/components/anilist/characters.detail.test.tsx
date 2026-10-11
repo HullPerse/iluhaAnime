@@ -1,3 +1,4 @@
+import { mockInvoke as invokeMock } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,9 +8,8 @@ import AniListCharactersPanel from "@/routes/components/anilist/detail/character
 import { patchSettings } from "@/store/settings.store";
 import type { AniCharacterEdge } from "@/types/anilist";
 
-const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
+  invoke: invokeMock,
 }));
 
 function edge(id: number, name: string): AniCharacterEdge {

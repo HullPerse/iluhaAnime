@@ -1,3 +1,4 @@
+import { mockInvoke, mockOpenPath } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,13 +8,14 @@ import { TorrentHeader } from "@/routes/components/torrent/sections/header.secti
 import { patchSettings } from "@/store/settings.store";
 import type { TorrentInfo } from "@/types/torrent";
 
+
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(() => Promise.resolve(null)),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
-  openPath: vi.fn(),
+  openPath: mockOpenPath,
 }));
 
 const SEQUENTIAL_NAME = /Sequential download/;
@@ -76,6 +78,7 @@ function renderHeader(item: TorrentInfo, onSetSequential = vi.fn()) {
 afterEach(() => cleanup());
 
 beforeEach(() => {
+  mockInvoke.mockResolvedValue(null);
   patchSettings({ language: "en" });
 });
 

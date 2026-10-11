@@ -1,3 +1,4 @@
+import { mockInvoke, mockOpenPath as openPathSpy, mockWriteText as writeTextSpy } from "../../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -16,22 +17,21 @@ import {
 } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
 
-const writeTextSpy = vi.fn();
-const openPathSpy = vi.fn((..._args: unknown[]) => Promise.resolve());
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.resolve(),
+  invoke: mockInvoke,
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
-  writeText: (...args: unknown[]) => writeTextSpy(...args),
+  writeText: writeTextSpy,
 }));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
-  openPath: (...args: unknown[]) => openPathSpy(...args),
+  openPath: openPathSpy,
 }));
 
 beforeEach(() => {
+  openPathSpy.mockImplementation((..._args: unknown[]) => Promise.resolve());
   notificationAtoms.items.set([]);
   notificationAtoms.unreadCount.set(0);
 });

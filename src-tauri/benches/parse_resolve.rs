@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -72,22 +73,26 @@ fn parse_name(name: &str) -> Parsed {
 }
 
 struct Matcher {
-    index: Vec<Parsed>,
+    /// `title_index` -> position in the corpus.
+    ///
+    /// `resolve` used to scan the whole corpus for every parsed entry, which
+    /// made a full pass `O(n^2)`. At 20k files that is 400M comparisons and it
+    /// dominated the benchmark, so the two structural variants were measuring
+    /// the scan instead of their own difference.
+    index: HashMap<usize, usize>,
 }
 
 impl Matcher {
     fn new(corpus: &[String]) -> Self {
-        let mut index = Vec::with_capacity(corpus.len());
-        for name in corpus {
-            index.push(parse_name(name));
+        let mut index = HashMap::with_capacity(corpus.len());
+        for (position, name) in corpus.iter().enumerate() {
+            index.entry(parse_name(name).title_index).or_insert(position);
         }
         Self { index }
     }
 
     fn resolve(&self, parsed: &Parsed) -> Option<usize> {
-        self.index
-            .iter()
-            .position(|candidate| candidate.title_index == parsed.title_index)
+        self.index.get(&parsed.title_index).copied()
     }
 }
 

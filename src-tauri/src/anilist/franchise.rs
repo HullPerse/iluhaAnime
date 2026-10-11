@@ -387,8 +387,16 @@ fn franchise_media_selection() -> String {
 }
 
 fn franchise_batch_query_text() -> String {
-    FRANCHISE_BATCH_QUERY_TEMPLATE.replace("{SELECTION}", &franchise_media_selection())
+    (*FRANCHISE_BATCH_QUERY).clone()
 }
+
+/// The selection is a compile-time constant, so the rendered query text is
+/// built once. `franchise_query_body` used to re-run `format!` plus a
+/// `String::replace` over the whole template on every call, and the batch
+/// size is small enough that this dominated the body construction.
+static FRANCHISE_BATCH_QUERY: LazyLock<String> = LazyLock::new(|| {
+    FRANCHISE_BATCH_QUERY_TEMPLATE.replace("{SELECTION}", &franchise_media_selection())
+});
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FranchiseQueryMetrics {
@@ -413,7 +421,7 @@ pub fn franchise_query_body(ids: &[u64]) -> serde_json::Value {
 #[must_use]
 pub fn franchise_query_metrics(ids: &[u64]) -> FranchiseQueryMetrics {
     let body = franchise_query_body(ids);
-    let query_bytes = franchise_batch_query_text().len();
+    let query_bytes = FRANCHISE_BATCH_QUERY.len();
     let body_bytes = serde_json::to_vec(&body).map_or(0, |bytes| bytes.len());
     FranchiseQueryMetrics {
         id_count: ids.len(),

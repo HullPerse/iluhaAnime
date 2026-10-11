@@ -13,6 +13,64 @@ pub struct FileEntry {
 
 type FileIndex = Arc<RwLock<Vec<FileEntry>>>;
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct FileQuery {
+    pub text: String,
+    pub extensions: Vec<String>,
+    pub excluded_extensions: Vec<String>,
+    pub excludes: Vec<String>,
+}
+
+fn clean_extension(raw: &str) -> Option<String> {
+    let cleaned = raw.trim().trim_start_matches('.').to_lowercase();
+    (!cleaned.is_empty()).then_some(cleaned)
+}
+
+fn push_glob_extensions(into: &mut Vec<String>, glob: &str) {
+    let stripped = glob.trim().trim_start_matches('{').trim_end_matches('}');
+    for part in stripped.split(',') {
+        if let Some(extension) = clean_extension(part) {
+            into.push(extension);
+        }
+    }
+}
+
+/// Splits `*.ext`, `ext:a,b` and `!token` constraints out of a file query.
+///
+/// Everything else stays search text; scoring is untouched.
+#[must_use]
+pub fn parse_file_query(raw: &str) -> FileQuery {
+    let mut query = FileQuery::default();
+    let mut text_parts = Vec::new();
+    for token in raw.split_whitespace() {
+        if let Some(negated) = token.strip_prefix('!') {
+            if negated.is_empty() {
+                continue;
+            }
+            if let Some(glob) = negated.strip_prefix("*.") {
+                push_glob_extensions(&mut query.excluded_extensions, glob);
+                continue;
+            }
+            let exclude = negated.trim_matches('/').to_lowercase();
+            if !exclude.is_empty() {
+                query.excludes.push(exclude);
+            }
+            continue;
+        }
+        if let Some(glob) = token.strip_prefix("*.") {
+            push_glob_extensions(&mut query.extensions, glob);
+            continue;
+        }
+        if let Some(list) = token.strip_prefix("ext:") {
+            push_glob_extensions(&mut query.extensions, list);
+            continue;
+        }
+        text_parts.push(token);
+    }
+    query.text = text_parts.join(" ");
+    query
+}
+
 pub struct FileIndexer {
     index: FileIndex,
     rebuild_generation: AtomicU64,
@@ -205,27 +263,39 @@ impl FileIndexer {
     }
 
     pub async fn search(&self, query: &str, extensions: &[String], limit: usize) -> Vec<FileEntry> {
-        let query = query.trim().to_lowercase();
-        let ext_set: HashSet<String> = extensions
-            .iter()
-            .map(|extension| extension.trim_start_matches('.').to_lowercase())
-            .filter(|extension| !extension.is_empty())
-            .collect();
+        let parsed = parse_file_query(query);
+        let text = parsed.text.trim().to_lowercase();
+        let mut ext_set: HashSet<String> =
+            extensions.iter().filter_map(|extension| clean_extension(extension)).collect();
+        ext_set.extend(parsed.extensions);
+        let excluded_ext: HashSet<String> = parsed.excluded_extensions.into_iter().collect();
         let limit = limit.min(500);
 
         let index = self.index.read().await;
         let mut results: Vec<(i32, &FileEntry)> = index
             .iter()
             .filter(|entry| {
-                ext_set.is_empty()
-                    || entry
-                        .path
-                        .rsplit_once('.')
-                        .is_some_and(|(_, extension)| ext_set.contains(&extension.to_lowercase()))
+                if !parsed.excludes.is_empty()
+                    && parsed.excludes.iter().any(|exclude| {
+                        entry.path.to_lowercase().contains(exclude)
+                    })
+                {
+                    return false;
+                }
+                match entry.path.rsplit_once('.') {
+                    Some((_, extension)) => {
+                        let extension = extension.to_lowercase();
+                        if excluded_ext.contains(&extension) {
+                            return false;
+                        }
+                        ext_set.is_empty() || ext_set.contains(&extension)
+                    }
+                    None => ext_set.is_empty(),
+                }
             })
             .filter_map(|entry| {
                 let name = entry.name.to_lowercase();
-                let score = fuzzy_file_score(&query, &name)?;
+                let score = fuzzy_file_score(&text, &name)?;
                 Some((score, entry))
             })
             .collect();
@@ -307,7 +377,7 @@ fn fuzzy_file_score(query: &str, target: &str) -> Option<i32> {
 #[cfg(test)]
 mod tests {
     use super::FileIndexer;
-    use super::{fuzzy_file_score, substring_score};
+    use super::{fuzzy_file_score, parse_file_query, substring_score};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static FIXTURE_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -460,5 +530,124 @@ mod tests {
         }
         remove_fixture(&root);
         assert_eq!(total, 8 * 21);
+    }
+
+    #[test]
+    fn query_parser_keeps_plain_text_untouched() {
+        let parsed = parse_file_query("frieren s01e01");
+        assert_eq!(parsed.text, "frieren s01e01");
+        assert!(parsed.extensions.is_empty());
+        assert!(parsed.excluded_extensions.is_empty());
+        assert!(parsed.excludes.is_empty());
+    }
+
+    #[test]
+    fn query_parser_extracts_globs_ext_lists_and_excludes() {
+        let parsed = parse_file_query("*.mkv !sample/ ext:mp4,avi show");
+        assert_eq!(parsed.text, "show");
+        assert_eq!(parsed.extensions, vec!["mkv", "mp4", "avi"]);
+        assert_eq!(parsed.excludes, vec!["sample"]);
+    }
+
+    #[test]
+    fn query_parser_expands_braces_and_extension_excludes() {
+        let parsed = parse_file_query("*.{mkv,mp4} !*.srt");
+        assert_eq!(parsed.text, "");
+        assert_eq!(parsed.extensions, vec!["mkv", "mp4"]);
+        assert_eq!(parsed.excluded_extensions, vec!["srt"]);
+    }
+
+    #[test]
+    fn query_parser_ignores_lone_markers() {
+        let parsed = parse_file_query("! *. show");
+        assert_eq!(parsed.text, "show");
+        assert!(parsed.extensions.is_empty());
+        assert!(parsed.excludes.is_empty());
+    }
+
+    #[test]
+    fn query_parser_leaves_empty_query_empty() {
+        let parsed = parse_file_query("   ");
+        assert_eq!(parsed.text, "");
+        assert!(parsed.extensions.is_empty());
+        assert!(parsed.excludes.is_empty());
+    }
+
+    fn test_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("test runtime")
+    }
+
+    fn memory_indexer(entries: &[(&str, &str)]) -> FileIndexer {
+        let indexer = FileIndexer::new();
+        test_runtime().block_on(async {
+            let mut index = indexer.index.write().await;
+            *index = entries
+                .iter()
+                .map(|(path, name)| super::FileEntry {
+                    path: (*path).to_string(),
+                    name: (*name).to_string(),
+                    size: 1,
+                })
+                .collect();
+        });
+        indexer
+    }
+
+    fn search_blocking(
+        indexer: &FileIndexer,
+        query: &str,
+        extensions: &[String],
+    ) -> Vec<super::FileEntry> {
+        test_runtime().block_on(indexer.search(query, extensions, 50))
+    }
+
+    #[test]
+    fn search_drops_paths_matching_an_exclude_token() {
+        let indexer = memory_indexer(&[
+            ("/lib/Show/ep01.mkv", "ep01.mkv"),
+            ("/lib/Show/sample/ep01.mkv", "ep01.mkv"),
+        ]);
+        let hits = search_blocking(&indexer, "ep01 !sample/", &[]);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].path, "/lib/Show/ep01.mkv");
+    }
+
+    #[test]
+    fn search_inline_glob_narrows_extensions() {
+        let indexer = memory_indexer(&[
+            ("/lib/Show/ep01.mkv", "ep01.mkv"),
+            ("/lib/Show/notes.nfo", "notes.nfo"),
+        ]);
+        let hits = search_blocking(&indexer, "*.mkv ep01", &[]);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].path, "/lib/Show/ep01.mkv");
+    }
+
+    #[test]
+    fn search_excluded_extension_drops_nfo() {
+        let indexer = memory_indexer(&[
+            ("/lib/Show/ep01.mkv", "ep01.mkv"),
+            ("/lib/Show/ep01.nfo", "ep01.nfo"),
+        ]);
+        let hits = search_blocking(&indexer, "ep01 !*.nfo", &[]);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].path, "/lib/Show/ep01.mkv");
+    }
+
+    #[test]
+    fn search_unions_inline_and_parameter_extensions() {
+        let indexer = memory_indexer(&[
+            ("/lib/Show/ep01.mkv", "ep01.mkv"),
+            ("/lib/Show/movie.mp4", "movie.mp4"),
+            ("/lib/Show/notes.nfo", "notes.nfo"),
+        ]);
+        let hits = search_blocking(&indexer, "ext:mp4 e", &["mkv".to_string()]);
+        let names: Vec<_> = hits.iter().map(|entry| entry.name.as_str()).collect();
+        assert!(names.contains(&"ep01.mkv"));
+        assert!(names.contains(&"movie.mp4"));
+        assert!(!names.contains(&"notes.nfo"));
     }
 }

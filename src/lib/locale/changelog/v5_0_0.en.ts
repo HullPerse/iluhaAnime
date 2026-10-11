@@ -229,6 +229,10 @@ const changelog500 = {
     "SOCKS proxies now resolve tracker and API hostnames through the proxy for search, AniList, TMDB, and covers instead of resolving DNS locally",
   "changelog.5_0_0.changed.search.source_order":
     "Search sources are ordered Rutracker, nekoBT, Erai-Raws, Nyaa.si, Sukebei with Rutracker as the default source, and stored settings migrate to the new order",
+  "changelog.5_0_0.added.player.file_constraints":
+    "Player file search understands filter tokens: *.mkv and ext:mp4,avi narrow by extension, !sample/ skips folders, and !*.nfo drops an extension",
+  "changelog.5_0_0.changed.search.cover_refresh":
+    "Re-downloaded covers no longer rewrite the stored picture when the pixels match: identical re-encodes keep the cached file instead of replacing it",
 } as const;
 
 export default changelog500;

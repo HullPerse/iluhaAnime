@@ -279,6 +279,97 @@ fn now_seconds() -> i64 {
 fn content_id(bytes: &[u8]) -> String {
     hex::encode(Sha1::digest(bytes))[..20].to_string()
 }
+
+const COVER_DIFF_EDGE: u32 = 64;
+const COVER_PIXEL_THRESHOLD: f32 = 0.08;
+const COVER_SAME_FRACTION: f64 = 0.01;
+const COVER_ASPECT_TOLERANCE: f64 = 0.02;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverDiff {
+    Same,
+    Different,
+}
+
+fn rgb_to_yiq(pixel: image::Rgb<u8>) -> (f32, f32, f32) {
+    let r = f32::from(pixel[0]) / 255.0;
+    let green = f32::from(pixel[1]) / 255.0;
+    let b = f32::from(pixel[2]) / 255.0;
+    (
+        0.299f32.mul_add(r, 0.587f32.mul_add(green, 0.114 * b)),
+        0.596f32.mul_add(r, (-0.274f32).mul_add(green, -0.322 * b)),
+        0.211f32.mul_add(r, (-0.523f32).mul_add(green, 0.312 * b)),
+    )
+}
+
+fn yiq_pixel_diff(left: image::Rgb<u8>, right: image::Rgb<u8>) -> f32 {
+    let (left_y, left_i, left_q) = rgb_to_yiq(left);
+    let (right_y, right_i, right_q) = rgb_to_yiq(right);
+    let dy = 0.5053 * (left_y - right_y);
+    let di = 0.299 * (left_i - right_i);
+    let dq = 0.1957 * (left_q - right_q);
+    (dy * dy + di * di + dq * dq).sqrt()
+}
+
+/// Compares two covers pixel by pixel in YIQ space.
+///
+/// Different aspect ratios count as different art. GIF/WebP fail to decode
+/// with the current `image` features and report `Err` so callers keep
+/// storing the new bytes.
+///
+/// # Errors
+///
+/// Returns `Err` when either input fails to decode or has no pixels.
+pub fn compare_cover_bytes(old: &[u8], new: &[u8]) -> Result<CoverDiff, String> {
+    if old == new {
+        return Ok(CoverDiff::Same);
+    }
+    let old_image =
+        image::load_from_memory(old).map_err(|error| format!("decode old cover: {error}"))?;
+    let new_image =
+        image::load_from_memory(new).map_err(|error| format!("decode new cover: {error}"))?;
+    let (old_w, old_h) = (
+        f64::from(old_image.width()),
+        f64::from(old_image.height()),
+    );
+    let (new_w, new_h) = (
+        f64::from(new_image.width()),
+        f64::from(new_image.height()),
+    );
+    if old_w < 1.0 || old_h < 1.0 || new_w < 1.0 || new_h < 1.0 {
+        return Err("cover has no pixels".to_string());
+    }
+    if ((old_w / old_h) - (new_w / new_h)).abs() > COVER_ASPECT_TOLERANCE {
+        return Ok(CoverDiff::Different);
+    }
+    let small_old = old_image
+        .resize_exact(
+            COVER_DIFF_EDGE,
+            COVER_DIFF_EDGE,
+            image::imageops::FilterType::Triangle,
+        )
+        .to_rgb8();
+    let small_new = new_image
+        .resize_exact(
+            COVER_DIFF_EDGE,
+            COVER_DIFF_EDGE,
+            image::imageops::FilterType::Triangle,
+        )
+        .to_rgb8();
+    let mut different = 0u64;
+    for (left, right) in small_old.pixels().zip(small_new.pixels()) {
+        if yiq_pixel_diff(*left, *right) > COVER_PIXEL_THRESHOLD {
+            different += 1;
+        }
+    }
+    let total = u64::from(COVER_DIFF_EDGE) * u64::from(COVER_DIFF_EDGE);
+    let fraction = different as f64 / total as f64;
+    Ok(if fraction <= COVER_SAME_FRACTION {
+        CoverDiff::Same
+    } else {
+        CoverDiff::Different
+    })
+}
 const THUMB_W: u32 = 336;
 const THUMB_PREFIX: &str = "t336_";
 
@@ -526,6 +617,7 @@ pub async fn download_remote_image(
     nameHint: Option<String>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
+    previousId: Option<String>,
 ) -> Result<UserImage, String> {
     let url = url.trim();
     if url.is_empty() || url.len() > 4_096 {
@@ -565,6 +657,16 @@ pub async fn download_remote_image(
     );
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
+    if let Some(previous) = previousId.as_deref().filter(|id| !id.trim().is_empty()) {
+        if let Ok(Some(old_bytes)) = read_user_image_bytes(&app, previous) {
+            if matches!(
+                compare_cover_bytes(&old_bytes, &data),
+                Ok(CoverDiff::Same)
+            ) {
+                return load_user_image(&conn, &dir, previous);
+            }
+        }
+    }
     let id = content_id(&data);
     let fresh = !user_image_row_exists(&conn, &id)?;
     import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name.clone())?;
@@ -1162,6 +1264,88 @@ mod tests {
         assert_eq!(mime_ext("image/gif"), "gif");
         assert_eq!(mime_ext("image/webp"), "webp");
         assert_eq!(mime_ext("image/other"), "img");
+    }
+
+    fn solid_png(width: u32, height: u32, pixel: [u8; 3]) -> Vec<u8> {
+        let rgb = image::RgbImage::from_pixel(width, height, image::Rgb(pixel));
+        let mut bytes = Vec::new();
+        rgb.write_with_encoder(image::codecs::png::PngEncoder::new(&mut bytes))
+            .expect("encode test png");
+        bytes
+    }
+
+    fn solid_jpeg(width: u32, height: u32, pixel: [u8; 3]) -> Vec<u8> {
+        let rgb = image::RgbImage::from_pixel(width, height, image::Rgb(pixel));
+        let mut bytes = Vec::new();
+        rgb.write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(
+            &mut bytes, 90,
+        ))
+        .expect("encode test jpeg");
+        bytes
+    }
+
+    #[test]
+    fn identical_bytes_short_circuit_without_decoding() {
+        let garbage = b"not an image at all";
+        assert_eq!(compare_cover_bytes(garbage, garbage), Ok(CoverDiff::Same));
+    }
+
+    #[test]
+    fn identical_covers_compare_same() {
+        let first = solid_png(64, 64, [200, 30, 40]);
+        let second = first.clone();
+        assert_eq!(
+            compare_cover_bytes(&first, &second),
+            Ok(CoverDiff::Same)
+        );
+    }
+
+    #[test]
+    fn jpeg_reencode_of_same_art_compares_same() {
+        let png = solid_png(128, 96, [40, 120, 200]);
+        let rgb = image::load_from_memory(&png).expect("decode fixture").to_rgb8();
+        let mut jpeg = Vec::new();
+        rgb.write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(
+            &mut jpeg, 90,
+        ))
+        .expect("encode test jpeg");
+        assert_eq!(compare_cover_bytes(&png, &jpeg), Ok(CoverDiff::Same));
+    }
+
+    #[test]
+    fn different_art_compares_different() {
+        let red = solid_png(64, 64, [220, 20, 20]);
+        let blue = solid_png(64, 64, [20, 20, 220]);
+        assert_eq!(
+            compare_cover_bytes(&red, &blue),
+            Ok(CoverDiff::Different)
+        );
+    }
+
+    #[test]
+    fn different_aspect_ratio_compares_different() {
+        let square = solid_png(64, 64, [200, 30, 40]);
+        let wide = solid_png(128, 64, [200, 30, 40]);
+        assert_eq!(
+            compare_cover_bytes(&square, &wide),
+            Ok(CoverDiff::Different)
+        );
+    }
+
+    #[test]
+    fn undecodable_bytes_report_error_for_fail_open_callers() {
+        assert!(compare_cover_bytes(b"not an image", b"also not").is_err());
+        assert!(compare_cover_bytes(b"GIF89a-one", b"GIF89a-two").is_err());
+    }
+
+    #[test]
+    fn different_jpeg_art_compares_different() {
+        let red = solid_jpeg(64, 64, [220, 20, 20]);
+        let blue = solid_jpeg(64, 64, [20, 20, 220]);
+        assert_eq!(
+            compare_cover_bytes(&red, &blue),
+            Ok(CoverDiff::Different)
+        );
     }
 
     #[test]

@@ -65,6 +65,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.torrents.webview_proxy", "torrents"),
       entry("changelog.5_0_0.added.torrents.file_icons", "torrents"),
       entry("changelog.5_0_0.added.settings.repro_bundle", "settings"),
+      entry("changelog.5_0_0.added.player.file_constraints", "player"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -114,6 +115,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.torrents.files_batch", "torrents"),
       entry("changelog.5_0_0.changed.player.parser_folders", "player"),
       entry("changelog.5_0_0.changed.search.source_order", "search"),
+      entry("changelog.5_0_0.changed.search.cover_refresh", "search"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

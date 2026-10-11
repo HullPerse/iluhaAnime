@@ -109,6 +109,14 @@ harness = false
 name = "search_probe"
 harness = false
 
+[[bench]]
+name = "cover_diff"
+harness = false
+
+[[bench]]
+name = "file_query"
+harness = false
+
 [dev-dependencies]
 # Test-only response builder for the body-cap tests. Already in the
 # lockfile through reqwest, so this adds no new supply-chain surface.

@@ -20,12 +20,14 @@ mod app_db;
 #[doc(hidden)]
 pub mod benchmark_api {
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
+    pub use crate::file_index::{parse_file_query, FileIndexer};
     pub use crate::scrapers::clients::{
         acquire_scraper_slot, build_client, build_client_inner, build_nekobt_client,
         build_rutracker_client_with_ua, decode_rutracker_page, is_rutracker_challenge,
         RUTRACKER_DEFAULT_UA,
     };
     pub use crate::scrapers::details::{parse_torrent_detail_html, TorrentDetails};
+    pub use crate::user_assets::{compare_cover_bytes, CoverDiff};
 }
 mod auth;
 mod bencode;

@@ -150,3 +150,24 @@ describe("useCoverCache proxy passthrough", () => {
     unmount();
   });
 });
+
+describe("useCoverCache previous id", () => {
+  it("passes the persisted blob id as previousId when re-downloading", async () => {
+    setCoverBlob("https://example.com/refresh.jpg", "blob-old");
+    invokeMock.mockImplementation(async (command: unknown) => {
+      if (command === "get_user_image") throw new Error("evicted");
+      return { id: "blob-new", path: "C:/images/refresh.png" };
+    });
+    const { result, unmount } = renderHook(() =>
+      useCoverCache("https://example.com/refresh.jpg", null)
+    );
+    await waitFor(() => {
+      expect(result.current.cachedUrl).toBe(assetUrl("C:/images/refresh.png"));
+    });
+    expect(invokeMock).toHaveBeenCalledWith(
+      "download_remote_image",
+      expect.objectContaining({ previousId: "blob-old" })
+    );
+    unmount();
+  });
+});

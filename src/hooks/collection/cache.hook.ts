@@ -36,11 +36,13 @@ export function resetCoverCache(): void {
 function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<string | null> {
   const cached = coverCache.get(remoteUrl);
   if (cached) return Promise.resolve(cached.url);
+  const previousId = coverCorrectionsAtoms.blobs.get()[remoteUrl] ?? null;
   return inflightFetch(inflightCoverDownloads, remoteUrl, () =>
     invokeTyped<UserImageFile>("download_remote_image", {
       url: remoteUrl,
       nameHint: "collection-cover",
       proxyUrl,
+      previousId,
     }).then(
       (img) => {
         const url = assetUrl(img.path);
@@ -129,6 +131,7 @@ export function useCoverCache(
         url: remoteUrl,
         nameHint: "collection-cover",
         proxyUrl: tmdbProxyUrl,
+        previousId: coverCorrectionsAtoms.blobs.get()[remoteUrl] ?? null,
       })
     );
     if (error) return null;

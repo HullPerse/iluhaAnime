@@ -229,6 +229,10 @@ const changelog500 = {
     "SOCKS-прокси теперь резолвят имена хостов через сам прокси для поиска, AniList, TMDB и обложек вместо локального резолвинга DNS",
   "changelog.5_0_0.changed.search.source_order":
     "Источники поиска идут в порядке Rutracker, nekoBT, Erai-Raws, Nyaa.si, Sukebei, поиском по умолчанию стал Rutracker, а сохраненные настройки переезжают на новый порядок",
+  "changelog.5_0_0.added.player.file_constraints":
+    "Поиск файлов в плеере понимает фильтры: *.mkv и ext:mp4,avi сужают по расширению, !sample/ пропускает папки, а !*.nfo исключает расширение",
+  "changelog.5_0_0.changed.search.cover_refresh":
+    "Перезагруженные обложки больше не перезаписывают сохраненную картинку при совпадении пикселей: идентичные перекодировки оставляют кэшированный файл",
 } as const;
 
 export default changelog500;

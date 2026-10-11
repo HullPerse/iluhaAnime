@@ -76,6 +76,7 @@ export const CHANGELOG: ChangelogVersion[] = [
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
+      entry("changelog.5_0_0.changed.anilist.detail_bundle", "anilist"),
       entry("changelog.5_0_0.changed.search.scoring_unify", "search"),
       entry("changelog.5_0_0.changed.search.fts_startup", "search"),
       entry("changelog.5_0_0.changed.app.folder_scan", "app"),

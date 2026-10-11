@@ -96,6 +96,8 @@ const changelog500 = {
     "Bug report bundle from Settings > Summary: a zip with app and system metadata, a sanitized settings snapshot with secrets removed, and the app data folder listing. No media, database rows, tokens, or keys",
   "changelog.5_0_0.changed.anilist.batch_fetch":
     "AniList list, score, and media fetching runs at most 3 parallel requests with similar requests merged, so collections and friend data load in fewer server requests",
+  "changelog.5_0_0.changed.anilist.detail_bundle":
+    "Anime details open with one fewer server request: recommendations now ride inside the main details fetch",
   "changelog.5_0_0.changed.search.scoring_unify":
     "Search suggestion scoring now uses the same day, week, and month steps as the SQL ranking, so suggestions and history agree",
   "changelog.5_0_0.changed.search.fts_startup":

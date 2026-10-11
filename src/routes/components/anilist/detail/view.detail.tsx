@@ -94,6 +94,7 @@ export function AniListDetailView({
   onTrailer,
   anime,
   initialCharacters,
+  initialRecommendations,
   isLoading,
   isError,
   error,
@@ -203,7 +204,12 @@ export function AniListDetailView({
         <TitlesSection anime={anime} onSearchTorrents={handleSearchTorrents} />
       )}
 
-      <SimilarSection animeId={anime.id} relations={anime.relations} onRelated={onRelated} />
+      <SimilarSection
+        animeId={anime.id}
+        relations={anime.relations}
+        initialRecs={initialRecommendations}
+        onRelated={onRelated}
+      />
 
       <FriendsScoresSection animeId={anime.id} />
 

@@ -7,15 +7,17 @@ import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
-import type { AniRelation } from "@/types/anilist";
+import type { AniRecommendation, AniRelation } from "@/types/anilist";
 
 export function SimilarSection({
   animeId,
   relations,
+  initialRecs,
   onRelated,
 }: {
   animeId: number;
   relations: AniRelation[];
+  initialRecs?: AniRecommendation[];
   onRelated?: (id: number) => void;
 }) {
   const { t } = useI18n();
@@ -23,6 +25,7 @@ export function SimilarSection({
   const recsQuery = useAppQuery("static", {
     queryKey: queryKeys.animeRecommendations(animeId),
     queryFn: () => anilistApi.getAnimeRecommendations(animeId),
+    initialData: initialRecs && initialRecs.length > 0 ? initialRecs : undefined,
     retry: 1,
   });
   const franchiseQuery = useAppQuery("static", {

@@ -82,6 +82,7 @@ export function AnimeDetailShell({
         {...props}
         anime={query.data?.media}
         initialCharacters={query.data?.characters}
+        initialRecommendations={query.data?.recommendations}
         isLoading={query.isLoading}
         isError={query.isError}
         error={query.error}

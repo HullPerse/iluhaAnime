@@ -261,6 +261,7 @@ export interface AniAnimeFull {
   media: AniMedia;
   characters: AniCharacterEdge[];
   staff: AniAnimeStaffEdge[];
+  recommendations: AniRecommendation[];
 }
 
 export interface AniStaffDetail {
@@ -658,6 +659,7 @@ export interface AniDetailProps {
 export type AniDetailViewProps = AniDetailProps & {
   anime?: AniMedia;
   initialCharacters?: AniCharacterEdge[];
+  initialRecommendations?: AniRecommendation[];
   isLoading: boolean;
   isError: boolean;
   error: unknown;

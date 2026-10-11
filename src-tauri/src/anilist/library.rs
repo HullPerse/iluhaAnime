@@ -448,30 +448,7 @@ pub async fn get_anime_recommendations(
     let nodes = json["data"]["Media"]["recommendations"]["nodes"]
         .as_array()
         .ok_or_else(|| "Failed to parse recommendations".to_string())?;
-    let mut seen = std::collections::HashSet::new();
-    Ok(nodes
-        .iter()
-        .filter_map(|r| {
-            let m = &r["mediaRecommendation"];
-            let media_id = m["id"].as_u64().unwrap_or(0);
-            if media_id == 0 || !seen.insert(media_id) {
-                return None;
-            }
-            let title = m["title"]["romaji"]
-                .as_str()
-                .or_else(|| m["title"]["english"].as_str())
-                .unwrap_or("Unknown");
-            Some(AniRecommendation {
-                id: media_id,
-                title: title.to_string(),
-                cover_url: m["coverImage"]["medium"].as_str().map(String::from),
-                episodes: m["episodes"].as_i64().map(|n| n as i32),
-                score: m["averageScore"].as_i64().map(|n| n as i32),
-                format: m["format"].as_str().map(String::from),
-                recommendation_rating: r["rating"].as_i64().unwrap_or(0) as i32,
-            })
-        })
-        .collect())
+    Ok(parse_recommendation_nodes(nodes))
 }
 #[derive(Debug, Serialize)]
 pub struct AniActivity {
@@ -1108,11 +1085,22 @@ const ANIME_FULL_QUERY_TEMPLATE: &str = r"
                             }
                         }
                     }
+                    recommendations(page: 1, perPage: 25, sort: RATING_DESC) {
+                        nodes {
+                            mediaRecommendation {
+                                id
+                                title { romaji english }
+                                episodes, averageScore, format
+                                coverImage { medium }
+                            }
+                            rating
+                        }
+                    }
                 }
             }
         ";
 
-fn anime_full_query() -> String {
+pub fn anime_full_query() -> String {
     ANIME_FULL_QUERY_TEMPLATE.replace("{SELECTION}", &media_detail_selection())
 }
 
@@ -1121,6 +1109,34 @@ pub struct AniAnimeFull {
     pub media: AniMedia,
     pub characters: Vec<AniCharacterEdge>,
     pub staff: Vec<AniAnimeStaffEdge>,
+    pub recommendations: Vec<AniRecommendation>,
+}
+
+fn parse_recommendation_nodes(nodes: &[serde_json::Value]) -> Vec<AniRecommendation> {
+    let mut seen = std::collections::HashSet::new();
+    nodes
+        .iter()
+        .filter_map(|r| {
+            let m = &r["mediaRecommendation"];
+            let media_id = m["id"].as_u64().unwrap_or(0);
+            if media_id == 0 || !seen.insert(media_id) {
+                return None;
+            }
+            let title = m["title"]["romaji"]
+                .as_str()
+                .or_else(|| m["title"]["english"].as_str())
+                .unwrap_or("Unknown");
+            Some(AniRecommendation {
+                id: media_id,
+                title: title.to_string(),
+                cover_url: m["coverImage"]["medium"].as_str().map(String::from),
+                episodes: m["episodes"].as_i64().map(|n| n as i32),
+                score: m["averageScore"].as_i64().map(|n| n as i32),
+                format: m["format"].as_str().map(String::from),
+                recommendation_rating: r["rating"].as_i64().unwrap_or(0) as i32,
+            })
+        })
+        .collect()
 }
 
 #[tauri::command]
@@ -1151,6 +1167,10 @@ pub async fn get_anime_full(
         staff: m["staff"]["edges"]
             .as_array()
             .map(|edges| parse_anime_staff_edges(edges))
+            .unwrap_or_default(),
+        recommendations: m["recommendations"]["nodes"]
+            .as_array()
+            .map(|nodes| parse_recommendation_nodes(nodes))
             .unwrap_or_default(),
     })
 }
@@ -1212,6 +1232,8 @@ mod tests {
         assert!(query.contains("Media(id: $id"));
         assert!(query.contains("characters(page: 1"));
         assert!(query.contains("staff {"));
+        assert!(query.contains("recommendations(page: 1, perPage: 25, sort: RATING_DESC)"));
+        assert!(query.contains("mediaRecommendation"));
         assert!(query.contains("trailer { id site }"));
     }
 

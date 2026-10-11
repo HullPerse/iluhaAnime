@@ -1,28 +1,56 @@
-import { createRootRoute, createRoute, createRouter, useNavigate } from "@tanstack/react-router";
-import { CircleX } from "lucide-react";
-import { lazy, useEffect } from "react";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  useNavigate,
+  type RouterHistory,
+} from "@tanstack/react-router";
+import { Home, SearchX } from "lucide-react";
+import { lazy } from "react";
 
 import { BootPending } from "@/components/shared/bootPending.component";
-import { BigError } from "@/components/shared/error.component";
 import { BigLoader } from "@/components/shared/loader.component";
 import OutletComponent from "@/components/shared/outlet.component";
 import { RouteErrorScreen } from "@/components/shared/routeError.component";
+import { Button } from "@/components/ui/button.component";
+import ImageComponent from "@/components/ui/image.component";
 import { PLAYER_ROUTE } from "@/config/player/player-route.config";
-import { translate } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { settingsAtoms } from "@/store/settings.store";
+import { useI18n } from "@/hooks/i18n.hook";
 
 const App = lazy(() => import("@/App"));
 
-const PlayerWindow = lazy(() =>
-  import("@/routes/components/player/player.component").then((module) => ({
-    default: module.default,
-  }))
-);
+const PlayerWindow = lazy(() => import("@/routes/components/player/player.component"));
+
+const NotFoundScreen = () => {
+  const navigate = useNavigate();
+  const { t } = useI18n();
+
+  return (
+    <div className="bg-primary windows95-active-border fixed top-1/2 left-1/2 z-50 flex w-xl max-w-[90%] -translate-x-1/2 -translate-y-1/2 flex-col">
+      <section className="bg-secondary flex w-full items-center gap-1 p-1">
+        <ImageComponent src="/images/w2k_computer.ico" alt="" className="size-4 shrink-0" />
+        <span className="windows95-text text-title-text font-bold">
+          {t("common.notFound.title")}
+        </span>
+      </section>
+      <section className="bg-primary flex flex-col items-center gap-4 p-4">
+        <SearchX className="text-destructive size-20" />
+        <span className="text-text text-center text-base font-bold">
+          {t("common.notFound.body")}
+        </span>
+        <Button className="flex h-8 w-28 items-center gap-1" onClick={() => navigate({ to: "/" })}>
+          <Home className="size-4" />
+          {t("common.notFound.home")}
+        </Button>
+      </section>
+    </div>
+  );
+};
 
 const rootRoute = createRootRoute({
   component: OutletComponent,
   errorComponent: RouteErrorScreen,
+  notFoundComponent: NotFoundScreen,
 });
 
 const indexRoute = createRoute({
@@ -32,24 +60,6 @@ const indexRoute = createRoute({
   pendingComponent: BootPending,
 });
 
-const ErrorPage = () => {
-  const navigate = useNavigate();
-  const language = useCell(settingsAtoms.language);
-  return (
-    <BigError
-      error={new Error(translate(language, "common.error"))}
-      icon={<CircleX className="size-28 animate-pulse text-red-500" />}
-      onRetry={() => navigate({ to: "/" })}
-    />
-  );
-};
-
-const errorRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/error",
-  component: ErrorPage,
-});
-
 const playerWindowRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: PLAYER_ROUTE,
@@ -57,19 +67,16 @@ const playerWindowRoute = createRoute({
   pendingComponent: BigLoader,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, errorRoute, playerWindowRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, playerWindowRoute]);
 
-const NotFoundRedirect = () => {
-  const navigate = useNavigate();
+export function createAppRouter(history?: RouterHistory) {
+  return createRouter({ routeTree, history });
+}
 
-  useEffect(() => {
-    navigate({ to: "/error", replace: true });
-  }, [navigate]);
+export const router = createAppRouter();
 
-  return null;
-};
-
-export const router = createRouter({
-  routeTree,
-  defaultNotFoundComponent: NotFoundRedirect,
-});
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: ReturnType<typeof createAppRouter>;
+  }
+}

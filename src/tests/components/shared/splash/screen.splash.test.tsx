@@ -73,4 +73,12 @@ describe("SplashScreen", () => {
     await user.click(screen.getByRole("checkbox", { name: "Skip splash on startup" }));
     expect(onToggleFastLaunch).toHaveBeenCalledTimes(1);
   });
+
+  it("renders the yorha terminal splash for the yorha theme", () => {
+    render(<SplashScreen {...props({ themeName: "yorha" })} />);
+    expect(screen.getByRole("status")).toBeDefined();
+    expect(screen.getByText("ILUHAANIME")).toBeDefined();
+    expect(screen.getByText(/BOOTING SYSTEM/)).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Cache_")).toBeDefined();
+  });
 });

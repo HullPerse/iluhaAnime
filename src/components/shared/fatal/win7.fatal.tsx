@@ -18,7 +18,7 @@ export function Win7Bsod({
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed inset-0 z-[100] overflow-y-auto"
+      className="fixed inset-0 z-[100] overflow-x-clip overflow-y-auto"
       style={{ backgroundColor: "#1b5aa6", color: "#ffffff", fontFamily: '"Segoe UI", sans-serif' }}
     >
       <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-center px-8 py-14">

@@ -1,17 +1,7 @@
 import type { SplashVariantProps } from "./shared.splash";
-import { splashProgress } from "./shared.splash";
+import { splashProgress, splashStageLabel } from "./shared.splash";
 
 const FONT = '"Perfect DOS VGA 437", monospace';
-
-function stageLabel(texts: SplashVariantProps["texts"], id: string): string {
-  if (id === "theme") return texts.theme;
-  if (id === "migrations") return texts.migrations;
-  if (id === "cache") return texts.cache;
-  if (id === "database") return texts.database;
-  if (id === "spelling") return texts.spelling;
-  if (id === "index") return texts.index;
-  return texts.tabs;
-}
 
 export function Win95Splash({ stages, texts, fastLaunch, onToggleFastLaunch }: SplashVariantProps) {
   const progress = splashProgress(stages);
@@ -21,7 +11,7 @@ export function Win95Splash({ stages, texts, fastLaunch, onToggleFastLaunch }: S
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-0 z-[100] overflow-y-auto"
+      className="fixed inset-0 z-[100] overflow-x-clip overflow-y-auto"
       style={{ backgroundColor: "#0000aa", color: "#ffffff", fontFamily: FONT }}
     >
       <div className="mx-auto flex min-h-full w-full max-w-xl flex-col items-center justify-center px-6 py-16">
@@ -36,7 +26,7 @@ export function Win95Splash({ stages, texts, fastLaunch, onToggleFastLaunch }: S
           {stages.map((stage) => (
             <li key={stage.id} className={stage.status === "pending" ? "opacity-50" : undefined}>
               {stage.status === "done" ? "[x] " : stage.status === "degraded" ? "[!] " : "[ ] "}
-              {stageLabel(texts, stage.id)}
+              {splashStageLabel(texts, stage.id)}
               {stage.status === "active" ? "..." : ""}
             </li>
           ))}

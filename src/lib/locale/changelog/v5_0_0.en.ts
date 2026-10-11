@@ -249,6 +249,8 @@ const changelog500 = {
     "Fast launch option in Settings Startup plus a skip checkbox on the splash itself: skips the splash and loads everything in the background",
   "changelog.5_0_0.added.app.db_gate":
     "Database health check at startup: a corrupt or locked database now shows a recovery screen with retry, reload, details copy, and the data folder instead of a toast storm",
+  "changelog.5_0_0.added.app.yorha_splash":
+    "YoRHa terminal boot screen for the YoRHa theme: glitch loading header, live boot stages, and a branded ILUHAANIME watermark",
   "changelog.5_0_0.changed.settings.yorha_canon":
     "YoRHa theme matches the game interface: dark menu-bar selection, dark-brown text, and a black pod-style error screen instead of the generic one",
 } as const;

@@ -71,6 +71,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.app.splash", "app"),
       entry("changelog.5_0_0.added.app.fast_launch", "app"),
       entry("changelog.5_0_0.added.app.db_gate", "app"),
+      entry("changelog.5_0_0.added.app.yorha_splash", "app"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),

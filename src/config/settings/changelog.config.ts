@@ -74,6 +74,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.settings.theme_boots", "settings"),
       entry("changelog.5_0_0.added.app.yorha_splash", "app"),
       entry("changelog.5_0_0.added.settings.find", "settings"),
+      entry("changelog.5_0_0.added.app.tab_urls", "app"),
+      entry("changelog.5_0_0.added.app.not_found_page", "app"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -129,6 +131,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.search.cover_refresh", "search"),
       entry("changelog.5_0_0.changed.search.cover_modes", "search"),
       entry("changelog.5_0_0.changed.settings.yorha_canon", "settings"),
+      entry("changelog.5_0_0.changed.torrents.speed_graph", "torrents"),
+      entry("changelog.5_0_0.changed.torrents.filter_hint", "torrents"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

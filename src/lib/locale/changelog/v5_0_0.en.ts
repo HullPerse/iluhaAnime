@@ -259,6 +259,14 @@ const changelog500 = {
     "YoRHa theme matches the game interface: dark menu-bar selection, dark-brown text, and a black pod-style error screen instead of the generic one",
   "changelog.5_0_0.added.settings.find":
     "Global settings search: find any parameter across all settings tabs in Russian or English, with highlighted matches, per-tab result counts, jump to the section, and Ctrl+K to focus the field",
+  "changelog.5_0_0.added.app.tab_urls":
+    "Tabs are real routes with their own addresses: browser back and forward switch tabs, a link can open any tab, a tab turned off in settings redirects to the first available one, and torrent filters plus the active settings tab live in the address bar and survive a reload",
+  "changelog.5_0_0.added.app.not_found_page":
+    "An unknown address shows a proper not found screen with a way back instead of a silent redirect to an error page",
+  "changelog.5_0_0.changed.torrents.speed_graph":
+    "The speed graph panel hides the canvas and the speed legend while the torrent list is empty and keeps only the peer and DHT counters, so an idle list no longer shows a stray flat line",
+  "changelog.5_0_0.changed.torrents.filter_hint":
+    "The torrent filter is a plain field with an inline completion over the names of torrents in the current tab: Tab or the right arrow key accepts the full name",
 } as const;
 
 export default changelog500;

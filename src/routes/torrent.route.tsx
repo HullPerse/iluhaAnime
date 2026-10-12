@@ -6,7 +6,6 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
-import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { HostStatsBars } from "@/components/shared/hostStats.component";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -18,7 +17,6 @@ import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrent/searc
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
-import { useSearchField } from "@/hooks/search/field.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import {
   TORRENTS_QUERY_KEY,
@@ -74,6 +72,7 @@ import type { TorrentInfo } from "@/types/torrent";
 
 import { BulkLimitsModal, BulkTrackerModal } from "./components/torrent/bulk.torrent";
 import CreateTorrentModal from "./components/torrent/create.torrent";
+import TorrentNameFilter from "./components/torrent/filter.torrent";
 import { SpeedGraph } from "./components/torrent/graph.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
 import { TorrentRow } from "./components/torrent/row.torrent";
@@ -379,22 +378,7 @@ function TorrentRoute() {
     5000,
     expandedIds
   );
-  const extraValues = useMemo(() => {
-    const names = torrents.map((torrent) => torrent.name);
-    return {
-      signature: names.join("\u0000"),
-      values: names.map((name) => ({
-        kind: "torrent" as const,
-        value: name,
-      })),
-    };
-  }, [torrents]);
-  const field = useSearchField({
-    scope: "torrent",
-    query: filterQuery,
-    setQuery: setFilterQuery,
-    extraValues: extraValues.values,
-  });
+  const torrentNames = useMemo(() => torrents.map((torrent) => torrent.name), [torrents]);
 
   useEffect(() => {
     if (page > lastPage) {
@@ -515,6 +499,7 @@ function TorrentRoute() {
         upload={summary.upload}
         peers={summary.peers}
         dht={dhtStats}
+        active={torrents.length > 0}
       />
       <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5">
         {(["all", "staging", "live", "paused", "seeding", "completed"] as const).map((lc) => (
@@ -531,10 +516,11 @@ function TorrentRoute() {
         ))}
       </section>
       <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-2 p-1">
-        <InlineAutocompleteInput
-          className="ml-2 w-32 font-bold"
-          placeholder={t("torrent.filter.placeholder")}
-          {...field.inputProps}
+        <TorrentNameFilter
+          className="ml-2"
+          names={torrentNames}
+          query={filterQuery}
+          onQueryChange={setFilterQuery}
         />
         <Select
           className="h-6 w-24"

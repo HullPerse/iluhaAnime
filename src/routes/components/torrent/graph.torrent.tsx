@@ -23,7 +23,9 @@ function drawGraph(
   context.clearRect(0, 0, GRAPH_WIDTH, GRAPH_HEIGHT);
   const max = Math.max(1, ...download, ...upload);
   const line = (values: number[], color: string) => {
-    if (values.length < 2) return;
+    // An all-zero series draws a flat line on the bottom edge, which reads as
+    // a stray dash rather than a graph; skip it until there is real traffic.
+    if (values.length < 2 || values.every((value) => value === 0)) return;
     context.strokeStyle = color;
     context.lineWidth = 1;
     context.beginPath();
@@ -44,11 +46,14 @@ export function SpeedGraph({
   upload,
   peers,
   dht,
+  active,
 }: {
   download: number;
   upload: number;
   peers: number;
   dht: DhtStatus | null | undefined;
+  /** False while the torrent list is empty: only peers and DHT stay visible. */
+  active: boolean;
 }) {
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,6 +61,7 @@ export function SpeedGraph({
   const uploadRef = useRef<number[]>([]);
 
   useEffect(() => {
+    if (!active) return;
     downloadRef.current = [...downloadRef.current, download].slice(-GRAPH_POINTS);
     uploadRef.current = [...uploadRef.current, upload].slice(-GRAPH_POINTS);
     const canvas = canvasRef.current;
@@ -65,7 +71,25 @@ export function SpeedGraph({
       download: styles.getPropertyValue("--color-highlight").trim() || "#4caf50",
       upload: styles.getPropertyValue("--color-text").trim() || "#888888",
     });
-  }, [download, upload]);
+  }, [active, download, upload]);
+
+  if (!active) {
+    return (
+      <section
+        className="windows95-active-border bg-primary flex items-center gap-2 px-2 py-1"
+        aria-label={t("torrent.graph.title")}
+      >
+        <span className="windows95-text text-hint text-xs" title={t("torrent.graph.peers")}>
+          {t("torrent.graph.peers.short", { count: peers })}
+        </span>
+        {dht && (
+          <span className="windows95-text text-hint text-xs" title={t("torrent.graph.dht")}>
+            {t("torrent.graph.dht.short", { nodes: dht.nodes_v4 + dht.nodes_v6 })}
+          </span>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section

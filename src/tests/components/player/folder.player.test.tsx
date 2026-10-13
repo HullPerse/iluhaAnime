@@ -1,6 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { mockOpenPath } from "../../mocks";
 
 // The real virtualizer measures a zero-height scroll element in jsdom and
 // renders no rows at all, so it is stubbed with the identity mapping.
@@ -376,5 +379,64 @@ describe("FolderView row actions", () => {
     pressKey("KeyO", season);
 
     expect(document.activeElement).toBe(season);
+  });
+});
+
+describe("FolderView file menu", () => {
+  function fileRow(name: string): HTMLElement {
+    const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
+    if (!node) throw new Error(`row missing for ${name}`);
+    return node;
+  }
+
+  function openMenu(name: string): HTMLElement {
+    const file = fileRow(name);
+    const target = file.querySelector<HTMLElement>("[data-tree-activate]");
+    if (!target) throw new Error("activation target missing");
+    fireEvent.contextMenu(target);
+    return file;
+  }
+
+  it("opens five entries on right click", async () => {
+    renderTree();
+    openMenu("ep1.mkv");
+
+    await waitFor(() => expect(screen.getAllByRole("menuitem")).toHaveLength(5));
+  });
+
+  it("fires the row's own button from a menu entry", async () => {
+    renderTree();
+    const file = openMenu("ep1.mkv");
+    const holder = file.querySelector<HTMLElement>('[data-file-action="builtin"]');
+    if (!holder) throw new Error("builtin button missing");
+    const spy = vi.fn();
+    holder.addEventListener("click", spy);
+
+    await waitFor(() => screen.getByRole("menuitem", { name: "Open in iluhaAnime player" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Open in iluhaAnime player" }));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("reveals the save folder from the menu", async () => {
+    renderTree();
+    openMenu("ep1.mkv");
+
+    await waitFor(() => screen.getByRole("menuitem", { name: "Open in folder" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Open in folder" }));
+
+    expect(mockOpenPath).toHaveBeenCalledWith("D:/Anime/");
+  });
+
+  it("skips the menu on Ctrl+right-click", async () => {
+    renderTree();
+    const file = fileRow("ep1.mkv");
+    const target = file.querySelector<HTMLElement>("[data-tree-activate]");
+    if (!target) throw new Error("activation target missing");
+
+    fireEvent.contextMenu(target, { ctrlKey: true });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryAllByRole("menuitem")).toHaveLength(0);
   });
 });

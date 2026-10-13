@@ -4,15 +4,19 @@ import { cn } from "cn";
 import {
   ChevronDown,
   ChevronRight,
+  FolderOpen,
   ListVideo,
   Monitor,
   EyeOff,
   Play,
   Search,
+  Wand2,
   X,
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
 
+import ContextMenu from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -555,6 +559,62 @@ function FolderView({
               const queueStatus = file.path ? queueMap.get(file.path) : undefined;
               const busy = queueStatus === "queued" || queueStatus === "processing";
 
+              // The menu fires the row's own buttons, so mouse, keys and menu
+              // can never disagree: parity holds by construction, and a
+              // disabled button's click() stays a no-op.
+              const entryDisabled = disabled || busy;
+              const clickOwnButton = (
+                name: "external" | "builtin" | "search" | "upscale"
+              ): void => {
+                if (!file.path) return;
+                const rowEl = findRow(treeRef.current, file.path);
+                if (rowEl) clickRowButton(rowEl, name);
+              };
+              const fileMenuEntries: ContextMenuEntry[] = [
+                {
+                  kind: "item",
+                  id: "external",
+                  label: "player.folder.open.media.player",
+                  icon: Monitor,
+                  disabled: entryDisabled,
+                  onSelect: () => clickOwnButton("external"),
+                },
+                {
+                  kind: "item",
+                  id: "builtin",
+                  label: "player.folder.open.iluha.player",
+                  icon: Play,
+                  disabled: entryDisabled,
+                  onSelect: () => clickOwnButton("builtin"),
+                },
+                {
+                  kind: "item",
+                  id: "search",
+                  label: "player.folder.search.anilist",
+                  icon: Search,
+                  disabled: entryDisabled,
+                  onSelect: () => clickOwnButton("search"),
+                },
+                {
+                  kind: "item",
+                  id: "reveal",
+                  label: "player.files.open.folder",
+                  icon: FolderOpen,
+                  disabled: !file.path,
+                  onSelect: () => {
+                    if (file.path) openPath(file.path.replace(file.name, ""));
+                  },
+                },
+                {
+                  kind: "item",
+                  id: "upscale",
+                  label: "player.upscale.title",
+                  icon: Wand2,
+                  disabled: entryDisabled,
+                  onSelect: () => clickOwnButton("upscale"),
+                },
+              ];
+
               return (
                 <div
                   key={index}
@@ -578,30 +638,33 @@ function FolderView({
                     rowPath={file.path ?? ""}
                   />
                   <ImageComponent src="/images/w2k_wmp_11.ico" alt="" className="size-4" />
-                  <span
-                    title={file.name}
-                    className="windows95-text flex-1 truncate select-none hover:cursor-pointer"
-                    data-tree-activate
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      if (e.ctrlKey || e.metaKey) {
+                  <ContextMenu entries={fileMenuEntries}>
+                    <span
+                      title={file.name}
+                      className="windows95-text flex-1 truncate select-none hover:cursor-pointer"
+                      data-tree-activate
+                      onContextMenuCapture={(e) => {
+                        // Ctrl+right-click keeps its direct action (builtin
+                        // player): capture runs before the trigger's native
+                        // listener, so stopping propagation keeps the menu shut.
+                        if (!(e.ctrlKey || e.metaKey)) return;
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (disabled || busy || !file.path) return;
                         ignore(openInAppPlayer(file.path));
-                        return;
-                      }
-                      openPath(file.path.replace(file.name, ""));
-                    }}
-                    onClick={(e) => {
-                      if (e.ctrlKey || e.metaKey) {
-                        if (disabled || busy || !file.path) return;
-                        setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
-                        return;
-                      }
-                      if (!disabled && !busy && file.path) openFileInPlayer(file.path);
-                    }}
-                  >
-                    {parseTitles ? formatParsedTitle(file.path || file.name, t) : file.name}
-                  </span>
+                      }}
+                      onClick={(e) => {
+                        if (e.ctrlKey || e.metaKey) {
+                          if (disabled || busy || !file.path) return;
+                          setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
+                          return;
+                        }
+                        if (!disabled && !busy && file.path) openFileInPlayer(file.path);
+                      }}
+                    >
+                      {parseTitles ? formatParsedTitle(file.path || file.name, t) : file.name}
+                    </span>
+                  </ContextMenu>
 
                   <span className="windows95-text text-hint">{formatBytes(file.size)}</span>
 

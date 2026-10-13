@@ -1,6 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
+import { closeOpenContextMenus } from "@/components/shared/contextMenu.component";
 import {
   VIM_CONTENT_SELECTOR,
   VIM_LABEL_ALPHABET,
@@ -168,6 +169,10 @@ export function useVimMode(): void {
     };
 
     const openLayer = (): void => {
+      // A context menu left open would sit above the hint layer and eat the
+      // clicks the badges promise, so F always dismisses menus first. The
+      // scan below then sees the page without them.
+      closeOpenContextMenus();
       // With a dialog or menu up, only that layer is scanned: a badge for a
       // control behind it would be unreachable and the label space (361) is
       // shared with the page it is covering.

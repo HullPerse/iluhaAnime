@@ -1,6 +1,7 @@
-import { cleanup, renderHook } from "@testing-library/react";
+import { cleanup, render, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import ContextMenu from "@/components/shared/contextMenu.component";
 import { useVimMode } from "@/hooks/vimMode.hook";
 import { patchSettings } from "@/store/settings.store";
 import { resetVimHints, vimAtoms } from "@/store/vim.store";
@@ -43,6 +44,18 @@ function click(button: number, type = "pointerdown"): void {
 
 function hintsOpen(): boolean {
   return vimAtoms.hints.get().open;
+}
+
+function renderMenu(onOpenChange: (open: boolean) => void): void {
+  render(
+    <ContextMenu
+      entries={[{ kind: "item", id: "one", label: "common.close", onSelect: () => undefined }]}
+      open
+      onOpenChange={onOpenChange}
+    >
+      <button type="button">row</button>
+    </ContextMenu>
+  );
 }
 
 beforeEach(() => {
@@ -94,5 +107,19 @@ describe("useVimMode click-away", () => {
     pressF();
     click(0);
     expect(hintsOpen()).toBe(false);
+  });
+});
+
+describe("useVimMode menu handoff", () => {
+  it("closes an open context menu when hints open", () => {
+    const onOpenChange = vi.fn();
+    renderMenu(onOpenChange);
+    const render = renderHook(() => useVimMode());
+
+    pressF();
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(hintsOpen()).toBe(true);
+    render.unmount();
   });
 });

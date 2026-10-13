@@ -1,8 +1,8 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import ContextMenu from "@/components/shared/contextMenu.component";
+import ContextMenu, { closeOpenContextMenus } from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 
 function entries(onSelect = vi.fn()): ContextMenuEntry[] {
@@ -68,5 +68,20 @@ describe("ContextMenu", () => {
     );
     await userEvent.keyboard("{Escape}");
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("closes an open menu through the shared closer", async () => {
+    render(
+      <ContextMenu entries={entries()} defaultOpen>
+        <button type="button">row</button>
+      </ContextMenu>
+    );
+    expect(screen.getAllByRole("menuitem")).toHaveLength(3);
+
+    act(() => {
+      closeOpenContextMenus();
+    });
+
+    await waitFor(() => expect(screen.queryAllByRole("menuitem")).toHaveLength(0));
   });
 });

@@ -311,6 +311,18 @@ describe("FolderView count steps", () => {
 
     expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/3.mkv");
   });
+
+  it("drops a pending count on Enter", () => {
+    renderFour();
+    const file = fileRow("4.mkv");
+    file.focus();
+    setVimCount("2");
+
+    pressKey("Enter", file);
+    pressKey("KeyK", file);
+
+    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/3.mkv");
+  });
 });
 
 describe("FolderView row actions", () => {
@@ -428,15 +440,15 @@ describe("FolderView file menu", () => {
     expect(mockOpenPath).toHaveBeenCalledWith("D:/Anime/");
   });
 
-  it("skips the menu on Ctrl+right-click", async () => {
+  it("skips the menu on Ctrl+right-click", () => {
     renderTree();
     const file = fileRow("ep1.mkv");
     const target = file.querySelector<HTMLElement>("[data-tree-activate]");
     if (!target) throw new Error("activation target missing");
 
-    fireEvent.contextMenu(target, { ctrlKey: true });
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // The capture intercept preventDefaults (dispatch reports it) and stops
+    // propagation, so the trigger never fires and no menu state is scheduled.
+    expect(fireEvent.contextMenu(target, { ctrlKey: true })).toBe(false);
     expect(screen.queryAllByRole("menuitem")).toHaveLength(0);
   });
 });

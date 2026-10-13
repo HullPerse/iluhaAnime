@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { dispatchClick, dispatchFocus } from "@/lib/hotkeys/dispatch.hotkeys";
+import { clickRowActionButton, dispatchClick, dispatchFocus } from "@/lib/hotkeys/dispatch.hotkeys";
 
 const nodes: HTMLElement[] = [];
 
@@ -70,5 +70,40 @@ describe("dispatchFocus", () => {
 
   it("ignores a non-element target", () => {
     expect(() => dispatchFocus(document as unknown as Element)).not.toThrow();
+  });
+});
+
+describe("clickRowActionButton", () => {
+  it("clicks a bare button holder", () => {
+    const row = target();
+    const button = document.createElement("button");
+    button.dataset.fileAction = "external";
+    row.append(button);
+    const spy = vi.fn();
+    button.addEventListener("click", spy);
+
+    clickRowActionButton(row, "external");
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("unwraps a trigger span like the upscale one", () => {
+    const row = target();
+    const holder = document.createElement("span");
+    holder.dataset.fileAction = "upscale";
+    const button = document.createElement("button");
+    holder.append(button);
+    row.append(holder);
+    const spy = vi.fn();
+    button.addEventListener("click", spy);
+
+    clickRowActionButton(row, "upscale");
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing without a row or a holder", () => {
+    expect(() => clickRowActionButton(null, "external")).not.toThrow();
+    expect(() => clickRowActionButton(target(), "missing")).not.toThrow();
   });
 });

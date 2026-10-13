@@ -24,7 +24,7 @@ import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
-import { dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
+import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
 import { parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
@@ -91,22 +91,13 @@ const FILE_ACTION_BY_KEY: Partial<Record<TreeKeyAction, FileRowAction>> = {
   rowReveal: "reveal",
 };
 
-function clickRowButton(row: HTMLElement, name: Exclude<FileRowAction, "reveal">): void {
-  const holder = row.querySelector<HTMLElement>(`[data-file-action="${name}"]`);
-  const button =
-    holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
-  // A disabled button's click() is a no-op, which is exactly the
-  // disabled/busy guard the mouse path enforces.
-  button?.click();
-}
-
 function runFileRowAction(row: HTMLElement, action: FileRowAction): void {
   if (action === "reveal") {
     const name = row.querySelector<HTMLElement>("[data-tree-activate]");
     if (name) dispatchClick(name, "contextmenu");
     return;
   }
-  clickRowButton(row, action);
+  clickRowActionButton(row, action);
 }
 
 function moveRingFocus(
@@ -329,7 +320,9 @@ function FolderView({
 
       if (action === "treeActivate") {
         // Enter performs the row's own button, so key and mouse can never
-        // disagree about what activating a row means.
+        // disagree about what activating a row means. A pending count means
+        // nothing here either: without the drop, `3 Enter j` would step two.
+        setVimCount("");
         row?.querySelector<HTMLElement>("[data-tree-activate]")?.click();
         return;
       }
@@ -567,8 +560,7 @@ function FolderView({
                 name: "external" | "builtin" | "search" | "upscale"
               ): void => {
                 if (!file.path) return;
-                const rowEl = findRow(treeRef.current, file.path);
-                if (rowEl) clickRowButton(rowEl, name);
+                clickRowActionButton(findRow(treeRef.current, file.path), name);
               };
               const fileMenuEntries: ContextMenuEntry[] = [
                 {

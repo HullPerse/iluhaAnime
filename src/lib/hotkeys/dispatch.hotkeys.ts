@@ -25,3 +25,17 @@ export function dispatchClick(element: Element, variant: ClickVariant): MouseEve
 export function dispatchFocus(element: Element): void {
   if (element instanceof HTMLElement) element.focus();
 }
+
+/**
+ * Clicks a file row's own action button (`data-file-action`), unwrapping the
+ * span some triggers render in. Menu entries, row keys and tests all go
+ * through this one lookup, so the three paths cannot disagree about which
+ * button an action means. A disabled button's `click()` is a no-op, which is
+ * exactly the disabled/busy guard the mouse path enforces.
+ */
+export function clickRowActionButton(row: HTMLElement | null, name: string): void {
+  const holder = row?.querySelector<HTMLElement>(`[data-file-action="${name}"]`);
+  const button =
+    holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+  button?.click();
+}

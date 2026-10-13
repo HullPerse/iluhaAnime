@@ -3,7 +3,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
-import { dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
+import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
 import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
 import type { TreeRow } from "@/lib/player/treeArrow.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -89,12 +89,7 @@ function runTorrentFileRowAction(row: HTMLElement, action: TorrentFileRowAction)
     if (name) dispatchClick(name, "contextmenu");
     return;
   }
-  const holder = row.querySelector<HTMLElement>(`[data-file-action="${action}"]`);
-  const button =
-    holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
-  // A disabled button's click() is a no-op, which is exactly the
-  // disabled/busy guard the mouse path enforces.
-  button?.click();
+  clickRowActionButton(row, action);
 }
 
 function TorrentFilesSection({
@@ -260,7 +255,9 @@ function TorrentFilesSection({
       if (action === "treeActivate" || action === "rowSearch") {
         // Enter and S both perform the row's own button, so key and mouse can
         // never disagree about what activating a row means. S on a file row
-        // is the name search; on a folder row it toggles, like Enter.
+        // is the name search; on a folder row it toggles, like Enter. Counts
+        // are dropped like in every other non-motion branch.
+        setVimCount("");
         row?.querySelector<HTMLElement>("[data-tree-activate]")?.click();
         return;
       }

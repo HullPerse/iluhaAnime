@@ -4,7 +4,7 @@ import { TAB_KEYS } from "@/config/settings/tabs.config";
 import type { HotkeyRepeat } from "@/lib/hotkeys/chord.hotkeys";
 import type { TranslationKey } from "@/types/i18n";
 
-export type KeybindScope = "global" | "settings" | "player" | "vim" | "find" | "menu";
+export type KeybindScope = "global" | "settings" | "player" | "vim" | "find" | "menu" | "tree";
 
 export type KeybindMode = "base" | "vim";
 
@@ -147,6 +147,105 @@ const VIM_ENTRIES: readonly KeybindManifestEntry[] = [
   },
 ];
 
+/**
+ * Folder/file tree keys (player folder tree, torrent file lists). They work
+ * with vim off too - the ring is baseline keyboard - so mode stays base while
+ * the tree scope keeps them out of every other surface in the future tab.
+ * Sequences (`gg`) stay unlisted: no multi-stroke chord schema.
+ */
+const TREE_ENTRIES: readonly KeybindManifestEntry[] = [
+  {
+    id: "tree.move.down",
+    chord: "KeyJ",
+    repeat: "hold",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.move.down",
+    category: "navigation",
+  },
+  {
+    id: "tree.move.up",
+    chord: "KeyK",
+    repeat: "hold",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.move.up",
+    category: "navigation",
+  },
+  {
+    id: "tree.collapse",
+    chord: "ArrowLeft",
+    repeat: "hold",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.collapse",
+    category: "navigation",
+  },
+  {
+    id: "tree.expand",
+    chord: "ArrowRight",
+    repeat: "hold",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.expand",
+    category: "navigation",
+  },
+  {
+    id: "tree.activate",
+    chord: "Enter",
+    repeat: "once",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.activate",
+    category: "navigation",
+  },
+  {
+    id: "tree.external",
+    chord: "KeyO",
+    repeat: "once",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.external",
+    category: "interface",
+  },
+  {
+    id: "tree.builtin",
+    chord: "KeyP",
+    repeat: "once",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.builtin",
+    category: "interface",
+  },
+  {
+    id: "tree.search",
+    chord: "KeyS",
+    repeat: "once",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.search",
+    category: "interface",
+  },
+  {
+    id: "tree.upscale",
+    chord: "KeyE",
+    repeat: "once",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.upscale",
+    category: "interface",
+  },
+  {
+    id: "tree.reveal",
+    chord: "KeyR",
+    repeat: "once",
+    scope: "tree",
+    mode: "base",
+    description: "keybind.tree.reveal",
+    category: "interface",
+  },
+];
+
 const APP_ENTRIES: readonly KeybindManifestEntry[] = [
   {
     id: "settings.find",
@@ -210,6 +309,7 @@ export const KEYBIND_MANIFEST: readonly KeybindManifestEntry[] = [
   ...screenshotHistoryEntries(),
   ...playerEntries(),
   ...VIM_ENTRIES,
+  ...TREE_ENTRIES,
 ];
 
 export function keybindEntriesByScope(scope: KeybindScope): KeybindManifestEntry[] {

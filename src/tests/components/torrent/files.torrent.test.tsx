@@ -123,6 +123,19 @@ describe("TorrentFilesSection ring", () => {
     expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("B0");
   });
 
+  it("drops a pending count on Enter", () => {
+    renderSection();
+    openFolder("A");
+    const first = fileRow(0);
+    first.focus();
+    setVimCount("2");
+
+    pressKey("Enter", first);
+    pressKey("KeyJ", first);
+
+    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("file:1");
+  });
+
   it("leaves the keys alone when focus is outside the section", () => {
     renderSection();
     const outside = document.createElement("button");
@@ -283,16 +296,14 @@ describe("TorrentFilesSection file menu", () => {
     expect(mockOpenPath).toHaveBeenCalledWith("D:/media");
   });
 
-  it("skips the menu on Ctrl+right-click", async () => {
+  it("skips the menu on Ctrl+right-click", () => {
     renderSection();
     openFolder("A");
     const row = fileRow(0);
     const target = row.querySelector<HTMLElement>("[data-tree-activate]");
     if (!target) throw new Error("activation target missing");
 
-    fireEvent.contextMenu(target, { ctrlKey: true });
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fireEvent.contextMenu(target, { ctrlKey: true })).toBe(false);
     expect(menuitems()).toHaveLength(0);
   });
 });

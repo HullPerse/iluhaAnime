@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { clickRowActionButton } from "@/lib/hotkeys/dispatch.hotkeys";
 import { fileNameFromPath, isTrackFileName, parseMediaPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -167,16 +168,6 @@ function FileNameCell({
   return <ContextMenu entries={menuEntries}>{cell}</ContextMenu>;
 }
 
-/** Clicks the row's own action button, so menu, keys and mouse can never
- *  disagree: parity holds by construction, and a disabled button's click()
- *  stays a no-op. */
-function clickOwnButton(root: HTMLElement | null, name: "external" | "builtin" | "upscale"): void {
-  const holder = root?.querySelector<HTMLElement>(`[data-file-action="${name}"]`);
-  const button =
-    holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
-  button?.click();
-}
-
 export function TorrentFileRow({
   file,
   depth,
@@ -236,7 +227,7 @@ export function TorrentFileRow({
   // exactly like they stay hint-free.
   const entryDisabled = !file.exists || busy;
   const clickOwn = (name: "external" | "builtin" | "upscale"): void => {
-    clickOwnButton(rootRef.current, name);
+    clickRowActionButton(rootRef.current, name);
   };
   const menuEntries: ContextMenuEntry[] | null = interactions.interactive
     ? [

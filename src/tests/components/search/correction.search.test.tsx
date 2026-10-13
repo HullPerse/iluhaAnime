@@ -9,10 +9,17 @@ import { coverCorrectionsAtoms, removeCoverOverride } from "@/store/cover.store"
 
 import { mockInvoke } from "../../mocks";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: mockInvoke,
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
+// The factory runs before this file's imports are initialized, so the shared
+// mock is pulled in by the factory itself: referencing the top-level import
+// here throws "Cannot access '__vi_import_N__' before initialization" whenever
+// the mocked module is requested first.
+vi.mock("@tauri-apps/api/core", async () => {
+  const { mockInvoke: invoke } = await import("../../mocks");
+  return {
+    invoke,
+    convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
+  };
+});
 
 const KEY = "modal test show|0";
 

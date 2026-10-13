@@ -47,6 +47,15 @@ describe("shouldBlurOnEscape", () => {
     expect(shouldBlurOnEscape(null, OPEN_GATE)).toBe(false);
     expect(shouldBlurOnEscape(document, OPEN_GATE)).toBe(false);
   });
+
+  it("leaves the page-find bar input to its own Escape handling", () => {
+    const bar = makeElement("div", { "data-find-bar": "" });
+    const input = makeElement("input");
+    bar.append(input);
+    document.body.append(bar);
+    expect(shouldBlurOnEscape(input, OPEN_GATE)).toBe(false);
+    bar.remove();
+  });
 });
 
 describe("blurEditable", () => {

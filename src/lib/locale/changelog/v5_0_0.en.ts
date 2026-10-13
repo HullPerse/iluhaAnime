@@ -283,6 +283,8 @@ const changelog500 = {
     "Episode saves no longer fail with validation errors: only changed fields reach the server, rapid clicks collapse into one save, and progress shows instantly with loader, checkmark and retry states",
   "changelog.5_0_0.added.app.focus_main":
     "Ctrl+K focuses the main search field of the active tab, Escape unfocuses it back",
+  "changelog.5_0_0.added.app.page_find":
+    "Page find bar on Ctrl+F: match counter with keyboard and mouse navigation, case and whole-word toggles, highlights for the current and other matches",
 } as const;
 
 export default changelog500;

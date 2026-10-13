@@ -1,5 +1,3 @@
-import { findSubsequenceRanges } from "@/lib/highlight/highlight.utils";
-
 export interface PageFindMatch {
   node: Text;
   start: number;
@@ -16,6 +14,8 @@ export interface PageFindOptions {
   root?: ParentNode;
   maxNodes?: number;
   maxMatches?: number;
+  caseSensitive?: boolean;
+  wholeWords?: boolean;
 }
 
 export const PAGE_FIND_NODE_CAP = 20000;
@@ -64,15 +64,119 @@ export function searchPageFind(query: string, options: PageFindOptions = {}): Pa
   const root = options.root ?? document.body;
   const maxNodes = options.maxNodes ?? PAGE_FIND_NODE_CAP;
   const maxMatches = options.maxMatches ?? PAGE_FIND_MATCH_CAP;
+  const matchOptions = {
+    caseSensitive: options.caseSensitive ?? false,
+    wholeWords: options.wholeWords ?? false,
+  };
   const { nodes, truncated } = collectTextNodes(root, maxNodes);
   const matches: PageFindMatch[] = [];
   for (const node of nodes) {
-    for (const range of findSubsequenceRanges(node.data, query)) {
+    for (const range of matchRangesInNode(node.data, query, matchOptions)) {
       if (matches.length >= maxMatches) return { matches, truncated: true };
       matches.push({ node, start: range.start, end: range.end });
     }
   }
   return { matches, truncated };
+}
+
+const WORD_CHAR = /[\p{L}\p{N}_]/u;
+
+function isWholeWord(text: string, start: number, end: number): boolean {
+  const before = start > 0 ? (text[start - 1] ?? "") : "";
+  const after = end < text.length ? (text[end] ?? "") : "";
+  return !WORD_CHAR.test(before) && !WORD_CHAR.test(after);
+}
+
+/**
+ * Page find is substring-only by design (Chrome parity): scattered letters
+ * never match, so a short query cannot light up unrelated words. The shared
+ * fuzzy helper keeps living for suggestion highlighting, but it is not used
+ * here anymore.
+ */
+interface FoldedText {
+  text: string;
+  map: number[];
+}
+
+function foldWithMap(value: string, lower: boolean): FoldedText {
+  const chars: string[] = [];
+  const map: number[] = [];
+  let raw = 0;
+  for (const char of value) {
+    let folded = char.normalize("NFKD").replaceAll(/\p{Mark}/gu, "");
+    if (lower) folded = folded.toLowerCase();
+    for (const piece of folded) {
+      chars.push(piece);
+      map.push(raw);
+    }
+    raw += char.length;
+  }
+  return { text: chars.join(""), map };
+}
+
+function isAsciiText(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    if ((value.codePointAt(i) ?? 128) > 127) return false;
+  }
+  return true;
+}
+
+function toRawRange(
+  map: readonly number[],
+  textLength: number,
+  start: number,
+  end: number
+): { start: number; end: number } {
+  return {
+    start: map[start] ?? 0,
+    end: end < map.length ? (map[end] ?? textLength) : textLength,
+  };
+}
+
+/**
+ * Every contiguous occurrence in the node, so a repeated word on one line
+ * stays reachable. Pure ASCII takes the plain indexOf fast path; otherwise
+ * both sides fold (diacritics stripped, case per toggle) and folded offsets
+ * map back to raw ones, so `pokemon` still finds `Pokémon` with exact
+ * highlight spans. Whole-word mode filters the final spans by word
+ * boundaries.
+ */
+function matchRangesInNode(
+  text: string,
+  query: string,
+  options: { caseSensitive: boolean; wholeWords: boolean }
+): Array<{ start: number; end: number }> {
+  const lower = !options.caseSensitive;
+  if (isAsciiText(text) && isAsciiText(query)) {
+    const haystack = lower ? text.toLowerCase() : text;
+    const needle = lower ? query.toLowerCase() : query;
+    const found: Array<{ start: number; end: number }> = [];
+    if (needle) {
+      let from = 0;
+      while (from + needle.length <= haystack.length) {
+        const at = haystack.indexOf(needle, from);
+        if (at === -1) break;
+        found.push({ start: at, end: at + needle.length });
+        from = at + needle.length;
+      }
+    }
+    if (!options.wholeWords) return found;
+    return found.filter((range) => isWholeWord(text, range.start, range.end));
+  }
+  const haystack = foldWithMap(text, lower);
+  const needle = foldWithMap(query, lower).text;
+  const found: Array<{ start: number; end: number }> = [];
+  if (needle) {
+    let from = 0;
+    while (from + needle.length <= haystack.text.length) {
+      const at = haystack.text.indexOf(needle, from);
+      if (at === -1) break;
+      found.push(toRawRange(haystack.map, text.length, at, at + needle.length));
+      from = at + needle.length;
+    }
+  }
+  if (!options.wholeWords) return found;
+  return found.filter((range) => isWholeWord(text, range.start, range.end));
 }
 
 export function stepPageFindIndex(current: number, delta: number, length: number): number {

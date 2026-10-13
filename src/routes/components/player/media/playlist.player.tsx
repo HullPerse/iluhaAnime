@@ -337,6 +337,7 @@ function PlaylistBody({ onPlay, onRemove, onMove, focusedIndex }: PlaylistBodyPr
           ref={scrollRef}
           data-playlist-scroll
           data-no-wheel
+          data-virtual-list={entries.length > PLAYLIST_VIRTUALIZE_AFTER ? "" : undefined}
           className="min-h-0 flex-1 overflow-y-auto p-1"
         >
           {entries.length === 0 ? (

@@ -406,7 +406,7 @@ const settings = {
   "settings.startup.fastLaunch": "Быстрый запуск",
   "settings.startup.fastLaunch.hint": "Пропускать заставку, грузить все в фоне.",
   "settings.keyboard": "Клавиатура",
-  "settings.vim.mode": "Режим клавиатуры Vim",
+  "settings.vim.mode": "iluhium",
   "settings.vim.mode.hint":
     "F подсвечивает кликабельные элементы, j/k/d/u прокрутка. Плеер сохраняет свои клавиши.",
   "settings.find.placeholder": "Найти параметр...",

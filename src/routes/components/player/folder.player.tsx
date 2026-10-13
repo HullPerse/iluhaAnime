@@ -356,6 +356,7 @@ function FolderView({
         <div
           ref={scrollElementRef}
           data-no-wheel
+          data-virtual-list
           className="overflow-y-auto"
           style={{
             maxHeight: contentSized

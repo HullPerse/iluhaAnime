@@ -29,6 +29,7 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { TabId } from "@/types/settings";
 
+import PageFindBar from "./components/shared/keyboard/findBar.keyboard.component";
 import KeyboardHintOverlay from "./components/shared/keyboard/overlay.keyboard.component";
 import NotificationTray from "./components/shared/notification/tray.notification";
 import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
@@ -146,6 +147,7 @@ export default function App() {
       )}
       {screenshot && <ScreenshotModal capture={screenshot} onClose={closeScreenshot} />}
       <KeyboardHintOverlay />
+      <PageFindBar />
       <section className="relative z-10 flex h-full flex-col">
         <div className="ui-panel flex h-full flex-col">
           {customTitleBarEnabled && <TitleBar title="iluhaAnime" />}

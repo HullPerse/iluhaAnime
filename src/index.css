@@ -436,13 +436,18 @@
 }
 
 ::highlight(find-match) {
-  background-color: var(--color-highlight);
-  color: var(--color-title-text);
+  background-color: var(--color-primary);
+  color: var(--color-text);
+}
+@supports (color: color-mix(in lab, red, red)) {
+  ::highlight(find-match) {
+    background-color: color-mix(in srgb, var(--color-highlight) 30%, var(--color-field));
+  }
 }
 
 ::highlight(find-current) {
-  background-color: var(--color-primary);
-  color: var(--color-text);
+  background-color: var(--color-highlight);
+  color: var(--color-title-text);
 }
 
 .target-marked {

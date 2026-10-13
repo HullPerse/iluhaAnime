@@ -48,6 +48,55 @@ describe("searchPageFind", () => {
     expect(matches.map((match) => match.node.data)).toEqual(["Alpha beta", "beta gamma"]);
   });
 
+  it("reaches every direct occurrence inside one text node", () => {
+    const root = container("alpha beta alpha");
+    const { matches } = searchPageFind("alpha", { root });
+    expect(matches.map((match) => [match.start, match.end])).toEqual([
+      [0, 5],
+      [11, 16],
+    ]);
+  });
+
+  it("respects case when the toggle is on", () => {
+    const root = container("Alpha beta ALPHA");
+    expect(searchPageFind("Alpha", { root }).matches).toHaveLength(2);
+    const { matches } = searchPageFind("Alpha", { root, caseSensitive: true });
+    expect(matches.map((match) => [match.start, match.end])).toEqual([[0, 5]]);
+  });
+
+  it("keeps only whole words when the toggle is on", () => {
+    const root = container("alphabet alpha alphas");
+    expect(searchPageFind("alpha", { root }).matches).toHaveLength(3);
+    const { matches } = searchPageFind("alpha", { root, wholeWords: true });
+    expect(matches.map((match) => [match.start, match.end])).toEqual([[9, 14]]);
+  });
+
+  it("rejects scattered letters that never consume the query", () => {
+    const root = container("Порт Пауза");
+    expect(searchPageFind("пиры", { root }).matches).toEqual([]);
+  });
+
+  it("finds query substrings but not scattered letters", () => {
+    const root = container("Поиск");
+    expect(searchPageFind("пи", { root }).matches).toEqual([]);
+    const words = container("пирыздык и пиры");
+    expect(
+      searchPageFind("пиры", { root: words }).matches.map((match) => [match.start, match.end])
+    ).toEqual([
+      [0, 4],
+      [11, 15],
+    ]);
+  });
+
+  it("finds folded diacritics with exact spans", () => {
+    const root = container("Pokémon");
+    const { matches } = searchPageFind("pokemon", { root });
+    expect(matches.map((match) => [match.start, match.end])).toEqual([[0, 7]]);
+    const sensitive = searchPageFind("Pokemon", { root, caseSensitive: true });
+    expect(sensitive.matches.map((match) => [match.start, match.end])).toEqual([[0, 7]]);
+    expect(searchPageFind("POKEMON", { root, caseSensitive: true }).matches).toEqual([]);
+  });
+
   it("reports text coordinates of the match", () => {
     const root = container("findme");
     const { matches } = searchPageFind("dme", { root });

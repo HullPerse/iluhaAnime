@@ -54,7 +54,11 @@ export function SqliteBrowseResult({
   const loadingMore = loadingRows && page > 1 && showScroll;
   return (
     <>
-      <section ref={scrollRef} className="ui-panel bg-field min-h-40 overflow-auto p-0">
+      <section
+        ref={scrollRef}
+        data-virtual-list
+        className="ui-panel bg-field min-h-40 overflow-auto p-0"
+      >
         {loadingRows && (!showScroll || accRows.length === 0) ? (
           <div className="flex min-h-40 items-center justify-center">
             <SmallLoader />

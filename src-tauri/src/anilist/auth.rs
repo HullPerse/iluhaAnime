@@ -691,6 +691,32 @@ pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> 
     let _ = app_db::prune_unified_index_scope(app_handle, "anilist".into(), Some(Vec::new()), None);
     Ok(())
 }
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedMediaListEntry {
+    pub id: Option<i64>,
+    pub status: Option<String>,
+    pub progress: Option<i32>,
+    pub custom_lists: Vec<String>,
+}
+
+fn parse_saved_entry(node: &serde_json::Value) -> SavedMediaListEntry {
+    SavedMediaListEntry {
+        id: node["id"].as_i64(),
+        status: node["status"].as_str().map(String::from),
+        progress: node["progress"].as_i64().map(|n| n as i32),
+        custom_lists: node["customLists"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|name| name.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
+    }
+}
+
 #[allow(clippy::cast_possible_wrap)]
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -704,7 +730,7 @@ pub async fn save_anilist_entry(
     customLists: Option<Vec<String>>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
-) -> Result<(), String> {
+) -> Result<SavedMediaListEntry, String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
         "query": r"
@@ -713,6 +739,7 @@ pub async fn save_anilist_entry(
                     id
                     status
                     progress
+                    customLists
                 }
             }
         ",
@@ -757,7 +784,7 @@ pub async fn save_anilist_entry(
         );
         return Err(format!("{:?}", json["errors"]));
     }
-    Ok(())
+    Ok(parse_saved_entry(&json["data"]["SaveMediaListEntry"]))
 }
 
 #[tauri::command]
@@ -1031,6 +1058,27 @@ mod tests {
         let minimal = save_entry_variables(21, "PLANNING", None, None, None, None);
         assert!(minimal["customLists"].is_null());
         assert!(minimal.get("repeat").is_none());
+    }
+
+    #[test]
+    fn parse_saved_entry_reads_server_normalized_fields() {
+        let node = serde_json::json!({
+            "id": 101,
+            "status": "COMPLETED",
+            "progress": 28,
+            "customLists": ["favorites", "rewards"]
+        });
+        let saved = parse_saved_entry(&node);
+        assert_eq!(saved.id, Some(101));
+        assert_eq!(saved.status.as_deref(), Some("COMPLETED"));
+        assert_eq!(saved.progress, Some(28));
+        assert_eq!(saved.custom_lists, vec!["favorites", "rewards"]);
+
+        let empty = parse_saved_entry(&serde_json::json!({}));
+        assert_eq!(empty.id, None);
+        assert_eq!(empty.status, None);
+        assert_eq!(empty.progress, None);
+        assert!(empty.custom_lists.is_empty());
     }
 
     #[test]

@@ -10,8 +10,6 @@ function makeElement(tag: string, attrs: Record<string, string> = {}): HTMLEleme
 }
 
 const OPEN_GATE: BlurGate = {
-  vimMode: true,
-  excludedRoute: false,
   hintsOpen: false,
   topLayer: null,
 };
@@ -37,11 +35,10 @@ describe("shouldBlurOnEscape", () => {
     expect(shouldBlurOnEscape(document.body, OPEN_GATE)).toBe(false);
   });
 
-  it("keeps priority for the mode gate, the player, hints, and layers", () => {
+  it("keeps priority for hints and layers, with no mode gate", () => {
     const input = makeElement("input");
     const layer = makeElement("div");
-    expect(shouldBlurOnEscape(input, { ...OPEN_GATE, vimMode: false })).toBe(false);
-    expect(shouldBlurOnEscape(input, { ...OPEN_GATE, excludedRoute: true })).toBe(false);
+    expect(shouldBlurOnEscape(input, OPEN_GATE)).toBe(true);
     expect(shouldBlurOnEscape(input, { ...OPEN_GATE, hintsOpen: true })).toBe(false);
     expect(shouldBlurOnEscape(input, { ...OPEN_GATE, topLayer: layer })).toBe(false);
   });

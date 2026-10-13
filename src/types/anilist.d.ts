@@ -146,6 +146,19 @@ export interface AniListEntry {
   custom_lists: string[];
 }
 
+/**
+ * Result of a `save_anilist_entry` mutation, straight from `SaveMediaListEntry`.
+ * Keys are camelCase because the Rust struct uses `rename_all = "camelCase"`.
+ * The server may normalize what was sent (progress clamped to episodes, status
+ * auto-completed), so callers must treat this as the source of truth.
+ */
+export interface AniSavedEntry {
+  id: number | null;
+  status: string | null;
+  progress: number | null;
+  customLists: string[];
+}
+
 export interface AniListCollection {
   name: string;
   entries: AniListEntry[];

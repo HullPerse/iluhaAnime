@@ -23,7 +23,7 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import { requestWizardPrefill } from "@/store/collection.store";
-import type { AniMedia, AnilistRouteData } from "@/types/anilist";
+import type { AniMedia, AniSavedEntry, AnilistRouteData } from "@/types/anilist";
 import type { TranslationKey } from "@/types/i18n";
 
 function scoreErrorKey(error: TranslationKey | null): TranslationKey {
@@ -63,6 +63,54 @@ function patchListEntry(
       })),
     };
   });
+}
+
+/**
+ * Current status of the entry straight from the live cache. `listEntry` is a
+ * frozen snapshot taken when the detail view opened, so it can be stale next to
+ * what the list actually holds.
+ */
+function readListStatus(
+  queryClient: ReturnType<typeof useQueryClient>,
+  mediaId: number
+): string | null {
+  const data = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+  if (!data) return null;
+  for (const list of data.lists) {
+    const found = list.entries.find((entry) => entry.media.id === mediaId);
+    if (found) return found.list_status;
+  }
+  return null;
+}
+
+/**
+ * Reconciles the cache with what the server actually stored. The server is the
+ * source of truth: it clamps the progress, may flip the status to COMPLETED on
+ * its own, and echoes the stored custom lists. The draft is only a fallback for
+ * fields the mutation does not return.
+ *
+ * `bucketChanged` reports that the entry now belongs to a different status
+ * list. An in-place patch cannot move it there, so the caller has to refetch.
+ */
+function reconcileSavedEntry(
+  queryClient: ReturnType<typeof useQueryClient>,
+  mediaId: number,
+  previousStatus: string | null,
+  draft: ListEntryPatch,
+  saved: AniSavedEntry | null
+): { status: string; bucketChanged: boolean } {
+  const status = saved?.status ?? draft.list_status;
+  const customLists = saved?.customLists ?? [];
+  if (previousStatus !== null) {
+    patchListEntry(queryClient, mediaId, {
+      list_status: status,
+      progress: saved?.progress ?? draft.progress,
+      score: draft.score,
+      notes: draft.notes,
+      custom_lists: customLists.length > 0 ? customLists : draft.custom_lists,
+    });
+  }
+  return { status, bucketChanged: previousStatus === null || previousStatus !== status };
 }
 
 function DeleteListEntryButton({
@@ -219,11 +267,13 @@ function AniListActionControls({
       notes: trimmed ? trimmed : null,
       custom_lists: editCustomLists,
     };
-    const hadEntry = listEntry !== undefined;
+    // Bucket the entry sits in right now. `null` means it is not in the cache
+    // yet, i.e. this save creates the entry.
+    const previousStatus = readListStatus(queryClient, anime.id);
     const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
-    if (hadEntry) patchListEntry(queryClient, anime.id, values);
+    if (previousStatus !== null) patchListEntry(queryClient, anime.id, values);
     const startedAt = performance.now();
-    const [, error] = await attempt(
+    const [saved, error] = await attempt(
       anilistApi.saveEntry({
         mediaId: anime.id,
         status: values.list_status,
@@ -234,7 +284,7 @@ function AniListActionControls({
       })
     );
     if (error) {
-      if (hadEntry) queryClient.setQueryData(["anilist_data"], previous);
+      if (previousStatus !== null) queryClient.setQueryData(["anilist_data"], previous);
       const message = error instanceof Error ? error.message : String(error);
       const reason = message.length > 300 ? `${message.slice(0, 300)}...` : message;
       console.warn("anilist.save.failed", {
@@ -248,8 +298,11 @@ function AniListActionControls({
       setSaving(false);
       return;
     }
-    markOwnAnilistListStatus(anime.id, values.list_status);
-    onSaved?.();
+    const reconciled = reconcileSavedEntry(queryClient, anime.id, previousStatus, values, saved);
+    markOwnAnilistListStatus(anime.id, reconciled.status);
+    // A status change (including the server's own auto-COMPLETED) or a brand new
+    // entry still needs the full refetch; otherwise the patch is the final word.
+    if (reconciled.bucketChanged) onSaved?.();
     onClose?.();
   };
 

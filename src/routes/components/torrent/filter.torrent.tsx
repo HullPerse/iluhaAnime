@@ -67,6 +67,7 @@ export default function TorrentNameFilter({
           className="relative z-10 bg-transparent font-bold"
           value={query}
           placeholder={t("torrent.filter.placeholder")}
+          data-main-search
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={handleKeyDown}
         />

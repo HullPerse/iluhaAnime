@@ -4,10 +4,13 @@ import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useDebouncedValue } from "@/hooks/pacer.hook";
 import type { TorrentCoverState } from "@/hooks/search/cover.hook";
-import { mediaToCandidate, type CoverCandidate } from "@/lib/search/cover.utils";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
+import { mediaToCandidate } from "@/lib/search/cover.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showInfo } from "@/lib/utils/notification.utils";
 import CoverCandidateThumb from "@/routes/components/search/default/candidate.search";
 import {
@@ -32,25 +35,20 @@ export default function CoverCorrectionModal({
   const { t } = useI18n();
   const [selectedId, setSelectedId] = useState<number | null>(cover.anilistId);
   const [query, setQuery] = useState("");
-  const [manual, setManual] = useState<CoverCandidate[]>([]);
-
+  const [debouncedQuery] = useDebouncedValue(query.trim(), { wait: MANUAL_DEBOUNCE_MS });
+  const manualQuery = useAppQuery("slow", {
+    queryKey: queryKeys.coverManualSearch(debouncedQuery),
+    queryFn: async () => {
+      const data = await anilistApi.search<AniMedia>({ query: debouncedQuery, perPage: 5 });
+      return data.map(mediaToCandidate);
+    },
+    enabled: debouncedQuery.length >= 2,
+    placeholderData: (previous) => previous,
+  });
   useEffect(() => {
-    const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setManual([]);
-      return;
-    }
-    const timer = setTimeout(() => {
-      attempt(anilistApi.search<AniMedia>({ query: trimmed, perPage: 5 })).then(([data, error]) => {
-        if (error !== null) {
-          reportBackgroundError("cover.manual.search", error);
-          return;
-        }
-        setManual(data.map(mediaToCandidate));
-      });
-    }, MANUAL_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [query]);
+    if (manualQuery.error) reportBackgroundError("cover.manual.search", manualQuery.error);
+  }, [manualQuery.error]);
+  const manual = manualQuery.data ?? [];
 
   const picked = cover.candidates;
   const fresh = manual.filter((candidate) => !picked.some((entry) => entry.id === candidate.id));
@@ -58,7 +56,7 @@ export default function CoverCorrectionModal({
   const apply = (): void => {
     const selected = [...picked, ...fresh].find((candidate) => candidate.id === selectedId);
     if (!selected) return;
-    if (cover.anilistId !== null && cover.anilistId !== selected.id) {
+    if (cover.anilistId && cover.anilistId !== selected.id) {
       rejectCoverCandidate(cover.coverKey, cover.anilistId);
     }
     setCoverOverride(cover.coverKey, {

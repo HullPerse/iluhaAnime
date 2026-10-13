@@ -11,6 +11,11 @@ export const queryKeys = {
   animeBrief: (id: number) => ["anime_brief", id] as const,
   animeFranchise: (id: number) => ["franchise", id] as const,
   animeRecommendations: (id: number) => ["anime_recommendations", id] as const,
+  profileRecommendations: (userId: number | null) =>
+    ["anilist_profile_recommendations", userId] as const,
+  torrentDetails: (source: string, url: string, proxy: string) =>
+    ["torrent_details", source, url, proxy] as const,
+  torrentSource: (id: number, infoHash: string) => ["torrent_source", id, infoHash] as const,
   animeShowcase: (id: number, tmdb: number, proxy: string) =>
     ["anilist_showcase", id, tmdb, proxy, "v3"] as const,
   anilistData: () => ["anilist_data"] as const,
@@ -27,6 +32,7 @@ export const queryKeys = {
   activity: (ids: readonly number[]) => ["anilist_activity", ...ids] as const,
   siteNotifications: () => ["anilist_site_notifications"] as const,
   customLists: () => ["anilist_custom_lists"] as const,
+  anilistListNames: () => ["anilist_list_names"] as const,
   collectionData: () => ["collection-data"] as const,
   tmdbMedia: (id: number | null, mediaType: string, keySet: boolean, proxy: string) =>
     ["tmdb_media", id, mediaType, keySet ? 1 : 0, proxy, "v2"] as const,
@@ -44,6 +50,8 @@ export const queryKeys = {
   searchSessions: (rutracker: string, nekobt: string, erai: string) =>
     ["search_sessions", rutracker, nekobt, erai] as const,
   hostStats: () => ["host-stats"] as const,
+  systemFonts: () => ["system_fonts"] as const,
+  coverManualSearch: (query: string) => ["cover_manual_search", query] as const,
   tmdbRate: () => ["tmdb-rate"] as const,
   appUpdates: () => ["connection"] as const,
   releasesPoll: () => ["anilist-releases"] as const,

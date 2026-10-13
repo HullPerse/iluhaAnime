@@ -4,6 +4,7 @@ import { memo } from "react";
 import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
+import { useProgressOverride } from "@/hooks/anilist/progressOverride.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
 import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
@@ -70,24 +71,26 @@ function MyScoreBadge({
 function CardProgressBlock({
   item,
   entry,
+  progress,
 }: {
   item: Props["item"];
   entry: EntryListInfo | undefined;
+  progress: number | null;
 }) {
-  if (entry?.progress == null) return null;
+  if (entry?.progress == null || progress == null) return null;
   if (item.episodes) {
     return (
       <div className="flex items-center gap-1">
-        <ProgressStepper media={item} entry={entry} />
-        <ProgressBar value={entry.progress} max={item.episodes} className="h-3.5 w-20" slots />
+        <ProgressStepper media={item} entry={entry} progress={progress} />
+        <ProgressBar value={progress} max={item.episodes} className="h-3.5 w-20" slots />
         <span className="windows95-text text-xs">
-          {entry.progress}/{item.episodes}
+          {progress}/{item.episodes}
         </span>
       </div>
     );
   }
-  if (entry.progress > 0) {
-    return <span className="bg-secondary text-title-text px-1 text-xs">{entry.progress}</span>;
+  if (progress > 0) {
+    return <span className="bg-secondary text-title-text px-1 text-xs">{progress}</span>;
   }
   return null;
 }
@@ -98,13 +101,16 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
   const shortMeta = cardMeta === "short";
   const entry = entryLookup.get(item.id);
   const format = parseScoreFormat(scoreFormat);
+  // The optimistic overlay wins while a save is pending, so the number, the bar
+  // and the modal prefill all agree with what the stepper shows.
+  const progress = useProgressOverride(item.id) ?? entry?.progress ?? null;
 
   const openAnime = () =>
     onClick({
       animeId: item.id,
       ...(entry && {
         listEntry: {
-          progress: entry.progress,
+          progress,
           score: entry.score,
           list_status: entry.list_status,
           notes: entry.notes,
@@ -180,7 +186,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
             <span className="text-text text-xs">
               {t(toLocaleKey(statusLabels[item.status.toUpperCase()] ?? item.status))}
             </span>
-            <CardProgressBlock item={item} entry={entry} />
+            <CardProgressBlock item={item} entry={entry} progress={progress} />
             {!entry && item.episodes && (
               <span className="text-text text-xs">
                 {item.episodes} {t("anilist.details.eps.short")}

@@ -1,14 +1,16 @@
 import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { POLL_INTERVALS_MIN } from "@/config/settings/notifications.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/anilist.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
@@ -51,33 +53,22 @@ export default function SettingsNotifications() {
   const notifyUpdateAvailable = useCell(settingsAtoms.notifyUpdateAvailable);
   const notifyScanErrors = useCell(settingsAtoms.notifyScanErrors);
   const knownListNames = useCell(anilistNotificationsAtoms.knownListNames);
-  const [listsLoading, setListsLoading] = useState(false);
-  const [listsFailed, setListsFailed] = useState(false);
-
-  const fetchLists = useCallback(async () => {
-    setListsLoading(true);
-    setListsFailed(false);
-    const [user, authError] = await attempt(anilistApi.checkAuth());
-    if (authError || !user) {
-      setListsFailed(true);
-      setListsLoading(false);
-      return;
-    }
-    const [, listsError] = await attempt(
-      (async () => {
-        const lists = await anilistApi.getLists(user.id, true);
-        setKnownAnilistListNames(lists.map((list) => list.name));
-      })()
-    );
-    if (listsError) setListsFailed(true);
-    setListsLoading(false);
-  }, []);
-
+  const listNamesQuery = useAppQuery("slow", {
+    queryKey: queryKeys.anilistListNames(),
+    queryFn: async () => {
+      const user = await anilistApi.checkAuth();
+      if (!user) throw new Error("not authenticated");
+      const lists = await anilistApi.getLists(user.id, true);
+      return lists.map((list) => list.name);
+    },
+    enabled: knownListNames.length === 0,
+    staleTime: Infinity,
+  });
   useEffect(() => {
-    if (anilistNotificationsAtoms.knownListNames.get().length === 0) {
-      fetchLists();
-    }
-  }, [fetchLists]);
+    if (listNamesQuery.data) setKnownAnilistListNames(listNamesQuery.data);
+  }, [listNamesQuery.data]);
+  const listsLoading = listNamesQuery.isLoading || listNamesQuery.isFetching;
+  const listsFailed = listNamesQuery.isError;
 
   const toggleList = (name: string) => {
     const current = anilistNotifyLists ?? knownListNames;
@@ -174,7 +165,7 @@ export default function SettingsNotifications() {
                 size="icon"
                 className="size-5"
                 title={t("settings.notifications.lists.refresh")}
-                onClick={fetchLists}
+                onClick={() => ignore(listNamesQuery.refetch())}
                 disabled={listsLoading}
               >
                 <RefreshCw className="size-3" />

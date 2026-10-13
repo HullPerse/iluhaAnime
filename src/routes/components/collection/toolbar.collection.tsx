@@ -72,6 +72,7 @@ export default function ToolbarCollection({
       <InlineAutocompleteInput
         placeholder={t("collection.search.title")}
         className="h-9 font-bold"
+        data-main-search
         {...field.inputProps}
         highlightRanges={highlightRanges}
       />

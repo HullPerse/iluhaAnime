@@ -12,7 +12,7 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { addSearchQuery } from "@/store/search.store";
 import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
-import type { AniListFilters, AniMedia, SearchMode } from "@/types/anilist";
+import type { AniListFilters, AniMedia, AniUser, SearchMode } from "@/types/anilist";
 import type { FilterPage } from "@/types/ipc";
 
 export type AniListSearchRequest =
@@ -70,6 +70,16 @@ function buildGlobalParams(query: string, filters: AniListFilters): AnilistSearc
     settings.pageSize,
     settings.anilistMaxPages
   ) as AnilistSearchParams;
+}
+
+export function useProfileRecs(user: AniUser | null, showRecs: boolean) {
+  const userId = user?.id ?? null;
+  const query = useAppQuery("slow", {
+    queryKey: queryKeys.profileRecommendations(userId),
+    queryFn: () => anilistApi.getProfileRecommendations(userId ?? 0),
+    enabled: showRecs && userId !== null,
+  });
+  return { recs: query.data ?? [], recsLoading: query.isLoading };
 }
 
 export function useAnilistSearch() {

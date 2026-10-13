@@ -76,6 +76,9 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.settings.find", "settings"),
       entry("changelog.5_0_0.added.app.tab_urls", "app"),
       entry("changelog.5_0_0.added.app.not_found_page", "app"),
+      entry("changelog.5_0_0.added.app.iluhium", "app"),
+      entry("changelog.5_0_0.added.player.window_keys", "player"),
+      entry("changelog.5_0_0.added.app.focus_main", "app"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -160,6 +163,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.anilist.related_progress", "anilist"),
       entry("changelog.5_0_0.fixed.anilist.friends_progress", "anilist"),
       entry("changelog.5_0_0.fixed.anilist.studio_dupes", "anilist"),
+      entry("changelog.5_0_0.fixed.anilist.save_400", "anilist"),
     ],
   },
   {

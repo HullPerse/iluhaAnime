@@ -1,12 +1,14 @@
 import { ChevronDown, ChevronRight, ListOrdered, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { ignore } from "@/lib/utils/promise.utils";
@@ -20,7 +22,6 @@ import type {
   TorrentDetails,
   TorrentFileInfo,
   TorrentInfo,
-  TorrentOrigin,
 } from "@/types/torrent";
 
 function UpdateCheck({
@@ -33,7 +34,12 @@ function UpdateCheck({
   onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
 }) {
   const { t } = useI18n();
-  const [origin, setOrigin] = useState<TorrentOrigin | null | undefined>(undefined);
+  const sourceQuery = useAppQuery("slow", {
+    queryKey: queryKeys.torrentSource(item.id, item.info_hash),
+    queryFn: () => torrentApi.getTorrentSource(item.id, item.info_hash),
+  });
+  const sourceData = sourceQuery.data;
+  const origin = sourceData && UPDATE_SOURCES_WITH_FILES.has(sourceData.source) ? sourceData : null;
   const [checking, setChecking] = useState(false);
   const [update, setUpdate] = useState<{
     added: TorrentDetailFile[];
@@ -42,20 +48,7 @@ function UpdateCheck({
   } | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    let cancelled = false;
-    ignore(
-      attempt(torrentApi.getTorrentSource(item.id, item.info_hash)).then(([data]) => {
-        if (cancelled) return;
-        setOrigin(data && UPDATE_SOURCES_WITH_FILES.has(data.source) ? data : null);
-      })
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [item.id, item.info_hash]);
-
-  if (origin === null || origin === undefined) return null;
+  if (origin === null) return null;
 
   const check = async () => {
     if (checking) return;

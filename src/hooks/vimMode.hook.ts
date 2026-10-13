@@ -183,8 +183,6 @@ export function useVimMode(): void {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (
         !shouldBlurOnEscape(event.target, {
-          vimMode: stateRef.current.vimMode,
-          excludedRoute: isPlayerSurface(stateRef.current.pathname),
           hintsOpen: engine?.state() === "hints",
           topLayer: topLayerElement(),
         })

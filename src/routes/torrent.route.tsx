@@ -15,6 +15,7 @@ import Select from "@/components/ui/select.component";
 import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
 import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrent/search.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
@@ -30,6 +31,7 @@ import {
   useDhtStats,
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
+import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
 import {
   BULK_CONCURRENCY,
@@ -82,6 +84,9 @@ import SpeedLimitForm from "./components/torrent/speed.torrent";
 
 function TorrentRoute() {
   const queryClient = useQueryClient();
+  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
+    onAction: () => focusMainSearch(),
+  });
   const { data, isLoading: torrentsLoading } = useTorrents();
   const torrents = data ?? NO_TORRENTS;
   const limits = useCell(torrentAtoms.limits);

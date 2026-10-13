@@ -1,56 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { systemApi } from "@/api/system.api";
 import Combobox from "@/components/ui/combobox.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
+
+function readCachedFonts(): string[] {
+  const [parsed, error] = attemptSync(() => {
+    const raw = localStorage.getItem("systemFontsCache");
+    if (!raw) return null;
+    const value = JSON.parse(raw) as { fonts: string[]; ts: number };
+    if (
+      Array.isArray(value.fonts) &&
+      typeof value.ts === "number" &&
+      Date.now() - value.ts < 7 * 24 * 60 * 60 * 1000
+    )
+      return value.fonts;
+    return null;
+  });
+  if (error) reportBackgroundError("fonts.cache.parse", error);
+  return parsed ?? [];
+}
 
 export function FontSelector() {
   const appFont = useCell(settingsAtoms.appFont);
   const { t } = useI18n();
-  const [fonts, setFonts] = useState<string[]>(() => {
-    const [parsed, error] = attemptSync(() => {
-      const raw = localStorage.getItem("systemFontsCache");
-      if (!raw) return null;
-      const value = JSON.parse(raw) as { fonts: string[]; ts: number };
-      if (
-        Array.isArray(value.fonts) &&
-        typeof value.ts === "number" &&
-        Date.now() - value.ts < 7 * 24 * 60 * 60 * 1000
-      )
-        return value.fonts;
-      return null;
-    });
-    if (error) reportBackgroundError("fonts.cache.parse", error);
-    return parsed ?? [];
-  });
-  const [loading, setLoading] = useState(fonts.length === 0);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    if (fonts.length > 0) return;
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      const [list, listError] = await attempt(systemApi.listSystemFonts());
-      if (cancelled) return;
-      if (listError) {
-        setError(t("settings.font.load.error"));
-        setLoading(false);
-        return;
-      }
-      setFonts(list);
-      setLoading(false);
+  const initialFonts = useMemo(() => readCachedFonts(), []);
+  const fontsQuery = useAppQuery("slow", {
+    queryKey: queryKeys.systemFonts(),
+    queryFn: async () => {
+      const list = await systemApi.listSystemFonts();
       const [, cacheError] = attemptSync(() =>
         localStorage.setItem("systemFontsCache", JSON.stringify({ fonts: list, ts: Date.now() }))
       );
       if (cacheError) reportBackgroundError("fonts.cache.write", cacheError);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [fonts.length, t]);
+      return list;
+    },
+    enabled: initialFonts.length === 0,
+    staleTime: Infinity,
+  });
+  const fonts = fontsQuery.data ?? initialFonts;
+  const loading = fonts.length === 0 && (fontsQuery.isLoading || fontsQuery.isFetching);
+  const error = fontsQuery.error == null ? null : t("settings.font.load.error");
   type FontOption = {
     value: string;
     label: string;

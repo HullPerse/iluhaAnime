@@ -2,20 +2,20 @@ const BLUR_SELECTOR =
   'input:not([type="hidden"]), textarea, select, button, [contenteditable="true"]';
 
 export interface BlurGate {
-  vimMode: boolean;
-  excludedRoute: boolean;
   hintsOpen: boolean;
   topLayer: HTMLElement | null;
 }
 
 /**
  * Whether Escape should drop keyboard focus instead of reaching other
- * handlers. Only when vim mode owns the surface, no layer or hint run owns
- * the key, and focus sits on a control that swallows vim chords (inputs,
- * selects, buttons). The overlay stack and the player surface keep priority.
+ * handlers. Works with the vim mode on or off: Ctrl+K focuses the route main
+ * input as a global feature, so Escape must unfocus it back everywhere. Only
+ * skipped when no focusable target matches, a hint run owns the key, or a
+ * layer (overlay, modal, menu) owns it. The overlay stack keeps priority
+ * through `defaultPrevented` at the call site.
  */
 export function shouldBlurOnEscape(target: EventTarget | null, gate: BlurGate): boolean {
-  if (!gate.vimMode || gate.excludedRoute || gate.hintsOpen || gate.topLayer !== null) {
+  if (gate.hintsOpen || gate.topLayer !== null) {
     return false;
   }
   return target instanceof HTMLElement && target.matches(BLUR_SELECTOR);

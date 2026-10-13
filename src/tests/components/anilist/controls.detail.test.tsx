@@ -66,6 +66,77 @@ function saveButton() {
   return screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
 }
 
+/**
+ * Renders the controls with a seeded `["anilist_data"]` entry and a scripted
+ * `save_anilist_entry` response, so the assertions can look at what the cache
+ * holds once the save resolves.
+ *
+ * `seed` models the entry as it already sits in a list bucket; `null` means the
+ * save is the one that creates it.
+ */
+function renderEditable(
+  seed: { status: string; progress: number } | null,
+  saved: unknown,
+  onSaved: () => void
+) {
+  const client = new QueryClient();
+  client.setQueryData(["anilist_data"], {
+    user: { id: 7 },
+    lists: [
+      {
+        name: "Watching",
+        entries: seed
+          ? [
+              {
+                media: { id: MEDIA_ID },
+                progress: seed.progress,
+                list_status: seed.status,
+                score: null,
+                notes: null,
+                custom_lists: [],
+              },
+            ]
+          : [],
+      },
+    ],
+    favourites: [],
+    people: { staff: [], characters: [] },
+  });
+  mockInvoke.mockImplementation((command: unknown) =>
+    command === "save_anilist_entry" ? Promise.resolve(saved) : Promise.resolve(null)
+  );
+  render(
+    <QueryClientProvider client={client}>
+      <AniListActionControls
+        anime={makeAnime()}
+        listEntry={
+          seed
+            ? {
+                progress: seed.progress,
+                score: null,
+                list_status: seed.status,
+                notes: null,
+                custom_lists: [],
+              }
+            : undefined
+        }
+        scoreFormat="POINT_10"
+        onSaved={onSaved}
+      />
+    </QueryClientProvider>
+  );
+  return { client };
+}
+
+function cachedEntry(client: QueryClient) {
+  const data = client.getQueryData(["anilist_data"]);
+  if (!data) return null;
+  const typed = data as {
+    lists: { entries: { progress: number | null; list_status: string }[] }[];
+  };
+  return typed.lists[0]?.entries[0] ?? null;
+}
+
 afterEach(() => cleanup());
 
 beforeEach(() => {
@@ -186,6 +257,49 @@ describe("AniListActionControls save diagnostics", () => {
       )
     );
     expect(screen.queryByText(/Failed to save/u)).toBeNull();
+  });
+});
+
+describe("AniListActionControls server response", () => {
+  it("applies the server-normalized status instead of the draft", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const { client } = renderEditable(
+      { status: "CURRENT", progress: 5 },
+      { id: 1, status: "COMPLETED", progress: 28, customLists: [] },
+      onSaved
+    );
+    // The draft keeps CURRENT; the server auto-completes once the progress hits
+    // the episode count. The cache must follow the server, not the draft.
+    await user.click(saveButton());
+    await waitFor(() => expect(cachedEntry(client)?.list_status).toBe("COMPLETED"));
+    expect(cachedEntry(client)?.progress).toBe(28);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips the full refetch when the status is unchanged", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const { client } = renderEditable(
+      { status: "CURRENT", progress: 5 },
+      { id: 1, status: "CURRENT", progress: 6, customLists: [] },
+      onSaved
+    );
+    const progressInput = screen.getByRole("spinbutton");
+    await user.clear(progressInput);
+    await user.type(progressInput, "6");
+    await user.click(saveButton());
+    await waitFor(() => expect(cachedEntry(client)?.progress).toBe(6));
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it("refetches when the save creates the entry", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    renderEditable(null, { id: 1, status: "CURRENT", progress: 1, customLists: [] }, onSaved);
+    await user.click(saveButton());
+    // A brand new entry has to land in its bucket, which a patch cannot do.
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
   });
 });
 

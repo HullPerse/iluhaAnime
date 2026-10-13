@@ -11,26 +11,41 @@ import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
+import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { addNotification } from "@/store/notification.store";
 import type { AnilistRouteData, AniMedia } from "@/types/anilist";
 
-function patchProgress(
+interface EntryPatch {
+  progress?: number;
+  list_status?: string;
+  custom_lists?: string[];
+}
+
+/**
+ * Writes only the matching entry, cloning just the list that holds it. Untouched
+ * lists keep their identity, and this runs once per confirmed save rather than
+ * once per click, so the list is not re-sorted on every step.
+ */
+function patchEntry(
   queryClient: ReturnType<typeof useQueryClient>,
   mediaId: number,
-  progress: number
+  patch: EntryPatch
 ): void {
   queryClient.setQueryData(["anilist_data"], (old: unknown) => {
     if (!old) return old;
     const data = old as AnilistRouteData;
-    return {
-      ...data,
-      lists: data.lists.map((list) => ({
-        ...list,
-        entries: list.entries.map((item) =>
-          item.media.id === mediaId ? { ...item, progress } : item
-        ),
-      })),
-    };
+    let touched = false;
+    const lists = data.lists.map((list) => {
+      const index = list.entries.findIndex((item) => item.media.id === mediaId);
+      if (index === -1) return list;
+      const previous = list.entries[index];
+      if (!previous) return list;
+      touched = true;
+      const entries = list.entries.slice();
+      entries[index] = { ...previous, ...patch };
+      return { ...list, entries };
+    });
+    return touched ? { ...data, lists } : data;
   });
 }
 
@@ -79,9 +94,11 @@ type StepperPhase = "idle" | "syncing" | "saved" | "error";
 export function ProgressStepper({
   media,
   entry,
+  progress,
 }: {
   media: Pick<AniMedia, "id" | "episodes">;
   entry: EntryListInfo;
+  progress: number;
 }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
@@ -146,7 +163,7 @@ export function ProgressStepper({
       notes: fallback.notes,
     });
     const startedAt = performance.now();
-    const [, error] = await attempt(
+    const [saved, error] = await attempt(
       anilistApi.saveEntry({
         mediaId: media.id,
         status: live.status,
@@ -157,11 +174,19 @@ export function ProgressStepper({
     );
     const elapsedMs = Math.round(performance.now() - startedAt);
     inflightRef.current = false;
+    const superseded = targetRef.current !== null;
     if (error) {
       const reason = shortReason(error);
-      patchProgress(queryClient, media.id, confirmedRef.current);
-      setFailure({ target, reason });
-      setPhase("error");
+      if (superseded) {
+        // A newer click already replaced the overlay; keep it and let the
+        // queued request carry the correction instead of flashing the old value.
+        setPhase("idle");
+      } else {
+        patchEntry(queryClient, media.id, { progress: confirmedRef.current });
+        anilistProgressOverride.clear(media.id);
+        setFailure({ target, reason });
+        setPhase("error");
+      }
       console.warn("anilist.stepper.failed", {
         elapsedMs,
         mediaId: media.id,
@@ -170,13 +195,22 @@ export function ProgressStepper({
       });
       addNotification(t("anilist.controls.save.error.detail", { error: reason }), "error");
     } else {
-      confirmedRef.current = target;
+      // Trust the server: it may clamp the progress or auto-complete the status,
+      // so `saved` wins over the local target.
+      const confirmed = saved?.progress ?? target;
+      confirmedRef.current = confirmed;
+      const returnedCustomLists = saved?.customLists ?? [];
+      patchEntry(queryClient, media.id, {
+        progress: confirmed,
+        ...(saved?.status ? { list_status: saved.status } : {}),
+        ...(returnedCustomLists.length > 0 ? { custom_lists: returnedCustomLists } : {}),
+      });
+      if (!superseded) anilistProgressOverride.clear(media.id);
       setPhase("saved");
       clearSaved();
       savedTimer.current = setTimeout(() => setPhase("idle"), STEPPER_SAVED_MS);
-      queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
     }
-    if (targetRef.current !== null) debouncer.maybeExecute();
+    if (superseded) debouncer.maybeExecute();
   }, [debouncer, media.id, queryClient, t, clearSaved]);
 
   useEffect(() => {
@@ -186,28 +220,31 @@ export function ProgressStepper({
   });
 
   const step = (delta: 1 | -1) => {
-    const base = targetRef.current ?? confirmedRef.current;
+    const base = targetRef.current ?? anilistProgressOverride.get(media.id) ?? confirmedRef.current;
     const next = clampProgress(base + delta, media.episodes);
     if (next === base) return;
     targetRef.current = next;
     setFailure(null);
     clearSaved();
     setPhase((prev) => (prev === "error" || prev === "saved" ? "idle" : prev));
-    patchProgress(queryClient, media.id, next);
+    // Only the overlay moves on click; the cache is written once the server
+    // confirms, so a single click never re-sorts or refetches the whole list.
+    anilistProgressOverride.set(media.id, next);
     if (!inflightRef.current) debouncer.maybeExecute();
   };
 
   const retry = () => {
     if (failure === null || inflightRef.current) return;
+    // A newer click already queued its own request; do not clobber it.
+    if (targetRef.current !== null) return;
     const target = failure.target;
     targetRef.current = target;
     setFailure(null);
     setPhase("idle");
-    patchProgress(queryClient, media.id, target);
+    anilistProgressOverride.set(media.id, target);
     debouncer.maybeExecute();
   };
 
-  const progress = entry.progress ?? 0;
   const max = media.episodes;
   const atMin = progress <= 0;
   const atMax = max != null && progress >= max;

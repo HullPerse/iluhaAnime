@@ -10,23 +10,25 @@ import {
   RefreshCw,
   Rss,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentCover } from "@/hooks/search/cover.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { buildTorrentView } from "@/lib/torrent/details.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { Source, TorrentDetailsProps as Props } from "@/types/search";
-import type { Anime, TorrentDetails, TorrentDetailField, TorrentView } from "@/types/torrent";
+import type { Anime, TorrentDetailField, TorrentView } from "@/types/torrent";
 
 import DescriptionBlocks from "./description.details";
 import DetailsHero from "./hero.details";
@@ -312,35 +314,23 @@ function TorrentDetailsModal({
 }: Props) {
   const { t } = useI18n();
   const sourceProxy = useCell(settingsAtoms.searchProxyUrls)[source] ?? "";
-  const [info, setInfo] = useState<TorrentDetails | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [retry, setRetry] = useState(0);
   const [tab, setTab] = useState<DetailsTab>("description");
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const detailUrl = item.link;
 
-  useEffect(() => {
-    if (retry < 0) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setInfo(null);
-    (async () => {
-      const [result, error] = await attempt(
-        torrentApi.getTorrentDetails(source, detailUrl, sourceProxy || undefined)
-      );
-      if (cancelled) return;
-      if (error) setError(error.message);
-      else setInfo(result);
-      setLoading(false);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [detailUrl, source, sourceProxy, retry]);
+  const detailsQuery = useAppQuery("slow", {
+    queryKey: queryKeys.torrentDetails(source, detailUrl, sourceProxy),
+    queryFn: () => torrentApi.getTorrentDetails(source, detailUrl, sourceProxy || undefined),
+  });
+  const info = detailsQuery.data ?? null;
+  const loading = detailsQuery.isLoading;
+  const error =
+    detailsQuery.error instanceof Error
+      ? detailsQuery.error.message
+      : detailsQuery.error == null
+        ? null
+        : String(detailsQuery.error);
 
   const view = useMemo(
     () => (info ? buildTorrentView(info, item, magnets, source) : null),
@@ -397,7 +387,7 @@ function TorrentDetailsModal({
       {error && !loading && (
         <DetailsError
           error={error}
-          onRetry={() => setRetry((value) => value + 1)}
+          onRetry={() => detailsQuery.refetch()}
           onOpenOriginal={openOriginal}
         />
       )}

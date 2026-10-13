@@ -143,6 +143,7 @@ function InputSearch({
             placeholder={t("search.find.placeholder")}
             className="h-9 font-bold"
             placement={docked ? "below" : "above"}
+            data-main-search
             {...field.inputProps}
             highlightRanges={highlightRanges}
           />

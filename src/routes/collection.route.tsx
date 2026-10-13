@@ -8,6 +8,7 @@ import {
   useCollectionData,
   useCollectionMutations,
 } from "@/hooks/collection/queries.hook";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { pickRandomItem } from "@/lib/collection/filter.utils";
@@ -20,6 +21,7 @@ import {
   isPublicStatusFull,
   publicStatusPrefill,
 } from "@/lib/collection/status.utils";
+import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { buildCollectionShareLink } from "@/lib/utils/deeplink.utils";
@@ -54,6 +56,9 @@ import ToolbarCollection from "./components/collection/toolbar.collection";
 
 export default function CollectionRoute() {
   const { t } = useI18n();
+  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
+    onAction: () => focusMainSearch(),
+  });
   const searchIntentEnabled = useCell(settingsAtoms.searchIntentEnabled);
   const tagTolerances = useCell(settingsAtoms.tagTolerances);
   const { items, statuses, customFieldDefs, isLoading, isError, isFetching, error, refetch } =

@@ -1,4 +1,4 @@
-import { mockInvoke } from "../../mocks";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TorrentCoverState } from "@/hooks/search/cover.hook";
 import CoverCorrectionModal from "@/routes/components/search/default/correction.search";
 import { coverCorrectionsAtoms, removeCoverOverride } from "@/store/cover.store";
+
+import { mockInvoke } from "../../mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -33,6 +35,15 @@ afterEach(() => {
   removeCoverOverride(KEY);
 });
 
+function renderModal(cover: TorrentCoverState, onClose: () => void) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={cover} onClose={onClose} />
+    </QueryClientProvider>
+  );
+}
+
 beforeEach(() => {
   mockInvoke.mockReset();
   mockInvoke.mockImplementation(async () => null);
@@ -41,9 +52,7 @@ beforeEach(() => {
 describe("CoverCorrectionModal", () => {
   it("applies the picked candidate and rejects the previous one", async () => {
     const user = userEvent.setup();
-    render(
-      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={vi.fn()} />
-    );
+    renderModal(coverState(), vi.fn());
     await user.click(screen.getByText("NARUTO: Shippuuden"));
     await user.click(screen.getByRole("button", { name: "Apply" }));
     await waitFor(() => {
@@ -71,9 +80,7 @@ describe("CoverCorrectionModal", () => {
       }
       return null;
     });
-    render(
-      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={vi.fn()} />
-    );
+    renderModal(coverState(), vi.fn());
     await user.type(screen.getByPlaceholderText("Find another anime..."), "bleach");
     await waitFor(() => expect(screen.getByText("BLEACH")).toBeDefined());
   });
@@ -81,22 +88,14 @@ describe("CoverCorrectionModal", () => {
   it("clears a manual binding back to auto", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      <CoverCorrectionModal
-        torrentTitle="Modal Test Show"
-        cover={{ ...coverState(), status: "override" }}
-        onClose={onClose}
-      />
-    );
+    renderModal({ ...coverState(), status: "override" }, onClose);
     await user.click(screen.getByRole("button", { name: "Use auto cover" }));
     expect(coverCorrectionsAtoms.overrides.get()[KEY]).toBeUndefined();
     expect(onClose).toHaveBeenCalled();
   });
 
   it("shows the torrent context and candidate sections", () => {
-    render(
-      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={vi.fn()} />
-    );
+    renderModal(coverState(), vi.fn());
     expect(screen.getByTitle("Modal Test Show")).toBeDefined();
     expect(screen.getByText("Suggested")).toBeDefined();
     expect(screen.getByText("Current")).toBeDefined();
@@ -106,9 +105,7 @@ describe("CoverCorrectionModal", () => {
   it("applies the double-clicked candidate at once", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={onClose} />
-    );
+    renderModal(coverState(), onClose);
     await user.dblClick(screen.getByText("NARUTO: Shippuuden"));
     await waitFor(() => {
       expect(coverCorrectionsAtoms.overrides.get()[KEY]?.id).toBe(1735);
@@ -119,9 +116,7 @@ describe("CoverCorrectionModal", () => {
   it("applies the selection on Enter", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={onClose} />
-    );
+    renderModal(coverState(), onClose);
     await user.click(screen.getByPlaceholderText("Find another anime..."));
     await user.keyboard("{Enter}");
     await waitFor(() => {

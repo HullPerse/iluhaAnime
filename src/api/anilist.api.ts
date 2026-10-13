@@ -13,6 +13,7 @@ import type {
   AniListCollection,
   AniMedia,
   AniRecommendation,
+  AniSavedEntry,
   AniStaffDetail,
   AniUser,
   AniUserProfile,
@@ -172,7 +173,7 @@ export class AnilistApi {
     return this.call("get_anilist_notifications");
   }
 
-  saveEntry(input: SaveAnilistEntryInput): Promise<void> {
+  saveEntry(input: SaveAnilistEntryInput): Promise<AniSavedEntry> {
     const { mediaId, ...rest } = input;
     return this.call("save_anilist_entry", { ...rest, media_id: mediaId, mediaId });
   }

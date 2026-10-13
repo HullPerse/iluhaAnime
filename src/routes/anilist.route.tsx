@@ -9,7 +9,8 @@ import { useAnilistListView } from "@/hooks/anilist/listView.hook";
 import { useAnilistModals } from "@/hooks/anilist/modals.hook";
 import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
-import { useAnilistSearch } from "@/hooks/anilist/search.hook";
+import { useAnilistSearch, useProfileRecs } from "@/hooks/anilist/search.hook";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
@@ -25,6 +26,7 @@ import {
   routePeople,
 } from "@/lib/anilist/route.utils";
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score.utils";
+import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { tr } from "@/lib/locale/i18n.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -45,7 +47,6 @@ import type {
   AniFriendMinimal,
   AniListAnime,
   AniListSort,
-  AniRecommendation,
   AniUser,
   AniUserProfile,
   AnilistRouteData,
@@ -105,6 +106,9 @@ function GlobalSearchFooter({
 
 function AnilistRoute() {
   const { t } = useI18n();
+  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
+    onAction: () => focusMainSearch(),
+  });
   const queryClient = useQueryClient();
   const animeIndex = useCell(searchAtoms.animeIndex);
   const animeProfileId = useCell(searchAtoms.animeProfileId);
@@ -115,8 +119,6 @@ function AnilistRoute() {
   const [currentList, setCurrentList] = useState<string>("");
   const { views, handleOpenModal, handleCloseModal, handleOpenActivity, handleCloseActivity } =
     useAnilistModals();
-  const [recs, setRecs] = useState<AniRecommendation[]>([]);
-  const [recsLoading, setRecsLoading] = useState(false);
   const [viewedFriend, setViewedFriend] = useState<AniFriend | null>(null);
 
   const self = useUserAnilistData();
@@ -125,6 +127,7 @@ function AnilistRoute() {
   const user = self.user;
   const lists = self.lists;
   const favourites = self.favourites;
+  const { recs, recsLoading } = useProfileRecs(user, views.recs);
 
   useEffect(() => {
     if (!user) return;
@@ -158,17 +161,6 @@ function AnilistRoute() {
     () => lists.flatMap((l) => l.entries.map((e) => e.media.id)),
     [lists]
   );
-
-  useEffect(() => {
-    if (!views.recs || !user) return;
-    setRecsLoading(true);
-    (async () => {
-      const [recs, error] = await attempt(anilistApi.getProfileRecommendations(user.id));
-      if (error) setRecs([]);
-      else setRecs(recs);
-      setRecsLoading(false);
-    })();
-  }, [views.recs, user]);
 
   const sort = useCell(settingsAtoms.anilistListSort);
   const setSort = useCallback((next: AniListSort) => {

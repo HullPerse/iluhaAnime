@@ -22,6 +22,7 @@ import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
+import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { folderTreesFromScan, fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
@@ -97,6 +98,10 @@ function PlayerRoute() {
   const [showHiddenItems, setShowHiddenItems] = useState(false);
   const [queueOpen, setQueueOpen] = useState(true);
   const [debouncedSearch] = useDebouncedValue(search.trim(), { wait: 300 });
+
+  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
+    onAction: () => focusMainSearch(),
+  });
 
   useHotkeys<PlayerRouteAction>(ROUTE_KEYBINDS, {
     ignore: (event) => shouldIgnoreHotkeys(event.target),
@@ -550,6 +555,7 @@ function PlayerRoute() {
               <InlineAutocompleteInput
                 className="font-bold"
                 placeholder={t("player.route.search.folders")}
+                data-main-search
                 {...field.inputProps}
               />
               {search && (

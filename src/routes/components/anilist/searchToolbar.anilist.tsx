@@ -57,6 +57,7 @@ function AniListSearchToolbar({
     <div className="ui-toolbar ui-panel w-full flex-row">
       <InlineAutocompleteInput
         placeholder={t("anilist.route.search.placeholder")}
+        data-main-search
         {...field.inputProps}
         className="h-9 font-bold"
         onChange={handleChange}

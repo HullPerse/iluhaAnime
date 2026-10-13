@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import AniListCard from "@/routes/components/anilist/card.anilist";
+import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { patchSettings } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { AniMedia } from "@/types/anilist";
@@ -81,6 +82,7 @@ function renderCard(scoreFormat: string, score: number | null) {
 
 afterEach(() => {
   themeAtoms.currentTheme.set("win95");
+  anilistProgressOverride.reset();
   cleanup();
 });
 
@@ -264,6 +266,107 @@ describe("ProgressStepper coalescing", () => {
         "anilist_data",
       ]);
       expect(data?.lists[0].entries[0].progress).toBe(23);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("moves the shown progress on click before the cache is written", async () => {
+    vi.useFakeTimers();
+    try {
+      const client = renderCoalescing();
+      const plus = screen.getByRole("button", { name: "Watch one more episode" });
+      fireEvent.click(plus);
+      fireEvent.click(plus);
+      // The overlay drives the number right away...
+      expect(screen.getByText("22/28")).toBeTruthy();
+      // ...while the cache still holds the last confirmed server value.
+      const before = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
+        "anilist_data",
+      ]);
+      expect(before?.lists[0].entries[0].progress).toBe(20);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      const after = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
+        "anilist_data",
+      ]);
+      expect(after?.lists[0].entries[0].progress).toBe(22);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("adopts the server-normalized progress and status", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      vi.mocked(invoke).mockImplementation((command: unknown) => {
+        if (command === "save_anilist_entry")
+          return Promise.resolve({ id: 1, status: "COMPLETED", progress: 28, customLists: [] });
+        return Promise.resolve(null);
+      });
+      const client = renderCoalescing();
+      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      const data = client.getQueryData<{
+        lists: { entries: { progress: number; list_status: string }[] }[];
+      }>(["anilist_data"]);
+      expect(data?.lists[0].entries[0].progress).toBe(28);
+      expect(data?.lists[0].entries[0].list_status).toBe("COMPLETED");
+      // The overlay is dropped once the cache holds the confirmed value, so the
+      // card falls back to the (now correct) server entry.
+      expect(anilistProgressOverride.get(MEDIA_ID)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps a newer click when an older save fails", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      const pending: ((value: unknown) => void)[] = [];
+      const rejecters: ((reason?: unknown) => void)[] = [];
+      vi.mocked(invoke).mockImplementation((command: unknown) => {
+        if (command !== "save_anilist_entry") return Promise.resolve(null);
+        return new Promise((resolve, reject) => {
+          pending.push(resolve);
+          rejecters.push(reject);
+        });
+      });
+      const client = renderCoalescing();
+      const plus = screen.getByRole("button", { name: "Watch one more episode" });
+      fireEvent.click(plus);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      expect(pending.length).toBe(1);
+      fireEvent.click(plus);
+      expect(screen.getByText("22/28")).toBeTruthy();
+      await act(async () => {
+        rejecters[0]?.(new Error("429 Too Many Requests"));
+        await Promise.resolve();
+      });
+      // Superseded failure: the newer value stays and no rollback/retry shows.
+      expect(screen.getByText("22/28")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      expect(pending.length).toBe(2);
+      await act(async () => {
+        pending[1]?.({ id: 1, status: "CURRENT", progress: 22, customLists: [] });
+        await Promise.resolve();
+      });
+      const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
+        "anilist_data",
+      ]);
+      expect(data?.lists[0].entries[0].progress).toBe(22);
     } finally {
       vi.useRealTimers();
     }

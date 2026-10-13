@@ -275,6 +275,14 @@ const changelog500 = {
     "Progress bars in Friends scores fill with the main color again, and the friend status square now matches the style used in Related and on cards",
   "changelog.5_0_0.fixed.anilist.studio_dupes":
     "A studio that AniList returns twice no longer shows up twice in anime details",
+  "changelog.5_0_0.added.app.iluhium":
+    "iluhium keyboard mode: F shows labeled badges over clickable elements, j/k/d/u scroll, Alt pins a description, plus a read-only Keybindings tab in Settings",
+  "changelog.5_0_0.added.player.window_keys":
+    "Playlist, speed, tracks, seeking and queue on keys: L, N, Shift+Comma/Period, R, V, B, Home/End, digits, J/K/Enter ring, Q",
+  "changelog.5_0_0.fixed.anilist.save_400":
+    "Episode saves no longer fail with validation errors: only changed fields reach the server, rapid clicks collapse into one save, and progress shows instantly with loader, checkmark and retry states",
+  "changelog.5_0_0.added.app.focus_main":
+    "Ctrl+K focuses the main search field of the active tab, Escape unfocuses it back",
 } as const;
 
 export default changelog500;

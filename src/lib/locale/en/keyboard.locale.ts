@@ -15,6 +15,12 @@ const keyboard = {
   "keybind.vim.scroll.up": "Scroll up one line",
   "keybind.vim.scroll.half.down": "Scroll half a page down",
   "keybind.vim.scroll.half.up": "Scroll half a page up",
+  "keybind.vim.last": "Jump to the bottom of the list",
+  "keybind.vim.edge.top": "Scroll to the top of the view",
+  "keybind.vim.edge.middle": "Scroll to the middle of the view",
+  "keybind.vim.edge.bottom": "Scroll to the bottom of the view",
+  "keybind.find.next": "Next match",
+  "keybind.find.prev": "Previous match",
 } as const;
 
 export default keyboard;

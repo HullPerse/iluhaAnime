@@ -27,6 +27,7 @@ import {
 } from "@/lib/anilist/route.utils";
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score.utils";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
+import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import { tr } from "@/lib/locale/i18n.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -224,6 +225,32 @@ function AnilistRoute() {
     searchTerms,
     setSearchTerms,
   } = useAnilistSearch();
+
+  const handleSelectList = useCallback(
+    (name: string) => {
+      setCurrentList(name);
+      if (global) handleReset();
+    },
+    [global, handleReset]
+  );
+
+  useHotkeys<"tab-prev" | "tab-next">(
+    [
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+    ],
+    {
+      ignore: (event) => ignoreTabCycle(event),
+      onAction: (id) => {
+        const ids = [
+          ALL_LISTS_ID,
+          ...lists.filter((item) => item.entries.length > 0).map((item) => item.name),
+        ];
+        const next = stepTabId(ids, currentList, id === "tab-next" ? 1 : -1);
+        if (next) handleSelectList(next);
+      },
+    }
+  );
 
   const handleLogout = useCallback(async () => {
     await anilistApi.logout();
@@ -533,10 +560,7 @@ function AnilistRoute() {
         isLocal={isLocal}
         global={global}
         currentList={currentList}
-        onSelectList={(name) => {
-          setCurrentList(name);
-          if (global) handleReset();
-        }}
+        onSelectList={handleSelectList}
         searchTerms={searchTerms}
         sort={sort}
         onSortChange={setSort}

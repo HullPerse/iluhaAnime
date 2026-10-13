@@ -32,6 +32,7 @@ import {
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
+import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
 import {
   BULK_CONCURRENCY,
@@ -81,6 +82,8 @@ import { TorrentRow } from "./components/torrent/row.torrent";
 import { DeleteTorrentDialog } from "./components/torrent/sections/delete.sections";
 import { TorrentSelectionBar } from "./components/torrent/sections/selection.sections";
 import SpeedLimitForm from "./components/torrent/speed.torrent";
+
+const LIFECYCLE_TABS = ["all", "staging", "live", "paused", "seeding", "completed"] as const;
 
 function TorrentRoute() {
   const queryClient = useQueryClient();
@@ -154,6 +157,19 @@ function TorrentRoute() {
       navigate({ search: (prev) => ({ ...prev, lifecycle: value, page: 1 }) });
     },
     [navigate]
+  );
+  useHotkeys<"tab-prev" | "tab-next">(
+    [
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+    ],
+    {
+      ignore: (event) => ignoreTabCycle(event),
+      onAction: (id) => {
+        const next = stepTabId(LIFECYCLE_TABS, lifecycleFilter, id === "tab-next" ? 1 : -1);
+        if (next) setLifecycleFilter(next);
+      },
+    }
   );
   const queueSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -507,7 +523,7 @@ function TorrentRoute() {
         active={torrents.length > 0}
       />
       <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5">
-        {(["all", "staging", "live", "paused", "seeding", "completed"] as const).map((lc) => (
+        {LIFECYCLE_TABS.map((lc) => (
           <Button
             key={lc}
             variant={lifecycleFilter === lc ? "outline" : "default"}

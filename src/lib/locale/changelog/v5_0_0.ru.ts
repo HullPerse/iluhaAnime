@@ -276,7 +276,7 @@ const changelog500 = {
   "changelog.5_0_0.fixed.anilist.studio_dupes":
     "Студия, которую AniList отдает дважды, больше не показывается два раза в деталях аниме",
   "changelog.5_0_0.added.app.iluhium":
-    "Клавиатурный режим iluhium: F показывает бейджи поверх кликабельного, j/k/d/u скроллят, Alt закрепляет описание, плюс read-only вкладка Keybindings в настройках",
+    "Клавиатурный режим iluhium: F показывает бейджи поверх кликабельного, j/k/d/u скроллят, прыжки gg/G и H/M/L, скобки переключают внутренние табы, Alt закрепляет описание, панель поиска по странице на Ctrl+F с навигацией n/N",
   "changelog.5_0_0.added.player.window_keys":
     "Плейлист, скорость, дорожки, перемотка и очередь на клавишах: L, N, Shift+Comma/Period, R, V, B, Home/End, цифры, кольцо J/K/Enter, Q",
   "changelog.5_0_0.fixed.anilist.save_400":

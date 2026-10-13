@@ -11,6 +11,15 @@ export const VIM_SCROLL_KEYS = {
   halfUp: "KeyU",
 } as const;
 
+export const VIM_MOTION_KEYS = {
+  firstPrefix: "KeyG",
+  first: "KeyG",
+  last: "Shift+KeyG",
+  edgeTop: "KeyH",
+  edgeMiddle: "KeyM",
+  edgeBottom: "KeyL",
+} as const;
+
 // Home-row first, Vimium-C style. Every character is unique on purpose:
 // a repeated letter would hand the same label to two badges. The plan's
 // draft ``fjdkslaghrueiwovnmcd`` repeated `d`; this is the deduped set.

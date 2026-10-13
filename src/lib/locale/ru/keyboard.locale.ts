@@ -15,6 +15,12 @@ const keyboard = {
   "keybind.vim.scroll.up": "Прокрутить на строку вверх",
   "keybind.vim.scroll.half.down": "Прокрутить на полстраницы вниз",
   "keybind.vim.scroll.half.up": "Прокрутить на полстраницы вверх",
+  "keybind.vim.last": "В конец списка",
+  "keybind.vim.edge.top": "К верху видимого",
+  "keybind.vim.edge.middle": "К середине видимого",
+  "keybind.vim.edge.bottom": "К низу видимого",
+  "keybind.find.next": "Следующее совпадение",
+  "keybind.find.prev": "Предыдущее совпадение",
 } as const;
 
 export default keyboard;

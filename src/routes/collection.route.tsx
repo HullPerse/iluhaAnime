@@ -22,6 +22,7 @@ import {
   publicStatusPrefill,
 } from "@/lib/collection/status.utils";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
+import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { buildCollectionShareLink } from "@/lib/utils/deeplink.utils";
@@ -74,6 +75,23 @@ export default function CollectionRoute() {
   const viewMode = useCell(collectionAtoms.viewMode);
   const displayMode = useCell(collectionAtoms.displayMode);
   const selectedStatus = useCell(collectionAtoms.selectedStatus);
+  useHotkeys<"tab-prev" | "tab-next">(
+    [
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+    ],
+    {
+      ignore: (event) => ignoreTabCycle(event),
+      onAction: (id) => {
+        const next = stepTabId(
+          ["all", ...statuses.map((status) => status.id)],
+          selectedStatus,
+          id === "tab-next" ? 1 : -1
+        );
+        if (next) setCollectionSelectedStatus(next);
+      },
+    }
+  );
   const groupByStatus = useCell(collectionAtoms.groupByStatus);
   const collapsedStatuses = useCell(collectionAtoms.collapsedStatuses);
   const wizardPrefill = useCell(collectionAtoms.wizardPrefill);

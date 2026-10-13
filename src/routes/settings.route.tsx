@@ -7,6 +7,7 @@ import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { flashTarget } from "@/lib/highlight/flash.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { searchSettingsFind } from "@/lib/settings/find.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/lib/settings/find.utils";
@@ -85,6 +86,23 @@ export default function SettingsRoute() {
   useHotkeys<"focus-find">([{ id: "focus-find", chord: "ctrl+KeyK", repeat: "once" }], {
     onAction: () => findInputRef.current?.focus(),
   });
+  useHotkeys<"tab-prev" | "tab-next">(
+    [
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+    ],
+    {
+      ignore: (event) => ignoreTabCycle(event),
+      onAction: (id) => {
+        const next = stepTabId(
+          navKeys.map((tab) => tab.id),
+          activeTab,
+          id === "tab-next" ? 1 : -1
+        );
+        if (next) handleTabSelect(next);
+      },
+    }
+  );
 
   useEffect(() => {
     if (findOpen) contentRef.current?.scrollTo({ top: 0 });

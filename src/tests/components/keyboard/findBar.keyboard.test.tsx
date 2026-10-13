@@ -125,6 +125,23 @@ describe("PageFindBar", () => {
     expect(await screen.findByText("1 / 2")).toBeTruthy();
   });
 
+  it("steps with n outside editable targets", async () => {
+    content("alpha beta alpha");
+    const user = userEvent.setup();
+    openBar();
+    await user.type(await screen.findByPlaceholderText("Find on page..."), "alpha");
+    await screen.findByText("1 / 2");
+    const button = document.createElement("button");
+    button.textContent = "row";
+    document.body.append(button);
+    nodes.push(button);
+    button.focus();
+    fireEvent.keyDown(button, { key: "n", code: "KeyN" });
+    expect(await screen.findByText("2 / 2")).toBeTruthy();
+    fireEvent.keyDown(button, { key: "N", code: "KeyN", shiftKey: true });
+    expect(await screen.findByText("1 / 2")).toBeTruthy();
+  });
+
   it("narrows to whole words behind its toggle", async () => {
     content("alphabet alpha");
     const user = userEvent.setup();

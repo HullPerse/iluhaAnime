@@ -1,5 +1,6 @@
 import {
   VIM_DISABLED_ATTRIBUTE,
+  VIM_MOTION_KEYS,
   VIM_SCROLL_KEYS,
   VIM_TRIGGER_CHORD,
 } from "@/config/keyboard/vim.config";
@@ -12,10 +13,15 @@ export type VimCommand =
   | "scroll.down"
   | "scroll.up"
   | "scroll.half.down"
-  | "scroll.half.up";
+  | "scroll.half.up"
+  | "first"
+  | "last"
+  | "edge.top"
+  | "edge.middle"
+  | "edge.bottom";
 
-/** idle -> the surface owns the keyboard; hints -> badges are open. */
-export type VimEngineState = "idle" | "hints";
+/** idle -> the surface owns the keyboard; hints -> badges are open; prefix -> a sequence prefix waits. */
+export type VimEngineState = "idle" | "hints" | "prefix";
 
 export interface VimEngineOptions {
   isEnabled: () => boolean;
@@ -62,26 +68,44 @@ export function createVimCommandTable(): Map<string, VimCommand> {
   add(VIM_SCROLL_KEYS.lineUp, "scroll.up");
   add(VIM_SCROLL_KEYS.halfDown, "scroll.half.down");
   add(VIM_SCROLL_KEYS.halfUp, "scroll.half.up");
+  add(VIM_MOTION_KEYS.last, "last");
+  add(VIM_MOTION_KEYS.edgeTop, "edge.top");
+  add(VIM_MOTION_KEYS.edgeMiddle, "edge.middle");
+  add(VIM_MOTION_KEYS.edgeBottom, "edge.bottom");
+  return table;
+}
+
+function sequenceTable(): Map<string, Map<string, VimCommand>> {
+  const table = new Map<string, Map<string, VimCommand>>();
+  const chordOf = (chord: string): string | null => {
+    const parsed = parseChord(chord);
+    return parsed ? chordKey(parsed) : null;
+  };
+  const prefix = chordOf(VIM_MOTION_KEYS.firstPrefix);
+  const again = chordOf(VIM_MOTION_KEYS.first);
+  if (prefix && again) table.set(prefix, new Map([[again, "first"]]));
   return table;
 }
 
 export function createVimEngine(options: VimEngineOptions): VimEngine {
   const table = createVimCommandTable();
+  const sequences = sequenceTable();
   let state: VimEngineState = "idle";
+  let pending: Map<string, VimCommand> | null = null;
   let handler: ((event: KeyboardEvent) => void) | null = null;
 
-  const handleKeyDown = (event: KeyboardEvent): void => {
-    if (event.isComposing || event.defaultPrevented) return;
-    if (!options.isEnabled()) return;
-    if (options.isExcludedRoute?.()) return;
-
-    if (state !== "idle") {
+  const handleIdleKey = (event: KeyboardEvent): void => {
+    const chord = chordKeyFromEvent(event);
+    const sequence = sequences.get(chord);
+    if (sequence) {
       if (isVimExcludedTarget(event.target, options.isOwner)) return;
-      options.onActiveKey?.(event, state);
+      pending = sequence;
+      state = "prefix";
+      event.preventDefault();
+      event.stopPropagation();
       return;
     }
-
-    const command = table.get(chordKeyFromEvent(event));
+    const command = table.get(chord);
     if (!command) return;
     // Only owned chords evaluate the gate, so an unowned keystroke never pays
     // for the layer lookup.
@@ -89,6 +113,50 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     event.preventDefault();
     event.stopPropagation();
     options.onCommand(command, event);
+  };
+
+  const handlePrefixKey = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") {
+      state = "idle";
+      pending = null;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (isVimExcludedTarget(event.target, options.isOwner)) {
+      state = "idle";
+      pending = null;
+      return;
+    }
+    const command = pending?.get(chordKeyFromEvent(event));
+    state = "idle";
+    pending = null;
+    if (!command) {
+      handleIdleKey(event);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    options.onCommand(command, event);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.isComposing || event.defaultPrevented) return;
+    if (!options.isEnabled()) return;
+    if (options.isExcludedRoute?.()) return;
+
+    if (state === "prefix") {
+      handlePrefixKey(event);
+      return;
+    }
+
+    if (state !== "idle") {
+      if (isVimExcludedTarget(event.target, options.isOwner)) return;
+      options.onActiveKey?.(event, state);
+      return;
+    }
+
+    handleIdleKey(event);
   };
 
   return {
@@ -106,6 +174,7 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     state: () => state,
     setState: (next) => {
       state = next;
+      if (next !== "prefix") pending = null;
     },
   };
 }

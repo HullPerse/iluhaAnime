@@ -51,7 +51,61 @@ describe("createVimCommandTable", () => {
     expect(table.get("KeyK:false:false:false:false")).toBe("scroll.up");
     expect(table.get("KeyD:false:false:false:false")).toBe("scroll.half.down");
     expect(table.get("KeyU:false:false:false:false")).toBe("scroll.half.up");
-    expect(table.size).toBe(5);
+    expect(table.get("KeyG:false:true:false:false")).toBe("last");
+    expect(table.get("KeyH:false:false:false:false")).toBe("edge.top");
+    expect(table.get("KeyM:false:false:false:false")).toBe("edge.middle");
+    expect(table.get("KeyL:false:false:false:false")).toBe("edge.bottom");
+    expect(table.size).toBe(9);
+  });
+
+  it("leaves the bare prefix chord out of the single-stroke table", () => {
+    const table = createVimCommandTable();
+    expect(table.get("KeyG:false:false:false:false")).toBeUndefined();
+  });
+});
+
+describe("vim engine sequences", () => {
+  it("resolves gg to first across two keystrokes", () => {
+    const { engine, onCommand } = setup();
+    press(window, key("KeyG"));
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(engine.state()).toBe("prefix");
+    press(window, key("KeyG"));
+    expect(onCommand).toHaveBeenCalledTimes(1);
+    expect(onCommand).toHaveBeenCalledWith("first", expect.any(KeyboardEvent));
+    expect(engine.state()).toBe("idle");
+  });
+
+  it("clears the prefix on Escape without firing", () => {
+    const { engine, onCommand } = setup();
+    press(window, key("KeyG"));
+    expect(engine.state()).toBe("prefix");
+    press(window, key("Escape"));
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(engine.state()).toBe("idle");
+    press(window, key("KeyG"));
+    expect(engine.state()).toBe("prefix");
+  });
+
+  it("falls through to the fresh keystroke on a prefix mismatch", () => {
+    const { engine, onCommand } = setup();
+    press(window, key("KeyG"));
+    press(window, key("KeyJ"));
+    expect(onCommand).toHaveBeenCalledTimes(1);
+    expect(onCommand).toHaveBeenCalledWith("scroll.down", expect.any(KeyboardEvent));
+    expect(engine.state()).toBe("idle");
+  });
+
+  it("ignores the prefix inside excluded targets", () => {
+    const { engine, onCommand } = setup();
+    const input = document.createElement("input");
+    document.body.append(input);
+    nodes.push(input);
+    const event = key("KeyG");
+    press(input, event);
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(engine.state()).toBe("idle");
+    expect(event.defaultPrevented).toBe(false);
   });
 });
 

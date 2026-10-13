@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
 import {
   applyPageFindHighlights,
   clearPageFindHighlights,
@@ -57,6 +58,17 @@ function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
     if (total === 0) return;
     setIndex((prev) => stepPageFindIndex(prev, delta, total));
   };
+
+  useHotkeys<"find-next" | "find-prev">(
+    [
+      { id: "find-next", chord: "KeyN", repeat: "once" },
+      { id: "find-prev", chord: "Shift+KeyN", repeat: "once" },
+    ],
+    {
+      ignore: (event) => isTextEntryTarget(event.target),
+      onAction: (id) => step(id === "find-next" ? 1 : -1),
+    }
+  );
 
   const toggleClass = (active: boolean): string => (active ? "bg-secondary text-title-text" : "");
 

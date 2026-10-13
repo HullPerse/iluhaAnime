@@ -33,6 +33,11 @@ const SCROLL_DIRECTIONS: Record<VimCommand, ScrollDirection | null> = {
   "scroll.up": "up",
   "scroll.half.down": "half.down",
   "scroll.half.up": "half.up",
+  first: null,
+  last: null,
+  "edge.top": null,
+  "edge.middle": null,
+  "edge.bottom": null,
 };
 
 /** The in-app player tab and the detached player window keep their own keys. */
@@ -162,6 +167,16 @@ export function useVimMode(): void {
       hovered = event.target instanceof HTMLElement ? event.target : null;
     };
 
+    const scrollEdge = (edge: "top" | "middle" | "bottom"): void => {
+      if (topLayerElement()) return;
+      const surface = resolveSurface();
+      if (!surface) return;
+      const max = Math.max(0, surface.scrollHeight - surface.clientHeight);
+      if (edge === "top") surface.scrollTop = 0;
+      else if (edge === "bottom") surface.scrollTop = max;
+      else surface.scrollTop = max / 2;
+    };
+
     engine = createVimEngine({
       isEnabled: () => stateRef.current.vimMode,
       isExcludedRoute: () => isPlayerSurface(stateRef.current.pathname),
@@ -169,8 +184,23 @@ export function useVimMode(): void {
       // stays attached.
       isOwner: (target) => isInsideLayer(target, topLayerElement()),
       onCommand: (command) => {
-        if (command === "hints") openLayer();
-        else scroll(command);
+        if (command === "hints") {
+          openLayer();
+          return;
+        }
+        if (command === "first" || command === "edge.top") {
+          scrollEdge("top");
+          return;
+        }
+        if (command === "last" || command === "edge.bottom") {
+          scrollEdge("bottom");
+          return;
+        }
+        if (command === "edge.middle") {
+          scrollEdge("middle");
+          return;
+        }
+        scroll(command);
       },
       onActiveKey: (event) => handleActiveKey(event),
     });

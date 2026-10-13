@@ -24,7 +24,7 @@ import { parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
-import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
+import { relativeRowNumber, resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
 import type { TreeRow } from "@/lib/player/treeArrow.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { withFallback } from "@/lib/utils/attempt.utils";
@@ -34,6 +34,7 @@ import { showError } from "@/lib/utils/notification.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
+import { setVimCount, vimAtoms } from "@/store/vim.store";
 import { upscaleItems } from "@/store/upscale.store";
 import type { FolderNode } from "@/types/torrent";
 
@@ -65,6 +66,31 @@ function findRow(root: HTMLElement | null, path: string): HTMLElement | null {
     if (row.dataset.treePath === path) return row;
   }
   return null;
+}
+
+function TreeRowNumber({
+  rows,
+  anchorPath,
+  rowPath,
+}: {
+  rows: readonly TreeRow[];
+  anchorPath: string | null;
+  rowPath: string;
+}) {
+  const number = relativeRowNumber(rows, anchorPath, rowPath);
+  if (!number) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className={
+        number.current
+          ? "bg-secondary text-title-text w-5 shrink-0 px-0.5 text-right text-[10px] tabular-nums select-none"
+          : "text-hint w-5 shrink-0 text-right text-[10px] tabular-nums select-none"
+      }
+    >
+      {number.label}
+    </span>
+  );
 }
 
 function FolderView({
@@ -170,6 +196,7 @@ function FolderView({
 
   const treeRef = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<string | null>(null);
+  const [anchorPath, setAnchorPath] = useState<string | null>(null);
 
   // Every visible row, in render order. Folder rows are the tab stops (they
   // already were); file rows are reached from them by the movement keys, so a
@@ -231,7 +258,10 @@ function FolderView({
       }
 
       if (action === "treeUp" || action === "treeDown") {
-        const next = resolveTreeMove(treeRows, path, action === "treeUp" ? -1 : 1);
+        const count = vimAtoms.count.get();
+        setVimCount("");
+        const step = count === "" ? 1 : Math.max(Number.parseInt(count, 10) || 1, 1);
+        const next = resolveTreeMove(treeRows, path, action === "treeUp" ? -step : step);
         if (next) findRow(treeRef.current, next)?.focus();
         return;
       }
@@ -264,7 +294,15 @@ function FolderView({
   const showHeader = !hideRoot || depth > 0;
 
   return (
-    <div ref={treeRef} className="flex w-full flex-col">
+    <div
+      ref={treeRef}
+      className="flex w-full flex-col"
+      onFocus={(event) => {
+        const row = rowElement(event.target);
+        const path = row?.dataset.treePath;
+        if (path) setAnchorPath(path);
+      }}
+    >
       {showHeader && (
         <div
           className="windows95-text flex w-full items-center gap-1 px-0.5 py-0.5"
@@ -288,6 +326,7 @@ function FolderView({
             ) : (
               <ChevronRight className="size-3 shrink-0" />
             )}
+            <TreeRowNumber rows={treeRows} anchorPath={anchorPath} rowPath={node.path} />
             <ImageComponent
               src="/images/w2k_folder_closed.ico"
               alt=""
@@ -357,6 +396,7 @@ function FolderView({
           ref={scrollElementRef}
           data-no-wheel
           data-virtual-list
+          data-tree-root
           className="overflow-y-auto"
           style={{
             maxHeight: contentSized
@@ -399,6 +439,11 @@ function FolderView({
                       ) : (
                         <ChevronRight className="size-3 shrink-0" />
                       )}
+                      <TreeRowNumber
+                        rows={treeRows}
+                        anchorPath={anchorPath}
+                        rowPath={item.node.path}
+                      />
                       <ImageComponent
                         src="/images/w2k_folder_closed.ico"
                         alt=""
@@ -436,6 +481,7 @@ function FolderView({
                   data-tree-row
                   data-tree-path={file.path}
                   data-tree-depth={item.depth}
+                  data-vim-target="file"
                   tabIndex={-1}
                   className={cn(
                     "windows95-border hover:bg-surface bg-field focus-visible:outline-text absolute top-0 left-0 flex h-5 w-full items-center gap-1 px-1 hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted",
@@ -446,6 +492,7 @@ function FolderView({
                     paddingLeft: `${item.depth * 12 + 2}px`,
                   }}
                 >
+                  <TreeRowNumber rows={treeRows} anchorPath={anchorPath} rowPath={file.path ?? ""} />
                   <ImageComponent src="/images/w2k_wmp_11.ico" alt="" className="size-4" />
                   <span
                     title={file.name}

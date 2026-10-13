@@ -8,6 +8,7 @@ import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useCell } from "@/lib/state/signal.hook";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { notificationAtoms } from "@/store/notification.store";
+import { vimAtoms } from "@/store/vim.store";
 
 export default function StatusBar({ tabLabel }: { tabLabel: string }) {
   const { t } = useI18n();
@@ -19,12 +20,14 @@ export default function StatusBar({ tabLabel }: { tabLabel: string }) {
     0
   );
   const unreadCount = useCell(notificationAtoms.unreadCount);
+  const vimCount = useCell(vimAtoms.count);
 
   return (
     <section className="ui-statusbar shrink-0">
       <div className="ui-statusbar-cell flex-1 truncate">
         <span className="truncate">{tabLabel}</span>
       </div>
+      {vimCount !== "" && <div className="ui-statusbar-cell tabular-nums">{vimCount}</div>}
       <div className="ui-statusbar-cell">{t("status.downloads", { count: activeDownloads })}</div>
       <div className="ui-statusbar-cell">{t("status.unread", { count: unreadCount })}</div>
       <div className="ui-statusbar-cell">{online ? t("status.online") : t("status.offline")}</div>

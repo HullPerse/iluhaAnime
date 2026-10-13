@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
+import { ignoreTabCycle, focusTreeSibling, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -68,5 +68,53 @@ describe("ignoreTabCycle", () => {
     row.tabIndex = -1;
     document.body.append(row);
     expect(ignoreTabCycle(press(row))).toBe(false);
+  });
+});
+
+describe("focusTreeSibling", () => {
+  function tree(paths: string[]): { root: HTMLElement; rows: HTMLElement[] } {
+    const root = document.createElement("div");
+    root.dataset.treeRoot = "";
+    const rows = paths.map((path) => {
+      const row = document.createElement("div");
+      row.dataset.treeRow = "";
+      row.dataset.treePath = path;
+      row.tabIndex = -1;
+      root.append(row);
+      return row;
+    });
+    document.body.append(root);
+    return { root, rows };
+  }
+
+  it("focuses the Nth sibling of the row folder", () => {
+    const { rows } = tree(["d/a", "d/b", "d/c"]);
+    expect(focusTreeSibling(rows[0]!, 2)).toBe(true);
+    expect(document.activeElement).toBe(rows[1]);
+  });
+
+  it("counts a negative index from the end", () => {
+    const { rows } = tree(["d/a", "d/b"]);
+    expect(focusTreeSibling(rows[0]!, -1)).toBe(true);
+    expect(document.activeElement).toBe(rows[1]);
+  });
+
+  it("clamps out-of-range indices", () => {
+    const { rows } = tree(["d/a", "d/b"]);
+    expect(focusTreeSibling(rows[0]!, 99)).toBe(true);
+    expect(document.activeElement).toBe(rows[1]);
+  });
+
+  it("stays inside one folder", () => {
+    const { rows } = tree(["d/a", "d/b", "other/c"]);
+    expect(focusTreeSibling(rows[0]!, 5)).toBe(true);
+    expect(document.activeElement).toBe(rows[1]);
+  });
+
+  it("reports failure without a path or root", () => {
+    const orphan = document.createElement("div");
+    orphan.dataset.treeRow = "";
+    document.body.append(orphan);
+    expect(focusTreeSibling(orphan, 1)).toBe(false);
   });
 });

@@ -5,7 +5,8 @@ import { useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/player/folders.config";
-import { useBottomResize } from "@/hooks/folderResize.hook";
+import { useBottomResize, resolveResizeMultiplier } from "@/hooks/folderResize.hook";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { maxFolderHeight } from "@/lib/player/folder.utils";
 import { summarizeTree } from "@/lib/player/tree.utils";
@@ -13,6 +14,7 @@ import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { setPlayerFolderHeight, settingsAtoms } from "@/store/settings.store";
+import { setVimCount, vimAtoms } from "@/store/vim.store";
 import type { FolderNode } from "@/types/torrent";
 
 import FolderView from "../folder.player";
@@ -62,9 +64,37 @@ export function DraggableFolder({
   const listMaxHeight = preview ?? appliedSavedHeight;
   const listMinHeight = preview ?? appliedSavedHeight;
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      setNodeRef(element);
+      rootRef.current = element;
+    },
+    [setNodeRef]
+  );
+
+  useHotkeys<"folder-shrink" | "folder-grow">(
+    [
+      { id: "folder-shrink", chord: "BracketLeft", repeat: "hold" },
+      { id: "folder-grow", chord: "BracketRight", repeat: "hold" },
+    ],
+    {
+      ignore: (event) => {
+        const target = event.target instanceof HTMLElement ? event.target : null;
+        return !target || !rootRef.current?.contains(target);
+      },
+      onAction: (id) => {
+        const count = vimAtoms.count.get();
+        setVimCount("");
+        const direction = id === "folder-grow" ? 1 : -1;
+        adjust(direction * FOLDER_RESIZE_STEP * resolveResizeMultiplier(count));
+      },
+    }
+  );
+
   return (
     <div
-      ref={setNodeRef}
+      ref={setRootRef}
       className={`windows95-active-border bg-primary flex flex-col${
         dragging ? " pointer-events-none" : ""
       }`}
@@ -128,6 +158,7 @@ export function DraggableFolder({
         role="separator"
         aria-orientation="horizontal"
         aria-label={t("player.folder.resize")}
+        data-vim-target="resize"
         aria-valuenow={listMaxHeight ? Math.round(listMaxHeight) : undefined}
         tabIndex={0}
         className="bg-surface hover:bg-highlight focus-visible:outline-text pointer-events-auto h-1.5 shrink-0 cursor-s-resize touch-none select-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"

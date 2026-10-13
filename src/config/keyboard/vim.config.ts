@@ -34,6 +34,17 @@ export const VIM_SCROLL_LINE_PX = 60;
 export const VIM_DISABLED_ATTRIBUTE = "data-vim-disabled";
 
 /**
+ * Marks a tree row (`data-tree-row` + `data-tree-path`, see the player folder
+ * tree). Motion commands the trees own (j/k line moves, gg/G jumps) yield to
+ * the focused row: the engine neither consumes nor scrolls, so the row
+ * handlers behind it still fire.
+ */
+export const TREE_ROW_SELECTOR = "[data-tree-row]";
+
+/** Scopes sibling lookup for tree jumps to one tree instance. */
+export const TREE_ROOT_SELECTOR = "[data-tree-root]";
+
+/**
  * The scrolled surface of a route (collection, anilist, search, torrent,
  * settings all carry it). Hint labels are handed out to this region first -
  * see `scanHintTargets` - and it doubles as the scroll fallback in

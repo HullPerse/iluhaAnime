@@ -76,3 +76,13 @@ export function useBottomResize({
 
   return { dragging, previewHeight, beginDrag, adjust };
 }
+
+/**
+ * How many resize steps one key press means: the vim count buffer, at least
+ * one. The engine guarantees digits, the fallback keeps direct callers safe.
+ */
+export function resolveResizeMultiplier(count: string): number {
+  if (count === "") return 1;
+  const parsed = Number.parseInt(count, 10);
+  return Number.isNaN(parsed) ? 1 : Math.max(parsed, 1);
+}

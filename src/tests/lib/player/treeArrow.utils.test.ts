@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
+import { relativeRowNumber, resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
 import type { TreeRow } from "@/lib/player/treeArrow.utils";
 
 function folder(path: string, depth: number, expanded: boolean): TreeRow {
@@ -72,5 +72,36 @@ describe("player/tree movement", () => {
   it("offers nothing for a row that left the list", () => {
     expect(resolveTreeMove(ROWS, "gone", 1)).toBeNull();
     expect(resolveTreeMove([], "A", 1)).toBeNull();
+  });
+});
+
+describe("player/relative numbers", () => {
+  it("marks the anchor with its absolute sibling position", () => {
+    expect(relativeRowNumber(ROWS, "B/ep1.mkv", "B/ep1.mkv")).toEqual({
+      label: 1,
+      current: true,
+    });
+  });
+
+  it("counts distances within one folder", () => {
+    const rows: TreeRow[] = [file("D/a.mkv", 1), file("D/b.mkv", 1), file("D/c.mkv", 1)];
+    expect(relativeRowNumber(rows, "D/b.mkv", "D/a.mkv")).toEqual({ label: 1, current: false });
+    expect(relativeRowNumber(rows, "D/b.mkv", "D/c.mkv")).toEqual({ label: 1, current: false });
+    expect(relativeRowNumber(rows, "D/a.mkv", "D/c.mkv")).toEqual({ label: 2, current: false });
+  });
+
+  it("hides rows from other folders", () => {
+    expect(relativeRowNumber(ROWS, "B/ep1.mkv", "A/extra.mkv")).toBeNull();
+    expect(relativeRowNumber(ROWS, "B/ep1.mkv", "D")).toBeNull();
+  });
+
+  it("falls back to the first row without an anchor", () => {
+    expect(relativeRowNumber(ROWS, null, "A")).toEqual({ label: 1, current: true });
+  });
+
+  it("reports nothing for missing rows", () => {
+    expect(relativeRowNumber([], null, "A")).toBeNull();
+    expect(relativeRowNumber(ROWS, "gone", "A")).toBeNull();
+    expect(relativeRowNumber(ROWS, "A", "gone")).toBeNull();
   });
 });

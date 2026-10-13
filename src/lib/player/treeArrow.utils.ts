@@ -71,3 +71,37 @@ export function resolveTreeMove(
   const row = rows[next];
   return row ? row.path : null;
 }
+
+export interface RelativeRowNumber {
+  /** The number to paint: absolute 1-based position for the anchor row. */
+  label: number;
+  current: boolean;
+}
+
+function parentDirname(path: string): string {
+  const cut = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return cut < 0 ? "" : path.slice(0, cut);
+}
+
+/**
+ * Vim-style relative number for one row: siblings of the anchor row (same
+ * parent directory) count 1..N above and below it, the anchor row itself
+ * shows its absolute 1-based position. Rows from other folders get `null`
+ * and render no number. Falls back to the first row while nothing focused.
+ */
+export function relativeRowNumber(
+  rows: readonly TreeRow[],
+  anchorPath: string | null,
+  rowPath: string
+): RelativeRowNumber | null {
+  const anchor = anchorPath ?? rows[0]?.path;
+  if (!anchor) return null;
+  const parent = parentDirname(anchor);
+  if (parentDirname(rowPath) !== parent) return null;
+  const siblings = rows.filter((row) => parentDirname(row.path) === parent);
+  const anchorIndex = siblings.findIndex((row) => row.path === anchor);
+  const rowIndex = siblings.findIndex((row) => row.path === rowPath);
+  if (anchorIndex === -1 || rowIndex === -1) return null;
+  if (rowIndex === anchorIndex) return { label: anchorIndex + 1, current: true };
+  return { label: Math.abs(rowIndex - anchorIndex), current: false };
+}

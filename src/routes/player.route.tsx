@@ -523,7 +523,7 @@ function PlayerRoute() {
     >
       {/* Vim mode is off on this surface; the attribute documents it in the DOM
           and keeps the engine gate working even without the route check. */}
-      <div data-vim-disabled className="flex h-full w-full flex-col gap-1 overflow-y-auto">
+      <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
         <section className="ui-toolbar ui-panel w-full">
           <Button onClick={handleOpenFolder}>
             <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />

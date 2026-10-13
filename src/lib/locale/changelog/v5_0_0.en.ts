@@ -285,6 +285,8 @@ const changelog500 = {
     "Ctrl+K focuses the main search field of the active tab, Escape unfocuses it back",
   "changelog.5_0_0.added.app.page_find":
     "Page find bar on Ctrl+F: match counter with keyboard and mouse navigation, case and whole-word toggles, highlights for the current and other matches",
+  "changelog.5_0_0.added.player.folder_resize":
+    "Saved folder height on bracket keys with step multiplier, plus a hint badge on the resize handle",
 } as const;
 
 export default changelog500;

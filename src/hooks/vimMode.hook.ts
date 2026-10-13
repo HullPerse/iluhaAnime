@@ -5,9 +5,9 @@ import {
   VIM_CONTENT_SELECTOR,
   VIM_LABEL_ALPHABET,
   VIM_SCROLL_LINE_PX,
+  TREE_ROW_SELECTOR,
 } from "@/config/keyboard/vim.config";
 import { PLAYER_ROUTE } from "@/config/player/player-route.config";
-import { tabIdFromPath } from "@/config/tabs/paths.config";
 import { flashTarget } from "@/lib/highlight/flash.utils";
 import { blurEditable, shouldBlurOnEscape } from "@/lib/hotkeys/blur.hotkeys";
 import { dispatchClick, dispatchFocus } from "@/lib/hotkeys/dispatch.hotkeys";
@@ -16,6 +16,7 @@ import type { VimCommand, VimEngine } from "@/lib/hotkeys/engine.hotkeys";
 import { reduceHintKey, scanHintTargets } from "@/lib/hotkeys/hints.hotkeys";
 import type { HintBadge } from "@/lib/hotkeys/hints.hotkeys";
 import { isInsideLayer, setHintsLayerVisible, topLayerElement } from "@/lib/hotkeys/layer.hotkeys";
+import { focusTreeSibling } from "@/lib/hotkeys/tabs.hotkeys";
 import { createPinTimer } from "@/lib/hotkeys/pin.hotkeys";
 import type { Debouncer } from "@/lib/pacer/debounce.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -23,7 +24,7 @@ import { closestScrollable, scrollAmount } from "@/lib/utils/scroll.utils";
 import type { ScrollDirection } from "@/lib/utils/scroll.utils";
 import { registerOverlay } from "@/store/overlay.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { closeHints, openHints, setVimBuffer, setVimPinned, vimAtoms } from "@/store/vim.store";
+import { closeHints, openHints, setVimBuffer, setVimCount, setVimPinned, vimAtoms } from "@/store/vim.store";
 
 const LETTER_CODE = /^Key([A-Z])$/;
 
@@ -40,9 +41,9 @@ const SCROLL_DIRECTIONS: Record<VimCommand, ScrollDirection | null> = {
   "edge.bottom": null,
 };
 
-/** The in-app player tab and the detached player window keep their own keys. */
-function isPlayerSurface(pathname: string): boolean {
-  return pathname === PLAYER_ROUTE || tabIdFromPath(pathname) === "player";
+/** Only the detached player window keeps its own keys; the player tab route joins vim mode. */
+function isPlayerWindow(pathname: string): boolean {
+  return pathname === PLAYER_ROUTE;
 }
 
 function letterFromCode(code: string): string | null {
@@ -60,10 +61,10 @@ export function useVimMode(): void {
     stateRef.current = { vimMode, pathname };
   }, [vimMode, pathname]);
 
-  // Leaving the mode or entering the player surface must not leave a stale
-  // hint layer (and its overlay entry) behind.
+  // Leaving the mode or entering the detached player window must not leave a
+  // stale hint layer (and its overlay entry) behind.
   useEffect(() => {
-    if (vimMode && !isPlayerSurface(pathname)) return;
+    if (vimMode && !isPlayerWindow(pathname)) return;
     closeLayerRef.current();
   }, [vimMode, pathname]);
 
@@ -177,32 +178,62 @@ export function useVimMode(): void {
       else surface.scrollTop = max / 2;
     };
 
+    const treeRowFromEvent = (event: KeyboardEvent): HTMLElement | null => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      return target?.closest<HTMLElement>(TREE_ROW_SELECTOR) ?? null;
+    };
+
+    const focusTreeIndex = (row: HTMLElement, command: "first" | "last"): void => {
+      const count = vimAtoms.count.get();
+      setVimCount("");
+      const parsed = count === "" ? Number.NaN : Number.parseInt(count, 10);
+      const index = Number.isNaN(parsed) ? (command === "first" ? 1 : -1) : parsed;
+      focusTreeSibling(row, index);
+    };
+
     engine = createVimEngine({
       isEnabled: () => stateRef.current.vimMode,
-      isExcludedRoute: () => isPlayerSurface(stateRef.current.pathname),
+      isExcludedRoute: () => isPlayerWindow(stateRef.current.pathname),
       // Read live, not captured: the layer opens and closes while the engine
       // stays attached.
       isOwner: (target) => isInsideLayer(target, topLayerElement()),
-      onCommand: (command) => {
+      onCommand: (command, event) => {
         if (command === "hints") {
           openLayer();
           return;
         }
-        if (command === "first" || command === "edge.top") {
-          scrollEdge("top");
+        if (command === "first" || command === "last") {
+          const row = treeRowFromEvent(event);
+          if (row) {
+            focusTreeIndex(row, command);
+            return;
+          }
+          scrollEdge(command === "first" ? "top" : "bottom");
           return;
         }
-        if (command === "last" || command === "edge.bottom") {
-          scrollEdge("bottom");
+        if (command === "scroll.down" || command === "scroll.up") {
+          // Tree rows own j/k for ring movement (with counts); the engine
+          // stays out so the row handlers behind it still fire.
+          if (treeRowFromEvent(event)) return;
+          scroll(command);
+          return;
+        }
+        if (command === "edge.top") {
+          scrollEdge("top");
           return;
         }
         if (command === "edge.middle") {
           scrollEdge("middle");
           return;
         }
+        if (command === "edge.bottom") {
+          scrollEdge("bottom");
+          return;
+        }
         scroll(command);
       },
       onActiveKey: (event) => handleActiveKey(event),
+      onCount: (count) => setVimCount(count),
     });
     closeLayerRef.current = closeLayer;
 

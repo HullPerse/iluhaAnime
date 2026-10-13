@@ -109,6 +109,86 @@ describe("vim engine sequences", () => {
   });
 });
 
+function setupWithCount(onCount: (count: string) => void) {
+  const onCommand = vi.fn();
+  const onActiveKey = vi.fn<(event: KeyboardEvent, state: VimEngineState) => void>();
+  const engine = createVimEngine({
+    isEnabled: () => true,
+    isExcludedRoute: () => false,
+    onCommand,
+    onActiveKey,
+    onCount,
+  });
+  engine.attach();
+  open.push(engine);
+  return { engine, onCommand, onActiveKey };
+}
+
+describe("vim engine count buffer", () => {
+  it("buffers bare digits and reports them", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    const { engine } = setupWithCount(onCount);
+    press(window, key("Digit1"));
+    press(window, key("Digit2"));
+    expect(onCount).toHaveBeenCalledTimes(2);
+    expect(onCount).toHaveBeenLastCalledWith("12");
+    expect(engine.count()).toBe("12");
+  });
+
+  it("ignores a leading zero and caps the length", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount);
+    press(window, key("Digit0"));
+    expect(onCount).not.toHaveBeenCalled();
+    for (const code of ["Digit1", "Digit2", "Digit3", "Digit4"]) press(window, key(code));
+    expect(onCount).toHaveBeenLastCalledWith("123");
+  });
+
+  it("ignores modified digits", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount);
+    press(window, key("Digit1", { shiftKey: true }));
+    press(window, key("Digit1", { ctrlKey: true }));
+    expect(onCount).not.toHaveBeenCalled();
+  });
+
+  it("ignores digits inside typing targets", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount);
+    const input = document.createElement("input");
+    document.body.append(input);
+    nodes.push(input);
+    press(input, key("Digit1"));
+    expect(onCount).not.toHaveBeenCalled();
+  });
+
+  it("clears on the next non-digit key", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    const { engine, onCommand } = setupWithCount(onCount);
+    press(window, key("Digit5"));
+    press(window, key("KeyJ"));
+    expect(onCommand).toHaveBeenCalledWith("scroll.down", expect.any(KeyboardEvent));
+    expect(onCount).toHaveBeenLastCalledWith("");
+    expect(engine.count()).toBe("");
+  });
+
+  it("clears on Escape", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount);
+    press(window, key("Digit5"));
+    press(window, key("Escape"));
+    expect(onCount).toHaveBeenLastCalledWith("");
+  });
+
+  it("survives a prefix mismatch into the buffer", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount);
+    press(window, key("KeyG"));
+    press(window, key("Digit3"));
+    expect(onCount).toHaveBeenLastCalledWith("3");
+  });
+});
+
 describe("vim engine gates", () => {
   it("is inert while the setting is off", () => {
     const { onCommand } = setup({ enabled: false });

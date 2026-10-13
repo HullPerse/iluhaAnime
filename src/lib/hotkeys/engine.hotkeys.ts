@@ -36,6 +36,8 @@ export interface VimEngineOptions {
   onCommand: (command: VimCommand, event: KeyboardEvent) => void;
   /** Keys pressed while hints are open (label typing, Alt+label, Esc). */
   onActiveKey?: (event: KeyboardEvent, state: VimEngineState) => void;
+  /** Fires whenever the digit buffer changes (empty string clears it). */
+  onCount?: (count: string) => void;
 }
 
 export interface VimEngine {
@@ -44,6 +46,15 @@ export interface VimEngine {
   isAttached: () => boolean;
   state: () => VimEngineState;
   setState: (next: VimEngineState) => void;
+  count: () => string;
+}
+
+const COUNT_DIGITS = 3;
+
+function isBareDigit(event: KeyboardEvent): string | null {
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return null;
+  const match = /^Digit([0-9])$/.exec(event.code);
+  return match ? (match[1] ?? null) : null;
 }
 
 function isVimExcludedTarget(
@@ -92,9 +103,28 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
   const sequences = sequenceTable();
   let state: VimEngineState = "idle";
   let pending: Map<string, VimCommand> | null = null;
+  let pendingCount = "";
   let handler: ((event: KeyboardEvent) => void) | null = null;
 
+  const clearCount = (): void => {
+    if (pendingCount === "") return;
+    pendingCount = "";
+    options.onCount?.("");
+  };
+
   const handleIdleKey = (event: KeyboardEvent): void => {
+    const digit = isBareDigit(event);
+    if (digit !== null) {
+      if (isVimExcludedTarget(event.target, options.isOwner)) return;
+      if (!(pendingCount === "" && digit === "0") && pendingCount.length < COUNT_DIGITS) {
+        pendingCount += digit;
+        options.onCount?.(pendingCount);
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (pendingCount !== "") clearCount();
     const chord = chordKeyFromEvent(event);
     const sequence = sequences.get(chord);
     if (sequence) {
@@ -119,6 +149,7 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     if (event.key === "Escape") {
       state = "idle";
       pending = null;
+      clearCount();
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -172,9 +203,11 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     },
     isAttached: () => handler !== null,
     state: () => state,
+    count: () => pendingCount,
     setState: (next) => {
       state = next;
       if (next !== "prefix") pending = null;
+      if (next !== "idle") clearCount();
     },
   };
 }

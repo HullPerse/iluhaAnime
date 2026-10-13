@@ -80,6 +80,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.app.vim", "app"),
       entry("changelog.5_0_0.added.player.window_keys", "player"),
       entry("changelog.5_0_0.added.player.folder_resize", "player"),
+      entry("changelog.5_0_0.added.player.file_menu", "player"),
       entry("changelog.5_0_0.added.app.focus_main", "app"),
       entry("changelog.5_0_0.added.app.page_find", "app"),
     ],

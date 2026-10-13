@@ -289,6 +289,8 @@ const changelog500 = {
     "Page find bar on Ctrl+F: match counter with keyboard and mouse navigation, case and whole-word toggles, highlights for the current and other matches",
   "changelog.5_0_0.added.player.folder_resize":
     "Saved folder height on bracket keys with step multiplier, plus a hint badge on the resize handle",
+  "changelog.5_0_0.added.player.file_menu":
+    "Right-click menus on player and torrent file rows: open outside or inside the app, search AniList, reveal in folder, and upscale, while Ctrl+right-click still plays directly",
   "changelog.5_0_0.fixed.player.flat_folder":
     "Folders without subfolders show their files again, and arrow keys dive in from the folder header",
 } as const;

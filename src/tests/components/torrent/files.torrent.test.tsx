@@ -1,6 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { mockOpenPath } from "../../mocks";
 
 // The real virtualizer measures a zero-height scroll element in jsdom and
 // renders no rows at all, so it is stubbed with the identity mapping.
@@ -225,5 +228,71 @@ describe("TorrentFilesSection row actions", () => {
     pressKey("KeyO", folder);
 
     expect(document.activeElement).toBe(folder);
+  });
+});
+
+describe("TorrentFilesSection file menu", () => {
+  function menuitems(): HTMLElement[] {
+    return [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+  }
+
+  function menuitem(name: string): HTMLElement {
+    const found = menuitems().find((entry) => entry.textContent === name);
+    if (!found) throw new Error(`menu entry missing: ${name}`);
+    return found;
+  }
+
+  function openMenu(index: number): HTMLElement {
+    openFolder("A");
+    const row = fileRow(index);
+    const target = row.querySelector<HTMLElement>("[data-tree-activate]");
+    if (!target) throw new Error("activation target missing");
+    fireEvent.contextMenu(target);
+    return row;
+  }
+
+  it("opens five entries on right click", async () => {
+    renderSection();
+    openMenu(0);
+
+    await waitFor(() => expect(menuitems()).toHaveLength(5));
+  });
+
+  it("fires the row's own button from a menu entry", async () => {
+    const { onPlay } = renderSection();
+    const row = openMenu(0);
+    const holder = row.querySelector<HTMLElement>('[data-file-action="builtin"]');
+    if (!holder) throw new Error("builtin button missing");
+    const spy = vi.fn();
+    holder.addEventListener("click", spy);
+
+    await waitFor(() => menuitem("Open in iluhaAnime player"));
+    await userEvent.click(menuitem("Open in iluhaAnime player"));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(onPlay).toHaveBeenCalledTimes(1);
+  });
+
+  it("reveals the save folder from the menu", async () => {
+    renderSection();
+    openMenu(0);
+
+    await waitFor(() => menuitem("Open in folder"));
+    await userEvent.click(menuitem("Open in folder"));
+
+    expect(mockOpenPath).toHaveBeenCalledWith("D:/media");
+  });
+
+  it("skips the menu on Ctrl+right-click", async () => {
+    renderSection();
+    openFolder("A");
+    const row = fileRow(0);
+    const target = row.querySelector<HTMLElement>("[data-tree-activate]");
+    if (!target) throw new Error("activation target missing");
+
+    fireEvent.contextMenu(target, { ctrlKey: true });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(menuitems()).toHaveLength(0);
   });
 });

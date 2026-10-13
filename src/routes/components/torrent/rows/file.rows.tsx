@@ -1,8 +1,19 @@
 import { openPath } from "@tauri-apps/plugin-opener";
 import { cn } from "cn";
-import { ArrowDownNarrowWide, RefreshCw } from "lucide-react";
+import {
+  ArrowDownNarrowWide,
+  FolderOpen,
+  Monitor,
+  Play,
+  RefreshCw,
+  Search,
+  Wand2,
+} from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
+import { useRef } from "react";
 
+import ContextMenu from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -120,15 +131,21 @@ function FileNameCell({
   interactions,
   onActivate,
   onOpenFolder,
+  menuEntries,
+  onCtrlContextMenu,
   children,
 }: {
   title: string;
   interactions: FileRowInteractions;
   onActivate: () => void;
   onOpenFolder: (event: MouseEvent) => void;
+  /** Right-click menu for player rows; null keeps the legacy context handler. */
+  menuEntries: ContextMenuEntry[] | null;
+  /** Ctrl+right-click keeps its direct action while a menu owns plain clicks. */
+  onCtrlContextMenu: ((event: MouseEvent) => void) | null;
   children: ReactNode;
 }) {
-  return (
+  const cell = (
     <span
       className="flex-1 truncate"
       title={title}
@@ -139,12 +156,25 @@ function FileNameCell({
       data-vim-contextmenu={interactions.contextMenu ? "file" : undefined}
       data-vim-ctrlclick={interactions.ctrlClick ? "file" : undefined}
       onKeyDown={interactions.interactive ? enterOrSpace(onActivate) : undefined}
-      onContextMenu={onOpenFolder}
+      onContextMenu={menuEntries ? undefined : onOpenFolder}
+      onContextMenuCapture={onCtrlContextMenu ?? undefined}
       onClick={onActivate}
     >
       {children}
     </span>
   );
+  if (!menuEntries) return cell;
+  return <ContextMenu entries={menuEntries}>{cell}</ContextMenu>;
+}
+
+/** Clicks the row's own action button, so menu, keys and mouse can never
+ *  disagree: parity holds by construction, and a disabled button's click()
+ *  stays a no-op. */
+function clickOwnButton(root: HTMLElement | null, name: "external" | "builtin" | "upscale"): void {
+  const holder = root?.querySelector<HTMLElement>(`[data-file-action="${name}"]`);
+  const button =
+    holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+  button?.click();
 }
 
 export function TorrentFileRow({
@@ -199,9 +229,77 @@ export function TorrentFileRow({
     onOpenInApp,
   });
   const openSearch = () => searchPlayerFile(type, track, resolvedPath, file.displayName);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // The menu fires the row's own buttons, so mouse, keys and menu can never
+  // disagree: parity holds by construction. Torrent-type rows stay menu-free,
+  // exactly like they stay hint-free.
+  const entryDisabled = !file.exists || busy;
+  const clickOwn = (name: "external" | "builtin" | "upscale"): void => {
+    clickOwnButton(rootRef.current, name);
+  };
+  const menuEntries: ContextMenuEntry[] | null = interactions.interactive
+    ? [
+        {
+          kind: "item",
+          id: "external",
+          label: "player.folder.open.media.player",
+          icon: Monitor,
+          disabled: entryDisabled,
+          onSelect: () => clickOwn("external"),
+        },
+        {
+          kind: "item",
+          id: "builtin",
+          label: "player.folder.open.iluha.player",
+          icon: Play,
+          disabled: entryDisabled,
+          onSelect: () => clickOwn("builtin"),
+        },
+        {
+          kind: "item",
+          id: "search",
+          label: "player.folder.search.anilist",
+          icon: Search,
+          onSelect: openSearch,
+        },
+        {
+          kind: "item",
+          id: "reveal",
+          label: "player.files.open.folder",
+          icon: FolderOpen,
+          disabled: !path,
+          onSelect: () => {
+            if (path) openPath(path);
+          },
+        },
+        {
+          kind: "item",
+          id: "upscale",
+          label: "player.upscale.title",
+          icon: Wand2,
+          disabled: entryDisabled,
+          onSelect: () => clickOwn("upscale"),
+        },
+      ]
+    : null;
+  const onCtrlContextMenu =
+    interactions.interactive && type === "player"
+      ? (event: MouseEvent): void => {
+          // Ctrl+right-click keeps its direct action (builtin player):
+          // capture runs before the trigger's native listener, so stopping
+          // propagation keeps the menu shut.
+          if (!(event.ctrlKey || event.metaKey)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (track || busy || !file.completed || !file.exists || !resolvedPath) return;
+          onOpenInApp?.(resolvedPath);
+        }
+      : null;
 
   return (
     <div
+      ref={rootRef}
       data-tree-row
       data-tree-path={`file:${file.index}`}
       data-tree-kind="file"
@@ -245,6 +343,8 @@ export function TorrentFileRow({
             onOpenInApp,
           });
         }}
+        menuEntries={menuEntries}
+        onCtrlContextMenu={onCtrlContextMenu}
       >
         {type === "player" && parseTitles
           ? formatParsedTitle(fullPath ?? file.displayName, t)

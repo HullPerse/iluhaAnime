@@ -76,7 +76,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.settings.find", "settings"),
       entry("changelog.5_0_0.added.app.tab_urls", "app"),
       entry("changelog.5_0_0.added.app.not_found_page", "app"),
-      entry("changelog.5_0_0.added.app.iluhium", "app"),
+      entry("changelog.5_0_0.added.app.vim", "app"),
       entry("changelog.5_0_0.added.player.window_keys", "player"),
       entry("changelog.5_0_0.added.player.folder_resize", "player"),
       entry("changelog.5_0_0.added.app.focus_main", "app"),

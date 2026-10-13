@@ -275,8 +275,8 @@ const changelog500 = {
     "Progress bars in Friends scores fill with the main color again, and the friend status square now matches the style used in Related and on cards",
   "changelog.5_0_0.fixed.anilist.studio_dupes":
     "A studio that AniList returns twice no longer shows up twice in anime details",
-  "changelog.5_0_0.added.app.iluhium":
-    "iluhium keyboard mode: F shows labeled badges over clickable elements, j/k/d/u scroll, gg/G and H/M/L jumps, braces switch inner tabs, Alt pins a description, Ctrl+F page find bar with n/N navigation, counts step folder and torrent rows, o/p/s/e/r act on the focused file",
+  "changelog.5_0_0.added.app.vim":
+    "Vim keyboard mode: F shows labeled badges over clickable elements, j/k/d/u scroll, gg/G and H/M/L jumps, braces switch inner tabs, Alt pins a description, Ctrl+F page find bar with n/N navigation, counts step folder and torrent rows, o/p/s/e/r act on the focused file",
   "changelog.5_0_0.added.player.window_keys":
     "Playlist, speed, tracks, seeking and queue on keys: L, N, Shift+Comma/Period, R, V, B, Home/End, digits, J/K/Enter ring, Q",
   "changelog.5_0_0.fixed.anilist.save_400":

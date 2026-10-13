@@ -20,6 +20,7 @@ import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
+import { dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
 import { parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
@@ -34,15 +35,28 @@ import { showError } from "@/lib/utils/notification.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { setVimCount, vimAtoms } from "@/store/vim.store";
 import { upscaleItems } from "@/store/upscale.store";
+import { setVimCount, vimAtoms } from "@/store/vim.store";
 import type { FolderNode } from "@/types/torrent";
 
 import UpscalePlayer from "./upscale/modal.upscale";
 
 /** Section 13.3 of `vim-mode.md`: the tree owns its own arrows, and only while
- *  one of its folder rows actually has focus. */
-type TreeKeyAction = "treeCollapse" | "treeExpand" | "treeUp" | "treeDown" | "treeActivate";
+ *  one of its folder rows actually has focus. Row actions (o/p/s/e/r) fire
+ *  only on file rows: they click the row's own buttons, so key and mouse can
+ *  never disagree - the ctrl+click variants are covered because the clicks
+ *  land on the same buttons those variants duplicate. */
+type TreeKeyAction =
+  | "treeCollapse"
+  | "treeExpand"
+  | "treeUp"
+  | "treeDown"
+  | "treeActivate"
+  | "rowExternal"
+  | "rowBuiltin"
+  | "rowSearch"
+  | "rowUpscale"
+  | "rowReveal";
 
 const TREE_KEYBINDS: HotkeyDef<TreeKeyAction>[] = [
   { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold" },
@@ -52,10 +66,66 @@ const TREE_KEYBINDS: HotkeyDef<TreeKeyAction>[] = [
   { id: "treeUp", chord: "KeyK", repeat: "hold" },
   { id: "treeDown", chord: "KeyJ", repeat: "hold" },
   { id: "treeActivate", chord: "Enter", repeat: "once" },
+  { id: "rowExternal", chord: "KeyO", repeat: "once" },
+  { id: "rowBuiltin", chord: "KeyP", repeat: "once" },
+  { id: "rowSearch", chord: "KeyS", repeat: "once" },
+  { id: "rowUpscale", chord: "KeyE", repeat: "once" },
+  { id: "rowReveal", chord: "KeyR", repeat: "once" },
 ];
 
 function rowElement(target: EventTarget | null): HTMLElement | null {
   return target instanceof HTMLElement ? target.closest<HTMLElement>("[data-tree-row]") : null;
+}
+
+type FileRowAction = "external" | "builtin" | "search" | "upscale" | "reveal";
+
+const FILE_ACTION_BY_KEY: Partial<Record<TreeKeyAction, FileRowAction>> = {
+  rowExternal: "external",
+  rowBuiltin: "builtin",
+  rowSearch: "search",
+  rowUpscale: "upscale",
+  rowReveal: "reveal",
+};
+
+function clickRowButton(row: HTMLElement, name: Exclude<FileRowAction, "reveal">): void {
+  const holder = row.querySelector<HTMLElement>(`[data-file-action="${name}"]`);
+  const button =
+    holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+  // A disabled button's click() is a no-op, which is exactly the
+  // disabled/busy guard the mouse path enforces.
+  button?.click();
+}
+
+function runFileRowAction(row: HTMLElement, action: FileRowAction): void {
+  if (action === "reveal") {
+    const name = row.querySelector<HTMLElement>("[data-tree-activate]");
+    if (name) dispatchClick(name, "contextmenu");
+    return;
+  }
+  clickRowButton(row, action);
+}
+
+function moveRingFocus(
+  treeRows: TreeRow[],
+  treeRef: RefObject<HTMLDivElement | null>,
+  nodePath: string,
+  path: string,
+  direction: -1 | 1
+): void {
+  if (path === nodePath && !treeRows.some((row) => row.path === path)) {
+    // External root header (the draggable folder head): dive into the first
+    // row on Down, stay put on Up.
+    if (direction > 0) {
+      const first = treeRows[0];
+      if (first) findRow(treeRef.current, first.path)?.focus();
+    }
+    return;
+  }
+  const count = vimAtoms.count.get();
+  setVimCount("");
+  const step = count === "" ? 1 : Math.max(Number.parseInt(count, 10) || 1, 1);
+  const next = resolveTreeMove(treeRows, path, direction * step);
+  if (next) findRow(treeRef.current, next)?.focus();
 }
 
 /** Rows are virtualized and carry no stable DOM id, so the row is looked up by
@@ -238,11 +308,14 @@ function FolderView({
 
   useHotkeys<TreeKeyAction>(TREE_KEYBINDS, {
     // Only the tree holding the focused folder row answers, so the arrows keep
-    // their normal meaning everywhere else on this route. A row is a button,
-    // which the shared filter would skip, so the modal guard is applied here.
+    // their normal meaning everywhere else on this route. The draggable header
+    // above this view is its root row too: it carries the root path but lives
+    // outside treeRef, so it is accepted by path. A row is a button, which the
+    // shared filter would skip, so the modal guard is applied here.
     ignore: (event) => {
       const row = rowElement(event.target);
-      if (!row || !treeRef.current?.contains(row)) return true;
+      if (!row) return true;
+      if (row.dataset.treePath !== node.path && !treeRef.current?.contains(row)) return true;
       return Boolean(row.closest("[data-hotkeys-disabled]"));
     },
     onAction: (action, event) => {
@@ -258,11 +331,18 @@ function FolderView({
       }
 
       if (action === "treeUp" || action === "treeDown") {
-        const count = vimAtoms.count.get();
+        moveRingFocus(treeRows, treeRef, node.path, path, action === "treeUp" ? -1 : 1);
+        return;
+      }
+
+      const fileAction = FILE_ACTION_BY_KEY[action];
+      if (fileAction !== undefined) {
+        // File rows only: folder rows are <button>s without file buttons, and
+        // the header row has neither. A pending count has no meaning for an
+        // action, so it is dropped instead of leaking into the next motion.
         setVimCount("");
-        const step = count === "" ? 1 : Math.max(Number.parseInt(count, 10) || 1, 1);
-        const next = resolveTreeMove(treeRows, path, action === "treeUp" ? -step : step);
-        if (next) findRow(treeRef.current, next)?.focus();
+        if (row.dataset.vimTarget !== "file") return;
+        runFileRowAction(row, fileAction);
         return;
       }
 
@@ -391,7 +471,7 @@ function FolderView({
         </div>
       )}
 
-      {open.has(node.path) && (
+      {open.has(node.path) || depth === 0 ? (
         <div
           ref={scrollElementRef}
           data-no-wheel
@@ -492,7 +572,11 @@ function FolderView({
                     paddingLeft: `${item.depth * 12 + 2}px`,
                   }}
                 >
-                  <TreeRowNumber rows={treeRows} anchorPath={anchorPath} rowPath={file.path ?? ""} />
+                  <TreeRowNumber
+                    rows={treeRows}
+                    anchorPath={anchorPath}
+                    rowPath={file.path ?? ""}
+                  />
                   <ImageComponent src="/images/w2k_wmp_11.ico" alt="" className="size-4" />
                   <span
                     title={file.name}
@@ -526,11 +610,16 @@ function FolderView({
                     <SmallLoader size={3} className="text-highlight shrink-0" />
                   )}
 
-                  {!disabled && file.path && <UpscalePlayer filePath={file.path} />}
+                  {!disabled && file.path && (
+                    <span data-file-action="upscale" className="contents">
+                      <UpscalePlayer filePath={file.path} />
+                    </span>
+                  )}
                   <Button
                     size="icon"
                     className="h-4 w-4"
                     disabled={disabled || busy}
+                    data-file-action="builtin"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (file.path) openInAppPlayer(file.path);
@@ -553,6 +642,7 @@ function FolderView({
                         ? t("player.folder.track.disabled")
                         : t("player.folder.open.media.player")
                     }
+                    data-file-action="external"
                   >
                     <Monitor className="size-3" />
                   </Button>
@@ -566,6 +656,7 @@ function FolderView({
                     }}
                     title={t("player.folder.search.anilist")}
                     aria-label={t("player.folder.search.anilist")}
+                    data-file-action="search"
                   >
                     <Search className="size-3" />
                   </Button>
@@ -574,7 +665,7 @@ function FolderView({
             })}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

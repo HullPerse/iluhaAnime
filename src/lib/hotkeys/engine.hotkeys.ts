@@ -38,6 +38,13 @@ export interface VimEngineOptions {
   onActiveKey?: (event: KeyboardEvent, state: VimEngineState) => void;
   /** Fires whenever the digit buffer changes (empty string clears it). */
   onCount?: (count: string) => void;
+  /**
+   * Lets a surface keep its own chord: when true, the engine neither consumes
+   * nor fires, so a bubble-phase handler behind it still runs. Tree rows own
+   * `j`/`k` this way - the engine sees them first (window capture) and must
+   * step aside before `preventDefault`/`stopPropagation`.
+   */
+  shouldYield?: (command: VimCommand, event: KeyboardEvent) => boolean;
 }
 
 export interface VimEngine {
@@ -137,6 +144,9 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     }
     const command = table.get(chord);
     if (!command) return;
+    // A yielded chord is never consumed: no gate lookup, no preventDefault,
+    // no command. The surface handler behind this capture listener owns it.
+    if (options.shouldYield?.(command, event)) return;
     // Only owned chords evaluate the gate, so an unowned keystroke never pays
     // for the layer lookup.
     if (isVimExcludedTarget(event.target, options.isOwner)) return;

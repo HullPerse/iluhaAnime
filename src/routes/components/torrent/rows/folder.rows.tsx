@@ -15,6 +15,7 @@ export function FolderRow({
   files,
   isOpen,
   type,
+  treePath,
   onToggleFolder,
   onToggleSelection,
 }: {
@@ -24,6 +25,8 @@ export function FolderRow({
   files: TorrentFileInfo[];
   isOpen: boolean;
   type: "torrent" | "player";
+  /** Stable row identity for the movement ring (matches the section's open key). */
+  treePath: string;
   onToggleFolder: () => void;
   onToggleSelection?: (indices: number[], target: boolean) => void;
 }) {
@@ -38,6 +41,10 @@ export function FolderRow({
 
   return (
     <div
+      data-tree-row
+      data-tree-path={treePath}
+      data-tree-kind="folder"
+      tabIndex={-1}
       className="windows95-text hover:bg-surface absolute top-0 left-0 flex w-full cursor-pointer items-center gap-1 px-0.5 py-0.5 text-left select-none"
       style={{
         height: 20,
@@ -61,6 +68,7 @@ export function FolderRow({
         tabIndex={0}
         aria-expanded={isOpen}
         data-vim-target="folder"
+        data-tree-activate
         className="flex min-w-0 flex-1 items-center gap-1"
         onClick={onToggleFolder}
         onKeyDown={enterOrSpace(onToggleFolder)}

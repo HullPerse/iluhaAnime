@@ -214,6 +214,7 @@ describe("FolderRow keyboard surface", () => {
         files={[treeFile()]}
         isOpen={isOpen}
         type="torrent"
+        treePath="Season 10"
         onToggleFolder={onToggleFolder}
       />
     );

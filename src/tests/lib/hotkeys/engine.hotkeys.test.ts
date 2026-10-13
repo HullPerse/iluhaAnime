@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { VimEngine, VimEngineState } from "@/lib/hotkeys/engine.hotkeys";
+import type { VimCommand, VimEngine, VimEngineState } from "@/lib/hotkeys/engine.hotkeys";
 import { createVimCommandTable, createVimEngine } from "@/lib/hotkeys/engine.hotkeys";
 import { isInsideLayer } from "@/lib/hotkeys/layer.hotkeys";
 
@@ -11,6 +11,7 @@ function setup(options?: {
   enabled?: boolean;
   excludedRoute?: boolean;
   isOwner?: (target: EventTarget | null) => boolean;
+  shouldYield?: (command: VimCommand, event: KeyboardEvent) => boolean;
 }): {
   engine: VimEngine;
   onCommand: ReturnType<typeof vi.fn>;
@@ -22,6 +23,7 @@ function setup(options?: {
     isEnabled: () => options?.enabled ?? true,
     isExcludedRoute: () => options?.excludedRoute ?? false,
     isOwner: options?.isOwner,
+    shouldYield: options?.shouldYield,
     onCommand,
     onActiveKey,
   });
@@ -109,12 +111,16 @@ describe("vim engine sequences", () => {
   });
 });
 
-function setupWithCount(onCount: (count: string) => void) {
+function setupWithCount(
+  onCount: (count: string) => void,
+  isOwner?: (target: EventTarget | null) => boolean
+) {
   const onCommand = vi.fn();
   const onActiveKey = vi.fn<(event: KeyboardEvent, state: VimEngineState) => void>();
   const engine = createVimEngine({
     isEnabled: () => true,
     isExcludedRoute: () => false,
+    isOwner,
     onCommand,
     onActiveKey,
     onCount,
@@ -234,6 +240,34 @@ describe("vim engine gates", () => {
     Object.defineProperty(composing, "isComposing", { value: true });
     press(window, composing);
     expect(onCommand).not.toHaveBeenCalled();
+  });
+});
+
+describe("vim engine surface yield", () => {
+  it("leaves a yielded chord unconsumed for the surface handler", () => {
+    const { onCommand } = setup({
+      shouldYield: (command) => command === "scroll.down" || command === "scroll.up",
+    });
+    const yielded = key("KeyJ");
+    press(window, yielded);
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(yielded.defaultPrevented).toBe(false);
+    press(window, key("KeyD"));
+    expect(onCommand).toHaveBeenCalledWith("scroll.half.down", expect.any(KeyboardEvent));
+  });
+
+  it("buffers digits on an owned button (tree-folder rows are buttons)", () => {
+    // Folder rows are real <button>s, which the shared filter excludes - the
+    // tree owns them via isOwner, so counts work there too.
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount, (target) => target instanceof HTMLElement);
+    const button = document.createElement("button");
+    document.body.append(button);
+    nodes.push(button);
+    const event = key("Digit3");
+    press(button, event);
+    expect(onCount).toHaveBeenCalledWith("3");
+    expect(event.defaultPrevented).toBe(true);
   });
 });
 

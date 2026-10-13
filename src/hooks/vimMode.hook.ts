@@ -16,15 +16,22 @@ import type { VimCommand, VimEngine } from "@/lib/hotkeys/engine.hotkeys";
 import { reduceHintKey, scanHintTargets } from "@/lib/hotkeys/hints.hotkeys";
 import type { HintBadge } from "@/lib/hotkeys/hints.hotkeys";
 import { isInsideLayer, setHintsLayerVisible, topLayerElement } from "@/lib/hotkeys/layer.hotkeys";
-import { focusTreeSibling } from "@/lib/hotkeys/tabs.hotkeys";
 import { createPinTimer } from "@/lib/hotkeys/pin.hotkeys";
+import { focusTreeSibling } from "@/lib/hotkeys/tabs.hotkeys";
 import type { Debouncer } from "@/lib/pacer/debounce.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { closestScrollable, scrollAmount } from "@/lib/utils/scroll.utils";
 import type { ScrollDirection } from "@/lib/utils/scroll.utils";
 import { registerOverlay } from "@/store/overlay.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { closeHints, openHints, setVimBuffer, setVimCount, setVimPinned, vimAtoms } from "@/store/vim.store";
+import {
+  closeHints,
+  openHints,
+  setVimBuffer,
+  setVimCount,
+  setVimPinned,
+  vimAtoms,
+} from "@/store/vim.store";
 
 const LETTER_CODE = /^Key([A-Z])$/;
 
@@ -107,6 +114,14 @@ export function useVimMode(): void {
       }
       dispatchClick(badge.element, badge.variant);
       flashTarget(badge.element);
+      // A real click moves focus; a synthesized one does not. Without this
+      // the ring keys and resize chords stay dead after a hint activation on
+      // a tree row, because they all resolve from the focused row.
+      const row =
+        badge.element instanceof HTMLElement
+          ? (badge.element.closest("[data-tree-row]") as HTMLElement | null)
+          : null;
+      row?.focus();
       closeLayer();
     };
 
@@ -196,7 +211,16 @@ export function useVimMode(): void {
       isExcludedRoute: () => isPlayerWindow(stateRef.current.pathname),
       // Read live, not captured: the layer opens and closes while the engine
       // stays attached.
-      isOwner: (target) => isInsideLayer(target, topLayerElement()),
+      // Tree rows are owned too: folder rows are real <button>s, which the
+      // shared filter would otherwise exclude - and that split is what left
+      // folders and files understanding different key subsets (no counts or
+      // gg/G on folders, no j/k on files). The j/k yield below keeps the row
+      // handlers behind this capture listener alive.
+      isOwner: (target) =>
+        isInsideLayer(target, topLayerElement()) ||
+        (target instanceof HTMLElement && target.closest(TREE_ROW_SELECTOR) !== null),
+      shouldYield: (command, event) =>
+        (command === "scroll.down" || command === "scroll.up") && treeRowFromEvent(event) !== null,
       onCommand: (command, event) => {
         if (command === "hints") {
           openLayer();

@@ -135,6 +135,7 @@ function FileNameCell({
       role={interactions.interactive ? "button" : undefined}
       tabIndex={interactions.interactive ? 0 : undefined}
       data-vim-target={interactions.interactive ? "file" : undefined}
+      data-tree-activate={interactions.interactive ? "" : undefined}
       data-vim-contextmenu={interactions.contextMenu ? "file" : undefined}
       data-vim-ctrlclick={interactions.ctrlClick ? "file" : undefined}
       onKeyDown={interactions.interactive ? enterOrSpace(onActivate) : undefined}
@@ -201,6 +202,10 @@ export function TorrentFileRow({
 
   return (
     <div
+      data-tree-row
+      data-tree-path={`file:${file.index}`}
+      data-tree-kind="file"
+      tabIndex={-1}
       className={cn(
         "windows95-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none",
         !(type === "torrent" && file.completed) && "hover:bg-surface hover:cursor-pointer"

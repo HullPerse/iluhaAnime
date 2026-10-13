@@ -58,12 +58,15 @@ export function PlayerFileActions({
 
           <QueueStatusIcon status={queueMap.get(fullPath)} />
 
-          <UpscalePlayer filePath={fullPath} onDone={onUpscaleDone} exists={file.exists} />
+          <span data-file-action="upscale" className="contents">
+            <UpscalePlayer filePath={fullPath} onDone={onUpscaleDone} exists={file.exists} />
+          </span>
           {onPlay && (
             <Button
               title={t("player.folder.builtin.player")}
               size="icon"
               className="size-4"
+              data-file-action="builtin"
               onClick={(e) => {
                 e.stopPropagation();
                 onPlay(fullPath, file.displayName);
@@ -77,6 +80,7 @@ export function PlayerFileActions({
             title={t("player.folder.open.media.player")}
             size="icon"
             className="size-4"
+            data-file-action="external"
             onClick={(e) => {
               e.stopPropagation();
               openFileInPlayer(fullPath);
@@ -91,17 +95,20 @@ export function PlayerFileActions({
           {path && <QueueStatusIcon status={queueMap.get(joinMediaPath(path, file.name))} />}
 
           {path && (
-            <UpscalePlayer
-              filePath={joinMediaPath(path, file.name)}
-              exists={file.exists}
-              onDone={onUpscaleDone}
-            />
+            <span data-file-action="upscale" className="contents">
+              <UpscalePlayer
+                filePath={joinMediaPath(path, file.name)}
+                exists={file.exists}
+                onDone={onUpscaleDone}
+              />
+            </span>
           )}
           {path && onPlay && (
             <Button
               title={t("player.folder.builtin.player")}
               size="icon"
               className="size-4"
+              data-file-action="builtin"
               onClick={(e) => {
                 e.stopPropagation();
                 onPlay(joinMediaPath(path, file.name), file.displayName);
@@ -116,6 +123,7 @@ export function PlayerFileActions({
               title={t("player.folder.open.media.player")}
               size="icon"
               className="size-4"
+              data-file-action="external"
               onClick={(e) => {
                 e.stopPropagation();
                 if (path) {

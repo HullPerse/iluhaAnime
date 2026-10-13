@@ -140,8 +140,6 @@ function isHintable(element: HTMLElement, rect: DOMRect): boolean {
 interface ClipAncestor {
   /** The ancestor's box, or null when it does not clip at all. */
   box: DOMRect | null;
-  /** CSS 2.1 § 11.1.1: only a positioned ancestor clips absolute descendants. */
-  positioned: boolean;
 }
 
 /**
@@ -156,10 +154,10 @@ interface ClipAncestor {
 function makeClipTest(): (element: HTMLElement, rect: DOMRect) => boolean {
   const ancestors = new Map<Element, ClipAncestor>();
   return (element, rect) => {
-    // Resolved once, and only when a static ancestor really does clip: a
+    // Resolved once, and only for candidates outside a clipping box: a
     // `getComputedStyle` per candidate measured 0.16 ms per 78 candidates for
     // a value most candidates never need.
-    let inFlow: boolean | null = null;
+    let elementPosition: string | null = null;
     for (
       let node = element.parentElement;
       node && node !== document.body && node !== document.documentElement;
@@ -185,10 +183,7 @@ function makeClipTest(): (element: HTMLElement, rect: DOMRect) => boolean {
           /(hidden|clip|auto|scroll)/u.test(
             `${style.overflow}${style.overflowX}${style.overflowY}`
           );
-        entry = {
-          box: clips ? node.getBoundingClientRect() : null,
-          positioned: style !== null && style.position !== "static",
-        };
+        entry = { box: clips ? node.getBoundingClientRect() : null };
         ancestors.set(node, entry);
       }
       const box = entry.box;
@@ -199,11 +194,12 @@ function makeClipTest(): (element: HTMLElement, rect: DOMRect) => boolean {
         rect.right <= box.left ||
         rect.left >= box.right;
       if (!outside) continue;
-      // CSS 2.1 11.1.1: a static ancestor does not clip an absolute or fixed
-      // descendant, and that descendant is still a real target (hover bars,
-      // toolbars, popovers).
-      if (inFlow === null) inFlow = getComputedStyle(element).position === "static";
-      if (entry.positioned || inFlow) return true;
+      // An ancestor with clipping overflow clips absolute descendants too -
+      // only `position: fixed` escapes to the viewport (popovers, menus), and
+      // transformed ancestors that would re-anchor fixed boxes do not exist in
+      // this chrome.
+      if (elementPosition === null) elementPosition = getComputedStyle(element).position;
+      if (elementPosition !== "fixed") return true;
     }
     return false;
   };

@@ -15,6 +15,7 @@ vi.mock("@tanstack/react-virtual", () => ({
 
 import FolderView from "@/routes/components/player/folder.player";
 import { patchSettings } from "@/store/settings.store";
+import { setVimCount } from "@/store/vim.store";
 import type { FolderNode } from "@/types/torrent";
 
 const TREE: FolderNode = {
@@ -54,6 +55,25 @@ function pressKey(code: string, target: EventTarget): void {
   act(() => {
     target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code }));
   });
+}
+
+const FLAT: FolderNode = {
+  name: "video",
+  path: "D:/video",
+  files: [
+    { path: "D:/video/a.mkv", name: "a.mkv", size: 10 },
+    { path: "D:/video/b.mkv", name: "b.mkv", size: 11 },
+  ],
+  children: [],
+};
+
+function renderFlat(): void {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <FolderView node={FLAT} depth={0} searchQuery="" />
+    </QueryClientProvider>
+  );
 }
 
 beforeEach(() => {
@@ -194,5 +214,167 @@ describe("FolderView row movement", () => {
   it("keeps the tree rows out of the tab order", () => {
     renderTree();
     expect(fileRow("ep1.mkv").tabIndex).toBe(-1);
+  });
+});
+
+describe("FolderView flat folders", () => {
+  it("renders file rows without subfolders", () => {
+    renderFlat();
+    expect(document.querySelector('[data-tree-path="D:/video/a.mkv"]')).not.toBeNull();
+    expect(document.querySelector('[data-tree-path="D:/video/b.mkv"]')).not.toBeNull();
+  });
+
+  it("dives from an external root header into the first row", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <div data-tree-row data-tree-path="D:/video">
+          <button type="button">head</button>
+          <FolderView node={FLAT} depth={0} searchQuery="" hideRoot />
+        </div>
+      </QueryClientProvider>
+    );
+    const head = screen.getByText("head");
+    head.focus();
+    pressKey("ArrowDown", head);
+    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/a.mkv");
+  });
+
+  it("stays put on Up from an external root header", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <div data-tree-row data-tree-path="D:/video">
+          <button type="button">top</button>
+          <FolderView node={FLAT} depth={0} searchQuery="" hideRoot />
+        </div>
+      </QueryClientProvider>
+    );
+    const top = screen.getByText("top");
+    top.focus();
+    pressKey("ArrowUp", top);
+    expect(document.activeElement).toBe(top);
+  });
+});
+
+// Counts ride the engine buffer; the movement itself is the tree's job, so a
+// buffered count must step that many flat rows (siblings or not).
+describe("FolderView count steps", () => {
+  const FOUR: FolderNode = {
+    name: "video",
+    path: "D:/video",
+    files: [
+      { path: "D:/video/1.mkv", name: "1.mkv", size: 10 },
+      { path: "D:/video/2.mkv", name: "2.mkv", size: 10 },
+      { path: "D:/video/3.mkv", name: "3.mkv", size: 10 },
+      { path: "D:/video/4.mkv", name: "4.mkv", size: 10 },
+    ],
+    children: [],
+  };
+
+  function renderFour(): void {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <FolderView node={FOUR} depth={0} searchQuery="" />
+      </QueryClientProvider>
+    );
+  }
+
+  function fileRow(name: string): HTMLElement {
+    const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
+    if (!node) throw new Error(`row missing for ${name}`);
+    return node;
+  }
+
+  it("moves two flat rows up with a count and K", () => {
+    renderFour();
+    const file = fileRow("4.mkv");
+    file.focus();
+    setVimCount("2");
+
+    pressKey("KeyK", file);
+
+    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/2.mkv");
+  });
+
+  it("moves two flat rows down with a count and J", () => {
+    renderFour();
+    const file = fileRow("1.mkv");
+    file.focus();
+    setVimCount("2");
+
+    pressKey("KeyJ", file);
+
+    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/3.mkv");
+  });
+});
+
+describe("FolderView row actions", () => {
+  function fileRow(name: string): HTMLElement {
+    const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
+    if (!node) throw new Error(`row missing for ${name}`);
+    return node;
+  }
+
+  function clicked(action: string): { file: HTMLElement; spy: ReturnType<typeof vi.fn> } {
+    renderTree();
+    const file = fileRow("ep1.mkv");
+    const holder = file.querySelector<HTMLElement>(`[data-file-action="${action}"]`);
+    const target =
+      holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+    if (!target) throw new Error(`action target missing: ${action}`);
+    const spy = vi.fn();
+    target.addEventListener("click", spy);
+    file.focus();
+    return { file, spy };
+  }
+
+  it("clicks the external button with O", () => {
+    const { file, spy } = clicked("external");
+    pressKey("KeyO", file);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("clicks the builtin button with P", () => {
+    const { file, spy } = clicked("builtin");
+    pressKey("KeyP", file);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("clicks the search button with S", () => {
+    const { file, spy } = clicked("search");
+    pressKey("KeyS", file);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("clicks the upscale trigger with E", () => {
+    const { file, spy } = clicked("upscale");
+    pressKey("KeyE", file);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispatches a contextmenu on the name with R", () => {
+    renderTree();
+    const file = fileRow("ep1.mkv");
+    const name = file.querySelector<HTMLElement>("[data-tree-activate]");
+    if (!name) throw new Error("activation target missing");
+    const spy = vi.fn();
+    name.addEventListener("contextmenu", spy);
+    file.focus();
+
+    pressKey("KeyR", file);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores row actions on folder rows", () => {
+    renderTree();
+    const season = row("D:/Anime/Season 1");
+    season.focus();
+
+    pressKey("KeyO", season);
+
+    expect(document.activeElement).toBe(season);
   });
 });

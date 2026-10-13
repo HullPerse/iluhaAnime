@@ -276,7 +276,7 @@ const changelog500 = {
   "changelog.5_0_0.fixed.anilist.studio_dupes":
     "A studio that AniList returns twice no longer shows up twice in anime details",
   "changelog.5_0_0.added.app.iluhium":
-    "iluhium keyboard mode: F shows labeled badges over clickable elements, j/k/d/u scroll, gg/G and H/M/L jumps, braces switch inner tabs, Alt pins a description, Ctrl+F page find bar with n/N navigation",
+    "iluhium keyboard mode: F shows labeled badges over clickable elements, j/k/d/u scroll, gg/G and H/M/L jumps, braces switch inner tabs, Alt pins a description, Ctrl+F page find bar with n/N navigation, counts step folder and torrent rows, o/p/s/e/r act on the focused file",
   "changelog.5_0_0.added.player.window_keys":
     "Playlist, speed, tracks, seeking and queue on keys: L, N, Shift+Comma/Period, R, V, B, Home/End, digits, J/K/Enter ring, Q",
   "changelog.5_0_0.fixed.anilist.save_400":
@@ -287,6 +287,8 @@ const changelog500 = {
     "Page find bar on Ctrl+F: match counter with keyboard and mouse navigation, case and whole-word toggles, highlights for the current and other matches",
   "changelog.5_0_0.added.player.folder_resize":
     "Saved folder height on bracket keys with step multiplier, plus a hint badge on the resize handle",
+  "changelog.5_0_0.fixed.player.flat_folder":
+    "Folders without subfolders show their files again, and arrow keys dive in from the folder header",
 } as const;
 
 export default changelog500;

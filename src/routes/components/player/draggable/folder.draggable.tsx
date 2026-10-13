@@ -95,6 +95,9 @@ export function DraggableFolder({
   return (
     <div
       ref={setRootRef}
+      data-tree-row
+      data-tree-path={tree.path}
+      tabIndex={-1}
       className={`windows95-active-border bg-primary flex flex-col${
         dragging ? " pointer-events-none" : ""
       }`}

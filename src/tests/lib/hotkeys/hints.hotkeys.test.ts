@@ -197,9 +197,11 @@ describe("scanHintTargets", () => {
     expect(found).toContain(inside);
   });
 
-  it("keeps an absolute target inside a static clipper", () => {
-    // CSS 2.1 11.1.1: a static overflow box does not clip a positioned child,
-    // so the rect being outside the box is not proof of invisibility.
+  it("drops an absolute target outside a static overflow container", () => {
+    // A scroll/overflow container clips absolute descendants: the old reading
+    // of CSS 2.1 11.1.1 only holds for `overflow: visible` ancestors, which
+    // never reach the clip test at all. This is the resized-folder case, where
+    // virtual rows below the visible box earned badges over empty space.
     const pane = box(document.createElement("div"), {
       top: 400,
       bottom: 500,
@@ -223,7 +225,61 @@ describe("scanHintTargets", () => {
     nodes.push(pane);
 
     const found = scanHintTargets(document.body).badges.map((badge) => badge.element);
+    expect(found).not.toContain(floating);
+  });
+
+  it("keeps an absolute target inside a static overflow container", () => {
+    const pane = box(document.createElement("div"), {
+      top: 400,
+      bottom: 500,
+      left: 0,
+      right: 200,
+      width: 200,
+      height: 100,
+    });
+    pane.style.overflow = "hidden";
+    const floating = box(document.createElement("button"), {
+      top: 420,
+      left: 20,
+      bottom: 440,
+      right: 120,
+      width: 100,
+      height: 20,
+    });
+    floating.style.position = "absolute";
+    pane.append(floating);
+    document.body.append(pane);
+    nodes.push(pane);
+
+    const found = scanHintTargets(document.body).badges.map((badge) => badge.element);
     expect(found).toContain(floating);
+  });
+
+  it("keeps a fixed target outside any container", () => {
+    const pane = box(document.createElement("div"), {
+      top: 400,
+      bottom: 500,
+      left: 0,
+      right: 200,
+      width: 200,
+      height: 100,
+    });
+    pane.style.overflow = "hidden";
+    const popup = box(document.createElement("button"), {
+      top: 600,
+      left: 20,
+      bottom: 620,
+      right: 120,
+      width: 100,
+      height: 20,
+    });
+    popup.style.position = "fixed";
+    pane.append(popup);
+    document.body.append(pane);
+    nodes.push(pane);
+
+    const found = scanHintTargets(document.body).badges.map((badge) => badge.element);
+    expect(found).toContain(popup);
   });
 
   it("skips a target painted under sticky chrome", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { KEYBINDS, PLAYER_HOTKEYS } from "@/config/player/keybinds.config";
+import { DIGIT_KEYS, KEYBINDS, PLAYER_HOTKEYS } from "@/config/player/keybinds.config";
 import { parseChord } from "@/lib/hotkeys/chord.hotkeys";
 import { createHotkeyRegistry } from "@/lib/hotkeys/registry.hotkeys";
 
@@ -39,7 +39,8 @@ describe("KEYBINDS", () => {
   });
 
   it("keeps single-shot actions on once and held actions on hold", () => {
-    const repeatOf = (action: string) => KEYBINDS.find((keybind) => keybind.action === action)?.repeat;
+    const repeatOf = (action: string) =>
+      KEYBINDS.find((keybind) => keybind.action === action)?.repeat;
     expect(repeatOf("playPause")).toBe("once");
     expect(repeatOf("toggleMute")).toBe("once");
     expect(repeatOf("toggleCheatsheet")).toBe("once");
@@ -49,5 +50,61 @@ describe("KEYBINDS", () => {
     expect(repeatOf("volumeUp")).toBe("hold");
     expect(repeatOf("frameForward")).toBe("hold");
     expect(repeatOf("subtitleOffsetDownFine")).toBe("hold");
+  });
+});
+
+// The chords that came out of the D1 player gap audit (vim-mode.md section 11).
+describe("KEYBINDS from the player gap audit", () => {
+  const entryOf = (action: string) => KEYBINDS.find((keybind) => keybind.action === action);
+
+  it("binds every approved chord", () => {
+    expect(entryOf("togglePlaylist")?.chord).toBe("KeyL");
+    expect(entryOf("skipChapter")?.chord).toBe("KeyN");
+    expect(entryOf("speedDown")?.chord).toBe("Shift+Comma");
+    expect(entryOf("speedUp")?.chord).toBe("Shift+Period");
+    expect(entryOf("speedReset")?.chord).toBe("KeyR");
+    expect(entryOf("cycleSubtitle")?.chord).toBe("KeyV");
+    expect(entryOf("cycleAudio")?.chord).toBe("KeyB");
+    expect(entryOf("seekToStart")?.chord).toBe("Home");
+    expect(entryOf("seekToEnd")?.chord).toBe("End");
+  });
+
+  it("binds every bare digit to its tenth of the file", () => {
+    for (const digit of DIGIT_KEYS) {
+      expect(entryOf(`seekPercent${digit}`)?.chord).toBe(`Digit${digit}`);
+    }
+    expect(KEYBINDS.filter((keybind) => keybind.action.startsWith("seekPercent"))).toHaveLength(
+      DIGIT_KEYS.length
+    );
+  });
+
+  it("leaves the shift-frame keys untouched", () => {
+    expect(entryOf("frameBackward")?.chord).toBe("Comma");
+    expect(entryOf("frameForward")?.chord).toBe("Period");
+  });
+
+  it("keeps every audited action a one-shot", () => {
+    for (const action of [
+      "togglePlaylist",
+      "skipChapter",
+      "speedDown",
+      "speedUp",
+      "speedReset",
+      "cycleSubtitle",
+      "cycleAudio",
+      "seekToStart",
+      "seekToEnd",
+      "seekPercent5",
+    ]) {
+      expect(entryOf(action)?.repeat, action).toBe("once");
+    }
+  });
+
+  it("gives every new entry a printable key label and a description", () => {
+    for (const action of ["togglePlaylist", "speedDown", "seekPercent0", "seekPercent9"]) {
+      const entry = entryOf(action);
+      expect(entry?.keys.length, action).toBeGreaterThan(0);
+      expect(entry?.description.startsWith("player.media."), action).toBe(true);
+    }
   });
 });

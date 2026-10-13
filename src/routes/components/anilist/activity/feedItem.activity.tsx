@@ -3,6 +3,7 @@ import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatActivityTime } from "@/lib/anilist/activity.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniActivity } from "@/types/anilist";
 
 import { ActivityLikeButton } from "./like.activity";
@@ -64,8 +65,12 @@ export function FeedItem({
           {t((ACTIVITY_STATUS_LABELS[a.status ?? ""] ?? a.status ?? "") as TranslationKey)}{" "}
         </span>
         <span
+          role="button"
+          tabIndex={0}
+          data-vim-target="activity-media"
           className="windows95-text line-clamp-2 text-xs font-bold underline decoration-dotted hover:cursor-pointer"
           onClick={() => onAnimeClick(a.media_id!)}
+          onKeyDown={enterOrSpace(() => onAnimeClick(a.media_id!))}
         >
           {a.media_title}
         </span>

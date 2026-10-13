@@ -3,18 +3,7 @@ import { useEffect, useRef } from "react";
 import { PLAYER_HOTKEYS, type KeybindAction } from "@/config/player/keybinds.config";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
-
-function isInsideScrollable(target: EventTarget | null): boolean {
-  const element = target instanceof HTMLElement ? target : null;
-  if (!element) return false;
-  if (element.closest("[data-playlist-scroll]")) return true;
-  let node: HTMLElement | null = element;
-  while (node && node !== document.body) {
-    if (node.scrollHeight > node.clientHeight + 1) return true;
-    node = node.parentElement;
-  }
-  return false;
-}
+import { isInsideScrollable } from "@/lib/utils/scroll.utils";
 
 function Keyboard({
   onAction,

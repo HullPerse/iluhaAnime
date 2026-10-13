@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { flashTarget } from "@/lib/highlight/flash.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { searchSettingsFind } from "@/lib/settings/find.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/lib/settings/find.utils";
@@ -104,8 +105,7 @@ export default function SettingsRoute() {
     for (const section of content.querySelectorAll("[data-find-section]")) {
       if (!(section instanceof HTMLElement)) continue;
       const id = section.dataset.findSection;
-      if (id && matched.has(id)) section.dataset.findMatch = "true";
-      else delete section.dataset.findMatch;
+      section.classList.toggle("target-marked", Boolean(id && matched.has(id)));
     }
   }, [activeTab, findOpen, findHits, trimmedQuery]);
 
@@ -115,12 +115,7 @@ export default function SettingsRoute() {
     const target = content.querySelector(`[data-find-section="${CSS.escape(flashSection)}"]`);
     if (!(target instanceof HTMLElement)) return;
     target.scrollIntoView({ block: "start" });
-    target.classList.add("settings-find-flash");
-    const timer = window.setTimeout(() => target.classList.remove("settings-find-flash"), 1300);
-    return () => {
-      window.clearTimeout(timer);
-      target.classList.remove("settings-find-flash");
-    };
+    return flashTarget(target);
   }, [activeTab, findOpen, flashSection, flashNonce]);
 
   const components: Record<SettingsTab, ReactNode> = {
@@ -162,6 +157,7 @@ export default function SettingsRoute() {
       </nav>
       <div
         ref={contentRef}
+        data-scroll-root
         className="windows95-border bg-primary min-h-0 flex-1 overflow-auto p-1"
       >
         <div className="bg-primary sticky -top-1 z-10 -mx-1 px-1 pt-1 pb-1">

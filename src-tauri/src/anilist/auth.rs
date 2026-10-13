@@ -701,10 +701,6 @@ pub async fn save_anilist_entry(
     progress: Option<i32>,
     score: Option<f64>,
     notes: Option<String>,
-    repeat: Option<i32>,
-    r#private: Option<bool>,
-    startedAt: Option<FuzzyDateInput>,
-    completedAt: Option<FuzzyDateInput>,
     customLists: Option<Vec<String>>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
@@ -712,8 +708,8 @@ pub async fn save_anilist_entry(
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
         "query": r"
-            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String, $repeat: Int, $private: Boolean, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput, $customLists: [String]) {
-                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes, repeat: $repeat, private: $private, startedAt: $startedAt, completedAt: $completedAt, customLists: $customLists) {
+            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String, $customLists: [String]) {
+                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes, customLists: $customLists) {
                     id
                     status
                     progress
@@ -726,10 +722,6 @@ pub async fn save_anilist_entry(
             progress,
             score,
             notes.as_deref(),
-            repeat,
-            r#private,
-            startedAt.as_ref(),
-            completedAt.as_ref(),
             customLists.as_deref()
         )
     });
@@ -880,13 +872,6 @@ fn parse_bulk_update_ids(entries: &serde_json::Value) -> Vec<u64> {
         .unwrap_or_default()
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FuzzyDateInput {
-    pub year: Option<i32>,
-    pub month: Option<i32>,
-    pub day: Option<i32>,
-}
-
 #[allow(clippy::cast_possible_wrap)]
 fn save_entry_variables(
     media_id: u64,
@@ -894,22 +879,17 @@ fn save_entry_variables(
     progress: Option<i32>,
     score: Option<f64>,
     notes: Option<&str>,
-    repeat: Option<i32>,
-    private: Option<bool>,
-    started_at: Option<&FuzzyDateInput>,
-    completed_at: Option<&FuzzyDateInput>,
     custom_lists: Option<&[String]>,
 ) -> serde_json::Value {
+    // Only fields this UI manages. repeat/private/dates stay server-side:
+    // an explicit null trips AniList validation ("must be an integer") and
+    // would wipe values the UI never fetched.
     serde_json::json!({
         "mediaId": media_id as i64,
         "status": status,
         "progress": progress,
         "score": score,
         "notes": notes,
-        "repeat": repeat,
-        "private": private,
-        "startedAt": started_at,
-        "completedAt": completed_at,
         "customLists": custom_lists
     })
 }
@@ -1030,42 +1010,27 @@ mod tests {
     }
 
     #[test]
-    fn save_entry_variables_carry_optional_fields() {
+    fn save_entry_variables_carry_managed_fields_only() {
         let full = save_entry_variables(
             21,
             "COMPLETED",
             Some(12),
             Some(8.5),
             Some("great"),
-            Some(1),
-            Some(true),
-            Some(&FuzzyDateInput {
-                year: Some(2023),
-                month: Some(5),
-                day: Some(2),
-            }),
-            Some(&FuzzyDateInput {
-                year: Some(2024),
-                month: None,
-                day: None,
-            }),
             Some(&["favorites".to_string()]),
         );
         assert_eq!(full["mediaId"], 21);
-        assert_eq!(full["repeat"], 1);
-        assert_eq!(full["private"], true);
-        assert_eq!(full["startedAt"]["month"], 5);
-        assert_eq!(full["completedAt"]["year"], 2024);
-        assert!(full["completedAt"]["month"].is_null());
         assert_eq!(full["customLists"][0], "favorites");
+        for untouched in ["repeat", "private", "startedAt", "completedAt"] {
+            assert!(
+                full.get(untouched).is_none(),
+                "{untouched} must be omitted, not nulled"
+            );
+        }
 
-        let minimal = save_entry_variables(
-            21, "PLANNING", None, None, None, None, None, None, None, None,
-        );
-        assert!(minimal["repeat"].is_null());
-        assert!(minimal["private"].is_null());
-        assert!(minimal["startedAt"].is_null());
+        let minimal = save_entry_variables(21, "PLANNING", None, None, None, None);
         assert!(minimal["customLists"].is_null());
+        assert!(minimal.get("repeat").is_none());
     }
 
     #[test]

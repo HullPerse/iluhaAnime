@@ -1,5 +1,17 @@
+import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ScreenshotFormat } from "@/types/screenshot";
+
+export const SCREENSHOT_HISTORY_DEFS: readonly HotkeyDef<"undo" | "redo">[] = [
+  { id: "undo", chord: "ctrl+KeyZ", repeat: "once" },
+  { id: "undo", chord: "meta+KeyZ", repeat: "once" },
+  { id: "redo", chord: "ctrl+Shift+KeyZ", repeat: "once" },
+  { id: "redo", chord: "meta+Shift+KeyZ", repeat: "once" },
+  { id: "redo", chord: "ctrl+KeyY", repeat: "once" },
+  { id: "redo", chord: "ctrl+Shift+KeyY", repeat: "once" },
+  { id: "redo", chord: "meta+KeyY", repeat: "once" },
+  { id: "redo", chord: "meta+Shift+KeyY", repeat: "once" },
+];
 
 export const SCREENSHOT_NAME_PREFIX = "iluhaAnime_screenshot";
 

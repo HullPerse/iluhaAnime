@@ -22,10 +22,10 @@ import {
   CROP_ZOOM_FIT,
   SCREENSHOT_FORMAT_LABELS,
   SCREENSHOT_FORMATS,
+  SCREENSHOT_HISTORY_DEFS,
 } from "@/config/settings/screenshot.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import {
   canRedo,
@@ -63,17 +63,6 @@ const TOOL_HINTS: Record<ScreenshotTool, TranslationKey> = {
   text: "screenshot.hint.text",
   blur: "screenshot.hint.blur",
 };
-
-const HISTORY_DEFS: HotkeyDef<"undo" | "redo">[] = [
-  { id: "undo", chord: "ctrl+KeyZ", repeat: "once" },
-  { id: "undo", chord: "meta+KeyZ", repeat: "once" },
-  { id: "redo", chord: "ctrl+Shift+KeyZ", repeat: "once" },
-  { id: "redo", chord: "meta+Shift+KeyZ", repeat: "once" },
-  { id: "redo", chord: "ctrl+KeyY", repeat: "once" },
-  { id: "redo", chord: "ctrl+Shift+KeyY", repeat: "once" },
-  { id: "redo", chord: "meta+KeyY", repeat: "once" },
-  { id: "redo", chord: "meta+Shift+KeyY", repeat: "once" },
-];
 
 export default function ScreenshotModal({
   capture,
@@ -123,7 +112,7 @@ export default function ScreenshotModal({
 
   useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
-  useHotkeys(HISTORY_DEFS, {
+  useHotkeys(SCREENSHOT_HISTORY_DEFS, {
     ignore: (event) =>
       event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement,
     onAction: (id) => setHistory(id === "undo" ? undo : redo),

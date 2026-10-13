@@ -267,6 +267,14 @@ const changelog500 = {
     "The speed graph panel hides the canvas and the speed legend while the torrent list is empty and keeps only the peer and DHT counters, so an idle list no longer shows a stray flat line",
   "changelog.5_0_0.changed.torrents.filter_hint":
     "The torrent filter is a plain field with an inline completion over the names of torrents in the current tab: Tab or the right arrow key accepts the full name",
+  "changelog.5_0_0.fixed.anilist.progress_partial":
+    "Partial episode progress always lights at least one block: the start of a long series no longer looks empty, while a full bar still needs the last episode",
+  "changelog.5_0_0.fixed.anilist.related_progress":
+    "Progress bars in the Related list show their fill again instead of an empty track",
+  "changelog.5_0_0.fixed.anilist.friends_progress":
+    "Progress bars in Friends scores fill with the main color again, and the friend status square now matches the style used in Related and on cards",
+  "changelog.5_0_0.fixed.anilist.studio_dupes":
+    "A studio that AniList returns twice no longer shows up twice in anime details",
 } as const;
 
 export default changelog500;

@@ -77,6 +77,7 @@ export default function AniListScrollView({
   return (
     <section
       ref={parentRef}
+      data-scroll-root
       className="windows95-border bg-field flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto border p-1"
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>

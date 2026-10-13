@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findActiveChapter, skipLabel } from "@/lib/player/skip.utils";
+import { findActiveChapter, resolveSkipTarget, skipLabel } from "@/lib/player/skip.utils";
 import type { MpvChapter } from "@/types/videoPlayer";
 
 function chapter(title: string, time: number, end?: number): MpvChapter {
@@ -72,5 +72,39 @@ describe("player/skip active chapter", () => {
   it("returns null outside every chapter", () => {
     expect(findActiveChapter(chapters, 1400, 1400)).toBeNull();
     expect(findActiveChapter([], 10, 1400)).toBeNull();
+  });
+});
+
+// The on-screen skip button and the `N` shortcut share this resolver, so both
+// always agree on whether a skip exists and where it lands.
+describe("player/skip target", () => {
+  const chapters = [chapter("Opening", 0, 90), chapter("Main", 90), chapter("Ending", 1300)];
+
+  it("skips to the end of the active named chapter", () => {
+    expect(resolveSkipTarget(chapters, 10, 1400, true)).toEqual({
+      nextEpisode: false,
+      target: 90,
+    });
+  });
+
+  it("calls the closing chapter of the last episode a next-episode skip", () => {
+    expect(resolveSkipTarget(chapters, 1350, 1400, true)).toEqual({
+      nextEpisode: true,
+      target: 1400,
+    });
+    expect(resolveSkipTarget(chapters, 1350, 1400, false)?.nextEpisode).toBe(false);
+  });
+
+  it("offers nothing for an unnamed chapter", () => {
+    expect(resolveSkipTarget([chapter("Main", 0, 300)], 10, 300, true)).toBeNull();
+  });
+
+  it("offers nothing for a chapter shorter than the minimum", () => {
+    expect(resolveSkipTarget([chapter("Intro", 0, 5)], 1, 1400, true)).toBeNull();
+  });
+
+  it("offers nothing outside every chapter", () => {
+    expect(resolveSkipTarget(chapters, 1400, 1400, true)).toBeNull();
+    expect(resolveSkipTarget([], 10, 1400, true)).toBeNull();
   });
 });

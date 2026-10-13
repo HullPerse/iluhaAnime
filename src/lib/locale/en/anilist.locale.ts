@@ -69,6 +69,7 @@ const anilist = {
   "anilist.card.favorite": "In your favourites",
   "anilist.card.progress.plus": "Watch one more episode",
   "anilist.card.progress.minus": "Remove one watched episode",
+  "anilist.card.progress.saved": "Progress saved",
   "anilist.card.aired": "Aired",
   "anilist.card.old.entry": "more than 5 years ago",
   "anilist.characters.anime.of": "Anime ({{count}})",

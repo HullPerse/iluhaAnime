@@ -435,18 +435,33 @@
   scroll-margin-top: 2.75rem;
 }
 
-[data-find-section][data-find-match="true"] {
+::highlight(find-match) {
+  background-color: var(--color-highlight);
+  color: var(--color-title-text);
+}
+
+::highlight(find-current) {
+  background-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.target-marked {
   outline: 1px dotted var(--color-text);
   outline-offset: -3px;
 }
 
-.settings-find-flash[data-find-section] {
-  outline: 2px solid var(--color-highlight);
-  outline-offset: -3px;
-  animation: settings-find-flash 1.2s ease-out 1;
+.vim-hints-open .group-hover\:visible,
+.vim-hints-open .group-focus-within\:visible {
+  visibility: visible;
 }
 
-@keyframes settings-find-flash {
+.target-flash {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: -3px;
+  animation: target-flash 1.2s ease-out 1;
+}
+
+@keyframes target-flash {
   from {
     outline-color: var(--color-highlight);
   }
@@ -874,7 +889,7 @@ html[data-theme="yorha"] .yorha-grid {
   .xp-block {
     animation: none;
   }
-  .settings-find-flash[data-find-section] {
+  .target-flash {
     animation: none;
   }
   .win7-motion {

@@ -14,6 +14,7 @@ import { useEnsureAnimeIndex, usePrewarmSpellIndex } from "@/hooks/search/animeI
 import { useSplashStages } from "@/hooks/splash.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
+import { useVimMode } from "@/hooks/vimMode.hook";
 import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -28,6 +29,7 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { TabId } from "@/types/settings";
 
+import KeyboardHintOverlay from "./components/shared/keyboard/overlay.keyboard.component";
 import NotificationTray from "./components/shared/notification/tray.notification";
 import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
 import StatusBar from "./components/shared/status.component";
@@ -80,6 +82,7 @@ export default function App() {
   };
 
   useTray(tabs, goToTab);
+  useVimMode();
   useDayNightScheduler();
   useEnsureAnimeIndex();
   usePrewarmSpellIndex();
@@ -142,6 +145,7 @@ export default function App() {
         />
       )}
       {screenshot && <ScreenshotModal capture={screenshot} onClose={closeScreenshot} />}
+      <KeyboardHintOverlay />
       <section className="relative z-10 flex h-full flex-col">
         <div className="ui-panel flex h-full flex-col">
           {customTitleBarEnabled && <TitleBar title="iluhaAnime" />}

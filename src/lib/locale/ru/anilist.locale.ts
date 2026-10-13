@@ -73,6 +73,7 @@ const anilist = {
   "anilist.card.favorite": "В избранном",
   "anilist.card.progress.plus": "Посмотрена еще одна серия",
   "anilist.card.progress.minus": "Убрать одну просмотренную серию",
+  "anilist.card.progress.saved": "Прогресс сохранен",
   "anilist.card.aired": "Вышло",
   "anilist.card.old.entry": "больше 5 лет назад",
   "anilist.characters.anime.of": "Аниме ({{count}})",

@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import {
   SKIP_AUTO_HIDE_MS,
-  SKIP_MIN_SECONDS,
   SKIP_SEEK_BACK_THRESHOLD,
   findActiveChapter,
+  resolveSkipTarget,
   skipLabel,
 } from "@/lib/player/skip.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -30,6 +30,7 @@ function SkipButton({
   const { t } = useI18n();
   const timePos = useCell(playbackAtoms.timePos);
 
+  const skip = resolveSkipTarget(chapters, timePos, duration, hasNext);
   const active = findActiveChapter(chapters, timePos, duration);
   const label = active ? skipLabel(active.chapter.title) : null;
   const key = active && label ? `${active.index}:${active.chapter.time}` : null;
@@ -53,13 +54,7 @@ function SkipButton({
     if (delta > SKIP_SEEK_BACK_THRESHOLD && key && hidden) setHidden(false);
   }, [timePos, key, hidden]);
 
-  if (!active || !label || hidden) return null;
-
-  const chapterLength = active.target - active.chapter.time;
-  if (chapterLength < SKIP_MIN_SECONDS) return null;
-
-  const isLastChapter = active.index === chapters.length - 1;
-  const isNextEpisode = isLastChapter && label === "ED" && hasNext;
+  if (!active || !label || !skip || hidden) return null;
 
   return (
     <div className="absolute right-1 bottom-1 z-20">
@@ -67,12 +62,12 @@ function SkipButton({
         className="flex h-auto items-center gap-1 px-3 py-1.5 text-sm"
         title={active.chapter.title}
         onClick={() => {
-          onSkip(active.target);
-          if (isNextEpisode) onFileNext();
+          onSkip(skip.target);
+          if (skip.nextEpisode) onFileNext();
         }}
       >
         <SkipForward className="size-4" />
-        {isNextEpisode ? t("player.media.skip.next.episode") : t("player.media.skip.chapter")}
+        {skip.nextEpisode ? t("player.media.skip.next.episode") : t("player.media.skip.chapter")}
       </Button>
     </div>
   );

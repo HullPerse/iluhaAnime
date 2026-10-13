@@ -1,14 +1,104 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { DIGIT_KEYS } from "@/config/player/keybinds.config";
 import Keyboard from "@/routes/components/player/media/keyboard.player";
 
 function fireWheel(target: Element, deltaY: number): void {
   target.dispatchEvent(new WheelEvent("wheel", { deltaY, bubbles: true }));
 }
 
+function pressKey(
+  code: string,
+  options: { shiftKey?: boolean; repeat?: boolean } = {}
+): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", {
+    bubbles: true,
+    cancelable: true,
+    code,
+    repeat: options.repeat ?? false,
+    shiftKey: options.shiftKey ?? false,
+  });
+  window.dispatchEvent(event);
+  return event;
+}
+
 afterEach(() => {
   cleanup();
+});
+
+describe("Keyboard shortcuts", () => {
+  it("maps every chord from the player gap audit to its action", () => {
+    const onAction = vi.fn();
+    render(<Keyboard onAction={onAction} />);
+
+    const cases: [string, string, boolean][] = [
+      ["KeyL", "togglePlaylist", false],
+      ["KeyN", "skipChapter", false],
+      ["Comma", "speedDown", true],
+      ["Period", "speedUp", true],
+      ["KeyR", "speedReset", false],
+      ["KeyV", "cycleSubtitle", false],
+      ["KeyB", "cycleAudio", false],
+      ["Home", "seekToStart", false],
+      ["End", "seekToEnd", false],
+      ["KeyJ", "playlistDown", false],
+      ["KeyK", "playlistUp", false],
+      ["Enter", "playlistActivate", false],
+    ];
+    for (const [code, action, shiftKey] of cases) {
+      onAction.mockClear();
+      pressKey(code, { shiftKey });
+      expect(onAction.mock.calls.at(-1)?.[0], code).toBe(action);
+    }
+  });
+
+  it("maps each bare digit to its tenth of the file", () => {
+    const onAction = vi.fn();
+    render(<Keyboard onAction={onAction} />);
+
+    for (const digit of DIGIT_KEYS) {
+      onAction.mockClear();
+      pressKey(`Digit${digit}`);
+      expect(onAction.mock.calls.at(-1)?.[0], `Digit${digit}`).toBe(`seekPercent${digit}`);
+    }
+  });
+
+  it("leaves the plain frame keys and shifted digits alone", () => {
+    const onAction = vi.fn();
+    render(<Keyboard onAction={onAction} />);
+
+    pressKey("Comma");
+    expect(onAction.mock.calls.at(-1)?.[0]).toBe("frameBackward");
+
+    onAction.mockClear();
+    pressKey("Digit5", { shiftKey: true });
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("ignores auto-repeat for the one-shot seek digits", () => {
+    const onAction = vi.fn();
+    render(<Keyboard onAction={onAction} />);
+
+    pressKey("Digit5");
+    pressKey("Digit5", { repeat: true });
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("still ignores keys typed into an input", () => {
+    const onAction = vi.fn();
+    render(
+      <>
+        <Keyboard onAction={onAction} />
+        <input data-testid="field" />
+      </>
+    );
+    const field = document.querySelector("input");
+    if (!field) throw new Error("input missing");
+
+    field.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, code: "Digit5" }));
+    expect(onAction).not.toHaveBeenCalled();
+  });
 });
 
 describe("Keyboard wheel", () => {

@@ -21,11 +21,19 @@ import type { ScanType } from "@/types/player";
 import { QueueItemDepth } from "./depth.player";
 import FolderScanProgress from "./scan.player";
 
-export default function QueuePanel({ scan }: { scan: ScanType }) {
+export default function QueuePanel({
+  scan,
+  open,
+  onToggle,
+}: {
+  scan: ScanType;
+  /** Owned by the player route so the `Q` key and the header button agree. */
+  open: boolean;
+  onToggle: () => void;
+}) {
   const items = useCell(upscaleItems);
   const paused = useCell(upscalePaused);
   const { t } = useI18n();
-  const [open, setOpen] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (items.length === 0 && !scan) {
@@ -49,8 +57,9 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
       <div className="windows95-text mb-1 flex items-center gap-1 text-xs font-bold">
         <button
           type="button"
+          data-testid="queue-toggle"
           aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
+          onClick={onToggle}
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left"
         >
           {open ? "▼" : "▶"} <ListVideo className="size-3" />

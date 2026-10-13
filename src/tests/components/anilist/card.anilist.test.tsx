@@ -1,6 +1,6 @@
 import { mockInvoke } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
@@ -8,7 +8,6 @@ import AniListCard from "@/routes/components/anilist/card.anilist";
 import { patchSettings } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { AniMedia } from "@/types/anilist";
-
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -159,15 +158,42 @@ describe("ProgressStepper", () => {
     );
   }
 
-  it("saves progress plus one and disables minus at zero", async () => {
-    const { invoke } = await import("@tauri-apps/api/core");
-    vi.mocked(invoke).mockClear();
-    renderWithData();
-    fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
-    await waitFor(() =>
+  it("debounces the save and shows loader then a checkmark", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      renderWithData();
+      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      expect(vi.mocked(invoke)).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
+      expect(screen.getByRole("button", { name: "Watch one more episode" })).toBeTruthy();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
       expect(vi.mocked(invoke)).toHaveBeenCalledWith(
         "save_anilist_entry",
         expect.objectContaining({ mediaId: MEDIA_ID, progress: 21, status: "COMPLETED" })
+      );
+      expect(screen.getByLabelText("Progress saved")).toBeTruthy();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1500);
+      });
+      expect(screen.queryByLabelText("Progress saved")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("flushes the pending save on unmount", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    const view = renderWithData();
+    fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+    view.unmount();
+    await waitFor(() =>
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith(
+        "save_anilist_entry",
+        expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 })
       )
     );
   });
@@ -218,47 +244,58 @@ describe("ProgressStepper coalescing", () => {
     return invoke.mock.calls.filter((call) => call[0] === "save_anilist_entry");
   }
 
-  it("applies rapid clicks instantly and syncs the trailing target", async () => {
-    const { invoke } = await import("@tauri-apps/api/core");
-    vi.mocked(invoke).mockClear();
-    const client = renderCoalescing();
-    const plus = screen.getByRole("button", { name: "Watch one more episode" });
-    fireEvent.click(plus);
-    fireEvent.click(plus);
-    fireEvent.click(plus);
-    await waitFor(() => {
-      const last = saveCalls(vi.mocked(invoke)).at(-1);
-      expect(last?.[1]).toEqual(
-        expect.objectContaining({ mediaId: MEDIA_ID, progress: 23 })
-      );
-    });
-    const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
-      "anilist_data",
-    ]);
-    expect(data?.lists[0].entries[0].progress).toBe(23);
-    expect(saveCalls(vi.mocked(invoke)).length).toBeLessThanOrEqual(2);
+  it("applies rapid clicks instantly and syncs the trailing target once", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      const client = renderCoalescing();
+      const plus = screen.getByRole("button", { name: "Watch one more episode" });
+      fireEvent.click(plus);
+      fireEvent.click(plus);
+      fireEvent.click(plus);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      const calls = saveCalls(vi.mocked(invoke));
+      expect(calls.length).toBe(1);
+      expect(calls[0]?.[1]).toEqual(expect.objectContaining({ mediaId: MEDIA_ID, progress: 23 }));
+      const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
+        "anilist_data",
+      ]);
+      expect(data?.lists[0].entries[0].progress).toBe(23);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("rolls back to the confirmed value and retries on failure", async () => {
-    const { invoke } = await import("@tauri-apps/api/core");
-    vi.mocked(invoke).mockClear();
-    vi.mocked(invoke).mockRejectedValueOnce(new Error("429 Too Many Requests"));
-    const client = renderCoalescing();
-    fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
-    expect(await screen.findByRole("button", { name: "Retry" })).toBeTruthy();
-    const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
-      "anilist_data",
-    ]);
-    expect(data?.lists[0].entries[0].progress).toBe(20);
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    await waitFor(() => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      vi.mocked(invoke).mockRejectedValueOnce(new Error("429 Too Many Requests"));
+      const client = renderCoalescing();
+      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+      const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
+        "anilist_data",
+      ]);
+      expect(data?.lists[0].entries[0].progress).toBe(20);
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
       const calls = saveCalls(vi.mocked(invoke));
       expect(calls.length).toBe(2);
-      expect(calls[1][1]).toEqual(
-        expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 })
-      );
-    });
-    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+      expect(calls[1]?.[1]).toEqual(expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 }));
+      expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

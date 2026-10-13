@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  nextTrackId,
   sortTracksByLanguage,
   toTrackDisplay,
   trackLabel,
@@ -118,5 +119,36 @@ describe("player/tracks sorting", () => {
       track({ id: 2, type: "sub", title: "Forced", lang: "ger", codec: "subrip" }),
     ]);
     expect(sorted.map((entry) => entry.id)).toEqual([1, 2]);
+  });
+});
+
+describe("player/tracks cycling", () => {
+  const tracks = [
+    track({ id: 1, type: "video" }),
+    track({ id: 2, type: "audio", lang: "eng", selected: true }),
+    track({ id: 3, type: "audio", lang: "jpn" }),
+    track({ id: 4, type: "sub", lang: "jpn", selected: true }),
+    track({ id: 5, type: "sub", lang: "rus" }),
+  ];
+
+  it("cycles to the next track of the kind in dropdown order", () => {
+    expect(nextTrackId(tracks, "audio")).toBe(3);
+    expect(nextTrackId(tracks, "sub")).toBe(5);
+  });
+
+  it("wraps past the last track of the kind", () => {
+    const lastSubSelected = tracks.map((entry) => ({ ...entry, selected: entry.id === 5 }));
+    expect(nextTrackId(lastSubSelected, "sub")).toBe(4);
+  });
+
+  it("starts at the first track when nothing of the kind is selected", () => {
+    const noneSelected = tracks.map((entry) => ({ ...entry, selected: false }));
+    expect(nextTrackId(noneSelected, "audio")).toBe(2);
+    expect(nextTrackId(noneSelected, "sub")).toBe(4);
+  });
+
+  it("ignores video tracks and empty kinds", () => {
+    expect(nextTrackId([track({ id: 1, type: "video" })], "audio")).toBeNull();
+    expect(nextTrackId([], "sub")).toBeNull();
   });
 });

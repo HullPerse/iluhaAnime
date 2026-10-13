@@ -83,3 +83,30 @@ export function findActiveChapter(
   }
   return null;
 }
+
+export interface SkipTarget {
+  /** Where the player jumps to. */
+  target: number;
+  /** The ED of the last chapter is the next episode, not a chapter skip. */
+  nextEpisode: boolean;
+}
+
+/**
+ * The skip a viewer can take right now, or null when there is none. Shared by
+ * the on-screen skip button and the `N` shortcut so both always agree on
+ * whether a skip exists and where it lands.
+ */
+export function resolveSkipTarget(
+  chapters: MpvChapter[],
+  timePos: number,
+  duration: number,
+  hasNext: boolean
+): SkipTarget | null {
+  const active = findActiveChapter(chapters, timePos, duration);
+  if (!active) return null;
+  const label = skipLabel(active.chapter.title);
+  if (!label) return null;
+  if (active.target - active.chapter.time < SKIP_MIN_SECONDS) return null;
+  const isLastChapter = active.index === chapters.length - 1;
+  return { nextEpisode: isLastChapter && label === "ED" && hasNext, target: active.target };
+}

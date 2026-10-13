@@ -156,6 +156,10 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.search.cover_flash", "search"),
       entry("changelog.5_0_0.fixed.collection.import_lock", "collection"),
       entry("changelog.5_0_0.fixed.search.socks_remote_dns", "search"),
+      entry("changelog.5_0_0.fixed.anilist.progress_partial", "anilist"),
+      entry("changelog.5_0_0.fixed.anilist.related_progress", "anilist"),
+      entry("changelog.5_0_0.fixed.anilist.friends_progress", "anilist"),
+      entry("changelog.5_0_0.fixed.anilist.studio_dupes", "anilist"),
     ],
   },
   {

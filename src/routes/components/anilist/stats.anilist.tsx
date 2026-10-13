@@ -13,6 +13,7 @@ import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { anilistNotificationsAtoms, markAnilistReleasesRead } from "@/store/anilist.store";
 import type { AniListCollection } from "@/types/anilist";
 
@@ -337,9 +338,17 @@ function StatsModal({
                             className="windows95-border h-13 w-10 object-cover"
                           />
                         )}
-                        <span className="windows95-font w-full truncate px-1 text-center text-xs leading-tight">
+                        {/* The cell also holds the "+N more" button, so the title
+                            (not the cell) is the keyboard-reachable control. No
+                            handler here: activation bubbles to the cell's click. */}
+                        <button
+                          type="button"
+                          className="windows95-font w-full cursor-pointer truncate px-1 text-center text-xs leading-tight"
+                          data-vim-target="stats-entry"
+                          title={mainEntry.title}
+                        >
                           {mainEntry.title}
-                        </span>
+                        </button>
                         {mainEntry.episode != null && (
                           <div className="flex items-center gap-1">
                             <span className="text-hint windows95-font text-xs">
@@ -391,8 +400,13 @@ function StatsModal({
             {dayEntries.map((entry) => (
               <div
                 key={entry.id}
+                role="button"
+                tabIndex={0}
+                aria-label={entry.title}
+                data-vim-target="stats-entry"
                 className="hover:bg-surface border-t-muted border-l-muted border-r-win-highlight border-b-win-highlight flex cursor-pointer items-center gap-2 border-b px-2 py-1"
                 onClick={() => onAnimeClick(entry.id)}
+                onKeyDown={enterOrSpace(() => onAnimeClick(entry.id))}
               >
                 {entry.coverUrl && (
                   <ImageComponent

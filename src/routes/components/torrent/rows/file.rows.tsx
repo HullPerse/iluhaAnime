@@ -1,7 +1,7 @@
 import { openPath } from "@tauri-apps/plugin-opener";
 import { cn } from "cn";
 import { ArrowDownNarrowWide, RefreshCw } from "lucide-react";
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
@@ -12,6 +12,7 @@ import { fileNameFromPath, isTrackFileName, parseMediaPath } from "@/lib/media/p
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { joinMediaPath } from "@/lib/utils/media.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
@@ -75,6 +76,76 @@ function handlePlayerContextMenu(
   openPath(String(args.saveDir));
 }
 
+interface FileRowInteractions {
+  /** Player rows act on a plain click (search in AniList). */
+  interactive: boolean;
+  /** A right-click opens the save folder. */
+  contextMenu: boolean;
+  /** Ctrl+click opens the file in the app. */
+  ctrlClick: boolean;
+}
+
+/**
+ * Which mouse actions the row name actually has. Torrent rows have none, so
+ * they stay plain text and never enter the tab order; the ctrl-click badge is
+ * only advertised when the dispatch would really do something.
+ */
+function resolveFileRowInteractions(args: {
+  type: "torrent" | "player";
+  track: boolean;
+  busy: boolean;
+  completed: boolean;
+  exists: boolean;
+  resolvedPath: string | undefined;
+  saveDir: string | undefined;
+  onOpenInApp: ((fullPath: string) => void) | undefined;
+}): FileRowInteractions {
+  const interactive = args.type === "player" && !args.track;
+  return {
+    interactive,
+    contextMenu: interactive && Boolean(args.saveDir),
+    ctrlClick:
+      interactive &&
+      !args.busy &&
+      args.completed &&
+      args.exists &&
+      Boolean(args.resolvedPath) &&
+      Boolean(args.onOpenInApp),
+  };
+}
+
+/** Row name cell: plain text, or a hintable, keyboard-activatable button. */
+function FileNameCell({
+  title,
+  interactions,
+  onActivate,
+  onOpenFolder,
+  children,
+}: {
+  title: string;
+  interactions: FileRowInteractions;
+  onActivate: () => void;
+  onOpenFolder: (event: MouseEvent) => void;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className="flex-1 truncate"
+      title={title}
+      role={interactions.interactive ? "button" : undefined}
+      tabIndex={interactions.interactive ? 0 : undefined}
+      data-vim-target={interactions.interactive ? "file" : undefined}
+      data-vim-contextmenu={interactions.contextMenu ? "file" : undefined}
+      data-vim-ctrlclick={interactions.ctrlClick ? "file" : undefined}
+      onKeyDown={interactions.interactive ? enterOrSpace(onActivate) : undefined}
+      onContextMenu={onOpenFolder}
+      onClick={onActivate}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function TorrentFileRow({
   file,
   depth,
@@ -116,6 +187,17 @@ export function TorrentFileRow({
   const trackExts = new Set([...audioExtensions, ...subtitleExtensions]);
   const target = resolvePlayerRowTarget(file, fullPath, path, queueMap, trackExts);
   const { resolvedPath, track, busy } = target;
+  const interactions = resolveFileRowInteractions({
+    type,
+    track,
+    busy,
+    completed: file.completed,
+    exists: file.exists,
+    resolvedPath,
+    saveDir: path,
+    onOpenInApp,
+  });
+  const openSearch = () => searchPlayerFile(type, track, resolvedPath, file.displayName);
 
   return (
     <div
@@ -135,15 +217,18 @@ export function TorrentFileRow({
           onChange={onToggleFile}
           disabled={file.completed}
           className="size-3"
+          data-vim-target="file-check"
+          aria-label={file.displayName}
         />
       )}
 
       <ImageComponent src="/images/w2k_wmp_11.ico" alt="" className="size-4" />
 
-      <span
-        className="flex-1 truncate"
+      <FileNameCell
         title={file.displayName}
-        onContextMenu={(e) => {
+        interactions={interactions}
+        onActivate={openSearch}
+        onOpenFolder={(e) => {
           handlePlayerContextMenu(e, {
             type,
             track,
@@ -155,14 +240,11 @@ export function TorrentFileRow({
             onOpenInApp,
           });
         }}
-        onClick={() => {
-          searchPlayerFile(type, track, resolvedPath, file.displayName);
-        }}
       >
         {type === "player" && parseTitles
           ? formatParsedTitle(fullPath ?? file.displayName, t)
           : file.displayName}
-      </span>
+      </FileNameCell>
 
       {sequential && (
         <span

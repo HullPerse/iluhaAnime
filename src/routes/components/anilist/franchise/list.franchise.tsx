@@ -56,7 +56,7 @@ function FranchiseRowBody({
           <ProgressBar
             value={progress ?? 0}
             max={total ?? 0}
-            className="inline-block h-3.5 w-20"
+            className="inline-flex h-3.5 w-20"
             slots
           />
           <span className="text-hint">

@@ -28,6 +28,7 @@ export default function AniListResults({
     <>
       {entries.length > 0 && (
         <section
+          data-scroll-root
           className="windows95-border bg-field flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto border p-1"
           ref={scrollRef}
         >

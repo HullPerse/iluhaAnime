@@ -68,6 +68,12 @@ const FIND_GROUPS: readonly FindGroup[] = [
   },
   {
     tab: "general",
+    section: "keyboard",
+    titleKey: "settings.keyboard",
+    keys: ["settings.vim.mode", "settings.vim.mode.hint"],
+  },
+  {
+    tab: "general",
     section: "window",
     titleKey: "settings.window",
     keys: ["settings.tray.minimize", "settings.tray.minimize.description"],

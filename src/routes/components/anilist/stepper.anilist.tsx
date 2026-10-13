@@ -1,12 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Minus, Plus, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, Minus, Plus, RotateCcw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { EntryListInfo } from "@/lib/anilist/entries.utils";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { addNotification } from "@/store/notification.store";
@@ -68,6 +70,12 @@ interface StepperFailure {
   reason: string;
 }
 
+const STEPPER_SYNC_WAIT_MS = 600;
+const STEPPER_SYNC_MAX_WAIT_MS = 4000;
+const STEPPER_SAVED_MS = 1500;
+
+type StepperPhase = "idle" | "syncing" | "saved" | "error";
+
 export function ProgressStepper({
   media,
   entry,
@@ -77,12 +85,26 @@ export function ProgressStepper({
 }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState<StepperPhase>("idle");
   const [failure, setFailure] = useState<StepperFailure | null>(null);
   const targetRef = useRef<number | null>(null);
   const inflightRef = useRef(false);
   const confirmedRef = useRef(entry.progress ?? 0);
   const entryRef = useRef(entry);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const taskBox = useMemo<{ current: (() => void) | undefined }>(
+    () => ({ current: undefined }),
+    []
+  );
+  const debouncer = useMemo(
+    () =>
+      new Debouncer<[]>(() => taskBox.current?.(), {
+        wait: STEPPER_SYNC_WAIT_MS,
+        maxWait: STEPPER_SYNC_MAX_WAIT_MS,
+      }),
+    [taskBox]
+  );
+  const pending = useCell(debouncer.status).isPending;
 
   useEffect(() => {
     entryRef.current = entry;
@@ -94,57 +116,74 @@ export function ProgressStepper({
     }
   }, [entry.progress]);
 
-  const pump = useCallback(async () => {
-    if (inflightRef.current) return;
-    inflightRef.current = true;
-    setSaving(true);
-    let synced = false;
-    let failed = false;
-    while (targetRef.current !== null) {
-      const target = targetRef.current;
-      const fallback = entryRef.current;
-      const live = readLiveFields(queryClient, media.id, {
-        status: fallback.list_status,
-        score: fallback.score,
-        notes: fallback.notes,
-      });
-      const startedAt = performance.now();
-      const [, error] = await attempt(
-        anilistApi.saveEntry({
-          mediaId: media.id,
-          status: live.status,
-          progress: target,
-          score: live.score,
-          notes: live.notes,
-        })
-      );
-      const elapsedMs = Math.round(performance.now() - startedAt);
-      if (error) {
-        const reason = shortReason(error);
-        patchProgress(queryClient, media.id, confirmedRef.current);
-        targetRef.current = null;
-        setFailure({ target, reason });
-        console.warn("anilist.stepper.failed", {
-          elapsedMs,
-          mediaId: media.id,
-          progress: target,
-          error: reason,
-        });
-        addNotification(t("anilist.controls.save.error.detail", { error: reason }), "error");
-        failed = true;
-        break;
-      }
-      confirmedRef.current = target;
-      synced = true;
-      if (targetRef.current === target) targetRef.current = null;
+  useEffect(
+    () => () => {
+      debouncer.flush();
+      if (savedTimer.current !== null) clearTimeout(savedTimer.current);
+    },
+    [debouncer]
+  );
+
+  const clearSaved = useCallback(() => {
+    if (savedTimer.current !== null) {
+      clearTimeout(savedTimer.current);
+      savedTimer.current = null;
     }
+  }, []);
+
+  const sendPending = useCallback(async () => {
+    const target = targetRef.current;
+    if (target === null || inflightRef.current) return;
+    // Sealed synchronously: a click before this line joins this request,
+    // a click after opens the next debounce window. No update is lost.
     targetRef.current = null;
+    inflightRef.current = true;
+    setPhase("syncing");
+    const fallback = entryRef.current;
+    const live = readLiveFields(queryClient, media.id, {
+      status: fallback.list_status,
+      score: fallback.score,
+      notes: fallback.notes,
+    });
+    const startedAt = performance.now();
+    const [, error] = await attempt(
+      anilistApi.saveEntry({
+        mediaId: media.id,
+        status: live.status,
+        progress: target,
+        score: live.score,
+        notes: live.notes,
+      })
+    );
+    const elapsedMs = Math.round(performance.now() - startedAt);
     inflightRef.current = false;
-    setSaving(false);
-    if (synced && !failed) {
+    if (error) {
+      const reason = shortReason(error);
+      patchProgress(queryClient, media.id, confirmedRef.current);
+      setFailure({ target, reason });
+      setPhase("error");
+      console.warn("anilist.stepper.failed", {
+        elapsedMs,
+        mediaId: media.id,
+        progress: target,
+        error: reason,
+      });
+      addNotification(t("anilist.controls.save.error.detail", { error: reason }), "error");
+    } else {
+      confirmedRef.current = target;
+      setPhase("saved");
+      clearSaved();
+      savedTimer.current = setTimeout(() => setPhase("idle"), STEPPER_SAVED_MS);
       queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
     }
-  }, [media.id, queryClient, t]);
+    if (targetRef.current !== null) debouncer.maybeExecute();
+  }, [debouncer, media.id, queryClient, t, clearSaved]);
+
+  useEffect(() => {
+    taskBox.current = () => {
+      ignore(sendPending());
+    };
+  });
 
   const step = (delta: 1 | -1) => {
     const base = targetRef.current ?? confirmedRef.current;
@@ -152,17 +191,20 @@ export function ProgressStepper({
     if (next === base) return;
     targetRef.current = next;
     setFailure(null);
+    clearSaved();
+    setPhase((prev) => (prev === "error" || prev === "saved" ? "idle" : prev));
     patchProgress(queryClient, media.id, next);
-    ignore(pump());
+    if (!inflightRef.current) debouncer.maybeExecute();
   };
 
   const retry = () => {
     if (failure === null || inflightRef.current) return;
-    targetRef.current = failure.target;
     const target = failure.target;
+    targetRef.current = target;
     setFailure(null);
+    setPhase("idle");
     patchProgress(queryClient, media.id, target);
-    ignore(pump());
+    debouncer.maybeExecute();
   };
 
   const progress = entry.progress ?? 0;
@@ -170,9 +212,9 @@ export function ProgressStepper({
   const atMin = progress <= 0;
   const atMax = max != null && progress >= max;
 
-  const buttonClass = `h-3.5 w-3.5 shrink-0 focus-visible:visible ${
-    saving ? "visible" : "invisible group-hover:visible group-focus-within:visible"
-  }`;
+  const buttonClass =
+    "h-3.5 w-3.5 shrink-0 focus-visible:visible invisible group-hover:visible group-focus-within:visible";
+  const statusClass = "flex h-3.5 w-3.5 shrink-0 items-center justify-center";
   return (
     <span
       className="flex items-center gap-0.5"
@@ -187,7 +229,7 @@ export function ProgressStepper({
         disabled={atMin}
         onClick={() => step(-1)}
       >
-        {saving ? <SmallLoader size={2} /> : <Minus className="size-2.5" />}
+        <Minus className="size-2.5" />
       </Button>
       <Button
         size="icon"
@@ -197,20 +239,31 @@ export function ProgressStepper({
         disabled={atMax}
         onClick={() => step(1)}
       >
-        {saving ? <SmallLoader size={2} /> : <Plus className="size-2.5" />}
+        <Plus className="size-2.5" />
       </Button>
-      {failure !== null && (
+      {phase === "error" && failure !== null ? (
         <Button
           size="icon"
           className="h-3.5 w-3.5 shrink-0"
           title={failure.reason}
           aria-label={t("anilist.details.retry")}
-          disabled={saving}
           onClick={retry}
         >
           <RotateCcw className="size-2.5" />
         </Button>
-      )}
+      ) : phase === "saved" ? (
+        <span
+          className={statusClass}
+          title={t("anilist.card.progress.saved")}
+          aria-label={t("anilist.card.progress.saved")}
+        >
+          <Check className="size-2.5" />
+        </span>
+      ) : pending || phase === "syncing" ? (
+        <span className={statusClass} aria-hidden="true">
+          <SmallLoader size={2} />
+        </span>
+      ) : null}
     </span>
   );
 }

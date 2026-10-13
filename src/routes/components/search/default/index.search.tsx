@@ -171,7 +171,10 @@ function SearchDefault() {
       )}
 
       {displayItems && (
-        <section className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-0.5">
+        <section
+          data-scroll-root
+          className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-0.5"
+        >
           {displayItems.map((item, index) => (
             <SearchResultItem
               key={`${item.link}-${index}`}

@@ -111,6 +111,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
   uiDensity: "comfortable",
   progressStyle: "blocks",
+  vimMode: false,
   videoExtensions: [
     "mp4",
     "mkv",

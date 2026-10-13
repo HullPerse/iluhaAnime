@@ -548,6 +548,29 @@ describe("torrent cover mode anilist sync", () => {
   });
 });
 
+describe("vim keyboard mode preference", () => {
+  it("defaults to off", async () => {
+    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    expect(DEFAULT_SETTINGS.vimMode).toBe(false);
+  });
+
+  it("fills the default for persisted state without the flag", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 45).vimMode).toBe(false);
+  });
+
+  it("keeps an explicit opt-in through the v46 boundary", () => {
+    expect(settings.migrateSettingsData({ language: "en", vimMode: true }, 45).vimMode).toBe(true);
+  });
+
+  it("round-trips through the settings store", () => {
+    settings.patchSettings({ vimMode: true });
+    expect(settings.settingsAtoms.vimMode.get()).toBe(true);
+
+    settings.patchSettings({ vimMode: false });
+    expect(settings.settingsAtoms.vimMode.get()).toBe(false);
+  });
+});
+
 describe("webview proxy preference", () => {
   it("defaults to enabled", async () => {
     const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");

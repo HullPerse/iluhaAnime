@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
@@ -19,6 +20,8 @@ import { useWatchedFolderNotifications } from "@/hooks/player/folderNotify.hook"
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
+import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
+import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
 import { folderTreesFromScan, fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
@@ -62,6 +65,14 @@ import PlayerVisibilityModal from "./components/player/visibility.player";
 
 const FfprobeSchema = z.boolean();
 
+/** Section 13 of `vim-mode.md`: the route owns its own keys - vim mode and the
+ * player window's key map do not reach this surface. */
+type PlayerRouteAction = "toggleQueue";
+
+const ROUTE_KEYBINDS: HotkeyDef<PlayerRouteAction>[] = [
+  { id: "toggleQueue", chord: "KeyQ", repeat: "once" },
+];
+
 function PlayerRoute() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
@@ -84,7 +95,16 @@ function PlayerRoute() {
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
   const drag = usePlayerDrag();
   const [showHiddenItems, setShowHiddenItems] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(true);
   const [debouncedSearch] = useDebouncedValue(search.trim(), { wait: 300 });
+
+  useHotkeys<PlayerRouteAction>(ROUTE_KEYBINDS, {
+    ignore: (event) => shouldIgnoreHotkeys(event.target),
+    onAction: (action) => {
+      if (action === "toggleQueue") setQueueOpen((value) => !value);
+    },
+  });
+
   const { data: fileSearchData } = useAppQuery("live", {
     queryKey: queryKeys.playerFileSearch(debouncedSearch, videoExtensions),
     queryFn: async () => {
@@ -496,7 +516,9 @@ function PlayerRoute() {
       onDragEnd={drag.handleDragEnd}
       onDragCancel={drag.handleDragCancel}
     >
-      <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
+      {/* Vim mode is off on this surface; the attribute documents it in the DOM
+          and keeps the engine gate working even without the route check. */}
+      <div data-vim-disabled className="flex h-full w-full flex-col gap-1 overflow-y-auto">
         <section className="ui-toolbar ui-panel w-full">
           <Button onClick={handleOpenFolder}>
             <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
@@ -539,7 +561,11 @@ function PlayerRoute() {
           </section>
         )}
 
-        <QueuePanel scan={loading ? scanProgress : null} />
+        <QueuePanel
+          scan={loading ? scanProgress : null}
+          open={queueOpen}
+          onToggle={() => setQueueOpen((value) => !value)}
+        />
 
         {categories.length > 0 && (
           <section className="windows95-text flex w-full flex-col gap-2">

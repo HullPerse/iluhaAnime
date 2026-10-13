@@ -12,6 +12,7 @@ import {
   formatAiringLocal,
 } from "@/lib/anilist/airing.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniMedia } from "@/types/anilist";
 
 function AniListMetadata({
@@ -76,8 +77,11 @@ function AniListMetadata({
 
         {anime.season && (
           <div
+            role="button"
+            tabIndex={0}
             className="windows95-text cursor-pointer underline"
             onClick={() => onSeason?.(anime.season!, anime.season_year)}
+            onKeyDown={enterOrSpace(() => onSeason?.(anime.season!, anime.season_year))}
           >
             {t(toLocaleKey(seasonLabels[anime.season] ?? anime.season))} {anime.season_year}
           </div>

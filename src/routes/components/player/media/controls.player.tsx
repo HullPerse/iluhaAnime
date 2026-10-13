@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { PLAYER_SPEEDS as SPEEDS } from "@/lib/player/speed.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
@@ -24,7 +25,6 @@ import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 import NeighborFileButton from "./neighbor.player";
 import Tracks from "./tracks.player";
 
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const BOUNDARY_TIMEOUT = 2000;
 
 function clamp01(value: number): number {

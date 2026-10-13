@@ -56,7 +56,10 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
         />
       )}
       {displayItems && (
-        <section className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-0.5">
+        <section
+          data-scroll-root
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-0.5"
+        >
           {displayItems.map((item, index) => (
             <SearchResultItem
               key={`${item.link}-${index}`}

@@ -85,7 +85,11 @@ import {
   shouldSkipFrontendSeek,
   type HwdecReload,
 } from "@/lib/player/resume.utils";
+import { movePlaylistFocus } from "@/lib/player/playlistFocus.utils";
+import { resolveSkipTarget } from "@/lib/player/skip.utils";
+import { stepSpeed } from "@/lib/player/speed.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
+import { nextTrackId } from "@/lib/player/tracks.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
@@ -245,6 +249,7 @@ function PlayerComponent() {
   const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [playlistOpen, setPlaylistOpen] = useState(false);
+  const [playlistFocus, setPlaylistFocus] = useState<number | null>(null);
   const [dropAlert, setDropAlert] = useState<DroppedFramesData | null>(null);
   const [finished, setFinished] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -1010,6 +1015,70 @@ function PlayerComponent() {
     else ignore(setMpvProperty("audio-delay", next));
   }, []);
 
+  const onSpeedStep = useCallback(
+    (direction: number) => {
+      onSpeed(stepSpeed(playbackAtoms.speed.get(), direction));
+    },
+    [onSpeed]
+  );
+
+  const onSeekPercent = useCallback(
+    (percent: number) => {
+      const total = playbackAtoms.duration.get();
+      if (total <= 0) return;
+      onSeekTo(total * (percent / 10));
+    },
+    [onSeekTo]
+  );
+
+  const onSkipShortcut = useCallback(() => {
+    // Same resolution as the on-screen skip button, so the key and the button
+    // never disagree about whether a skip exists or where it lands.
+    const skip = resolveSkipTarget(
+      playbackAtoms.chapters.get(),
+      playbackAtoms.timePos.get(),
+      playbackAtoms.duration.get(),
+      hasNext
+    );
+    if (!skip) return;
+    onSkipChapter(skip.target);
+    if (skip.nextEpisode) onFileNext();
+  }, [hasNext, onFileNext, onSkipChapter]);
+
+  const onCycleTrack = useCallback(
+    (kind: "audio" | "sub") => {
+      const id = nextTrackId(playbackAtoms.tracks.get(), kind);
+      if (id === null) return;
+      onSelectTrack(kind)(id);
+    },
+    [onSelectTrack]
+  );
+
+  // The list keys are scoped to the open playlist panel: with the panel closed
+  // they do nothing, so the arrows everywhere else keep their meaning.
+  const onPlaylistFocus = useCallback(
+    (delta: number) => {
+      if (!playlistOpen) return;
+      setPlaylistFocus((previous) =>
+        movePlaylistFocus(
+          previous,
+          playbackAtoms.playlistIndex.get(),
+          playbackAtoms.playlistCount.get(),
+          delta
+        )
+      );
+    },
+    [playlistOpen]
+  );
+
+  const onPlaylistActivate = useCallback(() => {
+    if (!playlistOpen) return;
+    const count = playbackAtoms.playlistCount.get();
+    const index = playlistFocus ?? playbackAtoms.playlistIndex.get();
+    if (index < 0 || index >= count) return;
+    ignore(onPlayIndex(index));
+  }, [onPlayIndex, playlistFocus, playlistOpen]);
+
   const onKeyboardAction = useCallback(
     (action: KeybindAction) => {
       const actions: Record<KeybindAction, () => void> = {
@@ -1054,6 +1123,28 @@ function PlayerComponent() {
             )
           );
         },
+        togglePlaylist: () => setPlaylistOpen((previous) => !previous),
+        skipChapter: () => onSkipShortcut(),
+        speedDown: () => onSpeedStep(-1),
+        speedUp: () => onSpeedStep(1),
+        speedReset: () => onSpeedStep(0),
+        cycleSubtitle: () => onCycleTrack("sub"),
+        cycleAudio: () => onCycleTrack("audio"),
+        seekToStart: () => onSeekTo(0),
+        seekToEnd: () => onSeekTo(playbackAtoms.duration.get()),
+        seekPercent0: () => onSeekPercent(0),
+        seekPercent1: () => onSeekPercent(1),
+        seekPercent2: () => onSeekPercent(2),
+        seekPercent3: () => onSeekPercent(3),
+        seekPercent4: () => onSeekPercent(4),
+        seekPercent5: () => onSeekPercent(5),
+        seekPercent6: () => onSeekPercent(6),
+        seekPercent7: () => onSeekPercent(7),
+        seekPercent8: () => onSeekPercent(8),
+        seekPercent9: () => onSeekPercent(9),
+        playlistDown: () => onPlaylistFocus(1),
+        playlistUp: () => onPlaylistFocus(-1),
+        playlistActivate: () => onPlaylistActivate(),
       };
       actions[action]();
     },
@@ -1061,12 +1152,19 @@ function PlayerComponent() {
       exitCinemaMode,
       handleSetAutoHide,
       nudgeOffset,
+      onCycleTrack,
       onFileNext,
       onFilePrev,
       onMute,
       onPlayPause,
+      onPlaylistActivate,
+      onPlaylistFocus,
       onResetDelays,
       onSeekBy,
+      onSeekPercent,
+      onSeekTo,
+      onSkipShortcut,
+      onSpeedStep,
       onVolume,
       toggleFullscreen,
     ]
@@ -1165,6 +1263,7 @@ function PlayerComponent() {
               onMove={(from, to) => movePlaylistIndex(from, to)}
               onPlay={onPlayIndex}
               onRemove={(index) => removePlaylistIndex(index)}
+              focusedIndex={playlistFocus}
             />
           ) : null}
         </div>

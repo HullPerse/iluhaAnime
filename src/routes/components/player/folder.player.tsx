@@ -11,17 +11,21 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { useState, useRef, useMemo, useCallback, type RefObject } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
+import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
+import type { TreeRow } from "@/lib/player/treeArrow.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
@@ -34,6 +38,34 @@ import { upscaleItems } from "@/store/upscale.store";
 import type { FolderNode } from "@/types/torrent";
 
 import UpscalePlayer from "./upscale/modal.upscale";
+
+/** Section 13.3 of `vim-mode.md`: the tree owns its own arrows, and only while
+ *  one of its folder rows actually has focus. */
+type TreeKeyAction = "treeCollapse" | "treeExpand" | "treeUp" | "treeDown" | "treeActivate";
+
+const TREE_KEYBINDS: HotkeyDef<TreeKeyAction>[] = [
+  { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold" },
+  { id: "treeExpand", chord: "ArrowRight", repeat: "hold" },
+  { id: "treeUp", chord: "ArrowUp", repeat: "hold" },
+  { id: "treeDown", chord: "ArrowDown", repeat: "hold" },
+  { id: "treeUp", chord: "KeyK", repeat: "hold" },
+  { id: "treeDown", chord: "KeyJ", repeat: "hold" },
+  { id: "treeActivate", chord: "Enter", repeat: "once" },
+];
+
+function rowElement(target: EventTarget | null): HTMLElement | null {
+  return target instanceof HTMLElement ? target.closest<HTMLElement>("[data-tree-row]") : null;
+}
+
+/** Rows are virtualized and carry no stable DOM id, so the row is looked up by
+ *  the path it renders rather than by escaping into a selector. */
+function findRow(root: HTMLElement | null, path: string): HTMLElement | null {
+  if (!root) return null;
+  for (const row of root.querySelectorAll<HTMLElement>("[data-tree-row]")) {
+    if (row.dataset.treePath === path) return row;
+  }
+  return null;
+}
 
 function FolderView({
   node,
@@ -136,6 +168,85 @@ function FolderView({
     overscan: 20,
   });
 
+  const treeRef = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef<string | null>(null);
+
+  // Every visible row, in render order. Folder rows are the tab stops (they
+  // already were); file rows are reached from them by the movement keys, so a
+  // fully expanded tree does not cost a tab stop per episode.
+  const treeRows = useMemo<TreeRow[]>(() => {
+    const header: TreeRow[] =
+      !hideRoot || depth > 0
+        ? [{ path: node.path, depth, kind: "folder", expanded: open.has(node.path) }]
+        : [];
+    return [
+      ...header,
+      ...flatItems.map((item) =>
+        item.kind === "folder"
+          ? {
+              path: item.node.path,
+              depth: item.depth,
+              kind: "folder" as const,
+              expanded: open.has(item.node.path),
+            }
+          : {
+              path: item.file.path,
+              depth: item.depth,
+              kind: "file" as const,
+              expanded: false,
+            }
+      ),
+    ];
+  }, [depth, flatItems, hideRoot, node.path, open]);
+
+  // Opening a folder adds rows above the one that was focused, and the virtual
+  // nodes are reused positionally, so the ring is restored by path after the
+  // commit instead of trusting DOM identity.
+  useEffect(() => {
+    const path = pendingFocus.current;
+    if (!path) return;
+    pendingFocus.current = null;
+    findRow(treeRef.current, path)?.focus();
+  }, [open]);
+
+  useHotkeys<TreeKeyAction>(TREE_KEYBINDS, {
+    // Only the tree holding the focused folder row answers, so the arrows keep
+    // their normal meaning everywhere else on this route. A row is a button,
+    // which the shared filter would skip, so the modal guard is applied here.
+    ignore: (event) => {
+      const row = rowElement(event.target);
+      if (!row || !treeRef.current?.contains(row)) return true;
+      return Boolean(row.closest("[data-hotkeys-disabled]"));
+    },
+    onAction: (action, event) => {
+      const row = rowElement(event.target);
+      const path = row?.dataset.treePath;
+      if (!path) return;
+
+      if (action === "treeActivate") {
+        // Enter performs the row's own button, so key and mouse can never
+        // disagree about what activating a row means.
+        row?.querySelector<HTMLElement>("[data-tree-activate]")?.click();
+        return;
+      }
+
+      if (action === "treeUp" || action === "treeDown") {
+        const next = resolveTreeMove(treeRows, path, action === "treeUp" ? -1 : 1);
+        if (next) findRow(treeRef.current, next)?.focus();
+        return;
+      }
+
+      const result = resolveTreeArrow(treeRows, path, action === "treeCollapse" ? "left" : "right");
+      if (!result) return;
+      if (result.kind === "focus") {
+        findRow(treeRef.current, result.path)?.focus();
+        return;
+      }
+      pendingFocus.current = result.path;
+      toggle(result.path);
+    },
+  });
+
   const isDisabled = (name: string) => {
     const ext = name.split(".").pop()?.toLowerCase();
     if (!ext) return false;
@@ -153,7 +264,7 @@ function FolderView({
   const showHeader = !hideRoot || depth > 0;
 
   return (
-    <div className="flex w-full flex-col">
+    <div ref={treeRef} className="flex w-full flex-col">
       {showHeader && (
         <div
           className="windows95-text flex w-full items-center gap-1 px-0.5 py-0.5"
@@ -163,10 +274,14 @@ function FolderView({
         >
           <button
             type="button"
+            data-tree-row
+            data-tree-path={node.path}
+            data-tree-depth={depth}
             aria-expanded={open.has(node.path)}
             aria-label={node.name}
             className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
             onClick={() => toggle(node.path)}
+            data-tree-activate
           >
             {open.has(node.path) ? (
               <ChevronDown className="size-3 shrink-0" />
@@ -269,10 +384,14 @@ function FolderView({
                   >
                     <button
                       type="button"
+                      data-tree-row
+                      data-tree-path={item.node.path}
+                      data-tree-depth={item.depth}
                       aria-expanded={isFolderOpen}
                       aria-label={item.node.name}
                       className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
                       onClick={() => toggle(item.node.path)}
+                      data-tree-activate
                     >
                       {isFolderOpen ? (
                         <ChevronDown className="size-3 shrink-0" />
@@ -313,8 +432,12 @@ function FolderView({
               return (
                 <div
                   key={index}
+                  data-tree-row
+                  data-tree-path={file.path}
+                  data-tree-depth={item.depth}
+                  tabIndex={-1}
                   className={cn(
-                    "windows95-border hover:bg-surface bg-field absolute top-0 left-0 flex h-5 w-full items-center gap-1 px-1 hover:cursor-pointer",
+                    "windows95-border hover:bg-surface bg-field focus-visible:outline-text absolute top-0 left-0 flex h-5 w-full items-center gap-1 px-1 hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted",
                     busy && "opacity-50"
                   )}
                   style={{
@@ -326,6 +449,7 @@ function FolderView({
                   <span
                     title={file.name}
                     className="windows95-text flex-1 truncate select-none hover:cursor-pointer"
+                    data-tree-activate
                     onContextMenu={(e) => {
                       e.preventDefault();
                       if (e.ctrlKey || e.metaKey) {

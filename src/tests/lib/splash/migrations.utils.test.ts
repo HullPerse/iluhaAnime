@@ -46,7 +46,7 @@ describe("splash migrations contract", () => {
     localStorage.clear();
     localStorage.setItem("iluha.v1.settings", envelope(44));
     localStorage.setItem("iluha.v1.theme", envelope(0));
-    expect(detectMigrations()).toEqual([{ store: "settings", from: 44, to: 45 }]);
+    expect(detectMigrations()).toEqual([{ store: "settings", from: 44, to: 46 }]);
   });
 
   it("ignores missing, current, and malformed payloads", () => {

@@ -5,6 +5,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { collectFileIndices } from "@/lib/torrent/tree.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { TorrentFileInfo, TorrentTreeNode } from "@/types/torrent";
 
 export function FolderRow({
@@ -52,9 +53,18 @@ export function FolderRow({
           onChange={() => onToggleSelection(folderIndices, !allSelected)}
           aria-label={t("torrent.select.folder", { name: node.name })}
           className="size-3"
+          data-vim-target="folder-check"
         />
       )}
-      <div className="flex min-w-0 flex-1 items-center gap-1" onClick={onToggleFolder}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        data-vim-target="folder"
+        className="flex min-w-0 flex-1 items-center gap-1"
+        onClick={onToggleFolder}
+        onKeyDown={enterOrSpace(onToggleFolder)}
+      >
         {isOpen ? (
           <ChevronDown className="size-3 shrink-0" />
         ) : (

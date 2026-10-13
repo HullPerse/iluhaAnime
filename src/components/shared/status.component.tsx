@@ -29,16 +29,16 @@ export default function StatusBar({ tabLabel }: { tabLabel: string }) {
       <div className="ui-statusbar-cell">{t("status.unread", { count: unreadCount })}</div>
       <div className="ui-statusbar-cell">{online ? t("status.online") : t("status.offline")}</div>
       <div className="ui-statusbar-cell">
-        <span
+        <button
+          type="button"
           title={t("status.github")}
-          className="flex items-center hover:cursor-pointer"
+          aria-label={t("status.github")}
+          data-vim-target="status-link"
+          className="flex cursor-pointer items-center"
           onClick={() => openUrl(PROJECT_GITHUB_URL)}
         >
-          <ExternalLink
-            aria-label={t("status.github")}
-            className="h-4 w-4 opacity-70 hover:opacity-100"
-          />
-        </span>
+          <ExternalLink aria-hidden className="h-4 w-4 opacity-70 hover:opacity-100" />
+        </button>
       </div>
     </section>
   );

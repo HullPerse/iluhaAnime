@@ -1,6 +1,5 @@
-import { mockInvoke } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,10 +8,19 @@ import { coverCorrectionsAtoms, removeResolvedCover } from "@/store/cover.store"
 import { patchSettings } from "@/store/settings.store";
 import type { Anime } from "@/types/torrent";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: mockInvoke,
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
+import { mockInvoke } from "../../mocks";
+
+// The factory runs before this file's imports are initialized, so the shared
+// mock is pulled in by the factory itself: referencing the top-level import
+// here throws "Cannot access '__vi_import_N__' before initialization" whenever
+// the mocked module is requested first.
+vi.mock("@tauri-apps/api/core", async () => {
+  const { mockInvoke: invoke } = await import("../../mocks");
+  return {
+    invoke,
+    convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
+  };
+});
 
 const ITEM: Anime = {
   title: "[Erai-raws] Naruto - 01 (1080p).mkv",
@@ -72,6 +80,49 @@ afterEach(() => {
 
 beforeEach(() => {
   mockInvoke.mockReset();
+});
+
+function mockCoverPipeline() {
+  patchSettings({ torrentCoverMode: "full" });
+  mockInvoke.mockImplementation(async (command: unknown) => {
+    if (command === "search_anilist") return [NARUTO_MEDIA];
+    if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+    if (command === "get_user_image") return { id: "blob1", path: "covers/naruto.jpg" };
+    return null;
+  });
+}
+
+describe("SearchResultItem keyboard surface", () => {
+  it("exposes the title as a hintable title button", () => {
+    patchSettings({ torrentCoverMode: "off" });
+    const onOpenDetails = vi.fn();
+    renderRow({ onOpenDetails });
+
+    const title = screen.getByRole("button", { name: ITEM.title });
+    expect(title.tagName).toBe("BUTTON");
+    expect(title.dataset.vimTarget).toBe("result-title");
+
+    fireEvent.click(title);
+    expect(onOpenDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens cover correction from the refresh button context menu", async () => {
+    mockCoverPipeline();
+    const { container } = renderRow();
+    await waitFor(
+      () => {
+        expect(container.querySelector('img[src*="asset.localhost"]')).not.toBeNull();
+      },
+      { timeout: 5000 }
+    );
+
+    const refresh = screen.getByRole("button", { name: "Refresh cover" });
+    expect(refresh.dataset.vimContextmenu).toBe("cover");
+    expect(refresh.querySelector("img")).not.toBeNull();
+
+    fireEvent.contextMenu(refresh);
+    expect(screen.getByText("Wrong cover?")).toBeDefined();
+  });
 });
 
 describe("SearchResultItem covers", () => {

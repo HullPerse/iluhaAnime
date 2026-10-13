@@ -82,6 +82,7 @@ export function GridScrollView({
   return (
     <section
       ref={parentRef}
+      data-scroll-root
       className="windows95-border bg-field min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border p-1"
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>

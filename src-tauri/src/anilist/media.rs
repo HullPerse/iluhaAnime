@@ -270,11 +270,13 @@ pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
         studios: m["studios"]["nodes"]
             .as_array()
             .map(|s| {
+                let mut seen = std::collections::HashSet::new();
                 s.iter()
                     .map(|v| AniStudio {
                         id: v["id"].as_u64().unwrap_or(0),
                         name: v["name"].as_str().unwrap_or("").to_string(),
                     })
+                    .filter(|studio| seen.insert(studio.id))
                     .collect()
             })
             .unwrap_or_default(),
@@ -1098,6 +1100,21 @@ mod tests {
         let merged = order_media_by_ids(media, &[3, 1, 2, 1]);
         let ids: Vec<u64> = merged.iter().map(|m| m.id).collect();
         assert_eq!(ids, vec![1, 2]);
+    }
+
+    #[test]
+    fn parse_animedia_dedupes_duplicate_studios() {
+        let media = parse_animedia(&serde_json::json!({
+            "id": 1,
+            "title": { "romaji": "A" },
+            "studios": { "nodes": [
+                { "id": 95, "name": "Studio" },
+                { "id": 95, "name": "Studio" },
+                { "id": 96, "name": "Other" },
+            ] },
+        }));
+        let ids: Vec<u64> = media.studios.iter().map(|s| s.id).collect();
+        assert_eq!(ids, vec![95, 96]);
     }
 
     #[tokio::test]

@@ -57,6 +57,26 @@ export function trackLabel(track: MpvTrack): string {
   return display.language ? `${display.main} - ${display.language}` : display.main;
 }
 
+/**
+ * Tracks of one kind in the order the dropdown lists them, which is also the
+ * order the cycle shortcut walks.
+ */
+export function selectableTracks(tracks: MpvTrack[], kind: "audio" | "sub"): MpvTrack[] {
+  return sortTracksByLanguage(tracks.filter((track) => track.type === kind));
+}
+
+/**
+ * Id of the next track of `kind`, or null when there is none to switch to.
+ * Starts at the first track when nothing is selected yet and wraps at the end.
+ */
+export function nextTrackId(tracks: MpvTrack[], kind: "audio" | "sub"): number | null {
+  const list = selectableTracks(tracks, kind);
+  if (list.length === 0) return null;
+  const current = list.findIndex((track) => track.selected);
+  const next = current === -1 ? 0 : (current + 1) % list.length;
+  return list.at(next)?.id ?? null;
+}
+
 export function sortTracksByLanguage(tracks: MpvTrack[]): MpvTrack[] {
   // Resolve display names once: the comparator below runs O(n log n) times
   // and each resolution costs an Intl lookup.

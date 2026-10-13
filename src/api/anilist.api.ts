@@ -1,7 +1,7 @@
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import type {
-
   ActivityLikeState,
   AniActivity,
   AniSiteNotification,
@@ -23,7 +23,6 @@ import type {
   FranchiseGraph,
   PrefetchSummary,
 } from "@/types/anilist";
-import { settingsAtoms } from "@/store/settings.store";
 import type { FilterPage, SpotlightPage } from "@/types/ipc";
 
 import { tauriTransport } from "./transport.api";
@@ -34,22 +33,12 @@ export interface AnilistApiConfig {
   proxyUrl?: string | null | (() => string | null);
 }
 
-interface FuzzyDateInput {
-  year: number | null;
-  month: number | null;
-  day: number | null;
-}
-
 export interface SaveAnilistEntryInput {
   mediaId: number;
   status: string;
   progress: number | null;
   score: number | null;
   notes: string | null;
-  repeat?: number | null;
-  private?: boolean | null;
-  startedAt?: FuzzyDateInput | null;
-  completedAt?: FuzzyDateInput | null;
   customLists?: string[] | null;
 }
 

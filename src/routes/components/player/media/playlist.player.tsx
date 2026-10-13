@@ -170,7 +170,7 @@ function playlistCardKey(entries: PlaylistEntry[], position: number): string {
 
 const PLAYLIST_VIRTUALIZE_AFTER = 50;
 
-function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
+function PlaylistBody({ onPlay, onRemove, onMove, focusedIndex }: PlaylistBodyProps) {
   const { t } = useI18n();
 
   const path = useCell(playbackAtoms.path);
@@ -294,6 +294,22 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
       )
     : -1;
   const activeIndex = matchedIndex >= 0 ? entries[matchedIndex].index : (entries[0]?.index ?? -1);
+  const virtualized = entries.length > PLAYLIST_VIRTUALIZE_AFTER;
+  const focusPosition =
+    focusedIndex == null ? -1 : entries.findIndex((entry) => entry.index === focusedIndex);
+
+  // Keep the focus ring on screen while the list keys walk the panel. A
+  // virtualized list may not have the row rendered at all, so it goes through
+  // the virtualizer; the plain list just scrolls its focused card into view.
+  useEffect(() => {
+    if (focusPosition < 0) return;
+    if (virtualized) {
+      virtualizer.scrollToIndex(focusPosition, { align: "auto" });
+      return;
+    }
+    const card = scrollRef.current?.querySelector<HTMLElement>('[data-focused="true"]');
+    card?.scrollIntoView({ block: "nearest" });
+  }, [focusPosition, virtualized, virtualizer]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -337,6 +353,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
                   entry={entry}
                   position={position}
                   current={current}
+                  focused={position === focusPosition}
                   label={labels.get(entry.index) ?? `#${entry.index + 1}`}
                   upDisabled={position === 0}
                   downDisabled={position === entries.length - 1}
@@ -365,6 +382,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
                       entry={entry}
                       position={virtualItem.index}
                       current={current}
+                      focused={virtualItem.index === focusPosition}
                       label={labels.get(entry.index) ?? `#${entry.index + 1}`}
                       upDisabled={virtualItem.index === 0}
                       downDisabled={virtualItem.index === entries.length - 1}
@@ -392,10 +410,11 @@ function cardMetaText(art: CardArt | null): string {
   return "";
 }
 
-function cardClass(current: boolean, isOver: boolean): string {
+function cardClass(current: boolean, focused: boolean, isOver: boolean): string {
   return cn(
     "windows95-border relative mb-1 flex flex-col gap-1 p-1",
     current ? "windows95-active-border bg-secondary text-primary" : "bg-field hover:bg-surface",
+    focused && "outline-secondary outline-2",
     isOver && "outline-highlight outline-2"
   );
 }
@@ -465,6 +484,7 @@ function PlaylistCard({
   entry,
   position,
   current,
+  focused,
   label,
   upDisabled,
   downDisabled,
@@ -476,6 +496,7 @@ function PlaylistCard({
   entry: PlaylistEntry;
   position: number;
   current: boolean;
+  focused: boolean;
   label: string;
   upDisabled: boolean;
   downDisabled: boolean;
@@ -512,7 +533,8 @@ function PlaylistCard({
       }}
       data-testid="playlist-card"
       data-current={current ? "true" : undefined}
-      className={cardClass(current, isOver)}
+      data-focused={focused ? "true" : undefined}
+      className={cardClass(current, focused, isOver)}
       style={{
         transform: formatVerticalDragTransform(transform),
         zIndex: isDragging ? 10 : undefined,

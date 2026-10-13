@@ -57,6 +57,7 @@ export interface SettingsStore {
   retroStyle: "classic" | "soft" | "high-contrast";
   uiDensity: "comfortable" | "compact";
   progressStyle: "blocks" | "solid";
+  vimMode: boolean;
   collectionGroupHeaderStyle: "torrent" | "folder";
   savedFolderPaths: string[];
   playerFolderHeights: Record<string, number>;

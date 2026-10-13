@@ -3,7 +3,12 @@ import type { PlayerSidePanelProps } from "@/types/player";
 
 import PlaylistBody from "./media/playlist.player";
 
-export default function PlayerSidePanel({ onPlay, onRemove, onMove }: PlayerSidePanelProps) {
+export default function PlayerSidePanel({
+  onPlay,
+  onRemove,
+  onMove,
+  focusedIndex,
+}: PlayerSidePanelProps) {
   const { t } = useI18n();
 
   return (
@@ -12,7 +17,12 @@ export default function PlayerSidePanel({ onPlay, onRemove, onMove }: PlayerSide
         <span className="px-1">{t("player.media.playlist.title")}</span>
       </div>
       <div className="flex min-h-0 flex-1 flex-col">
-        <PlaylistBody onMove={onMove} onPlay={onPlay} onRemove={onRemove} />
+        <PlaylistBody
+          onMove={onMove}
+          onPlay={onPlay}
+          onRemove={onRemove}
+          focusedIndex={focusedIndex}
+        />
       </div>
     </aside>
   );

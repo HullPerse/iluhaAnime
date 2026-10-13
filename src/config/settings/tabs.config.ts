@@ -4,7 +4,7 @@ import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { withFallback } from "@/lib/utils/schema.utils";
 import type { SettingsTab, TabId, TabSettings } from "@/types/settings";
 
-const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
+export const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
   { id: "search", key: "app.search" },
   { id: "torrent", key: "app.torrent" },
   { id: "player", key: "app.player" },

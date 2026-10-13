@@ -1,7 +1,7 @@
-import { mockInvoke as invokeMock, mockDialogOpen } from "../../mocks";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { mockInvoke as invokeMock, mockDialogOpen } from "../../mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -106,6 +106,52 @@ describe("PlaylistBody thumbnails", () => {
       expect(container.querySelector('img[src*="thumb"]')).not.toBeNull();
     });
     expect(invokeMock).toHaveBeenCalledWith("get_video_card", { path: "D:/a.mkv" });
+  });
+});
+
+describe("PlaylistBody focus ring", () => {
+  let scrollIntoView: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    // jsdom ships no scrollIntoView at all, so the ring's scroll is stubbed to
+    // assert on it instead of crashing on mount.
+    scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: scrollIntoView,
+    });
+  });
+
+  afterEach(() => {
+    delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+  });
+
+  it("marks the focused row, scrolls it into view, and drops the mark after", async () => {
+    const { container, rerender } = render(<PlaylistBody {...props()} focusedIndex={1} />);
+    await vi.waitFor(() => {
+      expect(container.querySelectorAll('[data-testid="playlist-card"]')).toHaveLength(2);
+    });
+    const cards = container.querySelectorAll<HTMLElement>('[data-testid="playlist-card"]');
+    expect(cards[0].dataset.focused).toBeUndefined();
+    expect(cards[1].dataset.focused).toBe("true");
+    await vi.waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+    });
+
+    scrollIntoView.mockClear();
+    rerender(<PlaylistBody {...props()} focusedIndex={null} />);
+    expect(container.querySelector('[data-focused="true"]')).toBeNull();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("ignores a focused index that left the list", async () => {
+    const { container } = render(<PlaylistBody {...props()} focusedIndex={9} />);
+    await vi.waitFor(() => {
+      expect(container.querySelectorAll('[data-testid="playlist-card"]')).toHaveLength(2);
+    });
+    expect(container.querySelector('[data-focused="true"]')).toBeNull();
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });
 

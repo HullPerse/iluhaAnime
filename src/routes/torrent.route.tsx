@@ -456,7 +456,7 @@ function TorrentRoute() {
   }, []);
 
   return (
-    <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
+    <div data-scroll-root className="flex h-full w-full flex-col gap-1 overflow-y-auto">
       <SpeedLimitForm
         limits={limits}
         downloadInput={downloadInput}

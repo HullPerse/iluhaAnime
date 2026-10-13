@@ -121,11 +121,24 @@ describe("ProgressBar slots mode", () => {
     expect(cells[11]?.className).toContain("bg-surface");
   });
 
-  it("applies barClassName to the filled slots only", () => {
-    render(<ProgressBar value={1} max={4} slots barClassName="bg-accent" />);
+  it("shows at least one cell for a small partial progress on a long series", () => {
+    render(<ProgressBar value={1} max={24} slots />);
     const cells = slotCells();
     expect(cells).toHaveLength(12);
-    expect(cells[2]?.className).toContain("bg-accent");
+    expect(cells[0]?.className).toContain("bg-progress-main");
+    expect(cells.slice(1).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
+  });
+
+  it("keeps zero cells empty and never shows full before max", () => {
+    render(<ProgressBar value={0} max={24} slots />);
+    expect(slotCells().every((cell) => cell.className.includes("bg-surface"))).toBe(true);
+  });
+
+  it("applies barClassName to the filled slots only", () => {
+    render(<ProgressBar value={1} max={4} slots barClassName="bg-highlight" />);
+    const cells = slotCells();
+    expect(cells).toHaveLength(12);
+    expect(cells[2]?.className).toContain("bg-highlight");
     expect(cells[3]?.className).toContain("bg-surface");
   });
 

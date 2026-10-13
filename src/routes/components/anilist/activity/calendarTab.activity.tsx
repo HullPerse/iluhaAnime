@@ -12,6 +12,7 @@ import {
   monthLabel,
   selectInitialDayKey,
 } from "@/lib/anilist/activity.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniListCollection } from "@/types/anilist";
 
 export function CalendarTab({
@@ -176,8 +177,13 @@ export function CalendarTab({
                 {activeActivity.items.map((item) => (
                   <div
                     key={item.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={item.title}
+                    data-vim-target="activity-item"
                     className="border-muted/40 hover:bg-surface flex cursor-pointer items-center gap-2 border-b px-2 py-1"
                     onClick={() => onAnimeClick(item.id)}
+                    onKeyDown={enterOrSpace(() => onAnimeClick(item.id))}
                   >
                     {item.cover && (
                       <ImageComponent

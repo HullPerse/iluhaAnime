@@ -1,5 +1,5 @@
-import type { TranslationKey } from "@/types/i18n";
 import type { HotkeyDef, HotkeyRepeat } from "@/lib/hotkeys/chord.hotkeys";
+import type { TranslationKey } from "@/types/i18n";
 
 export type KeybindAction =
   | "playPause"
@@ -27,7 +27,21 @@ export type KeybindAction =
   | "toggleFullscreen"
   | "exitCinemaMode"
   | "jumpToTime"
-  | "saveCleanFrame";
+  | "saveCleanFrame"
+  | "togglePlaylist"
+  | "skipChapter"
+  | "speedDown"
+  | "speedUp"
+  | "speedReset"
+  | "cycleSubtitle"
+  | "cycleAudio"
+  | "seekToStart"
+  | "seekToEnd"
+  | "playlistDown"
+  | "playlistUp"
+  | "playlistActivate"
+  // Ten entries, one per bare digit: `seekPercent5` jumps to 50%.
+  | `seekPercent${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
 
 export interface KeybindDef {
   action: KeybindAction;
@@ -42,6 +56,20 @@ export const SEEK_STEP = 5;
 export const OFFSET_STEP = 0.5;
 export const OFFSET_STEP_FINE = 0.05;
 export const OFFSET_LIMIT = 300;
+
+/** Bare `0`..`9` jump to 0%..90% of the file, MPC-style. */
+function percentEntries(): KeybindDef[] {
+  return DIGIT_KEYS.map((digit) => ({
+    action: `seekPercent${digit}`,
+    chord: `Digit${digit}`,
+    repeat: "once",
+    keys: `${digit}`,
+    description: "player.media.key.seek.percent",
+    category: "playback",
+  }));
+}
+
+export const DIGIT_KEYS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 export const KEYBINDS: KeybindDef[] = [
   {
@@ -252,6 +280,105 @@ export const KEYBINDS: KeybindDef[] = [
     description: "player.media.key.frame.save",
     category: "playback",
   },
+  {
+    action: "togglePlaylist",
+    chord: "KeyL",
+    repeat: "once",
+    keys: "L",
+    description: "player.media.playlist.toggle",
+    category: "ui",
+  },
+  {
+    action: "skipChapter",
+    chord: "KeyN",
+    repeat: "once",
+    keys: "N",
+    description: "player.media.skip.chapter",
+    category: "navigation",
+  },
+  {
+    action: "speedDown",
+    chord: "Shift+Comma",
+    repeat: "once",
+    keys: "Shift+,",
+    description: "player.media.key.speed.down",
+    category: "playback",
+  },
+  {
+    action: "speedUp",
+    chord: "Shift+Period",
+    repeat: "once",
+    keys: "Shift+.",
+    description: "player.media.key.speed.up",
+    category: "playback",
+  },
+  {
+    action: "speedReset",
+    chord: "KeyR",
+    repeat: "once",
+    keys: "R",
+    description: "player.media.key.speed.reset",
+    category: "playback",
+  },
+  {
+    action: "cycleSubtitle",
+    chord: "KeyV",
+    repeat: "once",
+    keys: "V",
+    description: "player.media.key.subtitle.cycle",
+    category: "subtitles",
+  },
+  {
+    action: "cycleAudio",
+    chord: "KeyB",
+    repeat: "once",
+    keys: "B",
+    description: "player.media.key.audio.cycle",
+    category: "subtitles",
+  },
+  {
+    action: "seekToStart",
+    chord: "Home",
+    repeat: "once",
+    keys: "Home",
+    description: "player.media.key.seek.start",
+    category: "playback",
+  },
+  {
+    action: "seekToEnd",
+    chord: "End",
+    repeat: "once",
+    keys: "End",
+    description: "player.media.key.seek.end",
+    category: "playback",
+  },
+  // Only act while the playlist panel is open (see `onKeyboardAction`), so the
+  // arrows keep meaning seek and volume everywhere else.
+  {
+    action: "playlistDown",
+    chord: "KeyJ",
+    repeat: "hold",
+    keys: "J",
+    description: "player.media.key.playlist.down",
+    category: "navigation",
+  },
+  {
+    action: "playlistUp",
+    chord: "KeyK",
+    repeat: "hold",
+    keys: "K",
+    description: "player.media.key.playlist.up",
+    category: "navigation",
+  },
+  {
+    action: "playlistActivate",
+    chord: "Enter",
+    repeat: "once",
+    keys: "Enter",
+    description: "player.media.key.playlist.activate",
+    category: "navigation",
+  },
+  ...percentEntries(),
 ];
 
 export const PLAYER_HOTKEYS: HotkeyDef<KeybindAction>[] = KEYBINDS.map((keybind) => ({

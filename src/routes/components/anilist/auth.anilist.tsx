@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input.component";
 import { ANILIST_CLIENT_ID, buildAnilistAuthorizeUrl } from "@/config/anilist/auth.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { enterOrSpace, enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { AniUser } from "@/types/anilist";
 
 function AniListAuthModal({
@@ -53,7 +53,8 @@ function AniListAuthModal({
               role="button"
               className="font-bold hover:cursor-pointer hover:underline"
               onClick={() => openUrl("https://anilist.co/settings/developer")}
-              tabIndex={-1}
+              onKeyDown={enterOrSpace(() => openUrl("https://anilist.co/settings/developer"))}
+              tabIndex={0}
             >
               anilist.co/settings/developer
             </div>

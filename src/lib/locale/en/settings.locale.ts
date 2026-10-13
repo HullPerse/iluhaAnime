@@ -404,6 +404,10 @@ const settings = {
   "settings.startup": "Startup",
   "settings.startup.fastLaunch": "Fast launch",
   "settings.startup.fastLaunch.hint": "Skip the splash screen, load everything in the background.",
+  "settings.keyboard": "Keyboard",
+  "settings.vim.mode": "Vim keyboard mode",
+  "settings.vim.mode.hint":
+    "F shows link hints over clickable elements, j/k/d/u scroll. The player route keeps its own keys.",
   "settings.find.placeholder": "Find a setting...",
   "settings.find.footer.hint": "Enter jump - Up/Down choose - Esc clear",
   "settings.find.results": "{{count}} matches",

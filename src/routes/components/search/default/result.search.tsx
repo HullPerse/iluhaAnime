@@ -75,6 +75,11 @@ export default function SearchResultItem({
             type="button"
             className="border-muted h-40 w-28 shrink-0 cursor-pointer border p-0 hover:brightness-110"
             onClick={refreshCover}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              setCorrecting(true);
+            }}
+            data-vim-contextmenu="cover"
             title={t("search.cover.refresh")}
             aria-label={t("search.cover.refresh")}
           >
@@ -88,10 +93,6 @@ export default function SearchResultItem({
                     ? t("search.cover.page.poster")
                     : undefined
               }
-              onContextMenu={(event) => {
-                event.preventDefault();
-                setCorrecting(true);
-              }}
               className="h-full w-full object-cover"
             />
           </button>
@@ -114,12 +115,16 @@ export default function SearchResultItem({
               </span>
             ))}
           </div>
-          <h3
-            className="windows95-text line-clamp-2 cursor-pointer leading-snug font-bold hover:underline"
-            onClick={() => onOpenDetails(item)}
-            title={item.title}
-          >
-            {item.title}
+          <h3 className="windows95-text leading-snug font-bold">
+            <button
+              type="button"
+              className="line-clamp-2 w-full cursor-pointer text-left hover:underline"
+              onClick={() => onOpenDetails(item)}
+              data-vim-target="result-title"
+              title={item.title}
+            >
+              {item.title}
+            </button>
           </h3>
           <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
             <span className="windows95-text text-xs">

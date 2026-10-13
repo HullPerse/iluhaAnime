@@ -89,12 +89,19 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
             return (
               <div
                 key={row.id}
-                className="bg-surface windows95-border flex min-w-0 items-center gap-1 p-0.5"
+                className="windows95-border flex min-w-0 items-center gap-1 bg-white p-0.5"
               >
                 <span
+                  role="img"
+                  aria-label={label}
                   title={label}
-                  className="windows95-small-border size-3.5 shrink-0"
-                  style={{ backgroundColor: getStatusColor(row.status) }}
+                  className="windows95-border shrink-0"
+                  style={{
+                    display: "inline-block",
+                    width: 10,
+                    height: 10,
+                    backgroundColor: getStatusColor(row.status),
+                  }}
                 />
                 <ImageComponent
                   src={row.avatar || "/images/user_avatar.ico"}
@@ -107,13 +114,7 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
                     title={t("anilist.details.friends.progress", { done, total })}
                     className="flex w-28 shrink-0 items-center gap-1"
                   >
-                    <ProgressBar
-                      value={done}
-                      max={total}
-                      className="h-3 min-w-0 flex-1"
-                      barClassName="bg-accent"
-                      slots
-                    />
+                    <ProgressBar value={done} max={total} className="h-3 min-w-0 flex-1" slots />
                     <span className="text-hint shrink-0 text-xs tabular-nums">{`${done}/${total}`}</span>
                   </span>
                 ) : (
@@ -122,7 +123,7 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
                 <span
                   title={scored ? `${t("anilist.friends.score")}: ${display}` : label}
                   aria-label={scored ? `${t("anilist.friends.score")}: ${display}` : label}
-                  className="windows95-border bg-secondary text-primary relative flex h-6 min-w-10 flex-row items-center justify-center gap-0.5 px-1 text-xs font-bold"
+                  className="windows95-border bg-secondary text-primary relative flex h-6 w-16 flex-row items-center justify-between px-1 text-xs font-bold"
                 >
                   {format === "POINT_3" && scored ? (
                     <FriendScoreIcon score={row.score} />

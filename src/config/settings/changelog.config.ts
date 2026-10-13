@@ -61,6 +61,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.settings.anilist_theme", "settings"),
       entry("changelog.5_0_0.added.settings.theme_card_variants", "settings"),
       entry("changelog.5_0_0.added.search.result_covers", "search"),
+      entry("changelog.5_0_0.added.search.details_image", "search"),
       entry("changelog.5_0_0.added.torrents.erai_proxy_login", "torrents"),
       entry("changelog.5_0_0.added.torrents.webview_proxy", "torrents"),
       entry("changelog.5_0_0.added.torrents.file_icons", "torrents"),

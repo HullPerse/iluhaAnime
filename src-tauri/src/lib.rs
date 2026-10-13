@@ -41,6 +41,7 @@ mod fswatcher;
 mod host_stats;
 mod jikan;
 mod player;
+mod poster;
 mod progress;
 mod realcugan;
 mod repro;
@@ -1841,6 +1842,7 @@ pub fn run() {
             screenshot::save_screenshot,
             screenshot::copy_screenshot,
             screenshot::discard_screenshot,
+            poster::save_poster_bytes,
             repro::collect_repro_bundle,
             search_file_index,
             deeplink::take_pending_deep_links,

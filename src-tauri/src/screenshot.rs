@@ -110,7 +110,7 @@ fn image_size(bytes: &[u8]) -> Result<(u32, u32), String> {
         .map_err(|error| format!("read the capture size: {error}"))
 }
 
-fn sanitize_name(raw: &str) -> Result<String, String> {
+pub(crate) fn sanitize_name(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Err("the file name is empty".to_string());

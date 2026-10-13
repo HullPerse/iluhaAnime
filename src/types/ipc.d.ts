@@ -161,6 +161,7 @@ export type CommandName =
   | "rutracker_webview_login"
   | "save_anilist_entry"
   | "save_created_torrent"
+  | "save_poster_bytes"
   | "save_screenshot"
   | "save_session_config"
   | "scan_extra_files"

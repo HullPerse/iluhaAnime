@@ -86,6 +86,8 @@ const changelog500 = {
     "Titlebar art and compact card meta on select themes",
   "changelog.5_0_0.added.search.result_covers":
     "Optional cover thumbnails in torrent search results: off by default and needs AniList sign-in, covers resolve from your library and the torrent page, and right-click correction with candidate picks that the app remembers",
+  "changelog.5_0_0.added.search.details_image":
+    "Poster menu in torrent details: save the poster as PNG, copy the image, or copy its URL",
   "changelog.5_0_0.added.torrents.erai_proxy_login":
     "Erai-Raws sign-in opens the site window through your proxy, same as Rutracker, with the proxy password filled in by itself",
   "changelog.5_0_0.added.torrents.webview_proxy":

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { createInterval } from "@/lib/pacer/interval.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import type { PollingOptions } from "@/types/polling";
 
@@ -67,13 +68,13 @@ export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
     };
 
     sweep();
-    const timer = window.setInterval(sweep, intervalMs);
+    const { cancel } = createInterval(sweep, intervalMs);
     const onVisible = () => {
       if (!document.hidden) sweep();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
-      window.clearInterval(timer);
+      cancel();
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [enabled, intervalMs]);

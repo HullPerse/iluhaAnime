@@ -9,6 +9,7 @@ import {
   fmtSpeed,
   getDisplayState,
 } from "@/lib/torrent/common.utils";
+import { createInterval } from "@/lib/pacer/interval.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatElapsed, formatETA } from "@/lib/utils/time.utils";
@@ -25,8 +26,8 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
   const [, setNowTick] = useState(0);
   useEffect(() => {
     if (!initializing) return;
-    const id = setInterval(() => setNowTick((x) => x + 1), 1000);
-    return () => clearInterval(id);
+    const { cancel } = createInterval(() => setNowTick((x) => x + 1), 1000);
+    return cancel;
   }, [initializing]);
   const initElapsedSecs =
     initializing && sinceSecs !== undefined && sinceSecs > 0

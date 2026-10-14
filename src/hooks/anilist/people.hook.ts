@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { tr } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { addNotification } from "@/store/notification.store";
 import type { AnilistRouteData } from "@/types/anilist";
@@ -13,10 +14,10 @@ export function useFavouritePeopleToggles() {
   const toggleStaff = async (staffId: number) => {
     if (staffPendingRef.current.has(staffId)) return;
     staffPendingRef.current.add(staffId);
-    const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+    const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     const wasFavourite = previous?.people.staff.some((p) => p.id === staffId) ?? false;
     if (wasFavourite) {
-      queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
         old
           ? {
               ...(old as AnilistRouteData),
@@ -31,10 +32,10 @@ export function useFavouritePeopleToggles() {
     const [updated, error] = await attempt(anilistApi.toggleFavouriteStaff(staffId));
     staffPendingRef.current.delete(staffId);
     if (error) {
-      if (wasFavourite) queryClient.setQueryData(["anilist_data"], previous);
+      if (wasFavourite) queryClient.setQueryData(queryKeys.anilistData(), previous);
       addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
-      queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
         old
           ? {
               ...(old as AnilistRouteData),
@@ -48,10 +49,10 @@ export function useFavouritePeopleToggles() {
   const toggleCharacter = async (characterId: number) => {
     if (characterPendingRef.current.has(characterId)) return;
     characterPendingRef.current.add(characterId);
-    const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+    const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     const wasFavourite = previous?.people.characters.some((p) => p.id === characterId) ?? false;
     if (wasFavourite) {
-      queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
         old
           ? {
               ...(old as AnilistRouteData),
@@ -68,10 +69,10 @@ export function useFavouritePeopleToggles() {
     const [updated, error] = await attempt(anilistApi.toggleFavouriteCharacter(characterId));
     characterPendingRef.current.delete(characterId);
     if (error) {
-      if (wasFavourite) queryClient.setQueryData(["anilist_data"], previous);
+      if (wasFavourite) queryClient.setQueryData(queryKeys.anilistData(), previous);
       addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
-      queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
         old
           ? {
               ...(old as AnilistRouteData),
@@ -86,7 +87,7 @@ export function useFavouritePeopleToggles() {
 
 export function useFavPeopleCharacterSet(): Set<number> {
   const queryClient = useQueryClient();
-  const data = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+  const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
   const ids = useMemo(() => new Set((data?.people.characters ?? []).map((p) => p.id)), [data]);
   return ids;
 }

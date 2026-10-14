@@ -1,4 +1,5 @@
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
@@ -254,18 +255,19 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
   const store = createSignalStore();
   const atoms = buildPlaybackAtoms(store, { ...INITIAL_PLAYBACK });
 
-  let seekResetTimer: ReturnType<typeof setTimeout> | undefined;
   let seekConfirm = 0;
-  const armSeekReset = (): void => {
-    if (seekResetTimer !== undefined) clearTimeout(seekResetTimer);
-    seekResetTimer = setTimeout(() => {
-      seekResetTimer = undefined;
+  const seekReset = new Debouncer(
+    () => {
       seekConfirm = 0;
       if (atoms.seekTarget.get() !== null) {
         atoms.seekTarget.set(null);
         atoms.seekSettle.set(false);
       }
-    }, SEEK_TARGET_RESET_MS);
+    },
+    { wait: SEEK_TARGET_RESET_MS }
+  );
+  const armSeekReset = (): void => {
+    seekReset.maybeExecute();
   };
 
   const nextSeekTarget = (snapshot: PlaybackSnapshot): number | null => {

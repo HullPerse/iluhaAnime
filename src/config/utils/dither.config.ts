@@ -1,5 +1,7 @@
 import type {
   DitherEffectOptions,
+  DitherMatrix,
+  DitherMode,
   DitherPalettePreset,
   DitherPalettePresetId,
   DitherPreset,
@@ -407,6 +409,18 @@ export const DITHER_PRESET_LABELS: Record<DitherPresetId, TranslationKey> = {
   crt: "search.dither.preset.crt",
   glyphs: "search.dither.preset.glyphs",
   photo: "search.dither.preset.photo",
+};
+
+export const DITHER_MODE_LABELS: Record<DitherMode, TranslationKey> = {
+  ordered: "search.dither.diffusion.ordered",
+  floyd: "search.dither.diffusion.floyd",
+  atkinson: "search.dither.diffusion.atkinson",
+};
+
+export const DITHER_MATRIX_LABELS: Record<DitherMatrix, TranslationKey> = {
+  bayer4: "search.dither.matrix.bayer4",
+  bayer8: "search.dither.matrix.bayer8",
+  blue64: "search.dither.matrix.blue64",
 };
 
 export const DITHER_PALETTE_PRESET_LABELS: Record<DitherPalettePresetId, TranslationKey> = {

@@ -297,6 +297,7 @@ const anilist = {
   "anilist.prefetch.eta": "ETA",
   "anilist.prefetch.fetched": "Fetched new",
   "anilist.prefetch.next.batch": "Next request in",
+  "anilist.prefetch.next.batch.value": "{{seconds}} s",
   "anilist.prefetch.no.relations": "(no relations)",
   "anilist.prefetch.processed": "Processed",
   "anilist.prefetch.remaining": "Remaining",

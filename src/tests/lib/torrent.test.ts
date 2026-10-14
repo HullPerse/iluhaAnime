@@ -7,6 +7,7 @@ import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torr
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
+  countLiveTorrents,
   displayStateLabel,
   findJustFinished,
   findNewErrors,
@@ -268,6 +269,20 @@ describe("torrent/common", () => {
 
     it("defaults to live for unknown states", () => {
       expect(getTorrentLifecycle("weird", false)).toBe("live");
+    });
+  });
+
+  describe("countLiveTorrents", () => {
+    it("splits live torrents into active and seeding", () => {
+      const torrents = [
+        makeInfo(1, { finished: false, state: "live" }),
+        makeInfo(2, { finished: true, state: "live" }),
+        makeInfo(3, { finished: false, state: "paused" }),
+        makeInfo(4, { finished: true, state: "paused" }),
+        makeInfo(5, { finished: false, state: "error" }),
+      ];
+      expect(countLiveTorrents(torrents)).toEqual({ active: 1, seeding: 1 });
+      expect(countLiveTorrents([])).toEqual({ active: 0, seeding: 0 });
     });
   });
 

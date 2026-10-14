@@ -15,6 +15,7 @@ import {
   spotlightBoundaryMs,
   spotlightPeriodKey,
 } from "@/lib/anilist/spotlight.utils";
+import { createInterval } from "@/lib/pacer/interval.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatETA } from "@/lib/utils/time.utils";
@@ -46,10 +47,10 @@ export default function SpotlightModal({
 
   useEffect(() => {
     cancelled.current = false;
-    const timer = window.setInterval(() => setNow(Date.now()), SPOTLIGHT_REFRESH_TICK_MS);
+    const { cancel } = createInterval(() => setNow(Date.now()), SPOTLIGHT_REFRESH_TICK_MS);
     return () => {
       cancelled.current = true;
-      window.clearInterval(timer);
+      cancel();
     };
   }, []);
 

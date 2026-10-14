@@ -103,6 +103,8 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   autocompleteMode: "both",
   anilistSuggestionBoost: "subtle",
   showTrackFiles: "hide",
+  watcherDelay: "calm",
+  scanThreads: 0,
   sqliteBrowserEnabled: false,
   sqliteShowImages: false,
   statusBarEnabled: true,

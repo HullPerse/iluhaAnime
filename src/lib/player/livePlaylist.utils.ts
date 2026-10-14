@@ -1,13 +1,10 @@
 import { buildTree, findFolderContainingFile, folderFilePaths } from "@/lib/player/tree.utils";
+import { normalizePath } from "@/lib/watcher/paths.watcher";
 import type { VideoFileEntry } from "@/types/fs";
 
 export interface PlannedInsert {
   path: string;
   index: number;
-}
-
-function normalizePath(path: string): string {
-  return path.replaceAll("\\", "/").toLowerCase();
 }
 
 export function planLiveInserts(
@@ -47,6 +44,22 @@ export function planLiveInserts(
     ops.push({ path, index: at });
   }
   return ops;
+}
+
+/**
+ * Live indices to drop, highest first so earlier removals never shift the
+ * ones still to come. Only entries that were part of the previously planned
+ * list are touched, so files the user added by hand survive.
+ */
+export function planLiveRemovals(previous: string[], desired: string[], live: string[]): number[] {
+  const previousKeys = new Set(previous.map(normalizePath));
+  const desiredKeys = new Set(desired.map(normalizePath));
+  const removals: number[] = [];
+  live.forEach((path, index) => {
+    const key = normalizePath(path);
+    if (previousKeys.has(key) && !desiredKeys.has(key)) removals.push(index);
+  });
+  return removals.sort((a, b) => b - a);
 }
 
 export function desiredFolderPlaylist(

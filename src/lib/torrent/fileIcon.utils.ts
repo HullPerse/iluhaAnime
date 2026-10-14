@@ -1,3 +1,5 @@
+import { mediaFileExtension } from "@/lib/media/parse.utils";
+
 const VIDEO_EXTS = new Set([
   "avi",
   "flv",
@@ -41,7 +43,7 @@ const IMAGE_EXTS = new Set(["bmp", "gif", "jpeg", "jpg", "png", "webp"]);
 const TEXT_EXTS = new Set(["cue", "log", "m3u", "m3u8", "md", "nfo", "sfv", "txt"]);
 
 export function torrentFileIcon(fileName: string): string {
-  const ext = fileName.split(".").at(-1)?.toLowerCase() ?? "";
+  const ext = mediaFileExtension(fileName);
   if (VIDEO_EXTS.has(ext)) return "w2k_wmp_11.ico";
   if (AUDIO_EXTS.has(ext)) return "w2k_3.ico";
   if (SUBTITLE_EXTS.has(ext)) return "w98_message_file.ico";

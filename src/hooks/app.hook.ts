@@ -16,6 +16,8 @@ import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { markCacheReady } from "@/lib/splash/signals.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -183,10 +185,10 @@ export function useApp() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const task = scheduleTask("timeout", 0, () => {
       applyTheme(themeAtoms.currentTheme.get(), themeAtoms.customThemes.get());
-    }, 0);
-    return () => clearTimeout(timer);
+    });
+    return () => task.cancel();
   }, []);
 
   useEffect(() => {
@@ -568,7 +570,6 @@ export function useApp() {
   }, []);
 
   useEffect(() => {
-    let timer: number | undefined;
     const saveLearning = () => {
       const history = searchAtoms.history.get();
       const queryStats = searchAtoms.queryStats.get();
@@ -595,6 +596,7 @@ export function useApp() {
       queryStats: searchAtoms.queryStats.get(),
       suggestionStats: searchAtoms.suggestionStats.get(),
     };
+    const saveSoon = new Debouncer(() => saveLearning(), { wait: 2000 });
     const unsubscribe = subscribeSearch(() => {
       const current = {
         history: searchAtoms.history.get(),
@@ -607,13 +609,12 @@ export function useApp() {
         current.suggestionStats !== previousLearning.suggestionStats
       ) {
         previousLearning = current;
-        if (timer !== undefined) window.clearTimeout(timer);
-        timer = window.setTimeout(saveLearning, 2000);
+        saveSoon.maybeExecute();
       }
     });
     return () => {
       unsubscribe();
-      if (timer !== undefined) window.clearTimeout(timer);
+      saveSoon.cancel();
     };
   }, []);
 

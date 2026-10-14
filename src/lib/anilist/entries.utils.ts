@@ -22,31 +22,12 @@ export function filterEntries(entries: AniListEntry[], searchTerms: string, glob
   });
 }
 
-export const listSortKeys: AniListSort["key"][] = [
-  "title",
-  "score",
-  "myScore",
-  "progress",
-  "completed",
-  "release",
-  "status",
-];
 const MEDIA_STATUS_RANK: Record<string, number> = {
   RELEASING: 0,
   FINISHED: 1,
   NOT_YET_RELEASED: 2,
   HIATUS: 3,
   CANCELLED: 4,
-};
-
-export const defaultListSortDir: Record<AniListSort["key"], AniListSort["dir"]> = {
-  title: "asc",
-  score: "desc",
-  myScore: "desc",
-  progress: "desc",
-  completed: "desc",
-  release: "desc",
-  status: "asc",
 };
 
 export function sortEntries(

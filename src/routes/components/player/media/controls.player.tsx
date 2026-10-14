@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { PLAYER_SPEEDS as SPEEDS } from "@/lib/player/speed.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { playbackAtoms } from "@/store/player.store";
@@ -107,8 +108,8 @@ function Controls({
 
   useEffect(() => {
     if (!boundary) return;
-    const id = window.setTimeout(() => setBoundary(null), BOUNDARY_TIMEOUT);
-    return () => window.clearTimeout(id);
+    const task = scheduleTask("timeout", BOUNDARY_TIMEOUT, () => setBoundary(null));
+    return () => task.cancel();
   }, [boundary]);
 
   const handleVolume = useCallback(

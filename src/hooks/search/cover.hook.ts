@@ -5,6 +5,7 @@ import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { parseMediaFile } from "@/lib/media/parse.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import {
   findLocalMatch,
   findResolvedAlias,
@@ -100,7 +101,7 @@ function buildCoverSnapshot(parsed: {
 
 function useCoverPoster(source: string, pageUrl: string | null, enabled: boolean) {
   return useAppQuery("slow", {
-    queryKey: ["torrent_poster", pageUrl],
+    queryKey: queryKeys.torrentPoster(pageUrl),
     queryFn: () => pagePoster(source, pageUrl),
     enabled: enabled && pageUrl !== null,
     retry: false,
@@ -120,7 +121,7 @@ function useCoverCascade(
   enabled: boolean
 ) {
   return useAppQuery("slow", {
-    queryKey: ["cover_resolve", key, rejectedIds ?? null, learnedTitle, localTitle],
+    queryKey: queryKeys.coverResolve(key, rejectedIds ?? null, learnedTitle, localTitle),
     queryFn: async () => {
       const stored = coverCorrectionsAtoms.resolved.get();
       const hit = stored[key];

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/ui";
@@ -36,8 +37,8 @@ function Modal({
       setVisible(true);
       return;
     }
-    const frame = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(frame);
+    const task = scheduleTask("raf", 0, () => setVisible(true));
+    return () => task.cancel();
   }, [modalAnimation]);
 
   return (

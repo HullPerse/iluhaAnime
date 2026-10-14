@@ -8,6 +8,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentCover, type TorrentCoverState } from "@/hooks/search/cover.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { detectLanguages, formatReleaseAge, formatSize } from "@/lib/search/format.utils";
 import { getLanguageColors } from "@/lib/search/results.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -57,7 +58,7 @@ export default function SearchResultItem({
   const queryClient = useQueryClient();
   const refreshCover = () => {
     removeResolvedCover(cover.coverKey);
-    ignore(queryClient.invalidateQueries({ queryKey: ["cover_resolve", cover.coverKey] }));
+    ignore(queryClient.invalidateQueries({ queryKey: queryKeys.coverResolveScope(cover.coverKey) }));
   };
   const total = item.seeders + item.leechers;
   const share = total > 0 ? Math.round((item.seeders / total) * 100) : 0;

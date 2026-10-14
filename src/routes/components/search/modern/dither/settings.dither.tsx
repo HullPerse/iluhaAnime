@@ -22,6 +22,8 @@ import {
 } from "@/config/utils/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
+import { fileNameFromPath } from "@/lib/media/parse.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage } from "@/lib/utils/image.utils";
@@ -93,7 +95,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       showError(t("common.error"), t("search.dither.upload.gif"));
       return;
     }
-    setUploadName(picked.split(/[/\\]/).pop() ?? picked);
+    setUploadName(fileNameFromPath(picked));
     const [image, error] = await attempt(systemApi.importDitherImage(picked));
     if (error) showError(t("common.error"), error.message ?? t("search.dither.upload.error"));
     else {
@@ -150,7 +152,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
 
   const save = () => {
     patchSettings({ selectedDitherId: isPlaceholderSelected ? null : selected });
-    queryClient.invalidateQueries({ queryKey: ["dither-wallpaper"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.wallpaperScope() });
     onClose();
   };
 
@@ -193,7 +195,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
         onSaved={(updated) => {
           setRows((prev) => ({ ...prev, [updated.id]: updated }));
           setPreviewImage(updated);
-          queryClient.invalidateQueries({ queryKey: ["dither-wallpaper"] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.wallpaperScope() });
         }}
       />
     );

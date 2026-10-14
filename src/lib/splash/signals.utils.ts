@@ -1,3 +1,5 @@
+import { scheduleTask } from "@/lib/pacer/shared.utils";
+
 type ReadyListener = () => void;
 
 let cacheReady = false;
@@ -19,15 +21,12 @@ export function markCacheReady(): void {
 export function awaitCacheReady(timeoutMs: number): Promise<boolean> {
   if (cacheReady) return Promise.resolve(true);
   return new Promise<boolean>((resolve) => {
-    const timer = setTimeout(
-      () => {
-        listeners.delete(done);
-        resolve(false);
-      },
-      Math.max(0, timeoutMs)
-    );
+    const timer = scheduleTask("timeout", Math.max(0, timeoutMs), () => {
+      listeners.delete(done);
+      resolve(false);
+    });
     const done = () => {
-      clearTimeout(timer);
+      timer.cancel();
       listeners.delete(done);
       resolve(true);
     };
@@ -99,15 +98,12 @@ export function awaitSignal(
 ): Promise<boolean> {
   if (isReady()) return Promise.resolve(true);
   return new Promise<boolean>((resolve) => {
-    const timer = setTimeout(
-      () => {
-        stop();
-        resolve(false);
-      },
-      Math.max(0, timeoutMs)
-    );
+    const timer = scheduleTask("timeout", Math.max(0, timeoutMs), () => {
+      stop();
+      resolve(false);
+    });
     const stop = subscribe(() => {
-      clearTimeout(timer);
+      timer.cancel();
       resolve(true);
     });
   });

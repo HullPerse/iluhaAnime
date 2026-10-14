@@ -40,6 +40,8 @@ export interface SettingsStore {
   audioExtensions: string[];
   subtitleExtensions: string[];
   showTrackFiles: "hide" | "torrent" | "folders";
+  watcherDelay: WatcherDelay;
+  scanThreads: number;
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
@@ -181,6 +183,8 @@ export interface SessionConfigPayload {
 export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
 
 export type TorrentCoverMode = "off" | "pages" | "full";
+
+export type WatcherDelay = "fast" | "calm";
 
 export interface SpeedSchedule {
   enabled: boolean;

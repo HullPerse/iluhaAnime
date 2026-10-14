@@ -89,7 +89,7 @@ describe("PageFindBar", () => {
   it("closes on Escape through the overlay stack", async () => {
     openBar();
     const input = await screen.findByPlaceholderText("Find on page...");
-    fireEvent.keyDown(input, { key: "Escape" });
+    fireEvent.keyDown(input, { key: "Escape", code: "Escape" });
     expect(screen.queryByRole("search")).toBeNull();
   });
 

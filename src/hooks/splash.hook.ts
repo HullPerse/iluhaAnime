@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { sleep, type SleepTask } from "@/lib/pacer/shared.utils";
+import { scheduleTask, sleep, type ScheduledTask, type SleepTask } from "@/lib/pacer/shared.utils";
 import { detectMigrations } from "@/lib/splash/migrations.utils";
 import {
   awaitCacheReady,
@@ -107,7 +107,7 @@ export function useSplashStages(
     index: false,
   });
   const finished = useRef(false);
-  const timers = useRef<number[]>([]);
+  const timers = useRef<ScheduledTask[]>([]);
   const naps = useRef<SleepTask[]>([]);
   const checkRef = useRef(checkDatabase);
 
@@ -138,7 +138,7 @@ export function useSplashStages(
     }
     finished.current = true;
     const wait = Math.max(0, minMs - (Date.now() - startedAt.current));
-    const timer = window.setTimeout(() => setDone(true), wait);
+    const timer = scheduleTask("timeout", wait, () => setDone(true));
     timers.current.push(timer);
   }, [minMs]);
 
@@ -201,7 +201,7 @@ export function useSplashStages(
       disposed = true;
       for (const nap of naps.current) nap.cancel();
       naps.current = [];
-      for (const timer of timers.current) window.clearTimeout(timer);
+      for (const timer of timers.current) timer.cancel();
       timers.current = [];
     };
   }, [stepMs, stageTimeoutMs, tryFinish]);

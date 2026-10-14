@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
 import {
   buildActivityMap,
   buildYearGrid,
@@ -21,14 +22,12 @@ import {
 import { collapseGraph } from "@/lib/anilist/collapse.utils";
 import {
   buildEntryLookup,
-  defaultListSortDir,
   entryListDate,
   entryListTime,
   filterEntries,
   fuzzyDateToTime,
   getSortingLabel,
   getStatusColor,
-  listSortKeys,
   searchFiltersToParams,
   sortAniMediaList,
   sortEntries,

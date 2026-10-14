@@ -19,6 +19,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
+import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
 import {
   TORRENTS_QUERY_KEY,
   useAddTorrentTracker,
@@ -34,6 +35,7 @@ import {
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
+import { isSameOrInside } from "@/lib/watcher/paths.watcher";
 import {
   BULK_CONCURRENCY,
   applyBulkAction,
@@ -41,6 +43,7 @@ import {
   splitRecheckOutcome,
 } from "@/lib/torrent/bulk.utils";
 import {
+  countLiveTorrents,
   formatSpeed,
   fmtSpeed,
   getLifecycleLabel,
@@ -397,10 +400,25 @@ function TorrentRoute() {
     () => new Set(visibleIds.filter((id) => expanded.has(id))),
     [visibleIds, expanded]
   );
-  const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
-    visibleIds,
-    5000,
-    expandedIds
+  const { files: torrentFilesMap, errors: torrentFilesErrors, requestRefresh } =
+    useTorrentFilesMap(visibleIds, 5000, expandedIds);
+
+  // Watcher parity for the torrent list itself: a change inside a torrent's
+  // save dir refreshes just that torrent's files instead of waiting for the
+  // 5-second batch sweep. Active downloads still poll as a fallback.
+  useFolderContentChanged(
+    (payload) => {
+      const ids = new Set<number>();
+      for (const change of payload.changes) {
+        for (const torrent of torrents) {
+          if (torrent.save_dir && isSameOrInside(torrent.save_dir, change.path)) {
+            ids.add(torrent.id);
+          }
+        }
+      }
+      if (ids.size > 0) requestRefresh([...ids]);
+    },
+    { errorTag: "torrent" }
   );
   const torrentNames = useMemo(() => torrents.map((torrent) => torrent.name), [torrents]);
 
@@ -415,8 +433,7 @@ function TorrentRoute() {
   }, []);
 
   const summary = useMemo(() => {
-    const active = torrents.filter((item) => !item.finished && item.state === "live").length;
-    const seeding = torrents.filter((item) => item.finished && item.state === "live").length;
+    const { active, seeding } = countLiveTorrents(torrents);
     return {
       active,
       seeding,

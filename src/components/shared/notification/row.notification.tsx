@@ -8,6 +8,7 @@ import {
   NOTIFICATION_TYPE_COLORS,
   NOTIFICATION_TYPE_ICONS,
 } from "@/config/settings/notifications.config";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import {
@@ -26,16 +27,11 @@ export default function NotificationRow({
   onOpen,
 }: NotificationRowProps) {
   const [copied, setCopied] = useState(false);
-  const timer = useRef<number | null>(null);
+  const copyHideRef = useRef<Debouncer<[]> | null>(null);
   const TypeIcon = NOTIFICATION_TYPE_ICONS[item.type];
   const openable = Boolean(item.target);
 
-  useEffect(
-    () => () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    },
-    []
-  );
+  useEffect(() => () => copyHideRef.current?.cancel(), []);
 
   const handleOpen = () => {
     markRead(item.id);
@@ -46,8 +42,12 @@ export default function NotificationRow({
     const [, error] = await attempt(copyNotification(item));
     if (error) return;
     setCopied(true);
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+    if (copyHideRef.current === null) {
+      copyHideRef.current = new Debouncer(() => setCopied(false), {
+        wait: COPIED_FEEDBACK_MS,
+      });
+    }
+    copyHideRef.current.maybeExecute();
   };
 
   return (

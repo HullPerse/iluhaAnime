@@ -23,9 +23,10 @@ import { DropdownMenuRadioGroup } from "@/components/ui/dropdown/radioGroup.drop
 import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdown";
 import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
 import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
+import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
-import { defaultListSortDir, getSortingLabel, listSortKeys } from "@/lib/anilist/entries.utils";
+import { getSortingLabel } from "@/lib/anilist/entries.utils";
 import type { AniSortProps as Props } from "@/types/anilist";
 
 function SortMoreMenu({

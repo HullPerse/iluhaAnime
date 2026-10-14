@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { createInterval } from "@/lib/pacer/interval.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import type { PollingOptions } from "@/types/polling";
 
@@ -58,7 +59,7 @@ export function usePolling<K>(options: PollingOptions<K>): void {
     };
 
     sweep();
-    const timer = window.setInterval(sweep, intervalMs);
-    return () => window.clearInterval(timer);
+    const { cancel } = createInterval(sweep, intervalMs);
+    return cancel;
   }, [enabled, intervalMs]);
 }

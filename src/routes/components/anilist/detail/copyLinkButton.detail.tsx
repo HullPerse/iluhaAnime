@@ -3,23 +3,21 @@ import { Check, Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { buildAnimeLink } from "@/lib/utils/deeplink.utils";
 
 export function CopyLinkButton({ animeId }: { animeId: number }) {
   const { t } = useI18n();
   const [linkCopied, setLinkCopied] = useState(false);
-  const copiedTimer = useRef<number | null>(null);
-  useEffect(
-    () => () => {
-      if (copiedTimer.current !== null) window.clearTimeout(copiedTimer.current);
-    },
-    []
-  );
+  const copyHideRef = useRef<Debouncer<[]> | null>(null);
+  useEffect(() => () => copyHideRef.current?.cancel(), []);
   const copyLink = () => {
     writeText(buildAnimeLink(animeId));
     setLinkCopied(true);
-    if (copiedTimer.current !== null) window.clearTimeout(copiedTimer.current);
-    copiedTimer.current = window.setTimeout(() => setLinkCopied(false), 1500);
+    if (copyHideRef.current === null) {
+      copyHideRef.current = new Debouncer(() => setLinkCopied(false), { wait: 1500 });
+    }
+    copyHideRef.current.maybeExecute();
   };
   return (
     <button

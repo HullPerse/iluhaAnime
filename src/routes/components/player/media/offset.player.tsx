@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useMediaEntry } from "@/hooks/media.hook";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { playbackAtoms, playerAtoms } from "@/store/player.store";
 
@@ -26,7 +27,7 @@ function OsdOverlay() {
   const subTrack = tracks.find((track) => track.type === "sub" && track.selected);
 
   const [visible, setVisible] = useState(false);
-  const timerRef = useRef<number | null>(null);
+  const timerRef = useRef<ScheduledTask | null>(null);
   const previousRef = useRef({
     audio: undefined as number | undefined,
     sub: undefined as number | undefined,
@@ -61,10 +62,11 @@ function OsdOverlay() {
     };
 
     setVisible(true);
-    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => setVisible(false), OSD_TIMEOUT);
+    timerRef.current?.cancel();
+    timerRef.current = scheduleTask("timeout", OSD_TIMEOUT, () => setVisible(false));
     return () => {
-      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+      timerRef.current?.cancel();
+      timerRef.current = null;
     };
   }, [audioTrack?.id, subTrack?.id, subOffset, audioOffset, speed, volume, muted]);
 

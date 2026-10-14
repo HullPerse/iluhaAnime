@@ -1,9 +1,9 @@
-import { mockInvoke } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke } from "../../mocks";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke, convertFileSrc: mockConvertFileSrc }));
 
 import SettingsPanel from "@/routes/components/player/media/settings.player";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";

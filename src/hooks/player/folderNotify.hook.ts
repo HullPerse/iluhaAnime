@@ -63,7 +63,11 @@ export function useWatchedFolderNotifications(
     shouldFetch: () => paths.length > 0 && settingsAtoms.notifyNewFiles.get(),
     fetch: async () => {
       const [results, error] = await attempt(
-        invokeTyped<FolderScanResult[]>("scan_video_folders", { paths, extensions })
+        invokeTyped<FolderScanResult[]>("scan_video_folders", {
+          paths,
+          extensions,
+          threads: settingsAtoms.scanThreads.get(),
+        })
       );
       if (error) {
         reportBackgroundError("folders.newfiles.scan", error);

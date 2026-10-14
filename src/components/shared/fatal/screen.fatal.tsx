@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { resolveFatalVariant } from "@/config/fatal/screens.config";
 import { resolveFatalLocale, resolveFatalTexts } from "@/lib/fatal/texts.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import type { FatalInfo } from "@/types/fatal";
 
 import { GenericBsod } from "./generic.fatal";
@@ -41,13 +42,11 @@ export function FatalScreen({
     reloadRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === "Escape" && info.retryCount < 1) onRetry();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [info.retryCount, onRetry]);
+  useHotkeys([{ id: "retry", chord: "Escape", repeat: "once" }], {
+    onAction: () => {
+      if (info.retryCount < 1) onRetry();
+    },
+  });
 
   const copyDetails = (): void => {
     (async () => {

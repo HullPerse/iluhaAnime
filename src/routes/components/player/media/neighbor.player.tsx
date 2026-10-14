@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import {
   fetchVideoCard,
   getCachedCard,
@@ -76,7 +77,7 @@ function NeighborFileButton({
     if (!open || !hasTarget || !currentPath) return;
     const request = requestRef.current + 1;
     requestRef.current = request;
-    const timer = window.setTimeout(() => {
+    const task = scheduleTask("timeout", HOVER_DEBOUNCE_MS, () => {
       ignore(
         readPlaylistEntries().then((entries) => {
           if (requestRef.current !== request) return;
@@ -97,8 +98,8 @@ function NeighborFileButton({
           );
         })
       );
-    }, HOVER_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
+    });
+    return () => task.cancel();
   }, [open, hasTarget, currentPath, playlistIndex, direction]);
 
   const label = entry

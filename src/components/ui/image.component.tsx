@@ -2,6 +2,7 @@ import { cn } from "cn";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import type { ImageProps } from "@/types/ui";
 
 const RETRY_DELAYS = [500, 1500];
@@ -13,7 +14,7 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
   const [retryKey, setRetryKey] = useState(0);
   const attemptRef = useRef(0);
   const srcRef = useRef(src);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const timerRef = useRef<ScheduledTask | null>(null);
 
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -23,7 +24,8 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
     setIsLoaded(false);
     attemptRef.current = 0;
     return () => {
-      clearTimeout(timerRef.current);
+      timerRef.current?.cancel();
+      timerRef.current = null;
     };
   }, [src]);
 
@@ -39,7 +41,8 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
     attemptRef.current = attempt;
     if (attempt <= RETRY_DELAYS.length) {
       const delay = RETRY_DELAYS[attempt - 1] ?? 1000;
-      timerRef.current = setTimeout(() => setRetryKey((key) => key + 1), delay);
+      timerRef.current?.cancel();
+      timerRef.current = scheduleTask("timeout", delay, () => setRetryKey((key) => key + 1));
     } else {
       setFinalSrc("");
     }

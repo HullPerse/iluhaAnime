@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { createInterval } from "@/lib/pacer/interval.utils";
+
 import type { SplashVariantProps } from "./shared.splash";
 import { splashStageLabel } from "./shared.splash";
 
@@ -8,18 +10,18 @@ export function YorhaSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: S
   const [band, setBand] = useState({ size: 8, location: 40 });
 
   useEffect(() => {
-    const dotsTimer = window.setInterval(() => {
+    const dotsTask = createInterval(() => {
       setDots((value) => (value + 1) % 4);
     }, 300);
-    const bandTimer = window.setInterval(() => {
+    const bandTask = createInterval(() => {
       setBand({
         size: 1 + Math.floor(Math.random() * 35),
         location: 1 + Math.floor(Math.random() * 90),
       });
     }, 100);
     return () => {
-      window.clearInterval(dotsTimer);
-      window.clearInterval(bandTimer);
+      dotsTask.cancel();
+      bandTask.cancel();
     };
   }, []);
 

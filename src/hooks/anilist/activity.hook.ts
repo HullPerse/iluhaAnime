@@ -3,6 +3,7 @@ import { useRef } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { tr } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { addNotification } from "@/store/notification.store";
 import type { ActivityLikeState, AniActivity } from "@/types/anilist";
@@ -20,7 +21,7 @@ export function useToggleActivityLike() {
         : activity.like_count + 1,
       is_liked: !activity.is_liked,
     };
-    queryClient.setQueriesData<AniActivity[]>({ queryKey: ["anilist_activity"] }, (old) =>
+    queryClient.setQueriesData<AniActivity[]>({ queryKey: queryKeys.activityScope() }, (old) =>
       old?.map((item) =>
         item.id === activity.id
           ? { ...item, like_count: next.like_count, is_liked: next.is_liked }
@@ -30,7 +31,7 @@ export function useToggleActivityLike() {
     const [state, error] = await attempt(anilistApi.toggleActivityLike(activity.id));
     pendingRef.current.delete(activity.id);
     if (error) {
-      queryClient.setQueriesData<AniActivity[]>({ queryKey: ["anilist_activity"] }, (old) =>
+      queryClient.setQueriesData<AniActivity[]>({ queryKey: queryKeys.activityScope() }, (old) =>
         old?.map((item) =>
           item.id === activity.id
             ? { ...item, like_count: activity.like_count, is_liked: activity.is_liked }
@@ -39,7 +40,7 @@ export function useToggleActivityLike() {
       );
       addNotification(tr("anilist.activity.like.failed"), "error", error.message);
     } else if (state) {
-      queryClient.setQueriesData<AniActivity[]>({ queryKey: ["anilist_activity"] }, (old) =>
+      queryClient.setQueriesData<AniActivity[]>({ queryKey: queryKeys.activityScope() }, (old) =>
         old?.map((item) =>
           item.id === activity.id
             ? { ...item, like_count: state.like_count, is_liked: state.is_liked }

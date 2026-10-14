@@ -148,7 +148,7 @@ export function useSearchQuery(): SearchQueryController {
     const message = error instanceof Error ? error.message : String(error ?? "");
     if (!message.trim().startsWith("blocked:")) return;
     queryClient.setQueryData<{ rutracker: boolean; nekobt: boolean }>(
-      ["search_sessions"],
+      queryKeys.searchSessionsScope(),
       (current) => (current ? { ...current, rutracker: false } : current)
     );
   }, [error, isError, queryClient, source]);
@@ -197,22 +197,22 @@ export function useSearchQuery(): SearchQueryController {
   const handleLogout = async () => {
     const [, error] = await attempt(torrentApi.rutrackerLogout());
     if (error) console.warn("rutracker_logout failed", error);
-    else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
+    else queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
   };
 
   const handleNekoBtLogout = async () => {
     const [, error] = await attempt(torrentApi.nekobtLogout());
     if (error) console.warn("nekobt_logout failed", error);
-    else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
+    else queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
   };
 
   const handleEraiLogout = async () => {
     const [, error] = await attempt(torrentApi.eraiLogout());
     if (error) console.warn("erai_logout failed", error);
-    else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
+    else queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
   };
 
-  const onAuthenticated = () => queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
+  const onAuthenticated = () => queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
 
   const changeSource = (value: string) => {
     setSource(value as Source);
@@ -227,7 +227,7 @@ export function useSearchQuery(): SearchQueryController {
     setNyaaPage(1);
     setMaxPage(Number.POSITIVE_INFINITY);
     setSelectedTorrent(null);
-    queryClient.removeQueries({ queryKey: ["animeScraper"] });
+    queryClient.removeQueries({ queryKey: queryKeys.torrentSearchScope() });
   };
 
   const toggleSortDirection = () => setSortDirection(sortDirection === "desc" ? "asc" : "desc");

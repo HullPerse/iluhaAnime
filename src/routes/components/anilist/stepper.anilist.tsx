@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { EntryListInfo } from "@/lib/anilist/entries.utils";
 import { Debouncer } from "@/lib/pacer/debounce.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
@@ -31,7 +33,7 @@ function patchEntry(
   mediaId: number,
   patch: EntryPatch
 ): void {
-  queryClient.setQueryData(["anilist_data"], (old: unknown) => {
+  queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) => {
     if (!old) return old;
     const data = old as AnilistRouteData;
     let touched = false;
@@ -60,7 +62,7 @@ function readLiveFields(
   mediaId: number,
   fallback: LiveEntryFields
 ): LiveEntryFields {
-  const data = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+  const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
   if (data) {
     for (const list of data.lists) {
       const found = list.entries.find((item) => item.media.id === mediaId);
@@ -108,7 +110,7 @@ export function ProgressStepper({
   const inflightRef = useRef(false);
   const confirmedRef = useRef(entry.progress ?? 0);
   const entryRef = useRef(entry);
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimer = useRef<ScheduledTask | null>(null);
   const taskBox = useMemo<{ current: (() => void) | undefined }>(
     () => ({ current: undefined }),
     []
@@ -136,16 +138,15 @@ export function ProgressStepper({
   useEffect(
     () => () => {
       debouncer.flush();
-      if (savedTimer.current !== null) clearTimeout(savedTimer.current);
+      savedTimer.current?.cancel();
+      savedTimer.current = null;
     },
     [debouncer]
   );
 
   const clearSaved = useCallback(() => {
-    if (savedTimer.current !== null) {
-      clearTimeout(savedTimer.current);
-      savedTimer.current = null;
-    }
+    savedTimer.current?.cancel();
+    savedTimer.current = null;
   }, []);
 
   const sendPending = useCallback(async () => {
@@ -208,7 +209,7 @@ export function ProgressStepper({
       if (!superseded) anilistProgressOverride.clear(media.id);
       setPhase("saved");
       clearSaved();
-      savedTimer.current = setTimeout(() => setPhase("idle"), STEPPER_SAVED_MS);
+      savedTimer.current = scheduleTask("timeout", STEPPER_SAVED_MS, () => setPhase("idle"));
     }
     if (superseded) debouncer.maybeExecute();
   }, [debouncer, media.id, queryClient, t, clearSaved]);

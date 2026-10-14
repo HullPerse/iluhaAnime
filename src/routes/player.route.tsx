@@ -19,21 +19,32 @@ import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useWatchedFolderNotifications } from "@/hooks/player/folderNotify.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
+import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
 import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { folderTreesFromScan, fingerprint } from "@/lib/player/scan.utils";
-import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
+import { folderScanBus } from "@/lib/player/scanBus.utils";
+import {
+  allFilePaths,
+  buildTree,
+  filterTreeByPaths,
+  patchTreeFile,
+  removeTreeFile,
+} from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
+import { isExtraFile } from "@/lib/torrent/extra.utils";
 import { attempt, attemptRetry, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
 import { createCoalescedRunner } from "@/lib/utils/promise.utils";
 import { unwrapOr } from "@/lib/utils/result.utils";
 import { parseValue } from "@/lib/utils/schema.utils";
+import { patchableVideoChanges, touchesExtensions } from "@/lib/watcher/changes.watcher";
+import { WATCHER_DEBOUNCE_MS } from "@/lib/watcher/delay.watcher";
+import { normalizePath } from "@/lib/watcher/paths.watcher";
 import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import {
   addCategory,
@@ -54,6 +65,7 @@ import type { FolderScanResult, VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";
 import type { FolderNode } from "@/types/torrent";
+import type { FolderChange } from "@/types/watcher";
 
 import CategoryView from "./components/player/category.player";
 import { DraggableFolder } from "./components/player/draggable/folder.draggable";
@@ -87,6 +99,8 @@ function PlayerRoute() {
   const [scanProgress, setScanProgress] = useState<ScanType>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const videoExtensions = useCell(settingsAtoms.videoExtensions);
+  const watcherDelay = useCell(settingsAtoms.watcherDelay);
+  const scanThreads = useCell(settingsAtoms.scanThreads);
   const savedFolderPaths = useCell(settingsAtoms.savedFolderPaths);
   const hiddenPlayerFolders = useCell(settingsAtoms.hiddenPlayerFolders);
   const hiddenPlayerTorrents = useCell(settingsAtoms.hiddenPlayerTorrents);
@@ -252,6 +266,7 @@ function PlayerRoute() {
         invokeTyped("rebuild_file_index", {
           paths,
           extensions: videoExtensions,
+          threads: scanThreads,
         })
       );
       if (error) {
@@ -260,7 +275,7 @@ function PlayerRoute() {
           showErrorOnce("folders-rebuild", t("notification.scan.failed"), error.message);
       }
     },
-    [t, videoExtensions]
+    [t, videoExtensions, scanThreads]
   );
   const rebuildFileIndexRef = useRef(rebuildFileIndex);
   useEffect(() => {
@@ -308,6 +323,7 @@ function PlayerRoute() {
           invokeTyped<FolderScanResult[]>("scan_video_folders", {
             paths: savedFolderPaths,
             extensions: videoExtensions,
+            threads: scanThreads,
           })
         );
       const scan = listen<{
@@ -361,11 +377,39 @@ function PlayerRoute() {
     return () => {
       cancelled = true;
     };
-  }, [reportScan, savedFolderPaths, t, videoExtensions, rebuildIndex]);
+  }, [reportScan, savedFolderPaths, t, videoExtensions, scanThreads, rebuildIndex]);
+
+  // Torrent download dirs are watched too, so freshly written extras show up
+  // without a manual refresh. The key keeps the dir set stable across the
+  // frequent torrent progress updates, so the watcher is not restarted on
+  // every tick.
+  const torrentSaveDirsKey = useMemo(
+    () =>
+      [
+        ...new Set(
+          torrents.map((torrent) => torrent.save_dir).filter((dir): dir is string => !!dir)
+        ),
+      ]
+        .sort()
+        .join("\n"),
+    [torrents]
+  );
+  const watchedRoots = useMemo(
+    () => [
+      ...new Set([
+        ...savedFolderPaths,
+        ...(torrentSaveDirsKey ? torrentSaveDirsKey.split("\n") : []),
+      ]),
+    ],
+    [savedFolderPaths, torrentSaveDirsKey]
+  );
 
   useEffect(() => {
-    if (savedFolderPaths.length === 0) return;
-    invokeTyped("start_watching_folders", { folders: savedFolderPaths }).catch((error) => {
+    if (watchedRoots.length === 0) return;
+    invokeTyped("start_watching_folders", {
+      folders: watchedRoots,
+      debounceMs: WATCHER_DEBOUNCE_MS[watcherDelay],
+    }).catch((error) => {
       reportBackgroundError("folders.watch.start", error);
       if (settingsAtoms.notifyScanErrors.get())
         showErrorOnce("folders-watch", t("notification.scan.failed"), String(error));
@@ -375,7 +419,7 @@ function PlayerRoute() {
         reportBackgroundError("folders.watch.stop", error)
       );
     };
-  }, [savedFolderPaths, t]);
+  }, [watchedRoots, t, watcherDelay]);
 
   const folderScanDisposedRef = useRef(false);
   useEffect(() => {
@@ -385,16 +429,48 @@ function PlayerRoute() {
     };
   }, []);
 
-  useTauriEvent<string[]>(
-    "folder-content-changed",
-    (event) => {
-      const changed = event.payload;
-      queryClient.invalidateQueries({ queryKey: ["extra_files"] });
+  useFolderContentChanged(
+    (payload) => {
+      // Extras (upscales/converts) are written next to the torrent files, so
+      // refresh their queries only when such a file actually changed.
+      if (payload.changes.some((change) => isExtraFile(change.path)))
+        queryClient.invalidateQueries({ queryKey: queryKeys.extraFilesScope() });
+      // The tree and the file index only hold video files, so a batch without
+      // a single video extension cannot change them.
+      if (!touchesExtensions(payload.changes, videoExtensions)) return;
+      // Only library roots get a tree update; torrent dirs are watched for the
+      // extras invalidation above and must not become folder trees.
+      const libraryRoots = new Set(savedFolderPaths.map(normalizePath));
+      const byRoot = new Map<string, FolderChange[]>();
+      for (const change of payload.changes) {
+        if (!libraryRoots.has(normalizePath(change.root))) continue;
+        const bucket = byRoot.get(change.root);
+        if (bucket) bucket.push(change);
+        else byRoot.set(change.root, [change]);
+      }
+      if (byRoot.size === 0) return;
+      const applyFullScan = (path: string, entries: VideoFileEntry[]) => {
+        setFolderTrees((prev) => {
+          const next = prev.filter((tree) => tree.path !== path);
+          if (entries.length) next.push(buildTree(entries, path));
+          setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
+          return next;
+        });
+        reportScan(
+          path,
+          entries.map((entry) => entry.path),
+          false
+        );
+      };
       const rescanPath = async (path: string) => {
+        // Shared tick: the live playlist asks the bus for the same root on the
+        // same event, so one `refresh_file_index` walk serves the tree, the
+        // file index and the playlist instead of a walk per consumer.
         const [entries, scanError] = await attempt(
-          invokeTyped<VideoFileEntry[]>("scan_video_folder", {
-            path,
+          folderScanBus().fullScan({
+            root: path,
             extensions: videoExtensions,
+            threads: scanThreads,
           })
         );
         if (scanError || folderScanDisposedRef.current) {
@@ -405,35 +481,88 @@ function PlayerRoute() {
           }
           return;
         }
-        const [, refreshError] = await attempt(
-          invokeTyped("refresh_file_index", {
-            paths: [path],
+        applyFullScan(path, entries ?? []);
+      };
+      // One watcher batch of video-only changes is patched entry by entry: the
+      // index re-reads just those paths and the tree gets the same nodes,
+      // without walking the whole root for one finished download.
+      const patchRoot = async (root: string, changes: FolderChange[]) => {
+        const key = normalizePath(root);
+        const upserts = changes.filter((change) => change.kind !== "removed").map((c) => c.path);
+        const removals = changes.filter((change) => change.kind === "removed").map((c) => c.path);
+        const target = folderTrees.find((tree) => normalizePath(tree.path) === key);
+        if (!target) {
+          await rescanPath(root);
+          return;
+        }
+        const [outcome, patchError] = await attempt(
+          folderScanBus().patchScan({
+            root,
+            upserts,
+            removals,
             extensions: videoExtensions,
+            threads: scanThreads,
           })
         );
-        if (refreshError || folderScanDisposedRef.current) {
-          if (refreshError) {
-            reportBackgroundError("folders.rescan", refreshError);
+        if (folderScanDisposedRef.current) return;
+        if (patchError || !outcome) {
+          if (patchError) {
+            reportBackgroundError("folders.patch", patchError);
             if (settingsAtoms.notifyScanErrors.get())
-              showErrorOnce("folders-rescan", t("notification.scan.failed"), refreshError.message);
+              showErrorOnce("folders-patch", t("notification.scan.failed"), patchError.message);
           }
+          // The in-memory index may already have moved: one full walk brings
+          // the index and the tree back in sync.
+          await rescanPath(root);
+          return;
+        }
+        if (outcome.kind === "full") {
+          // Another consumer of the same tick asked for a walk of this root,
+          // so these entries already describe it: rebuild instead of patching.
+          applyFullScan(root, outcome.entries);
+          return;
+        }
+        let patched = target;
+        for (const path of outcome.removed) {
+          const next = removeTreeFile(patched, path);
+          if (!next) {
+            await rescanPath(root);
+            return;
+          }
+          patched = next;
+        }
+        for (const entry of outcome.fresh) {
+          const next = patchTreeFile(patched, entry);
+          if (!next) {
+            await rescanPath(root);
+            return;
+          }
+          patched = next;
+        }
+        if (patched.files.length === 0 && patched.children.length === 0) {
+          // Nothing is left in the folder: drop it, as a full rescan would.
+          setFolderTrees((prev) => {
+            const next = prev.filter((tree) => normalizePath(tree.path) !== key);
+            setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
+            return next;
+          });
           return;
         }
         setFolderTrees((prev) => {
-          const next = prev.filter((tree) => tree.path !== path);
-          if (entries?.length) next.push(buildTree(entries, path));
+          const next = prev.map((tree) => (normalizePath(tree.path) === key ? patched : tree));
           setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
           return next;
         });
-        reportScan(
-          path,
-          (entries ?? []).map((entry) => entry.path),
-          false
-        );
+        reportScan(root, allFilePaths(patched), false);
       };
       (async () => {
-        const roots = [...new Set(changed)];
-        await Promise.all(roots.map((path) => rescanPath(path)));
+        await Promise.all(
+          [...byRoot.entries()].map(([root, changes]) =>
+            patchableVideoChanges(changes, videoExtensions)
+              ? patchRoot(root, changes)
+              : rescanPath(root)
+          )
+        );
       })();
     },
     { errorTag: "folderscan" }
@@ -460,6 +589,7 @@ function PlayerRoute() {
       invokeTyped<VideoFileEntry[]>("scan_video_folder", {
         path: folder,
         extensions: videoExtensions,
+        threads: scanThreads,
       })
     );
     if (scanError) {
@@ -480,7 +610,7 @@ function PlayerRoute() {
     unlisten?.();
     setLoading(false);
     setScanProgress(null);
-  }, [folderTrees, t, videoExtensions, rebuildIndex]);
+  }, [folderTrees, t, videoExtensions, scanThreads, rebuildIndex]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {

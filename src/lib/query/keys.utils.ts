@@ -10,6 +10,8 @@ export const queryKeys = {
     ["anime_inline_search", query, adult ? 1 : 0] as const,
   animeBrief: (id: number) => ["anime_brief", id] as const,
   animeFranchise: (id: number) => ["franchise", id] as const,
+  animeFranchiseRefresh: (id: number, refreshKey: number) =>
+    [...queryKeys.animeFranchise(id), refreshKey] as const,
   animeRecommendations: (id: number) => ["anime_recommendations", id] as const,
   profileRecommendations: (userId: number | null) =>
     ["anilist_profile_recommendations", userId] as const,
@@ -30,6 +32,7 @@ export const queryKeys = {
   friendScores: (id: number, friendsKey: string) =>
     ["anime_friend_scores", id, friendsKey] as const,
   activity: (ids: readonly number[]) => ["anilist_activity", ...ids] as const,
+  activityScope: () => ["anilist_activity"] as const,
   siteNotifications: () => ["anilist_site_notifications"] as const,
   customLists: () => ["anilist_custom_lists"] as const,
   anilistListNames: () => ["anilist_list_names"] as const,
@@ -47,16 +50,29 @@ export const queryKeys = {
     direction: string | null,
     proxy: string | undefined
   ) => ["animeScraper", source, query, request, page, sort, direction, proxy ?? ""] as const,
+  torrentSearchScope: () => ["animeScraper"] as const,
+  torrentPoster: (pageUrl: string | null) => ["torrent_poster", pageUrl] as const,
+  coverResolve: (
+    key: string,
+    rejectedIds: number[] | null,
+    learnedTitle: string | null,
+    localTitle: string | null
+  ) => ["cover_resolve", key, rejectedIds, learnedTitle, localTitle] as const,
+  coverResolveScope: (coverKey: string) => ["cover_resolve", coverKey] as const,
   searchSessions: (rutracker: string, nekobt: string, erai: string) =>
     ["search_sessions", rutracker, nekobt, erai] as const,
+  searchSessionsScope: () => ["search_sessions"] as const,
   hostStats: () => ["host-stats"] as const,
+  dhtStats: () => ["dht-stats"] as const,
   systemFonts: () => ["system_fonts"] as const,
   coverManualSearch: (query: string) => ["cover_manual_search", query] as const,
   tmdbRate: () => ["tmdb-rate"] as const,
   appUpdates: () => ["connection"] as const,
   releasesPoll: () => ["anilist-releases"] as const,
   wallpaper: (id: string | null) => ["dither-wallpaper", id] as const,
+  wallpaperScope: () => ["dither-wallpaper"] as const,
   extraFiles: (dir: string | null | undefined) => ["extra_files", dir ?? ""] as const,
+  extraFilesScope: () => ["extra_files"] as const,
   animeScreen: (id: number) => ["anime_screen", id] as const,
   animeCharacters: (id: number) => ["anime_characters", id] as const,
   characterDetail: (id: number) => ["character_detail", id] as const,

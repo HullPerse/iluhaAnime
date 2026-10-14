@@ -18,6 +18,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import type { BrowseTab } from "@/types/anilist";
@@ -59,9 +60,7 @@ export default function BrowseAnimeModal({
   });
 
   useEffect(() => {
-    const idle = window.requestIdleCallback ?? ((run: () => void) => window.setTimeout(run, 1500));
-    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
-    const handle = idle(() => {
+    const prefetchOthers = () => {
       const others = BROWSE_TABS.filter((tab) => tab.id !== activeTab);
       prefetchedRef.current = others.map((tab) => tab.id);
       for (const tab of others) {
@@ -78,9 +77,17 @@ export default function BrowseAnimeModal({
           staleTime: QUERY_PRESETS.slow.staleTime,
         });
       }
-    });
+    };
+    let idleId: number | undefined;
+    let fallback: ScheduledTask | undefined;
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(prefetchOthers);
+    } else {
+      fallback = scheduleTask("timeout", 1500, prefetchOthers);
+    }
     return () => {
-      cancel(handle);
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      fallback?.cancel();
       for (const tabId of prefetchedRef.current) {
         queryClient.cancelQueries({ queryKey: queryKeys.anilistBrowse(tabId) });
       }

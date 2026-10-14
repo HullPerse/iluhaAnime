@@ -12,6 +12,7 @@ import {
   formatAiringLocal,
 } from "@/lib/anilist/airing.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { createInterval } from "@/lib/pacer/interval.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniMedia } from "@/types/anilist";
 
@@ -32,8 +33,8 @@ function AniListMetadata({
   const airingCountdown = formatAiringCountdown(airingCountdownSecs(airingAt, now), t);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), AIRING_TICK_MS);
-    return () => window.clearInterval(timer);
+    const { cancel } = createInterval(() => setNow(Date.now()), AIRING_TICK_MS);
+    return cancel;
   }, []);
 
   return (

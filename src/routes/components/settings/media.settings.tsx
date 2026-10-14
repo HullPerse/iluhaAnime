@@ -15,6 +15,8 @@ export default function SettingsMedia() {
   const audioExtensions = useCell(settingsAtoms.audioExtensions);
   const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
   const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
+  const watcherDelay = useCell(settingsAtoms.watcherDelay);
+  const scanThreads = useCell(settingsAtoms.scanThreads);
   const { t } = useI18n();
   const [video, setVideo] = useState(() => videoExtensions.join(", "));
   const [audio, setAudio] = useState(() => audioExtensions.join(", "));
@@ -43,7 +45,9 @@ export default function SettingsMedia() {
           value={video}
           onChange={setVideo}
           onCommit={() =>
-            setVideo(commit(video, videoExtensions, (list) => patchSettings({ videoExtensions: list })))
+            setVideo(
+              commit(video, videoExtensions, (list) => patchSettings({ videoExtensions: list }))
+            )
           }
         />
         <ExtensionRow
@@ -51,7 +55,9 @@ export default function SettingsMedia() {
           value={audio}
           onChange={setAudio}
           onCommit={() =>
-            setAudio(commit(audio, audioExtensions, (list) => patchSettings({ audioExtensions: list })))
+            setAudio(
+              commit(audio, audioExtensions, (list) => patchSettings({ audioExtensions: list }))
+            )
           }
         />
         <ExtensionRow
@@ -60,7 +66,9 @@ export default function SettingsMedia() {
           onChange={setSubtitles}
           onCommit={() =>
             setSubtitles(
-              commit(subtitles, subtitleExtensions, (list) => patchSettings({ subtitleExtensions: list }))
+              commit(subtitles, subtitleExtensions, (list) =>
+                patchSettings({ subtitleExtensions: list })
+              )
             )
           }
         />
@@ -76,6 +84,33 @@ export default function SettingsMedia() {
               { value: "hide", label: t("settings.media.tracks.hide") },
               { value: "folders", label: t("settings.media.tracks.folders") },
               { value: "torrent", label: t("settings.media.tracks.torrent") },
+            ]}
+            className="h-6 flex-1"
+          />
+        </label>
+        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+          <span className="w-36 shrink-0 font-bold">{t("settings.media.watcher")}</span>
+          <Select
+            value={watcherDelay}
+            onChange={(value) => patchSettings({ watcherDelay: value as typeof watcherDelay })}
+            options={[
+              { value: "fast", label: t("settings.media.watcher.fast") },
+              { value: "calm", label: t("settings.media.watcher.calm") },
+            ]}
+            className="h-6 flex-1"
+          />
+        </label>
+        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+          <span className="w-36 shrink-0 font-bold">{t("settings.media.scanThreads")}</span>
+          <Select
+            value={String(scanThreads)}
+            onChange={(value) => patchSettings({ scanThreads: Number(value) })}
+            options={[
+              { value: "0", label: t("settings.media.scanThreads.auto") },
+              { value: "2", label: t("settings.media.scanThreads.two") },
+              { value: "4", label: t("settings.media.scanThreads.four") },
+              { value: "6", label: t("settings.media.scanThreads.six") },
+              { value: "8", label: t("settings.media.scanThreads.eight") },
             ]}
             className="h-6 flex-1"
           />

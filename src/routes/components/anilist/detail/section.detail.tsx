@@ -20,6 +20,7 @@ import {
   buildSimNodes,
   runFranchiseSimulation,
 } from "@/lib/anilist/sim.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import type {
   FranchiseNodePosition,
@@ -60,7 +61,7 @@ function FranchiseGraphSection({
   const viewport = useFranchiseViewport();
   const { getScale, zoomToElement } = viewport;
   const dragMovedRef = useRef(false);
-  const dragRafRef = useRef<number | null>(null);
+  const dragRafRef = useRef<ScheduledTask | null>(null);
   const dragPointRef = useRef<{ x: number; y: number } | null>(null);
   const zoomedAnimeIdRef = useRef<number | null>(null);
   const focusAfterLayoutRef = useRef(false);
@@ -70,13 +71,13 @@ function FranchiseGraphSection({
   }, [positions]);
 
   const focusCurrent = useCallback(() => {
-    requestAnimationFrame(() => {
+    scheduleTask("raf", 0, () => {
       zoomToElement(`franchise-node-${animeId}`, 1.5, 300);
     });
   }, [animeId, zoomToElement]);
 
   const { data, isLoading, isError, error, refetch } = useAppQuery("static", {
-    queryKey: [...queryKeys.animeFranchise(animeId), refreshKey] as const,
+    queryKey: queryKeys.animeFranchiseRefresh(animeId, refreshKey),
     queryFn: async () => {
       const fresh = await anilistApi.getAnimeFranchise(animeId, refreshKey ? "fresh" : "all");
       setCacheSource("fresh");
@@ -195,7 +196,7 @@ function FranchiseGraphSection({
       if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragMovedRef.current = true;
       dragPointRef.current = { x: dragging.startNodeX + dx, y: dragging.startNodeY + dy };
       if (dragRafRef.current !== null) return;
-      dragRafRef.current = requestAnimationFrame(() => {
+      dragRafRef.current = scheduleTask("raf", 0, () => {
         dragRafRef.current = null;
         const point = dragPointRef.current;
         dragPointRef.current = null;
@@ -209,10 +210,8 @@ function FranchiseGraphSection({
     };
 
     const handleMouseUp = () => {
-      if (dragRafRef.current !== null) {
-        cancelAnimationFrame(dragRafRef.current);
-        dragRafRef.current = null;
-      }
+      dragRafRef.current?.cancel();
+      dragRafRef.current = null;
       dragPointRef.current = null;
       setDragging(null);
     };

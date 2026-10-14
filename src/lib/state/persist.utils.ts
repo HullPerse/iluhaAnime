@@ -1,5 +1,6 @@
 import * as z from "zod/mini";
 
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { attemptSync } from "@/lib/utils/attempt.utils";
 import { parseJson } from "@/lib/utils/schema.utils";
 
@@ -135,44 +136,10 @@ function createTrailingScheduler<T>(
   task: (value: T) => void,
   delayMs: number
 ): TrailingScheduler<T> {
-  let pending: T | undefined;
-  let armed = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-
-  const fire = (): void => {
-    timer = undefined;
-    armed = false;
-    if (pending === undefined) return;
-    const next = pending;
-    pending = undefined;
-    task(next);
-  };
-
+  const pacer = new Debouncer((value: T) => task(value), { wait: delayMs });
   return {
-    arm: (value) => {
-      pending = value;
-      if (armed) return;
-      armed = true;
-      timer = setTimeout(fire, delayMs);
-    },
-    flush: () => {
-      if (timer !== undefined) {
-        clearTimeout(timer);
-        timer = undefined;
-      }
-      armed = false;
-      if (pending === undefined) return;
-      const next = pending;
-      pending = undefined;
-      task(next);
-    },
-    cancel: () => {
-      if (timer !== undefined) {
-        clearTimeout(timer);
-        timer = undefined;
-      }
-      armed = false;
-      pending = undefined;
-    },
+    arm: (value) => pacer.maybeExecute(value),
+    flush: () => pacer.flush(),
+    cancel: () => pacer.cancel(),
   };
 }

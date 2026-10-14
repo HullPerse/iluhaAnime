@@ -1,4 +1,4 @@
-import { mockInvoke } from "../mocks";
+import { mockConvertFileSrc, mockInvoke } from "../mocks";
 import { describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
@@ -34,7 +34,7 @@ import type { FolderNode } from "@/types/torrent";
 import type { UpscaleQueueItem } from "@/types/upscale";
 import type { PlayerSettings } from "@/types/videoPlayer";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke, convertFileSrc: mockConvertFileSrc }));
 
 describe("player/queue", () => {
   const ru = (key: Parameters<typeof translate>[1]) => translate("ru", key);

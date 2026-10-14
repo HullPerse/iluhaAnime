@@ -15,6 +15,8 @@ import {
   screenToWorld,
   zoomCameraAt,
 } from "@/lib/anilist/camera.utils";
+import { createAnimationLoop, type AnimationLoopTask } from "@/lib/pacer/interval.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import type {
   CameraPoint,
   FranchiseCamera,
@@ -36,16 +38,14 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
   const panStartRef = useRef<{ clientX: number; clientY: number; camera: FranchiseCamera } | null>(
     null
   );
-  const animationRef = useRef<number | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const animationRef = useRef<AnimationLoopTask | null>(null);
+  const rafTaskRef = useRef<ScheduledTask | null>(null);
   const pendingCameraRef = useRef<FranchiseCamera | null>(null);
   const wheelCleanupRef = useRef<(() => void) | null>(null);
 
   const cancelAnimation = useCallback(() => {
-    if (animationRef.current !== null) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
+    animationRef.current?.cancel();
+    animationRef.current = null;
   }, []);
 
   const applyCamera = useCallback(
@@ -61,9 +61,9 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
   const scheduleCamera = useCallback(
     (next: FranchiseCamera) => {
       pendingCameraRef.current = next;
-      if (rafRef.current !== null) return;
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
+      if (rafTaskRef.current !== null) return;
+      rafTaskRef.current = scheduleTask("raf", 0, () => {
+        rafTaskRef.current = null;
         const pending = pendingCameraRef.current;
         pendingCameraRef.current = null;
         if (pending) applyCamera(pending);
@@ -74,7 +74,8 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
 
   useEffect(
     () => () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafTaskRef.current?.cancel();
+      rafTaskRef.current = null;
       wheelCleanupRef.current?.();
     },
     []
@@ -92,7 +93,8 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
         return;
       }
       const start = performance.now();
-      const step = (now: number) => {
+      let loop: AnimationLoopTask | null = null;
+      loop = createAnimationLoop((now) => {
         const t = Math.min(1, (now - start) / durationMs);
         const eased = easeInOutCubic(t);
         const next: FranchiseCamera = {
@@ -102,13 +104,12 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
         };
         cameraRef.current = next;
         setCamera(next);
-        if (t < 1) {
-          animationRef.current = requestAnimationFrame(step);
-        } else {
+        if (t >= 1) {
           animationRef.current = null;
+          loop?.cancel();
         }
-      };
-      animationRef.current = requestAnimationFrame(step);
+      });
+      animationRef.current = loop;
     },
     [applyCamera, cancelAnimation]
   );

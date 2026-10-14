@@ -13,6 +13,7 @@ import { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
 import { isPublicStatus } from "@/lib/collection/status.utils";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptAll } from "@/lib/utils/attempt.utils";
@@ -221,10 +222,10 @@ export function WizardModal({
     if (editing) return;
     if (source === "custom") return;
     if (!search.trim() || search.trim().length < 2) return;
-    const id = window.setTimeout(() => {
+    const task = scheduleTask("timeout", WIZARD_SEARCH_DEBOUNCE_MS, () => {
       attempt(runSearch());
-    }, WIZARD_SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(id);
+    });
+    return () => task.cancel();
   }, [search, source, editing, runSearch]);
 
   const draftSignature = JSON.stringify([

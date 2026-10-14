@@ -1,4 +1,5 @@
 import { torrentApi } from "@/api/torrent.api";
+import { fileNameFromPath } from "@/lib/media/parse.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { showError, showInfo } from "@/lib/utils/notification.utils";
 import { tr } from "@/lib/locale/i18n.utils";
@@ -24,13 +25,13 @@ export function findUpdatedFiles(
   const knownBase = new Set(
     torrentFiles.map((file) => {
       const normalized = normalizeUpdateFileName(file.name);
-      return normalized.slice(normalized.lastIndexOf("/") + 1);
+      return fileNameFromPath(normalized);
     })
   );
   return detailFiles.filter((file) => {
     const normalized = normalizeUpdateFileName(file.name);
     if (!normalized || known.has(normalized)) return false;
-    const base = normalized.slice(normalized.lastIndexOf("/") + 1);
+    const base = fileNameFromPath(normalized);
     return !knownBase.has(base);
   });
 }
@@ -68,15 +69,14 @@ function matchPickedIndices(
   const byBase = new Map(
     freshFiles.map((file) => {
       const normalized = normalizeUpdateFileName(file.name);
-      return [normalized.slice(normalized.lastIndexOf("/") + 1), file.index];
+      return [fileNameFromPath(normalized), file.index];
     })
   );
   const indices: number[] = [];
   for (const file of picked) {
     const normalized = normalizeUpdateFileName(file.name);
     const index =
-      byFull.get(normalized) ??
-      byBase.get(normalized.slice(normalized.lastIndexOf("/") + 1));
+      byFull.get(normalized) ?? byBase.get(fileNameFromPath(normalized));
     if (index !== undefined) indices.push(index);
   }
   return [...new Set(indices)];

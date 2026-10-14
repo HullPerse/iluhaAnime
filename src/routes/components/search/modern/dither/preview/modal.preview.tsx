@@ -12,12 +12,15 @@ import {
   DITHER_BAKE_MAX_SIDE,
   DITHER_BAKE_TIMEOUT_MS,
   DITHER_DEFAULTS,
+  DITHER_MATRIX_LABELS,
+  DITHER_MODE_LABELS,
   DITHER_PRESETS,
   DITHER_PRESET_LABELS,
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,
@@ -56,7 +59,7 @@ export default function DitherPreviewModal({
   const [saving, setSaving] = useState(false);
   const [baking, setBaking] = useState(false);
   const [bakeProgress, setBakeProgress] = useState<{ done: number; total: number } | null>(null);
-  const bakeTimerRef = useRef(0);
+  const bakeTimerRef = useRef<ScheduledTask | null>(null);
   const src = image.originalUrl ?? image.url;
 
   const applyPreset = (id: DitherPresetId) => {
@@ -106,14 +109,15 @@ export default function DitherPreviewModal({
   };
 
   const stopBaking = () => {
-    window.clearTimeout(bakeTimerRef.current);
+    bakeTimerRef.current?.cancel();
+    bakeTimerRef.current = null;
     bakeStartedRef.current = false;
     setSaving(false);
     setBaking(false);
     setBakeProgress(null);
   };
 
-  useEffect(() => () => window.clearTimeout(bakeTimerRef.current), []);
+  useEffect(() => () => bakeTimerRef.current?.cancel(), []);
 
   const save = () => {
     if (!canSave || saving || renderStale) return;
@@ -121,8 +125,8 @@ export default function DitherPreviewModal({
     setBaking(true);
     setBakeProgress(null);
     bakeStageRef.current = "frame";
-    window.clearTimeout(bakeTimerRef.current);
-    bakeTimerRef.current = window.setTimeout(() => {
+    bakeTimerRef.current?.cancel();
+    bakeTimerRef.current = scheduleTask("timeout", DITHER_BAKE_TIMEOUT_MS, () => {
       const stage = bakeStageRef.current;
       stopBaking();
       showError(
@@ -133,7 +137,7 @@ export default function DitherPreviewModal({
             : "search.dither.bake.timeout.database"
         )
       );
-    }, DITHER_BAKE_TIMEOUT_MS);
+    });
   };
 
   const bakeFullFrame = async () => {
@@ -152,7 +156,8 @@ export default function DitherPreviewModal({
       return;
     }
     const [updated, error] = await attempt(systemApi.updateDitherImageData(image.id, dataUrl));
-    window.clearTimeout(bakeTimerRef.current);
+    bakeTimerRef.current?.cancel();
+    bakeTimerRef.current = null;
     bakeStartedRef.current = false;
     setSaving(false);
     setBaking(false);
@@ -222,56 +227,30 @@ export default function DitherPreviewModal({
           ))}
         </div>
         <div className="flex flex-row gap-1">
-          <Button
-            className="h-5 flex-1 px-1 text-xs"
-            title="Ordered"
-            onClick={() => patchOptions({ mode: "ordered" })}
-            disabled={options.mode === "ordered"}
-          >
-            Ordered
-          </Button>
-          <Button
-            className="h-5 flex-1 px-1 text-xs"
-            title="Floyd-Steinberg"
-            onClick={() => patchOptions({ mode: "floyd" })}
-            disabled={options.mode === "floyd"}
-          >
-            Floyd-Steinberg
-          </Button>
-          <Button
-            className="h-5 flex-1 px-1 text-xs"
-            title="Atkinson"
-            onClick={() => patchOptions({ mode: "atkinson" })}
-            disabled={options.mode === "atkinson"}
-          >
-            Atkinson
-          </Button>
+          {(["ordered", "floyd", "atkinson"] as const).map((mode) => (
+            <Button
+              key={mode}
+              className="h-5 flex-1 px-1 text-xs"
+              title={t(DITHER_MODE_LABELS[mode])}
+              onClick={() => patchOptions({ mode })}
+              disabled={options.mode === mode}
+            >
+              {t(DITHER_MODE_LABELS[mode])}
+            </Button>
+          ))}
         </div>
         <div className="flex flex-row gap-1">
-          <Button
-            className="h-5 flex-1 px-1 text-xs"
-            title="Bayer 4"
-            onClick={() => patchOptions({ matrix: "bayer4" })}
-            disabled={options.matrix === "bayer4" || options.mode !== "ordered"}
-          >
-            Bayer 4
-          </Button>
-          <Button
-            className="h-5 flex-1 px-1 text-xs"
-            title="Bayer 8"
-            onClick={() => patchOptions({ matrix: "bayer8" })}
-            disabled={options.matrix === "bayer8" || options.mode !== "ordered"}
-          >
-            Bayer 8
-          </Button>
-          <Button
-            className="h-5 flex-1 px-1 text-xs"
-            title="Blue 64"
-            onClick={() => patchOptions({ matrix: "blue64" })}
-            disabled={options.matrix === "blue64" || options.mode !== "ordered"}
-          >
-            Blue 64
-          </Button>
+          {(["bayer4", "bayer8", "blue64"] as const).map((matrix) => (
+            <Button
+              key={matrix}
+              className="h-5 flex-1 px-1 text-xs"
+              title={t(DITHER_MATRIX_LABELS[matrix])}
+              onClick={() => patchOptions({ matrix })}
+              disabled={options.matrix === matrix || options.mode !== "ordered"}
+            >
+              {t(DITHER_MATRIX_LABELS[matrix])}
+            </Button>
+          ))}
         </div>
         <div className="flex flex-row gap-1">
           <Button

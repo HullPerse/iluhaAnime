@@ -1,6 +1,7 @@
 import { KIND_ORDER } from "@/config/search/autocomplete.config";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { ANIME_STATUS_BOOST } from "@/config/search/status.config";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { markSpellingReady } from "@/lib/splash/signals.utils";
 import type {
   AnilistSuggestionBoost,
@@ -442,17 +443,16 @@ const IDLE_FALLBACK_MS = 300;
 const CAN_USE_IDLE =
   typeof window !== "undefined" && typeof window.requestIdleCallback === "function";
 
-function scheduleIdle(run: () => void): number {
-  if (CAN_USE_IDLE) return window.requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS });
-  return window.setTimeout(run, IDLE_FALLBACK_MS);
+function scheduleIdle(run: () => void): ScheduledTask {
+  if (CAN_USE_IDLE) {
+    const id = window.requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS });
+    return { cancel: () => window.cancelIdleCallback(id) };
+  }
+  return scheduleTask("timeout", IDLE_FALLBACK_MS, run);
 }
 
-function cancelIdle(handle: number): void {
-  if (CAN_USE_IDLE) {
-    window.cancelIdleCallback(handle);
-    return;
-  }
-  window.clearTimeout(handle);
+function cancelIdle(task: ScheduledTask): void {
+  task.cancel();
 }
 
 /**
@@ -477,7 +477,7 @@ export function prewarmSpelling(
     return () => {};
   }
   let cancelled = false;
-  let handle: number | undefined;
+  let handle: ScheduledTask | undefined;
   const step = () => {
     handle = undefined;
     if (cancelled) return;

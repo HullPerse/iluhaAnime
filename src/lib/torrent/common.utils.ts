@@ -110,6 +110,20 @@ export function isCurrentDownload(torrent: TorrentInfo): boolean {
   return !torrent.finished && torrent.state !== "paused" && torrent.state !== "error";
 }
 
+export function countLiveTorrents(torrents: readonly TorrentInfo[]): {
+  active: number;
+  seeding: number;
+} {
+  let active = 0;
+  let seeding = 0;
+  for (const item of torrents) {
+    if (item.state !== "live") continue;
+    if (item.finished) seeding += 1;
+    else active += 1;
+  }
+  return { active, seeding };
+}
+
 export function getTorrentLifecycle(state: string, finished: boolean): TorrentLifecycle {
   const stateMap: Record<typeof state, TorrentLifecycle> = {
     initializing: "staging",

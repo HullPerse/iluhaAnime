@@ -9,6 +9,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { createInterval } from "@/lib/pacer/interval.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { torrentFileIcon } from "@/lib/torrent/fileIcon.utils";
@@ -64,10 +65,10 @@ function TorrentFilePicker({
     if (loading) {
       startRef.current = Date.now();
       setElapsed(0);
-      const interval = setInterval(() => {
+      const { cancel } = createInterval(() => {
         setElapsed(Math.floor((Date.now() - startRef.current!) / 1000));
       }, PICKER_ELAPSED_TICK_MS);
-      return () => clearInterval(interval);
+      return cancel;
     } else {
       startRef.current = null;
       setElapsed(0);

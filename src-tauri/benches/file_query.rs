@@ -78,6 +78,7 @@ fn main() {
             .block_on(indexer.rebuild(
                 vec![root.to_string_lossy().to_string()],
                 vec!["mkv".to_string(), "nfo".to_string()],
+                0,
             ))
             .expect("bench rebuild");
         for query in QUERIES {

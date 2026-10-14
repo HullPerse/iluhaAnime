@@ -1,6 +1,8 @@
 import { attempt } from "@/lib/utils/attempt.utils";
 
 export function ignore(promise: Promise<unknown>): void {
+  // Silence is the feature: the single sanctioned sink for intentionally
+  // ignored rejections. Fallible work must report via attempt reporters first.
   promise.catch(() => undefined);
 }
 

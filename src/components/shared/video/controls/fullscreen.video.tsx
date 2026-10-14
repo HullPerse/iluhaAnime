@@ -1,6 +1,7 @@
 import { Maximize, Minimize } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { useI18n } from "@/hooks/i18n.hook";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 
 import { Win95PlayerButton } from "./win95PlayerButton.video";
@@ -11,6 +12,7 @@ export function FullscreenToggle({
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
 }) {
   const [fullscreen, setFullscreen] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     const sync = () => setFullscreen(document.fullscreenElement === iframeRef.current);
@@ -34,7 +36,11 @@ export function FullscreenToggle({
   };
 
   return (
-    <Win95PlayerButton onClick={toggle} aria-label="Fullscreen" title="Fullscreen">
+    <Win95PlayerButton
+      onClick={toggle}
+      aria-label={t("player.media.panel.fullscreen")}
+      title={t("player.media.panel.fullscreen")}
+    >
       {fullscreen ? <Minimize className="size-3" /> : <Maximize className="size-3" />}
     </Win95PlayerButton>
   );

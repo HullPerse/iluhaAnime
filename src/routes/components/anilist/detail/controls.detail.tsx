@@ -50,7 +50,7 @@ function patchListEntry(
   mediaId: number,
   patch: ListEntryPatch
 ): void {
-  queryClient.setQueryData(["anilist_data"], (old: unknown) => {
+  queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) => {
     if (!old) return old;
     const data = old as AnilistRouteData;
     return {
@@ -74,7 +74,7 @@ function readListStatus(
   queryClient: ReturnType<typeof useQueryClient>,
   mediaId: number
 ): string | null {
-  const data = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+  const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
   if (!data) return null;
   for (const list of data.lists) {
     const found = list.entries.find((entry) => entry.media.id === mediaId);
@@ -131,17 +131,17 @@ function DeleteListEntryButton({
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
-    const userId = queryClient.getQueryData<AnilistRouteData>(["anilist_data"])?.user?.id;
+    const userId = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData())?.user?.id;
     if (!userId) {
       onError(t("anilist.controls.delete.error"));
       return;
     }
     setDeleting(true);
-    const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+    const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     removeListEntry(queryClient, animeId);
     const [, error] = await attempt(anilistApi.deleteEntry(animeId, userId));
     if (error) {
-      queryClient.setQueryData(["anilist_data"], previous);
+      queryClient.setQueryData(queryKeys.anilistData(), previous);
       onError(t("anilist.controls.delete.error"));
       setDeleting(false);
       return;
@@ -157,7 +157,7 @@ function DeleteListEntryButton({
   );
 }
 function removeListEntry(queryClient: ReturnType<typeof useQueryClient>, mediaId: number): void {
-  queryClient.setQueryData(["anilist_data"], (old: unknown) => {
+  queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) => {
     if (!old) return old;
     const data = old as AnilistRouteData;
     return {
@@ -270,7 +270,7 @@ function AniListActionControls({
     // Bucket the entry sits in right now. `null` means it is not in the cache
     // yet, i.e. this save creates the entry.
     const previousStatus = readListStatus(queryClient, anime.id);
-    const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+    const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     if (previousStatus !== null) patchListEntry(queryClient, anime.id, values);
     const startedAt = performance.now();
     const [saved, error] = await attempt(
@@ -284,7 +284,7 @@ function AniListActionControls({
       })
     );
     if (error) {
-      if (previousStatus !== null) queryClient.setQueryData(["anilist_data"], previous);
+      if (previousStatus !== null) queryClient.setQueryData(queryKeys.anilistData(), previous);
       const message = error instanceof Error ? error.message : String(error);
       const reason = message.length > 300 ? `${message.slice(0, 300)}...` : message;
       console.warn("anilist.save.failed", {

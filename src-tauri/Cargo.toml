@@ -55,9 +55,11 @@ serde_bencode = "0.2"
 serde_bytes = "0.11"
 tauri-plugin-clipboard-manager = "2"
 jwalk = "0.8"
+# Direct dep so scans can run on a pool of their own instead of the global
+# rayon pool that jwalk defaults to and torrent hashing also drives.
+rayon = "1"
 dashmap = "6"
 notify = "8"
-notify-debouncer-mini = "0.6"
 tauri-plugin-fs = "2"
 tokio-util = { version = "0.7", features = ["rt"] }
 thiserror = "2"

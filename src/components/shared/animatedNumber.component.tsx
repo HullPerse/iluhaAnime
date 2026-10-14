@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createAnimationLoop } from "@/lib/pacer/interval.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
@@ -16,16 +17,14 @@ function useTweenedValue(target: number, durationMs: number): number {
     const from = fromRef.current;
     if (from === target) return;
     const startedAt = performance.now();
-    let frame = 0;
-    const step = (now: number) => {
+    const loop = createAnimationLoop((now) => {
       const progress = Math.min(1, (now - startedAt) / durationMs);
       const next = from + (target - from) * progress;
       fromRef.current = next;
       setShown(next);
-      if (progress < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
+      if (progress >= 1) loop.cancel();
+    });
+    return () => loop.cancel();
   }, [target, durationMs]);
   return shown;
 }

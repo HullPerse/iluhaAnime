@@ -10,6 +10,7 @@ import type {
   DitherEffectOptions,
   DitherRGB,
   DitherWorkerProgress,
+  DitherWorkerRequest,
   DitherWorkerResponse,
 } from "@/types/dither";
 
@@ -65,6 +66,14 @@ export function subscribeWorkerJob(
     worker.removeEventListener("message", onMessage);
     worker.removeEventListener("error", onError);
   };
+}
+
+export function postDitherJob(
+  worker: Worker,
+  request: DitherWorkerRequest,
+  transfer: Transferable[]
+): void {
+  worker.postMessage(request, transfer);
 }
 
 export function resetDitherWorker(): void {

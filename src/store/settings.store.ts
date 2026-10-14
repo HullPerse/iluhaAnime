@@ -1,10 +1,10 @@
 import * as z from "zod/mini";
 
 import { tauriTransport } from "@/api/transport.api";
+import { listSortKeys } from "@/config/anilist/list.config";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/utils/dither.config";
-import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 46;
+export const SETTINGS_SCHEMA_VERSION = 48;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -212,6 +212,10 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
   torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),
   anilistDisplayMode: toValidator(z.enum(["scroll", "pagination"])),
+  watcherDelay: toValidator(z.enum(["fast", "calm"])),
+  // 0 = one thread per logical core; anything else is clamped in Rust.
+  scanThreads: (value) =>
+    Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 64,
   // Shape only: chord text is validated at resolve time (an unparsable
   // override is dropped, never persisted back), so a hand-edited store or a
   // removed manifest entry cannot break loading.

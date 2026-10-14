@@ -24,6 +24,10 @@ import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
+import { createInterval } from "@/lib/pacer/interval.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
+import { Throttler } from "@/lib/pacer/throttle.utils";
 import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/player/cardCache.utils";
 import {
   LOADING_TIMEOUT_MS,
@@ -154,6 +158,7 @@ import PlayerSidePanel from "./side.player";
 const AUTO_HIDE_DELAY = 3000;
 const WATCH_INTERVAL = 5000;
 const DROP_TOAST_TIMEOUT = 6000;
+const SETTINGS_FLUSH_MS = 120;
 const SUBTITLE_FILTERS = ["srt", "ass", "ssa", "vtt", "sub", "idx"];
 const AUDIO_FILTERS = ["mka", "flac", "aac", "m4a", "ac3", "dts", "mp3", "wav", "ogg", "opus"];
 
@@ -257,8 +262,6 @@ function PlayerComponent() {
   const [hasShownFrame, setHasShownFrame] = useState(false);
   const [liveWatch, setLiveWatch] = useState<PlaylistWatch | null>(null);
 
-  useLivePlaylistSync(liveWatch);
-
   const videoRef = useRef<HTMLDivElement>(null);
   const resumeRef = useRef<number | undefined>(undefined);
   const hwdecReloadRef = useRef<HwdecReload | null>(null);
@@ -266,9 +269,29 @@ function PlayerComponent() {
   // (or open request) retires the previous run mid-await so stale track,
   // delay, and seek writes can never land on the wrong file.
   const loadEpochRef = useRef(0);
-  const destroyTimerRef = useRef<number | null>(null);
-  const dropTimerRef = useRef<number | null>(null);
+  const destroyTaskRef = useRef<ScheduledTask | null>(null);
+  const dropHideRef = useRef<Debouncer<[]> | null>(null);
   const lastSavedWatchRef = useRef<{ path: string; position: number } | null>(null);
+
+  // A rewrite of the file that is playing right now (upscale, re-encode) needs
+  // mpv to reopen it; the hwdec-reload path restores position and paused state
+  // after `file-loaded`, so it doubles as the reload-from-watch-position here.
+  const reloadPlayingFile = useCallback(() => {
+    const playlistIndex = playbackAtoms.playlistIndex.get();
+    if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
+    hwdecReloadRef.current = {
+      position: playbackAtoms.timePos.get(),
+      paused: playbackAtoms.paused.get(),
+    };
+    setLoadingFile(true);
+    playPlaylistIndex(playlistIndex).catch((error: unknown) => {
+      hwdecReloadRef.current = null;
+      setLoadingFile(false);
+      reportBackgroundError("player.reload", error);
+    });
+  }, []);
+
+  useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
 
   const immersive = cinema || fullscreen;
   const hasNext = playlistCount > 0 && playlistIndex < playlistCount - 1;
@@ -289,7 +312,16 @@ function PlayerComponent() {
       : fileNameFromPath(path)
     : t("player.media.title");
 
-  const marginsRafRef = useRef(0);
+  const hideDropSoon = useCallback(() => {
+    if (dropHideRef.current === null) {
+      dropHideRef.current = new Debouncer(() => setDropAlert(null), {
+        wait: DROP_TOAST_TIMEOUT,
+      });
+    }
+    dropHideRef.current.maybeExecute();
+  }, []);
+
+  const marginsTaskRef = useRef<ScheduledTask | null>(null);
   const lastMarginsRef = useRef<VideoMargins | null>(null);
 
   const readMargins = useCallback((): VideoMargins => {
@@ -332,8 +364,8 @@ function PlayerComponent() {
 
   const syncMargins = useCallback(
     (force = false) => {
-      cancelAnimationFrame(marginsRafRef.current);
-      marginsRafRef.current = requestAnimationFrame(() => {
+      marginsTaskRef.current?.cancel();
+      marginsTaskRef.current = scheduleTask("raf", 0, () => {
         sendMargins(measureMargins(), force);
       });
     },
@@ -350,13 +382,9 @@ function PlayerComponent() {
   // is throttled leading+trailing: discrete steps go out immediately, drags
   // cost ~7/s plus the exact final value.
   const VOLUME_IPC_MS = 150;
-  const volumeTimerRef = useRef<number | undefined>(undefined);
-  const volumeLastSentRef = useRef(0);
-  const volumePendingRef = useRef<number | null>(null);
+  const volumeThrottlerRef = useRef<Throttler<[number]> | null>(null);
 
   const sendVolumeNow = useCallback((value: number) => {
-    volumeLastSentRef.current = Date.now();
-    volumePendingRef.current = null;
     setMpvProperty("volume", Math.round(value * 100)).catch((error: unknown) =>
       reportBackgroundError("player.settings.volume", error)
     );
@@ -364,26 +392,18 @@ function PlayerComponent() {
 
   const sendVolumeThrottled = useCallback(
     (value: number) => {
-      if (Date.now() - volumeLastSentRef.current >= VOLUME_IPC_MS) {
-        window.clearTimeout(volumeTimerRef.current);
-        sendVolumeNow(value);
-        return;
+      if (volumeThrottlerRef.current === null) {
+        volumeThrottlerRef.current = new Throttler(sendVolumeNow, { wait: VOLUME_IPC_MS });
       }
-      volumePendingRef.current = value;
-      window.clearTimeout(volumeTimerRef.current);
-      volumeTimerRef.current = window.setTimeout(() => {
-        const pending = volumePendingRef.current;
-        volumePendingRef.current = null;
-        if (pending !== null) sendVolumeNow(pending);
-      }, VOLUME_IPC_MS);
+      volumeThrottlerRef.current.maybeExecute(value);
     },
     [sendVolumeNow]
   );
 
   useEffect(() => {
-    if (destroyTimerRef.current !== null) {
-      window.clearTimeout(destroyTimerRef.current);
-      destroyTimerRef.current = null;
+    if (destroyTaskRef.current !== null) {
+      destroyTaskRef.current.cancel();
+      destroyTaskRef.current = null;
     }
     let disposed = false;
 
@@ -449,23 +469,24 @@ function PlayerComponent() {
 
     return () => {
       disposed = true;
-      destroyTimerRef.current = window.setTimeout(() => {
-        destroyTimerRef.current = null;
+      const task = scheduleTask("timeout", 0, () => {
+        destroyTaskRef.current = null;
         ignore(destroyPlayer());
-      }, 0);
+      });
+      destroyTaskRef.current = task;
     };
   }, []);
 
-  const settingsTimerRef = useRef<number | undefined>(undefined);
-  const pendingSettingsRef = useRef<PlayerSettings | null>(null);
+  const settingsDebouncerRef = useRef<Debouncer<[PlayerSettings]> | null>(null);
   const previousSettingsRef = useRef<PlayerSettings | null>(null);
   const settingsSyncFailedRef = useRef(false);
 
   useEffect(() => {
     return () => {
-      window.clearTimeout(settingsTimerRef.current);
-      window.clearTimeout(volumeTimerRef.current);
-      cancelAnimationFrame(marginsRafRef.current);
+      settingsDebouncerRef.current?.cancel();
+      volumeThrottlerRef.current?.cancel();
+      marginsTaskRef.current?.cancel();
+      dropHideRef.current?.cancel();
     };
   }, []);
 
@@ -482,41 +503,39 @@ function PlayerComponent() {
         );
       }
       if (state.settings !== previous.settings) {
-        pendingSettingsRef.current = state.settings;
-        window.clearTimeout(settingsTimerRef.current);
-        settingsTimerRef.current = window.setTimeout(() => {
-          const latest = pendingSettingsRef.current;
-          pendingSettingsRef.current = null;
-          if (!latest) return;
-          // Diff against the last flushed intent: a slider drag resends one
-          // changed property instead of all ~19 (and avoids rebuilding the
-          // mpv filter chain by resending an unchanged vf). After any
-          // failure the baseline is untrusted, so the next flush goes full.
-          const baseline = previousSettingsRef.current;
-          const full = settingsSyncFailedRef.current || baseline === null;
-          previousSettingsRef.current = latest;
-          const reference = baseline ?? latest;
-          const groups: Array<[Record<string, unknown>, Record<string, unknown>]> = [
-            [transformOptions(reference), transformOptions(latest)],
-            [hdrOptions(reference), hdrOptions(latest)],
-            [colorOptions(reference), colorOptions(latest)],
-            [audioOptions(reference), audioOptions(latest)],
-          ];
-          const jobs: Array<Promise<string[]>> = [];
-          for (const [prevOptions, nextOptions] of groups) {
-            const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
-            if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
-          }
-          if (jobs.length === 0) {
-            settingsSyncFailedRef.current = false;
-            return;
-          }
-          ignore(
-            Promise.all(jobs).then((failedLists) => {
-              settingsSyncFailedRef.current = failedLists.some((list) => list.length > 0);
-            })
-          );
-        }, 120);
+        if (settingsDebouncerRef.current === null) {
+          settingsDebouncerRef.current = new Debouncer((latest: PlayerSettings) => {
+            // Diff against the last flushed intent: a slider drag resends one
+            // changed property instead of all ~19 (and avoids rebuilding the
+            // mpv filter chain by resending an unchanged vf). After any
+            // failure the baseline is untrusted, so the next flush goes full.
+            const baseline = previousSettingsRef.current;
+            const full = settingsSyncFailedRef.current || baseline === null;
+            previousSettingsRef.current = latest;
+            const reference = baseline ?? latest;
+            const groups: Array<[Record<string, unknown>, Record<string, unknown>]> = [
+              [transformOptions(reference), transformOptions(latest)],
+              [hdrOptions(reference), hdrOptions(latest)],
+              [colorOptions(reference), colorOptions(latest)],
+              [audioOptions(reference), audioOptions(latest)],
+            ];
+            const jobs: Array<Promise<string[]>> = [];
+            for (const [prevOptions, nextOptions] of groups) {
+              const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
+              if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
+            }
+            if (jobs.length === 0) {
+              settingsSyncFailedRef.current = false;
+              return;
+            }
+            ignore(
+              Promise.all(jobs).then((failedLists) => {
+                settingsSyncFailedRef.current = failedLists.some((list) => list.length > 0);
+              })
+            );
+          }, { wait: SETTINGS_FLUSH_MS });
+        }
+        settingsDebouncerRef.current.maybeExecute(state.settings);
       }
       if (state.eofMode !== previous.eofMode) {
         setEofModeCommand(state.eofMode).catch((error: unknown) =>
@@ -601,19 +620,18 @@ function PlayerComponent() {
     },
     onDroppedFrames: (data) => {
       setDropAlert(data);
-      if (dropTimerRef.current !== null) window.clearTimeout(dropTimerRef.current);
-      dropTimerRef.current = window.setTimeout(() => setDropAlert(null), DROP_TOAST_TIMEOUT);
+      hideDropSoon();
     },
   });
 
   useEffect(() => {
     if (!loadingFile) return;
-    const id = window.setTimeout(() => setLoadingFile(false), LOADING_TIMEOUT_MS);
-    return () => window.clearTimeout(id);
+    const task = scheduleTask("timeout", LOADING_TIMEOUT_MS, () => setLoadingFile(false));
+    return () => task.cancel();
   }, [loadingFile]);
 
   useEffect(() => {
-    const id = window.setInterval(() => {
+    const { cancel } = createInterval(() => {
       const path = playbackAtoms.path.get();
       const paused = playbackAtoms.paused.get();
       const eofReached = playbackAtoms.eofReached.get();
@@ -641,13 +659,7 @@ function PlayerComponent() {
         })
       );
     }, WATCH_INTERVAL);
-    return () => window.clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (dropTimerRef.current !== null) window.clearTimeout(dropTimerRef.current);
-    };
+    return cancel;
   }, []);
 
   useEffect(() => {
@@ -724,16 +736,16 @@ function PlayerComponent() {
       setBarsVisible(true);
       return;
     }
-    let timer = window.setTimeout(() => setBarsVisible(false), AUTO_HIDE_DELAY);
+    const hide = new Debouncer<[]>(() => setBarsVisible(false), { wait: AUTO_HIDE_DELAY });
+    hide.maybeExecute();
     const wake = () => {
       setBarsVisible(true);
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => setBarsVisible(false), AUTO_HIDE_DELAY);
+      hide.maybeExecute();
     };
     window.addEventListener("mousemove", wake);
     window.addEventListener("mousedown", wake);
     return () => {
-      window.clearTimeout(timer);
+      hide.cancel();
       window.removeEventListener("mousemove", wake);
       window.removeEventListener("mousedown", wake);
     };

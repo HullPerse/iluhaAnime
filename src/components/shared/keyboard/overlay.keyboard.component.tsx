@@ -9,6 +9,7 @@ import {
   resolveBadgeCollisions,
 } from "@/lib/hotkeys/hints.hotkeys";
 import type { HintBadgeLayout } from "@/lib/hotkeys/hints.hotkeys";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { vimAtoms } from "@/store/vim.store";
 
@@ -35,11 +36,11 @@ export default function KeyboardHintOverlay() {
       setLayouts((prev) => (hintLayoutsEqual(prev, next) ? prev : next));
     };
     measure();
-    let frame = 0;
+    let task: ScheduledTask | null = null;
     const schedule = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
+      if (task) return;
+      task = scheduleTask("raf", 0, () => {
+        task = null;
         measure();
       });
     };
@@ -59,7 +60,7 @@ export default function KeyboardHintOverlay() {
       window.removeEventListener("scroll", schedule, true);
       window.removeEventListener("resize", schedule);
       observer.disconnect();
-      if (frame) cancelAnimationFrame(frame);
+      task?.cancel();
     };
   }, [hints.open, hints.badges, hints.pinned, t]);
 

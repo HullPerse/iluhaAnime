@@ -50,4 +50,29 @@ describe("queryKeys", () => {
       "proxy",
     ]);
   });
+
+  it("exposes scope roots for prefix-wide operations", () => {
+    expect(queryKeys.activityScope()).toEqual(["anilist_activity"]);
+    expect(queryKeys.searchSessionsScope()).toEqual(["search_sessions"]);
+    expect(queryKeys.torrentSearchScope()).toEqual(["animeScraper"]);
+    expect(queryKeys.wallpaperScope()).toEqual(["dither-wallpaper"]);
+    expect(queryKeys.extraFilesScope()).toEqual(["extra_files"]);
+    expect(queryKeys.coverResolveScope("k")).toEqual(["cover_resolve", "k"]);
+  });
+
+  it("keys posters, cover cascades, dht stats, and franchise refreshes", () => {
+    expect(queryKeys.torrentPoster("u")).toEqual(["torrent_poster", "u"]);
+    expect(queryKeys.coverResolve("k", [1], "learned", "local")).toEqual([
+      "cover_resolve",
+      "k",
+      [1],
+      "learned",
+      "local",
+    ]);
+    expect(queryKeys.dhtStats()).toEqual(["dht-stats"]);
+    expect(queryKeys.animeFranchiseRefresh(21, 0)).toEqual(["franchise", 21, 0]);
+    expect(queryKeys.animeFranchiseRefresh(21, 0)).not.toEqual(
+      queryKeys.animeFranchiseRefresh(21, 1)
+    );
+  });
 });

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import { sqliteApi } from "@/api/sqlite.api";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { displayCell } from "@/lib/sqlite/row.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { assetUrl, isImageUrl } from "@/lib/utils/image.utils";
@@ -33,7 +34,15 @@ export function useSqliteCell(params: {
   const [cellEdit, setCellEdit] = useState("");
   const [cellSaving, setCellSaving] = useState(false);
   const [cellCopied, setCellCopied] = useState(false);
-  const copiedTimerRef = useRef<number | null>(null);
+  const copiedHideRef = useRef<Debouncer<[]> | null>(null);
+  const hideCopiedSoon = () => {
+    if (copiedHideRef.current === null) {
+      copiedHideRef.current = new Debouncer(() => setCellCopied(false), {
+        wait: COPIED_FEEDBACK_MS,
+      });
+    }
+    copiedHideRef.current.maybeExecute();
+  };
   const [cellImageSrc, setCellImageSrc] = useState<string | null>(null);
 
   function isImageColumn(column: string): boolean {
@@ -62,7 +71,7 @@ export function useSqliteCell(params: {
     setCellEditing(false);
     setCellCopied(false);
     setCellImageSrc(null);
-    if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
+    copiedHideRef.current?.cancel();
     if (!keys || !selectedDatabase || !selectedTable) return;
     setCellLoading(true);
     const failure = await attemptAll(
@@ -78,8 +87,7 @@ export function useSqliteCell(params: {
       () => navigator.clipboard.writeText(cellValue),
       () => setCellCopied(true),
       () => {
-        if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
-        copiedTimerRef.current = window.setTimeout(() => setCellCopied(false), COPIED_FEEDBACK_MS);
+        hideCopiedSoon();
       },
     ]);
     if (failure !== null) reportBackgroundError("sqlite.copy-cell", failure);

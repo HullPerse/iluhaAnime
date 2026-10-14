@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { createContext, useContext, useState, useMemo, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import type { SelectProps } from "@/types/ui";
 
 import { Input } from "./input.component";
@@ -40,7 +41,7 @@ function Select({
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) setSearch("");
-    else if (showSearch) requestAnimationFrame(() => searchInputRef.current?.focus());
+    else if (showSearch) scheduleTask("raf", 0, () => searchInputRef.current?.focus());
   };
 
   return (

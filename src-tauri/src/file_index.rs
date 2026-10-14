@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use tokio::sync::RwLock;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -19,6 +19,42 @@ pub struct FileQuery {
     pub extensions: Vec<String>,
     pub excluded_extensions: Vec<String>,
     pub excludes: Vec<String>,
+}
+
+/// Case- and separator-insensitive key for path equality. The watcher reports
+/// native Windows paths while the index stores whatever jwalk produced, so a
+/// plain `==` would miss entries for the same file.
+fn index_key(path: &str) -> String {
+    path.replace('\\', "/").to_lowercase()
+}
+
+/// Reads one path as an index entry, or `None` when it is gone, unreadable, a
+/// directory, or not one of `ext_list` (already lowercased, no dot).
+fn file_entry_at(path: &str, ext_list: &[String]) -> Option<FileEntry> {
+    let matches_extension = Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            ext_list
+                .iter()
+                .any(|known| extension.eq_ignore_ascii_case(known))
+        });
+    if !matches_extension {
+        return None;
+    }
+    let meta = std::fs::metadata(path).ok()?;
+    if !meta.is_file() {
+        return None;
+    }
+    Some(FileEntry {
+        path: path.to_string(),
+        name: Path::new(path)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+        size: meta.len(),
+    })
 }
 
 fn clean_extension(raw: &str) -> Option<String> {
@@ -76,7 +112,14 @@ pub struct FileIndexer {
     rebuild_generation: AtomicU64,
 }
 
+impl Default for FileIndexer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FileIndexer {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             index: Arc::new(RwLock::new(Vec::new())),
@@ -95,8 +138,77 @@ impl FileIndexer {
     /// walk keeps a single walk on the pool at a time; per-walk parallelism
     /// inside jwalk is kept.
     pub(crate) fn scan_slot() -> &'static std::sync::Mutex<()> {
-        static SLOT: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
-        SLOT.get_or_init(|| std::sync::Mutex::new(()))
+        static SLOT: OnceLock<Mutex<()>> = OnceLock::new();
+        SLOT.get_or_init(|| Mutex::new(()))
+    }
+
+    /// `0` means "one thread per logical core"; an explicit value is clamped to
+    /// `2..=64` so a hand-edited store cannot ask for thousands of threads, and
+    /// a walk always keeps at least one free thread for its own tasks.
+    #[must_use]
+    pub(crate) fn normalize_scan_threads(threads: usize) -> usize {
+        if threads == 0 {
+            std::thread::available_parallelism()
+                .map_or(4, std::num::NonZeroUsize::get)
+                .clamp(2, 64)
+        } else {
+            threads.clamp(2, 64)
+        }
+    }
+
+    /// The parallelism every directory walk in the process shares.
+    ///
+    /// jwalk's default pool is the process-wide rayon pool that torrent hashing
+    /// also drives: when hashing saturates it, a walk aborts after a 1s
+    /// handshake ("rayon thread-pool too busy"). Walks get a pool of their own
+    /// instead, sized from the `scanThreads` setting, so hashing can no longer
+    /// starve them and a big scan cannot starve hashing. The pool is rebuilt
+    /// only when the requested size changes.
+    pub(crate) fn scan_parallelism(threads: usize) -> jwalk::Parallelism {
+        type Slot = OnceLock<Mutex<Option<(usize, Arc<rayon::ThreadPool>)>>>;
+        static POOL: Slot = OnceLock::new();
+        let requested = Self::normalize_scan_threads(threads);
+        let slot = POOL.get_or_init(|| Mutex::new(None));
+        {
+            let current = slot.lock().unwrap_or_else(PoisonError::into_inner);
+            if let Some((size, pool)) = current.as_ref() {
+                if *size == requested {
+                    return jwalk::Parallelism::RayonExistingPool {
+                        pool: Arc::clone(pool),
+                        // A walk is driven from a blocking thread, never from
+                        // the pool itself, so a busy pool delays it instead of
+                        // deadlocking it and the handshake check buys nothing.
+                        busy_timeout: None,
+                    };
+                }
+            }
+        }
+        // Built with the guard released: spawning the threads while holding it
+        // would stall every other walk for the whole build.
+        match rayon::ThreadPoolBuilder::new()
+            .num_threads(requested)
+            .thread_name(|index| format!("scan-{index}"))
+            .build()
+        {
+            Ok(pool) => {
+                let pool = Arc::new(pool);
+                let mut current = slot.lock().unwrap_or_else(PoisonError::into_inner);
+                *current = Some((requested, Arc::clone(&pool)));
+                drop(current);
+                jwalk::Parallelism::RayonExistingPool {
+                    pool,
+                    busy_timeout: None,
+                }
+            }
+            Err(error) => {
+                tracing::warn!(
+                    "scan pool unavailable ({error}); falling back to the shared rayon pool"
+                );
+                jwalk::Parallelism::RayonDefaultPool {
+                    busy_timeout: std::time::Duration::from_secs(5),
+                }
+            }
+        }
     }
 
     /// Runs a blocking directory walk, serialized and retrying the rayon busy
@@ -128,12 +240,17 @@ impl FileIndexer {
         }
     }
 
-    fn walk_matching_entries(root: &str, ext_list: &[String]) -> Result<Vec<FileEntry>, String> {
+    fn walk_matching_entries(
+        root: &str,
+        ext_list: &[String],
+        threads: usize,
+    ) -> Result<Vec<FileEntry>, String> {
         let mut entries = Vec::new();
         let mut skipped: u64 = 0;
         for entry in jwalk::WalkDir::new(root)
             .follow_links(false)
             .skip_hidden(true)
+            .parallelism(Self::scan_parallelism(threads))
         {
             let entry = match entry {
                 Ok(entry) => entry,
@@ -190,7 +307,11 @@ impl FileIndexer {
         Ok(entries)
     }
 
-    fn scan_paths(paths: Vec<String>, extensions: Vec<String>) -> Result<Vec<FileEntry>, String> {
+    fn scan_paths(
+        paths: Vec<String>,
+        extensions: Vec<String>,
+        threads: usize,
+    ) -> Result<Vec<FileEntry>, String> {
         let ext_list: Vec<String> = extensions
             .into_iter()
             .map(|extension| extension.trim_start_matches('.').to_string())
@@ -199,7 +320,9 @@ impl FileIndexer {
         let mut entries = Vec::new();
 
         for root in paths {
-            match Self::retry_scan_blocking(|| Self::walk_matching_entries(&root, &ext_list)) {
+            match Self::retry_scan_blocking(|| {
+                Self::walk_matching_entries(&root, &ext_list, threads)
+            }) {
                 Ok(mut root_entries) => entries.append(&mut root_entries),
                 Err(busy) => {
                     tracing::error!("file scan: giving up on {root} after retries: {busy}");
@@ -210,10 +333,22 @@ impl FileIndexer {
         Ok(entries)
     }
 
-    pub async fn rebuild(&self, paths: Vec<String>, extensions: Vec<String>) -> Result<(), String> {
+    /// Replaces the whole index with a fresh walk of `paths`.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the blocking walk task cannot be spawned, or when a walk
+    /// keeps hitting a busy thread pool after the built-in retries.
+    pub async fn rebuild(
+        &self,
+        paths: Vec<String>,
+        extensions: Vec<String>,
+        threads: usize,
+    ) -> Result<(), String> {
         let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
         let index = self.index.clone();
-        let entries = tokio::task::spawn_blocking(move || Self::scan_paths(paths, extensions))
+        let entries =
+            tokio::task::spawn_blocking(move || Self::scan_paths(paths, extensions, threads))
             .await
             .map_err(|e| format!("index task failed: {e}"))??;
 
@@ -227,23 +362,41 @@ impl FileIndexer {
         Ok(())
     }
 
+    /// Rescans `changed_roots`, swaps their slice of the index and returns the
+    /// freshly scanned entries so the caller can reuse them (the folder tree)
+    /// instead of walking the same roots a second time.
+    ///
+    /// When a newer rebuild or point update superseded this walk, the index
+    /// keeps the newer data but the walk result is still returned: an empty
+    /// answer would drop the folder tree and empty the live playlist for a
+    /// folder that is still there.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the blocking walk task cannot be spawned, or when a walk
+    /// keeps hitting a busy thread pool after the built-in retries.
     pub async fn refresh(
         &self,
         changed_roots: Vec<String>,
         extensions: Vec<String>,
-    ) -> Result<(), String> {
+        threads: usize,
+    ) -> Result<Vec<FileEntry>, String> {
         if changed_roots.is_empty() {
-            return Ok(());
+            return Ok(Vec::new());
         }
         let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
         let index = self.index.clone();
         let scan_roots = changed_roots.clone();
-        let entries = tokio::task::spawn_blocking(move || Self::scan_paths(scan_roots, extensions))
+        let entries =
+            tokio::task::spawn_blocking(move || Self::scan_paths(scan_roots, extensions, threads))
             .await
             .map_err(|e| format!("incremental index task failed: {e}"))??;
 
         if self.rebuild_generation.load(Ordering::Acquire) != generation {
-            return Ok(());
+            tracing::debug!(
+                "file index refresh superseded; keeping the newer index and returning the walk"
+            );
+            return Ok(entries);
         }
 
         let roots: Vec<_> = changed_roots.iter().map(Path::new).collect();
@@ -253,9 +406,51 @@ impl FileIndexer {
                 .iter()
                 .any(|root| Path::new(&entry.path).starts_with(root))
         });
-        current.extend(entries);
+        current.extend(entries.iter().cloned());
         drop(current);
-        Ok(())
+        Ok(entries)
+    }
+
+    /// Point update for a watched folder: `upserts` are re-read from disk and
+    /// `removals` are dropped, without walking any root. Returns the upserts
+    /// that qualified, so the caller can patch its tree with the authoritative
+    /// name and size instead of stat-ing the file again.
+    ///
+    /// An upsert that no longer qualifies (deleted in the window, renamed to a
+    /// non-video extension) still drops the stale entry it may have left.
+    pub async fn apply_paths(
+        &self,
+        upserts: Vec<String>,
+        removals: Vec<String>,
+        extensions: Vec<String>,
+    ) -> Vec<FileEntry> {
+        if upserts.is_empty() && removals.is_empty() {
+            return Vec::new();
+        }
+        let ext_list: Vec<String> = extensions
+            .into_iter()
+            .map(|extension| extension.trim_start_matches('.').to_lowercase())
+            .filter(|extension| !extension.is_empty())
+            .collect();
+        let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        let touched: HashSet<String> = removals
+            .iter()
+            .chain(upserts.iter())
+            .map(|path| index_key(path))
+            .collect();
+        let fresh: Vec<FileEntry> = upserts
+            .iter()
+            .filter_map(|path| file_entry_at(path, &ext_list))
+            .collect();
+
+        if self.rebuild_generation.load(Ordering::Acquire) != generation {
+            return Vec::new();
+        }
+        let mut current = self.index.write().await;
+        current.retain(|entry| !touched.contains(&index_key(&entry.path)));
+        current.extend(fresh.iter().cloned());
+        drop(current);
+        fresh
     }
 
     pub async fn snapshot(&self) -> Vec<FileEntry> {
@@ -377,7 +572,7 @@ fn fuzzy_file_score(query: &str, target: &str) -> Option<i32> {
 #[cfg(test)]
 mod tests {
     use super::FileIndexer;
-    use super::{fuzzy_file_score, parse_file_query, substring_score};
+    use super::{fuzzy_file_score, index_key, parse_file_query, substring_score};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static FIXTURE_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -464,11 +659,35 @@ mod tests {
     }
 
     #[test]
+    fn scan_threads_default_to_cores_and_clamp_to_a_sane_range() {
+        let cores = FileIndexer::normalize_scan_threads(0);
+        assert!((2..=64).contains(&cores));
+        assert_eq!(FileIndexer::normalize_scan_threads(1), 2);
+        assert_eq!(FileIndexer::normalize_scan_threads(6), 6);
+        assert_eq!(FileIndexer::normalize_scan_threads(10_000), 64);
+    }
+
+    /// Walks must run on the dedicated scan pool, sized as asked, instead of the
+    /// process-wide rayon pool that torrent hashing shares.
+    #[test]
+    fn scan_parallelism_uses_a_dedicated_pool_of_the_requested_size() {
+        let pool_of = |parallelism: jwalk::Parallelism| match parallelism {
+            jwalk::Parallelism::RayonExistingPool { pool, .. } => pool,
+            jwalk::Parallelism::Serial | jwalk::Parallelism::RayonDefaultPool { .. } => {
+                panic!("expected a dedicated scan pool")
+            }
+            jwalk::Parallelism::RayonNewPool(_) => panic!("expected a pooled walk"),
+        };
+        assert_eq!(pool_of(FileIndexer::scan_parallelism(3)).current_num_threads(), 3);
+        assert_eq!(pool_of(FileIndexer::scan_parallelism(6)).current_num_threads(), 6);
+    }
+
+    #[test]
     fn walk_matches_video_case_insensitively_and_skips_notes() {
         let root = fixture_root("walk");
         write_tree(&root);
         let entries = FileIndexer::retry_scan_blocking(|| {
-            FileIndexer::walk_matching_entries(&root.to_string_lossy(), &ext_list())
+            FileIndexer::walk_matching_entries(&root.to_string_lossy(), &ext_list(), 0)
         })
         .expect("walk should succeed");
         remove_fixture(&root);
@@ -481,7 +700,7 @@ mod tests {
     fn walk_on_missing_root_resolves_empty_instead_of_failing() {
         let missing = fixture_root("missing").join("nope");
         let entries = FileIndexer::retry_scan_blocking(|| {
-            FileIndexer::walk_matching_entries(&missing.to_string_lossy(), &ext_list())
+            FileIndexer::walk_matching_entries(&missing.to_string_lossy(), &ext_list(), 0)
         })
         .expect("missing root must not fail the scan");
         assert!(entries.is_empty());
@@ -498,10 +717,83 @@ mod tests {
                 missing.to_string_lossy().to_string(),
             ],
             vec!["mkv".to_string(), "mp4".to_string()],
+            0,
         )
         .expect("multi-root scan should succeed");
         remove_fixture(&root);
         assert_eq!(entries.len(), 21);
+    }
+
+    #[test]
+    fn apply_paths_updates_single_entries_without_walking_the_root() {
+        let root = fixture_root("apply");
+        write_tree(&root);
+        let runtime = tokio::runtime::Runtime::new().expect("test runtime");
+        let indexer = FileIndexer::new();
+        runtime
+            .block_on(indexer.rebuild(vec![root.to_string_lossy().to_string()], ext_list(), 0))
+            .expect("rebuild");
+        assert_eq!(runtime.block_on(indexer.snapshot()).len(), 21);
+
+        // A finished download: one new episode appears next to the old ones.
+        let added = root.join("episode.mkv");
+        std::fs::write(&added, b"hello").expect("fixture add");
+        let added_path = added.to_string_lossy().to_string();
+        let fresh = runtime.block_on(indexer.apply_paths(
+            vec![added_path.clone()],
+            Vec::new(),
+            ext_list(),
+        ));
+        assert_eq!(fresh.len(), 1);
+        assert_eq!(fresh[0].size, 5);
+        assert_eq!(fresh[0].name, "episode.mkv");
+        let after = runtime.block_on(indexer.snapshot());
+        assert_eq!(after.len(), 22);
+        assert_eq!(
+            after
+                .iter()
+                .filter(|entry| index_key(&entry.path) == index_key(&added_path))
+                .count(),
+            1
+        );
+
+        // Removing it again drops exactly that entry.
+        runtime.block_on(indexer.apply_paths(Vec::new(), vec![added_path], ext_list()));
+        assert_eq!(runtime.block_on(indexer.snapshot()).len(), 21);
+
+        // An upsert that is gone by the time we stat it must not resurrect a row.
+        let vanished = root.join("vanished.mkv").to_string_lossy().to_string();
+        runtime.block_on(indexer.apply_paths(vec![vanished], Vec::new(), ext_list()));
+        assert_eq!(runtime.block_on(indexer.snapshot()).len(), 21);
+        remove_fixture(&root);
+    }
+
+    /// A point update landing mid-walk supersedes it: the index keeps the
+    /// newer state, but the walk result must still be handed back instead of
+    /// an empty list (that would drop the folder tree and empty the playlist).
+    #[tokio::test]
+    async fn refresh_returns_its_walk_when_a_point_update_supersedes_it() {
+        let root = fixture_root("supersede");
+        write_tree(&root);
+        let indexer = FileIndexer::new();
+        let mut refresh = Box::pin(indexer.refresh(vec![root.to_string_lossy().to_string()], ext_list(), 0));
+
+        // Drive the refresh up to its blocking walk: the generation is bumped.
+        assert!(futures::poll!(&mut refresh).is_pending());
+
+        // A point update arrives while that walk is in flight. It does not
+        // touch the disk, so the walk below still sees the 21 fixture files.
+        indexer
+            .apply_paths(
+                vec![root.join("ghost.mkv").to_string_lossy().to_string()],
+                Vec::new(),
+                ext_list(),
+            )
+            .await;
+
+        let entries = refresh.await.expect("refresh must resolve");
+        assert_eq!(entries.len(), 21);
+        remove_fixture(&root);
     }
 
     #[test]
@@ -514,7 +806,7 @@ mod tests {
                 let root = root_string.clone();
                 std::thread::spawn(move || {
                     FileIndexer::retry_scan_blocking(|| {
-                        FileIndexer::walk_matching_entries(&root, &ext_list())
+                        FileIndexer::walk_matching_entries(&root, &ext_list(), 4)
                     })
                 })
             })

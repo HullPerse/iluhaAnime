@@ -25,7 +25,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
-import { parseMediaPath } from "@/lib/media/parse.utils";
+import { mediaFileExtension, parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
@@ -357,7 +357,7 @@ function FolderView({
   });
 
   const isDisabled = (name: string) => {
-    const ext = name.split(".").pop()?.toLowerCase();
+    const ext = mediaFileExtension(name);
     if (!ext) return false;
     return (
       disabledExtensions?.has(ext) === true ||

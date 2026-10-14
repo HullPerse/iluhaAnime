@@ -207,6 +207,7 @@ export type CommandName =
   | "toggle_favourite_character"
   | "toggle_favourite_staff"
   | "update_dither_image_data"
+  | "update_file_index_paths"
   | "update_sqlite_cell"
   | "update_torrent_only_files"
   | "upscale_video"

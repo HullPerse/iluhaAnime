@@ -1,4 +1,4 @@
-import { mockInvoke, mockOpenPath as openPathSpy, mockWriteText as writeTextSpy } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke, mockOpenPath as openPathSpy, mockWriteText as writeTextSpy } from "../../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -20,6 +20,7 @@ import { patchSettings } from "@/store/settings.store";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
+  convertFileSrc: mockConvertFileSrc,
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({

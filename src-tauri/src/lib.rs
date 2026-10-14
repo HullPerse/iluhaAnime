@@ -37,7 +37,7 @@ mod emoji;
 mod errors;
 mod ffmpeg;
 mod file_index;
-mod fswatcher;
+mod watcher;
 mod host_stats;
 mod jikan;
 mod player;
@@ -486,10 +486,12 @@ const SCAN_PROGRESS_EVERY: u64 = 250;
 /// Walks one folder. Returns `Err` only for the rayon busy case (retried and
 /// serialized by `FileIndexer::retry_scan_blocking`); unreadable entries and
 /// files are skipped with a warning so one bad file never fails a whole saved
-/// folder.
+/// folder. `threads` is the `scanThreads` setting (0 = one per logical core)
+/// and selects the dedicated scan pool.
 fn walk_video_folder(
     path: &str,
     ext_list: &[String],
+    threads: usize,
     on_progress: &dyn Fn(u64),
 ) -> Result<FolderScanResult, String> {
     let mut entries = Vec::new();
@@ -499,6 +501,7 @@ fn walk_video_folder(
     for entry in jwalk::WalkDir::new(path)
         .follow_links(false)
         .skip_hidden(true)
+        .parallelism(file_index::FileIndexer::scan_parallelism(threads))
     {
         let entry = match entry {
             Ok(entry) => entry,
@@ -598,7 +601,7 @@ mod scan_tests {
         let ext_list = video_ext_list(vec!["mkv".to_string(), ".mp4".to_string()]);
         let progress_calls = std::cell::Cell::new(0);
         // 6 files stay below the progress threshold; the closure must simply run.
-        let result = walk_video_folder(&root.to_string_lossy(), &ext_list, &|_| {
+        let result = walk_video_folder(&root.to_string_lossy(), &ext_list, 2, &|_| {
             progress_calls.set(progress_calls.get() + 1);
         })
         .expect("walk should succeed");
@@ -614,7 +617,7 @@ mod scan_tests {
     fn walk_on_missing_root_resolves_empty() {
         let missing = fixture_root("missing").join("nope");
         let ext_list = video_ext_list(vec!["mkv".to_string()]);
-        let result = walk_video_folder(&missing.to_string_lossy(), &ext_list, &|_| {})
+        let result = walk_video_folder(&missing.to_string_lossy(), &ext_list, 2, &|_| {})
             .expect("missing root must not fail the scan");
         assert!(result.entries.is_empty());
     }
@@ -747,11 +750,13 @@ async fn scan_video_folder(
     app_handle: tauri::AppHandle,
     path: String,
     extensions: Vec<String>,
+    threads: Option<usize>,
 ) -> Result<Vec<VideoFileEntry>, String> {
     let ext_list = video_ext_list(extensions);
+    let threads = threads.unwrap_or(0);
     let result = tokio::task::spawn_blocking(move || {
         file_index::FileIndexer::retry_scan_blocking(|| {
-            walk_video_folder(&path, &ext_list, &|walked| {
+            walk_video_folder(&path, &ext_list, threads, &|walked| {
                 let _ = app_handle.emit(
                     "folder-scan-progress",
                     serde_json::json!({
@@ -779,13 +784,15 @@ async fn scan_video_folders(
     app_handle: tauri::AppHandle,
     paths: Vec<String>,
     extensions: Vec<String>,
+    threads: Option<usize>,
 ) -> Result<Vec<FolderScanResult>, String> {
     let ext_list = video_ext_list(extensions);
+    let threads = threads.unwrap_or(0);
     tokio::task::spawn_blocking(move || {
         let mut out = Vec::with_capacity(paths.len());
         for root in &paths {
             match file_index::FileIndexer::retry_scan_blocking(|| {
-                walk_video_folder(root, &ext_list, &|walked| {
+                walk_video_folder(root, &ext_list, threads, &|walked| {
                     let _ = app_handle.emit(
                         "folder-scan-progress",
                         serde_json::json!({
@@ -1034,19 +1041,20 @@ async fn redownload_file(
 
 #[tauri::command]
 async fn start_watching_folders(
-    watcher: tauri::State<'_, std::sync::Mutex<fswatcher::FolderWatcher>>,
+    watcher: tauri::State<'_, std::sync::Mutex<watcher::FolderWatcher>>,
     app_handle: tauri::AppHandle,
     folders: Vec<String>,
+    debounce_ms: Option<u64>,
 ) -> Result<(), String> {
     watcher
         .lock()
         .map_err(|e| format!("lock: {e}"))?
-        .start(app_handle, folders)
+        .start(app_handle, folders, debounce_ms)
 }
 
 #[tauri::command]
 async fn stop_watching_folders(
-    watcher: tauri::State<'_, std::sync::Mutex<fswatcher::FolderWatcher>>,
+    watcher: tauri::State<'_, std::sync::Mutex<watcher::FolderWatcher>>,
 ) -> Result<(), String> {
     watcher.lock().map_err(|e| format!("lock: {e}"))?.stop();
     Ok(())
@@ -1214,17 +1222,7 @@ async fn persist_file_index(
     indexer: &file_index::FileIndexer,
 ) -> Result<(), String> {
     let entries = indexer.snapshot().await;
-    let unified_entries: Vec<_> = entries
-        .into_iter()
-        .map(|entry| app_db::UnifiedIndexEntryInput {
-            id: format!("local:{}", entry.path),
-            kind: "local_file".to_string(),
-            scope: "player".to_string(),
-            value: entry.name,
-            subtitle: Some(entry.path),
-            metadata: Some(serde_json::json!({ "size": entry.size })),
-        })
-        .collect();
+    let unified_entries: Vec<_> = entries.iter().map(local_index_row).collect();
     let keep_ids: Vec<String> = unified_entries
         .iter()
         .map(|entry| entry.id.clone())
@@ -1250,14 +1248,91 @@ async fn persist_file_index(
     Ok(())
 }
 
+/// One row of the `player` scope of the unified index for a local video file.
+fn local_index_row(entry: &file_index::FileEntry) -> app_db::UnifiedIndexEntryInput {
+    app_db::UnifiedIndexEntryInput {
+        id: format!("local:{}", entry.path),
+        kind: "local_file".to_string(),
+        scope: "player".to_string(),
+        value: entry.name.clone(),
+        subtitle: Some(entry.path.clone()),
+        metadata: Some(serde_json::json!({ "size": entry.size })),
+    }
+}
+
+/// Writes only the paths one watcher batch touched: upserts for the fresh
+/// entries plus deletes for the paths that are gone, in one transaction. The
+/// full [`persist_file_index`] would rewrite every row of the scope for a
+/// single finished download.
+async fn persist_file_index_paths(
+    app_handle: &tauri::AppHandle,
+    entries: &[file_index::FileEntry],
+    removals: &[String],
+) -> Result<(), String> {
+    if entries.is_empty() && removals.is_empty() {
+        return Ok(());
+    }
+    let _write = app_db::lock_app_data_write_timeout(app_db::APP_DATA_WRITE_TIMEOUT)?;
+    let connection = app_db::open_database(app_handle)?;
+    let transaction = connection
+        .unchecked_transaction()
+        .map_err(|error| format!("persist path update transaction: {error}"))?;
+    let rows: Vec<_> = entries.iter().map(local_index_row).collect();
+    app_db::upsert_unified_index_batch(&transaction, &rows, app_db::now_seconds())?;
+    let ids: Vec<String> = removals.iter().map(|path| format!("local:{path}")).collect();
+    app_db::delete_unified_index_ids_inner(&transaction, &ids)?;
+    transaction
+        .commit()
+        .map_err(|error| format!("persist path update commit: {error}"))?;
+    Ok(())
+}
+
+/// Point update for a watched folder: only the paths the watcher reported are
+/// re-read, so one finished download no longer rescans its whole root. Returns
+/// the entries that still exist, ready to patch into the caller's tree.
+#[tauri::command]
+async fn update_file_index_paths(
+    app_handle: tauri::AppHandle,
+    upserts: Vec<String>,
+    removals: Vec<String>,
+    extensions: Vec<String>,
+    indexer: tauri::State<'_, file_index::FileIndexer>,
+) -> Result<Vec<VideoFileEntry>, String> {
+    let fresh = indexer
+        .apply_paths(upserts.clone(), removals.clone(), extensions)
+        .await;
+    // An upsert that no longer exists on disk (or no longer matches an
+    // extension) drops the row it may have left behind.
+    let fresh_keys: HashSet<&str> = fresh
+        .iter()
+        .map(|entry| entry.path.as_str())
+        .collect();
+    let stale: Vec<String> = upserts
+        .into_iter()
+        .filter(|path| !fresh_keys.contains(path.as_str()))
+        .collect();
+    let mut db_removals = removals;
+    db_removals.extend(stale);
+    persist_file_index_paths(&app_handle, &fresh, &db_removals).await?;
+    Ok(fresh
+        .into_iter()
+        .map(|entry| VideoFileEntry {
+            path: entry.path,
+            name: entry.name,
+            size: entry.size,
+        })
+        .collect())
+}
+
 #[tauri::command]
 async fn rebuild_file_index(
     app_handle: tauri::AppHandle,
     paths: Vec<String>,
     extensions: Vec<String>,
+    threads: Option<usize>,
     indexer: tauri::State<'_, file_index::FileIndexer>,
 ) -> Result<(), String> {
-    indexer.rebuild(paths, extensions).await?;
+    indexer.rebuild(paths, extensions, threads.unwrap_or(0)).await?;
     persist_file_index(&app_handle, &indexer).await
 }
 
@@ -1266,10 +1341,19 @@ async fn refresh_file_index(
     app_handle: tauri::AppHandle,
     paths: Vec<String>,
     extensions: Vec<String>,
+    threads: Option<usize>,
     indexer: tauri::State<'_, file_index::FileIndexer>,
-) -> Result<(), String> {
-    indexer.refresh(paths, extensions).await?;
-    persist_file_index(&app_handle, &indexer).await
+) -> Result<Vec<VideoFileEntry>, String> {
+    let entries = indexer.refresh(paths, extensions, threads.unwrap_or(0)).await?;
+    persist_file_index(&app_handle, &indexer).await?;
+    Ok(entries
+        .into_iter()
+        .map(|entry| VideoFileEntry {
+            path: entry.path,
+            name: entry.name,
+            size: entry.size,
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -1526,7 +1610,7 @@ pub fn run() {
             handle.manage(ActiveChildren::new());
             auth::init_keyring_service(app.handle());
             handle.manage(progress::StreamRegistry::new());
-            handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
+            handle.manage(std::sync::Mutex::new(watcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
             handle.manage(player::PlayerHost::default());
             player::state::attach(app.handle());
@@ -1835,6 +1919,7 @@ pub fn run() {
             read_file_bytes,
             rebuild_file_index,
             refresh_file_index,
+            update_file_index_paths,
             set_notification_settings,
             toast::show_toast,
             set_window_chrome,

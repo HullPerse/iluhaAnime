@@ -249,6 +249,12 @@ const changelog500 = {
     "Torrent search covers are a three-state setting: off, tracker covers only, or tracker plus AniList covers, with full mode auto-enabled after AniList login until you pick a value",
   "changelog.5_0_0.added.player.live_playlist":
     "Player playlist grows while you watch: episodes that finish downloading land in sorted order without moving the current file",
+  "changelog.5_0_0.changed.player.watch_parity":
+    "Watched torrents behave like watched folders: finished files join the live playlist at once, deleted files leave it, a rewritten playing file reloads keeping the position, and the torrent tab refreshes file lists on disk changes",
+  "changelog.5_0_0.added.settings.watcher_delay":
+    "Folder watching speed setting: Fast reacts in under half a second, Calm settles event bursts first",
+  "changelog.5_0_0.added.settings.scan_threads":
+    "Folder scan thread count: Auto uses every core, or pin 2 to 8 threads",
   "changelog.5_0_0.added.app.splash":
     "Themed startup splash with honest boot stages: theme, migrations, cache, database, spelling, anime index, and tabs, each paced so the progress reads instead of flashing by",
   "changelog.5_0_0.added.app.fast_launch":
@@ -287,6 +293,8 @@ const changelog500 = {
     "Episode saves no longer fail with validation errors: only changed fields reach the server, rapid clicks collapse into one save, and progress shows instantly with loader, checkmark and retry states",
   "changelog.5_0_0.added.app.focus_main":
     "Ctrl+K focuses the main search field of the active tab, Escape unfocuses it back",
+  "changelog.5_0_0.added.app.esc_blur":
+    "Escape drops focus from any control back to the page, except inside dialogs and hint runs which keep priority",
   "changelog.5_0_0.added.app.page_find":
     "Page find bar on Ctrl+F: match counter with keyboard and mouse navigation, case and whole-word toggles, highlights for the current and other matches",
   "changelog.5_0_0.added.player.folder_resize":

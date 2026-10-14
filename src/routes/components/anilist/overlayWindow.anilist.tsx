@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
@@ -31,8 +32,8 @@ export function OverlayWindow({
       setVisible(true);
       return;
     }
-    const frame = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(frame);
+    const task = scheduleTask("raf", 0, () => setVisible(true));
+    return () => task.cancel();
   }, [modalAnimation]);
 
   return (

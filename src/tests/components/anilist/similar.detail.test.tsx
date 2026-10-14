@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,6 +10,7 @@ import type { AniRecommendation } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
+  convertFileSrc: mockConvertFileSrc,
 }));
 
 function rec(id: number, title: string): AniRecommendation {

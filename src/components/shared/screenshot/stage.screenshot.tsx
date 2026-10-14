@@ -9,6 +9,7 @@ import type {
 import CropFrame from "@/components/shared/screenshot/crop.screenshot";
 import { CROP_MIN_SIZE, CROP_ZOOM_STEP } from "@/config/settings/screenshot.config";
 import { measureText, paintAnnotations, paintBlurMask } from "@/lib/settings/annotation.draw";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import {
   appendPoint,
   blurSigmaFor,
@@ -173,15 +174,15 @@ export default function ScreenshotStage({
 
   useEffect(() => {
     measure();
-    const frame = requestAnimationFrame(measure);
+    const task = scheduleTask("raf", 0, measure);
     const element = containerRef.current;
     if (!element || typeof ResizeObserver === "undefined") {
-      return () => cancelAnimationFrame(frame);
+      return () => task.cancel();
     }
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => {
-      cancelAnimationFrame(frame);
+      task.cancel();
       observer.disconnect();
     };
   }, [measure]);

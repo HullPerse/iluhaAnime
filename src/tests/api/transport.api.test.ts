@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -10,6 +10,7 @@ import {
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
+  convertFileSrc: mockConvertFileSrc,
 }));
 
 beforeEach(() => {

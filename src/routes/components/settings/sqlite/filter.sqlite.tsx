@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import type { SqliteTableInfo } from "@/types/sqlite";
 
 export function SqliteFilterBuilder({
@@ -38,7 +39,7 @@ export function SqliteFilterBuilder({
     const next = filterInput.trim() ? `${filterInput.trim()} && ${cond}` : cond;
     setFilterInput(next);
     setVal("");
-    requestAnimationFrame(() => {
+    scheduleTask("raf", 0, () => {
       filterInputRef.current?.focus();
       applyFilter();
     });

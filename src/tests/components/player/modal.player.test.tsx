@@ -1,8 +1,8 @@
-import { mockInvoke } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke } from "../../mocks";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke, convertFileSrc: mockConvertFileSrc }));
 
 import Select from "@/components/ui/select.component";
 import PlayerModal from "@/routes/components/player/media/modal.player";

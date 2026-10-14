@@ -4,6 +4,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
+import { mediaFileExtension } from "@/lib/media/parse.utils";
 import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
 import type { TreeRow } from "@/lib/player/treeArrow.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -168,7 +169,7 @@ function TorrentFilesSection({
     return (f: TorrentTreeFile) => {
       if (!f.completed) return false;
       if (hideTracks) {
-        const ext = f.name.split(".").pop()?.toLowerCase();
+        const ext = mediaFileExtension(f.name);
         if (ext && trackExts.has(ext)) return false;
       }
       return true;

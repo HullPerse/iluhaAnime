@@ -1,4 +1,4 @@
-import { normalizeWait } from "@/lib/pacer/shared.utils";
+import { normalizeWait, scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import {
   attempt,
   attemptRetry,
@@ -83,12 +83,12 @@ export async function withTimeout<T>(
   message?: string
 ): Promise<Result<T>> {
   const timeout = normalizeWait(ms);
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timer: ScheduledTask | undefined;
   const expired = new Promise<typeof TIMEOUT_MARK>((resolve) => {
-    timer = setTimeout(() => resolve(TIMEOUT_MARK), timeout);
+    timer = scheduleTask("timeout", timeout, () => resolve(TIMEOUT_MARK));
   });
   const outcome = await Promise.race([attempt(promise), expired]);
-  clearTimeout(timer);
+  timer?.cancel();
   if (outcome === TIMEOUT_MARK) {
     return err(new Error(message ?? `Timed out after ${timeout}ms`));
   }

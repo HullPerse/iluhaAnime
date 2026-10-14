@@ -1,4 +1,4 @@
-import { MAX_TIMEOUT_MS } from "@/lib/pacer/shared.utils";
+import { MAX_TIMEOUT_MS, scheduleTask } from "@/lib/pacer/shared.utils";
 
 export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
@@ -82,15 +82,12 @@ function sleep(ms: number, signal?: AbortSignal): Promise<boolean> {
       resolve(true);
       return;
     }
-    const timer = setTimeout(
-      () => {
-        signal?.removeEventListener("abort", onAbort);
-        resolve(false);
-      },
-      Math.min(Math.max(0, ms), MAX_TIMEOUT_MS)
-    );
+    const task = scheduleTask("timeout", Math.min(Math.max(0, ms), MAX_TIMEOUT_MS), () => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve(false);
+    });
     function onAbort(): void {
-      clearTimeout(timer);
+      task.cancel();
       resolve(true);
     }
     signal?.addEventListener("abort", onAbort, { once: true });

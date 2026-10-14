@@ -29,7 +29,7 @@ export function SimilarSection({
     retry: 1,
   });
   const franchiseQuery = useAppQuery("static", {
-    queryKey: [...queryKeys.animeFranchise(animeId), 0] as const,
+    queryKey: queryKeys.animeFranchiseRefresh(animeId, 0),
     queryFn: () => anilistApi.getAnimeFranchise(animeId, "all"),
     retry: 1,
   });

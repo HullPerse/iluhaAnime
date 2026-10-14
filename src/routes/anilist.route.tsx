@@ -29,6 +29,7 @@ import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import { tr } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showErrorOnce } from "@/lib/utils/notification.utils";
@@ -258,7 +259,7 @@ function AnilistRoute() {
   const handleLogout = useCallback(async () => {
     await anilistApi.logout();
     syncCoverModeWithAnilistAuth(false);
-    queryClient.setQueryData(["anilist_data"], {
+    queryClient.setQueryData(queryKeys.anilistData(), {
       user: null,
       lists: [],
       favourites: [],
@@ -338,10 +339,10 @@ function AnilistRoute() {
     async (animeId: number) => {
       if (favPendingRef.current.has(animeId)) return;
       favPendingRef.current.add(animeId);
-      const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+      const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
       const wasFavourite = previous?.favourites.some((f) => f.id === animeId) ?? false;
       if (wasFavourite) {
-        queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+        queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
           old
             ? {
                 ...(old as AnilistRouteData),
@@ -354,11 +355,11 @@ function AnilistRoute() {
       favPendingRef.current.delete(animeId);
       if (error) {
         if (wasFavourite) {
-          queryClient.setQueryData(["anilist_data"], previous);
+          queryClient.setQueryData(queryKeys.anilistData(), previous);
         }
         addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
       } else {
-        queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+        queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
           old ? { ...(old as AnilistRouteData), favourites: updated } : old
         );
       }
@@ -369,20 +370,20 @@ function AnilistRoute() {
     useFavouritePeopleToggles();
 
   const handleDetailsSaved = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() });
   }, [queryClient]);
 
   const handleAuthSuccess = useCallback(
     (authUser: AniUser) => {
       handleCloseModal("auth");
       syncCoverModeWithAnilistAuth(true);
-      queryClient.setQueryData(["anilist_data"], {
+      queryClient.setQueryData(queryKeys.anilistData(), {
         user: authUser,
         lists: [],
         favourites: [],
         people: { staff: [], characters: [] },
       });
-      queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() });
     },
     [queryClient, handleCloseModal]
   );

@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +9,7 @@ import type { AniListFilters, AniMedia } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
+  convertFileSrc: mockConvertFileSrc,
 }));
 
 function makeMedia(id: number, title: string): AniMedia {

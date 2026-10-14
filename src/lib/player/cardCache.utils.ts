@@ -1,4 +1,5 @@
 import { fileNameFromPath } from "@/lib/media/parse.utils";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { readVideoCard } from "@/lib/player/playback.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
@@ -109,9 +110,9 @@ export function scheduleCardPrefetch(paths: string[], activePath: string): void 
     if (generation !== prefetchGeneration) return;
     await runWave(waveB, generation);
   };
-  window.setTimeout(() => {
+  scheduleTask("timeout", 0, () => {
     ignore(run());
-  }, 0);
+  });
 }
 
 /**
@@ -171,9 +172,9 @@ export function scheduleNeighborPrefetch(
   const run = async (): Promise<void> => {
     await runWave(neighbors, generation);
   };
-  window.setTimeout(() => {
+  scheduleTask("timeout", 0, () => {
     ignore(run());
-  }, 0);
+  });
 }
 
 export function resetCardCache(): void {

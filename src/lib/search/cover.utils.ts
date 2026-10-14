@@ -1,3 +1,4 @@
+import { scheduleTask, sleep, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import type { ResolvedCover } from "@/store/cover.store";
 
 export interface CoverParsed {
@@ -157,7 +158,7 @@ export async function resolveCover(
     if (pick) return { pick, candidates: found.slice(0, COVER_MAX_CANDIDATES) };
   }
   const seen = new Map<number, CoverCandidate>();
-  const wait = backend.delay ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const wait = backend.delay ?? ((ms: number) => sleep(ms).done);
   for (let attempt = 0; attempt < 2; attempt += 1) {
     for (const query of buildCoverQueries(parsed, localTitle, rawTitle)) {
       const found = await backend.search(query);
@@ -265,11 +266,11 @@ export function buildCoverQueries(
 export const POSTER_TIMEOUT_MS = 5_000;
 
 export function withTimeout<T>(task: Promise<T>, ms: number, onTimeout: () => T): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timer: ScheduledTask | undefined;
   const timeout = new Promise<T>((resolve) => {
-    timer = setTimeout(() => resolve(onTimeout()), ms);
+    timer = scheduleTask("timeout", ms, () => resolve(onTimeout()));
   });
-  return Promise.race([task, timeout]).finally(() => clearTimeout(timer));
+  return Promise.race([task, timeout]).finally(() => timer?.cancel());
 }
 
 function franchiseHead(title: string): string[] {

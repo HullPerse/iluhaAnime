@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import {
   SKIP_AUTO_HIDE_MS,
   SKIP_SEEK_BACK_THRESHOLD,
@@ -44,8 +45,8 @@ function SkipButton({
 
   useEffect(() => {
     if (!key || hidden) return;
-    const id = window.setTimeout(() => setHidden(true), SKIP_AUTO_HIDE_MS);
-    return () => window.clearTimeout(id);
+    const task = scheduleTask("timeout", SKIP_AUTO_HIDE_MS, () => setHidden(true));
+    return () => task.cancel();
   }, [key, hidden]);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -12,6 +12,7 @@ import { searchAtoms } from "@/store/search.store";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
+  convertFileSrc: mockConvertFileSrc,
 }));
 
 let client: QueryClient;

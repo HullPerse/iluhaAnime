@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { desiredFolderPlaylist, planLiveInserts } from "@/lib/player/livePlaylist.utils";
+import {
+  desiredFolderPlaylist,
+  planLiveInserts,
+  planLiveRemovals,
+} from "@/lib/player/livePlaylist.utils";
 
 describe("planLiveInserts", () => {
   it("inserts a late download before its sorted successor", () => {
@@ -67,6 +71,44 @@ describe("planLiveInserts", () => {
 
   it("matches paths across separator styles", () => {
     expect(planLiveInserts(["C:/T/ep01.mkv"], ["C:\\T\\ep01.mkv"], "C:/T/ep01.mkv")).toEqual([]);
+  });
+});
+
+describe("planLiveRemovals", () => {
+  it("drops a previously planned file that left the desired list", () => {
+    expect(
+      planLiveRemovals(
+        ["C:/T/ep01.mkv", "C:/T/ep02.mkv"],
+        ["C:/T/ep01.mkv"],
+        ["C:/T/ep01.mkv", "C:/T/ep02.mkv"]
+      )
+    ).toEqual([1]);
+  });
+
+  it("never removes files that were not ours", () => {
+    expect(
+      planLiveRemovals(["C:/T/ep01.mkv"], ["C:/T/ep01.mkv"], ["C:/T/ep01.mkv", "C:/T/manual.mkv"])
+    ).toEqual([]);
+  });
+
+  it("returns indices highest-first so earlier removals do not shift later ones", () => {
+    expect(
+      planLiveRemovals(
+        ["C:/T/ep01.mkv", "C:/T/ep03.mkv", "C:/T/ep05.mkv"],
+        ["C:/T/ep03.mkv"],
+        ["C:/T/ep01.mkv", "C:/T/ep03.mkv", "C:/T/ep05.mkv"]
+      )
+    ).toEqual([2, 0]);
+  });
+
+  it("matches across separator styles and case", () => {
+    expect(planLiveRemovals(["C:\\T\\EP02.MKV"], ["C:/T/ep01.mkv"], ["C:/T/ep02.mkv"])).toEqual([
+      0,
+    ]);
+  });
+
+  it("removes nothing when the previous plan is empty", () => {
+    expect(planLiveRemovals([], ["C:/T/ep01.mkv"], ["C:/T/ep02.mkv"])).toEqual([]);
   });
 });
 

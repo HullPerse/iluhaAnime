@@ -2,6 +2,7 @@ import { cn } from "cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DITHER_DEFAULTS } from "@/config/utils/dither.config";
+import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { renderDitherImage } from "@/lib/utils/dither.render.utils";
 import {
@@ -9,6 +10,7 @@ import {
   ditherDecodeCache,
   ditherRenderCache,
   getDitherWorker,
+  postDitherJob,
   resetDitherWorker,
   subscribeWorkerJob,
   withDitherDefaults,
@@ -123,7 +125,7 @@ function DitherCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
     let cancelled = false;
-    let frame = 0;
+    let task: ScheduledTask | null = null;
     let unsubscribeJob: (() => void) | null = null;
     const reportError = (message: string) => {
       console.error(message);
@@ -218,7 +220,7 @@ function DitherCanvas({
             pixels: pixels.buffer,
             options: effectOptions,
           };
-          worker.postMessage(request, [pixels.buffer]);
+          postDitherJob(worker, request, [pixels.buffer]);
         } else {
           const output = renderDitherImage(pixels, width, height, effectOptions, (doneRows) => {
             if (!cancelled) onProgressRef.current?.(doneRows, height);
@@ -288,7 +290,7 @@ function DitherCanvas({
       if (cached) {
         paintEntry(cached);
         markReady();
-        frame = requestAnimationFrame(() => compute(key));
+        task = scheduleTask("raf", 0, () => compute(key));
       } else {
         setStatus("loading");
         compute(key);
@@ -296,7 +298,7 @@ function DitherCanvas({
     }
     return () => {
       cancelled = true;
-      cancelAnimationFrame(frame);
+      task?.cancel();
       image.onload = null;
       image.onerror = null;
       unsubscribeJob?.();

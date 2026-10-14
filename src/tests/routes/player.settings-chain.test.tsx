@@ -1,4 +1,5 @@
 import { mockInvoke as invokeMock, mockListen as listenMock, mockDialogOpen } from "../mocks";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -65,7 +66,12 @@ afterEach(() => {
 });
 
 async function mountPlayer(): Promise<void> {
-  render(<PlayerComponent />);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <PlayerComponent />
+    </QueryClientProvider>
+  );
   await act(async () => {});
 }
 

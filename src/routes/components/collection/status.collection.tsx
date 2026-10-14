@@ -6,19 +6,15 @@ import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/collectio
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/collection/status.utils";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
 function ShareStatusButton({ onShare }: { onShare: () => Promise<void> | void }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const timer = useRef<number | null>(null);
-  useEffect(
-    () => () => {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-    },
-    []
-  );
+  const copyHideRef = useRef<Debouncer<[]> | null>(null);
+  useEffect(() => () => copyHideRef.current?.cancel(), []);
 
   return (
     <Button
@@ -33,8 +29,10 @@ function ShareStatusButton({ onShare }: { onShare: () => Promise<void> | void })
           const [, error] = await attempt(result);
           if (error) return;
           setCopied(true);
-          if (timer.current !== null) window.clearTimeout(timer.current);
-          timer.current = window.setTimeout(() => setCopied(false), 1500);
+          if (copyHideRef.current === null) {
+            copyHideRef.current = new Debouncer(() => setCopied(false), { wait: 1500 });
+          }
+          copyHideRef.current.maybeExecute();
         })();
       }}
     >

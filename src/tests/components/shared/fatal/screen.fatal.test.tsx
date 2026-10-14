@@ -100,10 +100,10 @@ describe("FatalScreen", () => {
   it("retries on Escape only while retry is available", () => {
     const props = handlers();
     const view = render(<FatalScreen info={baseInfo()} {...props} />);
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: "Escape", code: "Escape" });
     expect(props.onRetry).toHaveBeenCalledTimes(1);
     view.rerender(<FatalScreen info={baseInfo({ retryCount: 1 })} {...props} />);
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: "Escape", code: "Escape" });
     expect(props.onRetry).toHaveBeenCalledTimes(1);
   });
 

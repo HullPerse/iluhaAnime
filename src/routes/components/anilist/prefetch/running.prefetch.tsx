@@ -39,7 +39,10 @@ export function RunningSummary({
           {progress.eta_secs == null ? "..." : formatClock(progress.eta_secs)}
         </span>
         <span>
-          {t("anilist.prefetch.next.batch")}: {(progress.next_batch_in_ms / 1000).toFixed(1)}с
+          {t("anilist.prefetch.next.batch")}:{" "}
+          {t("anilist.prefetch.next.batch.value", {
+            seconds: (progress.next_batch_in_ms / 1000).toFixed(1),
+          })}
         </span>
       </div>
     </div>

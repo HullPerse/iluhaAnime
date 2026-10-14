@@ -230,6 +230,27 @@ pub(crate) fn prune_unified_index_scope_inner(
     Ok(removed)
 }
 
+pub(crate) fn delete_unified_index_ids_inner(
+    transaction: &Transaction,
+    ids: &[String],
+) -> Result<usize, String> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let mut removed = 0usize;
+    {
+        let mut delete = transaction
+            .prepare("DELETE FROM unified_index WHERE id = ?1")
+            .map_err(|error| format!("prepare unified index id delete: {error}"))?;
+        for id in ids {
+            removed += delete
+                .execute(params![id])
+                .map_err(|error| format!("delete unified index id: {error}"))?;
+        }
+    }
+    Ok(removed)
+}
+
 #[tauri::command]
 pub fn clear_unified_index_scope(app: tauri::AppHandle, scope: String) -> Result<usize, String> {
     if scope.is_empty() || scope.len() > 64 {

@@ -1,3 +1,5 @@
+import { scheduleTask } from "@/lib/pacer/shared.utils";
+
 /** The CSS animation runs for 1.2s; the class is dropped slightly later. */
 export const TARGET_FLASH_MS = 1300;
 
@@ -7,11 +9,11 @@ export const TARGET_FLASH_MS = 1300;
  */
 export function flashTarget(element: Element): () => void {
   element.classList.add("target-flash");
-  const timer = window.setTimeout(() => {
+  const timer = scheduleTask("timeout", TARGET_FLASH_MS, () => {
     element.classList.remove("target-flash");
-  }, TARGET_FLASH_MS);
+  });
   return () => {
-    window.clearTimeout(timer);
+    timer.cancel();
     element.classList.remove("target-flash");
   };
 }

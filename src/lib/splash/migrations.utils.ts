@@ -15,7 +15,7 @@ export interface TrackedStore {
 // `migrations.utils.test.ts` fails loudly on drift instead of silently
 // showing stale markers.
 export const TRACKED_STORES: TrackedStore[] = [
-  { store: "settings", current: 46 },
+  { store: "settings", current: 48 },
   { store: "theme", current: 0 },
   { store: "cache", current: 5 },
   { store: "search", current: 3 },

@@ -2,10 +2,11 @@ import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import type { Event } from "@tauri-apps/api/event";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { createInterval } from "@/lib/pacer/interval.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import {
   TorrentListen,
@@ -142,7 +143,7 @@ export function useTorrents(enabled = true) {
   }, [enabled, queryClient]);
   useEffect(() => {
     if (!enabled) return;
-    const timer = window.setInterval(() => {
+    const { cancel } = createInterval(() => {
       if (subscriptionOwners > 0) startTorrentSubscription(queryClient);
       if (document.hidden) return;
       const now = Date.now();
@@ -158,7 +159,7 @@ export function useTorrents(enabled = true) {
       lastTorrentHealAt = now;
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
     }, TORRENT_WATCHDOG_MS);
-    return () => window.clearInterval(timer);
+    return cancel;
   }, [enabled, queryClient]);
   return query;
 }
@@ -185,7 +186,7 @@ export function useTorrentListenPort(enabled = true) {
 
 export function useDhtStats() {
   return useAppQuery("slow", {
-    queryKey: ["dht-stats"],
+    queryKey: queryKeys.dhtStats(),
     queryFn: () => torrentApi.getDhtStats(),
     retry: false,
   });
@@ -213,12 +214,16 @@ export function useTorrentFilesMap(
   files: Record<number, TorrentFileInfo[] | undefined>;
   pendingIds: Set<number>;
   errors: Record<number, string>;
+  /** Runs the batch sweep immediately for the given ids (watcher poke). */
+  requestRefresh: (ids: number[]) => void;
 } {
   const queryClient = useQueryClient();
   const queriesInput = useMemo(
     () =>
       ids.map((id) => {
-        const enabled = enabledIds?.has(id) ?? true;
+        // While polling, the batch sweep below owns the cache; a per-id fetch
+        // here would fire one IPC per torrent on mount instead of one batch.
+        const enabled = refetchMs === false && (enabledIds?.has(id) ?? true);
         return {
           queryKey: queryKeys.torrentFiles(id),
           queryFn: () => fetchTorrentFiles(queryClient, id),
@@ -227,7 +232,7 @@ export function useTorrentFilesMap(
           retry: false,
         };
       }),
-    [ids, queryClient, enabledIds]
+    [ids, queryClient, enabledIds, refetchMs]
   );
   const results = useQueries({ queries: queriesInput });
 
@@ -238,13 +243,14 @@ export function useTorrentFilesMap(
   }, [enabledIds, ids, refetchMs]);
   const [pollingIds, setPollingIds] = useState<Set<string>>(new Set());
   const [pollErrors, setPollErrors] = useState<Record<number, string>>({});
+  const pokeRef = useRef<(ids: number[]) => void>(() => {});
 
   useEffect(() => {
     if (refetchMs === false || pollIds.length === 0) return;
     let disposed = false;
-    const sweep = async () => {
-      const idsToFetch = pollIds.map(Number);
-      setPollingIds(new Set(pollIds));
+    const sweep = async (wanted: string[]) => {
+      const idsToFetch = wanted.map(Number);
+      setPollingIds(new Set(wanted));
       const [entries] = await attempt(torrentApi.runningTorrentFilesBatch(idsToFetch));
       if (disposed) return;
       setPollingIds(new Set());
@@ -271,11 +277,14 @@ export function useTorrentFilesMap(
         return next;
       });
     };
-    ignore(sweep());
-    const timer = window.setInterval(() => ignore(sweep()), refetchMs);
+    ignore(sweep(pollIds));
+    pokeRef.current = (ids: number[]) => {
+      if (ids.length > 0) ignore(sweep(ids.map(String)));
+    };
+    const { cancel } = createInterval(() => ignore(sweep(pollIds)), refetchMs);
     return () => {
       disposed = true;
-      window.clearInterval(timer);
+      cancel();
     };
   }, [pollIds, queryClient, refetchMs]);
 
@@ -291,7 +300,12 @@ export function useTorrentFilesMap(
         errors[id] = failure instanceof Error ? failure.message : String(failure);
       else if (pollErrors[id] !== undefined) errors[id] = pollErrors[id]!;
     });
-    return { files, pendingIds, errors };
+    return {
+      errors,
+      files,
+      pendingIds,
+      requestRefresh: (refreshIds: number[]) => pokeRef.current(refreshIds),
+    };
   }, [ids, pollErrors, pollingIds, results]);
 }
 

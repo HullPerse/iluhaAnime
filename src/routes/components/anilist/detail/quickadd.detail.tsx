@@ -1,15 +1,7 @@
-import { useState } from "react";
-
 import { Button } from "@/components/ui/button.component";
-import { useCollectionData, useCollectionMutations } from "@/hooks/collection/queries.hook";
+import { useQuickAddMedia } from "@/hooks/collection/quickAdd.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilist/score.utils";
-import { mediaToWizardValues } from "@/lib/collection/import.utils";
-import { withStoredMedia } from "@/lib/collection/media.utils";
-import { downloadCover, fetchAddedMedia } from "@/lib/collection/quickadd.utils";
-import { buildWizardItem } from "@/lib/collection/wizard.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { addNotification } from "@/store/notification.store";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 export default function QuickAddButton({
@@ -24,50 +16,12 @@ export default function QuickAddButton({
   scoreFormat?: AnilistScoreFormat | null;
 }) {
   const { t } = useI18n();
-  const { items } = useCollectionData();
-  const { addItem } = useCollectionMutations();
-  const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
-
-  const exists = added || items.some((item) => item.externalIds.anilist === anime.id);
-
-  const handleAdd = async () => {
-    if (exists || adding) return;
-    setAdding(true);
-    const [, error] = await attempt(
-      (async () => {
-        const values = mediaToWizardValues(
-          anime,
-          listEntry,
-          isFavorite,
-          parseScoreFormat(scoreFormat)
-        );
-        const coverBlobId = await downloadCover(values.coverUrl);
-        const built = buildWizardItem(values, coverBlobId, null);
-        const added = await fetchAddedMedia(anime);
-        await addItem(
-          added
-            ? {
-                ...built,
-                detailsJson: withStoredMedia(
-                  built.detailsJson,
-                  added.backdrops
-                    .map((b) => b.url)
-                    .filter(Boolean)
-                    .slice(0, 8),
-                  added.trailerYoutubeId
-                ),
-              }
-            : built
-        );
-        setAdded(true);
-        addNotification(t("app.collection"), "success", t("collection.quick.add.success"));
-      })()
-    );
-    if (error)
-      addNotification(t("app.collection"), "error", t("collection.quick.add.error"));
-    setAdding(false);
-  };
+  const { adding, exists, handleAdd } = useQuickAddMedia(
+    anime,
+    listEntry,
+    isFavorite,
+    parseScoreFormat(scoreFormat)
+  );
 
   return (
     <Button

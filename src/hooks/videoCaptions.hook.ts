@@ -2,6 +2,8 @@ import type { TextTrackListLike, TextTrackLike } from "@videojs/media";
 import { useMedia } from "@videojs/react";
 import { useEffect, useState } from "react";
 
+import { scheduleTask } from "@/lib/pacer/shared.utils";
+
 export function useCaptionTracks() {
   const media = useMedia();
   const [tracks, setTracks] = useState<TextTrackLike[]>([]);
@@ -31,12 +33,12 @@ export function useCaptionTracks() {
     list.addEventListener?.("addtrack", onListEvent);
     list.addEventListener?.("removetrack", onListEvent);
     list.addEventListener?.("change", onListEvent);
-    const retry = window.setTimeout(sync, 250);
+    const retry = scheduleTask("timeout", 250, sync);
     return () => {
       list.removeEventListener?.("addtrack", onListEvent);
       list.removeEventListener?.("removetrack", onListEvent);
       list.removeEventListener?.("change", onListEvent);
-      window.clearTimeout(retry);
+      retry.cancel();
     };
   }, [media]);
 

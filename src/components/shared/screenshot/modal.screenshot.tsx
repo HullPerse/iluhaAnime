@@ -28,6 +28,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import {
   canRedo,
   canUndo,
@@ -90,7 +91,15 @@ export default function ScreenshotModal({
   const [textSize, setTextSize] = useState(ANNOTATION_DEFAULT_TEXT_SIZE);
   const [history, setHistory] = useState<AnnotationHistory>(createHistory);
   const stageRef = useRef<StageHandle>(null);
-  const copyTimer = useRef(0);
+  const copyHideRef = useRef<Debouncer<[]> | null>(null);
+  const hideCopiedSoon = () => {
+    if (copyHideRef.current === null) {
+      copyHideRef.current = new Debouncer(() => setCopied(false), {
+        wait: COPIED_FEEDBACK_MS,
+      });
+    }
+    copyHideRef.current.maybeExecute();
+  };
   const family = useMemo(() => resolveFontFamily(), []);
   const bounds = useMemo<CropBounds>(
     () => ({ width: capture.width, height: capture.height }),
@@ -111,7 +120,7 @@ export default function ScreenshotModal({
     [t]
   );
 
-  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
+  useEffect(() => () => copyHideRef.current?.cancel(), []);
 
   const historyDefs: ResolvedHotkeyDef<"undo" | "redo">[] = SCREENSHOT_HISTORY_DEFS.map((def) => ({
     ...def,
@@ -139,8 +148,7 @@ export default function ScreenshotModal({
 
   const copy = async () => {
     setCopied(true);
-    window.clearTimeout(copyTimer.current);
-    copyTimer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+    hideCopiedSoon();
     const [path, prepareError] = await attempt(
       systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
     );

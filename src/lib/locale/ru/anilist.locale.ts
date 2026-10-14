@@ -304,6 +304,7 @@ const anilist = {
   "anilist.prefetch.eta": "Осталось",
   "anilist.prefetch.fetched": "Загружено новых",
   "anilist.prefetch.next.batch": "Следующий запрос через",
+  "anilist.prefetch.next.batch.value": "{{seconds}} с",
   "anilist.prefetch.no.relations": "(нет связей)",
   "anilist.prefetch.processed": "Обработано",
   "anilist.prefetch.remaining": "Осталось",

@@ -1,3 +1,4 @@
+import { subscribeHotkeys } from "@/lib/hotkeys/registry.hotkeys";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
 import type { OverlayEntry, OverlayStore } from "@/types/overlay";
 
@@ -22,8 +23,7 @@ export function createOverlaySignalStore(): OverlaySignalStore {
   const store = createSignalStore();
   const entries = store.atom<OverlayEntry[]>("entries", []);
 
-  function handleEscape(event: KeyboardEvent): void {
-    if (event.key !== "Escape" || event.defaultPrevented) return;
+  function handleEscapeDismiss(event: KeyboardEvent): void {
     const top = topOverlay(entries.get());
     if (!top?.dismiss) return;
 
@@ -32,18 +32,25 @@ export function createOverlaySignalStore(): OverlaySignalStore {
     top.dismiss();
   }
 
+  let unsubscribeEscape: (() => void) | null = null;
+
   return {
     atoms: { entries } as OverlayAtoms,
     register: (dismiss) => {
       const entry: OverlayEntry = { id: nextOverlayId++, dismiss };
       entries.set([...entries.get(), entry]);
       if (typeof window !== "undefined" && entries.get().length === 1) {
-        window.addEventListener("keydown", handleEscape, true);
+        unsubscribeEscape = subscribeHotkeys(window, {
+          defs: [{ id: "dismiss-top", chord: "Escape", repeat: "once" }],
+          capture: true,
+          onAction: (_id, event) => handleEscapeDismiss(event),
+        });
       }
       return () => {
         entries.set(entries.get().filter((item) => item.id !== entry.id));
         if (typeof window !== "undefined" && entries.get().length === 0) {
-          window.removeEventListener("keydown", handleEscape, true);
+          unsubscribeEscape?.();
+          unsubscribeEscape = null;
         }
       };
     },

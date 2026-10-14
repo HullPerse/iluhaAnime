@@ -86,10 +86,24 @@ describe("humanizeChord", () => {
     expect(humanizeChord("alt+Digit1")).toBe("Alt+1");
   });
 
-  it("draws arrows as glyphs and keeps the rest", () => {
+  it("draws arrows and punctuation as glyphs and keeps words", () => {
     expect(humanizeChord("ArrowLeft")).toBe("←");
-    expect(humanizeChord("Shift+BracketRight")).toBe("Shift+BracketRight");
+    expect(humanizeChord("BracketLeft")).toBe("[");
+    expect(humanizeChord("Shift+BracketRight")).toBe("Shift+]");
+    expect(humanizeChord("Comma")).toBe(",");
+    expect(humanizeChord("Period")).toBe(".");
+    expect(humanizeChord("Slash")).toBe("/");
+    expect(humanizeChord("Shift+Slash")).toBe("Shift+/");
+    expect(humanizeChord("Shift+Comma")).toBe("Shift+,");
+    expect(humanizeChord("Semicolon")).toBe(";");
+    expect(humanizeChord("Quote")).toBe("'");
+    expect(humanizeChord("Backquote")).toBe("`");
+    expect(humanizeChord("Minus")).toBe("-");
+    expect(humanizeChord("Equal")).toBe("=");
+    expect(humanizeChord("Backslash")).toBe("\\");
+    expect(humanizeChord("NumpadAdd")).toBe("Num +");
     expect(humanizeChord("Space")).toBe("Space");
+    expect(humanizeChord("Escape")).toBe("Escape");
   });
 
   it("passes garbage through", () => {

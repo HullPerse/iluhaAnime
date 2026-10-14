@@ -48,17 +48,44 @@ export function chordKeyFromEvent(event: KeyboardEvent): string {
   return `${event.code}:${event.ctrlKey}:${event.shiftKey}:${event.altKey}:${event.metaKey}`;
 }
 
-const ARROW_GLYPHS: Record<string, string> = {
+const KEY_LABELS: Record<string, string> = {
   ArrowLeft: "←",
   ArrowRight: "→",
   ArrowUp: "↑",
   ArrowDown: "↓",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+  Semicolon: ";",
+  Quote: "'",
+  Backquote: "`",
+  Minus: "-",
+  Equal: "=",
+  Backslash: "\\",
+  Numpad0: "Num 0",
+  Numpad1: "Num 1",
+  Numpad2: "Num 2",
+  Numpad3: "Num 3",
+  Numpad4: "Num 4",
+  Numpad5: "Num 5",
+  Numpad6: "Num 6",
+  Numpad7: "Num 7",
+  Numpad8: "Num 8",
+  Numpad9: "Num 9",
+  NumpadAdd: "Num +",
+  NumpadSubtract: "Num -",
+  NumpadMultiply: "Num *",
+  NumpadDivide: "Num /",
+  NumpadDecimal: "Num .",
+  NumpadEnter: "Num Enter",
 };
 
 function humanizeCode(code: string): string {
   if (code.startsWith("Key") && code.length === 4) return code.slice(3);
   if (code.startsWith("Digit") && code.length === 6) return code.slice(5);
-  return ARROW_GLYPHS[code] ?? code;
+  return KEY_LABELS[code] ?? code;
 }
 
 /**
@@ -80,8 +107,9 @@ export function splitChordParts(input: string): string[] | null {
 
 /**
  * Renders a chord the way the keybinds tab shows it: `ctrl+KeyK` becomes
- * `Ctrl+K`, `ArrowLeft` becomes a glyph. Unparseable input passes through
- * untouched so the tab never blanks a row it cannot read.
+ * `Ctrl+K`, `ArrowLeft` becomes a glyph, `BracketLeft` becomes `[`.
+ * Unparseable input passes through untouched so the tab never blanks
+ * a row it cannot read.
  */
 export function humanizeChord(input: string): string {
   return splitChordParts(input)?.join("+") ?? input;

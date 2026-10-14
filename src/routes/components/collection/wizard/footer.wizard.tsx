@@ -1,4 +1,3 @@
-import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -56,15 +55,18 @@ export function WizardFooter({
         </div>
       </div>
       {confirmDiscard && (
-        <ConfirmDialog
-          open
-          title={t("collection.wizard.discard.title")}
-          message={t("collection.wizard.discard.message")}
-          confirmLabel={t("common.discard")}
-          onConfirm={onClose}
-          onCancel={cancelDiscard}
-          onClose={cancelDiscard}
-        />
+        <div className="bg-primary absolute inset-0 flex flex-col p-2">
+          <p className="windows95-text text-text font-bold">
+            {t("collection.wizard.discard.title")}
+          </p>
+          <p className="windows95-text text-text mt-1">{t("collection.wizard.discard.message")}</p>
+          <div className="mt-auto ml-auto flex justify-end gap-1">
+            <Button onClick={cancelDiscard} autoFocus>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={onClose}>{t("common.discard")}</Button>
+          </div>
+        </div>
       )}
     </>
   );

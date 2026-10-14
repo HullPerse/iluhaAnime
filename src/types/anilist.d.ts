@@ -367,7 +367,24 @@ export interface AniListFiltersModalProps {
   randomPending: boolean;
   discovery: RandomDiscovery;
   entryLookup: EntryLookup;
-  onDiscoveryDetails: (id: number) => void;
+  detail: ActivityDetailBundle;
+}
+
+export interface ActivityDetailBundle {
+  entryLookup: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
+  favouriteIds: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  favouriteCharacterIds?: Set<number>;
+  isLoggedIn: boolean;
+  onFavouriteToggle: (animeId: number) => Promise<void>;
+  onStaffFavouriteToggle?: (staffId: number) => void;
+  onCharacterFavouriteToggle?: (characterId: number) => void;
+  onTag: (value: string) => void;
+  onGenre: (value: string) => void;
+  onStudio?: (id: number, name: string) => void;
+  onSeason?: (season: string, year: number | null) => void;
+  onSaved?: () => void;
 }
 
 export type RelationFilter = (typeof RELATION_FILTERS)[number];
@@ -758,7 +775,6 @@ export interface AniFriendsProps {
   onAddMany: (friends: AniFriendMinimal[]) => void;
   onRemove: (id: number) => void;
   onViewLists: (friend: AniFriend) => void;
-  onAnimeClick?: (id: number) => void;
   onClose: () => void;
 }
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
 import {
@@ -1410,15 +1410,7 @@ describe("anilist/sim", () => {
   });
 
   describe("runFranchiseSimulation", () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it("forwards throttled ticks and final positions on end", () => {
+    it("forwards throttled ticks and final positions on end", async () => {
       const seen: Map<number, FranchiseNodePosition>[] = [];
       const sim = runFranchiseSimulation(
         [
@@ -1432,9 +1424,11 @@ describe("anilist/sim", () => {
           seen.push(pos);
         }
       );
-      vi.advanceTimersByTime(10000);
-      sim.stop();
-      expect(seen.length).toBeGreaterThan(0);
+      try {
+        await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0));
+      } finally {
+        sim.stop();
+      }
       expect(seen.length).toBeLessThan(200);
       const last = seen.at(-1)!;
       expect(last.has(1)).toBe(true);

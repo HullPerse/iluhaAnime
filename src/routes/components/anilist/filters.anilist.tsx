@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input.component";
 import { RadioGroup } from "@/components/ui/radio/group.radio";
 import { Radio } from "@/components/ui/radio/radio.radio";
 import {
-
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
   ANILIST_TAGS,
@@ -26,6 +25,7 @@ import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
 
+import { InlineDetail } from "./detail/inline.detail";
 import { DiscoveryCard } from "./random/discovery.random";
 
 function FiltersModal({
@@ -38,15 +38,27 @@ function FiltersModal({
   randomPending,
   discovery,
   entryLookup,
-  onDiscoveryDetails,
+  detail,
 }: AniListFiltersModalProps) {
   const { t } = useI18n();
   const [local, setLocal] = useState<AniListFilters>(filters);
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [genreSelect, setGenreSelect] = useState("");
   const [tagSelect, setTagSelect] = useState("");
   const [nsfwTagSelect, setNsfwTagSelect] = useState("");
 
   if (!open) return null;
+
+  if (detailId != null) {
+    return (
+      <InlineDetail
+        initialId={detailId}
+        detail={detail}
+        onBack={() => setDetailId(null)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const { close: handleDiscoveryBack } = discovery;
   const showDiscovery = discovery.open && discovery.current != null;
@@ -116,7 +128,7 @@ function FiltersModal({
             onPrev: discovery.prev,
             onNext: discovery.reroll,
             onReroll: discovery.reroll,
-            onDetails: onDiscoveryDetails,
+            onDetails: setDetailId,
           }}
         />
       ) : (

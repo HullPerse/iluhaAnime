@@ -41,6 +41,18 @@ function Modal({
     return () => task.cancel();
   }, [modalAnimation]);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof document === "undefined") return;
+    const task = scheduleTask("timeout", 0, () => {
+      if (document.querySelectorAll('[role="dialog"]').length > 1) {
+        console.warn(
+          "[modal] stacked dialogs detected: keep one Modal per screen and swap content with onBack"
+        );
+      }
+    });
+    return () => task.cancel();
+  }, []);
+
   return (
     <Dialog.Root
       defaultOpen

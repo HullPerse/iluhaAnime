@@ -21,15 +21,17 @@ import { toLocaleKey } from "@/lib/locale/key.utils";
 import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
+import type { ActivityDetailBundle } from "@/types/anilist";
 import type { BrowseTab } from "@/types/anilist";
+
+import { InlineDetail } from "./detail/inline.detail";
 
 export default function BrowseAnimeModal({
   onClose,
-  onAnimeClick,
   entries,
+  detail,
 }: {
   onClose: () => void;
-  onAnimeClick: (id: number) => void;
   entries: Map<
     number,
     {
@@ -38,9 +40,11 @@ export default function BrowseAnimeModal({
       list_status: string;
     }
   >;
+  detail: ActivityDetailBundle;
 }) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<BrowseTab>("popular");
+  const [detailId, setDetailId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
@@ -102,6 +106,17 @@ export default function BrowseAnimeModal({
   }, []);
   const paged = paginate(data, page, BROWSE_PAGE_SIZE);
 
+  if (detailId != null) {
+    return (
+      <InlineDetail
+        initialId={detailId}
+        detail={detail}
+        onBack={() => setDetailId(null)}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
     <Modal
       header={t(BROWSE_TABS.find((tab) => tab.id === activeTab)?.key ?? BROWSE_TABS[0].key)}
@@ -133,7 +148,7 @@ export default function BrowseAnimeModal({
                 type="button"
                 key={item.id}
                 className="windows95-active-border bg-primary hover:bg-surface flex w-full flex-row p-2 text-left hover:cursor-pointer"
-                onClick={() => onAnimeClick(item.id)}
+                onClick={() => setDetailId(item.id)}
               >
                 {item.cover_url && (
                   <ImageComponent

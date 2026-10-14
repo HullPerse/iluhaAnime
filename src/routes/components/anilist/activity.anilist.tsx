@@ -3,31 +3,12 @@ import { useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { buildEntryLookup } from "@/lib/anilist/entries.utils";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
-import type { AniListCollection } from "@/types/anilist";
+import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist";
 
 import { CalendarTab } from "./activity/calendarTab.activity";
 import { FeedTab } from "./activity/feedTab.activity";
 import { NotificationsTab } from "./activity/notificationsTab.activity";
 import { AnimeDetailShell } from "./detail/shell.detail";
-
-export interface ActivityDetailBundle {
-  entryLookup: ReturnType<typeof buildEntryLookup>;
-  scoreFormat?: AnilistScoreFormat | null;
-  favouriteIds: Set<number>;
-  favouriteStaffIds?: Set<number>;
-  favouriteCharacterIds?: Set<number>;
-  isLoggedIn: boolean;
-  onFavouriteToggle: (animeId: number) => Promise<void>;
-  onStaffFavouriteToggle?: (staffId: number) => void;
-  onCharacterFavouriteToggle?: (characterId: number) => void;
-  onTag: (value: string) => void;
-  onGenre: (value: string) => void;
-  onStudio?: (id: number, name: string) => void;
-  onSeason?: (season: string, year: number | null) => void;
-  onSaved?: () => void;
-}
 
 function ActivityHistoryModal({
   userId,

@@ -19,25 +19,28 @@ import { createInterval } from "@/lib/pacer/interval.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatETA } from "@/lib/utils/time.utils";
+import type { ActivityDetailBundle } from "@/types/anilist";
 import type { AniMedia, SpotlightKind, SpotlightRowState } from "@/types/anilist";
 
+import { InlineDetail } from "../detail/inline.detail";
 import { SpotlightRow } from "./spotlightRow.spotlight";
 
 export default function SpotlightModal({
   hasUser,
-  onDetails,
   isFavorite,
   scoreFormat,
+  detail,
   onClose,
 }: {
   hasUser: boolean;
-  onDetails: (id: number) => void;
   isFavorite: (id: number) => boolean;
   scoreFormat?: AnilistScoreFormat | null;
+  detail: ActivityDetailBundle;
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [rows, setRows] = useState<Record<SpotlightKind, SpotlightRowState>>({
     day: { status: "loading" },
     week: { status: "loading" },
@@ -101,7 +104,14 @@ export default function SpotlightModal({
     })();
   };
 
-  return (
+  return detailId != null ? (
+    <InlineDetail
+      initialId={detailId}
+      detail={detail}
+      onBack={() => setDetailId(null)}
+      onClose={onClose}
+    />
+  ) : (
     <Modal header={t("anilist.spotlight.title")} onClose={onClose} className="w-2xl">
       {!hasUser ? (
         <span className="windows95-text p-2 text-xs">{t("anilist.details.login.required")}</span>
@@ -132,7 +142,7 @@ export default function SpotlightModal({
                   <SpotlightRow
                     media={row.media}
                     countdown={countdown}
-                    onDetails={onDetails}
+                    onDetails={setDetailId}
                     isFavorite={isFavorite}
                     scoreFormat={scoreFormat}
                   />

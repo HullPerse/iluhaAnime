@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListFriendsModal from "@/routes/components/anilist/friends.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { AniFriend, AniUser } from "@/types/anilist";
+import type { ActivityDetailBundle, AniFriend, AniUser } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -37,6 +37,14 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 function renderModal(friends: AniFriend[], onAddMany: (friends: unknown[]) => void) {
+  const detail: ActivityDetailBundle = {
+    entryLookup: new Map(),
+    favouriteIds: new Set(),
+    isLoggedIn: false,
+    onFavouriteToggle: () => Promise.resolve(),
+    onTag: () => undefined,
+    onGenre: () => undefined,
+  };
   return render(
     <AniListFriendsModal
       friends={friends}
@@ -47,6 +55,7 @@ function renderModal(friends: AniFriend[], onAddMany: (friends: unknown[]) => vo
       onAddMany={onAddMany}
       onRemove={vi.fn()}
       onViewLists={vi.fn()}
+      detail={detail}
       onClose={vi.fn()}
     />,
     { wrapper }

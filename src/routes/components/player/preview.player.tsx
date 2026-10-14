@@ -1,30 +1,51 @@
 import { useEffect, useRef, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
-import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { PreviewFrame } from "@/types/upscale";
 
+export function PreviewZoom({ frame }: { frame: PreviewFrame }) {
+  const { t } = useI18n();
+  const [showAfter, setShowAfter] = useState(true);
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <img
+        src={showAfter ? frame.after : frame.before}
+        alt=""
+        className="max-h-[60vh] w-auto"
+      />
+      <div className="mt-1 flex flex-row justify-center gap-1">
+        <Button onClick={() => setShowAfter(false)} disabled={!showAfter}>
+          {t("player.upscale.preview.before")}
+        </Button>
+        <Button onClick={() => setShowAfter(true)} disabled={showAfter}>
+          {t("player.upscale.preview.after")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function UpscalePreview({
   filePath,
   resolution,
   selectedShaders,
   temporalDenoise,
+  onZoom,
 }: {
   filePath: string;
   resolution: string;
   selectedShaders: string[];
   temporalDenoise: boolean;
+  onZoom: (frame: PreviewFrame) => void;
 }) {
   const { t } = useI18n();
   const [frames, setFrames] = useState<PreviewFrame[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(-1);
-  const [showAfter, setShowAfter] = useState(true);
   const requestKey = `${filePath}|${resolution}|${selectedShaders.join(",")}|${temporalDenoise}`;
   const latestKeyRef = useRef(requestKey);
   useEffect(() => {
@@ -55,10 +76,7 @@ export function UpscalePreview({
       return;
     }
     setFrames(data);
-    setExpanded(-1);
   };
-
-  const current = expanded >= 0 ? frames[expanded] : null;
 
   return (
     <div className="flex flex-col gap-1">
@@ -74,32 +92,12 @@ export function UpscalePreview({
               key={`${frame.timestamp}-${index}`}
               type="button"
               title={`${Math.round(frame.timestamp)}s`}
-              onClick={() => {
-                setExpanded(index);
-                setShowAfter(true);
-              }}
+              onClick={() => onZoom(frame)}
             >
               <img src={frame.before} alt="" className="h-16 w-auto" />
             </button>
           ))}
         </div>
-      )}
-      {current && (
-        <Modal header={`${Math.round(current.timestamp)}s`} onClose={() => setExpanded(-1)}>
-          <img
-            src={showAfter ? current.after : current.before}
-            alt=""
-            className="max-h-[60vh] w-auto"
-          />
-          <div className="mt-1 flex flex-row justify-center gap-1">
-            <Button onClick={() => setShowAfter(false)} disabled={!showAfter}>
-              {t("player.upscale.preview.before")}
-            </Button>
-            <Button onClick={() => setShowAfter(true)} disabled={showAfter}>
-              {t("player.upscale.preview.after")}
-            </Button>
-          </div>
-        </Modal>
       )}
     </div>
   );

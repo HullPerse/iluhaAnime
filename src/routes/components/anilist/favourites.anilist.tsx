@@ -8,12 +8,14 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type {
   AniFavouritesProps as Props,
+  AniListOverlayContext,
+  AniListOverlayScreen,
   FavouritesTab,
   FavouriteAnime,
   FavouritePerson,
 } from "@/types/anilist";
 
-import AniListPersonDetailModal from "./detail/person.detail";
+import { OverlayScreens } from "./detail/screens.detail";
 
 const TABS: readonly FavouritesTab[] = ["anime", "characters", "staff"];
 
@@ -117,20 +119,38 @@ export default function AniListFavouritesModal({
 }: Props) {
   const { t } = useI18n();
   const [tab, setTab] = useState<FavouritesTab>("anime");
-  const [selected, setSelected] = useState<{
-    kind: "character" | "staff";
-    id: number;
-    name: string;
-  } | null>(null);
+  const [personStack, setPersonStack] = useState<AniListOverlayScreen[] | null>(null);
 
   useEffect(() => {
     if (open) {
       setTab("anime");
-      setSelected(null);
+      setPersonStack(null);
     }
   }, [open]);
 
   if (!open) return null;
+
+  const personTop = personStack?.at(-1) ?? null;
+  const pushPerson = (screen: AniListOverlayScreen) =>
+    setPersonStack((prev) => (prev ? [...prev, screen] : prev));
+  const handlePersonBack = () => {
+    if (personStack && personStack.length > 1) setPersonStack((prev) => prev?.slice(0, -1) ?? null);
+    else setPersonStack(null);
+  };
+  const openPersonAnime = (id: number) => {
+    setPersonStack(null);
+    onClose();
+    onAnimeClick(id);
+  };
+  const personContext: AniListOverlayContext = {
+    isLoggedIn,
+    favouriteCharacterIds,
+    favouriteStaffIds,
+    onCharacterFavouriteToggle,
+    onStaffFavouriteToggle,
+    onOpenAnime: openPersonAnime,
+    onPush: pushPerson,
+  };
 
   const counts: Record<FavouritesTab, number> = {
     anime: favourites.length,
@@ -139,70 +159,67 @@ export default function AniListFavouritesModal({
   };
 
   return (
-    <Modal header={t("anilist.favourites.title")} onClose={onClose} className="w-2xl">
-      <div className="shrink-0">
-        <Tabs
-          ariaLabel={t("anilist.favourites.title")}
-          tabs={TABS.map((id) => ({
-            id,
-            label: `${t(`anilist.favourites.${id}`)} (${counts[id]})`,
-          }))}
-          activeTab={tab}
-          onChange={setTab}
-        />
-      </div>
-      {counts[tab] === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
-          <span className="windows95-text">{t(`anilist.favourites.empty.${tab}`)}</span>
-        </div>
+    <Modal
+      header={t("anilist.favourites.title")}
+      onClose={onClose}
+      onBack={personStack ? handlePersonBack : undefined}
+      className="w-2xl"
+    >
+      {personTop ? (
+        <OverlayScreens current={personTop} context={personContext} />
       ) : (
-        <div className="flex flex-col gap-1">
-          {tab === "anime" &&
-            favourites.map((fav) => (
-              <FavouriteAnimeRow
-                key={fav.id}
-                fav={fav}
-                onSelect={(id) => {
-                  onClose();
-                  onAnimeClick(id);
-                }}
-              />
-            ))}
-          {tab === "characters" &&
-            people.characters.map((person) => (
-              <FavouritePersonRow
-                key={person.id}
-                person={person}
-                onSelect={(p) => setSelected({ kind: "character", id: p.id, name: p.name })}
-              />
-            ))}
-          {tab === "staff" &&
-            people.staff.map((person) => (
-              <FavouritePersonRow
-                key={person.id}
-                person={person}
-                onSelect={(p) => setSelected({ kind: "staff", id: p.id, name: p.name })}
-              />
-            ))}
-        </div>
-      )}
-      {selected && (
-        <AniListPersonDetailModal
-          kind={selected.kind}
-          personId={selected.id}
-          personName={selected.name}
-          isLoggedIn={isLoggedIn}
-          favouriteCharacterIds={favouriteCharacterIds}
-          favouriteStaffIds={favouriteStaffIds}
-          onCharacterFavouriteToggle={onCharacterFavouriteToggle}
-          onStaffFavouriteToggle={onStaffFavouriteToggle}
-          onRelated={(id) => {
-            setSelected(null);
-            onClose();
-            onAnimeClick(id);
-          }}
-          onClose={() => setSelected(null)}
-        />
+        <>
+          <div className="shrink-0">
+            <Tabs
+              ariaLabel={t("anilist.favourites.title")}
+              tabs={TABS.map((id) => ({
+                id,
+                label: `${t(`anilist.favourites.${id}`)} (${counts[id]})`,
+              }))}
+              activeTab={tab}
+              onChange={setTab}
+            />
+          </div>
+          {counts[tab] === 0 ? (
+            <div className="flex flex-1 items-center justify-center">
+              <span className="windows95-text">{t(`anilist.favourites.empty.${tab}`)}</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {tab === "anime" &&
+                favourites.map((fav) => (
+                  <FavouriteAnimeRow
+                    key={fav.id}
+                    fav={fav}
+                    onSelect={(id) => {
+                      onClose();
+                      onAnimeClick(id);
+                    }}
+                  />
+                ))}
+              {tab === "characters" &&
+                people.characters.map((person) => (
+                  <FavouritePersonRow
+                    key={person.id}
+                    person={person}
+                    onSelect={(p) =>
+                      setPersonStack([
+                        { kind: "character", id: p.id, name: p.name, voiceActors: [] },
+                      ])
+                    }
+                  />
+                ))}
+              {tab === "staff" &&
+                people.staff.map((person) => (
+                  <FavouritePersonRow
+                    key={person.id}
+                    person={person}
+                    onSelect={(p) => setPersonStack([{ kind: "staff", id: p.id, name: p.name }])}
+                  />
+                ))}
+            </div>
+          )}
+        </>
       )}
     </Modal>
   );

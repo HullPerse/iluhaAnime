@@ -140,23 +140,27 @@ describe("AniListFavouritesModal tabs", () => {
     expect(onAnimeClick).toHaveBeenCalledWith(1);
   });
 
-  it("opens the character overlay on top without closing favourites", async () => {
+  it("opens the character inside the same dialog with a back button", async () => {
     const { onClose } = renderOpen();
     fireEvent.click(screen.getByRole("tab", { name: "Characters (1)" }));
     fireEvent.click(screen.getByText("Char One"));
-    await waitFor(() => {
-      expect(screen.getAllByText("Char One").length).toBeGreaterThan(1);
-    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toBeDefined());
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    expect(screen.getByText("Char One")).toBeDefined();
   });
 
-  it("opens the staff overlay on top without closing favourites", async () => {
+  it("opens the staff view inside the same dialog with a back button", async () => {
     const { onClose } = renderOpen();
     fireEvent.click(screen.getByRole("tab", { name: "Staff (1)" }));
     fireEvent.click(screen.getByText("Staff One"));
-    await waitFor(() => {
-      expect(screen.getAllByText("Staff One").length).toBeGreaterThan(1);
-    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toBeDefined());
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    expect(screen.getByText("Staff One")).toBeDefined();
   });
 });

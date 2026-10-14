@@ -300,6 +300,36 @@ describe("WizardModal AniList prefill", () => {
   });
 });
 
+describe("WizardModal discard guard", () => {
+  it("shows the discard confirm inside the same window with a single dialog", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWizard({ onClose });
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    await user.type(screen.getByLabelText("Title"), "Frieren");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("Discard changes?")).toBeDefined();
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+  });
+
+  it("returns to the form on cancel and closes on discard", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWizard({ onClose });
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    await user.type(screen.getByLabelText("Title"), "Frieren");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("Discard changes?")).toBeDefined();
+    const cancels = screen.getAllByRole("button", { name: "Cancel" });
+    await user.click(cancels.at(-1) as HTMLElement);
+    expect(screen.queryByText("Discard changes?")).toBeNull();
+    expect(screen.getByDisplayValue("Frieren")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("WizardModal source dropdown", () => {
   it("caps TMDB results at 6 with a count header", async () => {
     patchSettings({ tmdbKeySet: true });

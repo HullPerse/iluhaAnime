@@ -1,8 +1,6 @@
 import type { RandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
-import ActivityHistoryModal, {
-  type ActivityDetailBundle,
-} from "@/routes/components/anilist/activity.anilist";
+import ActivityHistoryModal from "@/routes/components/anilist/activity.anilist";
 import Auth from "@/routes/components/anilist/auth.anilist";
 import BrowseAnimeModal from "@/routes/components/anilist/browse.anilist";
 import AniListFavouritesModal from "@/routes/components/anilist/favourites.anilist";
@@ -12,6 +10,7 @@ import PrefetchRelationsModal from "@/routes/components/anilist/prefetch/modal.p
 import AniListRecsModal from "@/routes/components/anilist/rec.anilist";
 import StatsModal from "@/routes/components/anilist/stats.anilist";
 import type {
+  ActivityDetailBundle,
   AniFriend,
   AniFriendMinimal,
   AniListCollection,
@@ -44,7 +43,6 @@ export default function AniListSecondaryModals({
   onAddManyFriends,
   onRemoveFriend,
   onViewFriendLists,
-  onFriendsAnime,
   onFriendsClose,
   favourites,
   onFavouritesClose,
@@ -62,13 +60,11 @@ export default function AniListSecondaryModals({
   onFiltersRandom,
   randomPending,
   discovery,
-  onDiscoveryDetails,
   onStatsClose,
-  onStatsAnime,
   onBrowseClose,
-  onBrowseAnime,
   animeIds,
   onPrefetchClose,
+  detail,
 }: {
   entryLookup: ReturnType<typeof buildEntryLookup>;
   views: AniListModalViews;
@@ -89,7 +85,6 @@ export default function AniListSecondaryModals({
   onAddManyFriends: (friends: AniFriendMinimal[]) => void;
   onRemoveFriend: (id: number) => void;
   onViewFriendLists: (friend: AniFriend) => void;
-  onFriendsAnime: (id: number) => void;
   onFriendsClose: () => void;
   favourites: FavouriteAnime[];
   onFavouritesClose: () => void;
@@ -107,13 +102,11 @@ export default function AniListSecondaryModals({
   onFiltersRandom: (filters: AniListFilters) => void;
   randomPending: boolean;
   discovery: RandomDiscovery;
-  onDiscoveryDetails: (id: number) => void;
   onStatsClose: () => void;
-  onStatsAnime: (id: number) => void;
   onBrowseClose: () => void;
-  onBrowseAnime: (id: number) => void;
   animeIds: number[];
   onPrefetchClose: () => void;
+  detail: ActivityDetailBundle;
 }) {
   return (
     <>
@@ -148,7 +141,7 @@ export default function AniListSecondaryModals({
           onAddMany={onAddManyFriends}
           onRemove={onRemoveFriend}
           onViewLists={onViewFriendLists}
-          onAnimeClick={onFriendsAnime}
+          detail={detail}
           onClose={onFriendsClose}
         />
       )}
@@ -176,19 +169,13 @@ export default function AniListSecondaryModals({
         randomPending={randomPending}
         discovery={discovery}
         entryLookup={entryLookup}
-        onDiscoveryDetails={onDiscoveryDetails}
+        detail={detail}
       />
 
-      {views.stats && (
-        <StatsModal lists={lists} onClose={onStatsClose} onAnimeClick={onStatsAnime} />
-      )}
+      {views.stats && <StatsModal lists={lists} onClose={onStatsClose} detail={detail} />}
 
       {views.browse && (
-        <BrowseAnimeModal
-          entries={entryLookup}
-          onClose={onBrowseClose}
-          onAnimeClick={onBrowseAnime}
-        />
+        <BrowseAnimeModal entries={entryLookup} onClose={onBrowseClose} detail={detail} />
       )}
 
       {views.prefetch && <PrefetchRelationsModal animeIds={animeIds} onClose={onPrefetchClose} />}

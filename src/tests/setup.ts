@@ -1,3 +1,5 @@
+import { beforeEach, vi } from "vitest";
+
 import {
   mockConvertFileSrc,
   mockDialogConfirm,
@@ -13,7 +15,6 @@ import {
   mockWriteText,
   resetAllSharedMocks,
 } from "./mocks";
-import { beforeEach, vi } from "vitest";
 
 // Worker-wide Tauri mocks, all delegating to the shared singletons in
 // `./mocks`. A test file's own `vi.mock()` for the same path overrides these
@@ -60,15 +61,14 @@ beforeEach(async () => {
   // `vi.mock()` factories apply, freezing unmocked bindings into the shared
   // registry. By the time this hook runs the test file's imports (and its
   // mocks) are already evaluated, so these resolve to the same instances.
-  const { resetTransportInflight, resetTransportStats } = await import(
-    "@/api/transport.api"
-  );
+  const { resetTransportInflight, resetTransportStats } = await import("@/api/transport.api");
   const { resetCoverCache } = await import("@/hooks/collection/cache.hook");
   const { resetRemoteImageCache } = await import("@/hooks/remoteImage.hook");
   const { resetCardCache } = await import("@/lib/player/cardCache.utils");
   const { resetSymSpellCache } = await import("@/lib/search/suggestions.utils");
   const { resetNotificationAtoms } = await import("@/store/notification.store");
   const { resetSettingsAtoms } = await import("@/store/settings.store");
+  const { resetModalAtoms } = await import("@/store/modal.store");
   resetAllSharedMocks();
   resetTransportInflight();
   resetTransportStats();
@@ -78,6 +78,7 @@ beforeEach(async () => {
   resetSymSpellCache();
   resetNotificationAtoms();
   resetSettingsAtoms();
+  resetModalAtoms();
   localStorage.clear();
   sessionStorage.clear();
 });

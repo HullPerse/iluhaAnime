@@ -1,4 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { useCell } from "@/lib/state/signal.hook";
+import { deeplinkAtoms } from "@/store/deeplink.store";
 
 export type AnilistActivityTab = "feed" | "calendar" | "notifications";
 
@@ -32,6 +35,11 @@ const CLOSED_VIEWS: AnilistModalViews = {
 
 export function useAnilistModals() {
   const [views, setViews] = useState<AnilistModalViews>(CLOSED_VIEWS);
+  const target = useCell(deeplinkAtoms.target);
+  useEffect(() => {
+    if (!target) return;
+    setViews(CLOSED_VIEWS);
+  }, [target]);
   const handleOpenModal = useCallback((name: AnilistModalName) => {
     setViews((prev) => (prev[name] ? prev : { ...prev, [name]: true }));
   }, []);

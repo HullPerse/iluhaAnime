@@ -309,6 +309,20 @@ const changelog500 = {
     "Dither presets and palettes rebuilt: nine curated presets (None, Natural, Classic, GameBoy, Duotone, Print, CRT, Glyphs, Photo), palettes for black and white, Game Boy, PICO-8, gray, amber, ink, vapor, and a new Original palette that restores the image's own colors, all grouped into Pattern, Tone, Print and Display so every slider changes the picture",
   "changelog.5_0_0.fixed.search.wallpaper_placeholder":
     "The dither placeholder restores the background again: saving it clears the selection, and a stored wallpaper that no longer exists falls back to the placeholder and drops the stale choice instead of erroring on every launch",
+  "changelog.5_0_0.changed.anilist.modal_back":
+    "Anime details from spotlight, browse, statistics, friends, and random discovery open inside the same window with a Back button instead of a second window on top",
+  "changelog.5_0_0.changed.anilist.person_inline":
+    "Character and staff pages open inside favourites and anime details with a Back button",
+  "changelog.5_0_0.changed.upscale.preview_zoom":
+    "Upscale preview zoom stays in the same window with a Back button",
+  "changelog.5_0_0.changed.collection.confirm_inline":
+    "Status delete and unsaved-changes confirms appear inside their own window instead of a second dialog",
+  "changelog.5_0_0.changed.player.panel_slot":
+    "Player settings and keyboard shortcuts share one window: opening one replaces the other",
+  "changelog.5_0_0.changed.app.updater_defer":
+    "The update notice waits until all dialogs are closed",
+  "changelog.5_0_0.fixed.anilist.deeplink_stack":
+    "Anime links no longer open details over an already open window",
 } as const;
 
 export default changelog500;

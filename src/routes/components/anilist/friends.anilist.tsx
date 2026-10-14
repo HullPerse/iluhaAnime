@@ -19,6 +19,7 @@ import { attempt } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { cacheAnilistProfile } from "@/store/anilist.store";
+import type { ActivityDetailBundle } from "@/types/anilist";
 import type {
   AniFriend,
   AniFriendMinimal,
@@ -31,6 +32,7 @@ import type { AniFriendsProps as Props } from "@/types/anilist";
 
 import { FriendActivityFeed } from "./activity/friendActivity.activity";
 import CompareAnilist from "./compare.anilist";
+import { InlineDetail } from "./detail/inline.detail";
 
 const VIEW_LABELS = {
   profile: "anilist.compare.profile",
@@ -345,9 +347,9 @@ export default function AniListFriendsModal({
   onAddMany,
   onRemove,
   onViewLists,
-  onAnimeClick,
+  detail,
   onClose,
-}: Props) {
+}: Props & { detail: ActivityDetailBundle }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [profiles, setProfiles] = useState<Record<number, AniUserProfile>>({});
@@ -357,6 +359,7 @@ export default function AniListFriendsModal({
   const [profileError, setProfileError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<FriendView>("profile");
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const addedIds = useMemo(() => new Set(friends.map((friend) => friend.id)), [friends]);
 
@@ -433,6 +436,17 @@ export default function AniListFriendsModal({
     selectFriend(friend);
     setView("compare");
   };
+
+  if (detailId != null) {
+    return (
+      <InlineDetail
+        initialId={detailId}
+        detail={detail}
+        onBack={() => setDetailId(null)}
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <Modal header={t("anilist.friends.title")} onClose={onClose} className="w-4xl max-w-[92vw]">
@@ -551,7 +565,7 @@ export default function AniListFriendsModal({
               selfUser={selfUser}
               selfLists={selfLists}
               selfFavourites={selfFavourites}
-              onAnimeClick={onAnimeClick}
+              onAnimeClick={setDetailId}
             />
           ) : (
             <FriendPreview

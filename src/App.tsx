@@ -25,6 +25,7 @@ import {
   confirmTorrentDownload as confirmDownload,
   torrentAtoms,
 } from "@/store/download.store";
+import { overlayAtoms } from "@/store/overlay.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { TabId } from "@/types/settings";
@@ -62,6 +63,7 @@ export default function App() {
   const statusBarEnabled = useCell(settingsAtoms.statusBarEnabled);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
   const currentTheme = useCell(themeAtoms.currentTheme);
+  const overlays = useCell(overlayAtoms.entries);
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
 
   const goToTab = (id: TabId) => {
@@ -129,7 +131,7 @@ export default function App() {
       className="relative h-screen w-screen overflow-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
-      {data && updateAvailable && (
+      {data && updateAvailable && overlays.length === 0 && (
         <Updater update={data} onClose={() => setUpdateAvailable(false)} />
       )}
       {(preparingTorrent || pendingTorrent) && (

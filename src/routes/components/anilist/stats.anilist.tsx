@@ -15,7 +15,10 @@ import { useCell } from "@/lib/state/signal.hook";
 import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { anilistNotificationsAtoms, markAnilistReleasesRead } from "@/store/anilist.store";
+import type { ActivityDetailBundle } from "@/types/anilist";
 import type { AniListCollection } from "@/types/anilist";
+
+import { InlineDetail } from "./detail/inline.detail";
 
 function StatsReleases({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
   const { t, locale } = useI18n();
@@ -148,15 +151,16 @@ function StatsOverview({ lists }: { lists: AniListCollection[] }) {
 function StatsModal({
   lists,
   onClose,
-  onAnimeClick,
+  detail,
 }: {
   lists: AniListCollection[];
   onClose: () => void;
-  onAnimeClick: (id: number) => void;
+  detail: ActivityDetailBundle;
 }) {
   const { t, locale } = useI18n();
   const now = new Date();
   const [tab, setTab] = useState<"overview" | "calendar" | "released">("overview");
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<null | number>(null);
@@ -221,6 +225,17 @@ function StatsModal({
 
   const dayEntries = selectedDay == null ? [] : (calendarCells[selectedDay - 1]?.entries ?? []);
 
+  if (detailId != null) {
+    return (
+      <InlineDetail
+        initialId={detailId}
+        detail={detail}
+        onBack={() => setDetailId(null)}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
     <Modal header={t("anilist.stats.title")} onClose={onClose} className="w-3xl">
       <div className="mb-1 flex gap-1">
@@ -249,7 +264,7 @@ function StatsModal({
       {tab === "overview" ? (
         <StatsOverview lists={lists} />
       ) : tab === "released" ? (
-        <StatsReleases onAnimeClick={onAnimeClick} />
+        <StatsReleases onAnimeClick={setDetailId} />
       ) : selectedDay == null ? (
         <div className="flex flex-col">
           <div className="mb-1 flex h-6 items-center justify-between px-1">
@@ -328,7 +343,7 @@ function StatsModal({
                     {mainEntry ? (
                       <div
                         className="flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-1"
-                        onClick={() => onAnimeClick(mainEntry.id)}
+                        onClick={() => setDetailId(mainEntry.id)}
                         title={mainEntry.title}
                       >
                         {mainEntry.coverUrl && (
@@ -405,8 +420,8 @@ function StatsModal({
                 aria-label={entry.title}
                 data-vim-target="stats-entry"
                 className="hover:bg-surface border-t-muted border-l-muted border-r-win-highlight border-b-win-highlight flex cursor-pointer items-center gap-2 border-b px-2 py-1"
-                onClick={() => onAnimeClick(entry.id)}
-                onKeyDown={enterOrSpace(() => onAnimeClick(entry.id))}
+                onClick={() => setDetailId(entry.id)}
+                onKeyDown={enterOrSpace(() => setDetailId(entry.id))}
               >
                 {entry.coverUrl && (
                   <ImageComponent

@@ -15,7 +15,6 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
-import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
@@ -45,6 +44,7 @@ import { addNotification } from "@/store/notification.store";
 import { searchAtoms, setAnilistSearchQuery, subscribeSearch } from "@/store/search.store";
 import { patchSettings, settingsAtoms, syncCoverModeWithAnilistAuth } from "@/store/settings.store";
 import type {
+  ActivityDetailBundle,
   AniFriend,
   AniFriendMinimal,
   AniListAnime,
@@ -66,22 +66,6 @@ import { buildAniListSource } from "./components/anilist/source.anilist";
 import SpotlightModal from "./components/anilist/spotlight/modal.spotlight";
 import AniListStateViews from "./components/anilist/stateViews.anilist";
 import { useUserAnilistData } from "./components/anilist/user/data.user";
-
-function discoveryDetailAnime(entryLookup: EntryLookup, animeId: number): AniListAnime {
-  const info = entryLookup.get(animeId);
-  return {
-    animeId,
-    ...(info && {
-      listEntry: {
-        progress: info.progress,
-        score: info.score,
-        list_status: info.list_status,
-        notes: info.notes,
-        custom_lists: info.custom_lists ?? [],
-      },
-    }),
-  };
-}
 
 function GlobalSearchFooter({
   global,
@@ -323,12 +307,6 @@ function AnilistRoute() {
   const discovery = useRandomDiscovery();
   const { start: handleDiscoveryStart } = discovery;
 
-  const handleDiscoveryDetails = useCallback(
-    (animeId: number) => {
-      showDetail(discoveryDetailAnime(entryLookup, animeId), true);
-    },
-    [entryLookup, showDetail]
-  );
   const handleFiltersClose = useCallback(() => {
     discovery.close();
     handleDetailsClose();
@@ -543,6 +521,23 @@ function AnilistRoute() {
     : null;
   const headerLoading = source.mode === "friend" ? friendState === "loading" : self.isLoading;
 
+  const detailBundle: ActivityDetailBundle = {
+    entryLookup,
+    scoreFormat: viewerScoreFormat,
+    favouriteIds,
+    favouriteStaffIds,
+    favouriteCharacterIds,
+    isLoggedIn: !!user,
+    onFavouriteToggle: toggleFavourite,
+    onStaffFavouriteToggle: toggleFavouriteStaff,
+    onCharacterFavouriteToggle: toggleFavouriteCharacter,
+    onTag: handleTag,
+    onGenre: handleGenre,
+    onStudio: handleStudio,
+    onSeason: handleSeason,
+    onSaved: handleDetailsSaved,
+  };
+
   return (
     <div className="flex h-full w-full flex-col gap-1">
       {user && !self.isLoading && source.caps.search && (
@@ -671,9 +666,9 @@ function AnilistRoute() {
       {views.spotlight && source.caps.modals && (
         <SpotlightModal
           hasUser={!!user}
-          onDetails={openAnimeFromLookup}
           isFavorite={(id) => favouriteIds.has(id)}
           scoreFormat={viewerScoreFormat}
+          detail={detailBundle}
           onClose={() => handleCloseModal("spotlight")}
         />
       )}
@@ -704,28 +699,12 @@ function AnilistRoute() {
           selfUser={user}
           activityTab={views.activity.tab}
           onActivityClose={handleCloseActivity}
-          activityDetail={{
-            entryLookup,
-            scoreFormat: viewerScoreFormat,
-            favouriteIds,
-            favouriteStaffIds,
-            favouriteCharacterIds,
-            isLoggedIn: !!user,
-            onFavouriteToggle: toggleFavourite,
-            onStaffFavouriteToggle: toggleFavouriteStaff,
-            onCharacterFavouriteToggle: toggleFavouriteCharacter,
-            onTag: handleTag,
-            onGenre: handleGenre,
-            onStudio: handleStudio,
-            onSeason: handleSeason,
-            onSaved: handleDetailsSaved,
-          }}
+          activityDetail={detailBundle}
           friends={friends}
           onAddFriend={handleAddFriend}
           onAddManyFriends={handleAddManyFriends}
           onRemoveFriend={removeAnilistFriend}
           onViewFriendLists={openFriend}
-          onFriendsAnime={openAnimeFromLookup}
           onFriendsClose={() => handleCloseModal("friends")}
           favourites={favourites}
           onFavouritesClose={() => handleCloseModal("favourites")}
@@ -745,11 +724,9 @@ function AnilistRoute() {
           onFiltersRandom={handleDiscoveryStart}
           randomPending={discovery.pending}
           discovery={discovery}
-          onDiscoveryDetails={handleDiscoveryDetails}
+          detail={detailBundle}
           onStatsClose={() => handleCloseModal("stats")}
-          onStatsAnime={openAnimeFromLookup}
           onBrowseClose={() => handleCloseModal("browse")}
-          onBrowseAnime={openAnimeFromLookup}
           animeIds={allAnimeIds}
           onPrefetchClose={() => handleCloseModal("prefetch")}
         />

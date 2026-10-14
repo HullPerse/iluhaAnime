@@ -16,6 +16,7 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { formatETA } from "@/lib/utils/time.utils";
+import type { PreviewFrame } from "@/types/upscale";
 
 import FFMPEG from "../ffmpeg.player";
 import { UpscalePreview } from "../preview.player";
@@ -52,6 +53,7 @@ export function UpscaleConfigPanel({
   setTargetFormat,
   copyStreams,
   setCopyStreams,
+  onPreviewZoom,
 }: {
   filePath: string;
   activeTab: "upscale" | "convert";
@@ -81,6 +83,7 @@ export function UpscaleConfigPanel({
   setTargetFormat: (value: string) => void;
   copyStreams: boolean;
   setCopyStreams: (value: boolean) => void;
+  onPreviewZoom: (frame: PreviewFrame) => void;
 }) {
   const { t } = useI18n();
   const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
@@ -225,6 +228,7 @@ export function UpscaleConfigPanel({
             resolution={resolution}
             selectedShaders={selectedShaders}
             temporalDenoise={temporalDenoise}
+            onZoom={onPreviewZoom}
           />
         </>
       ) : (

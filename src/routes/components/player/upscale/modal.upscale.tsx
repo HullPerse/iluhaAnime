@@ -16,11 +16,143 @@ import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { addConvertItem, addUpscaleItem, upscaleItems } from "@/store/upscale.store";
-import type { UpscaleConfig, ConvertConfig } from "@/types/upscale";
+import type { UpscaleConfig, ConvertConfig, PreviewFrame } from "@/types/upscale";
 
+import { PreviewZoom } from "../preview.player";
 import { UpscaleConfigPanel } from "./config.upscale";
 import { UpscaleProgressPanel } from "./progress.upscale";
 import { UpscaleStatusPanels } from "./status.upscale";
+
+function UpscaleConfigView({
+  filePath,
+  activeTab,
+  onTabChange,
+  resolution,
+  onResolution,
+  upscaler,
+  onUpscaler,
+  quality,
+  onQuality,
+  videoCodec,
+  onVideoCodec,
+  fpsValue,
+  onFpsValue,
+  gpuBackend,
+  onGpuBackend,
+  gpuOptions,
+  anime4kPreset,
+  onPresetChange,
+  selectedShaders,
+  onShaders,
+  temporalDenoise,
+  onTemporalDenoise,
+  suggestion,
+  ffmpegStatus,
+  onFfmpegStatus,
+  targetFormat,
+  onTargetFormat,
+  copyStreams,
+  onCopyStreams,
+  onPreviewZoom,
+  onCancel,
+  onQueue,
+  onStartUpscale,
+  onStartConvert,
+}: {
+  filePath: string;
+  activeTab: "upscale" | "convert";
+  onTabChange: (tab: "upscale" | "convert") => void;
+  resolution: string;
+  onResolution: (value: string) => void;
+  upscaler: string;
+  onUpscaler: (value: string) => void;
+  quality: string;
+  onQuality: (value: string) => void;
+  videoCodec: string;
+  onVideoCodec: (value: string) => void;
+  fpsValue: string;
+  onFpsValue: (value: string) => void;
+  gpuBackend: string;
+  onGpuBackend: (value: string) => void;
+  gpuOptions: { value: string; label: string }[];
+  anime4kPreset: string;
+  onPresetChange: (preset: string) => void;
+  selectedShaders: string[];
+  onShaders: (value: string[]) => void;
+  temporalDenoise: boolean;
+  onTemporalDenoise: (value: boolean) => void;
+  suggestion: { preset: string; reason: string } | null;
+  ffmpegStatus: "checking" | "ok" | "missing" | "downloading";
+  onFfmpegStatus: (status: "checking" | "ok" | "missing" | "downloading") => void;
+  targetFormat: string;
+  onTargetFormat: (value: string) => void;
+  copyStreams: boolean;
+  onCopyStreams: (value: boolean) => void;
+  onPreviewZoom: (frame: PreviewFrame) => void;
+  onCancel: () => void;
+  onQueue: () => void;
+  onStartUpscale: () => void;
+  onStartConvert: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-col">
+      <div className="shrink-0">
+        <Tabs
+          ariaLabel={t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}
+          tabs={TABS.map((tab) => ({
+            ...tab,
+            label: t(tab.label),
+          }))}
+          activeTab={activeTab}
+          onChange={onTabChange}
+        />
+      </div>
+
+      <section className="windows95-border flex-1 overflow-hidden p-1">
+        <UpscaleConfigPanel
+          filePath={filePath}
+          activeTab={activeTab}
+          resolution={resolution}
+          setResolution={onResolution}
+          upscaler={upscaler}
+          setUpscaler={onUpscaler}
+          quality={quality}
+          setQuality={onQuality}
+          videoCodec={videoCodec}
+          setVideoCodec={onVideoCodec}
+          fpsValue={fpsValue}
+          setFpsValue={onFpsValue}
+          gpuBackend={gpuBackend}
+          setGpuBackend={onGpuBackend}
+          gpuOptions={gpuOptions}
+          anime4kPreset={anime4kPreset}
+          onPresetChange={onPresetChange}
+          selectedShaders={selectedShaders}
+          setSelectedShaders={onShaders}
+          temporalDenoise={temporalDenoise}
+          setTemporalDenoise={onTemporalDenoise}
+          suggestion={suggestion}
+          ffmpegStatus={ffmpegStatus}
+          setFfmpegStatus={onFfmpegStatus}
+          targetFormat={targetFormat}
+          setTargetFormat={onTargetFormat}
+          copyStreams={copyStreams}
+          setCopyStreams={onCopyStreams}
+          onPreviewZoom={onPreviewZoom}
+        />
+      </section>
+
+      <div className="mt-2 flex flex-row justify-end gap-1">
+        <Button onClick={onCancel}>{t("common.cancel")}</Button>
+        <Button onClick={onQueue}>{t("player.upscale.to.queue")}</Button>
+        <Button onClick={activeTab === "upscale" ? onStartUpscale : onStartConvert}>
+          {t(activeTab === "upscale" ? "player.upscale.start" : "player.upscale.convert")}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function UpscalePlayer({
   filePath,
@@ -50,6 +182,7 @@ export default function UpscalePlayer({
   const [copyStreams, setCopyStreams] = useState(true);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [zoomed, setZoomed] = useState<PreviewFrame | null>(null);
 
   const { t } = useI18n();
 
@@ -136,9 +269,14 @@ export default function UpscalePlayer({
     if (activeItem?.status === "done") onDone?.();
   }, [activeItem?.status, onDone]);
 
+  useEffect(() => {
+    setZoomed(null);
+  }, [resolution, selectedShaders, temporalDenoise]);
+
   const resetState = useCallback(() => {
     setActiveItemId(null);
     setLocalError(null);
+    setZoomed(null);
   }, []);
 
   const startUpscale = useCallback(() => {
@@ -275,76 +413,69 @@ export default function UpscalePlayer({
 
       {open && (
         <Modal
-          header={`${t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}: ${parseTitlesPlayer ? formatParsedTitle(filePath, t) : fileNameFromPath(filePath)}`}
+          header={
+            zoomed
+              ? `${Math.round(zoomed.timestamp)}s`
+              : `${t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}: ${parseTitlesPlayer ? formatParsedTitle(filePath, t) : fileNameFromPath(filePath)}`
+          }
           onClose={handleClose}
+          onBack={zoomed ? () => setZoomed(null) : undefined}
           className="min-w-xl"
         >
-          {showConfig && (
-            <div className="flex flex-col">
-              <div className="shrink-0">
-                <Tabs
-                  ariaLabel={t(
-                    activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert"
-                  )}
-                  tabs={TABS.map((tab) => ({
-                    ...tab,
-                    label: t(tab.label),
-                  }))}
-                  activeTab={activeTab}
-                  onChange={setActiveTab}
-                />
-              </div>
-
-              <section className="windows95-border flex-1 overflow-hidden p-1">
-                <UpscaleConfigPanel
+          {zoomed ? (
+            <PreviewZoom frame={zoomed} />
+          ) : (
+            <>
+              {showConfig && (
+                <UpscaleConfigView
                   filePath={filePath}
                   activeTab={activeTab}
+                  onTabChange={setActiveTab}
                   resolution={resolution}
-                  setResolution={setResolution}
+                  onResolution={setResolution}
                   upscaler={upscaler}
-                  setUpscaler={setUpscaler}
+                  onUpscaler={setUpscaler}
                   quality={quality}
-                  setQuality={setQuality}
+                  onQuality={setQuality}
                   videoCodec={videoCodec}
-                  setVideoCodec={setVideoCodec}
+                  onVideoCodec={setVideoCodec}
                   fpsValue={fpsValue}
-                  setFpsValue={setFpsValue}
+                  onFpsValue={setFpsValue}
                   gpuBackend={gpuBackend}
-                  setGpuBackend={setGpuBackend}
+                  onGpuBackend={setGpuBackend}
                   gpuOptions={gpuOptions}
                   anime4kPreset={anime4kPreset}
                   onPresetChange={handlePresetChange}
                   selectedShaders={selectedShaders}
-                  setSelectedShaders={setSelectedShaders}
+                  onShaders={setSelectedShaders}
                   temporalDenoise={temporalDenoise}
-                  setTemporalDenoise={setTemporalDenoise}
+                  onTemporalDenoise={setTemporalDenoise}
                   suggestion={suggestion ?? null}
                   ffmpegStatus={ffmpegStatus}
-                  setFfmpegStatus={setFfmpegStatus}
+                  onFfmpegStatus={setFfmpegStatus}
                   targetFormat={targetFormat}
-                  setTargetFormat={setTargetFormat}
+                  onTargetFormat={setTargetFormat}
                   copyStreams={copyStreams}
-                  setCopyStreams={setCopyStreams}
+                  onCopyStreams={setCopyStreams}
+                  onPreviewZoom={setZoomed}
+                  onCancel={handleClose}
+                  onQueue={handleAddToQueue}
+                  onStartUpscale={startUpscale}
+                  onStartConvert={startConvert}
                 />
-              </section>
+              )}
 
-              <div className="mt-2 flex flex-row justify-end gap-1">
-                <Button onClick={handleClose}>{t("common.cancel")}</Button>
-                <Button onClick={handleAddToQueue}>{t("player.upscale.to.queue")}</Button>
-                <Button onClick={activeTab === "upscale" ? startUpscale : startConvert}>
-                  {t(activeTab === "upscale" ? "player.upscale.start" : "player.upscale.convert")}
-                </Button>
-              </div>
-            </div>
+              {showProgress && (
+                <UpscaleProgressPanel activeItem={activeItem} onCancel={handleCancel} />
+              )}
+
+              <UpscaleStatusPanels
+                localError={localError}
+                activeItem={activeItem}
+                onClose={handleClose}
+              />
+            </>
           )}
-
-          {showProgress && <UpscaleProgressPanel activeItem={activeItem} onCancel={handleCancel} />}
-
-          <UpscaleStatusPanels
-            localError={localError}
-            activeItem={activeItem}
-            onClose={handleClose}
-          />
         </Modal>
       )}
     </>

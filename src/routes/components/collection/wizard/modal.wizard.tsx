@@ -256,7 +256,7 @@ export function WizardModal({
   const activeTab: WizardTab = editing && tab === "source" ? "details" : tab;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2">
-      <div className="windows95-active-border bg-primary flex max-h-[92vh] w-full max-w-4xl flex-col">
+      <div className="windows95-active-border bg-primary relative flex max-h-[92vh] w-full max-w-4xl flex-col">
         <div className="ui-titlebar justify-between">
           <span className="text-title-text font-bold">
             {editing ? t("collection.edit.media") : t("collection.addMedia")}

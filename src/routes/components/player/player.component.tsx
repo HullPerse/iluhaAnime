@@ -81,6 +81,7 @@ import {
   takePendingOpen,
   transformOptions,
 } from "@/lib/player/playback.utils";
+import { movePlaylistFocus } from "@/lib/player/playlistFocus.utils";
 import {
   RESUME_END_MARGIN,
   RESUME_MIN,
@@ -89,7 +90,6 @@ import {
   shouldSkipFrontendSeek,
   type HwdecReload,
 } from "@/lib/player/resume.utils";
-import { movePlaylistFocus } from "@/lib/player/playlistFocus.utils";
 import { resolveSkipTarget } from "@/lib/player/skip.utils";
 import { stepSpeed } from "@/lib/player/speed.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
@@ -178,9 +178,8 @@ function videoSectionClass(immersive: boolean): string {
 
 interface CursorHiddenState {
   barsHidden: boolean;
-  settingsOpen: boolean;
+  panelOpen: boolean;
   jumpOpen: boolean;
-  cheatsheetOpen: boolean;
   diagnosticsOpen: boolean;
   playlistOpen: boolean;
   dropAlert: DroppedFramesData | null;
@@ -189,9 +188,8 @@ interface CursorHiddenState {
 function shouldHideCursor(state: CursorHiddenState): boolean {
   return (
     state.barsHidden &&
-    !state.settingsOpen &&
+    !state.panelOpen &&
     !state.jumpOpen &&
-    !state.cheatsheetOpen &&
     !state.diagnosticsOpen &&
     !state.playlistOpen &&
     state.dropAlert === null
@@ -249,9 +247,8 @@ function PlayerComponent() {
   const [cinema, setCinema] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [barsVisible, setBarsVisible] = useState(true);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [panel, setPanel] = useState<null | "settings" | "cheatsheet">(null);
   const [jumpOpen, setJumpOpen] = useState(false);
-  const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [playlistFocus, setPlaylistFocus] = useState<number | null>(null);
@@ -299,9 +296,8 @@ function PlayerComponent() {
   const barsHidden = immersive && autoHide && !barsVisible;
   const cursorHidden = shouldHideCursor({
     barsHidden,
-    settingsOpen,
+    panelOpen: panel !== null,
     jumpOpen,
-    cheatsheetOpen,
     diagnosticsOpen,
     playlistOpen,
     dropAlert,
@@ -504,36 +500,39 @@ function PlayerComponent() {
       }
       if (state.settings !== previous.settings) {
         if (settingsDebouncerRef.current === null) {
-          settingsDebouncerRef.current = new Debouncer((latest: PlayerSettings) => {
-            // Diff against the last flushed intent: a slider drag resends one
-            // changed property instead of all ~19 (and avoids rebuilding the
-            // mpv filter chain by resending an unchanged vf). After any
-            // failure the baseline is untrusted, so the next flush goes full.
-            const baseline = previousSettingsRef.current;
-            const full = settingsSyncFailedRef.current || baseline === null;
-            previousSettingsRef.current = latest;
-            const reference = baseline ?? latest;
-            const groups: Array<[Record<string, unknown>, Record<string, unknown>]> = [
-              [transformOptions(reference), transformOptions(latest)],
-              [hdrOptions(reference), hdrOptions(latest)],
-              [colorOptions(reference), colorOptions(latest)],
-              [audioOptions(reference), audioOptions(latest)],
-            ];
-            const jobs: Array<Promise<string[]>> = [];
-            for (const [prevOptions, nextOptions] of groups) {
-              const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
-              if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
-            }
-            if (jobs.length === 0) {
-              settingsSyncFailedRef.current = false;
-              return;
-            }
-            ignore(
-              Promise.all(jobs).then((failedLists) => {
-                settingsSyncFailedRef.current = failedLists.some((list) => list.length > 0);
-              })
-            );
-          }, { wait: SETTINGS_FLUSH_MS });
+          settingsDebouncerRef.current = new Debouncer(
+            (latest: PlayerSettings) => {
+              // Diff against the last flushed intent: a slider drag resends one
+              // changed property instead of all ~19 (and avoids rebuilding the
+              // mpv filter chain by resending an unchanged vf). After any
+              // failure the baseline is untrusted, so the next flush goes full.
+              const baseline = previousSettingsRef.current;
+              const full = settingsSyncFailedRef.current || baseline === null;
+              previousSettingsRef.current = latest;
+              const reference = baseline ?? latest;
+              const groups: Array<[Record<string, unknown>, Record<string, unknown>]> = [
+                [transformOptions(reference), transformOptions(latest)],
+                [hdrOptions(reference), hdrOptions(latest)],
+                [colorOptions(reference), colorOptions(latest)],
+                [audioOptions(reference), audioOptions(latest)],
+              ];
+              const jobs: Array<Promise<string[]>> = [];
+              for (const [prevOptions, nextOptions] of groups) {
+                const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
+                if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
+              }
+              if (jobs.length === 0) {
+                settingsSyncFailedRef.current = false;
+                return;
+              }
+              ignore(
+                Promise.all(jobs).then((failedLists) => {
+                  settingsSyncFailedRef.current = failedLists.some((list) => list.length > 0);
+                })
+              );
+            },
+            { wait: SETTINGS_FLUSH_MS }
+          );
         }
         settingsDebouncerRef.current.maybeExecute(state.settings);
       }
@@ -771,16 +770,12 @@ function PlayerComponent() {
       setPlaylistOpen(false);
       return;
     }
-    if (settingsOpen) {
-      setSettingsOpen(false);
+    if (panel !== null) {
+      setPanel(null);
       return;
     }
     if (jumpOpen) {
       setJumpOpen(false);
-      return;
-    }
-    if (cheatsheetOpen) {
-      setCheatsheetOpen(false);
       return;
     }
     ignore(
@@ -797,7 +792,7 @@ function PlayerComponent() {
           }
         })
     );
-  }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, playlistOpen, settingsOpen]);
+  }, [cinema, diagnosticsOpen, jumpOpen, panel, playlistOpen]);
 
   const onPlay = useCallback(() => {
     if (!playbackAtoms.hasFile.get()) return;
@@ -1115,7 +1110,7 @@ function PlayerComponent() {
         toggleDiagnostics: () => setDiagnosticsOpen((value) => !value),
         nextFile: () => onFileNext(),
         prevFile: () => onFilePrev(),
-        toggleCheatsheet: () => setCheatsheetOpen((value) => !value),
+        toggleCheatsheet: () => setPanel((prev) => (prev === "cheatsheet" ? null : "cheatsheet")),
         toggleFullscreen: () => ignore(toggleFullscreen()),
         jumpToTime: () => setJumpOpen(true),
         exitCinemaMode: () => exitCinemaMode(),
@@ -1205,7 +1200,7 @@ function PlayerComponent() {
           title={title}
           cinema={cinema}
           fullscreen={fullscreen}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={() => setPanel("settings")}
           onToggleCinema={toggleCinema}
           onToggleFullscreen={() => ignore(toggleFullscreen())}
           onClose={close}
@@ -1319,36 +1314,32 @@ function PlayerComponent() {
         />
       </div>
 
-      {settingsOpen ? (
+      {panel !== null ? (
         <PlayerModal
-          header={t("player.media.panel.settings")}
+          header={t(
+            panel === "settings" ? "player.media.panel.settings" : "player.media.panel.cheatsheet"
+          )}
           className="w-xl"
-          onClose={() => setSettingsOpen(false)}
+          onClose={() => setPanel(null)}
         >
-          <SettingsPanel
-            settings={settings}
-            hwdec={hwdec}
-            seekMode={seekMode}
-            eofMode={eofMode}
-            autoHide={autoHide}
-            profile={profile}
-            onPatchSettings={handlePatchSettings}
-            onHwdec={handleHwdec}
-            onSeekMode={handleSeekMode}
-            onEofMode={handleEofMode}
-            onAutoHide={handleSetAutoHide}
-            onProfile={handleProfile}
-          />
-        </PlayerModal>
-      ) : null}
-
-      {cheatsheetOpen ? (
-        <PlayerModal
-          header={t("player.media.panel.cheatsheet")}
-          className="w-xl"
-          onClose={() => setCheatsheetOpen(false)}
-        >
-          <Cheatsheet />
+          {panel === "settings" ? (
+            <SettingsPanel
+              settings={settings}
+              hwdec={hwdec}
+              seekMode={seekMode}
+              eofMode={eofMode}
+              autoHide={autoHide}
+              profile={profile}
+              onPatchSettings={handlePatchSettings}
+              onHwdec={handleHwdec}
+              onSeekMode={handleSeekMode}
+              onEofMode={handleEofMode}
+              onAutoHide={handleSetAutoHide}
+              onProfile={handleProfile}
+            />
+          ) : (
+            <Cheatsheet />
+          )}
         </PlayerModal>
       ) : null}
     </div>

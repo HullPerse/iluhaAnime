@@ -8,7 +8,7 @@ import {
   useCollectionData,
   useCollectionMutations,
 } from "@/hooks/collection/queries.hook";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { pickRandomItem } from "@/lib/collection/filter.utils";
@@ -57,9 +57,12 @@ import ToolbarCollection from "./components/collection/toolbar.collection";
 
 export default function CollectionRoute() {
   const { t } = useI18n();
-  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
-    onAction: () => focusMainSearch(),
-  });
+  useResolvedHotkeys<"focus-main">(
+    [{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],
+    {
+      onAction: () => focusMainSearch(),
+    }
+  );
   const searchIntentEnabled = useCell(settingsAtoms.searchIntentEnabled);
   const tagTolerances = useCell(settingsAtoms.tagTolerances);
   const { items, statuses, customFieldDefs, isLoading, isError, isFetching, error, refetch } =
@@ -75,10 +78,10 @@ export default function CollectionRoute() {
   const viewMode = useCell(collectionAtoms.viewMode);
   const displayMode = useCell(collectionAtoms.displayMode);
   const selectedStatus = useCell(collectionAtoms.selectedStatus);
-  useHotkeys<"tab-prev" | "tab-next">(
+  useResolvedHotkeys<"tab-prev" | "tab-next">(
     [
-      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
-      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once", keybindId: "tab.prev" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once", keybindId: "tab.next" },
     ],
     {
       ignore: (event) => ignoreTabCycle(event),

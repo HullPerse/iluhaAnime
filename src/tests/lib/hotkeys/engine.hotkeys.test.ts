@@ -12,6 +12,7 @@ function setup(options?: {
   excludedRoute?: boolean;
   isOwner?: (target: EventTarget | null) => boolean;
   shouldYield?: (command: VimCommand, event: KeyboardEvent) => boolean;
+  resolveChord?: (command: VimCommand) => string | null;
 }): {
   engine: VimEngine;
   onCommand: ReturnType<typeof vi.fn>;
@@ -24,6 +25,7 @@ function setup(options?: {
     isExcludedRoute: () => options?.excludedRoute ?? false,
     isOwner: options?.isOwner,
     shouldYield: options?.shouldYield,
+    resolveChord: options?.resolveChord,
     onCommand,
     onActiveKey,
   });
@@ -254,6 +256,17 @@ describe("vim engine surface yield", () => {
     expect(yielded.defaultPrevented).toBe(false);
     press(window, key("KeyD"));
     expect(onCommand).toHaveBeenCalledWith("scroll.half.down", expect.any(KeyboardEvent));
+  });
+
+  it("resolves single-stroke chords through the provider", () => {
+    const { onCommand } = setup({
+      resolveChord: (command) => (command === "scroll.down" ? "KeyX" : null),
+    });
+    press(window, key("KeyX"));
+    expect(onCommand).toHaveBeenCalledWith("scroll.down", expect.any(KeyboardEvent));
+    press(window, key("KeyJ"));
+    press(window, key("KeyF"));
+    expect(onCommand).toHaveBeenCalledTimes(1);
   });
 
   it("buffers digits on an owned button (tree-folder rows are buttons)", () => {

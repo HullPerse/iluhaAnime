@@ -9,13 +9,13 @@ import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { visibleTabs } from "@/config/settings/tabs.config";
 import { tabIdFromPath, tabPathFromId } from "@/config/tabs/paths.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { markCacheReady } from "@/lib/splash/signals.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -196,15 +196,22 @@ export function useApp() {
     if (fallback !== activeTab) goToTab(fallback);
   }, [activeTab, tabs, goToTab]);
 
-  const altDigitDefs: HotkeyDef<TabId>[] = visibleTabs({
+  // Dynamic chords follow the visible tab order; a stored override wins per
+  // tab, exactly like the resolver's later-wins rule for static defs.
+  const altDigitDefs: ResolvedHotkeyDef<TabId>[] = visibleTabs({
     collectionTabEnabled,
     anilistTabEnabled,
     searchTabEnabled,
     torrentTabEnabled,
     playerTabEnabled,
-  }).map((tab, index) => ({ id: tab.id, chord: `alt+Digit${index + 1}`, repeat: "once" }));
+  }).map((tab, index) => ({
+    id: tab.id,
+    chord: `alt+Digit${index + 1}`,
+    repeat: "once",
+    keybindId: `tab.${tab.id}`,
+  }));
 
-  useHotkeys<TabId>(altDigitDefs, {
+  useResolvedHotkeys<TabId>(altDigitDefs, {
     onAction: (tab) => {
       if (!isOnline && isOfflineDisabledTab(tab)) {
         showWarning(t("network.offline.title"), t("network.action.unavailable"));

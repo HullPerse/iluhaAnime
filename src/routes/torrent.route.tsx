@@ -15,7 +15,7 @@ import Select from "@/components/ui/select.component";
 import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
 import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrent/search.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
@@ -87,9 +87,12 @@ const LIFECYCLE_TABS = ["all", "staging", "live", "paused", "seeding", "complete
 
 function TorrentRoute() {
   const queryClient = useQueryClient();
-  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
-    onAction: () => focusMainSearch(),
-  });
+  useResolvedHotkeys<"focus-main">(
+    [{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],
+    {
+      onAction: () => focusMainSearch(),
+    }
+  );
   const { data, isLoading: torrentsLoading } = useTorrents();
   const torrents = data ?? NO_TORRENTS;
   const limits = useCell(torrentAtoms.limits);
@@ -158,10 +161,10 @@ function TorrentRoute() {
     },
     [navigate]
   );
-  useHotkeys<"tab-prev" | "tab-next">(
+  useResolvedHotkeys<"tab-prev" | "tab-next">(
     [
-      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
-      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once", keybindId: "tab.prev" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once", keybindId: "tab.next" },
     ],
     {
       ignore: (event) => ignoreTabCycle(event),

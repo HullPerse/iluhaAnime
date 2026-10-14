@@ -192,7 +192,7 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
       ditherRenderCache.clear();
       fireEvent.click(saveButton);
       expect(saveButton.disabled).toBe(true);
-      expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("1");
+      expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("2");
       expect(screen.getByText("100%")).toBeTruthy();
       await act(async () => {
         vi.advanceTimersByTime(30000);

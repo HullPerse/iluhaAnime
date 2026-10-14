@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/player/folders.config";
 import { useBottomResize, resolveResizeMultiplier } from "@/hooks/folderResize.hook";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { maxFolderHeight } from "@/lib/player/folder.utils";
 import { summarizeTree } from "@/lib/player/tree.utils";
@@ -73,10 +73,10 @@ export function DraggableFolder({
     [setNodeRef]
   );
 
-  useHotkeys<"folder-shrink" | "folder-grow">(
+  useResolvedHotkeys<"folder-shrink" | "folder-grow">(
     [
-      { id: "folder-shrink", chord: "BracketLeft", repeat: "hold" },
-      { id: "folder-grow", chord: "BracketRight", repeat: "hold" },
+      { id: "folder-shrink", chord: "BracketLeft", repeat: "hold", keybindId: "folder.shrink" },
+      { id: "folder-grow", chord: "BracketRight", repeat: "hold", keybindId: "folder.grow" },
     ],
     {
       ignore: (event) => {

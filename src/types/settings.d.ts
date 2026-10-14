@@ -11,6 +11,7 @@ export type SettingsTab =
   | "theme"
   | "sqlite"
   | "notifications"
+  | "keybinds"
   | "changelog";
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
@@ -58,6 +59,7 @@ export interface SettingsStore {
   uiDensity: "comfortable" | "compact";
   progressStyle: "blocks" | "solid";
   vimMode: boolean;
+  keybindOverrides: Record<string, string | null>;
   collectionGroupHeaderStyle: "torrent" | "folder";
   savedFolderPaths: string[];
   playerFolderHeights: Record<string, number>;

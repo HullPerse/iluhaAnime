@@ -100,9 +100,11 @@ describe("DitherPreviewModal", () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: "Deep" }));
-    expect((screen.getByRole("button", { name: "Deep" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("button", { name: "Empty" }) as HTMLButtonElement).disabled).toBe(
+    await user.click(screen.getByRole("button", { name: "Classic" }));
+    expect((screen.getByRole("button", { name: "Classic" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
+    expect((screen.getByRole("button", { name: "None" }) as HTMLButtonElement).disabled).toBe(
       false
     );
   });
@@ -148,21 +150,22 @@ describe("DitherPreviewModal", () => {
     expect((blue as HTMLButtonElement).disabled).toBe(true);
     expect((bayer as HTMLButtonElement).disabled).toBe(false);
   });
-  it("switches the grain color", async () => {
+  it("switches between color and grayscale output", async () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
-    const gray = screen.getByRole("button", { name: "Gray grain" });
-    const color = screen.getByRole("button", { name: "Color grain" });
-    expect((gray as HTMLButtonElement).disabled).toBe(true);
-    await user.click(color);
+    const color = screen.getByRole("button", { name: "Color" });
+    const gray = screen.getByRole("button", { name: "Grayscale" });
     expect((color as HTMLButtonElement).disabled).toBe(true);
-    expect((gray as HTMLButtonElement).disabled).toBe(false);
+    await user.click(gray);
+    expect((gray as HTMLButtonElement).disabled).toBe(true);
+    expect((color as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("removes a palette entry when its swatch is deleted", async () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+    await user.click(screen.getByRole("button", { name: "Amber" }));
     const swatches = screen.getAllByTitle(/#[0-9A-F]{6}/i);
     const initial = swatches.length;
     expect(initial).toBeGreaterThanOrEqual(2);
@@ -192,12 +195,12 @@ describe("DitherPreviewModal", () => {
     vi.useFakeTimers();
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
-      expect(lastCanvasScale).toBe(0.5);
+      expect(lastCanvasScale).toBe(1);
       const scaleSlider = screen.getByRole("slider", { name: "Canvas scale" });
-      fireEvent.keyDown(scaleSlider, { key: "ArrowRight" });
+      fireEvent.keyDown(scaleSlider, { key: "ArrowLeft" });
       const live = Number(scaleSlider.getAttribute("aria-valuenow"));
-      expect(live).toBeCloseTo(0.55, 5);
-      expect(lastCanvasScale).toBe(0.5);
+      expect(live).toBeCloseTo(0.95, 5);
+      expect(lastCanvasScale).toBe(1);
       act(() => vi.advanceTimersByTime(200));
       expect(lastCanvasScale).toBe(live);
     } finally {
@@ -208,9 +211,22 @@ describe("DitherPreviewModal", () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: "GameBoy" }));
+    await user.click(screen.getByRole("button", { name: "Game Boy" }));
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
     expect(screen.getByTitle("#0F380F")).toBeTruthy();
+  });
+
+  it("restores the original colors with the Original palette preset", async () => {
+    const user = userEvent.setup();
+    render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
+    await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+    await user.click(screen.getByRole("button", { name: "Game Boy" }));
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
+    await user.click(screen.getByRole("button", { name: "Original" }));
+    expect(screen.queryAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(0);
+    expect((screen.getByRole("button", { name: "Original" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
   });
 
   it("extracts the palette from the image on demand", async () => {
@@ -239,20 +255,14 @@ describe("DitherPreviewModal", () => {
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
     const pick = (name: string) => user.click(screen.getByRole("button", { name }));
-    const pickPaletteDefault = async () => {
-      const candidates = screen.getAllByRole("button", { name: "Default" });
-      const stripButton = candidates.find((button) => button.className.includes("w-26"));
-      expect(stripButton).toBeTruthy();
-      await user.click(stripButton!);
-    };
     await pick("PICO-8");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(16);
     await pick("Gray ramp");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(8);
-    await pick("Red ramp");
-    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(12);
-    await pickPaletteDefault();
-    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(12);
+    await pick("Vapor");
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(6);
+    await pick("Black & white");
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(2);
   });
   it("re-applies a preset over an extracted palette", async () => {
     const user = userEvent.setup();
@@ -269,7 +279,7 @@ describe("DitherPreviewModal", () => {
       await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
       await user.click(screen.getByRole("button", { name: "From image" }));
       await waitFor(() => expect(screen.getByTitle("#FF0000")).toBeTruthy());
-      await user.click(screen.getByRole("button", { name: "GameBoy" }));
+      await user.click(screen.getByRole("button", { name: "Game Boy" }));
       expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
       expect(screen.queryByTitle("#FF0000")).toBeNull();
     } finally {

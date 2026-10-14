@@ -45,6 +45,13 @@ export interface VimEngineOptions {
    * step aside before `preventDefault`/`stopPropagation`.
    */
   shouldYield?: (command: VimCommand, event: KeyboardEvent) => boolean;
+  /**
+   * Resolves a command's live chord through the keybind overrides (null
+   * unbinds it). Called per keystroke while set; without it the static
+   * table below applies. Sequence strokes (`gg`) stay fixed and never pass
+   * through here.
+   */
+  resolveChord?: (command: VimCommand) => string | null;
 }
 
 export interface VimEngine {
@@ -119,6 +126,24 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     options.onCount?.("");
   };
 
+  // The single-stroke table with overrides applied. Rebuilt per keystroke so
+  // a rebind takes effect without re-attaching: a dozen parses per keydown is
+  // noise next to the layer lookup the gate already pays.
+  const liveTable = (): Map<string, VimCommand> => {
+    if (!options.resolveChord) return table;
+    const merged = new Map<string, VimCommand>();
+    const seen = new Set<VimCommand>();
+    for (const [, command] of table) {
+      if (seen.has(command)) continue;
+      seen.add(command);
+      const chord = options.resolveChord(command);
+      if (chord === null) continue;
+      const parsed = parseChord(chord);
+      if (parsed) merged.set(chordKey(parsed), command);
+    }
+    return merged;
+  };
+
   const handleIdleKey = (event: KeyboardEvent): void => {
     const digit = isBareDigit(event);
     if (digit !== null) {
@@ -142,7 +167,7 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
       event.stopPropagation();
       return;
     }
-    const command = table.get(chord);
+    const command = liveTable().get(chord);
     if (!command) return;
     // A yielded chord is never consumed: no gate lookup, no preventDefault,
     // no command. The surface handler behind this capture listener owns it.

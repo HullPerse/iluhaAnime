@@ -96,6 +96,8 @@ const changelog500 = {
     "File rows in torrent file lists and player folders show a Windows 95 icon per file type: video, audio, subtitles, archives, fonts, images, and text",
   "changelog.5_0_0.added.settings.repro_bundle":
     "Bug report bundle from Settings > Summary: a zip with app and system metadata, a sanitized settings snapshot with secrets removed, and the app data folder listing. No media, database rows, tokens, or keys",
+  "changelog.5_0_0.added.settings.keybinds":
+    "Keybinds tab in Settings: every shortcut with search, scope filter and find-by-keys, per-row editing in a change-keybinding dialog with a scope icon, current and new chord groups, live conflict display, and reset to defaults",
   "changelog.5_0_0.changed.anilist.batch_fetch":
     "AniList list, score, and media fetching runs at most 3 parallel requests with similar requests merged, so collections and friend data load in fewer server requests",
   "changelog.5_0_0.changed.anilist.detail_bundle":
@@ -293,6 +295,12 @@ const changelog500 = {
     "Right-click menus on player and torrent file rows: open outside or inside the app, search AniList, reveal in folder, and upscale, while Ctrl+right-click still plays directly",
   "changelog.5_0_0.fixed.player.flat_folder":
     "Folders without subfolders show their files again, and arrow keys dive in from the folder header",
+  "changelog.5_0_0.changed.search.dither_engine":
+    "The dither editor runs a real pass pipeline now: ordered Bayer 4, Bayer 8 and blue-noise patterns plus Floyd-Steinberg and Atkinson error diffusion, a true halftone dot pass, glyph and scanline overlays, chromatic split with barrel warp and vignette, and palette matching in linear color space so dark tones stop banding",
+  "changelog.5_0_0.changed.search.dither_presets":
+    "Dither presets and palettes rebuilt: nine curated presets (None, Natural, Classic, GameBoy, Duotone, Print, CRT, Glyphs, Photo), palettes for black and white, Game Boy, PICO-8, gray, amber, ink, vapor, and a new Original palette that restores the image's own colors, all grouped into Pattern, Tone, Print and Display so every slider changes the picture",
+  "changelog.5_0_0.fixed.search.wallpaper_placeholder":
+    "The dither placeholder restores the background again: saving it clears the selection, and a stored wallpaper that no longer exists falls back to the placeholder and drops the stale choice instead of erroring on every launch",
 } as const;
 
 export default changelog500;

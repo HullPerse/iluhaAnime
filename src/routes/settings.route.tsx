@@ -4,7 +4,7 @@ import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState 
 import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { flashTarget } from "@/lib/highlight/flash.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
@@ -17,6 +17,7 @@ import { SettingsChangelog } from "@/routes/components/settings/changelog.settin
 import { FindBox } from "@/routes/components/settings/findBox.settings";
 import { FindResults } from "@/routes/components/settings/findResults.settings";
 import SettingsGeneral from "@/routes/components/settings/general.settings";
+import { SettingsKeybinds } from "@/routes/components/settings/keybinds.settings";
 import SettingsNotifications from "@/routes/components/settings/notifications.settings";
 import SettingsSearch from "@/routes/components/settings/search.settings";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
@@ -83,13 +84,16 @@ export default function SettingsRoute() {
     setFindOpen(false);
   };
 
-  useHotkeys<"focus-find">([{ id: "focus-find", chord: "ctrl+KeyK", repeat: "once" }], {
-    onAction: () => findInputRef.current?.focus(),
-  });
-  useHotkeys<"tab-prev" | "tab-next">(
+  useResolvedHotkeys<"focus-find">(
+    [{ id: "focus-find", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],
+    {
+      onAction: () => findInputRef.current?.focus(),
+    }
+  );
+  useResolvedHotkeys<"tab-prev" | "tab-next">(
     [
-      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
-      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once", keybindId: "tab.prev" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once", keybindId: "tab.next" },
     ],
     {
       ignore: (event) => ignoreTabCycle(event),
@@ -142,6 +146,7 @@ export default function SettingsRoute() {
     torrent: <SettingsTorrent />,
     search: <SettingsSearch />,
     theme: <SettingsTheme />,
+    keybinds: <SettingsKeybinds />,
     changelog: <SettingsChangelog />,
     sqlite: (
       <Suspense fallback={<TabLoader className="min-h-40" />}>

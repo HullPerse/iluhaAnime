@@ -24,8 +24,9 @@ import {
   SCREENSHOT_FORMATS,
   SCREENSHOT_HISTORY_DEFS,
 } from "@/config/settings/screenshot.config";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import {
   canRedo,
@@ -112,7 +113,11 @@ export default function ScreenshotModal({
 
   useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
-  useHotkeys(SCREENSHOT_HISTORY_DEFS, {
+  const historyDefs: ResolvedHotkeyDef<"undo" | "redo">[] = SCREENSHOT_HISTORY_DEFS.map((def) => ({
+    ...def,
+    keybindId: `screenshot.history.${def.id}`,
+  }));
+  useResolvedHotkeys(historyDefs, {
     ignore: (event) =>
       event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement,
     onAction: (id) => setHistory(id === "undo" ? undo : redo),

@@ -18,6 +18,7 @@ import { reduceHintKey, scanHintTargets } from "@/lib/hotkeys/hints.hotkeys";
 import type { HintBadge } from "@/lib/hotkeys/hints.hotkeys";
 import { isInsideLayer, setHintsLayerVisible, topLayerElement } from "@/lib/hotkeys/layer.hotkeys";
 import { createPinTimer } from "@/lib/hotkeys/pin.hotkeys";
+import { resolveKeybinds } from "@/lib/hotkeys/resolve.hotkeys";
 import { focusTreeSibling } from "@/lib/hotkeys/tabs.hotkeys";
 import type { Debouncer } from "@/lib/pacer/debounce.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -59,15 +60,30 @@ function letterFromCode(code: string): string | null {
   return match ? match[1].toLowerCase() : null;
 }
 
+/** Manifest entry per single-stroke engine command. `first` resolves through
+ *  the fixed `gg` sequence and stays out. */
+const VIM_COMMAND_KEYBINDS: Record<Exclude<VimCommand, "first">, string> = {
+  hints: "vim.hints",
+  "scroll.down": "vim.scroll.down",
+  "scroll.up": "vim.scroll.up",
+  "scroll.half.down": "vim.scroll.half.down",
+  "scroll.half.up": "vim.scroll.half.up",
+  last: "vim.last",
+  "edge.top": "vim.edge.top",
+  "edge.middle": "vim.edge.middle",
+  "edge.bottom": "vim.edge.bottom",
+};
+
 export function useVimMode(): void {
   const vimMode = useCell(settingsAtoms.vimMode);
+  const overrides = useCell(settingsAtoms.keybindOverrides);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const stateRef = useRef({ vimMode, pathname });
+  const stateRef = useRef({ vimMode, pathname, overrides });
   const closeLayerRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
-    stateRef.current = { vimMode, pathname };
-  }, [vimMode, pathname]);
+    stateRef.current = { vimMode, pathname, overrides };
+  }, [vimMode, pathname, overrides]);
 
   // Leaving the mode or entering the detached player window must not leave a
   // stale hint layer (and its overlay entry) behind.
@@ -226,6 +242,14 @@ export function useVimMode(): void {
         (target instanceof HTMLElement && target.closest(TREE_ROW_SELECTOR) !== null),
       shouldYield: (command, event) =>
         (command === "scroll.down" || command === "scroll.up") && treeRowFromEvent(event) !== null,
+      resolveChord: (command) => {
+        if (command === "first") return null;
+        const id = VIM_COMMAND_KEYBINDS[command];
+        const row = resolveKeybinds(stateRef.current.overrides).find(
+          (entry) => entry.entry.id === id
+        );
+        return row?.activeChord ?? null;
+      },
       onCommand: (command, event) => {
         if (command === "hints") {
           openLayer();

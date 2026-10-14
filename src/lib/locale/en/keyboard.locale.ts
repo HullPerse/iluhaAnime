@@ -31,6 +31,12 @@ const keyboard = {
   "keybind.tree.reveal": "Reveal the file in its folder",
   "keybind.find.next": "Next match",
   "keybind.find.prev": "Previous match",
+  "keybind.focus.main": "Focus the main input",
+  "keybind.tab.prev": "Previous tab",
+  "keybind.tab.next": "Next tab",
+  "keybind.player.toggle.queue": "Toggle the queue panel",
+  "keybind.folder.shrink": "Shrink the folder panel",
+  "keybind.folder.grow": "Expand the folder panel",
 } as const;
 
 export default keyboard;

@@ -1,6 +1,6 @@
 import { ReactElement } from "react";
 
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
@@ -16,9 +16,12 @@ const searchMap: Record<SearchType, () => ReactElement> = {
 
 function SearchRoute() {
   const searchType = useCell(settingsAtoms.searchType);
-  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
-    onAction: () => focusMainSearch(),
-  });
+  useResolvedHotkeys<"focus-main">(
+    [{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],
+    {
+      onAction: () => focusMainSearch(),
+    }
+  );
 
   return searchMap[searchType]();
 }

@@ -346,8 +346,8 @@ describe("DitherCanvas display cap", () => {
     });
     expect(worker.posted).toHaveLength(1);
     const request = worker.posted[0] as DitherWorkerRequest;
-    expect(request.width).toBe(1920);
-    expect(request.height).toBe(1080);
+    expect(request.width).toBe(3840);
+    expect(request.height).toBe(2160);
   });
 
   it("caps the long side at maxLongSide", async () => {

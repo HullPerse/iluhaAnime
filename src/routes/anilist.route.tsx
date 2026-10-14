@@ -10,7 +10,7 @@ import { useAnilistModals } from "@/hooks/anilist/modals.hook";
 import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
 import { useAnilistSearch, useProfileRecs } from "@/hooks/anilist/search.hook";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
@@ -107,9 +107,12 @@ function GlobalSearchFooter({
 
 function AnilistRoute() {
   const { t } = useI18n();
-  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
-    onAction: () => focusMainSearch(),
-  });
+  useResolvedHotkeys<"focus-main">(
+    [{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],
+    {
+      onAction: () => focusMainSearch(),
+    }
+  );
   const queryClient = useQueryClient();
   const animeIndex = useCell(searchAtoms.animeIndex);
   const animeProfileId = useCell(searchAtoms.animeProfileId);
@@ -234,10 +237,10 @@ function AnilistRoute() {
     [global, handleReset]
   );
 
-  useHotkeys<"tab-prev" | "tab-next">(
+  useResolvedHotkeys<"tab-prev" | "tab-next">(
     [
-      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once" },
-      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once" },
+      { id: "tab-prev", chord: "Shift+BracketLeft", repeat: "once", keybindId: "tab.prev" },
+      { id: "tab-next", chord: "Shift+BracketRight", repeat: "once", keybindId: "tab.next" },
     ],
     {
       ignore: (event) => ignoreTabCycle(event),

@@ -43,8 +43,8 @@ export default function DitherPreviewModal({
   onSaved: (image: UserImage) => void;
 }) {
   const { t } = useI18n();
-  const [presetId, setPresetId] = useState<DitherPresetId>("empty");
-  const [options, setOptions] = useState<DitherEffectOptions>(() => resolveDitherPreset("empty"));
+  const [presetId, setPresetId] = useState<DitherPresetId>("none");
+  const [options, setOptions] = useState<DitherEffectOptions>(() => resolveDitherPreset("none"));
   const [scale, setScale] = useState(DITHER_DEFAULTS.scale);
   const [renderScale] = useDebouncedValue(scale, { wait: 200 });
   const [renderOptions] = useDebouncedValue(options, { wait: 200 });
@@ -224,17 +224,51 @@ export default function DitherPreviewModal({
         <div className="flex flex-row gap-1">
           <Button
             className="h-5 flex-1 px-1 text-xs"
+            title="Ordered"
+            onClick={() => patchOptions({ mode: "ordered" })}
+            disabled={options.mode === "ordered"}
+          >
+            Ordered
+          </Button>
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
+            title="Floyd-Steinberg"
+            onClick={() => patchOptions({ mode: "floyd" })}
+            disabled={options.mode === "floyd"}
+          >
+            Floyd-Steinberg
+          </Button>
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
+            title="Atkinson"
+            onClick={() => patchOptions({ mode: "atkinson" })}
+            disabled={options.mode === "atkinson"}
+          >
+            Atkinson
+          </Button>
+        </div>
+        <div className="flex flex-row gap-1">
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
             title="Bayer 4"
-            onClick={() => patchOptions({ ditherMatrix: "bayer4" })}
-            disabled={options.ditherMatrix === "bayer4"}
+            onClick={() => patchOptions({ matrix: "bayer4" })}
+            disabled={options.matrix === "bayer4" || options.mode !== "ordered"}
           >
             Bayer 4
           </Button>
           <Button
             className="h-5 flex-1 px-1 text-xs"
+            title="Bayer 8"
+            onClick={() => patchOptions({ matrix: "bayer8" })}
+            disabled={options.matrix === "bayer8" || options.mode !== "ordered"}
+          >
+            Bayer 8
+          </Button>
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
             title="Blue 64"
-            onClick={() => patchOptions({ ditherMatrix: "blue64" })}
-            disabled={options.ditherMatrix === "blue64"}
+            onClick={() => patchOptions({ matrix: "blue64" })}
+            disabled={options.matrix === "blue64" || options.mode !== "ordered"}
           >
             Blue 64
           </Button>
@@ -242,19 +276,19 @@ export default function DitherPreviewModal({
         <div className="flex flex-row gap-1">
           <Button
             className="h-5 flex-1 px-1 text-xs"
-            title={t("search.dither.grain.gray")}
-            onClick={() => patchOptions({ grayGrain: true })}
-            disabled={options.grayGrain}
+            title={t("search.dither.mode.color")}
+            onClick={() => patchOptions({ monochrome: false })}
+            disabled={!options.monochrome}
           >
-            {t("search.dither.grain.gray")}
+            {t("search.dither.mode.color")}
           </Button>
           <Button
             className="h-5 flex-1 px-1 text-xs"
-            title={t("search.dither.grain.color")}
-            onClick={() => patchOptions({ grayGrain: false })}
-            disabled={!options.grayGrain}
+            title={t("search.dither.mode.gray")}
+            onClick={() => patchOptions({ monochrome: true })}
+            disabled={options.monochrome}
           >
-            {t("search.dither.grain.color")}
+            {t("search.dither.mode.gray")}
           </Button>
         </div>
         <PaletteSwatchStrip

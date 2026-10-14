@@ -37,6 +37,7 @@ export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey 
   { id: "search", key: "settings.search" },
   { id: "torrent", key: "settings.torrent" },
   { id: "theme", key: "settings.theme" },
+  { id: "keybinds", key: "settings.keybinds" },
   { id: "changelog", key: "settings.changelog" },
 ] as const;
 
@@ -47,6 +48,7 @@ export const SETTINGS_TABS = new Set<SettingsTab>([
   "torrent",
   "theme",
   "sqlite",
+  "keybinds",
   "changelog",
 ]);
 

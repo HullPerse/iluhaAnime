@@ -46,13 +46,14 @@ describe("settings/find index", () => {
     expect(missing).toEqual([]);
   });
 
-  it("orders tabs as general, notifications, search, torrent, theme", () => {
+  it("orders tabs as general, notifications, search, torrent, theme, keybinds", () => {
     expect([...SETTINGS_FIND_TAB_ORDER]).toEqual([
       "general",
       "notifications",
       "search",
       "torrent",
       "theme",
+      "keybinds",
     ]);
   });
 });

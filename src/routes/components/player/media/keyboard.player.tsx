@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { PLAYER_HOTKEYS, type KeybindAction } from "@/config/player/keybinds.config";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
 import { isInsideScrollable } from "@/lib/utils/scroll.utils";
 
@@ -20,7 +20,7 @@ function Keyboard({
     wheelRef.current = onWheel;
   }, [onAction, onWheel]);
 
-  useHotkeys<KeybindAction>(PLAYER_HOTKEYS, {
+  useResolvedHotkeys<KeybindAction>(PLAYER_HOTKEYS, {
     ignore: (event) => shouldIgnoreHotkeys(event.target),
     onAction: (id) => actionRef.current(id),
   });

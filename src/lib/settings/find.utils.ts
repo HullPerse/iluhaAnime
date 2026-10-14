@@ -5,7 +5,13 @@ import type { Locale } from "@/types/i18n";
 import type { TranslationKey } from "@/types/i18n";
 import type { HighlightRange } from "@/types/search";
 
-export type SettingsFindTab = "general" | "notifications" | "search" | "torrent" | "theme";
+export type SettingsFindTab =
+  | "general"
+  | "notifications"
+  | "search"
+  | "torrent"
+  | "theme"
+  | "keybinds";
 
 export const SETTINGS_FIND_TAB_ORDER: readonly SettingsFindTab[] = [
   "general",
@@ -13,6 +19,7 @@ export const SETTINGS_FIND_TAB_ORDER: readonly SettingsFindTab[] = [
   "search",
   "torrent",
   "theme",
+  "keybinds",
 ];
 
 export const SETTINGS_FIND_TAB_TITLES: Record<SettingsFindTab, TranslationKey> = {
@@ -21,6 +28,7 @@ export const SETTINGS_FIND_TAB_TITLES: Record<SettingsFindTab, TranslationKey> =
   search: "settings.search",
   torrent: "settings.torrent",
   theme: "settings.theme",
+  keybinds: "settings.keybinds",
 };
 
 export type SettingsFindKind = "tab" | "section" | "setting";
@@ -487,6 +495,43 @@ const FIND_GROUPS: readonly FindGroup[] = [
       "settings.theme.experimental.effect.opacity",
       "settings.theme.experimental.effect.opacity.reset",
       "settings.theme.experimental.effect.opacity.warn",
+    ],
+  },
+  {
+    tab: "keybinds",
+    section: "list",
+    titleKey: "settings.keybinds",
+    keys: [
+      "settings.keybinds",
+      "settings.keybinds.search",
+      "settings.keybinds.scope",
+      "settings.keybinds.scope.all",
+      "settings.keybinds.scope.global",
+      "settings.keybinds.scope.settings",
+      "settings.keybinds.scope.player",
+      "settings.keybinds.scope.vim",
+      "settings.keybinds.scope.find",
+      "settings.keybinds.scope.menu",
+      "settings.keybinds.scope.tree",
+      "settings.keybinds.empty",
+      "settings.keybinds.column.binding",
+      "settings.keybinds.column.action",
+      "settings.keybinds.column.mode",
+      "settings.keybinds.edit",
+      "settings.keybinds.record.placeholder",
+      "settings.keybinds.record.hint",
+      "settings.keybinds.record.reserved",
+      "settings.keybinds.record.reset",
+      "settings.keybinds.record.clear",
+      "settings.keybinds.conflicts.only",
+      "settings.keybinds.record.current",
+      "settings.keybinds.record.default",
+      "settings.keybinds.record.conflict",
+      "settings.keybinds.reset.all",
+      "settings.keybinds.reset.row",
+      "settings.keybinds.capture",
+      "settings.keybinds.shadowed",
+      "settings.keybinds.unbound",
     ],
   },
 ];

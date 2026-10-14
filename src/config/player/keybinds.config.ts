@@ -1,4 +1,5 @@
-import type { HotkeyDef, HotkeyRepeat } from "@/lib/hotkeys/chord.hotkeys";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { HotkeyRepeat } from "@/lib/hotkeys/chord.hotkeys";
 import type { TranslationKey } from "@/types/i18n";
 
 export type KeybindAction =
@@ -381,8 +382,9 @@ export const KEYBINDS: KeybindDef[] = [
   ...percentEntries(),
 ];
 
-export const PLAYER_HOTKEYS: HotkeyDef<KeybindAction>[] = KEYBINDS.map((keybind) => ({
+export const PLAYER_HOTKEYS: ResolvedHotkeyDef<KeybindAction>[] = KEYBINDS.map((keybind) => ({
   id: keybind.action,
   chord: keybind.chord,
   repeat: keybind.repeat,
+  keybindId: `player.${keybind.action}`,
 }));

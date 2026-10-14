@@ -212,6 +212,10 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
   torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),
   anilistDisplayMode: toValidator(z.enum(["scroll", "pagination"])),
+  // Shape only: chord text is validated at resolve time (an unparsable
+  // override is dropped, never persisted back), so a hand-edited store or a
+  // removed manifest entry cannot break loading.
+  keybindOverrides: toValidator(z.record(z.string(), z.union([z.string(), z.null()]))),
   anilistListSort: toValidator(
     z.object({
       key: z.string().check(z.refine((value) => (listSortKeys as string[]).includes(value))),

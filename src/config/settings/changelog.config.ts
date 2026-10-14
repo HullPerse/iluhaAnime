@@ -66,6 +66,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.torrents.webview_proxy", "torrents"),
       entry("changelog.5_0_0.added.torrents.file_icons", "torrents"),
       entry("changelog.5_0_0.added.settings.repro_bundle", "settings"),
+      entry("changelog.5_0_0.added.settings.keybinds", "settings"),
       entry("changelog.5_0_0.added.player.file_constraints", "player"),
       entry("changelog.5_0_0.added.player.live_playlist", "player"),
       entry("changelog.5_0_0.added.app.fatal_bsod", "app"),
@@ -140,6 +141,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.settings.yorha_canon", "settings"),
       entry("changelog.5_0_0.changed.torrents.speed_graph", "torrents"),
       entry("changelog.5_0_0.changed.torrents.filter_hint", "torrents"),
+      entry("changelog.5_0_0.changed.search.dither_engine", "search"),
+      entry("changelog.5_0_0.changed.search.dither_presets", "search"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),
@@ -169,6 +172,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.anilist.friends_progress", "anilist"),
       entry("changelog.5_0_0.fixed.anilist.studio_dupes", "anilist"),
       entry("changelog.5_0_0.fixed.anilist.save_400", "anilist"),
+      entry("changelog.5_0_0.fixed.search.wallpaper_placeholder", "search"),
     ],
   },
   {

@@ -10,9 +10,9 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useWallpaperImage } from "@/hooks/wallpaper.hook";
 import { shouldDimMascot } from "@/lib/search/mascot.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { showError } from "@/lib/utils/notification.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper/wallpaper.utils";
-import { settingsAtoms } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import DitherSettings from "./dither/settings.dither";
 import InputSearch from "./input.search";
@@ -36,8 +36,15 @@ function SearchModern() {
   const wallpaperShadowStyle = buildShadowGradients(displayShadow);
 
   useEffect(() => {
-    if (isError) showError(t("common.error"), t("search.dither.load.error"));
-  }, [isError, t]);
+    if (!isError) return;
+    // A stored wallpaper that no longer exists (deleted file, or a wiped
+    // dither store) must not fail on every launch. Drop the stale id so the
+    // query is gated again and the bundled placeholder takes over, instead of
+    // nagging with an error toast. The failure still reaches the background
+    // log for diagnostics.
+    reportBackgroundError("wallpaper.missing", new Error("stored wallpaper unavailable"));
+    patchSettings({ selectedDitherId: null });
+  }, [isError]);
 
   useLayoutEffect(() => {
     if (panel === null || mascot === null) {

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
 import {
@@ -59,10 +59,10 @@ function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
     setIndex((prev) => stepPageFindIndex(prev, delta, total));
   };
 
-  useHotkeys<"find-next" | "find-prev">(
+  useResolvedHotkeys<"find-next" | "find-prev">(
     [
-      { id: "find-next", chord: "KeyN", repeat: "once" },
-      { id: "find-prev", chord: "Shift+KeyN", repeat: "once" },
+      { id: "find-next", chord: "KeyN", repeat: "once", keybindId: "find.next" },
+      { id: "find-prev", chord: "Shift+KeyN", repeat: "once", keybindId: "find.prev" },
     ],
     {
       ignore: (event) => isTextEntryTarget(event.target),
@@ -166,18 +166,21 @@ export default function PageFindBar() {
   const restoreRef = useRef<HTMLElement | null>(null);
   const [virtualOnly, setVirtualOnly] = useState(false);
 
-  useHotkeys<"open-find">([{ id: "open-find", chord: "ctrl+KeyF", repeat: "once" }], {
-    onAction: (_id, event) => {
-      if (findBarAtoms.bar.get().open) {
-        document.querySelector<HTMLElement>("[data-find-bar] input")?.focus();
-        return;
-      }
-      const target = event.target instanceof HTMLElement ? event.target : null;
-      restoreRef.current = target;
-      setVirtualOnly(target?.closest(VIRTUAL_LIST_SELECTOR) !== null);
-      openFindBar();
-    },
-  });
+  useResolvedHotkeys<"open-find">(
+    [{ id: "open-find", chord: "ctrl+KeyF", repeat: "once", keybindId: "page.find" }],
+    {
+      onAction: (_id, event) => {
+        if (findBarAtoms.bar.get().open) {
+          document.querySelector<HTMLElement>("[data-find-bar] input")?.focus();
+          return;
+        }
+        const target = event.target instanceof HTMLElement ? event.target : null;
+        restoreRef.current = target;
+        setVirtualOnly(target?.closest(VIRTUAL_LIST_SELECTOR) !== null);
+        openFindBar();
+      },
+    }
+  );
 
   useEffect(() => {
     if (!bar.open) return undefined;

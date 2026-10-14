@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import type { ScreenshotCapture } from "@/types/screenshot";
@@ -13,8 +13,8 @@ export interface ScreenshotSession {
   close: () => void;
 }
 
-const SCREENSHOT_DEFS: HotkeyDef<"capture">[] = [
-  { id: "capture", chord: "ctrl+Shift+KeyP", repeat: "once" },
+const SCREENSHOT_DEFS: ResolvedHotkeyDef<"capture">[] = [
+  { id: "capture", chord: "ctrl+Shift+KeyP", repeat: "once", keybindId: "screenshot.capture" },
 ];
 
 export function useScreenshot(): ScreenshotSession {
@@ -40,7 +40,7 @@ export function useScreenshot(): ScreenshotSession {
     setCapture(data);
   }, [setCapture, t]);
 
-  useHotkeys(SCREENSHOT_DEFS, {
+  useResolvedHotkeys(SCREENSHOT_DEFS, {
     onAction: () => request(),
   });
 

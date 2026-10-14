@@ -1,8 +1,8 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
-import { useHotkeys } from "@/hooks/hotkeys.hook";
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
 import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
 import type { TreeRow } from "@/lib/player/treeArrow.utils";
@@ -41,19 +41,21 @@ type TorrentTreeKeyAction =
   | "rowUpscale"
   | "rowReveal";
 
-const TORRENT_TREE_KEYBINDS: HotkeyDef<TorrentTreeKeyAction>[] = [
-  { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold" },
-  { id: "treeExpand", chord: "ArrowRight", repeat: "hold" },
-  { id: "treeUp", chord: "ArrowUp", repeat: "hold" },
-  { id: "treeDown", chord: "ArrowDown", repeat: "hold" },
-  { id: "treeUp", chord: "KeyK", repeat: "hold" },
-  { id: "treeDown", chord: "KeyJ", repeat: "hold" },
-  { id: "treeActivate", chord: "Enter", repeat: "once" },
-  { id: "rowExternal", chord: "KeyO", repeat: "once" },
-  { id: "rowBuiltin", chord: "KeyP", repeat: "once" },
-  { id: "rowSearch", chord: "KeyS", repeat: "once" },
-  { id: "rowUpscale", chord: "KeyE", repeat: "once" },
-  { id: "rowReveal", chord: "KeyR", repeat: "once" },
+const TORRENT_TREE_KEYBINDS: ResolvedHotkeyDef<TorrentTreeKeyAction>[] = [
+  { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold", keybindId: "tree.collapse" },
+  { id: "treeExpand", chord: "ArrowRight", repeat: "hold", keybindId: "tree.expand" },
+  // Both physical keys share one manifest entry: rebinding collapses the
+  // arrow alias into the single new chord.
+  { id: "treeUp", chord: "ArrowUp", repeat: "hold", keybindId: "tree.move.up" },
+  { id: "treeDown", chord: "ArrowDown", repeat: "hold", keybindId: "tree.move.down" },
+  { id: "treeUp", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
+  { id: "treeDown", chord: "KeyJ", repeat: "hold", keybindId: "tree.move.down" },
+  { id: "treeActivate", chord: "Enter", repeat: "once", keybindId: "tree.activate" },
+  { id: "rowExternal", chord: "KeyO", repeat: "once", keybindId: "tree.external" },
+  { id: "rowBuiltin", chord: "KeyP", repeat: "once", keybindId: "tree.builtin" },
+  { id: "rowSearch", chord: "KeyS", repeat: "once", keybindId: "tree.search" },
+  { id: "rowUpscale", chord: "KeyE", repeat: "once", keybindId: "tree.upscale" },
+  { id: "rowReveal", chord: "KeyR", repeat: "once", keybindId: "tree.reveal" },
 ];
 
 function rowElement(target: EventTarget | null): HTMLElement | null {
@@ -238,7 +240,7 @@ function TorrentFilesSection({
     findRow(scrollRef.current, path)?.focus();
   }, [open]);
 
-  useHotkeys<TorrentTreeKeyAction>(TORRENT_TREE_KEYBINDS, {
+  useResolvedHotkeys<TorrentTreeKeyAction>(TORRENT_TREE_KEYBINDS, {
     // Only the section holding the focused row answers, so the keys keep
     // their normal meaning everywhere else. A row button is skipped by the
     // shared filter, so only the modal guard is applied here.

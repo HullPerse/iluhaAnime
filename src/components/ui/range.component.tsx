@@ -13,6 +13,7 @@ function Slider({
   step,
   value,
   suffix,
+  disabled,
   onChange,
 }: {
   label?: string;
@@ -22,11 +23,13 @@ function Slider({
   value: number;
   suffix?: ReactNode;
   wheel?: boolean;
+  disabled?: boolean;
   onChange: (v: number) => void;
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
+  const interactive = disabled !== true;
   const clamped = clamp(value, min, max);
   const pct = (clamped - min) / (max - min);
 
@@ -52,12 +55,12 @@ function Slider({
   );
 
   useEffect(() => {
-    if (!wheel) return;
+    if (!wheel || !interactive) return;
     const el = ref.current;
     if (!el) return;
     el.addEventListener("wheel", adjustWheel, { passive: false });
     return () => el.removeEventListener("wheel", adjustWheel);
-  }, [wheel, adjustWheel]);
+  }, [wheel, interactive, adjustWheel]);
 
   useEffect(() => {
     if (!dragging) return;
@@ -77,37 +80,46 @@ function Slider({
       <div
         ref={ref}
         role="slider"
-        tabIndex={0}
+        tabIndex={interactive ? 0 : -1}
         aria-label={label ?? t("common.slider")}
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={clamped}
         aria-valuetext={`${clamped}${suffixText(suffix)}`}
-        className="windows95-border bg-field relative h-4 flex-1 cursor-pointer"
-        onKeyDown={(e) => {
-          const amount = e.shiftKey ? step * 10 : step;
+        aria-disabled={interactive ? undefined : true}
+        className={`windows95-border bg-field relative h-4 flex-1 ${interactive ? "cursor-pointer" : "cursor-default opacity-50"}`}
+        onKeyDown={
+          interactive
+            ? (e) => {
+                const amount = e.shiftKey ? step * 10 : step;
 
-          const keyMap: Record<string, () => void> = {
-            ArrowLeft: () => onChange(Math.max(min, clamped - amount)),
-            ArrowDown: () => onChange(Math.max(min, clamped - amount)),
-            ArrowRight: () => onChange(Math.min(max, clamped + amount)),
-            ArrowUp: () => onChange(Math.min(max, clamped + amount)),
-            Home: () => onChange(min),
-            End: () => onChange(max),
-          };
+                const keyMap: Record<string, () => void> = {
+                  ArrowLeft: () => onChange(Math.max(min, clamped - amount)),
+                  ArrowDown: () => onChange(Math.max(min, clamped - amount)),
+                  ArrowRight: () => onChange(Math.min(max, clamped + amount)),
+                  ArrowUp: () => onChange(Math.min(max, clamped + amount)),
+                  Home: () => onChange(min),
+                  End: () => onChange(max),
+                };
 
-          const keyAction = keyMap[e.key];
-          if (!keyAction) return;
+                const keyAction = keyMap[e.key];
+                if (!keyAction) return;
 
-          e.preventDefault();
-          keyAction();
-        }}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.currentTarget.focus();
-          setDragging(true);
-          setFromClientX(e.clientX);
-        }}
+                e.preventDefault();
+                keyAction();
+              }
+            : undefined
+        }
+        onMouseDown={
+          interactive
+            ? (e) => {
+                e.preventDefault();
+                e.currentTarget.focus();
+                setDragging(true);
+                setFromClientX(e.clientX);
+              }
+            : undefined
+        }
       >
         <div
           className="bg-highlight absolute inset-y-0 left-0"

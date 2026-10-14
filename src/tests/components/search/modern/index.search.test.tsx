@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SearchModern from "@/routes/components/search/modern/index.search";
 import { notificationAtoms } from "@/store/notification.store";
-import { patchSettings } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/userimage";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -83,7 +83,7 @@ describe("SearchModern wallpaper gate", () => {
     expect(tabLoaderShown(container)).toBe(false);
   });
 
-  it("renders the search panel and reports when the stored wallpaper fails to load", async () => {
+  it("falls back to the placeholder when the stored wallpaper is gone", async () => {
     patchSettings({ selectedDitherId: "real-id" });
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_dither_image") throw new Error("gone");
@@ -92,6 +92,9 @@ describe("SearchModern wallpaper gate", () => {
     const { container } = renderModern();
     await waitFor(() => expect(screen.getByPlaceholderText("Search anime...")).toBeTruthy());
     expect(tabLoaderShown(container)).toBe(false);
-    expect(errorMessages()).toContain("Could not load images.");
+    // The stale id is dropped so the lookup is not retried (and no error toast
+    // is shown) on the next launch.
+    await waitFor(() => expect(settingsAtoms.selectedDitherId.get()).toBeNull());
+    expect(errorMessages()).toEqual([]);
   });
 });

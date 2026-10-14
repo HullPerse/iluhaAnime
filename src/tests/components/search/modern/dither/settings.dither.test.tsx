@@ -220,7 +220,7 @@ describe("DitherSettings database images", () => {
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("second.jpg")).toBeTruthy());
     await user.click(screen.getByTitle("Add"));
-    await waitFor(() => expect(errorMessages()).toContain("Could not save the image. Try again."));
+    await waitFor(() => expect(errorMessages()).toContain("unsupported"));
     expect(screen.getByAltText("second.jpg")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });
@@ -327,7 +327,7 @@ describe("DitherSettings database images", () => {
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByAltText("first.png"));
     await user.click(screen.getByTitle("Edit"));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Deep" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Classic" })).toBeTruthy());
     expect(mockInvoke).not.toHaveBeenCalledWith("get_dither_image", expect.anything());
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
@@ -353,7 +353,7 @@ describe("DitherSettings database images", () => {
     expect((screen.getByTitle("Edit") as HTMLButtonElement).disabled).toBe(false);
     await user.click(screen.getByTitle("Edit"));
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("get_dither_image", { id: "ddd" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Deep" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Classic" })).toBeTruthy());
   });
 
   it("notifies when an off-page selection no longer exists", async () => {
@@ -368,7 +368,7 @@ describe("DitherSettings database images", () => {
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByTitle("Edit"));
     await waitFor(() => expect(errorMessages()).toContain("Could not load images."));
-    expect(screen.queryByRole("button", { name: "Deep" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Classic" })).toBeNull();
   });
 
   it("bakes through a hidden full-frame canvas while saving", async () => {
@@ -388,7 +388,7 @@ describe("DitherSettings database images", () => {
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByAltText("first.png"));
     await user.click(screen.getByTitle("Edit"));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Deep" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Classic" })).toBeTruthy());
     expect(screen.getAllByTestId("preview-canvas")).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.getAllByTestId("preview-canvas")).toHaveLength(2));

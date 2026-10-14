@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
@@ -20,7 +21,6 @@ import { useWatchedFolderNotifications } from "@/hooks/player/folderNotify.hook"
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { folderTreesFromScan, fingerprint } from "@/lib/player/scan.utils";
@@ -70,8 +70,8 @@ const FfprobeSchema = z.boolean();
  * player window's key map do not reach this surface. */
 type PlayerRouteAction = "toggleQueue";
 
-const ROUTE_KEYBINDS: HotkeyDef<PlayerRouteAction>[] = [
-  { id: "toggleQueue", chord: "KeyQ", repeat: "once" },
+const ROUTE_KEYBINDS: ResolvedHotkeyDef<PlayerRouteAction>[] = [
+  { id: "toggleQueue", chord: "KeyQ", repeat: "once", keybindId: "player.toggle.queue" },
 ];
 
 function PlayerRoute() {
@@ -99,11 +99,14 @@ function PlayerRoute() {
   const [queueOpen, setQueueOpen] = useState(true);
   const [debouncedSearch] = useDebouncedValue(search.trim(), { wait: 300 });
 
-  useHotkeys<"focus-main">([{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once" }], {
-    onAction: () => focusMainSearch(),
-  });
+  useResolvedHotkeys<"focus-main">(
+    [{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],
+    {
+      onAction: () => focusMainSearch(),
+    }
+  );
 
-  useHotkeys<PlayerRouteAction>(ROUTE_KEYBINDS, {
+  useResolvedHotkeys<PlayerRouteAction>(ROUTE_KEYBINDS, {
     ignore: (event) => shouldIgnoreHotkeys(event.target),
     onAction: (action) => {
       if (action === "toggleQueue") setQueueOpen((value) => !value);

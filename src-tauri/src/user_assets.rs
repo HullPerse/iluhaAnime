@@ -9,9 +9,7 @@ use tauri::Manager;
 
 use crate::scrapers::clients::resolve_proxy;
 
-const MAX_IMAGE_BYTES: u64 = 4 * 1024 * 1024;
-
-const MAX_DITHER_BAKE_BYTES: u64 = 24 * 1024 * 1024;
+const MAX_DITHER_BAKE_BYTES: u64 = 512 * 1024 * 1024;
 
 const USER_IMAGES_TABLE: &str = "user_images";
 const DITHER_IMAGES_TABLE: &str = "dither_images";
@@ -567,8 +565,8 @@ const fn fill_created_at(mut image: UserImage, created_at: i64) -> UserImage {
 pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImage, String> {
     let source = Path::new(&path);
     let metadata = fs::metadata(source).map_err(|e| format!("image metadata: {e}"))?;
-    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > MAX_IMAGE_BYTES {
-        return Err("Image must be a non-empty file smaller than 4 MiB".to_string());
+    if !metadata.is_file() || metadata.len() == 0 {
+        return Err("Image must be a non-empty file".to_string());
     }
     let data = fs::read(source).map_err(|e| format!("read image: {e}"))?;
     image_mime(&data, source.extension().and_then(|v| v.to_str()))
@@ -645,8 +643,8 @@ pub async fn download_remote_image(
         .await
         .map_err(|e| format!("image body: {e}"))?;
     let data = bytes.to_vec();
-    if data.is_empty() || data.len() as u64 > MAX_IMAGE_BYTES {
-        return Err("Downloaded image is empty or exceeds 4 MiB".to_string());
+    if data.is_empty() {
+        return Err("Downloaded image is empty".to_string());
     }
     if image_mime(&data, None).is_none() {
         return Err("Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string());
@@ -753,8 +751,8 @@ pub async fn fetch_remote_image(
         .await
         .map_err(|e| format!("cached image body: {e}"))?
         .to_vec();
-    if data.is_empty() || data.len() as u64 > MAX_IMAGE_BYTES {
-        return Err("Downloaded image is empty or exceeds 4 MiB".to_string());
+    if data.is_empty() {
+        return Err("Downloaded image is empty".to_string());
     }
     let mime_type = image_mime(&data, None).ok_or_else(|| {
         "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string()
@@ -982,8 +980,8 @@ fn import_dither_bytes(
 pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserImage, String> {
     let source = Path::new(&path);
     let metadata = fs::metadata(source).map_err(|e| format!("image metadata: {e}"))?;
-    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > MAX_IMAGE_BYTES {
-        return Err("Image must be a non-empty file smaller than 4 MiB".to_string());
+    if !metadata.is_file() || metadata.len() == 0 {
+        return Err("Image must be a non-empty file".to_string());
     }
     let data = fs::read(source).map_err(|e| format!("read image: {e}"))?;
     let extension = source.extension().and_then(|value| value.to_str());
@@ -1217,6 +1215,8 @@ pub fn read_user_image_bytes(app: &tauri::AppHandle, id: &str) -> Result<Option<
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const MAX_IMAGE_BYTES: u64 = 256 * 1024 * 1024;
 
     fn temp_root(tag: &str) -> PathBuf {
         let dir =

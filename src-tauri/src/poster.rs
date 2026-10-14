@@ -6,7 +6,7 @@
 //! only writes validated image bytes to the dialog-picked path: it is not a
 //! generic file writer.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::screenshot::sanitize_name;
 
@@ -77,6 +77,7 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::*;
+    use std::path::PathBuf;
 
     static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 

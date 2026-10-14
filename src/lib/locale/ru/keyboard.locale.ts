@@ -31,6 +31,12 @@ const keyboard = {
   "keybind.tree.reveal": "Показать файл в папке",
   "keybind.find.next": "Следующее совпадение",
   "keybind.find.prev": "Предыдущее совпадение",
+  "keybind.focus.main": "Фокус в главное поле",
+  "keybind.tab.prev": "Предыдущий таб",
+  "keybind.tab.next": "Следующий таб",
+  "keybind.player.toggle.queue": "Переключить панель очереди",
+  "keybind.folder.shrink": "Уменьшить панель папки",
+  "keybind.folder.grow": "Расширить панель папки",
 } as const;
 
 export default keyboard;

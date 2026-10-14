@@ -40,8 +40,15 @@ function altDigitEntries(): KeybindManifestEntry[] {
 }
 
 function screenshotHistoryEntries(): KeybindManifestEntry[] {
-  return SCREENSHOT_HISTORY_DEFS.map((def) => ({
-    id: `screenshot.${def.id}.${def.chord}`,
+  // One entry per action (not per platform chord variant): rebinding an
+  // action replaces all of its variants with the single new chord. The app
+  // is Windows-only, so the meta duplicates carry no platform value.
+  const primary = new Map<string, (typeof SCREENSHOT_HISTORY_DEFS)[number]>();
+  for (const def of SCREENSHOT_HISTORY_DEFS) {
+    if (!primary.has(def.id)) primary.set(def.id, def);
+  }
+  return [...primary.values()].map((def) => ({
+    id: `screenshot.history.${def.id}`,
     chord: def.chord,
     repeat: def.repeat,
     scope: "global",
@@ -255,6 +262,60 @@ const APP_ENTRIES: readonly KeybindManifestEntry[] = [
     mode: "base",
     description: "settings.find.placeholder",
     category: "search",
+  },
+  {
+    id: "focus.main",
+    chord: "ctrl+KeyK",
+    repeat: "once",
+    scope: "global",
+    mode: "base",
+    description: "keybind.focus.main",
+    category: "interface",
+  },
+  {
+    id: "tab.prev",
+    chord: "Shift+BracketLeft",
+    repeat: "once",
+    scope: "global",
+    mode: "base",
+    description: "keybind.tab.prev",
+    category: "navigation",
+  },
+  {
+    id: "tab.next",
+    chord: "Shift+BracketRight",
+    repeat: "once",
+    scope: "global",
+    mode: "base",
+    description: "keybind.tab.next",
+    category: "navigation",
+  },
+  {
+    id: "player.toggle.queue",
+    chord: "KeyQ",
+    repeat: "once",
+    scope: "player",
+    mode: "base",
+    description: "keybind.player.toggle.queue",
+    category: "interface",
+  },
+  {
+    id: "folder.shrink",
+    chord: "BracketLeft",
+    repeat: "hold",
+    scope: "player",
+    mode: "base",
+    description: "keybind.folder.shrink",
+    category: "interface",
+  },
+  {
+    id: "folder.grow",
+    chord: "BracketRight",
+    repeat: "hold",
+    scope: "player",
+    mode: "base",
+    description: "keybind.folder.grow",
+    category: "interface",
   },
   {
     id: "page.find",

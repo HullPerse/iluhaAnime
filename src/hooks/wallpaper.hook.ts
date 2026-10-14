@@ -32,7 +32,13 @@ export function useWallpaperImage() {
     },
     enabled: effectiveId !== null,
     retry: false,
-    placeholderData: (previous) => previous,
+    // Carrying the previous data over keeps the old wallpaper on screen while a
+    // newly picked one loads. It must NOT survive clearing the selection (the
+    // placeholder id resolves to `null`): otherwise the disabled query keeps
+    // reporting the stale image and the background never returns to the
+    // placeholder.
+    placeholderData:
+      effectiveId === null ? undefined : (previous: UserImage | null | undefined) => previous,
   });
   return query;
 }

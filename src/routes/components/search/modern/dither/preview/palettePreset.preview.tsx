@@ -30,13 +30,23 @@ export function PalettePresetStrip({
           disabled={palettesEqual(active, preset.colors)}
         >
           <span className="flex h-4 w-full flex-row">
-            {preset.colors.map((color, i) => (
+            {preset.colors.length === 0 ? (
               <span
-                key={`${i}-${rgbToHex(color)}`}
-                className="h-full flex-1"
-                style={{ backgroundColor: rgbToHex(color) }}
+                className="h-full w-full"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #2b2b2b, #e74c3c, #f1c40f, #2ecc71, #3498db, #9b59b6, #ecf0f1)",
+                }}
               />
-            ))}
+            ) : (
+              preset.colors.map((color, i) => (
+                <span
+                  key={`${i}-${rgbToHex(color)}`}
+                  className="h-full flex-1"
+                  style={{ backgroundColor: rgbToHex(color) }}
+                />
+              ))
+            )}
           </span>
           <span className="windows95-text block truncate text-xs">
             {t(DITHER_PALETTE_PRESET_LABELS[preset.id])}

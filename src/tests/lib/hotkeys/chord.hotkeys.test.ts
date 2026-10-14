@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { chordKey, chordKeyFromEvent, parseChord } from "@/lib/hotkeys/chord.hotkeys";
+import {
+  chordKey,
+  chordKeyFromEvent,
+  humanizeChord,
+  parseChord,
+} from "@/lib/hotkeys/chord.hotkeys";
 
 describe("parseChord", () => {
   it("parses a bare code", () => {
-    expect(parseChord("Space")).toEqual({ code: "Space", ctrl: false, shift: false, alt: false, meta: false });
+    expect(parseChord("Space")).toEqual({
+      code: "Space",
+      ctrl: false,
+      shift: false,
+      alt: false,
+      meta: false,
+    });
   });
 
   it("parses modifier prefixes case-insensitively", () => {
@@ -62,8 +73,27 @@ describe("chordKey", () => {
       shiftKey: true,
     });
     expect(chord).toBeDefined();
-    expect(chordKey(chord ?? { code: "", ctrl: false, shift: false, alt: false, meta: false })).toBe(
-      chordKeyFromEvent(event)
-    );
+    expect(
+      chordKey(chord ?? { code: "", ctrl: false, shift: false, alt: false, meta: false })
+    ).toBe(chordKeyFromEvent(event));
+  });
+});
+
+describe("humanizeChord", () => {
+  it("renders modifiers and strips Key/Digit prefixes", () => {
+    expect(humanizeChord("ctrl+KeyK")).toBe("Ctrl+K");
+    expect(humanizeChord("Shift+KeyG")).toBe("Shift+G");
+    expect(humanizeChord("alt+Digit1")).toBe("Alt+1");
+  });
+
+  it("draws arrows as glyphs and keeps the rest", () => {
+    expect(humanizeChord("ArrowLeft")).toBe("←");
+    expect(humanizeChord("Shift+BracketRight")).toBe("Shift+BracketRight");
+    expect(humanizeChord("Space")).toBe("Space");
+  });
+
+  it("passes garbage through", () => {
+    expect(humanizeChord("ctrl+ctrl")).toBe("ctrl+ctrl");
+    expect(humanizeChord("")).toBe("");
   });
 });

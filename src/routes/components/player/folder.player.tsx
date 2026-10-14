@@ -21,9 +21,9 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
 import { parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
@@ -62,19 +62,21 @@ type TreeKeyAction =
   | "rowUpscale"
   | "rowReveal";
 
-const TREE_KEYBINDS: HotkeyDef<TreeKeyAction>[] = [
-  { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold" },
-  { id: "treeExpand", chord: "ArrowRight", repeat: "hold" },
-  { id: "treeUp", chord: "ArrowUp", repeat: "hold" },
-  { id: "treeDown", chord: "ArrowDown", repeat: "hold" },
-  { id: "treeUp", chord: "KeyK", repeat: "hold" },
-  { id: "treeDown", chord: "KeyJ", repeat: "hold" },
-  { id: "treeActivate", chord: "Enter", repeat: "once" },
-  { id: "rowExternal", chord: "KeyO", repeat: "once" },
-  { id: "rowBuiltin", chord: "KeyP", repeat: "once" },
-  { id: "rowSearch", chord: "KeyS", repeat: "once" },
-  { id: "rowUpscale", chord: "KeyE", repeat: "once" },
-  { id: "rowReveal", chord: "KeyR", repeat: "once" },
+const TREE_KEYBINDS: ResolvedHotkeyDef<TreeKeyAction>[] = [
+  { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold", keybindId: "tree.collapse" },
+  { id: "treeExpand", chord: "ArrowRight", repeat: "hold", keybindId: "tree.expand" },
+  // Both physical keys share one manifest entry: rebinding collapses the
+  // arrow alias into the single new chord.
+  { id: "treeUp", chord: "ArrowUp", repeat: "hold", keybindId: "tree.move.up" },
+  { id: "treeDown", chord: "ArrowDown", repeat: "hold", keybindId: "tree.move.down" },
+  { id: "treeUp", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
+  { id: "treeDown", chord: "KeyJ", repeat: "hold", keybindId: "tree.move.down" },
+  { id: "treeActivate", chord: "Enter", repeat: "once", keybindId: "tree.activate" },
+  { id: "rowExternal", chord: "KeyO", repeat: "once", keybindId: "tree.external" },
+  { id: "rowBuiltin", chord: "KeyP", repeat: "once", keybindId: "tree.builtin" },
+  { id: "rowSearch", chord: "KeyS", repeat: "once", keybindId: "tree.search" },
+  { id: "rowUpscale", chord: "KeyE", repeat: "once", keybindId: "tree.upscale" },
+  { id: "rowReveal", chord: "KeyR", repeat: "once", keybindId: "tree.reveal" },
 ];
 
 function rowElement(target: EventTarget | null): HTMLElement | null {
@@ -301,7 +303,7 @@ function FolderView({
     findRow(treeRef.current, path)?.focus();
   }, [open]);
 
-  useHotkeys<TreeKeyAction>(TREE_KEYBINDS, {
+  useResolvedHotkeys<TreeKeyAction>(TREE_KEYBINDS, {
     // Only the tree holding the focused folder row answers, so the arrows keep
     // their normal meaning everywhere else on this route. The draggable header
     // above this view is its root row too: it carries the root path but lives

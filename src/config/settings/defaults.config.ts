@@ -112,6 +112,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   uiDensity: "comfortable",
   progressStyle: "blocks",
   vimMode: false,
+  keybindOverrides: {} as Record<string, string | null>,
   videoExtensions: [
     "mp4",
     "mkv",

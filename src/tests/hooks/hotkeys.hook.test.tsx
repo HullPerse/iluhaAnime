@@ -1,8 +1,10 @@
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { useHotkeys, useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
-import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { patchSettings } from "@/store/settings.store";
 
 const DEFS: HotkeyDef<"save" | "close">[] = [
   { id: "save", chord: "ctrl+KeyS", repeat: "once" },
@@ -58,6 +60,69 @@ describe("useHotkeys", () => {
     press({ code: "Digit1", altKey: true });
     press({ code: "Digit2", altKey: true });
     expect(onAction).toHaveBeenCalledTimes(2);
+    render.unmount();
+  });
+});
+
+describe("useResolvedHotkeys", () => {
+  const DEFS: ResolvedHotkeyDef<"down">[] = [
+    { id: "down", chord: "KeyJ", repeat: "hold", keybindId: "tree.move.down" },
+  ];
+
+  afterEach(() => {
+    patchSettings({ keybindOverrides: {} });
+  });
+
+  it("fires on the rebound chord and stays silent on the default", () => {
+    patchSettings({ keybindOverrides: { "tree.move.down": "KeyX" } });
+    const onAction = vi.fn();
+    const render = renderHook(() => useResolvedHotkeys(DEFS, { onAction }));
+
+    press({ code: "KeyJ" });
+    expect(onAction).not.toHaveBeenCalled();
+    press({ code: "KeyX" });
+    expect(onAction).toHaveBeenCalledWith("down", expect.any(KeyboardEvent));
+    render.unmount();
+  });
+
+  it("drops unbound entries", () => {
+    patchSettings({ keybindOverrides: { "tree.move.down": null } });
+    const onAction = vi.fn();
+    const render = renderHook(() => useResolvedHotkeys(DEFS, { onAction }));
+
+    press({ code: "KeyJ" });
+    expect(onAction).not.toHaveBeenCalled();
+    render.unmount();
+  });
+
+  it("passes defaults through without overrides", () => {
+    const onAction = vi.fn();
+    const render = renderHook(() => useResolvedHotkeys(DEFS, { onAction }));
+
+    press({ code: "KeyJ" });
+    expect(onAction).toHaveBeenCalledTimes(1);
+    render.unmount();
+  });
+
+  it("keeps physical aliases until an override collapses them", () => {
+    const defs: ResolvedHotkeyDef<"up">[] = [
+      { id: "up", chord: "ArrowUp", repeat: "hold", keybindId: "tree.move.up" },
+      { id: "up", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
+    ];
+    const onAction = vi.fn();
+    const render = renderHook(() => useResolvedHotkeys(defs, { onAction }));
+
+    press({ code: "ArrowUp" });
+    press({ code: "KeyK" });
+    expect(onAction).toHaveBeenCalledTimes(2);
+
+    patchSettings({ keybindOverrides: { "tree.move.up": "KeyX" } });
+    render.rerender();
+    press({ code: "ArrowUp" });
+    press({ code: "KeyK" });
+    expect(onAction).toHaveBeenCalledTimes(2);
+    press({ code: "KeyX" });
+    expect(onAction).toHaveBeenCalledTimes(3);
     render.unmount();
   });
 });

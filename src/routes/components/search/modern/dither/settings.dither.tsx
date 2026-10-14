@@ -95,7 +95,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
     }
     setUploadName(picked.split(/[/\\]/).pop() ?? picked);
     const [image, error] = await attempt(systemApi.importDitherImage(picked));
-    if (error) showError(t("common.error"), t("search.dither.upload.error"));
+    if (error) showError(t("common.error"), error.message ?? t("search.dither.upload.error"));
     else {
       setMetas((items) => [
         {

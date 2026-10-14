@@ -39,6 +39,14 @@ export interface VimEngineOptions {
   /** Fires whenever the digit buffer changes (empty string clears it). */
   onCount?: (count: string) => void;
   /**
+   * Single source of truth for the pending count. Consumers (tree rows,
+   * resize chords) read and clear the count through their own channel, so
+   * the engine accumulates digits onto this value instead of a private
+   * buffer that would go stale behind an external clear. Without it the
+   * engine falls back to its local buffer (tests, harnesses).
+   */
+  getCount?: () => string;
+  /**
    * Lets a surface keep its own chord: when true, the engine neither consumes
    * nor fires, so a bubble-phase handler behind it still runs. Tree rows own
    * `j`/`k` this way - the engine sees them first (window capture) and must
@@ -68,7 +76,12 @@ const COUNT_DIGITS = 3;
 function isBareDigit(event: KeyboardEvent): string | null {
   if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return null;
   const match = /^Digit([0-9])$/.exec(event.code);
-  return match ? (match[1] ?? null) : null;
+  if (match) return match[1] ?? null;
+  // Numpad digits count only when they really are digits: with NumLock off
+  // the same keys report arrows/home/end, which must never buffer.
+  const pad = /^Numpad([0-9])$/.exec(event.code);
+  if (pad && event.key === pad[1]) return pad[1] ?? null;
+  return null;
 }
 
 function isVimExcludedTarget(
@@ -148,15 +161,23 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     const digit = isBareDigit(event);
     if (digit !== null) {
       if (isVimExcludedTarget(event.target, options.isOwner)) return;
-      if (!(pendingCount === "" && digit === "0") && pendingCount.length < COUNT_DIGITS) {
-        pendingCount += digit;
+      const base = options.getCount?.() ?? pendingCount;
+      if (!(base === "" && digit === "0") && base.length < COUNT_DIGITS) {
+        pendingCount = base + digit;
         options.onCount?.(pendingCount);
       }
       event.preventDefault();
       event.stopPropagation();
       return;
     }
-    if (pendingCount !== "") clearCount();
+    // No eager count reset here: the count belongs to the next command,
+    // which may live behind this listener (tree rows consume it in bubble
+    // phase) or behind a sequence. Only the engine's own non-count commands
+    // and Escape drop it. Escape clears without consuming, like before.
+    if (event.code === "Escape") {
+      clearCount();
+      return;
+    }
     const chord = chordKeyFromEvent(event);
     const sequence = sequences.get(chord);
     if (sequence) {
@@ -175,6 +196,10 @@ export function createVimEngine(options: VimEngineOptions): VimEngine {
     // Only owned chords evaluate the gate, so an unowned keystroke never pays
     // for the layer lookup.
     if (isVimExcludedTarget(event.target, options.isOwner)) return;
+    // First/last read the count themselves (focusTreeIndex); every other
+    // engine command drops a pending count so it cannot leak into a later
+    // motion.
+    if (command !== "last" && command !== "first") clearCount();
     event.preventDefault();
     event.stopPropagation();
     options.onCommand(command, event);

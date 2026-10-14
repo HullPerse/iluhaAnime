@@ -192,17 +192,57 @@ describe("TorrentFilesSection row actions", () => {
     expect(onPlay).toHaveBeenCalledTimes(1);
   });
 
-  it("searches with S through the name activation", () => {
+  it("wires the builtin button to onOpenInApp when onPlay is missing", () => {
+    const onOpenInApp = vi.fn();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <TorrentFilesSection
+          id={1}
+          files={FILES}
+          type="player"
+          path="D:/media"
+          onOpenInApp={onOpenInApp}
+        />
+      </QueryClientProvider>
+    );
+    openFolder("A");
+    const row = fileRow(0);
+    const holder = row.querySelector<HTMLElement>('[data-file-action="builtin"]');
+    const button =
+      holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+    if (!button) throw new Error("action target missing: builtin");
+    row.focus();
+
+    pressKey("KeyP", row);
+
+    expect(onOpenInApp).toHaveBeenCalledTimes(1);
+  });
+
+  it("searches with S through the search button", () => {
+    renderSection();
+    const { row, button } = actionTarget(0, "search");
+    const spy = vi.fn();
+    button.addEventListener("click", spy);
+
+    pressKey("KeyS", row);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("searches with Enter through the search button", () => {
     renderSection();
     openFolder("A");
     const row = fileRow(0);
-    const name = row.querySelector<HTMLElement>("[data-tree-activate]");
-    if (!name) throw new Error("activation target missing");
+    const holder = row.querySelector<HTMLElement>('[data-file-action="search"]');
+    const button =
+      holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+    if (!button) throw new Error("action target missing: search");
     const spy = vi.fn();
-    name.addEventListener("click", spy);
+    button.addEventListener("click", spy);
     row.focus();
 
-    pressKey("KeyS", row);
+    pressKey("Enter", row);
 
     expect(spy).toHaveBeenCalledTimes(1);
   });

@@ -118,6 +118,16 @@ describe("TorrentFileRow keyboard surface", () => {
     expect(searchAtoms.anilistSearchQuery.get()).toBeNull();
   });
 
+  it("does not run the AniList search on plain click", () => {
+    renderFileRow({ file: treeFile({ completed: true }) });
+    const name = nameOf("Show.S01E01.1080p.mkv");
+    searchAtoms.anilistSearchQuery.set(null);
+
+    fireEvent.click(name);
+
+    expect(searchAtoms.anilistSearchQuery.get()).toBeNull();
+  });
+
   it("drops the tab stop for extra files such as subtitles", () => {
     renderFileRow({ file: treeFile({ name: "ep1.srt", displayName: "ep1.srt" }) });
 

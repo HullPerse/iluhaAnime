@@ -17,6 +17,7 @@ vi.mock("@tanstack/react-virtual", () => ({
 }));
 
 import FolderView from "@/routes/components/player/folder.player";
+import { searchAtoms } from "@/store/search.store";
 import { patchSettings } from "@/store/settings.store";
 import { setVimCount } from "@/store/vim.store";
 import type { FolderNode } from "@/types/torrent";
@@ -200,18 +201,43 @@ describe("FolderView row movement", () => {
     expect(document.activeElement).toBe(row("D:/Anime"));
   });
 
-  it("opens the focused file with Enter, exactly like a click", () => {
+  it("opens the focused file with Enter through the external button", () => {
     renderTree();
     const file = fileRow("ep1.mkv");
-    const name = file.querySelector<HTMLElement>("[data-tree-activate]");
-    if (!name) throw new Error("activation target missing");
+    const holder = file.querySelector<HTMLElement>('[data-file-action="external"]');
+    if (!holder) throw new Error("external button missing");
     const clicked = vi.fn();
-    name.addEventListener("click", clicked);
+    holder.addEventListener("click", clicked);
     file.focus();
 
     pressKey("Enter", file);
 
     expect(clicked).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus to the row on plain click instead of opening the player", () => {
+    renderTree();
+    const file = fileRow("ep1.mkv");
+    const name = file.querySelector<HTMLElement>("[data-tree-activate]");
+    if (!name) throw new Error("activation target missing");
+    const before = mockOpenPath.mock.calls.length;
+
+    fireEvent.click(name);
+
+    expect(document.activeElement).toBe(file);
+    expect(mockOpenPath.mock.calls.length).toBe(before);
+  });
+
+  it("keeps the AniList search on Ctrl+click", () => {
+    renderTree();
+    const file = fileRow("ep1.mkv");
+    const name = file.querySelector<HTMLElement>("[data-tree-activate]");
+    if (!name) throw new Error("activation target missing");
+
+    fireEvent.click(name, { ctrlKey: true });
+
+    expect(searchAtoms.anilistSearchQuery.get()).not.toBeNull();
+    searchAtoms.anilistSearchQuery.set(null);
   });
 
   it("keeps the tree rows out of the tab order", () => {

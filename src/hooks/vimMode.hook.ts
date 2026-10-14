@@ -287,6 +287,7 @@ export function useVimMode(): void {
       },
       onActiveKey: (event) => handleActiveKey(event),
       onCount: (count) => setVimCount(count),
+      getCount: () => vimAtoms.count.get(),
     });
     closeLayerRef.current = closeLayer;
 

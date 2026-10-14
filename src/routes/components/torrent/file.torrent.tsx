@@ -95,6 +95,19 @@ function runTorrentFileRowAction(row: HTMLElement, action: TorrentFileRowAction)
   clickRowActionButton(row, action);
 }
 
+/** Enter and S on a folder row toggle it. On a file row they perform the
+ *  row's search button: the file name no longer acts on a plain mouse click
+ *  (the search icon owns that), so the keyboard goes straight to the button
+ *  instead of the name span. */
+function activateTorrentRow(row: HTMLElement): void {
+  setVimCount("");
+  if (row.dataset.treeKind === "file") {
+    row.querySelector<HTMLElement>('[data-file-action="search"]')?.click();
+  } else {
+    row.querySelector<HTMLElement>("[data-tree-activate]")?.click();
+  }
+}
+
 function TorrentFilesSection({
   id,
   files,
@@ -256,12 +269,9 @@ function TorrentFilesSection({
       if (!path) return;
 
       if (action === "treeActivate" || action === "rowSearch") {
-        // Enter and S both perform the row's own button, so key and mouse can
-        // never disagree about what activating a row means. S on a file row
-        // is the name search; on a folder row it toggles, like Enter. Counts
-        // are dropped like in every other non-motion branch.
-        setVimCount("");
-        row?.querySelector<HTMLElement>("[data-tree-activate]")?.click();
+        // Counts are dropped like in every other non-motion branch; folder
+        // toggle versus file search is resolved inside the helper.
+        activateTorrentRow(row);
         return;
       }
 

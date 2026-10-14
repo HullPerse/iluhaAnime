@@ -89,7 +89,7 @@ function handlePlayerContextMenu(
 }
 
 interface FileRowInteractions {
-  /** Player rows act on a plain click (search in AniList). */
+  /** Player rows are keyboard-activatable (search in AniList). */
   interactive: boolean;
   /** A right-click opens the save folder. */
   contextMenu: boolean;
@@ -159,7 +159,6 @@ function FileNameCell({
       onKeyDown={interactions.interactive ? enterOrSpace(onActivate) : undefined}
       onContextMenu={menuEntries ? undefined : onOpenFolder}
       onContextMenuCapture={onCtrlContextMenu ?? undefined}
-      onClick={onActivate}
     >
       {children}
     </span>
@@ -297,7 +296,7 @@ export function TorrentFileRow({
       tabIndex={-1}
       className={cn(
         "windows95-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none",
-        !(type === "torrent" && file.completed) && "hover:bg-surface hover:cursor-pointer"
+        !(type === "torrent" && file.completed) && "hover:bg-surface"
       )}
       style={{
         height: 18,
@@ -384,6 +383,9 @@ export function TorrentFileRow({
           onDeleteExtraFile={onDeleteExtraFile}
           onUpscaleDone={onUpscaleDone}
           onPlay={onPlay}
+          onOpenInApp={onOpenInApp}
+          track={track}
+          onSearch={openSearch}
         />
       )}
     </div>

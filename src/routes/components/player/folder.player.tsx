@@ -321,11 +321,13 @@ function FolderView({
       if (!path) return;
 
       if (action === "treeActivate") {
-        // Enter performs the row's own button, so key and mouse can never
-        // disagree about what activating a row means. A pending count means
-        // nothing here either: without the drop, `3 Enter j` would step two.
+        // Enter performs the row's external button: the file name no longer
+        // acts on a plain mouse click (the Monitor icon owns that), so the
+        // keyboard goes straight to the button instead of the name span.
+        // A pending count means nothing here either: without the drop,
+        // `3 Enter j` would step two.
         setVimCount("");
-        row?.querySelector<HTMLElement>("[data-tree-activate]")?.click();
+        clickRowActionButton(row, "external");
         return;
       }
 
@@ -618,7 +620,7 @@ function FolderView({
                   data-vim-target="file"
                   tabIndex={-1}
                   className={cn(
-                    "windows95-border hover:bg-surface bg-field focus-visible:outline-text absolute top-0 left-0 flex h-5 w-full items-center gap-1 px-1 hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted",
+                    "windows95-border hover:bg-surface bg-field focus-visible:outline-text absolute top-0 left-0 flex h-5 w-full items-center gap-1 px-1 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted",
                     busy && "opacity-50"
                   )}
                   style={{
@@ -635,7 +637,7 @@ function FolderView({
                   <ContextMenu entries={fileMenuEntries}>
                     <span
                       title={file.name}
-                      className="windows95-text flex-1 truncate select-none hover:cursor-pointer"
+                      className="windows95-text flex-1 truncate select-none"
                       data-tree-activate
                       onContextMenuCapture={(e) => {
                         // Ctrl+right-click keeps its direct action (builtin
@@ -648,12 +650,15 @@ function FolderView({
                         ignore(openInAppPlayer(file.path));
                       }}
                       onClick={(e) => {
-                        if (e.ctrlKey || e.metaKey) {
-                          if (disabled || busy || !file.path) return;
-                          setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
+                        // Plain clicks only move focus to the row: the external
+                        // player action lives on the Monitor icon now.
+                        // Ctrl+click keeps the AniList search shortcut.
+                        if (!(e.ctrlKey || e.metaKey)) {
+                          e.currentTarget.closest<HTMLElement>("[data-tree-row]")?.focus();
                           return;
                         }
-                        if (!disabled && !busy && file.path) openFileInPlayer(file.path);
+                        if (disabled || busy || !file.path) return;
+                        setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
                       }}
                     >
                       {parseTitles ? formatParsedTitle(file.path || file.name, t) : file.name}

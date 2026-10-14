@@ -1,4 +1,4 @@
-import { Monitor, Play } from "lucide-react";
+import { Monitor, Play, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -21,6 +21,9 @@ export function PlayerFileActions({
   onDeleteExtraFile,
   onUpscaleDone,
   onPlay,
+  onOpenInApp,
+  track,
+  onSearch,
 }: {
   file: TorrentTreeFile;
   fullPath: string | undefined;
@@ -30,9 +33,18 @@ export function PlayerFileActions({
   onDeleteExtraFile?: () => void;
   onUpscaleDone?: () => void;
   onPlay?: (path: string, name: string) => void;
+  onOpenInApp?: (fullPath: string) => void;
+  /** Same meaning as the folder player row: audio/subtitle sidecar. */
+  track?: boolean;
+  /** AniList name search, like the folder player search icon. */
+  onSearch?: () => void;
 }) {
   const { t } = useI18n();
   const upscaledExtra = extraFiles?.find((e) => e.name === file.displayName);
+  const resolvedForQueue = fullPath ?? (path ? joinMediaPath(path, file.name) : undefined);
+  const queueStatus = resolvedForQueue ? queueMap.get(resolvedForQueue) : undefined;
+  const busy = queueStatus === "queued" || queueStatus === "processing";
+  const searchDisabled = track === true || busy;
 
   return (
     <div className="ml-auto flex flex-row gap-1">
@@ -61,7 +73,7 @@ export function PlayerFileActions({
           <span data-file-action="upscale" className="contents">
             <UpscalePlayer filePath={fullPath} onDone={onUpscaleDone} exists={file.exists} />
           </span>
-          {onPlay && (
+          {(onPlay || onOpenInApp) && (
             <Button
               title={t("player.folder.builtin.player")}
               size="icon"
@@ -69,7 +81,8 @@ export function PlayerFileActions({
               data-file-action="builtin"
               onClick={(e) => {
                 e.stopPropagation();
-                onPlay(fullPath, file.displayName);
+                if (onPlay) onPlay(fullPath, file.displayName);
+                else onOpenInApp?.(fullPath);
               }}
               disabled={!file.exists}
             >
@@ -89,6 +102,22 @@ export function PlayerFileActions({
           >
             <Monitor className="size-3" />
           </Button>
+          {onSearch && (
+            <Button
+              title={t("player.folder.search.anilist")}
+              aria-label={t("player.folder.search.anilist")}
+              size="icon"
+              className="size-4"
+              data-file-action="search"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSearch();
+              }}
+              disabled={searchDisabled}
+            >
+              <Search className="size-3" />
+            </Button>
+          )}
         </>
       ) : (
         <>
@@ -103,7 +132,7 @@ export function PlayerFileActions({
               />
             </span>
           )}
-          {path && onPlay && (
+          {path && (onPlay || onOpenInApp) && (
             <Button
               title={t("player.folder.builtin.player")}
               size="icon"
@@ -111,7 +140,8 @@ export function PlayerFileActions({
               data-file-action="builtin"
               onClick={(e) => {
                 e.stopPropagation();
-                onPlay(joinMediaPath(path, file.name), file.displayName);
+                if (onPlay) onPlay(joinMediaPath(path, file.name), file.displayName);
+                else if (path) onOpenInApp?.(joinMediaPath(path, file.name));
               }}
               disabled={!file.exists}
             >
@@ -133,6 +163,22 @@ export function PlayerFileActions({
               disabled={!file.exists}
             >
               <Monitor className="size-3" />
+            </Button>
+          )}
+          {path && onSearch && (
+            <Button
+              title={t("player.folder.search.anilist")}
+              aria-label={t("player.folder.search.anilist")}
+              size="icon"
+              className="size-4"
+              data-file-action="search"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSearch();
+              }}
+              disabled={searchDisabled}
+            >
+              <Search className="size-3" />
             </Button>
           )}
         </>

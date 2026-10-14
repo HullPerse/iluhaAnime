@@ -115,7 +115,8 @@ describe("vim engine sequences", () => {
 
 function setupWithCount(
   onCount: (count: string) => void,
-  isOwner?: (target: EventTarget | null) => boolean
+  isOwner?: (target: EventTarget | null) => boolean,
+  shouldYield?: (command: VimCommand, event: KeyboardEvent) => boolean
 ) {
   const onCommand = vi.fn();
   const onActiveKey = vi.fn<(event: KeyboardEvent, state: VimEngineState) => void>();
@@ -123,6 +124,7 @@ function setupWithCount(
     isEnabled: () => true,
     isExcludedRoute: () => false,
     isOwner,
+    shouldYield,
     onCommand,
     onActiveKey,
     onCount,
@@ -170,7 +172,7 @@ describe("vim engine count buffer", () => {
     expect(onCount).not.toHaveBeenCalled();
   });
 
-  it("clears on the next non-digit key", () => {
+  it("clears when the engine consumes a non-count command", () => {
     const onCount = vi.fn<(count: string) => void>();
     const { engine, onCommand } = setupWithCount(onCount);
     press(window, key("Digit5"));
@@ -180,12 +182,91 @@ describe("vim engine count buffer", () => {
     expect(engine.count()).toBe("");
   });
 
+  it("keeps the count for an unmatched key (bubble consumers read it later)", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    const { engine, onCommand } = setupWithCount(onCount);
+    press(window, key("Digit3"));
+    press(window, key("KeyQ"));
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(engine.count()).toBe("3");
+    expect(onCount).not.toHaveBeenCalledWith("");
+  });
+
+  it("keeps the count for a yielded chord (tree rows consume it)", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    const { engine, onCommand } = setupWithCount(
+      onCount,
+      undefined,
+      (command) => command === "scroll.down" || command === "scroll.up"
+    );
+    press(window, key("Digit3"));
+    const yielded = key("KeyJ");
+    press(window, yielded);
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(yielded.defaultPrevented).toBe(false);
+    expect(engine.count()).toBe("3");
+  });
+
+  it("keeps the count through the sequence prefix into first", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    const { engine, onCommand } = setupWithCount(onCount);
+    press(window, key("Digit3"));
+    press(window, key("KeyG"));
+    expect(engine.state()).toBe("prefix");
+    expect(engine.count()).toBe("3");
+    press(window, key("KeyG"));
+    expect(onCommand).toHaveBeenCalledWith("first", expect.any(KeyboardEvent));
+    expect(engine.count()).toBe("3");
+  });
+
   it("clears on Escape", () => {
     const onCount = vi.fn<(count: string) => void>();
     setupWithCount(onCount);
     press(window, key("Digit5"));
     press(window, key("Escape"));
     expect(onCount).toHaveBeenLastCalledWith("");
+  });
+
+  it("resyncs onto an externally cleared count (no 22 after 2-motion)", () => {
+    // Prod wiring: onCount writes the store, getCount reads it back, and row
+    // motions clear the store directly. The next digit must start from the
+    // cleared store, not from the engine's stale tail.
+    let store = "";
+    const onCount = vi.fn<(count: string) => void>((next) => {
+      store = next;
+    });
+    const onCommand = vi.fn();
+    const engine = createVimEngine({
+      isEnabled: () => true,
+      isExcludedRoute: () => false,
+      onCommand,
+      onActiveKey: vi.fn(),
+      onCount,
+      getCount: () => store,
+    });
+    engine.attach();
+    open.push(engine);
+    press(window, key("Digit2"));
+    expect(store).toBe("2");
+    store = "";
+    press(window, key("Digit2"));
+    expect(onCount).toHaveBeenLastCalledWith("2");
+    expect(engine.count()).toBe("2");
+  });
+
+  it("buffers numpad digits when they report a digit key", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount);
+    press(window, key("Numpad3", { key: "3" }));
+    expect(onCount).toHaveBeenLastCalledWith("3");
+  });
+
+  it("ignores numpad keys reporting arrows (NumLock off)", () => {
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount);
+    press(window, key("Numpad3", { key: "ArrowDown" }));
+    press(window, key("Numpad2", { key: "ArrowDown", shiftKey: true }));
+    expect(onCount).not.toHaveBeenCalled();
   });
 
   it("survives a prefix mismatch into the buffer", () => {

@@ -5,6 +5,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { useCell } from "@/lib/state/signal.hook";
 import {
   clearUpscaleAll as clearAll,
@@ -35,6 +36,7 @@ export default function QueuePanel({
   const paused = useCell(upscalePaused);
   const { t } = useI18n();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const toggleTitle = useKeybindTitle(t("keybind.player.toggle.queue"), "player.toggle.queue");
 
   if (items.length === 0 && !scan) {
     return null;
@@ -60,6 +62,7 @@ export default function QueuePanel({
           data-testid="queue-toggle"
           aria-expanded={open}
           onClick={onToggle}
+          title={toggleTitle}
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left"
         >
           {open ? "▼" : "▶"} <ListVideo className="size-3" />

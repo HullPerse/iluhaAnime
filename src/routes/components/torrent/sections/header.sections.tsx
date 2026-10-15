@@ -23,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { useSetTorrentAlias } from "@/hooks/torrent/queries.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
@@ -65,6 +66,8 @@ export function TorrentHeader({
   dragHandle?: ReactNode;
 }) {
   const { t } = useI18n();
+  const pauseTitle = useKeybindTitle(t("torrent.pause"), "torrent.pause.resume");
+  const resumeTitle = useKeybindTitle(t("torrent.resume"), "torrent.pause.resume");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.name);
   const aliasMutation = useSetTorrentAlias();
@@ -192,7 +195,7 @@ export function TorrentHeader({
           <>
             {isLive ? (
               <Button
-                title={t("torrent.pause")}
+                title={pauseTitle}
                 aria-label={t("torrent.pause")}
                 size="icon"
                 className="size-6"
@@ -203,7 +206,7 @@ export function TorrentHeader({
               </Button>
             ) : isPaused ? (
               <Button
-                title={t("torrent.resume")}
+                title={resumeTitle}
                 aria-label={t("torrent.resume")}
                 size="icon"
                 className="size-6"

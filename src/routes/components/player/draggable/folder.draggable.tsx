@@ -8,6 +8,7 @@ import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/player/folders.c
 import { useBottomResize, resolveResizeMultiplier } from "@/hooks/folderResize.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindChord } from "@/hooks/keybindTitle.hook";
 import { maxFolderHeight } from "@/lib/player/folder.utils";
 import { summarizeTree } from "@/lib/player/tree.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
@@ -63,6 +64,11 @@ export function DraggableFolder({
   const preview = dragging && previewHeight !== null ? previewHeight : undefined;
   const listMaxHeight = preview ?? appliedSavedHeight;
   const listMinHeight = preview ?? appliedSavedHeight;
+  const shrinkChord = useKeybindChord("folder.shrink");
+  const growChord = useKeybindChord("folder.grow");
+  const resizeLabel = t("player.folder.resize");
+  const resizeTitle =
+    shrinkChord && growChord ? `[${shrinkChord} / ${growChord}]: ${resizeLabel}` : resizeLabel;
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const setRootRef = useCallback(
@@ -161,6 +167,7 @@ export function DraggableFolder({
         role="separator"
         aria-orientation="horizontal"
         aria-label={t("player.folder.resize")}
+        title={resizeTitle}
         data-vim-target="resize"
         aria-valuenow={listMaxHeight ? Math.round(listMaxHeight) : undefined}
         tabIndex={0}

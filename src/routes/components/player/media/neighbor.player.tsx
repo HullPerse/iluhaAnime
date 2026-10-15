@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
 import {
@@ -65,6 +66,10 @@ function NeighborFileButton({
   const [entry, setEntry] = useState<PlaylistEntry | null>(null);
   const [art, setArt] = useState<CardArt | null>(null);
   const requestRef = useRef(0);
+  const hintedTitle = useKeybindTitle(
+    title,
+    direction === "prev" ? "player.prevFile" : "player.nextFile"
+  );
 
   const close = () => {
     requestRef.current += 1;
@@ -122,7 +127,7 @@ function NeighborFileButton({
       <Button
         size="icon"
         className="size-6"
-        title={title}
+        title={hintedTitle}
         aria-label={ariaLabel}
         onClick={() => {
           close();

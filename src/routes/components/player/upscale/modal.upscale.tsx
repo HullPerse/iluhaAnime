@@ -8,6 +8,7 @@ import { GPU_LABELS, TABS } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
@@ -194,6 +195,7 @@ export default function UpscalePlayer({
   const isInQueue = items.some(
     (i) => i.filePath === filePath && (i.status === "queued" || i.status === "processing")
   );
+  const upscaleTitle = useKeybindTitle(t("player.upscale.title"), "tree.upscale");
 
   const { data: upscaleConfig } = useAppQuery("static", {
     queryKey: queryKeys.upscaleConfig(),
@@ -405,7 +407,7 @@ export default function UpscalePlayer({
           e.stopPropagation();
           setOpen(true);
         }}
-        title={isInQueue ? t("player.upscale.in.queue") : t("player.upscale.title")}
+        title={isInQueue ? t("player.upscale.in.queue") : upscaleTitle}
         disabled={!exists || isInQueue}
       >
         <Wand2 className="size-3" />

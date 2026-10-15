@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { ANNOTATION_BRUSH_SIZES, ANNOTATION_TEXT_SIZES } from "@/config/settings/screenshot.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ScreenshotTool } from "@/types/screenshot";
 
@@ -70,6 +71,8 @@ export default function ScreenshotToolbar({
   onClear,
 }: ScreenshotToolbarProps) {
   const { t } = useI18n();
+  const undoTitle = useKeybindTitle(t("screenshot.undo"), "screenshot.history.undo");
+  const redoTitle = useKeybindTitle(t("screenshot.redo"), "screenshot.history.redo");
   const sizes = tool === "text" ? ANNOTATION_TEXT_SIZES : ANNOTATION_BRUSH_SIZES;
   const activeSize = tool === "text" ? textSize : brushSize;
 
@@ -132,7 +135,7 @@ export default function ScreenshotToolbar({
         <Button
           size="icon"
           aria-label={t("screenshot.undo")}
-          title={t("screenshot.undo")}
+          title={undoTitle}
           disabled={!canUndo}
           onClick={onUndo}
         >
@@ -141,7 +144,7 @@ export default function ScreenshotToolbar({
         <Button
           size="icon"
           aria-label={t("screenshot.redo")}
-          title={t("screenshot.redo")}
+          title={redoTitle}
           disabled={!canRedo}
           onClick={onRedo}
         >

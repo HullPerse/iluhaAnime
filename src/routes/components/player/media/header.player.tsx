@@ -3,6 +3,7 @@ import { Maximize, Maximize2, Minimize, Minimize2, Settings, X } from "lucide-re
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 
 function startsOnControl(target: EventTarget | null) {
@@ -31,6 +32,10 @@ function PlayerHeader({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const fullscreenTitle = useKeybindTitle(
+    t("player.media.panel.fullscreen"),
+    "player.toggleFullscreen"
+  );
 
   return (
     <main
@@ -67,6 +72,7 @@ function PlayerHeader({
         <Button
           size="icon"
           className="size-4"
+          title={fullscreenTitle}
           aria-label={t("player.media.panel.fullscreen")}
           onClick={onToggleFullscreen}
         >

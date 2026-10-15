@@ -17,6 +17,7 @@ import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrent/searc
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
@@ -156,6 +157,10 @@ function TorrentRoute() {
   );
   const listRef = useRef<HTMLElement>(null);
   const { t } = useI18n();
+  const bulkRecheckErrorsTitle = useKeybindTitle(
+    t("torrent.bulk.recheck.errors"),
+    "torrent.recheck.errors"
+  );
   const hostStats = useHostStats(true);
   const lifecycleFilter = torrentSearch.lifecycle;
 
@@ -632,6 +637,7 @@ function TorrentRoute() {
           className="windows95-text flex items-center"
           disabled={bulkBusy || problemTorrents.length === 0}
           onClick={() => runBulk("recheck", problemTorrents)}
+          title={bulkRecheckErrorsTitle}
         >
           {t("torrent.bulk.recheck.errors")}
         </Button>

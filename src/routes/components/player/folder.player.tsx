@@ -24,6 +24,7 @@ import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
 import { mediaFileExtension, parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
@@ -194,6 +195,9 @@ function FolderView({
   const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
   const parseTitles = useCell(settingsAtoms.parseTitlesPlayer);
   const { t } = useI18n();
+  const builtinTitle = useKeybindTitle(t("player.folder.open.iluha.player"), "tree.builtin");
+  const externalTitle = useKeybindTitle(t("player.folder.open.media.player"), "tree.external");
+  const searchTitle = useKeybindTitle(t("player.folder.search.anilist"), "tree.search");
 
   const items = useCell(upscaleItems);
 
@@ -686,7 +690,7 @@ function FolderView({
                       e.stopPropagation();
                       if (file.path) openInAppPlayer(file.path);
                     }}
-                    title={t("player.folder.open.iluha.player")}
+                    title={builtinTitle}
                     aria-label={t("player.folder.open.iluha.player")}
                   >
                     <Play className="size-3" />
@@ -699,11 +703,7 @@ function FolderView({
                       e.stopPropagation();
                       if (file.path) openFileInPlayer(file.path);
                     }}
-                    title={
-                      disabled
-                        ? t("player.folder.track.disabled")
-                        : t("player.folder.open.media.player")
-                    }
+                    title={disabled ? t("player.folder.track.disabled") : externalTitle}
                     data-file-action="external"
                   >
                     <Monitor className="size-3" />
@@ -716,7 +716,7 @@ function FolderView({
                       e.stopPropagation();
                       setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
                     }}
-                    title={t("player.folder.search.anilist")}
+                    title={searchTitle}
                     aria-label={t("player.folder.search.anilist")}
                     data-file-action="search"
                   >

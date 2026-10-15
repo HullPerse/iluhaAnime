@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import type { TorrentSelectionBarProps } from "@/types/torrent";
 
 export function TorrentSelectionBar({
@@ -15,6 +16,9 @@ export function TorrentSelectionBar({
   onClear,
 }: TorrentSelectionBarProps) {
   const { t } = useI18n();
+  const bulkPauseTitle = useKeybindTitle(t("torrent.bulk.pause"), "torrent.pause.resume");
+  const bulkResumeTitle = useKeybindTitle(t("torrent.bulk.resume"), "torrent.pause.resume");
+  const bulkRecheckTitle = useKeybindTitle(t("torrent.bulk.recheck"), "torrent.recheck.errors");
   return (
     <section
       className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5"
@@ -22,13 +26,28 @@ export function TorrentSelectionBar({
       aria-live="polite"
     >
       <span className="windows95-text px-1 text-xs">{t("torrent.bulk.selected", { count })}</span>
-      <Button className="windows95-text flex items-center" disabled={busy} onClick={onPause}>
+      <Button
+        className="windows95-text flex items-center"
+        disabled={busy}
+        onClick={onPause}
+        title={bulkPauseTitle}
+      >
         {t("torrent.bulk.pause")}
       </Button>
-      <Button className="windows95-text flex items-center" disabled={busy} onClick={onResume}>
+      <Button
+        className="windows95-text flex items-center"
+        disabled={busy}
+        onClick={onResume}
+        title={bulkResumeTitle}
+      >
         {t("torrent.bulk.resume")}
       </Button>
-      <Button className="windows95-text flex items-center" disabled={busy} onClick={onRecheck}>
+      <Button
+        className="windows95-text flex items-center"
+        disabled={busy}
+        onClick={onRecheck}
+        title={bulkRecheckTitle}
+      >
         {t("torrent.bulk.recheck")}
       </Button>
       <Button

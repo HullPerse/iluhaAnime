@@ -3,6 +3,7 @@ import { Monitor, Play, Search } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { joinMediaPath, openFileInPlayer } from "@/lib/utils/media.utils";
@@ -40,6 +41,9 @@ export function PlayerFileActions({
   onSearch?: () => void;
 }) {
   const { t } = useI18n();
+  const builtinTitle = useKeybindTitle(t("player.folder.builtin.player"), "tree.builtin");
+  const externalTitle = useKeybindTitle(t("player.folder.open.media.player"), "tree.external");
+  const searchTitle = useKeybindTitle(t("player.folder.search.anilist"), "tree.search");
   const upscaledExtra = extraFiles?.find((e) => e.name === file.displayName);
   const resolvedForQueue = fullPath ?? (path ? joinMediaPath(path, file.name) : undefined);
   const queueStatus = resolvedForQueue ? queueMap.get(resolvedForQueue) : undefined;
@@ -74,7 +78,7 @@ export function PlayerFileActions({
           </span>
           {(onPlay || onOpenInApp) && (
             <Button
-              title={t("player.folder.builtin.player")}
+              title={builtinTitle}
               size="icon"
               className="size-4"
               data-file-action="builtin"
@@ -89,7 +93,7 @@ export function PlayerFileActions({
             </Button>
           )}
           <Button
-            title={t("player.folder.open.media.player")}
+            title={externalTitle}
             size="icon"
             className="size-4"
             data-file-action="external"
@@ -103,7 +107,7 @@ export function PlayerFileActions({
           </Button>
           {onSearch && (
             <Button
-              title={t("player.folder.search.anilist")}
+              title={searchTitle}
               aria-label={t("player.folder.search.anilist")}
               size="icon"
               className="size-4"
@@ -133,7 +137,7 @@ export function PlayerFileActions({
           )}
           {path && (onPlay || onOpenInApp) && (
             <Button
-              title={t("player.folder.builtin.player")}
+              title={builtinTitle}
               size="icon"
               className="size-4"
               data-file-action="builtin"
@@ -149,7 +153,7 @@ export function PlayerFileActions({
           )}
           {path && (
             <Button
-              title={t("player.folder.open.media.player")}
+              title={externalTitle}
               size="icon"
               className="size-4"
               data-file-action="external"
@@ -166,7 +170,7 @@ export function PlayerFileActions({
           )}
           {path && onSearch && (
             <Button
-              title={t("player.folder.search.anilist")}
+              title={searchTitle}
               aria-label={t("player.folder.search.anilist")}
               size="icon"
               className="size-4"

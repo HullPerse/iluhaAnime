@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
 import {
   applyPageFindHighlights,
@@ -71,6 +72,8 @@ function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
   );
 
   const toggleClass = (active: boolean): string => (active ? "bg-secondary text-title-text" : "");
+  const prevTitle = useKeybindTitle(t("findbar.prev"), "find.prev");
+  const nextTitle = useKeybindTitle(t("findbar.next"), "find.next");
 
   return (
     <section
@@ -103,7 +106,7 @@ function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
       <Button
         size="icon"
         className="h-5 w-5"
-        title={t("findbar.prev")}
+        title={prevTitle}
         aria-label={t("findbar.prev")}
         onClick={() => step(-1)}
       >
@@ -112,7 +115,7 @@ function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
       <Button
         size="icon"
         className="h-5 w-5"
-        title={t("findbar.next")}
+        title={nextTitle}
         aria-label={t("findbar.next")}
         onClick={() => step(1)}
       >

@@ -1253,5 +1253,26 @@
     "res": "1080p",
     "subVariant": "Multiple Subtitle",
     "x": "erai subtitle lang list with lang-region pairs"
+  },
+  {
+    "id": "F131",
+    "t": "Yani Neko",
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "NF",
+    "codec": "AVC",
+    "res": "1080p",
+    "audio": "AAC"
+  },
+  {
+    "id": "F132",
+    "t": "Yani Neko",
+    "e": 2,
+    "src": "WEB-DL",
+    "service": "NF",
+    "codec": "AVC",
+    "res": "1080p",
+    "audio": "AAC",
+    "x": "NFX alias canonicalized to NF"
   }
 ]

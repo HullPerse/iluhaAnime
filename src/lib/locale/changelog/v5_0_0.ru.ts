@@ -231,6 +231,8 @@ const changelog500 = {
     "Поисковые названия больше не дублируют сезон, уже записанный римскими цифрами: Overlord IV остается Overlord IV вместо довеска 4th Season",
   "changelog.5_0_0.fixed.player.parser_subtitle_langs":
     "Теги языков субтитров вроде POR-BR и SPA-LA больше не утекают в названия аниме",
+  "changelog.5_0_0.fixed.player.parser_service_nf":
+    "Теги Netflix вроде NF и NFX больше не утекают в названия аниме: они ложатся на стриминговый сервис",
   "changelog.5_0_0.fixed.search.cover_flash":
     "Удаленные обложки больше не показывают заглушку, пока качаются байты; картинка-заглушка появляется только когда обложку не удалось получить вовсе",
   "changelog.5_0_0.fixed.collection.import_lock":

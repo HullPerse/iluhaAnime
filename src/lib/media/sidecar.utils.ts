@@ -1,5 +1,5 @@
 import { TRACK_STUDIOS } from "@/config/media/tokens.config";
-import { canonicalLang, classifyMediaTokens } from "@/lib/media/classify.utils";
+import { canonicalLang, canonicalService, classifyMediaTokens } from "@/lib/media/classify.utils";
 import { tokenizeMediaName } from "@/lib/media/tokenize.utils";
 import type { MediaSidecar, MediaSidecarKind } from "@/types/media";
 
@@ -28,7 +28,7 @@ export function parseSidecarSuffix(
   }
   for (const token of classifyMediaTokens(tokenizeMediaName(suffix))) {
     if (token.kind === "studio") sidecar.studio = token.value;
-    else if (token.kind === "service") sidecar.origin = token.value;
+    else if (token.kind === "service") sidecar.origin = canonicalService(token.value) ?? token.value;
     else if (token.kind === "dub") sidecar.dub = true;
     else if (token.kind === "lang") {
       const lang = canonicalLang(token.value);

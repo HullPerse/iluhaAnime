@@ -901,5 +901,19 @@
     "file": "[Erai-raws] Sousou no Frieren - 27 [1080p][Multiple Subtitle] [ENG][POR-BR][SPA-LA][SPA][ARA][FRE][GER][ITA][RUS]",
     "skeleton": "manual",
     "count": 1
+  },
+  {
+    "id": "F131",
+    "dir": "Anime",
+    "file": "Yani Neko - 01 [WEB-DL NF 1080p AVC AAC].mkv",
+    "skeleton": "Yani Neko - N [T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F132",
+    "dir": "Anime",
+    "file": "Yani Neko - 02 [WEB-DL NFX 1080p AVC AAC].mkv",
+    "skeleton": "Yani Neko - N [T].mkv",
+    "count": 1
   }
 ]

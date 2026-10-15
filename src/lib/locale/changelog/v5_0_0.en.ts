@@ -231,6 +231,8 @@ const changelog500 = {
     "Search titles no longer repeat a season already written in roman numerals: Overlord IV stays Overlord IV instead of gaining 4th Season",
   "changelog.5_0_0.fixed.player.parser_subtitle_langs":
     "Subtitle language tags like POR-BR and SPA-LA no longer leak into anime titles",
+  "changelog.5_0_0.fixed.player.parser_service_nf":
+    "Netflix tags like NF and NFX no longer leak into anime titles: they land on the streaming service instead",
   "changelog.5_0_0.fixed.search.cover_flash":
     "Remote covers no longer flash the placeholder file while the bytes download; the fallback picture appears only when a cover cannot be resolved at all",
   "changelog.5_0_0.fixed.collection.import_lock":

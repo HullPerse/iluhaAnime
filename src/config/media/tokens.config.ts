@@ -47,7 +47,12 @@ export const TRACK_STUDIOS: readonly string[] = [
   "YSS",
 ];
 
-export const STREAM_SERVICES: readonly string[] = ["CR", "AMZN", "DSNP", "HMAX", "KP"];
+export const STREAM_SERVICES: readonly string[] = ["CR", "AMZN", "DSNP", "HMAX", "KP", "NF"];
+
+export const SERVICE_ALIASES: Readonly<Record<string, string>> = {
+  nfx: "NF",
+  netflix: "NF",
+};
 
 export const SOURCES: readonly string[] = [
   "BDRip",

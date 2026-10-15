@@ -8,6 +8,7 @@ import {
   OF_TOTAL_RX,
   RELEASE_GROUPS,
   SEASON_EPISODE_RX,
+  SERVICE_ALIASES,
   STREAM_SERVICES,
   SOURCES,
   SUB_FORMATS,
@@ -30,7 +31,7 @@ function buildSet(values: readonly string[]): Set<string> {
 
 const GROUP_SET = buildSet(RELEASE_GROUPS);
 const STUDIO_SET = buildSet(TRACK_STUDIOS);
-const SERVICE_SET = buildSet(STREAM_SERVICES);
+const SERVICE_SET = buildSet([...STREAM_SERVICES, ...Object.keys(SERVICE_ALIASES)]);
 const SOURCE_SET = buildSet(SOURCES);
 const CODEC_SET = buildSet(VIDEO_CODECS);
 const AUDIO_SET = buildSet(AUDIO_TERMS);
@@ -186,6 +187,16 @@ function isLangRegionPair(lower: string): boolean {
   return canonicalLang(match[1]) !== null;
 }
 
+export function canonicalService(value: string): string | null {
+  const lower = value.toLowerCase();
+  for (const code of STREAM_SERVICES) {
+    if (code.toLowerCase() === lower) return code;
+  }
+  const aliased = SERVICE_ALIASES[lower];
+  if (aliased) return aliased;
+  return null;
+}
+
 export function canonicalLang(value: string): string | null {
   const cleaned = value.replace(/^\d+x/i, "");
   const aliased = LANG_ALIASES[cleaned] ?? LANG_ALIASES[cleaned.toLowerCase()];
@@ -271,7 +282,7 @@ const TECH_RULES: TechRule[] = [
     apply: firstWins(
       (bag) => bag.service,
       (bag, value) => {
-        bag.service = value;
+        bag.service = canonicalService(value) ?? value;
       }
     ),
   },

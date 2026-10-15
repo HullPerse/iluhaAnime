@@ -588,6 +588,52 @@ describe("webview proxy preference", () => {
   });
 });
 
+describe("notification popup mode v51 migration", () => {
+  it("maps a legacy enabled flag to both channels", () => {
+    const result = settings.migrateSettingsData(
+      { language: "en", notificationsEnabled: true },
+      50
+    ) as Record<string, unknown>;
+    expect(result.notificationPopups).toBe("both");
+    expect("notificationsEnabled" in result).toBe(false);
+  });
+
+  it("maps a legacy disabled flag to off", () => {
+    const result = settings.migrateSettingsData(
+      { language: "en", notificationsEnabled: false },
+      50
+    ) as Record<string, unknown>;
+    expect(result.notificationPopups).toBe("off");
+    expect("notificationsEnabled" in result).toBe(false);
+  });
+
+  it("defaults to off when no legacy flag exists", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 50).notificationPopups).toBe("off");
+  });
+
+  it("keeps an explicit popup mode", () => {
+    expect(
+      settings.migrateSettingsData({ language: "en", notificationPopups: "inapp" }, 50)
+        .notificationPopups
+    ).toBe("inapp");
+  });
+
+  it("repairs an unknown popup mode to the default", () => {
+    const result = settings.migrateSettingsData(
+      { language: "en", notificationPopups: "bogus" },
+      50
+    );
+    expect(result.notificationPopups).toBe("off");
+  });
+
+  it("round-trips through the settings store", () => {
+    settings.patchSettings({ notificationPopups: "system" });
+    expect(settings.settingsAtoms.notificationPopups.get()).toBe("system");
+    settings.patchSettings({ notificationPopups: "both" });
+    expect(settings.settingsAtoms.notificationPopups.get()).toBe("both");
+  });
+});
+
 describe("search source order v43 migration", () => {
   it("lists rutracker, nekobt, erai-raws first", async () => {
     const { SOURCE_INFOS } = await import("@/config/search/sources.config");

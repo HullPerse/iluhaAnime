@@ -93,6 +93,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.app.focus_main", "app"),
       entry("changelog.5_0_0.added.app.esc_blur", "app"),
       entry("changelog.5_0_0.added.app.page_find", "app"),
+      entry("changelog.5_0_0.added.app.inapp_toasts", "app"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -160,6 +161,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.player.panel_slot", "player"),
       entry("changelog.5_0_0.changed.app.updater_defer", "app"),
       entry("changelog.5_0_0.changed.app.button_loading", "app"),
+      entry("changelog.5_0_0.changed.app.popups_off_default", "app"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

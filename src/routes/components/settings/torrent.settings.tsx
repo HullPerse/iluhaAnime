@@ -23,7 +23,8 @@ import { NetworkNumberRow } from "./networkNumberRow.settings";
 
 export default function SettingsTorrent() {
   const limits = useCell(settingsAtoms.limits);
-  const notificationsEnabled = useCell(settingsAtoms.notificationsEnabled);
+  const notificationPopups = useCell(settingsAtoms.notificationPopups);
+  const popupsOff = notificationPopups === "off";
   const notifyOnComplete = useCell(settingsAtoms.notifyOnComplete);
   const notifyOnError = useCell(settingsAtoms.notifyOnError);
   const fastresumeEnabled = useCell(settingsAtoms.fastresumeEnabled);
@@ -292,18 +293,10 @@ export default function SettingsTorrent() {
           <span className="text-title-text font-bold">{t("settings.torrent.notifications")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-            <Checkbox
-              checked={notificationsEnabled}
-              onChange={(v) => patchSettings({ notificationsEnabled: v })}
-            />
-            <span>{t("settings.torrent.enable.notifications")}</span>
-          </label>
-
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 pl-4 select-none">
             <Checkbox
               checked={notifyOnComplete}
-              disabled={!notificationsEnabled}
+              disabled={popupsOff}
               onChange={(v) => patchSettings({ notifyOnComplete: v })}
             />
             <span>{t("settings.torrent.on.complete")}</span>
@@ -312,7 +305,7 @@ export default function SettingsTorrent() {
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 pl-4 select-none">
             <Checkbox
               checked={notifyOnError}
-              disabled={!notificationsEnabled}
+              disabled={popupsOff}
               onChange={(v) => patchSettings({ notifyOnError: v })}
             />
             <span>{t("settings.torrent.on.error")}</span>

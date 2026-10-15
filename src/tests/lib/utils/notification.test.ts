@@ -161,6 +161,71 @@ describe("formatRelativeTime", () => {
   });
 });
 
+describe("popup mode gating for system toasts", () => {
+  beforeEach(() => {
+    mockInvoke.mockReset();
+  });
+
+  async function shownSystemToasts(): Promise<Array<{ title: string }>> {
+    await vi.waitFor(() => {
+      expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(true);
+    });
+    return mockInvoke.mock.calls
+      .filter((call) => call[0] === "show_toast")
+      .map((call) => (call[1] as { title: string }));
+  }
+
+  it("sends a system toast when popups are system-only", async () => {
+    patchSettings({ notificationPopups: "system" });
+    addNotification("Hello", "info", "World");
+    const toasts = await shownSystemToasts();
+    expect(toasts.map((toast) => toast.title)).toContain("Hello");
+  });
+
+  it("sends a system toast when popups cover both channels", async () => {
+    patchSettings({ notificationPopups: "both" });
+    addNotification("Hello", "info", "World");
+    const toasts = await shownSystemToasts();
+    expect(toasts.map((toast) => toast.title)).toContain("Hello");
+  });
+
+  it("skips the system toast for in-app-only popups", async () => {
+    patchSettings({ notificationPopups: "inapp" });
+    addNotification("Hello", "info", "World");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+  });
+
+  it("skips the system toast when popups are off", async () => {
+    patchSettings({ notificationPopups: "off" });
+    addNotification("Hello", "info", "World");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+  });
+
+  it("shows repeat clicks as new toasts when each carries unique content", () => {
+    patchSettings({ notificationPopups: "both" });
+    const first = addNotification("Preview", "info", "Body #1", "toast-preview:1");
+    const second = addNotification("Preview", "info", "Body #2", "toast-preview:2");
+    expect(first).toBeGreaterThan(0);
+    expect(second).toBeGreaterThan(0);
+    expect(second).not.toBe(first);
+    expect(notificationAtoms.items.get()).toHaveLength(2);
+  });
+
+  it("honors a per-notification system opt-out", async () => {
+    patchSettings({ notificationPopups: "both" });
+    addNotification("Hello", "info", "World", undefined, { system: false });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
+  });
+});
+
 describe("progress notifications", () => {
   beforeEach(() => {
     notificationAtoms.dismissed.set([]);

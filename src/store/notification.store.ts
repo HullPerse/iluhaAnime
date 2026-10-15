@@ -190,11 +190,12 @@ export function createNotificationSignalStore(
     target: NotificationTarget | null | undefined,
     system: boolean | undefined
   ): void => {
-    if ((system ?? true) && settingsAtoms.notificationsEnabled.get()) {
-      systemApi
-        .showToast(title, message, target ?? null)
-        .catch((error) => reportBackgroundError("notification.system-toast", error));
-    }
+    if (!(system ?? true)) return;
+    const mode = settingsAtoms.notificationPopups.get();
+    if (mode !== "system" && mode !== "both") return;
+    systemApi
+      .showToast(title, message, target ?? null)
+      .catch((error) => reportBackgroundError("notification.system-toast", error));
   };
 
   const handle: NotificationSignalStore = {

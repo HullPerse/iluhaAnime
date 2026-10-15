@@ -188,7 +188,17 @@ const FIND_GROUPS: readonly FindGroup[] = [
     tab: "notifications",
     section: "system",
     titleKey: "settings.notifications.system",
-    keys: [],
+    keys: [
+      "settings.notifications.popups",
+      "settings.notifications.popups.off",
+      "settings.notifications.popups.system",
+      "settings.notifications.popups.inapp",
+      "settings.notifications.popups.both",
+      "settings.notifications.popups.preview",
+      "settings.notifications.popups.preview.hint",
+      "settings.notifications.popups.preview.title",
+      "settings.notifications.popups.preview.body",
+    ],
   },
   {
     tab: "notifications",
@@ -330,7 +340,6 @@ const FIND_GROUPS: readonly FindGroup[] = [
     section: "notifications",
     titleKey: "settings.torrent.notifications",
     keys: [
-      "settings.torrent.enable.notifications",
       "settings.torrent.on.complete",
       "settings.torrent.on.error",
     ],

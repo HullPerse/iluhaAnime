@@ -85,7 +85,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   listenPort: 0,
   modalAnimation: false,
   modalBackdropOpacity: 50,
-  notificationsEnabled: true,
+  notificationPopups: "off",
   notifyOnComplete: true,
   notifyOnError: true,
   parseTitlesPlayer: false,

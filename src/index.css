@@ -684,12 +684,10 @@ select,
   animation: ui-loading-spin 1s linear infinite !important;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .no-animations .search-dock-motion {
-    transition-property: top, translate, grid-template-rows, opacity !important;
-    transition-duration: 200ms !important;
-    transition-timing-function: ease-out !important;
-  }
+.no-animations .search-dock-motion {
+  transition-property: top, translate, grid-template-rows, opacity !important;
+  transition-duration: 200ms !important;
+  transition-timing-function: ease-out !important;
 }
 
 html[data-theme-overlay="grid"]:not([data-yorha-scanlines="off"]) body::after {
@@ -833,19 +831,4 @@ html[data-theme="yorha"] .yorha-grid {
 .win7-static > div {
   height: 100%;
   background-color: #ffffff;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .xp-block {
-    animation: none;
-  }
-  .target-flash {
-    animation: none;
-  }
-  .win7-motion {
-    display: none;
-  }
-  .win7-orb {
-    animation: none;
-  }
 }

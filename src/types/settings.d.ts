@@ -23,7 +23,7 @@ export interface SettingsStore {
   limits: SpeedLimits;
   speedSchedule: SpeedSchedule;
   themeSchedule: ThemeSchedule;
-  notificationsEnabled: boolean;
+  notificationPopups: NotificationPopupMode;
   notifyOnComplete: boolean;
   notifyOnError: boolean;
   defaultSearchSource: string;
@@ -185,6 +185,8 @@ export interface SessionConfigPayload {
 export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
 
 export type TorrentCoverMode = "off" | "pages" | "full";
+
+export type NotificationPopupMode = "off" | "system" | "inapp" | "both";
 
 export type WatcherDelay = "fast" | "calm";
 

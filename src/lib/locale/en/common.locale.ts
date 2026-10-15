@@ -163,6 +163,7 @@ const common = {
   "notification.copy": "Copy notification",
   "notification.count": "Notifications ({{count}})",
   "notification.count.one": "Notification ({{count}})",
+  "notification.countdown.seconds": "{{s}} sec",
   "notification.dismiss": "Dismiss notification",
   "notification.downloads.empty": "No active downloads",
   "notification.empty": "No notifications",

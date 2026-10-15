@@ -490,7 +490,8 @@ export function useApp() {
 
   useEffect(() => {
     const sync = () => {
-      const notificationsEnabled = settingsAtoms.notificationsEnabled.get();
+      const popupMode = settingsAtoms.notificationPopups.get();
+      const notificationsEnabled = popupMode !== "off";
       const notifyOnComplete = settingsAtoms.notifyOnComplete.get();
       const notifyOnError = settingsAtoms.notifyOnError.get();
       const notifyTorrentHealth = settingsAtoms.notifyTorrentHealth.get();
@@ -502,18 +503,18 @@ export function useApp() {
           notifyTorrentHealth
         )
         .catch((error) => reportBackgroundError("notification-settings.sync", error));
-      return { notificationsEnabled, notifyOnComplete, notifyOnError, notifyTorrentHealth };
+      return { popupMode, notifyOnComplete, notifyOnError, notifyTorrentHealth };
     };
     let previous = sync();
     return subscribeSettings(() => {
       const current = {
-        notificationsEnabled: settingsAtoms.notificationsEnabled.get(),
+        popupMode: settingsAtoms.notificationPopups.get(),
         notifyOnComplete: settingsAtoms.notifyOnComplete.get(),
         notifyOnError: settingsAtoms.notifyOnError.get(),
         notifyTorrentHealth: settingsAtoms.notifyTorrentHealth.get(),
       };
       if (
-        current.notificationsEnabled !== previous.notificationsEnabled ||
+        current.popupMode !== previous.popupMode ||
         current.notifyOnComplete !== previous.notifyOnComplete ||
         current.notifyOnError !== previous.notifyOnError ||
         current.notifyTorrentHealth !== previous.notifyTorrentHealth

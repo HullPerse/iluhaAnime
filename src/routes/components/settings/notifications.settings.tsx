@@ -1,18 +1,24 @@
 import { RefreshCw } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
-import { POLL_INTERVALS_MIN } from "@/config/settings/notifications.config";
+import {
+  NOTIFICATION_POPUP_MODES,
+  NOTIFICATION_POPUP_KEYS,
+  POLL_INTERVALS_MIN,
+} from "@/config/settings/notifications.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { ignore } from "@/lib/utils/promise.utils";
 import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/anilist.store";
+import { addNotification } from "@/store/notification.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import type { NotificationPopupMode } from "@/types/settings";
 
 function NotifyRow({
   label,
@@ -35,7 +41,9 @@ function NotifyRow({
 
 export default function SettingsNotifications() {
   const { t } = useI18n();
-  const notificationsEnabled = useCell(settingsAtoms.notificationsEnabled);
+  const notificationPopups = useCell(settingsAtoms.notificationPopups);
+  const inAppPreview = notificationPopups === "inapp" || notificationPopups === "both";
+  const previewCount = useRef(0);
   const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
   const notifyNewEpisodes = useCell(settingsAtoms.notifyNewEpisodes);
   const notifyStatusChanges = useCell(settingsAtoms.notifyStatusChanges);
@@ -84,12 +92,39 @@ export default function SettingsNotifications() {
         <div className="ui-titlebar">
           <span className="text-title-text font-bold">{t("settings.notifications.system")}</span>
         </div>
-        <div className="flex flex-col gap-0.5 p-2">
-          <NotifyRow
-            label={t("common.on")}
-            checked={notificationsEnabled}
-            onChange={(v) => patchSettings({ notificationsEnabled: v })}
-          />
+        <div className="flex flex-col gap-1 p-2">
+          <label className="windows95-text text-text flex items-center gap-2 text-xs font-bold">
+            <span className="shrink-0">{t("settings.notifications.popups")}</span>
+            <Select
+              value={notificationPopups}
+              onChange={(v) => {
+                if ((NOTIFICATION_POPUP_MODES as readonly string[]).includes(v)) {
+                  patchSettings({ notificationPopups: v as NotificationPopupMode });
+                }
+              }}
+              options={NOTIFICATION_POPUP_MODES.map((mode) => ({
+                value: mode,
+                label: t(NOTIFICATION_POPUP_KEYS[mode]),
+              }))}
+              className="w-48"
+            />
+            <Button
+              className="h-6 px-1.5 text-xs"
+              disabled={!inAppPreview}
+              title={t("settings.notifications.popups.preview.hint")}
+              onClick={() => {
+                previewCount.current += 1;
+                addNotification(
+                  t("settings.notifications.popups.preview.title"),
+                  "info",
+                  `${t("settings.notifications.popups.preview.body")} #${previewCount.current}`,
+                  `toast-preview:${previewCount.current}`
+                );
+              }}
+            >
+              {t("settings.notifications.popups.preview")}
+            </Button>
+          </label>
         </div>
       </section>
 

@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 50;
+export const SETTINGS_SCHEMA_VERSION = 51;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -220,6 +220,15 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       }
     },
   },
+  {
+    from: 51,
+    migrate: (state) => {
+      if (state.notificationPopups === undefined) {
+        state.notificationPopups = state.notificationsEnabled === true ? "both" : "off";
+      }
+      delete state.notificationsEnabled;
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -228,6 +237,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   progressStyle: toValidator(z.enum(["blocks", "solid"])),
   screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
   torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),
+  notificationPopups: toValidator(z.enum(["off", "system", "inapp", "both"])),
   anilistDisplayMode: toValidator(z.enum(["scroll", "pagination"])),
   watcherDelay: toValidator(z.enum(["fast", "calm"])),
   scanThreads: (value) =>

@@ -166,6 +166,7 @@ const common = {
   "notification.count.one": "Уведомление ({{count}})",
   "notification.count.few": "Уведомления ({{count}})",
   "notification.count.many": "Уведомлений ({{count}})",
+  "notification.countdown.seconds": "{{s}} сек",
   "notification.dismiss": "Скрыть уведомление",
   "notification.downloads.empty": "Нет активных загрузок",
   "notification.empty": "Нет уведомлений",

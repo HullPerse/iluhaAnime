@@ -34,6 +34,7 @@ import type { TabId } from "@/types/settings";
 import PageFindBar from "./components/shared/keyboard/findBar.keyboard.component";
 import KeyboardHintOverlay from "./components/shared/keyboard/overlay.keyboard.component";
 import NotificationTray from "./components/shared/notification/tray.notification";
+import NotificationToasts from "./components/shared/notification/toasts.notification";
 import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
 import StatusBar from "./components/shared/status.component";
 import Tabs from "./components/shared/tabs.component";
@@ -153,6 +154,7 @@ export default function App() {
       {screenshot && <ScreenshotModal capture={screenshot} onClose={closeScreenshot} />}
       <KeyboardHintOverlay />
       <PageFindBar />
+      <NotificationToasts />
       <section className="relative z-10 flex h-full flex-col">
         <div className="ui-panel flex h-full flex-col">
           {customTitleBarEnabled && <TitleBar title="iluhaAnime" />}

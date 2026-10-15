@@ -343,6 +343,10 @@ const changelog500 = {
     "Chapter jumps on Ctrl+Left and Ctrl+Right: the seek buttons move between chapters and step plainly otherwise, listed in Settings Keybinds",
   "changelog.5_0_0.fixed.app.vim_combobox":
     "Vim mode no longer hijacks the searchable select: typing in the combobox search always types text, first Escape moves focus to the options for arrow navigation, second Escape closes the popup",
+  "changelog.5_0_0.added.app.inapp_toasts":
+    "In-app corner toasts: fresh notifications arrive in the bottom-right corner as small windows with a countdown bar and seconds readout, click opens the target, and the popup channel (off, system, in-app, or both) is picked in Settings Notifications",
+  "changelog.5_0_0.changed.app.popups_off_default":
+    "Notification popups are off by default: everything still lands in the notification tray, turn on the channel you want in Settings Notifications",
 } as const;
 
 export default changelog500;

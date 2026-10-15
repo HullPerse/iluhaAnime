@@ -14,6 +14,7 @@ import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { addNotification } from "@/store/notification.store";
 import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent";
+import type { TorrentHash } from "@/types/types";
 
 export default function CreateTorrentModal({ open, onClose, onCreated }: CreateTorrentProps) {
   const { t } = useI18n();
@@ -50,7 +51,11 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
     }
     setCreated(result);
     onCreated(result);
-    addNotification(t("torrent.create.title"), "success", t("torrent.create.done", { name: result.name }));
+    addNotification(
+      t("torrent.create.title"),
+      "success",
+      t("torrent.create.done", { name: result.name })
+    );
   };
 
   const saveTorrent = async () => {
@@ -66,7 +71,7 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
 
   const copyLink = async () => {
     if (!created) return;
-    const [, error] = await attempt(writeText(buildTorrentLink(created.info_hash)));
+    const [, error] = await attempt(writeText(buildTorrentLink(created.info_hash as TorrentHash)));
     if (error) showError(t("torrent.copy.link"), error.message);
   };
 
@@ -99,7 +104,11 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
           <span className="windows95-text">{t("torrent.create.hash")}</span>
           <Input className="w-full" value={created.info_hash} readOnly />
           <span className="windows95-text">{t("torrent.create.link")}</span>
-          <Input className="w-full" value={buildTorrentLink(created.info_hash)} readOnly />
+          <Input
+            className="w-full"
+            value={buildTorrentLink(created.info_hash as TorrentHash)}
+            readOnly
+          />
           <div className="mt-2 flex flex-wrap justify-end gap-1">
             <Button variant="secondary" title={t("torrent.copy.link")} onClick={copyLink}>
               <Link />

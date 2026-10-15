@@ -10,6 +10,7 @@ import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { ignore } from "@/lib/utils/promise.utils";
+import { assertNever } from "@/lib/utils/type.utils";
 import { addSearchQuery } from "@/store/search.store";
 import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
 import type { AniListFilters, AniMedia, AniUser, SearchMode } from "@/types/anilist";
@@ -59,6 +60,9 @@ async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia
     case "genre": {
       return anilistApi.searchByGenre(request.genre);
     }
+    default: {
+      return assertNever(request);
+    }
   }
 }
 
@@ -96,7 +100,7 @@ export function useAnilistSearch() {
 
   const query = useAppQuery("live", {
     queryKey: queryKeys.anilistSearch(request),
-    queryFn: () => runSearchRequest(request as AniListSearchRequest),
+    queryFn: () => runSearchRequest(request!),
     enabled: request !== null && !isGlobalRequest,
   });
 
@@ -104,13 +108,12 @@ export function useAnilistSearch() {
     queryKey: queryKeys.anilistSearch(request),
     queryFn: ({ pageParam }) =>
       anilistApi.filterPage({
-        ...((request as Extract<AniListSearchRequest, { kind: "global" }>)
-          .params as AnilistFilterPageParams),
+        ...(request as { kind: "global"; params: AnilistFilterPageParams }).params,
         page: pageParam as number,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages, lastPageParam) => {
-      const params = (request as Extract<AniListSearchRequest, { kind: "global" }>).params;
+      const params = (request as { kind: "global"; params: AnilistFilterPageParams }).params;
       const perPage =
         typeof params.perPage === "number" && params.perPage > 0
           ? params.perPage

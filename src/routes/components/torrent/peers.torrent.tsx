@@ -15,6 +15,7 @@ import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
 import { showError } from "@/lib/utils/notification.utils";
+import type { TorrentHash } from "@/types/types";
 
 import { TorrentTrackersBlock } from "./sections/trackers.sections";
 
@@ -64,7 +65,7 @@ export function TorrentPeersModal({
       value: `magnet:?xt=urn:btih:${infoHash}`,
     },
     { icon: Copy, label: t("torrent.copy.infohash"), value: infoHash },
-    { icon: Link, label: t("torrent.copy.link"), value: buildTorrentLink(infoHash) },
+    { icon: Link, label: t("torrent.copy.link"), value: buildTorrentLink(infoHash as TorrentHash) },
   ];
   return (
     <Modal header={t("torrent.peers.title")} onClose={onClose} className="w-2xl">

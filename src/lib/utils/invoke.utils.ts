@@ -12,8 +12,8 @@ export type { CommandName };
 export async function invokeTyped<T>(
   command: CommandName,
   args?: Record<string, unknown>
-): Promise<T> {
-  return invoke<T>(command, args);
+): Promise<Awaited<T>> {
+  return invoke<Awaited<T>>(command, args);
 }
 
 /**

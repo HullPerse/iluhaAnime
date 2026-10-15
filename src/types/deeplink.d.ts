@@ -1,8 +1,9 @@
 import type { CollectionExternalIds, CollectionStatusDef, CollectionType } from "./collection";
+import type { AniListId } from "./types";
 
 export interface AnimeDeepLink {
   readonly source: "anilist";
-  readonly id: number;
+  readonly id: AniListId;
 }
 
 export interface CollectionShareItem {

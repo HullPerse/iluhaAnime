@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/hooks/i18n.hook";
 import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { buildAnimeLink } from "@/lib/utils/deeplink.utils";
+import type { AniListId } from "@/types/types";
 
 export function CopyLinkButton({ animeId }: { animeId: number }) {
   const { t } = useI18n();
@@ -12,7 +13,7 @@ export function CopyLinkButton({ animeId }: { animeId: number }) {
   const copyHideRef = useRef<Debouncer<[]> | null>(null);
   useEffect(() => () => copyHideRef.current?.cancel(), []);
   const copyLink = () => {
-    writeText(buildAnimeLink(animeId));
+    writeText(buildAnimeLink(animeId as AniListId));
     setLinkCopied(true);
     if (copyHideRef.current === null) {
       copyHideRef.current = new Debouncer(() => setLinkCopied(false), { wait: 1500 });

@@ -95,7 +95,7 @@ import {
 import { formatClock, formatElapsed, formatETA } from "@/lib/utils/time.utils";
 import type { CollectionItem } from "@/types/collection";
 import type { DitherEffectOptions, DitherRGB } from "@/types/dither";
-
+import type { AniListId, TorrentHash } from "@/types/types";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -486,7 +486,7 @@ describe("utils/color", () => {
 describe("utils/deeplink", () => {
   describe("buildAnimeLink", () => {
     it("builds the exact anilist shape", () => {
-      expect(buildAnimeLink(21)).toBe("iluhaanime://anime/anilist/21");
+      expect(buildAnimeLink(21 as AniListId)).toBe("iluhaanime://anime/anilist/21");
     });
   });
 
@@ -540,7 +540,10 @@ describe("utils/deeplink", () => {
     });
 
     it("round-trips through the builder", () => {
-      expect(parseAnimeLink(buildAnimeLink(5114))).toEqual({ source: "anilist", id: 5114 });
+      expect(parseAnimeLink(buildAnimeLink(5114 as AniListId))).toEqual({
+        source: "anilist",
+        id: 5114,
+      });
     });
   });
 
@@ -563,7 +566,7 @@ describe("utils/deeplink", () => {
 
     it("opens every valid link without flagging", () => {
       const s = setup();
-      s.run(["iluhaanime://anime/anilist/21", buildAnimeLink(5114)]);
+      s.run(["iluhaanime://anime/anilist/21", buildAnimeLink(5114 as AniListId)]);
       expect(s.opened).toEqual([
         { source: "anilist", id: 21 },
         { source: "anilist", id: 5114 },
@@ -684,7 +687,9 @@ describe("utils/deeplink", () => {
 
     it("round-trips through the builder", () => {
       const hash = "abcdef0123456789abcdef0123456789abcdef01";
-      expect(parseTorrentLink(buildTorrentLink(hash))).toEqual({ infoHash: hash });
+      expect(parseTorrentLink(buildTorrentLink(hash as TorrentHash))).toEqual({
+        infoHash: hash,
+      });
     });
 
     it("routes torrent links to the torrent opener", () => {
@@ -1357,12 +1362,16 @@ describe("utils/dither", () => {
     }
 
     it("snaps floyd output to palette entries and preserves alpha", () => {
-      const output = renderDitherImage(grayFrame([30, 90, 150, 220]), 4, 1, diffusionOptions("floyd"));
+      const output = renderDitherImage(
+        grayFrame([30, 90, 150, 220]),
+        4,
+        1,
+        diffusionOptions("floyd")
+      );
       for (let p = 0; p < 4; p++) {
         const pixel = Array.from(output.slice(p * 4, p * 4 + 3));
         expect(pixel).toSatisfy(
-          (channels: number[]) =>
-            channels.every((c) => c === 0) || channels.every((c) => c === 255)
+          (channels: number[]) => channels.every((c) => c === 0) || channels.every((c) => c === 255)
         );
         expect(output[p * 4 + 3]).toBe(255);
       }
@@ -1613,7 +1622,7 @@ describe("utils/dither", () => {
       const flat = new Uint8ClampedArray(2 * 2 * 4).fill(200);
       const out = renderDitherImage(flat, 2, 2, { ...NEUTRAL_OPTIONS, scanlines: 1 });
       expect(out[0]).toBe(200);
-      expect(out[(1 * 2) * 4]).toBeLessThan(200);
+      expect(out[1 * 2 * 4]).toBeLessThan(200);
     });
   });
 
@@ -1722,7 +1731,11 @@ describe("utils/dither", () => {
   });
 
   describe("applyGlyphOverlay", () => {
-    function solidFrame(value: number, width: number, height: number): Uint8ClampedArray<ArrayBuffer> {
+    function solidFrame(
+      value: number,
+      width: number,
+      height: number
+    ): Uint8ClampedArray<ArrayBuffer> {
       const pixels = new Uint8ClampedArray(width * height * 4);
       for (let i = 0; i < pixels.length; i += 4) {
         pixels[i] = value;
@@ -1827,16 +1840,25 @@ describe("utils/dither", () => {
       const input = gradientFixture(48, 48);
       const none = renderDitherImage(input, 48, 48, resolveDitherPreset("none"));
       expect(ditherBuffersEqual(none, input)).toBe(true);
-      const looks = ["natural", "classic", "gameboy", "duotone", "print", "crt", "glyphs", "photo"] as const;
+      const looks = [
+        "natural",
+        "classic",
+        "gameboy",
+        "duotone",
+        "print",
+        "crt",
+        "glyphs",
+        "photo",
+      ] as const;
       const rendered = looks.map((id) => renderDitherImage(input, 48, 48, resolveDitherPreset(id)));
       for (const output of rendered) {
         expect(ditherBuffersEqual(output, none)).toBe(false);
       }
       for (let a = 0; a < rendered.length; a++) {
         for (let b = a + 1; b < rendered.length; b++) {
-          expect(ditherBuffersEqual(rendered[a] as Uint8ClampedArray, rendered[b] as Uint8ClampedArray)).toBe(
-            false
-          );
+          expect(
+            ditherBuffersEqual(rendered[a] as Uint8ClampedArray, rendered[b] as Uint8ClampedArray)
+          ).toBe(false);
         }
       }
     });
@@ -2617,12 +2639,18 @@ describe("utils/repro", () => {
 
   describe("sanitizeReproValue", () => {
     it("redacts secret keys", () => {
-      const out = sanitizeReproValue({ authToken: "abc", theme: "win95" }) as Record<string, unknown>;
+      const out = sanitizeReproValue({ authToken: "abc", theme: "win95" }) as Record<
+        string,
+        unknown
+      >;
       expect(out.theme).toBe("win95");
       expect(out.authToken).toBe("[redacted]");
     });
     it("redacts proxy userinfo", () => {
-      const out = sanitizeReproValue({ torrentProxyUrl: "socks5://u:p@h:1080" }) as Record<string, unknown>;
+      const out = sanitizeReproValue({ torrentProxyUrl: "socks5://u:p@h:1080" }) as Record<
+        string,
+        unknown
+      >;
       expect(out.torrentProxyUrl).toBe("socks5://***@h:1080");
     });
     it("truncates long strings and caps arrays", () => {
@@ -2643,7 +2671,11 @@ describe("utils/repro", () => {
   describe("buildReproFrontend", () => {
     it("emits version plus sanitized settings plus counts", () => {
       const parsed = JSON.parse(
-        buildReproFrontend({ counts: { history: 3 }, settings: { authToken: "x" }, version: "5.0.0" })
+        buildReproFrontend({
+          counts: { history: 3 },
+          settings: { authToken: "x" },
+          version: "5.0.0",
+        })
       ) as { version: string; settings: { authToken: string }; counts: { history: number } };
       expect(parsed.version).toBe("5.0.0");
       expect(parsed.settings.authToken).toBe("[redacted]");

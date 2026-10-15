@@ -12,6 +12,7 @@ import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
 import type { AniNotificationEntry, AniSiteNotification } from "@/types/anilist";
 import type { TFunc, TranslationKey } from "@/types/i18n";
 import type { NotificationType } from "@/types/notification";
+import type { AniListId } from "@/types/types";
 
 function notifyEpisode(
   animeId: number,
@@ -24,12 +25,12 @@ function notifyEpisode(
   if (!settingsAtoms.notifyNewEpisodes.get()) return false;
   if (notificationAtoms.items.get().some((item) => item.eventKey === key)) return false;
   addNotification(
-      t("notification.anilist.new.episode"),
-      "info",
-      t("notification.anilist.new.episode.body", { episode, title }),
-      key,
-      { system, target: { source: "anilist", id: animeId } }
-    );
+    t("notification.anilist.new.episode"),
+    "info",
+    t("notification.anilist.new.episode.body", { episode, title }),
+    key,
+    { system, target: { source: "anilist", id: animeId as AniListId } }
+  );
   return true;
 }
 
@@ -52,7 +53,7 @@ function notifyStatus(
   if (entry.list_status === previous.status) return;
   const toast = LIST_STATUS_TOAST[entry.list_status];
   if (!toast) return;
-  const target = { source: "anilist", id: entry.media.id } as const;
+  const target = { source: "anilist", id: entry.media.id as AniListId } as const;
   addNotification(t(toast.titleKey), toast.type, entry.media.title, undefined, {
     system,
     target,
@@ -75,7 +76,7 @@ function notifyMediaStatus(
   if (!previous.mediaStatus || entry.media.status === previous.mediaStatus) return;
   const toast = MEDIA_STATUS_TOAST[entry.media.status];
   if (!toast) return;
-  const target = { source: "anilist", id: entry.media.id } as const;
+  const target = { source: "anilist", id: entry.media.id as AniListId } as const;
   addNotification(t(toast.titleKey), toast.type, entry.media.title, undefined, {
     system,
     target,
@@ -211,7 +212,9 @@ function notifySiteItem(
   if (notificationAtoms.items.get().some((item) => item.eventKey === key)) return;
   addNotification(title, type, body || undefined, key, {
     system,
-    ...(animeId != null ? { target: { source: "anilist", id: animeId } as const } : {}),
+    ...(animeId != null
+      ? { target: { source: "anilist", id: animeId as AniListId } as const }
+      : {}),
   });
 }
 

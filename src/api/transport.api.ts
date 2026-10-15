@@ -4,7 +4,7 @@ import { inflightFetch } from "@/lib/utils/lruCache.utils";
 import type { CommandName } from "@/types/ipc";
 
 export interface ApiTransport {
-  call: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+  call: <T>(command: string, args?: Record<string, unknown>) => Promise<Awaited<T>>;
 }
 
 const inflight = new Map<string, Promise<unknown>>();
@@ -50,7 +50,7 @@ export function resetTransportInflight(): void {
 }
 
 export const tauriTransport: ApiTransport = {
-  call: <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  call: <T>(command: string, args?: Record<string, unknown>): Promise<Awaited<T>> => {
     const key = dedupKey(command, args);
     if (!key) {
       recordInvoke(command, args);
@@ -59,6 +59,6 @@ export const tauriTransport: ApiTransport = {
     return inflightFetch(inflight, key, () => {
       recordInvoke(command, args);
       return invokeTyped<T>(command as CommandName, args);
-    }) as Promise<T>;
+    }) as Promise<Awaited<T>>;
   },
 };

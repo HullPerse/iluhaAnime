@@ -9,6 +9,7 @@ import {
   openAnimeDeepLink,
   openTorrentDeepLink,
 } from "@/store/deeplink.store";
+import type { AniListId } from "@/types/types";
 
 afterEach(() => {
   cleanup();
@@ -26,7 +27,7 @@ describe("useAnilistModals deep-link takeover", () => {
     expect(result.current.views.spotlight).toBe(true);
     expect(result.current.views.activity.open).toBe(true);
     act(() => {
-      openAnimeDeepLink({ source: "anilist", id: 21 });
+      openAnimeDeepLink({ source: "anilist", id: 21 as AniListId });
     });
     expect(result.current.views.spotlight).toBe(false);
     expect(result.current.views.activity.open).toBe(false);

@@ -1,4 +1,9 @@
-import { mockConvertFileSrc, mockInvoke, mockOpenPath as openPathSpy, mockWriteText as writeTextSpy } from "../../mocks";
+import {
+  mockConvertFileSrc,
+  mockInvoke,
+  mockOpenPath as openPathSpy,
+  mockWriteText as writeTextSpy,
+} from "../../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -16,7 +21,7 @@ import {
   updateNotification,
 } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
-
+import type { AniListId } from "@/types/types";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -86,14 +91,16 @@ describe("openNotificationTarget", () => {
   });
 
   it("routes an anime target through the deep-link store", async () => {
-    await expect(openNotificationTarget({ source: "anilist", id: 21 })).resolves.toBe("opened");
+    await expect(openNotificationTarget({ source: "anilist", id: 21 as AniListId })).resolves.toBe(
+      "opened"
+    );
     expect(deeplinkAtoms.target.get()).toEqual({ source: "anilist", id: 21 });
     expect(openPathSpy).not.toHaveBeenCalled();
   });
 
   it("refuses an anime target when the anime tab is disabled", async () => {
     patchSettings({ anilistTabEnabled: false });
-    await expect(openNotificationTarget({ source: "anilist", id: 21 })).resolves.toBe(
+    await expect(openNotificationTarget({ source: "anilist", id: 21 as AniListId })).resolves.toBe(
       "tab-disabled"
     );
     expect(deeplinkAtoms.target.get()).toBeNull();
@@ -196,10 +203,7 @@ describe("progress notifications", () => {
       progress: true,
     };
     const done = { id: 12, read: false, timestamp: now, title: "Gone", type: "success" as const };
-    const merged = resolveNotificationPersisted(
-      { dismissed: [], items: [progress, done] },
-      true
-    );
+    const merged = resolveNotificationPersisted({ dismissed: [], items: [progress, done] }, true);
     expect(merged?.items.map((item) => item.id)).toEqual([12]);
   });
 });

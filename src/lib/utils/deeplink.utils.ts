@@ -11,15 +11,20 @@ import type {
   CollectionShareItem,
   TorrentDeepLink,
 } from "@/types/deeplink";
+import type { AniListId, TorrentHash } from "@/types/types";
 
 export type { AnimeDeepLink, AnilistAuthDeepLink, CollectionShareDeepLink, TorrentDeepLink };
 
 const DEEP_LINK_SCHEME = "iluhaanime";
 export const DEEP_LINK_EVENT = "deep-link-opened";
-export function buildAnimeLink(anilistId: number): string {
+export function buildAnimeLink(
+  anilistId: AniListId
+): `${typeof DEEP_LINK_SCHEME}://anime/anilist/${number}` {
   return `${DEEP_LINK_SCHEME}://anime/anilist/${anilistId}`;
 }
-export function buildTorrentLink(infoHash: string): string {
+export function buildTorrentLink(
+  infoHash: TorrentHash
+): `${typeof DEEP_LINK_SCHEME}://torrent/${string}` {
   return `${DEEP_LINK_SCHEME}://torrent/${infoHash.toLowerCase()}`;
 }
 
@@ -31,7 +36,7 @@ export function parseTorrentLink(raw: string): TorrentDeepLink | null {
   const parts = rest.split("/");
   if (parts.length !== 2 || parts[0] !== "torrent") return null;
   if (!/^[0-9a-fA-F]{40}$/.test(parts[1])) return null;
-  return { infoHash: parts[1].toLowerCase() };
+  return { infoHash: parts[1].toLowerCase() as TorrentHash };
 }
 
 export function parseAnimeLink(raw: string): AnimeDeepLink | null {
@@ -44,7 +49,7 @@ export function parseAnimeLink(raw: string): AnimeDeepLink | null {
   if (!/^\d{1,10}$/.test(parts[2])) return null;
   const id = Number(parts[2]);
   if (!Number.isSafeInteger(id) || id < 1) return null;
-  return { source: "anilist", id };
+  return { source: "anilist", id: id as AniListId };
 }
 
 const AUTH_PREFIX = `${DEEP_LINK_SCHEME}://auth/anilist`;
@@ -112,7 +117,7 @@ export function parseAnilistPageUrl(raw: string): AnimeDeepLink | null {
   if (!match) return null;
   const id = Number(match[1]);
   if (!Number.isSafeInteger(id) || id < 1) return null;
-  return { source: "anilist", id };
+  return { source: "anilist", id: id as AniListId };
 }
 
 export function parsePastedLink(text: string): PastedLink | "invalid" | null {

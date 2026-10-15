@@ -181,7 +181,7 @@ export default function SettingsRoute() {
       <div
         ref={contentRef}
         data-scroll-root
-        className="windows95-border bg-primary min-h-0 flex-1 overflow-auto p-1"
+        className="windows95-border bg-primary min-h-0 min-w-0 flex-1 overflow-auto p-1"
       >
         <div className="bg-primary sticky -top-1 z-10 -mx-1 px-1 pt-1 pb-1">
           <FindBox
@@ -206,7 +206,9 @@ export default function SettingsRoute() {
           />
         )}
       </div>
-      <SettingsSummary onJump={handleTabSelect} />
+      <div className="hidden lg:flex">
+        <SettingsSummary onJump={handleTabSelect} />
+      </div>
     </div>
   );
 }

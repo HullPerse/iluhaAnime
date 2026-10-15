@@ -206,11 +206,11 @@ export default function SettingsTheme() {
           <span className="text-title-text font-bold">{t("settings.theme.retro.style")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.retro.style")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Combobox
                 value={retroStyle}
                 onChange={(value) => patchSettings({ retroStyle: value as typeof retroStyle })}
@@ -229,7 +229,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.density")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Combobox
                 value={uiDensity}
                 onChange={(value) => patchSettings({ uiDensity: value as typeof uiDensity })}
@@ -254,11 +254,11 @@ export default function SettingsTheme() {
           </span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.collection.headers")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Combobox
                 value={collectionGroupHeaderStyle}
                 onChange={(value) =>
@@ -288,11 +288,11 @@ export default function SettingsTheme() {
           <span className="text-title-text font-bold">{t("settings.progress.style")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.progress.style")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Combobox
                 value={progressStyle}
                 onChange={(value) =>
@@ -345,7 +345,7 @@ export default function SettingsTheme() {
         </div>
 
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.search")}
             </span>
@@ -382,11 +382,11 @@ export default function SettingsTheme() {
               field="yorhaScanlinesEnabled"
             />
           )}
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.theme.experimental.effect")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Combobox
                 value={windowEffect}
                 onChange={(value) => patchSettings({ windowEffect: value as typeof windowEffect })}
@@ -410,7 +410,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.theme.experimental.effect.opacity")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <Slider

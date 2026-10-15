@@ -317,6 +317,8 @@ const changelog500 = {
     "Dither presets and palettes rebuilt: nine curated presets (None, Natural, Classic, GameBoy, Duotone, Print, CRT, Glyphs, Photo), palettes for black and white, Game Boy, PICO-8, gray, amber, ink, vapor, and a new Original palette that restores the image's own colors, all grouped into Pattern, Tone, Print and Display so every slider changes the picture",
   "changelog.5_0_0.fixed.search.wallpaper_placeholder":
     "The dither placeholder restores the background again: saving it clears the selection, and a stored wallpaper that no longer exists falls back to the placeholder and drops the stale choice instead of erroring on every launch",
+  "changelog.5_0_0.fixed.settings.layout_overflow":
+    "Settings controls no longer overflow in small windows: the summary panel hides below the lg breakpoint, labels stack above inputs on narrow screens, and proxy select and input always stack vertically",
   "changelog.5_0_0.changed.anilist.modal_back":
     "Anime details from spotlight, browse, statistics, friends, and random discovery open inside the same window with a Back button instead of a second window on top",
   "changelog.5_0_0.changed.anilist.person_inline":

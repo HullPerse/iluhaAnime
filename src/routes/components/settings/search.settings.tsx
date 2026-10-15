@@ -103,11 +103,11 @@ export default function SettingsSearch() {
           <span className="text-title-text font-bold">{t("settings.search.sources")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.default.source")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Select
                 value={
                   visibleSources.includes(defaultSearchSource)
@@ -126,7 +126,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.visible.sources")}
             </span>
-            <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+            <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
               <span />
               <div className="flex flex-col gap-1">
                 {SOURCE_INFOS.map((info) => (
@@ -176,11 +176,11 @@ export default function SettingsSearch() {
               const isPreset = presets.includes(current);
               const selectValue = current === "" ? "" : isPreset ? current : "custom";
               return (
-                <div key={info.value} className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
+                <div key={info.value} className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
                   <span className="windows95-text text-text flex items-center text-xs font-bold">
                     {info.label}
                   </span>
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+                  <div className="flex flex-col gap-1 min-w-0">
                     <Select
                       value={selectValue}
                       onChange={(v) => {
@@ -198,7 +198,7 @@ export default function SettingsSearch() {
                         ...presets.map((p) => ({ value: p, label: p })),
                         { value: "custom", label: t("settings.tmdb.proxy.custom") },
                       ]}
-                      className="w-full max-w-60"
+                      className="w-full min-[560px]:max-w-60"
                     />
                     <Input
                       ref={(el) => {
@@ -213,7 +213,7 @@ export default function SettingsSearch() {
                         patchSettings({ searchProxyUrls: next });
                       }}
                       placeholder="socks5://127.0.0.1:10808"
-                      className="w-full max-w-70"
+                      className="w-full min-[560px]:max-w-70"
                       spellCheck={false}
                     />
                     {(() => {
@@ -266,11 +266,11 @@ export default function SettingsSearch() {
           <span className="text-title-text font-bold">{t("settings.search.results")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.history.max")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Input
                 type="number"
                 min={0}
@@ -282,11 +282,11 @@ export default function SettingsSearch() {
             </div>
           </div>
 
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.autocomplete.mode")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Select
                 value={autocompleteMode}
                 onChange={(value) => patchSettings({ autocompleteMode: value as typeof autocompleteMode })}
@@ -315,7 +315,7 @@ export default function SettingsSearch() {
                   {t("settings.search.autocomplete.mode.off.hint")}
                 </span>
               ) : autocompleteMode === "inline" || autocompleteMode === "both" ? (
-                <div className="flex flex-col gap-0.5">
+                <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-hint text-[12px]">{t("settings.search.preview")}</span>
                   <div className="windows95-border windows95-text bg-field flex min-h-7 items-center overflow-hidden px-1.5 whitespace-pre">
                     <span className="relative z-10">{t("settings.search.preview.typed")}</span>
@@ -334,11 +334,11 @@ export default function SettingsSearch() {
             </div>
           </div>
 
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.page.size")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Input
                 type="number"
                 min={10}
@@ -353,7 +353,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.max.pages")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Input
                 type="number"
                 min={1}
@@ -372,7 +372,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.learning")}
             </span>
-            <div className="windows95-text text-text grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5 text-xs">
+            <div className="windows95-text text-text grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-0.5 text-xs">
               <span>{t("settings.search.learning.history")}</span>
               <span className="text-right tabular-nums">{learningHistory.length}</span>
               <span>{t("settings.search.learning.queries")}</span>
@@ -388,7 +388,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.toggles")}
             </span>
-            <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+            <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
               <span />
               <div className="flex flex-col gap-1">
                 <label
@@ -415,11 +415,11 @@ export default function SettingsSearch() {
             </div>
           </div>
 
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.anilist.boost")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Select
                 value={anilistSuggestionBoost}
                 onChange={(value) =>

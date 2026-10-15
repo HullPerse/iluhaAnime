@@ -242,11 +242,11 @@ export default function SettingsTorrent() {
           <span className="text-title-text font-bold">{t("settings.torrent.search")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.torrent.results.per.page")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Input
                 type="number"
                 min={5}
@@ -278,7 +278,7 @@ export default function SettingsTorrent() {
                 { value: "list", label: t("settings.torrent.file.order.list") },
                 { value: "torrent", label: t("settings.torrent.file.order.torrent") },
               ]}
-              className="h-6 max-w-70"
+              className="h-6 min-[560px]:max-w-70"
             />
           </label>
           <span className="text-hint pl-2 text-xs">
@@ -395,7 +395,7 @@ export default function SettingsTorrent() {
               placeholder="socks5://127.0.0.1:10808"
               spellCheck={false}
               onChange={(e) => setProxyInput(e.target.value)}
-              className="h-6 w-full max-w-70"
+              className="h-6 w-full min-[560px]:max-w-70"
             />
           </label>
           <span className="text-hint pl-2 text-xs">

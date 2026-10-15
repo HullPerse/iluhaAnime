@@ -32,11 +32,11 @@ function KeyboardSettings() {
         <span className="text-title-text font-bold">{t("settings.keyboard")}</span>
       </div>
       <div className="flex flex-col gap-1 p-2">
-        <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+        <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
           <span className="windows95-text text-text flex items-center text-xs font-bold">
             {t("settings.vim.mode")}
           </span>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-hint text-[12px]">{t("settings.vim.mode.hint")}</span>
             <Select
               value={vimMode ? "on" : "off"}
@@ -127,7 +127,7 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.tabs")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
             <span />
             <div className="flex flex-col gap-4">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
@@ -164,7 +164,7 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.startup")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
             <span />
             <div className="flex flex-col gap-4">
               <label
@@ -186,11 +186,11 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.window")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.window")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
                 <Checkbox
                   checked={minimizeToTray}
@@ -211,11 +211,11 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.language")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.language")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Select
                 value={language}
                 onChange={(value) => patchSettings({ language: value as Locale })}
@@ -230,7 +230,7 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.ffmpeg.source")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Select
                 value={ffmpegSource}
                 onChange={(value) =>
@@ -259,11 +259,11 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.tmdb.api.key")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.tmdb.api.key")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-hint text-[12px]">
                 {t("settings.tmdb.api.key.description")}
               </span>
@@ -272,7 +272,7 @@ export default function SettingsGeneral() {
                 onChange={(e) => setTmdbInput(e.target.value)}
                 placeholder={t("settings.tmdb.api.key.placeholder")}
                 spellCheck={false}
-                wrapperClassName="w-full max-w-130"
+                wrapperClassName="w-full"
                 aria-label={t("settings.tmdb.api.key")}
               />
               <div className="flex items-center gap-2">
@@ -301,11 +301,11 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.tmdb.proxy.url")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-hint text-[12px]">
                 {t("settings.tmdb.proxy.url.description")}
               </span>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-1">
                 <Select
                   value={(() => {
                     const p = tmdbProxyUrl ?? "";
@@ -356,7 +356,7 @@ export default function SettingsGeneral() {
                     },
                     { value: "custom", label: t("settings.tmdb.proxy.custom") },
                   ]}
-                  className="w-full max-w-60"
+                  className="w-full min-[560px]:max-w-60"
                 />
                 <Input
                   ref={tmdbProxyInputRef}
@@ -364,7 +364,7 @@ export default function SettingsGeneral() {
                   onChange={(e) => patchSettings({ tmdbProxyUrl: e.target.value.trim() || null })}
                   placeholder="socks5://127.0.0.1:10808"
                   spellCheck={false}
-                  className="w-full max-w-70"
+                  className="w-full min-[560px]:max-w-70"
                   aria-label={t("settings.tmdb.proxy.url")}
                 />
               </div>
@@ -400,15 +400,15 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.anilist.proxy.title")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.anilist.proxy.url")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-hint text-[12px]">
                 {t("settings.anilist.proxy.url.description")}
               </span>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-1">
                 <Select
                   value={(() => {
                     const p = anilistProxyUrl ?? "";
@@ -459,7 +459,7 @@ export default function SettingsGeneral() {
                     },
                     { value: "custom", label: t("settings.anilist.proxy.custom") },
                   ]}
-                  className="w-full max-w-60"
+                  className="w-full min-[560px]:max-w-60"
                 />
                 <Input
                   ref={anilistProxyInputRef}
@@ -469,7 +469,7 @@ export default function SettingsGeneral() {
                   }
                   placeholder="socks5://127.0.0.1:10808"
                   spellCheck={false}
-                  className="w-full max-w-70"
+                  className="w-full min-[560px]:max-w-70"
                   aria-label={t("settings.anilist.proxy.url")}
                 />
               </div>
@@ -501,7 +501,7 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.anilist.title.language")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <Select
                 value={anilistTitleLanguage}
                 onChange={(value) =>
@@ -521,7 +521,7 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-destructive flex items-center text-xs font-bold">
               {t("settings.anilist.adult")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
                 <Checkbox
                   checked={anilistAdultContent}
@@ -541,11 +541,11 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.parse.titles")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.parse.titles")}
             </span>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
                 <Checkbox
                   checked={parseTitlesPlayer}
@@ -573,7 +573,7 @@ export default function SettingsGeneral() {
                 />
                 <span>{t("settings.parse.search")}</span>
               </label>
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="windows95-text text-text text-xs">
                   {t("settings.torrent.covers")}
                 </span>
@@ -607,7 +607,7 @@ export default function SettingsGeneral() {
       <hr className="border-muted my-1 w-full border-t" />
 
       <div
-        className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5"
+        className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5"
         data-find-section="general.reset"
       >
         <span className="windows95-text text-destructive text-xs font-bold">

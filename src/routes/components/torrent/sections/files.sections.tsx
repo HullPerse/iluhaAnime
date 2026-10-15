@@ -9,14 +9,13 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/update.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { ignore } from "@/lib/utils/promise.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/update.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
-
   FilePriority,
   TorrentDetailFile,
   TorrentDetails,
@@ -64,8 +63,7 @@ function UpdateCheck({
     }
     const added = findUpdatedFiles(files, details.files);
     const replaced =
-      Boolean(details.infoHash) &&
-      details.infoHash.toLowerCase() !== item.info_hash.toLowerCase();
+      Boolean(details.infoHash) && details.infoHash.toLowerCase() !== item.info_hash.toLowerCase();
     if (added.length === 0 && !replaced) return;
     setUpdate({ added, details, replaced });
     setPicked(new Set(added.map((file) => file.name)));
@@ -216,21 +214,23 @@ export function TorrentFiles({
             {t("torrent.sequential.now", { name: sequentialFile.name })}
           </span>
         )}
-        {orderable && (
-          <Button
-            size="icon"
-            className="ml-auto size-5"
-            title={t("torrent.queue.button")}
-            aria-label={t("torrent.queue.button")}
-            onClick={(event) => {
-              event.stopPropagation();
-              setShowQueue(true);
-            }}
-          >
-            <ListOrdered className="size-3" />
-          </Button>
-        )}
-        <UpdateCheck item={item} files={files} onUpdateRequest={onUpdateRequest} />
+        <section className="ml-auto flex flex-row items-center gap-1">
+          {orderable && (
+            <Button
+              size="icon"
+              className="ml-auto size-5"
+              title={t("torrent.queue.button")}
+              aria-label={t("torrent.queue.button")}
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowQueue(true);
+              }}
+            >
+              <ListOrdered className="size-3" />
+            </Button>
+          )}
+          <UpdateCheck item={item} files={files} onUpdateRequest={onUpdateRequest} />
+        </section>
       </div>
       {isExpanded && (
         <>

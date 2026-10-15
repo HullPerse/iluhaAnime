@@ -182,6 +182,7 @@ const common = {
   "picker.browse": "Обзор",
   "picker.deselect.all": "Снять все",
   "picker.download": "Скачать",
+  "picker.duplicate": "Уже в библиотеке: {{name}}",
   "picker.exists": "Файл уже есть",
   "picker.file.count": "{{count}} файлов",
   "picker.file.count.one": "{{count}} файл",

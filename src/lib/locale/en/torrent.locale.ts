@@ -127,6 +127,13 @@ const torrent = {
   "torrent.external.hint": "Another program changed these files; recheck to re-verify them from disk",
   "torrent.external.recheck": "Recheck now",
   "torrent.problem.missing": "Files are gone from disk",
+  "torrent.problem.noAccess": "Cannot write to the save folder",
+  "torrent.problem.readOnly": "Save folder is on a read-only disk",
+  "torrent.problem.diskFull": "Disk is full",
+  "torrent.problem.diskError": "Disk failed a read or write",
+  "torrent.problem.noPeers": "No reachable peers or trackers",
+  "torrent.problem.other": "Download error",
+  "torrent.problem.unknown": "Engine gave no reason",
   "torrent.recreate": "Recreate torrent",
   "torrent.recreate.confirm": "Recreate",
   "torrent.recreate.message":

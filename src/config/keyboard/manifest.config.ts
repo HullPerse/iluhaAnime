@@ -362,6 +362,24 @@ const APP_ENTRIES: readonly KeybindManifestEntry[] = [
     description: "common.close",
     category: "interface",
   },
+  {
+    id: "torrent.pause.resume",
+    chord: "KeyP",
+    repeat: "once",
+    scope: "global",
+    mode: "base",
+    description: "keybind.torrent.pause.resume",
+    category: "interface",
+  },
+  {
+    id: "torrent.recheck.errors",
+    chord: "KeyC",
+    repeat: "once",
+    scope: "global",
+    mode: "base",
+    description: "keybind.torrent.recheck.errors",
+    category: "interface",
+  },
 ];
 
 export const KEYBIND_MANIFEST: readonly KeybindManifestEntry[] = [

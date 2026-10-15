@@ -179,6 +179,7 @@ const common = {
   "picker.browse": "Browse",
   "picker.deselect.all": "Clear all",
   "picker.download": "Download",
+  "picker.duplicate": "Already in your library: {{name}}",
   "picker.exists": "File already exists",
   "picker.file.count": "{{count}} files",
   "picker.file.count.one": "{{count}} file",

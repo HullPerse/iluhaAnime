@@ -19,6 +19,7 @@ import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
+import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { cacheAtoms } from "@/store/cache.store";
 import {
   cancelTorrentDownload as cancelDownload,
@@ -58,6 +59,7 @@ export default function App() {
   const queryClient = useQueryClient();
   const pendingTorrent = useCell(torrentAtoms.pendingTorrent);
   const preparingTorrent = useCell(torrentAtoms.preparingTorrent);
+  const { data: existingTorrents } = useTorrents();
   const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
   const customTitleBarEnabled = useCell(settingsAtoms.customTitleBarEnabled);
   const statusBarEnabled = useCell(settingsAtoms.statusBarEnabled);
@@ -139,6 +141,7 @@ export default function App() {
           torrent={pendingTorrent}
           loading={!!preparingTorrent && !pendingTorrent}
           defaultSaveDir={lastSaveDir}
+          existingTorrents={existingTorrents}
           onConfirm={(selectedIndices, saveDir, subFolder, sequential) =>
             confirmDownload(selectedIndices, saveDir, subFolder, sequential).then(() => {
               queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });

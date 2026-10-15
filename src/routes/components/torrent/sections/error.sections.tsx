@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { describeTorrentProblem } from "@/lib/torrent/problem.utils";
 
 export function TorrentProblem({
   error,
@@ -18,6 +19,7 @@ export function TorrentProblem({
 }) {
   const { t } = useI18n();
   const [pendingRecreate, setPendingRecreate] = useState(false);
+  const problem = describeTorrentProblem(error, missing);
   return (
     <div className="mt-1 flex items-start gap-1">
       <div className="flex min-w-0 flex-col">
@@ -29,7 +31,12 @@ export function TorrentProblem({
         )}
         {error !== null && error !== "" && (
           <span className="text-destructive windows95-font truncate text-xs" title={error}>
-            {error}
+            {missing ? error : t(problem.headlineKey)}
+          </span>
+        )}
+        {!missing && (error === null || error === "") && (
+          <span className="text-destructive windows95-font truncate text-xs">
+            {t(problem.headlineKey)}
           </span>
         )}
       </div>

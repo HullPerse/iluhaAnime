@@ -34,6 +34,12 @@ const changelog500 = {
     "Release update check: torrents downloaded from search remember their source page, the check button re-reads the release and stays silent when nothing changed, opens the file picker on new files, and applies the update from fresh .torrent bytes",
   "changelog.5_0_0.added.torrents.external_watch":
     "External changes watch: paused and finished torrents detect files modified outside the app, with a row badge, a warning toast, and one-click recheck",
+  "changelog.5_0_0.added.torrents.duplicate_guard":
+    "Duplicate guard before adding: a magnet whose info hash is already registered is blocked in the file picker with the existing torrent named",
+  "changelog.5_0_0.added.torrents.problem_headlines":
+    "Plain-language error headlines on errored torrents: missing files, no access, full disk, disk errors, or no peers, with the engine text kept in the tooltip",
+  "changelog.5_0_0.added.torrents.hotkeys":
+    "Torrent hotkeys: P pauses or resumes the selection, C rechecks torrents with errors, both listed in Settings Keybinds",
   "changelog.5_0_0.added.settings.theme_schedule":
     "Day and night theme scheduler: the theme switches automatically by local time",
   "changelog.5_0_0.added.settings.title_toggles":

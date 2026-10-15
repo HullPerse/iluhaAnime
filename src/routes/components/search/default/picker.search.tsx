@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactElement } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
@@ -12,6 +12,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { createInterval } from "@/lib/pacer/interval.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
+import { duplicateOfMagnet } from "@/lib/torrent/duplicate.utils";
 import { torrentFileIcon } from "@/lib/torrent/fileIcon.utils";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
@@ -19,7 +20,28 @@ import { formatBytes } from "@/lib/utils/bytes.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { formatElapsed } from "@/lib/utils/time.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { PickerTorrent } from "@/types/torrent";
+import type { PickerTorrent, TorrentInfo } from "@/types/torrent";
+
+const NO_EXISTING_TORRENTS: readonly TorrentInfo[] = [];
+
+function DuplicateNotice({ duplicate }: { duplicate: TorrentInfo | null }): ReactElement | null {
+  const { t } = useI18n();
+  if (!duplicate) return null;
+  return (
+    <div role="alert" className="windows95-text text-destructive w-full px-1 text-xs">
+      {t("picker.duplicate", { name: duplicate.name })}
+    </div>
+  );
+}
+
+function isDownloadBlocked(
+  pending: boolean,
+  saveDir: string,
+  selectedCount: number,
+  duplicate: TorrentInfo | null
+): boolean {
+  return pending || selectedCount === 0 || !saveDir || duplicate !== null;
+}
 
 function TorrentFilePicker({
   torrent,
@@ -27,6 +49,7 @@ function TorrentFilePicker({
   onConfirm,
   onCancel,
   loading = false,
+  existingTorrents = NO_EXISTING_TORRENTS,
 }: {
   torrent: PickerTorrent | null;
   defaultSaveDir: string;
@@ -38,6 +61,7 @@ function TorrentFilePicker({
   ) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  existingTorrents?: readonly TorrentInfo[];
 }) {
   const { t } = useI18n();
   const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
@@ -127,6 +151,17 @@ function TorrentFilePicker({
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;
 
+  const duplicate = useMemo(
+    () => duplicateOfMagnet(existingTorrents, torrent?.magnet),
+    [existingTorrents, torrent]
+  );
+  const downloadBlocked = isDownloadBlocked(
+    isLoading || loading,
+    saveDir,
+    selected.size,
+    duplicate
+  );
+
   const selectedSize = torrent
     ? torrent.files.filter((f) => selected.has(f.index)).reduce((s, f) => s + f.size, 0)
     : 0;
@@ -143,6 +178,7 @@ function TorrentFilePicker({
           <span className="text-success font-bold">S:{torrent.seeders}</span>
         </div>
       ) : null}
+      <DuplicateNotice duplicate={duplicate} />
       {loading ? (
         <section className="flex flex-col items-center justify-center gap-2 py-4">
           <SmallLoader />
@@ -251,10 +287,7 @@ function TorrentFilePicker({
             </label>
             <div className="flex gap-1">
               <Button onClick={onCancel}>{t("common.cancel")}</Button>
-              <Button
-                onClick={handleConfirm}
-                disabled={isLoading || loading || selected.size === 0 || !saveDir}
-              >
+              <Button onClick={handleConfirm} disabled={downloadBlocked}>
                 {isLoading ? <SmallLoader /> : t("picker.download")}
               </Button>
             </div>

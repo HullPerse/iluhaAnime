@@ -127,6 +127,13 @@ const torrent = {
   "torrent.external.hint": "Другая программа изменила эти файлы; перепроверьте их с диска",
   "torrent.external.recheck": "Проверить сейчас",
   "torrent.problem.missing": "Файлы пропали с диска",
+  "torrent.problem.noAccess": "Нет записи в папку сохранения",
+  "torrent.problem.readOnly": "Папка сохранения на диске только для чтения",
+  "torrent.problem.diskFull": "Диск переполнен",
+  "torrent.problem.diskError": "Диск не смог прочитать или записать",
+  "torrent.problem.noPeers": "Нет доступных пиров или трекеров",
+  "torrent.problem.other": "Ошибка загрузки",
+  "torrent.problem.unknown": "Движок не сообщил причину",
   "torrent.recreate": "Пересоздать торрент",
   "torrent.recreate.confirm": "Пересоздать",
   "torrent.recreate.message":

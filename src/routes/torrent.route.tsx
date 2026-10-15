@@ -33,6 +33,7 @@ import {
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
+import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
 import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
 import { isSameOrInside } from "@/lib/watcher/paths.watcher";
@@ -367,6 +368,36 @@ function TorrentRoute() {
     );
     setBulkBusy(false);
   };
+  useResolvedHotkeys<"torrent-pause-resume" | "torrent-recheck-errors">(
+    [
+      {
+        id: "torrent-pause-resume",
+        chord: "KeyP",
+        repeat: "once",
+        keybindId: "torrent.pause.resume",
+      },
+      {
+        id: "torrent-recheck-errors",
+        chord: "KeyC",
+        repeat: "once",
+        keybindId: "torrent.recheck.errors",
+      },
+    ],
+    {
+      ignore: (event) => isTextEntryTarget(event.target),
+      onAction: (id) => {
+        if (bulkBusy) return;
+        if (id === "torrent-recheck-errors") {
+          if (problemTorrents.length > 0) ignore(runBulk("recheck", problemTorrents));
+          return;
+        }
+        if (selectedTorrents.length === 0) return;
+        const paused = selectedTorrents.filter((torrent) => torrent.state === "paused");
+        if (paused.length > 0) ignore(runBulk("resume", paused));
+        else ignore(runBulk("pause", selectedTorrents));
+      },
+    }
+  );
   useEffect(() => {
     if (!torrentTarget) return;
     setMagnetPrefill(`magnet:?xt=urn:btih:${torrentTarget.infoHash}`);

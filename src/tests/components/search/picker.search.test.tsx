@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
-import type { PickerTorrent } from "@/types/torrent";
+import type { PickerTorrent, TorrentInfo } from "@/types/torrent";
 
 const TORRENT: PickerTorrent = {
   id: 1,
@@ -81,5 +81,74 @@ describe("TorrentFilePicker files", () => {
     renderPicker();
     await user.click(screen.getByRole("checkbox", { name: "ep01.mkv" }));
     expect(document.body.textContent).toContain("1 file");
+  });
+});
+
+describe("TorrentFilePicker duplicate guard", () => {
+  const HASH = "0123456789abcdef0123456789abcdef01234567";
+
+  function existing(): TorrentInfo[] {
+    return [
+      {
+        download_order: [],
+        download_speed: 0,
+        error: null,
+        eta_secs: null,
+        finished: false,
+        id: 7,
+        info_hash: HASH,
+        missing_files: false,
+        external_changes: false,
+        external_changed_files: [],
+        name: "Already Here",
+        peers_connected: 0,
+        progress: 1,
+        progress_bytes: 100,
+        save_dir: "C:\\Dl",
+        sequential_download: false,
+        sequential_file: null,
+        share_ratio: 2,
+        state: "live",
+        total_bytes: 100,
+        upload_speed: 0,
+        uploaded_bytes: 200,
+      },
+    ];
+  }
+
+  function renderDuplicate(magnet: string | undefined, list: TorrentInfo[]) {
+    return render(
+      <TorrentFilePicker
+        torrent={{ ...TORRENT, magnet }}
+        defaultSaveDir="C:\\Dl"
+        existingTorrents={list}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+  }
+
+  it("blocks the download when the magnet hash is already registered", () => {
+    renderDuplicate(`magnet:?xt=urn:btih:${HASH}`, existing());
+    expect(screen.getByRole("alert").textContent).toContain("Already Here");
+    expect((screen.getByRole("button", { name: "Download" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
+  });
+
+  it("allows a different hash with the same name", () => {
+    renderDuplicate(
+      "magnet:?xt=urn:btih:ffffffffffffffffffffffffffffffffffffffff",
+      existing()
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(
+      (screen.getByRole("button", { name: "Download" }) as HTMLButtonElement).disabled
+    ).toBe(false);
+  });
+
+  it("stays quiet without a magnet or library", () => {
+    renderDuplicate(undefined, existing());
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

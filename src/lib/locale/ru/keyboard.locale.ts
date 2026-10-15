@@ -37,6 +37,8 @@ const keyboard = {
   "keybind.player.toggle.queue": "Переключить панель очереди",
   "keybind.folder.shrink": "Уменьшить панель папки",
   "keybind.folder.grow": "Расширить панель папки",
+  "keybind.torrent.pause.resume": "Пауза или продолжение выбранных торрентов",
+  "keybind.torrent.recheck.errors": "Проверить торренты с ошибками",
 } as const;
 
 export default keyboard;

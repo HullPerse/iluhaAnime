@@ -37,6 +37,8 @@ const keyboard = {
   "keybind.player.toggle.queue": "Toggle the queue panel",
   "keybind.folder.shrink": "Shrink the folder panel",
   "keybind.folder.grow": "Expand the folder panel",
+  "keybind.torrent.pause.resume": "Pause or resume selected torrents",
+  "keybind.torrent.recheck.errors": "Recheck torrents with errors",
 } as const;
 
 export default keyboard;

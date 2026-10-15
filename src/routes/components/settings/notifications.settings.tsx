@@ -111,7 +111,6 @@ export default function SettingsNotifications() {
             <Button
               className="h-6 px-1.5 text-xs"
               disabled={!inAppPreview}
-              title={t("settings.notifications.popups.preview.hint")}
               onClick={() => {
                 previewCount.current += 1;
                 addNotification(

@@ -161,6 +161,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.player.panel_slot", "player"),
       entry("changelog.5_0_0.changed.app.updater_defer", "app"),
       entry("changelog.5_0_0.changed.app.button_loading", "app"),
+      entry("changelog.5_0_0.changed.app.hints_trim", "app"),
       entry("changelog.5_0_0.changed.app.popups_off_default", "app"),
     ],
     fixed: [

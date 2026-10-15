@@ -131,10 +131,7 @@ export function FeedTab({
           </Button>
         ))}
         {friendIds.length > 0 && (
-          <label
-            className="windows95-text ml-auto flex items-center gap-1 text-xs select-none"
-            title={t("anilist.activity.friends.hint")}
-          >
+          <label className="windows95-text ml-auto flex items-center gap-1 text-xs select-none">
             <Checkbox checked={includeFriends} onChange={setIncludeFriends} />
             {t("anilist.activity.include.friends")}
           </label>

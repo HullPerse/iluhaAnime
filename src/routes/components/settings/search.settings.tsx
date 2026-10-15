@@ -347,7 +347,6 @@ export default function SettingsSearch() {
                 onChange={(e) => patchSettings({ pageSize: Number(e.target.value) })}
                 className="w-16"
               />
-              <span className="text-hint text-[12px]">{t("settings.search.page.size.hint")}</span>
             </div>
 
             <span className="windows95-text text-text text-xs font-bold">
@@ -362,9 +361,6 @@ export default function SettingsSearch() {
                 onChange={(e) => patchSettings({ anilistMaxPages: Number(e.target.value) })}
                 className="w-16"
               />
-              <span className="text-hint text-[12px]">
-                {t("settings.search.anilist.max.pages.hint")}
-              </span>
             </div>
           </div>
 

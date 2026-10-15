@@ -32,8 +32,7 @@ const common = {
   "splash.win7.brand": "Starting Windows",
   "splash.win7.copyright": "HullPerse Corporation",
   "db.title": "Database error",
-  "db.hint":
-    "The app data database cannot be opened. Your media files are safe, only the library data is affected.",
+  "db.hint": "Database cannot be opened. Media files are safe.",
   "db.details": "Details",
   "db.retry": "Retry check",
   "db.reload": "Reload app",

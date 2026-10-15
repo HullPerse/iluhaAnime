@@ -38,8 +38,7 @@ const torrent = {
   "torrent.create.files": "Files in the torrent: {{count}}",
   "torrent.create.folder": "Folder with the files:",
   "torrent.create.hash": "Info-hash:",
-  "torrent.create.hint":
-    "The folder becomes the torrent root and is seeded in place: the files stay where they are, nothing is copied and nothing is downloaded again.",
+  "torrent.create.hint": "Folder is seeded in place, files stay where they are.",
   "torrent.create.link": "App link:",
   "torrent.create.save": "Save .torrent",
   "torrent.create.title": "Create torrent",
@@ -120,11 +119,10 @@ const torrent = {
     "The files changed on disk while the torrent was paused; re-verified from disk ({{ok}}/{{total}} in place)",
   "torrent.resume.external.title": "Files changed on disk",
   "torrent.paused.external": "Files changed outside the app",
-  "torrent.paused.external.hint":
-    "While the torrent was paused another client wrote to these files; resuming will re-verify them from disk",
+  "torrent.paused.external.hint": "Another client changed the files, resume re-verifies them.",
   "torrent.paused.recheck": "Recheck now",
   "torrent.external.changed": "Files changed on disk",
-  "torrent.external.hint": "Another program changed these files; recheck to re-verify them from disk",
+  "torrent.external.hint": "Changed outside the app, recheck them from disk",
   "torrent.external.recheck": "Recheck now",
   "torrent.problem.missing": "Files are gone from disk",
   "torrent.problem.noAccess": "Cannot write to the save folder",
@@ -158,8 +156,6 @@ const torrent = {
   "torrent.queue.drag": "Drag to reorder",
   "torrent.queue.title": "Download queue",
   "torrent.queue.button": "Queue",
-  "torrent.queue.hint":
-    "Drag the files, or move them with the arrows, to set the sequential download order.",
   "torrent.queue.empty": "No files selected. Check the files to download in the list first.",
   "torrent.queue.reset": "Reset order",
   "torrent.queue.save": "Save order",

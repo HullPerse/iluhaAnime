@@ -116,7 +116,6 @@ const collection = {
   "collection.wizard.details": "Details",
   "collection.wizard.cover": "Cover",
   "collection.wizard.local": "Local",
-  "collection.wizard.manual.hint": "Manual entry - fill details in next step.",
   "collection.wizard.search.anilist": "Search AniList...",
   "collection.wizard.search.tmdb": "Search TMDB...",
   "collection.wizard.search.results": "{{count}} results",
@@ -146,7 +145,6 @@ const collection = {
   "collection.wizard.paste.url": "Paste image URL",
   "collection.wizard.placeholder.cover": "Placeholder with text",
   "collection.wizard.cover.required": "Cover is required to save.",
-  "collection.wizard.local.hint": "Link a file or folder for your player.",
   "collection.wizard.no.file.linked": "No file linked",
   "collection.wizard.file": "File",
   "collection.wizard.folder": "Folder",
@@ -202,7 +200,6 @@ const collection = {
   "collection.status.manager.core": "core",
   "collection.status.manager.core.title": "Built-in",
   "collection.status.manager.custom.title": "Custom",
-  "collection.status.manager.delete.hint": "Delete status",
   "collection.status.manager.delete.note":
     "Deleting a custom status moves its items back to Planned, while a public status takes its imported titles with it. Core statuses cannot be deleted.",
   "collection.status.manager.new": "New status",

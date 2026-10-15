@@ -171,7 +171,6 @@ export function TorrentQueueModal({
   return (
     <Modal header={t("torrent.queue.title")} onClose={onClose} className="w-xl">
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="windows95-text text-hint">{t("torrent.queue.hint")}</span>
         {rows.length === 0 ? (
           <span className="windows95-text text-hint py-1" data-testid="torrent-queue-empty">
             {t("torrent.queue.empty")}

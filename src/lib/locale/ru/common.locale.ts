@@ -32,8 +32,7 @@ const common = {
   "splash.win7.brand": "Starting Windows",
   "splash.win7.copyright": "HullPerse Corporation",
   "db.title": "Ошибка базы данных",
-  "db.hint":
-    "База данных приложения не открывается. Медиафайлы целы, затронуты только данные библиотеки.",
+  "db.hint": "База не открывается. Медиафайлы целы.",
   "db.details": "Подробности",
   "db.retry": "Проверить снова",
   "db.reload": "Перезапустить",

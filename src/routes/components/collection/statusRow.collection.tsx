@@ -86,7 +86,6 @@ export function StatusRow({
             size="icon"
             variant="destructive"
             aria-label={`${t("common.delete")} ${status.label}`}
-            title={t("collection.status.manager.delete.hint")}
             className="size-6"
             onClick={(e) => {
               if (e.currentTarget.ownerDocument.activeElement instanceof HTMLInputElement) {

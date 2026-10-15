@@ -32,7 +32,6 @@ export function WizardLocalPanel({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        <span className="text-hint shrink-0 text-xs">{t("collection.wizard.local.hint")}</span>
         <input
           value={localPath}
           readOnly

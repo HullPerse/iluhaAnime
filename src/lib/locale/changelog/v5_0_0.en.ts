@@ -335,6 +335,8 @@ const changelog500 = {
     "The update notice waits until all dialogs are closed",
   "changelog.5_0_0.changed.app.button_loading":
     "Buttons show a loading spinner while the action runs",
+  "changelog.5_0_0.changed.app.hints_trim":
+    "Shorter helper hints across the app: self-evident ones removed, the rest kept to one short line",
   "changelog.5_0_0.fixed.anilist.deeplink_stack":
     "Anime links no longer open details over an already open window",
   "changelog.5_0_0.added.app.keybind_titles":

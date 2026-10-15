@@ -121,7 +121,6 @@ const collection = {
   "collection.wizard.details": "Данные",
   "collection.wizard.cover": "Обложка",
   "collection.wizard.local": "Локально",
-  "collection.wizard.manual.hint": "Ручной ввод - данные на следующем шаге.",
   "collection.wizard.search.anilist": "Искать в AniList...",
   "collection.wizard.search.tmdb": "Искать в TMDB...",
   "collection.wizard.search.results": "Найдено: {{count}}",
@@ -151,7 +150,6 @@ const collection = {
   "collection.wizard.paste.url": "Вставить URL картинки",
   "collection.wizard.placeholder.cover": "Плейсхолдер с текстом",
   "collection.wizard.cover.required": "Обложка обязательна для сохранения.",
-  "collection.wizard.local.hint": "Привяжите файл или папку для плеера.",
   "collection.wizard.no.file.linked": "Файл не привязан",
   "collection.wizard.file": "Файл",
   "collection.wizard.folder": "Папка",
@@ -207,7 +205,6 @@ const collection = {
   "collection.status.manager.core": "базовый",
   "collection.status.manager.core.title": "Встроенные",
   "collection.status.manager.custom.title": "Свои",
-  "collection.status.manager.delete.hint": "Удалить статус",
   "collection.status.manager.delete.note":
     'При удалении кастомного статуса его позиции вернутся в "Запланировано", а публичный статус удалится вместе со своими тайтлами. Базовые статусы удалить нельзя.',
   "collection.status.manager.new": "Новый статус",

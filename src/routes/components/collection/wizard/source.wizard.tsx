@@ -50,9 +50,7 @@ export function WizardSourcePanel({
         ))}
         {source === "tmdb" && <TmdbBadge />}
       </div>
-      {source === "custom" ? (
-        <p className="text-hint text-xs">{t("collection.wizard.manual.hint")}</p>
-      ) : (
+      {source === "custom" ? null : (
         <WizardSourceSearch
           source={source}
           search={search}

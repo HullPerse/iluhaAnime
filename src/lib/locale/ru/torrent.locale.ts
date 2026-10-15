@@ -31,8 +31,7 @@ const torrent = {
   "torrent.create.files": "Файлов в торренте: {{count}}",
   "torrent.create.folder": "Папка с файлами:",
   "torrent.create.hash": "Хеш:",
-  "torrent.create.hint":
-    "Папка становится корнем торрента и раздаётся на месте: файлы остаются где лежат, ничего не копируется и не скачивается заново.",
+  "torrent.create.hint": "Папка раздаётся на месте, файлы остаются где лежат.",
   "torrent.create.link": "Ссылка на приложение:",
   "torrent.create.save": "Сохранить .torrent",
   "torrent.create.title": "Создание торрента",
@@ -120,11 +119,10 @@ const torrent = {
     "Файлы изменились на диске, пока торрент стоял на паузе; проверено заново с диска ({{ok}}/{{total}} на месте)",
   "torrent.resume.external.title": "Файлы изменились на диске",
   "torrent.paused.external": "Файлы изменились извне приложения",
-  "torrent.paused.external.hint":
-    "Пока торрент стоял на паузе, другой клиент писал в эти файлы; при продолжении они будут проверены с диска заново",
+  "torrent.paused.external.hint": "Другой клиент менял файлы, продолжение их перепроверит.",
   "torrent.paused.recheck": "Проверить сейчас",
   "torrent.external.changed": "Файлы изменены на диске",
-  "torrent.external.hint": "Другая программа изменила эти файлы; перепроверьте их с диска",
+  "torrent.external.hint": "Изменены вне приложения, перепроверьте с диска",
   "torrent.external.recheck": "Проверить сейчас",
   "torrent.problem.missing": "Файлы пропали с диска",
   "torrent.problem.noAccess": "Нет записи в папку сохранения",
@@ -158,8 +156,6 @@ const torrent = {
   "torrent.queue.drag": "Перетащите, чтобы изменить порядок",
   "torrent.queue.title": "Очередь скачивания",
   "torrent.queue.button": "Очередь",
-  "torrent.queue.hint":
-    "Перетащите файлы или поднимите их стрелками: так задаётся порядок последовательного скачивания.",
   "torrent.queue.empty": "Не выбрано ни одного файла. Сначала отметьте то, что нужно скачать.",
   "torrent.queue.reset": "Сбросить порядок",
   "torrent.queue.save": "Сохранить порядок",

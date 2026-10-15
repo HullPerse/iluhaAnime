@@ -194,9 +194,6 @@ const FIND_GROUPS: readonly FindGroup[] = [
       "settings.notifications.popups.system",
       "settings.notifications.popups.inapp",
       "settings.notifications.popups.both",
-      "settings.notifications.popups.preview",
-      "settings.notifications.popups.preview.title",
-      "settings.notifications.popups.preview.body",
     ],
   },
   {

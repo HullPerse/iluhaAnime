@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
@@ -16,7 +16,6 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { ignore } from "@/lib/utils/promise.utils";
 import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/anilist.store";
-import { addNotification } from "@/store/notification.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { NotificationPopupMode } from "@/types/settings";
 
@@ -42,8 +41,6 @@ function NotifyRow({
 export default function SettingsNotifications() {
   const { t } = useI18n();
   const notificationPopups = useCell(settingsAtoms.notificationPopups);
-  const inAppPreview = notificationPopups === "inapp" || notificationPopups === "both";
-  const previewCount = useRef(0);
   const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
   const notifyNewEpisodes = useCell(settingsAtoms.notifyNewEpisodes);
   const notifyStatusChanges = useCell(settingsAtoms.notifyStatusChanges);
@@ -108,21 +105,6 @@ export default function SettingsNotifications() {
               }))}
               className="w-48"
             />
-            <Button
-              className="h-6 px-1.5 text-xs"
-              disabled={!inAppPreview}
-              onClick={() => {
-                previewCount.current += 1;
-                addNotification(
-                  t("settings.notifications.popups.preview.title"),
-                  "info",
-                  `${t("settings.notifications.popups.preview.body")} #${previewCount.current}`,
-                  `toast-preview:${previewCount.current}`
-                );
-              }}
-            >
-              {t("settings.notifications.popups.preview")}
-            </Button>
           </label>
         </div>
       </section>

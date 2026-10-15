@@ -439,9 +439,6 @@ function TorrentRoute() {
   const { files: torrentFilesMap, errors: torrentFilesErrors, requestRefresh } =
     useTorrentFilesMap(visibleIds, 5000, expandedIds);
 
-  // Watcher parity for the torrent list itself: a change inside a torrent's
-  // save dir refreshes just that torrent's files instead of waiting for the
-  // 5-second batch sweep. Active downloads still poll as a fallback.
   useFolderContentChanged(
     (payload) => {
       const ids = new Set<number>();

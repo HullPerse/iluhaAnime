@@ -64,8 +64,6 @@ export function orderCardPaths(paths: string[], activePath: string): string[] {
     if (after < unique.length) {
       ordered.push(unique[after]);
     }
-    // distance 0 addresses the origin twice; every other pair is disjoint
-    // by construction, so no includes() scan is needed here.
     if (distance === 0 || before < 0) continue;
     ordered.push(unique[before]);
   }
@@ -115,13 +113,6 @@ export function scheduleCardPrefetch(paths: string[], activePath: string): void 
   });
 }
 
-/**
- * Immediate playlist neighbors of the active file (prev/next only, max 2).
- * The backend playlist index wins when it points at the active file: path
- * search takes the first match, so a duplicated path or a repeated basename
- * in another folder resolves to the wrong slot. Falls back to the old
- * deduped path search when the index is unknown or stale.
- */
 export function neighborCardPaths(paths: string[], activePath: string, activeIndex = -1): string[] {
   if (
     activeIndex >= 0 &&

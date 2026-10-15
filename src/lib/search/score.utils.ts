@@ -250,7 +250,6 @@ export function fuzzyMatchScorePreNormalized(
   normalizedQuery: string,
   normalizedCandidate: string,
   queryWords: string[] = normalizedQuery.split(" "),
-  // Hot paths must pass pre-split title words: the default allocates per call.
   targetWords?: string[]
 ): number | null {
   if (!normalizedQuery || !normalizedCandidate) return null;

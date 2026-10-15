@@ -7,26 +7,16 @@ import { VIM_MOTION_KEYS } from "@/config/keyboard/vim.config";
 
 import { chordKey, parseChord } from "./chord.hotkeys";
 
-/** A user override: a replacement chord, or null to unbind the entry. */
 export type KeybindOverride = string | null;
 
 export interface ResolvedKeybind {
   entry: KeybindManifestEntry;
-  /** The chord that actually fires, or null when unbound. */
   activeChord: string | null;
-  /** The contested chord to show muted when shadowed, else null. */
   shadowedChord: string | null;
-  /** The entry id that took the chord, when shadowed. */
   shadowedBy: string | null;
   overridden: boolean;
 }
 
-/**
- * Single-stroke sequence prefixes are reserved: binding a bare prefix stroke
- * would trap it in the prefix state forever (the engine has no timers), so
- * such overrides are dropped with the default kept. `gg` itself is not in
- * the manifest and can never be overridden.
- */
 const RESERVED_PREFIX_CODES: readonly string[] = [VIM_MOTION_KEYS.firstPrefix];
 
 function isUsableChord(chord: string): boolean {
@@ -43,15 +33,6 @@ function chordIdentity(scope: KeybindScope, chord: string): string | null {
   return parsed ? `${scope}:${chordKey(parsed)}` : null;
 }
 
-/**
- * Applies user overrides onto the manifest. Order is manifest order, then
- * overrides in object order: for one scope+chord the later row wins and the
- * loser falls back to its own default when that default is different and
- * still free, otherwise it goes unbound. Unknown entry ids, unparsable
- * chords and reserved prefix strokes drop the override and keep the default.
- * The returned active chords are collision-free per scope, so registries can
- * be built straight from them.
- */
 export function resolveKeybinds(overrides: Record<string, KeybindOverride>): ResolvedKeybind[] {
   const rows: {
     entry: KeybindManifestEntry;
@@ -86,9 +67,6 @@ export function resolveKeybinds(overrides: Record<string, KeybindOverride>): Res
     if (previous) shadowedBy.set(previous, row.entry.id);
     winners.set(identity, row);
   };
-  // Phase 1: defaults establish the base in manifest order. Phase 2: user
-  // overrides apply in object order on top, so an override always beats a
-  // default and recency decides between overrides.
   for (const row of rows) {
     if (row.overridden || row.finalChord === null) continue;
     const identity = chordIdentity(row.entry.scope, row.finalChord);
@@ -115,9 +93,6 @@ export function resolveKeybinds(overrides: Record<string, KeybindOverride>): Res
         overridden: row.overridden,
       };
     }
-    // The loser's own default stays live when it differs from the contested
-    // chord and nothing took it; manifest defaults are unique per scope, so
-    // two losers can never fall back onto each other.
     const defaultIdentity =
       row.defaultChord !== row.finalChord ? chordIdentity(row.entry.scope, row.defaultChord) : null;
     const fallback =
@@ -132,10 +107,6 @@ export function resolveKeybinds(overrides: Record<string, KeybindOverride>): Res
   });
 }
 
-/**
- * Collision-free chord map for one scope, ready for registry building:
- * chord key to the entry id that owns it. Unbound and shadowed rows are out.
- */
 export function resolveScopeChords(
   scope: KeybindScope,
   overrides: Record<string, KeybindOverride>

@@ -278,9 +278,7 @@ describe("ProgressStepper coalescing", () => {
       const plus = screen.getByRole("button", { name: "Watch one more episode" });
       fireEvent.click(plus);
       fireEvent.click(plus);
-      // The overlay drives the number right away...
       expect(screen.getByText("22/28")).toBeTruthy();
-      // ...while the cache still holds the last confirmed server value.
       const before = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
         "anilist_data",
       ]);
@@ -317,8 +315,6 @@ describe("ProgressStepper coalescing", () => {
       }>(["anilist_data"]);
       expect(data?.lists[0].entries[0].progress).toBe(28);
       expect(data?.lists[0].entries[0].list_status).toBe("COMPLETED");
-      // The overlay is dropped once the cache holds the confirmed value, so the
-      // card falls back to the (now correct) server entry.
       expect(anilistProgressOverride.get(MEDIA_ID)).toBeNull();
     } finally {
       vi.useRealTimers();
@@ -352,7 +348,6 @@ describe("ProgressStepper coalescing", () => {
         rejecters[0]?.(new Error("429 Too Many Requests"));
         await Promise.resolve();
       });
-      // Superseded failure: the newer value stays and no rollback/retry shows.
       expect(screen.getByText("22/28")).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
       await act(async () => {

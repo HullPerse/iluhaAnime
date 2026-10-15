@@ -22,13 +22,11 @@ function sorted(entries: VideoFileEntry[]): string[] {
   return entries.map((file) => file.path).sort();
 }
 
-/** Walk that yields two files per requested root, one of them nested. */
 const walkEveryRoot: ScanExecutors["walk"] = vi.fn(
   async (roots: string[], _extensions: string[], _threads: number) =>
     roots.flatMap((root) => [entry(`${root}/ep1.mkv`), entry(`${root}/Season 2/ep2.mkv`)])
 );
 
-/** Point update that reports every upserted path back as a fresh entry. */
 const patchUpserts: ScanExecutors["patch"] = vi.fn(
   async (upserts: string[], _removals: string[], _extensions: string[], _threads: number) =>
     upserts.map((path) => entry(path))

@@ -17,17 +17,12 @@ import type { Anime, TorrentView } from "@/types/torrent";
 
 import { MetaItem } from "./meta.details";
 
-/** Remote posters (anything but the app asset host) also offer the URL copy:
- *  an asset URL or a data URL in the clipboard helps nobody. */
 const POSTER_COPY_URL_RE = /^https?:\/\/(?!asset\.localhost)/i;
 
 function canCopyPosterUrl(poster: string): boolean {
   return POSTER_COPY_URL_RE.test(poster);
 }
 
-/** Normalizes any poster source (cached asset file, remote URL, data URL)
- *  to PNG bytes through the browser decoders, so the backend only ever sees
- *  PNG or JPEG and never a format it cannot verify. */
 async function posterPngBlob(src: string): Promise<Blob> {
   const response = await fetch(src);
   if (!response.ok) throw new Error(`poster fetch failed: ${response.status}`);
@@ -74,8 +69,6 @@ export default function DetailsHero({
 }) {
   const { t } = useI18n();
 
-  // The menu below renders only for a real poster, so every handler rechecks
-  // instead of trusting the JSX guard above.
   const posterSrc: string | null = hidePoster ? null : poster;
 
   const copyPosterUrl = (): void => {

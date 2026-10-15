@@ -168,9 +168,6 @@ const SharePayloadSchema = z.object({
   items: z.array(ShareItemSchema).check(z.minLength(1), z.maxLength(SHARE_MAX_ITEMS)),
 });
 
-// The payload arrives from a link the user clicked, so the shape gate and the
-// caps live in the schema; the id, year and url rules stay in the normalizers
-// because an invalid value there is dropped, not rejected.
 const CompiledSharePayload = z.compile(SharePayloadSchema);
 
 interface ByteTransform {

@@ -2,10 +2,6 @@ import { Fragment } from "react";
 
 import { splitChordParts } from "@/lib/hotkeys/chord.hotkeys";
 
-/**
- * Renders a chord as one raised chip per part, joined with `+` text, e.g.
- * `[Alt] + [1]`. Falls back to the raw string when the chord does not parse.
- */
 export function ChordChips({ chord }: { chord: string }) {
   const parts = splitChordParts(chord);
   if (!parts) {

@@ -293,9 +293,6 @@ describe("result utils additions", () => {
   it("does not leak an unhandled rejection when the timeout wins", async () => {
     const result = await withTimeout(Promise.reject(new Error("slow failure")), 0);
     expect(result.ok).toBe(false);
-    // The losing promise rejects after the timeout already returned. Two
-    // macrotask turns give the runtime the chance to report it as unhandled,
-    // which fails this file, so reaching the assertion is the contract.
     await flush();
     await flush();
     expect(result.ok).toBe(false);

@@ -59,9 +59,6 @@ describe("assignLabels", () => {
     expect(assignLabels(5, "abc", 2)).toEqual(["aa", "ab", "ac", "ba", "bb"]);
   });
 
-  // vimium-c grows the label length for the whole run at once. A mixed run
-  // would leave `a` unreachable next to `aa`: typing `a` has to wait for the
-  // second keystroke, and `aa` is the only label that can be completed.
   it("grows the whole run to two characters at once", () => {
     expect(assignLabels(4, "abc", 2)).toEqual(["aa", "ab", "ac", "ba"]);
     expect(assignLabels(4, "abc", 2).every((label) => label.length === 2)).toBe(true);
@@ -139,9 +136,6 @@ describe("scanHintTargets", () => {
   });
 
   it("skips visually hidden 1x1 controls parked at the origin", () => {
-    // Base UI renders one of these per checkbox and per select: a non-zero
-    // rect, hidden by `clip-path`, which `checkVisibility` still calls visible.
-    // Left in, each one earned a badge stacked at the top-left corner.
     const hidden = el("input", { top: 0, left: 0, right: 1, bottom: 1, width: 1, height: 1 });
     hidden.setAttribute("type", "checkbox");
     hidden.setAttribute("aria-hidden", "true");
@@ -198,10 +192,6 @@ describe("scanHintTargets", () => {
   });
 
   it("drops an absolute target outside a static overflow container", () => {
-    // A scroll/overflow container clips absolute descendants: the old reading
-    // of CSS 2.1 11.1.1 only holds for `overflow: visible` ancestors, which
-    // never reach the clip test at all. This is the resized-folder case, where
-    // virtual rows below the visible box earned badges over empty space.
     const pane = box(document.createElement("div"), {
       top: 400,
       bottom: 500,
@@ -307,8 +297,6 @@ describe("scanHintTargets", () => {
   });
 
   it("labels the marked content region before the chrome", () => {
-    // DOM order puts the chrome first; the run has to follow the content
-    // marker instead, or the short tier never reaches the cards.
     const chrome = el("button", { top: 10, left: 10, bottom: 30, right: 60, width: 50, height: 20 });
     const panel = document.createElement("div");
     panel.dataset.scrollRoot = "";
@@ -334,8 +322,6 @@ describe("scanHintTargets", () => {
 
     const { badges } = scanHintTargets(document.body, { alphabet: "abc", maxLabelLength: 2 });
     expect(badges.map((badge) => badge.element)).toEqual([firstCard, secondCard, chrome]);
-    // Uniform length for the run, with the chrome last in it: the short tier
-    // belongs to the cards even though the tab bar comes first in the DOM.
     expect(badges.map((badge) => badge.label)).toEqual(["a", "b", "c"]);
   });
 
@@ -592,8 +578,6 @@ describe("hintLayoutsEqual", () => {
 });
 
 describe("reduceHintKey", () => {
-  // `f` is also the prefix of `fj`, exactly the case the user hit: a control
-  // labelled `f` used to fire while they were still typing `fm`.
   const ambiguous: HintBadge[] = [
     { element: {} as HTMLElement, label: "f", variant: "plain" },
     { element: {} as HTMLElement, label: "fj", variant: "ctrl" },

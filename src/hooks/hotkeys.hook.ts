@@ -40,19 +40,10 @@ export function useHotkeys<TId extends string>(
   }, [signature]);
 }
 
-/** A hotkey def pinned to a manifest entry, so its chord follows rebinds. */
 export interface ResolvedHotkeyDef<TId extends string = string> extends HotkeyDef<TId> {
   keybindId: string;
 }
 
-/**
- * Drop-in `useHotkeys` that resolves each def's chord through the keybind
- * overrides: an overridden entry fires on its new chord, an unbound one is
- * left out (and unsubscribed). Untouched entries keep their own chord, so
- * physical aliases sharing one manifest id (arrows + letters) both survive
- * until a rebind collapses them. Local ids survive untouched, so `onAction`
- * keeps working exactly as before.
- */
 export function useResolvedHotkeys<TId extends string>(
   defs: readonly ResolvedHotkeyDef<TId>[],
   options: UseHotkeysOptions<TId>
@@ -64,8 +55,6 @@ export function useResolvedHotkeys<TId extends string>(
     const out: HotkeyDef<TId>[] = [];
     for (const def of defs) {
       const row = byId.get(def.keybindId);
-      // No row (or a pristine one): the def's own chord stands, aliases
-      // included. Only overridden or shadowed rows reroute.
       if (!row || (!row.overridden && !row.shadowedBy)) {
         out.push({ id: def.id, chord: def.chord, repeat: def.repeat });
         continue;

@@ -53,9 +53,6 @@ function PlayerModal({
           if (event.target === event.currentTarget) onClose();
         }}
         onCancel={(event) => {
-          // A select popup open inside the dialog (see Select) handles its
-          // own Escape-to-close; letting the event through would cancel the
-          // whole native dialog as a side effect.
           if (
             event.target instanceof HTMLElement &&
             event.target.querySelector('[role="listbox"]')

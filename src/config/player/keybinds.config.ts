@@ -43,7 +43,6 @@ export type KeybindAction =
   | "playlistDown"
   | "playlistUp"
   | "playlistActivate"
-  // Ten entries, one per bare digit: `seekPercent5` jumps to 50%.
   | `seekPercent${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
 
 export interface KeybindDef {
@@ -60,7 +59,6 @@ export const OFFSET_STEP = 0.5;
 export const OFFSET_STEP_FINE = 0.05;
 export const OFFSET_LIMIT = 300;
 
-/** Bare `0`..`9` jump to 0%..90% of the file, MPC-style. */
 function percentEntries(): KeybindDef[] {
   return DIGIT_KEYS.map((digit) => ({
     action: `seekPercent${digit}`,
@@ -371,8 +369,6 @@ export const KEYBINDS: KeybindDef[] = [
     description: "player.media.key.seek.end",
     category: "playback",
   },
-  // Only act while the playlist panel is open (see `onKeyboardAction`), so the
-  // arrows keep meaning seek and volume everywhere else.
   {
     action: "playlistDown",
     chord: "KeyJ",

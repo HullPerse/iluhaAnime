@@ -35,9 +35,7 @@ export function PlayerFileActions({
   onUpscaleDone?: () => void;
   onPlay?: (path: string, name: string) => void;
   onOpenInApp?: (fullPath: string) => void;
-  /** Same meaning as the folder player row: audio/subtitle sidecar. */
   track?: boolean;
-  /** AniList name search, like the folder player search icon. */
   onSearch?: () => void;
 }) {
   const { t } = useI18n();

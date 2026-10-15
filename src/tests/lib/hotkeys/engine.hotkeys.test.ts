@@ -228,9 +228,6 @@ describe("vim engine count buffer", () => {
   });
 
   it("resyncs onto an externally cleared count (no 22 after 2-motion)", () => {
-    // Prod wiring: onCount writes the store, getCount reads it back, and row
-    // motions clear the store directly. The next digit must start from the
-    // cleared store, not from the engine's stale tail.
     let store = "";
     const onCount = vi.fn<(count: string) => void>((next) => {
       store = next;
@@ -351,8 +348,6 @@ describe("vim engine surface yield", () => {
   });
 
   it("buffers digits on an owned button (tree-folder rows are buttons)", () => {
-    // Folder rows are real <button>s, which the shared filter excludes - the
-    // tree owns them via isOwner, so counts work there too.
     const onCount = vi.fn<(count: string) => void>();
     setupWithCount(onCount, (target) => target instanceof HTMLElement);
     const button = document.createElement("button");
@@ -365,9 +360,6 @@ describe("vim engine surface yield", () => {
   });
 });
 
-// Section 13.1 of `vim-mode.md`: a modal marks itself hotkey-disabled (that is
-// what keeps global shortcuts out of it), but it is exactly where hints should
-// work - scoped to the layer instead of the page behind it.
 describe("vim engine layer ownership", () => {
   function modalLayer(): { layer: HTMLElement; inside: HTMLElement } {
     const layer = document.createElement("div");

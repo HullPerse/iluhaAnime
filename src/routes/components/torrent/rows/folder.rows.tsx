@@ -25,7 +25,6 @@ export function FolderRow({
   files: TorrentFileInfo[];
   isOpen: boolean;
   type: "torrent" | "player";
-  /** Stable row identity for the movement ring (matches the section's open key). */
   treePath: string;
   onToggleFolder: () => void;
   onToggleSelection?: (indices: number[], target: boolean) => void;

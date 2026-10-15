@@ -5,8 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { mockOpenPath } from "../../mocks";
 
-// The real virtualizer measures a zero-height scroll element in jsdom and
-// renders no rows at all, so it is stubbed with the identity mapping.
 vi.mock("@tanstack/react-virtual", () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
     getTotalSize: () => count * 20,
@@ -131,8 +129,6 @@ describe("FolderView tree arrows", () => {
 
     pressKey("ArrowRight", root);
 
-    // The tree renders a folder's files before its subfolders, so the first
-    // child of the root is its episode, not `Season 1`.
     expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe(
       "D:/Anime/ep1.mkv"
     );
@@ -170,8 +166,6 @@ describe("FolderView tree arrows", () => {
   });
 });
 
-// Section 13.2 of `vim-mode.md`: a fully expanded tree must stay reachable
-// without a tab stop per row, so the movement keys walk folder *and* file rows.
 describe("FolderView row movement", () => {
   function fileRow(name: string): HTMLElement {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
@@ -286,8 +280,6 @@ describe("FolderView flat folders", () => {
   });
 });
 
-// Counts ride the engine buffer; the movement itself is the tree's job, so a
-// buffered count must step that many flat rows (siblings or not).
 describe("FolderView count steps", () => {
   const FOUR: FolderNode = {
     name: "video",
@@ -472,8 +464,6 @@ describe("FolderView file menu", () => {
     const target = file.querySelector<HTMLElement>("[data-tree-activate]");
     if (!target) throw new Error("activation target missing");
 
-    // The capture intercept preventDefaults (dispatch reports it) and stops
-    // propagation, so the trigger never fires and no menu state is scheduled.
     expect(fireEvent.contextMenu(target, { ctrlKey: true })).toBe(false);
     expect(screen.queryAllByRole("menuitem")).toHaveLength(0);
   });

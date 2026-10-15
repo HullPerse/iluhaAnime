@@ -50,7 +50,6 @@ const SCROLL_DIRECTIONS: Record<VimCommand, ScrollDirection | null> = {
   "edge.bottom": null,
 };
 
-/** Only the detached player window keeps its own keys; the player tab route joins vim mode. */
 function isPlayerWindow(pathname: string): boolean {
   return pathname === PLAYER_ROUTE;
 }
@@ -60,8 +59,6 @@ function letterFromCode(code: string): string | null {
   return match ? match[1].toLowerCase() : null;
 }
 
-/** Manifest entry per single-stroke engine command. `first` resolves through
- *  the fixed `gg` sequence and stays out. */
 const VIM_COMMAND_KEYBINDS: Record<Exclude<VimCommand, "first">, string> = {
   hints: "vim.hints",
   "scroll.down": "vim.scroll.down",
@@ -85,16 +82,11 @@ export function useVimMode(): void {
     stateRef.current = { vimMode, pathname, overrides };
   }, [vimMode, pathname, overrides]);
 
-  // Leaving the mode or entering the detached player window must not leave a
-  // stale hint layer (and its overlay entry) behind.
   useEffect(() => {
     if (vimMode && !isPlayerWindow(pathname)) return;
     closeLayerRef.current();
   }, [vimMode, pathname]);
 
-  // A route change is a navigation: hints never survive it (vimium-c drops
-  // the mode on unload; the SPA equivalent is the pathname changing under
-  // an open layer, e.g. clicking a tab with the mouse while hints are open).
   const prevPathnameRef = useRef(pathname);
   useEffect(() => {
     if (prevPathnameRef.current === pathname) return;
@@ -131,9 +123,6 @@ export function useVimMode(): void {
       }
       dispatchClick(badge.element, badge.variant);
       flashTarget(badge.element);
-      // A real click moves focus; a synthesized one does not. Without this
-      // the ring keys and resize chords stay dead after a hint activation on
-      // a tree row, because they all resolve from the focused row.
       const row =
         badge.element instanceof HTMLElement
           ? (badge.element.closest("[data-tree-row]") as HTMLElement | null)
@@ -176,8 +165,6 @@ export function useVimMode(): void {
     const scroll = (command: VimCommand): void => {
       const direction = SCROLL_DIRECTIONS[command];
       if (!direction) return;
-      // An open layer owns the keyboard, and modal content opts out of key and
-      // wheel scrolling (`data-no-wheel`), so the page behind it stays put.
       if (topLayerElement()) return;
       const surface = resolveSurface();
       if (!surface) return;
@@ -185,13 +172,7 @@ export function useVimMode(): void {
     };
 
     const openLayer = (): void => {
-      // A context menu left open would sit above the hint layer and eat the
-      // clicks the badges promise, so F always dismisses menus first. The
-      // scan below then sees the page without them.
       closeOpenContextMenus();
-      // With a dialog or menu up, only that layer is scanned: a badge for a
-      // control behind it would be unreachable and the label space (361) is
-      // shared with the page it is covering.
       const { badges, overflow } = scanHintTargets(topLayerElement() ?? document);
       if (badges.length === 0) return;
       openHints(badges, overflow);
@@ -230,13 +211,6 @@ export function useVimMode(): void {
     engine = createVimEngine({
       isEnabled: () => stateRef.current.vimMode,
       isExcludedRoute: () => isPlayerWindow(stateRef.current.pathname),
-      // Read live, not captured: the layer opens and closes while the engine
-      // stays attached.
-      // Tree rows are owned too: folder rows are real <button>s, which the
-      // shared filter would otherwise exclude - and that split is what left
-      // folders and files understanding different key subsets (no counts or
-      // gg/G on folders, no j/k on files). The j/k yield below keeps the row
-      // handlers behind this capture listener alive.
       isOwner: (target) =>
         isInsideLayer(target, topLayerElement()) ||
         (target instanceof HTMLElement && target.closest(TREE_ROW_SELECTOR) !== null),
@@ -265,8 +239,6 @@ export function useVimMode(): void {
           return;
         }
         if (command === "scroll.down" || command === "scroll.up") {
-          // Tree rows own j/k for ring movement (with counts); the engine
-          // stays out so the row handlers behind it still fire.
           if (treeRowFromEvent(event)) return;
           scroll(command);
           return;
@@ -291,9 +263,6 @@ export function useVimMode(): void {
     });
     closeLayerRef.current = closeLayer;
 
-    // Escape hatch for focused controls: typing targets swallow vim chords,
-    // so Escape drops focus back to the page where F works again. Layers and
-    // hint runs keep priority - this never steals their Escape.
     const blurOnEscape = (event: KeyboardEvent): void => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (
@@ -311,19 +280,11 @@ export function useVimMode(): void {
     engine.attach();
     window.addEventListener("pointerover", trackPointer, true);
     window.addEventListener("keydown", blurOnEscape, true);
-    // Click-away: any mouse button (left/middle/right) while a hint run is
-    // open dismisses the layer. The overlay is pointer-events-none, so the
-    // click still reaches the underlying control - the mode just gets out
-    // of the way. No preventDefault/stopPropagation: the target must fire normally.
-    // Synthetic activation emits `click`, not `pointerdown`, so keyboard
-    // activation never trips this.
     const dismissOnPointer = (): void => {
       if (engine?.state() !== "hints") return;
       closeLayer();
     };
     window.addEventListener("pointerdown", dismissOnPointer, true);
-    // WebView2 may not deliver pointerdown for the right button; the menu
-    // itself still dismisses the layer.
     window.addEventListener("contextmenu", dismissOnPointer, true);
 
     return () => {

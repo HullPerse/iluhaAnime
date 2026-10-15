@@ -517,7 +517,6 @@ describe("player/playback options", () => {
     expect(options["vf"]).toBe("");
     expect(options["sub-font-size"]).toBe(55);
     expect(options["sub-font"]).toBe("Arial");
-    // Subtitles must never use the video margins: those are the UI bars.
     expect(options["sub-use-margins"]).toBe(false);
     expect(options["sub-ass-force-margins"]).toBe(false);
     const filtered = transformOptions(settings({ flipH: true, blur: 5 }));

@@ -42,8 +42,6 @@ function entry(
   );
 }
 
-// Titles mirror the real library (D:\Anime & Movies) and AniList shapes:
-// romaji variants, single-letter glue words, punctuation, digits, arcs.
 const INDEX: SearchAnimeSuggestion[] = [
   entry(1, "Frieren: Beyond Journey's End", "Sousou no Frieren", undefined, {
     kind: "alias",
@@ -235,7 +233,6 @@ describe("search/didyoumean season siblings", () => {
     expect(
       resolveTitleQuery("Gekijouban Kimetsu no Yaiba Mugen Ressha Hen", { animeIndex: movies })[0]
     ).toMatchObject({ animeId: 25 });
-    // No typo, so did-you-mean stays silent: the live search resolves it.
     expect(
       suggestSpellingWithReason("Gekijouban Kimetsu no Yaiba Mugen Ressha Hen", {
         animeIndex: movies,

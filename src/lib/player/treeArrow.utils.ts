@@ -1,6 +1,3 @@
-/** One visible row of a folder tree, in tree order and with the indentation
- *  that makes "the parent" and "the first child" well defined without a
- *  second tree walk. */
 export interface TreeRow {
   path: string;
   depth: number;
@@ -23,14 +20,6 @@ function parentOf(rows: readonly TreeRow[], index: number): TreeRow | null {
   return null;
 }
 
-/**
- * Where `ArrowLeft`/`ArrowRight` should go from the focused row, using the
- * WAI-ARIA treeview rules: the arrow on a folder row itself opens/closes it,
- * otherwise the key walks to the parent (`Left`) or the first child (`Right`).
- * A file row has neither, so `Right` does nothing and `Left` goes back to the
- * folder holding it. Returns `null` when there is nothing to do, and the
- * caller then leaves the key alone.
- */
 export function resolveTreeArrow(
   rows: readonly TreeRow[],
   focusedPath: string,
@@ -52,13 +41,6 @@ export function resolveTreeArrow(
   return parent ? { kind: "focus", path: parent.path } : null;
 }
 
-/**
- * The next row for `ArrowUp`/`ArrowDown` (or `J`/`K`), clamped at both ends so
- * holding the key stops on the first/last row instead of wrapping. Movement
- * covers folder *and* file rows: the file rows are not tab stops, they are
- * reached from the folder that is, which is what keeps a fully expanded tree
- * from costing a tab stop per episode.
- */
 export function resolveTreeMove(
   rows: readonly TreeRow[],
   focusedPath: string,
@@ -73,7 +55,6 @@ export function resolveTreeMove(
 }
 
 export interface RelativeRowNumber {
-  /** The number to paint: absolute 1-based position for the anchor row. */
   label: number;
   current: boolean;
 }
@@ -83,12 +64,6 @@ function parentDirname(path: string): string {
   return cut < 0 ? "" : path.slice(0, cut);
 }
 
-/**
- * Vim-style relative number for one row: siblings of the anchor row (same
- * parent directory) count 1..N above and below it, the anchor row itself
- * shows its absolute 1-based position. Rows from other folders get `null`
- * and render no number. Falls back to the first row while nothing focused.
- */
 export function relativeRowNumber(
   rows: readonly TreeRow[],
   anchorPath: string | null,

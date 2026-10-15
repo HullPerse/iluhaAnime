@@ -123,19 +123,10 @@ const SYM_SPELL_LRU_MAX = 3;
 const symSpellByFingerprint = new Map<string, LazySpellIndex>();
 const animeFingerprintCache = new WeakMap<SearchAnimeSuggestion[], string>();
 
-/**
- * Clears the shared SymSpell index pool. The pool is keyed by title
- * fingerprint, so without a reset a previous test file can leave a `ready`
- * index behind and a later file's prewarm path silently no-ops (nothing to
- * persist). Test setup calls this before every test, mirroring per-file
- * isolation.
- */
 export function resetSymSpellCache(): void {
   symSpellByFingerprint.clear();
 }
 
-// Hashes every typed variant the dictionary is built from, so alias edits
-// invalidate the shared index instead of serving stale corrections.
 function animeTitlesFingerprint(animeIndex: SearchAnimeSuggestion[] | undefined): string {
   if (!animeIndex) return "";
   const cached = animeFingerprintCache.get(animeIndex);
@@ -206,9 +197,7 @@ export function matchNormalizedTitle(
   terms: OperatorTerm[] | null,
   normalizedQuery: string,
   title: string,
-  // Hot paths must pass pre-split words: the default allocates per call.
   queryWords: string[] = normalizedQuery.split(" "),
-  // Same for pre-split title words; defaults to a fresh split.
   targetWords?: string[]
 ): number | null {
   return terms
@@ -388,8 +377,6 @@ export function spellTitles(
 } {
   const history = options.history ?? [];
   const extra = options.extraValues?.map((entry) => entry.value) ?? [];
-  // The spell dictionary covers every typed variant (romaji, aliases), not
-  // just the main title: romaji-only words like "sousou" must be correctable.
   const animeTitles = (options.animeIndex ?? []).flatMap((entry) =>
     entry.typedTitles && entry.typedTitles.length > 0
       ? entry.typedTitles.map((typed) => typed.title)
@@ -455,10 +442,6 @@ function cancelIdle(task: ScheduledTask): void {
   task.cancel();
 }
 
-/**
- * Builds the did-you-mean index in idle slices so the first lookup is already
- * warm instead of blocking a render. Returns a cancel function for cleanup.
- */
 export function prewarmSpelling(
   options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell">
 ): () => void {

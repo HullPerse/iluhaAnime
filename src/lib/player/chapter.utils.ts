@@ -21,11 +21,6 @@ function currentChapterIndex(chapters: readonly { time: number }[], timePos: num
   return -1;
 }
 
-/**
- * Chapter-aware jump behind the player seek buttons: a neighboring chapter
- * wins when one exists, otherwise a plain step, otherwise the boundary the
- * button reports when there is nowhere to go.
- */
 export function resolveChapterJump({
   chapters,
   timePos,

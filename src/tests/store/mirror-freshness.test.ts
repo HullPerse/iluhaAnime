@@ -28,15 +28,6 @@ function memoryStorage(backing = new Map<string, string>()) {
   };
 }
 
-/**
- * Regression: mirror-backed snapshot() readers run synchronously inside
- * cell.set's flush, so the mirror must be updated BEFORE the underlying
- * cell notifies. Otherwise every subscriber (and every persisted snapshot)
- * observes the previous value: single direct writes vanish and rapid
- * writes apply with a one-step lag. Batched writes (settings patch) were
- * immune by accident; direct writes (player setters, bare atom sets)
- * were not.
- */
 describe("mirror freshness inside notifications", () => {
   it("player snapshot sees a direct setter synchronously in subscribers", () => {
     const store = createPlayerSignalStore({ getStorage: () => memoryStorage() });

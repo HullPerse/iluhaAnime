@@ -58,9 +58,6 @@ export function findLocalMatch(
 ): { id: number; title: string } | null {
   const searchKey = normCoverKey(parsed.searchTitle);
   const titleKey = normCoverKey(parsed.title);
-  // A season-qualified query ("... 2nd Season") must not claim the bare
-  // base-season entry: trusting S1 for an S2 release picks the wrong cover
-  // with a flat score nothing else can outbid.
   const seasonQualified =
     parsed.season !== undefined && parsed.season > 1 && searchKey !== titleKey;
   for (const wanted of [searchKey, seasonQualified ? "" : titleKey]) {
@@ -82,9 +79,6 @@ export interface CoverQuery {
 export const COVER_SCORE_THRESHOLD = 45;
 export const COVER_MAX_CANDIDATES = 5;
 
-// Tie-breaker for same-title seasons (S1 vs "2nd Season") when the parsed
-// name carries no season marker. Kept below the smallest profile step (5)
-// so list status, favourite, and user score still override it.
 const UNMARKED_SEASON_PENALTY = 4;
 
 export interface CoverMediaLike {
@@ -149,8 +143,6 @@ export async function resolveCover(
   } = opts;
   const format = formatFor(parsed.kind);
   const extras = parsed.year ? { seasonYear: parsed.year } : {};
-  // Exact local-library hit: one targeted search instead of the cascade.
-  // A miss falls through to the full cascade below, so nothing is lost.
   const local = localTitle?.trim();
   if (local) {
     const found = await backend.search({ query: local, format, ...extras });
@@ -256,9 +248,6 @@ export function buildCoverQueries(
   const titleMovieForm =
     parsed.title === parsed.searchTitle ? null : normalizeMovieQuery(parsed.title, parsed.kind);
   if (titleMovieForm) push(titleMovieForm);
-  // Crude last resort that needs no parsing at all: the raw release name
-  // with every bracket group stripped. Catches mangled titles the parser
-  // could not clean.
   if (rawTitle) push(stripBracketGroups(rawTitle));
   return queries;
 }

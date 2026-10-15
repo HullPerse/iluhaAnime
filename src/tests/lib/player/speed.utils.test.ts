@@ -24,7 +24,6 @@ describe("player/speed steps", () => {
   });
 
   it("snaps a speed outside the list to the nearest step first", () => {
-    // 1.1 sits closer to 1 than to 1.25, so it steps from 1 in both directions.
     expect(stepSpeed(1.1, 1)).toBe(1.25);
     expect(stepSpeed(1.1, -1)).toBe(0.75);
     expect(stepSpeed(0.1, 1)).toBe(0.75);

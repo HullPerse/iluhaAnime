@@ -79,9 +79,6 @@ function useCardArt(path: string, visible: boolean): CardArt | null {
 
   useEffect(() => {
     if (!visible || !path) return;
-    // Sync prefetched hits into state: the useState initializer above runs
-    // before prefetch waves complete, so without this a cache hit here
-    // would leave a stale null thumbnail forever.
     const cached = getCachedCard(path);
     if (cached) {
       setArt(cached);
@@ -155,10 +152,6 @@ function entryLabel(entry: PlaylistEntry, parseTitles: boolean, t: TFunc): strin
   return parseTitles && entry.filename ? formatParsedTitle(entry.filename, t) : name;
 }
 
-// React key by filename, not mpv index: live inserts shift every index
-// below the insertion point, and index-based keys would unmount and remount
-// all of those cards (thumbnail flash). Duplicates of one file share the
-// name, so later occurrences carry a suffix to stay unique.
 function playlistCardKey(entries: PlaylistEntry[], position: number): string {
   const entry = entries[position];
   if (!entry) return `missing:${position}`;
@@ -227,9 +220,6 @@ function PlaylistBody({ onPlay, onRemove, onMove, focusedIndex }: PlaylistBodyPr
         applyEntries(previous);
         return;
       }
-      // Add/remove change the count, which the subscriber above already
-      // refetches on — an explicit refresh here would read the entries
-      // twice. Only reorder (count unchanged) needs one.
       if (refreshAfter) await refresh();
     },
     [applyEntries, refresh]
@@ -298,9 +288,6 @@ function PlaylistBody({ onPlay, onRemove, onMove, focusedIndex }: PlaylistBodyPr
   const focusPosition =
     focusedIndex == null ? -1 : entries.findIndex((entry) => entry.index === focusedIndex);
 
-  // Keep the focus ring on screen while the list keys walk the panel. A
-  // virtualized list may not have the row rendered at all, so it goes through
-  // the virtualizer; the plain list just scrolls its focused card into view.
   useEffect(() => {
     if (focusPosition < 0) return;
     if (virtualized) {

@@ -44,9 +44,6 @@ function queueItem(): UpscaleQueueItem {
   };
 }
 
-// Inside `act` on purpose: the handler updates React state and the DOM, so a
-// bare dispatch would return before the panel re-renders (and every
-// "nothing happened" assertion below would pass for the wrong reason).
 function pressKey(code: string, target: EventTarget = window, repeat = false): void {
   act(() => {
     target.dispatchEvent(
@@ -82,8 +79,6 @@ afterEach(() => {
   upscaleItems.set([]);
 });
 
-// Section 13.3 of `vim-mode.md`: this route has no hotkey layer of its own, so
-// the queue key is registered here rather than in the player window.
 describe("player route keys", () => {
   it("toggles the queue panel with Q", async () => {
     renderRoute();

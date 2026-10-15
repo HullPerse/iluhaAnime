@@ -27,9 +27,6 @@ const SCOPES: readonly KeybindScope[] = [
 
 type ScopeFilter = KeybindScope | "all";
 
-/** Sequence prefixes can never be rebound (the engine has no timers, so a
- *  bare prefix stroke would trap in the prefix state); the recorder blocks
- *  them with a note instead of saving a dead binding. */
 const RESERVED_CHORDS: readonly string[] = [VIM_MOTION_KEYS.firstPrefix];
 
 function chordIdentity(chord: string): string | null {
@@ -148,8 +145,6 @@ export function SettingsKeybinds() {
     : groups;
   const visibleTotal = visibleGroups.reduce((sum, group) => sum + group.rows.length, 0);
 
-  // Live conflict preview while recording: resolve with the tentative chord
-  // and name the entry it would shadow, if any.
   const previewConflict = useMemo(() => {
     if (!preview) return null;
     const tentative = resolveKeybinds({ ...overrides, [preview.forId]: preview.chord });

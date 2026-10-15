@@ -1,12 +1,6 @@
 import { normalizeSearchText } from "./normalize.utils";
 import { SymSpell } from "./symspell.utils";
 
-/**
- * Spell index that collects its word set cheaply up front and defers the
- * expensive delete-map generation until it is pumped (idle slices) or first
- * needed. Queries always return full-quality results: a still-cold index is
- * finished synchronously on demand.
- */
 export class LazySpellIndex {
   private readonly wordList: readonly string[];
   private readonly words: Set<string>;
@@ -30,7 +24,6 @@ export class LazySpellIndex {
     return this.wordList;
   }
 
-  /** Advances delete generation by up to `budget` words; true once complete. */
   pump(budget: number): boolean {
     if (this.cursor >= this.wordList.length) return true;
     this.sym ??= new SymSpell();

@@ -11,7 +11,6 @@ function file(path: string, depth: number): TreeRow {
   return { path, depth, kind: "file", expanded: false };
 }
 
-// A/ (open) with B/ (closed) inside it, B's episode, and a sibling folder D/.
 const ROWS: TreeRow[] = [
   folder("A", 0, true),
   folder("B", 1, false),

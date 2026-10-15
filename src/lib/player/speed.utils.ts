@@ -1,7 +1,3 @@
-/**
- * Speed steps offered by the player, ascending. Single source for the speed
- * popup and the keyboard shortcuts.
- */
 export const PLAYER_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 export const DEFAULT_PLAYER_SPEED = 1;
@@ -16,12 +12,6 @@ function nearestSpeedIndex(current: number): number {
   return best;
 }
 
-/**
- * The next speed step in `direction` (+1 faster, -1 slower), or the default on
- * 0 (the reset key). The current speed is snapped to the nearest step first,
- * so a speed mpv reports from an older session (e.g. 1.1) still steps
- * predictably, and the step clamps instead of wrapping at either end.
- */
 export function stepSpeed(current: number, direction: number): number {
   if (direction === 0) return DEFAULT_PLAYER_SPEED;
   const next = Math.min(

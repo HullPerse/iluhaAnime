@@ -286,9 +286,6 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
       seekConfirm = 0;
       return seekTarget;
     }
-    // Hysteresis: a single in-tolerance sample can be a stale or rebuffer
-    // reading, so the optimistic target drops only after consecutive
-    // confirmations. Otherwise the timeline flickers around the drop point.
     seekConfirm += 1;
     if (seekConfirm >= SEEK_TARGET_CONFIRMATIONS) {
       seekConfirm = 0;
@@ -334,10 +331,6 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     settleSeek: () => {
       const target = atoms.seekTarget.get();
       if (target === null) return;
-      // Settle only against a fresh position: a playback-restart from an
-      // older seek can arrive after a newer target was issued, and settling
-      // then would drop the optimistic target while timePos is still stale —
-      // the timeline would jump back until fresh snapshots arrive.
       if (Math.abs(atoms.timePos.get() - target) <= SEEK_TARGET_TOLERANCE) {
         atoms.seekSettle.set(true);
       }

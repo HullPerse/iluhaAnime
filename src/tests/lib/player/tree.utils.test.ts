@@ -22,7 +22,6 @@ function fixture(): FolderNode {
   );
 }
 
-/** Every file path in the tree, bottom up. */
 function allPaths(node: FolderNode): string[] {
   return [...node.files.map((file) => file.path), ...node.children.flatMap(allPaths)].sort();
 }

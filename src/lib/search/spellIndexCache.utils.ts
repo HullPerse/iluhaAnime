@@ -1,12 +1,5 @@
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 
-/**
- * Small localStorage cache for the normalized word list the spell index is
- * built from. Restoring it skips the normalize pass over every anime title on
- * the next session; the delete map is still generated (it is far too large to
- * serialize). Keyed by the content fingerprint of the titles, so stale entries
- * can never be used for a different dictionary.
- */
 const STORAGE_KEY = "iluha.v1.spellindex";
 const MAX_ENTRIES = 2;
 const MAX_WORDS = 60000;

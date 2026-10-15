@@ -45,9 +45,6 @@ const EnvelopeSchema = z.object({
   store: z.string(),
   sv: z.number(),
   ts: z.optional(z.number()),
-  // data stays unknown on purpose: the envelope gate only needs the shell
-  // (f/store/sv). Walking every settings key with z.record would cost a full
-  // traversal per store read, while the cheap object check below is O(1).
   data: z.unknown(),
 });
 

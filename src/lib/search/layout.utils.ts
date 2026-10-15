@@ -42,7 +42,6 @@ for (const [en, ru] of Object.entries(EN_TO_RU)) {
 
 const CYRILLIC_RE = /[\u0400-\u04FF]/;
 
-/** True when the text contains Cyrillic letters. */
 export function looksCyrillic(value: string): boolean {
   return CYRILLIC_RE.test(value);
 }
@@ -52,11 +51,6 @@ function flipChar(char: string, toEnglish: boolean): string {
   return EN_TO_RU[char] ?? EN_TO_RU[char.toLowerCase()]?.toUpperCase() ?? char;
 }
 
-/**
- * Re-maps text typed in the wrong keyboard layout (ghbdtn -> привет).
- * Direction follows the input: Cyrillic input maps to English, anything else
- * maps to Russian. Characters outside both layouts pass through untouched.
- */
 export function flipLayout(value: string): string {
   const toEnglish = looksCyrillic(value);
   return [...value].map((char) => flipChar(char, toEnglish)).join("");

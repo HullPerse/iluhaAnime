@@ -82,10 +82,6 @@ function Select({
           sideOffset={4}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
-            // A native <dialog> (see PlayerModal) cancels itself on any
-            // Escape keydown that reaches it as a default action. Base-UI
-            // already closes its own popup first, so swallowing the event
-            // here keeps the dialog open without affecting the select.
             if (e.key === "Escape") e.preventDefault();
           }}
         >

@@ -83,12 +83,6 @@ function updateStat(
   return next;
 }
 
-// Module-wide chain: every syncUnifiedIndex call appends to the same queue,
-// so overlapping syncs (search typing vs. AniList import vs. player scan)
-// can no longer run concurrent `upsert_unified_index` commands against the
-// single-writer SQLite file. A per-call chain (as before) serializes only
-// batches within one call, which is exactly the race behind
-// `upsert unified index: database is locked`.
 let indexChain: Promise<unknown> = Promise.resolve();
 
 const ANIME_SYNC_KEY_STORAGE = "animeIndexSyncKey";
@@ -133,16 +127,12 @@ function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): void {
     indexChain = indexChain.then(() => collectionApi.upsertUnifiedIndex(batch));
   }
   if (entries.length > 100) {
-    // Awaited (not fire-and-forget): FTS optimize holds a write transaction
-    // that can outlast the 5 s busy timeout of anyone racing it.
     indexChain = indexChain.then(() =>
       collectionApi
         .optimizeUnifiedIndex()
         .catch((error) => reportBackgroundError("index.optimize", error))
     );
   }
-  // Terminal catch keeps the shared chain resolved so one failed batch can
-  // never skip the batches of a later call; failures are still reported.
   indexChain = indexChain.catch((error) => reportBackgroundError("index.upsert", error));
 }
 

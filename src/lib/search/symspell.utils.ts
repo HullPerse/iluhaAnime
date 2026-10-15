@@ -4,22 +4,12 @@ import { isRomanNumeral } from "./roman.utils";
 
 const MAX_EDIT_DISTANCE = 2;
 
-/**
- * Lookup budget by token length, mirroring the Meilisearch rule: tiny tokens
- * are exact-only (a 1-char edit on "no" or "s5" matches almost anything),
- * mid tokens allow one edit, long tokens two. The index itself is always
- * built with MAX_EDIT_DISTANCE; this only caps the lookup walk.
- */
 export function maxEditDistanceFor(word: string): number {
   if (word.length < 3) return 0;
   if (word.length <= 4) return 1;
   return MAX_EDIT_DISTANCE;
 }
 
-/**
- * True Damerau-Levenshtein distance: adjacent transposition counts as one
- * edit (teh -> the), unlike plain Levenshtein which charges two.
- */
 export function damerauLevenshtein(a: string, b: string): number {
   if (a === b) return 0;
   const alphabet = new Map<string, number>();
@@ -51,12 +41,8 @@ export function damerauLevenshtein(a: string, b: string): number {
   return dist[sizeA + 1][sizeB + 1] ?? Math.max(sizeA, sizeB);
 }
 
-// Pure digit runs never join with a neighbor ("3" + "gatsu" is two title
-// words, not a split word); the full-string scorer still resolves them.
 const NUMERIC_RE = /^\d+$/;
 
-// Short glue words that never enter the dictionary (length < 3) but are valid
-// title pieces: romaji particles plus English stopwords from real titles.
 const STOPWORDS = new Set([
   "no",
   "wa",
@@ -89,21 +75,14 @@ function isKnownPiece(piece: string, words: Set<string>): boolean {
   return words.has(piece) || STOPWORDS.has(piece);
 }
 
-/** Glue words (romaji particles, title stopwords) that never need correction. */
 export function isKnownGlueWord(word: string): boolean {
   return STOPWORDS.has(word);
 }
 
-/** True for tokens worth a lookup walk: long enough and not a numeral. */
 function isCorrectableToken(word: string, words: Set<string>): boolean {
   return word.length >= 3 && !words.has(word) && !isRomanNumeral(word);
 }
 
-/**
- * Segments a glued token (sousounofrieren) into dictionary words and glue
- * pieces. Returns null when the token is already known or cannot be fully
- * covered. Fewer pieces win.
- */
 export function segmentToken(token: string, words: Set<string>): string[] | null {
   const word = normalizeSearchText(token).split(" ")[0] ?? "";
   if (!word || words.has(word) || word.length < 6) return null;
@@ -141,7 +120,6 @@ export class SymSpell {
   private deletesMap = new Map<string, Set<string>>();
   private words = new Set<string>();
 
-  /** Adds a word that is already normalized (skips the normalize pass). */
   addNormalizedWord(word: string): void {
     if (!word || word.length < 3) return;
     if (this.words.has(word)) return;
@@ -271,8 +249,6 @@ export class SymSpell {
       const rightKnown = !isCorrectableToken(right, this.words);
       if (leftKnown && rightKnown) continue;
       const joined = `${left}${right}`;
-      // A join must lead somewhere: an unknown, uncorrectable glue token
-      // ("aono") is worse than the two mistyped words it came from.
       if (!this.words.has(joined) && this.correctMany(joined, 1).length === 0) continue;
       shapes.push([...parts.slice(0, index), joined, ...parts.slice(index + 2)]);
     }
@@ -291,9 +267,6 @@ export class SymSpell {
 
   suggestMany(query: string, limit = 3): string[] {
     const cap = Math.max(1, limit);
-    // Work with normalized single words throughout: raw parts may carry
-    // hyphens or dots ("3-gtsu" normalizes to two words, and correcting only
-    // its head would silently keep the typo).
     const parts = query
       .trim()
       .split(/\s+/)
@@ -304,8 +277,6 @@ export class SymSpell {
     for (const shape of shapes) {
       variants.push(shape.map((part) => this.correctedToken(part)));
     }
-    // Rank swaps only widen the first (raw) shape, so structural fixes from
-    // joins and splits are never cut off by the limit.
     if (variants.length > 0) {
       const first = shapes[0] ?? [];
       const corrected = variants[0] ?? [];
@@ -347,7 +318,6 @@ export function buildSymSpellFromTitles(titles: string[]): SymSpell {
   return buildSymSpellFromWords(normalizedSpellWords(titles));
 }
 
-/** Unique normalized words (length >= 3) the spell index is built from. */
 export function normalizedSpellWords(titles: string[]): string[] {
   const words: string[] = [];
   const seen = new Set<string>();

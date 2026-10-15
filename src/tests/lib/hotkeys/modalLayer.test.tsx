@@ -8,7 +8,6 @@ import { scanHintTargets } from "@/lib/hotkeys/hints.hotkeys";
 import { isInsideLayer, topLayerElement } from "@/lib/hotkeys/layer.hotkeys";
 import { patchSettings } from "@/store/settings.store";
 
-// jsdom has no layout at all, so every element the feature looks at gets a box.
 function box(node: HTMLElement): HTMLElement {
   node.getBoundingClientRect = () =>
     ({
@@ -32,9 +31,6 @@ afterEach(() => {
   cleanup();
 });
 
-// The real Base UI modal: `role="dialog"` plus `data-hotkeys-disabled`. That
-// attribute keeps global shortcuts out, which is why the engine needs an
-// explicit owner for the layer (section 13.1 of `vim-mode.md`).
 describe("modal-scoped hints", () => {
   function openModal(): { dialog: HTMLElement; inside: HTMLElement; behind: HTMLElement } {
     patchSettings({ language: "en", modalAnimation: false });

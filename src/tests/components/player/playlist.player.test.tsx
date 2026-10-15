@@ -80,13 +80,9 @@ describe("PlaylistBody thumbnails", () => {
       expect(container.querySelectorAll('[data-testid="playlist-card"]')).toHaveLength(2);
     });
     const second = container.querySelectorAll('[data-testid="playlist-card"]')[1];
-    // Second row mounted while off-screen and uncached: placeholder, no fetch.
     expect(second.querySelector('img[src*="thumb"]')).toBeNull();
-    // Prefetch wave completes while the row is still off-screen.
     const prefilled = await fetchVideoCard("D:/b.mkv");
     if (!prefilled) throw new Error("prefill fetch returned null");
-    // Row scrolls into view: the cached art must sync into state even
-    // though no fetch runs anymore.
     trigger(true);
     await vi.waitFor(() => {
       expect(second.querySelector('img[src*="thumb"]')).not.toBeNull();
@@ -113,8 +109,6 @@ describe("PlaylistBody focus ring", () => {
   let scrollIntoView: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    // jsdom ships no scrollIntoView at all, so the ring's scroll is stubbed to
-    // assert on it instead of crashing on mount.
     scrollIntoView = vi.fn();
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
       configurable: true,

@@ -145,10 +145,6 @@ export function transformOptions(settings: PlayerSettings): Record<string, unkno
   options["sub-font"] = settings.subFontFamily;
   options["sub-color"] = toMpvColor(settings.subColor);
   options["sub-back-color"] = withAlpha(toMpvColor(settings.subBgColor), settings.subBgOpacity);
-  // Subtitles share the OSD margins that carve the video field out of the
-  // window. Allowing libass to render into those margins (mpv's default for
-  // converted/text subs) pushes text under the bottom bar, so keep subtitles
-  // inside the video area for both text and ASS tracks.
   options["sub-use-margins"] = false;
   options["sub-ass-force-margins"] = false;
 
@@ -170,11 +166,6 @@ export function profileOptions(
   return { ...PLAYER_PROFILES[profile].options };
 }
 
-/**
- * Shallow per-option diff of two mpv option maps. Only changed entries are
- * returned, so live slider drags resend one property instead of the whole
- * group (and, for `vf`, avoid rebuilding the filter chain on every tick).
- */
 export function diffOptions(
   previous: Record<string, unknown>,
   next: Record<string, unknown>
@@ -349,11 +340,6 @@ export interface FilePlaybackState {
   subtitleTrack?: number;
 }
 
-/**
- * Single-IPC replacement for the per-file setup chain (speed, delays,
- * persisted tracks). The mpv property sets themselves are cheap FFI calls —
- * the win is collapsing 4-5 Tauri roundtrips into one.
- */
 export async function applyFileState(state: FilePlaybackState): Promise<void> {
   await invokeTyped("player_apply_file_state", {
     speed: state.speed,

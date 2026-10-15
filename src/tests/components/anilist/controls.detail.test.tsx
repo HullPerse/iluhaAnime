@@ -66,14 +66,6 @@ function saveButton() {
   return screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
 }
 
-/**
- * Renders the controls with a seeded `["anilist_data"]` entry and a scripted
- * `save_anilist_entry` response, so the assertions can look at what the cache
- * holds once the save resolves.
- *
- * `seed` models the entry as it already sits in a list bucket; `null` means the
- * save is the one that creates it.
- */
 function renderEditable(
   seed: { status: string; progress: number } | null,
   saved: unknown,
@@ -269,8 +261,6 @@ describe("AniListActionControls server response", () => {
       { id: 1, status: "COMPLETED", progress: 28, customLists: [] },
       onSaved
     );
-    // The draft keeps CURRENT; the server auto-completes once the progress hits
-    // the episode count. The cache must follow the server, not the draft.
     await user.click(saveButton());
     await waitFor(() => expect(cachedEntry(client)?.list_status).toBe("COMPLETED"));
     expect(cachedEntry(client)?.progress).toBe(28);
@@ -298,7 +288,6 @@ describe("AniListActionControls server response", () => {
     const onSaved = vi.fn();
     renderEditable(null, { id: 1, status: "CURRENT", progress: 1, customLists: [] }, onSaved);
     await user.click(saveButton());
-    // A brand new entry has to land in its bucket, which a patch cannot do.
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
   });
 });

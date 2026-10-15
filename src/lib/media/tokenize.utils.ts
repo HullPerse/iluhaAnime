@@ -16,12 +16,10 @@ export function stripMediaExtension(filename: string): {
   return { stem: filename.slice(0, dot), ext };
 }
 
-// Unicode dashes (en/em) seen in real release names, normalized to hyphen.
 const DASH_RX = /[\u2010-\u2015\u2212]/g;
 
 const GROUP_RX = /\[([^\]]*)\]|\(([^)]*)\)/g;
 
-// Split on delimiter runs, but keep digit-hyphen-digit atoms (133-134) whole.
 const PLAIN_SPLIT_RX = /-(?!\d)|(?<!\d)-|[ ._]+/;
 
 function splitPlain(chunk: string): string[] {

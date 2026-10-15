@@ -17,8 +17,6 @@ export default function SearchPager({
   onPageChange: (page: number) => void;
 }) {
   const { t } = useI18n();
-  // Site-paged sources expose no total: the furthest known page stands in
-  // for lastPage (a jump past the end returns empty and steps back, as before).
   const lastPage = pageFull ? page + 1 : page;
   const from = (page - 1) * resultsPerPage + 1;
   const to = from + Math.max(shown, 1) - 1;

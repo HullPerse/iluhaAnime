@@ -171,12 +171,6 @@ function commonSuffixLength(a: string, b: string, prefix: number): number {
   return index;
 }
 
-/**
- * Re-anchors a previous spell check onto a newer query while the debounce is
- * still pending. Spans whose word is untouched by the edit are kept (and
- * shifted), so typing elsewhere never forces the highlight to be redrawn;
- * spans that the edit intersects are dropped until the next settled pass.
- */
 function reanchorSpellCheck(
   previous: { query: string; result: SpellCheck | null },
   query: string
@@ -245,9 +239,6 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
       history,
       symSpell,
     });
-    // Only word-level fixes highlight inline. Alias and partial inputs are
-    // valid or incomplete, while wrong_season and wrong_format are query-level
-    // issues surfaced through did-you-mean instead of a word span.
     if (!withReason || (withReason.reason !== "typo" && withReason.reason !== "transliteration")) {
       writeQueryCache(trimmed, deps, null);
       return null;
@@ -257,8 +248,6 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
     if (correction) {
       const dict = dictionarySetOf(dictionary);
       const leading = query.length - query.trimStart().length;
-      // Phrase-aware spans arrive in absolute query coordinates from the
-      // resolver; the positional diff is the fallback for legacy reasons.
       const spans = (
         withReason.spans ??
         diffWordSpans(trimmed, correction).map((span) => ({
@@ -292,9 +281,6 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
   });
   const armedRef = useRef(false);
   useEffect(() => {
-    // The debounce reports `isPending: false` on its very first render, before
-    // its engine effect schedules. Only carry over results once a genuinely
-    // settled pass has been observed after a pending one.
     if (!settled) {
       armedRef.current = true;
       return;
@@ -302,9 +288,6 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
     if (armedRef.current) setCarry({ query, result: fresh });
   }, [settled, query, fresh]);
 
-  // While the debounce is pending, re-anchor the last settled result so an
-  // untouched highlight keeps its identity (and its span) instead of blinking.
-  // `shown` keeps the returned reference stable while the content is unchanged.
   const next = settled ? fresh : reanchorSpellCheck(carry, query);
   const [shown, setShown] = useState<SpellCheck | null>(next);
   const value = sameSpellCheck(shown, next) ? shown : next;

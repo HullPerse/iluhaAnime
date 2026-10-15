@@ -22,7 +22,6 @@ function createBaselineStore(initial: BaselineState) {
       return state;
     },
     setState(next: Partial<BaselineState>) {
-      // state clone like old zustand
       state = { ...state, ...next };
       subs.forEach((fn) => fn());
     },

@@ -214,15 +214,12 @@ export function useTorrentFilesMap(
   files: Record<number, TorrentFileInfo[] | undefined>;
   pendingIds: Set<number>;
   errors: Record<number, string>;
-  /** Runs the batch sweep immediately for the given ids (watcher poke). */
   requestRefresh: (ids: number[]) => void;
 } {
   const queryClient = useQueryClient();
   const queriesInput = useMemo(
     () =>
       ids.map((id) => {
-        // While polling, the batch sweep below owns the cache; a per-id fetch
-        // here would fire one IPC per torrent on mount instead of one batch.
         const enabled = refetchMs === false && (enabledIds?.has(id) ?? true);
         return {
           queryKey: queryKeys.torrentFiles(id),

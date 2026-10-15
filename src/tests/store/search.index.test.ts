@@ -45,8 +45,6 @@ describe("unified index sync chain", () => {
     addSearchQuery("naruto shippuden");
     await flushMicrotasks();
 
-    // the second batch must not even start while the first invoke is pending:
-    // with a per-call chain both would already be in flight.
     expect(upsertCalls()).toHaveLength(1);
     expect(upsertCalls().at(0)?.entries.at(0)?.id).toContain("frieren beyond journey");
 

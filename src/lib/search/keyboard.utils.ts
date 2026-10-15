@@ -15,7 +15,6 @@ function coordOf(char: string): { x: number; y: number } | null {
   return COORDS.get(char.toLowerCase()) ?? null;
 }
 
-/** True when two characters sit next to each other on a QWERTY board. */
 export function isKeyboardNeighbor(left: string, right: string): boolean {
   if (left.toLowerCase() === right.toLowerCase()) return true;
   const a = coordOf(left);
@@ -26,21 +25,12 @@ export function isKeyboardNeighbor(left: string, right: string): boolean {
   return Math.hypot(dx, dy) <= ADJACENT_MAX;
 }
 
-/**
- * Substitution cost for one character pair: 0 when equal, reduced when the
- * keys are adjacent, 1 otherwise. Unknown keys always cost 1.
- */
 export function keyboardSubstitutionCost(left: string, right: string): number {
   if (left === right) return 0;
   if (left.toLowerCase() === right.toLowerCase()) return 0;
   return isKeyboardNeighbor(left, right) ? ADJACENT_COST : 1;
 }
 
-/**
- * Levenshtein distance with keyboard-aware substitution cost. Insertions and
- * deletions cost 1. Used only as a tie-break after the true edit distance,
- * so a neighbor typo outranks a far-key typo at equal edit distance.
- */
 export function keyboardWordDistance(a: string, b: string): number {
   if (a === b) return 0;
   const prev: number[] = Array.from({ length: b.length + 1 }, (_, index) => index);

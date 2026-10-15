@@ -46,8 +46,6 @@ afterEach(() => {
   upscaleItems.set([]);
 });
 
-// The open/closed state belongs to the player route (the `Q` key and the
-// header button share it), so the panel is a controlled component.
 describe("QueuePanel", () => {
   it("renders nothing without items or a scan", () => {
     const { container } = render(<QueuePanel scan={null} open onToggle={() => undefined} />);

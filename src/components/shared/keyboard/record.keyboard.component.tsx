@@ -39,7 +39,6 @@ const MODIFIER_BUTTONS: readonly { id: keyof LiveModifiers; label: string }[] = 
   { id: "meta", label: "Win" },
 ];
 
-/** Action icon follows the entry scope; unknown scopes get the mockup file icon. */
 const SCOPE_ICONS: Record<KeybindScope, LucideIcon> = {
   global: Globe,
   settings: Settings,
@@ -61,20 +60,6 @@ function chordFromKeyboardEvent(event: React.KeyboardEvent, live: LiveModifiers)
   return parts.join("+");
 }
 
-/**
- * Single-chord recorder for the keybinds tab, laid out like the approved
- * mockup: action group with a scope icon, current chord with Clear, new
- * chord capture with an X button and display-only modifier indicators
- * (they light up while the key is held, nothing latches), conflict lines
- * inside the new-chord group, Reset/OK/Cancel footer. The draft starts
- * prefilled with the current binding; typing replaces it, Enter commits,
- * Backspace clears, Escape cancels. The capture carries
- * `data-vim-disabled` and stops propagation in capture phase, so neither
- * the vim engine nor any global registry can steal the keystroke being
- * recorded. Reserved chords (sequence prefixes) cannot be saved: OK stays
- * disabled with a note. In `bare` mode only the capture box renders
- * (reverse lookup): Enter commits immediately, Esc cancels.
- */
 export function KeybindRecorder({
   currentChord,
   reservedChords,

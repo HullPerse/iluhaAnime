@@ -1,6 +1,4 @@
 @import "tailwindcss";
-/* Tailwind v4 does not scan node_modules by default; the emoji picker
-   (@ferrucc-io/emoji-picker) ships Tailwind classes that must be generated. */
 @source "../node_modules/@ferrucc-io/emoji-picker";
 
 @font-face {
@@ -71,8 +69,6 @@
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
-/* Inter stands in for San Francisco on the Apple theme: closest open equivalent, and it covers the
-   same latin/latin-ext/cyrillic range we bundle for the other families. */
 @font-face {
   font-family: "Inter";
   font-style: normal;
@@ -132,15 +128,12 @@
   --color-destructive-trans: color-mix(in srgb, var(--color-destructive) 70%, transparent);
   --color-muted-trans: color-mix(in srgb, var(--color-muted) 50%, transparent);
   --color-fav-gold: #facc15;
-  /* Status and graph colours follow the accent set unless a theme overrides them. */
   --color-torrent-downloading: var(--color-highlight);
   --color-torrent-seeding: #f97316;
   --color-torrent-done: var(--color-success);
   --color-torrent-error: var(--color-destructive);
   --color-torrent-idle: var(--color-muted);
-  /* Awaiting metadata: busy teal, distinct from the downloading blue. */
   --color-torrent-initializing: #0891b2;
-  /* Files gone: neither an error nor idle, so it gets its own amber. */
   --color-torrent-missing: #b8860b;
   --color-graph-default: var(--color-muted);
   --color-graph-light: var(--color-hint);
@@ -149,14 +142,11 @@
   --color-graph-sequel: var(--color-highlight);
   --color-graph-side: var(--color-success);
   --color-graph-spinoff: var(--color-link-hover);
-  /* Shape: driven per theme through data-radius / data-bevel, square by default. */
   --ui-radius: 0px;
   --ui-radius-control: 0px;
   --titlebar-from: var(--color-secondary);
   --titlebar-to: var(--color-secondary);
-  /* Window face opacity while an OS window effect is active; themes publish their own value. */
   --ui-window-alpha: 100%;
-  /* The user's tint override; without one the theme's readable value stands. */
   --ui-window-opacity: var(--ui-window-alpha);
   --ui-control-height: 26px;
   --ui-panel-gap: 0.375rem;
@@ -208,17 +198,11 @@
 }
 
 @layer base {
-  /*
-   * Square by default, so third-party popups cannot sneak a radius in. A theme that declares a
-   * shape preset opts its whole subtree out; the per-theme shape block below is the only thing
-   * that rounds anything then.
-   */
   html:not([data-radius="frame"], [data-radius="all"]),
   html:not([data-radius="frame"], [data-radius="all"]) * {
     border-radius: 0 !important;
   }
 
-  /* A frame-only theme rounds the window frame but still wants square controls. */
   [data-radius="frame"] :is(.windows95-border, .windows95-active-border, .windows95-small-border) {
     border-radius: 0 !important;
   }
@@ -233,10 +217,6 @@
     background: transparent;
     min-width: 280px;
     min-height: 240px;
-    /*
-     * Body copy without an explicit color class inherits this instead of the browser
-     * default black, so dark themes stay readable. Layered text utilities still win.
-     */
     color: var(--color-text);
   }
 
@@ -288,23 +268,11 @@
     1px 1px 0 var(--color-win-shadow);
 }
 
-/*
- * Windows 95 progress fill: a repeating block mask over the fill. Fixed 8px blocks plus a 2px
- * gap keep the brick size constant no matter how wide the bar is; a partially filled block at
- * the progress edge shows up, as in the original control. Cut, not recolored: the fill's own
- * background class supplies the colour.
- */
 .progress-blocks {
   -webkit-mask-image: repeating-linear-gradient(90deg, #000000 0px 8px, transparent 8px 10px);
   mask-image: repeating-linear-gradient(90deg, #000000 0px 8px, transparent 8px 10px);
 }
 
-/*
- * Indeterminate sweep for bars without a measurable value yet (a magnet awaiting metadata):
- * a fixed-width block chunk marches across the track. translateX percentages are relative to
- * the chunk's own width, so -100% to 250% carries a 40%-wide chunk exactly from just left of
- * the track to just past its right edge.
- */
 @keyframes progress-indeterminate {
   from {
     transform: translateX(-100%);
@@ -553,8 +521,6 @@
     2px 2px 0 #000000;
 }
 
-/* --- Per-theme shape (Windows XP/7 frames, Windows 11 controls) ------------- */
-
 [data-radius="frame"] {
   --ui-radius: 6px;
 }
@@ -564,10 +530,6 @@
   --ui-radius-control: 5px;
 }
 
-/*
- * A panel or dialog that carries a titlebar is a window frame: round it and let it clip
- * the titlebar's square corners. Controls stay square under `frame` and round under `all`.
- */
 [data-radius="frame"] :is(.ui-panel, .windows95-3d-border):has(.ui-titlebar),
 [data-radius="all"] :is(.ui-panel, .windows95-3d-border):has(.ui-titlebar) {
   border-radius: var(--ui-radius);
@@ -584,17 +546,10 @@
   border-radius: var(--ui-radius-control);
 }
 
-/* Outlines cannot follow a radius, so a rounded control pushes its focus ring outwards. */
 [data-radius="all"] *:focus-visible {
   outline-offset: 1px;
 }
 
-/*
- * Window effects (acrylic / mica / tabbed) are painted by the OS *behind* the webview, so the
- * window face has to let them through. The alpha is per theme - `--ui-window-alpha` is the lowest
- * value that still keeps body text at AA against any wallpaper - which is why dark themes stay
- * nearly opaque while the light ones turn into real glass.
- */
 [data-window-effect]:not([data-window-effect="none"]) .ui-panel {
   background: color-mix(in srgb, var(--color-primary) var(--ui-window-opacity), transparent);
 }
@@ -611,7 +566,6 @@
   background: color-mix(in srgb, var(--color-primary) var(--ui-window-opacity), transparent);
 }
 
-/* ---- Flat bevel (Aero, Fluent) -------------------------------------------- */
 [data-bevel="flat"] :is(.windows95-border, .windows95-active-border, .windows95-small-border) {
   border-width: 1px;
   border-color: var(--color-win-shadow);
@@ -714,7 +668,6 @@ select,
   scroll-behavior: auto !important;
 }
 
-/* !important: descendants declare their own cursors (cursor-pointer), which would win over inheritance. */
 .player-cursor-hidden,
 .player-cursor-hidden * {
   cursor: none !important;
@@ -739,8 +692,6 @@ select,
   }
 }
 
-/* Theme overlays: per-theme fullscreen effects driven by data-theme-overlay.
-   The grid preset keeps the YoRHa toggle gate; scanlines are always on. */
 html[data-theme-overlay="grid"]:not([data-yorha-scanlines="off"]) body::after {
   content: "";
   position: fixed;
@@ -772,7 +723,6 @@ html[data-theme-overlay="scanlines"] body::after {
   );
 }
 
-/* Per-theme titlebar art: diagonal sheen over the theme gradient. */
 html[data-theme-titlebar-art="on"] .ui-titlebar {
   background-image:
     repeating-linear-gradient(
@@ -783,9 +733,6 @@ html[data-theme-titlebar-art="on"] .ui-titlebar {
     linear-gradient(to bottom, var(--titlebar-from), var(--titlebar-to));
 }
 
-/* YoRHa theme: canon menu details measured from game screenshots.
-   Selection is the dark menu bar with parchment text; titlebars track wide;
-   the boot grid is finer than the shared coarse grid. */
 html[data-theme="yorha"] ::selection {
   background: #57544a;
   color: #dad4bb;
@@ -803,8 +750,6 @@ html[data-theme="yorha"] .yorha-grid {
   opacity: 0.25;
 }
 
-/* Boot clones: XP sliding blocks and Win7 orbs. Ambient looping runs only on
-   transient fullscreen boot screens; reduced motion falls back to static bars. */
 .xp-track {
   position: relative;
   width: 180px;

@@ -40,9 +40,6 @@ function altDigitEntries(): KeybindManifestEntry[] {
 }
 
 function screenshotHistoryEntries(): KeybindManifestEntry[] {
-  // One entry per action (not per platform chord variant): rebinding an
-  // action replaces all of its variants with the single new chord. The app
-  // is Windows-only, so the meta duplicates carry no platform value.
   const primary = new Map<string, (typeof SCREENSHOT_HISTORY_DEFS)[number]>();
   for (const def of SCREENSHOT_HISTORY_DEFS) {
     if (!primary.has(def.id)) primary.set(def.id, def);
@@ -154,12 +151,6 @@ const VIM_ENTRIES: readonly KeybindManifestEntry[] = [
   },
 ];
 
-/**
- * Folder/file tree keys (player folder tree, torrent file lists). They work
- * with vim off too - the ring is baseline keyboard - so mode stays base while
- * the tree scope keeps them out of every other surface in the future tab.
- * Sequences (`gg`) stay unlisted: no multi-stroke chord schema.
- */
 const TREE_ENTRIES: readonly KeybindManifestEntry[] = [
   {
     id: "tree.move.down",

@@ -5,12 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppRouter } from "@/routes/__root";
 import { patchSettings } from "@/store/settings.store";
 
-// The layout and every route leaf are stubbed: this file pins routing
-// behavior (which route renders for which path, search-param validation,
-// the disabled-tab guard), not the app shell or the surfaces themselves.
-// The `import()` targets are the route boundaries, so they are the only
-// mocked modules. The layout stub renders `<Outlet />` so child routes
-// still participate.
 vi.mock("@/App", () => ({
   default: () => (
     <div data-testid="app-root">

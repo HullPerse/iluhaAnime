@@ -16,14 +16,6 @@ const MARGIN_EPSILON = 0.001;
 
 export const ZERO_MARGINS: VideoMargins = { top: 0, bottom: 0, left: 0, right: 0 };
 
-/**
- * Converts a measured field rect into mpv video-margin ratios. mpv renders into
- * the whole native window, so the fractions of the viewport above/below/left/
- * right of the video element tell it exactly where the UI bars and side panels
- * are. Values are clamped to [0, 1]: mpv rejects out-of-range margins with
- * `M_RANGE`, and the plugin aborts the whole property batch on the first
- * rejection, which used to leave every margin at zero.
- */
 export function computeVideoMargins(
   viewportWidth: number,
   viewportHeight: number,
@@ -52,7 +44,6 @@ export function marginsCloseEnough(a: VideoMargins, b: VideoMargins): boolean {
   );
 }
 
-/** Maps margins onto mpv option names, used when seeding `player_init`. */
 export function marginOptions(margins: VideoMargins): Record<string, number> {
   return {
     "video-margin-ratio-top": margins.top,

@@ -11,7 +11,6 @@ import type {
 } from "@/types/dither";
 import type { TranslationKey } from "@/types/i18n";
 
-/** Ordered 4x4 Bayer threshold map. */
 export const DITHER_BAYER_4: readonly number[] = [
   0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5,
 ];
@@ -19,7 +18,6 @@ export const DITHER_BAYER_4: readonly number[] = [
 export const DITHER_BAYER_SIZE = 4;
 export const DITHER_BAYER_RANGE = 16;
 
-/** Ordered 8x8 Bayer threshold map. */
 export const DITHER_BAYER_8: readonly number[] = [
   0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46,
   6, 38, 60, 28, 52, 20, 62, 30, 54, 22, 3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27,
@@ -29,13 +27,11 @@ export const DITHER_BAYER_8: readonly number[] = [
 export const DITHER_BAYER8_SIZE = 8;
 export const DITHER_BAYER8_RANGE = 64;
 
-/** Neutral black & white. */
 const DITHER_MONO_PALETTE: DitherRGB[] = [
   [0, 0, 0],
   [255, 255, 255],
 ];
 
-/** Classic 4-tone Game Boy green. */
 const DITHER_GAMEBOY_PALETTE: DitherRGB[] = [
   [15, 56, 15],
   [48, 98, 48],
@@ -43,7 +39,6 @@ const DITHER_GAMEBOY_PALETTE: DitherRGB[] = [
   [155, 188, 15],
 ];
 
-/** PICO-8's 16-color hardware palette. */
 const DITHER_PICO8_PALETTE: DitherRGB[] = [
   [0, 0, 0],
   [29, 43, 83],
@@ -63,7 +58,6 @@ const DITHER_PICO8_PALETTE: DitherRGB[] = [
   [255, 204, 170],
 ];
 
-/** Even 8-step gray ramp. */
 const DITHER_GRAY_PALETTE: DitherRGB[] = [
   [0, 0, 0],
   [36, 36, 36],
@@ -75,7 +69,6 @@ const DITHER_GRAY_PALETTE: DitherRGB[] = [
   [255, 255, 255],
 ];
 
-/** Warm amber monochrome, straight off a CRT terminal. */
 const DITHER_AMBER_PALETTE: DitherRGB[] = [
   [12, 8, 2],
   [56, 30, 4],
@@ -85,7 +78,6 @@ const DITHER_AMBER_PALETTE: DitherRGB[] = [
   [255, 226, 150],
 ];
 
-/** Cool ink-on-paper duotone. */
 const DITHER_INK_PALETTE: DitherRGB[] = [
   [10, 14, 26],
   [34, 46, 72],
@@ -95,7 +87,6 @@ const DITHER_INK_PALETTE: DitherRGB[] = [
   [247, 246, 242],
 ];
 
-/** Neon violet/cyan synthwave ramp. */
 const DITHER_VAPOR_PALETTE: DitherRGB[] = [
   [14, 6, 34],
   [48, 14, 80],
@@ -116,10 +107,6 @@ export const DITHER_PALETTE_PRESETS: DitherPalettePreset[] = [
   { id: "vapor", colors: DITHER_VAPOR_PALETTE },
 ];
 
-/**
- * The engine defaults. This is also the "natural" baseline: a soft blue-noise
- * dither in full color with a gentle tonal curve.
- */
 export const DITHER_DEFAULTS: {
   scale: number;
   mode: DitherEffectOptions["mode"];
@@ -170,25 +157,18 @@ export const DITHER_LUMINANCE_RED = 0.2126;
 export const DITHER_LUMINANCE_GREEN = 0.7152;
 export const DITHER_LUMINANCE_BLUE = 0.0722;
 
-/** Fine grain lattice scale. */
 export const DITHER_GRAIN_FREQUENCY = 1.7;
-/** How dark a fully-on scanline row becomes (1 = black). */
 export const DITHER_SCANLINE_DEPTH = 0.55;
-/** Maximum RGB split, in pixels, at chromatic = 1. */
 export const DITHER_CHROMATIC_SHIFT = 10;
-/** Radial pull of the barrel warp at barrel = 1. */
 export const DITHER_BARREL_STRENGTH = 0.5;
-/** Smallest vignette multiplier at the corners. */
 export const DITHER_VIGNETTE_DEPTH = 0.85;
 
-/** Per-channel threshold offsets so color dither doesn't stack channels. */
 export const DITHER_CHANNEL_SHIFT: readonly (readonly [number, number])[] = [
   [0, 0],
   [37, 11],
   [11, 37],
 ];
 
-/** Density ramp for the glyph overlay, light to heavy. */
 export const DITHER_GLYPH_RAMP: readonly string[] = [
   " ",
   " ",
@@ -217,7 +197,6 @@ export const DITHER_PER_PAGE = 3;
 export const DITHER_PLACEHOLDER_ID = "placeholder";
 export const DITHER_PLACEHOLDER_SRC = "/wallpaper_placeholder.jpg";
 
-/** Full bypass: the renderer becomes an identity transform. */
 const DITHER_NEUTRAL_OPTIONS: DitherEffectOptions = {
   mode: "ordered",
   matrix: "bayer4",

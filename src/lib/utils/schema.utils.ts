@@ -13,28 +13,20 @@ function issueText(parsed: {
   return path.length > 0 ? `${path}: ${issue.message}` : issue.message;
 }
 
-/** Parses an already decoded value and reports the failing path on failure. */
 export function parseValue<T>(value: unknown, schema: z.ZodMiniType<T>): Result<T> {
   const parsed = schema.safeParse(value);
   return parsed.success ? ok(parsed.data) : err(new Error(issueText(parsed)));
 }
 
-/** Parses JSON text, so a malformed payload and a wrong shape fail differently. */
 export function parseJson<T>(raw: string, schema: z.ZodMiniType<T>): Result<T> {
   const [value, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
   return parseError === null ? parseValue(value, schema) : err(parseError);
 }
 
-/** Adapts a schema to the validator shape consumed by resolveWithDefaults. */
 export function toValidator<T>(schema: z.ZodMiniType<T>): (value: unknown) => boolean {
   return (value: unknown): boolean => schema.safeParse(value).success;
 }
 
-/**
- * `z.catch(schema, fallback)` for optional inputs: a malformed or missing
- * value falls back instead of failing the whole parse. Centralized so the
- * zod `.catch` call has a single home for schema construction.
- */
 export function withFallback<TSchema extends z.ZodMiniType>(
   schema: TSchema,
   fallback: z.output<TSchema>

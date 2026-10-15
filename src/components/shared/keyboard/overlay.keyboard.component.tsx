@@ -46,9 +46,6 @@ export default function KeyboardHintOverlay() {
     };
     window.addEventListener("scroll", schedule, true);
     window.addEventListener("resize", schedule);
-    // Only layout-affecting attribute churn is worth a remeasure; aria/data
-    // toggles (and our own class add on the pinned target) are filtered out
-    // at the observer level so unrelated app updates cannot reschedule.
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, {
       subtree: true,

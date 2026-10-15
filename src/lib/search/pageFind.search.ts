@@ -6,7 +6,6 @@ export interface PageFindMatch {
 
 export interface PageFindCollection {
   matches: PageFindMatch[];
-  /** A cap was hit (text nodes or matches); the caller should warn about it. */
   truncated: boolean;
 }
 
@@ -87,12 +86,6 @@ function isWholeWord(text: string, start: number, end: number): boolean {
   return !WORD_CHAR.test(before) && !WORD_CHAR.test(after);
 }
 
-/**
- * Page find is substring-only by design (Chrome parity): scattered letters
- * never match, so a short query cannot light up unrelated words. The shared
- * fuzzy helper keeps living for suggestion highlighting, but it is not used
- * here anymore.
- */
 interface FoldedText {
   text: string;
   map: number[];
@@ -133,14 +126,6 @@ function toRawRange(
   };
 }
 
-/**
- * Every contiguous occurrence in the node, so a repeated word on one line
- * stays reachable. Pure ASCII takes the plain indexOf fast path; otherwise
- * both sides fold (diacritics stripped, case per toggle) and folded offsets
- * map back to raw ones, so `pokemon` still finds `Pokémon` with exact
- * highlight spans. Whole-word mode filters the final spans by word
- * boundaries.
- */
 function matchRangesInNode(
   text: string,
   query: string,
@@ -201,7 +186,6 @@ function highlightCtor(): HighlightCtor | null {
   return scope.Highlight ?? null;
 }
 
-/** CSS Custom Highlight API is optional; absence degrades to count + navigation. */
 export function isPageFindHighlightSupported(): boolean {
   return highlightRegistry() !== null && highlightCtor() !== null;
 }

@@ -37,7 +37,6 @@ describe("createCoalescedRunner", () => {
       seen.push("third");
     });
     await flushMicrotasks();
-    // only the first task started; second was replaced by third
     expect(seen).toEqual([]);
     release();
     await Promise.all([first, second, third]);

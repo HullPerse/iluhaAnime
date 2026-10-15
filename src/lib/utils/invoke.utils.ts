@@ -16,11 +16,6 @@ export async function invokeTyped<T>(
   return invoke<Awaited<T>>(command, args);
 }
 
-/**
- * Invokes a command and validates the payload it returns, so a Rust rename or
- * an unexpected shape fails at the boundary with a reason instead of flowing
- * into UI state as an unchecked value.
- */
 export async function invokeValidated<T>(
   command: CommandName,
   schema: z.ZodMiniType<T>,

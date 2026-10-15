@@ -50,8 +50,6 @@ async function chooseOption(
 }
 
 function rootCheckboxes(): HTMLElement[] {
-  // Base-UI renders a hidden form input per checkbox ahead of the clickable
-  // root; only the root forwards to onCheckedChange.
   return screen.getAllByRole("checkbox").filter((element) => element.tagName !== "INPUT");
 }
 

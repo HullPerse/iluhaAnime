@@ -59,7 +59,6 @@ const rootRoute = createRootRoute({
   notFoundComponent: NotFoundScreen,
 });
 
-/** Pathless app shell with the tab strip; every tab surface is a child route. */
 const appLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: APP_LAYOUT_ROUTE_ID,
@@ -79,7 +78,6 @@ const searchRoute = createRoute({
   pendingComponent: TabLoader,
 });
 
-/** Exported so the surfaces can use the route-bound typed hooks. */
 export const torrentRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/torrent",
@@ -109,7 +107,6 @@ const collectionRoute = createRoute({
   pendingComponent: TabLoader,
 });
 
-/** Exported so the settings surface can use the route-bound typed hooks. */
 export const settingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/settings",
@@ -118,7 +115,6 @@ export const settingsRoute = createRoute({
   pendingComponent: TabLoader,
 });
 
-/** Separate Tauri window, rendered without the app shell. */
 const playerWindowRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: PLAYER_ROUTE,

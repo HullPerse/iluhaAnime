@@ -11,9 +11,6 @@ export interface TrackedStore {
   current: number;
 }
 
-// Keep `current` in sync with the store schema versions. The sync test
-// `migrations.utils.test.ts` fails loudly on drift instead of silently
-// showing stale markers.
 export const TRACKED_STORES: TrackedStore[] = [
   { store: "settings", current: 48 },
   { store: "theme", current: 0 },

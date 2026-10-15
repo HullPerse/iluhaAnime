@@ -73,7 +73,6 @@ try {
   try {
     reportFatal(info);
   } catch {
-    // persistence is best effort during startup
   }
   showStartupFallback(info.message);
 }

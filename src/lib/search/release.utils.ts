@@ -67,11 +67,6 @@ function stripBracketGroups(query: string): string {
   return query.replaceAll(/\[[^\]]*\]/g, " ").replaceAll(/\{[^}]*\}/g, " ");
 }
 
-/**
- * Removes release noise (fansub groups, quality, codec, audio tags) so spell
- * correction and title matching see the title remainder. Season, part, year
- * and episode markers are kept: parseTitleAttributes owns them.
- */
 export function stripReleaseNoise(query: string): string {
   let rest = stripBracketGroups(query);
   rest = rest.replaceAll(/[._]+/g, " ");

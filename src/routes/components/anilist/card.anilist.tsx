@@ -101,8 +101,6 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
   const shortMeta = cardMeta === "short";
   const entry = entryLookup.get(item.id);
   const format = parseScoreFormat(scoreFormat);
-  // The optimistic overlay wins while a save is pending, so the number, the bar
-  // and the modal prefill all agree with what the stepper shows.
   const progress = useProgressOverride(item.id) ?? entry?.progress ?? null;
 
   const openAnime = () =>

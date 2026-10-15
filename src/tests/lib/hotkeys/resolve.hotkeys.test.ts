@@ -50,8 +50,6 @@ describe("resolveKeybinds", () => {
   });
 
   it("lets the later row win and unbinds the shadowed default", () => {
-    // tree.move.up (KeyK) takes KeyJ: down holds no override, so its final
-    // chord IS its default and there is nothing to fall back to.
     const rows = resolveKeybinds({ "tree.move.up": "KeyJ" });
     const up = rows.find((entry) => entry.entry.id === "tree.move.up");
     const down = rows.find((entry) => entry.entry.id === "tree.move.down");
@@ -62,20 +60,15 @@ describe("resolveKeybinds", () => {
   });
 
   it("leaves a loser unbound when its default is the contested chord", () => {
-    // Both overrides fight over KeyX: the later object entry wins, the first
-    // has no other default to fall back to... except its own default is free.
     const rows = resolveKeybinds({ "tree.move.down": "KeyX", "tree.move.up": "KeyX" });
     const down = rows.find((entry) => entry.entry.id === "tree.move.down");
     const up = rows.find((entry) => entry.entry.id === "tree.move.up");
     expect(up?.activeChord).toBe("KeyX");
     expect(down?.shadowedBy).toBe("tree.move.up");
-    // down's own default KeyJ is free, so it stays live there.
     expect(down?.activeChord).toBe("KeyJ");
   });
 
   it("orders two overrides by object order", () => {
-    // Both fight over KeyT: up is later in the object, so up wins and down
-    // falls back to its free default.
     const rows = resolveKeybinds({ "tree.move.down": "KeyT", "tree.move.up": "KeyT" });
     const down = rows.find((entry) => entry.entry.id === "tree.move.down");
     const up = rows.find((entry) => entry.entry.id === "tree.move.up");
@@ -98,8 +91,6 @@ describe("resolveScopeChords", () => {
       "tree.move.down": null,
       "tree.move.up": "KeyJ",
     });
-    // down is unbound; up took KeyJ so nothing owns the down default... down
-    // itself is out, KeyJ maps to up.
     expect([...map.values()]).not.toContain("tree.move.down");
   });
 });

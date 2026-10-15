@@ -23,8 +23,6 @@ function drawGraph(
   context.clearRect(0, 0, GRAPH_WIDTH, GRAPH_HEIGHT);
   const max = Math.max(1, ...download, ...upload);
   const line = (values: number[], color: string) => {
-    // An all-zero series draws a flat line on the bottom edge, which reads as
-    // a stray dash rather than a graph; skip it until there is real traffic.
     if (values.length < 2 || values.every((value) => value === 0)) return;
     context.strokeStyle = color;
     context.lineWidth = 1;
@@ -52,7 +50,6 @@ export function SpeedGraph({
   upload: number;
   peers: number;
   dht: DhtStatus | null | undefined;
-  /** False while the torrent list is empty: only peers and DHT stay visible. */
   active: boolean;
 }) {
   const { t } = useI18n();

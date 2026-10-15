@@ -73,8 +73,6 @@ function stripFirst(
   return { match, removed, rest };
 }
 
-// A bare 4-digit number after a filter key and operator (year >= 2020)
-// belongs to parseIntent, not to the title resolver.
 function isFilterValue(query: string, match: RegExpMatchArray | null): boolean {
   if (!match || match.index === undefined) return false;
   const before = query.slice(0, match.index).trimEnd();
@@ -226,11 +224,8 @@ export interface SpellingWithReason {
   correction: string;
   reason: CorrectionReason;
   evidence: CorrectionEvidence;
-  /** Word or phrase spans in absolute query coordinates, when computable. */
   spans?: SpellWordSpan[];
-  /** Anime id when the correction equals a known title. */
   titleId?: number;
-  /** Best minus second-best phrase score. Phrase spans need >= 60. */
   confidence?: number;
 }
 
@@ -323,8 +318,6 @@ function markerCorrection(
   const sub = suggestSpellingWithReason(parsed.remainder, options);
   if (sub && (sub.reason === "typo" || sub.reason === "transliteration")) {
     const suffix = parsed.markers.join(" ");
-    // The remainder fix keeps its title link, but its spans point at the
-    // remainder: drop them so callers fall back to a full-query diff.
     return {
       correction: suffix ? `${sub.correction} ${suffix}` : sub.correction,
       evidence: sub.evidence,
@@ -380,11 +373,6 @@ function flatTitlesOf(index: SearchAnimeSuggestion[]): FlatTitle[] {
   return flat;
 }
 
-/**
- * Normalized official/romaji/native titles. An exact hit means the query is
- * already correct: markers must not rewrite it and phrase fixes must be whole
- * titles, never marker-stripped remainders. Aliases stay out on purpose.
- */
 function exactTitleSetOf(index: SearchAnimeSuggestion[]): Set<string> {
   const cached = exactTitleCache.get(index);
   if (cached) return cached;
@@ -423,9 +411,6 @@ function scoreAgainstTitles(
     if (match == null) continue;
     const score = match + title.bonus + title.popularity - penalty;
     if (!best || score > best.score) {
-      // Exact title hits surface the stored display text instead of the
-      // lowercase symspell form, so did-you-mean shows "Sousou no Frieren".
-      // Marker queries keep the full text so "Academia S8" never loses "S8".
       best = {
         text: match === 1000 && full === normalized ? title.display : text,
         normalized: full,
@@ -465,9 +450,6 @@ function coverageFallback(
   known: Set<string>,
   penalty: number
 ): ScoredCorrection | null {
-  // No full-phrase hit (multi-word query against single-word history):
-  // accept the candidate when every word is known vocabulary, so word-level
-  // fixes like "friren attak" still surface without a title index.
   const covered = full
     .split(" ")
     .every((word) => !word || known.has(word) || isKnownGlueWord(word) || isRomanNumeral(word));
@@ -483,10 +465,6 @@ function scoreCorrectionText(
 ): ScoredCorrection | null {
   const full = normalizeSearchText(text);
   if (!full) return null;
-  // Score the full text including any season markers: they may be part of
-  // the title itself ("... 2nd Season"), and short markers still match real
-  // titles through the scorer's own tolerance. Stripping them first would
-  // hand the sibling season's id to a correct text.
   const index = options.animeIndex ?? [];
   const fromTitles =
     index.length > 0 ? scoreAgainstTitles(text, full, full, full.split(" "), index, penalty) : null;
@@ -525,11 +503,6 @@ function rawWordSpans(value: string): Array<{ word: string; start: number; end: 
   return spans;
 }
 
-/**
- * Aligns correction words to query words in order, so inserted words (a split
- * that adds "no") and dropped noise (release tags) produce no span. Offsets
- * are absolute in the original query.
- */
 function alignSpans(query: string, correction: string): SpellWordSpan[] {
   const queryParts = rawWordSpans(query);
   const used = new Set<number>();
@@ -588,8 +561,6 @@ interface PickedCorrection {
   flipped: string;
 }
 
-// A direct hit this good cannot lose to a penalized layout guess
-// (layout exact tops out at 1000 - penalty), so skip the second pipeline.
 const LAYOUT_SKIP_ABOVE = 1000 - LAYOUT_PENALTY;
 
 function layoutContender(
@@ -701,11 +672,6 @@ export function suggestSpellingWithReason(
   const index = options.animeIndex;
   const alias = aliasCorrection(normalizeSearchText(work), index);
   if (alias) return alias;
-  // A confident phrase hit beats the marker path, but only when the fix is a
-  // whole known title: titles like "3-gatsu no Lion 2nd Season" contain season
-  // words, and stripping the marker first would attach the wrong sibling's id
-  // to a correct text. Marker-stripped remainders ("Frieren" from "s5")
-  // always fall through so the marker survives.
   const phraseFix = spellingCorrection(query, work, options);
   const phraseTitle =
     phraseFix?.titleId != null &&
@@ -715,8 +681,6 @@ export function suggestSpellingWithReason(
       ? phraseFix
       : null;
   if (phraseTitle) return phraseTitle;
-  // An exact title needs no fix at all: without this guard the marker path
-  // rewrites season-titled queries and partial path hijacks exact romaji.
   if (index && exactTitleSetOf(index).has(normalizeSearchText(work))) return null;
   return (
     markerCorrection(work, options, index) ??
@@ -726,10 +690,6 @@ export function suggestSpellingWithReason(
   );
 }
 
-/**
- * Season number carried by a title itself ("... Season 4", "... 2nd Season").
- * Years ("... 2011") never qualify: seasons cap at 50.
- */
 function titleSeasonNumber(normalizedTitle: string): number | null {
   const tokens = normalizedTitle.split(" ");
   const last = tokens.at(-1) ?? "";
@@ -774,8 +734,6 @@ export function resolveTitleQuery(
   }
   const out: TitleHypothesis[] = [];
   for (const interp of interpretations) {
-    // Filenames say "Gekijouban" where AniList says "Movie": drop the word
-    // before matching so theatrical releases resolve to their entries.
     const remainder = interp.remainder
       .replace(/\bgekijouban\b/gi, " ")
       .replace(/\s+/g, " ")
@@ -792,8 +750,6 @@ export function resolveTitleQuery(
         bestAnime = anime;
         continue;
       }
-      // Season siblings tie on the remainder ("Season 3" vs "Season 4"):
-      // prefer the entry whose own title carries the requested number.
       if (
         scored != null &&
         scored === bestScore &&

@@ -20,14 +20,6 @@ function memoryStorage(backing = new Map<string, string>()) {
   };
 }
 
-
-/**
- * Benchmarks for the media store (resume watch progress).
- *
- * Hot path on resume: getEntry(path) + persist read.
- * Watch path: setPosition every 5s per watched file.
- */
-
 test('media store - entries', async ({ bench }) => {
   const b1 = bench('createMediaSignalStore + setPosition x1000', () => {
     const store = createMediaSignalStore({ getStorage: () => memoryStorage() });

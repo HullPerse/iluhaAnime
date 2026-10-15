@@ -80,9 +80,6 @@ export function createCoverCorrectionsStore(
   const [persisted, persistedError] = attemptSync(() => persistor.read());
   const persistedData =
     persistedError === null ? ((persisted?.data ?? {}) as Partial<CoverCorrectionsData>) : {};
-  // v3 drops the resolved cache: v2 entries could cement a season-blind
-  // pick (S1 cover stored for an S2 title). Corrections, aliases, and
-  // blobs carry over untouched.
   const keepResolved = (persisted?.schemaVersion ?? 0) >= 3;
   const rawResolved = keepResolved ? (persistedData.resolved ?? {}) : {};
   const resolvedInit: Record<string, ResolvedCover> = {};

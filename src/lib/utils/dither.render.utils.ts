@@ -214,7 +214,6 @@ function grayRampTargets(levels: number): DitherRGB[] {
   return ramp;
 }
 
-/** Blend the frame toward an S-curve (contrast > 0) or flatten it (contrast < 0). */
 function applyContrastInPlace(image: Uint8ClampedArray, contrast: number): void {
   const c = Math.max(-1, Math.min(1, contrast));
   for (let i = 0; i < image.length; i += 4) {
@@ -230,7 +229,6 @@ function applyContrastInPlace(image: Uint8ClampedArray, contrast: number): void 
   }
 }
 
-/** Add monochrome film grain. */
 function applyGrainInPlace(
   image: Uint8ClampedArray,
   width: number,
@@ -249,7 +247,6 @@ function applyGrainInPlace(
   }
 }
 
-/** Darken the frame toward the corners. */
 function applyVignetteInPlace(
   image: Uint8ClampedArray,
   width: number,
@@ -272,7 +269,6 @@ function applyVignetteInPlace(
   }
 }
 
-/** Barrel warp plus chromatic aberration, resampled from the source. */
 function applyGeometry(
   source: Uint8ClampedArray,
   width: number,
@@ -316,7 +312,6 @@ function applyGeometry(
   return output;
 }
 
-/** Darken alternating rows for a CRT scanline look. */
 function applyScanlinesInPlace(
   image: Uint8ClampedArray,
   width: number,
@@ -335,10 +330,6 @@ function applyScanlinesInPlace(
   }
 }
 
-/**
- * Ordered dithering: add a per-pixel threshold from the matrix, then snap each
- * pixel to the palette (in linear space) or to the RGB tone grid.
- */
 function applyOrderedDither(
   image: Uint8ClampedArray,
   width: number,
@@ -421,13 +412,6 @@ const ATKINSON_KERNEL: readonly (readonly [number, number, number])[] = [
   [-1, 2, 1 / 8],
 ];
 
-/**
- * Error diffusion (Floyd–Steinberg or Atkinson).
- *
- * With a palette the error is propagated in color toward the nearest palette
- * entry; without one it diffuses luminance to the gray ramp — the classic
- * black-and-white photo dither.
- */
 export function diffuseImageBuffer(
   image: Uint8ClampedArray,
   width: number,
@@ -573,10 +557,6 @@ function halftoneCoverage(distance2: number, radius: number, soft: number): numb
   return 1 - t * t * (3 - 2 * t);
 }
 
-/**
- * Halftone dot screen: each cell is sampled to a dot color and a radius driven
- * by its luminance, then drawn over the paper color.
- */
 export function applyHalftoneDots(
   image: Uint8ClampedArray<ArrayBuffer>,
   width: number,
@@ -637,10 +617,6 @@ const GLYPH_MASKS: Record<string, readonly string[]> = {
   "#": ["01010", "11111", "01010", "01010", "11111", "01010", "00000"],
 };
 
-/**
- * Glyph overlay: draws a density-mapped ASCII glyph into each cell, tinted with
- * the lightest palette color.
- */
 export function applyGlyphOverlay(
   image: Uint8ClampedArray<ArrayBuffer>,
   width: number,
@@ -725,12 +701,6 @@ function applyHalftonePass(
   return dotted;
 }
 
-/**
- * The full dither pipeline. Passes run in order so each stage sees the output
- * of the previous one:
- *
- * `geometry → contrast → grain → vignette → dither/quantize → halftone → glyphs → scanlines`
- */
 export function renderDitherImage(
   source: Uint8ClampedArray<ArrayBuffer>,
   width: number,

@@ -1,17 +1,5 @@
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
 
-/**
- * Optimistic progress for a media entry, keyed by media id.
- *
- * The stepper writes here on every click instead of patching the
- * `["anilist_data"]` cache. That keeps the promise of the value surviving any
- * in-flight refetch (an overwrite of the cache does not touch this store) and
- * limits re-renders to the cards that subscribe to a given media id.
- *
- * The value is the intended progress while a save is pending; `null` means
- * "no local change, use the server value". It is cleared once the server
- * confirms (or when a save fails with nothing newer queued).
- */
 const store = createSignalStore();
 const cells = new Map<number, Cell<number | null>>();
 

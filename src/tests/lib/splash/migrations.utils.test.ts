@@ -27,7 +27,6 @@ const LIVE: Record<string, number> = {
   player: PLAYER_SCHEMA_VERSION,
   media: MEDIA_SCHEMA_VERSION,
   categories: CATEGORY_SCHEMA_VERSION,
-  // cover.store.ts keeps its schema version inline (no exported constant)
   coverCorrections: 3,
 };
 

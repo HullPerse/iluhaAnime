@@ -89,11 +89,6 @@ export function modalDepth(scope: ModalScope): number {
   return modalAtoms.stacks.get()[scope].length;
 }
 
-/**
- * Empties every scope including the id counter. Test setup calls this
- * before every test so modal stacks cannot leak between files when the
- * suite shares one module registry per worker.
- */
 export function resetModalAtoms(): void {
   modals.clearAll();
   nextModalId = 1;

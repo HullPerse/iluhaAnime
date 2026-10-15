@@ -89,19 +89,11 @@ function handlePlayerContextMenu(
 }
 
 interface FileRowInteractions {
-  /** Player rows are keyboard-activatable (search in AniList). */
   interactive: boolean;
-  /** A right-click opens the save folder. */
   contextMenu: boolean;
-  /** Ctrl+click opens the file in the app. */
   ctrlClick: boolean;
 }
 
-/**
- * Which mouse actions the row name actually has. Torrent rows have none, so
- * they stay plain text and never enter the tab order; the ctrl-click badge is
- * only advertised when the dispatch would really do something.
- */
 function resolveFileRowInteractions(args: {
   type: "torrent" | "player";
   track: boolean;
@@ -126,7 +118,6 @@ function resolveFileRowInteractions(args: {
   };
 }
 
-/** Row name cell: plain text, or a hintable, keyboard-activatable button. */
 function FileNameCell({
   title,
   interactions,
@@ -140,9 +131,7 @@ function FileNameCell({
   interactions: FileRowInteractions;
   onActivate: () => void;
   onOpenFolder: (event: MouseEvent) => void;
-  /** Right-click menu for player rows; null keeps the legacy context handler. */
   menuEntries: ContextMenuEntry[] | null;
-  /** Ctrl+right-click keeps its direct action while a menu owns plain clicks. */
   onCtrlContextMenu: ((event: MouseEvent) => void) | null;
   children: ReactNode;
 }) {
@@ -221,9 +210,6 @@ export function TorrentFileRow({
   const openSearch = () => searchPlayerFile(type, track, resolvedPath, file.displayName);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // The menu fires the row's own buttons, so mouse, keys and menu can never
-  // disagree: parity holds by construction. Torrent-type rows stay menu-free,
-  // exactly like they stay hint-free.
   const entryDisabled = !file.exists || busy;
   const clickOwn = (name: "external" | "builtin" | "upscale"): void => {
     clickRowActionButton(rootRef.current, name);
@@ -276,9 +262,6 @@ export function TorrentFileRow({
   const onCtrlContextMenu =
     interactions.interactive && type === "player"
       ? (event: MouseEvent): void => {
-          // Ctrl+right-click keeps its direct action (builtin player):
-          // capture runs before the trigger's native listener, so stopping
-          // propagation keeps the menu shut.
           if (!(event.ctrlKey || event.metaKey)) return;
           event.preventDefault();
           event.stopPropagation();

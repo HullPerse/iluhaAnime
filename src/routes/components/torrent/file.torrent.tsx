@@ -25,11 +25,6 @@ import type {
   TorrentTreeFileWithPath,
 } from "@/types/torrent";
 
-/** The player folder ring, mirrored: arrows and j/k walk folder *and* file
- *  rows with counts, Enter activates, o/p/s/e/r click the file's own buttons
- *  (s is the name search, r the context menu - the only two without buttons).
- *  Row keys carry no slashes, so every row of one section counts as a sibling
- *  for absolute jumps. */
 type TorrentTreeKeyAction =
   | "treeCollapse"
   | "treeExpand"
@@ -45,8 +40,6 @@ type TorrentTreeKeyAction =
 const TORRENT_TREE_KEYBINDS: ResolvedHotkeyDef<TorrentTreeKeyAction>[] = [
   { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold", keybindId: "tree.collapse" },
   { id: "treeExpand", chord: "ArrowRight", repeat: "hold", keybindId: "tree.expand" },
-  // Both physical keys share one manifest entry: rebinding collapses the
-  // arrow alias into the single new chord.
   { id: "treeUp", chord: "ArrowUp", repeat: "hold", keybindId: "tree.move.up" },
   { id: "treeDown", chord: "ArrowDown", repeat: "hold", keybindId: "tree.move.down" },
   { id: "treeUp", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
@@ -63,8 +56,6 @@ function rowElement(target: EventTarget | null): HTMLElement | null {
   return target instanceof HTMLElement ? target.closest<HTMLElement>("[data-tree-row]") : null;
 }
 
-/** Rows are virtualized and carry no stable DOM id, so the row is looked up by
- *  the path it renders rather than by escaping into a selector. */
 function findRow(root: HTMLElement | null, path: string): HTMLElement | null {
   if (!root) return null;
   for (const row of root.querySelectorAll<HTMLElement>("[data-tree-row]")) {
@@ -95,10 +86,6 @@ function runTorrentFileRowAction(row: HTMLElement, action: TorrentFileRowAction)
   clickRowActionButton(row, action);
 }
 
-/** Enter and S on a folder row toggle it. On a file row they perform the
- *  row's search button: the file name no longer acts on a plain mouse click
- *  (the search icon owns that), so the keyboard goes straight to the button
- *  instead of the name span. */
 function activateTorrentRow(row: HTMLElement): void {
   setVimCount("");
   if (row.dataset.treeKind === "file") {
@@ -219,11 +206,6 @@ function TorrentFilesSection({
     overscan: 20,
   });
 
-  // Every visible row, in render order - the ring walks folders and files
-  // alike, so an expanded torrent costs no tab stop per file. Folder paths
-  // reuse the open set's key (`name + depth`), which `flattenTorrentTree`
-  // checks too; both stay slash-free so one section's rows read as a single
-  // sibling group for absolute jumps.
   const treeRows = useMemo<TreeRow[]>(
     () =>
       flatItems.map((item) =>
@@ -244,8 +226,6 @@ function TorrentFilesSection({
     [flatItems, open]
   );
 
-  // Toggling a folder re-renders the virtual rows positionally, so the ring
-  // is restored by path after the commit instead of trusting DOM identity.
   const pendingFocus = useRef<string | null>(null);
   useEffect(() => {
     const path = pendingFocus.current;
@@ -255,9 +235,6 @@ function TorrentFilesSection({
   }, [open]);
 
   useResolvedHotkeys<TorrentTreeKeyAction>(TORRENT_TREE_KEYBINDS, {
-    // Only the section holding the focused row answers, so the keys keep
-    // their normal meaning everywhere else. A row button is skipped by the
-    // shared filter, so only the modal guard is applied here.
     ignore: (event) => {
       const row = rowElement(event.target);
       if (!row || !scrollRef.current?.contains(row)) return true;
@@ -269,8 +246,6 @@ function TorrentFilesSection({
       if (!path) return;
 
       if (action === "treeActivate" || action === "rowSearch") {
-        // Counts are dropped like in every other non-motion branch; folder
-        // toggle versus file search is resolved inside the helper.
         activateTorrentRow(row);
         return;
       }
@@ -286,7 +261,6 @@ function TorrentFilesSection({
 
       const torrentFileAction = TORRENT_FILE_ACTION_BY_KEY[action];
       if (torrentFileAction !== undefined) {
-        // File rows only; a pending count has no meaning for an action.
         setVimCount("");
         if (row.dataset.treeKind !== "file") return;
         runTorrentFileRowAction(row, torrentFileAction);

@@ -187,7 +187,6 @@ describe("useLivePlaylistSync folder watch", () => {
           changes: [{ path: "C:/F/ep02.mkv", root: "C:/F", kind: "created" }],
         },
       });
-      // The scan goes through the shared batch: wait out its tick.
       await vi.advanceTimersByTimeAsync(60);
     });
 

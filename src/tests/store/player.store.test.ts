@@ -135,8 +135,6 @@ describe("playback atoms", () => {
     const playback = setup();
     playback.setSnapshot({ ...SNAPSHOT, timePos: 10 });
     playback.setSeekTarget(100);
-    // A playback-restart from an older seek arrives while timePos still
-    // shows the pre-seek position: the fresh target must survive it.
     playback.settleSeek();
     expect(playback.atoms.seekSettle.get()).toBe(false);
     expect(playback.atoms.seekTarget.get()).toBe(100);

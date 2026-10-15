@@ -191,8 +191,6 @@ describe("DetailsHero poster menu", () => {
     await waitFor(() => screen.getByRole("menuitem", { name: "Save image as…" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Save image as…" }));
 
-    // Selecting an entry closes the menu: once it is gone the save flow has
-    // settled, so "no invoke call" is a stable assertion, not a timing one.
     await waitFor(() => expect(screen.queryAllByRole("menuitem")).toHaveLength(0));
     expect(mockInvoke).not.toHaveBeenCalled();
   });

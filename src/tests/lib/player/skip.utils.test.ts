@@ -75,8 +75,6 @@ describe("player/skip active chapter", () => {
   });
 });
 
-// The on-screen skip button and the `N` shortcut share this resolver, so both
-// always agree on whether a skip exists and where it lands.
 describe("player/skip target", () => {
   const chapters = [chapter("Opening", 0, 90), chapter("Main", 90), chapter("Ending", 1300)];
 

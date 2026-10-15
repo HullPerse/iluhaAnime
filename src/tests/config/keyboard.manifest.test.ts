@@ -51,9 +51,6 @@ describe("keybind manifest", () => {
   });
 
   it("mirrors the player keybinds", () => {
-    // The player scope also hosts route-level entries (queue toggle, folder
-    // resize), so this pins coverage, not equality: every player keybind must
-    // be listed, extras allowed.
     const playerChords = keybindEntriesByScope("player").map((entry) => entry.chord);
     for (const keybind of KEYBINDS) {
       expect(playerChords, `missing player keybind ${keybind.action}`).toContain(keybind.chord);

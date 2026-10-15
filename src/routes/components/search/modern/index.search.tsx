@@ -37,11 +37,6 @@ function SearchModern() {
 
   useEffect(() => {
     if (!isError) return;
-    // A stored wallpaper that no longer exists (deleted file, or a wiped
-    // dither store) must not fail on every launch. Drop the stale id so the
-    // query is gated again and the bundled placeholder takes over, instead of
-    // nagging with an error toast. The failure still reaches the background
-    // log for diagnostics.
     reportBackgroundError("wallpaper.missing", new Error("stored wallpaper unavailable"));
     patchSettings({ selectedDitherId: null });
   }, [isError]);

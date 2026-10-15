@@ -3,39 +3,17 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { isSameOrInside, normalizePath } from "@/lib/watcher/paths.watcher";
 import type { VideoFileEntry } from "@/types/fs";
 
-/**
- * Every watcher consumer needs its own view of the same changed folder: the
- * player route rebuilds the tree, the live playlist rebuilds its desired list.
- * Each of them used to walk the root on its own, so one event cost N walks.
- *
- * The bus collects those requests for one tick (pacer `Debouncer`, no manual
- * timers) and issues a single backend call:
- *
- * - roots asked for a full walk go to one `refresh_file_index` call;
- * - roots asked for a point update go to one `update_file_index_paths` call;
- * - a root asked for both in the same tick is walked once and the point update
- *   is skipped, so a walk and a point update never race on the same root.
- */
-
 export interface FullScanRequest {
-  /** Watched folder root that has to be walked. */
   root: string;
   extensions: string[];
   threads: number;
 }
 
 export interface PatchScanRequest extends FullScanRequest {
-  /** Paths the watcher reported as created or modified: re-read them. */
   upserts: string[];
-  /** Paths the watcher reported as removed: drop them. */
   removals: string[];
 }
 
-/**
- * `kind: "full"` means the root was walked after all (another consumer in the
- * same tick asked for it), so the caller rebuilds its tree from `entries`
- * instead of patching it node by node.
- */
 export type PatchScanOutcome =
   | { kind: "full"; entries: VideoFileEntry[] }
   | { kind: "patch"; fresh: VideoFileEntry[]; removed: string[] };
@@ -51,19 +29,14 @@ export interface ScanExecutors {
 }
 
 export interface ScanBus {
-  /** Resolves with the entries under the root, exactly like one direct scan. */
   fullScan: (request: FullScanRequest) => Promise<VideoFileEntry[]>;
   patchScan: (request: PatchScanRequest) => Promise<PatchScanOutcome>;
-  /** Runs the pending tick immediately (tests). */
   flush: () => void;
-  /** Drops the pending tick; its waiters reject with a cancellation error. */
   cancel: () => void;
 }
 
 export interface ScanBusOptions extends Partial<ScanExecutors> {
-  /** Quiet window of a tick; requests inside it share one call. */
   waitMs?: number;
-  /** Upper bound so a stream of requests cannot starve the first waiter. */
   maxWaitMs?: number;
 }
 
@@ -86,7 +59,6 @@ interface PendingRequest {
   patchWaiters: Waiter<PatchScanOutcome>[];
 }
 
-/** The two backend calls the bus batches; injectable for tests. */
 export const scanExecutors: ScanExecutors = {
   walk: (roots, extensions, threads) =>
     invokeTyped<VideoFileEntry[]>("refresh_file_index", {
@@ -160,8 +132,6 @@ export function createScanBus(options: ScanBusOptions = {}): ScanBus {
     if (batch.length === 0) return;
     const walks = batch.filter((request) => request.full);
     const updates = batch.filter((request) => !request.full);
-    // Disjoint root sets, disjoint calls; each one reports to its own waiters,
-    // so neither failure escapes as an unhandled rejection of the tick.
     (async () => {
       await Promise.all([
         walks.length > 0 ? runWalk(walks) : Promise.resolve(),
@@ -198,8 +168,6 @@ export function createScanBus(options: ScanBusOptions = {}): ScanBus {
         };
         pending.set(key, entry);
       }
-      // Extensions and thread count are global settings: the newest request in
-      // the tick wins for the whole batch.
       entry.extensions = request.extensions;
       entry.threads = request.threads;
       if (full) entry.full = true;
@@ -229,7 +197,6 @@ export function createScanBus(options: ScanBusOptions = {}): ScanBus {
 
 let shared: ScanBus | null = null;
 
-/** Process-wide bus: the player route and the live playlist must share it. */
 export function folderScanBus(): ScanBus {
   shared ??= createScanBus();
   return shared;

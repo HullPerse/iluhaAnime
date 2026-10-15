@@ -23,11 +23,6 @@ interface EntryPatch {
   custom_lists?: string[];
 }
 
-/**
- * Writes only the matching entry, cloning just the list that holds it. Untouched
- * lists keep their identity, and this runs once per confirmed save rather than
- * once per click, so the list is not re-sorted on every step.
- */
 function patchEntry(
   queryClient: ReturnType<typeof useQueryClient>,
   mediaId: number,
@@ -152,8 +147,6 @@ export function ProgressStepper({
   const sendPending = useCallback(async () => {
     const target = targetRef.current;
     if (target === null || inflightRef.current) return;
-    // Sealed synchronously: a click before this line joins this request,
-    // a click after opens the next debounce window. No update is lost.
     targetRef.current = null;
     inflightRef.current = true;
     setPhase("syncing");
@@ -179,8 +172,6 @@ export function ProgressStepper({
     if (error) {
       const reason = shortReason(error);
       if (superseded) {
-        // A newer click already replaced the overlay; keep it and let the
-        // queued request carry the correction instead of flashing the old value.
         setPhase("idle");
       } else {
         patchEntry(queryClient, media.id, { progress: confirmedRef.current });
@@ -196,8 +187,6 @@ export function ProgressStepper({
       });
       addNotification(t("anilist.controls.save.error.detail", { error: reason }), "error");
     } else {
-      // Trust the server: it may clamp the progress or auto-complete the status,
-      // so `saved` wins over the local target.
       const confirmed = saved?.progress ?? target;
       confirmedRef.current = confirmed;
       const returnedCustomLists = saved?.customLists ?? [];
@@ -228,15 +217,12 @@ export function ProgressStepper({
     setFailure(null);
     clearSaved();
     setPhase((prev) => (prev === "error" || prev === "saved" ? "idle" : prev));
-    // Only the overlay moves on click; the cache is written once the server
-    // confirms, so a single click never re-sorts or refetches the whole list.
     anilistProgressOverride.set(media.id, next);
     if (!inflightRef.current) debouncer.maybeExecute();
   };
 
   const retry = () => {
     if (failure === null || inflightRef.current) return;
-    // A newer click already queued its own request; do not clobber it.
     if (targetRef.current !== null) return;
     const target = failure.target;
     targetRef.current = target;

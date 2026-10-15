@@ -5,8 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { mockOpenPath } from "../../mocks";
 
-// The real virtualizer measures a zero-height scroll element in jsdom and
-// renders no rows at all, so it is stubbed with the identity mapping.
 vi.mock("@tanstack/react-virtual", () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
     getTotalSize: () => count * 20,
@@ -119,7 +117,6 @@ describe("TorrentFilesSection ring", () => {
 
     pressKey("KeyJ", first);
 
-    // a1 -> a2 -> B: two flat steps, crossing no boundary silently.
     expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("B0");
   });
 

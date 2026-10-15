@@ -44,8 +44,6 @@ const ISO_639_2_TO_1: Record<string, string> = {
 
 const UNKNOWN_CODES = new Set(["", "mis", "mul", "und", "unknown", "zxx"]);
 
-// Memoized: Intl.DisplayNames.of() costs microseconds per call and language
-// codes repeat heavily (every track row, every sort comparison).
 const nameCache = new Map<string, string>();
 
 export function normalizeLangCode(code: string | undefined): string {

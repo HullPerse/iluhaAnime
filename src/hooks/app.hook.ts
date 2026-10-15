@@ -198,8 +198,6 @@ export function useApp() {
     if (fallback !== activeTab) goToTab(fallback);
   }, [activeTab, tabs, goToTab]);
 
-  // Dynamic chords follow the visible tab order; a stored override wins per
-  // tab, exactly like the resolver's later-wins rule for static defs.
   const altDigitDefs: ResolvedHotkeyDef<TabId>[] = visibleTabs({
     collectionTabEnabled,
     anilistTabEnabled,

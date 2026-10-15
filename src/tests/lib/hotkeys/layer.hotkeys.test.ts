@@ -42,7 +42,6 @@ function control(parent: HTMLElement = document.body): HTMLElement {
   return node;
 }
 
-/** jsdom has no layout, so a closed layer is one with a zero-size box. */
 const CLOSED: Partial<DOMRect> = { width: 0, height: 0, right: 10, bottom: 10 };
 
 afterEach(() => {

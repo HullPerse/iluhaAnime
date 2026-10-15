@@ -168,7 +168,6 @@ describe("SettingsKeybinds editor", () => {
     render(<SettingsKeybinds />);
     await userEvent.click(screen.getByRole("button", { name: "edit tree.move.down" }));
 
-    // KeyK is owned by tree.move.up: the warning names the loser upfront.
     fireEvent.keyDown(recordBox(), { code: "KeyK", key: "k" });
 
     await waitFor(() => expect(screen.getByText(/already in use:/i)).not.toBeNull());

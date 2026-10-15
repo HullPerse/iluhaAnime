@@ -48,8 +48,6 @@ function filterNode(tree: FolderNode, hidden: string[]): FolderNode | null {
     .filter((child): child is FolderNode => child !== null);
 
   if (files.length === 0 && children.length === 0) return null;
-  // No structural change: return the original reference so memoized parents
-  // and React trees below do not re-render for a no-op filter pass.
   if (
     files.length === tree.files.length &&
     children.length === tree.children.length &&

@@ -46,11 +46,6 @@ import type { FolderNode } from "@/types/torrent";
 
 import UpscalePlayer from "./upscale/modal.upscale";
 
-/** Section 13.3 of `vim-mode.md`: the tree owns its own arrows, and only while
- *  one of its folder rows actually has focus. Row actions (o/p/s/e/r) fire
- *  only on file rows: they click the row's own buttons, so key and mouse can
- *  never disagree - the ctrl+click variants are covered because the clicks
- *  land on the same buttons those variants duplicate. */
 type TreeKeyAction =
   | "treeCollapse"
   | "treeExpand"
@@ -66,8 +61,6 @@ type TreeKeyAction =
 const TREE_KEYBINDS: ResolvedHotkeyDef<TreeKeyAction>[] = [
   { id: "treeCollapse", chord: "ArrowLeft", repeat: "hold", keybindId: "tree.collapse" },
   { id: "treeExpand", chord: "ArrowRight", repeat: "hold", keybindId: "tree.expand" },
-  // Both physical keys share one manifest entry: rebinding collapses the
-  // arrow alias into the single new chord.
   { id: "treeUp", chord: "ArrowUp", repeat: "hold", keybindId: "tree.move.up" },
   { id: "treeDown", chord: "ArrowDown", repeat: "hold", keybindId: "tree.move.down" },
   { id: "treeUp", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
@@ -111,8 +104,6 @@ function moveRingFocus(
   direction: -1 | 1
 ): void {
   if (path === nodePath && !treeRows.some((row) => row.path === path)) {
-    // External root header (the draggable folder head): dive into the first
-    // row on Down, stay put on Up.
     if (direction > 0) {
       const first = treeRows[0];
       if (first) findRow(treeRef.current, first.path)?.focus();
@@ -126,8 +117,6 @@ function moveRingFocus(
   if (next) findRow(treeRef.current, next)?.focus();
 }
 
-/** Rows are virtualized and carry no stable DOM id, so the row is looked up by
- *  the path it renders rather than by escaping into a selector. */
 function findRow(root: HTMLElement | null, path: string): HTMLElement | null {
   if (!root) return null;
   for (const row of root.querySelectorAll<HTMLElement>("[data-tree-row]")) {
@@ -239,8 +228,6 @@ function FolderView({
       const paths = folder ? folderFilePaths(folder) : [];
       const index = paths.indexOf(path);
       const resume = stored && stored.position > 0 ? stored.position : undefined;
-      // Keep the queue in its sorted order and let the backend start at the
-      // chosen episode, so the playlist reads 1..N instead of rotating.
       await openPlayer(
         paths.length > 0 ? paths : [path],
         resume,
@@ -269,9 +256,6 @@ function FolderView({
   const pendingFocus = useRef<string | null>(null);
   const [anchorPath, setAnchorPath] = useState<string | null>(null);
 
-  // Every visible row, in render order. Folder rows are the tab stops (they
-  // already were); file rows are reached from them by the movement keys, so a
-  // fully expanded tree does not cost a tab stop per episode.
   const treeRows = useMemo<TreeRow[]>(() => {
     const header: TreeRow[] =
       !hideRoot || depth > 0
@@ -297,9 +281,6 @@ function FolderView({
     ];
   }, [depth, flatItems, hideRoot, node.path, open]);
 
-  // Opening a folder adds rows above the one that was focused, and the virtual
-  // nodes are reused positionally, so the ring is restored by path after the
-  // commit instead of trusting DOM identity.
   useEffect(() => {
     const path = pendingFocus.current;
     if (!path) return;
@@ -308,11 +289,6 @@ function FolderView({
   }, [open]);
 
   useResolvedHotkeys<TreeKeyAction>(TREE_KEYBINDS, {
-    // Only the tree holding the focused folder row answers, so the arrows keep
-    // their normal meaning everywhere else on this route. The draggable header
-    // above this view is its root row too: it carries the root path but lives
-    // outside treeRef, so it is accepted by path. A row is a button, which the
-    // shared filter would skip, so the modal guard is applied here.
     ignore: (event) => {
       const row = rowElement(event.target);
       if (!row) return true;
@@ -325,11 +301,6 @@ function FolderView({
       if (!path) return;
 
       if (action === "treeActivate") {
-        // Enter performs the row's external button: the file name no longer
-        // acts on a plain mouse click (the Monitor icon owns that), so the
-        // keyboard goes straight to the button instead of the name span.
-        // A pending count means nothing here either: without the drop,
-        // `3 Enter j` would step two.
         setVimCount("");
         clickRowActionButton(row, "external");
         return;
@@ -342,9 +313,6 @@ function FolderView({
 
       const fileAction = FILE_ACTION_BY_KEY[action];
       if (fileAction !== undefined) {
-        // File rows only: folder rows are <button>s without file buttons, and
-        // the header row has neither. A pending count has no meaning for an
-        // action, so it is dropped instead of leaking into the next motion.
         setVimCount("");
         if (row.dataset.vimTarget !== "file") return;
         runFileRowAction(row, fileAction);
@@ -560,9 +528,6 @@ function FolderView({
               const queueStatus = file.path ? queueMap.get(file.path) : undefined;
               const busy = queueStatus === "queued" || queueStatus === "processing";
 
-              // The menu fires the row's own buttons, so mouse, keys and menu
-              // can never disagree: parity holds by construction, and a
-              // disabled button's click() stays a no-op.
               const entryDisabled = disabled || busy;
               const clickOwnButton = (
                 name: "external" | "builtin" | "search" | "upscale"
@@ -644,9 +609,6 @@ function FolderView({
                       className="windows95-text flex-1 truncate select-none"
                       data-tree-activate
                       onContextMenuCapture={(e) => {
-                        // Ctrl+right-click keeps its direct action (builtin
-                        // player): capture runs before the trigger's native
-                        // listener, so stopping propagation keeps the menu shut.
                         if (!(e.ctrlKey || e.metaKey)) return;
                         e.preventDefault();
                         e.stopPropagation();
@@ -654,9 +616,6 @@ function FolderView({
                         ignore(openInAppPlayer(file.path));
                       }}
                       onClick={(e) => {
-                        // Plain clicks only move focus to the row: the external
-                        // player action lives on the Monitor icon now.
-                        // Ctrl+click keeps the AniList search shortcut.
                         if (!(e.ctrlKey || e.metaKey)) {
                           e.currentTarget.closest<HTMLElement>("[data-tree-row]")?.focus();
                           return;

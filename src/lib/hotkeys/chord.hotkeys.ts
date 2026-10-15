@@ -88,11 +88,6 @@ function humanizeCode(code: string): string {
   return KEY_LABELS[code] ?? code;
 }
 
-/**
- * Splits a chord into display parts: modifiers first, then the key, e.g.
- * `ctrl+KeyK` becomes `["Ctrl", "K"]`. Returns null for unparseable input so
- * callers can fall back to the raw string.
- */
 export function splitChordParts(input: string): string[] | null {
   const chord = parseChord(input);
   if (!chord) return null;
@@ -105,12 +100,6 @@ export function splitChordParts(input: string): string[] | null {
   return parts;
 }
 
-/**
- * Renders a chord the way the keybinds tab shows it: `ctrl+KeyK` becomes
- * `Ctrl+K`, `ArrowLeft` becomes a glyph, `BracketLeft` becomes `[`.
- * Unparseable input passes through untouched so the tab never blanks
- * a row it cannot read.
- */
 export function humanizeChord(input: string): string {
   return splitChordParts(input)?.join("+") ?? input;
 }

@@ -8,7 +8,6 @@ import type { HighlightToken } from "@/lib/highlight/highlight.utils";
 
 const NO_SEGMENTS: HighlightToken[] = [];
 
-/** First torrent name that starts with the query, when it extends it. */
 function firstPrefixMatch(names: readonly string[], query: string): string {
   const trimmed = query.trim();
   if (trimmed.length === 0) return "";
@@ -24,7 +23,6 @@ export default function TorrentNameFilter({
   onQueryChange,
 }: {
   className?: string;
-  /** Names of the torrents currently in this tab, used for the inline hint. */
   names: readonly string[];
   query: string;
   onQueryChange: (value: string) => void;

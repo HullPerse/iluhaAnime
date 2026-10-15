@@ -94,11 +94,6 @@ function sleep(ms: number, signal?: AbortSignal): Promise<boolean> {
   });
 }
 
-/**
- * Runs a promise factory and maps the rejection into a typed failure.
- * Used where the caller owns the domain error shape and the raw `Error`
- * from `attempt` would lose the cause.
- */
 export async function attemptAs<T, E>(
   promise: Promise<T>,
   mapError: (error: unknown) => E
@@ -121,11 +116,6 @@ export function attemptAsSync<T, E>(
   }
 }
 
-/**
- * Retries `fn` with a growing delay. The first call is attempt 1, so
- * `attempts: 3` means one call plus two retries. A delay of 0 keeps the
- * retries immediate, which is what tests want.
- */
 export async function attemptRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {}

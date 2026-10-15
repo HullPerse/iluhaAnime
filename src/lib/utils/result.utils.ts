@@ -58,25 +58,18 @@ export interface TapHandlers<T, E> {
   onFailure?: (error: E) => void;
 }
 
-/** Observes a result without changing it, for logging and metrics. */
 export function tap<T, E>(result: Result<T, E>, handlers: TapHandlers<T, E>): Result<T, E> {
   if (result.ok) handlers.onSuccess?.(result.value);
   else handlers.onFailure?.(result.error);
   return result;
 }
 
-/** Retries a task, see `RetryOptions` in attempt.utils. */
 export async function retry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<Result<T>> {
   return toResult(await attemptRetry(fn, options));
 }
 
 const TIMEOUT_MARK = Symbol("result.withTimeout");
 
-/**
- * Fails with a timeout error after `ms`. A delay of 0 expires immediately.
- * The losing promise keeps its rejection handled, so no unhandled rejection
- * escapes when the timeout wins the race.
- */
 export async function withTimeout<T>(
   promise: Promise<T>,
   ms: number,
@@ -115,21 +108,12 @@ function releaseQuietly<T>(steps: ResourceUse<T, unknown>, resource: T): Promise
   return attempt((async () => steps.release(resource))()).then(([, error]) => error);
 }
 
-/**
- * Guarantees `release` runs after `use` settles, in both directions. A use
- * failure is reported before a release failure, because the use failure is
- * what stopped the operation.
- */
 export async function withResource<T, R>(steps: ResourceUse<T, R>): Promise<Result<R>> {
   const resource = await attemptResult((async () => steps.acquire())());
   if (!resource.ok) return resource;
   return runResourceUse(steps, resource.value);
 }
 
-/**
- * Runs `task` over `items` with at most `limit` in flight and settles every
- * item, so one rejection never drops the rest. Result order matches the input.
- */
 export async function attemptAllLimit<T, R>(
   items: readonly T[],
   limit: number,

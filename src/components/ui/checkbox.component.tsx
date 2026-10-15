@@ -17,7 +17,6 @@ function Checkbox({
   indeterminate?: boolean;
   className?: string;
   "aria-label"?: string;
-  /** Marks the box as a keyboard-hint target (the root renders `role=checkbox`). */
   "data-vim-target"?: string;
 }) {
   return (

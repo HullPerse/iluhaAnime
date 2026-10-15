@@ -42,7 +42,6 @@ const SUBS_SET = buildSet(SUB_FORMATS);
 const SUB_VARIANT_SET = buildSet(SUB_VARIANTS);
 const TAG_SET = buildSet(EDITION_TAGS);
 
-// Cyrillic KHA seen in real codec spellings, normalized to latin x.
 const CYRILLIC_HE = String.fromCodePoint(0x0445);
 
 const SPECIAL_RX = /^(ncop|nced|op|ed|ova|ona|sp)(\d*)$/i;
@@ -58,9 +57,6 @@ const RANGE_RX = /^\d{1,3}[-~～〜]\d{1,3}$/;
 const COUNTED_LANG_RX = /^\d+x[a-z]+$/i;
 const PLAIN_DIGITS_RX = /^\d{1,3}$/;
 const MULTI_SUB_RX = /^multisubs?$|^multiple[ _-]+subtitles?$/i;
-// Subtitle variant tags glued as lang-region pairs: [POR-BR], [SPA-LA].
-// Without this the pair expands into loose words and the region half
-// (BR, LA) leaks into the release title.
 const LANG_REGION_RX = /^([a-z]{2,3})-([a-z]{2})$/;
 
 interface SingleRule {

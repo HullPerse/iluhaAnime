@@ -209,7 +209,6 @@ async function restoreReloadPaused(reload: HwdecReload | null): Promise<void> {
   if (reload && !reload.paused) await setPaused(false);
 }
 
-/** Packs the per-file mpv state for the single-IPC apply call. Pure. */
 function fileStatePatch(entry: MediaEntry | undefined, speed: number): FilePlaybackState {
   return {
     speed,
@@ -263,17 +262,11 @@ function PlayerComponent() {
   const videoRef = useRef<HTMLDivElement>(null);
   const resumeRef = useRef<number | undefined>(undefined);
   const hwdecReloadRef = useRef<HwdecReload | null>(null);
-  // Guards overlapping handleFileLoaded executions: every new file-loaded
-  // (or open request) retires the previous run mid-await so stale track,
-  // delay, and seek writes can never land on the wrong file.
   const loadEpochRef = useRef(0);
   const destroyTaskRef = useRef<ScheduledTask | null>(null);
   const dropHideRef = useRef<Debouncer<[]> | null>(null);
   const lastSavedWatchRef = useRef<{ path: string; position: number } | null>(null);
 
-  // A rewrite of the file that is playing right now (upscale, re-encode) needs
-  // mpv to reopen it; the hwdec-reload path restores position and paused state
-  // after `file-loaded`, so it doubles as the reload-from-watch-position here.
   const reloadPlayingFile = useCallback(() => {
     const playlistIndex = playbackAtoms.playlistIndex.get();
     if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
@@ -335,18 +328,10 @@ function PlayerComponent() {
     if (!force && lastMarginsRef.current && marginsCloseEnough(lastMarginsRef.current, next)) {
       return;
     }
-    // No mpv instance before the first snapshot: skip silently instead of
-    // firing a doomed IPC that only litters the console. The retry stays
-    // intact — lastMarginsRef keeps null and the next sync resends.
     if (!playbackAtoms.ready.get()) {
       lastMarginsRef.current = null;
       return;
     }
-    // Record only acknowledged values: setVideoMarginRatio fails while mpv
-    // is not initialized yet, and optimistic bookkeeping would suppress
-    // every later retry of the same geometry (the native video then bleeds
-    // under the UI bars with no recovery path). Clearing on failure keeps
-    // identical geometry retryable.
     ignore(
       setVideoMarginRatio(next)
         .then(() => {
@@ -374,10 +359,6 @@ function PlayerComponent() {
     syncMarginsRef.current = syncMargins;
   }, [syncMargins]);
 
-  // Volume sends go through the store subscriber below as the single path
-  // (onVolume only sets state). Slider drags fire per mousemove, so the IPC
-  // is throttled leading+trailing: discrete steps go out immediately, drags
-  // cost ~7/s plus the exact final value.
   const VOLUME_IPC_MS = 150;
   const volumeThrottlerRef = useRef<Throttler<[number]> | null>(null);
 
@@ -406,9 +387,6 @@ function PlayerComponent() {
 
     const start = async () => {
       const store = getPlayerSnapshot();
-      // Seed the VO with the current field geometry so it never starts up
-      // with zero margins; the forced sync below re-measures once the layout
-      // and mpv are both ready.
       const field = videoRef.current?.getBoundingClientRect();
       const seedMargins = computeVideoMargins(
         window.innerWidth || 1,
@@ -423,8 +401,6 @@ function PlayerComponent() {
         }),
         ...marginOptions(seedMargins),
       });
-      // Independent backend applies run concurrently: each is ~1 IPC roundtrip
-      // and none depends on another. Error reporting per call is preserved.
       await Promise.all([
         applyPlayerProfile(store.profile).catch((error: unknown) =>
           reportBackgroundError("player.init.profile", error)
@@ -440,9 +416,6 @@ function PlayerComponent() {
         ),
         setEofModeCommand(store.eofMode),
       ]);
-      // mpv is guaranteed up here: (re)send geometry that may have failed
-      // while it was still initializing. Forced because the guard must not
-      // suppress the authoritative values after a fresh VO.
       if (disposed) return;
       syncMarginsRef.current(true);
       const request = await takePendingOpen();
@@ -503,10 +476,6 @@ function PlayerComponent() {
         if (settingsDebouncerRef.current === null) {
           settingsDebouncerRef.current = new Debouncer(
             (latest: PlayerSettings) => {
-              // Diff against the last flushed intent: a slider drag resends one
-              // changed property instead of all ~19 (and avoids rebuilding the
-              // mpv filter chain by resending an unchanged vf). After any
-              // failure the baseline is untrusted, so the next flush goes full.
               const baseline = previousSettingsRef.current;
               const full = settingsSyncFailedRef.current || baseline === null;
               previousSettingsRef.current = latest;
@@ -557,17 +526,12 @@ function PlayerComponent() {
     const entry = await hydrateMediaEntry(loaded);
     if (!isCurrent()) return;
 
-    // One IPC for the whole per-file state (speed, delays, persisted
-    // tracks) instead of 4-5 sequential property roundtrips.
     await applyFileState(fileStatePatch(entry, playbackAtoms.speed.get() || 1));
     if (!isCurrent()) return;
     hwdecReloadRef.current = null;
 
     const resume = resumeRef.current;
     resumeRef.current = undefined;
-    // Live mpv value, not atoms: at file-loaded time the atoms still hold
-    // the previous file (snapshots arrive on the next backend tick), which
-    // used to silently drop resume or misjudge the watchable range.
     const liveDuration = await readDuration();
     if (!isCurrent()) return;
     const position = resolveLoadPosition(reload, resume, entry?.position);
@@ -606,9 +570,6 @@ function PlayerComponent() {
       settleSeek();
       setHasShownFrame(true);
       setLoadingFile(false);
-      // Geometry is final once frames flow: force a resend so a fresh VO or a
-      // dropped property can never strand the video outside the field even if
-      // the layout never changes afterwards.
       syncMargins(true);
     },
     onShutdown: () => {
@@ -640,8 +601,6 @@ function PlayerComponent() {
         return;
       }
       const timePos = playbackAtoms.timePos.get();
-      // Skip unchanged ticks (stalls): the row would be rewritten with the
-      // same position every 5 s for no reason.
       const lastSaved = lastSavedWatchRef.current;
       if (lastSaved && lastSaved.path === path && lastSaved.position === timePos) {
         return;
@@ -663,10 +622,6 @@ function PlayerComponent() {
   }, []);
 
   useEffect(() => {
-    // Neighbor cards (prev/next files) warm on every file change, even with
-    // the playlist closed: the prev/next buttons show them on hover. The full
-    // list warms only with the panel open; already cached neighbors are
-    // skipped by both schedulers, so opening the panel never refetches them.
     if (!path || playlistCount === 0) return;
     let cancelled = false;
     const index = playlistIndex;
@@ -888,8 +843,6 @@ function PlayerComponent() {
 
   const onVolume = useCallback((value: number) => {
     const clamped = Math.min(1, Math.max(0, value));
-    // The single send path is the store subscriber below (throttled): a
-    // direct send here would double every tick.
     setVolume(clamped);
     if (playbackAtoms.muted.get()) {
       setPlaybackMuted(false);
@@ -1017,8 +970,6 @@ function PlayerComponent() {
     );
     if (kind === "sub") setMediaSubOffset(current, next);
     else setMediaAudioOffset(current, next);
-    // Send only the changed delay: the other one is untouched, resending it
-    // just doubles the IPC on every nudge.
     if (kind === "sub") ignore(setMpvProperty("sub-delay", next));
     else ignore(setMpvProperty("audio-delay", next));
   }, []);
@@ -1040,8 +991,6 @@ function PlayerComponent() {
   );
 
   const onSkipShortcut = useCallback(() => {
-    // Same resolution as the on-screen skip button, so the key and the button
-    // never disagree about whether a skip exists or where it lands.
     const skip = resolveSkipTarget(
       playbackAtoms.chapters.get(),
       playbackAtoms.timePos.get(),
@@ -1055,9 +1004,6 @@ function PlayerComponent() {
 
   const onChapterJump = useCallback(
     (direction: ChapterJumpDirection) => {
-      // Same resolver as the on-screen seek buttons, so the key and the
-      // button never disagree about where a chapter jump lands. A boundary
-      // stays silent here: the first/last popup lives on the buttons.
       const jump = resolveChapterJump({
         chapters: playbackAtoms.chapters.get(),
         timePos: playbackAtoms.timePos.get(),
@@ -1081,8 +1027,6 @@ function PlayerComponent() {
     [onSelectTrack]
   );
 
-  // The list keys are scoped to the open playlist panel: with the panel closed
-  // they do nothing, so the arrows everywhere else keep their meaning.
   const onPlaylistFocus = useCallback(
     (delta: number) => {
       if (!playlistOpen) return;

@@ -92,8 +92,6 @@ describe("SearchModern wallpaper gate", () => {
     const { container } = renderModern();
     await waitFor(() => expect(screen.getByPlaceholderText("Search anime...")).toBeTruthy());
     expect(tabLoaderShown(container)).toBe(false);
-    // The stale id is dropped so the lookup is not retried (and no error toast
-    // is shown) on the next launch.
     await waitFor(() => expect(settingsAtoms.selectedDitherId.get()).toBeNull());
     expect(errorMessages()).toEqual([]);
   });

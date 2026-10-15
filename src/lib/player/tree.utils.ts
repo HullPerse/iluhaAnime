@@ -2,7 +2,6 @@ import { fileNameFromPath, mediaFileExtension } from "@/lib/media/parse.utils";
 import type { VideoFileEntry } from "@/types/fs";
 import type { FolderNode } from "@/types/torrent";
 
-// Shared collator: localeCompare() without one constructs it per comparison.
 const PATH_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 export type PlayerTreeItem =
@@ -68,7 +67,6 @@ export function folderFilePaths(folder: FolderNode): string[] {
   return folder.files.map((file) => file.path).sort((a, b) => PATH_COLLATOR.compare(a, b));
 }
 
-/** Every file path in the tree, folders included. */
 export function allFilePaths(node: FolderNode): string[] {
   return [...node.files.map((file) => file.path), ...node.children.flatMap(allFilePaths)];
 }
@@ -87,11 +85,6 @@ function slashPath(path: string): string {
   return path.replaceAll("\\", "/");
 }
 
-/**
- * Forward-slash path relative to `root`, or `null` when it is not under it.
- * Mirrors how [`buildTree`] computes relative parts, so a patch lands on the
- * same node a rebuild would have created.
- */
 function relativePath(root: string, path: string): string | null {
   const normalizedRoot = slashPath(root).replace(/\/+$/, "");
   const normalized = slashPath(path);
@@ -102,12 +95,7 @@ function relativePath(root: string, path: string): string | null {
 
 type TreeFile = FolderNode["files"][number];
 
-/**
- * Builds the folder chain for `rest` (the segments after `name`, ending with
- * the file) under `path`, deepest node first.
- */
 function buildSubtree(name: string, path: string, rest: string[], file: TreeFile): FolderNode {
-  // `rest` is just the file name: it lives in this folder.
   if (rest.length <= 1) {
     return { children: [], files: [file], name, path };
   }
@@ -121,10 +109,8 @@ function buildSubtree(name: string, path: string, rest: string[], file: TreeFile
   };
 }
 
-/** Copies the nodes down to the file's folder, replacing or appending the file. */
 function withFile(node: FolderNode, relativeParts: string[], file: TreeFile): FolderNode {
   if (relativeParts.length <= 1) {
-    // The last segment is the file itself, so it lands on this node.
     const files = [
       ...node.files.filter((candidate) => slashPath(candidate.path) !== slashPath(file.path)),
       file,
@@ -146,7 +132,6 @@ function withFile(node: FolderNode, relativeParts: string[], file: TreeFile): Fo
   return { ...node, children };
 }
 
-/** Drops one file, then prunes every folder that is left empty. */
 function withoutFile(node: FolderNode, relativeParts: string[], pathKey: string): FolderNode {
   if (relativeParts.length <= 1) {
     return {
@@ -173,22 +158,12 @@ function pruneEmpty(node: FolderNode): FolderNode | null {
   return { ...node, children };
 }
 
-/**
- * Adds or replaces one file in a built tree without walking the whole root.
- * Returns a new tree (the old one is left untouched for the store) or `null`
- * when the file is not under this root, which tells the caller to fall back to
- * a full rescan.
- */
 export function patchTreeFile(tree: FolderNode, file: TreeFile): FolderNode | null {
   const relative = relativePath(tree.path, file.path);
   if (relative === null || relative === "") return null;
   return withFile(tree, relative.split("/").filter(Boolean), file);
 }
 
-/**
- * Removes one file and prunes folders it leaves empty. `null` means the path
- * is not under this root and the caller has to rescan.
- */
 export function removeTreeFile(tree: FolderNode, path: string): FolderNode | null {
   const relative = relativePath(tree.path, path);
   if (relative === null || relative === "") return null;

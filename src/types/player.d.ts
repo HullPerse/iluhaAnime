@@ -69,7 +69,6 @@ export interface PlaylistBodyProps {
   onPlay: (index: number) => Promise<void>;
   onRemove: (index: number) => Promise<void>;
   onMove: (from: number, to: number) => Promise<void>;
-  /** Row the list keys moved the focus ring to, if any. */
   focusedIndex?: number | null;
 }
 

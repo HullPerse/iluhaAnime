@@ -28,7 +28,6 @@ export default function QueuePanel({
   onToggle,
 }: {
   scan: ScanType;
-  /** Owned by the player route so the `Q` key and the header button agree. */
   open: boolean;
   onToggle: () => void;
 }) {

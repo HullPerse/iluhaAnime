@@ -2,15 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { createSignalStore } from '@/lib/state/signal.store';
 
-/**
- * Behavioral tests for the custom signal store.
- *
- * These tests target the player's launch/resume behavior, specifically:
- *  - that subscriptions do not fire stale/surplus updates (which would cause
- *    the player to seek to a wrong position on file launch or resume);
- *  - that batch updates flush subscribers exactly once;
- *  - that derived cells are stable when their dependencies have not changed.
- */
 describe('signal store - player-safe subscriptions', () => {
   it('fires subscribers exactly once per distinct value change', () => {
     const store = createSignalStore();
@@ -20,7 +11,6 @@ describe('signal store - player-safe subscriptions', () => {
 
     cell.set(1);
     cell.set(2);
-    // no-op, same value
     cell.set(2);
     cell.set(1);
 
@@ -58,11 +48,8 @@ describe('signal store - player-safe subscriptions', () => {
     const calls: number[] = [];
     derived.subscribe(() => calls.push(derived.get()));
 
-    // change only `a`
     a.set(10);
-    // change only `b`
     b.set(20);
-    // reset both to original values (derived returns to original)
     a.set(1);
     b.set(2);
 
@@ -140,14 +127,11 @@ describe('signal store - player-safe subscriptions', () => {
       renderCount++;
     });
 
-    // same identity twice: silent after the first commit
     const shared = { n: 5 };
     cell.set(shared);
     cell.set(shared);
     expect(renderCount).toBe(1);
 
-    // distinct identities with equal content still notify: the store does
-    // not deep-compare, so callers must avoid fresh literals for no-op writes
     cell.set({ n: 5 });
     cell.set({ n: 5 });
     expect(renderCount).toBe(3);

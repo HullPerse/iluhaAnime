@@ -24,9 +24,6 @@ export interface ContextMenuSeparator {
 
 export type ContextMenuEntry = ContextMenuItem | ContextMenuSeparator;
 
-/** Every mounted menu registers its closer here, so vim hints (`F`) can shut
- *  open menus before scanning: a menu left open would sit above the hint
- *  layer and eat the clicks its badges promise. */
 const menuClosers = new Set<() => void>();
 
 export function closeOpenContextMenus(): void {
@@ -75,8 +72,6 @@ export default function ContextMenu({
     [isControlled]
   );
 
-  // A mounted menu is closable from the outside even while closed: closing a
-  // closed menu is a no-op state set, so no open-state tracking is needed.
   const setOpenRef = useRef(setOpen);
   useEffect(() => {
     setOpenRef.current = setOpen;
@@ -91,7 +86,6 @@ export default function ContextMenu({
     };
   }, []);
 
-  // Esc unwinds through the shared overlay stack like every other overlay.
   useEffect(() => {
     if (!isOpen) return;
     return registerOverlay(() => setOpen(false));

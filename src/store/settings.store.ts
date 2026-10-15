@@ -213,12 +213,8 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),
   anilistDisplayMode: toValidator(z.enum(["scroll", "pagination"])),
   watcherDelay: toValidator(z.enum(["fast", "calm"])),
-  // 0 = one thread per logical core; anything else is clamped in Rust.
   scanThreads: (value) =>
     Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 64,
-  // Shape only: chord text is validated at resolve time (an unparsable
-  // override is dropped, never persisted back), so a hand-edited store or a
-  // removed manifest entry cannot break loading.
   keybindOverrides: toValidator(z.record(z.string(), z.union([z.string(), z.null()]))),
   anilistListSort: toValidator(
     z.object({
@@ -520,13 +516,6 @@ export function subscribeSettings(listener: () => void): () => void {
 
 const INITIAL_SETTINGS_SNAPSHOT: SettingsData = getSettingsSnapshot();
 
-/**
- * Restores every settings atom to the worker-start snapshot without running
- * patch side effects (no UI mutations, no window-chrome invoke, no tmdb
- * drain). Test setup calls this before every test so files cannot leak
- * flags like `torrentCoverMode` into each other when the suite shares
- * one module registry per worker.
- */
 export function resetSettingsAtoms(): void {
   const atoms = settingsAtoms as unknown as Record<string, Cell<unknown>>;
   const source = INITIAL_SETTINGS_SNAPSHOT as unknown as Record<string, unknown>;

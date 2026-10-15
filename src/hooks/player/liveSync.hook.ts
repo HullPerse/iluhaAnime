@@ -40,12 +40,6 @@ async function removePlaylistIndexes(indices: number[]): Promise<void> {
   for (const index of indices) await removePlaylistIndex(index);
 }
 
-/**
- * Drops entries that left the desired list. Only previously planned paths are
- * touched, so hand-added files never disappear. The playlist is re-read after
- * the removals so later insert indices match the shrunken list. Returns null
- * when the playlist could not be updated, and the caller retries.
- */
 async function applyRemovals(
   desired: string[],
   previous: string[] | null,
@@ -67,10 +61,6 @@ async function applyRemovals(
   return { base: reread.map((entry) => entry.filename), removed };
 }
 
-/**
- * Puts playback back on the file it was on before the playlist changed. A file
- * that was just removed is left alone: mpv already moved on (or idled).
- */
 async function restoreCurrent(current: string, removed: string[]): Promise<void> {
   if (removed.some((path) => path !== "" && samePath(path, current))) return;
   const [fresh, freshError] = await attempt(readPlaylistEntries());
@@ -132,7 +122,6 @@ async function reconcile(
 }
 
 export interface LivePlaylistOptions {
-  /** Called when the currently playing file was rewritten on disk. */
   onPlayingFileModified?: () => void;
 }
 
@@ -150,9 +139,6 @@ export function useLivePlaylistSync(
   const busyRef = useRef(false);
   const desiredRef = useRef<string[] | null>(null);
   const failsRef = useRef(0);
-  // A downloading torrent rewrites its files constantly, so a `modified`
-  // event alone must never reload the playing file. Only a stable (fully
-  // downloaded) torrent gets the same modified-reload as a plain folder.
   const stableRef = useRef(false);
 
   useEffect(() => {
@@ -198,8 +184,6 @@ export function useLivePlaylistSync(
     }
     failsRef.current = 0;
     stableRef.current = files.every((file) => file.completed);
-    // Same extras the torrent sections show next to the files: an upscale
-    // written into the save dir joins the live playlist like a folder file.
     const extras =
       queryClient.getQueryData<ReadonlyArray<{ fullPath: string }>>(
         queryKeys.extraFiles(watch.saveDir)
@@ -230,8 +214,6 @@ export function useLivePlaylistSync(
       if (!watch || !armed || watch.kind !== "folder") return;
       const hit = payload.roots.some((dir) => isSameOrInside(dir, watch.root));
       if (!hit) return;
-      // The desired list is built from a video-only scan; other files cannot
-      // change it, so skip the scan entirely.
       if (!touchesExtensions(payload.changes, videoExtensions)) return;
       const playing = playbackAtoms.path.get();
       const playingModified =
@@ -241,9 +223,6 @@ export function useLivePlaylistSync(
         );
       ignore(
         (async () => {
-          // Shared tick: the player route asks for the same root on the same
-          // event, so both go through one `refresh_file_index` call instead of
-          // a walk each.
           const [entries, error] = await attempt(
             folderScanBus().fullScan({
               root: watch.root,
@@ -268,8 +247,6 @@ export function useLivePlaylistSync(
       if (!watch || !armed || watch.kind !== "torrent") return;
       const hit = payload.changes.some((change) => isSameOrInside(watch.saveDir, change.path));
       if (!hit) return;
-      // Same skip as the folder branch: the torrent playlist is built from
-      // video files, so batches without one cannot change it.
       if (!touchesExtensions(payload.changes, videoExtensions)) return;
       const playing = playbackAtoms.path.get();
       const playingModified =
@@ -280,8 +257,6 @@ export function useLivePlaylistSync(
         );
       ignore(
         (async () => {
-          // Refresh this torrent's extras first: the route invalidates them
-          // on the same event, but the refetch may not have landed yet.
           await queryClient.refetchQueries({ queryKey: queryKeys.extraFiles(watch.saveDir) });
           await checkTorrent();
           if (playingModified) onPlayingFileModified?.();

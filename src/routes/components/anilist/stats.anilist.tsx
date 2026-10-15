@@ -353,9 +353,6 @@ function StatsModal({
                             className="windows95-border h-13 w-10 object-cover"
                           />
                         )}
-                        {/* The cell also holds the "+N more" button, so the title
-                            (not the cell) is the keyboard-reachable control. No
-                            handler here: activation bubbles to the cell's click. */}
                         <button
                           type="button"
                           className="windows95-font w-full cursor-pointer truncate px-1 text-center text-xs leading-tight"

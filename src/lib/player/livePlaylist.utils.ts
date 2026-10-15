@@ -46,11 +46,6 @@ export function planLiveInserts(
   return ops;
 }
 
-/**
- * Live indices to drop, highest first so earlier removals never shift the
- * ones still to come. Only entries that were part of the previously planned
- * list are touched, so files the user added by hand survive.
- */
 export function planLiveRemovals(previous: string[], desired: string[], live: string[]): number[] {
   const previousKeys = new Set(previous.map(normalizePath));
   const desiredKeys = new Set(desired.map(normalizePath));

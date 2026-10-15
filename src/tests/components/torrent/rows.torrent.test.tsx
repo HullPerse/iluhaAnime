@@ -54,9 +54,6 @@ function nameOf(label: string): HTMLElement {
   return screen.getByTitle(label);
 }
 
-// jsdom reports zero-sized rects, so the scanner would treat every element as
-// invisible. One visible rect for the whole document is enough for the
-// integration check below.
 const VISIBLE_RECT = {
   bottom: 30,
   height: 20,

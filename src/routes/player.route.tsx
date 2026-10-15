@@ -78,8 +78,6 @@ import PlayerVisibilityModal from "./components/player/visibility.player";
 
 const FfprobeSchema = z.boolean();
 
-/** Section 13 of `vim-mode.md`: the route owns its own keys - vim mode and the
- * player window's key map do not reach this surface. */
 type PlayerRouteAction = "toggleQueue";
 
 const ROUTE_KEYBINDS: ResolvedHotkeyDef<PlayerRouteAction>[] = [
@@ -229,8 +227,6 @@ function PlayerRoute() {
   const { data: ffprobeOk } = useAppQuery("live", {
     queryKey: queryKeys.checkFfprobe(),
     queryFn: async () => {
-      // One retry for a transient engine hiccup at startup; a real failure
-      // still resolves to missing, exactly like the old withFallback.
       const [value, error] = await attemptRetry(() => invokeTyped<unknown>("check_ffprobe"), {
         attempts: 2,
         delay: 200,
@@ -281,10 +277,6 @@ function PlayerRoute() {
   useEffect(() => {
     rebuildFileIndexRef.current = rebuildFileIndex;
   }, [rebuildFileIndex]);
-  // Coalesced: player mount fires a cached-trees rebuild and a post-scan
-  // rebuild almost simultaneously; without this the two overlapping
-  // `rebuild_file_index` commands race inside SQLite (`database is locked`).
-  // A trailing call with different paths is remembered and runs once after.
   const rebuildIndex = useCallback((paths: string[]) => {
     const runner = rebuildRunnerRef.current;
     if (!runner) return Promise.resolve();
@@ -310,14 +302,8 @@ function PlayerRoute() {
 
     setScanProgress({ current: 0, total: savedFolderPaths.length });
 
-    // Single batched invoke: the backend walks folders sequentially behind
-    // one scan slot, so concurrent saved folders can no longer wedge the
-    // shared rayon pool ("thread-pool too busy"). Per-folder `done` events
-    // advance the bar while the batch is in flight.
     (async () => {
       const done = new Set<string>();
-      // The listener is registered before the scan starts so progress events
-      // are not missed, and a listener failure still lets the scan run.
       const runScan = (): Promise<[FolderScanResult[], null] | [null, Error]> =>
         attempt(
           invokeTyped<FolderScanResult[]>("scan_video_folders", {
@@ -366,8 +352,6 @@ function PlayerRoute() {
       }
       setFolderTrees(trees);
       setScanProgress(null);
-      // The fingerprint advances only on success: a failed batch retries on
-      // the next mount instead of silently sticking to partial trees.
       scannedFingerprint.current = print;
       await rebuildIndex(savedFolderPaths);
       if (cancelled) return;
@@ -379,10 +363,6 @@ function PlayerRoute() {
     };
   }, [reportScan, savedFolderPaths, t, videoExtensions, scanThreads, rebuildIndex]);
 
-  // Torrent download dirs are watched too, so freshly written extras show up
-  // without a manual refresh. The key keeps the dir set stable across the
-  // frequent torrent progress updates, so the watcher is not restarted on
-  // every tick.
   const torrentSaveDirsKey = useMemo(
     () =>
       [
@@ -431,15 +411,9 @@ function PlayerRoute() {
 
   useFolderContentChanged(
     (payload) => {
-      // Extras (upscales/converts) are written next to the torrent files, so
-      // refresh their queries only when such a file actually changed.
       if (payload.changes.some((change) => isExtraFile(change.path)))
         queryClient.invalidateQueries({ queryKey: queryKeys.extraFilesScope() });
-      // The tree and the file index only hold video files, so a batch without
-      // a single video extension cannot change them.
       if (!touchesExtensions(payload.changes, videoExtensions)) return;
-      // Only library roots get a tree update; torrent dirs are watched for the
-      // extras invalidation above and must not become folder trees.
       const libraryRoots = new Set(savedFolderPaths.map(normalizePath));
       const byRoot = new Map<string, FolderChange[]>();
       for (const change of payload.changes) {
@@ -463,9 +437,6 @@ function PlayerRoute() {
         );
       };
       const rescanPath = async (path: string) => {
-        // Shared tick: the live playlist asks the bus for the same root on the
-        // same event, so one `refresh_file_index` walk serves the tree, the
-        // file index and the playlist instead of a walk per consumer.
         const [entries, scanError] = await attempt(
           folderScanBus().fullScan({
             root: path,
@@ -483,9 +454,6 @@ function PlayerRoute() {
         }
         applyFullScan(path, entries ?? []);
       };
-      // One watcher batch of video-only changes is patched entry by entry: the
-      // index re-reads just those paths and the tree gets the same nodes,
-      // without walking the whole root for one finished download.
       const patchRoot = async (root: string, changes: FolderChange[]) => {
         const key = normalizePath(root);
         const upserts = changes.filter((change) => change.kind !== "removed").map((c) => c.path);
@@ -511,14 +479,10 @@ function PlayerRoute() {
             if (settingsAtoms.notifyScanErrors.get())
               showErrorOnce("folders-patch", t("notification.scan.failed"), patchError.message);
           }
-          // The in-memory index may already have moved: one full walk brings
-          // the index and the tree back in sync.
           await rescanPath(root);
           return;
         }
         if (outcome.kind === "full") {
-          // Another consumer of the same tick asked for a walk of this root,
-          // so these entries already describe it: rebuild instead of patching.
           applyFullScan(root, outcome.entries);
           return;
         }
@@ -540,7 +504,6 @@ function PlayerRoute() {
           patched = next;
         }
         if (patched.files.length === 0 && patched.children.length === 0) {
-          // Nothing is left in the folder: drop it, as a full rescan would.
           setFolderTrees((prev) => {
             const next = prev.filter((tree) => normalizePath(tree.path) !== key);
             setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
@@ -654,8 +617,6 @@ function PlayerRoute() {
       onDragEnd={drag.handleDragEnd}
       onDragCancel={drag.handleDragCancel}
     >
-      {/* Vim mode is off on this surface; the attribute documents it in the DOM
-          and keeps the engine gate working even without the route check. */}
       <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
         <section className="ui-toolbar ui-panel w-full">
           <Button onClick={handleOpenFolder}>

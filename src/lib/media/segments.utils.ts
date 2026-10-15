@@ -56,9 +56,6 @@ function findSegmentArc(
   return null;
 }
 
-// Splits a known arc off the tail of a word list, e.g.
-// "Kimetsu no Yaiba Hashira Geiko-hen" becomes title words plus the arc.
-// Returns null when no tail matches a known arc, so a plain title stays whole.
 export function splitKnownArcTail(
   words: readonly string[],
   knownArcs: readonly string[]

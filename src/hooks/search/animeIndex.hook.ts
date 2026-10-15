@@ -15,11 +15,6 @@ export function useEnsureAnimeIndex(): void {
   }, [favourites, lists, user]);
 }
 
-/**
- * Warms the did-you-mean index off the critical path: the SymSpell delete map
- * is generated in idle slices whenever the anime index or search history
- * change, so the first correction does not block a render.
- */
 export function usePrewarmSpellIndex(): void {
   const animeIndex = useCell(searchAtoms.animeIndex);
   const history = useCell(searchAtoms.history);

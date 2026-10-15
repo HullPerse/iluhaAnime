@@ -53,7 +53,6 @@ describe("KEYBINDS", () => {
   });
 });
 
-// The chords that came out of the D1 player gap audit (vim-mode.md section 11).
 describe("KEYBINDS from the player gap audit", () => {
   const entryOf = (action: string) => KEYBINDS.find((keybind) => keybind.action === action);
 

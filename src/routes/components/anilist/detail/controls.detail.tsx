@@ -65,11 +65,6 @@ function patchListEntry(
   });
 }
 
-/**
- * Current status of the entry straight from the live cache. `listEntry` is a
- * frozen snapshot taken when the detail view opened, so it can be stale next to
- * what the list actually holds.
- */
 function readListStatus(
   queryClient: ReturnType<typeof useQueryClient>,
   mediaId: number
@@ -83,15 +78,6 @@ function readListStatus(
   return null;
 }
 
-/**
- * Reconciles the cache with what the server actually stored. The server is the
- * source of truth: it clamps the progress, may flip the status to COMPLETED on
- * its own, and echoes the stored custom lists. The draft is only a fallback for
- * fields the mutation does not return.
- *
- * `bucketChanged` reports that the entry now belongs to a different status
- * list. An in-place patch cannot move it there, so the caller has to refetch.
- */
 function reconcileSavedEntry(
   queryClient: ReturnType<typeof useQueryClient>,
   mediaId: number,
@@ -267,8 +253,6 @@ function AniListActionControls({
       notes: trimmed ? trimmed : null,
       custom_lists: editCustomLists,
     };
-    // Bucket the entry sits in right now. `null` means it is not in the cache
-    // yet, i.e. this save creates the entry.
     const previousStatus = readListStatus(queryClient, anime.id);
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     if (previousStatus !== null) patchListEntry(queryClient, anime.id, values);
@@ -300,8 +284,6 @@ function AniListActionControls({
     }
     const reconciled = reconcileSavedEntry(queryClient, anime.id, previousStatus, values, saved);
     markOwnAnilistListStatus(anime.id, reconciled.status);
-    // A status change (including the server's own auto-COMPLETED) or a brand new
-    // entry still needs the full refetch; otherwise the patch is the final word.
     if (reconciled.bucketChanged) onSaved?.();
     onClose?.();
   };

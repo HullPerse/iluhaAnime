@@ -40,9 +40,6 @@ export async function applyBulkAction<T>(
   act: (target: T) => Promise<unknown>,
   limit = BULK_CONCURRENCY
 ): Promise<{ done: number; failed: number }> {
-  // Bounded concurrency instead of unbounded Promise.allSettled: one bad
-  // target still settles without dropping the rest, and 100 selected
-  // torrents no longer open 100 concurrent IPC calls.
   const results = await attemptAllLimit(targets, limit, act);
   const failed = results.filter((result) => !result.ok || result.value === false).length;
   return { done: results.length - failed, failed };

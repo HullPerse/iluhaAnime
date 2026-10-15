@@ -70,8 +70,6 @@ export function extractTvSeason(
         return { season: Number.parseInt(next.value, 10), consumed };
       }
     }
-    // TV-season marker ("ТВ-2", "TV 2", Cyrillic included). A trailing
-    // "N из M" count is not a season.
     if (
       token &&
       TV_WORD_RX.test(token.value) &&
@@ -155,7 +153,6 @@ function findVersionEpisode(
     if (!token || consumed.has(index)) continue;
     if (!["episode", "unknown", "title"].includes(token.kind)) continue;
     if (token.enclosed !== "plain") continue;
-    // Single-token version like "01v2"
     let versionMatch = /^(\d{1,3})v(\d+)$/i.exec(token.value);
     if (versionMatch) {
       consumed.add(index);
@@ -178,7 +175,6 @@ function findVersionEpisode(
         consumed,
       };
     }
-    // Two-token version: "01" followed by "(v2)"
     if (/^\d{1,3}$/.test(token.value)) {
       const next = tokens.at(index + 1);
       if (next && (next.kind === "unknown" || next.kind === "title") && (next.enclosed === "plain" || next.enclosed === "paren")) {
@@ -207,7 +203,6 @@ function findBracketEpisode(
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens.at(index);
     if (!token || token.kind !== "episode") continue;
-    // Standalone range without brackets: "01-26", "01〜26".
     const soloRange = /^(\d{1,3})[-~～〜](\d{1,3})$/.exec(token.value);
     if (soloRange?.[1] && soloRange[2]) {
       consumed.add(index);
@@ -255,9 +250,6 @@ function findBracketEpisode(
   return null;
 }
 
-// Tilde range across three tokens: "01 ~ 26" (also fullwidth "～" and
-// wave dash "〜", both common in Asian batch releases). Consumes all three
-// so neither the start nor the joiner leaks into the title.
 const RANGE_JOINER_RX = /^[~～〜]$/;
 
 function findTildeRange(

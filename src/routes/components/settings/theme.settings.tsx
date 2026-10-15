@@ -34,6 +34,7 @@ export default function SettingsTheme() {
   const currentTheme = useCell(themeAtoms.currentTheme);
   const retroStyle = useCell(settingsAtoms.retroStyle);
   const searchType = useCell(settingsAtoms.searchType);
+  const playerType = useCell(settingsAtoms.playerType);
   const uiDensity = useCell(settingsAtoms.uiDensity);
   const windowEffect = useCell(settingsAtoms.windowEffect);
   const windowTintOpacity = useCell(settingsAtoms.windowTintOpacity);
@@ -371,16 +372,23 @@ export default function SettingsTheme() {
             label={t("settings.theme.experimental.titlebar")}
             field="customTitleBarEnabled"
           />
-          <EffectsCheckbox
-            label={t("settings.theme.experimental.corners")}
-            field="roundedWindowCorners"
-            hint={t("settings.theme.experimental.corners.hint")}
-          />
-          {currentTheme === "yorha" && (
-            <EffectsCheckbox
-              label={t("settings.theme.experimental.scanlines")}
-              field="yorhaScanlinesEnabled"
+
+          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+            <span className="windows95-text text-text text-xs font-bold">
+              {t("settings.theme.player")}
+            </span>
+            <Combobox
+              value={playerType}
+              onChange={(value) => patchSettings({ playerType: value as typeof playerType })}
+              options={[
+                { value: "default", label: t("settings.theme.player.default") },
+                { value: "modern", label: t("settings.theme.player.modern") },
+              ]}
+              className="max-w-xs"
             />
+          </div>
+          {playerType !== "modern" && (
+            <EffectsCheckbox label={t("settings.theme.player.menu")} field="playerContextMenu" />
           )}
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
@@ -437,6 +445,17 @@ export default function SettingsTheme() {
               )}
             </div>
           </div>
+          <EffectsCheckbox
+            label={t("settings.theme.experimental.corners")}
+            field="roundedWindowCorners"
+            hint={t("settings.theme.experimental.corners.hint")}
+          />
+          {currentTheme === "yorha" && (
+            <EffectsCheckbox
+              label={t("settings.theme.experimental.scanlines")}
+              field="yorhaScanlinesEnabled"
+            />
+          )}
         </div>
       </section>
 

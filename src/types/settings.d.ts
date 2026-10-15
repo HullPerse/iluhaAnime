@@ -126,6 +126,8 @@ export interface SettingsStore {
   searchMascotEnabled: boolean;
   tagTolerances: Record<TagToleranceKey, number>;
   searchType: SearchType;
+  playerType: "default" | "modern";
+  playerContextMenu: boolean;
   selectedDitherId: string | null;
   appFont: string | null;
   wallpaperFilters: WallpaperDisplayFilters;

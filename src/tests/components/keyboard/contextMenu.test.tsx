@@ -84,4 +84,49 @@ describe("ContextMenu", () => {
 
     await waitFor(() => expect(screen.queryAllByRole("menuitem")).toHaveLength(0));
   });
+
+  it("opens a submenu on hover and runs its action", async () => {
+    const onSelect = vi.fn();
+    render(
+      <ContextMenu
+        entries={[
+          {
+            kind: "submenu",
+            id: "parent",
+            label: "common.close",
+            entries: [{ kind: "item", id: "child", label: "common.cancel", onSelect }],
+          },
+        ]}
+        open
+      >
+        <button type="button">row</button>
+      </ContextMenu>
+    );
+    const parent = screen.getByRole("menuitem", { name: "Close" });
+    await userEvent.hover(parent);
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Cancel" })));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Cancel" }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the hotkey hint and the checked marker", () => {
+    render(
+      <ContextMenu
+        entries={[
+          {
+            kind: "item",
+            id: "hinted",
+            label: "common.close",
+            hint: "Space",
+            checked: true,
+            onSelect: vi.fn(),
+          },
+        ]}
+        open
+      >
+        <button type="button">row</button>
+      </ContextMenu>
+    );
+    expect(screen.getByText("Space")).toBeTruthy();
+  });
 });

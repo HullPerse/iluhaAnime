@@ -63,6 +63,8 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   anilistGroupByStatus: false,
   anilistCollapsedLists: [],
   anilistDisplayMode: "pagination",
+  playerType: "default",
+  playerContextMenu: false,
   audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
   buttonPressEffect: true,
   animateCounters: false,

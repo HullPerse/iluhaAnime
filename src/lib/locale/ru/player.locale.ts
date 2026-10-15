@@ -344,6 +344,14 @@ const player = {
   "player.media.playlist.count.one": "Файл: {{count}}",
   "player.media.playlist.count.few": "Файла: {{count}}",
   "player.media.playlist.count.many": "Файлов: {{count}}",
+  "player.media.menu.playback": "Воспроизведение",
+  "player.media.menu.play": "Воспроизвести",
+  "player.media.menu.pause": "Пауза",
+  "player.media.menu.chapters": "Главы",
+  "player.media.menu.no.chapters": "Нет глав",
+  "player.media.menu.speed": "Скорость",
+  "player.media.menu.track": "Дорожка",
+  "player.media.menu.chapter": "Глава {{n}}",
 } as const;
 
 export default player;

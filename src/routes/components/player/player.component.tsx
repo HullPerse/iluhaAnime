@@ -4,12 +4,16 @@ import { cn } from "cn";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type ReactNode,
 } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
+import ContextMenu from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 import {
   OFFSET_LIMIT,
   OFFSET_STEP,
@@ -142,7 +146,6 @@ import type {
 } from "@/types/videoPlayer";
 
 import Cheatsheet from "./media/cheatsheet.player";
-import Controls from "./media/controls.player";
 import DiagnosticsOverlay from "./media/diagnostics.player";
 import EmptyPlayer from "./media/empty.player";
 import PlayerHeader from "./media/header.player";
@@ -153,8 +156,9 @@ import OsdOverlay from "./media/offset.player";
 import SettingsPanel from "./media/settings.player";
 import SkipButton from "./media/skip.player";
 import PlayerStatus from "./media/status.player";
-import Timeline from "./media/timeline.player";
 import PlayerSidePanel from "./side.player";
+import { buildModernPlayerMenu } from "./modern/menu.modern";
+import PlayerBottomBar from "./modern/bottom.modern";
 
 const AUTO_HIDE_DELAY = 3000;
 const WATCH_INTERVAL = 5000;
@@ -183,6 +187,7 @@ interface CursorHiddenState {
   jumpOpen: boolean;
   diagnosticsOpen: boolean;
   playlistOpen: boolean;
+  menuOpen: boolean;
   dropAlert: DroppedFramesData | null;
 }
 
@@ -193,6 +198,7 @@ function shouldHideCursor(state: CursorHiddenState): boolean {
     !state.jumpOpen &&
     !state.diagnosticsOpen &&
     !state.playlistOpen &&
+    !state.menuOpen &&
     state.dropAlert === null
   );
 }
@@ -219,6 +225,37 @@ function fileStatePatch(entry: MediaEntry | undefined, speed: number): FilePlayb
   };
 }
 
+function modernMenuEnabled(playerType: "default" | "modern", contextMenu: boolean): boolean {
+  return playerType === "modern" || contextMenu;
+}
+
+function hideDefaultTracks(playerType: "default" | "modern", contextMenu: boolean): boolean {
+  return playerType === "default" && contextMenu;
+}
+
+function resolveBarsHidden(
+  immersive: boolean,
+  autoHide: boolean,
+  barsVisible: boolean,
+  menuOpen: boolean
+): boolean {
+  return immersive && autoHide && !barsVisible && !menuOpen;
+}
+
+function wrapVideoMenu(
+  node: ReactNode,
+  enabled: boolean,
+  entries: ContextMenuEntry[],
+  onOpenChange: (open: boolean) => void
+): ReactNode {
+  if (!enabled) return node;
+  return (
+    <ContextMenu entries={entries} onOpenChange={onOpenChange}>
+      {node}
+    </ContextMenu>
+  );
+}
+
 function PlayerComponent() {
   const { t } = useI18n();
 
@@ -243,6 +280,9 @@ function PlayerComponent() {
   const autoHide = useCell(playerAtoms.autoHide);
   const profile = useCell(playerAtoms.profile);
   const settings = useCell(playerAtoms.settings);
+  const playerType = useCell(settingsAtoms.playerType);
+  const playerContextMenu = useCell(settingsAtoms.playerContextMenu);
+  const showModernMenu = modernMenuEnabled(playerType, playerContextMenu);
 
   const [cinema, setCinema] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -251,6 +291,7 @@ function PlayerComponent() {
   const [jumpOpen, setJumpOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [playlistOpen, setPlaylistOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [playlistFocus, setPlaylistFocus] = useState<number | null>(null);
   const [dropAlert, setDropAlert] = useState<DroppedFramesData | null>(null);
   const [finished, setFinished] = useState(false);
@@ -287,13 +328,14 @@ function PlayerComponent() {
   const immersive = cinema || fullscreen;
   const hasNext = playlistCount > 0 && playlistIndex < playlistCount - 1;
   const hasPrev = playlistIndex > 0;
-  const barsHidden = immersive && autoHide && !barsVisible;
+  const barsHidden = resolveBarsHidden(immersive, autoHide, barsVisible, menuOpen);
   const cursorHidden = shouldHideCursor({
     barsHidden,
     panelOpen: panel !== null,
     jumpOpen,
     diagnosticsOpen,
     playlistOpen,
+    menuOpen,
     dropAlert,
   });
   const title = path
@@ -1027,6 +1069,14 @@ function PlayerComponent() {
     [onSelectTrack]
   );
 
+  const onFrameStep = useCallback((forward: boolean) => {
+    ignore(startFrameStep(forward));
+  }, []);
+
+  const onCycleSub = useCallback(() => {
+    onCycleTrack("sub");
+  }, [onCycleTrack]);
+
   const onPlaylistFocus = useCallback(
     (delta: number) => {
       if (!playlistOpen) return;
@@ -1153,7 +1203,50 @@ function PlayerComponent() {
     ignore(seekTo(0, "exact").then(() => setPaused(false)));
   }, []);
 
+  const modernEntries = useMemo(() => {
+    if (!showModernMenu) return [];
+    return buildModernPlayerMenu(
+      { hasFile, paused, tracks, chapters, playlistOpen, fullscreen, speed, eofMode },
+      {
+        onPlayPause,
+        onFrameStep: (forward) => ignore(startFrameStep(forward)),
+        onPrevFile: onFilePrev,
+        onNextFile: onFileNext,
+        onSelectAudio: onSelectTrack("audio"),
+        onSelectSub: onSelectTrack("sub"),
+        onSeekTo,
+        onSpeed,
+        onTogglePlaylist: () => setPlaylistOpen((previous) => !previous),
+        onToggleFullscreen: () => ignore(toggleFullscreen()),
+        onEofMode: handleEofMode,
+        onOpenSettings: () => setPanel("settings"),
+        onOpenCheatsheet: () => setPanel("cheatsheet"),
+      }
+    );
+  }, [
+    hasFile,
+    paused,
+    tracks,
+    chapters,
+    playlistOpen,
+    fullscreen,
+    speed,
+    onPlayPause,
+    onFilePrev,
+    onFileNext,
+    onSelectTrack,
+    onSeekTo,
+    onSpeed,
+    toggleFullscreen,
+    handleEofMode,
+    eofMode,
+    showModernMenu,
+  ]);
+
   const eofPaused = eofReached && (eofMode === "pause" || eofMode === "none");
+
+  const videoWrap = (node: ReactNode): ReactNode =>
+    wrapVideoMenu(node, showModernMenu, modernEntries, setMenuOpen);
 
   return (
     <div className={rootClass(hasFile, failed, cursorHidden)}>
@@ -1176,10 +1269,12 @@ function PlayerComponent() {
 
       <div className={videoSectionClass(immersive)}>
         <div className="flex h-full min-h-0 flex-row gap-1">
+          {videoWrap(
           <div
             ref={videoRef}
             className="relative min-h-0 flex-1 overflow-hidden"
             onClick={onVideoClick}
+            onContextMenu={showModernMenu ? undefined : (event) => event.preventDefault()}
           >
             <OsdOverlay />
             {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
@@ -1230,7 +1325,8 @@ function PlayerComponent() {
               onNext={onFileNext}
               onClose={close}
             />
-          </div>
+            </div>
+            )}
 
           {playlistOpen ? (
             <PlayerSidePanel
@@ -1244,14 +1340,8 @@ function PlayerComponent() {
       </div>
 
       <div className={barClass("bottom", immersive, barsHidden)}>
-        <Timeline
-          duration={duration}
-          chapters={chapters}
-          seekTarget={seekTarget}
-          onScrub={onScrub}
-          onCommitSeek={onCommitSeek}
-        />
-        <Controls
+        <PlayerBottomBar
+          playerType={playerType}
           paused={paused}
           duration={duration}
           chapters={chapters}
@@ -1264,16 +1354,22 @@ function PlayerComponent() {
           volume={volume}
           muted={muted}
           playlistOpen={playlistOpen}
+          seekTarget={seekTarget}
           onPlay={onPlay}
           onPause={onPause}
           onSeekTo={onSeekTo}
+          onScrub={onScrub}
+          onCommitSeek={onCommitSeek}
           onFilePrev={onFilePrev}
           onFileNext={onFileNext}
+          onFrameStep={onFrameStep}
+          onCycleSub={onCycleSub}
           onSpeed={onSpeed}
           onVolume={onVolume}
           onMute={onMute}
           onToggleAutoHide={() => handleSetAutoHide(!autoHide)}
           onTogglePlaylist={() => setPlaylistOpen((previous) => !previous)}
+          hideTracks={hideDefaultTracks(playerType, playerContextMenu)}
           onSelectAudio={onSelectTrack("audio")}
           onSelectSub={onSelectTrack("sub")}
           onAddAudio={() => ignore(onAddExternalAudio())}

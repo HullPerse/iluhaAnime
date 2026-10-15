@@ -24,6 +24,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.player.playlist_dnd", "player"),
       entry("changelog.5_0_0.added.player.neighbor_preview", "player"),
       entry("changelog.5_0_0.added.player.clean_frame", "player"),
+      entry("changelog.5_0_0.added.player.modern", "player"),
       entry("changelog.5_0_0.added.torrents.dashboard", "torrents"),
       entry("changelog.5_0_0.added.torrents.export_file", "torrents"),
       entry("changelog.5_0_0.added.torrents.bulk", "torrents"),

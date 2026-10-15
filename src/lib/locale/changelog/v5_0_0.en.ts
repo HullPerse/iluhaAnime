@@ -14,6 +14,8 @@ const changelog500 = {
     "Hovering the previous and next file buttons shows a card of the file they will play: thumbnail, title, and duration",
   "changelog.5_0_0.added.player.clean_frame":
     "Clean frame capture with Ctrl+Shift+O, Windows style screenshot names, pan with the right mouse button, and edge resize in the editor",
+  "changelog.5_0_0.added.player.modern":
+    "Modern player style in Settings - Theme: MPC-HC style right-click menu with submenus for playback, subtitles, audio, chapters, speed, and end-of-file behavior, plus a two-row bottom bar with transport buttons and a time readout. The context menu can also be enabled for the default style, hiding the track dropdowns",
   "changelog.5_0_0.added.torrents.dashboard":
     "Torrent dashboard: speed graph for download and upload, connected peer count, DHT node count, and the listen port in the summary bar",
   "changelog.5_0_0.added.torrents.export_file":

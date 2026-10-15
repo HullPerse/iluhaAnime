@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 48;
+export const SETTINGS_SCHEMA_VERSION = 50;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -204,10 +204,27 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       }
     },
   },
+  {
+    from: 49,
+    migrate: (state) => {
+      if (state.playerType === undefined) {
+        state.playerType = "default";
+      }
+    },
+  },
+  {
+    from: 50,
+    migrate: (state) => {
+      if (state.playerContextMenu === undefined) {
+        state.playerContextMenu = false;
+      }
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   searchType: toValidator(z.enum(["default", "modern"])),
+  playerType: toValidator(z.enum(["default", "modern"])),
   progressStyle: toValidator(z.enum(["blocks", "solid"])),
   screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
   torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),

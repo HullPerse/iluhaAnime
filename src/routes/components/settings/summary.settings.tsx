@@ -61,6 +61,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const queryStatCount = Object.keys(useCell(searchAtoms.queryStats)).length;
   const indexCount = useCell(searchAtoms.animeIndex).length;
   const searchType = useCell(settingsAtoms.searchType);
+  const playerType = useCell(settingsAtoms.playerType);
   const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const currentTheme = useCell(themeAtoms.currentTheme);
   const customThemes = useCell(themeAtoms.customThemes);
@@ -97,6 +98,10 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     searchType === "modern"
       ? t("settings.theme.search.modern")
       : t("settings.theme.search.default");
+  const playerLabel =
+    playerType === "modern"
+      ? t("settings.theme.player.modern")
+      : t("settings.theme.player.default");
   const unknown = t("settings.summary.unknown");
   const data = storage.data;
   const newestBackup = data?.backups[0] ?? null;
@@ -184,6 +189,12 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         <SummaryRow
           label={t("settings.summary.search")}
           value={searchLabel}
+          actionLabel={t("settings.summary.open")}
+          onAction={() => onJump("theme")}
+        />
+        <SummaryRow
+          label={t("settings.summary.player")}
+          value={playerLabel}
           actionLabel={t("settings.summary.open")}
           onAction={() => onJump("theme")}
         />

@@ -336,6 +336,14 @@ const player = {
   "player.media.playlist.drag": "Drag to reorder",
   "player.media.playlist.count": "{{count}} files",
   "player.media.playlist.count.one": "{{count}} file",
+  "player.media.menu.playback": "Playback",
+  "player.media.menu.play": "Play",
+  "player.media.menu.pause": "Pause",
+  "player.media.menu.chapters": "Chapters",
+  "player.media.menu.no.chapters": "No chapters",
+  "player.media.menu.speed": "Speed",
+  "player.media.menu.track": "Track",
+  "player.media.menu.chapter": "Chapter {{n}}",
 } as const;
 
 export default player;

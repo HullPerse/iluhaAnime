@@ -193,6 +193,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.anilist.deeplink_stack", "anilist"),
       entry("changelog.5_0_0.fixed.search.wallpaper_placeholder", "search"),
       entry("changelog.5_0_0.fixed.settings.layout_overflow", "settings"),
+      entry("changelog.5_0_0.fixed.app.vim_combobox", "app"),
     ],
   },
   {

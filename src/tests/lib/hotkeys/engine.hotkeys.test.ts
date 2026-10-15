@@ -411,6 +411,40 @@ describe("vim engine layer ownership", () => {
 
     expect(onCommand).not.toHaveBeenCalled();
   });
+
+  it("leaves typing targets alone even when the layer owns the keyboard", () => {
+    const layer = document.createElement("div");
+    layer.setAttribute("role", "listbox");
+    const input = document.createElement("input");
+    input.setAttribute("type", "text");
+    layer.append(input);
+    document.body.append(layer);
+    nodes.push(layer);
+    const { onCommand } = setup({ isOwner: (target) => isInsideLayer(target, layer) });
+
+    for (const code of ["KeyF", "KeyJ", "KeyK", "KeyG"]) {
+      const event = key(code);
+      press(input, event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(onCommand).not.toHaveBeenCalled();
+  });
+
+  it("ignores count digits in owned typing targets", () => {
+    const layer = document.createElement("div");
+    layer.setAttribute("role", "listbox");
+    const input = document.createElement("input");
+    input.setAttribute("type", "text");
+    layer.append(input);
+    document.body.append(layer);
+    nodes.push(layer);
+    const onCount = vi.fn<(count: string) => void>();
+    setupWithCount(onCount, (target) => isInsideLayer(target, layer));
+    const event = key("Digit1");
+    press(input, event);
+    expect(onCount).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
 });
 
 describe("vim engine routing", () => {

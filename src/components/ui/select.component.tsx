@@ -2,6 +2,7 @@ import { Select as BaseSelect } from "@base-ui/react/select";
 import { cn } from "cn";
 import { ChevronDown } from "lucide-react";
 import { createContext, useContext, useState, useMemo, useRef } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
@@ -26,6 +27,7 @@ function Select({
   const { t } = useI18n();
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const portalContainer = useContext(SelectPortalContainerContext);
 
   const showSearch = searchable ?? options.length > 8;
@@ -42,6 +44,17 @@ function Select({
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) setSearch("");
     else if (showSearch) scheduleTask("raf", 0, () => searchInputRef.current?.focus());
+  };
+
+  const handleSearchKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      searchInputRef.current?.blur();
+      listRef.current?.focus();
+      return;
+    }
+    e.stopPropagation();
   };
 
   return (
@@ -95,7 +108,7 @@ function Select({
                   e.stopPropagation();
                   setSearch(e.target.value);
                 }}
-                onKeyDown={(e) => e.stopPropagation()}
+                onKeyDown={handleSearchKeyDown}
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 autoFocus
@@ -103,7 +116,11 @@ function Select({
                 placeholder={t("common.search")}
               />
             )}
-            <BaseSelect.List className="max-h-48 flex-1 overflow-y-auto overscroll-contain outline-0">
+            <BaseSelect.List
+              ref={listRef}
+              tabIndex={-1}
+              className="max-h-48 flex-1 overflow-y-auto overscroll-contain outline-0"
+            >
               {filteredOptions.map((o, i) => (
                 <BaseSelect.Item
                   key={o.value}

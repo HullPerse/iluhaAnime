@@ -341,6 +341,8 @@ const changelog500 = {
     "Buttons show their shortcut in tooltips: hover any action to see its key, every hint follows rebinds from Settings Keybinds",
   "changelog.5_0_0.added.player.chapter_keys":
     "Chapter jumps on Ctrl+Left and Ctrl+Right: the seek buttons move between chapters and step plainly otherwise, listed in Settings Keybinds",
+  "changelog.5_0_0.fixed.app.vim_combobox":
+    "Vim mode no longer hijacks the searchable select: typing in the combobox search always types text, first Escape moves focus to the options for arrow navigation, second Escape closes the popup",
 } as const;
 
 export default changelog500;

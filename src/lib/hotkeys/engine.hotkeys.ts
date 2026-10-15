@@ -6,7 +6,7 @@ import {
 } from "@/config/keyboard/vim.config";
 
 import { chordKey, chordKeyFromEvent, parseChord } from "./chord.hotkeys";
-import { shouldIgnoreHotkeys } from "./filter.hotkeys";
+import { isTextEntryTarget, shouldIgnoreHotkeys } from "./filter.hotkeys";
 
 export type VimCommand =
   | "hints"
@@ -60,6 +60,7 @@ function isVimExcludedTarget(
 ): boolean {
   const element = target instanceof HTMLElement ? target : null;
   if (element?.closest(`[${VIM_DISABLED_ATTRIBUTE}]`)) return true;
+  if (isTextEntryTarget(target)) return true;
   if (isOwner?.(target)) return false;
   return shouldIgnoreHotkeys(target);
 }

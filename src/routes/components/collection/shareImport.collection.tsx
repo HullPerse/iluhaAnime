@@ -283,22 +283,21 @@ export function ShareImportCollection({
           >
             {imported === null ? t("common.cancel") : t("common.close")}
           </Button>
-          {!importing && failedIndices.length > 0 && (
-            <Button onClick={() => attempt(runImport(failedIndices))}>
-              {t("collection.import.anilist.retry.failed")}
-            </Button>
-          )}
-          {imported === null && (
-            <Button
-              variant="success"
-              disabled={!canImport}
-              onClick={() => attempt(runImport([...selected]))}
-            >
-              {importing
-                ? t("common.loading")
-                : t("collection.share.preview.import", { count: selected.size })}
-            </Button>
-          )}
+          <Button
+            rendered={!importing && failedIndices.length > 0}
+            onClick={() => attempt(runImport(failedIndices))}
+          >
+            {t("collection.import.anilist.retry.failed")}
+          </Button>
+          <Button
+            variant="success"
+            rendered={imported === null}
+            disabled={!canImport}
+            loading={importing}
+            onClick={() => attempt(runImport([...selected]))}
+          >
+            {t("collection.share.preview.import", { count: selected.size })}
+          </Button>
         </div>
       </div>
     </Modal>

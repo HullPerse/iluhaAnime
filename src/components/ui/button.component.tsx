@@ -2,6 +2,8 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "cn";
+
+import { SmallLoader } from "@/components/shared/loader.component";
 import { useCell } from "@/lib/state/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
@@ -41,12 +43,17 @@ function Button({
   size = "default",
   rendered = true,
   type = "button",
+  loading = false,
+  disabled,
+  children,
   ...props
 }: ButtonPrimitive.Props &
   VariantProps<typeof buttonVariants> & {
     rendered?: boolean;
+    loading?: boolean;
   }) {
   const buttonPressEffect = useCell(settingsAtoms.buttonPressEffect);
+  const isLoading = loading === true;
 
   if (!rendered) return null;
 
@@ -60,7 +67,11 @@ function Button({
         className
       )}
       {...props}
-    />
+      disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
+    >
+      {isLoading ? <SmallLoader inheritSize className="size-[1em]" /> : children}
+    </ButtonPrimitive>
   );
 }
 

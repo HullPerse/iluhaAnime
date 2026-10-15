@@ -23,18 +23,18 @@ export function RIFE() {
         <span className="windows95-text text-xs">{t("player.rife.installed")}</span>
       )}
       {status === "missing" && (
-        <>
-          <span className="windows95-text text-xs">{t("player.rife.missing")}</span>
-          <Button onClick={download}>
-            <Download className="size-3" />
-            {t("player.rife.download")}
-          </Button>
-        </>
+        <span className="windows95-text text-xs">{t("player.rife.missing")}</span>
       )}
-      {status === "downloading" && (
-        <Button onClick={download} disabled>
+      {(status === "missing" || status === "downloading") && (
+        <Button
+          onClick={download}
+          disabled={status === "downloading"}
+          loading={status === "downloading" && percent === null}
+        >
           <Download className="size-3" />
-          {percent !== null ? t("player.rife.downloading", { percent }) : t("player.rife.download")}
+          {status === "downloading" && percent !== null
+            ? t("player.rife.downloading", { percent })
+            : t("player.rife.download")}
         </Button>
       )}
       {dlError && <span className="text-destructive text-xs">{dlError}</span>}

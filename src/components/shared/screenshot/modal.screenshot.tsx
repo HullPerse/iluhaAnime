@@ -5,7 +5,6 @@ import { Check, ClipboardCopy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import ScreenshotStage from "@/components/shared/screenshot/stage.screenshot";
 import type { StageHandle } from "@/components/shared/screenshot/stage.screenshot";
@@ -15,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import {
-
   ANNOTATION_DEFAULT_BRUSH_SIZE,
   ANNOTATION_DEFAULT_COLOR,
   ANNOTATION_DEFAULT_TEXT_SIZE,
@@ -320,8 +318,8 @@ export default function ScreenshotModal({
           {copied ? <Check /> : <ClipboardCopy />}
           {copied ? t("screenshot.copy.done") : t("screenshot.copy")}
         </Button>
-        <Button variant="success" onClick={() => save()} disabled={!canSave}>
-          {saving ? <SmallLoader /> : t("screenshot.save")}
+        <Button variant="success" onClick={() => save()} disabled={!canSave} loading={saving}>
+          {t("screenshot.save")}
         </Button>
       </section>
     </Modal>

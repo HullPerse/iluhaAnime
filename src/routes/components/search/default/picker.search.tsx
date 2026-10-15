@@ -287,8 +287,8 @@ function TorrentFilePicker({
             </label>
             <div className="flex gap-1">
               <Button onClick={onCancel}>{t("common.cancel")}</Button>
-              <Button onClick={handleConfirm} disabled={downloadBlocked}>
-                {isLoading ? <SmallLoader /> : t("picker.download")}
+              <Button onClick={handleConfirm} disabled={downloadBlocked} loading={isLoading}>
+                {t("picker.download")}
               </Button>
             </div>
           </div>

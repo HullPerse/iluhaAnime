@@ -24,11 +24,11 @@ export function ImportFooter({
       <Button variant="default" onClick={onCancel}>
         {t("common.cancel")}
       </Button>
-      {showRetry && (
-        <Button onClick={onRetry}>{t("collection.import.anilist.retry.failed")}</Button>
-      )}
-      <Button onClick={onImport} disabled={!canImport || importing}>
-        {importing ? t("common.loading") : importLabel}
+      <Button rendered={showRetry} onClick={onRetry}>
+        {t("collection.import.anilist.retry.failed")}
+      </Button>
+      <Button onClick={onImport} disabled={!canImport} loading={importing}>
+        {importLabel}
       </Button>
     </div>
   );

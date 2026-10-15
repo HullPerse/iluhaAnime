@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
-import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
@@ -118,8 +117,8 @@ function RutrackerLoginModal({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <Button onClick={handleOpenBrowser} disabled={loading}>
-              {loading ? <SmallLoader /> : t("search.rutracker.open.browser")}
+            <Button onClick={handleOpenBrowser} loading={loading}>
+              {t("search.rutracker.open.browser")}
             </Button>
           </div>
         )}
@@ -130,13 +129,14 @@ function RutrackerLoginModal({
           {mode === "login" ? (
             <Button
               onClick={handleLogin}
-              disabled={loading || !username.trim() || !password.trim()}
+              disabled={!username.trim() || !password.trim()}
+              loading={loading}
             >
-              {loading ? <SmallLoader /> : t("search.rutracker.login")}
+              {t("search.rutracker.login")}
             </Button>
           ) : (
-            <Button onClick={handleSaveBrowserSession} disabled={loading}>
-              {loading ? <SmallLoader /> : t("search.rutracker.save.browser.session")}
+            <Button onClick={handleSaveBrowserSession} loading={loading}>
+              {t("search.rutracker.save.browser.session")}
             </Button>
           )}
         </div>

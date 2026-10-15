@@ -1,4 +1,3 @@
-import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionItem } from "@/types/collection";
@@ -35,21 +34,19 @@ export function WizardFooter({
         <span className="text-hint hidden text-xs md:inline">
           {editing ? t("collection.edit.media") : resultsLabel}
         </span>
-        {editing && initial && onDelete && (
-          <Button
-            variant="destructive"
-            onClick={() => {
-              onDelete(initial.id);
-              onClose();
-            }}
-          >
-            {t("common.delete")}
-          </Button>
-        )}
+        <Button
+          rendered={editing && initial != null && onDelete != null}
+          variant="destructive"
+          onClick={() => {
+            if (initial && onDelete) onDelete(initial.id);
+            onClose();
+          }}
+        >
+          {t("common.delete")}
+        </Button>
         <div className="ml-auto flex gap-1">
           <Button onClick={requestClose}>{t("common.cancel")}</Button>
-          <Button variant="outline" disabled={!canSave || saving} onClick={onSave}>
-            {saving && <SmallLoader size={3} />}
+          <Button variant="outline" disabled={!canSave} loading={saving} onClick={onSave}>
             {t("collection.wizard.save")}
           </Button>
         </div>

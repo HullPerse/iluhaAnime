@@ -7,7 +7,6 @@ import { installUpdate } from "@/lib/utils/update.utils";
 
 import { Button } from "../ui/button.component";
 import ImageComponent from "../ui/image.component";
-import { SmallLoader } from "./loader.component";
 import Modal from "./modal.component";
 
 function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
@@ -54,9 +53,9 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
               }
               setLoading(false);
             }}
-            disabled={loading}
+            loading={loading}
           >
-            {loading ? <SmallLoader /> : t("updater.install")}
+            {t("updater.install")}
           </Button>
         </div>
       </section>

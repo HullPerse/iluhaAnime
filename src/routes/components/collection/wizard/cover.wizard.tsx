@@ -96,7 +96,7 @@ export function WizardCoverPanel({
           </span>
         )}
         <div className="ml-auto flex gap-1">
-          <Button className="h-6 px-2 text-xs" onClick={uploadLocal} disabled={uploading}>
+          <Button className="h-6 px-2 text-xs" onClick={uploadLocal} loading={uploading}>
             <ImagePlus className="size-3" /> {t("collection.wizard.upload.image")}
           </Button>
           <Button className="h-6 px-2 text-xs" onClick={() => setPastingUrl(true)}>

@@ -80,8 +80,8 @@ export function CellModal({
               <Button className="h-5" onClick={onCancelEdit} disabled={cellSaving}>
                 {t("settings.sqlite.cell.cancel")}
               </Button>
-              <Button className="h-5" variant="success" onClick={onSave} disabled={cellSaving}>
-                {cellSaving ? <SmallLoader /> : <Check className="size-3" />}
+              <Button className="h-5" variant="success" onClick={onSave} loading={cellSaving}>
+                <Check className="size-3" />
                 {t("settings.sqlite.cell.save")}
               </Button>
             </div>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
-import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
@@ -55,8 +54,8 @@ function NekoBtApiModal({
         {error && <span className="text-destructive windows95-text">{error}</span>}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={handleClose}>{t("common.cancel")}</Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? <SmallLoader /> : t("search.nekobt.save")}
+          <Button onClick={handleSubmit} loading={loading}>
+            {t("search.nekobt.save")}
           </Button>
         </div>
       </div>

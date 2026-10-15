@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
@@ -12,11 +11,7 @@ export function PreviewZoom({ frame }: { frame: PreviewFrame }) {
   const [showAfter, setShowAfter] = useState(true);
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <img
-        src={showAfter ? frame.after : frame.before}
-        alt=""
-        className="max-h-[60vh] w-auto"
-      />
+      <img src={showAfter ? frame.after : frame.before} alt="" className="max-h-[60vh] w-auto" />
       <div className="mt-1 flex flex-row justify-center gap-1">
         <Button onClick={() => setShowAfter(false)} disabled={!showAfter}>
           {t("player.upscale.preview.before")}
@@ -80,8 +75,7 @@ export function UpscalePreview({
 
   return (
     <div className="flex flex-col gap-1">
-      <Button onClick={load} disabled={loading}>
-        {loading ? <SmallLoader /> : null}
+      <Button onClick={load} loading={loading}>
         {t("player.upscale.preview.button")}
       </Button>
       {error && <span className="text-destructive text-xs">{error}</span>}

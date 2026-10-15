@@ -63,7 +63,6 @@ export function PlayerFileActions({
               if (error) showError(t("common.error"), error.message);
               else onDeleteExtraFile?.();
             }}
-            disabled={!upscaledExtra}
           >
             <ImageComponent src="/images/w2k_dustbin.ico" alt="" className="size-4" />
           </Button>

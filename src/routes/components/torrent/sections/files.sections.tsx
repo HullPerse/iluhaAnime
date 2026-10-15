@@ -2,7 +2,6 @@ import { ChevronDown, ChevronRight, ListOrdered, RefreshCw } from "lucide-react"
 import { useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
-import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -93,13 +92,13 @@ function UpdateCheck({
         className="ml-auto size-5"
         title={t("torrent.files.check.new")}
         aria-label={t("torrent.files.check.new")}
-        disabled={checking}
+        loading={checking}
         onClick={(event) => {
           event.stopPropagation();
           ignore(check());
         }}
       >
-        {checking ? <SmallLoader size={3} /> : <RefreshCw className="size-3" />}
+        <RefreshCw className="size-3" />
       </Button>
       {update && (
         <Modal

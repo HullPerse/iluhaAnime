@@ -88,20 +88,19 @@ export default function NotificationRow({
       >
         {copied ? <Check className="size-2" /> : <Copy className="size-2" />}
       </Button>
-      {!item.progress && (
-        <Button
-          size="icon"
-          className="h-4 w-4 shrink-0 opacity-60 hover:opacity-100"
-          aria-label={t("notification.dismiss")}
-          title={t("notification.dismiss")}
-          onClick={(e) => {
-            e.stopPropagation();
-            clear(item.id);
-          }}
-        >
-          <X className="size-2" />
-        </Button>
-      )}
+      <Button
+        rendered={!item.progress}
+        size="icon"
+        className="h-4 w-4 shrink-0 opacity-60 hover:opacity-100"
+        aria-label={t("notification.dismiss")}
+        title={t("notification.dismiss")}
+        onClick={(e) => {
+          e.stopPropagation();
+          clear(item.id);
+        }}
+      >
+        <X className="size-2" />
+      </Button>
     </div>
   );
 }

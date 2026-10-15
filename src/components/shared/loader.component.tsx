@@ -27,13 +27,21 @@ export function TabLoader({ className, children }: { className?: string; childre
   );
 }
 
-export function SmallLoader({ size = 4, className }: { size?: number; className?: string }) {
+export function SmallLoader({
+  size = 4,
+  className,
+  inheritSize = false,
+}: {
+  size?: number;
+  className?: string;
+  inheritSize?: boolean;
+}) {
   const { t } = useI18n();
   return (
     <Box
       aria-label={t("common.loading")}
       className={cn("ui-loading-spinner text-secondary animate-spin", className)}
-      style={{ height: `${size * 0.25}rem`, width: `${size * 0.25}rem` }}
+      style={inheritSize ? undefined : { height: `${size * 0.25}rem`, width: `${size * 0.25}rem` }}
     />
   );
 }

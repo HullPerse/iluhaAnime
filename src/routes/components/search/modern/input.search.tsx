@@ -3,7 +3,6 @@ import { Filter, Search, X } from "lucide-react";
 import { useEffect, useMemo, type Ref } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
-import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
@@ -180,9 +179,10 @@ function InputSearch({
               title={t("search.find.submit")}
               aria-label={t("search.find.submit")}
               onClick={handleSearch}
-              disabled={isLoading || sourceOptions.length === 0 || !field.deferredQuery}
+              disabled={sourceOptions.length === 0 || !field.deferredQuery}
+              loading={isLoading}
             >
-              {isLoading ? <SmallLoader /> : <Search className="pointer-events-none" />}
+              <Search className="pointer-events-none" />
             </Button>
           </section>
         </div>

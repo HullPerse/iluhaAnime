@@ -131,7 +131,9 @@ export default function SettingsTheme() {
               {t("settings.theme.create.title")}
             </Button>
             <Button onClick={handleImport}>{t("settings.theme.import")}</Button>
-            {currentDef && <Button onClick={handleExport}>{t("settings.theme.export")}</Button>}
+            <Button rendered={!!currentDef} onClick={handleExport}>
+              {t("settings.theme.export")}
+            </Button>
           </div>
         </div>
       </section>

@@ -329,6 +329,8 @@ const changelog500 = {
     "Player settings and keyboard shortcuts share one window: opening one replaces the other",
   "changelog.5_0_0.changed.app.updater_defer":
     "The update notice waits until all dialogs are closed",
+  "changelog.5_0_0.changed.app.button_loading":
+    "Buttons show a loading spinner while the action runs",
   "changelog.5_0_0.fixed.anilist.deeplink_stack":
     "Anime links no longer open details over an already open window",
 } as const;

@@ -418,19 +418,14 @@ function AniListActionControls({
             variant="outline"
             onClick={() =>
               requestWizardPrefill(
-                buildAnilistPrefill(
-                  anime,
-                  listEntry?.list_status ?? null,
-                  listEntry?.score,
-                  format
-                )
+                buildAnilistPrefill(anime, listEntry?.list_status ?? null, listEntry?.score, format)
               )
             }
           >
             {t("collection.add.media")}
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? t("anilist.controls.saving") : t("anilist.controls.save")}
+          <Button onClick={handleSave} loading={saving}>
+            {t("anilist.controls.save")}
           </Button>
         </div>
       </div>

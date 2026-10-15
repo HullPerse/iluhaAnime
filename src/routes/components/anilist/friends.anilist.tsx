@@ -327,8 +327,8 @@ function FollowingImportPanel({ selfId, addedIds, onAddMany, onClose }: Followin
               {t("anilist.friends.import.add")}
             </Button>
             {following.hasMore && (
-              <Button onClick={() => following.loadMore()} disabled={following.isFetchingMore}>
-                {following.isFetchingMore ? <SmallLoader /> : t("anilist.friends.import.load.more")}
+              <Button onClick={() => following.loadMore()} loading={following.isFetchingMore}>
+                {t("anilist.friends.import.load.more")}
               </Button>
             )}
           </div>
@@ -530,8 +530,8 @@ export default function AniListFriendsModal({
               placeholder={t("anilist.friends.placeholder")}
               className="min-w-0 flex-1"
             />
-            <Button onClick={() => loadProfile(query)} disabled={loading || !query.trim()}>
-              {loading ? <SmallLoader /> : <UserPlus className="size-3" />}
+            <Button onClick={() => loadProfile(query)} disabled={!query.trim()} loading={loading}>
+              <UserPlus className="size-3" />
             </Button>
             {selfUser && (
               <Button

@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
-import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -44,14 +43,14 @@ export default function EraiLoginModal({
   return (
     <Modal header={t("search.erai.title")} onClose={close} className="w-xl">
       <div className="flex flex-col gap-2 p-1">
-        <Button onClick={openBrowser} disabled={loading}>
-          {loading ? <SmallLoader /> : t("search.erai.open.browser")}
+        <Button onClick={openBrowser} loading={loading}>
+          {t("search.erai.open.browser")}
         </Button>
         {error && <span className="text-destructive windows95-text">{error}</span>}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={close}>{t("common.cancel")}</Button>
-          <Button onClick={saveSession} disabled={loading}>
-            {loading ? <SmallLoader /> : t("search.erai.save.session")}
+          <Button onClick={saveSession} loading={loading}>
+            {t("search.erai.save.session")}
           </Button>
         </div>
       </div>

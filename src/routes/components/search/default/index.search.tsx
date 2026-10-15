@@ -3,7 +3,6 @@ import { Search } from "lucide-react";
 import { useMemo } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
-import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -106,9 +105,10 @@ function SearchDefault() {
           variant="default"
           size="icon"
           onClick={handleSearch}
-          disabled={isFetching || sourceOptions.length === 0}
+          disabled={sourceOptions.length === 0}
+          loading={isFetching}
         >
-          {isFetching ? <SmallLoader /> : <Search className="pointer-events-none" />}
+          <Search className="pointer-events-none" />
         </Button>
         <span className="ui-toolbar-separator" aria-hidden />
         <Select

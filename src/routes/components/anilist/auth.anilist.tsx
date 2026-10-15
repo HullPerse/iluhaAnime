@@ -2,7 +2,6 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
@@ -93,8 +92,8 @@ function AniListAuthModal({
         )}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={onClose}>{t("common.cancel")}</Button>
-          <Button onClick={handleSubmit} disabled={loading || !token.trim()}>
-            {loading ? <SmallLoader /> : t("anilist.auth.save")}
+          <Button onClick={handleSubmit} disabled={!token.trim()} loading={loading}>
+            {t("anilist.auth.save")}
           </Button>
         </div>
       </div>

@@ -40,12 +40,14 @@ export function BigError({
         <section className="bg-primary flex flex-col items-center gap-4 p-4">
           {icon}
           <span className="text-text text-center text-base font-bold">{error.message}</span>
-          {onRetry && (
-            <Button className="flex h-8 w-28 items-center gap-1" onClick={onRetry}>
-              <RotateCcw className="size-4" />
-              {t("common.continue")}
-            </Button>
-          )}
+          <Button
+            rendered={!!onRetry}
+            className="flex h-8 w-28 items-center gap-1"
+            onClick={() => onRetry?.()}
+          >
+            <RotateCcw className="size-4" />
+            {t("common.continue")}
+          </Button>
         </section>
       </div>
     </>

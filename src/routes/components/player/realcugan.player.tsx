@@ -23,18 +23,16 @@ export function RealCUGAN() {
         <span className="windows95-text text-xs">{t("player.realcugan.installed")}</span>
       )}
       {status === "missing" && (
-        <>
-          <span className="windows95-text text-xs">{t("player.realcugan.missing")}</span>
-          <Button onClick={download}>
-            <Download className="size-3" />
-            {t("player.realcugan.download")}
-          </Button>
-        </>
+        <span className="windows95-text text-xs">{t("player.realcugan.missing")}</span>
       )}
-      {status === "downloading" && (
-        <Button onClick={download} disabled>
+      {(status === "missing" || status === "downloading") && (
+        <Button
+          onClick={download}
+          disabled={status === "downloading"}
+          loading={status === "downloading" && percent === null}
+        >
           <Download className="size-3" />
-          {percent !== null
+          {status === "downloading" && percent !== null
             ? t("player.realcugan.downloading", { percent })
             : t("player.realcugan.download")}
         </Button>

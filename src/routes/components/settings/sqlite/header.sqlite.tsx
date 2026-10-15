@@ -1,6 +1,5 @@
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 
@@ -25,10 +24,11 @@ export function SqliteHeader({
             size="icon"
             className="size-6"
             onClick={onRefresh}
-            disabled={loading || deleting}
+            disabled={deleting}
+            loading={loading}
             title={t("settings.sqlite.refresh")}
           >
-            {loading ? <SmallLoader /> : <RefreshCw className="size-3" />}
+            <RefreshCw className="size-3" />
           </Button>
         </div>
       </section>

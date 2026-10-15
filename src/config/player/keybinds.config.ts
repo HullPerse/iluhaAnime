@@ -6,6 +6,8 @@ export type KeybindAction =
   | "playPause"
   | "seekForward"
   | "seekBackward"
+  | "prevChapter"
+  | "nextChapter"
   | "volumeUp"
   | "volumeDown"
   | "toggleMute"
@@ -88,6 +90,22 @@ export const KEYBINDS: KeybindDef[] = [
     keys: "←",
     description: "player.media.key.seek.backward",
     category: "playback",
+  },
+  {
+    action: "prevChapter",
+    chord: "ctrl+ArrowLeft",
+    repeat: "hold",
+    keys: "Ctrl+←",
+    description: "player.media.key.chapter.prev",
+    category: "navigation",
+  },
+  {
+    action: "nextChapter",
+    chord: "ctrl+ArrowRight",
+    repeat: "hold",
+    keys: "Ctrl+→",
+    description: "player.media.key.chapter.next",
+    category: "navigation",
   },
   {
     action: "seekForward",

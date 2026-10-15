@@ -272,6 +272,8 @@ const player = {
   "player.media.key.play.pause": "Воспроизведение / пауза",
   "player.media.key.seek.forward": "Вперёд на 5 секунд",
   "player.media.key.seek.backward": "Назад на 5 секунд",
+  "player.media.key.chapter.prev": "Предыдущая глава",
+  "player.media.key.chapter.next": "Следующая глава",
   "player.media.key.volume.up": "Громкость +",
   "player.media.key.volume.down": "Громкость −",
   "player.media.key.mute.toggle": "Звук вкл/выкл",

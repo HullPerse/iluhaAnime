@@ -17,6 +17,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
+import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { PLAYER_SPEEDS as SPEEDS } from "@/lib/player/speed.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -88,6 +90,15 @@ function Controls({
   onAddSubtitle: () => void;
 }) {
   const { t } = useI18n();
+  const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
+  const prevChapterTitle = useKeybindTitle(t("player.media.controls.backward"), "player.prevChapter");
+  const nextChapterTitle = useKeybindTitle(t("player.media.controls.forward"), "player.nextChapter");
+  const playlistTitle = useKeybindTitle(t("player.media.playlist.toggle"), "player.togglePlaylist");
+  const autoHideTitle = useKeybindTitle(
+    t("player.media.key.autohide.toggle"),
+    "player.toggleAutoHide"
+  );
+  const muteTitle = useKeybindTitle(t("player.media.controls.mute"), "player.toggleMute");
   const timePos = useCell(playbackAtoms.timePos);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [boundary, setBoundary] = useState<string | null>(null);
@@ -141,40 +152,23 @@ function Controls({
     setBoundary(message);
   };
 
-  const currentChapterIndex = (() => {
-    for (let index = chapters.length - 1; index >= 0; index -= 1) {
-      if (chapters[index].time <= timePos) {
-        return index;
-      }
-    }
-    return -1;
-  })();
-  const hasPrevChapter = currentChapterIndex > 0;
-  const hasNextChapter = currentChapterIndex < chapters.length - 1;
-
-  const handleForward = () => {
-    if (chapters.length > 0 && hasNextChapter) {
-      onSeekTo(chapters[currentChapterIndex + 1].time);
-    } else if (!hasNext && chapters.length === 0) {
-      onSeekTo(Math.min(timePos + SEEK_STEP, duration));
-    } else if (!hasNext) {
-      showBoundaryMsg(t("player.media.boundary.last"));
-    } else {
-      onSeekTo(Math.min(timePos + SEEK_STEP, duration));
-    }
+  const runChapterJump = (direction: ChapterJumpDirection) => {
+    const jump = resolveChapterJump({
+      chapters,
+      timePos,
+      duration,
+      hasPrev,
+      hasNext,
+      direction,
+      step: SEEK_STEP,
+    });
+    if (jump.kind === "seek") onSeekTo(jump.time);
+    else showBoundaryMsg(t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last"));
   };
 
-  const handleBackward = () => {
-    if (chapters.length > 0 && hasPrevChapter) {
-      onSeekTo(chapters[currentChapterIndex - 1].time);
-    } else if (!hasPrev && chapters.length === 0) {
-      onSeekTo(Math.max(timePos - SEEK_STEP, 0));
-    } else if (!hasPrev) {
-      showBoundaryMsg(t("player.media.boundary.first"));
-    } else {
-      onSeekTo(Math.max(timePos - SEEK_STEP, 0));
-    }
-  };
+  const handleForward = () => runChapterJump(1);
+
+  const handleBackward = () => runChapterJump(-1);
 
   const volumeIcon = (() => {
     if (volume === 0 || muted) return <VolumeX />;
@@ -196,7 +190,7 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={t("player.media.key.play.pause")}
+          title={playPauseTitle}
           aria-label={t("player.media.key.play.pause")}
           onClick={onPlay}
           disabled={!paused}
@@ -206,7 +200,7 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={t("player.media.key.play.pause")}
+          title={playPauseTitle}
           aria-label={t("player.media.key.play.pause")}
           onClick={onPause}
           disabled={paused}
@@ -219,7 +213,7 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={t("player.media.controls.backward")}
+          title={prevChapterTitle}
           aria-label={t("player.media.controls.backward")}
           onClick={handleBackward}
           disabled={timePos === 0}
@@ -229,7 +223,7 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={t("player.media.controls.forward")}
+          title={nextChapterTitle}
           aria-label={t("player.media.controls.forward")}
           onClick={handleForward}
           disabled={timePos === duration}
@@ -298,7 +292,7 @@ function Controls({
         <Button
           size="icon"
           className={cn("size-6", playlistOpen && "bg-secondary text-white")}
-          title={t("player.media.playlist.toggle")}
+          title={playlistTitle}
           aria-label={t("player.media.playlist.toggle")}
           onClick={onTogglePlaylist}
         >
@@ -321,7 +315,7 @@ function Controls({
           <Button
             size="icon"
             className="size-6"
-            title={t("player.media.key.autohide.toggle")}
+            title={autoHideTitle}
             aria-label={t("player.media.key.autohide.toggle")}
             onClick={onToggleAutoHide}
           >
@@ -338,7 +332,7 @@ function Controls({
           size="icon"
           variant="ghost"
           className="size-6"
-          title={t("player.media.controls.mute")}
+          title={muteTitle}
           aria-label={t("player.media.controls.mute")}
           onClick={onMute}
         >

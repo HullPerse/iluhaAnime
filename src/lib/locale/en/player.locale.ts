@@ -266,6 +266,8 @@ const player = {
   "player.media.key.play.pause": "Play / pause",
   "player.media.key.seek.forward": "Forward 5 seconds",
   "player.media.key.seek.backward": "Back 5 seconds",
+  "player.media.key.chapter.prev": "Previous chapter",
+  "player.media.key.chapter.next": "Next chapter",
   "player.media.key.volume.up": "Volume up",
   "player.media.key.volume.down": "Volume down",
   "player.media.key.mute.toggle": "Mute / unmute",

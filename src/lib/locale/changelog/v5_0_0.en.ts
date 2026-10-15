@@ -333,6 +333,10 @@ const changelog500 = {
     "Buttons show a loading spinner while the action runs",
   "changelog.5_0_0.fixed.anilist.deeplink_stack":
     "Anime links no longer open details over an already open window",
+  "changelog.5_0_0.added.app.keybind_titles":
+    "Buttons show their shortcut in tooltips: hover any action to see its key, every hint follows rebinds from Settings Keybinds",
+  "changelog.5_0_0.added.player.chapter_keys":
+    "Chapter jumps on Ctrl+Left and Ctrl+Right: the seek buttons move between chapters and step plainly otherwise, listed in Settings Keybinds",
 } as const;
 
 export default changelog500;

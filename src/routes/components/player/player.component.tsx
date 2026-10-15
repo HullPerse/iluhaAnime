@@ -91,6 +91,7 @@ import {
   type HwdecReload,
 } from "@/lib/player/resume.utils";
 import { resolveSkipTarget } from "@/lib/player/skip.utils";
+import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
 import { stepSpeed } from "@/lib/player/speed.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { nextTrackId } from "@/lib/player/tracks.utils";
@@ -1052,6 +1053,25 @@ function PlayerComponent() {
     if (skip.nextEpisode) onFileNext();
   }, [hasNext, onFileNext, onSkipChapter]);
 
+  const onChapterJump = useCallback(
+    (direction: ChapterJumpDirection) => {
+      // Same resolver as the on-screen seek buttons, so the key and the
+      // button never disagree about where a chapter jump lands. A boundary
+      // stays silent here: the first/last popup lives on the buttons.
+      const jump = resolveChapterJump({
+        chapters: playbackAtoms.chapters.get(),
+        timePos: playbackAtoms.timePos.get(),
+        duration: playbackAtoms.duration.get(),
+        hasPrev,
+        hasNext,
+        direction,
+        step: SEEK_STEP,
+      });
+      if (jump.kind === "seek") onSeekTo(jump.time);
+    },
+    [hasPrev, hasNext, onSeekTo]
+  );
+
   const onCycleTrack = useCallback(
     (kind: "audio" | "sub") => {
       const id = nextTrackId(playbackAtoms.tracks.get(), kind);
@@ -1092,6 +1112,8 @@ function PlayerComponent() {
         playPause: () => onPlayPause(),
         seekForward: () => onSeekBy(SEEK_STEP),
         seekBackward: () => onSeekBy(-SEEK_STEP),
+        prevChapter: () => onChapterJump(-1),
+        nextChapter: () => onChapterJump(1),
         volumeUp: () => onVolume(playerAtoms.volume.get() + VOLUME_STEP),
         volumeDown: () => onVolume(playerAtoms.volume.get() - VOLUME_STEP),
         toggleMute: () => onMute(),
@@ -1159,6 +1181,7 @@ function PlayerComponent() {
       exitCinemaMode,
       handleSetAutoHide,
       nudgeOffset,
+      onChapterJump,
       onCycleTrack,
       onFileNext,
       onFilePrev,

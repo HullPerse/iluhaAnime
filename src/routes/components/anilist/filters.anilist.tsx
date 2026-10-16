@@ -31,6 +31,7 @@ import { DiscoveryCard } from "./random/discovery.random";
 function FiltersModal({
   open,
   filters,
+  isLocal,
   onApply,
   onReset,
   onClose,
@@ -133,6 +134,9 @@ function FiltersModal({
         />
       ) : (
         <div className="flex flex-col gap-3 overflow-y-auto p-2">
+          {isLocal && (
+            <p className="windows95-text text-hint text-xs">{t("anilist.filters.local.note")}</p>
+          )}
           <p className="windows95-text text-text font-bold">{t("anilist.filters.genres")}</p>
           <Combobox
             className="w-full"
@@ -273,6 +277,7 @@ function FiltersModal({
           <Combobox
             className="w-full"
             value={local.sort}
+            disabled={isLocal}
             onChange={(v) => setLocal((p) => ({ ...p, sort: v }))}
             options={[
               { value: "", label: t("anilist.filters.sort.relevance") },
@@ -297,6 +302,7 @@ function FiltersModal({
           <Combobox
             className="w-full"
             value={local.source}
+            disabled={isLocal}
             onChange={(v) => setLocal((p) => ({ ...p, source: v }))}
             options={[
               { value: "", label: t("anilist.filters.any") },
@@ -323,6 +329,7 @@ function FiltersModal({
           <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.country")}</p>
           <RadioGroup
             value={local.country}
+            disabled={isLocal}
             onChange={(v) => setLocal((p) => ({ ...p, country: v }))}
             className="flex flex-wrap gap-1"
           >
@@ -376,7 +383,7 @@ function FiltersModal({
           />
 
           <label className="windows95-text mt-1 flex cursor-pointer items-center gap-2 select-none">
-            <Checkbox checked={local.adult} onChange={toggleAdult} />
+            <Checkbox checked={local.adult} disabled={isLocal} onChange={toggleAdult} />
             <span className="text-destructive">{t("anilist.filters.adult")}</span>
           </label>
 

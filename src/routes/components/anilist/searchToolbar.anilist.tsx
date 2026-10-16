@@ -5,7 +5,7 @@ import type { ChangeEvent } from "react";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { countActiveAnilistFilters } from "@/lib/anilist/filters.utils";
+import { countActiveAnilistFilters, countLocalAnilistFilters } from "@/lib/anilist/filters.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { AniListFilters } from "@/types/anilist";
 import type { SearchField } from "@/types/collection";
@@ -32,7 +32,9 @@ function AniListSearchToolbar({
   loadingSearch: boolean;
 }) {
   const { t } = useI18n();
-  const activeFilterCount = countActiveAnilistFilters(filters);
+  const activeFilterCount = global
+    ? countActiveAnilistFilters(filters)
+    : countLocalAnilistFilters(filters);
 
   const submitSearch = useCallback(() => {
     if (

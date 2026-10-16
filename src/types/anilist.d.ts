@@ -143,6 +143,8 @@ export interface AniListEntry {
   updated_at: number | null;
   notes: string | null;
   repeat: number | null;
+  private?: boolean | null;
+  hidden_from_status_lists?: boolean | null;
   custom_lists: string[];
 }
 
@@ -150,6 +152,7 @@ export interface AniSavedEntry {
   id: number | null;
   status: string | null;
   progress: number | null;
+  repeat?: number | null;
   customLists: string[];
 }
 
@@ -354,6 +357,7 @@ export interface FranchiseGraph {
 export interface AniListFiltersModalProps {
   open: boolean;
   filters: AniListFilters;
+  isLocal: boolean;
   onApply: (filters: AniListFilters) => void;
   onReset: () => void;
   onClose: () => void;

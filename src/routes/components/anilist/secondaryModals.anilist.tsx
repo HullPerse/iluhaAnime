@@ -54,6 +54,7 @@ export default function AniListSecondaryModals({
   onStaffFavouriteToggle,
   onCharacterFavouriteToggle,
   filters,
+  isLocalFilters,
   onFiltersApply,
   onFiltersReset,
   onFiltersClose,
@@ -77,7 +78,7 @@ export default function AniListSecondaryModals({
   friendIds: number[];
   lists: AniListCollection[];
   selfUser: AniUser | null;
-  activityTab: "feed" | "calendar" | "notifications";
+  activityTab: "feed" | "calendar" | "notifications" | "mentions" | "airing";
   onActivityClose: () => void;
   activityDetail: ActivityDetailBundle;
   friends: AniFriend[];
@@ -96,6 +97,7 @@ export default function AniListSecondaryModals({
   onStaffFavouriteToggle: (id: number) => void;
   onCharacterFavouriteToggle: (id: number) => void;
   filters: AniListFilters;
+  isLocalFilters: boolean;
   onFiltersApply: (filters: AniListFilters) => void;
   onFiltersReset: () => void;
   onFiltersClose: () => void;
@@ -123,6 +125,7 @@ export default function AniListSecondaryModals({
       {views.activity && userId != null && (
         <ActivityHistoryModal
           userId={userId}
+          userName={selfUser?.name ?? null}
           friendIds={friendIds}
           lists={lists}
           initialTab={activityTab}
@@ -162,6 +165,7 @@ export default function AniListSecondaryModals({
       <FiltersModal
         open={views.filters}
         filters={filters}
+        isLocal={isLocalFilters}
         onApply={onFiltersApply}
         onReset={onFiltersReset}
         onClose={onFiltersClose}

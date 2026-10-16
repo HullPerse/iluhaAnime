@@ -2,24 +2,72 @@ import { toLocaleKey } from "@/lib/locale/key.utils";
 import type {
   AniListCollection,
   AniListEntry,
+  AniListFilters,
   AniListSort,
   AniMedia,
-  AniListFilters,
 } from "@/types/anilist";
 import type { HexType } from "@/types/color";
 import type { TranslationKey } from "@/types/i18n";
 
-export function filterEntries(entries: AniListEntry[], searchTerms: string, global: boolean) {
+export function filterEntries(
+  entries: AniListEntry[],
+  searchTerms: string,
+  global: boolean,
+  filters?: AniListFilters
+) {
   return entries.filter((e) => {
-    if (!searchTerms.trim() || global) return true;
-
-    const query = searchTerms.toLowerCase();
-
-    return (
-      e.media.title.toLowerCase().includes(query) ||
-      e.media.titles.some((t) => t.toLowerCase().includes(query))
-    );
+    if (global) return true;
+    if (!matchesText(e, searchTerms)) return false;
+    if (filters && !matchesLocalFilters(e, filters)) return false;
+    return true;
   });
+}
+
+function matchesText(entry: AniListEntry, searchTerms: string): boolean {
+  if (!searchTerms.trim()) return true;
+  const query = searchTerms.toLowerCase();
+  return (
+    entry.media.title.toLowerCase().includes(query) ||
+    entry.media.titles.some((t) => t.toLowerCase().includes(query))
+  );
+}
+
+function rangeActive(range: [number, number]): boolean {
+  return range[0] !== 0 || range[1] !== 0;
+}
+
+function entryYear(entry: AniListEntry): number | null {
+  if (entry.media.season_year != null && Number.isFinite(entry.media.season_year)) {
+    return entry.media.season_year;
+  }
+  const start = entry.media.start_date;
+  if (!start) return null;
+  const year = Number.parseInt(start.slice(0, 4), 10);
+  return Number.isNaN(year) ? null : year;
+}
+
+function inRange(value: number | null, range: [number, number]): boolean {
+  if (!rangeActive(range)) return true;
+  if (value == null || !Number.isFinite(value)) return false;
+  return value >= range[0] && value <= range[1];
+}
+
+export function matchesLocalFilters(entry: AniListEntry, filters: AniListFilters): boolean {
+  const media = entry.media;
+  if (filters.genres.length > 0 && !filters.genres.every((g) => media.genres.includes(g))) {
+    return false;
+  }
+  if (filters.tags.length > 0 && !filters.tags.every((t) => media.tags.includes(t))) {
+    return false;
+  }
+  if (filters.format && media.format !== filters.format) return false;
+  if (filters.status && media.status !== filters.status) return false;
+  if (filters.season && media.season !== filters.season) return false;
+  if (filters.seasonYear != null && media.season_year !== filters.seasonYear) return false;
+  if (!inRange(entryYear(entry), filters.year)) return false;
+  if (!inRange(media.episodes, filters.episodes)) return false;
+  if (!inRange(media.score, filters.score)) return false;
+  return true;
 }
 
 const MEDIA_STATUS_RANK: Record<string, number> = {
@@ -99,6 +147,9 @@ export interface EntryListInfo {
   completed_at: string | null;
   started_at: string | null;
   notes: string | null;
+  repeat?: number | null;
+  private?: boolean | null;
+  hidden_from_status_lists?: boolean | null;
   custom_lists: string[];
 }
 
@@ -117,6 +168,9 @@ export function buildEntryLookup(lists: AniListCollection[]): EntryLookup {
         completed_at: e.completed_at,
         started_at: e.started_at,
         notes: e.notes,
+        repeat: e.repeat,
+        private: e.private,
+        hidden_from_status_lists: e.hidden_from_status_lists,
         custom_lists: e.custom_lists ?? [],
       });
     }
@@ -133,6 +187,16 @@ export function fuzzyDateToTime(value: string | null): number | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   if (!match) return null;
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
+}
+
+export function isValidFuzzyDateInput(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1) return false;
+  return day <= new Date(year, month, 0).getDate();
 }
 
 export function entryListTime(entry: EntryListInfo | undefined): number | null {

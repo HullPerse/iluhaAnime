@@ -83,6 +83,14 @@ const changelog500 = {
     "Completion toasts for upscale, convert, and tool downloads, plus backup errors and scan failure surfacing",
   "changelog.5_0_0.added.anilist.activity_detail":
     "Anime details from the activity feed and notifications open inside the same window with Back",
+  "changelog.5_0_0.added.anilist.local_filters":
+    "Search filters also filter your own AniList lists when global search is off",
+  "changelog.5_0_0.added.anilist.entry_fields":
+    "List editor manages rewatch count, start and finish dates, plus private and hidden flags",
+  "changelog.5_0_0.added.anilist.activity_scores":
+    "Your scores on activity feed rows plus a mentions tab for posts tagging you",
+  "changelog.5_0_0.added.anilist.airing_schedule":
+    "Airing schedule tab with a 7-day grid of your lists and live episode countdowns",
   "changelog.5_0_0.added.settings.progress_style":
     "Progress bar style choice in Settings Theme: blocky segments or a solid fill across the whole app",
   "changelog.5_0_0.added.settings.progress_colors":

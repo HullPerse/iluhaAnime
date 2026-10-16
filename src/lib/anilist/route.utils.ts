@@ -1,7 +1,10 @@
 import { NO_PEOPLE } from "@/config/anilist/defaults.config";
 import { sortAniMediaList, type sortEntries } from "@/lib/anilist/entries.utils";
+import { localFilterSignature } from "@/lib/anilist/filters.utils";
 import type {
   AniListAnime,
+  AniListFilters,
+  AniListSort,
   AniListViewState,
   AnilistRouteData,
   AniMedia,
@@ -41,6 +44,17 @@ export function pickDisplayEntries(
 ): AniMedia[] {
   if (global) return sortAniMediaList(searchResults, globalSort.key, globalSort.dir);
   return sortedEntries.map((e) => e.media);
+}
+
+export function buildAnilistSourceKey(params: {
+  currentList: string;
+  sort: AniListSort;
+  searchTerms: string;
+  global: boolean;
+  filters: AniListFilters;
+}): string {
+  const local = params.global ? "" : localFilterSignature(params.filters);
+  return `${params.currentList}|${params.sort.key}|${params.sort.dir}|${params.searchTerms}|${params.global}|${local}`;
 }
 
 export function isLocalSearch(searchTerms: string, global: boolean): boolean {

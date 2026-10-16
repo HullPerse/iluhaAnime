@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useCell } from "@/lib/state/signal.hook";
 import { deeplinkAtoms } from "@/store/deeplink.store";
 
-export type AnilistActivityTab = "feed" | "calendar" | "notifications";
+export type AnilistActivityTab = "feed" | "calendar" | "notifications" | "mentions" | "airing";
 
 export type AnilistModalName =
   | "auth"

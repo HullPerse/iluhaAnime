@@ -11,9 +11,11 @@ import { ActivityLikeButton } from "./like.activity";
 export function FeedItem({
   a,
   onAnimeClick,
+  score = null,
 }: {
   a: AniActivity;
   onAnimeClick: (id: number) => void;
+  score?: number | null;
 }) {
   const { t, locale } = useI18n();
   const Icon = ACTIVITY_STATUS_ICONS[a.status ?? ""];
@@ -76,7 +78,8 @@ export function FeedItem({
         </span>
         <span className="text-hint windows95-font text-xs">
           {a.progress ? `${a.progress}` : ""}
-          {a.progress ? " - " : ""}
+          {score != null ? ` - ★ ${score}` : ""}
+          {a.progress || score != null ? " - " : ""}
           {formatActivityTime(a.created_at, locale)}
         </span>
       </div>

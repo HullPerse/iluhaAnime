@@ -5,13 +5,16 @@ import Tabs from "@/components/shared/tabs.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist";
 
+import { AiringTab } from "./activity/airingTab.activity";
 import { CalendarTab } from "./activity/calendarTab.activity";
 import { FeedTab } from "./activity/feedTab.activity";
+import { MentionsTab } from "./activity/mentionsTab.activity";
 import { NotificationsTab } from "./activity/notificationsTab.activity";
 import { AnimeDetailShell } from "./detail/shell.detail";
 
 function ActivityHistoryModal({
   userId,
+  userName,
   friendIds,
   lists,
   initialTab,
@@ -19,13 +22,16 @@ function ActivityHistoryModal({
   detail,
 }: {
   userId: number;
+  userName: string | null;
   friendIds: number[];
   lists: AniListCollection[];
-  initialTab: "feed" | "calendar" | "notifications";
+  initialTab: "feed" | "calendar" | "notifications" | "mentions" | "airing";
   onClose: () => void;
   detail: ActivityDetailBundle;
 }) {
-  const [tab, setTab] = useState<"feed" | "calendar" | "notifications">(initialTab);
+  const [tab, setTab] = useState<"feed" | "calendar" | "notifications" | "mentions" | "airing">(
+    initialTab
+  );
   const [detailStack, setDetailStack] = useState<number[]>([]);
   const { t } = useI18n();
 
@@ -88,6 +94,8 @@ function ActivityHistoryModal({
           ariaLabel={t("anilist.activity.title")}
           tabs={[
             { id: "feed", label: t("anilist.activity.feed") },
+            { id: "mentions", label: t("anilist.activity.mentions") },
+            { id: "airing", label: t("anilist.airing.schedule") },
             { id: "calendar", label: t("anilist.activity.calendar") },
             { id: "notifications", label: t("anilist.activity.notifications") },
           ]}
@@ -98,6 +106,15 @@ function ActivityHistoryModal({
       <div className="bg-primary min-h-0 w-full flex-1 overflow-y-auto">
         {tab === "feed" ? (
           <FeedTab userId={userId} friendIds={friendIds} lists={lists} onAnimeClick={openDetail} />
+        ) : tab === "mentions" ? (
+          <MentionsTab
+            userId={userId}
+            userName={userName}
+            friendIds={friendIds}
+            onAnimeClick={openDetail}
+          />
+        ) : tab === "airing" ? (
+          <AiringTab lists={lists} onAnimeClick={openDetail} />
         ) : tab === "notifications" ? (
           <NotificationsTab onAnimeClick={openDetail} />
         ) : (

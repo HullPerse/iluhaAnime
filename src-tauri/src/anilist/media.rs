@@ -86,6 +86,9 @@ pub struct AniListEntry {
     pub notes: Option<String>,
     pub repeat: Option<i32>,
     pub custom_lists: Vec<String>,
+    #[serde(rename = "private")]
+    pub r#private: Option<bool>,
+    pub hidden_from_status_lists: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]

@@ -40,6 +40,23 @@ export function dayKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+export function buildScoreByMedia(lists: AniListCollection[]): Map<number, number> {
+  const scores = new Map<number, number>();
+  for (const list of lists) {
+    for (const entry of list.entries) {
+      if (entry.score != null && !scores.has(entry.media.id)) {
+        scores.set(entry.media.id, entry.score);
+      }
+    }
+  }
+  return scores;
+}
+
+export function isMentionOf(text: string | null, name: string): boolean {
+  if (!text || !name.trim()) return false;
+  return text.toLowerCase().includes(`@${name.trim().toLowerCase()}`);
+}
+
 export function buildActivityMap(
   lists: AniListCollection[],
   t: ActivityTranslate

@@ -7,8 +7,8 @@ use crate::auth::{delete_secret, load_secret, save_secret};
 
 use super::batch::{execute_alias_batches, MAX_ALIASES_PER_CHUNK};
 use super::client::graphql_request;
-use crate::scrapers::clients::resolve_proxy;
 use super::media::{collect_titles, parse_date, AniListEntry, AniMedia};
+use crate::scrapers::clients::resolve_proxy;
 
 fn token_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app_handle
@@ -432,6 +432,8 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
                     .collect()
             })
             .unwrap_or_default(),
+        r#private: entry["private"].as_bool(),
+        hidden_from_status_lists: entry["hiddenFromStatusLists"].as_bool(),
     }
 }
 
@@ -450,6 +452,8 @@ const COLLECTION_QUERY: &str = r"
                             status
                             notes
                             repeat
+                            private
+                            hiddenFromStatusLists
                             customLists
                             createdAt
                             completedAt { year month day }
@@ -697,6 +701,7 @@ pub struct SavedMediaListEntry {
     pub id: Option<i64>,
     pub status: Option<String>,
     pub progress: Option<i32>,
+    pub repeat: Option<i32>,
     pub custom_lists: Vec<String>,
 }
 
@@ -705,6 +710,7 @@ fn parse_saved_entry(node: &serde_json::Value) -> SavedMediaListEntry {
         id: node["id"].as_i64(),
         status: node["status"].as_str().map(String::from),
         progress: node["progress"].as_i64().map(|n| n as i32),
+        repeat: node["repeat"].as_i64().map(|n| n as i32),
         custom_lists: node["customLists"]
             .as_array()
             .map(|items| {
@@ -720,6 +726,7 @@ fn parse_saved_entry(node: &serde_json::Value) -> SavedMediaListEntry {
 #[allow(clippy::cast_possible_wrap)]
 #[tauri::command]
 #[allow(non_snake_case)]
+#[allow(clippy::too_many_arguments)]
 pub async fn save_anilist_entry(
     app_handle: tauri::AppHandle,
     media_id: u64,
@@ -728,17 +735,25 @@ pub async fn save_anilist_entry(
     score: Option<f64>,
     notes: Option<String>,
     customLists: Option<Vec<String>>,
+    repeat: Option<i32>,
+    private: Option<bool>,
+    hiddenFromStatusLists: Option<bool>,
+    startedAt: Option<String>,
+    completedAt: Option<String>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<SavedMediaListEntry, String> {
     let token = load_token(&app_handle)?;
+    let started_at = parse_fuzzy_date_input(startedAt.as_deref(), "startedAt")?;
+    let completed_at = parse_fuzzy_date_input(completedAt.as_deref(), "completedAt")?;
     let body = serde_json::json!({
         "query": r"
-            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String, $customLists: [String]) {
-                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes, customLists: $customLists) {
+            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String, $customLists: [String], $repeat: Int, $private: Boolean, $hiddenFromStatusLists: Boolean, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput) {
+                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes, customLists: $customLists, repeat: $repeat, private: $private, hiddenFromStatusLists: $hiddenFromStatusLists, startedAt: $startedAt, completedAt: $completedAt) {
                     id
                     status
                     progress
+                    repeat
                     customLists
                 }
             }
@@ -749,7 +764,12 @@ pub async fn save_anilist_entry(
             progress,
             score,
             notes.as_deref(),
-            customLists.as_deref()
+            customLists.as_deref(),
+            repeat,
+            private,
+            hiddenFromStatusLists,
+            started_at,
+            completed_at,
         )
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
@@ -899,7 +919,63 @@ fn parse_bulk_update_ids(entries: &serde_json::Value) -> Vec<u64> {
         .unwrap_or_default()
 }
 
+const fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+}
+
+const fn days_in_month(year: i32, month: i32) -> i32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if is_leap_year(year) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 0,
+    }
+}
+
+/// Parses a `YYYY-MM-DD` date input for a `FuzzyDate` mutation variable.
+/// `None` means omit the variable (leave the server value alone),
+/// an empty string means an explicit null (clear the date).
+fn parse_fuzzy_date_input(
+    raw: Option<&str>,
+    field: &str,
+) -> Result<Option<serde_json::Value>, String> {
+    let Some(text) = raw else {
+        return Ok(None);
+    };
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Ok(Some(serde_json::Value::Null));
+    }
+    let invalid = || format!("{field} must be YYYY-MM-DD");
+    let mut parts = trimmed.split('-');
+    let (Some(y), Some(m), Some(d)) = (parts.next(), parts.next(), parts.next()) else {
+        return Err(invalid());
+    };
+    if parts.next().is_some() || y.len() != 4 || m.len() != 2 || d.len() != 2 {
+        return Err(invalid());
+    }
+    let year: i32 = y.parse().map_err(|_| invalid())?;
+    let month: i32 = m.parse().map_err(|_| invalid())?;
+    let day: i32 = d.parse().map_err(|_| invalid())?;
+    if !(1900..=2100).contains(&year) || !(1..=12).contains(&month) {
+        return Err(invalid());
+    }
+    if day < 1 || day > days_in_month(year, month) {
+        return Err(invalid());
+    }
+    Ok(Some(
+        serde_json::json!({ "year": year, "month": month, "day": day }),
+    ))
+}
+
 #[allow(clippy::cast_possible_wrap)]
+#[allow(clippy::too_many_arguments)]
 fn save_entry_variables(
     media_id: u64,
     status: &str,
@@ -907,18 +983,42 @@ fn save_entry_variables(
     score: Option<f64>,
     notes: Option<&str>,
     custom_lists: Option<&[String]>,
+    repeat: Option<i32>,
+    private: Option<bool>,
+    hidden_from_status_lists: Option<bool>,
+    started_at: Option<serde_json::Value>,
+    completed_at: Option<serde_json::Value>,
 ) -> serde_json::Value {
-    // Only fields this UI manages. repeat/private/dates stay server-side:
-    // an explicit null trips AniList validation ("must be an integer") and
-    // would wipe values the UI never fetched.
-    serde_json::json!({
-        "mediaId": media_id as i64,
-        "status": status,
-        "progress": progress,
-        "score": score,
-        "notes": notes,
-        "customLists": custom_lists
-    })
+    // Fields the UI never touched stay omitted: an explicit null trips
+    // AniList validation for repeat ("must be an integer") and would wipe
+    // values the UI never fetched.
+    let mut variables = serde_json::Map::from_iter([
+        ("mediaId".to_string(), serde_json::json!(media_id as i64)),
+        ("status".to_string(), serde_json::json!(status)),
+        ("progress".to_string(), serde_json::json!(progress)),
+        ("score".to_string(), serde_json::json!(score)),
+        ("notes".to_string(), serde_json::json!(notes)),
+        ("customLists".to_string(), serde_json::json!(custom_lists)),
+    ]);
+    if let Some(value) = repeat {
+        variables.insert("repeat".to_string(), serde_json::json!(value));
+    }
+    if let Some(value) = private {
+        variables.insert("private".to_string(), serde_json::json!(value));
+    }
+    if let Some(value) = hidden_from_status_lists {
+        variables.insert(
+            "hiddenFromStatusLists".to_string(),
+            serde_json::json!(value),
+        );
+    }
+    if let Some(value) = started_at {
+        variables.insert("startedAt".to_string(), value);
+    }
+    if let Some(value) = completed_at {
+        variables.insert("completedAt".to_string(), value);
+    }
+    serde_json::Value::Object(variables)
 }
 
 #[cfg(test)]
@@ -1037,7 +1137,7 @@ mod tests {
     }
 
     #[test]
-    fn save_entry_variables_carry_managed_fields_only() {
+    fn save_entry_variables_omit_untouched_fields() {
         let full = save_entry_variables(
             21,
             "COMPLETED",
@@ -1045,19 +1145,65 @@ mod tests {
             Some(8.5),
             Some("great"),
             Some(&["favorites".to_string()]),
+            Some(2),
+            Some(true),
+            Some(false),
+            parse_fuzzy_date_input(Some("2023-05-02"), "startedAt").expect("valid date"),
+            parse_fuzzy_date_input(Some("2024-03-09"), "completedAt").expect("valid date"),
         );
         assert_eq!(full["mediaId"], 21);
         assert_eq!(full["customLists"][0], "favorites");
-        for untouched in ["repeat", "private", "startedAt", "completedAt"] {
+        assert_eq!(full["repeat"], 2);
+        assert_eq!(full["private"], true);
+        assert_eq!(full["hiddenFromStatusLists"], false);
+        assert_eq!(full["startedAt"]["year"], 2023);
+        assert_eq!(full["completedAt"]["day"], 9);
+
+        let minimal = save_entry_variables(
+            21, "PLANNING", None, None, None, None, None, None, None, None, None,
+        );
+        assert!(minimal["customLists"].is_null());
+        for untouched in [
+            "repeat",
+            "private",
+            "hiddenFromStatusLists",
+            "startedAt",
+            "completedAt",
+        ] {
             assert!(
-                full.get(untouched).is_none(),
+                minimal.get(untouched).is_none(),
                 "{untouched} must be omitted, not nulled"
             );
         }
+    }
 
-        let minimal = save_entry_variables(21, "PLANNING", None, None, None, None);
-        assert!(minimal["customLists"].is_null());
-        assert!(minimal.get("repeat").is_none());
+    #[test]
+    fn fuzzy_date_input_accepts_clear_and_valid_dates() {
+        assert!(parse_fuzzy_date_input(None, "startedAt")
+            .expect("none")
+            .is_none());
+        assert!(parse_fuzzy_date_input(Some(""), "startedAt")
+            .expect("empty")
+            .is_some_and(|v| v.is_null()));
+        let leap = parse_fuzzy_date_input(Some("2024-02-29"), "startedAt").expect("leap day");
+        assert_eq!(
+            leap,
+            Some(serde_json::json!({ "year": 2024, "month": 2, "day": 29 }))
+        );
+        for bad in [
+            "2023-02-29",
+            "2024-13-01",
+            "2024-00-10",
+            "24-01-01",
+            "2024-1-1",
+            "not-a-date",
+            "2024-04-31",
+        ] {
+            assert!(
+                parse_fuzzy_date_input(Some(bad), "startedAt").is_err(),
+                "{bad} must be rejected"
+            );
+        }
     }
 
     #[test]

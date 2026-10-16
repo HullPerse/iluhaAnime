@@ -41,6 +41,11 @@ export interface SaveAnilistEntryInput {
   score: number | null;
   notes: string | null;
   customLists?: string[] | null;
+  repeat?: number | null;
+  private?: boolean | null;
+  hiddenFromStatusLists?: boolean | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
 }
 
 export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParams>>;
@@ -175,7 +180,11 @@ export class AnilistApi {
 
   saveEntry(input: SaveAnilistEntryInput): Promise<AniSavedEntry> {
     const { mediaId, ...rest } = input;
-    return this.call("save_anilist_entry", { ...rest, media_id: mediaId, mediaId });
+    const args: Record<string, unknown> = { media_id: mediaId, mediaId };
+    for (const [key, value] of Object.entries(rest)) {
+      if (value !== undefined) args[key] = value;
+    }
+    return this.call("save_anilist_entry", args);
   }
 
   deleteEntry(mediaId: number, userId: number): Promise<boolean> {

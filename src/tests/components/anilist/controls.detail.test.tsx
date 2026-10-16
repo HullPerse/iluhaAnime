@@ -275,7 +275,7 @@ describe("AniListActionControls server response", () => {
       { id: 1, status: "CURRENT", progress: 6, customLists: [] },
       onSaved
     );
-    const progressInput = screen.getByRole("spinbutton");
+    const progressInput = screen.getByLabelText("Progress:");
     await user.clear(progressInput);
     await user.type(progressInput, "6");
     await user.click(saveButton());
@@ -289,6 +289,52 @@ describe("AniListActionControls server response", () => {
     renderEditable(null, { id: 1, status: "CURRENT", progress: 1, customLists: [] }, onSaved);
     await user.click(saveButton());
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("AniListActionControls entry fields", () => {
+  it("sends repeat, dates and privacy flags with the save", async () => {
+    const user = userEvent.setup();
+    renderControls("POINT_10");
+    await user.type(screen.getByLabelText("Repeats:"), "2");
+    await user.type(screen.getByLabelText("Started:"), "2023-05-02");
+    await user.type(screen.getByLabelText("Completed:"), "2024-03-09");
+    await user.click(screen.getByRole("checkbox", { name: "Private" }));
+    await user.click(saveButton());
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith(
+        "save_anilist_entry",
+        expect.objectContaining({
+          mediaId: MEDIA_ID,
+          repeat: 2,
+          startedAt: "2023-05-02",
+          completedAt: "2024-03-09",
+          private: true,
+        })
+      )
+    );
+  });
+
+  it("blocks the save on a malformed date", async () => {
+    const user = userEvent.setup();
+    renderControls("POINT_10");
+    await user.type(screen.getByLabelText("Started:"), "2023-02-30");
+    await user.click(saveButton());
+    expect(await screen.findByText("Dates must be YYYY-MM-DD")).toBeTruthy();
+    expect(mockInvoke).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
+  });
+
+  it("omits untouched privacy flags for entries without flag data", async () => {
+    const user = userEvent.setup();
+    renderControls("POINT_10");
+    await user.click(saveButton());
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("save_anilist_entry", expect.anything())
+    );
+    const call = mockInvoke.mock.calls.find((args) => args[0] === "save_anilist_entry");
+    expect(call?.[1]).toMatchObject({ mediaId: MEDIA_ID });
+    expect(call?.[1] as Record<string, unknown>).not.toHaveProperty("private");
+    expect(call?.[1] as Record<string, unknown>).not.toHaveProperty("hiddenFromStatusLists");
   });
 });
 

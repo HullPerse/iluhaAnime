@@ -67,6 +67,36 @@ describe("AnilistApi", () => {
     });
   });
 
+  it("forwards repeat, privacy flags and dates when saving an entry", async () => {
+    const { calls, transport } = fakeTransport(() => undefined);
+    const api = new AnilistApi({ transport });
+
+    await api.saveEntry({
+      mediaId: 21,
+      status: "COMPLETED",
+      progress: 24,
+      score: 9,
+      notes: null,
+      repeat: 2,
+      private: true,
+      hiddenFromStatusLists: false,
+      startedAt: "2023-05-02",
+      completedAt: "2024-03-09",
+    });
+
+    expect(calls[0]).toMatchObject({
+      command: "save_anilist_entry",
+      args: {
+        media_id: 21,
+        repeat: 2,
+        private: true,
+        hiddenFromStatusLists: false,
+        startedAt: "2023-05-02",
+        completedAt: "2024-03-09",
+      },
+    });
+  });
+
   it("sends both id casings when deleting an entry", async () => {
     const { calls, transport } = fakeTransport(() => true);
     const api = new AnilistApi({ transport });

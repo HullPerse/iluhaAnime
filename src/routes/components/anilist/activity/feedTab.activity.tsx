@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { groupLabel } from "@/lib/anilist/activity.utils";
+import { groupLabel, buildScoreByMedia } from "@/lib/anilist/activity.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
 
@@ -40,6 +40,8 @@ export function FeedTab({
     enabled: userId > 0,
     placeholderData: (previous) => previous,
   });
+
+  const scoresByMedia = useMemo(() => buildScoreByMedia(lists), [lists]);
 
   const listItems = useMemo(() => {
     const activities = (data ?? []).filter(
@@ -165,7 +167,14 @@ export function FeedTab({
             </span>
             <div className="flex flex-col gap-0.5">
               {items.map((a) => (
-                <FeedItem key={a.id} a={a} onAnimeClick={onAnimeClick} />
+                <FeedItem
+                  key={a.id}
+                  a={a}
+                  onAnimeClick={onAnimeClick}
+                  score={
+                    a.user_id === userId ? (scoresByMedia.get(a.media_id ?? -1) ?? null) : null
+                  }
+                />
               ))}
             </div>
           </section>

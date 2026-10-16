@@ -3,10 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
 import {
   buildActivityMap,
+  buildScoreByMedia,
   buildYearGrid,
   dayKey,
   formatActivityTime,
   groupLabel,
+  isMentionOf,
   monthLabel,
   selectInitialDayKey,
 } from "@/lib/anilist/activity.utils";
@@ -28,6 +30,7 @@ import {
   fuzzyDateToTime,
   getSortingLabel,
   getStatusColor,
+  isValidFuzzyDateInput,
   searchFiltersToParams,
   sortAniMediaList,
   sortEntries,
@@ -48,6 +51,7 @@ import {
   groupEntriesByList,
 } from "@/lib/anilist/group.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { buildAnilistSourceKey } from "@/lib/anilist/route.utils";
 import {
   buildSimNodes,
   computeGraphMetrics,
@@ -123,6 +127,8 @@ describe("anilist/activity", () => {
       updated_at: 0,
       notes: null,
       repeat: null,
+      private: null,
+      hidden_from_status_lists: null,
       custom_lists: [],
       ...overrides,
     };
@@ -497,6 +503,8 @@ describe("anilist/entries", () => {
       updated_at: 0,
       notes: null,
       repeat: null,
+      private: null,
+      hidden_from_status_lists: null,
       custom_lists: [],
       ...overrides,
     };
@@ -545,6 +553,113 @@ describe("anilist/entries", () => {
         }),
       ];
       expect(filterEntries(entries, "ワンピース", false)).toHaveLength(1);
+    });
+
+    it("applies genre, tag, format, status and season filters locally", () => {
+      const entries = [makeEntry()];
+      expect(filterEntries(entries, "", false, makeFilters())).toHaveLength(1);
+      expect(filterEntries(entries, "", false, makeFilters({ genres: ["Drama"] }))).toHaveLength(0);
+      expect(filterEntries(entries, "", false, makeFilters({ tags: ["Samurai"] }))).toHaveLength(0);
+      expect(filterEntries(entries, "", false, makeFilters({ format: "MOVIE" }))).toHaveLength(0);
+      expect(filterEntries(entries, "", false, makeFilters({ status: "RELEASING" }))).toHaveLength(
+        0
+      );
+      expect(filterEntries(entries, "", false, makeFilters({ season: "SUMMER" }))).toHaveLength(0);
+      expect(
+        filterEntries(
+          entries,
+          "",
+          false,
+          makeFilters({ genres: ["Action"], tags: ["Ninja"], format: "TV" })
+        )
+      ).toHaveLength(1);
+    });
+
+    it("applies season year, release year, episodes and score ranges locally", () => {
+      const entries = [makeEntry()];
+      expect(filterEntries(entries, "", false, makeFilters({ seasonYear: 2003 }))).toHaveLength(0);
+      expect(filterEntries(entries, "", false, makeFilters({ year: [2000, 2010] }))).toHaveLength(
+        1
+      );
+      expect(filterEntries(entries, "", false, makeFilters({ year: [2010, 2020] }))).toHaveLength(
+        0
+      );
+      expect(filterEntries(entries, "", false, makeFilters({ episodes: [1, 100] }))).toHaveLength(
+        0
+      );
+      expect(filterEntries(entries, "", false, makeFilters({ score: [7, 9] }))).toHaveLength(1);
+      expect(filterEntries(entries, "", false, makeFilters({ score: [9, 10] }))).toHaveLength(0);
+    });
+
+    it("falls back to start date year when season year is missing", () => {
+      const entries = [
+        makeEntry({ media: makeMedia({ season_year: null, start_date: "1999-10-20" }) }),
+      ];
+      expect(filterEntries(entries, "", false, makeFilters({ year: [1999, 1999] }))).toHaveLength(
+        1
+      );
+      expect(filterEntries(entries, "", false, makeFilters({ seasonYear: 1999 }))).toHaveLength(0);
+    });
+
+    it("ignores server-only sort, source, country and adult filters locally", () => {
+      const entries = [makeEntry()];
+      expect(
+        filterEntries(
+          entries,
+          "",
+          false,
+          makeFilters({ sort: "SCORE_DESC", source: "MANGA", country: "JP", adult: true })
+        )
+      ).toHaveLength(1);
+    });
+
+    it("excludes entries with missing values when a range filter is active", () => {
+      const entries = [makeEntry({ media: makeMedia({ episodes: null, score: null }) })];
+      expect(filterEntries(entries, "", false, makeFilters({ episodes: [1, 100] }))).toHaveLength(
+        0
+      );
+      expect(filterEntries(entries, "", false, makeFilters({ score: [1, 10] }))).toHaveLength(0);
+      expect(filterEntries(entries, "", false, makeFilters())).toHaveLength(1);
+    });
+
+    it("combines text search with local filters", () => {
+      const entries = [
+        makeEntry({ media: makeMedia({ id: 1, title: "Naruto" }) }),
+        makeEntry({ media: makeMedia({ id: 2, title: "Naruto Movie", format: "MOVIE" }) }),
+      ];
+      expect(filterEntries(entries, "naruto", false, makeFilters({ format: "TV" }))).toHaveLength(
+        1
+      );
+    });
+  });
+
+  describe("buildAnilistSourceKey", () => {
+    const sort = { key: "title", dir: "asc" } as const;
+
+    it("omits local filters in global mode", () => {
+      const key = buildAnilistSourceKey({
+        currentList: "Watching",
+        sort,
+        searchTerms: "",
+        global: true,
+        filters: makeFilters({ genres: ["Action"] }),
+      });
+      expect(key).toBe("Watching|title|asc||true|");
+    });
+
+    it("resets the page when local filters change", () => {
+      const base = {
+        currentList: "Watching",
+        sort,
+        searchTerms: "",
+        global: false,
+      } as const;
+      const before = buildAnilistSourceKey({ ...base, filters: makeFilters() });
+      const after = buildAnilistSourceKey({
+        ...base,
+        filters: makeFilters({ genres: ["Action"] }),
+      });
+      expect(before).not.toBe(after);
     });
   });
 
@@ -680,6 +795,9 @@ describe("anilist/entries", () => {
         completed_at: null,
         started_at: null,
         notes: "my note",
+        repeat: null,
+        private: null,
+        hidden_from_status_lists: null,
         custom_lists: [],
       });
       expect(map.has(1)).toBe(false);
@@ -697,10 +815,7 @@ describe("anilist/entries", () => {
           name: "Watching",
         },
       ];
-      expect(buildEntryLookup(lists).get(9)?.custom_lists).toEqual([
-        "favorites",
-        "rewatch",
-      ]);
+      expect(buildEntryLookup(lists).get(9)?.custom_lists).toEqual(["favorites", "rewatch"]);
     });
   });
 
@@ -936,6 +1051,58 @@ describe("anilist/entries", () => {
       expect(fuzzyDateToTime(null)).toBeNull();
       expect(fuzzyDateToTime("")).toBeNull();
       expect(fuzzyDateToTime("March 2024")).toBeNull();
+    });
+  });
+
+  describe("isValidFuzzyDateInput", () => {
+    it("accepts real calendar dates", () => {
+      expect(isValidFuzzyDateInput("2023-05-02")).toBe(true);
+      expect(isValidFuzzyDateInput("2024-02-29")).toBe(true);
+    });
+
+    it("rejects impossible dates and bad shapes", () => {
+      for (const bad of ["", "2023-02-29", "2024-13-01", "2024-04-31", "24-01-01", "March 2024"]) {
+        expect(isValidFuzzyDateInput(bad)).toBe(false);
+      }
+    });
+  });
+
+  describe("buildScoreByMedia", () => {
+    it("maps media ids to user scores skipping unscored entries", () => {
+      const lists: AniListCollection[] = [
+        {
+          name: "Watching",
+          entries: [
+            makeEntry({ media: makeMedia({ id: 1 }), score: 8 }),
+            makeEntry({ media: makeMedia({ id: 2 }), score: null }),
+          ],
+        },
+      ];
+      const scores = buildScoreByMedia(lists);
+      expect(scores.get(1)).toBe(8);
+      expect(scores.has(2)).toBe(false);
+    });
+
+    it("keeps the first score on duplicates", () => {
+      const lists: AniListCollection[] = [
+        { name: "A", entries: [makeEntry({ media: makeMedia({ id: 1 }), score: 7 })] },
+        { name: "B", entries: [makeEntry({ media: makeMedia({ id: 1 }), score: 9 })] },
+      ];
+      expect(buildScoreByMedia(lists).get(1)).toBe(7);
+    });
+  });
+
+  describe("isMentionOf", () => {
+    it("matches @name case-insensitively", () => {
+      expect(isMentionOf("hey @Iluha check this", "iluha")).toBe(true);
+      expect(isMentionOf("hey @iluha check this", "Iluha")).toBe(true);
+    });
+
+    it("rejects missing text, names and bare names", () => {
+      expect(isMentionOf(null, "iluha")).toBe(false);
+      expect(isMentionOf("hey iluha", "iluha")).toBe(false);
+      expect(isMentionOf("hey @iluha", "")).toBe(false);
+      expect(isMentionOf("hey @other", "iluha")).toBe(false);
     });
   });
 
@@ -1206,6 +1373,8 @@ describe("anilist/group", () => {
       updated_at: 0,
       notes: null,
       repeat: null,
+      private: null,
+      hidden_from_status_lists: null,
       custom_lists: [],
     };
   }

@@ -18,6 +18,7 @@ import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
+  buildAnilistSourceKey,
   pickDisplayEntries,
   hasAnyFavourites,
   isLocalSearch,
@@ -452,8 +453,8 @@ function AnilistRoute() {
     [source.lists, currentList]
   );
   const filteredEntries = useMemo(
-    () => filterEntries(activeEntries, deferredSearchTerms, global),
-    [activeEntries, deferredSearchTerms, global]
+    () => filterEntries(activeEntries, deferredSearchTerms, global, searchFilters),
+    [activeEntries, deferredSearchTerms, global, searchFilters]
   );
   const sortedEntries = useMemo(
     () => sortEntries(filteredEntries, sort.dir, sort.key),
@@ -488,7 +489,13 @@ function AnilistRoute() {
     setPage((p) => Math.min(p, lastPage));
   }, [lastPage]);
 
-  const sourceKey = `${currentList}|${sort.key}|${sort.dir}|${deferredSearchTerms}|${global}`;
+  const sourceKey = buildAnilistSourceKey({
+    currentList,
+    sort,
+    searchTerms: deferredSearchTerms,
+    global,
+    filters: searchFilters,
+  });
   const [lastSourceKey, setLastSourceKey] = useState(sourceKey);
   if (lastSourceKey !== sourceKey) {
     setLastSourceKey(sourceKey);
@@ -716,6 +723,7 @@ function AnilistRoute() {
           onStaffFavouriteToggle={toggleFavouriteStaff}
           onCharacterFavouriteToggle={toggleFavouriteCharacter}
           filters={searchFilters}
+          isLocalFilters={!global}
           onFiltersApply={applyFilters}
           onFiltersReset={() =>
             applyFilters(defaultAniListFilters(settingsAtoms.anilistAdultContent.get()))

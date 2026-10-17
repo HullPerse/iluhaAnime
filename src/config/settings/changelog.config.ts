@@ -98,6 +98,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.app.esc_blur", "app"),
       entry("changelog.5_0_0.added.app.page_find", "app"),
       entry("changelog.5_0_0.added.app.inapp_toasts", "app"),
+      entry("changelog.5_0_0.added.game.ui", "game"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),

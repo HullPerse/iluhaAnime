@@ -363,6 +363,8 @@ const changelog500 = {
     "Anime details use less traffic: the trailer, screens, and import lists fetch only the fields they use, and the related batch grew from 8 to 25, so long franchises assemble in fewer requests",
   "changelog.5_0_0.changed.anilist.custom_lists_guest":
     "Custom lists in anime details are no longer requested while signed out of AniList",
+  "changelog.5_0_0.added.game.ui":
+    "Game: a live keypad with mouse presses, stage states with a retry button on failure, in-tab Expand bound to Esc, a volume slider persisted across runs, arrow-key navigation in the library, ROM size in KB and a store counter",
 } as const;
 
 export default changelog500;

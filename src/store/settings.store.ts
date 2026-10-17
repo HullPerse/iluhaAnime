@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 52;
+export const SETTINGS_SCHEMA_VERSION = 53;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -237,6 +237,14 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       }
     },
   },
+  {
+    from: 53,
+    migrate: (state) => {
+      if (state.gameVolume === undefined) {
+        state.gameVolume = 1;
+      }
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -250,6 +258,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   watcherDelay: toValidator(z.enum(["fast", "calm"])),
   scanThreads: (value) =>
     Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 64,
+  gameVolume: (value) => typeof value === "number" && value >= 0 && value <= 1,
   keybindOverrides: toValidator(z.record(z.string(), z.union([z.string(), z.null()]))),
   anilistListSort: toValidator(
     z.object({

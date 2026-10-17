@@ -3,15 +3,15 @@ import { useCell } from "@/lib/state/signal.hook";
 import { playbackAtoms } from "@/store/player.store";
 
 function formatFps(value: number | undefined): string {
-  return value === undefined ? "—" : `${value.toFixed(1)} fps`;
+  return value === undefined ? "-" : `${value.toFixed(1)} fps`;
 }
 
 function formatCount(value: number | undefined): string {
-  return value === undefined ? "—" : `${value}`;
+  return value === undefined ? "-" : `${value}`;
 }
 
 function formatCache(value: number | undefined): string {
-  return value === undefined ? "—" : `${value.toFixed(1)}s`;
+  return value === undefined ? "-" : `${value.toFixed(1)}s`;
 }
 
 function DiagnosticsOverlay() {
@@ -31,13 +31,13 @@ function DiagnosticsOverlay() {
     { label: t("player.media.diagnostics.fps.video"), value: formatFps(fpsVideo) },
     { label: t("player.media.diagnostics.drops"), value: formatCount(dropCount) },
     { label: t("player.media.diagnostics.cache"), value: formatCache(cacheDuration) },
-    { label: t("player.media.diagnostics.hwdec"), value: hwdecCurrent ?? "—" },
+    { label: t("player.media.diagnostics.hwdec"), value: hwdecCurrent ?? "-" },
     {
       label: t("player.media.diagnostics.resolution"),
       value:
         videoWidth !== undefined && videoHeight !== undefined
           ? `${videoWidth}x${videoHeight}`
-          : "—",
+          : "-",
     },
   ];
   const waiting =

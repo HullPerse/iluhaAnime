@@ -115,6 +115,7 @@ export interface SettingsStore {
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
   gameTabUnlocked: boolean;
+  gameVolume: number;
   tmdbKeySet: boolean;
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
@@ -245,7 +246,8 @@ export type ChangelogScope =
   | "anilist"
   | "settings"
   | "app"
-  | "search";
+  | "search"
+  | "game";
 
 export interface ChangelogEntry {
   key: TranslationKey;

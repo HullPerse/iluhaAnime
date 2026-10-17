@@ -597,7 +597,7 @@ fn push_image_src(src: &str, origin: &str, images: &mut Vec<String>) {
 
 /// Rutracker topics mix `http://` and `https://` image hosts. Web views
 /// block plain-http subresources on secure pages, so normalize everything
-/// to `https://` — the image hosts rutracker uses all serve TLS.
+/// to `https://` - the image hosts rutracker uses all serve TLS.
 fn upgrade_to_https(url: String) -> String {
     url.strip_prefix("http://")
         .map(|rest| format!("https://{rest}"))

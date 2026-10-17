@@ -71,7 +71,7 @@ export function SimilarSection({
             sublabel={details.join(" · ")}
             badge={`${Math.round(item.recommendation_rating)}%`}
             size="md"
-            title={details.length > 0 ? `${item.title} — ${details.join(", ")}` : item.title}
+            title={details.length > 0 ? `${item.title} - ${details.join(", ")}` : item.title}
             onSelect={() => onRelated?.(item.id)}
           />
         );

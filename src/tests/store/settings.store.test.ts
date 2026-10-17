@@ -659,6 +659,29 @@ describe("secret game tab v52 migration", () => {
   });
 });
 
+describe("game volume v53 migration", () => {
+  it("defaults the volume to full loudness on older state", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 52).gameVolume).toBe(1);
+  });
+
+  it("keeps a stored volume", () => {
+    expect(settings.migrateSettingsData({ language: "en", gameVolume: 0.3 }, 52).gameVolume).toBe(
+      0.3
+    );
+  });
+
+  it("rejects an out-of-range volume", () => {
+    expect(settings.migrateSettingsData({ language: "en", gameVolume: 4 }, 52).gameVolume).toBe(1);
+  });
+
+  it("round-trips through the settings store", () => {
+    settings.patchSettings({ gameVolume: 0.25 });
+    expect(settings.settingsAtoms.gameVolume.get()).toBe(0.25);
+    settings.patchSettings({ gameVolume: 1 });
+    expect(settings.settingsAtoms.gameVolume.get()).toBe(1);
+  });
+});
+
 describe("search source order v43 migration", () => {
   it("lists rutracker, nekobt, erai-raws first", async () => {
     const { SOURCE_INFOS } = await import("@/config/search/sources.config");

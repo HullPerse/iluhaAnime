@@ -77,6 +77,7 @@ const settings = {
   "settings.changelog.scope.settings": "Settings",
   "settings.changelog.scope.app": "App",
   "settings.changelog.scope.search": "Search",
+  "settings.changelog.scope.game": "Game",
   "settings.summary.app": "Application",
   "settings.summary.app.version": "App version",
   "settings.summary.backup": "Backup",

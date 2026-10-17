@@ -151,6 +151,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   torrentTabEnabled: true,
   playerTabEnabled: true,
   gameTabUnlocked: false,
+  gameVolume: 1,
   searchSymSpellEnabled: true,
   searchIntentEnabled: true,
   tagTolerances: { ...DEFAULT_TAG_TOLERANCES },

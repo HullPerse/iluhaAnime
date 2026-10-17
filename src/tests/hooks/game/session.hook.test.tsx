@@ -22,6 +22,7 @@ import { mockInvoke } from "../../mocks";
 
 const audio = vi.hoisted(() => ({
   setActive: vi.fn(),
+  setVolume: vi.fn(),
   setWavetable: vi.fn(),
   dispose: vi.fn(),
 }));
@@ -101,12 +102,13 @@ function tickCalls(): number {
   return mockInvoke.mock.calls.filter(([command]) => command === "game_tick").length;
 }
 
-function renderSession(muted = false) {
+function renderSession(muted = false, volume = 1) {
   const canvas = document.createElement("canvas");
   const ref = { current: canvas };
   const view = renderHook(
-    ({ muted: current }) => useGameSession({ canvas: ref, muted: current }),
-    { initialProps: { muted } }
+    ({ muted: current, volume: currentVolume }) =>
+      useGameSession({ canvas: ref, muted: current, volume: currentVolume }),
+    { initialProps: { muted, volume } }
   );
   return { canvas, ...view };
 }
@@ -245,6 +247,67 @@ describe("useGameSession", () => {
     act(() => result.current.stop());
   });
 
+  it("routes keypad clicks through the shared key path and tracks held keys", async () => {
+    startMock(() => tickResponse(0));
+    const { result } = renderSession();
+    await start({ result });
+
+    act(() => {
+      result.current.pressKey(0x5, true);
+    });
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("game_key", { key: 5, pressed: true, session: 7 })
+    );
+    expect(result.current.pressedKeys.has(0x5)).toBe(true);
+
+    act(() => {
+      result.current.pressKey(0x5, false);
+    });
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("game_key", { key: 5, pressed: false, session: 7 })
+    );
+    expect(result.current.pressedKeys.has(0x5)).toBe(false);
+
+    act(() => result.current.stop());
+  });
+
+  it("mirrors physical presses in pressedKeys and clears them on stop", async () => {
+    startMock(() => tickResponse(0));
+    const { result } = renderSession();
+    await start({ result });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, code: "KeyX" }));
+    });
+    await waitFor(() => expect(result.current.pressedKeys.has(0x0)).toBe(true));
+
+    act(() => result.current.stop());
+    expect(result.current.pressedKeys.size).toBe(0);
+  });
+
+  it("keeps keypad clicks inert without a running session", () => {
+    startMock(() => tickResponse(0));
+    const { result } = renderSession();
+
+    act(() => {
+      result.current.pressKey(0x0, true);
+    });
+    expect(result.current.pressedKeys.size).toBe(0);
+    expect(mockInvoke.mock.calls.filter(([command]) => command === "game_key")).toHaveLength(0);
+  });
+
+  it("applies the volume at start and follows live changes", async () => {
+    startMock(() => tickResponse(0));
+    const { result, rerender } = renderSession(false, 0.4);
+    await start({ result });
+    expect(audio.setVolume).toHaveBeenCalledWith(0.4);
+
+    rerender({ muted: false, volume: 0.1 });
+    expect(audio.setVolume).toHaveBeenLastCalledWith(0.1);
+
+    act(() => result.current.stop());
+  });
+
   it("stops the backend session and the animation loop", async () => {
     startMock(() => tickResponse(0));
     const { result } = renderSession();
@@ -293,7 +356,7 @@ describe("useGameSession", () => {
     await waitFor(() => expect(audio.setActive).toHaveBeenCalledWith(false));
     expect(audio.setWavetable).not.toHaveBeenCalled();
 
-    rerender({ muted: false });
+    rerender({ muted: false, volume: 1 });
     await act(async () => step(16.6667));
     await waitFor(() => expect(audio.setActive).toHaveBeenLastCalledWith(true));
 

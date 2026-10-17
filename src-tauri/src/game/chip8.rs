@@ -1703,8 +1703,8 @@ mod tests {
         Some(u8::try_from((frame / window) % 16).expect("key index fits"))
     }
 
-    /// Runs frames of the frontend contract — cycles, then one 60 Hz timer
-    /// tick, then the scripted keypad tap — and hands every frame to `visit`.
+    /// Runs frames of the frontend contract - cycles, then one 60 Hz timer
+    /// tick, then the scripted keypad tap - and hands every frame to `visit`.
     fn simulate(
         vm: &mut Chip8,
         frames: u32,

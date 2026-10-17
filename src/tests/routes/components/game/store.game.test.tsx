@@ -92,7 +92,8 @@ describe("GameStoreModal", () => {
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
     expect(screen.getByText("Snake")).toBeTruthy();
     expect(screen.getByText("Party Mix")).toBeTruthy();
-    expect(screen.getByText("CHIP-8 · by Author One")).toBeTruthy();
+    expect(screen.getByText("CHIP-8 · by Author One · 1 KB")).toBeTruthy();
+    expect(screen.getByText("3 of 3")).toBeTruthy();
     expect(screen.getByText("Controls: Keys 4 and 6 move the paddles.")).toBeTruthy();
     expect(screen.getByText("Installed")).toBeTruthy();
     // Both not-installed entries, XO-CHIP included, get a download button.
@@ -106,6 +107,7 @@ describe("GameStoreModal", () => {
     fireEvent.change(screen.getByPlaceholderText("Search"), { target: { value: "pong" } });
     expect(screen.queryByText("Snake")).toBeNull();
     expect(screen.getByText("Pong")).toBeTruthy();
+    expect(screen.getByText("1 of 3")).toBeTruthy();
 
     fireEvent.change(screen.getByPlaceholderText("Search"), { target: { value: "timotriisa" } });
     expect(screen.queryByText("Pong")).toBeNull();

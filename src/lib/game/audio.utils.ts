@@ -14,6 +14,8 @@ export type GameAudioMode = "beep" | "wavetable";
 export interface GameAudio {
   /** Follows the VM sound flag; a no-op when the state does not change. */
   setActive: (active: boolean) => void;
+  /** Output level 0..1; multiplies the base gain of both modes. */
+  setVolume: (volume: number) => void;
   /** XO-CHIP buzzer state; ignored by beep sessions. */
   setWavetable: (pitchHz: number, pattern: Uint8Array) => void;
   dispose: () => void;
@@ -120,12 +122,13 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
     disposeSource: () => void;
   } | null = null;
   let active = false;
+  let volume = 1;
   let pending: { pitchHz: number; pattern: Uint8Array } | null = null;
 
   const apply = (): void => {
     if (!nodes) return;
     nodes.gain.gain.setTargetAtTime(
-      active ? BEEP_GAIN : 0,
+      active ? BEEP_GAIN * volume : 0,
       nodes.context.currentTime,
       GAIN_RAMP_SECONDS
     );
@@ -179,6 +182,12 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
       } else {
         nodes?.buzzer?.reset();
       }
+      apply();
+    },
+    setVolume(next) {
+      const clamped = Math.min(1, Math.max(0, next));
+      if (clamped === volume) return;
+      volume = clamped;
       apply();
     },
     setWavetable(pitchHz, pattern) {

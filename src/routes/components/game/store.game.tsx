@@ -12,6 +12,7 @@ import {
 } from "@/config/game/platforms.config";
 import { useGameStore, useGameStoreInstall } from "@/hooks/game/store.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { sizeInKb } from "@/lib/game/format.utils";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
@@ -83,6 +84,11 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
           />
         </div>
       </div>
+      {!store.isLoading && store.error === null && entries.length > 0 && (
+        <span className="text-hint text-xs">
+          {t("game.store.count", { shown: visible.length, total: entries.length })}
+        </span>
+      )}
       {!online && <span className="text-hint text-xs">{t("game.store.offline")}</span>}
       {store.isLoading && <span className="text-hint text-xs">{t("common.loading")}</span>}
       {store.error !== null && (
@@ -103,6 +109,8 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
                   {t(GAME_STORE_PLATFORM_LABELS[entry.platform])}
                   {" · "}
                   {t("game.store.by", { authors: entry.authors.join(", ") })}
+                  {" · "}
+                  {t("game.size.kb", { value: sizeInKb(entry.size) })}
                 </div>
                 <div className="text-hint truncate text-xs" title={entry.description}>
                   {entry.description}

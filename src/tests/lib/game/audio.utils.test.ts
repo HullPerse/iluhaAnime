@@ -155,6 +155,56 @@ describe("createGameAudio", () => {
     expect(context?.oscillators[0].stop).toHaveBeenCalledTimes(1);
     expect(context?.close).toHaveBeenCalledTimes(1);
   });
+
+  it("scales the gain with the volume and re-applies it live", () => {
+    vi.stubGlobal("AudioContext", FakeAudioContext);
+    const audio = createGameAudio();
+
+    audio.setVolume(0.5);
+    audio.setActive(true);
+    const gain = contexts.at(-1)?.gains[0].gain;
+    expect(gain?.setTargetAtTime).toHaveBeenLastCalledWith(
+      expect.closeTo(0.025),
+      0,
+      expect.any(Number)
+    );
+
+    audio.setVolume(0.2);
+    expect(gain?.setTargetAtTime).toHaveBeenLastCalledWith(
+      expect.closeTo(0.01),
+      0,
+      expect.any(Number)
+    );
+
+    audio.setVolume(4);
+    expect(gain?.setTargetAtTime).toHaveBeenLastCalledWith(
+      expect.closeTo(0.05),
+      0,
+      expect.any(Number)
+    );
+
+    audio.setVolume(-1);
+    expect(gain?.setTargetAtTime).toHaveBeenLastCalledWith(0, 0, expect.any(Number));
+
+    audio.dispose();
+  });
+
+  it("uses the volume chosen before the first sound flag", () => {
+    vi.stubGlobal("AudioContext", FakeAudioContext);
+    const audio = createGameAudio();
+
+    audio.setVolume(0.5);
+    audio.setActive(false);
+    expect(contexts).toHaveLength(0);
+
+    audio.setActive(true);
+    expect(contexts.at(-1)?.gains[0].gain.setTargetAtTime).toHaveBeenLastCalledWith(
+      expect.closeTo(0.025),
+      0,
+      expect.any(Number)
+    );
+    audio.dispose();
+  });
 });
 
 describe("createGameAudio wavetable mode", () => {

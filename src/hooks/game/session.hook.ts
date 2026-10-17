@@ -25,13 +25,18 @@ export interface GameSessionRuntime {
 export interface GameSessionOptions {
   canvas: RefObject<HTMLCanvasElement | null>;
   muted: boolean;
+  volume: number;
 }
 
 export interface GameSessionHandle {
   runtime: GameSessionRuntime;
   telemetry: GameTelemetry;
+  /** Emulator keys held right now, from physical presses and keypad clicks. */
+  pressedKeys: ReadonlySet<number>;
   start: (rom: GameRomInfo) => Promise<void>;
   stop: () => void;
+  /** Emulator key path for UI keypad clicks; inert without a running session. */
+  pressKey: (key: number, pressed: boolean) => void;
 }
 
 const PALETTE = {
@@ -58,6 +63,7 @@ function sessionColors(palette: GamePalette | null): readonly Rgba[] {
 
 const IDLE_RUNTIME: GameSessionRuntime = { status: "idle", info: null, error: null };
 const IDLE_TELEMETRY: GameTelemetry = { fps: 0, hires: false, waitingKey: false, halted: false };
+const NO_KEYS: ReadonlySet<number> = new Set();
 
 interface ActiveSession {
   session: number;
@@ -111,21 +117,40 @@ function paintFrame(
 export function useGameSession(options: GameSessionOptions): GameSessionHandle {
   const [runtime, setRuntime] = useState<GameSessionRuntime>(IDLE_RUNTIME);
   const [telemetry, setTelemetry] = useState<GameTelemetry>(IDLE_TELEMETRY);
+  const [pressedKeys, setPressedKeys] = useState<ReadonlySet<number>>(NO_KEYS);
   const activeRef = useRef<ActiveSession | null>(null);
   const mountedRef = useRef(true);
   const canvasTarget = useRef(options.canvas);
   const mutedRef = useRef(options.muted);
+  const volumeRef = useRef(options.volume);
 
   useEffect(() => {
     canvasTarget.current = options.canvas;
     mutedRef.current = options.muted;
-  }, [options.canvas, options.muted]);
+    volumeRef.current = options.volume;
+    activeRef.current?.audio.setVolume(options.volume);
+  }, [options.canvas, options.muted, options.volume]);
+
+  /** Single key path: physical presses and keypad clicks both land here. */
+  const sendKey = useCallback((active: ActiveSession, key: number, pressed: boolean) => {
+    setPressedKeys((current) => {
+      if (pressed === current.has(key)) return current;
+      const next = new Set(current);
+      if (pressed) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+    attempt(gameApi.key(active.session, key, pressed)).then(([, keyError]) => {
+      if (keyError) reportBackgroundError("game.key", keyError);
+    });
+  }, []);
 
   const release = useCallback((active: ActiveSession) => {
     if (activeRef.current === active) activeRef.current = null;
     active.loop.cancel();
     active.releaseKeypad();
     active.audio.dispose();
+    setPressedKeys(NO_KEYS);
     attempt(gameApi.stop(active.session)).then(([, error]) => {
       if (error) reportBackgroundError("game.stop", error);
     });
@@ -249,16 +274,15 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
         keys: GAME_KEY_BY_CODE,
         onKey: (key, pressed) => {
           if (activeRef.current !== active) return;
-          attempt(gameApi.key(active.session, key, pressed)).then(([, keyError]) => {
-            if (keyError) reportBackgroundError("game.key", keyError);
-          });
+          sendKey(active, key, pressed);
         },
       });
+      active.audio.setVolume(volumeRef.current);
       active.loop = createAnimationLoop((now) => pump(active, now));
       activeRef.current = active;
       setRuntime({ status: "running", info, error: null });
     },
-    [fail, pump, release]
+    [fail, pump, release, sendKey]
   );
 
   const stop = useCallback(() => {
@@ -269,6 +293,15 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     setTelemetry(IDLE_TELEMETRY);
   }, [release]);
 
+  const pressKey = useCallback(
+    (key: number, pressed: boolean) => {
+      const active = activeRef.current;
+      if (!active) return;
+      sendKey(active, key, pressed);
+    },
+    [sendKey]
+  );
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -278,5 +311,5 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     };
   }, [release]);
 
-  return { runtime, telemetry, start, stop };
+  return { runtime, telemetry, pressedKeys, start, stop, pressKey };
 }

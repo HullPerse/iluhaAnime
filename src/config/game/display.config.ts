@@ -18,5 +18,5 @@ export const GAME_DISPLAY = {
   telemetryIntervalMs: 500,
   /** Pixel scale bounds when fitting the stage. */
   minScale: 1,
-  maxScale: 24,
+  maxScale: 32,
 } as const;

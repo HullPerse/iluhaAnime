@@ -45,10 +45,7 @@ fn main() {
     let blue = solid_png(64, 64, [30, 40, 200]);
     let thumb = solid_jpeg(336, 480, [200, 30, 40]);
     let thumb_copy = thumb.clone();
-    assert_eq!(
-        compare_cover_bytes(&red, &red_copy),
-        Ok(CoverDiff::Same)
-    );
+    assert_eq!(compare_cover_bytes(&red, &red_copy), Ok(CoverDiff::Same));
     assert_eq!(compare_cover_bytes(&red, &blue), Ok(CoverDiff::Different));
 
     bench("png64 same", 200, || {

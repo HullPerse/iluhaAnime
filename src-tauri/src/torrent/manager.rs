@@ -35,7 +35,7 @@ use super::helpers::{
 use super::types::{
     CreatedTorrent, DhtStatus, FileOrder, FilePriority, SessionConfig, TorrentCheckResult,
     TorrentDiagPeer, TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult,
-    TorrentLimits, TorrentResumeResult, TorrentOrigin,
+    TorrentLimits, TorrentOrigin, TorrentResumeResult,
 };
 pub const METADATA_SLOTS: usize = 8;
 
@@ -1855,7 +1855,8 @@ impl TorrentManager {
         if source.is_empty() || url.is_empty() {
             return Err("torrent source is empty".to_string());
         }
-        self.torrent_sources.insert(key, TorrentOrigin { source, url });
+        self.torrent_sources
+            .insert(key, TorrentOrigin { source, url });
         self.save_torrent_sources();
         Ok(())
     }

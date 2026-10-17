@@ -86,7 +86,9 @@ impl Matcher {
     fn new(corpus: &[String]) -> Self {
         let mut index = HashMap::with_capacity(corpus.len());
         for (position, name) in corpus.iter().enumerate() {
-            index.entry(parse_name(name).title_index).or_insert(position);
+            index
+                .entry(parse_name(name).title_index)
+                .or_insert(position);
         }
         Self { index }
     }

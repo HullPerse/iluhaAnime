@@ -56,7 +56,10 @@ describe("useQuickAddMedia", () => {
   it("ignores a second add while the first is in flight", async () => {
     let release!: () => void;
     addItem.mockImplementationOnce(
-      () => new Promise((resolve) => void (release = () => resolve(undefined)))
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve(undefined);
+        })
     );
     const { result } = renderHook(() => useQuickAddMedia(MEDIA, ENTRY, false, "POINT_10"));
     let first: Promise<void> | undefined;

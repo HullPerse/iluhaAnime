@@ -581,12 +581,18 @@ mod tests {
     fn host_from_url_strips_scheme_and_path() {
         assert_eq!(host_from_url("https://nyaa.si/"), "nyaa.si");
         assert_eq!(host_from_url("https://sukebei.nyaa.si/"), "sukebei.nyaa.si");
-        assert_eq!(host_from_url("http://animetosho.org/view/3"), "animetosho.org");
+        assert_eq!(
+            host_from_url("http://animetosho.org/view/3"),
+            "animetosho.org"
+        );
         assert_eq!(
             host_from_url("https://rutracker.org/forum/index.php"),
             "rutracker.org"
         );
-        assert_eq!(host_from_url("rutracker.org/forum/index.php"), "rutracker.org");
+        assert_eq!(
+            host_from_url("rutracker.org/forum/index.php"),
+            "rutracker.org"
+        );
     }
 
     #[tokio::test]
@@ -612,11 +618,15 @@ mod tests {
         ));
         // Exact boundary passes: the check rejects only past the cap.
         let exact = response_with(reqwest::Body::from(vec![b'x'; 16]));
-        let bytes = read_body_capped(exact, 16).await.expect("boundary reads fully");
+        let bytes = read_body_capped(exact, 16)
+            .await
+            .expect("boundary reads fully");
         assert_eq!(bytes.len(), 16);
         // Under the cap reads fully.
         let under = response_with(reqwest::Body::from(vec![b'x'; 1024]));
-        let bytes = read_body_capped(under, 2048).await.expect("under cap reads fully");
+        let bytes = read_body_capped(under, 2048)
+            .await
+            .expect("under cap reads fully");
         assert_eq!(bytes.len(), 1024);
     }
 }

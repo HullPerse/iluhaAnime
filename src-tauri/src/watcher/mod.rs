@@ -93,7 +93,9 @@ impl FolderWatcher {
             let Some(kind) = classify(event.kind) else {
                 return;
             };
-            let Ok(mut map) = pending_cb.lock() else { return };
+            let Ok(mut map) = pending_cb.lock() else {
+                return;
+            };
             for path in event.paths {
                 map.entry(path)
                     .and_modify(|current| *current = merge(*current, kind))
@@ -239,11 +241,26 @@ mod tests {
 
     #[test]
     fn merge_prefers_removed_then_created() {
-        assert_eq!(merge(ChangeKind::Modified, ChangeKind::Created), ChangeKind::Created);
-        assert_eq!(merge(ChangeKind::Created, ChangeKind::Modified), ChangeKind::Created);
-        assert_eq!(merge(ChangeKind::Created, ChangeKind::Removed), ChangeKind::Removed);
-        assert_eq!(merge(ChangeKind::Removed, ChangeKind::Created), ChangeKind::Removed);
-        assert_eq!(merge(ChangeKind::Modified, ChangeKind::Modified), ChangeKind::Modified);
+        assert_eq!(
+            merge(ChangeKind::Modified, ChangeKind::Created),
+            ChangeKind::Created
+        );
+        assert_eq!(
+            merge(ChangeKind::Created, ChangeKind::Modified),
+            ChangeKind::Created
+        );
+        assert_eq!(
+            merge(ChangeKind::Created, ChangeKind::Removed),
+            ChangeKind::Removed
+        );
+        assert_eq!(
+            merge(ChangeKind::Removed, ChangeKind::Created),
+            ChangeKind::Removed
+        );
+        assert_eq!(
+            merge(ChangeKind::Modified, ChangeKind::Modified),
+            ChangeKind::Modified
+        );
     }
 
     #[test]

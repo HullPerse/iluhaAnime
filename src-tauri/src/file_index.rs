@@ -349,8 +349,8 @@ impl FileIndexer {
         let index = self.index.clone();
         let entries =
             tokio::task::spawn_blocking(move || Self::scan_paths(paths, extensions, threads))
-            .await
-            .map_err(|e| format!("index task failed: {e}"))??;
+                .await
+                .map_err(|e| format!("index task failed: {e}"))??;
 
         if self.rebuild_generation.load(Ordering::Acquire) != generation {
             return Ok(());
@@ -389,8 +389,8 @@ impl FileIndexer {
         let scan_roots = changed_roots.clone();
         let entries =
             tokio::task::spawn_blocking(move || Self::scan_paths(scan_roots, extensions, threads))
-            .await
-            .map_err(|e| format!("incremental index task failed: {e}"))??;
+                .await
+                .map_err(|e| format!("incremental index task failed: {e}"))??;
 
         if self.rebuild_generation.load(Ordering::Acquire) != generation {
             tracing::debug!(
@@ -460,8 +460,10 @@ impl FileIndexer {
     pub async fn search(&self, query: &str, extensions: &[String], limit: usize) -> Vec<FileEntry> {
         let parsed = parse_file_query(query);
         let text = parsed.text.trim().to_lowercase();
-        let mut ext_set: HashSet<String> =
-            extensions.iter().filter_map(|extension| clean_extension(extension)).collect();
+        let mut ext_set: HashSet<String> = extensions
+            .iter()
+            .filter_map(|extension| clean_extension(extension))
+            .collect();
         ext_set.extend(parsed.extensions);
         let excluded_ext: HashSet<String> = parsed.excluded_extensions.into_iter().collect();
         let limit = limit.min(500);
@@ -471,9 +473,10 @@ impl FileIndexer {
             .iter()
             .filter(|entry| {
                 if !parsed.excludes.is_empty()
-                    && parsed.excludes.iter().any(|exclude| {
-                        entry.path.to_lowercase().contains(exclude)
-                    })
+                    && parsed
+                        .excludes
+                        .iter()
+                        .any(|exclude| entry.path.to_lowercase().contains(exclude))
                 {
                     return false;
                 }
@@ -678,8 +681,14 @@ mod tests {
             }
             jwalk::Parallelism::RayonNewPool(_) => panic!("expected a pooled walk"),
         };
-        assert_eq!(pool_of(FileIndexer::scan_parallelism(3)).current_num_threads(), 3);
-        assert_eq!(pool_of(FileIndexer::scan_parallelism(6)).current_num_threads(), 6);
+        assert_eq!(
+            pool_of(FileIndexer::scan_parallelism(3)).current_num_threads(),
+            3
+        );
+        assert_eq!(
+            pool_of(FileIndexer::scan_parallelism(6)).current_num_threads(),
+            6
+        );
     }
 
     #[test]
@@ -739,11 +748,8 @@ mod tests {
         let added = root.join("episode.mkv");
         std::fs::write(&added, b"hello").expect("fixture add");
         let added_path = added.to_string_lossy().to_string();
-        let fresh = runtime.block_on(indexer.apply_paths(
-            vec![added_path.clone()],
-            Vec::new(),
-            ext_list(),
-        ));
+        let fresh =
+            runtime.block_on(indexer.apply_paths(vec![added_path.clone()], Vec::new(), ext_list()));
         assert_eq!(fresh.len(), 1);
         assert_eq!(fresh[0].size, 5);
         assert_eq!(fresh[0].name, "episode.mkv");
@@ -776,7 +782,8 @@ mod tests {
         let root = fixture_root("supersede");
         write_tree(&root);
         let indexer = FileIndexer::new();
-        let mut refresh = Box::pin(indexer.refresh(vec![root.to_string_lossy().to_string()], ext_list(), 0));
+        let mut refresh =
+            Box::pin(indexer.refresh(vec![root.to_string_lossy().to_string()], ext_list(), 0));
 
         // Drive the refresh up to its blocking walk: the generation is bumped.
         assert!(futures::poll!(&mut refresh).is_pending());

@@ -29,8 +29,12 @@ fn main() {
     println!("AniList list-trim benchmark (offline; no network requests)");
     let current = search_body(CURRENT_SELECTION);
     let trimmed = search_body(TRIMMED_SELECTION);
-    let current_bytes = serde_json::to_vec(&current).expect("current body serializes").len();
-    let trimmed_bytes = serde_json::to_vec(&trimmed).expect("trimmed body serializes").len();
+    let current_bytes = serde_json::to_vec(&current)
+        .expect("current body serializes")
+        .len();
+    let trimmed_bytes = serde_json::to_vec(&trimmed)
+        .expect("trimmed body serializes")
+        .len();
     println!("current request body bytes={current_bytes}");
     println!("trimmed request body bytes={trimmed_bytes}");
     println!(
@@ -38,7 +42,10 @@ fn main() {
         current_bytes - trimmed_bytes,
         (current_bytes - trimmed_bytes) as f64 / current_bytes as f64 * 100.0
     );
-    for (name, selection) in [("current", CURRENT_SELECTION), ("trimmed", TRIMMED_SELECTION)] {
+    for (name, selection) in [
+        ("current", CURRENT_SELECTION),
+        ("trimmed", TRIMMED_SELECTION),
+    ] {
         let iterations = 10_000;
         let started = Instant::now();
         let mut sink = 0usize;

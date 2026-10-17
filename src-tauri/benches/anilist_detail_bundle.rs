@@ -14,8 +14,8 @@ fn main() {
         let query = black_box(anime_full_query());
         query_bytes = query.len();
         let body = black_box(serde_json::json!({ "query": query, "variables": { "id": 21 } }));
-        let bytes = serde_json::to_vec(black_box(&body))
-            .expect("benchmark query body should serialize");
+        let bytes =
+            serde_json::to_vec(black_box(&body)).expect("benchmark query body should serialize");
         body_bytes = bytes.len();
         serialized_bytes += bytes.len();
     }

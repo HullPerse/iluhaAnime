@@ -326,14 +326,8 @@ pub fn compare_cover_bytes(old: &[u8], new: &[u8]) -> Result<CoverDiff, String> 
         image::load_from_memory(old).map_err(|error| format!("decode old cover: {error}"))?;
     let new_image =
         image::load_from_memory(new).map_err(|error| format!("decode new cover: {error}"))?;
-    let (old_w, old_h) = (
-        f64::from(old_image.width()),
-        f64::from(old_image.height()),
-    );
-    let (new_w, new_h) = (
-        f64::from(new_image.width()),
-        f64::from(new_image.height()),
-    );
+    let (old_w, old_h) = (f64::from(old_image.width()), f64::from(old_image.height()));
+    let (new_w, new_h) = (f64::from(new_image.width()), f64::from(new_image.height()));
     if old_w < 1.0 || old_h < 1.0 || new_w < 1.0 || new_h < 1.0 {
         return Err("cover has no pixels".to_string());
     }
@@ -657,10 +651,7 @@ pub async fn download_remote_image(
     let conn = open_database(&app)?;
     if let Some(previous) = previousId.as_deref().filter(|id| !id.trim().is_empty()) {
         if let Ok(Some(old_bytes)) = read_user_image_bytes(&app, previous) {
-            if matches!(
-                compare_cover_bytes(&old_bytes, &data),
-                Ok(CoverDiff::Same)
-            ) {
+            if matches!(compare_cover_bytes(&old_bytes, &data), Ok(CoverDiff::Same)) {
                 return load_user_image(&conn, &dir, previous);
             }
         }
@@ -1294,16 +1285,15 @@ mod tests {
     fn identical_covers_compare_same() {
         let first = solid_png(64, 64, [200, 30, 40]);
         let second = first.clone();
-        assert_eq!(
-            compare_cover_bytes(&first, &second),
-            Ok(CoverDiff::Same)
-        );
+        assert_eq!(compare_cover_bytes(&first, &second), Ok(CoverDiff::Same));
     }
 
     #[test]
     fn jpeg_reencode_of_same_art_compares_same() {
         let png = solid_png(128, 96, [40, 120, 200]);
-        let rgb = image::load_from_memory(&png).expect("decode fixture").to_rgb8();
+        let rgb = image::load_from_memory(&png)
+            .expect("decode fixture")
+            .to_rgb8();
         let mut jpeg = Vec::new();
         rgb.write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(
             &mut jpeg, 90,
@@ -1316,10 +1306,7 @@ mod tests {
     fn different_art_compares_different() {
         let red = solid_png(64, 64, [220, 20, 20]);
         let blue = solid_png(64, 64, [20, 20, 220]);
-        assert_eq!(
-            compare_cover_bytes(&red, &blue),
-            Ok(CoverDiff::Different)
-        );
+        assert_eq!(compare_cover_bytes(&red, &blue), Ok(CoverDiff::Different));
     }
 
     #[test]
@@ -1342,10 +1329,7 @@ mod tests {
     fn different_jpeg_art_compares_different() {
         let red = solid_jpeg(64, 64, [220, 20, 20]);
         let blue = solid_jpeg(64, 64, [20, 20, 220]);
-        assert_eq!(
-            compare_cover_bytes(&red, &blue),
-            Ok(CoverDiff::Different)
-        );
+        assert_eq!(compare_cover_bytes(&red, &blue), Ok(CoverDiff::Different));
     }
 
     #[test]

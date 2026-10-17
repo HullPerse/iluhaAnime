@@ -7,7 +7,15 @@ describe("tabs/paths", () => {
   it("maps every tab id to its path", () => {
     const ids = Object.keys(TAB_PATHS) as TabId[];
 
-    expect(ids).toEqual(["search", "torrent", "player", "anilist", "collection", "settings"]);
+    expect(ids).toEqual([
+      "search",
+      "torrent",
+      "player",
+      "anilist",
+      "collection",
+      "settings",
+      "game",
+    ]);
     for (const id of ids) {
       expect(tabPathFromId(id)).toBe(TAB_PATHS[id]);
     }
@@ -17,6 +25,7 @@ describe("tabs/paths", () => {
     expect(tabIdFromPath("/")).toBe("search");
     expect(tabIdFromPath("/torrent")).toBe("torrent");
     expect(tabIdFromPath("/settings")).toBe("settings");
+    expect(tabIdFromPath("/game")).toBe("game");
   });
 
   it("returns undefined for unknown and window-only paths", () => {

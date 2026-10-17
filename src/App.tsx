@@ -12,12 +12,14 @@ import { useDayNightScheduler } from "@/hooks/schedule.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { useEnsureAnimeIndex, usePrewarmSpellIndex } from "@/hooks/search/animeIndex.hook";
 import { useSplashStages } from "@/hooks/splash.hook";
+import { useSecretCode } from "@/hooks/secretCode.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
 import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { showInfo } from "@/lib/utils/notification.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { cacheAtoms } from "@/store/cache.store";
@@ -44,6 +46,7 @@ import Updater from "./components/shared/updater.component";
 const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   anilist: () => import("@/routes/anilist.route"),
   collection: () => import("@/routes/collection.route"),
+  game: () => import("@/routes/game.route"),
   player: () => import("@/routes/player.route"),
   search: () => import("@/routes/search.route"),
   settings: () => import("@/routes/settings.route"),
@@ -89,6 +92,13 @@ export default function App() {
 
   useTray(tabs, goToTab);
   useVimMode();
+  useSecretCode(() => {
+    if (!settingsAtoms.gameTabUnlocked.get()) {
+      patchSettings({ gameTabUnlocked: true });
+      showInfo(t("game.secret.found"), t("game.secret.body"));
+    }
+    goToTab("game");
+  });
   useDayNightScheduler();
   useEnsureAnimeIndex();
   usePrewarmSpellIndex();

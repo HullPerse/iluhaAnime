@@ -634,6 +634,31 @@ describe("notification popup mode v51 migration", () => {
   });
 });
 
+describe("secret game tab v52 migration", () => {
+  it("keeps the game tab locked on older state", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 51).gameTabUnlocked).toBe(false);
+  });
+
+  it("keeps an unlocked game tab", () => {
+    expect(
+      settings.migrateSettingsData({ language: "en", gameTabUnlocked: true }, 51).gameTabUnlocked
+    ).toBe(true);
+  });
+
+  it("rejects a non-boolean flag", () => {
+    expect(
+      settings.migrateSettingsData({ language: "en", gameTabUnlocked: "yes" }, 51).gameTabUnlocked
+    ).toBe(false);
+  });
+
+  it("round-trips through the settings store", () => {
+    settings.patchSettings({ gameTabUnlocked: true });
+    expect(settings.settingsAtoms.gameTabUnlocked.get()).toBe(true);
+    settings.patchSettings({ gameTabUnlocked: false });
+    expect(settings.settingsAtoms.gameTabUnlocked.get()).toBe(false);
+  });
+});
+
 describe("search source order v43 migration", () => {
   it("lists rutracker, nekobt, erai-raws first", async () => {
     const { SOURCE_INFOS } = await import("@/config/search/sources.config");

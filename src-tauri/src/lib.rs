@@ -27,6 +27,7 @@ pub mod benchmark_api {
     };
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
     pub use crate::file_index::{parse_file_query, FileIndexer};
+    pub use crate::game::chip8::{Chip8, Quirks, MAX_PROGRAM_BYTES};
     pub use crate::scrapers::clients::{
         acquire_scraper_slot, build_client, build_client_inner, build_nekobt_client,
         build_rutracker_client_with_ua, decode_rutracker_page, is_rutracker_challenge,
@@ -42,6 +43,7 @@ mod emoji;
 mod errors;
 mod ffmpeg;
 mod file_index;
+mod game;
 mod host_stats;
 mod jikan;
 mod player;
@@ -1621,6 +1623,7 @@ pub fn run() {
             handle.manage(progress::StreamRegistry::new());
             handle.manage(std::sync::Mutex::new(watcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
+            handle.manage(game::GameHost::default());
             handle.manage(player::PlayerHost::default());
             player::state::attach(app.handle());
             #[cfg(debug_assertions)]
@@ -1940,6 +1943,17 @@ pub fn run() {
             poster::save_poster_bytes,
             repro::collect_repro_bundle,
             search_file_index,
+            game::game_start,
+            game::game_tick,
+            game::game_key,
+            game::game_stop,
+            game::roms::game_rom_list,
+            game::roms::game_rom_read,
+            game::roms::game_rom_import,
+            game::roms::game_rom_delete,
+            game::roms::game_platforms,
+            game::store::game_store_list,
+            game::store::game_store_install,
             deeplink::take_pending_deep_links,
         ])
         .build(tauri::generate_context!())

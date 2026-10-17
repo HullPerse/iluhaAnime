@@ -10,6 +10,7 @@ function tabSettingsSnapshot(): TabSettings {
     searchTabEnabled: settingsAtoms.searchTabEnabled.get(),
     torrentTabEnabled: settingsAtoms.torrentTabEnabled.get(),
     playerTabEnabled: settingsAtoms.playerTabEnabled.get(),
+    gameTabUnlocked: settingsAtoms.gameTabUnlocked.get(),
   };
 }
 

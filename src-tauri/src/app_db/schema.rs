@@ -618,6 +618,33 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database status kind rename commit: {error}"))?;
     }
 
+    if version < 21 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database game roms transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE IF NOT EXISTS game_roms (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    platform TEXT NOT NULL DEFAULT 'chip8',
+                    source TEXT NOT NULL DEFAULT 'user',
+                    author TEXT,
+                    license TEXT,
+                    size INTEGER NOT NULL,
+                    added_at INTEGER NOT NULL,
+                    data BLOB NOT NULL
+                );
+                PRAGMA user_version = 21;
+                ",
+            )
+            .map_err(|error| format!("app database game roms schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database game roms commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -797,6 +824,31 @@ mod tests {
             "seconds-scale row rewritten to ms"
         );
     }
+    #[test]
+    fn migration_v21_creates_the_game_rom_table() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        connection
+            .execute(
+                "INSERT INTO game_roms (id, name, platform, source, size, added_at, data)
+                 VALUES ('rom1', 'Demo', 'chip8', 'user', 2, 0, x'00E0')",
+                [],
+            )
+            .expect("insert rom row");
+        let size: i64 = connection
+            .query_row("SELECT size FROM game_roms WHERE id = 'rom1'", [], |row| {
+                row.get(0)
+            })
+            .expect("read rom row");
+        assert_eq!(size, 2);
+        let data: Vec<u8> = connection
+            .query_row("SELECT data FROM game_roms WHERE id = 'rom1'", [], |row| {
+                row.get(0)
+            })
+            .expect("read rom bytes");
+        assert_eq!(data, vec![0x00, 0xE0]);
+    }
+
     #[test]
     fn migration_v20_renames_status_kinds_to_private_and_public() {
         let connection = Connection::open_in_memory().expect("in-memory database");

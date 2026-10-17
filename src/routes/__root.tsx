@@ -107,6 +107,13 @@ const collectionRoute = createRoute({
   pendingComponent: TabLoader,
 });
 
+const gameRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/game",
+  component: lazyRouteComponent(() => import("@/routes/game.route")),
+  pendingComponent: TabLoader,
+});
+
 export const settingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/settings",
@@ -130,6 +137,7 @@ const routeTree = rootRoute.addChildren([
     anilistRoute,
     collectionRoute,
     settingsRoute,
+    gameRoute,
   ]),
   playerWindowRoute,
 ]);

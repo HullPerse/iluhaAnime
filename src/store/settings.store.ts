@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 51;
+export const SETTINGS_SCHEMA_VERSION = 52;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -227,6 +227,14 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
         state.notificationPopups = state.notificationsEnabled === true ? "both" : "off";
       }
       delete state.notificationsEnabled;
+    },
+  },
+  {
+    from: 52,
+    migrate: (state) => {
+      if (state.gameTabUnlocked === undefined) {
+        state.gameTabUnlocked = false;
+      }
     },
   },
 ];

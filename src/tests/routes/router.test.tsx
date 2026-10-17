@@ -41,6 +41,10 @@ vi.mock("@/routes/settings.route", () => ({
   default: () => <div data-testid="route-settings">settings</div>,
 }));
 
+vi.mock("@/routes/game.route", () => ({
+  default: () => <div data-testid="route-game">game</div>,
+}));
+
 function renderAt(href: string) {
   const router = createAppRouter(createMemoryHistory({ initialEntries: [href] }));
   render(<RouterProvider router={router} />);
@@ -137,5 +141,26 @@ describe("router", () => {
       expect(screen.getByTestId("route-search")).toBeTruthy();
     });
     expect(screen.queryByTestId("route-torrent")).toBeNull();
+  });
+
+  it("renders the game surface once the secret tab is unlocked", async () => {
+    patchSettings({ gameTabUnlocked: true });
+
+    renderAt("/game");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("route-game")).toBeTruthy();
+    });
+  });
+
+  it("redirects the locked game tab to the first enabled tab", async () => {
+    patchSettings({ gameTabUnlocked: false });
+
+    renderAt("/game");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("route-search")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("route-game")).toBeNull();
   });
 });

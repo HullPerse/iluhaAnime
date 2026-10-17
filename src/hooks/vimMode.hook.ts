@@ -9,6 +9,7 @@ import {
   TREE_ROW_SELECTOR,
 } from "@/config/keyboard/vim.config";
 import { PLAYER_ROUTE } from "@/config/player/player-route.config";
+import { TAB_PATHS } from "@/config/tabs/paths.config";
 import { flashTarget } from "@/lib/highlight/flash.utils";
 import { blurEditable, shouldBlurOnEscape } from "@/lib/hotkeys/blur.hotkeys";
 import { dispatchClick, dispatchFocus } from "@/lib/hotkeys/dispatch.hotkeys";
@@ -50,8 +51,8 @@ const SCROLL_DIRECTIONS: Record<VimCommand, ScrollDirection | null> = {
   "edge.bottom": null,
 };
 
-function isPlayerWindow(pathname: string): boolean {
-  return pathname === PLAYER_ROUTE;
+function isKeyboardExcludedRoute(pathname: string): boolean {
+  return pathname === PLAYER_ROUTE || pathname === TAB_PATHS.game;
 }
 
 function letterFromCode(code: string): string | null {
@@ -83,7 +84,7 @@ export function useVimMode(): void {
   }, [vimMode, pathname, overrides]);
 
   useEffect(() => {
-    if (vimMode && !isPlayerWindow(pathname)) return;
+    if (vimMode && !isKeyboardExcludedRoute(pathname)) return;
     closeLayerRef.current();
   }, [vimMode, pathname]);
 
@@ -210,7 +211,7 @@ export function useVimMode(): void {
 
     engine = createVimEngine({
       isEnabled: () => stateRef.current.vimMode,
-      isExcludedRoute: () => isPlayerWindow(stateRef.current.pathname),
+      isExcludedRoute: () => isKeyboardExcludedRoute(stateRef.current.pathname),
       isOwner: (target) =>
         isInsideLayer(target, topLayerElement()) ||
         (target instanceof HTMLElement && target.closest(TREE_ROW_SELECTOR) !== null),

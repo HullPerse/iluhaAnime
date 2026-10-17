@@ -82,6 +82,7 @@ export function useApp() {
   const searchTabEnabled = useCell(settingsAtoms.searchTabEnabled);
   const torrentTabEnabled = useCell(settingsAtoms.torrentTabEnabled);
   const playerTabEnabled = useCell(settingsAtoms.playerTabEnabled);
+  const gameTabUnlocked = useCell(settingsAtoms.gameTabUnlocked);
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
   const retroStyle = useCell(settingsAtoms.retroStyle);
   const uiDensity = useCell(settingsAtoms.uiDensity);
@@ -101,6 +102,7 @@ export function useApp() {
       searchTabEnabled,
       torrentTabEnabled,
       playerTabEnabled,
+      gameTabUnlocked,
     }).map((tab) => ({
       ...tab,
       label: t(tab.key),
@@ -204,6 +206,7 @@ export function useApp() {
     searchTabEnabled,
     torrentTabEnabled,
     playerTabEnabled,
+    gameTabUnlocked,
   }).map((tab, index) => ({
     id: tab.id,
     chord: `alt+Digit${index + 1}`,

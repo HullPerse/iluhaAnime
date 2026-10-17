@@ -22,8 +22,11 @@ function isEnabled(id: TabId, s: TabSettings): boolean {
   return true;
 }
 
+const GAME_TAB_KEY: { id: TabId; key: TranslationKey } = { id: "game", key: "app.game" };
+
 export function visibleTabs(settings: TabSettings) {
-  return TAB_KEYS.filter((tab) => isEnabled(tab.id, settings));
+  const tabs = TAB_KEYS.filter((tab) => isEnabled(tab.id, settings));
+  return settings.gameTabUnlocked ? [...tabs, GAME_TAB_KEY] : tabs;
 }
 
 export function tabForAltDigit(settings: TabSettings, digit: number): TabId | undefined {

@@ -150,6 +150,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   searchTabEnabled: true,
   torrentTabEnabled: true,
   playerTabEnabled: true,
+  gameTabUnlocked: false,
   searchSymSpellEnabled: true,
   searchIntentEnabled: true,
   tagTolerances: { ...DEFAULT_TAG_TOLERANCES },

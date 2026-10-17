@@ -114,6 +114,7 @@ export interface SettingsStore {
   searchTabEnabled: boolean;
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
+  gameTabUnlocked: boolean;
   tmdbKeySet: boolean;
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
@@ -182,7 +183,14 @@ export interface SessionConfigPayload {
   fileOrder: FileOrder;
 }
 
-export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
+export type TabId =
+  | "search"
+  | "torrent"
+  | "player"
+  | "anilist"
+  | "collection"
+  | "settings"
+  | "game";
 
 export type TorrentCoverMode = "off" | "pages" | "full";
 
@@ -226,6 +234,7 @@ export type TabSettings = Pick<
   | "searchTabEnabled"
   | "torrentTabEnabled"
   | "playerTabEnabled"
+  | "gameTabUnlocked"
 >;
 
 export type ChangelogScope =

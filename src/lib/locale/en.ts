@@ -17,6 +17,7 @@ import changelog500 from "./changelog/v5_0_0.en";
 import anilist from "./en/anilist.locale";
 import collection from "./en/collection.locale";
 import common from "./en/common.locale";
+import game from "./en/game.locale";
 import keyboard from "./en/keyboard.locale";
 import player from "./en/player.locale";
 import screenshot from "./en/screenshot.locale";
@@ -46,6 +47,7 @@ const en = {
   ...common,
   ...keyboard,
   ...collection,
+  ...game,
   ...player,
   ...screenshot,
   ...search,

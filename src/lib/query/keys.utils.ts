@@ -4,6 +4,9 @@ export const queryKeys = {
   torrentFiles: (id: number) => ["torrent-files", id] as const,
   torrentDiagnostics: (id: number) => ["torrent_diagnostics", id] as const,
   torrentListenPort: () => ["torrent-listen-port"] as const,
+  gameRoms: () => ["game-roms"] as const,
+  gamePlatforms: () => ["game-platforms"] as const,
+  gameStore: () => ["game-store"] as const,
   animeFull: (id: number, proxy: string, loggedIn: boolean) =>
     ["anime_full", id, proxy, loggedIn ? 1 : 0] as const,
   animeInlineSearch: (query: string, adult: boolean) =>

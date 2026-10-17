@@ -50,6 +50,7 @@ describe("isOfflineDisabledTab", () => {
     expect(isOfflineDisabledTab("player")).toBe(false);
     expect(isOfflineDisabledTab("collection")).toBe(false);
     expect(isOfflineDisabledTab("settings")).toBe(false);
+    expect(isOfflineDisabledTab("game")).toBe(false);
   });
 });
 

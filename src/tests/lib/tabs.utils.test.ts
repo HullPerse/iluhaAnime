@@ -10,6 +10,7 @@ afterEach(() => {
     searchTabEnabled: true,
     torrentTabEnabled: true,
     playerTabEnabled: true,
+    gameTabUnlocked: false,
   });
 });
 
@@ -55,5 +56,17 @@ describe("tabs visibility", () => {
 
     expect(enabledTabPaths()).toEqual(["/settings"]);
     expect(firstEnabledTabPath()).toBe("/settings");
+  });
+
+  it("hides the game tab until the secret unlocks it", () => {
+    expect(enabledTabPaths()).not.toContain("/game");
+    expect(isEnabledTabPath("/game")).toBe(false);
+  });
+
+  it("shows the game tab after the secret unlocks it", () => {
+    patchSettings({ gameTabUnlocked: true });
+
+    expect(enabledTabPaths().at(-1)).toBe("/game");
+    expect(isEnabledTabPath("/game")).toBe(true);
   });
 });

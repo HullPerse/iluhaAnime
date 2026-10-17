@@ -35,18 +35,24 @@ pub struct Quirks {
     pub clip: bool,
     /// 8XY1/8XY2/8XY3 reset VF to 0 (original CHIP-8).
     pub logic_resets_vf: bool,
+    /// DXYN waits for the next display frame (Octo's `vBlankQuirks`): the
+    /// draw executes and the rest of the frame's cycle budget is dropped so
+    /// the CPU idles until the next frame, as on the real VIP.
+    pub vblank_wait: bool,
 }
 
 impl Quirks {
     /// COSMAC VIP, matching the Timendus conformance suite's CHIP-8 column:
     /// shifts read VY, sprites clip at the screen edge, FX55/FX65 increment
-    /// I, BNNN adds V0 and logic ops reset VF.
+    /// I, BNNN adds V0, logic ops reset VF, and draws wait for the display
+    /// frame.
     pub const CHIP8: Self = Self {
         shift_uses_vx: false,
         load_store_increment: true,
         jump_v0: true,
         clip: true,
         logic_resets_vf: true,
+        vblank_wait: true,
     };
 
     /// SUPER-CHIP 1.0 on the HP48: shifts operate on VX in place, I stays
@@ -59,6 +65,7 @@ impl Quirks {
         jump_v0: true,
         clip: true,
         logic_resets_vf: false,
+        vblank_wait: false,
     };
 
     /// SUPER-CHIP 1.1 on the HP48: like 1.0, but BNNN adds VX where X is the
@@ -69,6 +76,7 @@ impl Quirks {
         jump_v0: false,
         clip: true,
         logic_resets_vf: false,
+        vblank_wait: false,
     };
 
     #[must_use]
@@ -386,9 +394,14 @@ impl Chip8 {
     }
 
     /// Executes a single instruction.
-    pub fn tick(&mut self) {
+    ///
+    /// Returns `true` when the instruction was a `DXYN` draw under the
+    /// `vblank_wait` quirk: the caller then drops the rest of the frame's
+    /// cycle budget and resumes on the next frame, mirroring Octo's
+    /// `vBlankQuirks` main loop.
+    pub fn tick(&mut self) -> bool {
         if self.halted || self.waiting_key.is_some() {
-            return;
+            return false;
         }
         self.cycle_count += 1;
         let pc = self.pc;
@@ -399,6 +412,7 @@ impl Chip8 {
         ]);
         self.pc = pc.wrapping_add(2);
         self.execute(opcode, pc);
+        self.quirks.vblank_wait && opcode >> 12 == 0xD
     }
 
     const fn rng_next(&mut self) -> u8 {
@@ -838,6 +852,22 @@ mod tests {
     }
 
     #[test]
+    fn vblank_wait_reports_a_draw_and_ends_the_batch() {
+        let mut vip = Chip8::new(Quirks::CHIP8);
+        vip.memory[0x200] = 0xD0;
+        vip.memory[0x201] = 0x11;
+        vip.memory[0x202] = 0x60;
+        vip.memory[0x203] = 0x01;
+        assert!(vip.tick(), "a VIP draw must end the frame budget");
+        assert!(!vip.tick(), "the next instruction must not");
+
+        let mut schip = Chip8::new(Quirks::SUPER_CHIP_10);
+        schip.memory[0x200] = 0xD0;
+        schip.memory[0x201] = 0x11;
+        assert!(!schip.tick(), "modern profiles must not wait");
+    }
+
+    #[test]
     fn add_to_index_keeps_the_flag_register() {
         let mut vm = Chip8::new(Quirks::CHIP8);
         vm.v[3] = 0x20;
@@ -1180,7 +1210,10 @@ mod tests {
                 held = wanted;
             }
             for _ in 0..cycles_per_frame {
-                vm.tick();
+                if vm.tick() {
+                    // DISP.WAIT: a draw ends the frame's cycle budget.
+                    break;
+                }
             }
             vm.tick_timers(1);
             let drew = vm.dirty;
@@ -1194,7 +1227,10 @@ mod tests {
 
     fn smoke_rom(bytes: &[u8], quirks: Quirks, schip: bool) -> SmokeReport {
         const FRAMES: u32 = 3_600; // 60 simulated seconds at 60 Hz
-        let cycles_per_frame = if schip { 20 } else { 12 };
+                                   // Mirror the runtime clock: archive entries play at their recorded
+                                   // tickrate, unknown ROMs at the platform pace.
+        let cycles_per_frame =
+            crate::game::store::tickrate_for_bytes(bytes).unwrap_or(if schip { 20 } else { 12 });
         let rom_start = u32::from(PROGRAM_START);
         let rom_end = rom_start + u32::try_from(bytes.len()).expect("rom fits the address space");
         let mut vm = Chip8::with_seed(quirks, 0x1234_5678_9ABC_DEF0);

@@ -22,9 +22,24 @@ pub const FLAG_SOUND: u8 = 0x04;
 pub const FLAG_WAIT_KEY: u8 = 0x08;
 pub const FLAG_HALTED: u8 = 0x10;
 
-/// Cycles the frontend asks for per animation frame at 60 Hz.
+/// Fallback pace for ROMs the store index does not know: cycles the
+/// frontend asks for per second. Archive entries play at their recorded
+/// `tickrate` (cycles per 60 Hz frame) instead.
 pub const CYCLES_PER_SECOND_CHIP8: u32 = 720;
 pub const CYCLES_PER_SECOND_SCHIP: u32 = 1200;
+
+/// Cycles per second for one session: the archive `tickrate` when the bytes
+/// are in the index, otherwise the platform fallback.
+fn cycles_per_second(platform: &str, tickrate: Option<u32>) -> u32 {
+    if let Some(tickrate) = tickrate {
+        return tickrate.saturating_mul(60);
+    }
+    if platform == "chip8" {
+        CYCLES_PER_SECOND_CHIP8
+    } else {
+        CYCLES_PER_SECOND_SCHIP
+    }
+}
 
 /// Hard cap per `game_tick` call so a background tab that wakes with a huge
 /// elapsed time cannot stall the UI thread with an unbounded burst.
@@ -61,6 +76,8 @@ pub struct GameStartInfo {
     pub howto: Option<String>,
     pub cols: usize,
     pub rows: usize,
+    /// Cycles per second this session should be fed: the archive `tickrate`
+    /// when known, otherwise the platform pace.
     pub cycles_per_second: u32,
 }
 
@@ -107,7 +124,10 @@ fn run_tick(
     with_session(inner, session, |active| {
         let GameSession { vm, frame, .. } = active;
         for _ in 0..cycles.min(MAX_CYCLES_PER_TICK) {
-            vm.tick();
+            if vm.tick() {
+                // DISP.WAIT: the draw ended this frame's cycle budget.
+                break;
+            }
         }
         vm.tick_timers(timers.min(MAX_TIMER_TICKS_PER_TICK));
 
@@ -151,11 +171,7 @@ pub fn game_start(
         store::quirks_for_bytes(&bytes).unwrap_or_else(|| Quirks::for_platform(&info.platform));
     let mut vm = Chip8::new(quirks);
     vm.load(&bytes)?;
-    let cycles_per_second = if info.platform == "chip8" {
-        CYCLES_PER_SECOND_CHIP8
-    } else {
-        CYCLES_PER_SECOND_SCHIP
-    };
+    let cycles_per_second = cycles_per_second(&info.platform, store::tickrate_for_bytes(&bytes));
     let cols = vm.cols();
     let rows = vm.rows();
     let session = {
@@ -342,5 +358,35 @@ mod tests {
             drop_session(&mut inner, session + 1);
         }
         assert!(tick_once(&host, session, 1, 0).is_ok());
+    }
+
+    #[test]
+    fn cycles_per_second_prefers_the_archive_tickrate() {
+        assert_eq!(cycles_per_second("schip", Some(15)), 900);
+        assert_eq!(cycles_per_second("chip8", Some(1000)), 60_000);
+        assert_eq!(cycles_per_second("chip8", None), CYCLES_PER_SECOND_CHIP8);
+        assert_eq!(cycles_per_second("schip", None), CYCLES_PER_SECOND_SCHIP);
+    }
+
+    #[test]
+    fn vblank_wait_draw_ends_the_tick_batch() {
+        let host = GameHost::default();
+        let mut inner = host.inner.lock().expect("lock");
+        let mut vm = Chip8::new(Quirks::CHIP8);
+        vm.load(&[0xD0, 0x11, 0x12, 0x00]).expect("load");
+        vm.i = 0x200;
+        let session = install_session(&mut inner, vm);
+        drop(inner);
+        tick_once(&host, session, 100, 0).expect("tick");
+        let cycles = host
+            .inner
+            .lock()
+            .expect("lock")
+            .session
+            .as_ref()
+            .expect("session")
+            .vm
+            .cycles();
+        assert_eq!(cycles, 1, "the VIP draw must consume the rest of the batch");
     }
 }

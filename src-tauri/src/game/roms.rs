@@ -379,7 +379,9 @@ mod tests {
             let mut drew = false;
             for _ in 0..300 {
                 for _ in 0..12 {
-                    vm.tick();
+                    if vm.tick() {
+                        break;
+                    }
                 }
                 vm.pack_frame(&mut out);
                 if out.iter().any(|byte| *byte != 0) {

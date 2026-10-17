@@ -26,6 +26,9 @@ const DOWNLOAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30)
 const STORE_LICENSE: &str = "CC0-1.0";
 const XOCHIP_PLATFORM: &str = "xochip";
 const PROGRESS_EVENT: &str = "game-store-progress";
+/// Octo's default pace when an entry records no `tickrate`: 20 cycles per
+/// 60 Hz frame (the starting `Emulator.tickrate` in Octo itself).
+const OCTO_DEFAULT_TICKRATE: u32 = 20;
 
 #[derive(Deserialize)]
 struct StoreIndex {
@@ -50,9 +53,9 @@ struct IndexEntry {
     options: RomOptions,
 }
 
-/// Octo quirk flags recorded per archive entry. Absent flags keep the Octo
-/// default, which is "off" for every one of them; unknown keys (`tickrate`,
-/// `vfOrderQuirks`) are ignored on purpose.
+/// Octo options recorded per archive entry. Absent quirk flags keep the Octo
+/// default, which is "off" for every one of them; `vfOrderQuirks` is not
+/// modelled because no archive entry records it.
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase", default)]
 struct RomOptions {
@@ -61,6 +64,9 @@ struct RomOptions {
     clip_quirks: bool,
     jump_quirks: bool,
     logic_quirks: bool,
+    /// Octo's `tickrate`: cycles per 60 Hz frame. `None` when the entry
+    /// omitted it, in which case the Octo default pace applies.
+    tickrate: Option<u32>,
 }
 
 #[derive(Clone, Serialize)]
@@ -255,6 +261,24 @@ pub fn quirks_for_bytes(bytes: &[u8]) -> Option<Quirks> {
         .map(quirks_for_entry)
 }
 
+/// Cycles per 60 Hz frame for these exact bytes as the archive plays them:
+/// the recorded `tickrate`, or the Octo default when the entry omits one.
+/// `None` means the bytes are not in the index and the platform pace applies.
+#[must_use]
+pub fn tickrate_for_bytes(bytes: &[u8]) -> Option<u32> {
+    let sha1 = sha1_hex(bytes);
+    index()
+        .ok()?
+        .entries
+        .iter()
+        .find(|entry| entry.sha1 == sha1)
+        .map(tickrate_for_entry)
+}
+
+fn tickrate_for_entry(entry: &IndexEntry) -> u32 {
+    entry.options.tickrate.unwrap_or(OCTO_DEFAULT_TICKRATE)
+}
+
 /// Translates one archive entry's Octo flags into interpreter quirks. Octo
 /// flips two of the switches: its `loadStoreQuirks` means "do not advance I"
 /// and `jumpQuirks` means "jump through VX", so both invert here.
@@ -266,6 +290,8 @@ fn quirks_for_entry(entry: &IndexEntry) -> Quirks {
         jump_v0: !options.jump_quirks,
         clip: options.clip_quirks,
         logic_resets_vf: options.logic_quirks,
+        // The archive never records `vBlankQuirks`; Octo's default is off.
+        vblank_wait: false,
     }
 }
 
@@ -426,6 +452,7 @@ mod tests {
                 jump_v0: true,
                 clip: false,
                 logic_resets_vf: false,
+                vblank_wait: false,
             },
             "Octo defaults must apply when the entry records no flags"
         );
@@ -433,6 +460,32 @@ mod tests {
             quirks_for_bytes(&[0x12, 0x34, 0x56, 0x78]).is_none(),
             "unknown bytes must not invent quirks"
         );
+    }
+
+    #[test]
+    fn tickrate_for_bytes_reads_the_archive_pace() {
+        let snake = roms::BUILTIN_ROMS
+            .iter()
+            .find(|rom| rom.id == "builtin:snake")
+            .expect("bundled snake");
+        assert_eq!(tickrate_for_bytes(snake.bytes), Some(15));
+        let dinorun = roms::BUILTIN_ROMS
+            .iter()
+            .find(|rom| rom.id == "builtin:dinorun")
+            .expect("bundled dinorun");
+        assert_eq!(tickrate_for_bytes(dinorun.bytes), Some(15));
+        assert!(
+            tickrate_for_bytes(&[0x12, 0x34, 0x56, 0x78]).is_none(),
+            "unknown bytes must not invent a pace"
+        );
+    }
+
+    #[test]
+    fn tickrate_falls_back_to_the_octo_default() {
+        let mut entry = synthetic_entry(&[0x60, 0x01], "chip8");
+        assert_eq!(tickrate_for_entry(&entry), OCTO_DEFAULT_TICKRATE);
+        entry.options.tickrate = Some(7);
+        assert_eq!(tickrate_for_entry(&entry), 7);
     }
 
     #[test]
@@ -453,6 +506,7 @@ mod tests {
                 clip_quirks: false,
                 jump_quirks: true,
                 logic_quirks: false,
+                tickrate: None,
             },
         };
         assert_eq!(
@@ -463,6 +517,7 @@ mod tests {
                 jump_v0: false,
                 clip: false,
                 logic_resets_vf: false,
+                vblank_wait: false,
             },
             "shiftQuirks/jumpQuirks invert, loadStoreQuirks means no increment"
         );

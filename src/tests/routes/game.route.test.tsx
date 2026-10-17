@@ -46,7 +46,7 @@ beforeEach(() => {
   mockListen.mockImplementation(() => Promise.resolve(() => undefined));
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "game_rom_list") return ROMS;
-    if (command === "game_platforms") return ["chip8", "schip", "schip11"];
+    if (command === "game_platforms") return ["chip8", "schip", "schip11", "xochip"];
     if (command === "game_store_list") return [];
     if (command === "game_start") {
       return {
@@ -60,6 +60,7 @@ beforeEach(() => {
         cols: 128,
         rows: 64,
         cyclesPerSecond: 1200,
+        palette: null,
       };
     }
     return null;

@@ -1,11 +1,13 @@
 //! ROM store: a bundled index of the CC0 chip8Archive plus verified downloads.
 //!
-//! The index snapshot (`data/chip8-store-v1.json`, built by
+//! The index snapshot (`data/chip8-store-v2.json`, built by
 //! `scripts/build-chip8-store.ts`) pins one upstream commit and the SHA-1 of
 //! every entry, so a download is stored only when its bytes hash exactly to
-//! the value recorded at build time. Nothing is fetched while browsing: the
-//! list is served from the embedded index plus the local database, and the
-//! network is touched only after the user presses Download on one entry.
+//! the value recorded at build time. The recorded Octo options drive the
+//! session: quirk switches, `tickrate` pace and the palette for XO-CHIP
+//! programs. Nothing is fetched while browsing: the list is served from the
+//! embedded index plus the local database, and the network is touched only
+//! after the user presses Download on one entry.
 
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -19,7 +21,7 @@ use crate::game::chip8::{Quirks, MAX_PROGRAM_BYTES};
 use crate::game::roms;
 use crate::game::roms::GameRomInfo;
 
-const INDEX_JSON: &str = include_str!("../../data/chip8-store-v1.json");
+const INDEX_JSON: &str = include_str!("../../data/chip8-store-v2.json");
 const RAW_HOST: &str = "https://raw.githubusercontent.com";
 const USER_AGENT: &str = "iluhaAnime/3.0";
 const DOWNLOAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -55,7 +57,8 @@ struct IndexEntry {
 
 /// Octo options recorded per archive entry. Absent quirk flags keep the Octo
 /// default, which is "off" for every one of them; `vfOrderQuirks` is not
-/// modelled because no archive entry records it.
+/// modelled because no archive entry sets it. Colour keys come from the
+/// archive's flat `options` block; missing ones fall back to Octo's defaults.
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase", default)]
 struct RomOptions {
@@ -64,6 +67,14 @@ struct RomOptions {
     clip_quirks: bool,
     jump_quirks: bool,
     logic_quirks: bool,
+    vblank_quirks: bool,
+    /// Octo's `enableXO`: the program may use the XO-CHIP instruction set
+    /// even when the archive lists it under an older platform.
+    enable_xo: bool,
+    fill_color: Option<String>,
+    fill_color2: Option<String>,
+    blend_color: Option<String>,
+    background_color: Option<String>,
     /// Octo's `tickrate`: cycles per 60 Hz frame. `None` when the entry
     /// omitted it, in which case the Octo default pace applies.
     tickrate: Option<u32>,
@@ -195,9 +206,6 @@ fn install_entry(
     entry: &IndexEntry,
     bytes: &[u8],
 ) -> Result<GameRomInfo, String> {
-    if entry.platform == XOCHIP_PLATFORM {
-        return Err("this ROM needs XO-CHIP support, which is not shipped yet".to_string());
-    }
     if bytes.is_empty() {
         return Err("the downloaded ROM is empty".to_string());
     }
@@ -279,6 +287,57 @@ fn tickrate_for_entry(entry: &IndexEntry) -> u32 {
     entry.options.tickrate.unwrap_or(OCTO_DEFAULT_TICKRATE)
 }
 
+/// The four colours a session paints: XO-CHIP indexes pixels as background,
+/// first plane, second plane and overlap.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Palette {
+    pub background: String,
+    pub fill: String,
+    pub fill2: String,
+    pub blend: String,
+}
+
+/// Octo's own defaults, which the archive player shows for programs that
+/// record no colours.
+#[must_use]
+fn octo_default_palette() -> Palette {
+    Palette {
+        background: "#996600".to_string(),
+        fill: "#FFCC00".to_string(),
+        fill2: "#FF6600".to_string(),
+        blend: "#662200".to_string(),
+    }
+}
+
+/// Palette for one program: the archive-recorded colours where present and
+/// Octo defaults for the rest. Bytes outside the index get the defaults.
+///
+/// # Errors
+///
+/// Returns an error when the embedded index cannot be parsed.
+pub fn palette_for_bytes(bytes: &[u8]) -> Result<Palette, String> {
+    let mut palette = octo_default_palette();
+    let sha1 = sha1_hex(bytes);
+    let Some(entry) = index()?.entries.iter().find(|entry| entry.sha1 == sha1) else {
+        return Ok(palette);
+    };
+    let options = &entry.options;
+    if let Some(fill) = &options.fill_color {
+        palette.fill.clone_from(fill);
+    }
+    if let Some(fill2) = &options.fill_color2 {
+        palette.fill2.clone_from(fill2);
+    }
+    if let Some(blend) = &options.blend_color {
+        palette.blend.clone_from(blend);
+    }
+    if let Some(background) = &options.background_color {
+        palette.background.clone_from(background);
+    }
+    Ok(palette)
+}
+
 /// Translates one archive entry's Octo flags into interpreter quirks. Octo
 /// flips two of the switches: its `loadStoreQuirks` means "do not advance I"
 /// and `jumpQuirks` means "jump through VX", so both invert here.
@@ -290,8 +349,8 @@ fn quirks_for_entry(entry: &IndexEntry) -> Quirks {
         jump_v0: !options.jump_quirks,
         clip: options.clip_quirks,
         logic_resets_vf: options.logic_quirks,
-        // The archive never records `vBlankQuirks`; Octo's default is off.
-        vblank_wait: false,
+        vblank_wait: options.vblank_quirks,
+        xochip: entry.platform == XOCHIP_PLATFORM || options.enable_xo,
     }
 }
 
@@ -380,14 +439,26 @@ mod tests {
             assert_eq!(entry.file, format!("roms/{}.ch8", entry.key));
             assert!(entry.size > 0, "{}: zero size", entry.key);
             assert!(!entry.title.is_empty(), "{}: empty title", entry.key);
+            assert!(roms::PLATFORMS.contains(&entry.platform.as_str()));
             assert!(
-                roms::PLATFORMS.contains(&entry.platform.as_str())
-                    || entry.platform == XOCHIP_PLATFORM
+                entry.size as usize <= MAX_PROGRAM_BYTES,
+                "{}: does not fit the address space",
+                entry.key
             );
-            if entry.platform != XOCHIP_PLATFORM {
+            for color in [
+                entry.options.fill_color.as_deref(),
+                entry.options.fill_color2.as_deref(),
+                entry.options.blend_color.as_deref(),
+                entry.options.background_color.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            {
                 assert!(
-                    entry.size as usize <= MAX_PROGRAM_BYTES,
-                    "{}: does not fit the address space",
+                    color.strip_prefix('#').is_some_and(
+                        |hex| hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit())
+                    ),
+                    "{}: bad colour {color}",
                     entry.key
                 );
             }
@@ -453,6 +524,7 @@ mod tests {
                 clip: false,
                 logic_resets_vf: false,
                 vblank_wait: false,
+                xochip: false,
             },
             "Octo defaults must apply when the entry records no flags"
         );
@@ -506,7 +578,9 @@ mod tests {
                 clip_quirks: false,
                 jump_quirks: true,
                 logic_quirks: false,
+                vblank_quirks: true,
                 tickrate: None,
+                ..RomOptions::default()
             },
         };
         assert_eq!(
@@ -517,10 +591,36 @@ mod tests {
                 jump_v0: false,
                 clip: false,
                 logic_resets_vf: false,
-                vblank_wait: false,
+                vblank_wait: true,
+                xochip: false,
             },
             "shiftQuirks/jumpQuirks invert, loadStoreQuirks means no increment"
         );
+        let xo = synthetic_entry(&[0x60, 0x01], "xochip");
+        assert!(
+            quirks_for_entry(&xo).xochip,
+            "the xochip platform enables XO-CHIP"
+        );
+        let mut legacy = synthetic_entry(&[0x60, 0x01], "chip8");
+        legacy.options.enable_xo = true;
+        assert!(
+            quirks_for_entry(&legacy).xochip,
+            "an enableXO program runs as XO-CHIP on any platform"
+        );
+    }
+
+    #[test]
+    fn palette_for_bytes_prefers_archive_colours() {
+        let snake = roms::BUILTIN_ROMS
+            .iter()
+            .find(|rom| rom.id == "builtin:snake")
+            .expect("bundled snake");
+        let palette = palette_for_bytes(snake.bytes).expect("palette");
+        assert_eq!(palette.fill, "#84a174", "snake records its own fill colour");
+        assert_eq!(palette.background, "#30283e", "and its own background");
+        assert_eq!(palette.fill2, "#FF6600", "missing keys keep Octo defaults");
+        let unknown = palette_for_bytes(&[0x12, 0x34, 0x56, 0x78]).expect("palette");
+        assert_eq!(unknown, octo_default_palette());
     }
 
     #[test]
@@ -606,7 +706,7 @@ mod tests {
     }
 
     #[test]
-    fn install_entry_rejects_mismatch_xochip_empty_and_oversize() {
+    fn install_entry_rejects_mismatch_empty_and_oversize() {
         let connection = test_db();
         let bytes = [0x60_u8, 0x0A];
         let mut mismatched = synthetic_entry(&bytes, "chip8");
@@ -616,11 +716,6 @@ mod tests {
             .expect("mismatch must fail");
         assert!(error.contains("checksum mismatch"), "{error}");
         assert_eq!(rom_count(&connection), 0, "a mismatch must store nothing");
-        let xochip = synthetic_entry(&bytes, "xochip");
-        let error = install_entry(&connection, &xochip, &bytes)
-            .err()
-            .expect("xochip must fail");
-        assert!(error.contains("XO-CHIP"), "{error}");
         let empty = synthetic_entry(&[], "chip8");
         assert!(install_entry(&connection, &empty, &[]).is_err());
         let big = vec![0x12_u8; MAX_PROGRAM_BYTES + 1];
@@ -630,5 +725,18 @@ mod tests {
             .expect("oversize must fail");
         assert!(error.contains("exceeds"), "{error}");
         assert_eq!(rom_count(&connection), 0);
+    }
+
+    #[test]
+    fn install_entry_accepts_xochip_entries() {
+        let connection = test_db();
+        let bytes = [0xF3_u8, 0x01, 0x12, 0x00];
+        let entry = synthetic_entry(&bytes, "xochip");
+        let stored = install_entry(&connection, &entry, &bytes).expect("xochip must install");
+        assert_eq!(stored.platform, "xochip");
+        assert_eq!(
+            roms::read_rom(&connection, &stored.id).expect("read"),
+            bytes
+        );
     }
 }

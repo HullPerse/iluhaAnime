@@ -4,17 +4,19 @@
  * Source: https://github.com/JohnEarnest/chip8Archive, pinned to one commit so
  * every recorded SHA-1 keeps matching the bytes the app later downloads from
  * raw.githubusercontent.com. Per-program archive options (tickrate, quirk
- * flags) are kept as metadata only: v1 runs the platform quirk profiles and
- * ignores them (see src-tauri/src/game/store.rs). The archive `howto` text is
- * trimmed and kept so the UI can show each ROM's controls (store list and game
- * screen); entries without it stay hint-free.
+ * flags, palette colours) are captured as metadata: the game session applies
+ * the recorded quirks, pace and palette on top of its platform defaults (see
+ * src-tauri/src/game/store.rs). Quirk flags recorded as 0/1 are normalised to
+ * booleans. The archive `howto` text is trimmed and kept so the UI can show
+ * each ROM's controls (store list and game screen); entries without it stay
+ * hint-free.
  *
  * Usage:
  *   bun scripts/build-chip8-store.ts                 # fetch (cached), build
  *   bun scripts/build-chip8-store.ts --force         # refetch files and the commit
  *   bun scripts/build-chip8-store.ts --commit <sha>  # build from an explicit commit
  *
- * Output: src-tauri/data/chip8-store-v1.json (embedded via include_str!)
+ * Output: src-tauri/data/chip8-store-v2.json (embedded via include_str!)
  */
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
@@ -24,9 +26,10 @@ const REPO = "JohnEarnest/chip8Archive";
 const RAW = `https://raw.githubusercontent.com/${REPO}`;
 const COMMITS_API = `https://api.github.com/repos/${REPO}/commits/master`;
 const CACHE_DIR = join("node_modules", ".cache", "iluha-chip8-store");
-const OUTPUT = join("src-tauri", "data", "chip8-store-v1.json");
+const OUTPUT = join("src-tauri", "data", "chip8-store-v2.json");
 // Keep in sync with MAX_PROGRAM_BYTES in src-tauri/src/game/chip8.rs.
-const MAX_PROGRAM_BYTES = 3584;
+const MAX_PROGRAM_BYTES = 65024;
+const HEX_COLOR = /^#[\da-f]{6}$/iu;
 const PLATFORMS = ["chip8", "schip", "xochip"] as const;
 
 type Platform = (typeof PLATFORMS)[number];
@@ -47,6 +50,13 @@ interface CompactOptions {
   vfOrderQuirks?: boolean;
   clipQuirks?: boolean;
   jumpQuirks?: boolean;
+  logicQuirks?: boolean;
+  vBlankQuirks?: boolean;
+  enableXO?: boolean;
+  fillColor?: string;
+  fillColor2?: string;
+  blendColor?: string;
+  backgroundColor?: string;
 }
 
 interface StoreEntry {
@@ -94,9 +104,23 @@ function compactOptions(options: Record<string, unknown> | undefined): CompactOp
   const tickrate =
     typeof options["tickrate"] === "number" ? options["tickrate"] : Number(options["tickrate"]);
   if (Number.isFinite(tickrate) && tickrate > 0) compact.tickrate = tickrate;
-  for (const flag of ["shiftQuirks", "loadStoreQuirks", "vfOrderQuirks", "clipQuirks", "jumpQuirks"] as const) {
+  for (const flag of [
+    "shiftQuirks",
+    "loadStoreQuirks",
+    "vfOrderQuirks",
+    "clipQuirks",
+    "jumpQuirks",
+    "logicQuirks",
+    "vBlankQuirks",
+    "enableXO",
+  ] as const) {
     const value = options[flag];
     if (typeof value === "boolean") compact[flag] = value;
+    else if (value === 0 || value === 1) compact[flag] = value === 1;
+  }
+  for (const color of ["fillColor", "fillColor2", "blendColor", "backgroundColor"] as const) {
+    const value = options[color];
+    if (typeof value === "string" && HEX_COLOR.test(value)) compact[color] = value;
   }
   return Object.keys(compact).length > 0 ? compact : undefined;
 }
@@ -172,7 +196,7 @@ async function main() {
       continue;
     }
     const bytes = await cachedFetch(commit, `roms/${key}.ch8`);
-    if (platform !== "xochip" && (bytes.length === 0 || bytes.length > MAX_PROGRAM_BYTES)) {
+    if (bytes.length === 0 || bytes.length > MAX_PROGRAM_BYTES) {
       skipped.push(
         `${key}: ${bytes.length} bytes do not fit the ${MAX_PROGRAM_BYTES}-byte address space`
       );
@@ -193,7 +217,7 @@ async function main() {
   }
   entries.sort((a, b) => a.title.localeCompare(b.title, "en"));
   const payload = {
-    version: 1,
+    version: 2,
     repo: REPO,
     commit,
     license: "CC0-1.0",

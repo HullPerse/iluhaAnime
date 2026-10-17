@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "repo": "JohnEarnest/chip8Archive",
   "commit": "761e3ffc63f43e6a849e80714122feff2afca208",
   "license": "CC0-1.0",
@@ -20,7 +20,9 @@
         "tickrate": 1000,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#00f80a",
+        "backgroundColor": "#274a17"
       }
     },
     {
@@ -40,7 +42,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#f1f1f1",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#0f0f0f"
       }
     },
     {
@@ -60,7 +67,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#f1f1f1",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#0f0f0f"
       }
     },
     {
@@ -81,7 +93,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#f1f1f1",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#0f0f0f"
       }
     },
     {
@@ -96,7 +113,13 @@
       "sha1": "afd9fee7565c54970b6bd7758aa8aa7843dd2e86",
       "size": 23207,
       "options": {
-        "tickrate": 500
+        "tickrate": 500,
+        "shiftQuirks": false,
+        "loadStoreQuirks": false,
+        "vfOrderQuirks": false,
+        "clipQuirks": false,
+        "jumpQuirks": false,
+        "vBlankQuirks": false
       }
     },
     {
@@ -112,7 +135,17 @@
       "size": 3580,
       "options": {
         "tickrate": 100,
-        "vfOrderQuirks": false
+        "shiftQuirks": true,
+        "loadStoreQuirks": true,
+        "vfOrderQuirks": false,
+        "clipQuirks": true,
+        "jumpQuirks": true,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#B00000",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#001000"
       }
     },
     {
@@ -128,7 +161,9 @@
       "sha1": "0f479a10fec51d159866e5760069cd18bdfd293f",
       "size": 346,
       "options": {
-        "tickrate": 7
+        "tickrate": 7,
+        "fillColor": "#330033",
+        "backgroundColor": "#AAAAFF"
       }
     },
     {
@@ -149,7 +184,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200"
       }
     },
     {
@@ -168,7 +206,9 @@
         "tickrate": 7,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#ff84fe",
+        "backgroundColor": "#ca2553"
       }
     },
     {
@@ -184,7 +224,17 @@
       "size": 3264,
       "options": {
         "tickrate": 100,
-        "vfOrderQuirks": false
+        "shiftQuirks": true,
+        "loadStoreQuirks": true,
+        "vfOrderQuirks": false,
+        "clipQuirks": true,
+        "jumpQuirks": true,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#1E90FF",
+        "fillColor2": "#ABCC47",
+        "blendColor": "#00131A",
+        "backgroundColor": "#F9FFB3"
       }
     },
     {
@@ -204,7 +254,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#43523d",
+        "fillColor2": "#43523d",
+        "blendColor": "#43523d",
+        "backgroundColor": "#c7f0d8"
       }
     },
     {
@@ -224,7 +280,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFCC00",
+        "backgroundColor": "#0000FF"
       }
     },
     {
@@ -239,7 +298,9 @@
       "sha1": "400dbd1aa2b79b9b8546bc615bfb735c1bd1d268",
       "size": 3299,
       "options": {
-        "tickrate": 20
+        "tickrate": 20,
+        "fillColor": "#FFCC00",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -256,7 +317,17 @@
       "size": 17024,
       "options": {
         "tickrate": 500,
-        "vfOrderQuirks": false
+        "shiftQuirks": false,
+        "loadStoreQuirks": false,
+        "vfOrderQuirks": false,
+        "clipQuirks": false,
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#7C4300",
+        "fillColor2": "#FD8100",
+        "blendColor": "#FD8100",
+        "backgroundColor": "#D5A08C"
       }
     },
     {
@@ -277,7 +348,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -298,7 +374,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": true,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": true,
+        "vBlankQuirks": true,
+        "fillColor": "#FFFFFF",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#0072ff"
       }
     },
     {
@@ -313,7 +395,9 @@
       "sha1": "ab5cbf267d74c168e174041b9594ae856cbd671d",
       "size": 1777,
       "options": {
-        "tickrate": 15
+        "tickrate": 15,
+        "fillColor": "#000066",
+        "backgroundColor": "#6699FF"
       }
     },
     {
@@ -333,7 +417,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#754D27",
+        "fillColor2": "#738C3A",
+        "blendColor": "#E2CB8A",
+        "backgroundColor": "#141421"
       }
     },
     {
@@ -351,7 +440,12 @@
         "tickrate": 1000,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#00FF00",
+        "fillColor2": "#FF0000",
+        "blendColor": "#FFFF00",
+        "backgroundColor": "#000000"
       }
     },
     {
@@ -368,7 +462,17 @@
       "size": 520,
       "options": {
         "tickrate": 15,
-        "vfOrderQuirks": false
+        "shiftQuirks": false,
+        "loadStoreQuirks": false,
+        "vfOrderQuirks": false,
+        "clipQuirks": true,
+        "jumpQuirks": false,
+        "logicQuirks": true,
+        "vBlankQuirks": true,
+        "fillColor": "#004020",
+        "fillColor2": "#004020",
+        "blendColor": "#000000",
+        "backgroundColor": "#C7F0D8"
       }
     },
     {
@@ -388,7 +492,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -406,7 +516,9 @@
       "options": {
         "tickrate": 15,
         "shiftQuirks": false,
-        "loadStoreQuirks": false
+        "loadStoreQuirks": false,
+        "fillColor": "#27130F",
+        "backgroundColor": "#3DBDFA"
       }
     },
     {
@@ -427,7 +539,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#1f1f1f",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#f0f0f0"
       }
     },
     {
@@ -446,7 +563,12 @@
         "tickrate": 200,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#443300",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#aa7700"
       }
     },
     {
@@ -467,7 +589,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#43523d",
+        "fillColor2": "#43523d",
+        "blendColor": "#43523d",
+        "backgroundColor": "#c7f0d8"
       }
     },
     {
@@ -483,7 +611,9 @@
       "sha1": "821751787374cc362f4c58759961f0aa7a2fd410",
       "size": 295,
       "options": {
-        "tickrate": 15
+        "tickrate": 15,
+        "fillColor": "#FFCC00",
+        "backgroundColor": "#0000FF"
       }
     },
     {
@@ -504,7 +634,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#9BBC0F",
+        "fillColor2": "#8BAC0F",
+        "blendColor": "#306230",
+        "backgroundColor": "#0F380F"
       }
     },
     {
@@ -524,7 +659,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#306230",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#8BAC0F"
       }
     },
     {
@@ -545,7 +685,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FF00FF",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#00FFFF"
       }
     },
     {
@@ -563,7 +708,9 @@
       "options": {
         "tickrate": 200,
         "shiftQuirks": false,
-        "loadStoreQuirks": false
+        "loadStoreQuirks": false,
+        "fillColor": "#FFFFFF",
+        "backgroundColor": "#555555"
       }
     },
     {
@@ -598,7 +745,9 @@
         "tickrate": 30,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#783809",
+        "backgroundColor": "#a0cb6d"
       }
     },
     {
@@ -617,7 +766,12 @@
         "tickrate": 20,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#C3C3C3",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#006C00"
       }
     },
     {
@@ -638,7 +792,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "backgroundColor": "#001000"
       }
     },
     {
@@ -658,7 +815,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#000000",
+        "fillColor2": "#FDFFD5",
+        "blendColor": "#BA5A1A",
+        "backgroundColor": "#353C41"
       }
     },
     {
@@ -678,7 +840,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#000000",
+        "fillColor2": "#FDFFD5",
+        "blendColor": "#BA5A1A",
+        "backgroundColor": "#353C41"
       }
     },
     {
@@ -699,7 +866,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#000000",
+        "fillColor2": "#FDFFD5",
+        "blendColor": "#BA5A1A",
+        "backgroundColor": "#353C41"
       }
     },
     {
@@ -720,7 +892,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#000000",
+        "fillColor2": "#FDFFD5",
+        "blendColor": "#BA5A1A",
+        "backgroundColor": "#353C41"
       }
     },
     {
@@ -740,7 +917,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#000000",
+        "fillColor2": "#FDFFD5",
+        "blendColor": "#BA5A1A",
+        "backgroundColor": "#353C41"
       }
     },
     {
@@ -760,7 +942,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#000000",
+        "fillColor2": "#FDFFD5",
+        "blendColor": "#BA5A1A",
+        "backgroundColor": "#353C41"
       }
     },
     {
@@ -781,7 +968,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#1a1c19",
+        "fillColor2": "#a0a29f",
+        "blendColor": "#5d5b5d",
+        "backgroundColor": "#fafdf9"
       }
     },
     {
@@ -800,7 +992,12 @@
         "tickrate": 1000,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#B8CD9E",
+        "fillColor2": "#ED656B",
+        "blendColor": "#55989E",
+        "backgroundColor": "#59755E"
       }
     },
     {
@@ -821,7 +1018,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#b22d10",
+        "fillColor2": "#10b258",
+        "blendColor": "#ffffff",
+        "backgroundColor": "#283593"
       }
     },
     {
@@ -842,7 +1044,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -859,7 +1066,15 @@
       "size": 3220,
       "options": {
         "tickrate": 15,
-        "vfOrderQuirks": false
+        "shiftQuirks": false,
+        "loadStoreQuirks": false,
+        "vfOrderQuirks": false,
+        "clipQuirks": true,
+        "jumpQuirks": false,
+        "logicQuirks": true,
+        "vBlankQuirks": true,
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200"
       }
     },
     {
@@ -877,7 +1092,12 @@
         "tickrate": 15,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FF6666",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#1a3674"
       }
     },
     {
@@ -895,7 +1115,12 @@
         "tickrate": 20,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FCFCFC",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#005E20"
       }
     },
     {
@@ -940,7 +1165,9 @@
       "options": {
         "tickrate": 100,
         "shiftQuirks": false,
-        "loadStoreQuirks": false
+        "loadStoreQuirks": false,
+        "fillColor": "#FFCC00",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -978,7 +1205,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#c7f0d8",
+        "fillColor2": "#c7f0d8",
+        "blendColor": "#c7f0d8",
+        "backgroundColor": "#43523d"
       }
     },
     {
@@ -997,7 +1230,12 @@
         "tickrate": 30,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -1017,7 +1255,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#55ff55",
+        "fillColor2": "#ff7700",
+        "blendColor": "#ffffff",
+        "backgroundColor": "#000000"
       }
     },
     {
@@ -1037,7 +1281,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#f1f1f1",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#0f0f0f"
       }
     },
     {
@@ -1056,7 +1305,9 @@
         "tickrate": 7,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#EEEEEE",
+        "backgroundColor": "#111111"
       }
     },
     {
@@ -1073,7 +1324,9 @@
       "options": {
         "tickrate": 7,
         "shiftQuirks": false,
-        "loadStoreQuirks": false
+        "loadStoreQuirks": false,
+        "fillColor": "#FFAA00",
+        "backgroundColor": "#AA4400"
       }
     },
     {
@@ -1093,7 +1346,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#FFAA00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#662200"
       }
     },
     {
@@ -1111,7 +1370,12 @@
         "tickrate": 7,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFAA00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#AA4400"
       }
     },
     {
@@ -1131,7 +1395,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFAA00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#AA4400"
       }
     },
     {
@@ -1151,7 +1420,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFAA00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#AA4400"
       }
     },
     {
@@ -1171,7 +1445,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200"
       }
     },
     {
@@ -1191,7 +1468,11 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "fillColor": "#330033",
+        "fillColor2": "#00FFFF",
+        "blendColor": "#FFFFFF",
+        "backgroundColor": "#AAAAFF"
       }
     },
     {
@@ -1211,7 +1492,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#ff8c1f",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#662200"
       }
     },
     {
@@ -1231,7 +1518,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#FFAA00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#AA4400"
       }
     },
     {
@@ -1251,7 +1544,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": true,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -1272,7 +1571,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#FF00FF",
+        "fillColor2": "#00FFFF",
+        "blendColor": "#FFFFFF",
+        "backgroundColor": "#000000"
       }
     },
     {
@@ -1291,7 +1596,12 @@
         "tickrate": 200,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#acd5ff",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#113152"
       }
     },
     {
@@ -1310,7 +1620,12 @@
         "tickrate": 120,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#5B1B96",
+        "fillColor2": "#E03B22",
+        "blendColor": "#68E022",
+        "backgroundColor": "#8BDCE8"
       }
     },
     {
@@ -1330,7 +1645,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#43523d",
+        "fillColor2": "#43523d",
+        "blendColor": "#43523d",
+        "backgroundColor": "#c7f0d8"
       }
     },
     {
@@ -1346,7 +1667,9 @@
       "sha1": "a9d3c975a5e733646a04f6e61deebcd0ad50f700",
       "size": 512,
       "options": {
-        "tickrate": 15
+        "tickrate": 15,
+        "fillColor": "#AA4400",
+        "backgroundColor": "#664400"
       }
     },
     {
@@ -1364,7 +1687,12 @@
         "tickrate": 7,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#fafafa",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#0c0c0c"
       }
     },
     {
@@ -1387,7 +1715,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFCC00",
+        "backgroundColor": "#0000FF"
       }
     },
     {
@@ -1405,7 +1736,9 @@
         "tickrate": 7,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#111122",
+        "backgroundColor": "#FFA500"
       }
     },
     {
@@ -1426,7 +1759,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": true,
+        "fillColor": "#000000",
+        "fillColor2": "#ffff00",
+        "blendColor": "#808000",
+        "backgroundColor": "#b22d10"
       }
     },
     {
@@ -1441,7 +1779,9 @@
       "sha1": "b76fbca2ec089c7e77f4a2f754db37854b99debc",
       "size": 1594,
       "options": {
-        "tickrate": 15
+        "tickrate": 15,
+        "fillColor": "#CCCCCC",
+        "backgroundColor": "#333333"
       }
     },
     {
@@ -1459,7 +1799,9 @@
         "tickrate": 7,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#220000",
+        "backgroundColor": "#AA9999"
       }
     },
     {
@@ -1480,7 +1822,12 @@
         "loadStoreQuirks": true,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": true
+        "jumpQuirks": true,
+        "enableXO": false,
+        "fillColor": "#1a3279",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#bad9b6"
       }
     },
     {
@@ -1498,7 +1845,12 @@
         "tickrate": 20,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#7B0201",
+        "fillColor2": "#F2FAF7",
+        "blendColor": "#E7ED3E",
+        "backgroundColor": "#D4D4D4"
       }
     },
     {
@@ -1520,7 +1872,12 @@
         "loadStoreQuirks": true,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#4B636F",
+        "fillColor2": "#AF2D3D",
+        "blendColor": "#AF2D3D",
+        "backgroundColor": "#121212"
       }
     },
     {
@@ -1541,7 +1898,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200"
       }
     },
     {
@@ -1559,7 +1919,9 @@
       "options": {
         "tickrate": 15,
         "shiftQuirks": false,
-        "loadStoreQuirks": false
+        "loadStoreQuirks": false,
+        "fillColor": "#84a174",
+        "backgroundColor": "#30283e"
       }
     },
     {
@@ -1580,7 +1942,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -1600,7 +1968,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FCFCFC",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#111111"
       }
     },
     {
@@ -1619,7 +1992,12 @@
         "tickrate": 100,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": false,
+        "fillColor": "#fcfcfc",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#111111"
       }
     },
     {
@@ -1639,7 +2017,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#B4B4B4",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#323232"
       }
     },
     {
@@ -1655,7 +2039,17 @@
       "size": 2577,
       "options": {
         "tickrate": 500,
-        "vfOrderQuirks": false
+        "shiftQuirks": true,
+        "loadStoreQuirks": true,
+        "vfOrderQuirks": false,
+        "clipQuirks": true,
+        "jumpQuirks": true,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#FFAF00",
+        "fillColor2": "#FD8100",
+        "blendColor": "#FD8100",
+        "backgroundColor": "#663300"
       }
     },
     {
@@ -1676,7 +2070,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#ffffff",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#000000"
       }
     },
     {
@@ -1697,7 +2096,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": true,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "backgroundColor": "#100010"
       }
     },
     {
@@ -1715,7 +2117,12 @@
         "tickrate": 100,
         "shiftQuirks": false,
         "loadStoreQuirks": true,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#FF00FF",
+        "fillColor2": "#00FFFF",
+        "blendColor": "#FFFFFF",
+        "backgroundColor": "#000000"
       }
     },
     {
@@ -1732,7 +2139,16 @@
       "size": 3581,
       "options": {
         "tickrate": 200,
-        "vfOrderQuirks": false
+        "shiftQuirks": true,
+        "loadStoreQuirks": true,
+        "vfOrderQuirks": false,
+        "clipQuirks": true,
+        "jumpQuirks": true,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor2": "#333333",
+        "blendColor": "#FFFFFF",
+        "backgroundColor": "#000000"
       }
     },
     {
@@ -1753,7 +2169,13 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": false,
+        "vBlankQuirks": false,
+        "fillColor": "#43523d",
+        "fillColor2": "#ff6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#c7f0d8"
       }
     },
     {
@@ -1774,7 +2196,10 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFFFFF",
+        "backgroundColor": "#552200"
       }
     },
     {
@@ -1792,7 +2217,8 @@
       "options": {
         "tickrate": 100,
         "shiftQuirks": false,
-        "loadStoreQuirks": false
+        "loadStoreQuirks": false,
+        "backgroundColor": "#117799"
       }
     },
     {
@@ -1810,7 +2236,12 @@
         "tickrate": 1000,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#554422",
+        "fillColor2": "#456543",
+        "blendColor": "#EEEEFF",
+        "backgroundColor": "#87CEEB"
       }
     },
     {
@@ -1847,7 +2278,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": true,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -1864,7 +2300,17 @@
       "size": 826,
       "options": {
         "tickrate": 12,
-        "vfOrderQuirks": false
+        "shiftQuirks": false,
+        "loadStoreQuirks": false,
+        "vfOrderQuirks": false,
+        "clipQuirks": false,
+        "jumpQuirks": false,
+        "logicQuirks": true,
+        "vBlankQuirks": false,
+        "fillColor": "#7BFF00",
+        "fillColor2": "#000000",
+        "blendColor": "#000000",
+        "backgroundColor": "#1E1E1E"
       }
     },
     {
@@ -1884,7 +2330,12 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": false,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "enableXO": false,
+        "fillColor": "#FFFFFF",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#000000"
       }
     },
     {
@@ -1903,7 +2354,12 @@
         "tickrate": 1000,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "enableXO": true,
+        "fillColor": "#FFCC00",
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200",
+        "backgroundColor": "#996600"
       }
     },
     {
@@ -1922,7 +2378,9 @@
         "tickrate": 200,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#FFe900",
+        "backgroundColor": "#ED7f37"
       }
     },
     {
@@ -1941,7 +2399,9 @@
         "tickrate": 7,
         "shiftQuirks": false,
         "loadStoreQuirks": false,
-        "vfOrderQuirks": false
+        "vfOrderQuirks": false,
+        "fillColor": "#553300",
+        "backgroundColor": "#FFFFFF"
       }
     },
     {
@@ -1961,7 +2421,11 @@
         "loadStoreQuirks": false,
         "vfOrderQuirks": false,
         "clipQuirks": true,
-        "jumpQuirks": false
+        "jumpQuirks": false,
+        "logicQuirks": true,
+        "vBlankQuirks": true,
+        "fillColor2": "#FF6600",
+        "blendColor": "#662200"
       }
     },
     {
@@ -1977,7 +2441,9 @@
       "sha1": "518c1d40f5d768ee49d2b7951d998588ef8238ba",
       "size": 538,
       "options": {
-        "tickrate": 100
+        "tickrate": 100,
+        "fillColor": "#000000",
+        "backgroundColor": "#FFFFFF"
       }
     }
   ]

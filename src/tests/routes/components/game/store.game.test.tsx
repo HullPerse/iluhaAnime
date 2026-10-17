@@ -95,9 +95,8 @@ describe("GameStoreModal", () => {
     expect(screen.getByText("CHIP-8 · by Author One")).toBeTruthy();
     expect(screen.getByText("Controls: Keys 4 and 6 move the paddles.")).toBeTruthy();
     expect(screen.getByText("Installed")).toBeTruthy();
-    expect(screen.getByText("Needs XO-CHIP")).toBeTruthy();
-    // Only the runnable, not-installed entry gets a download button.
-    expect(screen.getAllByRole("button", { name: "Download" })).toHaveLength(1);
+    // Both not-installed entries, XO-CHIP included, get a download button.
+    expect(screen.getAllByRole("button", { name: "Download" })).toHaveLength(2);
   });
 
   it("filters by title and by author", async () => {
@@ -117,7 +116,7 @@ describe("GameStoreModal", () => {
     renderStore();
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
 
-    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("game_store_install", { key: "pong" })
@@ -138,7 +137,7 @@ describe("GameStoreModal", () => {
     renderStore();
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
 
-    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
 
     const bar = await screen.findByRole("progressbar");
     expect(bar.getAttribute("aria-label")).toBe("Downloading");
@@ -167,8 +166,9 @@ describe("GameStoreModal", () => {
 
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
     expect(screen.getByText("Downloading needs an internet connection.")).toBeTruthy();
-    const button = screen.getByRole("button", { name: "Download" }) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
+    const buttons = screen.getAllByRole("button", { name: "Download" }) as HTMLButtonElement[];
+    expect(buttons).toHaveLength(2);
+    expect(buttons.every((button) => button.disabled)).toBe(true);
 
     Object.defineProperty(window.navigator, "onLine", { configurable: true, value: true });
   });

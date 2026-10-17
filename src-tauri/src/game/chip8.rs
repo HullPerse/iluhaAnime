@@ -1,11 +1,16 @@
-//! CHIP-8 / SUPER-CHIP interpreter core.
+//! CHIP-8 / SUPER-CHIP / XO-CHIP interpreter core.
 //!
 //! Pure `no_std`-style logic with no Tauri dependencies so it can be unit
 //! tested and benchmarked directly. The frontend drives execution: every
 //! animation frame it asks for N cycles and receives a packed framebuffer,
 //! so a closed tab costs zero CPU.
+//!
+//! The full 64 KB XO-CHIP address space is always present; `PC` and `I` are
+//! plain 16-bit registers, so CHIP-8 wrap-around bugs (running past `0xFFF`)
+//! cannot happen. The XO-only instructions are gated by [`Quirks::xochip`]
+//! and stay no-ops for CHIP-8 and SUPER-CHIP programs.
 
-pub const MEMORY_SIZE: usize = 4096;
+pub const MEMORY_SIZE: usize = 65_536;
 pub const PROGRAM_START: u16 = 0x200;
 pub const FONT_START: u16 = 0x050;
 pub const BIG_FONT_START: u16 = 0x0A0;
@@ -39,6 +44,11 @@ pub struct Quirks {
     /// draw executes and the rest of the frame's cycle budget is dropped so
     /// the CPU idles until the next frame, as on the real VIP.
     pub vblank_wait: bool,
+    /// XO-CHIP program mode: enables the extended instruction set (5XY2/5XY3,
+    /// F000, FN01, F002, FX3A, 00DN), the second drawing plane and the audio
+    /// pattern buffer. Older programs keep their exact behaviour because the
+    /// flag gates everything that would change how they run.
+    pub xochip: bool,
 }
 
 impl Quirks {
@@ -53,6 +63,7 @@ impl Quirks {
         clip: true,
         logic_resets_vf: true,
         vblank_wait: true,
+        xochip: false,
     };
 
     /// SUPER-CHIP 1.0 on the HP48: shifts operate on VX in place, I stays
@@ -66,6 +77,7 @@ impl Quirks {
         clip: true,
         logic_resets_vf: false,
         vblank_wait: false,
+        xochip: false,
     };
 
     /// SUPER-CHIP 1.1 on the HP48: like 1.0, but BNNN adds VX where X is the
@@ -77,6 +89,21 @@ impl Quirks {
         clip: true,
         logic_resets_vf: false,
         vblank_wait: false,
+        xochip: false,
+    };
+
+    /// XO-CHIP programs as Octo runs them: the extended instruction set on
+    /// top of Octo's own option defaults (shift source VY, I increments,
+    /// BNNN adds V0, sprites wrap, logic ops keep VF). Store entries have
+    /// their recorded options layered on top of this profile.
+    pub const XO_CHIP: Self = Self {
+        shift_uses_vx: false,
+        load_store_increment: true,
+        jump_v0: true,
+        clip: false,
+        logic_resets_vf: false,
+        vblank_wait: false,
+        xochip: true,
     };
 
     #[must_use]
@@ -84,6 +111,7 @@ impl Quirks {
         match platform {
             "schip" | "schip10" => Self::SUPER_CHIP_10,
             "schip11" => Self::SUPER_CHIP_11,
+            "xochip" => Self::XO_CHIP,
             _ => Self::CHIP8,
         }
     }
@@ -154,6 +182,14 @@ pub struct Chip8 {
     /// Bit-packed framebuffer: row `y` lives in words `y * 2` and `y * 2 + 1`,
     /// pixel `x` is bit `63 - x % 64` of word `y * 2 + x / 64`.
     fb: [u64; 128],
+    /// XO-CHIP second drawing plane; always zero outside XO programs.
+    fb2: [u64; 128],
+    /// XO-CHIP selected drawing planes: bit 0 plane 1, bit 1 plane 2.
+    pub plane: u8,
+    /// XO-CHIP audio pattern buffer (128 one-bit samples); starts silent.
+    pub pattern: [u8; 16],
+    /// XO-CHIP pitch register; 64 selects the 4000 Hz default.
+    pub pitch: u8,
     pub keys: [bool; 16],
     pub quirks: Quirks,
     pub hires: bool,
@@ -176,6 +212,7 @@ impl Chip8 {
     }
 
     #[must_use]
+    #[allow(clippy::large_stack_arrays)] // the 64 KB RAM is the session itself
     pub fn with_seed(quirks: Quirks, seed: u64) -> Self {
         let mut vm = Self {
             memory: [0; MEMORY_SIZE],
@@ -187,6 +224,10 @@ impl Chip8 {
             delay_timer: 0,
             sound_timer: 0,
             fb: [0; 128],
+            fb2: [0; 128],
+            plane: 1,
+            pattern: [0; 16],
+            pitch: 64,
             keys: [false; 16],
             quirks,
             hires: false,
@@ -234,6 +275,10 @@ impl Chip8 {
         self.delay_timer = 0;
         self.sound_timer = 0;
         self.fb = [0; 128];
+        self.fb2 = [0; 128];
+        self.plane = 1;
+        self.pattern = [0; 16];
+        self.pitch = 64;
         self.keys = [false; 16];
         self.hires = false;
         self.waiting_key = None;
@@ -262,13 +307,24 @@ impl Chip8 {
 
     #[must_use]
     pub const fn frame_len(&self) -> usize {
-        self.rows() * self.cols() / 8
+        if self.quirks.xochip {
+            self.rows() * self.cols() / 4
+        } else {
+            self.rows() * self.cols() / 8
+        }
     }
 
-    /// Packs the framebuffer the way the frontend expects it: one bit per
-    /// pixel, rows top to bottom, most significant bit leftmost.
+    /// Packs the framebuffer the way the frontend expects it: rows top to
+    /// bottom, most significant bits leftmost. CHIP-8 and SUPER-CHIP pack
+    /// one bit per pixel; XO-CHIP packs two bits per pixel, the colour index
+    /// `plane1 | plane2 << 1` (0 background, 1 first plane, 2 second plane,
+    /// 3 overlap).
     pub fn pack_frame(&self, out: &mut Vec<u8>) {
         out.clear();
+        if self.quirks.xochip {
+            self.pack_frame_xo(out);
+            return;
+        }
         let words_per_row = self.cols() / 64;
         out.reserve(self.rows() * words_per_row * 8);
         for row in 0..self.rows() {
@@ -281,12 +337,52 @@ impl Chip8 {
         }
     }
 
+    fn pack_frame_xo(&self, out: &mut Vec<u8>) {
+        let words_per_row = self.cols() / 64;
+        out.reserve(self.rows() * words_per_row * 16);
+        for row in 0..self.rows() {
+            for word in 0..words_per_row {
+                let plane1 = self.fb[row * 2 + word];
+                let plane2 = self.fb2[row * 2 + word];
+                for group in 0..16 {
+                    let mut packed = 0u8;
+                    for pixel in 0..4 {
+                        let mask = 1u64 << (63 - group * 4 - pixel);
+                        let color =
+                            u8::from(plane1 & mask != 0) | (u8::from(plane2 & mask != 0) << 1);
+                        packed = (packed << 2) | color;
+                    }
+                    out.push(packed);
+                }
+            }
+        }
+    }
+
+    /// First-plane pixel state; XO programs read both planes through
+    /// [`Self::pixel_color`].
     #[must_use]
     pub const fn pixel(&self, x: usize, y: usize) -> bool {
+        self.plane_pixel(1, x, y)
+    }
+
+    /// Colour index of one pixel: bit 0 plane 1, bit 1 plane 2.
+    #[must_use]
+    pub const fn pixel_color(&self, x: usize, y: usize) -> u8 {
+        let plane1 = if self.plane_pixel(1, x, y) { 1 } else { 0 };
+        let plane2 = if self.plane_pixel(2, x, y) { 2 } else { 0 };
+        plane1 | plane2
+    }
+
+    #[must_use]
+    const fn plane_pixel(&self, plane: u8, x: usize, y: usize) -> bool {
         if x >= self.cols() || y >= self.rows() {
             return false;
         }
-        let word = self.fb[y * 2 + x / 64];
+        let word = if plane == 2 {
+            self.fb2[y * 2 + x / 64]
+        } else {
+            self.fb[y * 2 + x / 64]
+        };
         word & (1u64 << (63 - x % 64)) != 0
     }
 
@@ -298,54 +394,144 @@ impl Chip8 {
         self.dirty = true;
     }
 
+    /// Clears both planes entirely (resolution switches, reset, harnesses).
     pub const fn clear_display(&mut self) {
         self.fb = [0; 128];
+        self.fb2 = [0; 128];
         self.dirty = true;
     }
 
+    /// XO-CHIP `clear`: only the selected drawing planes are cleared, so a
+    /// program can wipe one plane and keep the other. No selected planes
+    /// means the instruction does nothing.
+    const fn clear_selected_planes(&mut self) {
+        if self.plane == 0 {
+            return;
+        }
+        if self.plane & 1 != 0 {
+            self.fb = [0; 128];
+        }
+        if self.plane & 2 != 0 {
+            self.fb2 = [0; 128];
+        }
+        self.dirty = true;
+    }
+
+    /// Scrolling operates only on the selected planes, like drawing. No
+    /// selected planes means the instruction does nothing.
     pub fn scroll_down(&mut self, rows: usize) {
-        let rows = rows.min(self.rows());
-        for y in (0..self.rows()).rev() {
-            if y >= rows {
-                let (from_lo, from_hi) = (self.fb[(y - rows) * 2], self.fb[(y - rows) * 2 + 1]);
-                self.fb[y * 2] = from_lo;
-                self.fb[y * 2 + 1] = from_hi;
-            } else {
-                self.fb[y * 2] = 0;
-                self.fb[y * 2 + 1] = 0;
-            }
+        if self.plane == 0 {
+            return;
+        }
+        let screen_rows = self.rows();
+        if self.plane & 1 != 0 {
+            Self::scroll_bits_down(&mut self.fb, screen_rows, rows);
+        }
+        if self.plane & 2 != 0 {
+            Self::scroll_bits_down(&mut self.fb2, screen_rows, rows);
+        }
+        self.dirty = true;
+    }
+
+    /// XO-CHIP `00DN`: scrolls the selected planes up by `rows`.
+    pub fn scroll_up(&mut self, rows: usize) {
+        if self.plane == 0 {
+            return;
+        }
+        let screen_rows = self.rows();
+        if self.plane & 1 != 0 {
+            Self::scroll_bits_up(&mut self.fb, screen_rows, rows);
+        }
+        if self.plane & 2 != 0 {
+            Self::scroll_bits_up(&mut self.fb2, screen_rows, rows);
         }
         self.dirty = true;
     }
 
     pub fn scroll_left(&mut self) {
-        let words = self.cols() / 64;
-        for y in 0..self.rows() {
-            if words == 2 {
-                let value = (u128::from(self.fb[y * 2]) << 64) | u128::from(self.fb[y * 2 + 1]);
-                let shifted = value << 4;
-                self.fb[y * 2] = (shifted >> 64) as u64;
-                self.fb[y * 2 + 1] = shifted as u64;
-            } else {
-                self.fb[y * 2] <<= 4;
-            }
+        if self.plane == 0 {
+            return;
+        }
+        let cols = self.cols();
+        let screen_rows = self.rows();
+        if self.plane & 1 != 0 {
+            Self::scroll_bits_left(&mut self.fb, cols, screen_rows);
+        }
+        if self.plane & 2 != 0 {
+            Self::scroll_bits_left(&mut self.fb2, cols, screen_rows);
         }
         self.dirty = true;
     }
 
     pub fn scroll_right(&mut self) {
-        let words = self.cols() / 64;
-        for y in 0..self.rows() {
-            if words == 2 {
-                let value = (u128::from(self.fb[y * 2]) << 64) | u128::from(self.fb[y * 2 + 1]);
-                let shifted = value >> 4;
-                self.fb[y * 2] = (shifted >> 64) as u64;
-                self.fb[y * 2 + 1] = shifted as u64;
-            } else {
-                self.fb[y * 2] >>= 4;
-            }
+        if self.plane == 0 {
+            return;
+        }
+        let cols = self.cols();
+        let screen_rows = self.rows();
+        if self.plane & 1 != 0 {
+            Self::scroll_bits_right(&mut self.fb, cols, screen_rows);
+        }
+        if self.plane & 2 != 0 {
+            Self::scroll_bits_right(&mut self.fb2, cols, screen_rows);
         }
         self.dirty = true;
+    }
+
+    fn scroll_bits_down(bits: &mut [u64; 128], screen_rows: usize, count: usize) {
+        let count = count.min(screen_rows);
+        for y in (0..screen_rows).rev() {
+            if y >= count {
+                let (from_lo, from_hi) = (bits[(y - count) * 2], bits[(y - count) * 2 + 1]);
+                bits[y * 2] = from_lo;
+                bits[y * 2 + 1] = from_hi;
+            } else {
+                bits[y * 2] = 0;
+                bits[y * 2 + 1] = 0;
+            }
+        }
+    }
+
+    fn scroll_bits_up(bits: &mut [u64; 128], screen_rows: usize, count: usize) {
+        let count = count.min(screen_rows);
+        for y in 0..screen_rows {
+            let from = y + count;
+            if from < screen_rows {
+                bits[y * 2] = bits[from * 2];
+                bits[y * 2 + 1] = bits[from * 2 + 1];
+            } else {
+                bits[y * 2] = 0;
+                bits[y * 2 + 1] = 0;
+            }
+        }
+    }
+
+    fn scroll_bits_left(bits: &mut [u64; 128], cols: usize, screen_rows: usize) {
+        let words = cols / 64;
+        for y in 0..screen_rows {
+            if words == 2 {
+                let value = (u128::from(bits[y * 2]) << 64) | u128::from(bits[y * 2 + 1]);
+                let shifted = value << 4;
+                bits[y * 2] = (shifted >> 64) as u64;
+                bits[y * 2 + 1] = shifted as u64;
+            } else {
+                bits[y * 2] <<= 4;
+            }
+        }
+    }
+
+    fn scroll_bits_right(bits: &mut [u64; 128], cols: usize, screen_rows: usize) {
+        let words = cols / 64;
+        for y in 0..screen_rows {
+            if words == 2 {
+                let value = (u128::from(bits[y * 2]) << 64) | u128::from(bits[y * 2 + 1]);
+                let shifted = value >> 4;
+                bits[y * 2] = (shifted >> 64) as u64;
+                bits[y * 2 + 1] = shifted as u64;
+            } else {
+                bits[y * 2] >>= 4;
+            }
+        }
     }
 
     pub fn set_key(&mut self, key: u8, pressed: bool) {
@@ -381,6 +567,15 @@ impl Chip8 {
     #[must_use]
     pub const fn sound_active(&self) -> bool {
         self.sound_timer > 0
+    }
+
+    /// XO-CHIP pitch register as a playback rate in hertz:
+    /// `4000 * 2^((vx - 64) / 48)`, the formula from the specification.
+    #[must_use]
+    #[allow(clippy::cast_sign_loss)] // the clamp right below keeps it in range
+    pub fn pitch_rate(&self) -> u16 {
+        let rate = 4000.0 * ((f64::from(self.pitch) - 64.0) / 48.0).exp2();
+        rate.round().clamp(0.0, f64::from(u16::MAX)) as u16
     }
 
     #[must_use]
@@ -428,6 +623,55 @@ impl Chip8 {
         self.memory[(address as usize) & (MEMORY_SIZE - 1)]
     }
 
+    /// XO-CHIP skip width: a skip instruction jumps over a whole `F000 NNNN`
+    /// double-wide instruction, two bytes for anything else.
+    const fn skip_next(&mut self) {
+        let double = self.quirks.xochip
+            && self.memory_at(self.pc) == 0xF0
+            && self.memory_at(self.pc.wrapping_add(1)) == 0x00;
+        self.pc = self.pc.wrapping_add(if double { 4 } else { 2 });
+    }
+
+    /// XO-CHIP `save vx - vy` (5XY2): writes the register range in the order
+    /// the arguments are given, ascending or descending; I stays put.
+    fn save_range(&mut self, x: usize, y: usize) {
+        if x <= y {
+            for (offset, register) in (x..=y).enumerate() {
+                let value = self.v[register];
+                self.store_byte(offset, value);
+            }
+        } else {
+            for (offset, register) in (y..=x).rev().enumerate() {
+                let value = self.v[register];
+                self.store_byte(offset, value);
+            }
+        }
+    }
+
+    /// XO-CHIP `load vx - vy` (5XY3): the mirror of [`Self::save_range`].
+    fn load_range(&mut self, x: usize, y: usize) {
+        if x <= y {
+            for (offset, register) in (x..=y).enumerate() {
+                let value = self.load_byte(offset);
+                self.v[register] = value;
+            }
+        } else {
+            for (offset, register) in (y..=x).rev().enumerate() {
+                let value = self.load_byte(offset);
+                self.v[register] = value;
+            }
+        }
+    }
+
+    const fn store_byte(&mut self, offset: usize, value: u8) {
+        let address = self.i.wrapping_add(offset as u16);
+        self.memory[address as usize & (MEMORY_SIZE - 1)] = value;
+    }
+
+    const fn load_byte(&self, offset: usize) -> u8 {
+        self.memory_at(self.i.wrapping_add(offset as u16))
+    }
+
     fn execute(&mut self, opcode: u16, pc: u16) {
         let x = ((opcode >> 8) & 0x0F) as usize;
         let y = ((opcode >> 4) & 0x0F) as usize;
@@ -439,7 +683,7 @@ impl Chip8 {
             0x0 => match opcode {
                 // A machine call of zero means "stop" for Octo programs.
                 0x0000 => self.halted = true,
-                0x00E0 => self.clear_display(),
+                0x00E0 => self.clear_selected_planes(),
                 0x00EE => {
                     if self.sp > 0 {
                         self.sp -= 1;
@@ -458,6 +702,9 @@ impl Chip8 {
                     self.clear_display();
                 }
                 _ if opcode & 0x00F0 == 0x00C0 => self.scroll_down(n as usize),
+                _ if opcode & 0x00F0 == 0x00D0 && self.quirks.xochip => {
+                    self.scroll_up(n as usize);
+                }
                 // 0NNN (machine code call) is ignored on every modern host.
                 _ => {}
             },
@@ -471,19 +718,24 @@ impl Chip8 {
             }
             0x3 => {
                 if self.v[x] == nn {
-                    self.pc = self.pc.wrapping_add(2);
+                    self.skip_next();
                 }
             }
             0x4 => {
                 if self.v[x] != nn {
-                    self.pc = self.pc.wrapping_add(2);
+                    self.skip_next();
                 }
             }
-            0x5 => {
-                if self.v[x] == self.v[y] {
-                    self.pc = self.pc.wrapping_add(2);
+            0x5 => match n {
+                0x0 => {
+                    if self.v[x] == self.v[y] {
+                        self.skip_next();
+                    }
                 }
-            }
+                0x2 if self.quirks.xochip => self.save_range(x, y),
+                0x3 if self.quirks.xochip => self.load_range(x, y),
+                _ => {}
+            },
             0x6 => self.v[x] = nn,
             0x7 => self.v[x] = self.v[x].wrapping_add(nn),
             0x8 => match n {
@@ -543,7 +795,7 @@ impl Chip8 {
             },
             0x9 => {
                 if self.v[x] != self.v[y] {
-                    self.pc = self.pc.wrapping_add(2);
+                    self.skip_next();
                 }
             }
             0xA => self.i = nnn,
@@ -561,7 +813,7 @@ impl Chip8 {
                 self.v[0xF] = u8::from(collision);
             }
             0xE => match (nn, self.keys[self.v[x] as usize % 16]) {
-                (0x9E, true) | (0xA1, false) => self.pc = self.pc.wrapping_add(2),
+                (0x9E, true) | (0xA1, false) => self.skip_next(),
                 _ => {}
             },
             0xF => match nn {
@@ -623,6 +875,22 @@ impl Chip8 {
                         self.v[register] = self.flags[register];
                     }
                 }
+                0x00 if x == 0 && self.quirks.xochip => {
+                    // F000 NNNN: the immediate is the word right after the
+                    // opcode, and the fetch has already stepped over both.
+                    let high = self.memory_at(pc.wrapping_add(2));
+                    let low = self.memory_at(pc.wrapping_add(3));
+                    self.i = u16::from_be_bytes([high, low]);
+                    self.pc = self.pc.wrapping_add(2);
+                }
+                0x01 if self.quirks.xochip => self.plane = (x as u8) & 0b11,
+                0x02 if x == 0 && self.quirks.xochip => {
+                    for index in 0..16 {
+                        let byte = self.memory_at(self.i.wrapping_add(index as u16));
+                        self.pattern[index] = byte;
+                    }
+                }
+                0x3A if self.quirks.xochip => self.pitch = self.v[x],
                 _ => {}
             },
             _ => {}
@@ -631,47 +899,73 @@ impl Chip8 {
 
     /// Draws an `8 x n` sprite, or the `16 x 16` double-size sprite when
     /// `n == 0` (two bytes per row), and reports a collision.
+    ///
+    /// XO-CHIP draws into every selected plane; a both-plane draw consumes
+    /// two sprite blocks at I, the first plane's rows then the second's, and
+    /// VF reports a collision on either plane.
     fn draw(&mut self, x: u8, y: u8, n: u8) -> bool {
+        let planes = if self.quirks.xochip { self.plane } else { 1 };
+        if planes == 0 {
+            return false;
+        }
         let cols = self.cols();
         let rows = self.rows();
+        let clip = self.quirks.clip;
         let double = n == 0;
         let tall = if double { 16 } else { usize::from(n) };
         let wide = if double { 16 } else { 8 };
+        let bytes_per_plane = if double { tall * 2 } else { tall };
         let mut collision = false;
-        for row in 0..tall {
-            let sprite: u32 = if double {
-                let high = u32::from(self.memory_at(self.i.wrapping_add((row * 2) as u16)));
-                let low = u32::from(self.memory_at(self.i.wrapping_add((row * 2 + 1) as u16)));
-                (high << 8) | low
-            } else {
-                u32::from(self.memory_at(self.i.wrapping_add(row as u16)))
-            };
-            if sprite == 0 {
+        let mut offset = self.i;
+        for plane in [1u8, 2] {
+            if planes & plane == 0 {
                 continue;
             }
-            // Coordinates wrap first and only the part past the edge is
-            // clipped, so an off-screen sprite reappears where it crosses.
-            let py = usize::from(y) % rows + row;
-            for bit in 0..wide {
-                if sprite & (1u32 << (wide - 1 - bit)) == 0 {
+            // Snapshot the sprite rows before borrowing the plane bitmap.
+            let mut sprite_rows = [0u32; 16];
+            for (row, slot) in sprite_rows.iter_mut().enumerate().take(tall) {
+                *slot = if double {
+                    let high = self.memory_at(offset.wrapping_add((row * 2) as u16));
+                    let low = self.memory_at(offset.wrapping_add((row * 2 + 1) as u16));
+                    (u32::from(high) << 8) | u32::from(low)
+                } else {
+                    u32::from(self.memory_at(offset.wrapping_add(row as u16)))
+                };
+            }
+            let bits = if plane == 1 {
+                &mut self.fb
+            } else {
+                &mut self.fb2
+            };
+            for (row, &sprite) in sprite_rows.iter().enumerate().take(tall) {
+                if sprite == 0 {
                     continue;
                 }
-                let px = usize::from(x) % cols + bit;
-                let (px, py) = if px >= cols || py >= rows {
-                    if self.quirks.clip {
+                // Coordinates wrap first and only the part past the edge is
+                // clipped, so an off-screen sprite reappears where it crosses.
+                let py = usize::from(y) % rows + row;
+                for bit in 0..wide {
+                    if sprite & (1u32 << (wide - 1 - bit)) == 0 {
                         continue;
                     }
-                    (px % cols, py % rows)
-                } else {
-                    (px, py)
-                };
-                let index = py * 2 + px / 64;
-                let mask = 1u64 << (63 - px % 64);
-                if self.fb[index] & mask != 0 {
-                    collision = true;
+                    let px = usize::from(x) % cols + bit;
+                    let (px, py) = if px >= cols || py >= rows {
+                        if clip {
+                            continue;
+                        }
+                        (px % cols, py % rows)
+                    } else {
+                        (px, py)
+                    };
+                    let index = py * 2 + px / 64;
+                    let mask = 1u64 << (63 - px % 64);
+                    if bits[index] & mask != 0 {
+                        collision = true;
+                    }
+                    bits[index] ^= mask;
                 }
-                self.fb[index] ^= mask;
             }
+            offset = offset.wrapping_add(bytes_per_plane as u16);
         }
         self.dirty = true;
         collision
@@ -1097,6 +1391,227 @@ mod tests {
     }
 
     #[test]
+    fn xo_instructions_stay_inert_without_the_flag() {
+        let mut program = Chip8::new(Quirks::CHIP8);
+        program.execute_wrapped(0xF301);
+        assert_eq!(program.plane, 1, "FN01 must not select planes");
+        program.v[0] = 0x20;
+        program.execute_wrapped(0xF03A);
+        assert_eq!(program.pitch, 64, "FX3A must not set the pitch");
+        program.memory[0x210] = 0xFF;
+        program.i = 0x210;
+        program.execute_wrapped(0xF002);
+        assert_eq!(program.pattern, [0; 16], "F002 must not copy a pattern");
+        program.memory[0x300] = 0xAB;
+        program.execute_wrapped(0x5002);
+        assert_eq!(program.memory[0x300], 0xAB, "5XY2 must not save");
+        program.v[1] = 0x77;
+        program.execute_wrapped(0x5013);
+        assert_eq!(program.v[1], 0x77, "5XY3 must not load");
+        program.set_pixel(0, 4);
+        program.execute_wrapped(0x00D1);
+        assert!(program.pixel(0, 4), "00DN must not scroll");
+        program.i = 0x300;
+        program.execute_wrapped(0xF000);
+        assert_eq!(program.i, 0x300, "F000 must not load an immediate");
+    }
+
+    #[test]
+    fn xo_plane_instruction_selects_planes_and_zero_selects_none() {
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        vm.execute_wrapped(0xF201);
+        assert_eq!(vm.plane, 2);
+        vm.execute_wrapped(0xF301);
+        assert_eq!(vm.plane, 3);
+        vm.execute_wrapped(0xF101);
+        assert_eq!(vm.plane, 1);
+        vm.execute_wrapped(0xF001);
+        assert_eq!(vm.plane, 0);
+        // Nothing draws, clears or scrolls with no plane selected.
+        vm.memory[0x210] = 0xFF;
+        vm.i = 0x210;
+        vm.execute_wrapped(0xD011);
+        assert_eq!(vm.v[0xF], 0);
+        assert!(!vm.pixel(0, 0));
+        vm.fb[0] = 1u64 << 63;
+        vm.execute_wrapped(0x00E0);
+        assert!(vm.pixel(0, 0), "plane 0 must clear nothing");
+        vm.execute_wrapped(0x00C1);
+        assert!(vm.pixel(0, 0), "plane 0 must not scroll down");
+        vm.execute_wrapped(0x00D1);
+        assert!(vm.pixel(0, 0), "plane 0 must not scroll up");
+    }
+
+    #[test]
+    fn xo_two_plane_draw_consumes_blocks_in_order() {
+        let rom = &[
+            0xA2, 0x0A, // I = 0x20A
+            0xF3, 0x01, // select both planes
+            0xD0, 0x11, // draw 1 row at (0, 0)
+        ];
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        vm.load(rom).expect("load");
+        vm.memory[0x20A] = 0x80; // plane 1 block: x0
+        vm.memory[0x20B] = 0x40; // plane 2 block: x1
+        run(&mut vm, 3);
+        assert_eq!(vm.pixel_color(0, 0), 1, "first block paints plane 1");
+        assert_eq!(vm.pixel_color(1, 0), 2, "second block paints plane 2");
+        assert_eq!(vm.v[0xF], 0, "first draw must not collide");
+        vm.execute_wrapped(0xD0_11);
+        assert_eq!(vm.v[0xF], 1, "second identical draw collides");
+        assert_eq!(vm.pixel_color(0, 0), 0, "xor clears the plane 1 pixel");
+        assert_eq!(vm.pixel_color(1, 0), 0, "xor clears the plane 2 pixel");
+    }
+
+    #[test]
+    fn xo_single_plane_draw_reads_from_i() {
+        let rom = &[
+            0xA2, 0x08, // I = 0x208
+            0xF2, 0x01, // plane 2 only
+            0xD0, 0x11, // draw 1 row at (0, 0)
+        ];
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        vm.load(rom).expect("load");
+        vm.memory[0x208] = 0x80;
+        run(&mut vm, 3);
+        assert_eq!(vm.pixel_color(0, 0), 2, "the block lands in plane 2");
+        assert!(!vm.pixel(0, 0), "plane 1 stays empty");
+    }
+
+    #[test]
+    fn xo_clear_and_scroll_work_on_selected_planes() {
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        vm.fb[10 * 2] = 1u64 << 63; // plane 1 pixel (0, 10)
+        vm.fb2[10 * 2] = 1u64 << 63; // same spot in plane 2
+        vm.execute_wrapped(0xF201); // plane 2 only
+        vm.execute_wrapped(0x00E0);
+        assert_eq!(vm.pixel_color(0, 10), 1, "plane 1 survives the clear");
+        vm.execute_wrapped(0xF301); // both planes
+        vm.execute_wrapped(0x00E0);
+        assert!(!vm.pixel(0, 10), "both planes cleared once selected");
+        vm.fb2[10 * 2] = 1u64 << 63;
+        vm.execute_wrapped(0xF201); // plane 2 only
+        vm.execute_wrapped(0x00D2); // XO-CHIP scroll up by 2
+        assert_eq!(vm.pixel_color(0, 8), 2, "plane 2 scrolled up");
+        assert_eq!(vm.pixel_color(0, 10), 0);
+        vm.fb[10 * 2] = 1u64 << 63; // plane 1 pixel back at (0, 10)
+        vm.execute_wrapped(0x00C1); // scroll down, still plane 2 only
+        assert_eq!(vm.pixel_color(0, 9), 2, "plane 2 scrolled back down");
+        assert_eq!(vm.pixel_color(0, 10), 1, "plane 1 stayed put");
+    }
+
+    #[test]
+    fn xo_save_and_load_range_follow_the_argument_order() {
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        vm.v = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        vm.i = 0x300;
+        vm.execute_wrapped(0x5252); // save v2-v5 ascending
+        assert_eq!(&vm.memory[0x300..0x304], &[3, 4, 5, 6]);
+        assert_eq!(vm.i, 0x300, "I must not move");
+        vm.execute_wrapped(0x5402); // save v4-v0 descending
+        assert_eq!(&vm.memory[0x300..0x305], &[5, 4, 3, 2, 1]);
+        vm.v[2..5].fill(0);
+        vm.execute_wrapped(0x5243); // load v2-v4 ascending
+        assert_eq!(&vm.v[2..5], &[5, 4, 3]);
+        vm.v[3] = 0;
+        vm.v[4] = 0;
+        vm.execute_wrapped(0x5433); // load v4-v3 descending
+        assert_eq!(vm.v[4], 5);
+        assert_eq!(vm.v[3], 4);
+    }
+
+    #[test]
+    fn xo_f000_loads_sixteen_bits_and_skips_over_the_pair() {
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        vm.load(&[0xF0, 0x00, 0x12, 0x34, 0x60, 0x07])
+            .expect("load");
+        vm.execute_wrapped(0xF000);
+        assert_eq!(vm.i, 0x1234, "F000 NNNN is big-endian");
+        assert_eq!(vm.pc, 0x202, "the immediate is consumed, not executed");
+        vm.execute_wrapped(0x6007);
+        assert_eq!(vm.v[0], 7);
+
+        // A skip jumps over the whole F000 NNNN pair.
+        let mut skip = Chip8::new(Quirks::XO_CHIP);
+        skip.load(&[
+            0x60, 0x05, // V0 = 5
+            0x30, 0x05, // skip if V0 == 5
+            0xF0, 0x00, 0x12, 0x34, // long instruction, must be hopped
+            0x61, 0x02, // V1 = 2
+            0x12, 0x00, // jmp 0x200
+        ])
+        .expect("load");
+        skip.i = 0x777;
+        run(&mut skip, 3);
+        assert_eq!(skip.v[1], 2, "the skip landed after the pair");
+        assert_eq!(skip.i, 0x777, "the pair must not execute");
+    }
+
+    #[test]
+    fn xo_audio_pattern_copies_and_pitch_register_scales() {
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        vm.i = 0x300;
+        vm.memory[0x300..0x310].fill(0xAA);
+        vm.execute_wrapped(0xF102); // x nibble is not 0: not F002
+        assert_eq!(vm.pattern, [0; 16], "F002 needs the x nibble to be 0");
+        vm.execute_wrapped(0xF002);
+        assert_eq!(vm.pattern, [0xAA; 16]);
+        vm.v[3] = 64;
+        vm.execute_wrapped(0xF33A);
+        assert_eq!(vm.pitch, 64);
+        assert_eq!(vm.pitch_rate(), 4000, "pitch 64 is the 4000 Hz default");
+        vm.v[3] = 0;
+        vm.execute_wrapped(0xF33A);
+        let low = i32::from(vm.pitch_rate());
+        assert!(
+            (1587 - low).abs() <= 2,
+            "pitch 0 is about 1587 Hz, got {low}"
+        );
+        vm.v[3] = 128;
+        vm.execute_wrapped(0xF33A);
+        let high = i32::from(vm.pitch_rate());
+        assert!(
+            (10079 - high).abs() <= 2,
+            "pitch 128 is about 10079 Hz, got {high}"
+        );
+    }
+
+    #[test]
+    fn xo_frames_pack_two_bits_per_pixel() {
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        assert_eq!(vm.frame_len(), LOW_ROWS * LOW_COLS / 4);
+        vm.set_pixel(0, 0); // plane 1
+        vm.fb2[0] |= 1u64 << 62; // plane 2 at x=1
+        vm.fb[0] |= 1u64 << 61; // both planes at x=2
+        vm.fb2[0] |= 1u64 << 61;
+        let mut frame = Vec::new();
+        vm.pack_frame(&mut frame);
+        assert_eq!(frame.len(), LOW_ROWS * LOW_COLS / 4);
+        assert_eq!(frame[0], 0b01_10_11_00, "colour is plane1 | plane2 << 1");
+        assert!(frame[1..].iter().all(|byte| *byte == 0));
+        vm.hires = true;
+        assert_eq!(vm.frame_len(), HIGH_ROWS * HIGH_COLS / 4);
+        vm.pack_frame(&mut frame);
+        assert_eq!(frame.len(), HIGH_ROWS * HIGH_COLS / 4);
+        assert_eq!(frame[0], 0b01_10_11_00);
+    }
+
+    #[test]
+    fn xo_state_defaults_come_back_on_load() {
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        assert_eq!(vm.plane, 1);
+        assert_eq!(vm.pitch, 64);
+        assert_eq!(vm.pattern, [0; 16]);
+        vm.plane = 3;
+        vm.pitch = 200;
+        vm.pattern = [0xFF; 16];
+        vm.load(&[0x60, 0x01]).expect("load");
+        assert_eq!(vm.plane, 1, "plane 1 is selected after a load");
+        assert_eq!(vm.pitch, 64);
+        assert_eq!(vm.pattern, [0; 16]);
+    }
+
+    #[test]
     fn timers_decrement_and_saturate() {
         let mut vm = Chip8::new(Quirks::CHIP8);
         vm.sound_timer = 3;
@@ -1379,7 +1894,10 @@ mod tests {
                 vm.memory[address as usize & (MEMORY_SIZE - 1)] = value;
             }
         }
-        let cycles_per_frame = if platform == "chip8" { 12 } else { 20 };
+        // Mirror the runtime clock: archive entries play at their recorded
+        // tickrate, unknown ROMs at the platform pace.
+        let cycles_per_frame = crate::game::store::tickrate_for_bytes(&bytes)
+            .unwrap_or(if platform == "chip8" { 12 } else { 20 });
         let last = frames.iter().copied().max().expect("at least one frame");
         println!("rom={path} platform={platform} frames={frames:?}");
         let raw_dir = std::env::var("ILUHA_CHIP8_DUMP_RAW_DIR").ok();
@@ -1411,7 +1929,8 @@ mod tests {
 
     /// Writes one framebuffer as raw pixel bytes (`cols` and `rows` as
     /// little-endian u16, then one byte per pixel, left to right, top to
-    /// bottom) so tooling outside cargo can turn it into an image.
+    /// bottom) so tooling outside cargo can turn it into an image. XO-CHIP
+    /// frames write the 0-3 colour index per pixel instead of a boolean.
     fn write_raw_frame(vm: &Chip8, dir: &str, frame: u32) {
         let cols = u16::try_from(vm.cols()).expect("cols fit");
         let rows = u16::try_from(vm.rows()).expect("rows fit");
@@ -1420,7 +1939,11 @@ mod tests {
         bytes.extend_from_slice(&rows.to_le_bytes());
         for y in 0..vm.rows() {
             for x in 0..vm.cols() {
-                bytes.push(u8::from(vm.pixel(x, y)));
+                bytes.push(if vm.quirks.xochip {
+                    vm.pixel_color(x, y)
+                } else {
+                    u8::from(vm.pixel(x, y))
+                });
             }
         }
         let path = std::path::Path::new(dir).join(format!("{frame:05}.raw"));
@@ -1430,7 +1953,20 @@ mod tests {
     fn print_art(vm: &Chip8) {
         for y in 0..vm.rows() {
             let line: String = (0..vm.cols())
-                .map(|x| if vm.pixel(x, y) { '#' } else { '.' })
+                .map(|x| {
+                    if vm.quirks.xochip {
+                        match vm.pixel_color(x, y) {
+                            0 => '.',
+                            1 => '#',
+                            2 => '+',
+                            _ => '@',
+                        }
+                    } else if vm.pixel(x, y) {
+                        '#'
+                    } else {
+                        '.'
+                    }
+                })
                 .collect();
             println!("{line}");
         }

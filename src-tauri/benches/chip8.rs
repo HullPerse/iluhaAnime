@@ -6,15 +6,19 @@ use std::time::{Duration, Instant};
 //
 // Budget (AMD Ryzen 7 5800X, Windows 11, rustc 1.98.0, bench profile, 2026-10-17):
 //   draw_heavy tick         median <= 100 ns/cycle
+//   draw_heavy_xo tick      median <= 150 ns/cycle (both planes, two blocks)
 //   logic tick              median <=  30 ns/cycle
-//   frame packing           median <= 5.0 us/frame
+//   lores frame packing     median <= 5.0 us/frame
+//   xo hires frame packing  median <= 20 us/frame (2 bit/px, 2048 bytes)
 //   12-cycle + pack pipeline median <= 100 us (0.6% of the 16.67 ms frame budget)
 //
 // The workload is the UI contract: at 60 Hz the render loop asks for the
 // elapsed slice of a 720 Hz CHIP-8 clock (12 cycles per frame) and packs the
-// framebuffer into the `game_tick` response. Each scenario runs five times and
-// prints the median; the FNV-1a checksum of the packed frame proves the runner
-// did the work and the optimizer did not delete it.
+// framebuffer into the `game_tick` response. XO sessions keep the same
+// contract at the Octo default clock; the XO cases keep the xochip profile
+// honest about the two-plane draw and the four-colour frame. Each scenario
+// runs five times and prints the median; the FNV-1a checksum of the packed
+// frame proves the runner did the work and the optimizer did not delete it.
 //
 // Run with:
 //   cargo bench --manifest-path src-tauri/Cargo.toml --bench chip8
@@ -54,6 +58,22 @@ fn draw_heavy_rom() -> Vec<u8> {
     rom
 }
 
+/// XO worst case: both planes selected, every second cycle draws a 5-row
+/// two-block sprite (plane 1 rows first at I, then planar 2's).
+fn draw_heavy_xo_rom() -> Vec<u8> {
+    let mut rom = vec![
+        0xA2, 0x14, // I = 0x214 (plane 1 block, then plane 2 block)
+        0xF3, 0x01, // select both drawing planes
+        0xD0, 0x15, // draw 5 rows at (V0, V1)
+        0x70, 0x01, // V0 += 1
+        0x12, 0x04, // jmp 0x204
+    ];
+    rom.resize(0x14, 0x00);
+    rom.extend_from_slice(&[0xFF; 5]); // plane 1 block
+    rom.extend_from_slice(&[0xAA; 5]); // plane 2 block
+    rom
+}
+
 /// Light mix closer to real game logic: arithmetic, compare, branch.
 fn logic_rom() -> Vec<u8> {
     vec![
@@ -66,12 +86,12 @@ fn logic_rom() -> Vec<u8> {
     ]
 }
 
-fn bench_cycles(name: &str, rom: &[u8], cycles: u64, budget_ns: f64) {
+fn bench_cycles(name: &str, quirks: Quirks, rom: &[u8], cycles: u64, budget_ns: f64) {
     let mut samples = Vec::with_capacity(RUNS);
     let mut digest = 0_u64;
     let mut frame = Vec::new();
     for _ in 0..RUNS {
-        let mut vm = Chip8::new(Quirks::CHIP8);
+        let mut vm = Chip8::new(quirks);
         vm.load(rom).expect("bench rom loads");
         let started = Instant::now();
         for _ in 0..cycles {
@@ -90,16 +110,26 @@ fn bench_cycles(name: &str, rom: &[u8], cycles: u64, budget_ns: f64) {
     );
 }
 
-fn bench_frame_packing(frames: usize, budget_us: f64) {
+fn bench_frame_packing(
+    name: &str,
+    quirks: Quirks,
+    rom: &[u8],
+    warm_ticks: usize,
+    hires: bool,
+    frames: usize,
+    budget_us: f64,
+) {
     let mut samples = Vec::with_capacity(RUNS);
     let mut digest = 0_u64;
     for _ in 0..RUNS {
-        let mut vm = Chip8::new(Quirks::CHIP8);
-        vm.load(&draw_heavy_rom()).expect("bench rom loads");
-        // Two ticks: the first sets I, the second draws the sprite, so the
-        // packed frame is not blank (checksum would match an empty buffer).
-        vm.tick();
-        vm.tick();
+        let mut vm = Chip8::new(quirks);
+        vm.load(rom).expect("bench rom loads");
+        // Warm-up ticks prime I and draw the sprite, so the packed frame is
+        // not blank (checksum would match an empty buffer).
+        for _ in 0..warm_ticks {
+            vm.tick();
+        }
+        vm.hires = hires;
         let mut out = Vec::with_capacity(vm.frame_len());
         let started = Instant::now();
         for _ in 0..frames {
@@ -112,7 +142,7 @@ fn bench_frame_packing(frames: usize, budget_us: f64) {
     let total = median(samples);
     let per_frame_us = total.as_secs_f64() / frames as f64 * 1e6;
     println!(
-        "frame_packing: frames={frames} median={total:?} per_frame={per_frame_us:.2}us of_16.67ms_budget={:.3}% budget<={budget_us:.1}us pass={} checksum=0x{digest:016x}",
+        "frame_packing[{name}]: frames={frames} median={total:?} per_frame={per_frame_us:.2}us of_16.67ms_budget={:.3}% budget<={budget_us:.1}us pass={} checksum=0x{digest:016x}",
         per_frame_us * 1e-6 / FRAME_BUDGET_SECONDS * 100.0,
         if per_frame_us <= budget_us { "yes" } else { "no" },
     );
@@ -151,8 +181,38 @@ fn bench_frame_pipeline(budget_us: f64) {
 }
 
 fn main() {
-    bench_cycles("draw_heavy", &draw_heavy_rom(), 2_000_000, 100.0);
-    bench_cycles("logic", &logic_rom(), 10_000_000, 30.0);
-    bench_frame_packing(20_000, 5.0);
+    bench_cycles(
+        "draw_heavy",
+        Quirks::CHIP8,
+        &draw_heavy_rom(),
+        2_000_000,
+        100.0,
+    );
+    bench_cycles(
+        "draw_heavy_xo",
+        Quirks::XO_CHIP,
+        &draw_heavy_xo_rom(),
+        2_000_000,
+        150.0,
+    );
+    bench_cycles("logic", Quirks::CHIP8, &logic_rom(), 10_000_000, 30.0);
+    bench_frame_packing(
+        "lores",
+        Quirks::CHIP8,
+        &draw_heavy_rom(),
+        2,
+        false,
+        20_000,
+        5.0,
+    );
+    bench_frame_packing(
+        "xo_hires",
+        Quirks::XO_CHIP,
+        &draw_heavy_xo_rom(),
+        3,
+        true,
+        20_000,
+        20.0,
+    );
     bench_frame_pipeline(100.0);
 }

@@ -18,7 +18,6 @@ const game = {
   "game.store.download": "Скачать",
   "game.store.downloading": "Загрузка",
   "game.store.installed": "Установлено",
-  "game.store.needsXochip": "Нужен XO-CHIP",
   "game.store.offline": "Для скачивания нужен интернет.",
   "game.store.empty": "Ничего не найдено.",
   "game.store.error": "Не удалось загрузить список магазина.",

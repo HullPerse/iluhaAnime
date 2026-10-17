@@ -13,7 +13,7 @@ use std::path::Path;
 use crate::app_db;
 use crate::game::chip8::MAX_PROGRAM_BYTES;
 
-pub const PLATFORMS: [&str; 3] = ["chip8", "schip", "schip11"];
+pub const PLATFORMS: [&str; 4] = ["chip8", "schip", "schip11", "xochip"];
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -82,6 +82,7 @@ pub fn normalize_platform(platform: &str) -> String {
     match platform {
         "schip" | "schip10" => "schip".to_string(),
         "schip11" => "schip11".to_string(),
+        "xochip" => "xochip".to_string(),
         _ => "chip8".to_string(),
     }
 }

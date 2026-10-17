@@ -14,13 +14,20 @@ use std::sync::{Mutex, MutexGuard};
 
 use chip8::{Chip8, Quirks};
 
-/// `game_tick` response layout: 4 header bytes, then the packed framebuffer.
+/// `game_tick` response layout: 4 header bytes, an optional 18-byte XO-CHIP
+/// audio block (present exactly when [`FLAG_XO`] is set), then the packed
+/// framebuffer: one bit per pixel, or two for XO-CHIP colour indices.
 pub const HEADER_BYTES: usize = 4;
 pub const FLAG_DIRTY: u8 = 0x01;
 pub const FLAG_HIRES: u8 = 0x02;
 pub const FLAG_SOUND: u8 = 0x04;
 pub const FLAG_WAIT_KEY: u8 = 0x08;
 pub const FLAG_HALTED: u8 = 0x10;
+/// The session runs an XO-CHIP program: the frame uses two bits per pixel
+/// and carries the audio block.
+pub const FLAG_XO: u8 = 0x20;
+/// `pitch rate u16` plus the 16 pattern bytes of the XO-CHIP audio block.
+pub const XO_AUDIO_BYTES: usize = 18;
 
 /// Fallback pace for ROMs the store index does not know: cycles the
 /// frontend asks for per second. Archive entries play at their recorded
@@ -42,8 +49,10 @@ fn cycles_per_second(platform: &str, tickrate: Option<u32>) -> u32 {
 }
 
 /// Hard cap per `game_tick` call so a background tab that wakes with a huge
-/// elapsed time cannot stall the UI thread with an unbounded burst.
-const MAX_CYCLES_PER_TICK: u32 = 2_000;
+/// elapsed time cannot stall the UI thread with an unbounded burst. The
+/// archive's fastest ROMs run at a `tickrate` of 10000 cycles per 60 Hz
+/// frame, so the cap sits above that plus carry headroom.
+const MAX_CYCLES_PER_TICK: u32 = 12_000;
 const MAX_TIMER_TICKS_PER_TICK: u32 = 32;
 
 #[derive(Default)]
@@ -79,6 +88,9 @@ pub struct GameStartInfo {
     /// Cycles per second this session should be fed: the archive `tickrate`
     /// when known, otherwise the platform pace.
     pub cycles_per_second: u32,
+    /// XO-CHIP four-colour palette (background, plane 1, plane 2, overlap)
+    /// for sessions that render two bitplanes; `None` keeps the theme.
+    pub palette: Option<store::Palette>,
 }
 
 fn lock_host<'a>(
@@ -147,9 +159,19 @@ fn run_tick(
         if vm.halted {
             flags |= FLAG_HALTED;
         }
+        if vm.quirks.xochip {
+            flags |= FLAG_XO;
+        }
 
-        let mut out = Vec::with_capacity(HEADER_BYTES + vm.frame_len());
+        let audio_bytes = if vm.quirks.xochip { XO_AUDIO_BYTES } else { 0 };
+        let mut out = Vec::with_capacity(HEADER_BYTES + audio_bytes + vm.frame_len());
         out.extend_from_slice(&[flags, 0, 0, 0]);
+        if vm.quirks.xochip {
+            // XO-CHIP audio block: the pitch rate in hertz, then the 128
+            // one-bit samples of the pattern buffer.
+            out.extend_from_slice(&vm.pitch_rate().to_le_bytes());
+            out.extend_from_slice(&vm.pattern);
+        }
         vm.pack_frame(frame);
         out.extend_from_slice(frame);
         vm.dirty = false;
@@ -169,6 +191,11 @@ pub fn game_start(
     // to the platform profile.
     let quirks =
         store::quirks_for_bytes(&bytes).unwrap_or_else(|| Quirks::for_platform(&info.platform));
+    let palette = if quirks.xochip {
+        Some(store::palette_for_bytes(&bytes)?)
+    } else {
+        None
+    };
     let mut vm = Chip8::new(quirks);
     vm.load(&bytes)?;
     let cycles_per_second = cycles_per_second(&info.platform, store::tickrate_for_bytes(&bytes));
@@ -189,6 +216,7 @@ pub fn game_start(
         cols,
         rows,
         cycles_per_second,
+        palette,
     })
 }
 
@@ -279,6 +307,30 @@ mod tests {
         assert!(
             out[HEADER_BYTES..].iter().any(|byte| *byte != 0),
             "the sprite must be visible in the frame"
+        );
+    }
+
+    #[test]
+    fn xo_tick_carries_audio_and_two_bit_frame() {
+        let host = GameHost::default();
+        let mut inner = host.inner.lock().expect("lock");
+        let mut vm = Chip8::new(Quirks::XO_CHIP);
+        // V0 = 64 then FX3A: the pitch register selects the 4000 Hz default.
+        vm.load(&[0x60, 0x40, 0xF0, 0x3A]).expect("load");
+        let session = install_session(&mut inner, vm);
+        drop(inner);
+        let out = tick_once(&host, session, 2, 0).expect("tick");
+        assert_ne!(out[0] & FLAG_XO, 0, "XO sessions must flag the frame");
+        assert_eq!(out.len(), HEADER_BYTES + XO_AUDIO_BYTES + 32 * 64 / 4);
+        assert_eq!(
+            u16::from_le_bytes([out[HEADER_BYTES], out[HEADER_BYTES + 1]]),
+            4000,
+            "the audio block carries the pitch rate"
+        );
+        assert_eq!(
+            &out[HEADER_BYTES + 2..HEADER_BYTES + XO_AUDIO_BYTES],
+            &[0_u8; 16][..],
+            "the pattern buffer starts silent"
         );
     }
 

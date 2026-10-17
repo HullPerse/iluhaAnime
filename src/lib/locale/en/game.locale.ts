@@ -18,7 +18,6 @@ const game = {
   "game.store.download": "Download",
   "game.store.downloading": "Downloading",
   "game.store.installed": "Installed",
-  "game.store.needsXochip": "Needs XO-CHIP",
   "game.store.offline": "Downloading needs an internet connection.",
   "game.store.empty": "Nothing found.",
   "game.store.error": "The store list could not be loaded.",

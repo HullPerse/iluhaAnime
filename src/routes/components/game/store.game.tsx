@@ -93,7 +93,6 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
       )}
       <div className="flex max-h-[50vh] min-h-0 flex-col overflow-y-auto">
         {visible.map((entry) => {
-          const needsXochip = entry.platform === "xochip";
           const installing = installingKey === entry.key;
           const rowProgress = progress !== null && progress.key === entry.key ? progress : null;
           return (
@@ -119,12 +118,7 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
                   {t("game.store.installed")}
                 </span>
               )}
-              {!entry.installed && needsXochip && (
-                <span className="windows95-text text-hint shrink-0 text-xs">
-                  {t("game.store.needsXochip")}
-                </span>
-              )}
-              {!entry.installed && !needsXochip && installing && (
+              {!entry.installed && installing && (
                 <ProgressBar
                   value={rowProgress?.received ?? 0}
                   max={rowProgress?.total ?? entry.size}
@@ -133,7 +127,7 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
                   ariaLabel={t("game.store.downloading")}
                 />
               )}
-              {!entry.installed && !needsXochip && !installing && (
+              {!entry.installed && !installing && (
                 <Button
                   className="h-5 gap-0.5 px-1"
                   disabled={!online || install.isPending}

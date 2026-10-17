@@ -1,4 +1,4 @@
-export type GamePlatform = "chip8" | "schip" | "schip11";
+export type GamePlatform = "chip8" | "schip" | "schip11" | "xochip";
 
 export type GameRomSource = "builtin" | "user";
 
@@ -12,7 +12,7 @@ export interface GameRomInfo {
   size: number;
 }
 
-/** Platforms the ROM store can list; `xochip` entries cannot run yet. */
+/** Platforms the ROM store can list. */
 export type GameStorePlatform = "chip8" | "schip" | "xochip";
 
 /** One entry of the bundled chip8Archive index shown in the ROM store. */
@@ -47,17 +47,38 @@ export interface GameStartInfo {
   cols: number;
   rows: number;
   cyclesPerSecond: number;
+  /** XO-CHIP four-colour palette for two-bit frames; null keeps the theme. */
+  palette: GamePalette | null;
 }
 
-/** Decoded `game_tick` response: flag header plus the packed 1bpp framebuffer. */
+/** XO-CHIP palette: background, first plane, second plane and their overlap. */
+export interface GamePalette {
+  background: string;
+  fill: string;
+  fill2: string;
+  blend: string;
+}
+
+/** XO-CHIP buzzer state carried by every XO `game_tick` response. */
+export interface GameAudioBlock {
+  /** Playback rate of the 128 one-bit samples, in hertz. */
+  pitchHz: number;
+  /** Sixteen pattern bytes: 128 bits, most significant bit first. */
+  pattern: Uint8Array;
+}
+
+/** Decoded `game_tick` response: flag header, optional XO audio block, frame. */
 export interface GameFrame {
   cols: number;
   rows: number;
   dirty: boolean;
   hires: boolean;
+  /** True for XO-CHIP frames: two bits per pixel in four colours. */
+  xo: boolean;
   sound: boolean;
   waitingKey: boolean;
   halted: boolean;
+  audio: GameAudioBlock | null;
   pixels: Uint8Array;
 }
 

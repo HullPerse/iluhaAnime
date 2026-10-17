@@ -7,11 +7,12 @@ import { GAME_KEY_BY_CODE } from "@/config/game/keypad.config";
 import { createGameAudio } from "@/lib/game/audio.utils";
 import type { GameAudio } from "@/lib/game/audio.utils";
 import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/game/frame.utils";
+import type { Rgba } from "@/lib/game/frame.utils";
 import { subscribeKeypad } from "@/lib/hotkeys/keypad.hotkeys";
 import { createAnimationLoop } from "@/lib/pacer/interval.utils";
 import type { AnimationLoopTask } from "@/lib/pacer/interval.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import type { GameFrame, GameRomInfo, GameStartInfo, GameTelemetry } from "@/types/game";
+import type { GameFrame, GamePalette, GameRomInfo, GameStartInfo, GameTelemetry } from "@/types/game";
 
 export type GameSessionStatus = "idle" | "starting" | "running" | "error";
 
@@ -38,6 +39,23 @@ const PALETTE = {
   off: tryParseHexColor(GAME_DISPLAY.background, [0, 0, 0, 255]),
 } as const;
 
+/** One-bit frames keep the theme; XO frames index four colours (0-3). */
+const THEME_COLORS: readonly Rgba[] = [PALETTE.off, PALETTE.on];
+
+const XO_FILL2_FALLBACK: Rgba = [255, 102, 0, 255];
+const XO_BLEND_FALLBACK: Rgba = [102, 34, 0, 255];
+
+/** Background, first plane, second plane and overlap for a session. */
+function sessionColors(palette: GamePalette | null): readonly Rgba[] {
+  if (palette === null) return THEME_COLORS;
+  return [
+    tryParseHexColor(palette.background, THEME_COLORS[0]),
+    tryParseHexColor(palette.fill, THEME_COLORS[1]),
+    tryParseHexColor(palette.fill2, XO_FILL2_FALLBACK),
+    tryParseHexColor(palette.blend, XO_BLEND_FALLBACK),
+  ];
+}
+
 const IDLE_RUNTIME: GameSessionRuntime = { status: "idle", info: null, error: null };
 const IDLE_TELEMETRY: GameTelemetry = { fps: 0, hires: false, waitingKey: false, halted: false };
 
@@ -45,6 +63,8 @@ interface ActiveSession {
   session: number;
   cyclesPerSecond: number;
   audio: GameAudio;
+  /** Palette of the packed frames: two theme colours or the four XO ones. */
+  colors: readonly Rgba[];
   loop: AnimationLoopTask;
   releaseKeypad: () => void;
   /** First raf frame only stamps the clock; cycles start on the next one. */
@@ -84,7 +104,7 @@ function paintFrame(
     active.context = context;
     active.image = context.createImageData(frame.cols, frame.rows);
   }
-  expandFrame(frame, active.image.data, PALETTE.on, PALETTE.off);
+  expandFrame(frame, active.image.data, active.colors);
   active.context.putImageData(active.image, 0, 0);
 }
 
@@ -165,6 +185,9 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
           fail(paintError.message);
           return;
         }
+        if (frame.audio) {
+          active.audio.setWavetable(frame.audio.pitchHz, frame.audio.pattern);
+        }
         active.audio.setActive(frame.sound && !mutedRef.current);
         const since = now - active.telemetryStamp;
         if (since >= GAME_DISPLAY.telemetryIntervalMs) {
@@ -208,7 +231,8 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       const active: ActiveSession = {
         session: info.session,
         cyclesPerSecond: info.cyclesPerSecond,
-        audio: createGameAudio(),
+        audio: createGameAudio(info.palette === null ? "beep" : "wavetable"),
+        colors: sessionColors(info.palette),
         loop: { cancel: () => undefined },
         releaseKeypad: () => undefined,
         primed: false,

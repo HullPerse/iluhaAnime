@@ -8,16 +8,23 @@ import {
   FRAME_FLAG_DIRTY,
   FRAME_FLAG_HIRES,
   FRAME_FLAG_SOUND,
+  FRAME_FLAG_XO,
   FRAME_HEADER_BYTES,
   HIGH_FRAME_BYTES,
   LOW_FRAME_BYTES,
+  LOW_XO_FRAME_BYTES,
+  XO_AUDIO_BYTES,
   parseHexColor,
 } from "@/lib/game/frame.utils";
 import type { GameRomInfo, GameStartInfo } from "@/types/game";
 
 import { mockInvoke } from "../../mocks";
 
-const audio = vi.hoisted(() => ({ setActive: vi.fn(), dispose: vi.fn() }));
+const audio = vi.hoisted(() => ({
+  setActive: vi.fn(),
+  setWavetable: vi.fn(),
+  dispose: vi.fn(),
+}));
 
 vi.mock("@/lib/game/audio.utils", () => ({ createGameAudio: () => audio }));
 
@@ -42,6 +49,7 @@ const START: GameStartInfo = {
   cols: 64,
   rows: 32,
   cyclesPerSecond: 720,
+  palette: null,
 };
 
 const ON = parseHexColor(GAME_DISPLAY.pixel);
@@ -56,6 +64,21 @@ function tickResponse(flags: number, pixels: number[] = [], hires = false): Arra
   const bytes = new Uint8Array(FRAME_HEADER_BYTES + (hires ? HIGH_FRAME_BYTES : LOW_FRAME_BYTES));
   bytes[0] = flags;
   bytes.set(pixels, FRAME_HEADER_BYTES);
+  return bytes.buffer;
+}
+
+function xoResponse(
+  flags: number,
+  pitchHz: number,
+  pattern: number[],
+  pixels: number[] = []
+): ArrayBuffer {
+  const bytes = new Uint8Array(FRAME_HEADER_BYTES + XO_AUDIO_BYTES + LOW_XO_FRAME_BYTES);
+  bytes[0] = flags | FRAME_FLAG_XO;
+  bytes[FRAME_HEADER_BYTES] = pitchHz & 0xff;
+  bytes[FRAME_HEADER_BYTES + 1] = (pitchHz >> 8) & 0xff;
+  bytes.set(pattern, FRAME_HEADER_BYTES + 2);
+  bytes.set(pixels, FRAME_HEADER_BYTES + XO_AUDIO_BYTES);
   return bytes.buffer;
 }
 
@@ -268,10 +291,50 @@ describe("useGameSession", () => {
     act(() => step(0));
     await act(async () => step(16.6667));
     await waitFor(() => expect(audio.setActive).toHaveBeenCalledWith(false));
+    expect(audio.setWavetable).not.toHaveBeenCalled();
 
     rerender({ muted: false });
     await act(async () => step(16.6667));
     await waitFor(() => expect(audio.setActive).toHaveBeenLastCalledWith(true));
+
+    act(() => result.current.stop());
+  });
+
+  it("paints XO frames with the session palette and feeds the wavetable", async () => {
+    const xoStart: GameStartInfo = {
+      ...START,
+      platform: "xochip",
+      palette: {
+        background: "#000000",
+        fill: "#ff0000",
+        fill2: "#00ff00",
+        blend: "#0000ff",
+      },
+    };
+    const pattern = Array.from({ length: 16 }, (_, index) => index);
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (command === "game_start") return xoStart;
+      if (command === "game_tick") {
+        return xoResponse(FRAME_FLAG_DIRTY | FRAME_FLAG_SOUND, 4000, pattern, [0b01_10_11_00]);
+      }
+      return null;
+    });
+    const { result } = renderSession();
+    await start({ result });
+
+    act(() => step(0));
+    await act(async () => step(16.6667));
+    await waitFor(() => expect(putImageData).toHaveBeenCalledTimes(1));
+
+    expect(audio.setWavetable).toHaveBeenCalledWith(4000, expect.any(Uint8Array));
+    expect(audio.setActive).toHaveBeenLastCalledWith(true);
+
+    const image = putImageData.mock.calls.at(-1)?.[0] as ImageData;
+    // First plane paints `fill`, second `fill2`, both `blend`, none `background`.
+    expect(image.data[0]).toBe(0xff);
+    expect(image.data[5]).toBe(0xff);
+    expect(image.data[10]).toBe(0xff);
+    expect(image.data[12]).toBe(0x00);
 
     act(() => result.current.stop());
   });

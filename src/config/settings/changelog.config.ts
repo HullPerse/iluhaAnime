@@ -167,6 +167,9 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.app.button_loading", "app"),
       entry("changelog.5_0_0.changed.app.hints_trim", "app"),
       entry("changelog.5_0_0.changed.app.popups_off_default", "app"),
+      entry("changelog.5_0_0.changed.anilist.detail_prefetch", "anilist"),
+      entry("changelog.5_0_0.changed.anilist.detail_requests", "anilist"),
+      entry("changelog.5_0_0.changed.anilist.custom_lists_guest", "anilist"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

@@ -357,6 +357,12 @@ const changelog500 = {
     "In-app corner toasts: fresh notifications arrive in the bottom-right corner as small windows with a countdown bar and seconds readout, click opens the target, and the popup channel (off, system, in-app, or both) is picked in Settings Notifications",
   "changelog.5_0_0.changed.app.popups_off_default":
     "Notification popups are off by default: everything still lands in the notification tray, turn on the channel you want in Settings Notifications",
+  "changelog.5_0_0.changed.anilist.detail_prefetch":
+    "Anime details open without the request waterfall: the franchise starts loading in parallel with the main screen and reuses the shared cache, and the section badge tells a cache hit from a fresh fetch",
+  "changelog.5_0_0.changed.anilist.detail_requests":
+    "Anime details use less traffic: the trailer, screens, and import lists fetch only the fields they use, and the related batch grew from 8 to 25, so long franchises assemble in fewer requests",
+  "changelog.5_0_0.changed.anilist.custom_lists_guest":
+    "Custom lists in anime details are no longer requested while signed out of AniList",
 } as const;
 
 export default changelog500;

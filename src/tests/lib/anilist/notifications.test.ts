@@ -1,10 +1,12 @@
 import { mockConvertFileSrc, mockInvoke } from "../../mocks";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
 import {
   anilistNotificationsAtoms,
+  createAnilistNotificationsSignalStore,
   markOwnAnilistListStatus,
+  migrateNotificationsData,
   saveAnilistObservation,
 } from "@/store/anilist.store";
 import { notificationAtoms } from "@/store/notification.store";
@@ -30,7 +32,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: mockConvertFileSrc,
 }));
 
-const t = ((key: string) => key) as TFunc;
+const t = ((key: string, variables?: Record<string, string | number>) =>
+  variables == null ? key : `${key} ${JSON.stringify(variables)}`) as TFunc;
 const notDisposed = () => false;
 
 function listEntry(overrides?: Partial<AniNotificationEntry>): AniNotificationEntry {
@@ -75,6 +78,50 @@ function siteItem(overrides?: Partial<AniSiteNotification>): AniSiteNotification
   };
 }
 
+const NOW_SEC = 2_000_000;
+const NOW_MS = NOW_SEC * 1000;
+const PAST_SEC = NOW_SEC - 1000;
+const FUTURE_SEC = NOW_SEC + 1000;
+
+function mockNow(): void {
+  vi.spyOn(Date, "now").mockReturnValue(NOW_MS);
+}
+
+function memoryStorage(): Storage {
+  const data = new Map<string, string>();
+  return {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      data.set(key, String(value));
+    },
+    removeItem: (key: string) => {
+      data.delete(key);
+    },
+    clear: () => {
+      data.clear();
+    },
+    key: (index: number) => [...data.keys()][index] ?? null,
+    get length() {
+      return data.size;
+    },
+  };
+}
+
+function airingEntry(
+  nextEpisode: number | null,
+  nextAiringAt: number | null
+): AniNotificationEntry {
+  return listEntry({
+    media: {
+      id: 7,
+      title: "Show",
+      next_episode: nextEpisode,
+      next_airing_at: nextAiringAt,
+      status: "RELEASING",
+    },
+  });
+}
+
 beforeEach(() => {
   checkAuth.mockReset();
   getLists.mockReset();
@@ -98,6 +145,11 @@ beforeEach(() => {
     notifyMediaMerge: true,
     notifySequel: true,
   });
+});
+
+afterEach(() => {
+  const now = Date.now as unknown as { mockRestore?: () => void };
+  now.mockRestore?.();
 });
 
 describe("list status matrix", () => {
@@ -193,6 +245,190 @@ describe("media status", () => {
   });
 });
 
+describe("new episode notifications", () => {
+  it("notifies a single episode that aired between polls", async () => {
+    mockNow();
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    const ok = await pollAniListReleases(t, notDisposed, { system: false });
+    expect(ok).toBe(true);
+    const items = notificationAtoms.items.get();
+    expect(items).toHaveLength(1);
+    expect(items[0]?.eventKey).toBe("7:4");
+    expect(items[0]?.title).toBe("notification.anilist.new.episode");
+    const releases = anilistNotificationsAtoms.releases.get();
+    expect(releases).toHaveLength(1);
+    expect(releases[0]?.mediaId).toBe(7);
+    expect(releases[0]?.episode).toBe(4);
+    expect(anilistNotificationsAtoms.observations.get()["7"]?.nextEpisode).toBe(5);
+  });
+
+  it("notifies every missed episode in order", async () => {
+    mockNow();
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(7, FUTURE_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    const keys = notificationAtoms.items
+      .get()
+      .map((item) => item.eventKey)
+      .sort();
+    expect(keys).toEqual(["7:4", "7:5", "7:6"]);
+    const episodes = anilistNotificationsAtoms.releases
+      .get()
+      .map((release) => release.episode)
+      .sort();
+    expect(episodes).toEqual([4, 5, 6]);
+  });
+
+  it("notifies the current episode while its airing time passes", async () => {
+    mockNow();
+    saveAnilistObservation("7", observation({ nextEpisode: 5, nextAiringAt: FUTURE_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, PAST_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    const items = notificationAtoms.items.get();
+    expect(items).toHaveLength(1);
+    expect(items[0]?.eventKey).toBe("7:5");
+    expect(anilistNotificationsAtoms.releases.get()[0]?.episode).toBe(5);
+  });
+
+  it("stays silent when the previous airing time is still in the future", async () => {
+    mockNow();
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: FUTURE_SEC }));
+    getLists.mockResolvedValue([
+      { name: "Watching", entries: [airingEntry(5, FUTURE_SEC + 5000)] },
+    ]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
+  });
+
+  it("stays silent on the first observation", async () => {
+    mockNow();
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, PAST_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.observations.get()["7"]?.nextEpisode).toBe(5);
+  });
+
+  it("stays silent when episode notifications are off", async () => {
+    mockNow();
+    patchSettings({ notifyNewEpisodes: false });
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
+  });
+
+  it("does not notify twice across repeated polls", async () => {
+    mockNow();
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+    expect(anilistNotificationsAtoms.releases.get()).toHaveLength(1);
+  });
+
+  it("skips an episode already recorded in the tray", async () => {
+    mockNow();
+    notificationAtoms.items.set([
+      { id: 1, type: "info", title: "seed", eventKey: "7:4", timestamp: NOW_MS, read: true },
+    ]);
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+    expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
+  });
+
+  it("skips lists outside the notify scope", async () => {
+    mockNow();
+    patchSettings({ anilistNotifyLists: ["Completed"] });
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
+  });
+
+  it("returns false and records nothing when disposed", async () => {
+    mockNow();
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    const ok = await pollAniListReleases(t, () => true, { system: false });
+    expect(ok).toBe(false);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.observations.get()["7"]?.nextEpisode).toBe(4);
+  });
+
+  it("returns false when logged out", async () => {
+    checkAuth.mockResolvedValue(null);
+    const ok = await pollAniListReleases(t, notDisposed, { system: false });
+    expect(ok).toBe(false);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+  });
+
+  it("records the episode in-app while skipping the system toast on the first poll", async () => {
+    mockNow();
+    patchSettings({ notificationPopups: "both" });
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
+  });
+
+  it("sends the system toast for an episode on later polls", async () => {
+    mockNow();
+    patchSettings({ notificationPopups: "both" });
+    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
+    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
+    await pollAniListReleases(t, notDisposed, { system: true });
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+    await vi.waitFor(() => {
+      expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(true);
+    });
+  });
+});
+
+describe("restart persistence", () => {
+  it("rehydrates observations and releases from storage", () => {
+    const storage = memoryStorage();
+    const before = createAnilistNotificationsSignalStore({ getStorage: () => storage });
+    before.saveObservation("7", {
+      signature: "sig",
+      status: "CURRENT",
+      mediaStatus: "RELEASING",
+      title: "Show",
+      updatedAt: NOW_MS,
+      nextEpisode: 4,
+      nextAiringAt: PAST_SEC,
+    });
+    before.addRelease({ mediaId: 7, title: "Show", episode: 4, airedAt: NOW_MS });
+    before.setSiteMaxSeenId(9);
+    before.setInitialized(true);
+    before.persistor.flush();
+    const after = createAnilistNotificationsSignalStore({ getStorage: () => storage });
+    expect(after.atoms.observations.get()["7"]?.nextEpisode).toBe(4);
+    expect(after.atoms.releases.get()).toHaveLength(1);
+    expect(after.atoms.releases.get()[0]?.episode).toBe(4);
+    expect(after.atoms.siteMaxSeenId.get()).toBe(9);
+    expect(after.atoms.initialized.get()).toBe(true);
+  });
+
+  it("starts from an empty baseline when storage is missing", () => {
+    const migrated = migrateNotificationsData(null, 6);
+    expect(migrated.observations).toEqual({});
+    expect(migrated.releases).toEqual([]);
+    expect(migrated.initialized).toBe(false);
+    expect(migrated.siteMaxSeenId).toBe(0);
+  });
+});
+
 describe("site notifications poll", () => {
   it("seeds the watermark silently on the first poll", async () => {
     getSiteNotifications.mockResolvedValue([siteItem({ id: 5, kind: "sequel" })]);
@@ -223,5 +459,15 @@ describe("site notifications poll", () => {
     });
     await pollSiteNotifications(t, notDisposed, { system: true });
     expect(getSiteNotifications).not.toHaveBeenCalled();
+  });
+
+  it("ignores site airing items while advancing the watermark", async () => {
+    anilistNotificationsAtoms.siteMaxSeenId.set(5);
+    getSiteNotifications.mockResolvedValue([
+      siteItem({ id: 6, kind: "airing", anime_id: 7, anime_title: "Show", episode: 4 }),
+    ]);
+    await pollSiteNotifications(t, notDisposed, { system: true });
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.siteMaxSeenId.get()).toBe(6);
   });
 });

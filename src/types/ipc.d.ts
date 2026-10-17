@@ -67,6 +67,7 @@ export type CommandName =
   | "get_anime_recommendations"
   | "get_anime_staff"
   | "get_anime_stills"
+  | "get_anime_trailer"
   | "get_app_cache"
   | "get_character_detail"
   | "get_dither_image"

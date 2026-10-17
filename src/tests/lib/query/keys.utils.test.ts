@@ -29,11 +29,6 @@ describe("queryKeys", () => {
     );
   });
 
-  it("keys anime briefs by id", () => {
-    expect(queryKeys.animeBrief(21)).toEqual(["anime_brief", 21]);
-    expect(queryKeys.animeBrief(21)).not.toEqual(queryKeys.animeBrief(22));
-  });
-
   it("keeps collection data on a single shared key", () => {
     expect(queryKeys.collectionData()).toEqual(["collection-data"]);
   });

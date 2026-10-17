@@ -8,12 +8,12 @@ use serde::Serialize;
 
 use super::auth::{load_token, optional_token};
 use super::client::graphql_request;
-use crate::scrapers::clients::resolve_proxy;
 use super::media::{
     media_detail_selection, parse_animedia, AniAnimeStaffEdge, AniCharacterDetail,
     AniCharacterEdge, AniCharacterMediaEdge, AniCharacterNode, AniMedia, AniStaffCharacterEdge,
     AniStaffDetail, AniStaffMediaEdge, AniVoiceActor,
 };
+use crate::scrapers::clients::resolve_proxy;
 
 #[derive(Debug, Serialize)]
 pub struct AniRecommendation {
@@ -1230,7 +1230,7 @@ mod tests {
     fn anime_full_query_fetches_media_characters_and_staff_at_once() {
         let query = anime_full_query();
         assert!(query.contains("Media(id: $id"));
-        assert!(query.contains("characters(page: 1"));
+        assert!(query.contains("characters(page: 1, perPage: 25)"));
         assert!(query.contains("staff {"));
         assert!(query.contains("recommendations(page: 1, perPage: 25, sort: RATING_DESC)"));
         assert!(query.contains("mediaRecommendation"));

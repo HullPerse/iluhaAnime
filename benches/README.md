@@ -8,7 +8,7 @@ TS benchmarks run with `@pmndrs/labs` from `benches/labs.config.ts`. Rust benchm
 - `bun run bench:full`: every labs file including `@slow`. Slow, run explicitly.
 - `bun run bench:slow`: slow files only (currently did-you-mean).
 - `bun run bench:labs:compare`: compare the last two saved runs.
-- `bun run bench:rust`: Rust benches (`scan_walk`, `anilist_queries`, `string_intern`, `parse_resolve`, `cover_diff`, `file_query`; live-only `search_probe`, `details_batch` behind `ILUHA_BENCH_LIVE=1`).
+- `bun run bench:rust`: Rust benches (`scan_walk`, `anilist_queries`, `anilist_detail_bundle`, `anilist_detail_audit`, `anilist_list_trim`, `string_intern`, `parse_resolve`, `cover_diff`, `file_query`; live-only `search_probe`, `details_batch` behind `ILUHA_BENCH_LIVE=1`).
 
 Correct tag filtering is `labs "@tag"` with quotes and without the word `bench`: `labs bench "@tag"` misparses `bench` as a filename filter and runs everything.
 

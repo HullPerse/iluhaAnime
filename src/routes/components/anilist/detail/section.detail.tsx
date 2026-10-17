@@ -109,6 +109,12 @@ function FranchiseGraphSection({
     }
   }, [data]);
 
+  useEffect(() => {
+    // Data that lands without this section's own fetch (shell prefetch or a
+    // warm query cache) is served from the shared cache.
+    if (data && cacheSource === null) setCacheSource("cache");
+  }, [data, cacheSource]);
+
   const filtered = useMemo(
     () => (data ? filterGraph(data, activeFilters) : null),
     [data, activeFilters]

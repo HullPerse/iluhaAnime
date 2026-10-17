@@ -215,6 +215,19 @@ pub fn collect_titles(m: &serde_json::Value, main_title: &str) -> Vec<String> {
     titles
 }
 
+fn trailer_youtube_id_from_media(m: &serde_json::Value) -> Option<String> {
+    m["trailer"]
+        .get("site")
+        .and_then(|s| s.as_str())
+        .filter(|s| *s == "youtube")
+        .and_then(|_| {
+            m["trailer"]["id"]
+                .as_str()
+                .filter(|id| !id.is_empty())
+                .map(String::from)
+        })
+}
+
 pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
     let main_title = m["title"]["romaji"]
         .as_str()
@@ -255,16 +268,7 @@ pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
             .map(String::from),
         banner_image: m["bannerImage"].as_str().map(String::from),
         id_mal: m["idMal"].as_i64(),
-        trailer_youtube_id: m["trailer"]
-            .get("site")
-            .and_then(|s| s.as_str())
-            .filter(|s| *s == "youtube")
-            .and_then(|_| {
-                m["trailer"]["id"]
-                    .as_str()
-                    .filter(|id| !id.is_empty())
-                    .map(String::from)
-            }),
+        trailer_youtube_id: trailer_youtube_id_from_media(m),
         season: m["season"].as_str().map(String::from),
         season_year: m["seasonYear"]
             .as_i64()
@@ -451,7 +455,7 @@ async fn fetch_paginated(
     )
     .await
 }
-pub(crate) const MEDIA_CORE_SELECTION: &str = r"
+pub const MEDIA_CORE_SELECTION: &str = r"
                 id
                 title { romaji english native }
                 coverImage { medium }
@@ -462,7 +466,7 @@ pub(crate) const MEDIA_CORE_SELECTION: &str = r"
                 startDate { year month day }
 ";
 
-pub(crate) const MEDIA_LIST_EXTRA_SELECTION: &str = r"
+pub const MEDIA_LIST_EXTRA_SELECTION: &str = r"
                 synonyms
                 duration
                 status
@@ -476,16 +480,16 @@ pub(crate) const MEDIA_LIST_EXTRA_SELECTION: &str = r"
                 nextAiringEpisode { episode airingAt }
 ";
 
-pub(crate) const MEDIA_DETAIL_EXTRA_SELECTION: &str = r"
+pub const MEDIA_DETAIL_EXTRA_SELECTION: &str = r"
                 bannerImage
                 idMal
                 endDate { year month day }
                 rankings { rank type context }
 ";
 
-pub(crate) const MEDIA_TRAILER_SELECTION: &str = "trailer { id site }";
+pub const MEDIA_TRAILER_SELECTION: &str = "trailer { id site }";
 
-pub(crate) const MEDIA_RELATIONS_SELECTION: &str = r"
+pub const MEDIA_RELATIONS_SELECTION: &str = r"
                 relations {
                     edges {
                         relationType
@@ -504,15 +508,20 @@ pub(crate) const MEDIA_RELATIONS_SELECTION: &str = r"
 ";
 
 #[must_use]
-pub(crate) fn media_list_selection() -> String {
+pub fn media_list_selection() -> String {
     format!("{MEDIA_CORE_SELECTION}{MEDIA_LIST_EXTRA_SELECTION}")
 }
 
 #[must_use]
-pub(crate) fn media_detail_selection() -> String {
+pub fn media_detail_selection() -> String {
     format!(
         "{MEDIA_CORE_SELECTION}{MEDIA_LIST_EXTRA_SELECTION}{MEDIA_DETAIL_EXTRA_SELECTION}{MEDIA_TRAILER_SELECTION}{MEDIA_RELATIONS_SELECTION}"
     )
+}
+
+#[must_use]
+fn media_screen_selection() -> String {
+    format!("{MEDIA_CORE_SELECTION}{MEDIA_LIST_EXTRA_SELECTION}{MEDIA_DETAIL_EXTRA_SELECTION}")
 }
 
 fn with_selection(template: &str, selection: &str) -> String {
@@ -570,7 +579,7 @@ const SEARCH_MEDIA_QUERY_TEMPLATE: &str = r"
 ";
 
 #[must_use]
-pub(crate) fn search_media_query() -> String {
+pub fn search_media_query() -> String {
     with_selection(SEARCH_MEDIA_QUERY_TEMPLATE, &media_list_selection())
 }
 
@@ -646,23 +655,38 @@ const ANIME_BY_IDS_QUERY_TEMPLATE: &str = r"
                     }
                 ";
 
+#[must_use]
+pub fn anime_by_id_query() -> String {
+    with_selection(ANIME_BY_ID_QUERY_TEMPLATE, &media_screen_selection())
+}
+
+#[must_use]
+pub fn anime_trailer_query() -> String {
+    with_selection(ANIME_BY_ID_QUERY_TEMPLATE, MEDIA_TRAILER_SELECTION)
+}
+
+#[must_use]
+pub fn anime_by_ids_query() -> String {
+    with_selection(ANIME_BY_IDS_QUERY_TEMPLATE, &media_list_selection())
+}
+
 fn clamp_filter_paging(page: u32, per_page: Option<u32>) -> (u32, u32) {
     (page.clamp(1, 10_000), per_page.unwrap_or(50).clamp(1, 50))
 }
 
 #[allow(clippy::too_many_arguments)]
 fn filter_search_variables(
-    query: &Option<String>,
-    tags: &Option<Vec<String>>,
-    genres: &Option<Vec<String>>,
-    format: &Option<String>,
-    status: &Option<String>,
-    season: &Option<String>,
+    query: Option<&String>,
+    tags: Option<&Vec<String>>,
+    genres: Option<&Vec<String>>,
+    format: Option<&String>,
+    status: Option<&String>,
+    season: Option<&String>,
     season_year: Option<i32>,
     adult: Option<bool>,
-    sort: &Option<Vec<String>>,
-    source: &Option<String>,
-    country: &Option<String>,
+    sort: Option<&Vec<String>>,
+    source: Option<&String>,
+    country: Option<&String>,
     year_from: Option<i32>,
     year_to: Option<i32>,
     episodes_from: Option<i32>,
@@ -672,27 +696,27 @@ fn filter_search_variables(
 ) -> serde_json::Value {
     let mut variables = serde_json::json!({});
 
-    if let Some(q) = query.as_ref().filter(|q| !q.is_empty()) {
+    if let Some(q) = query.filter(|q| !q.is_empty()) {
         variables["search"] = serde_json::json!(q);
     }
 
-    if let Some(t) = tags.as_ref().filter(|t| !t.is_empty()) {
+    if let Some(t) = tags.filter(|t| !t.is_empty()) {
         variables["tag_in"] = serde_json::json!(t);
     }
 
-    if let Some(g) = genres.as_ref().filter(|g| !g.is_empty()) {
+    if let Some(g) = genres.filter(|g| !g.is_empty()) {
         variables["genre_in"] = serde_json::json!(g);
     }
 
-    if let Some(f) = format.as_ref() {
+    if let Some(f) = format {
         variables["format"] = serde_json::json!(f);
     }
 
-    if let Some(s) = status.as_ref() {
+    if let Some(s) = status {
         variables["status"] = serde_json::json!(s);
     }
 
-    if let Some(s) = season.as_ref() {
+    if let Some(s) = season {
         variables["season"] = serde_json::json!(s);
     }
 
@@ -704,15 +728,15 @@ fn filter_search_variables(
         variables["isAdult"] = serde_json::json!(a);
     }
 
-    if let Some(s) = sort.as_ref().filter(|s| !s.is_empty()) {
+    if let Some(s) = sort.filter(|s| !s.is_empty()) {
         variables["sort"] = serde_json::json!(s);
     }
 
-    if let Some(s) = source.as_ref() {
+    if let Some(s) = source {
         variables["source"] = serde_json::json!(s);
     }
 
-    if let Some(c) = country.as_ref() {
+    if let Some(c) = country {
         variables["countryOfOrigin"] = serde_json::json!(c);
     }
 
@@ -770,17 +794,17 @@ pub async fn search_anilist(
     proxyUrl: Option<String>,
 ) -> Result<Vec<AniMedia>, String> {
     let mut variables = filter_search_variables(
-        &query,
-        &tags,
-        &genres,
-        &format,
-        &status,
-        &season,
+        query.as_ref(),
+        tags.as_ref(),
+        genres.as_ref(),
+        format.as_ref(),
+        status.as_ref(),
+        season.as_ref(),
         season_year,
         adult,
-        &sort,
-        &source,
-        &country,
+        sort.as_ref(),
+        source.as_ref(),
+        country.as_ref(),
         year_from,
         year_to,
         episodes_from,
@@ -876,17 +900,17 @@ pub async fn get_anilist_filter_page(
     proxyUrl: Option<String>,
 ) -> Result<FilterPage, String> {
     let mut variables = filter_search_variables(
-        &query,
-        &tags,
-        &genres,
-        &format,
-        &status,
-        &season,
+        query.as_ref(),
+        tags.as_ref(),
+        genres.as_ref(),
+        format.as_ref(),
+        status.as_ref(),
+        season.as_ref(),
         season_year,
         adult,
-        &sort,
-        &source,
-        &country,
+        sort.as_ref(),
+        source.as_ref(),
+        country.as_ref(),
         year_from,
         year_to,
         episodes_from,
@@ -984,7 +1008,7 @@ pub async fn get_anime_by_id(
     proxyUrl: Option<String>,
 ) -> Result<AniMedia, String> {
     let body = serde_json::json!({
-        "query": with_selection(ANIME_BY_ID_QUERY_TEMPLATE, &media_detail_selection()),
+        "query": anime_by_id_query(),
         "variables": { "id": id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
@@ -995,6 +1019,28 @@ pub async fn get_anime_by_id(
         return Err(format!("Anime with id {id} not found"));
     }
     Ok(parse_animedia(m))
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anime_trailer(
+    app_handle: tauri::AppHandle,
+    id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Option<String>, String> {
+    let body = serde_json::json!({
+        "query": anime_trailer_query(),
+        "variables": { "id": id }
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
+    let m = &json["data"]["Media"];
+    if m.is_null() {
+        return Err(format!("Anime with id {id} not found"));
+    }
+    Ok(trailer_youtube_id_from_media(m))
 }
 
 fn order_media_by_ids(media: Vec<AniMedia>, ids: &[u64]) -> Vec<AniMedia> {
@@ -1027,7 +1073,7 @@ pub async fn get_anime_by_ids(
         let token = token.clone();
         set.spawn(async move {
             let body = serde_json::json!({
-                "query": with_selection(ANIME_BY_IDS_QUERY_TEMPLATE, &media_detail_selection()),
+                "query": anime_by_ids_query(),
                 "variables": { "ids": chunk_ids }
             });
             let permit = BATCH_CONCURRENCY
@@ -1095,11 +1141,71 @@ mod tests {
     }
 
     #[test]
+    fn anime_by_ids_query_uses_id_in_with_list_selection() {
+        let query = anime_by_ids_query();
+        assert!(query.contains("media(id_in: $ids"));
+        assert!(!query.contains("{SELECTION}"));
+        assert!(query.contains("studios { nodes { id name } }"));
+        assert!(query.contains("description(asHtml: false)"));
+        assert!(!query.contains("trailer { id site }"));
+        assert!(!query.contains("relations {"));
+    }
+
+    #[test]
+    fn anime_by_id_query_targets_the_screen_projection() {
+        let query = anime_by_id_query();
+        assert!(query.contains("Media(id: $id, type: ANIME)"));
+        assert!(query.contains("rankings { rank type context }"));
+        assert!(query.contains("endDate { year month day }"));
+        assert!(!query.contains("trailer { id site }"));
+        assert!(!query.contains("relations {"));
+    }
+
+    #[test]
+    fn anime_trailer_query_is_trailer_only() {
+        let query = anime_trailer_query();
+        assert!(query.contains("Media(id: $id, type: ANIME)"));
+        assert!(query.contains("trailer { id site }"));
+        assert!(!query.contains("title {"));
+        assert!(!query.contains("relations {"));
+    }
+
+    #[test]
+    fn trailer_helper_filters_non_youtube_and_empty_ids() {
+        let youtube = serde_json::json!({ "trailer": { "id": "abc123", "site": "youtube" } });
+        assert_eq!(
+            trailer_youtube_id_from_media(&youtube),
+            Some("abc123".to_string())
+        );
+        let dailymotion =
+            serde_json::json!({ "trailer": { "id": "abc123", "site": "dailymotion" } });
+        assert_eq!(trailer_youtube_id_from_media(&dailymotion), None);
+        let empty = serde_json::json!({ "trailer": { "id": "", "site": "youtube" } });
+        assert_eq!(trailer_youtube_id_from_media(&empty), None);
+        let missing = serde_json::json!({});
+        assert_eq!(trailer_youtube_id_from_media(&missing), None);
+    }
+
+    #[test]
     fn anime_by_ids_merge_restores_input_order_and_skips_missing() {
-        let media = vec![
-            parse_animedia(&serde_json::json!({ "id": 2, "title": { "romaji": "B" } })),
-            parse_animedia(&serde_json::json!({ "id": 1, "title": { "romaji": "A" } })),
-        ];
+        // Shape matches the real command input: `data.Page.media` from the
+        // by-ids query, which may omit requested ids (id 3 is absent here).
+        let payload = serde_json::json!({
+            "data": {
+                "Page": {
+                    "media": [
+                        { "id": 2, "title": { "romaji": "B" } },
+                        { "id": 1, "title": { "romaji": "A" } },
+                    ]
+                }
+            }
+        });
+        let media: Vec<AniMedia> = payload["data"]["Page"]["media"]
+            .as_array()
+            .expect("Page.media is an array")
+            .iter()
+            .map(parse_animedia)
+            .collect();
         let merged = order_media_by_ids(media, &[3, 1, 2, 1]);
         let ids: Vec<u64> = merged.iter().map(|m| m.id).collect();
         assert_eq!(ids, vec![1, 2]);
@@ -1315,17 +1421,17 @@ mod tests {
     impl FilterArgs {
         fn build(&self) -> serde_json::Value {
             filter_search_variables(
-                &self.query,
-                &self.tags,
-                &self.genres,
-                &self.format,
-                &self.status,
-                &self.season,
+                self.query.as_ref(),
+                self.tags.as_ref(),
+                self.genres.as_ref(),
+                self.format.as_ref(),
+                self.status.as_ref(),
+                self.season.as_ref(),
                 self.season_year,
                 self.adult,
-                &self.sort,
-                &self.source,
-                &self.country,
+                self.sort.as_ref(),
+                self.source.as_ref(),
+                self.country.as_ref(),
                 self.year_from,
                 self.year_to,
                 self.episodes_from,

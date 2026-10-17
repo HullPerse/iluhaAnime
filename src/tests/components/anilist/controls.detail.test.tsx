@@ -57,6 +57,7 @@ function renderControls(scoreFormat: string, score: number | null = null) {
           custom_lists: [],
         }}
         scoreFormat={scoreFormat as "POINT_10"}
+        isLoggedIn
       />
     </QueryClientProvider>
   );
@@ -113,6 +114,7 @@ function renderEditable(
             : undefined
         }
         scoreFormat="POINT_10"
+        isLoggedIn
         onSaved={onSaved}
       />
     </QueryClientProvider>
@@ -359,6 +361,7 @@ describe("AniListActionControls delete", () => {
             custom_lists: [],
           }}
           scoreFormat="POINT_10"
+          isLoggedIn
         />
       </QueryClientProvider>
     );

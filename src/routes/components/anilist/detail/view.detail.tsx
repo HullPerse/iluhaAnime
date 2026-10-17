@@ -198,6 +198,7 @@ export function AniListDetailView({
         anime={anime}
         listEntry={listEntry}
         scoreFormat={scoreFormat}
+        isLoggedIn={isLoggedIn}
         onSaved={onSaved}
         onClose={onClose}
       />

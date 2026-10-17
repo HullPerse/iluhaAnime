@@ -8,7 +8,6 @@ export const queryKeys = {
     ["anime_full", id, proxy, loggedIn ? 1 : 0] as const,
   animeInlineSearch: (query: string, adult: boolean) =>
     ["anime_inline_search", query, adult ? 1 : 0] as const,
-  animeBrief: (id: number) => ["anime_brief", id] as const,
   animeFranchise: (id: number) => ["franchise", id] as const,
   animeFranchiseRefresh: (id: number, refreshKey: number) =>
     [...queryKeys.animeFranchise(id), refreshKey] as const,

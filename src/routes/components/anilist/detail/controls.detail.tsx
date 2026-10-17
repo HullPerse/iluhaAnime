@@ -307,12 +307,14 @@ function AniListActionControls({
   anime,
   listEntry,
   scoreFormat,
+  isLoggedIn,
   onSaved,
   onClose,
 }: {
   anime: AniMedia;
   listEntry?: ListEntryDraft;
   scoreFormat?: AnilistScoreFormat | null;
+  isLoggedIn: boolean;
   onSaved?: () => void;
   onClose?: () => void;
 }) {
@@ -348,6 +350,7 @@ function AniListActionControls({
   const { data: customLists } = useAppQuery("slow", {
     queryKey: queryKeys.customLists(),
     queryFn: () => anilistApi.getCustomLists(),
+    enabled: isLoggedIn,
     retry: false,
   });
 

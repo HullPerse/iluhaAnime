@@ -133,4 +133,48 @@ describe("AnilistApi", () => {
     expect(calls[0]).toMatchObject({ command: "anilist_login" });
     expect(calls[0]?.args).toMatchObject({ token: "abc" });
   });
+
+  it("fetches the full detail bundle in one call", async () => {
+    const { calls, transport } = fakeTransport(() => ({}));
+    const api = new AnilistApi({ transport });
+
+    await api.getAnimeFull(21);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ command: "get_anime_full", args: { id: 21 } });
+  });
+
+  it("fetches only the trailer in one call", async () => {
+    const { calls, transport } = fakeTransport(() => "youtube-id");
+    const api = new AnilistApi({ transport });
+
+    await api.getAnimeTrailer(21);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ command: "get_anime_trailer", args: { id: 21 } });
+  });
+
+  it("asks for every detail id in one call", async () => {
+    const ids = [21, 22, 23];
+    const { calls, transport } = fakeTransport(() => []);
+    const api = new AnilistApi({ transport });
+
+    await api.getAnimeByIds(ids);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ command: "get_anime_by_ids", args: { ids } });
+  });
+
+  it("fetches the franchise graph in one call with scope", async () => {
+    const { calls, transport } = fakeTransport(() => ({}));
+    const api = new AnilistApi({ transport });
+
+    await api.getAnimeFranchise(21, "all");
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      command: "get_anime_franchise",
+      args: { id: 21, scope: "all" },
+    });
+  });
 });

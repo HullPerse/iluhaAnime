@@ -1,7 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
@@ -42,11 +43,21 @@ export function AnimeDetailShell({
     });
   };
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
+  const queryClient = useQueryClient();
   const query = useAppQuery("static", {
     queryKey: queryKeys.animeFull(props.animeId, anilistProxyUrl ?? "", props.isLoggedIn),
     queryFn: () => anilistApi.getAnimeFull(props.animeId),
     retry: 1,
   });
+  // The franchise section and SimilarSection share this key; starting the
+  // request here drops the full-bundle round trip from the graph's wait time.
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.animeFranchiseRefresh(props.animeId, 0),
+      queryFn: () => anilistApi.getAnimeFranchise(props.animeId, "all"),
+      staleTime: Infinity,
+    });
+  }, [props.animeId, queryClient]);
   const title =
     query.data?.media.title ??
     (query.isError ? t("anilist.details.load.error") : t("anilist.details.loading"));

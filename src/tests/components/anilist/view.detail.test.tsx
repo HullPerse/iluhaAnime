@@ -1,6 +1,6 @@
 import { mockConvertFileSrc, mockInvoke as invokeMock } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -66,11 +66,11 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-function renderView() {
+function renderView(isLoggedIn = false) {
   return render(
     <AniListDetailView
       animeId={21}
-      isLoggedIn={false}
+      isLoggedIn={isLoggedIn}
       favouriteIds={new Set()}
       onTag={() => undefined}
       onGenre={() => undefined}
@@ -98,9 +98,13 @@ beforeEach(() => {
   invokeMock.mockReset();
   resetTransportInflight();
   invokeMock.mockImplementation((command: string) => {
-    if (command === "get_anime_franchise") return Promise.resolve({ nodes: [], edges: [] });
+    if (command === "get_anime_franchise") return Promise.resolve({ root_id: 21, nodes: [], edges: [] });
     if (command === "get_anime_recommendations") return Promise.resolve([]);
     if (command === "get_anilist_friend_scores") return Promise.resolve([]);
+    if (command === "get_anilist_custom_lists") return Promise.resolve([]);
+    if (command === "list_collection_items") return Promise.resolve([]);
+    if (command === "list_custom_field_defs") return Promise.resolve([]);
+    if (command === "list_collection_statuses") return Promise.resolve([]);
     if (command === "get_character_detail")
       return Promise.resolve({
         id: 11,
@@ -126,5 +130,40 @@ describe("AniListDetailView character overlay", () => {
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(0);
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+  });
+});
+
+describe("AniListDetailView mount inventory", () => {
+  const EXPECTED_COMMANDS = [
+    "get_anime_franchise",
+    "get_anime_recommendations",
+    "list_collection_items",
+    "list_custom_field_defs",
+    "list_collection_statuses",
+  ];
+
+  it("issues exactly one call per expected command and skips custom lists when logged out", async () => {
+    renderView(false);
+
+    await waitFor(() => {
+      const commands = invokeMock.mock.calls.map(([command]) => String(command));
+      for (const expected of EXPECTED_COMMANDS) {
+        expect(commands).toContain(expected);
+      }
+    });
+
+    const commands = invokeMock.mock.calls.map(([command]) => String(command));
+    expect([...commands].sort()).toEqual([...EXPECTED_COMMANDS].sort());
+  });
+
+  it("asks for custom lists exactly once when logged in", async () => {
+    renderView(true);
+
+    await waitFor(() => {
+      const calls = invokeMock.mock.calls.filter(
+        ([command]) => command === "get_anilist_custom_lists"
+      );
+      expect(calls).toHaveLength(1);
+    });
   });
 });

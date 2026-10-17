@@ -23,7 +23,7 @@ export function useCollectionMedia(
   });
   const trailer = useAppQuery("static", {
     queryKey: queryKeys.anilistTrailer(anilistId, anilistProxyUrl ?? ""),
-    queryFn: () => withFallback(anilistApi.getAnimeById(anilistId as number), null),
+    queryFn: () => withFallback(anilistApi.getAnimeTrailer(anilistId as number), null),
     enabled: fetchTrailer && anilistId !== null,
   });
   return { media, trailer };

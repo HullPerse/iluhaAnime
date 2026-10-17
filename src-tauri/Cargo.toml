@@ -124,6 +124,10 @@ name = "anilist_detail_bundle"
 harness = false
 
 [[bench]]
+name = "anilist_detail_audit"
+harness = false
+
+[[bench]]
 name = "anilist_list_trim"
 harness = false
 

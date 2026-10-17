@@ -20,6 +20,11 @@ mod app_db;
 #[doc(hidden)]
 pub mod benchmark_api {
     pub use crate::anilist::library::anime_full_query;
+    pub use crate::anilist::media::{
+        anime_by_id_query, anime_by_ids_query, anime_trailer_query, parse_animedia,
+        MEDIA_CORE_SELECTION, MEDIA_DETAIL_EXTRA_SELECTION, MEDIA_LIST_EXTRA_SELECTION,
+        MEDIA_RELATIONS_SELECTION, MEDIA_TRAILER_SELECTION,
+    };
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
     pub use crate::file_index::{parse_file_query, FileIndexer};
     pub use crate::scrapers::clients::{
@@ -37,7 +42,6 @@ mod emoji;
 mod errors;
 mod ffmpeg;
 mod file_index;
-mod watcher;
 mod host_stats;
 mod jikan;
 mod player;
@@ -55,6 +59,7 @@ mod toast;
 mod torrent;
 mod user_assets;
 mod video;
+mod watcher;
 use file_index::FileEntry;
 use torrent::{
     CreatedTorrent, FilePriority, TorrentCheckResult, TorrentDiagnostics, TorrentFileInfo,
@@ -1279,7 +1284,10 @@ async fn persist_file_index_paths(
         .map_err(|error| format!("persist path update transaction: {error}"))?;
     let rows: Vec<_> = entries.iter().map(local_index_row).collect();
     app_db::upsert_unified_index_batch(&transaction, &rows, app_db::now_seconds())?;
-    let ids: Vec<String> = removals.iter().map(|path| format!("local:{path}")).collect();
+    let ids: Vec<String> = removals
+        .iter()
+        .map(|path| format!("local:{path}"))
+        .collect();
     app_db::delete_unified_index_ids_inner(&transaction, &ids)?;
     transaction
         .commit()
@@ -1303,10 +1311,7 @@ async fn update_file_index_paths(
         .await;
     // An upsert that no longer exists on disk (or no longer matches an
     // extension) drops the row it may have left behind.
-    let fresh_keys: HashSet<&str> = fresh
-        .iter()
-        .map(|entry| entry.path.as_str())
-        .collect();
+    let fresh_keys: HashSet<&str> = fresh.iter().map(|entry| entry.path.as_str()).collect();
     let stale: Vec<String> = upserts
         .into_iter()
         .filter(|path| !fresh_keys.contains(path.as_str()))
@@ -1332,7 +1337,9 @@ async fn rebuild_file_index(
     threads: Option<usize>,
     indexer: tauri::State<'_, file_index::FileIndexer>,
 ) -> Result<(), String> {
-    indexer.rebuild(paths, extensions, threads.unwrap_or(0)).await?;
+    indexer
+        .rebuild(paths, extensions, threads.unwrap_or(0))
+        .await?;
     persist_file_index(&app_handle, &indexer).await
 }
 
@@ -1344,7 +1351,9 @@ async fn refresh_file_index(
     threads: Option<usize>,
     indexer: tauri::State<'_, file_index::FileIndexer>,
 ) -> Result<Vec<VideoFileEntry>, String> {
-    let entries = indexer.refresh(paths, extensions, threads.unwrap_or(0)).await?;
+    let entries = indexer
+        .refresh(paths, extensions, threads.unwrap_or(0))
+        .await?;
     persist_file_index(&app_handle, &indexer).await?;
     Ok(entries
         .into_iter()
@@ -1763,6 +1772,7 @@ pub fn run() {
             anilist::search_anilist_by_genre,
             anilist::get_anime_by_id,
             anilist::get_anime_by_ids,
+            anilist::get_anime_trailer,
             anilist::client::test_anilist_connection,
             jikan::get_anime_stills,
             anilist::get_anilist_profile,

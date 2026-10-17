@@ -122,8 +122,8 @@ export class AnilistApi {
     return this.call("get_anime_by_id", { id });
   }
 
-  fetchAnimeBrief(id: number): Promise<AniMedia> {
-    return this.call("get_anime_by_id", { id });
+  getAnimeTrailer(id: number): Promise<string | null> {
+    return this.call("get_anime_trailer", { id });
   }
 
   getAnimeFull(id: number): Promise<AniAnimeFull> {

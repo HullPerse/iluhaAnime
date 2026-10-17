@@ -19,7 +19,7 @@ export function useViewerMedia(
   const trailer =
     stored.trailerYoutubeId ??
     data?.trailerYoutubeId ??
-    anilistTrailer.data?.trailer_youtube_id ??
+    anilistTrailer.data ??
     null;
   const stills =
     stored.stills.length > 0 ? stored.stills : (data?.backdrops ?? []).map((b) => b.url);

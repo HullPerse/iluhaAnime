@@ -19,8 +19,8 @@ use crate::app_db;
 
 use super::auth::optional_token;
 use super::client::graphql_request;
-use crate::scrapers::clients::resolve_proxy;
 use super::media::{MEDIA_CORE_SELECTION, MEDIA_RELATIONS_SELECTION};
+use crate::scrapers::clients::resolve_proxy;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedFranchiseNode {
     pub node: FranchiseNode,
@@ -280,7 +280,7 @@ pub struct FranchiseGraph {
 
 const MAX_FRANCHISE_NODES: usize = 40;
 const MAX_FRANCHISE_DEPTH: usize = 15;
-const FRANCHISE_BATCH_SIZE: usize = 8;
+const FRANCHISE_BATCH_SIZE: usize = 25;
 
 fn is_anime_media(media_type: Option<&str>) -> bool {
     matches!(media_type, None | Some("ANIME" | "MOVIE" | "OVA" | "ONA"))
@@ -638,7 +638,7 @@ fn relation_line(rel_type: &str, title: &str, year: Option<i32>) -> String {
     )
 }
 
-const PREFETCH_BATCH_SIZE: usize = 8;
+const PREFETCH_BATCH_SIZE: usize = 25;
 const MAX_PREFETCH_NODES: usize = 50000;
 
 fn emit_prefetch_progress(app_handle: &tauri::AppHandle, progress: &PrefetchProgress) {
@@ -985,13 +985,13 @@ mod tests {
         assert!(first.body_bytes > first.query_bytes);
     }
     #[test]
-    fn franchise_batch_request_counts_match_current_eight_id_batches() {
+    fn franchise_batch_request_counts_match_current_id_batches() {
         let request_count = |node_count: usize| node_count.div_ceil(FRANCHISE_BATCH_SIZE);
 
         assert_eq!(request_count(0), 0);
         assert_eq!(request_count(1), 1);
-        assert_eq!(request_count(8), 1);
-        assert_eq!(request_count(9), 2);
-        assert_eq!(request_count(200), 25);
+        assert_eq!(request_count(25), 1);
+        assert_eq!(request_count(26), 2);
+        assert_eq!(request_count(200), 8);
     }
 }

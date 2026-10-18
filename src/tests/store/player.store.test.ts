@@ -76,6 +76,31 @@ describe("player settings atoms", () => {
     expect(backing.has("iluha.v1.player")).toBe(true);
     expect(backing.has("playerState")).toBe(false);
   });
+
+  it("drops settings an older schema carried and keeps the surviving ones", () => {
+    const backing = new Map<string, string>([
+      [
+        "iluha.v1.player",
+        JSON.stringify({
+          f: 1,
+          store: "player",
+          sv: 0,
+          ts: 1,
+          data: {
+            volume: 0.7,
+            hwdec: "cuda",
+            removedTopLevel: true,
+            settings: { brightness: 150, rotation: 90, flipH: true, blur: 5, stray: 1 },
+          },
+        }),
+      ],
+    ]);
+    const store = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
+    expect(store.atoms.volume.get()).toBe(0.7);
+    expect(store.atoms.hwdec.get()).toBe("cuda");
+    expect(store.atoms.settings.get()).toEqual({ ...DEFAULT_PLAYER_SETTINGS, brightness: 150 });
+    expect(store.snapshot()).not.toHaveProperty("removedTopLevel");
+  });
 });
 
 describe("playback atoms", () => {

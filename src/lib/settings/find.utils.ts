@@ -223,12 +223,6 @@ const FIND_GROUPS: readonly FindGroup[] = [
   },
   {
     tab: "notifications",
-    section: "player",
-    titleKey: "settings.notifications.group.player",
-    keys: ["settings.notifications.newfiles"],
-  },
-  {
-    tab: "notifications",
     section: "tasks",
     titleKey: "settings.notifications.group.tasks",
     keys: [

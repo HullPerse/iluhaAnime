@@ -55,6 +55,8 @@ const game = {
   "game.unmute": "Включить звук",
   "game.secret.found": "Секрет найден",
   "game.secret.body": 'Вкладка "Игра" разблокирована.',
+  "game.secret.hidden": "Секрет спрятан",
+  "game.secret.hidden.body": 'Вкладка "Игра" скрыта. Введи код снова, чтобы вернуть.',
 } as const;
 
 export default game;

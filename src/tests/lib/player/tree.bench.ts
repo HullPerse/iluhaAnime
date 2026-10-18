@@ -1,6 +1,5 @@
 import { test } from 'vitest';
 
-import { diffFolderSnapshot } from '@/lib/player/folder.utils';
 import { fingerprint } from '@/lib/player/scan.utils';
 import {
   buildTree,
@@ -127,7 +126,6 @@ test('folder tree - filters and snapshot (per scan / toggle)', async ({ bench })
   const files = collectFilePaths(tree);
   const keepHalf = new Set(files.filter((_, i) => i % 2 === 0));
   const hidden = Array.from({ length: 20 }, (_, i) => `D:/Anime/Hidden${i}`);
-  const snapshot = { 'D:/Anime': files };
 
   const b1 = bench('filterTreeByPaths keep half 5000', () => {
     return summarizeTree(filterTreeByPaths(tree, keepHalf) ?? tree).count;
@@ -135,10 +133,6 @@ test('folder tree - filters and snapshot (per scan / toggle)', async ({ bench })
 
   const b2 = bench('filterTreeByHiddenPaths 20 rules', () => {
     return summarizeTree(filterTreeByHiddenPaths(tree, hidden) ?? tree).count;
-  });
-
-  const b3 = bench('diffFolderSnapshot 5000 files', () => {
-    return diffFolderSnapshot(snapshot, 'D:/Anime', files).fresh.length;
   });
 
   const b4 = bench('fingerprint 50 paths', () => {
@@ -154,5 +148,5 @@ test('folder tree - filters and snapshot (per scan / toggle)', async ({ bench })
     return checksum;
   });
 
-  await bench.compare(b1, b2, b3, b4, b5, { time: 100, iterations: 3 });
+  await bench.compare(b1, b2, b4, b5, { time: 100, iterations: 3 });
 });

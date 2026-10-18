@@ -19,6 +19,8 @@ function PlayerModal({
   const { t } = useI18n();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose);
+  const backdropPressRef = useRef(false);
+  const backdropReleaseRef = useRef(false);
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -50,7 +52,12 @@ function PlayerModal({
         aria-label={header}
         className="player-modal fixed inset-0 z-40 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center bg-black/50 p-0"
         onClick={(event) => {
-          if (event.target === event.currentTarget) onClose();
+          // The click target is the nearest common ancestor of the press and the release, so a
+          // drag that starts inside the panel and ends on the backdrop arrives here as a
+          // backdrop click. Only a press and a release that both happened on the backdrop close.
+          if (event.target !== event.currentTarget) return;
+          if (!backdropPressRef.current || !backdropReleaseRef.current) return;
+          onClose();
         }}
         onCancel={(event) => {
           if (
@@ -59,6 +66,12 @@ function PlayerModal({
           ) {
             event.preventDefault();
           }
+        }}
+        onMouseDown={(event) => {
+          backdropPressRef.current = event.target === event.currentTarget;
+        }}
+        onMouseUp={(event) => {
+          backdropReleaseRef.current = event.target === event.currentTarget;
         }}
         data-hotkeys-disabled
         data-no-wheel

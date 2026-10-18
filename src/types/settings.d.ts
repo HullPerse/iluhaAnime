@@ -94,7 +94,6 @@ export interface SettingsStore {
   notifySubscribedReplies: boolean;
   notifyMediaMerge: boolean;
   notifySequel: boolean;
-  notifyNewFiles: boolean;
   notifyTorrentHealth: boolean;
   notifyUpscaleDone: boolean;
   notifyModelDownloads: boolean;

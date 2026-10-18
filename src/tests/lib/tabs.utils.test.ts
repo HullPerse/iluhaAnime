@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { enabledTabPaths, firstEnabledTabPath, isEnabledTabPath } from "@/lib/tabs.utils";
+import {
+  enabledTabPaths,
+  firstEnabledTabPath,
+  isEnabledTabPath,
+  resolveSecretTabAction,
+} from "@/lib/tabs.utils";
 import { patchSettings } from "@/store/settings.store";
 
 afterEach(() => {
@@ -68,5 +73,20 @@ describe("tabs visibility", () => {
 
     expect(enabledTabPaths().at(-1)).toBe("/game");
     expect(isEnabledTabPath("/game")).toBe(true);
+  });
+});
+
+describe("secret tab toggle", () => {
+  it("reveals the tab while it is locked", () => {
+    expect(resolveSecretTabAction(false, false)).toBe("reveal");
+    expect(resolveSecretTabAction(false, true)).toBe("reveal");
+  });
+
+  it("hides the tab from anywhere but itself", () => {
+    expect(resolveSecretTabAction(true, false)).toBe("hide");
+  });
+
+  it("keeps an open tab in place", () => {
+    expect(resolveSecretTabAction(true, true)).toBe("none");
   });
 });

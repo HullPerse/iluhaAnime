@@ -68,11 +68,10 @@ describe("SettingsPanel selects", () => {
     { control: 1, option: 1, payload: ["exact"], spy: "onSeekMode" },
     { control: 2, option: 1, payload: ["pause"], spy: "onEofMode" },
     { control: 3, option: 1, payload: ["speed"], spy: "onProfile" },
-    { control: 4, option: 1, payload: [{ aspectRatio: "fill" }], spy: "onPatchSettings" },
-    { control: 5, option: 1, payload: [{ targetPrim: "bt.709" }], spy: "onPatchSettings" },
-    { control: 6, option: 2, payload: [{ targetTrc: "srgb" }], spy: "onPatchSettings" },
-    { control: 7, option: 1, payload: [{ toneMap: "manual" }], spy: "onPatchSettings" },
-    { control: 8, option: 1, payload: [{ subFontFamily: "Verdana" }], spy: "onPatchSettings" },
+    { control: 4, option: 1, payload: [{ targetPrim: "bt.709" }], spy: "onPatchSettings" },
+    { control: 5, option: 2, payload: [{ targetTrc: "srgb" }], spy: "onPatchSettings" },
+    { control: 6, option: 1, payload: [{ toneMap: "manual" }], spy: "onPatchSettings" },
+    { control: 7, option: 1, payload: [{ subFontFamily: "Verdana" }], spy: "onPatchSettings" },
   ])("select $control applies its value", async ({ control, option, payload, spy }) => {
     const user = userEvent.setup();
     const spies = renderPanel();
@@ -84,17 +83,12 @@ describe("SettingsPanel selects", () => {
 
 describe("SettingsPanel sliders", () => {
   it.each([
-    { control: 0, key: "rotation", from: 0, expected: 1 },
-    { control: 1, key: "zoom", from: 1, expected: 1.01 },
-    { control: 2, key: "brightness", from: 100, expected: 101 },
-    { control: 3, key: "contrast", from: 100, expected: 101 },
-    { control: 4, key: "saturation", from: 100, expected: 101 },
-    { control: 5, key: "hue", from: 0, expected: 1 },
-    { control: 6, key: "blur", from: 0, expected: 0.5 },
-    { control: 7, key: "sepia", from: 0, expected: 1 },
-    { control: 8, key: "grayscale", from: 0, expected: 1 },
-    { control: 9, key: "subFontSize", from: 18, expected: 19 },
-    { control: 10, key: "subBgOpacity", from: 0, expected: 1 },
+    { control: 0, key: "brightness", from: 100, expected: 101 },
+    { control: 1, key: "contrast", from: 100, expected: 101 },
+    { control: 2, key: "saturation", from: 100, expected: 101 },
+    { control: 3, key: "hue", from: 0, expected: 1 },
+    { control: 4, key: "subFontSize", from: 18, expected: 19 },
+    { control: 5, key: "subBgOpacity", from: 0, expected: 1 },
   ])("slider $key steps on ArrowRight", ({ control, key, from, expected }) => {
     const spies = renderPanel({ ...DEFAULT_PLAYER_SETTINGS });
     expect(spies.onPatchSettings).not.toHaveBeenCalled();
@@ -109,14 +103,10 @@ describe("SettingsPanel sliders", () => {
 describe("SettingsPanel checkboxes", () => {
   it.each([
     { control: 0, payload: [true], spy: "onAutoHide", manual: false },
-    { control: 1, payload: [{ flipH: true }], spy: "onPatchSettings", manual: false },
-    { control: 2, payload: [{ flipV: true }], spy: "onPatchSettings", manual: false },
-    { control: 3, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: false },
+    { control: 1, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: false },
     { control: 0, payload: [true], spy: "onAutoHide", manual: true },
-    { control: 1, payload: [{ flipH: true }], spy: "onPatchSettings", manual: true },
-    { control: 2, payload: [{ flipV: true }], spy: "onPatchSettings", manual: true },
-    { control: 3, payload: [{ hdrComputePeak: true }], spy: "onPatchSettings", manual: true },
-    { control: 4, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: true },
+    { control: 1, payload: [{ hdrComputePeak: true }], spy: "onPatchSettings", manual: true },
+    { control: 2, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: true },
   ])("checkbox $control toggles", async ({ control, payload, spy, manual }) => {
     const user = userEvent.setup();
     const spies = renderPanel(

@@ -1,5 +1,6 @@
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
 import { Debouncer } from "@/lib/pacer/debounce.utils";
+import { resolveWithDefaults, type MigrationState } from "@/lib/store/migrate.utils";
 import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
@@ -13,21 +14,13 @@ import type {
 } from "@/types/videoPlayer";
 import { attemptSync } from "@/lib/utils/attempt.utils";
 
-export const PLAYER_SCHEMA_VERSION = 0;
+export const PLAYER_SCHEMA_VERSION = 1;
 
 export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
-  rotation: 0,
-  flipH: false,
-  flipV: false,
-  zoom: 1,
-  aspectRatio: "contain",
   brightness: 100,
   contrast: 100,
   saturation: 100,
   hue: 0,
-  blur: 0,
-  sepia: 0,
-  grayscale: 0,
   subFontSize: 18,
   subFontFamily: "Arial",
   subColor: "#ffffff",
@@ -174,6 +167,17 @@ function readLegacyPlayer(
   };
 }
 
+export function migratePlayerData(persistedState: unknown): PlayerData {
+  if (!persistedState || typeof persistedState !== "object") return { ...DEFAULT_PLAYER_DATA };
+  // resolving against the defaults drops keys the shape no longer has, so a stored payload from an
+  // older schema cannot resurrect a removed control
+  const resolved = resolveWithDefaults(
+    persistedState as MigrationState,
+    DEFAULT_PLAYER_DATA as unknown as MigrationState
+  ) as unknown as PlayerData;
+  return { ...DEFAULT_PLAYER_DATA, ...resolved };
+}
+
 export interface PlayerSignalStore {
   atoms: PlayerAtoms;
   persistor: Persistor;
@@ -206,7 +210,7 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
 
   const persisted = persistor.read();
   const data: PlayerData = persisted
-    ? { ...DEFAULT_PLAYER_DATA, ...(persisted.data as Partial<PlayerData>) }
+    ? migratePlayerData(persisted.data)
     : { ...DEFAULT_PLAYER_DATA };
   const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
   const atoms = buildAtoms(store, data, mirror);

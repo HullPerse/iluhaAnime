@@ -102,40 +102,6 @@ export interface MpvInitParams {
 export function transformOptions(settings: PlayerSettings): Record<string, unknown> {
   const options: Record<string, unknown> = {};
 
-  const rotation = ((settings.rotation % 360) + 360) % 360;
-  options["video-rotate"] = rotation;
-
-  const filters: string[] = [];
-  if (settings.flipH) filters.push("hflip");
-  if (settings.flipV) filters.push("vflip");
-  const blur = clamp(settings.blur, 0, 20);
-  if (blur > 0) filters.push(`lavfi=[gblur=sigma=${blur}]`);
-  const grayscale = clamp(settings.grayscale, 0, 100);
-  if (grayscale > 0) filters.push(`lavfi=[hue=s=${(100 - grayscale) / 100}]`);
-  const sepia = clamp(settings.sepia, 0, 100) / 100;
-  if (sepia > 0) {
-    const mix = (tint: number, identity: number) =>
-      (sepia * tint + (1 - sepia) * identity).toFixed(3);
-    const matrix = [
-      `rr=${mix(0.393, 1)}`,
-      `rg=${mix(0.769, 0)}`,
-      `rb=${mix(0.189, 0)}`,
-      `gr=${mix(0.349, 0)}`,
-      `gg=${mix(0.686, 1)}`,
-      `gb=${mix(0.168, 0)}`,
-      `br=${mix(0.272, 0)}`,
-      `bg=${mix(0.534, 0)}`,
-      `bb=${mix(0.131, 1)}`,
-    ].join(":");
-    filters.push(`lavfi=[colorchannelmixer=${matrix}]`);
-  }
-  if (filters.length > 0) options.vf = filters.join(",");
-  else options.vf = "";
-
-  options["video-zoom"] = Number(Math.log2(clamp(settings.zoom, 0.1, 3)).toFixed(4));
-
-  options.keepaspect = settings.aspectRatio !== "fill";
-
   options.brightness = clamp(Math.round(settings.brightness - 100), -100, 100);
   options.contrast = clamp(Math.round(settings.contrast - 100), -100, 100);
   options.saturation = clamp(Math.round(settings.saturation - 100), -100, 100);

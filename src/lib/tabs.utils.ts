@@ -27,3 +27,10 @@ export function isEnabledTabPath(pathname: string): boolean {
   if (!tab) return true;
   return visibleTabs(tabSettingsSnapshot()).some((entry) => entry.id === tab);
 }
+
+export type SecretTabAction = "reveal" | "hide" | "none";
+
+export function resolveSecretTabAction(unlocked: boolean, onGameTab: boolean): SecretTabAction {
+  if (!unlocked) return "reveal";
+  return onGameTab ? "none" : "hide";
+}

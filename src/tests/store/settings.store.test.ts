@@ -739,3 +739,14 @@ describe("search source order v43 migration", () => {
     expect(result.defaultSearchSource).toBe("erai-raws");
   });
 });
+
+describe("settings shape removals", () => {
+  it("drops a key the current shape no longer has", () => {
+    const result = settings.migrateSettingsData(
+      { language: "en", notifySequel: false, notifyNewFiles: true },
+      53
+    ) as Record<string, unknown>;
+    expect(result.notifyNewFiles).toBeUndefined();
+    expect(result.notifySequel).toBe(false);
+  });
+});

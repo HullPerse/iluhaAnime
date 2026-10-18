@@ -17,7 +17,6 @@ import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
-import { useWatchedFolderNotifications } from "@/hooks/player/folderNotify.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
@@ -26,7 +25,6 @@ import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
 import { folderTreesFromScan, fingerprint } from "@/lib/player/scan.utils";
 import { folderScanBus } from "@/lib/player/scanBus.utils";
 import {
-  allFilePaths,
   buildTree,
   filterTreeByPaths,
   patchTreeFile,
@@ -283,8 +281,6 @@ function PlayerRoute() {
     return runner(() => rebuildFileIndexRef.current(paths));
   }, []);
 
-  const { reportScan } = useWatchedFolderNotifications(savedFolderPaths, videoExtensions);
-
   useEffect(() => {
     const cached = cacheAtoms.folderTrees.get();
     if (cached.length > 0) {
@@ -343,13 +339,6 @@ function PlayerRoute() {
         return;
       }
       const trees = folderTreesFromScan(results ?? []);
-      for (const result of results ?? []) {
-        reportScan(
-          result.path,
-          result.entries.map((entry) => entry.path),
-          true
-        );
-      }
       setFolderTrees(trees);
       setScanProgress(null);
       scannedFingerprint.current = print;
@@ -361,7 +350,7 @@ function PlayerRoute() {
     return () => {
       cancelled = true;
     };
-  }, [reportScan, savedFolderPaths, t, videoExtensions, scanThreads, rebuildIndex]);
+  }, [savedFolderPaths, t, videoExtensions, scanThreads, rebuildIndex]);
 
   const torrentSaveDirsKey = useMemo(
     () =>
@@ -430,11 +419,6 @@ function PlayerRoute() {
           setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
           return next;
         });
-        reportScan(
-          path,
-          entries.map((entry) => entry.path),
-          false
-        );
       };
       const rescanPath = async (path: string) => {
         const [entries, scanError] = await attempt(
@@ -516,7 +500,6 @@ function PlayerRoute() {
           setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
           return next;
         });
-        reportScan(root, allFilePaths(patched), false);
       };
       (async () => {
         await Promise.all(

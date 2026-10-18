@@ -50,7 +50,6 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   notifySubscribedReplies: true,
   notifyMediaMerge: true,
   notifySequel: true,
-  notifyNewFiles: true,
   notifyTorrentHealth: true,
   notifyUpscaleDone: true,
   notifyModelDownloads: true,

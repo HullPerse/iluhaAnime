@@ -22,6 +22,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 import PlayerComponent from "@/routes/components/player/player.component";
+import { notificationAtoms } from "@/store/notification.store";
 import {
   DEFAULT_PLAYER_SETTINGS,
   patchPlayerSettings,
@@ -46,6 +47,9 @@ beforeEach(() => {
   mockDialogOpen.mockResolvedValue(null);
   patchSettings({ language: "en" });
   patchPlayerSettings({ ...DEFAULT_PLAYER_SETTINGS });
+  notificationAtoms.items.set([]);
+  notificationAtoms.unreadCount.set(0);
+  notificationAtoms.dismissed.set([]);
   vi.useFakeTimers();
   vi.stubGlobal(
     "ResizeObserver",
@@ -85,18 +89,18 @@ describe("player settings chain store -> debounce -> mpv", () => {
     expect(setPropertyCalls("volume")).toEqual([90]);
   });
 
-  it("delivers rotation to mpv after the settings debounce", async () => {
+  it("delivers hue to mpv after the settings debounce", async () => {
     await mountPlayer();
-    expect(setPropertyCalls("video-rotate")).toEqual([]);
+    expect(setPropertyCalls("hue")).toEqual([]);
 
     act(() => {
-      patchPlayerSettings({ rotation: 90 });
+      patchPlayerSettings({ hue: 90 });
     });
     await act(async () => {
       vi.advanceTimersByTime(200);
     });
 
-    expect(setPropertyCalls("video-rotate")).toEqual([90]);
+    expect(setPropertyCalls("hue")).toEqual([90]);
   });
 
   it("delivers brightness mapped onto the mpv scale", async () => {
@@ -114,15 +118,15 @@ describe("player settings chain store -> debounce -> mpv", () => {
   it("coalesces rapid slider changes into one mpv write", async () => {
     await mountPlayer();
     act(() => {
-      patchPlayerSettings({ rotation: 10 });
-      patchPlayerSettings({ rotation: 20 });
-      patchPlayerSettings({ rotation: 30 });
+      patchPlayerSettings({ contrast: 110 });
+      patchPlayerSettings({ contrast: 120 });
+      patchPlayerSettings({ contrast: 130 });
     });
     await act(async () => {
       vi.advanceTimersByTime(200);
     });
 
-    expect(setPropertyCalls("video-rotate")).toEqual([30]);
+    expect(setPropertyCalls("contrast")).toEqual([30]);
   });
 
   it("throttles rapid volume changes with a trailing exact value", async () => {
@@ -172,5 +176,70 @@ describe("player settings chain store -> debounce -> mpv", () => {
       vi.advanceTimersByTime(5000);
     });
     expect(saves()).toBe(2);
+  });
+});
+
+describe("player settings rejections reach the user", () => {
+  const rejectBrightness = async (command: string, args?: Record<string, unknown>) => {
+    if (command === "player_set_property" && args?.name === "brightness") {
+      throw new Error("Failed to set property 'brightness': error accessing property");
+    }
+    return undefined;
+  };
+
+  it("notifies once per rejected property and re-arms it after a clean apply", async () => {
+    await mountPlayer();
+    invokeMock.mockImplementation(rejectBrightness);
+
+    act(() => {
+      patchPlayerSettings({ brightness: 120 });
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    await act(async () => {});
+
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+    expect(notificationAtoms.items.get()[0].type).toBe("error");
+    expect(notificationAtoms.items.get()[0].message).toContain("brightness");
+    const firstTimestamp = notificationAtoms.items.get()[0].timestamp;
+
+    // a repeat of the same rejected value stays quiet, which the store would otherwise fold in
+    // by bumping the notice timestamp
+    vi.setSystemTime(firstTimestamp + 5_000);
+    act(() => {
+      patchPlayerSettings({ brightness: 130 });
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    await act(async () => {});
+
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+    expect(notificationAtoms.items.get()[0].timestamp).toBe(firstTimestamp);
+
+    invokeMock.mockResolvedValue(undefined);
+    act(() => {
+      patchPlayerSettings({ brightness: 140 });
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    await act(async () => {});
+
+    expect(notificationAtoms.items.get()).toHaveLength(1);
+
+    vi.setSystemTime(firstTimestamp + 30_000);
+    invokeMock.mockImplementation(rejectBrightness);
+    act(() => {
+      patchPlayerSettings({ brightness: 150 });
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    await act(async () => {});
+
+    expect(notificationAtoms.items.get()).toHaveLength(2);
+    expect(notificationAtoms.items.get()[0].message).toContain("brightness");
   });
 });

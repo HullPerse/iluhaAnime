@@ -55,7 +55,6 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.anilist.status_matrix", "anilist"),
       entry("changelog.5_0_0.added.anilist.site_toasts", "anilist"),
       entry("changelog.5_0_0.added.torrents.health", "torrents"),
-      entry("changelog.5_0_0.added.player.newfiles", "player"),
       entry("changelog.5_0_0.added.app.update_toast", "app"),
       entry("changelog.5_0_0.added.app.task_toasts", "app"),
       entry("changelog.5_0_0.added.anilist.activity_detail", "anilist"),
@@ -171,6 +170,9 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.anilist.detail_prefetch", "anilist"),
       entry("changelog.5_0_0.changed.anilist.detail_requests", "anilist"),
       entry("changelog.5_0_0.changed.anilist.custom_lists_guest", "anilist"),
+      entry("changelog.5_0_0.changed.player.transform_removed", "player"),
+      entry("changelog.5_0_0.changed.player.folder_new_files", "player"),
+      entry("changelog.5_0_0.changed.game.secret_toggle", "game"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),
@@ -205,6 +207,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.search.wallpaper_placeholder", "search"),
       entry("changelog.5_0_0.fixed.settings.layout_overflow", "settings"),
       entry("changelog.5_0_0.fixed.app.vim_combobox", "app"),
+      entry("changelog.5_0_0.fixed.player.settings_panel", "player"),
     ],
   },
   {

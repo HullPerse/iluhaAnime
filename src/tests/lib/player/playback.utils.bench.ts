@@ -15,11 +15,10 @@ import type { PlayerSettings } from '@/types/videoPlayer';
 
 const HEAVY: PlayerSettings = {
   ...DEFAULT_PLAYER_SETTINGS,
-  flipH: true,
-  flipV: true,
-  blur: 20,
-  grayscale: 100,
-  sepia: 100,
+  brightness: 150,
+  contrast: 80,
+  saturation: 120,
+  hue: -40,
   subFontSize: 24,
 };
 

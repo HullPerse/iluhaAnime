@@ -152,8 +152,6 @@ const common = {
   "notification.convert.failed": "Конвертация не удалась",
   "notification.downloads.done": "Загрузка завершена",
   "notification.downloads.failed": "Загрузка не удалась",
-  "notification.newfiles": "Найдены новые файлы",
-  "notification.newfiles.body": "{{count}} новых файлов в отслеживаемых папках",
   "notification.scan.failed": "Сканирование не удалось",
   "notification.sync.failed": "Синхронизация не удалась",
   "notification.update.available": "Доступна версия {{version}}",

@@ -50,7 +50,6 @@ export default function SettingsNotifications() {
   const notifySequel = useCell(settingsAtoms.notifySequel);
   const anilistPollIntervalMin = useCell(settingsAtoms.anilistPollIntervalMin);
   const anilistNotifyLists = useCell(settingsAtoms.anilistNotifyLists);
-  const notifyNewFiles = useCell(settingsAtoms.notifyNewFiles);
   const notifyTorrentHealth = useCell(settingsAtoms.notifyTorrentHealth);
   const notifyUpscaleDone = useCell(settingsAtoms.notifyUpscaleDone);
   const notifyModelDownloads = useCell(settingsAtoms.notifyModelDownloads);
@@ -219,21 +218,6 @@ export default function SettingsNotifications() {
             label={t("settings.notifications.torrent.health")}
             checked={notifyTorrentHealth}
             onChange={(v) => patchSettings({ notifyTorrentHealth: v })}
-          />
-        </div>
-      </section>
-
-      <section className="ui-panel" data-find-section="notifications.player">
-        <div className="ui-titlebar">
-          <span className="text-title-text font-bold">
-            {t("settings.notifications.group.player")}
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5 p-2">
-          <NotifyRow
-            label={t("settings.notifications.newfiles")}
-            checked={notifyNewFiles}
-            onChange={(v) => patchSettings({ notifyNewFiles: v })}
           />
         </div>
       </section>

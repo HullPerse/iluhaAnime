@@ -44,7 +44,7 @@ test('player store - settings atoms', async ({ bench }) => {
     const store = createPlayerSignalStore({ getStorage: () => memoryStorage() });
     for (let i = 0; i < 50000; i++) {
       store.setVolume(i % 100 / 50);
-      store.patchPlayerSettings({ rotation: i, zoom: i / 10 });
+      store.patchPlayerSettings({ brightness: i % 200, contrast: i % 200 });
     }
   });
 

@@ -503,25 +503,12 @@ describe("player/playback options", () => {
     expect(options["hue"]).toBe(100);
   });
 
-  it("maps zoom onto video-zoom and resets keepaspect", () => {
-    expect(transformOptions(settings({ zoom: 1 }))["video-zoom"]).toBe(0);
-    expect(transformOptions(settings({ zoom: 2 }))["video-zoom"]).toBe(1);
-    expect(transformOptions(settings({ zoom: 0.5 }))["video-zoom"]).toBe(-1);
-    expect(transformOptions(settings({ zoom: 1 }))).not.toHaveProperty("panscan");
-    expect(transformOptions(settings({ aspectRatio: "fill" }))["keepaspect"]).toBe(false);
-    expect(transformOptions(settings({ aspectRatio: "contain" }))["keepaspect"]).toBe(true);
-  });
-
-  it("always sends vf and subtitle options so resets clear mpv state", () => {
+  it("always sends subtitle options so resets clear mpv state", () => {
     const options = transformOptions(settings({}));
-    expect(options["vf"]).toBe("");
     expect(options["sub-font-size"]).toBe(55);
     expect(options["sub-font"]).toBe("Arial");
     expect(options["sub-use-margins"]).toBe(false);
     expect(options["sub-ass-force-margins"]).toBe(false);
-    const filtered = transformOptions(settings({ flipH: true, blur: 5 }));
-    expect(filtered["vf"]).toContain("hflip");
-    expect(filtered["vf"]).toContain("gblur");
   });
 
   it("does not emit gamma without a UI control", () => {

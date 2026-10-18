@@ -55,6 +55,8 @@ const game = {
   "game.unmute": "Sound on",
   "game.secret.found": "Secret found",
   "game.secret.body": "The Game tab is unlocked.",
+  "game.secret.hidden": "Secret hidden",
+  "game.secret.hidden.body": "The Game tab is hidden. Enter the code again to bring it back.",
 } as const;
 
 export default game;

@@ -75,13 +75,6 @@ function SettingsPanel({
   onProfile: (profile: PlayerProfileId) => void;
 }) {
   const { t } = useI18n();
-  const aspectOptions = [
-    { value: "contain", label: t("player.media.settings.ar.contain") },
-    { value: "fill", label: t("player.media.settings.ar.fill") },
-    { value: "cover", label: t("player.media.settings.ar.cover") },
-    { value: "none", label: t("player.media.settings.ar.none") },
-    { value: "scale-down", label: t("player.media.settings.ar.scale.down") },
-  ];
   const fontOptions = FONT_OPTIONS.map((font) => ({ value: font, label: font }));
   const hwdecOptions = [
     { value: "auto-safe", label: t("player.media.settings.hwdec.auto.safe") },
@@ -158,50 +151,6 @@ function SettingsPanel({
           />
         </Row>
       </Section>
-      <Section title={t("player.media.settings.transform")}>
-        <PlayerSlider
-          label={t("player.media.settings.rotation")}
-          min={0}
-          max={360}
-          step={1}
-          value={settings.rotation}
-          format={(value) => `${value}°`}
-          onChange={(value) => onPatchSettings({ rotation: value })}
-        />
-        <Row label={t("player.media.settings.flip.h")}>
-          <Checkbox
-            checked={settings.flipH}
-            onChange={(value) => onPatchSettings({ flipH: value })}
-            aria-label={t("player.media.settings.flip.h")}
-          />
-        </Row>
-        <Row label={t("player.media.settings.flip.v")}>
-          <Checkbox
-            checked={settings.flipV}
-            onChange={(value) => onPatchSettings({ flipV: value })}
-            aria-label={t("player.media.settings.flip.v")}
-          />
-        </Row>
-        <PlayerSlider
-          label={t("player.media.settings.zoom")}
-          min={0.1}
-          max={3}
-          step={0.01}
-          value={settings.zoom}
-          format={(value) => `${value.toFixed(2)}x`}
-          onChange={(value) => onPatchSettings({ zoom: value })}
-        />
-        <Row label={t("player.media.settings.aspect")}>
-          <Select
-            className="flex-1"
-            value={settings.aspectRatio}
-            options={aspectOptions}
-            onChange={(value) =>
-              onPatchSettings({ aspectRatio: value as PlayerSettings["aspectRatio"] })
-            }
-          />
-        </Row>
-      </Section>
       <Section title={t("player.media.settings.filters")}>
         <PlayerSlider
           label={t("player.media.settings.brightness")}
@@ -238,33 +187,6 @@ function SettingsPanel({
           value={settings.hue}
           format={(value) => `${value}`}
           onChange={(value) => onPatchSettings({ hue: value })}
-        />
-        <PlayerSlider
-          label={t("player.media.settings.blur")}
-          min={0}
-          max={20}
-          step={0.5}
-          value={settings.blur}
-          format={(value) => `${value.toFixed(1)}`}
-          onChange={(value) => onPatchSettings({ blur: value })}
-        />
-        <PlayerSlider
-          label={t("player.media.settings.sepia")}
-          min={0}
-          max={100}
-          step={1}
-          value={settings.sepia}
-          format={(value) => `${value}%`}
-          onChange={(value) => onPatchSettings({ sepia: value })}
-        />
-        <PlayerSlider
-          label={t("player.media.settings.grayscale")}
-          min={0}
-          max={100}
-          step={1}
-          value={settings.grayscale}
-          format={(value) => `${value}%`}
-          onChange={(value) => onPatchSettings({ grayscale: value })}
         />
       </Section>
       <Section title={t("player.media.settings.image")}>

@@ -34,8 +34,50 @@ describe("PlayerModal", () => {
         <span>panel body</span>
       </PlayerModal>
     );
-    fireEvent.click(screen.getByRole("dialog", { name: "Settings" }));
+    const dialog = screen.getByRole("dialog", { name: "Settings" });
+    fireEvent.mouseDown(dialog);
+    fireEvent.mouseUp(dialog);
+    fireEvent.click(dialog);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the modal open when a drag starts inside the panel and ends on the backdrop", () => {
+    const onClose = vi.fn();
+    render(
+      <PlayerModal header="Settings" onClose={onClose}>
+        <span>panel body</span>
+      </PlayerModal>
+    );
+    const dialog = screen.getByRole("dialog", { name: "Settings" });
+    fireEvent.mouseDown(screen.getByText("panel body"));
+    fireEvent.mouseUp(dialog);
+    fireEvent.click(dialog);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps the modal open when a drag starts on the backdrop and ends inside the panel", () => {
+    const onClose = vi.fn();
+    render(
+      <PlayerModal header="Settings" onClose={onClose}>
+        <span>panel body</span>
+      </PlayerModal>
+    );
+    const dialog = screen.getByRole("dialog", { name: "Settings" });
+    fireEvent.mouseDown(dialog);
+    fireEvent.mouseUp(screen.getByText("panel body"));
+    fireEvent.click(dialog);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps the modal open on a click without a matching backdrop press", () => {
+    const onClose = vi.fn();
+    render(
+      <PlayerModal header="Settings" onClose={onClose}>
+        <span>panel body</span>
+      </PlayerModal>
+    );
+    fireEvent.click(screen.getByRole("dialog", { name: "Settings" }));
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("keeps the modal open when content is clicked", () => {

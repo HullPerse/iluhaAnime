@@ -116,18 +116,10 @@ export interface PlayerProfile {
 export type SeekMode = "keyframes" | "exact";
 
 export interface PlayerSettings {
-  rotation: number;
-  flipH: boolean;
-  flipV: boolean;
-  zoom: number;
-  aspectRatio: "contain" | "fill" | "cover" | "none" | "scale-down";
   brightness: number;
   contrast: number;
   saturation: number;
   hue: number;
-  blur: number;
-  sepia: number;
-  grayscale: number;
   subFontSize: number;
   subFontFamily: string;
   subColor: string;

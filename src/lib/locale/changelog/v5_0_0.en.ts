@@ -76,8 +76,6 @@ const changelog500 = {
     "Toasts for subscribed activity replies, sequels, entry merges and deletions, with manga filtered out of site notifications",
   "changelog.5_0_0.added.torrents.health":
     "Torrent health warnings for missing data files and externally changed files",
-  "changelog.5_0_0.added.player.newfiles":
-    "Watched folders report new files: snapshot check on scan plus a 30 minute recheck",
   "changelog.5_0_0.added.app.update_toast": "One-shot tray notice when an app update is found",
   "changelog.5_0_0.added.app.task_toasts":
     "Completion toasts for upscale, convert, and tool downloads, plus backup errors and scan failure surfacing",
@@ -365,6 +363,14 @@ const changelog500 = {
     "Custom lists in anime details are no longer requested while signed out of AniList",
   "changelog.5_0_0.added.game.ui":
     "Game: a live keypad with mouse presses, stage states with a retry button on failure, in-tab Expand bound to Esc, a volume slider persisted across runs, arrow-key navigation in the library, ROM size in KB and a store counter",
+  "changelog.5_0_0.changed.player.transform_removed":
+    "The player settings lose the Transformation section (rotation, flips, zoom, aspect ratio) and the blur, sepia and grayscale sliders: in the current mpv build they never reached the picture. Brightness, contrast, saturation and hue stay and are verified",
+  "changelog.5_0_0.changed.player.folder_new_files":
+    "New-file notices for watched folders are gone, along with the periodic folder recheck and its setting",
+  "changelog.5_0_0.changed.game.secret_toggle":
+    "The Konami code now toggles the Game tab: the same code hides it again, except while it is open",
+  "changelog.5_0_0.fixed.player.settings_panel":
+    "The player settings panel no longer closes by itself when a slider is released outside it, and rejected mpv settings raise a notice instead of a silent console warning",
 } as const;
 
 export default changelog500;

@@ -492,6 +492,7 @@ function PlayerComponent() {
   const settingsDebouncerRef = useRef<Debouncer<[PlayerSettings]> | null>(null);
   const previousSettingsRef = useRef<PlayerSettings | null>(null);
   const settingsSyncFailedRef = useRef(false);
+  const rejectedSettingsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     return () => {
@@ -539,7 +540,25 @@ function PlayerComponent() {
               }
               ignore(
                 Promise.all(jobs).then((failedLists) => {
-                  settingsSyncFailedRef.current = failedLists.some((list) => list.length > 0);
+                  const rejected = failedLists.flat();
+                  settingsSyncFailedRef.current = rejected.length > 0;
+                  if (rejected.length === 0) {
+                    rejectedSettingsRef.current.clear();
+                    return;
+                  }
+                  // mpv rejects an option once per value that cannot change while a file runs, so
+                  // the notice is raised per property and re-armed only after it applies cleanly.
+                  const fresh = rejected.filter((name) => !rejectedSettingsRef.current.has(name));
+                  if (fresh.length === 0) return;
+                  for (const name of fresh) rejectedSettingsRef.current.add(name);
+                  const language = settingsAtoms.language.get();
+                  addNotification(
+                    translate(language, "player.media.settings.rejected.title"),
+                    "error",
+                    translate(language, "player.media.settings.rejected.message", {
+                      properties: fresh.join(", "),
+                    })
+                  );
                 })
               );
             },

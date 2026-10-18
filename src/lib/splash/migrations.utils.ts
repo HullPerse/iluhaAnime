@@ -12,7 +12,7 @@ export interface TrackedStore {
 }
 
 export const TRACKED_STORES: TrackedStore[] = [
-  { store: "settings", current: 53 },
+  { store: "settings", current: 54 },
   { store: "theme", current: 0 },
   { store: "cache", current: 5 },
   { store: "search", current: 3 },
@@ -20,7 +20,7 @@ export const TRACKED_STORES: TrackedStore[] = [
   { store: "notifications", current: 1 },
   { store: "anilistFriends", current: 1 },
   { store: "anilistReleaseObservations", current: 6 },
-  { store: "player", current: 0 },
+  { store: "player", current: 1 },
   { store: "media", current: 0 },
   { store: "categories", current: 1 },
   { store: "coverCorrections", current: 3 },

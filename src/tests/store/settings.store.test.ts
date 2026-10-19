@@ -228,6 +228,25 @@ describe("settings similar view", () => {
   });
 });
 
+describe("settings anime detail width", () => {
+  it("defaults to the normal modal when missing", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 38).animeDetailWidth).toBe("default");
+  });
+
+  it("keeps a valid persisted width", () => {
+    const result = settings.migrateSettingsData({ animeDetailWidth: "wide", language: "en" }, 38);
+    expect(result.animeDetailWidth).toBe("wide");
+  });
+
+  it("repairs an unknown width to the default", () => {
+    const result = settings.migrateSettingsData(
+      { animeDetailWidth: "huge", language: "en" },
+      38
+    ) as Record<string, unknown>;
+    expect(result.animeDetailWidth).toBe("default");
+  });
+});
+
 describe("settings signal patch", () => {
   it("applies partial updates", () => {
     settings.patchSettings({ limits: { download: null, upload: null }, language: "ru" });

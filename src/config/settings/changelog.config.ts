@@ -100,6 +100,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.game.ui", "game"),
       entry("changelog.5_0_0.added.player.view_modes", "player"),
       entry("changelog.5_0_0.added.search.details_gallery", "search"),
+      entry("changelog.5_0_0.added.settings.detail_width", "settings"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),

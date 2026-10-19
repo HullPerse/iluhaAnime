@@ -35,6 +35,7 @@ export default function SettingsTheme() {
   const retroStyle = useCell(settingsAtoms.retroStyle);
   const searchType = useCell(settingsAtoms.searchType);
   const playerType = useCell(settingsAtoms.playerType);
+  const animeDetailWidth = useCell(settingsAtoms.animeDetailWidth);
   const uiDensity = useCell(settingsAtoms.uiDensity);
   const windowEffect = useCell(settingsAtoms.windowEffect);
   const windowTintOpacity = useCell(settingsAtoms.windowTintOpacity);
@@ -207,11 +208,11 @@ export default function SettingsTheme() {
           <span className="text-title-text font-bold">{t("settings.theme.retro.style")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.retro.style")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={retroStyle}
                 onChange={(value) => patchSettings({ retroStyle: value as typeof retroStyle })}
@@ -230,7 +231,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.density")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={uiDensity}
                 onChange={(value) => patchSettings({ uiDensity: value as typeof uiDensity })}
@@ -255,11 +256,11 @@ export default function SettingsTheme() {
           </span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.collection.headers")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={collectionGroupHeaderStyle}
                 onChange={(value) =>
@@ -289,11 +290,11 @@ export default function SettingsTheme() {
           <span className="text-title-text font-bold">{t("settings.progress.style")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.progress.style")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={progressStyle}
                 onChange={(value) =>
@@ -342,7 +343,7 @@ export default function SettingsTheme() {
         </div>
 
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.search")}
             </span>
@@ -369,7 +370,7 @@ export default function SettingsTheme() {
             field="customTitleBarEnabled"
           />
 
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.player")}
             </span>
@@ -386,11 +387,27 @@ export default function SettingsTheme() {
           {playerType !== "modern" && (
             <EffectsCheckbox label={t("settings.theme.player.menu")} field="playerContextMenu" />
           )}
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
+            <span className="windows95-text text-text text-xs font-bold">
+              {t("settings.theme.detail.width")}
+            </span>
+            <Combobox
+              value={animeDetailWidth}
+              onChange={(value) =>
+                patchSettings({ animeDetailWidth: value as typeof animeDetailWidth })
+              }
+              options={[
+                { value: "default", label: t("settings.theme.detail.width.default") },
+                { value: "wide", label: t("settings.theme.detail.width.wide") },
+              ]}
+              className="max-w-xs"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-x-3 gap-y-0.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.theme.experimental.effect")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={windowEffect}
                 onChange={(value) => patchSettings({ windowEffect: value as typeof windowEffect })}
@@ -414,7 +431,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.theme.experimental.effect.opacity")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <Slider

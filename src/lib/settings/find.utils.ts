@@ -327,10 +327,7 @@ const FIND_GROUPS: readonly FindGroup[] = [
     tab: "torrent",
     section: "notifications",
     titleKey: "settings.torrent.notifications",
-    keys: [
-      "settings.torrent.on.complete",
-      "settings.torrent.on.error",
-    ],
+    keys: ["settings.torrent.on.complete", "settings.torrent.on.error"],
   },
   {
     tab: "torrent",
@@ -489,6 +486,9 @@ const FIND_GROUPS: readonly FindGroup[] = [
       "settings.theme.player.default",
       "settings.theme.player.modern",
       "settings.theme.player.menu",
+      "settings.theme.detail.width",
+      "settings.theme.detail.width.default",
+      "settings.theme.detail.width.wide",
       "settings.theme.experimental.mascot",
       "settings.theme.experimental.statusbar",
       "settings.theme.experimental.titlebar",

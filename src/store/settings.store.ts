@@ -258,6 +258,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   playerType: toValidator(z.enum(["default", "modern"])),
   progressStyle: toValidator(z.enum(["blocks", "solid"])),
   similarView: toValidator(z.enum(["rail", "list"])),
+  animeDetailWidth: toValidator(z.enum(["default", "wide"])),
   screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
   torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),
   notificationPopups: toValidator(z.enum(["off", "system", "inapp", "both"])),

@@ -61,6 +61,7 @@ export interface SettingsStore {
   uiDensity: "comfortable" | "compact";
   progressStyle: "blocks" | "solid";
   similarView: "rail" | "list";
+  animeDetailWidth: "default" | "wide";
   vimMode: boolean;
   keybindOverrides: Record<string, string | null>;
   collectionGroupHeaderStyle: "torrent" | "folder";

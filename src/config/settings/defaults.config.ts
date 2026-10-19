@@ -114,6 +114,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   uiDensity: "comfortable",
   progressStyle: "blocks",
   similarView: "rail",
+  animeDetailWidth: "default",
   vimMode: false,
   keybindOverrides: {} as Record<string, string | null>,
   videoExtensions: [

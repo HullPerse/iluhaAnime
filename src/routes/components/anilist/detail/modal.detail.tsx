@@ -1,9 +1,13 @@
 import Modal from "@/components/shared/modal.component";
+import { ANILIST_DETAIL_WIDTH_CLASS } from "@/config/anilist/detail.config";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AniDetailProps as DetailProps } from "@/types/anilist";
 
 import { AnimeDetailShell } from "./shell.detail";
 
 function AniListDetailModal(props: DetailProps) {
+  const detailWidth = useCell(settingsAtoms.animeDetailWidth);
   return (
     <AnimeDetailShell
       {...props}
@@ -13,7 +17,7 @@ function AniListDetailModal(props: DetailProps) {
           onClose={props.onClose}
           onBack={onBack}
           headerActions={actions}
-          className="min-w-2xl"
+          className={ANILIST_DETAIL_WIDTH_CLASS[detailWidth]}
         >
           {body}
         </Modal>

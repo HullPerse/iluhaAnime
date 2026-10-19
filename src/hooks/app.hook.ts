@@ -1,24 +1,22 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { visibleTabs } from "@/config/settings/tabs.config";
 import { tabIdFromPath, tabPathFromId } from "@/config/tabs/paths.config";
-import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
+import { useUpdateCheck } from "@/hooks/update.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
 import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
 import { markCacheReady } from "@/lib/splash/signals.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
@@ -36,7 +34,6 @@ import {
   showError,
   showWarning,
 } from "@/lib/utils/notification.utils";
-import { checkForUpdates } from "@/lib/utils/update.utils";
 import { anilistNotificationsAtoms } from "@/store/anilist.store";
 import { cacheAtoms, setEpisodeTracker, setFolderTrees, setLastSaveDir } from "@/store/cache.store";
 import { collectionAtoms, subscribeCollection } from "@/store/collection.store";
@@ -53,6 +50,7 @@ import { addNotification } from "@/store/notification.store";
 import { clearSearchAnimeIndex, searchAtoms, subscribeSearch } from "@/store/search.store";
 import { settingsAtoms, subscribeSettings } from "@/store/settings.store";
 import { applyTheme, themeAtoms } from "@/store/theme.store";
+import { closeUpdatePrompt, openUpdatePrompt, updateAtoms } from "@/store/update.store";
 import type {
   NotificationTarget,
   NotificationType,
@@ -113,16 +111,12 @@ export function useApp() {
     ...tab,
     disabledReason: tab.disabled ? t("tabs.offlineUnavailable") : undefined,
   }));
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const { data } = useAppQuery("static", {
-    queryFn: async (): Promise<Update | null> => checkForUpdates(),
-    queryKey: queryKeys.appUpdates(),
-    enabled: isOnline,
-  });
+  const { data: update } = useUpdateCheck();
+  const updatePromptOpen = useCell(updateAtoms.promptOpen);
 
   useEffect(() => {
-    if (data) setUpdateAvailable(true);
-  }, [data]);
+    if (update) openUpdatePrompt();
+  }, [update]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -583,8 +577,8 @@ export function useApp() {
 
   return {
     tabs,
-    data,
-    updateAvailable,
-    setUpdateAvailable,
+    update,
+    updatePromptOpen,
+    closeUpdatePrompt,
   };
 }

@@ -11,6 +11,7 @@ import {
   mockOpenPath,
   mockOpenUrl,
   mockReadText,
+  mockUpdaterCheck,
   mockWriteImage,
   mockWriteText,
   resetAllSharedMocks,
@@ -43,6 +44,10 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   writeImage: mockWriteImage,
 }));
 
+vi.mock("@tauri-apps/plugin-updater", () => ({
+  check: mockUpdaterCheck,
+}));
+
 beforeEach(async () => {
   const { resetTransportInflight, resetTransportStats } = await import("@/api/transport.api");
   const { resetCoverCache } = await import("@/hooks/collection/cache.hook");
@@ -52,6 +57,7 @@ beforeEach(async () => {
   const { resetNotificationAtoms } = await import("@/store/notification.store");
   const { resetSettingsAtoms } = await import("@/store/settings.store");
   const { resetModalAtoms } = await import("@/store/modal.store");
+  const { resetUpdateAtoms } = await import("@/store/update.store");
   resetAllSharedMocks();
   resetTransportInflight();
   resetTransportStats();
@@ -62,6 +68,7 @@ beforeEach(async () => {
   resetNotificationAtoms();
   resetSettingsAtoms();
   resetModalAtoms();
+  resetUpdateAtoms();
   localStorage.clear();
   sessionStorage.clear();
 });

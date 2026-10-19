@@ -12,7 +12,7 @@ export async function checkForUpdates(): Promise<Update | null> {
   const [update, error] = await attempt(check());
   if (error !== null) {
     reportBackgroundError("updates.check", error);
-    return null;
+    throw error;
   }
   return update;
 }

@@ -377,6 +377,8 @@ const changelog500 = {
     "Percent seek keys moved to Shift+1, Shift+2 and Shift+3, because bare 1, 2 and 3 now switch the view preset; 4 to 9 and 0 still jump to their tenths of the file",
   "changelog.5_0_0.changed.anilist.friend_compare":
     "Friend comparison rebuilt: the friend's nickname instead of a generic label, shared and per-user tabs, search, sorting, status and progress in the rows, average scores by genre, shared favourites, a three-metric difference selector (mean delta, iluha affinity, MAL affinity), a taste-match summary with confidence, and an optional diff highlight",
+  "changelog.5_0_0.changed.settings.summary":
+    "Settings summary rebuilt: version with a manual update check, FFmpeg, database, backups, image cache, and a Help section with the bug report bundle and changelog; the appearance and learning duplicates are gone",
 } as const;
 
 export default changelog500;

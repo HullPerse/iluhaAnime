@@ -56,7 +56,7 @@ const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
 export default function App() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { tabs, data, updateAvailable, setUpdateAvailable } = useApp();
+  const { tabs, update, updatePromptOpen, closeUpdatePrompt } = useApp();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const activeTab = tabIdFromPath(pathname) ?? "search";
 
@@ -148,8 +148,8 @@ export default function App() {
       className="relative h-screen w-screen overflow-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
-      {data && updateAvailable && overlays.length === 0 && (
-        <Updater update={data} onClose={() => setUpdateAvailable(false)} />
+      {update && updatePromptOpen && overlays.length === 0 && (
+        <Updater update={update} onClose={closeUpdatePrompt} />
       )}
       {(preparingTorrent || pendingTorrent) && (
         <TorrentFilePicker

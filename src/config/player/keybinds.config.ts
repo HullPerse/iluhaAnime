@@ -28,6 +28,10 @@ export type KeybindAction =
   | "prevFile"
   | "toggleCheatsheet"
   | "toggleFullscreen"
+  | "toggleAlwaysOnTop"
+  | "viewMinimal"
+  | "viewCompact"
+  | "viewNormal"
   | "exitCinemaMode"
   | "jumpToTime"
   | "saveCleanFrame"
@@ -59,18 +63,23 @@ export const OFFSET_STEP = 0.5;
 export const OFFSET_STEP_FINE = 0.05;
 export const OFFSET_LIMIT = 300;
 
-function percentEntries(): KeybindDef[] {
-  return DIGIT_KEYS.map((digit) => ({
-    action: `seekPercent${digit}`,
-    chord: `Digit${digit}`,
-    repeat: "once",
-    keys: `${digit}`,
-    description: "player.media.key.seek.percent",
-    category: "playback",
-  }));
-}
-
 export const DIGIT_KEYS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+
+export const VIEW_MODE_DIGITS: readonly number[] = [1, 2, 3];
+
+function percentEntries(): KeybindDef[] {
+  return DIGIT_KEYS.map((digit) => {
+    const shifted = VIEW_MODE_DIGITS.includes(digit);
+    return {
+      action: `seekPercent${digit}`,
+      chord: shifted ? `Shift+Digit${digit}` : `Digit${digit}`,
+      repeat: "once",
+      keys: shifted ? `Shift+${digit}` : `${digit}`,
+      description: "player.media.key.seek.percent",
+      category: "playback",
+    };
+  });
+}
 
 export const KEYBINDS: KeybindDef[] = [
   {
@@ -263,6 +272,38 @@ export const KEYBINDS: KeybindDef[] = [
     repeat: "once",
     keys: "F",
     description: "player.media.key.fullscreen.toggle",
+    category: "ui",
+  },
+  {
+    action: "toggleAlwaysOnTop",
+    chord: "ctrl+KeyA",
+    repeat: "once",
+    keys: "Ctrl+A",
+    description: "player.media.key.always.on.top",
+    category: "ui",
+  },
+  {
+    action: "viewMinimal",
+    chord: "Digit1",
+    repeat: "once",
+    keys: "1",
+    description: "player.media.view.minimal",
+    category: "ui",
+  },
+  {
+    action: "viewCompact",
+    chord: "Digit2",
+    repeat: "once",
+    keys: "2",
+    description: "player.media.view.compact",
+    category: "ui",
+  },
+  {
+    action: "viewNormal",
+    chord: "Digit3",
+    repeat: "once",
+    keys: "3",
+    description: "player.media.view.normal",
     category: "ui",
   },
   {

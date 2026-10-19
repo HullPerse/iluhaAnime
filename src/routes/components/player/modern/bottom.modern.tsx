@@ -1,11 +1,15 @@
+import type { PlayerBottomBarKind } from "@/lib/player/view.utils";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
 import Controls from "../media/controls.player";
+import PlayerSlimBar from "../media/slim.player";
 import Timeline from "../media/timeline.player";
 import ModernControls from "./controls.modern";
 
 export interface PlayerBottomBarProps {
+  variant: PlayerBottomBarKind;
   playerType: "default" | "modern";
+  hasFile: boolean;
   paused: boolean;
   duration: number;
   chapters: MpvChapter[];
@@ -21,6 +25,7 @@ export interface PlayerBottomBarProps {
   seekTarget: number | null;
   onPlay: () => void;
   onPause: () => void;
+  onPlayPause: () => void;
   onSeekTo: (seconds: number) => void;
   onScrub: (time: number) => void;
   onCommitSeek: (time: number) => void;
@@ -42,7 +47,9 @@ export interface PlayerBottomBarProps {
 
 function PlayerBottomBar(props: PlayerBottomBarProps) {
   const {
+    variant,
     playerType,
+    hasFile,
     paused,
     duration,
     chapters,
@@ -58,6 +65,7 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
     seekTarget,
     onPlay,
     onPause,
+    onPlayPause,
     onSeekTo,
     onScrub,
     onCommitSeek,
@@ -76,6 +84,20 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
     onAddSubtitle,
     hideTracks,
   } = props;
+  if (variant === "slim") {
+    return (
+      <PlayerSlimBar
+        paused={paused}
+        hasFile={hasFile}
+        duration={duration}
+        chapters={chapters}
+        seekTarget={seekTarget}
+        onPlayPause={onPlayPause}
+        onScrub={onScrub}
+        onCommitSeek={onCommitSeek}
+      />
+    );
+  }
   if (playerType === "modern") {
     return (
       <ModernControls

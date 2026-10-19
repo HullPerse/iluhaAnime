@@ -20,7 +20,7 @@ export const TRACKED_STORES: TrackedStore[] = [
   { store: "notifications", current: 1 },
   { store: "anilistFriends", current: 1 },
   { store: "anilistReleaseObservations", current: 6 },
-  { store: "player", current: 1 },
+  { store: "player", current: 2 },
   { store: "media", current: 0 },
   { store: "categories", current: 1 },
   { store: "coverCorrections", current: 3 },

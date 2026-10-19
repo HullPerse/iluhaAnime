@@ -98,6 +98,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.app.page_find", "app"),
       entry("changelog.5_0_0.added.app.inapp_toasts", "app"),
       entry("changelog.5_0_0.added.game.ui", "game"),
+      entry("changelog.5_0_0.added.player.view_modes", "player"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -173,6 +174,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.player.transform_removed", "player"),
       entry("changelog.5_0_0.changed.player.folder_new_files", "player"),
       entry("changelog.5_0_0.changed.game.secret_toggle", "game"),
+      entry("changelog.5_0_0.changed.player.seek_keys", "player"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

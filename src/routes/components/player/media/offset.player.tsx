@@ -10,7 +10,7 @@ import { trackLabel } from "./tracks.player";
 
 const OSD_TIMEOUT = 2500;
 
-function OsdOverlay() {
+function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
   const { t } = useI18n();
 
   const path = useCell(playbackAtoms.path);
@@ -36,6 +36,7 @@ function OsdOverlay() {
     speed: 1,
     volume: 0,
     muted: false,
+    alwaysOnTop: false,
   });
 
   useEffect(() => {
@@ -47,7 +48,8 @@ function OsdOverlay() {
       audioOffset !== previous.audioOffset ||
       speed !== previous.speed ||
       volume !== previous.volume ||
-      muted !== previous.muted;
+      muted !== previous.muted ||
+      alwaysOnTop !== previous.alwaysOnTop;
 
     if (!changed) return;
 
@@ -59,6 +61,7 @@ function OsdOverlay() {
       speed,
       volume,
       muted,
+      alwaysOnTop,
     };
 
     setVisible(true);
@@ -68,7 +71,7 @@ function OsdOverlay() {
       timerRef.current?.cancel();
       timerRef.current = null;
     };
-  }, [audioTrack?.id, subTrack?.id, subOffset, audioOffset, speed, volume, muted]);
+  }, [audioTrack?.id, subTrack?.id, subOffset, audioOffset, speed, volume, muted, alwaysOnTop]);
 
   if (!visible || !path) return null;
 
@@ -109,6 +112,10 @@ function OsdOverlay() {
       <div>
         <span className="text-muted text-xs">{t("player.media.osd.volume")}:</span>{" "}
         <span className="font-bold">{muted ? "MUTE" : `${Math.round(volume * 100)}%`}</span>
+      </div>
+      <div>
+        <span className="text-muted text-xs">{t("player.media.osd.always.on.top")}:</span>{" "}
+        <span className="font-bold">{alwaysOnTop ? t("common.on") : t("common.off")}</span>
       </div>
     </div>
   );

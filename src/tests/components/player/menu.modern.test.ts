@@ -20,6 +20,8 @@ function snapshot(overrides: Partial<ModernMenuSnapshot> = {}): ModernMenuSnapsh
     chapters: [],
     playlistOpen: false,
     fullscreen: false,
+    viewMode: "normal",
+    alwaysOnTop: false,
     speed: 1,
     eofMode: "next",
     ...overrides,
@@ -38,6 +40,8 @@ function actions(overrides: Partial<ModernMenuActions> = {}): ModernMenuActions 
     onSpeed: vi.fn(),
     onTogglePlaylist: vi.fn(),
     onToggleFullscreen: vi.fn(),
+    onViewMode: vi.fn(),
+    onToggleAlwaysOnTop: vi.fn(),
     onEofMode: vi.fn(),
     onOpenSettings: vi.fn(),
     onOpenCheatsheet: vi.fn(),
@@ -96,10 +100,48 @@ describe("buildModernPlayerMenu", () => {
     const entries = buildModernPlayerMenu(snapshot({ hasFile: false }), actions());
     for (const entry of entries) {
       if (entry.kind === "submenu" || entry.kind === "item") {
-        if (entry.id === "toggle-playlist" || entry.id.startsWith("open-")) continue;
+        if (
+          entry.id === "toggle-playlist" ||
+          entry.id === "view-mode" ||
+          entry.id === "toggle-always-on-top" ||
+          entry.id.startsWith("open-")
+        ) {
+          continue;
+        }
         expect(entry.disabled).toBe(true);
       }
     }
+  });
+
+  it("marks the current view preset and wires the switch", () => {
+    const onViewMode = vi.fn();
+    const entries = buildModernPlayerMenu(
+      snapshot({ viewMode: "compact" }),
+      actions({ onViewMode })
+    );
+    const view = entries.find((entry) => entry.id === "view-mode");
+    if (view?.kind !== "submenu") throw new Error("missing view submenu");
+    expect(view.entries).toHaveLength(3);
+    const active = view.entries.find(
+      (entry) => entry.kind === "item" && entry.id === "view-compact"
+    );
+    if (active?.kind !== "item") throw new Error("missing compact entry");
+    expect(active.checked).toBe(true);
+    active.onSelect();
+    expect(onViewMode).toHaveBeenCalledWith("compact");
+  });
+
+  it("marks always on top and wires the toggle", () => {
+    const onToggleAlwaysOnTop = vi.fn();
+    const entries = buildModernPlayerMenu(
+      snapshot({ alwaysOnTop: true }),
+      actions({ onToggleAlwaysOnTop })
+    );
+    const pin = entries.find((entry) => entry.id === "toggle-always-on-top");
+    if (pin?.kind !== "item") throw new Error("missing always on top item");
+    expect(pin.checked).toBe(true);
+    pin.onSelect();
+    expect(onToggleAlwaysOnTop).toHaveBeenCalledTimes(1);
   });
 
   it("marks the current speed and playlist state", () => {

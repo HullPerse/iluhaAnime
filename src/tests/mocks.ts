@@ -15,6 +15,8 @@ export const mockOpenUrl = vi.fn();
 export const mockWriteText = vi.fn();
 export const mockReadText = vi.fn();
 export const mockWriteImage = vi.fn();
+export const mockSetAlwaysOnTop = vi.fn();
+export const mockStartDragging = vi.fn();
 
 export function resetAllSharedMocks(): void {
   for (const spy of [
@@ -30,6 +32,8 @@ export function resetAllSharedMocks(): void {
     mockWriteText,
     mockReadText,
     mockWriteImage,
+    mockSetAlwaysOnTop,
+    mockStartDragging,
   ]) {
     spy.mockReset();
   }

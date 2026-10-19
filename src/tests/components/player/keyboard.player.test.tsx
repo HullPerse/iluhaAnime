@@ -1,7 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DIGIT_KEYS } from "@/config/player/keybinds.config";
+import { DIGIT_KEYS, VIEW_MODE_DIGITS } from "@/config/player/keybinds.config";
 import Keyboard from "@/routes/components/player/media/keyboard.player";
 
 function fireWheel(target: Element, deltaY: number): void {
@@ -10,12 +10,13 @@ function fireWheel(target: Element, deltaY: number): void {
 
 function pressKey(
   code: string,
-  options: { shiftKey?: boolean; repeat?: boolean } = {}
+  options: { ctrlKey?: boolean; shiftKey?: boolean; repeat?: boolean } = {}
 ): KeyboardEvent {
   const event = new KeyboardEvent("keydown", {
     bubbles: true,
     cancelable: true,
     code,
+    ctrlKey: options.ctrlKey ?? false,
     repeat: options.repeat ?? false,
     shiftKey: options.shiftKey ?? false,
   });
@@ -53,18 +54,39 @@ describe("Keyboard shortcuts", () => {
     }
   });
 
-  it("maps each bare digit to its tenth of the file", () => {
+  it("maps the view presets to bare 1, 2, 3 and always on top to ctrl+a", () => {
+    const onAction = vi.fn();
+    render(<Keyboard onAction={onAction} />);
+
+    const cases: [string, string][] = [
+      ["Digit1", "viewMinimal"],
+      ["Digit2", "viewCompact"],
+      ["Digit3", "viewNormal"],
+    ];
+    for (const [code, action] of cases) {
+      onAction.mockClear();
+      pressKey(code);
+      expect(onAction.mock.calls.at(-1)?.[0], code).toBe(action);
+    }
+
+    onAction.mockClear();
+    pressKey("KeyA", { ctrlKey: true });
+    expect(onAction.mock.calls.at(-1)?.[0]).toBe("toggleAlwaysOnTop");
+  });
+
+  it("maps each bare digit to its tenth of the file and the freed ones to shift", () => {
     const onAction = vi.fn();
     render(<Keyboard onAction={onAction} />);
 
     for (const digit of DIGIT_KEYS) {
       onAction.mockClear();
-      pressKey(`Digit${digit}`);
+      const shifted = VIEW_MODE_DIGITS.includes(digit);
+      pressKey(`Digit${digit}`, { shiftKey: shifted });
       expect(onAction.mock.calls.at(-1)?.[0], `Digit${digit}`).toBe(`seekPercent${digit}`);
     }
   });
 
-  it("leaves the plain frame keys and shifted digits alone", () => {
+  it("leaves the plain frame keys and unbound shifted digits alone", () => {
     const onAction = vi.fn();
     render(<Keyboard onAction={onAction} />);
 
@@ -76,12 +98,17 @@ describe("Keyboard shortcuts", () => {
     expect(onAction).not.toHaveBeenCalled();
   });
 
-  it("ignores auto-repeat for the one-shot seek digits", () => {
+  it("ignores auto-repeat for the one-shot seek digits and presets", () => {
     const onAction = vi.fn();
     render(<Keyboard onAction={onAction} />);
 
     pressKey("Digit5");
     pressKey("Digit5", { repeat: true });
+    expect(onAction).toHaveBeenCalledTimes(1);
+
+    onAction.mockClear();
+    pressKey("Digit1");
+    pressKey("Digit1", { repeat: true });
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 

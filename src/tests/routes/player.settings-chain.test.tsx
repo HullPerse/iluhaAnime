@@ -1,4 +1,10 @@
-import { mockInvoke as invokeMock, mockListen as listenMock, mockDialogOpen } from "../mocks";
+import {
+  mockInvoke as invokeMock,
+  mockListen as listenMock,
+  mockDialogOpen,
+  mockSetAlwaysOnTop,
+  mockStartDragging,
+} from "../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +21,8 @@ vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     isFullscreen: () => Promise.resolve(false),
     setFullscreen: () => Promise.resolve(undefined),
+    setAlwaysOnTop: mockSetAlwaysOnTop,
+    startDragging: mockStartDragging,
   }),
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({

@@ -115,6 +115,8 @@ export interface PlayerProfile {
 
 export type SeekMode = "keyframes" | "exact";
 
+export type PlayerViewMode = "minimal" | "compact" | "normal";
+
 export interface PlayerSettings {
   brightness: number;
   contrast: number;
@@ -154,6 +156,7 @@ export interface PlayerStore {
   hwdec: HwdecMode;
   seekMode: SeekMode;
   autoHide: boolean;
+  alwaysOnTop: boolean;
   profile: PlayerProfileId;
   settings: PlayerSettings;
   setVolume: (volume: number) => void;
@@ -162,6 +165,7 @@ export interface PlayerStore {
   setHwdec: (mode: HwdecMode) => void;
   setSeekMode: (mode: SeekMode) => void;
   setAutoHide: (autoHide: boolean) => void;
+  setAlwaysOnTop: (alwaysOnTop: boolean) => void;
   setProfile: (profile: PlayerProfileId) => void;
   patchSettings: (patch: Partial<PlayerSettings>) => void;
 }

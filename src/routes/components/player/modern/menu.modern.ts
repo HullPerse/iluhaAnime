@@ -5,7 +5,9 @@ import {
   ListMusic,
   ListVideo,
   Maximize,
+  Monitor,
   Pause,
+  Pin,
   Play,
   Settings,
   SkipBack,
@@ -20,7 +22,7 @@ import type { ContextMenuEntry } from "@/components/shared/contextMenu.component
 import { selectableTracks, trackLabel } from "@/lib/player/tracks.utils";
 import { PLAYER_SPEEDS } from "@/lib/player/speed.utils";
 import { formatClock } from "@/lib/utils/time.utils";
-import type { EndOfFileMode, MpvChapter, MpvTrack } from "@/types/videoPlayer";
+import type { EndOfFileMode, MpvChapter, MpvTrack, PlayerViewMode } from "@/types/videoPlayer";
 
 const EOF_MODES: EndOfFileMode[] = ["none", "pause", "next", "repeat"];
 
@@ -31,6 +33,20 @@ const EOF_LABELS = {
   repeat: "player.media.eof.repeat",
 } as const;
 
+const VIEW_MODES: PlayerViewMode[] = ["minimal", "compact", "normal"];
+
+const VIEW_LABELS = {
+  minimal: "player.media.view.minimal",
+  compact: "player.media.view.compact",
+  normal: "player.media.view.normal",
+} as const;
+
+const VIEW_HINTS: Record<PlayerViewMode, string> = {
+  minimal: "1",
+  compact: "2",
+  normal: "3",
+};
+
 export interface ModernMenuSnapshot {
   hasFile: boolean;
   paused: boolean;
@@ -38,6 +54,8 @@ export interface ModernMenuSnapshot {
   chapters: MpvChapter[];
   playlistOpen: boolean;
   fullscreen: boolean;
+  viewMode: PlayerViewMode;
+  alwaysOnTop: boolean;
   speed: number;
   eofMode: EndOfFileMode;
 }
@@ -53,6 +71,8 @@ export interface ModernMenuActions {
   onSpeed: (value: number) => void;
   onTogglePlaylist: () => void;
   onToggleFullscreen: () => void;
+  onViewMode: (mode: PlayerViewMode) => void;
+  onToggleAlwaysOnTop: () => void;
   onEofMode: (mode: EndOfFileMode) => void;
   onOpenSettings: () => void;
   onOpenCheatsheet: () => void;
@@ -254,6 +274,29 @@ export function buildModernPlayerMenu(
       checked: snapshot.fullscreen,
       disabled: locked,
       onSelect: actions.onToggleFullscreen,
+    },
+    {
+      kind: "submenu",
+      id: "view-mode",
+      label: "player.media.menu.view",
+      icon: Monitor,
+      entries: VIEW_MODES.map((mode) => ({
+        kind: "item" as const,
+        id: `view-${mode}`,
+        label: VIEW_LABELS[mode],
+        hint: VIEW_HINTS[mode],
+        checked: snapshot.viewMode === mode,
+        onSelect: () => actions.onViewMode(mode),
+      })),
+    },
+    {
+      kind: "item",
+      id: "toggle-always-on-top",
+      label: "player.media.key.always.on.top",
+      icon: Pin,
+      hint: "Ctrl+A",
+      checked: snapshot.alwaysOnTop,
+      onSelect: actions.onToggleAlwaysOnTop,
     },
     { kind: "separator", id: "sep-settings" },
     {

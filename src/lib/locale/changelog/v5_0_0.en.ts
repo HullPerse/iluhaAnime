@@ -371,6 +371,10 @@ const changelog500 = {
     "The Konami code now toggles the Game tab: the same code hides it again, except while it is open",
   "changelog.5_0_0.fixed.player.settings_panel":
     "The player settings panel no longer closes by itself when a slider is released outside it, and rejected mpv settings raise a notice instead of a silent console warning",
+  "changelog.5_0_0.added.player.view_modes":
+    "MPC-HC style view presets on 1, 2 and 3: compact and minimal hide the header and leave one bottom bar with play and pause plus the timeline (minimal hides it after three seconds and returns it on mouse move, compact keeps it visible), 3 is the usual windowed layout, and Ctrl+A pins the player window above all others and remembers the choice between launches",
+  "changelog.5_0_0.changed.player.seek_keys":
+    "Percent seek keys moved to Shift+1, Shift+2 and Shift+3, because bare 1, 2 and 3 now switch the view preset; 4 to 9 and 0 still jump to their tenths of the file",
 } as const;
 
 export default changelog500;

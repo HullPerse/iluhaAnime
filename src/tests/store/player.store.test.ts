@@ -49,6 +49,7 @@ describe("player settings atoms", () => {
   it("starts from defaults", () => {
     const store = createPlayerSignalStore({ getStorage: () => memoryStorage() });
     expect(store.atoms.volume.get()).toBe(0.2);
+    expect(store.atoms.alwaysOnTop.get()).toBe(false);
     expect(store.atoms.settings.get()).toEqual(DEFAULT_PLAYER_SETTINGS);
   });
 
@@ -75,6 +76,29 @@ describe("player settings atoms", () => {
     expect(store.atoms.volume.get()).toBe(0.5);
     expect(backing.has("iluha.v1.player")).toBe(true);
     expect(backing.has("playerState")).toBe(false);
+  });
+
+  it("defaults the always-on-top flag and keeps the stored choice", () => {
+    const backing = new Map<string, string>();
+    const first = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
+    expect(first.atoms.alwaysOnTop.get()).toBe(false);
+    first.setAlwaysOnTop(true);
+    first.persistor.flush();
+
+    const second = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
+    expect(second.atoms.alwaysOnTop.get()).toBe(true);
+  });
+
+  it("resolves a payload that predates the always-on-top flag", () => {
+    const backing = new Map<string, string>([
+      [
+        "iluha.v1.player",
+        JSON.stringify({ f: 1, store: "player", sv: 1, ts: 1, data: { volume: 0.5 } }),
+      ],
+    ]);
+    const store = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
+    expect(store.atoms.alwaysOnTop.get()).toBe(false);
+    expect(store.atoms.volume.get()).toBe(0.5);
   });
 
   it("drops settings an older schema carried and keeps the surviving ones", () => {

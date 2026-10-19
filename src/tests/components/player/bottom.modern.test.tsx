@@ -7,7 +7,9 @@ import { patchSettings } from "@/store/settings.store";
 
 function props(playerType: "default" | "modern") {
   return {
+    variant: "full" as const,
     playerType,
+    hasFile: true,
     paused: true,
     duration: 1421,
     chapters: [],
@@ -23,6 +25,7 @@ function props(playerType: "default" | "modern") {
     seekTarget: null,
     onPlay: vi.fn(),
     onPause: vi.fn(),
+    onPlayPause: vi.fn(),
     onSeekTo: vi.fn(),
     onScrub: vi.fn(),
     onCommitSeek: vi.fn(),
@@ -53,6 +56,14 @@ afterEach(() => {
 });
 
 describe("PlayerBottomBar", () => {
+  it("renders only the slim bar for the compact variant", () => {
+    const slim = props("default");
+    render(<PlayerBottomBar {...slim} variant="slim" />);
+    expect(screen.getByRole("button", { name: "Play / pause" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Previous file" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Playlist" })).toBeNull();
+  });
+
   it("renders frame controls in modern mode only", () => {
     const modern = render(<PlayerBottomBar {...props("modern")} />);
     expect(screen.getByRole("button", { name: "Previous frame" })).toBeTruthy();

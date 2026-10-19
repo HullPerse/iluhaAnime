@@ -11,9 +11,9 @@ import {
   type ReactNode,
 } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
 import ContextMenu from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import {
   OFFSET_LIMIT,
   OFFSET_STEP,
@@ -25,6 +25,7 @@ import { VOLUME_STEP } from "@/config/player/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
+import { useWindowDrag } from "@/hooks/player/windowDrag.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
@@ -33,6 +34,8 @@ import { createInterval } from "@/lib/pacer/interval.utils";
 import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { Throttler } from "@/lib/pacer/throttle.utils";
 import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/player/cardCache.utils";
+import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
+import { startsOnPlayerControl } from "@/lib/player/drag.utils";
 import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
@@ -95,10 +98,10 @@ import {
   type HwdecReload,
 } from "@/lib/player/resume.utils";
 import { resolveSkipTarget } from "@/lib/player/skip.utils";
-import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
 import { stepSpeed } from "@/lib/player/speed.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { nextTrackId } from "@/lib/player/tracks.utils";
+import { resolveViewChrome } from "@/lib/player/view.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
@@ -119,6 +122,7 @@ import {
   playbackAtoms,
   playerAtoms,
   resetPlayback,
+  setAlwaysOnTop,
   setAutoHide,
   setEofMode,
   setHwdec,
@@ -141,6 +145,7 @@ import type {
   MpvTrack,
   PlayerProfileId,
   PlayerSettings,
+  PlayerViewMode,
   PlaylistWatch,
   SeekMode,
 } from "@/types/videoPlayer";
@@ -156,9 +161,9 @@ import OsdOverlay from "./media/offset.player";
 import SettingsPanel from "./media/settings.player";
 import SkipButton from "./media/skip.player";
 import PlayerStatus from "./media/status.player";
-import PlayerSidePanel from "./side.player";
-import { buildModernPlayerMenu } from "./modern/menu.modern";
 import PlayerBottomBar from "./modern/bottom.modern";
+import { buildModernPlayerMenu } from "./modern/menu.modern";
+import PlayerSidePanel from "./side.player";
 
 const AUTO_HIDE_DELAY = 3000;
 const WATCH_INTERVAL = 5000;
@@ -233,15 +238,6 @@ function hideDefaultTracks(playerType: "default" | "modern", contextMenu: boolea
   return playerType === "default" && contextMenu;
 }
 
-function resolveBarsHidden(
-  immersive: boolean,
-  autoHide: boolean,
-  barsVisible: boolean,
-  menuOpen: boolean
-): boolean {
-  return immersive && autoHide && !barsVisible && !menuOpen;
-}
-
 function wrapVideoMenu(
   node: ReactNode,
   enabled: boolean,
@@ -278,6 +274,7 @@ function PlayerComponent() {
   const seekMode = useCell(playerAtoms.seekMode);
   const volume = useCell(playerAtoms.volume);
   const autoHide = useCell(playerAtoms.autoHide);
+  const alwaysOnTop = useCell(playerAtoms.alwaysOnTop);
   const profile = useCell(playerAtoms.profile);
   const settings = useCell(playerAtoms.settings);
   const playerType = useCell(settingsAtoms.playerType);
@@ -285,6 +282,7 @@ function PlayerComponent() {
   const showModernMenu = modernMenuEnabled(playerType, playerContextMenu);
 
   const [cinema, setCinema] = useState(false);
+  const [viewMode, setViewMode] = useState<PlayerViewMode>("normal");
   const [fullscreen, setFullscreen] = useState(false);
   const [barsVisible, setBarsVisible] = useState(true);
   const [panel, setPanel] = useState<null | "settings" | "cheatsheet">(null);
@@ -325,10 +323,19 @@ function PlayerComponent() {
 
   useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
 
-  const immersive = cinema || fullscreen;
+  const chrome = resolveViewChrome({
+    mode: viewMode,
+    cinema,
+    fullscreen,
+    autoHide,
+    barsVisible,
+    menuOpen,
+  });
+  const immersive = chrome.fullBleed;
+  const barsAutoHide = chrome.barsAutoHide;
   const hasNext = playlistCount > 0 && playlistIndex < playlistCount - 1;
   const hasPrev = playlistIndex > 0;
-  const barsHidden = resolveBarsHidden(immersive, autoHide, barsVisible, menuOpen);
+  const barsHidden = chrome.barsHidden;
   const cursorHidden = shouldHideCursor({
     barsHidden,
     panelOpen: panel !== null,
@@ -748,7 +755,7 @@ function PlayerComponent() {
   }, [syncMargins]);
 
   useEffect(() => {
-    if (!autoHide) {
+    if (!barsAutoHide) {
       setBarsVisible(true);
       return;
     }
@@ -765,7 +772,7 @@ function PlayerComponent() {
       window.removeEventListener("mousemove", wake);
       window.removeEventListener("mousedown", wake);
     };
-  }, [autoHide]);
+  }, [barsAutoHide]);
 
   const toggleFullscreen = useCallback(async () => {
     const win = getCurrentWindow();
@@ -774,9 +781,32 @@ function PlayerComponent() {
     setFullscreen(next);
   }, [fullscreen]);
 
+  const applyViewMode = useCallback((mode: PlayerViewMode) => {
+    setViewMode(mode);
+    if (mode !== "normal") setCinema(false);
+  }, []);
+
   const toggleCinema = useCallback(() => {
     setCinema((value) => !value);
   }, []);
+
+  const applyAlwaysOnTop = useCallback((value: boolean) => {
+    setAlwaysOnTop(value);
+    ignore(withFallback(getCurrentWindow().setAlwaysOnTop(value), undefined));
+  }, []);
+
+  useEffect(() => {
+    ignore(
+      withFallback(getCurrentWindow().setAlwaysOnTop(playerAtoms.alwaysOnTop.get()), undefined)
+    );
+  }, []);
+
+  const {
+    onMouseDown: onVideoMouseDown,
+    onMouseMove: onVideoMouseMove,
+    onMouseUp: onVideoMouseUp,
+    consumeDrag: consumeVideoDrag,
+  } = useWindowDrag(!chrome.showHeader);
 
   const exitCinemaMode = useCallback(() => {
     if (diagnosticsOpen) {
@@ -802,6 +832,8 @@ function PlayerComponent() {
           if (isFull) {
             await getCurrentWindow().setFullscreen(false);
             setFullscreen(false);
+          } else if (viewMode !== "normal") {
+            setViewMode("normal");
           } else if (cinema) {
             setCinema(false);
           } else {
@@ -809,7 +841,7 @@ function PlayerComponent() {
           }
         })
     );
-  }, [cinema, diagnosticsOpen, jumpOpen, panel, playlistOpen]);
+  }, [cinema, diagnosticsOpen, jumpOpen, panel, playlistOpen, viewMode]);
 
   const onPlay = useCallback(() => {
     if (!playbackAtoms.hasFile.get()) return;
@@ -843,15 +875,13 @@ function PlayerComponent() {
 
   const onVideoClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest?.("button, a, input, select, textarea, [role=button], [role=dialog]")) {
-        return;
-      }
+      if (consumeVideoDrag()) return;
+      if (startsOnPlayerControl(event.target)) return;
       if (!playbackAtoms.hasFile.get()) return;
       if (loadingFile) return;
       onPlayPause();
     },
-    [loadingFile, onPlayPause]
+    [consumeVideoDrag, loadingFile, onPlayPause]
   );
 
   const onScrub = useCallback((time: number) => {
@@ -1147,6 +1177,10 @@ function PlayerComponent() {
         prevFile: () => onFilePrev(),
         toggleCheatsheet: () => setPanel((prev) => (prev === "cheatsheet" ? null : "cheatsheet")),
         toggleFullscreen: () => ignore(toggleFullscreen()),
+        toggleAlwaysOnTop: () => applyAlwaysOnTop(!playerAtoms.alwaysOnTop.get()),
+        viewMinimal: () => applyViewMode("minimal"),
+        viewCompact: () => applyViewMode("compact"),
+        viewNormal: () => applyViewMode("normal"),
         jumpToTime: () => setJumpOpen(true),
         exitCinemaMode: () => exitCinemaMode(),
         saveCleanFrame: () => {
@@ -1191,6 +1225,8 @@ function PlayerComponent() {
       actions[action]();
     },
     [
+      applyAlwaysOnTop,
+      applyViewMode,
       exitCinemaMode,
       handleSetAutoHide,
       nudgeOffset,
@@ -1225,7 +1261,18 @@ function PlayerComponent() {
   const modernEntries = useMemo(() => {
     if (!showModernMenu) return [];
     return buildModernPlayerMenu(
-      { hasFile, paused, tracks, chapters, playlistOpen, fullscreen, speed, eofMode },
+      {
+        hasFile,
+        paused,
+        tracks,
+        chapters,
+        playlistOpen,
+        fullscreen,
+        viewMode,
+        alwaysOnTop,
+        speed,
+        eofMode,
+      },
       {
         onPlayPause,
         onFrameStep: (forward) => ignore(startFrameStep(forward)),
@@ -1237,6 +1284,8 @@ function PlayerComponent() {
         onSpeed,
         onTogglePlaylist: () => setPlaylistOpen((previous) => !previous),
         onToggleFullscreen: () => ignore(toggleFullscreen()),
+        onViewMode: applyViewMode,
+        onToggleAlwaysOnTop: () => applyAlwaysOnTop(!alwaysOnTop),
         onEofMode: handleEofMode,
         onOpenSettings: () => setPanel("settings"),
         onOpenCheatsheet: () => setPanel("cheatsheet"),
@@ -1249,6 +1298,8 @@ function PlayerComponent() {
     chapters,
     playlistOpen,
     fullscreen,
+    viewMode,
+    alwaysOnTop,
     speed,
     onPlayPause,
     onFilePrev,
@@ -1257,6 +1308,8 @@ function PlayerComponent() {
     onSeekTo,
     onSpeed,
     toggleFullscreen,
+    applyViewMode,
+    applyAlwaysOnTop,
     handleEofMode,
     eofMode,
     showModernMenu,
@@ -1274,78 +1327,84 @@ function PlayerComponent() {
         onWheel={(direction) => onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)}
       />
 
-      <div className={barClass("top", immersive, barsHidden)}>
-        <PlayerHeader
-          title={title}
-          cinema={cinema}
-          fullscreen={fullscreen}
-          onOpenSettings={() => setPanel("settings")}
-          onToggleCinema={toggleCinema}
-          onToggleFullscreen={() => ignore(toggleFullscreen())}
-          onClose={close}
-        />
-      </div>
+      {chrome.showHeader ? (
+        <div className={barClass("top", immersive, barsHidden)}>
+          <PlayerHeader
+            title={title}
+            cinema={cinema}
+            fullscreen={fullscreen}
+            onOpenSettings={() => setPanel("settings")}
+            onToggleCinema={toggleCinema}
+            onToggleFullscreen={() => ignore(toggleFullscreen())}
+            onClose={close}
+          />
+        </div>
+      ) : null}
 
       <div className={videoSectionClass(immersive)}>
         <div className="flex h-full min-h-0 flex-row gap-1">
           {videoWrap(
-          <div
-            ref={videoRef}
-            className="relative min-h-0 flex-1 overflow-hidden"
-            onClick={onVideoClick}
-            onContextMenu={showModernMenu ? undefined : (event) => event.preventDefault()}
-          >
-            <OsdOverlay />
-            {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
+            <div
+              ref={videoRef}
+              data-player-video=""
+              className="relative min-h-0 flex-1 overflow-hidden"
+              onClick={onVideoClick}
+              onMouseDown={onVideoMouseDown}
+              onMouseMove={onVideoMouseMove}
+              onMouseUp={onVideoMouseUp}
+              onContextMenu={showModernMenu ? undefined : (event) => event.preventDefault()}
+            >
+              <OsdOverlay alwaysOnTop={alwaysOnTop} />
+              {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
 
-            {dropAlert ? (
-              <div className="windows95-border windows95-font bg-primary/95 absolute top-4 left-4 z-20 p-2 text-left text-sm">
-                <span className="font-bold">
-                  {t("player.media.watchdog.dropped", {
-                    drops: dropAlert.drops,
-                    percent: Math.round(dropAlert.ratio * 100),
-                  })}
-                </span>
-              </div>
-            ) : null}
+              {dropAlert ? (
+                <div className="windows95-border windows95-font bg-primary/95 absolute top-4 left-4 z-20 p-2 text-left text-sm">
+                  <span className="font-bold">
+                    {t("player.media.watchdog.dropped", {
+                      drops: dropAlert.drops,
+                      percent: Math.round(dropAlert.ratio * 100),
+                    })}
+                  </span>
+                </div>
+              ) : null}
 
-            {shouldShowEmptyPlayer(hasFile, loadingFile, failed, hasShownFrame) ? (
-              <EmptyPlayer />
-            ) : null}
+              {shouldShowEmptyPlayer(hasFile, loadingFile, failed, hasShownFrame) ? (
+                <EmptyPlayer />
+              ) : null}
 
-            {shouldShowLoadingSpinner(hasFile, loadingFile, failed, hasShownFrame) ? (
-              <div className="windows95-border bg-primary pointer-events-none absolute top-2 left-2 z-20 p-1">
-                <SmallLoader size={4} />
-              </div>
-            ) : null}
+              {shouldShowLoadingSpinner(hasFile, loadingFile, failed, hasShownFrame) ? (
+                <div className="windows95-border bg-primary pointer-events-none absolute top-2 left-2 z-20 p-1">
+                  <SmallLoader size={4} />
+                </div>
+              ) : null}
 
-            {hasFile ? (
-              <SkipButton
-                duration={duration}
-                chapters={chapters}
+              {hasFile ? (
+                <SkipButton
+                  duration={duration}
+                  chapters={chapters}
+                  hasNext={hasNext}
+                  onSkip={onSkipChapter}
+                  onFileNext={onFileNext}
+                />
+              ) : null}
+
+              {jumpOpen ? (
+                <JumpToTime onCommit={onSeekTo} onClose={() => setJumpOpen(false)} />
+              ) : null}
+
+              <PlayerStatus
+                visible={hasFile}
+                finished={finished}
+                eofPaused={eofPaused}
+                failed={failed}
+                loading={loadingFile}
                 hasNext={hasNext}
-                onSkip={onSkipChapter}
-                onFileNext={onFileNext}
+                onRestart={restart}
+                onNext={onFileNext}
+                onClose={close}
               />
-            ) : null}
-
-            {jumpOpen ? (
-              <JumpToTime onCommit={onSeekTo} onClose={() => setJumpOpen(false)} />
-            ) : null}
-
-            <PlayerStatus
-              visible={hasFile}
-              finished={finished}
-              eofPaused={eofPaused}
-              failed={failed}
-              loading={loadingFile}
-              hasNext={hasNext}
-              onRestart={restart}
-              onNext={onFileNext}
-              onClose={close}
-            />
             </div>
-            )}
+          )}
 
           {playlistOpen ? (
             <PlayerSidePanel
@@ -1360,7 +1419,9 @@ function PlayerComponent() {
 
       <div className={barClass("bottom", immersive, barsHidden)}>
         <PlayerBottomBar
+          variant={chrome.bottom}
           playerType={playerType}
+          hasFile={hasFile}
           paused={paused}
           duration={duration}
           chapters={chapters}
@@ -1376,6 +1437,7 @@ function PlayerComponent() {
           seekTarget={seekTarget}
           onPlay={onPlay}
           onPause={onPause}
+          onPlayPause={onPlayPause}
           onSeekTo={onSeekTo}
           onScrub={onScrub}
           onCommitSeek={onCommitSeek}

@@ -14,7 +14,7 @@ import type {
 } from "@/types/videoPlayer";
 import { attemptSync } from "@/lib/utils/attempt.utils";
 
-export const PLAYER_SCHEMA_VERSION = 1;
+export const PLAYER_SCHEMA_VERSION = 2;
 
 export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   brightness: 100,
@@ -41,6 +41,7 @@ type PlayerActionKeys =
   | "setHwdec"
   | "setSeekMode"
   | "setAutoHide"
+  | "setAlwaysOnTop"
   | "setProfile"
   | "patchSettings";
 
@@ -98,6 +99,7 @@ const DEFAULT_PLAYER_DATA: PlayerData = {
   hwdec: "auto-safe",
   seekMode: "keyframes",
   autoHide: false,
+  alwaysOnTop: false,
   profile: "basic",
   settings: { ...DEFAULT_PLAYER_SETTINGS },
 };
@@ -188,6 +190,7 @@ export interface PlayerSignalStore {
   setHwdec: (mode: PlayerData["hwdec"]) => void;
   setSeekMode: (mode: PlayerData["seekMode"]) => void;
   setAutoHide: (autoHide: boolean) => void;
+  setAlwaysOnTop: (alwaysOnTop: boolean) => void;
   setProfile: (profile: PlayerData["profile"]) => void;
   patchPlayerSettings: (patch: Partial<PlayerSettings>) => void;
   subscribeAll: (fn: () => void) => () => void;
@@ -230,6 +233,7 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
     setHwdec: (mode) => atoms.hwdec.set(mode),
     setSeekMode: (mode) => atoms.seekMode.set(mode),
     setAutoHide: (autoHide) => atoms.autoHide.set(autoHide),
+    setAlwaysOnTop: (alwaysOnTop) => atoms.alwaysOnTop.set(alwaysOnTop),
     setProfile: (profile) => atoms.profile.set(profile),
     patchPlayerSettings: (patch) =>
       atoms.settings.set({ ...atoms.settings.get(), ...patch }),
@@ -392,6 +396,7 @@ export const setEofMode = player.setEofMode;
 export const setHwdec = player.setHwdec;
 export const setSeekMode = player.setSeekMode;
 export const setAutoHide = player.setAutoHide;
+export const setAlwaysOnTop = player.setAlwaysOnTop;
 export const setProfile = player.setProfile;
 export const patchPlayerSettings = player.patchPlayerSettings;
 

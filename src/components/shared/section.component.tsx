@@ -12,7 +12,6 @@ function Section({
   onExpand,
   expanded = false,
   files,
-  headerActions,
 }: {
   header: string;
   children: ReactNode;
@@ -20,7 +19,6 @@ function Section({
   onExpand?: () => void;
   expanded?: boolean;
   files?: number;
-  headerActions?: ReactNode;
 }) {
   const contentId = useId();
   const { t } = useI18n();
@@ -32,26 +30,17 @@ function Section({
           {header} {onExpand && files ? `[${files}]` : null}
         </span>
 
-        {(headerActions || onExpand) && (
-          <span className="flex flex-row items-center gap-0.5">
-            {headerActions}
-            {onExpand && (
-              <button
-                type="button"
-                aria-expanded={expanded}
-                aria-controls={contentId}
-                aria-label={expanded ? t("common.collapse") : t("common.expand")}
-                className="windows95-text bg-secondary hover:bg-muted text-title-text flex size-5 cursor-pointer items-center justify-center gap-1 px-0.5 py-0.5 text-center select-none"
-                onClick={onExpand}
-              >
-                {expanded ? (
-                  <ChevronDown className="size-3" />
-                ) : (
-                  <ChevronRight className="size-3" />
-                )}
-              </button>
-            )}
-          </span>
+        {onExpand && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={contentId}
+            aria-label={expanded ? t("common.collapse") : t("common.expand")}
+            className="windows95-text bg-secondary hover:bg-muted text-title-text flex size-5 cursor-pointer items-center justify-center gap-1 px-0.5 py-0.5 text-center select-none"
+            onClick={onExpand}
+          >
+            {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+          </button>
         )}
       </header>
 

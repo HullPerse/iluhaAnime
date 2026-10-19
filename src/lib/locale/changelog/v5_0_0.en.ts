@@ -386,7 +386,7 @@ const changelog500 = {
   "changelog.5_0_0.changed.upscale.preview_keep":
     "Upscale preview keeps its frames after a zoomed look: Back returns to the same thumbnails instead of clearing them, frames page with Previous and Next, and the Before/After choice carries across frames",
   "changelog.5_0_0.changed.anilist.similar_rail":
-    "The Similar block in anime details is rebuilt: a poster rail with a rank number, score and a recommendation-strength bar, or a dense list with the same data, switched by a button in the block header; strength is derived from the votes instead of the vote count printed as a percent, and the expanded section no longer stretches the window",
+    "The Similar block in anime details is rebuilt: a poster rail with a rank number, score and a recommendation-strength bar, or a dense list with the same data, switched by a segmented control above the content; strength is derived from the votes instead of the vote count printed as a percent, and the expanded section no longer stretches the window",
 } as const;
 
 export default changelog500;

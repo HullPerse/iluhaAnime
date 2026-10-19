@@ -110,10 +110,12 @@ describe("SimilarSection view switch", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Expand section" }));
     expect(screen.getByRole("button", { name: "Next" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Rail" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "List" }).getAttribute("aria-pressed")).toBe("false");
 
-    fireEvent.click(screen.getByRole("button", { name: "Show as list" }));
+    fireEvent.click(screen.getByRole("button", { name: "List" }));
     expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Show as rail" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "List" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("#1")).toBeDefined();
     expect(screen.getByText("#2")).toBeDefined();
     expect(screen.getByText("100%")).toBeDefined();
@@ -121,9 +123,9 @@ describe("SimilarSection view switch", () => {
     expect(screen.getAllByText(/★ 85/)).toHaveLength(2);
     expect(settingsAtoms.similarView.get()).toBe("list");
 
-    fireEvent.click(screen.getByRole("button", { name: "Show as rail" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rail" }));
     expect(screen.getByRole("button", { name: "Next" })).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Show as rail" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Rail" }).getAttribute("aria-pressed")).toBe("true");
     expect(settingsAtoms.similarView.get()).toBe("rail");
   });
 });

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, GalleryHorizontal, List } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
@@ -147,7 +147,10 @@ export function SimilarSection({
   const scroll = (direction: number) => {
     scroller.current?.scrollBy({ left: direction * RAIL_SCROLL_STEP });
   };
-  const toggleView = () => patchSettings({ similarView: isList ? "rail" : "list" });
+  const viewOptions: { value: typeof view; label: string }[] = [
+    { value: "rail", label: t("anilist.details.similar.view.rail") },
+    { value: "list", label: t("anilist.details.similar.view.list") },
+  ];
 
   return (
     <Section
@@ -156,39 +159,27 @@ export function SimilarSection({
       expanded={expanded}
       onExpand={() => setExpanded((prev) => !prev)}
       files={items.length}
-      headerActions={
-        <Button
-          size="icon"
-          className="size-5"
-          aria-label={t(
-            isList ? "anilist.details.similar.view.rail" : "anilist.details.similar.view.list"
-          )}
-          title={t(
-            isList ? "anilist.details.similar.view.rail" : "anilist.details.similar.view.list"
-          )}
-          onClick={toggleView}
-        >
-          {isList ? <GalleryHorizontal className="size-3" /> : <List className="size-3" />}
-        </Button>
-      }
     >
-      {isList ? (
-        <div className="flex flex-col">
-          {items.map((item, index) => (
-            <SimilarListRow
-              key={item.id}
-              item={item}
-              rank={index + 1}
-              strength={strengthPercent(item.recommendation_rating, maxRating)}
-              meta={itemMeta(item, t("anilist.details.eps.short"), true)}
-              strengthLabel={strengthLabel}
-              onOpen={onRelated}
-            />
+      <div className="flex flex-row items-center justify-between gap-1">
+        <div
+          role="group"
+          aria-label={t("anilist.details.similar.view")}
+          className="flex flex-row items-center gap-0.5"
+        >
+          {viewOptions.map((option) => (
+            <Button
+              key={option.value}
+              className="h-5 px-1 text-xs"
+              variant={option.value === view ? "outline" : "default"}
+              aria-pressed={option.value === view}
+              onClick={() => patchSettings({ similarView: option.value })}
+            >
+              {option.label}
+            </Button>
           ))}
         </div>
-      ) : (
-        <>
-          <div className="flex justify-end gap-0.5">
+        {!isList && (
+          <div className="flex flex-row items-center gap-0.5">
             <Button
               size="icon"
               className="size-5"
@@ -208,22 +199,38 @@ export function SimilarSection({
               <ChevronRight className="size-3" />
             </Button>
           </div>
-          {/* w-0 + min-w-full: the rail contributes no intrinsic width to the fit-content modal,
-              so the modal keeps its width and the cards scroll inside the rail. */}
-          <div ref={scroller} className="flex w-0 min-w-full snap-x gap-1 overflow-x-auto pb-1">
-            {items.map((item, index) => (
-              <SimilarRailCard
-                key={item.id}
-                item={item}
-                rank={index + 1}
-                strength={strengthPercent(item.recommendation_rating, maxRating)}
-                meta={itemMeta(item, t("anilist.details.eps.short"))}
-                strengthLabel={strengthLabel}
-                onOpen={onRelated}
-              />
-            ))}
-          </div>
-        </>
+        )}
+      </div>
+      {isList ? (
+        <div className="flex flex-col">
+          {items.map((item, index) => (
+            <SimilarListRow
+              key={item.id}
+              item={item}
+              rank={index + 1}
+              strength={strengthPercent(item.recommendation_rating, maxRating)}
+              meta={itemMeta(item, t("anilist.details.eps.short"), true)}
+              strengthLabel={strengthLabel}
+              onOpen={onRelated}
+            />
+          ))}
+        </div>
+      ) : (
+        /* w-0 + min-w-full: the rail contributes no intrinsic width to the fit-content modal,
+           so the modal keeps its width and the cards scroll inside the rail. */
+        <div ref={scroller} className="flex w-0 min-w-full snap-x gap-1 overflow-x-auto pb-1">
+          {items.map((item, index) => (
+            <SimilarRailCard
+              key={item.id}
+              item={item}
+              rank={index + 1}
+              strength={strengthPercent(item.recommendation_rating, maxRating)}
+              meta={itemMeta(item, t("anilist.details.eps.short"))}
+              strengthLabel={strengthLabel}
+              onOpen={onRelated}
+            />
+          ))}
+        </div>
       )}
     </Section>
   );

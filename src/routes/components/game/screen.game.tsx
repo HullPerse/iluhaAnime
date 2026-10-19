@@ -1,13 +1,4 @@
-import {
-  Gamepad2,
-  Info,
-  Maximize2,
-  Minimize2,
-  Square,
-  TriangleAlert,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Info, Maximize2, Minimize2, Square, TriangleAlert, Volume2, VolumeX } from "lucide-react";
 import type { RefObject } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -57,12 +48,6 @@ function StageOverlay({
 
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
-      {status === "idle" && (
-        <>
-          <Gamepad2 aria-hidden className="text-hint size-8" />
-          <span className="text-hint max-w-md text-xs">{t("game.stage.idle")}</span>
-        </>
-      )}
       {status === "starting" && (
         <>
           <SmallLoader size={8} />
@@ -133,9 +118,7 @@ function ScreenFooter({
         </span>
       )}
       {running && info !== null && (
-        <span className="text-hint shrink-0 text-xs tabular-nums">
-          {info.cyclesPerSecond} CPS
-        </span>
+        <span className="text-hint shrink-0 text-xs tabular-nums">{info.cyclesPerSecond} CPS</span>
       )}
       {running && (
         <span className="text-hint shrink-0 text-xs tabular-nums">

@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
+import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
 import type { PreviewFrame } from "@/types/upscale";
 
 export function PreviewZoom({ frame }: { frame: PreviewFrame }) {
@@ -25,54 +24,14 @@ export function PreviewZoom({ frame }: { frame: PreviewFrame }) {
 }
 
 export function UpscalePreview({
-  filePath,
-  resolution,
-  selectedShaders,
-  temporalDenoise,
+  preview,
   onZoom,
 }: {
-  filePath: string;
-  resolution: string;
-  selectedShaders: string[];
-  temporalDenoise: boolean;
+  preview: UpscalePreviewController;
   onZoom: (frame: PreviewFrame) => void;
 }) {
   const { t } = useI18n();
-  const [frames, setFrames] = useState<PreviewFrame[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const requestKey = `${filePath}|${resolution}|${selectedShaders.join(",")}|${temporalDenoise}`;
-  const latestKeyRef = useRef(requestKey);
-  useEffect(() => {
-    latestKeyRef.current = requestKey;
-  }, [requestKey]);
-  const load = async () => {
-    const dims = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
-    if (dims.length !== 2 || dims.some((dim) => !Number.isInteger(dim) || dim < 0)) {
-      setError(t("player.upscale.preview.failed"));
-      return;
-    }
-    const [w, h] = dims;
-    setLoading(true);
-    setError(null);
-    const [data, err] = await attempt(
-      invokeTyped<PreviewFrame[]>("preview_upscale_frames", {
-        height: h,
-        inputPath: filePath,
-        selectedShaders,
-        temporalDenoise,
-        width: w,
-      })
-    );
-    setLoading(false);
-    if (latestKeyRef.current !== requestKey) return;
-    if (err || !data) {
-      setError(err ? err.message : t("player.upscale.preview.failed"));
-      return;
-    }
-    setFrames(data);
-  };
-
+  const { frames, loading, error, load } = preview;
   return (
     <div className="flex flex-col gap-1">
       <Button onClick={load} loading={loading}>

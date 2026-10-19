@@ -9,6 +9,8 @@ import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
+import { useUpscalePreview } from "@/hooks/player/upscalePreview.hook";
+import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
@@ -18,11 +20,35 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { addConvertItem, addUpscaleItem, upscaleItems } from "@/store/upscale.store";
 import type { UpscaleConfig, ConvertConfig, PreviewFrame } from "@/types/upscale";
+import type { ModalPager } from "@/types/ui";
 
 import { PreviewZoom } from "../preview.player";
 import { UpscaleConfigPanel } from "./config.upscale";
 import { UpscaleProgressPanel } from "./progress.upscale";
 import { UpscaleStatusPanels } from "./status.upscale";
+
+function zoomedFrameAt(frames: PreviewFrame[], index: number | null): PreviewFrame | null {
+  if (index === null) return null;
+  return frames[index] ?? null;
+}
+
+function framePager(
+  frames: PreviewFrame[],
+  index: number | null,
+  label: string,
+  setIndex: (updater: (prev: number | null) => number | null) => void
+): ModalPager | undefined {
+  if (index === null || frames.length < 2) return undefined;
+  const step = (delta: number) => () =>
+    setIndex((prev) => (prev === null ? prev : (prev + delta + frames.length) % frames.length));
+  return {
+    index,
+    total: frames.length,
+    label,
+    onPrevious: step(-1),
+    onNext: step(1),
+  };
+}
 
 function UpscaleConfigView({
   filePath,
@@ -54,6 +80,7 @@ function UpscaleConfigView({
   onTargetFormat,
   copyStreams,
   onCopyStreams,
+  preview,
   onPreviewZoom,
   onCancel,
   onQueue,
@@ -89,6 +116,7 @@ function UpscaleConfigView({
   onTargetFormat: (value: string) => void;
   copyStreams: boolean;
   onCopyStreams: (value: boolean) => void;
+  preview: UpscalePreviewController;
   onPreviewZoom: (frame: PreviewFrame) => void;
   onCancel: () => void;
   onQueue: () => void;
@@ -140,6 +168,7 @@ function UpscaleConfigView({
           setTargetFormat={onTargetFormat}
           copyStreams={copyStreams}
           setCopyStreams={onCopyStreams}
+          preview={preview}
           onPreviewZoom={onPreviewZoom}
         />
       </section>
@@ -183,11 +212,14 @@ export default function UpscalePlayer({
   const [copyStreams, setCopyStreams] = useState(true);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [zoomed, setZoomed] = useState<PreviewFrame | null>(null);
+  const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
 
   const { t } = useI18n();
 
   const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
+
+  const preview = useUpscalePreview({ filePath, resolution, selectedShaders, temporalDenoise });
+  const zoomedFrame = zoomedFrameAt(preview.frames, zoomedIndex);
 
   const items = useCell(upscaleItems);
   const activeItem = activeItemId ? (items.find((i) => i.id === activeItemId) ?? null) : null;
@@ -272,13 +304,13 @@ export default function UpscalePlayer({
   }, [activeItem?.status, onDone]);
 
   useEffect(() => {
-    setZoomed(null);
+    setZoomedIndex(null);
   }, [resolution, selectedShaders, temporalDenoise]);
 
   const resetState = useCallback(() => {
     setActiveItemId(null);
     setLocalError(null);
-    setZoomed(null);
+    setZoomedIndex(null);
   }, []);
 
   const startUpscale = useCallback(() => {
@@ -416,16 +448,17 @@ export default function UpscalePlayer({
       {open && (
         <Modal
           header={
-            zoomed
-              ? `${Math.round(zoomed.timestamp)}s`
+            zoomedFrame
+              ? `${Math.round(zoomedFrame.timestamp)}s`
               : `${t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}: ${parseTitlesPlayer ? formatParsedTitle(filePath, t) : fileNameFromPath(filePath)}`
           }
           onClose={handleClose}
-          onBack={zoomed ? () => setZoomed(null) : undefined}
+          onBack={zoomedFrame ? () => setZoomedIndex(null) : undefined}
+          pager={framePager(preview.frames, zoomedIndex, t("common.frames"), setZoomedIndex)}
           className="min-w-xl"
         >
-          {zoomed ? (
-            <PreviewZoom frame={zoomed} />
+          {zoomedFrame ? (
+            <PreviewZoom frame={zoomedFrame} />
           ) : (
             <>
               {showConfig && (
@@ -459,7 +492,8 @@ export default function UpscalePlayer({
                   onTargetFormat={setTargetFormat}
                   copyStreams={copyStreams}
                   onCopyStreams={setCopyStreams}
-                  onPreviewZoom={setZoomed}
+                  preview={preview}
+                  onPreviewZoom={(frame) => setZoomedIndex(preview.frames.indexOf(frame))}
                   onCancel={handleClose}
                   onQueue={handleAddToQueue}
                   onStartUpscale={startUpscale}

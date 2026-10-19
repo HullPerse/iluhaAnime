@@ -148,6 +148,7 @@ const anilist = {
   "anilist.details.remove.fav": "Убрать из избранного",
   "anilist.details.retry": "Повторить",
   "anilist.details.similar": "Похожее",
+  "anilist.details.similar.strength": "Сила рекомендации",
   "anilist.details.trailer": "Трейлер",
   "anilist.details.studio.search": "Искать аниме этой студии",
   "anilist.details.studios": "Студии",

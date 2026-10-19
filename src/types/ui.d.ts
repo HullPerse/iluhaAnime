@@ -33,11 +33,20 @@ export interface ImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   type?: "cover" | "contain";
 }
 
+export interface ModalPager {
+  index: number;
+  total: number;
+  label?: string;
+  onPrevious: () => void;
+  onNext: () => void;
+}
+
 export interface ModalWindow {
   header: string;
   onClose: () => void;
   onBack?: () => void;
   headerActions?: ReactNode;
+  pager?: ModalPager;
   className?: string;
   contentClassName?: string;
   hideHeader?: boolean;

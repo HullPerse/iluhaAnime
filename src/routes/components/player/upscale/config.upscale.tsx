@@ -11,6 +11,7 @@ import {
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
@@ -53,6 +54,7 @@ export function UpscaleConfigPanel({
   setTargetFormat,
   copyStreams,
   setCopyStreams,
+  preview,
   onPreviewZoom,
 }: {
   filePath: string;
@@ -83,6 +85,7 @@ export function UpscaleConfigPanel({
   setTargetFormat: (value: string) => void;
   copyStreams: boolean;
   setCopyStreams: (value: boolean) => void;
+  preview: UpscalePreviewController;
   onPreviewZoom: (frame: PreviewFrame) => void;
 }) {
   const { t } = useI18n();
@@ -222,14 +225,7 @@ export function UpscaleConfigPanel({
             <Checkbox checked={temporalDenoise} onChange={setTemporalDenoise} />
             <span>{t("player.upscale.temporal.denoise")}</span>
           </label>
-          <UpscalePreview
-            key={`${resolution}-${selectedShaders.join(",")}-${temporalDenoise}`}
-            filePath={filePath}
-            resolution={resolution}
-            selectedShaders={selectedShaders}
-            temporalDenoise={temporalDenoise}
-            onZoom={onPreviewZoom}
-          />
+          <UpscalePreview preview={preview} onZoom={onPreviewZoom} />
         </>
       ) : (
         <>

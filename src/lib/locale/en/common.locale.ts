@@ -60,6 +60,7 @@ const common = {
   "common.minimum": "minimum",
   "common.frame": "Frame",
   "common.frames": "Frames",
+  "common.images": "Images",
   "common.next": "Next",
   "common.no.results": "No results",
   "common.off": "Off",

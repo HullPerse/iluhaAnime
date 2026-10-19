@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Rss,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -29,6 +29,7 @@ import { ignore } from "@/lib/utils/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { Source, TorrentDetailsProps as Props } from "@/types/search";
 import type { Anime, TorrentDetailField, TorrentView } from "@/types/torrent";
+import type { ModalPager } from "@/types/ui";
 
 import DescriptionBlocks from "./description.details";
 import DetailsHero from "./hero.details";
@@ -107,6 +108,36 @@ function heroPoster(
   const shot = view?.screenshots[0];
   if (shot) return shot;
   return coverUrl ?? remoteUrl;
+}
+
+interface ImageLightbox {
+  images: string[];
+  index: number;
+}
+
+function lightboxImage(lightbox: ImageLightbox): string {
+  return lightbox.images[lightbox.index] ?? "";
+}
+
+function lightboxPager(
+  lightbox: ImageLightbox | null,
+  label: string,
+  setLightbox: (updater: (prev: ImageLightbox | null) => ImageLightbox | null) => void
+): ModalPager | undefined {
+  if (!lightbox || lightbox.images.length < 2) return undefined;
+  const step = (delta: number) => () =>
+    setLightbox((prev) =>
+      prev === null
+        ? prev
+        : { ...prev, index: (prev.index + delta + prev.images.length) % prev.images.length }
+    );
+  return {
+    index: lightbox.index,
+    total: lightbox.images.length,
+    label,
+    onPrevious: step(-1),
+    onNext: step(1),
+  };
 }
 
 async function openOriginalUrl(
@@ -200,11 +231,13 @@ function DetailsTabPanels({
   activeTab,
   metadataFields,
   onZoom,
+  onZoomScreenshot,
 }: {
   view: TorrentView;
   activeTab: DetailsTab;
   metadataFields: TorrentDetailField[];
   onZoom: (url: string) => void;
+  onZoomScreenshot: (url: string) => void;
 }) {
   const { t } = useI18n();
   return (
@@ -254,7 +287,7 @@ function DetailsTabPanels({
           className="flex min-h-0 flex-1 flex-col"
           bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
         >
-          <ScreenshotsPanel screenshots={view.screenshots} onZoom={onZoom} />
+          <ScreenshotsPanel screenshots={view.screenshots} onZoom={onZoomScreenshot} />
         </DetailSection>
       )}
 
@@ -315,7 +348,7 @@ function TorrentDetailsModal({
   const { t } = useI18n();
   const sourceProxy = useCell(settingsAtoms.searchProxyUrls)[source] ?? "";
   const [tab, setTab] = useState<DetailsTab>("description");
-  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<ImageLightbox | null>(null);
 
   const detailUrl = item.link;
 
@@ -352,6 +385,17 @@ function TorrentDetailsModal({
   );
 
   const metadataFields = useMemo(() => (view?.fields ?? []).filter(isExtraMetadataField), [view]);
+  const descriptionImages = useMemo(
+    () =>
+      (view?.descriptionBlocks ?? [])
+        .filter((block) => block.kind === "image")
+        .map((block) => block.src),
+    [view]
+  );
+  const openZoom = useCallback((images: string[], url: string) => {
+    const index = images.indexOf(url);
+    setLightbox({ images, index: Math.max(0, index) });
+  }, []);
   const tabs = useMemo(() => (view ? buildDetailTabs(view, t) : []), [t, view]);
   const activeTab = resolveActiveTab(tabs, tab);
   const busy = loadingMagnet[item.link] ?? false;
@@ -365,9 +409,10 @@ function TorrentDetailsModal({
 
   return (
     <Modal
-      header={lightbox ? t("search.details.screenshots") : view?.title || item.title}
+      header={lightbox ? t("common.images") : view?.title || item.title}
       onClose={onClose}
       onBack={lightbox ? () => setLightbox(null) : undefined}
+      pager={lightboxPager(lightbox, t("common.images"), setLightbox)}
       headerActions={
         <button
           type="button"
@@ -393,7 +438,7 @@ function TorrentDetailsModal({
       )}
 
       {lightbox ? (
-        <DetailsLightbox url={lightbox} />
+        <DetailsLightbox url={lightboxImage(lightbox)} />
       ) : (
         view &&
         !loading && (
@@ -409,7 +454,7 @@ function TorrentDetailsModal({
               onOpenMagnet={onOpenMagnet}
               onDownload={onDownload}
               onOpenOriginal={openOriginal}
-              onZoom={setLightbox}
+              onZoom={(url) => openZoom([url], url)}
             />
 
             {view.notice && (
@@ -425,7 +470,8 @@ function TorrentDetailsModal({
               view={view}
               activeTab={activeTab}
               metadataFields={metadataFields}
-              onZoom={setLightbox}
+              onZoom={(url) => openZoom(descriptionImages, url)}
+              onZoomScreenshot={(url) => openZoom(view.screenshots, url)}
             />
           </div>
         )

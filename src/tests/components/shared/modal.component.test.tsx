@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Modal from "@/components/shared/modal.component";
@@ -38,5 +38,84 @@ describe("Modal stacking guard", () => {
     );
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(2);
     await waitFor(() => expect(warn).toHaveBeenCalled());
+  });
+});
+
+describe("Modal pager", () => {
+  it("shows the position and jumps between images", () => {
+    patchSettings({ language: "en", modalAnimation: false });
+    const onPrevious = vi.fn();
+    const onNext = vi.fn();
+    render(
+      <Modal
+        header="Images"
+        onClose={() => undefined}
+        pager={{ index: 1, total: 4, label: "Images", onPrevious, onNext }}
+      >
+        <span>image</span>
+      </Modal>
+    );
+
+    expect(screen.getByText("2 / 4")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(onPrevious).toHaveBeenCalledTimes(1);
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the controls for a single image", () => {
+    patchSettings({ language: "en", modalAnimation: false });
+    render(
+      <Modal
+        header="Images"
+        onClose={() => undefined}
+        pager={{ index: 0, total: 1, label: "Images", onPrevious: vi.fn(), onNext: vi.fn() }}
+      >
+        <span>image</span>
+      </Modal>
+    );
+
+    expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Images" })).toBeNull();
+  });
+
+  it("pages with the arrow keys", () => {
+    patchSettings({ language: "en", modalAnimation: false });
+    const onPrevious = vi.fn();
+    const onNext = vi.fn();
+    render(
+      <Modal
+        header="Images"
+        onClose={() => undefined}
+        pager={{ index: 0, total: 2, onPrevious, onNext }}
+      >
+        <span>image</span>
+      </Modal>
+    );
+
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "ArrowLeft" });
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "ArrowRight" });
+
+    expect(onPrevious).toHaveBeenCalledTimes(1);
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves arrow keys alone inside a text field", () => {
+    patchSettings({ language: "en", modalAnimation: false });
+    const onNext = vi.fn();
+    render(
+      <Modal
+        header="Images"
+        onClose={() => undefined}
+        pager={{ index: 0, total: 2, onPrevious: vi.fn(), onNext }}
+      >
+        <input aria-label="field" />
+      </Modal>
+    );
+
+    fireEvent.keyDown(screen.getByLabelText("field"), { key: "ArrowRight" });
+
+    expect(onNext).not.toHaveBeenCalled();
   });
 });

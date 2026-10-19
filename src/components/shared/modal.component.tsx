@@ -1,11 +1,12 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { cn } from "cn";
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
+import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
@@ -18,6 +19,7 @@ function Modal({
   onClose,
   onBack,
   headerActions,
+  pager,
   className,
   contentClassName,
   hideHeader = false,
@@ -83,6 +85,17 @@ function Modal({
             className
           )}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(event) => {
+            if (!pager || pager.total < 2) return;
+            if (isTextEntryTarget(event.target)) return;
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              pager.onPrevious();
+            } else if (event.key === "ArrowRight") {
+              event.preventDefault();
+              pager.onNext();
+            }
+          }}
           data-hotkeys-disabled
           data-no-wheel
         >
@@ -127,6 +140,35 @@ function Modal({
           >
             {children}
           </section>
+          {pager && pager.total > 1 && (
+            <section
+              role="group"
+              aria-label={pager.label}
+              className="bg-primary flex w-full shrink-0 flex-row items-center justify-center gap-1 px-3 pb-2"
+            >
+              <Button
+                size="icon"
+                className="size-5"
+                aria-label={t("common.previous")}
+                title={t("common.previous")}
+                onClick={() => pager.onPrevious()}
+              >
+                <ChevronLeft className="size-3" />
+              </Button>
+              <span className="windows95-text text-xs">
+                {pager.index + 1} / {pager.total}
+              </span>
+              <Button
+                size="icon"
+                className="size-5"
+                aria-label={t("common.next")}
+                title={t("common.next")}
+                onClick={() => pager.onNext()}
+              >
+                <ChevronRight className="size-3" />
+              </Button>
+            </section>
+          )}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

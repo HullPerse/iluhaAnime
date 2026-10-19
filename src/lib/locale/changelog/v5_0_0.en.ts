@@ -381,6 +381,12 @@ const changelog500 = {
     "Settings summary rebuilt: version with a manual update check, FFmpeg, database, backups, image cache, and a Help section with the bug report bundle and changelog; the appearance and learning duplicates are gone",
   "changelog.5_0_0.fixed.search.modern_spinner":
     "Modern search shows the submit spinner again for a new query typed after results are already on screen, and the pager waits for the running search instead of paging away",
+  "changelog.5_0_0.added.search.details_gallery":
+    "Image gallery in torrent details: description images and screenshots page with Previous and Next buttons and arrow keys, with a position counter",
+  "changelog.5_0_0.changed.upscale.preview_keep":
+    "Upscale preview keeps its frames after a zoomed look: Back returns to the same thumbnails instead of clearing them, frames page with Previous and Next, and the Before/After choice carries across frames",
+  "changelog.5_0_0.changed.anilist.similar_rail":
+    "The Similar block in anime details is now a poster rail: larger covers with a rank number, score, format and episode count, a recommendation-strength bar instead of the vote count printed as a percent, arrow scrolling, and the expanded section no longer stretches the window",
 } as const;
 
 export default changelog500;

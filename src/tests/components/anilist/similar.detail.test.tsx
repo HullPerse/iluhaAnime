@@ -13,7 +13,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: mockConvertFileSrc,
 }));
 
-function rec(id: number, title: string): AniRecommendation {
+function rec(id: number, title: string, rating = 90): AniRecommendation {
   return {
     id,
     title,
@@ -21,7 +21,7 @@ function rec(id: number, title: string): AniRecommendation {
     episodes: 24,
     score: 85,
     format: "TV",
-    recommendation_rating: 90,
+    recommendation_rating: rating,
   };
 }
 
@@ -72,5 +72,32 @@ describe("SimilarSection seeding", () => {
       "get_anime_recommendations",
       expect.objectContaining({ id: 21 })
     );
+  });
+});
+
+describe("SimilarSection rail", () => {
+  beforeEach(() => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_anime_franchise") return Promise.resolve({ nodes: [] });
+      return Promise.reject(new Error(`unexpected command ${command}`));
+    });
+  });
+
+  it("ranks recommendations and normalizes the strength bar", async () => {
+    renderSection([rec(1, "Top Rec", 90), rec(2, "Second Rec", 45)]);
+
+    await waitFor(() => expect(screen.getByText("Top Rec")).toBeDefined());
+    expect(screen.getByText("#1")).toBeDefined();
+    expect(screen.getByText("#2")).toBeDefined();
+    expect(screen.getByText("100%")).toBeDefined();
+    expect(screen.getByText("50%")).toBeDefined();
+  });
+
+  it("shows strength as a percent instead of the raw vote count", async () => {
+    renderSection([rec(5, "Only Rec", 1203)]);
+
+    await waitFor(() => expect(screen.getByText("Only Rec")).toBeDefined());
+    expect(screen.getByText("100%")).toBeDefined();
+    expect(screen.queryByText("1203%")).toBeNull();
   });
 });

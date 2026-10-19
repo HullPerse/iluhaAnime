@@ -212,6 +212,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.settings.layout_overflow", "settings"),
       entry("changelog.5_0_0.fixed.app.vim_combobox", "app"),
       entry("changelog.5_0_0.fixed.player.settings_panel", "player"),
+      entry("changelog.5_0_0.fixed.search.modern_spinner", "search"),
     ],
   },
   {

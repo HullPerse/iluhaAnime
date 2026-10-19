@@ -33,7 +33,7 @@ function InputSearch({
     field,
     handleSearch,
     resetSearch,
-    isLoading,
+    isFetching,
     submittedQuery,
     didYouMean,
     source,
@@ -180,7 +180,7 @@ function InputSearch({
               aria-label={t("search.find.submit")}
               onClick={handleSearch}
               disabled={sourceOptions.length === 0 || !field.deferredQuery}
-              loading={isLoading}
+              loading={isFetching}
             >
               <Search className="pointer-events-none" />
             </Button>

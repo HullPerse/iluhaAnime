@@ -25,6 +25,12 @@ const ITEM: Anime = {
   date: "2024-01-01",
 };
 
+const FULL_PAGE: Anime[] = Array.from({ length: 20 }, (_, index) => ({
+  ...ITEM,
+  title: `[Erai-raws] Naruto - ${String(index + 1).padStart(2, "0")} (1080p).mkv`,
+  link: `https://animetosho.org/view/${index + 1}`,
+}));
+
 function renderResults(controller: Partial<SearchQueryController>) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -89,5 +95,40 @@ describe("ModernResults row source", () => {
     renderResults({ source: "rutracker", resultSource: null });
     expect(screen.getByText("Rutracker")).toBeDefined();
     expect(screen.queryByText("Erai-Raws")).toBeNull();
+  });
+});
+
+describe("ModernResults pager state", () => {
+  it("stops on the last page the controller reports", () => {
+    renderResults({
+      data: FULL_PAGE,
+      displayItems: FULL_PAGE,
+      isPagedSource: true,
+      nyaaPage: 2,
+      pageFull: false,
+      resultsPerPage: 20,
+    });
+    expect((screen.getByRole("button", { name: "Next page" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
+    expect(
+      (screen.getByRole("button", { name: "Previous page" }) as HTMLButtonElement).disabled
+    ).toBe(false);
+  });
+
+  it("ignores page steps while a search is fetching", () => {
+    const setNyaaPage = vi.fn();
+    renderResults({
+      data: FULL_PAGE,
+      displayItems: FULL_PAGE,
+      isPagedSource: true,
+      nyaaPage: 1,
+      pageFull: true,
+      resultsPerPage: 20,
+      isFetching: true,
+      setNyaaPage,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    expect(setNyaaPage).not.toHaveBeenCalled();
   });
 });

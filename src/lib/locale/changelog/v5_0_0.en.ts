@@ -379,6 +379,8 @@ const changelog500 = {
     "Friend comparison rebuilt: the friend's nickname instead of a generic label, shared and per-user tabs, search, sorting, status and progress in the rows, average scores by genre, shared favourites, a three-metric difference selector (mean delta, iluha affinity, MAL affinity), a taste-match summary with confidence, and an optional diff highlight",
   "changelog.5_0_0.changed.settings.summary":
     "Settings summary rebuilt: version with a manual update check, FFmpeg, database, backups, image cache, and a Help section with the bug report bundle and changelog; the appearance and learning duplicates are gone",
+  "changelog.5_0_0.fixed.search.modern_spinner":
+    "Modern search shows the submit spinner again for a new query typed after results are already on screen, and the pager waits for the running search instead of paging away",
 } as const;
 
 export default changelog500;

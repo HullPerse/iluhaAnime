@@ -12,6 +12,7 @@ import type { SearchQueryController } from "@/types/search";
 export default function ModernResults({ controller }: { controller: SearchQueryController }) {
   const {
     isLoading,
+    isFetching,
     searchParams,
     didYouMean,
     applyDidYouMean,
@@ -23,6 +24,7 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
     data,
     displayItems,
     isPagedSource,
+    pageFull,
     nyaaPage,
     setNyaaPage,
     resultsPerPage,
@@ -81,8 +83,8 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
       {isPagedSource && displayItems && displayItems.length > 0 && (
         <SearchPager
           page={nyaaPage}
-          pageFull={(data?.length ?? 0) >= resultsPerPage}
-          isLoading={isLoading}
+          pageFull={pageFull}
+          isLoading={isFetching}
           shown={displayItems.length}
           resultsPerPage={resultsPerPage}
           onPageChange={setNyaaPage}

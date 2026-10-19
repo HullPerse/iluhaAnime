@@ -128,9 +128,7 @@ export function useCollectionMetadata(
           else if (item.externalIds.tmdb != null) await refreshTmdb(item);
           else {
             notify("info", "collection.details.no.external.id");
-            return;
           }
-          notify("success", "collection.details.metadata.refreshed");
         })()
       );
       if (error) notify("error", "collection.details.metadata.refresh.error");

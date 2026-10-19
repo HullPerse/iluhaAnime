@@ -22,7 +22,7 @@ function DescriptionSpoiler({
 }) {
   return (
     <Section
-      header={title || "…"}
+      header={title || "..."}
       expanded={open}
       onExpand={() => onToggle(index)}
       className="bg-surface"

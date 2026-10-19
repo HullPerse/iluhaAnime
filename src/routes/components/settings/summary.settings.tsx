@@ -23,7 +23,7 @@ import {
   withFallback,
 } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { showError, showInfo } from "@/lib/utils/notification.utils";
+import { showError } from "@/lib/utils/notification.utils";
 import { buildReproFrontend } from "@/lib/utils/repro.utils";
 import { searchAtoms } from "@/store/search.store";
 import { getSettingsSnapshot, patchSettings, settingsAtoms } from "@/store/settings.store";
@@ -136,7 +136,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     );
     if (dialogError !== null || !target) return;
     setCollecting(true);
-    const [saved, collectError] = await attempt((async () => {
+    const [, collectError] = await attempt((async () => {
       const [version] = await attempt(getVersion());
       const frontend = buildReproFrontend({
         counts: { animeIndex: indexCount, history: historyCount, queryStats: queryStatCount },
@@ -148,9 +148,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     setCollecting(false);
     if (collectError !== null) {
       showError(t("settings.summary.repro.error"), collectError.message);
-      return;
     }
-    showInfo(t("settings.summary.repro.done"), saved);
   };
 
   const handleCollectRepro = () => {
@@ -228,7 +226,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
               ? "..."
               : data.database === null
                 ? unknown
-                : `${data.database.fileName} · ${formatBytes(data.database.sizeBytes)}`
+                : `${data.database.fileName} - ${formatBytes(data.database.sizeBytes)}`
           }
           busy={data === undefined}
           actionLabel={t("settings.summary.open")}
@@ -241,7 +239,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
               ? "..."
               : newestBackup === null
                 ? t("settings.summary.none")
-                : `${data.backups.length} · ${formatBytes(backupSize(data.backups))} · ${formatBackupDate(newestBackup.modifiedMs)}`
+                : `${data.backups.length} - ${formatBytes(backupSize(data.backups))} - ${formatBackupDate(newestBackup.modifiedMs)}`
           }
           busy={data === undefined}
           actionLabel={t("settings.summary.open")}
@@ -250,7 +248,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         <SummaryRow
           label={t("settings.summary.images")}
           value={
-            data === undefined ? "..." : `${data.images.count} · ${formatBytes(data.images.bytes)}`
+            data === undefined ? "..." : `${data.images.count} - ${formatBytes(data.images.bytes)}`
           }
           busy={data === undefined}
           actionLabel={t("settings.summary.images.clear")}

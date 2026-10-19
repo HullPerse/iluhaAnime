@@ -107,9 +107,9 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
                 <div className="truncate text-xs font-bold">{entry.title}</div>
                 <div className="text-hint truncate text-xs">
                   {t(GAME_STORE_PLATFORM_LABELS[entry.platform])}
-                  {" · "}
+                  {" - "}
                   {t("game.store.by", { authors: entry.authors.join(", ") })}
-                  {" · "}
+                  {" - "}
                   {t("game.size.kb", { value: sizeInKb(entry.size) })}
                 </div>
                 <div className="text-hint truncate text-xs" title={entry.description}>

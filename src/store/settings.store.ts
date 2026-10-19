@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 54;
+export const SETTINGS_SCHEMA_VERSION = 55;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -243,6 +243,12 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       if (state.gameVolume === undefined) {
         state.gameVolume = 1;
       }
+    },
+  },
+  {
+    from: 54,
+    migrate: (state) => {
+      delete state.notifyUpdateAvailable;
     },
   },
 ];

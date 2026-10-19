@@ -103,7 +103,7 @@ function ScreenFooter({
         {runtime.status === "starting"
           ? t("game.status.starting")
           : info !== null
-            ? `${info.name} · ${t(GAME_PLATFORM_LABELS[info.platform])}`
+            ? `${info.name} - ${t(GAME_PLATFORM_LABELS[info.platform])}`
             : t("game.status.idle")}
       </span>
       {running && telemetry.waitingKey && (

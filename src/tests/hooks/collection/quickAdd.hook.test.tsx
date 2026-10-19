@@ -2,6 +2,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useQuickAddMedia } from "@/hooks/collection/quickAdd.hook";
+import { notificationAtoms } from "@/store/notification.store";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 const addItem = vi.fn();
@@ -51,6 +52,7 @@ describe("useQuickAddMedia", () => {
     const saved = addItem.mock.calls[0][0] as { title: string };
     expect(saved.title).toBe("Frieren");
     expect(result.current.exists).toBe(true);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 
   it("ignores a second add while the first is in flight", async () => {

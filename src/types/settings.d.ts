@@ -98,7 +98,6 @@ export interface SettingsStore {
   notifyUpscaleDone: boolean;
   notifyModelDownloads: boolean;
   notifyBackup: boolean;
-  notifyUpdateAvailable: boolean;
   notifyScanErrors: boolean;
   anilistPollIntervalMin: number;
   anilistNotifyLists: string[] | null;

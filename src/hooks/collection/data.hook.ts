@@ -37,7 +37,6 @@ export function useCollectionDataActions() {
     a.download = `iluhaAnime-collection-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify("success", "collection.export.done");
   }, [notify]);
 
   const handleExportZip = useCallback(async () => {
@@ -48,7 +47,6 @@ export function useCollectionDataActions() {
     if (!path) return;
     const [, error] = await attempt(collectionApi.exportZip(path));
     if (error) notify("error", "collection.export.error");
-    else notify("success", "collection.export.zip.done");
   }, [notify]);
 
   const runImport = useCallback(

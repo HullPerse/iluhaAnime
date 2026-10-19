@@ -20,7 +20,6 @@ import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { resolveSecretTabAction } from "@/lib/tabs.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { showInfo } from "@/lib/utils/notification.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { cacheAtoms } from "@/store/cache.store";
@@ -97,13 +96,11 @@ export default function App() {
     const action = resolveSecretTabAction(settingsAtoms.gameTabUnlocked.get(), activeTab === "game");
     if (action === "reveal") {
       patchSettings({ gameTabUnlocked: true });
-      showInfo(t("game.secret.found"), t("game.secret.body"));
       goToTab("game");
       return;
     }
     if (action === "hide") {
       patchSettings({ gameTabUnlocked: false });
-      showInfo(t("game.secret.hidden"), t("game.secret.hidden.body"));
     }
   });
   useDayNightScheduler();

@@ -60,7 +60,7 @@ function NotificationRow({
       )}
       <div className="windows95-text flex min-w-0 flex-1 flex-col text-xs">
         <span className={titleClass} title={title}>
-          {unread && <span className="text-highlight font-bold">{"• "}</span>}
+          {unread && <span className="text-highlight font-bold">{"* "}</span>}
           {title}
         </span>
         <span className="line-clamp-2" title={body}>

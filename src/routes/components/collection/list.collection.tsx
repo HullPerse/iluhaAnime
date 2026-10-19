@@ -185,8 +185,8 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
             </h2>
           </div>
           {!shortMeta && meta.length > 0 && (
-            <div className="text-hint windows95-text truncate text-xs" title={meta.join(" • ")}>
-              {meta.join(" • ")}
+            <div className="text-hint windows95-text truncate text-xs" title={meta.join(" - ")}>
+              {meta.join(" - ")}
             </div>
           )}
 

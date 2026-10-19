@@ -5,7 +5,6 @@ const torrent = {
   "torrent.bulk.clear": "Снять выделение",
   "torrent.bulk.done": "{{done}} ок, {{failed}} с ошибкой",
   "torrent.bulk.pause": "Пауза",
-  "torrent.bulk.progress": "Выполняется {{done}} из {{count}}...",
   "torrent.bulk.recheck": "Проверить",
   "torrent.bulk.resume": "Продолжить",
   "torrent.bulk.select.all": "Выделить всё",
@@ -16,7 +15,6 @@ const torrent = {
   "torrent.bulk.trackers": "Добавить трекер выбранным",
   "torrent.bulk.limits": "Лимиты для выбранных",
   "torrent.bulk.apply": "Применить",
-  "torrent.bulk.remove.progress": "Удаление {{done}} из {{count}}...",
   "torrent.bulk.recreate.message":
     "У {{count}} из них всё ещё нет файлов. Пересоздание удаляет торрент и добавляет его заново по magnet: ручные трекеры, выбранные файлы и приоритеты теряются. Если файлы могут вернуться, проверьте позже ещё раз.",
   "torrent.bulk.title": "Массовое действие",
@@ -37,7 +35,6 @@ const torrent = {
   "torrent.create.title": "Создание торрента",
   "torrent.choose.file": "Выбрать .torrent",
   "torrent.delete": "Удалить торрент",
-  "torrent.delete.done": "Удален {{name}}",
   "torrent.delete.message": "Удалить скачанные файлы вместе с торрентом?",
   "torrent.delete.message.many": "Удалить выбранные торренты?",
   "torrent.delete.title": "Удаление торрента",
@@ -116,7 +113,7 @@ const torrent = {
   "torrent.recheck.summary": "(ок: {{ok}}/{{total}})",
   "torrent.recheck.title": "Проверка торрента",
   "torrent.resume.external.body":
-    "Файлы изменились на диске, пока торрент стоял на паузе; проверено заново с диска ({{ok}}/{{total}} на месте)",
+    "Изменились на диске во время паузы; проверено: {{ok}}/{{total}} на месте",
   "torrent.resume.external.title": "Файлы изменились на диске",
   "torrent.paused.external": "Файлы изменились извне приложения",
   "torrent.paused.external.hint": "Другой клиент менял файлы, продолжение их перепроверит.",

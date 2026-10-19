@@ -45,17 +45,13 @@ const game = {
   "game.platform.schip11": "SUPER-CHIP 1.1",
   "game.platform.xochip": "XO-CHIP",
   "game.status.idle": 'Выберите ROM и нажмите "Играть".',
-  "game.status.starting": "Запуск…",
+  "game.status.starting": "Запуск...",
   "game.status.waiting": "Ожидание клавиши",
   "game.status.halted": "Программа остановлена",
   "game.status.fps": "{{value}} FPS",
   "game.controls": "Управление: {{hint}}",
   "game.mute": "Выключить звук",
   "game.unmute": "Включить звук",
-  "game.secret.found": "Новая вкладка",
-  "game.secret.body": 'Вкладка "Игра" разблокирована.',
-  "game.secret.hidden": "Секрет спрятан",
-  "game.secret.hidden.body": 'Вкладка "Игра" скрыта. Введи код снова, чтобы вернуть.',
 } as const;
 
 export default game;

@@ -18,12 +18,11 @@ import {
   withoutPendingRemoved,
 } from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { showError, showInfo, showWarning } from "@/lib/utils/notification.utils";
+import { showError, showWarning } from "@/lib/utils/notification.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { cacheAtoms, removeSeedPreference } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";
-import { addNotification, updateNotification } from "@/store/notification.store";
 import type {
   FilePriority,
   TorrentCheckResult,
@@ -321,7 +320,7 @@ function setOpInFlight(id: number, op: "pause" | "resume" | "remove" | null): vo
 export function usePauseTorrent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: number; infoHash?: string }) => {
+    mutationFn: async (vars: { id: number; infoHash?: string; silent?: boolean }) => {
       const { id } = vars;
       if (torrentAtoms.opInFlight.get()[id] !== undefined) return false;
       const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY);
@@ -332,7 +331,8 @@ export function usePauseTorrent() {
       const [, error] = await attempt(torrentApi.pauseTorrent(id, vars.infoHash));
       setOpInFlight(id, null);
       if (error) {
-        showError(tr("download.error.pause"), torrentErrorText(error.message, tr));
+        if (!vars.silent)
+          showError(tr("download.error.pause"), torrentErrorText(error.message, tr));
         if (prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
         return false;
       }
@@ -345,7 +345,7 @@ export function usePauseTorrent() {
 export function useResumeTorrent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: number; infoHash?: string }) => {
+    mutationFn: async (vars: { id: number; infoHash?: string; silent?: boolean }) => {
       const { id } = vars;
       if (torrentAtoms.opInFlight.get()[id] !== undefined) return false;
       const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY);
@@ -356,7 +356,8 @@ export function useResumeTorrent() {
       const [result, error] = await attempt(torrentApi.resumeTorrent(id, vars.infoHash));
       setOpInFlight(id, null);
       if (error) {
-        showError(tr("download.error.resume"), torrentErrorText(error.message, tr));
+        if (!vars.silent)
+          showError(tr("download.error.resume"), torrentErrorText(error.message, tr));
         if (prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
         return false;
       }
@@ -370,11 +371,8 @@ export function useResumeTorrent() {
 }
 
 function notifyResumeReverified(check: TorrentCheckResult | null): void {
-  const title = tr("torrent.resume.external.title");
-  if (!check) {
-    showInfo(title);
-    return;
-  }
+  if (!check) return;
+  if (check.missing.length === 0 && check.size_mismatch.length === 0) return;
   const parts = [tr("torrent.resume.external.body", { ok: check.ok, total: check.total })];
   if (check.missing.length > 0) {
     parts.push(tr("torrent.recheck.missing", { count: check.missing.length }));
@@ -382,19 +380,13 @@ function notifyResumeReverified(check: TorrentCheckResult | null): void {
   if (check.size_mismatch.length > 0) {
     parts.push(tr("torrent.recheck.size", { count: check.size_mismatch.length }));
   }
-  const body = parts.join(" · ");
-  if (check.missing.length > 0 || check.size_mismatch.length > 0) {
-    showWarning(title, body);
-  } else {
-    showInfo(title, body);
-  }
+  showWarning(tr("torrent.resume.external.title"), parts.join(" - "));
 }
 
 export interface RemoveTorrentVars {
   id: number;
   deleteFiles: boolean;
   infoHash?: string;
-  name?: string;
   silent?: boolean;
 }
 
@@ -410,16 +402,6 @@ export function useRemoveTorrent() {
       queryClient.setQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY, (old) =>
         withoutPendingRemoved(old ?? [], new Set([id]))
       );
-      const noticeId = vars.silent
-        ? -1
-        : addNotification(
-            tr("torrent.delete.title"),
-            "info",
-            vars.name ?? String(id),
-            `torrent-remove:${id}:${vars.infoHash ?? ""}`,
-            { system: false }
-          );
-      if (noticeId > 0) updateNotification(noticeId, { progress: true });
       const [, error] = await attempt(
         torrentApi.removeTorrent(id, vars.deleteFiles, vars.infoHash)
       );
@@ -429,21 +411,9 @@ export function useRemoveTorrent() {
       if (error) {
         if (!partial && prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
         const text = torrentErrorText(error.message, tr);
-        if (noticeId > 0) {
-          updateNotification(
-            noticeId,
-            partial
-              ? { message: text, progress: false, type: "warning" }
-              : {
-                  message: text,
-                  progress: false,
-                  title: tr("download.error.remove"),
-                  type: "error",
-                },
-            { system: true }
-          );
-        } else {
-          showError(tr("download.error.remove"), text);
+        if (!vars.silent) {
+          if (partial) showWarning(tr("download.error.remove"), text);
+          else showError(tr("download.error.remove"), text);
         }
         return false;
       }
@@ -455,17 +425,6 @@ export function useRemoveTorrent() {
       const lastActiveAt = { ...torrentAtoms.lastActiveAt.get() };
       delete lastActiveAt[id];
       torrentAtoms.lastActiveAt.set(lastActiveAt);
-      if (noticeId > 0) {
-        updateNotification(
-          noticeId,
-          {
-            message: tr("torrent.delete.done", { name: vars.name ?? String(id) }),
-            progress: false,
-            type: "success",
-          },
-          { system: true }
-        );
-      }
       return true;
     },
     onSettled: () => {
@@ -659,10 +618,11 @@ export function useRedownloadFile() {
 export function useRecheckTorrent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: number; infoHash?: string }) => {
+    mutationFn: async (vars: { id: number; infoHash?: string; silent?: boolean }) => {
       const [result, error] = await attempt(torrentApi.recheckTorrent(vars.id, vars.infoHash));
       if (error) {
-        showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
+        if (!vars.silent)
+          showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
         return null;
       }
       queryClient.invalidateQueries({ queryKey: torrentFilesKey(vars.id) });
@@ -692,12 +652,18 @@ export function useRecheckPausedTorrent() {
 export function useAddTorrentTracker() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: number; tracker: string; infoHash: string }) => {
+    mutationFn: async (vars: {
+      id: number;
+      tracker: string;
+      infoHash: string;
+      silent?: boolean;
+    }) => {
       const [, error] = await attempt(
         torrentApi.addTorrentTracker(vars.id, vars.tracker, vars.infoHash)
       );
       if (error) {
-        showError(tr("download.error.tracker.add"), torrentErrorText(error.message, tr));
+        if (!vars.silent)
+          showError(tr("download.error.tracker.add"), torrentErrorText(error.message, tr));
         return false;
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.torrentDiagnostics(vars.id) });

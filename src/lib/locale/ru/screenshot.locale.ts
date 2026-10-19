@@ -16,8 +16,7 @@ const screenshot = {
   "screenshot.crop.aria": "Выделение {{width}} x {{height}} px в {{x}}, {{y}}",
   "screenshot.crop.empty": "Обведите мышью нужную область, Shift - ровный квадрат",
   "screenshot.crop.reset": "Сбросить выделение",
-  "screenshot.crop.zoom":
-    "Колесо меняет масштаб (можно немного дальше вписанного), ПКМ двигает снимок, клик возвращает в размер. Выделять и рисовать можно только по самому снимку",
+  "screenshot.crop.zoom": "Колесо: масштаб, ПКМ: сдвиг, клик: вписать. Рисовать можно только по снимку",
   "screenshot.crop.square": "1:1",
   "screenshot.tools": "Инструменты",
   "screenshot.tool.select": "Выделить область",

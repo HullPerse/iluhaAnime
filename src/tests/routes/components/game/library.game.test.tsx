@@ -59,8 +59,8 @@ describe("GameLibrary", () => {
   it("shows the platform, source and size of every ROM", () => {
     renderLibrary();
 
-    expect(screen.getByText("SUPER-CHIP 1.0 · bundled · 2 KB")).toBeTruthy();
-    expect(screen.getByText("SUPER-CHIP 1.0 · imported · 4 KB")).toBeTruthy();
+    expect(screen.getByText("SUPER-CHIP 1.0 - bundled - 2 KB")).toBeTruthy();
+    expect(screen.getByText("SUPER-CHIP 1.0 - imported - 4 KB")).toBeTruthy();
   });
 
   it("plays the focused ROM from the keyboard", () => {

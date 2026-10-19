@@ -135,9 +135,9 @@ export default function GameLibrary({
                   </div>
                   <div className={cn("text-hint truncate text-xs", active && "text-white/80")}>
                     {t(GAME_PLATFORM_LABELS[rom.platform])}
-                    {" · "}
+                    {" - "}
                     {t(rom.source === "builtin" ? "game.source.builtin" : "game.source.user")}
-                    {" · "}
+                    {" - "}
                     {t("game.size.kb", { value: sizeInKb(rom.size) })}
                   </div>
                 </div>

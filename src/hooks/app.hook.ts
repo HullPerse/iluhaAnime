@@ -121,47 +121,8 @@ export function useApp() {
   });
 
   useEffect(() => {
-    if (data) {
-      setUpdateAvailable(true);
-      if (settingsAtoms.notifyUpdateAvailable.get()) {
-        addNotification(
-          t("updater.title"),
-          "info",
-          t("notification.update.available", { version: data.version }),
-          `app-update:${data.version}`,
-          { system: true }
-        );
-      }
-    }
-  }, [data, t]);
-
-  const prevOnlineRef = useRef(isOnline);
-  useEffect(() => {
-    const prev = prevOnlineRef.current;
-    if (prev === isOnline) return;
-    prevOnlineRef.current = isOnline;
-    if (!isOnline) {
-      addNotification(
-        t("network.offline.title"),
-        "warning",
-        t("network.offline.body"),
-        "network-offline",
-        {
-          system: false,
-        }
-      );
-    } else {
-      addNotification(
-        t("network.online.title"),
-        "info",
-        t("network.online.body"),
-        "network-online",
-        {
-          system: false,
-        }
-      );
-    }
-  }, [isOnline, t]);
+    if (data) setUpdateAvailable(true);
+  }, [data]);
 
   useEffect(() => {
     const root = document.documentElement;

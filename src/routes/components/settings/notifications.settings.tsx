@@ -54,7 +54,6 @@ export default function SettingsNotifications() {
   const notifyUpscaleDone = useCell(settingsAtoms.notifyUpscaleDone);
   const notifyModelDownloads = useCell(settingsAtoms.notifyModelDownloads);
   const notifyBackup = useCell(settingsAtoms.notifyBackup);
-  const notifyUpdateAvailable = useCell(settingsAtoms.notifyUpdateAvailable);
   const notifyScanErrors = useCell(settingsAtoms.notifyScanErrors);
   const knownListNames = useCell(anilistNotificationsAtoms.knownListNames);
   const listNamesQuery = useAppQuery("slow", {
@@ -186,7 +185,7 @@ export default function SettingsNotifications() {
                 <RefreshCw className="size-3" />
               </Button>
               {listsLoading && (
-                <span className="text-hint text-[12px]">{`${t("common.loading")}…`}</span>
+                <span className="text-hint text-[12px]">{`${t("common.loading")}...`}</span>
               )}
               {!listsLoading && knownListNames.length === 0 && listsFailed && (
                 <span className="text-hint text-[12px]">
@@ -252,11 +251,6 @@ export default function SettingsNotifications() {
           <span className="text-title-text font-bold">{t("settings.notifications.group.app")}</span>
         </div>
         <div className="flex flex-col gap-0.5 p-2">
-          <NotifyRow
-            label={t("settings.notifications.update")}
-            checked={notifyUpdateAvailable}
-            onChange={(v) => patchSettings({ notifyUpdateAvailable: v })}
-          />
           <NotifyRow
             label={t("settings.notifications.scan")}
             checked={notifyScanErrors}

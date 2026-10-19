@@ -50,7 +50,6 @@ export function useQuickAddMedia(
             : built
         );
         setAdded(true);
-        addNotification(t("app.collection"), "success", t("collection.quick.add.success"));
       })()
     );
     if (error) addNotification(t("app.collection"), "error", t("collection.quick.add.error"));

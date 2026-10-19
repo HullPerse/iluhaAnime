@@ -45,17 +45,13 @@ const game = {
   "game.platform.schip11": "SUPER-CHIP 1.1",
   "game.platform.xochip": "XO-CHIP",
   "game.status.idle": "Pick a ROM and press Play.",
-  "game.status.starting": "Starting…",
+  "game.status.starting": "Starting...",
   "game.status.waiting": "Waiting for a key",
   "game.status.halted": "Program halted",
   "game.status.fps": "{{value}} FPS",
   "game.controls": "Controls: {{hint}}",
   "game.mute": "Mute",
   "game.unmute": "Sound on",
-  "game.secret.found": "New tab",
-  "game.secret.body": "The Game tab is unlocked.",
-  "game.secret.hidden": "Secret hidden",
-  "game.secret.hidden.body": "The Game tab is hidden. Enter the code again to bring it back.",
 } as const;
 
 export default game;

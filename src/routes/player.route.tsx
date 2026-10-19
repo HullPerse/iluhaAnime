@@ -266,7 +266,7 @@ function PlayerRoute() {
       if (error) {
         reportBackgroundError("folders.rebuild", error);
         if (settingsAtoms.notifyScanErrors.get())
-          showErrorOnce("folders-rebuild", t("notification.scan.failed"), error.message);
+          showErrorOnce("folders-scan", t("notification.scan.failed"), error.message);
       }
     },
     [t, videoExtensions, scanThreads]
@@ -381,7 +381,7 @@ function PlayerRoute() {
     }).catch((error) => {
       reportBackgroundError("folders.watch.start", error);
       if (settingsAtoms.notifyScanErrors.get())
-        showErrorOnce("folders-watch", t("notification.scan.failed"), String(error));
+        showErrorOnce("folders-scan", t("notification.scan.failed"), String(error));
     });
     return () => {
       invokeTyped("stop_watching_folders").catch((error) =>
@@ -432,7 +432,7 @@ function PlayerRoute() {
           if (scanError) {
             reportBackgroundError("folders.rescan", scanError);
             if (settingsAtoms.notifyScanErrors.get())
-              showErrorOnce("folders-rescan", t("notification.scan.failed"), scanError.message);
+              showErrorOnce("folders-scan", t("notification.scan.failed"), scanError.message);
           }
           return;
         }
@@ -461,7 +461,7 @@ function PlayerRoute() {
           if (patchError) {
             reportBackgroundError("folders.patch", patchError);
             if (settingsAtoms.notifyScanErrors.get())
-              showErrorOnce("folders-patch", t("notification.scan.failed"), patchError.message);
+              showErrorOnce("folders-scan", t("notification.scan.failed"), patchError.message);
           }
           await rescanPath(root);
           return;

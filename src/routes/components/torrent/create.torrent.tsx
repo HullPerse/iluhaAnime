@@ -12,7 +12,6 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import { addNotification } from "@/store/notification.store";
 import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent";
 import type { TorrentHash } from "@/types/types";
 
@@ -51,11 +50,6 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
     }
     setCreated(result);
     onCreated(result);
-    addNotification(
-      t("torrent.create.title"),
-      "success",
-      t("torrent.create.done", { name: result.name })
-    );
   };
 
   const saveTorrent = async () => {

@@ -54,7 +54,6 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   notifyUpscaleDone: true,
   notifyModelDownloads: true,
   notifyBackup: true,
-  notifyUpdateAvailable: true,
   notifyScanErrors: true,
   anilistPollIntervalMin: 30,
   anilistNotifyLists: null,

@@ -185,7 +185,7 @@ export default function DetailsHero({
       <div className="min-w-0 flex-1">
         <p className="windows95-text text-hint text-xs break-all">
           {view.category}
-          {view.author ? ` · ${t("search.details.author")}: ${view.author}` : ""}
+          {view.author ? ` - ${t("search.details.author")}: ${view.author}` : ""}
         </p>
         <h2 className="windows95-text mt-0.5 text-sm font-bold wrap-break-word">
           {view.title || item.title}

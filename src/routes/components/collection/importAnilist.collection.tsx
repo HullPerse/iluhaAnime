@@ -190,13 +190,9 @@ export default function ImportAnilistCollection({
     return outcome;
   };
 
-  const finishImport = async (imported: number, failedCount: number) => {
+  const finishImport = async (imported: number) => {
     await queryClient.invalidateQueries({ queryKey: COLLECTION_QUERY_KEY });
     setResult({ imported, skipped: 0 });
-    notify(failedCount > 0 ? "error" : "success", "collection.import.anilist.done", {
-      imported,
-      skipped: 0,
-    });
     onImported();
   };
 
@@ -212,7 +208,7 @@ export default function ImportAnilistCollection({
     setResult(null);
     const { imported, failed } = await importEntries(toImport);
     setImportFailures(failed);
-    await finishImport(imported, failed.length);
+    await finishImport(imported);
   };
 
   const retryImport = async () => {
@@ -256,7 +252,7 @@ export default function ImportAnilistCollection({
           to: s.rating ?? "-",
         })
       );
-    return parts.join(" · ");
+    return parts.join(" - ");
   };
 
   const syncTargets = changedEntries

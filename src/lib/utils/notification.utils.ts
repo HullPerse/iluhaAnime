@@ -5,7 +5,7 @@ import { translate } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
 import { openAnimeDeepLink } from "@/store/deeplink.store";
-import { addNotification } from "@/store/notification.store";
+import { addNotification, notificationAtoms, updateNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { Locale, TranslationKey } from "@/types/i18n";
 import type {
@@ -25,7 +25,12 @@ export function showError(title: string, body: string): void {
 }
 
 export function showErrorOnce(eventKey: string, title: string, body: string): void {
-  addNotification(title, "error", body, eventKey);
+  const id = addNotification(title, "error", body, eventKey);
+  if (id <= 0) return;
+  const existing = notificationAtoms.items.get().find((item) => item.id === id);
+  if (existing && (existing.title !== title || existing.message !== body)) {
+    updateNotification(id, { title, message: body });
+  }
 }
 
 export function showInfo(title: string, body?: string): void {

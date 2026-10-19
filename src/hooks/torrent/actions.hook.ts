@@ -75,9 +75,9 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
   );
   const onRemove = useCallback(
     (deleteFiles: boolean) => {
-      removeMutation.mutate({ id, deleteFiles, infoHash, name: item.name });
+      removeMutation.mutate({ id, deleteFiles, infoHash });
     },
-    [removeMutation, id, infoHash, item.name]
+    [removeMutation, id, infoHash]
   );
   const onUpdateFiles = useCallback(
     (indices: number[]) => {
@@ -108,12 +108,10 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
       id,
       deleteFiles: false,
       infoHash,
-      name: item.name,
-      silent: true,
     });
     if (!removed) return;
     prepareTorrentDownload(`magnet:?xt=urn:btih:${infoHash}`);
-  }, [removeMutation, id, infoHash, item.name]);
+  }, [removeMutation, id, infoHash]);
   const onRedownload = useCallback(
     (fileIndex: number) => {
       redownloadMutation.mutate({ id, fileIndex, infoHash });

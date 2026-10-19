@@ -10,6 +10,7 @@ import {
   copyNotification,
   openNotificationTarget,
   showError,
+  showErrorOnce,
   formatRelativeTime,
   resolveNotificationText,
 } from "@/lib/utils/notification.utils";
@@ -50,6 +51,15 @@ describe("notification helpers", () => {
     expect(items[0].type).toBe("error");
     expect(items[0].title).toBe("Oops");
     expect(items[0].message).toBe("Details");
+  });
+
+  it("updates the existing entry instead of stacking a second scan error", () => {
+    showErrorOnce("folders-scan", "Scan failed", "first failure");
+    showErrorOnce("folders-scan", "Scan failed", "second failure");
+    const items = notificationAtoms.items.get();
+    expect(items).toHaveLength(1);
+    expect(items[0].message).toBe("second failure");
+    expect(notificationAtoms.unreadCount.get()).toBe(1);
   });
 });
 

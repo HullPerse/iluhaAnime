@@ -46,7 +46,7 @@ export default function AniListResultsPagination({
       ? t("anilist.lists.all")
       : t(toLocaleKey(listStatusLabels[currentList.toUpperCase()] ?? currentList));
   const statusText = global
-    ? `${t("anilist.route.search.results", { count: searchResultsCount })}${searchTag ? ` · ${searchMode === "studio" ? t("anilist.route.studio") : searchMode === "season" ? t("anilist.route.season") : t("anilist.route.tag")}: ${searchTag}` : ""}`
+    ? `${t("anilist.route.search.results", { count: searchResultsCount })}${searchTag ? ` - ${searchMode === "studio" ? t("anilist.route.studio") : searchMode === "season" ? t("anilist.route.season") : t("anilist.route.tag")}: ${searchTag}` : ""}`
     : isLocal
       ? `${listLabel}: ${filteredCount} / ${activeCount}`
       : hasUser

@@ -91,7 +91,7 @@ describe("game route", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("game_start", { id: "builtin:snake" })
     );
-    await waitFor(() => expect(screen.getByText("Snake · SUPER-CHIP 1.0")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Snake - SUPER-CHIP 1.0")).toBeTruthy());
     expect(screen.getByText(`Controls: ${SNAKE_HOWTO}`)).toBeTruthy();
   });
 
@@ -125,7 +125,7 @@ describe("game route", () => {
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
 
     fireEvent.click(screen.getAllByRole("button", { name: "Play" })[0]);
-    await waitFor(() => expect(screen.getByText("Snake · SUPER-CHIP 1.0")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Snake - SUPER-CHIP 1.0")).toBeTruthy());
 
     fireEvent.pointerDown(screen.getByTitle("5"));
     await waitFor(() =>
@@ -193,7 +193,7 @@ describe("game route", () => {
     expect(screen.getByText("boom")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    await waitFor(() => expect(screen.getByText("Snake · SUPER-CHIP 1.0")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Snake - SUPER-CHIP 1.0")).toBeTruthy());
     expect(starts).toBe(2);
   });
 });

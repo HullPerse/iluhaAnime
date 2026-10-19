@@ -14,6 +14,7 @@ import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { anilistProgressOverride } from "@/store/anilistProgress.store";
+import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import { addNotification } from "@/store/notification.store";
 import type { AnilistRouteData, AniMedia } from "@/types/anilist";
 
@@ -190,6 +191,7 @@ export function ProgressStepper({
       const confirmed = saved?.progress ?? target;
       confirmedRef.current = confirmed;
       const returnedCustomLists = saved?.customLists ?? [];
+      if (saved?.status) markOwnAnilistListStatus(media.id, saved.status);
       patchEntry(queryClient, media.id, {
         progress: confirmed,
         ...(saved?.status ? { list_status: saved.status } : {}),

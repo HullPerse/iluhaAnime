@@ -286,7 +286,7 @@ describe("ScreenshotModal", () => {
     });
     expect(settingsAtoms.screenshotDir.get()).toBe("D:/Pictures");
     expect(settingsAtoms.screenshotFormat.get()).toBe("png");
-    expect(notificationAtoms.items.get()[0]?.message).toBe(SAVED.path);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 
   it("saves as JPEG once the format is switched", async () => {

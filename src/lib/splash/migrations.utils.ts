@@ -12,7 +12,7 @@ export interface TrackedStore {
 }
 
 export const TRACKED_STORES: TrackedStore[] = [
-  { store: "settings", current: 54 },
+  { store: "settings", current: 55 },
   { store: "theme", current: 0 },
   { store: "cache", current: 5 },
   { store: "search", current: 3 },

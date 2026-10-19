@@ -128,7 +128,7 @@ describe("DetailsHero poster menu", () => {
     fireEvent.contextMenu(posterButton());
 
     await waitFor(() => expect(screen.getAllByRole("menuitem")).toHaveLength(3));
-    expect(screen.getByRole("menuitem", { name: "Save image as…" })).not.toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Save image as..." })).not.toBeNull();
     expect(screen.getByRole("menuitem", { name: "Copy image" })).not.toBeNull();
     expect(screen.getByRole("menuitem", { name: "Copy image URL" })).not.toBeNull();
   });
@@ -169,8 +169,8 @@ describe("DetailsHero poster menu", () => {
     renderHero(REMOTE_POSTER);
     fireEvent.contextMenu(posterButton());
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Save image as…" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Save image as…" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Save image as..." }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Save image as..." }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
@@ -188,8 +188,8 @@ describe("DetailsHero poster menu", () => {
     renderHero(REMOTE_POSTER);
     fireEvent.contextMenu(posterButton());
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Save image as…" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Save image as…" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Save image as..." }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Save image as..." }));
 
     await waitFor(() => expect(screen.queryAllByRole("menuitem")).toHaveLength(0));
     expect(mockInvoke).not.toHaveBeenCalled();

@@ -68,7 +68,7 @@ export function SimilarSection({
             src={item.cover_url}
             label={item.title}
             alt={item.title}
-            sublabel={details.join(" · ")}
+            sublabel={details.join(" - ")}
             badge={`${Math.round(item.recommendation_rating)}%`}
             size="md"
             title={details.length > 0 ? `${item.title} - ${details.join(", ")}` : item.title}

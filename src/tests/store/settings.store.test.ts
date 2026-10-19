@@ -682,6 +682,17 @@ describe("game volume v53 migration", () => {
   });
 });
 
+describe("update toggle removal v54 migration", () => {
+  it("drops the dead update toggle and keeps the rest", () => {
+    const result = settings.migrateSettingsData(
+      { language: "en", notifyUpdateAvailable: false, notifyScanErrors: false },
+      54
+    );
+    expect("notifyUpdateAvailable" in result).toBe(false);
+    expect(result.notifyScanErrors).toBe(false);
+  });
+});
+
 describe("search source order v43 migration", () => {
   it("lists rutracker, nekobt, erai-raws first", async () => {
     const { SOURCE_INFOS } = await import("@/config/search/sources.config");

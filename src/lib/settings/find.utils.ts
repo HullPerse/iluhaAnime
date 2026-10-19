@@ -235,7 +235,7 @@ const FIND_GROUPS: readonly FindGroup[] = [
     tab: "notifications",
     section: "app",
     titleKey: "settings.notifications.group.app",
-    keys: ["settings.notifications.update", "settings.notifications.scan"],
+    keys: ["settings.notifications.scan"],
   },
   {
     tab: "search",

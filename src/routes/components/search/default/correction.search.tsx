@@ -11,7 +11,6 @@ import type { TorrentCoverState } from "@/hooks/search/cover.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { mediaToCandidate } from "@/lib/search/cover.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { showInfo } from "@/lib/utils/notification.utils";
 import CoverCandidateThumb from "@/routes/components/search/default/candidate.search";
 import {
   learnCoverAlias,
@@ -66,7 +65,6 @@ export default function CoverCorrectionModal({
       at: Date.now(),
     });
     learnCoverAlias(cover.coverKey, selected.romaji);
-    showInfo(t("search.cover.correct.applied"));
     onClose();
   };
 

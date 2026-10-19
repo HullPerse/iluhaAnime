@@ -41,7 +41,7 @@ import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { resolveFontFamily } from "@/lib/utils/font.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { COPIED_FEEDBACK_MS, showError, showInfo } from "@/lib/utils/notification.utils";
+import { COPIED_FEEDBACK_MS, showError } from "@/lib/utils/notification.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   AnnotationHistory,
@@ -170,7 +170,7 @@ export default function ScreenshotModal({
   const save = async () => {
     if (!canSave) return;
     setSaving(true);
-    const [saved, error] = await attempt(
+    const [, error] = await attempt(
       systemApi.saveScreenshot({
         sourcePath: capture.path,
         dir,
@@ -191,7 +191,6 @@ export default function ScreenshotModal({
       screenshotOpenFolder: openFolder,
     });
     onClose();
-    showInfo(t("screenshot.title"), saved.path);
     if (!openFolder) return;
     const [, openError] = await attempt(openPath(dir));
     if (openError) reportBackgroundError("screenshot.open-folder", openError);

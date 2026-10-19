@@ -83,6 +83,7 @@ function ComparePanel({
       selfLists={selfLists}
       selfFavourites={selfFavourites}
       friendProfile={profile ?? friend.profile ?? null}
+      friendName={friend.name}
       friendLists={friendLists}
       friendFavourites={friendFavourites}
       listsLoading={listsLoading}
@@ -449,14 +450,19 @@ export default function AniListFriendsModal({
   }
 
   return (
-    <Modal header={t("anilist.friends.title")} onClose={onClose} className="w-4xl max-w-[92vw]">
-      <div className="grid min-h-80 grid-cols-1 gap-2 md:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1.4fr)]">
-        <section className="windows95-border bg-field p-1">
-          <div className="bg-secondary text-title-text mb-1 flex items-center gap-1 px-1 py-0.5">
+    <Modal
+      header={t("anilist.friends.title")}
+      onClose={onClose}
+      className="w-4xl max-w-[92vw]"
+      contentClassName="min-h-0 overflow-hidden!"
+    >
+      <div className="grid min-h-80 flex-1 grid-cols-1 gap-2 md:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1.4fr)]">
+        <section className="windows95-border bg-field flex min-h-0 flex-col p-1">
+          <div className="bg-secondary text-title-text mb-1 flex shrink-0 items-center gap-1 px-1 py-0.5">
             <Users className="size-3" />
             <span className="windows95-font text-xs">{t("anilist.friends.list")}</span>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
             {friends.length === 0 ? (
               <span className="windows95-text text-hint p-2 text-center text-xs">
                 {t("anilist.friends.empty")}
@@ -521,8 +527,8 @@ export default function AniListFriendsModal({
           </div>
         </section>
 
-        <section className="windows95-border bg-primary flex min-w-0 flex-col gap-2 p-2">
-          <div className="flex gap-1">
+        <section className="windows95-border bg-primary flex min-h-0 min-w-0 flex-col gap-2 p-2">
+          <div className="flex shrink-0 gap-1">
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -552,34 +558,36 @@ export default function AniListFriendsModal({
             />
           )}
           {error && (
-            <div className="windows95-border text-destructive bg-field flex items-start gap-1 p-1 text-xs">
+            <div className="windows95-border text-destructive bg-field flex shrink-0 items-start gap-1 p-1 text-xs">
               <X className="mt-0.5 size-3 shrink-0" />
               <span className="windows95-text">{error}</span>
             </div>
           )}
           {selectedId !== null && <ViewTabs view={view} onChange={setView} />}
-          {compareTarget ? (
-            <ComparePanel
-              friend={compareTarget}
-              profile={selectedProfile}
-              selfUser={selfUser}
-              selfLists={selfLists}
-              selfFavourites={selfFavourites}
-              onAnimeClick={setDetailId}
-            />
-          ) : (
-            <FriendPreview
-              friend={selectedFriend}
-              profile={selectedProfile}
-              profileError={profileError}
-              refreshing={refreshing}
-              hasSelection={selectedId !== null}
-              onViewLists={onViewLists}
-              onRefresh={(force) => {
-                if (selectedFriend) ignore(fetchProfile(selectedFriend, force));
-              }}
-            />
-          )}
+          <div className="flex min-h-0 flex-1 flex-col">
+            {compareTarget ? (
+              <ComparePanel
+                friend={compareTarget}
+                profile={selectedProfile}
+                selfUser={selfUser}
+                selfLists={selfLists}
+                selfFavourites={selfFavourites}
+                onAnimeClick={setDetailId}
+              />
+            ) : (
+              <FriendPreview
+                friend={selectedFriend}
+                profile={selectedProfile}
+                profileError={profileError}
+                refreshing={refreshing}
+                hasSelection={selectedId !== null}
+                onViewLists={onViewLists}
+                onRefresh={(force) => {
+                  if (selectedFriend) ignore(fetchProfile(selectedFriend, force));
+                }}
+              />
+            )}
+          </div>
         </section>
       </div>
     </Modal>

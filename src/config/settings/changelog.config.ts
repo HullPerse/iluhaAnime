@@ -175,6 +175,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.player.folder_new_files", "player"),
       entry("changelog.5_0_0.changed.game.secret_toggle", "game"),
       entry("changelog.5_0_0.changed.player.seek_keys", "player"),
+      entry("changelog.5_0_0.changed.anilist.friend_compare", "anilist"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

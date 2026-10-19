@@ -113,6 +113,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
   uiDensity: "comfortable",
   progressStyle: "blocks",
+  similarView: "rail",
   vimMode: false,
   keybindOverrides: {} as Record<string, string | null>,
   videoExtensions: [

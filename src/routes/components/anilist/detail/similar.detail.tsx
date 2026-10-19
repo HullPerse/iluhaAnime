@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, GalleryHorizontal, List } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
@@ -10,6 +10,8 @@ import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { AniRecommendation, AniRelation } from "@/types/anilist";
 
 const RAIL_SCROLL_STEP = 336;
@@ -19,10 +21,80 @@ function strengthPercent(rating: number, max: number): number {
   return Math.round((rating / max) * 100);
 }
 
-function cardMeta(item: AniRecommendation, episodesShort: string): string {
+function itemMeta(item: AniRecommendation, episodesShort: string, withScore = false): string {
   const parts = [item.format];
   if (item.episodes) parts.push(`${item.episodes}${episodesShort}`);
+  if (withScore && item.score) parts.push(`★ ${item.score}`);
   return parts.filter((part): part is string => Boolean(part)).join(" - ");
+}
+
+interface SimilarCardProps {
+  item: AniRecommendation;
+  rank: number;
+  strength: number;
+  meta: string;
+  strengthLabel: string;
+  onOpen?: (id: number) => void;
+}
+
+function SimilarRailCard({ item, rank, strength, meta, strengthLabel, onOpen }: SimilarCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen?.(item.id)}
+      title={meta === "" ? item.title : `${item.title} - ${meta}`}
+      className="group/card windows95-text hover:bg-surface flex w-28 shrink-0 snap-start flex-col gap-0.5 p-0.5 text-left"
+    >
+      <span className="windows95-active-border relative flex aspect-3/4 w-full overflow-hidden">
+        <ImageComponent src={item.cover_url ?? ""} alt={item.title} className="h-full w-full" />
+        <span className="windows95-text bg-secondary text-title-text absolute top-0 left-0 px-0.5 text-xs leading-tight tabular-nums">
+          #{rank}
+        </span>
+        {item.score ? (
+          <span className="windows95-text bg-secondary text-title-text absolute right-0 bottom-0 px-0.5 text-xs leading-tight">
+            ★ {item.score}
+          </span>
+        ) : null}
+      </span>
+      <span className="line-clamp-2 h-7 text-xs leading-tight font-bold">{item.title}</span>
+      {meta !== "" && <span className="text-hint text-xs">{meta}</span>}
+      <span className="flex items-center gap-1">
+        <ProgressBar
+          value={strength}
+          max={100}
+          className="h-2 min-w-12 flex-1"
+          ariaLabel={strengthLabel}
+        />
+        <span className="windows95-text w-7 shrink-0 text-right text-xs tabular-nums">
+          {strength}%
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function SimilarListRow({ item, rank, strength, meta, strengthLabel, onOpen }: SimilarCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen?.(item.id)}
+      title={meta === "" ? item.title : `${item.title} - ${meta}`}
+      className="windows95-text hover:bg-surface flex w-full items-center gap-1 px-0.5 py-0.5 text-left"
+    >
+      <span className="text-hint w-5 shrink-0 text-right text-xs tabular-nums">#{rank}</span>
+      <span className="windows95-active-border relative flex h-10 w-8 shrink-0 overflow-hidden">
+        <ImageComponent src={item.cover_url ?? ""} alt={item.title} className="h-full w-full" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-xs leading-tight font-bold">{item.title}</span>
+        {meta !== "" && <span className="text-hint truncate text-xs leading-tight">{meta}</span>}
+      </span>
+      <span className="flex w-28 shrink-0 items-center gap-1">
+        <ProgressBar value={strength} max={100} className="h-2 flex-1" ariaLabel={strengthLabel} />
+        <span className="w-7 shrink-0 text-right text-xs tabular-nums">{strength}%</span>
+      </span>
+    </button>
+  );
 }
 
 export function SimilarSection({
@@ -37,6 +109,7 @@ export function SimilarSection({
   onRelated?: (id: number) => void;
 }) {
   const { t } = useI18n();
+  const view = useCell(settingsAtoms.similarView);
   const [expanded, setExpanded] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const recsQuery = useAppQuery("static", {
@@ -69,9 +142,12 @@ export function SimilarSection({
   if (recsQuery.isLoading || franchiseQuery.isLoading) return null;
   if (recsQuery.isError || items.length === 0) return null;
 
+  const isList = view === "list";
+  const strengthLabel = t("anilist.details.similar.strength");
   const scroll = (direction: number) => {
     scroller.current?.scrollBy({ left: direction * RAIL_SCROLL_STEP });
   };
+  const toggleView = () => patchSettings({ similarView: isList ? "rail" : "list" });
 
   return (
     <Section
@@ -80,73 +156,75 @@ export function SimilarSection({
       expanded={expanded}
       onExpand={() => setExpanded((prev) => !prev)}
       files={items.length}
+      headerActions={
+        <Button
+          size="icon"
+          className="size-5"
+          aria-label={t(
+            isList ? "anilist.details.similar.view.rail" : "anilist.details.similar.view.list"
+          )}
+          title={t(
+            isList ? "anilist.details.similar.view.rail" : "anilist.details.similar.view.list"
+          )}
+          onClick={toggleView}
+        >
+          {isList ? <GalleryHorizontal className="size-3" /> : <List className="size-3" />}
+        </Button>
+      }
     >
-      <div className="flex justify-end gap-0.5">
-        <Button
-          size="icon"
-          className="size-5"
-          aria-label={t("common.previous")}
-          title={t("common.previous")}
-          onClick={() => scroll(-1)}
-        >
-          <ChevronLeft className="size-3" />
-        </Button>
-        <Button
-          size="icon"
-          className="size-5"
-          aria-label={t("common.next")}
-          title={t("common.next")}
-          onClick={() => scroll(1)}
-        >
-          <ChevronRight className="size-3" />
-        </Button>
-      </div>
-      {/* w-0 + min-w-full: the rail contributes no intrinsic width to the fit-content modal,
-          so the modal keeps its width and the cards scroll inside the rail. */}
-      <div ref={scroller} className="flex w-0 min-w-full snap-x gap-1 overflow-x-auto pb-1">
-        {items.map((item, index) => {
-          const strength = strengthPercent(item.recommendation_rating, maxRating);
-          const meta = cardMeta(item, t("anilist.details.eps.short"));
-          return (
-            <button
+      {isList ? (
+        <div className="flex flex-col">
+          {items.map((item, index) => (
+            <SimilarListRow
               key={item.id}
-              type="button"
-              onClick={() => onRelated?.(item.id)}
-              title={meta === "" ? item.title : `${item.title} - ${meta}`}
-              className="group/card windows95-text hover:bg-surface flex w-28 shrink-0 snap-start flex-col gap-0.5 p-0.5 text-left"
+              item={item}
+              rank={index + 1}
+              strength={strengthPercent(item.recommendation_rating, maxRating)}
+              meta={itemMeta(item, t("anilist.details.eps.short"), true)}
+              strengthLabel={strengthLabel}
+              onOpen={onRelated}
+            />
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-end gap-0.5">
+            <Button
+              size="icon"
+              className="size-5"
+              aria-label={t("common.previous")}
+              title={t("common.previous")}
+              onClick={() => scroll(-1)}
             >
-              <span className="windows95-active-border relative flex aspect-3/4 w-full overflow-hidden">
-                <ImageComponent
-                  src={item.cover_url ?? ""}
-                  alt={item.title}
-                  className="h-full w-full"
-                />
-                <span className="windows95-text bg-secondary text-title-text absolute top-0 left-0 px-0.5 text-xs leading-tight tabular-nums">
-                  #{index + 1}
-                </span>
-                {item.score ? (
-                  <span className="windows95-text bg-secondary text-title-text absolute right-0 bottom-0 px-0.5 text-xs leading-tight">
-                    ★ {item.score}
-                  </span>
-                ) : null}
-              </span>
-              <span className="line-clamp-2 h-7 text-xs leading-tight font-bold">{item.title}</span>
-              {meta !== "" && <span className="text-hint text-xs">{meta}</span>}
-              <span className="flex items-center gap-1">
-                <ProgressBar
-                  value={strength}
-                  max={100}
-                  className="h-2 min-w-12 flex-1"
-                  ariaLabel={t("anilist.details.similar.strength")}
-                />
-                <span className="windows95-text w-7 shrink-0 text-right text-xs tabular-nums">
-                  {strength}%
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              <ChevronLeft className="size-3" />
+            </Button>
+            <Button
+              size="icon"
+              className="size-5"
+              aria-label={t("common.next")}
+              title={t("common.next")}
+              onClick={() => scroll(1)}
+            >
+              <ChevronRight className="size-3" />
+            </Button>
+          </div>
+          {/* w-0 + min-w-full: the rail contributes no intrinsic width to the fit-content modal,
+              so the modal keeps its width and the cards scroll inside the rail. */}
+          <div ref={scroller} className="flex w-0 min-w-full snap-x gap-1 overflow-x-auto pb-1">
+            {items.map((item, index) => (
+              <SimilarRailCard
+                key={item.id}
+                item={item}
+                rank={index + 1}
+                strength={strengthPercent(item.recommendation_rating, maxRating)}
+                meta={itemMeta(item, t("anilist.details.eps.short"))}
+                strengthLabel={strengthLabel}
+                onOpen={onRelated}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </Section>
   );
 }

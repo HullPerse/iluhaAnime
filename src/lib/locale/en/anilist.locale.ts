@@ -143,6 +143,8 @@ const anilist = {
   "anilist.details.retry": "Retry",
   "anilist.details.similar": "Similar",
   "anilist.details.similar.strength": "Recommendation strength",
+  "anilist.details.similar.view.list": "Show as list",
+  "anilist.details.similar.view.rail": "Show as rail",
   "anilist.details.trailer": "Trailer",
   "anilist.details.studio.search": "Search anime of this studio",
   "anilist.details.studios": "Studios",

@@ -60,6 +60,7 @@ export interface SettingsStore {
   retroStyle: "classic" | "soft" | "high-contrast";
   uiDensity: "comfortable" | "compact";
   progressStyle: "blocks" | "solid";
+  similarView: "rail" | "list";
   vimMode: boolean;
   keybindOverrides: Record<string, string | null>;
   collectionGroupHeaderStyle: "torrent" | "folder";

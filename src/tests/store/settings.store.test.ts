@@ -209,6 +209,25 @@ describe("settings progress style", () => {
   });
 });
 
+describe("settings similar view", () => {
+  it("defaults to the rail when missing", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 38).similarView).toBe("rail");
+  });
+
+  it("keeps a valid persisted view", () => {
+    const result = settings.migrateSettingsData({ similarView: "list", language: "en" }, 38);
+    expect(result.similarView).toBe("list");
+  });
+
+  it("repairs an unknown view to the default", () => {
+    const result = settings.migrateSettingsData(
+      { similarView: "gallery", language: "en" },
+      38
+    ) as Record<string, unknown>;
+    expect(result.similarView).toBe("rail");
+  });
+});
+
 describe("settings signal patch", () => {
   it("applies partial updates", () => {
     settings.patchSettings({ limits: { download: null, upload: null }, language: "ru" });

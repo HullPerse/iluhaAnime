@@ -257,6 +257,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   searchType: toValidator(z.enum(["default", "modern"])),
   playerType: toValidator(z.enum(["default", "modern"])),
   progressStyle: toValidator(z.enum(["blocks", "solid"])),
+  similarView: toValidator(z.enum(["rail", "list"])),
   screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
   torrentCoverMode: toValidator(z.enum(["off", "pages", "full"])),
   notificationPopups: toValidator(z.enum(["off", "system", "inapp", "both"])),

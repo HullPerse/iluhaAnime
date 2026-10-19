@@ -149,6 +149,8 @@ const anilist = {
   "anilist.details.retry": "Повторить",
   "anilist.details.similar": "Похожее",
   "anilist.details.similar.strength": "Сила рекомендации",
+  "anilist.details.similar.view.list": "Показать списком",
+  "anilist.details.similar.view.rail": "Показать витриной",
   "anilist.details.trailer": "Трейлер",
   "anilist.details.studio.search": "Искать аниме этой студии",
   "anilist.details.studios": "Студии",

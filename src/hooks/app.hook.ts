@@ -16,7 +16,6 @@ import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
 import { Debouncer } from "@/lib/pacer/debounce.utils";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { markCacheReady } from "@/lib/splash/signals.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
@@ -49,7 +48,6 @@ import {
 import { addNotification } from "@/store/notification.store";
 import { clearSearchAnimeIndex, searchAtoms, subscribeSearch } from "@/store/search.store";
 import { settingsAtoms, subscribeSettings } from "@/store/settings.store";
-import { applyTheme, themeAtoms } from "@/store/theme.store";
 import { closeUpdatePrompt, openUpdatePrompt, updateAtoms } from "@/store/update.store";
 import type {
   NotificationTarget,
@@ -139,13 +137,6 @@ export function useApp() {
       window.removeEventListener("beforeunload", save);
       document.removeEventListener("visibilitychange", save);
     };
-  }, []);
-
-  useEffect(() => {
-    const task = scheduleTask("timeout", 0, () => {
-      applyTheme(themeAtoms.currentTheme.get(), themeAtoms.customThemes.get());
-    });
-    return () => task.cancel();
   }, []);
 
   useEffect(() => {

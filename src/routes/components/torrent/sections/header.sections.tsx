@@ -9,7 +9,6 @@ import {
   FileDown,
   Pause,
   Play,
-  Pencil,
   Search,
   Users,
   X,
@@ -126,14 +125,20 @@ export function TorrentHeader({
             onBlur={() => commitAlias(draft)}
           />
         ) : (
-          <h3
-            className="windows95-font line-clamp-1 text-xs leading-tight font-bold"
+          <button
+            type="button"
+            className="windows95-font focus-visible:outline-text min-w-0 flex-1 cursor-pointer truncate border-0 bg-transparent p-0 text-left text-xs leading-tight font-bold focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
             title={item.name}
+            disabled={busy || aliasMutation.isPending}
+            onClick={() => {
+              setDraft(item.name);
+              setEditing(true);
+            }}
           >
             {item.name}
-          </h3>
+          </button>
         )}
-        {editing ? (
+        {editing && (
           <Button
             title={t("torrent.rename.clear")}
             aria-label={t("torrent.rename.clear")}
@@ -143,20 +148,6 @@ export function TorrentHeader({
             onClick={() => commitAlias(null)}
           >
             <X className="size-4" />
-          </Button>
-        ) : (
-          <Button
-            title={t("torrent.rename")}
-            aria-label={t("torrent.rename")}
-            size="icon"
-            className="size-6 shrink-0"
-            disabled={busy || aliasMutation.isPending}
-            onClick={() => {
-              setDraft(item.name);
-              setEditing(true);
-            }}
-          >
-            <Pencil className="size-4" />
           </Button>
         )}
       </div>

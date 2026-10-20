@@ -1,5 +1,13 @@
 import type { TranslationKey } from "@/types/i18n";
-import type { ThemeColorKey, ThemeDefinition, ThemeOverrideKey } from "@/types/theme";
+import type { ThemeColorKey, ThemeDefinition, ThemeFamily, ThemeOverrideKey } from "@/types/theme";
+
+export const THEME_FAMILIES = [
+  { id: "windows", label: "settings.theme.family.windows" },
+  { id: "brands", label: "settings.theme.family.brands" },
+  { id: "terminal", label: "settings.theme.family.terminal" },
+  { id: "editor", label: "settings.theme.family.editor" },
+  { id: "anime", label: "settings.theme.family.anime" },
+] as const satisfies readonly { id: ThemeFamily; label: TranslationKey }[];
 
 export const DEFAULT_THEME_COLORS: ThemeDefinition["colors"] & {
   autocomplete: string;
@@ -42,6 +50,7 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Windows 95",
     name: "win95",
+    family: "windows",
   },
   {
     bevel: "raised",
@@ -64,6 +73,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Tahoma",
     label: "Windows XP",
     name: "xp",
+    family: "windows",
     radius: "frame",
     titlebarGradient: { from: "#3d8bef", to: "#0054e3" },
   },
@@ -88,6 +98,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Segoe UI",
     label: "Windows 7",
     name: "win7",
+    family: "windows",
     radius: "frame",
     titlebarGradient: { from: "#f2f7fc", to: "#a6c1de" },
   },
@@ -112,6 +123,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Roboto",
     label: "Google",
     name: "google",
+    family: "brands",
     radius: "all",
   },
   {
@@ -135,6 +147,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Inter",
     label: "Apple",
     name: "apple",
+    family: "brands",
     radius: "all",
     titlebarGradient: { from: "#e6eefb", to: "#a9c4e8" },
   },
@@ -157,6 +170,7 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Monochrome",
     name: "mono",
+    family: "terminal",
     overrides: { favGold: "#8a8a8a", torrentIdle: "#c4c4c4", torrentSeeding: "#1e1e1e" },
     components: { cardMeta: "short" },
   },
@@ -180,6 +194,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Perfect DOS VGA 437",
     label: "Retroism",
     name: "retroism",
+    family: "terminal",
   },
   {
     colors: {
@@ -200,6 +215,7 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "YoRHa",
     name: "yorha",
+    family: "anime",
     overlay: "grid",
     components: { titlebarArt: true },
     fontFamily: '"IBM Plex Sans", "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui',
@@ -223,6 +239,7 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Gleep",
     name: "gleep",
+    family: "anime",
   },
   {
     colors: {
@@ -243,6 +260,7 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Gruvbox Dark",
     name: "gruvbox-dark",
+    family: "editor",
   },
   {
     colors: {
@@ -263,6 +281,7 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Amoled",
     name: "amoled",
+    family: "editor",
   },
   {
     colors: {
@@ -284,6 +303,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Perfect DOS VGA 437, monospace",
     label: "Terminal",
     name: "terminal",
+    family: "terminal",
     overlay: "scanlines",
     components: { cardMeta: "short" },
   },
@@ -306,6 +326,7 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Tokyo Night",
     name: "tokyo-night",
+    family: "editor",
   },
   {
     colors: {
@@ -327,6 +348,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Perfect DOS VGA 437, monospace",
     label: "Game Boy",
     name: "game-boy",
+    family: "terminal",
     overrides: { torrentDone: "#0f380f" },
   },
   {
@@ -350,6 +372,7 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Roboto",
     label: "AniList",
     name: "anilist",
+    family: "brands",
     components: { titlebarArt: true },
     radius: "all",
   },

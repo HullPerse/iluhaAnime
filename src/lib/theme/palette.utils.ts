@@ -22,6 +22,10 @@ export function hexToRgb(hex: string): RGB | null {
   return { b: value & 0xff, g: (value >> 8) & 0xff, r: (value >> 16) & 0xff };
 }
 
+export function isHexColor(value: unknown): value is string {
+  return typeof value === "string" && /^#[\da-f]{6}$/i.test(value);
+}
+
 export function rgbToHex({ r, g, b }: RGB): string {
   const channel = (value: number) =>
     Math.max(0, Math.min(255, Math.round(value)))
@@ -47,6 +51,13 @@ export function contrastRatio(a: string, b: string): number {
   const lighter = Math.max(one, two);
   const darker = Math.min(one, two);
   return (lighter + 0.05) / (darker + 0.05);
+}
+
+export function getTitleText(color: string): string {
+  if (hexToRgb(color) === null) return "#ffffff";
+  const dark = contrastRatio(color, "#000000");
+  const light = contrastRatio(color, "#ffffff");
+  return dark >= light ? "#000000" : "#ffffff";
 }
 
 const AA_CONTRAST = 4.5;
@@ -87,7 +98,7 @@ function saturation({ r, g, b }: RGB): number {
   return max === 0 ? 0 : (max - min) / max;
 }
 
-function mixHex(a: string, b: string, amount: number): string {
+export function mixHex(a: string, b: string, amount: number): string {
   const first = hexToRgb(a);
   const second = hexToRgb(b);
   if (first === null) return b;

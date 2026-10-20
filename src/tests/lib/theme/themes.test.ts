@@ -1,18 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_THEME_COLORS, THEMES, THEME_ACCENT_EXEMPT } from "@/config/settings/themes.config";
+import {
+  DEFAULT_THEME_COLORS,
+  THEMES,
+  THEME_ACCENT_EXEMPT,
+  THEME_FAMILIES,
+} from "@/config/settings/themes.config";
 import {
   buildThemeColors,
   colorDistance,
   contrastRatio,
   deriveFieldColor,
+  getTitleText,
   hexToRgb,
   rgbToHex,
   windowTintAlpha,
   WINDOW_TINT_MAX,
   WINDOW_TINT_MIN,
 } from "@/lib/theme/palette.utils";
-import { getTitleText, parseRetroismTheme } from "@/store/theme.store";
+import { parseRetroismTheme } from "@/store/theme.store";
 
 const MIN_COLOR_DISTANCE = 32;
 
@@ -50,6 +56,25 @@ function pairs<K extends string>(keys: readonly K[]): Array<[K, K]> {
 }
 
 describe("built-in themes", () => {
+  it("assigns every theme to a declared family", () => {
+    for (const theme of THEMES) {
+      expect(theme.family, theme.name).toBeDefined();
+      expect(
+        THEME_FAMILIES.some((family) => family.id === theme.family),
+        theme.name
+      ).toBe(true);
+    }
+  });
+
+  it("has at least one theme in every family", () => {
+    for (const family of THEME_FAMILIES) {
+      expect(
+        THEMES.some((theme) => theme.family === family.id),
+        family.id
+      ).toBe(true);
+    }
+  });
+
   it("keeps body text readable on the window face and in fields", () => {
     for (const theme of THEMES) {
       expect(

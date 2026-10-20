@@ -12,8 +12,10 @@ const torrent = {
   "torrent.bulk.recheck.done": "{{done}} checked, {{failed}} failed",
   "torrent.bulk.recheck.errors": "Recheck errors",
   "torrent.bulk.remove": "Delete",
-  "torrent.bulk.trackers": "Add tracker to selected",
-  "torrent.bulk.limits": "Set limits for selected",
+  "torrent.bulk.trackers": "Set tracker...",
+  "torrent.bulk.trackers.title": "Tracker for selected",
+  "torrent.bulk.limits": "Set limits...",
+  "torrent.bulk.limits.title": "Limits for selected",
   "torrent.bulk.apply": "Apply",
   "torrent.bulk.recreate.message":
     "{{count}} of them still miss files. Recreating removes each torrent and adds it back by magnet: manual trackers, the file selection and priorities are lost. Recheck again later if the files may come back.",

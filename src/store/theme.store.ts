@@ -1,25 +1,15 @@
 import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Cell } from "@/lib/state/signal.store";
-import {
-  contrastRatio,
-  deriveFieldColor,
-  hexToRgb,
-  windowTintAlpha,
-} from "@/lib/theme/palette.utils";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
-import type { ThemeDefinition, ThemeOverrideKey, ThemeStore } from "@/types/theme";
+import { applyTheme } from "@/lib/theme/appearance";
+import { deriveFieldColor, isHexColor } from "@/lib/theme/palette.utils";
+import { findTheme } from "@/lib/theme/resolve";
+import { normalizeAutocompleteOpacity } from "@/lib/theme/tokens";
+import { attemptSync } from "@/lib/utils/attempt.utils";
+import type { ThemeDefinition, ThemeOverrideKey, ThemePatch, ThemeStore } from "@/types/theme";
 
-export const THEME_SCHEMA_VERSION = 0;
-
-export function getTitleText(color: string): string {
-  if (hexToRgb(color) === null) return "#ffffff";
-  const dark = contrastRatio(color, "#000000");
-  const light = contrastRatio(color, "#ffffff");
-  return dark >= light ? "#000000" : "#ffffff";
-}
+export const THEME_SCHEMA_VERSION = 1;
 
 function parseRadius(value: unknown): ThemeDefinition["radius"] {
   return value === "frame" || value === "all" || value === "none" ? value : undefined;
@@ -58,107 +48,9 @@ function parseOverrides(value: unknown): ThemeDefinition["overrides"] {
   const overrides: Partial<Record<ThemeOverrideKey, string>> = {};
   for (const key of Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]) {
     const color = record[key];
-    if (typeof color === "string" && /^#[\da-f]{6}$/i.test(color)) overrides[key] = color;
+    if (isHexColor(color)) overrides[key] = color;
   }
   return Object.keys(overrides).length > 0 ? overrides : undefined;
-}
-
-function parseAutocompleteOpacity(value: unknown): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return 0.6;
-  return Math.max(0, Math.min(1, value));
-}
-
-function parseHexColor(value: unknown, fallback: string): string {
-  return typeof value === "string" && /^#[\da-f]{6}$/i.test(value) ? value : fallback;
-}
-
-function findTheme(name: string, custom: ThemeDefinition[]): ThemeDefinition | undefined {
-  return THEMES.find((t) => t.name === name) ?? custom.find((t) => t.name === name);
-}
-
-function applyThemeDatasets(root: HTMLElement, theme: ThemeDefinition): void {
-  if (!root.dataset) return;
-  root.dataset.theme = theme.name;
-  root.dataset.radius = theme.radius ?? "none";
-  root.dataset.bevel = theme.bevel ?? "raised";
-  root.dataset.themeOverlay = theme.overlay ?? "none";
-  root.dataset.themeTitlebarArt = theme.components?.titlebarArt === true ? "on" : "off";
-}
-
-export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
-  const theme = findTheme(name, customThemes);
-  if (!theme) return;
-  if (typeof document === "undefined" || !document.documentElement) return;
-  const root = document.documentElement;
-  const c = theme.colors;
-  const autocomplete = parseHexColor(c.autocomplete, c.muted);
-  const autocompleteOpacity = parseAutocompleteOpacity(c.autocompleteOpacity);
-  const titleText = getTitleText(c.secondary);
-  root.style.setProperty("--color-background", c.background, "important");
-  root.style.setProperty("--color-primary", c.primary, "important");
-  root.style.setProperty("--color-secondary", c.secondary, "important");
-  root.style.setProperty("--color-text", c.text, "important");
-  root.style.setProperty("--color-muted", c.muted, "important");
-  root.style.setProperty("--color-autocomplete", autocomplete, "important");
-  root.style.setProperty("--autocomplete-opacity", String(autocompleteOpacity), "important");
-  root.style.setProperty("--color-highlight", c.highlight, "important");
-  root.style.setProperty("--color-destructive", c.destructive, "important");
-  root.style.setProperty("--color-success", c.success, "important");
-  root.style.setProperty("--color-link-hover", c.linkHover, "important");
-  root.style.setProperty("--color-surface", c.surface, "important");
-  root.style.setProperty("--color-field", deriveFieldColor(c.field, c.primary), "important");
-  root.style.setProperty("--color-win-highlight", c.winHighlight, "important");
-  root.style.setProperty("--color-win-shadow", c.winShadow, "important");
-  root.style.setProperty("--color-title-text", titleText, "important");
-  root.style.setProperty(
-    "--titlebar-from",
-    theme.titlebarGradient?.from ?? c.secondary,
-    "important"
-  );
-  root.style.setProperty("--titlebar-to", theme.titlebarGradient?.to ?? c.secondary, "important");
-  const windowAlpha = `${Math.round(windowTintAlpha(c.primary, c.text) * 100)}%`;
-  root.style.setProperty("--ui-window-alpha", windowAlpha, "important");
-
-  for (const key of Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]) {
-    const variable = THEME_OVERRIDE_VARS[key];
-    const override = theme.overrides?.[key];
-    if (override === undefined) root.style.removeProperty(variable);
-    else root.style.setProperty(variable, override, "important");
-  }
-  applyThemeDatasets(root, theme);
-  const storedAppFont = getStoredAppFont();
-  const fontCss = storedAppFont
-    ? toCssFontFamily(storedAppFont)
-    : (theme.fontFamily ?? DEFAULT_FONT_FAMILY);
-  root.style.setProperty("--font-family", fontCss, "important");
-
-  const [, serializeError] = attemptSync(() =>
-    localStorage.setItem(
-      "themeVars",
-      JSON.stringify({
-        autocomplete,
-        autocompleteOpacity,
-        background: c.background,
-        destructive: c.destructive,
-        field: c.field,
-        fontFamily: theme.fontFamily ?? null,
-        highlight: c.highlight,
-        linkHover: c.linkHover,
-        muted: c.muted,
-        primary: c.primary,
-        secondary: c.secondary,
-        success: c.success,
-        surface: c.surface,
-        text: c.text,
-        themeName: theme.name,
-        titleText,
-        winHighlight: c.winHighlight,
-        winShadow: c.winShadow,
-        windowAlpha,
-      })
-    )
-  );
-  if (serializeError !== null) reportBackgroundError("theme.serialize", serializeError);
 }
 
 export function themeToJson(theme: ThemeDefinition): string {
@@ -178,54 +70,258 @@ function pickString(c: Record<string, unknown>, keys: string[], fallback: string
   return typeof found === "string" ? found : fallback;
 }
 
-function parseRetroismColors(c: Record<string, unknown>): ThemeDefinition["colors"] | null {
-  if (!c.base && !c.primary) return null;
-  const muted = pickString(c, ["muted", "shadow"], DEFAULT_THEME_COLORS.muted);
-  const primary = pickString(c, ["primary", "base"], DEFAULT_THEME_COLORS.primary);
+type ThemeColors = ThemeDefinition["colors"];
+
+function inheritedColor(base: ThemeColors | undefined, key: keyof ThemeColors): string | undefined {
+  const value = base?.[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function readColor(
+  c: Record<string, unknown>,
+  keys: string[],
+  base: ThemeColors | undefined,
+  key: keyof ThemeColors,
+  fallback: string
+): string {
+  return pickString(c, keys, inheritedColor(base, key) ?? fallback);
+}
+
+function parseRetroismColors(c: Record<string, unknown>, base?: ThemeColors): ThemeColors | null {
+  if (!base && !c.base && !c.primary) return null;
+  const muted = readColor(c, ["muted", "shadow"], base, "muted", DEFAULT_THEME_COLORS.muted);
+  const primary = readColor(c, ["primary", "base"], base, "primary", DEFAULT_THEME_COLORS.primary);
+  const fieldInput = firstString(c, ["field", "input"]);
+  const inheritedAutocomplete = inheritedColor(base, "autocomplete");
+  const autocomplete = isHexColor(c.autocomplete)
+    ? c.autocomplete
+    : (inheritedAutocomplete ?? muted);
+  const inheritedOpacity = base?.autocompleteOpacity;
+  const autocompleteOpacity =
+    c.autocompleteOpacity !== undefined
+      ? normalizeAutocompleteOpacity(c.autocompleteOpacity)
+      : typeof inheritedOpacity === "number"
+        ? inheritedOpacity
+        : DEFAULT_THEME_COLORS.autocompleteOpacity;
   return {
-    background: pickString(c, ["background"], DEFAULT_THEME_COLORS.background),
-    destructive: pickString(c, ["destructive", "urgent"], DEFAULT_THEME_COLORS.destructive),
-    field: deriveFieldColor(firstString(c, ["field", "input"]), primary),
-    highlight: pickString(c, ["highlight"], DEFAULT_THEME_COLORS.highlight),
-    linkHover: pickString(c, ["link_hover", "linkHover"], DEFAULT_THEME_COLORS.linkHover),
+    autocomplete,
+    autocompleteOpacity,
+    background: readColor(c, ["background"], base, "background", DEFAULT_THEME_COLORS.background),
+    destructive: readColor(
+      c,
+      ["destructive", "urgent"],
+      base,
+      "destructive",
+      DEFAULT_THEME_COLORS.destructive
+    ),
+    field:
+      fieldInput !== undefined
+        ? deriveFieldColor(fieldInput, primary)
+        : (inheritedColor(base, "field") ?? deriveFieldColor(undefined, primary)),
+    highlight: readColor(c, ["highlight"], base, "highlight", DEFAULT_THEME_COLORS.highlight),
+    linkHover: readColor(
+      c,
+      ["link_hover", "linkHover"],
+      base,
+      "linkHover",
+      DEFAULT_THEME_COLORS.linkHover
+    ),
     muted,
-    autocomplete: parseHexColor(c.autocomplete, muted),
-    autocompleteOpacity: parseAutocompleteOpacity(c.autocompleteOpacity),
     primary,
-    secondary: pickString(c, ["secondary", "accent"], DEFAULT_THEME_COLORS.secondary),
-    success: pickString(c, ["success"], DEFAULT_THEME_COLORS.success),
-    surface: pickString(c, ["surface"], DEFAULT_THEME_COLORS.surface),
-    text: pickString(c, ["text"], DEFAULT_THEME_COLORS.text),
-    winHighlight: pickString(
+    secondary: readColor(
+      c,
+      ["secondary", "accent"],
+      base,
+      "secondary",
+      DEFAULT_THEME_COLORS.secondary
+    ),
+    success: readColor(c, ["success"], base, "success", DEFAULT_THEME_COLORS.success),
+    surface: readColor(c, ["surface"], base, "surface", DEFAULT_THEME_COLORS.surface),
+    text: readColor(c, ["text"], base, "text", DEFAULT_THEME_COLORS.text),
+    winHighlight: readColor(
       c,
       ["win_highlight", "winHighlight", "highlight"],
+      base,
+      "winHighlight",
       DEFAULT_THEME_COLORS.winHighlight
     ),
-    winShadow: pickString(c, ["win_shadow", "winShadow", "shadow"], DEFAULT_THEME_COLORS.winShadow),
+    winShadow: readColor(
+      c,
+      ["win_shadow", "winShadow", "shadow"],
+      base,
+      "winShadow",
+      DEFAULT_THEME_COLORS.winShadow
+    ),
   };
 }
 
-export function parseRetroismTheme(json: string): ThemeDefinition | null {
+function mergeComponents(
+  base: ThemeDefinition["components"],
+  child: ThemeDefinition["components"]
+): ThemeDefinition["components"] {
+  if (!base && !child) return undefined;
+  return { ...base, ...child };
+}
+
+function mergeOverrides(
+  base: ThemeDefinition["overrides"],
+  child: ThemeDefinition["overrides"]
+): ThemeDefinition["overrides"] {
+  if (!base && !child) return undefined;
+  const merged = { ...base, ...child };
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+function pickTrait<T>(value: T | undefined, fallback: T | undefined): T | undefined {
+  return value === undefined ? fallback : value;
+}
+
+function firstValue(...values: unknown[]): unknown {
+  for (const value of values) {
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parsePatchColors(value: unknown): ThemePatch["colors"] | undefined {
+  if (!isRecord(value)) return undefined;
+  const record = value;
+  const colors: NonNullable<ThemePatch["colors"]> = {};
+  for (const key of Object.keys(DEFAULT_THEME_COLORS) as (keyof ThemeColors)[]) {
+    const item = record[key];
+    if (key === "autocompleteOpacity") {
+      if (typeof item === "number" && Number.isFinite(item)) {
+        colors.autocompleteOpacity = normalizeAutocompleteOpacity(item);
+      }
+      continue;
+    }
+    if (isHexColor(item)) (colors as Record<string, string>)[key] = item;
+  }
+  return Object.keys(colors).length > 0 ? colors : undefined;
+}
+
+function parsePatchComponents(value: unknown): ThemeDefinition["components"] {
+  if (!isRecord(value)) return undefined;
+  const components: NonNullable<ThemeDefinition["components"]> = {};
+  if (typeof value.titlebarArt === "boolean") components.titlebarArt = value.titlebarArt;
+  if (value.cardMeta === "full" || value.cardMeta === "short") {
+    components.cardMeta = value.cardMeta;
+  }
+  return Object.keys(components).length > 0 ? components : undefined;
+}
+
+function parseThemePatch(value: unknown): ThemePatch | undefined {
+  if (!isRecord(value)) return undefined;
+  const record = value;
+  const patch: ThemePatch = {};
+
+  const colors = parsePatchColors(record.colors);
+  if (colors) patch.colors = colors;
+  const radius = parseRadius(record.radius);
+  if (radius) patch.radius = radius;
+  const bevel = parseBevel(record.bevel);
+  if (bevel) patch.bevel = bevel;
+  const overlay = parseOverlay(record.overlay);
+  if (overlay) patch.overlay = overlay;
+  const components = parsePatchComponents(record.components);
+  if (components) patch.components = components;
+  else if (isRecord(record.components) && Object.keys(record.components).length === 0) {
+    patch.components = {};
+  }
+  const gradient = parseTitlebarGradient(record.titlebarGradient);
+  if (gradient) patch.titlebarGradient = gradient;
+  const overrides = parseOverrides(record.overrides);
+  if (overrides) patch.overrides = overrides;
+  else if (isRecord(record.overrides) && Object.keys(record.overrides).length === 0) {
+    patch.overrides = {};
+  }
+  if (typeof record.fontFamily === "string" && record.fontFamily.length > 0) {
+    patch.fontFamily = record.fontFamily;
+  }
+
+  return Object.keys(patch).length > 0 ? patch : undefined;
+}
+
+export function themePatchToJson(base: string, patch: ThemePatch): string {
+  return JSON.stringify({ format: "iluha-theme-patch", version: 1, base, patch }, null, 2);
+}
+
+export type ParsedThemeFile =
+  | { kind: "theme"; theme: ThemeDefinition }
+  | { kind: "patch"; base: string; patch: ThemePatch };
+
+function parseRawTheme(
+  raw: Record<string, unknown>,
+  resolveBase?: (name: string) => ThemeDefinition | undefined
+): ThemeDefinition | null {
+  const extendsName =
+    typeof raw.extends === "string" && raw.extends.length > 0 ? raw.extends : undefined;
+  if (extendsName === undefined) return buildParsedTheme(raw, undefined);
+  const base = resolveBase?.(extendsName);
+  if (!base) return null;
+  return buildParsedTheme(raw, base);
+}
+
+export function parseRetroismTheme(
+  json: string,
+  resolveBase?: (name: string) => ThemeDefinition | undefined
+): ThemeDefinition | null {
   const [raw, error] = attemptSync(() => JSON.parse(json) as Record<string, unknown>);
-  if (error !== null) return null;
+  if (error !== null || !isRecord(raw)) return null;
+  return parseRawTheme(raw, resolveBase);
+}
+
+export function parseThemeFile(
+  json: string,
+  resolveBase?: (name: string) => ThemeDefinition | undefined
+): ParsedThemeFile | null {
+  const [raw, error] = attemptSync(() => JSON.parse(json) as Record<string, unknown>);
+  if (error !== null || !isRecord(raw)) return null;
+  if (raw.format === "iluha-theme-patch") {
+    if (raw.version !== 1) return null;
+    if (typeof raw.base !== "string" || raw.base.length === 0) return null;
+    const patch = parseThemePatch(raw.patch);
+    return patch ? { kind: "patch", base: raw.base, patch } : null;
+  }
+  const theme = parseRawTheme(raw, resolveBase);
+  return theme ? { kind: "theme", theme } : null;
+}
+
+function buildParsedTheme(
+  raw: Record<string, unknown>,
+  base: ThemeDefinition | undefined
+): ThemeDefinition | null {
   const c = (raw.colors ?? raw) as Record<string, unknown>;
-  const colors = parseRetroismColors(c);
+  const colors = parseRetroismColors(c, base?.colors);
   if (!colors) return null;
+  const fontFamily = (raw.fontFamily ?? c.font_family) as string | undefined;
   return {
-    bevel: parseBevel(raw.bevel),
+    bevel: pickTrait(parseBevel(raw.bevel), base?.bevel),
     colors,
-    components: parseComponents(raw.components),
-    fontFamily: (raw.fontFamily ?? c.font_family) as string | undefined,
-    label: (raw.label ?? raw.name ?? "Imported") as string,
-    name: (raw.name ?? `custom-${Date.now()}`) as string,
-    overlay: parseOverlay(raw.overlay),
-    overrides: parseOverrides(raw.overrides),
-    radius: parseRadius(raw.radius),
-    titlebarGradient: parseTitlebarGradient(raw.titlebarGradient),
+    components: mergeComponents(base?.components, parseComponents(raw.components)),
+    fontFamily: pickTrait(fontFamily, base?.fontFamily),
+    label: String(firstValue(raw.label, raw.name, base?.label, "Imported")),
+    name: String(firstValue(raw.name, `custom-${Date.now()}`)),
+    overlay: pickTrait(parseOverlay(raw.overlay), base?.overlay),
+    overrides: mergeOverrides(base?.overrides, parseOverrides(raw.overrides)),
+    radius: pickTrait(parseRadius(raw.radius), base?.radius),
+    titlebarGradient: pickTrait(
+      parseTitlebarGradient(raw.titlebarGradient),
+      base?.titlebarGradient
+    ),
   };
 }
 
-type ThemeActionKeys = "addCustomTheme" | "removeCustomTheme" | "setTheme";
+type ThemeActionKeys =
+  | "addCustomTheme"
+  | "removeCustomTheme"
+  | "setTheme"
+  | "setThemePatch"
+  | "clearThemePatch";
 
 export type ThemeData = Omit<ThemeStore, ThemeActionKeys>;
 export type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
@@ -233,7 +329,24 @@ export type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
 const DEFAULT_THEME_DATA: ThemeData = {
   currentTheme: "win95",
   customThemes: [],
+  themePatches: {},
 };
+
+function readThemePatches(value: unknown): Record<string, ThemePatch> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  const patches: Record<string, ThemePatch> = {};
+  for (const [name, patch] of Object.entries(value)) {
+    if (typeof patch === "object" && patch !== null && !Array.isArray(patch)) {
+      patches[name] = patch as ThemePatch;
+    }
+  }
+  return patches;
+}
+
+function migrateThemeData(data: Partial<ThemeData>, version: number): Partial<ThemeData> {
+  if (version >= THEME_SCHEMA_VERSION) return data;
+  return { ...data, themePatches: {} };
+}
 
 function readLegacyTheme(
   getStorage: () => Storage | undefined
@@ -261,6 +374,8 @@ export interface ThemeSignalStore {
   addCustomTheme: (theme: ThemeDefinition) => void;
   removeCustomTheme: (name: string) => void;
   setTheme: (name: string) => void;
+  setThemePatch: (name: string, patch: ThemePatch) => void;
+  clearThemePatch: (name: string) => void;
 }
 
 export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeSignalStore {
@@ -274,17 +389,23 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
   });
 
   const persisted = persistor.read();
-  const persistedData = (persisted?.data ?? {}) as Partial<ThemeData>;
+  const persistedData = migrateThemeData(
+    (persisted?.data ?? {}) as Partial<ThemeData>,
+    persisted?.schemaVersion ?? THEME_SCHEMA_VERSION
+  );
   const storedThemes = Array.isArray(persistedData.customThemes)
     ? (persistedData.customThemes as ThemeDefinition[])
     : [];
+  const storedPatches = readThemePatches(persistedData.themePatches);
   const storedCurrent =
     typeof persistedData.currentTheme === "string"
       ? persistedData.currentTheme
       : DEFAULT_THEME_DATA.currentTheme;
   const data: ThemeData = {
-    currentTheme: findTheme(storedCurrent, storedThemes)?.name ?? DEFAULT_THEME_DATA.currentTheme,
+    currentTheme:
+      findTheme(storedCurrent, THEMES, storedThemes)?.name ?? DEFAULT_THEME_DATA.currentTheme,
     customThemes: storedThemes,
+    themePatches: storedPatches,
   };
   const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
   const atoms = {} as ThemeAtoms;
@@ -313,6 +434,10 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
     persistor.write(mirror);
   });
 
+  const applyCurrent = (name: string): void => {
+    applyTheme(name, atoms.customThemes.get(), atoms.themePatches.get());
+  };
+
   const handle: ThemeSignalStore = {
     atoms,
     persistor,
@@ -326,22 +451,35 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
       );
     },
     removeCustomTheme: (name) => {
+      const patches = { ...atoms.themePatches.get() };
+      delete patches[name];
+      atoms.themePatches.set(patches);
       atoms.customThemes.set(atoms.customThemes.get().filter((t) => t.name !== name));
       if (atoms.currentTheme.get() === name) {
-        applyTheme("win95");
+        applyCurrent("win95");
         atoms.currentTheme.set("win95");
       }
     },
     setTheme: (name) => {
-      applyTheme(name, atoms.customThemes.get());
+      applyCurrent(name);
       atoms.currentTheme.set(name);
+    },
+    setThemePatch: (name, patch) => {
+      atoms.themePatches.set({ ...atoms.themePatches.get(), [name]: patch });
+      if (atoms.currentTheme.get() === name) applyCurrent(name);
+    },
+    clearThemePatch: (name) => {
+      const patches = { ...atoms.themePatches.get() };
+      delete patches[name];
+      atoms.themePatches.set(patches);
+      if (atoms.currentTheme.get() === name) applyCurrent(name);
     },
   };
 
   if (adopted()) handle.setTheme(data.currentTheme);
   finishAdopt(() => ({ ...mirror }), { remove: "themeState" });
   if (!adopted()) {
-    applyTheme(data.currentTheme, data.customThemes);
+    applyCurrent(data.currentTheme);
   }
 
   return handle;
@@ -354,6 +492,8 @@ export const themePersistor = theme.persistor;
 export const addCustomTheme = theme.addCustomTheme;
 export const removeCustomTheme = theme.removeCustomTheme;
 export const setTheme = theme.setTheme;
+export const setThemePatch = theme.setThemePatch;
+export const clearThemePatch = theme.clearThemePatch;
 
 if (
   typeof window !== "undefined" &&

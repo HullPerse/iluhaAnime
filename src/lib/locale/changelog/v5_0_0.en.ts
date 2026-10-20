@@ -98,6 +98,12 @@ const changelog500 = {
   "changelog.5_0_0.added.settings.anilist_theme": "New dark AniList theme with a scanline grid",
   "changelog.5_0_0.added.settings.theme_card_variants":
     "Titlebar art and compact card meta on select themes",
+  "changelog.5_0_0.added.settings.theme_customization":
+    "Built-in themes can be customized in place: colors, shape, component flags and all override colors, with a separate reset",
+  "changelog.5_0_0.added.settings.theme_patch_files":
+    "Theme customizations export and import as patch files tied to their base theme",
+  "changelog.5_0_0.added.settings.theme_pack_extends":
+    "Imported theme packs can extend an existing theme and inherit its colors and shape",
   "changelog.5_0_0.added.search.result_covers":
     "Optional cover thumbnails in torrent search results: off by default and needs AniList sign-in, covers resolve from your library and the torrent page, and right-click correction with candidate picks that the app remembers",
   "changelog.5_0_0.added.search.details_image":
@@ -177,6 +183,10 @@ const changelog500 = {
     "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
   "changelog.5_0_0.changed.settings.theme_cleanup":
     "Theme list trimmed from 24 to 14, night theme now defaults to Tokyo Night",
+  "changelog.5_0_0.changed.settings.theme_picker_families":
+    "Theme picker groups themes by family: Windows, brands, terminals, editors and anime",
+  "changelog.5_0_0.changed.settings.theme_first_paint":
+    "Theme colors, shape and font reach the first frame without a flash",
   "changelog.5_0_0.fixed.player.resume_jump":
     "Resume playback no longer stutters: the player seeks to the position once instead of twice, and position and duration are read live instead of stale data",
   "changelog.5_0_0.fixed.player.timeline_flicker":

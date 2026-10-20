@@ -112,13 +112,26 @@ describe("TorrentHeader sequential toggle", () => {
 });
 
 describe("TorrentHeader rename", () => {
+  it("opens the editor on a name click and closes it on Escape", async () => {
+    const user = userEvent.setup();
+    const { invoke } = await import("@tauri-apps/api/core");
+    const invokeMock = vi.mocked(invoke);
+    invokeMock.mockClear();
+    renderHeader(info({ name: "Old Name" }));
+    await user.click(screen.getByRole("button", { name: "Old Name" }));
+    expect((screen.getByLabelText("Rename") as HTMLInputElement).value).toBe("Old Name");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByLabelText("Rename")).toBeNull();
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
   it("sends the trimmed alias on Enter", async () => {
     const user = userEvent.setup();
     const { invoke } = await import("@tauri-apps/api/core");
     const invokeMock = vi.mocked(invoke);
     invokeMock.mockClear();
     renderHeader(info({ name: "Old Name" }));
-    await user.click(screen.getByRole("button", { name: "Rename" }));
+    await user.click(screen.getByRole("button", { name: "Old Name" }));
     const input = screen.getByLabelText("Rename");
     await user.clear(input);
     await user.type(input, "  New Name  ");

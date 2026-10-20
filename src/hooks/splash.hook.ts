@@ -12,7 +12,6 @@ import {
   onSpellingReady,
 } from "@/lib/splash/signals.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { applyTheme, themeAtoms } from "@/store/theme.store";
 import type { DatabaseStatus } from "@/types/db";
 
 export type SplashStageId =
@@ -158,11 +157,6 @@ export function useSplashStages(
 
     const run = async (): Promise<void> => {
       setStages((current) => withStatus(current, "theme", "active"));
-      try {
-        applyTheme(themeAtoms.currentTheme.get(), themeAtoms.customThemes.get());
-      } catch (error) {
-        reportBackgroundError("splash.theme", error);
-      }
       if (!(await pace("theme", "done"))) return;
 
       setStages((current) => withStatus(current, "migrations", "active"));

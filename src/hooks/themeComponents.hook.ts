@@ -1,5 +1,6 @@
 import { THEMES } from "@/config/settings/themes.config";
 import { useCell } from "@/lib/state/signal.hook";
+import { resolveTheme } from "@/lib/theme/resolve";
 import { themeAtoms } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
 
@@ -20,7 +21,12 @@ export function resolveThemeComponents(
 export function useThemeComponents(): ResolvedThemeComponents {
   const current = useCell(themeAtoms.currentTheme);
   const custom = useCell(themeAtoms.customThemes);
-  const theme =
-    THEMES.find((item) => item.name === current) ?? custom.find((item) => item.name === current);
+  const patches = useCell(themeAtoms.themePatches);
+  const theme = resolveTheme({
+    builtins: THEMES,
+    customThemes: custom,
+    name: current,
+    patch: patches[current],
+  });
   return resolveThemeComponents(theme);
 }

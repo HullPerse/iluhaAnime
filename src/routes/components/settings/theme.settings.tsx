@@ -9,23 +9,27 @@ import { THEMES } from "@/config/settings/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/state/signal.hook";
 import { windowTintAlpha } from "@/lib/theme/palette.utils";
+import { findTheme, resolveTheme } from "@/lib/theme/resolve";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import {
   addCustomTheme,
-  parseRetroismTheme,
+  clearThemePatch,
+  parseThemeFile,
   removeCustomTheme,
   setTheme,
+  setThemePatch,
   themeAtoms,
+  themePatchToJson,
   themeToJson,
 } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
 
 import { BackdropSlider } from "./theme/backdrop.theme";
-import { ThemeCard } from "./theme/card.theme";
 import ThemeEditor from "./theme/editor.theme";
 import { EffectsCheckbox } from "./theme/effects.theme";
 import { FontSelector } from "./theme/font.theme";
+import { ThemePicker } from "./theme/picker.theme";
 
 const TINT_SLIDER_MIN = 0.5;
 
@@ -43,12 +47,41 @@ export default function SettingsTheme() {
   const progressStyle = useCell(settingsAtoms.progressStyle);
   const themeSchedule = useCell(settingsAtoms.themeSchedule);
   const customThemes = useCell(themeAtoms.customThemes);
+  const themePatches = useCell(themeAtoms.themePatches);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeDefinition | undefined>();
+  const [editingBase, setEditingBase] = useState<ThemeDefinition | undefined>();
+  const [patchMode, setPatchMode] = useState(false);
   const [importError, setImportError] = useState("");
 
   const builtins = THEMES;
-  const currentDef = [...builtins, ...customThemes].find((t) => t.name === currentTheme);
+  const baseCurrent = [...builtins, ...customThemes].find((t) => t.name === currentTheme);
+  const currentPatch = themePatches[currentTheme];
+  const currentDef =
+    baseCurrent === undefined
+      ? undefined
+      : resolveTheme({
+          builtins,
+          customThemes,
+          name: currentTheme,
+          patch: currentPatch,
+        });
+  const currentIsBuiltin = builtins.some((t) => t.name === currentTheme);
+
+  const closeEditor = () => {
+    setTheme(currentTheme);
+    setShowEditor(false);
+    setEditingTheme(undefined);
+    setEditingBase(undefined);
+    setPatchMode(false);
+  };
+
+  const openPackEditor = (theme?: ThemeDefinition) => {
+    setEditingTheme(theme);
+    setEditingBase(undefined);
+    setPatchMode(false);
+    setShowEditor(true);
+  };
 
   const tintFloor = currentDef
     ? windowTintAlpha(currentDef.colors.primary, currentDef.colors.text)
@@ -56,16 +89,23 @@ export default function SettingsTheme() {
   const tintValue = windowTintOpacity ?? tintFloor;
   const tintTooThin = tintValue < tintFloor;
 
-  const handleExport = () => {
-    if (!currentDef) return;
-    const json = themeToJson(currentDef);
+  const downloadJson = (json: string, filename: string) => {
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${currentDef.name}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExport = () => {
+    if (currentDef) downloadJson(themeToJson(currentDef), `${currentDef.name}.json`);
+  };
+
+  const handleExportPatch = () => {
+    if (currentPatch)
+      downloadJson(themePatchToJson(currentTheme, currentPatch), `${currentTheme}.patch.json`);
   };
 
   const handleImport = () => {
@@ -80,12 +120,24 @@ export default function SettingsTheme() {
         setImportError(t("settings.theme.read.error"));
         return;
       }
-      const theme = parseRetroismTheme(text);
-      if (!theme) {
+      const parsed = parseThemeFile(text, (name) =>
+        findTheme(name, builtins, themeAtoms.customThemes.get())
+      );
+      if (!parsed) {
         setImportError(t("settings.theme.import.error"));
         return;
       }
-      addCustomTheme(theme);
+      if (parsed.kind === "theme") {
+        addCustomTheme(parsed.theme);
+        setImportError("");
+        return;
+      }
+      if (!findTheme(parsed.base, builtins, themeAtoms.customThemes.get())) {
+        setImportError(t("settings.theme.patch.base.error"));
+        return;
+      }
+      setThemePatch(parsed.base, parsed.patch);
+      setTheme(parsed.base);
       setImportError("");
     };
     input.click();
@@ -98,44 +150,41 @@ export default function SettingsTheme() {
           <span className="text-title-text font-bold">{t("settings.theme")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="flex flex-wrap gap-2">
-            {builtins.map((theme) => (
-              <ThemeCard
-                key={theme.name}
-                theme={theme}
-                isActive={currentTheme === theme.name}
-                onSelect={() => setTheme(theme.name)}
-              />
-            ))}
-            {customThemes.map((theme) => (
-              <ThemeCard
-                key={theme.name}
-                theme={theme}
-                isActive={currentTheme === theme.name}
-                isCustom
-                onSelect={() => setTheme(theme.name)}
-                onEdit={() => {
-                  setEditingTheme(theme);
-                  setShowEditor(true);
-                }}
-                onDelete={() => removeCustomTheme(theme.name)}
-              />
-            ))}
-          </div>
+          <ThemePicker
+            builtins={builtins}
+            customThemes={customThemes}
+            currentTheme={currentTheme}
+            onSelect={setTheme}
+            onEdit={openPackEditor}
+            onDelete={removeCustomTheme}
+          />
 
           <div className="mt-1 flex items-center gap-2">
-            <Button
-              onClick={() => {
-                setEditingTheme(undefined);
-                setShowEditor(true);
-              }}
-            >
-              {t("settings.theme.create.title")}
-            </Button>
+            <Button onClick={() => openPackEditor()}>{t("settings.theme.create.title")}</Button>
             <Button onClick={handleImport}>{t("settings.theme.import")}</Button>
             <Button rendered={!!currentDef} onClick={handleExport}>
               {t("settings.theme.export")}
             </Button>
+            {currentPatch && (
+              <Button onClick={handleExportPatch}>{t("settings.theme.patch.export")}</Button>
+            )}
+            {currentIsBuiltin && currentDef && baseCurrent && (
+              <Button
+                onClick={() => {
+                  setEditingTheme(currentDef);
+                  setEditingBase(baseCurrent);
+                  setPatchMode(true);
+                  setShowEditor(true);
+                }}
+              >
+                {t("settings.theme.customize")}
+              </Button>
+            )}
+            {currentPatch && (
+              <Button variant="link" onClick={() => clearThemePatch(currentTheme)}>
+                {t("settings.theme.customize.reset")}
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -475,10 +524,9 @@ export default function SettingsTheme() {
       {showEditor && (
         <ThemeEditor
           theme={editingTheme}
-          onClose={() => {
-            setShowEditor(false);
-            setEditingTheme(undefined);
-          }}
+          baseTheme={editingBase}
+          patchMode={patchMode}
+          onClose={closeEditor}
         />
       )}
     </div>

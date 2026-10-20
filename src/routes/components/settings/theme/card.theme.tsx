@@ -2,7 +2,7 @@ import { cn } from "cn";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getTitleText } from "@/store/theme.store";
+import { getTitleText } from "@/lib/theme/palette.utils";
 import type { ThemeDefinition } from "@/types/theme";
 
 export function ThemeCard({

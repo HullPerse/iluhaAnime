@@ -1,0 +1,41 @@
+@layer base {
+  html:not([data-radius="frame"], [data-radius="all"]),
+  html:not([data-radius="frame"], [data-radius="all"]) * {
+    border-radius: 0 !important;
+  }
+
+  [data-radius="frame"] :is(.windows95-border, .windows95-active-border, .windows95-small-border) {
+    border-radius: 0 !important;
+  }
+
+  * {
+    scroll-behavior: smooth;
+  }
+
+  html,
+  body {
+    overflow: hidden;
+    background: transparent;
+    min-width: 280px;
+    min-height: 240px;
+    color: var(--color-text);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  input::file-selector-button {
+    border: 2px solid;
+    border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
+      var(--color-win-highlight);
+  }
+}

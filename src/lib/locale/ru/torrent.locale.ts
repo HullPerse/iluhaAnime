@@ -12,8 +12,10 @@ const torrent = {
   "torrent.bulk.recheck.done": "{{done}} проверено, {{failed}} с ошибкой",
   "torrent.bulk.recheck.errors": "Проверить ошибки",
   "torrent.bulk.remove": "Удалить",
-  "torrent.bulk.trackers": "Добавить трекер выбранным",
-  "torrent.bulk.limits": "Лимиты для выбранных",
+  "torrent.bulk.trackers": "Указать трекер...",
+  "torrent.bulk.trackers.title": "Трекер для выбранных",
+  "torrent.bulk.limits": "Задать лимиты...",
+  "torrent.bulk.limits.title": "Лимиты для выбранных",
   "torrent.bulk.apply": "Применить",
   "torrent.bulk.recreate.message":
     "У {{count}} из них всё ещё нет файлов. Пересоздание удаляет торрент и добавляет его заново по magnet: ручные трекеры, выбранные файлы и приоритеты теряются. Если файлы могут вернуться, проверьте позже ещё раз.",

@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { ImageUp, Wand2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -12,12 +12,19 @@ import Slider from "@/components/ui/range.component";
 import { DEFAULT_THEME_COLORS, THEME_COLOR_KEYS } from "@/config/settings/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/state/signal.hook";
-import { buildThemeColors, readImagePalette } from "@/lib/theme/palette.utils";
+import { previewTheme } from "@/lib/theme/appearance";
+import {
+  buildThemeColors,
+  getTitleText,
+  mixHex,
+  readImagePalette,
+} from "@/lib/theme/palette.utils";
+import { diffTheme } from "@/lib/theme/resolve";
 import {
   addCustomTheme,
-  applyTheme,
-  getTitleText,
+  clearThemePatch,
   setTheme,
+  setThemePatch,
   themeAtoms,
 } from "@/store/theme.store";
 import type { TranslationKey } from "@/types/i18n";
@@ -70,6 +77,46 @@ const OVERRIDE_ROWS: {
     key: "torrentMissing",
     label: "settings.theme.override.torrent.missing",
     fallback: () => "#b8860b",
+  },
+  {
+    key: "favGold",
+    label: "settings.theme.override.fav",
+    fallback: () => "#facc15",
+  },
+  {
+    key: "graphDefault",
+    label: "settings.theme.override.graph.default",
+    fallback: (c) => c.muted,
+  },
+  {
+    key: "graphLight",
+    label: "settings.theme.override.graph.light",
+    fallback: (c) => mixHex(c.text, c.muted, 0.45),
+  },
+  {
+    key: "graphPale",
+    label: "settings.theme.override.graph.pale",
+    fallback: (c) => c.surface,
+  },
+  {
+    key: "graphPrequel",
+    label: "settings.theme.override.graph.prequel",
+    fallback: (c) => c.destructive,
+  },
+  {
+    key: "graphSequel",
+    label: "settings.theme.override.graph.sequel",
+    fallback: (c) => c.highlight,
+  },
+  {
+    key: "graphSide",
+    label: "settings.theme.override.graph.side",
+    fallback: (c) => c.success,
+  },
+  {
+    key: "graphSpinoff",
+    label: "settings.theme.override.graph.spinoff",
+    fallback: (c) => c.linkHover,
   },
 ];
 
@@ -147,15 +194,12 @@ function ThemePreview({
   return (
     <div
       className={cn(
-        "windows95-border flex w-[340px] flex-col self-center",
+        "windows95-border flex w-85 flex-col self-center",
         radius === "all" && "rounded-[5px]"
       )}
     >
       <div
-        className={cn(
-          "windows95-text px-1 text-xs font-bold",
-          radius !== "none" && "rounded-t-[6px]"
-        )}
+        className={cn("windows95-text px-1 text-xs font-bold", radius !== "none" && "rounded-t-md")}
         style={{
           background: `linear-gradient(to bottom, ${gradient?.from ?? colors.secondary}, ${gradient?.to ?? colors.secondary})`,
           color: getTitleText(colors.secondary),
@@ -209,17 +253,169 @@ function buildComponents(
   return Object.keys(components).length > 0 ? components : undefined;
 }
 
+function PaletteSection({
+  fileRef,
+  palette,
+  paletteFailed,
+  onLoad,
+  onApply,
+  onFile,
+  onPick,
+}: {
+  fileRef: RefObject<HTMLInputElement | null>;
+  palette: string[];
+  paletteFailed: boolean;
+  onLoad: () => void;
+  onApply: () => void;
+  onFile: (file: File) => void;
+  onPick: (color: string) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <section className="windows95-border flex flex-col gap-1 p-1">
+      <div className="flex items-center gap-1">
+        <span className="windows95-text flex-1 text-xs font-bold">
+          {t("settings.theme.palette")}
+        </span>
+        <Button className="h-5 px-1 text-xs" onClick={onLoad}>
+          <ImageUp className="size-3" />
+          {t("settings.theme.palette.load")}
+        </Button>
+        <Button className="h-5 px-1 text-xs" disabled={palette.length === 0} onClick={onApply}>
+          <Wand2 className="size-3" />
+          {t("settings.theme.palette.apply")}
+        </Button>
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) onFile(file);
+        }}
+      />
+      {palette.length === 0 ? (
+        <span className="windows95-text text-hint text-xs">
+          {paletteFailed ? t("settings.theme.palette.error") : t("settings.theme.palette.empty")}
+        </span>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1">
+          {palette.map((color) => (
+            <button
+              key={color}
+              type="button"
+              title={color}
+              aria-label={color}
+              className="windows95-border size-6 cursor-pointer"
+              style={{ background: color }}
+              onClick={() => onPick(color)}
+            />
+          ))}
+          <span className="windows95-text text-hint text-xs">
+            {t("settings.theme.palette.hint")}
+          </span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ColorGrid({
+  colors,
+  selected,
+  onSelect,
+  onPick,
+}: {
+  colors: ThemeDefinition["colors"];
+  selected: ThemeColorKey;
+  onSelect: (key: ThemeColorKey) => void;
+  onPick: (key: ThemeColorKey, value: string) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      {THEME_COLOR_KEYS.map(({ key, label }) => {
+        const value = colors[key] ?? colors.muted;
+        return (
+          <div
+            key={key}
+            className={cn("flex items-center gap-2 px-1", selected === key && "bg-secondary/30")}
+          >
+            <button
+              type="button"
+              aria-label={t(label)}
+              aria-pressed={selected === key}
+              className={cn(
+                "size-3 shrink-0 cursor-pointer",
+                selected === key ? "bg-highlight" : "bg-muted"
+              )}
+              onClick={() => onSelect(key)}
+            />
+            <span className="windows95-text text-text w-24 shrink-0 truncate">{t(label)}</span>
+            <ColorPickerTrigger
+              value={value}
+              onChange={(v) => {
+                onPick(key, v);
+                onSelect(key);
+              }}
+            />
+            <span className="text-hint font-mono text-xs">{value}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function buildThemeName(
+  name: string,
+  theme: ThemeDefinition | undefined,
+  patchMode: boolean,
+  baseTheme: ThemeDefinition | undefined
+): string {
+  if (patchMode && baseTheme) return baseTheme.name;
+  return theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
+}
+
+function saveTheme(
+  draft: ThemeDefinition,
+  currentTheme: string,
+  patchMode: boolean,
+  baseTheme: ThemeDefinition | undefined
+): void {
+  if (patchMode && baseTheme) {
+    const patch = diffTheme(baseTheme, draft);
+    if (patch) setThemePatch(baseTheme.name, patch);
+    else clearThemePatch(baseTheme.name);
+    return;
+  }
+  addCustomTheme(draft);
+  if (currentTheme === draft.name) setTheme(draft.name);
+}
+
+function editorHeaderKey(patchMode: boolean, isEdit: boolean): TranslationKey {
+  if (patchMode) return "settings.theme.customize";
+  if (isEdit) return "settings.theme.edit.title";
+  return "settings.theme.create.title";
+}
+
 export default function ThemeEditor({
   theme,
+  baseTheme,
+  patchMode = false,
   onClose,
 }: {
   theme?: ThemeDefinition;
+  baseTheme?: ThemeDefinition;
+  patchMode?: boolean;
   onClose: () => void;
 }) {
   const currentTheme = useCell(themeAtoms.currentTheme);
-  const customThemes = useCell(themeAtoms.customThemes);
   const { t } = useI18n();
-  const isEdit = !!theme;
+  const isEdit = !!theme && !patchMode;
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(theme?.label ?? "");
@@ -251,30 +447,16 @@ export default function ThemeEditor({
 
   useEffect(() => {
     if (!theme || currentTheme !== theme.name) return;
-    applyTheme(theme.name, [
-      {
-        ...theme,
-        bevel,
-        colors,
-        components: buildComponents(titlebarArt, cardMeta),
-        overlay,
-        overrides,
-        radius,
-      },
-      ...customThemes.filter((item) => item.name !== theme.name),
-    ]);
-  }, [
-    bevel,
-    cardMeta,
-    colors,
-    currentTheme,
-    customThemes,
-    overlay,
-    overrides,
-    radius,
-    theme,
-    titlebarArt,
-  ]);
+    previewTheme({
+      ...theme,
+      bevel,
+      colors,
+      components: buildComponents(titlebarArt, cardMeta),
+      overlay,
+      overrides,
+      radius,
+    });
+  }, [bevel, cardMeta, colors, currentTheme, overlay, overrides, radius, theme, titlebarArt]);
 
   const patchColor = (key: ThemeColorKey, value: string) =>
     setColors((prev) => ({ ...prev, [key]: value }));
@@ -308,129 +490,52 @@ export default function ThemeEditor({
 
   const handleSave = () => {
     if (!name.trim()) return;
-    const safeName = theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
+    const safeName = buildThemeName(name, theme, patchMode, baseTheme);
     const savedOverrides =
       overrides && Object.keys(overrides).length > 0 ? { ...overrides } : undefined;
     const savedComponents = buildComponents(titlebarArt, cardMeta);
-    addCustomTheme({
+    const draft: ThemeDefinition = {
       ...theme,
       bevel,
       colors: { ...colors },
       components: savedComponents,
       label: name.trim(),
       name: safeName,
-      overlay: overlay === "none" ? undefined : overlay,
+      overlay,
       overrides: savedOverrides,
       radius,
-    });
-    if (currentTheme === safeName) setTheme(safeName);
+    };
+    saveTheme(draft, currentTheme, patchMode, baseTheme);
     onClose();
   };
 
+  const header = t(editorHeaderKey(patchMode, isEdit));
+
   return (
-    <Modal
-      header={isEdit ? t("settings.theme.edit.title") : t("settings.theme.create.title")}
-      onClose={onClose}
-    >
+    <Modal header={header} onClose={onClose}>
       <div className="flex flex-col gap-3 p-2">
         <label className="windows95-text text-text flex items-center gap-2">
           <span className="w-24 shrink-0">{t("settings.theme.name")}</span>
           <Input
             value={name}
+            disabled={patchMode}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("settings.theme.name.placeholder")}
           />
         </label>
+        {patchMode && <span className="text-hint text-xs">{t("settings.theme.patch.hint")}</span>}
 
-        <section className="windows95-border flex flex-col gap-1 p-1">
-          <div className="flex items-center gap-1">
-            <span className="windows95-text flex-1 text-xs font-bold">
-              {t("settings.theme.palette")}
-            </span>
-            <Button className="h-5 px-1 text-xs" onClick={() => fileRef.current?.click()}>
-              <ImageUp className="size-3" />
-              {t("settings.theme.palette.load")}
-            </Button>
-            <Button
-              className="h-5 px-1 text-xs"
-              disabled={palette.length === 0}
-              onClick={() => setColors((prev) => ({ ...prev, ...buildThemeColors(palette) }))}
-            >
-              <Wand2 className="size-3" />
-              {t("settings.theme.palette.apply")}
-            </Button>
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (file) handleFile(file);
-            }}
-          />
-          {palette.length === 0 ? (
-            <span className="windows95-text text-hint text-xs">
-              {paletteFailed
-                ? t("settings.theme.palette.error")
-                : t("settings.theme.palette.empty")}
-            </span>
-          ) : (
-            <div className="flex flex-wrap items-center gap-1">
-              {palette.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  title={color}
-                  aria-label={color}
-                  className="windows95-border size-6 cursor-pointer"
-                  style={{ background: color }}
-                  onClick={() => patchColor(selected, color)}
-                />
-              ))}
-              <span className="windows95-text text-hint text-xs">
-                {t("settings.theme.palette.hint")}
-              </span>
-            </div>
-          )}
-        </section>
+        <PaletteSection
+          fileRef={fileRef}
+          palette={palette}
+          paletteFailed={paletteFailed}
+          onLoad={() => fileRef.current?.click()}
+          onApply={() => setColors((prev) => ({ ...prev, ...buildThemeColors(palette) }))}
+          onFile={handleFile}
+          onPick={(color) => patchColor(selected, color)}
+        />
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {THEME_COLOR_KEYS.map(({ key, label }) => {
-            const value = colors[key] ?? colors.muted;
-            return (
-              <div
-                key={key}
-                className={cn(
-                  "flex items-center gap-2 px-1",
-                  selected === key && "bg-secondary/30"
-                )}
-              >
-                <button
-                  type="button"
-                  aria-label={t(label)}
-                  aria-pressed={selected === key}
-                  className={cn(
-                    "size-3 shrink-0 cursor-pointer",
-                    selected === key ? "bg-highlight" : "bg-muted"
-                  )}
-                  onClick={() => setSelected(key)}
-                />
-                <span className="windows95-text text-text w-24 shrink-0 truncate">{t(label)}</span>
-                <ColorPickerTrigger
-                  value={value}
-                  onChange={(v) => {
-                    patchColor(key, v);
-                    setSelected(key);
-                  }}
-                />
-                <span className="text-hint font-mono text-xs">{value}</span>
-              </div>
-            );
-          })}
-        </div>
+        <ColorGrid colors={colors} selected={selected} onSelect={setSelected} onPick={patchColor} />
 
         <OverridesSection
           colors={colors}

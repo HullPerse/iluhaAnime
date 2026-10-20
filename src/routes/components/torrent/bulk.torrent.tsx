@@ -21,13 +21,13 @@ export function BulkTrackerModal({
   if (!open) return null;
   const trimmed = tracker.trim();
   return (
-    <Modal header={t("torrent.bulk.trackers")} onClose={onClose} className="w-lg">
+    <Modal header={t("torrent.bulk.trackers.title")} onClose={onClose} className="w-lg">
       <div className="flex flex-col gap-2 p-1">
         <Input
           value={tracker}
           placeholder={t("torrent.diagnostics.tracker.placeholder")}
           onChange={(event) => setTracker(event.target.value)}
-          aria-label={t("torrent.bulk.trackers")}
+          aria-label={t("torrent.bulk.trackers.title")}
         />
         <div className="flex justify-end gap-1">
           <Button variant="outline" onClick={onClose}>
@@ -63,7 +63,7 @@ export function BulkLimitsModal({
     return Number.isFinite(num) && num > 0 ? num : null;
   };
   return (
-    <Modal header={t("torrent.bulk.limits")} onClose={onClose} className="w-lg">
+    <Modal header={t("torrent.bulk.limits.title")} onClose={onClose} className="w-lg">
       <div className="flex flex-col gap-2 p-1">
         <label className="windows95-text flex items-center gap-2 text-xs">
           DL

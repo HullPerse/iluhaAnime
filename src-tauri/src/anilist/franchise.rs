@@ -19,7 +19,7 @@ use crate::app_db;
 
 use super::auth::optional_token;
 use super::client::graphql_request;
-use super::media::{MEDIA_CORE_SELECTION, MEDIA_RELATIONS_SELECTION};
+use super::media::{MEDIA_AIRING_SELECTION, MEDIA_CORE_SELECTION, MEDIA_RELATIONS_SELECTION};
 use crate::scrapers::clients::resolve_proxy;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedFranchiseNode {
@@ -29,6 +29,10 @@ pub struct CachedFranchiseNode {
 }
 
 const FRANCHISE_CACHE_TTL_SECS: i64 = 7 * 24 * 60 * 60;
+/// Airing franchises need their release state and next episode refreshed far
+/// more often than the seven-day default, otherwise a caught-up season keeps
+/// reporting the episode that aired days ago as upcoming.
+const AIRING_CACHE_TTL_SECS: i64 = 6 * 60 * 60;
 static FRANCHISE_CACHE: LazyLock<Mutex<HashMap<u64, CachedFranchiseNode>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 static FRANCHISE_CACHE_LOADED: AtomicBool = AtomicBool::new(false);
@@ -81,12 +85,49 @@ fn open_franchise_db(app_handle: &AppHandle) -> Result<rusqlite::Connection, Str
             format TEXT,
             media_type TEXT,
             year INTEGER,
+            status TEXT,
+            next_episode INTEGER,
+            next_airing_at INTEGER,
             targets_json TEXT NOT NULL,
             fetched_at INTEGER NOT NULL
         );",
     )
     .map_err(|e| format!("schema: {e}"))?;
+    ensure_franchise_schema(&conn)?;
     Ok(conn)
+}
+
+/// Adds the release columns to databases created before they existed. Rows from
+/// the old schema have no status, so they are marked stale once to force a
+/// refetch instead of waiting out the seven-day window.
+fn ensure_franchise_schema(conn: &rusqlite::Connection) -> Result<(), String> {
+    let columns: HashSet<String> = conn
+        .prepare("PRAGMA table_info(franchise_nodes)")
+        .and_then(|mut stmt| {
+            stmt.query_map([], |row| row.get::<_, String>(1))?
+                .collect::<Result<_, _>>()
+        })
+        .map_err(|e| format!("schema probe: {e}"))?;
+    let mut added = false;
+    for (name, ddl) in [
+        ("status", "TEXT"),
+        ("next_episode", "INTEGER"),
+        ("next_airing_at", "INTEGER"),
+    ] {
+        if columns.contains(name) {
+            continue;
+        }
+        conn.execute_batch(&format!(
+            "ALTER TABLE franchise_nodes ADD COLUMN {name} {ddl};"
+        ))
+        .map_err(|e| format!("schema upgrade: {e}"))?;
+        added = true;
+    }
+    if added {
+        conn.execute("UPDATE franchise_nodes SET fetched_at = 0", [])
+            .map_err(|e| format!("schema reset: {e}"))?;
+    }
+    Ok(())
 }
 
 fn load_franchise_cache(app_handle: &AppHandle) {
@@ -98,7 +139,7 @@ fn load_franchise_cache(app_handle: &AppHandle) {
         return;
     };
     let mut stmt = match conn.prepare(
-        "SELECT id, title, cover_url, episodes, score, format, media_type, year, targets_json, fetched_at FROM franchise_nodes",
+        "SELECT id, title, cover_url, episodes, score, format, media_type, year, status, next_episode, next_airing_at, targets_json, fetched_at FROM franchise_nodes",
     ) {
         Ok(s) => s,
         Err(err) => {
@@ -116,8 +157,11 @@ fn load_franchise_cache(app_handle: &AppHandle) {
             row.get::<_, Option<String>>(5)?,
             row.get::<_, Option<String>>(6)?,
             row.get::<_, Option<i64>>(7)?,
-            row.get::<_, String>(8)?,
-            row.get::<_, i64>(9)?,
+            row.get::<_, Option<String>>(8)?,
+            row.get::<_, Option<i64>>(9)?,
+            row.get::<_, Option<i64>>(10)?,
+            row.get::<_, String>(11)?,
+            row.get::<_, i64>(12)?,
         ))
     });
     let Ok(rows) = rows else {
@@ -135,6 +179,9 @@ fn load_franchise_cache(app_handle: &AppHandle) {
             format,
             media_type,
             year,
+            status,
+            next_episode,
+            next_airing_at,
             targets_json,
             fetched_at,
         ) = row;
@@ -153,6 +200,16 @@ fn load_franchise_cache(app_handle: &AppHandle) {
                     format,
                     media_type,
                     year: year.map(|n| n as i32),
+                    status,
+                    next_airing_episode: match (next_episode, next_airing_at) {
+                        (Some(episode), Some(airing_at)) if episode > 0 && airing_at > 0 => {
+                            Some(NextAiringEpisode {
+                                episode: episode as i32,
+                                airing_at,
+                            })
+                        }
+                        _ => None,
+                    },
                 },
                 targets,
                 fetched_at,
@@ -181,8 +238,8 @@ fn persist_franchise_nodes(
         let mut stmt = tx
             .prepare(
                 "INSERT OR REPLACE INTO franchise_nodes
-                (id, title, cover_url, episodes, score, format, media_type, year, targets_json, fetched_at)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                (id, title, cover_url, episodes, score, format, media_type, year, status, next_episode, next_airing_at, targets_json, fetched_at)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             )
             .map_err(|e| format!("prepare: {e}"))?;
         for cached in nodes {
@@ -198,6 +255,11 @@ fn persist_franchise_nodes(
                 node.format,
                 node.media_type,
                 node.year.map(i64::from),
+                node.status,
+                node.next_airing_episode
+                    .as_ref()
+                    .map(|next| i64::from(next.episode)),
+                node.next_airing_episode.as_ref().map(|next| next.airing_at),
                 targets_json,
                 cached.fetched_at,
             ])
@@ -207,11 +269,19 @@ fn persist_franchise_nodes(
     tx.commit().map_err(|e| format!("commit: {e}"))
 }
 
+fn cache_ttl_secs(node: &FranchiseNode) -> i64 {
+    match node.status.as_deref() {
+        Some("RELEASING") => AIRING_CACHE_TTL_SECS,
+        Some("NOT_YET_RELEASED") if node.next_airing_episode.is_some() => AIRING_CACHE_TTL_SECS,
+        _ => FRANCHISE_CACHE_TTL_SECS,
+    }
+}
+
 fn is_fresh(cached: &CachedFranchiseNode) -> bool {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() as i64);
-    now - cached.fetched_at < FRANCHISE_CACHE_TTL_SECS
+    now - cached.fetched_at < cache_ttl_secs(&cached.node)
 }
 
 fn flush_pending_franchise_cache(app_handle: &AppHandle, pending: &mut Vec<CachedFranchiseNode>) {
@@ -252,6 +322,12 @@ pub struct PrefetchSummary {
     pub skipped: usize,
     pub cancelled: bool,
 }
+#[derive(Debug, Serialize, Clone, Deserialize, PartialEq, Eq)]
+pub struct NextAiringEpisode {
+    pub episode: i32,
+    pub airing_at: i64,
+}
+
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct FranchiseNode {
     pub id: u64,
@@ -262,6 +338,8 @@ pub struct FranchiseNode {
     pub format: Option<String>,
     pub media_type: Option<String>,
     pub year: Option<i32>,
+    pub status: Option<String>,
+    pub next_airing_episode: Option<NextAiringEpisode>,
 }
 
 #[derive(Debug, Serialize)]
@@ -321,6 +399,19 @@ struct FetchedFranchiseNode {
     targets: Vec<(u64, String, Option<String>, Option<i32>)>,
 }
 
+fn parse_next_airing(m: &serde_json::Value) -> Option<NextAiringEpisode> {
+    let next = &m["nextAiringEpisode"];
+    let episode = next["episode"].as_i64()?;
+    let airing_at = next["airingAt"].as_i64()?;
+    if episode <= 0 || airing_at <= 0 {
+        return None;
+    }
+    Some(NextAiringEpisode {
+        episode: episode as i32,
+        airing_at,
+    })
+}
+
 fn parse_franchise_media(m: &serde_json::Value) -> FranchiseNode {
     FranchiseNode {
         id: m["id"].as_u64().unwrap_or(0),
@@ -335,6 +426,8 @@ fn parse_franchise_media(m: &serde_json::Value) -> FranchiseNode {
         format: m["format"].as_str().map(String::from),
         media_type: m["type"].as_str().map(String::from),
         year: m["startDate"]["year"].as_i64().map(|n| n as i32),
+        status: m["status"].as_str().map(String::from),
+        next_airing_episode: parse_next_airing(m),
     }
 }
 
@@ -383,7 +476,7 @@ const FRANCHISE_BATCH_QUERY_TEMPLATE: &str = r"
 ";
 
 fn franchise_media_selection() -> String {
-    format!("{MEDIA_CORE_SELECTION}{MEDIA_RELATIONS_SELECTION}")
+    format!("{MEDIA_CORE_SELECTION}{MEDIA_AIRING_SELECTION}{MEDIA_RELATIONS_SELECTION}")
 }
 
 fn franchise_batch_query_text() -> String {
@@ -940,26 +1033,110 @@ mod tests {
     }
 
     #[test]
-    fn stale_franchise_cache_entries_are_not_fresh() {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
-        let cached = CachedFranchiseNode {
+    fn parses_release_state_and_the_next_episode() {
+        let media = serde_json::json!({
+            "id": 7,
+            "status": "RELEASING",
+            "episodes": 12,
+            "nextAiringEpisode": { "episode": 6, "airingAt": 1_700_000_000 }
+        });
+        let node = parse_franchise_media(&media);
+
+        assert_eq!(node.status.as_deref(), Some("RELEASING"));
+        assert_eq!(
+            node.next_airing_episode,
+            Some(NextAiringEpisode {
+                episode: 6,
+                airing_at: 1_700_000_000
+            })
+        );
+    }
+
+    #[test]
+    fn ignores_incomplete_next_airing_payloads() {
+        let media = serde_json::json!({ "id": 7, "nextAiringEpisode": { "episode": 6 } });
+        assert_eq!(parse_franchise_media(&media).next_airing_episode, None);
+
+        let zero = serde_json::json!({
+            "id": 7,
+            "nextAiringEpisode": { "episode": 0, "airingAt": 1_700_000_000 }
+        });
+        assert_eq!(parse_franchise_media(&zero).next_airing_episode, None);
+    }
+
+    #[test]
+    fn franchise_query_requests_release_state() {
+        let query = franchise_batch_query_text();
+        assert!(query.contains("status"));
+        assert!(query.contains("nextAiringEpisode { episode airingAt }"));
+    }
+
+    fn cached_node(
+        status: Option<&str>,
+        next_airing_episode: Option<NextAiringEpisode>,
+        fetched_at: i64,
+    ) -> CachedFranchiseNode {
+        CachedFranchiseNode {
             node: FranchiseNode {
                 id: 1,
                 title: "Test".into(),
                 cover_url: None,
-                episodes: None,
+                episodes: Some(12),
                 score: None,
                 format: None,
                 media_type: Some("ANIME".into()),
                 year: None,
+                status: status.map(String::from),
+                next_airing_episode,
             },
             targets: Vec::new(),
-            fetched_at: now - FRANCHISE_CACHE_TTL_SECS - 1,
-        };
+            fetched_at,
+        }
+    }
+
+    fn now_secs() -> i64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64
+    }
+
+    #[test]
+    fn stale_franchise_cache_entries_are_not_fresh() {
+        let cached = cached_node(None, None, now_secs() - FRANCHISE_CACHE_TTL_SECS - 1);
         assert!(!is_fresh(&cached));
+    }
+
+    #[test]
+    fn airing_franchises_expire_after_six_hours() {
+        let seven_hours_ago = now_secs() - 7 * 60 * 60;
+
+        assert!(!is_fresh(&cached_node(
+            Some("RELEASING"),
+            Some(NextAiringEpisode {
+                episode: 6,
+                airing_at: 1_700_000_000
+            }),
+            seven_hours_ago,
+        )));
+        assert!(is_fresh(&cached_node(
+            Some("FINISHED"),
+            None,
+            seven_hours_ago
+        )));
+        assert!(is_fresh(&cached_node(
+            Some("NOT_YET_RELEASED"),
+            None,
+            seven_hours_ago
+        )));
+        assert!(!is_fresh(&cached_node(
+            Some("NOT_YET_RELEASED"),
+            Some(NextAiringEpisode {
+                episode: 1,
+                airing_at: 1_700_000_000
+            }),
+            seven_hours_ago,
+        )));
     }
 
     #[test]

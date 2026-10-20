@@ -1,11 +1,28 @@
 import { cn } from "cn";
 import { memo } from "react";
 
-import { IMG_H, NODE_BORDER_COLORS, NODE_H, NODE_W } from "@/config/anilist/graph.config";
+import {
+  FILTER_LABELS,
+  IMG_H,
+  NODE_BORDER_COLORS,
+  NODE_H,
+  NODE_W,
+} from "@/config/anilist/graph.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatShort } from "@/lib/anilist/graph.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { FranchiseNode } from "@/types/anilist";
+import type { TFunc } from "@/types/i18n";
+
+function aggregateLabel(node: FranchiseNode, t: TFunc): string {
+  if (!node.aggregate) return node.title;
+  return `${t(FILTER_LABELS[node.aggregate.group])} +${node.aggregate.count}`;
+}
+
+function nodeTooltip(node: FranchiseNode, label: string, isAggregator: boolean, t: TFunc): string {
+  if (isAggregator) return `${label} - ${t("anilist.franchise.expand")}`;
+  return `${node.title} (${node.year ?? "?"}) - ${node.score ?? "-"} - ${node.format ?? ""}`;
+}
 
 const FranNode = memo(
   ({
@@ -33,6 +50,7 @@ const FranNode = memo(
   }) => {
     const { t } = useI18n();
     const isAggregator = node.id < 0;
+    const label = aggregateLabel(node, t);
     return (
       <div
         id={elementId}
@@ -41,11 +59,7 @@ const FranNode = memo(
         onClick={() => onRelated?.(node.id)}
         onMouseDown={(e) => onMouseDown?.(e, node.id)}
         onKeyDown={enterOrSpace(() => onRelated?.(node.id))}
-        title={
-          isAggregator
-            ? `${node.title} - ${t("anilist.franchise.expand")}`
-            : `${node.title} (${node.year ?? "?"}) - ${node.score ?? "-"} - ${node.format ?? ""}`
-        }
+        title={nodeTooltip(node, label, isAggregator, t)}
         className={cn(
           "windows95-text windows95-active-border bg-primary absolute flex cursor-grab flex-col items-stretch overflow-hidden transition-opacity duration-300 select-none active:cursor-grabbing",
           dimmed && "opacity-30"
@@ -72,7 +86,7 @@ const FranNode = memo(
                 : "var(--color-graph-pale)",
             }}
           >
-            {node.title}
+            {label}
           </div>
         ) : node.cover_url ? (
           <img

@@ -331,6 +331,11 @@ export interface AniListFilters {
   score: [number, number];
 }
 
+export interface FranchiseNextAiringEpisode {
+  episode: number;
+  airing_at: number;
+}
+
 export interface FranchiseNode {
   id: number;
   title: string;
@@ -340,6 +345,9 @@ export interface FranchiseNode {
   format: string | null;
   media_type: string | null;
   year: number | null;
+  status: string | null;
+  next_airing_episode: FranchiseNextAiringEpisode | null;
+  aggregate?: { group: RelationFilter; count: number } | null;
 }
 
 export interface FranchiseEdge {
@@ -425,6 +433,7 @@ export interface ContextMenuState {
 export interface FranchiseGraphSectionProps {
   animeId: number;
   entryLookup?: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
   onRelated?: (id: number) => void;
   expanded?: boolean;
 }
@@ -741,21 +750,23 @@ export interface FranchiseGraphProps {
 
 export interface FranchiseListProps {
   nodes: FranchiseNode[];
+  edges: FranchiseEdge[];
   animeId: number;
   entryLookup?: EntryLookup;
   relationMap: Map<number, string>;
+  mainlineIds: Set<number>;
   searchMatchIds: Set<number> | null;
+  scoreFormat?: AnilistScoreFormat | null;
   onNodeClick: (nodeId: number) => void;
 }
 
-export type FranchiseCacheSource = "cache" | "fresh" | null;
-
 export interface FranchiseToolbarProps {
   activeFilters: Set<RelationFilter>;
+  groupCounts: Record<RelationFilter, number>;
   searchQuery: string;
-  cacheSource: FranchiseCacheSource;
-  countDiff: string | null;
+  matchCount: number | null;
   listView: boolean;
+  refreshing: boolean;
   onToggleFilter: (filter: RelationFilter) => void;
   onSearchChange: (query: string) => void;
   onToggleView: () => void;

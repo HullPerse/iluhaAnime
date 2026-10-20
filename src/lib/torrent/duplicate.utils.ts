@@ -5,7 +5,7 @@ const BASE32_RX = /^[a-z2-7]{32}$/i;
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 function base32ToHex(value: string): string | null {
-  const clean = value.toUpperCase().replace(/=+$/, "");
+  const clean = value.toUpperCase().replace(/[=]+$/, "");
   if (!BASE32_RX.test(clean)) return null;
   let acc = 0;
   let bits = 0;

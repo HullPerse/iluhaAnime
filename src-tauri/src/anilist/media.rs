@@ -480,6 +480,15 @@ pub const MEDIA_LIST_EXTRA_SELECTION: &str = r"
                 nextAiringEpisode { episode airingAt }
 ";
 
+/// Release state and the next scheduled episode, used where a caller has to
+/// tell released episodes from announced ones. Kept out of
+/// `MEDIA_LIST_EXTRA_SELECTION` so list queries do not pull genres, tags and
+/// descriptions just for this.
+pub const MEDIA_AIRING_SELECTION: &str = r"
+                status
+                nextAiringEpisode { episode airingAt }
+";
+
 pub const MEDIA_DETAIL_EXTRA_SELECTION: &str = r"
                 bannerImage
                 idMal

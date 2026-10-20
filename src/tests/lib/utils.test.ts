@@ -872,7 +872,7 @@ describe("utils/deeplink-share", () => {
     const buffer = await bufferPromise;
     let binary = "";
     for (const byte of new Uint8Array(buffer)) binary += String.fromCodePoint(byte);
-    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/[=]+$/, "");
   }
 
   async function linkFromPayload(payload: unknown): Promise<string> {
@@ -1004,7 +1004,7 @@ describe("utils/deeplink-share", () => {
     });
 
     it("rejects payloads that are not gzip, not JSON, or not the right shape", async () => {
-      const notGzip = btoa("hello world").replace(/=+$/, "");
+      const notGzip = btoa("hello world").replace(/[=]+$/, "");
       expect(await parseCollectionShareLink(`iluhaanime://collection/share/${notGzip}`)).toBeNull();
 
       const notJson = `iluhaanime://collection/share/${await gzipToBase64Url("not json")}`;

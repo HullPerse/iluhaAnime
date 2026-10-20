@@ -8,10 +8,11 @@ import type { FranchiseToolbarProps } from "@/types/anilist";
 
 function FranchiseToolbar({
   activeFilters,
+  groupCounts,
   searchQuery,
-  cacheSource,
-  countDiff,
+  matchCount,
   listView,
+  refreshing,
   onToggleFilter,
   onSearchChange,
   onToggleView,
@@ -23,50 +24,47 @@ function FranchiseToolbar({
 
   return (
     <section className="flex flex-wrap items-center gap-1">
-      <div className="flex flex-wrap gap-1">
-        {RELATION_FILTERS.map((group) => (
-          <Button
-            key={group}
-            onClick={() => onToggleFilter(group)}
-            variant="default"
-            className={cn(
-              "h-auto px-1.5 py-0.5 text-xs",
-              activeFilters.has(group) && "bg-secondary text-title-text"
-            )}
-          >
-            {t(FILTER_LABELS[group])}
-          </Button>
-        ))}
+      <div
+        className="flex flex-wrap gap-1"
+        role="group"
+        aria-label={t("anilist.franchise.filters")}
+      >
+        {RELATION_FILTERS.map((group) => {
+          const active = activeFilters.has(group);
+          return (
+            <Button
+              key={group}
+              onClick={() => onToggleFilter(group)}
+              variant={active ? "outline" : "default"}
+              aria-pressed={active}
+              aria-label={t("anilist.franchise.filter.count", {
+                count: groupCounts[group],
+                label: t(FILTER_LABELS[group]),
+              })}
+              className="h-auto gap-1 px-1.5 py-0.5 text-xs"
+            >
+              <span>{t(FILTER_LABELS[group])}</span>
+              <span className={cn("text-hint tabular-nums", active && "opacity-80")}>
+                {groupCounts[group]}
+              </span>
+            </Button>
+          );
+        })}
       </div>
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex flex-wrap items-center gap-1">
         <Input
           type="text"
           placeholder={t("common.search")}
+          aria-label={t("anilist.franchise.search")}
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
-          className="h-6 w-24 text-xs"
+          className="h-6 w-32 text-xs"
         />
-        {cacheSource && (
-          <span
-            className={cn(
-              "windows95-font px-1 py-0.5 text-xs leading-none",
-              cacheSource === "fresh" ? "bg-secondary text-title-text" : "bg-surface text-hint"
-            )}
-            title={
-              cacheSource === "fresh"
-                ? t("anilist.franchise.fresh.title")
-                : t("anilist.franchise.cache.title")
-            }
-          >
-            {cacheSource === "fresh" ? t("anilist.franchise.fresh") : t("anilist.franchise.cache")}
-          </span>
-        )}
-        {countDiff && (
-          <span
-            className="windows95-font bg-secondary/20 text-secondary px-1 py-0.5 text-xs leading-none"
-            title={t("anilist.franchise.diff.title")}
-          >
-            {countDiff}
+        {matchCount != null && (
+          <span className="text-hint text-xs">
+            {matchCount === 0
+              ? t("anilist.franchise.no.matches")
+              : t("anilist.franchise.found", { count: matchCount })}
           </span>
         )}
         <Button
@@ -87,19 +85,23 @@ function FranchiseToolbar({
             {t("anilist.franchise.focus.current")}
           </Button>
         )}
-        <Button
-          onClick={onResetLayout}
-          className="h-auto px-1.5 py-0.5 text-xs"
-          variant="default"
-          title={t("anilist.franchise.reset.layout")}
-        >
-          {t("anilist.franchise.reset.layout")}
-        </Button>
+        {!listView && (
+          <Button
+            onClick={onResetLayout}
+            className="h-auto px-1.5 py-0.5 text-xs"
+            variant="default"
+            title={t("anilist.franchise.reset.layout")}
+          >
+            {t("anilist.franchise.reset.layout")}
+          </Button>
+        )}
         <Button
           onClick={onRefresh}
           className="h-auto px-1.5 py-0.5 text-xs"
           variant="default"
+          aria-label={t("anilist.franchise.refresh")}
           title={t("anilist.franchise.refresh.title")}
+          loading={refreshing}
         >
           {t("anilist.franchise.refresh")}
         </Button>

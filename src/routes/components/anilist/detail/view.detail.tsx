@@ -143,7 +143,7 @@ export function AniListDetailView({
       />
 
       <Section
-        header={t("anilist.details.related")}
+        header={t("anilist.details.franchise")}
         className="bg-primary"
         expanded={showFranchise}
         onExpand={() => setShowFranchise((prev) => !prev)}
@@ -151,6 +151,7 @@ export function AniListDetailView({
         <FranchiseGraphSection
           animeId={anime.id}
           entryLookup={entryLookup}
+          scoreFormat={scoreFormat}
           onRelated={onRelated}
           expanded={showFranchise}
         />

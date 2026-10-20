@@ -72,6 +72,7 @@ function buildCollapsedNodeMap(
   }
   for (const [aggId, info] of aggregators) {
     nodeMap.set(aggId, {
+      aggregate: { count: info.count, group: info.group },
       cover_url: null,
       episodes: null,
       format: null,
@@ -80,6 +81,8 @@ function buildCollapsedNodeMap(
       score: null,
       title: `${info.group} +${info.count}`,
       year: null,
+      status: null,
+      next_airing_episode: null,
     });
   }
   return nodeMap;

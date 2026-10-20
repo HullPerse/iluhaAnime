@@ -389,6 +389,8 @@ describe("anilist/collapse", () => {
       score: 8,
       title: "Naruto",
       year: 2002,
+      status: null,
+      next_airing_episode: null,
       ...overrides,
     };
   }
@@ -1140,6 +1142,8 @@ describe("anilist/graph", () => {
       score: 8,
       title: "Naruto",
       year: 2002,
+      status: null,
+      next_airing_episode: null,
       ...overrides,
     };
   }
@@ -1494,6 +1498,8 @@ describe("anilist/sim", () => {
       score: 8,
       title: "Naruto",
       year: 2002,
+      status: null,
+      next_airing_episode: null,
       ...overrides,
     };
   }

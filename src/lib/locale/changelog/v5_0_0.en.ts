@@ -356,7 +356,7 @@ const changelog500 = {
   "changelog.5_0_0.changed.app.popups_off_default":
     "Notification popups are off by default: everything still lands in the notification tray, turn on the channel you want in Settings Notifications",
   "changelog.5_0_0.changed.anilist.detail_prefetch":
-    "Anime details open without the request waterfall: the franchise starts loading in parallel with the main screen and reuses the shared cache, and the section badge tells a cache hit from a fresh fetch",
+    "Anime details open without the request waterfall: the franchise starts loading in parallel with the main screen and reuses the shared cache",
   "changelog.5_0_0.changed.anilist.detail_requests":
     "Anime details use less traffic: the trailer, screens, and import lists fetch only the fields they use, and the related batch grew from 8 to 25, so long franchises assemble in fewer requests",
   "changelog.5_0_0.changed.anilist.custom_lists_guest":
@@ -393,6 +393,8 @@ const changelog500 = {
     "Download queue window rebuilt: folders as blocks that drag as a whole, a virtualized list with per-file progress and remaining size, selection checkboxes inside the window, queue numbers in the file tree, keyboard reordering on Alt plus arrows, and saving only on OK with an unsaved order warning. When sequential mode is off, the save button turns it on together with the order",
   "changelog.5_0_0.fixed.torrents.queue_scroll":
     "The download queue window scrolls smoothly again: rows show up immediately, the list no longer jumps back to the top, and sizes like 1023.9 MB no longer wrap onto the next row",
+  "changelog.5_0_0.changed.anilist.franchise":
+    "The Franchise section in anime details is rebuilt as a watch order: a summary of titles, aired episodes and the watched share, a numbered main line built from prequel and sequel links with a Next marker on the first unwatched title, a Not aired marker on announced titles, side stories and spin-offs grouped below, own scores and status words in the rows, relation filters with counts, search with a hit counter that jumps to the first match, and the graph now zooms on Ctrl plus wheel while a plain wheel scrolls the page",
 } as const;
 
 export default changelog500;

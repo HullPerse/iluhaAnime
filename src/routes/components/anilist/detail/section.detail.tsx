@@ -8,11 +8,13 @@ import { useFranchiseViewport } from "@/hooks/anilist/franchise.hook";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { collapseGraph } from "@/lib/anilist/collapse.utils";
+import { countFranchiseGroups } from "@/lib/anilist/franchise.utils";
 import {
   filterGraph,
   filterFranchiseNodesBySearch,
   computeNodeRelationMap,
   computeMainlineIds,
+  relationGroup,
 } from "@/lib/anilist/graph.utils";
 import {
   computeNodeDimensions,
@@ -34,9 +36,12 @@ import { FranchiseGraph as FranchiseGraphView } from "../franchise/graph.franchi
 import { FranchiseList } from "../franchise/list.franchise";
 import { FranchiseToolbar } from "../franchise/toolbar.franchise";
 
+const LOADING_HEIGHT = 300;
+
 function FranchiseGraphSection({
   animeId,
   entryLookup,
+  scoreFormat,
   onRelated,
   expanded = false,
 }: FranchiseGraphSectionProps) {
@@ -47,14 +52,12 @@ function FranchiseGraphSection({
   const [positions, setPositions] = useState<Map<number, FranchiseNodePosition>>(new Map());
   const [containerWidth, setContainerWidth] = useState(800);
   const [dragging, setDragging] = useState<DragState | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refresh, setRefresh] = useState<{ id: number; key: number }>({ id: animeId, key: 0 });
+  const refreshKey = refresh.id === animeId ? refresh.key : 0;
   const [searchQuery, setSearchQuery] = useState("");
   const [resetKey, setResetKey] = useState(0);
   const [listView, setListView] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<RelationFilter>>(new Set());
-  const [cacheSource, setCacheSource] = useState<"cache" | "fresh" | null>(null);
-  const [countDiff, setCountDiff] = useState<string | null>(null);
-  const prevNodeCountRef = useRef<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation<SimNode, undefined> | null>(null);
@@ -76,44 +79,18 @@ function FranchiseGraphSection({
     });
   }, [animeId, zoomToElement]);
 
-  const { data, isLoading, isError, error, refetch } = useAppQuery("static", {
+  const { data, isLoading, isFetching, isError, error, refetch } = useAppQuery("static", {
     queryKey: queryKeys.animeFranchiseRefresh(animeId, refreshKey),
-    queryFn: async () => {
-      const fresh = await anilistApi.getAnimeFranchise(animeId, refreshKey ? "fresh" : "all");
-      setCacheSource("fresh");
-      if (prevNodeCountRef.current != null) {
-        const prev = prevNodeCountRef.current;
-        const cur = fresh.nodes.length;
-        if (prev !== cur) {
-          setCountDiff(t("anilist.franchise.updated.count", { prev, cur }));
-        }
-      }
-      prevNodeCountRef.current = fresh.nodes.length;
-      return fresh;
-    },
+    queryFn: () => anilistApi.getAnimeFranchise(animeId, refreshKey ? "fresh" : "all"),
     staleTime: Infinity,
   });
 
   useEffect(() => {
     setSearchQuery("");
-    setCountDiff(null);
-    setRefreshKey(0);
     setResetKey((key) => key + 1);
     setExpandedGroups(new Set());
     zoomedAnimeIdRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    if (data) {
-      prevNodeCountRef.current = data.nodes.length;
-    }
-  }, [data]);
-
-  useEffect(() => {
-    // Data that lands without this section's own fetch (shell prefetch or a
-    // warm query cache) is served from the shared cache.
-    if (data && cacheSource === null) setCacheSource("cache");
-  }, [data, cacheSource]);
+  }, [animeId]);
 
   const filtered = useMemo(
     () => (data ? filterGraph(data, activeFilters) : null),
@@ -136,10 +113,53 @@ function FranchiseGraphSection({
     return collapseGraph(filtered, relationMap, animeId, 10, expandedGroups);
   }, [filtered, relationMap, animeId, expandedGroups]);
 
-  const searchMatchIds = useMemo(
-    () => (collapsed ? filterFranchiseNodesBySearch(collapsed.graph.nodeMap, searchQuery) : null),
-    [searchQuery, collapsed]
+  const animeNodes = useMemo(
+    () =>
+      data
+        ? data.nodes.filter(
+            (node) =>
+              node.id === data.root_id || node.media_type === "ANIME" || node.media_type == null
+          )
+        : [],
+    [data]
   );
+
+  const fullRelationMap = useMemo(
+    () =>
+      data
+        ? computeNodeRelationMap(data, new Map(animeNodes.map((node) => [node.id, node])))
+        : new Map<number, string>(),
+    [data, animeNodes]
+  );
+
+  const groupCounts = useMemo(
+    () => countFranchiseGroups(animeNodes, fullRelationMap, data?.root_id ?? 0),
+    [animeNodes, fullRelationMap, data]
+  );
+
+  const listMatchIds = useMemo(
+    () => (filtered ? filterFranchiseNodesBySearch(filtered.nodeMap, searchQuery) : null),
+    [searchQuery, filtered]
+  );
+
+  const graphMatchIds = useMemo(() => {
+    const matches = collapsed
+      ? filterFranchiseNodesBySearch(collapsed.graph.nodeMap, searchQuery)
+      : null;
+    if (!matches || !collapsed || collapsed.aggregators.size === 0) return matches;
+    const lower = searchQuery.toLowerCase().trim();
+    for (const [aggId, info] of collapsed.aggregators) {
+      if (matches.has(aggId)) continue;
+      for (const node of filtered?.nodeMap.values() ?? []) {
+        if (relationGroup(relationMap.get(node.id) ?? "UNKNOWN") !== info.group) continue;
+        if (node.title.toLowerCase().includes(lower)) {
+          matches.add(aggId);
+          break;
+        }
+      }
+    }
+    return matches;
+  }, [collapsed, filtered, relationMap, searchQuery]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -166,6 +186,7 @@ function FranchiseGraphSection({
   const { totalH, displayH } = useMemo(() => computeGraphMetrics(totalNodes), [totalNodes]);
 
   useEffect(() => {
+    if (!expanded || listView) return;
     if (resetKey < 0) return;
     if (!collapsed || collapsed.graph.nodeMap.size === 0) return;
 
@@ -190,7 +211,18 @@ function FranchiseGraphSection({
       sim.stop();
       simRef.current = null;
     };
-  }, [collapsed, animeId, containerWidth, totalH, dims, resetKey, relationMap, mainlineIds]);
+  }, [
+    collapsed,
+    animeId,
+    containerWidth,
+    totalH,
+    dims,
+    resetKey,
+    relationMap,
+    mainlineIds,
+    expanded,
+    listView,
+  ]);
 
   useEffect(() => {
     if (!dragging) return;
@@ -312,7 +344,7 @@ function FranchiseGraphSection({
 
   if (isLoading) {
     return (
-      <div className="flex h-20 items-center justify-center">
+      <div className="flex items-center justify-center" style={{ height: LOADING_HEIGHT }}>
         <SmallLoader />
       </div>
     );
@@ -327,24 +359,28 @@ function FranchiseGraphSection({
   }
 
   const pos = positions;
+  const matchCount = (listView ? listMatchIds : graphMatchIds)?.size ?? null;
 
   return (
     <div className="flex flex-col gap-1.5">
       <FranchiseToolbar
         activeFilters={activeFilters}
+        groupCounts={groupCounts}
         searchQuery={searchQuery}
-        cacheSource={cacheSource}
-        countDiff={countDiff}
+        matchCount={matchCount}
         listView={listView}
+        refreshing={isFetching}
         onToggleFilter={toggleFilter}
         onSearchChange={setSearchQuery}
         onToggleView={handleToggleView}
         onFocusCurrent={focusCurrent}
         onResetLayout={resetSimulation}
-        onRefresh={() => {
-          setCountDiff(null);
-          setRefreshKey((key) => key + 1);
-        }}
+        onRefresh={() =>
+          setRefresh((prev) => ({
+            id: animeId,
+            key: prev.id === animeId ? prev.key + 1 : 1,
+          }))
+        }
       />
 
       <section
@@ -353,13 +389,16 @@ function FranchiseGraphSection({
         style={{ height: displayH }}
       >
         {listView
-          ? collapsed && (
+          ? filtered && (
               <FranchiseList
-                nodes={[...collapsed.graph.nodeMap.values()]}
+                nodes={[...filtered.nodeMap.values()]}
+                edges={filtered.edges}
                 animeId={animeId}
                 entryLookup={entryLookup}
                 relationMap={relationMap}
-                searchMatchIds={searchMatchIds}
+                mainlineIds={mainlineIds}
+                searchMatchIds={listMatchIds}
+                scoreFormat={scoreFormat}
                 onNodeClick={handleNodeClick}
               />
             )
@@ -372,7 +411,7 @@ function FranchiseGraphSection({
                 dims={dims}
                 positions={pos}
                 relationMap={relationMap}
-                searchMatchIds={searchMatchIds}
+                searchMatchIds={graphMatchIds}
                 viewport={viewport}
                 onNodeClick={handleNodeClick}
                 onNodeMouseDown={handleNodeMouseDown}

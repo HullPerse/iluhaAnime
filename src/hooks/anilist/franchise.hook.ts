@@ -142,6 +142,8 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     (event: WheelEvent) => {
       const wrapper = wrapperRef.current;
       if (!wrapper) return;
+      // Plain wheel keeps scrolling the modal; zoom is the Ctrl gesture only.
+      if (!event.ctrlKey) return;
       event.preventDefault();
       const rect = wrapper.getBoundingClientRect();
       const pointer: CameraPoint = { x: event.clientX - rect.left, y: event.clientY - rect.top };

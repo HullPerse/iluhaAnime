@@ -307,7 +307,7 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   for (let index = 0; index < bytes.length; index += chunkSize) {
     binary += String.fromCodePoint(...bytes.subarray(index, index + chunkSize));
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/[=]+$/, "");
 }
 
 function base64UrlToBytes(value: string): Uint8Array | null {

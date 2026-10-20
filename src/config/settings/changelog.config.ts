@@ -182,6 +182,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.upscale.preview_keep", "upscale"),
       entry("changelog.5_0_0.changed.anilist.similar_rail", "anilist"),
       entry("changelog.5_0_0.changed.torrents.queue_modal", "torrents"),
+      entry("changelog.5_0_0.changed.anilist.franchise", "anilist"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

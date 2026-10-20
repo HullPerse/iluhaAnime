@@ -13,8 +13,8 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
+import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { addNotification } from "@/store/notification.store";
 import type { AnilistRouteData, AniMedia } from "@/types/anilist";
 
@@ -73,6 +73,11 @@ function clampProgress(value: number, max: number | null): number {
   return Math.max(0, value);
 }
 
+function resolveSaveStatus(target: number, max: number | null, current: string): string {
+  if (max != null && max > 0 && target >= max) return "COMPLETED";
+  return current;
+}
+
 function shortReason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return message.length > 300 ? `${message.slice(0, 300)}...` : message;
@@ -104,6 +109,7 @@ export function ProgressStepper({
   const [failure, setFailure] = useState<StepperFailure | null>(null);
   const targetRef = useRef<number | null>(null);
   const inflightRef = useRef(false);
+  const statusInvalidateRef = useRef(false);
   const confirmedRef = useRef(entry.progress ?? 0);
   const entryRef = useRef(entry);
   const savedTimer = useRef<ScheduledTask | null>(null);
@@ -157,11 +163,12 @@ export function ProgressStepper({
       score: fallback.score,
       notes: fallback.notes,
     });
+    const nextStatus = resolveSaveStatus(target, media.episodes, live.status);
     const startedAt = performance.now();
     const [saved, error] = await attempt(
       anilistApi.saveEntry({
         mediaId: media.id,
-        status: live.status,
+        status: nextStatus,
         progress: target,
         score: live.score,
         notes: live.notes,
@@ -177,6 +184,10 @@ export function ProgressStepper({
       } else {
         patchEntry(queryClient, media.id, { progress: confirmedRef.current });
         anilistProgressOverride.clear(media.id);
+        if (statusInvalidateRef.current) {
+          statusInvalidateRef.current = false;
+          ignore(queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() }));
+        }
         setFailure({ target, reason });
         setPhase("error");
       }
@@ -189,21 +200,29 @@ export function ProgressStepper({
       addNotification(t("anilist.controls.save.error.detail", { error: reason }), "error");
     } else {
       const confirmed = saved?.progress ?? target;
+      const confirmedStatus = saved?.status ?? nextStatus;
       confirmedRef.current = confirmed;
       const returnedCustomLists = saved?.customLists ?? [];
-      if (saved?.status) markOwnAnilistListStatus(media.id, saved.status);
+      if (confirmedStatus !== live.status) statusInvalidateRef.current = true;
+      markOwnAnilistListStatus(media.id, confirmedStatus);
       patchEntry(queryClient, media.id, {
         progress: confirmed,
-        ...(saved?.status ? { list_status: saved.status } : {}),
+        list_status: confirmedStatus,
         ...(returnedCustomLists.length > 0 ? { custom_lists: returnedCustomLists } : {}),
       });
-      if (!superseded) anilistProgressOverride.clear(media.id);
+      if (!superseded) {
+        anilistProgressOverride.clear(media.id);
+        if (statusInvalidateRef.current) {
+          statusInvalidateRef.current = false;
+          ignore(queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() }));
+        }
+      }
       setPhase("saved");
       clearSaved();
       savedTimer.current = scheduleTask("timeout", STEPPER_SAVED_MS, () => setPhase("idle"));
     }
     if (superseded) debouncer.maybeExecute();
-  }, [debouncer, media.id, queryClient, t, clearSaved]);
+  }, [debouncer, media.id, media.episodes, queryClient, t, clearSaved]);
 
   useEffect(() => {
     taskBox.current = () => {
@@ -211,15 +230,27 @@ export function ProgressStepper({
     };
   });
 
+  const optimisticStatus = (target: number): string | null => {
+    const fallback = entryRef.current;
+    const live = readLiveFields(queryClient, media.id, {
+      status: fallback.list_status,
+      score: fallback.score,
+      notes: fallback.notes,
+    });
+    const status = resolveSaveStatus(target, media.episodes, live.status);
+    return status === live.status ? null : status;
+  };
+
   const step = (delta: 1 | -1) => {
-    const base = targetRef.current ?? anilistProgressOverride.get(media.id) ?? confirmedRef.current;
+    const base =
+      targetRef.current ?? anilistProgressOverride.get(media.id)?.progress ?? confirmedRef.current;
     const next = clampProgress(base + delta, media.episodes);
     if (next === base) return;
     targetRef.current = next;
     setFailure(null);
     clearSaved();
     setPhase((prev) => (prev === "error" || prev === "saved" ? "idle" : prev));
-    anilistProgressOverride.set(media.id, next);
+    anilistProgressOverride.set(media.id, next, optimisticStatus(next));
     if (!inflightRef.current) debouncer.maybeExecute();
   };
 
@@ -230,7 +261,7 @@ export function ProgressStepper({
     targetRef.current = target;
     setFailure(null);
     setPhase("idle");
-    anilistProgressOverride.set(media.id, target);
+    anilistProgressOverride.set(media.id, target, optimisticStatus(target));
     debouncer.maybeExecute();
   };
 

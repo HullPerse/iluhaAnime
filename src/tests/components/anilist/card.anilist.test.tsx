@@ -1,19 +1,24 @@
-import { mockInvoke } from "../../mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EntryLookup } from "@/lib/anilist/entries.utils";
+import type { EntryListInfo, EntryLookup } from "@/lib/anilist/entries.utils";
 import AniListCard from "@/routes/components/anilist/card.anilist";
+import { ProgressStepper } from "@/routes/components/anilist/stepper.anilist";
 import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { patchSettings } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { AniMedia } from "@/types/anilist";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: mockInvoke,
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
+import { mockInvoke } from "../../mocks";
+
+vi.mock("@tauri-apps/api/core", async () => {
+  const { mockInvoke } = await import("../../mocks");
+  return {
+    invoke: mockInvoke,
+    convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
+  };
+});
 
 const MEDIA_ID = 501;
 
@@ -46,23 +51,23 @@ function makeMedia(overrides: Partial<AniMedia> = {}): AniMedia {
   };
 }
 
-function makeLookup(score: number | null): EntryLookup {
-  return new Map([
-    [
-      MEDIA_ID,
-      {
-        list_status: "COMPLETED",
-        progress: 20,
-        score,
-        created_at: null,
-        updated_at: null,
-        completed_at: null,
-        started_at: null,
-        notes: null,
-        custom_lists: [],
-      },
-    ],
-  ]);
+function makeEntry(overrides: Partial<EntryListInfo> = {}): EntryListInfo {
+  return {
+    list_status: "COMPLETED",
+    progress: 20,
+    score: null,
+    created_at: null,
+    updated_at: null,
+    completed_at: null,
+    started_at: null,
+    notes: null,
+    custom_lists: [],
+    ...overrides,
+  };
+}
+
+function makeLookup(score: number | null, overrides: Partial<EntryListInfo> = {}): EntryLookup {
+  return new Map([[MEDIA_ID, makeEntry({ score, ...overrides })]]);
 }
 
 function renderCard(scoreFormat: string, score: number | null) {
@@ -391,6 +396,148 @@ describe("ProgressStepper coalescing", () => {
       expect(calls.length).toBe(2);
       expect(calls[1]?.[1]).toEqual(expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 }));
       expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("ProgressStepper completion", () => {
+  function renderProgress(status: string, initialProgress: number) {
+    const client = new QueryClient();
+    client.setQueryData(["anilist_data"], {
+      user: { id: 7 },
+      lists: [
+        {
+          name: "Watching",
+          entries: [
+            {
+              media: makeMedia(),
+              progress: initialProgress,
+              score: null,
+              list_status: status,
+              created_at: null,
+              updated_at: null,
+              completed_at: null,
+              started_at: null,
+              notes: null,
+              repeat: null,
+              custom_lists: [],
+            },
+          ],
+        },
+      ],
+      favourites: [],
+      people: { staff: [], characters: [] },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <AniListCard
+          item={makeMedia()}
+          entryLookup={makeLookup(null, { list_status: status, progress: initialProgress })}
+          isFavorite={false}
+          scoreFormat="POINT_10"
+          onClick={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    return client;
+  }
+
+  it("shows completed immediately and sends it with the final episode", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      vi.mocked(invoke).mockImplementation((command: unknown) =>
+        command === "save_anilist_entry"
+          ? Promise.resolve({ id: 1, status: "COMPLETED", progress: 28, customLists: [] })
+          : Promise.resolve(null)
+      );
+      const client = renderProgress("CURRENT", 27);
+      const invalidate = vi.spyOn(client, "invalidateQueries");
+      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      expect(screen.getByTitle("Completed")).toBeTruthy();
+      expect(screen.getByText("28/28")).toBeTruthy();
+      expect(vi.mocked(invoke)).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      const calls = vi.mocked(invoke).mock.calls.filter((call) => call[0] === "save_anilist_entry");
+      expect(calls.length).toBe(1);
+      expect(calls[0]?.[1]).toEqual(expect.objectContaining({ progress: 28, status: "COMPLETED" }));
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["anilist_data"] });
+      const data = client.getQueryData<{ lists: { entries: { list_status: string }[] }[] }>([
+        "anilist_data",
+      ]);
+      expect(data?.lists[0].entries[0].list_status).toBe("COMPLETED");
+      expect(anilistProgressOverride.get(MEDIA_ID)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the current status before the final episode", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      const client = renderProgress("CURRENT", 20);
+      const invalidate = vi.spyOn(client, "invalidateQueries");
+      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      expect(screen.getByTitle("Watching")).toBeTruthy();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      const calls = vi.mocked(invoke).mock.calls.filter((call) => call[0] === "save_anilist_entry");
+      expect(calls[0]?.[1]).toEqual(expect.objectContaining({ progress: 21, status: "CURRENT" }));
+      expect(invalidate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops the optimistic completion when the save fails", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockRejectedValueOnce(new Error("429 Too Many Requests"));
+      renderProgress("CURRENT", 27);
+      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      expect(screen.getByTitle("Completed")).toBeTruthy();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+      expect(screen.getByTitle("Watching")).toBeTruthy();
+      expect(screen.getByText("27/28")).toBeTruthy();
+      expect(anilistProgressOverride.get(MEDIA_ID)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not complete an entry with an unknown episode total", async () => {
+    vi.useFakeTimers();
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <ProgressStepper
+            media={{ id: MEDIA_ID, episodes: null }}
+            entry={makeEntry({ list_status: "CURRENT", progress: 5 })}
+            progress={5}
+          />
+        </QueryClientProvider>
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      expect(anilistProgressOverride.get(MEDIA_ID)?.status ?? null).toBeNull();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(650);
+      });
+      const calls = vi.mocked(invoke).mock.calls.filter((call) => call[0] === "save_anilist_entry");
+      expect(calls[0]?.[1]).toEqual(expect.objectContaining({ progress: 6, status: "CURRENT" }));
     } finally {
       vi.useRealTimers();
     }

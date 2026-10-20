@@ -36,6 +36,37 @@ function ScoreIcon({
   return <Star className="size-3 fill-yellow-400 text-yellow-600" />;
 }
 
+function StatusDot({ status }: { status: string }) {
+  const { t } = useI18n();
+  return (
+    <span
+      className="windows95-border mt-0.5 shrink-0"
+      style={{
+        display: "inline-block",
+        width: 10,
+        height: 10,
+        backgroundColor: getStatusColor(status),
+      }}
+      title={t(toLocaleKey(listStatusLabels[status] ?? status))}
+    />
+  );
+}
+
+function cardListEntry(
+  entry: EntryListInfo | undefined,
+  status: string | undefined,
+  progress: number | null
+) {
+  if (!entry || !status) return undefined;
+  return {
+    progress,
+    score: entry.score,
+    list_status: status,
+    notes: entry.notes,
+    custom_lists: entry.custom_lists ?? [],
+  };
+}
+
 function MyScoreBadge({
   score,
   format,
@@ -101,21 +132,12 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
   const shortMeta = cardMeta === "short";
   const entry = entryLookup.get(item.id);
   const format = parseScoreFormat(scoreFormat);
-  const progress = useProgressOverride(item.id) ?? entry?.progress ?? null;
+  const override = useProgressOverride(item.id);
+  const progress = override?.progress ?? entry?.progress ?? null;
+  const effectiveStatus = override?.status ?? entry?.list_status;
+  const listEntry = cardListEntry(entry, effectiveStatus, progress);
 
-  const openAnime = () =>
-    onClick({
-      animeId: item.id,
-      ...(entry && {
-        listEntry: {
-          progress,
-          score: entry.score,
-          list_status: entry.list_status,
-          notes: entry.notes,
-          custom_lists: entry.custom_lists ?? [],
-        },
-      }),
-    });
+  const openAnime = () => onClick({ animeId: item.id, ...(listEntry && { listEntry }) });
 
   return (
     <div
@@ -134,18 +156,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
               className="windows95-text flex min-w-0 flex-1 flex-row gap-1 truncate leading-tight font-bold"
               title={item.title}
             >
-              {entry && (
-                <span
-                  className="windows95-border mt-0.5 shrink-0"
-                  style={{
-                    display: "inline-block",
-                    width: 10,
-                    height: 10,
-                    backgroundColor: getStatusColor(entry.list_status),
-                  }}
-                  title={t(toLocaleKey(listStatusLabels[entry.list_status] ?? entry.list_status))}
-                />
-              )}
+              {effectiveStatus && <StatusDot status={effectiveStatus} />}
               {item.title}
             </h2>
           </div>

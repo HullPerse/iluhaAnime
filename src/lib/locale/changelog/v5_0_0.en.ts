@@ -246,7 +246,7 @@ const changelog500 = {
   "changelog.5_0_0.changed.search.spell_stable":
     "Spellcheck underlines every typo at once without flickering while you type, ignores roman numerals like II and III, and warms up in the background so the first correction is instant",
   "changelog.5_0_0.changed.anilist.stepper":
-    "AniList progress stepper survives rapid taps: the last target wins, a failed save restores the confirmed value and offers retry, and save errors show the server reason in the stepper and the list editor",
+    "AniList progress stepper survives rapid taps: the last target wins, a failed save restores the confirmed value and offers retry, and save errors show the server reason in the stepper and the list editor. Marking the final episode switches the status to Completed right away and moves the entry to the completed list",
   "changelog.5_0_0.changed.player.title_arc":
     "Player title shows the story arc as Title: Arc next to season and episode",
   "changelog.5_0_0.changed.player.parser_versions":

@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, ListOrdered, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import Modal from "@/components/shared/modal.component";
@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { downloadOrderPositions } from "@/lib/torrent/queue.utils";
 import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/update.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
@@ -20,6 +21,7 @@ import type {
   TorrentDetails,
   TorrentFileInfo,
   TorrentInfo,
+  TorrentQueueApply,
 } from "@/types/torrent";
 
 function UpdateCheck({
@@ -163,7 +165,7 @@ export function TorrentFiles({
   onResume,
   onUpdateFiles,
   onFilePriorityChange,
-  onSetDownloadOrder,
+  onApplyQueue,
   onRedownload,
   onUpdateRequest,
 }: {
@@ -174,7 +176,7 @@ export function TorrentFiles({
   onResume: () => void;
   onUpdateFiles: (indices: number[]) => void;
   onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
-  onSetDownloadOrder: (indices: number[]) => void;
+  onApplyQueue: (payload: TorrentQueueApply) => Promise<boolean>;
   onRedownload: (fileIndex: number) => void;
   onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
 }) {
@@ -183,7 +185,13 @@ export function TorrentFiles({
   const completed = files.filter((file) => file.completed).length;
   const missing = files.filter((file) => file.completed && !file.exists).length;
   const sequentialFile = files.find((file) => file.index === item.sequential_file);
-  const orderable = files.filter((file) => file.selected && !file.completed).length > 1;
+  const remaining = files.filter((file) => !file.completed).length;
+  const orderable = remaining > 1;
+  const queuePositions = useMemo(
+    () =>
+      item.sequential_download ? downloadOrderPositions(files, item.download_order) : undefined,
+    [files, item.download_order, item.sequential_download]
+  );
   return (
     <section>
       <div
@@ -211,6 +219,14 @@ export function TorrentFiles({
             title={t("torrent.sequential.now", { name: sequentialFile.name })}
           >
             {t("torrent.sequential.now", { name: sequentialFile.name })}
+          </span>
+        )}
+        {queuePositions && queuePositions.size > 1 && (
+          <span
+            className="text-hint ml-1 shrink-0"
+            title={t("torrent.queue.badge", { count: queuePositions.size })}
+          >
+            {t("torrent.queue.badge", { count: queuePositions.size })}
           </span>
         )}
         <section className="ml-auto flex flex-row items-center gap-1">
@@ -245,6 +261,7 @@ export function TorrentFiles({
             onResume={item.state === "paused" ? onResume : undefined}
             onRedownload={onRedownload}
             sequentialFile={item.sequential_file}
+            queuePositions={queuePositions}
           />
         </>
       )}
@@ -253,7 +270,8 @@ export function TorrentFiles({
           files={files}
           order={item.download_order}
           current={item.sequential_file}
-          onSave={onSetDownloadOrder}
+          sequential={item.sequential_download}
+          onApply={onApplyQueue}
           onClose={() => setShowQueue(false)}
         />
       )}

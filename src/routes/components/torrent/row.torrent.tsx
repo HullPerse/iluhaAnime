@@ -43,7 +43,7 @@ export const TorrentRow = memo(
       onRemove: handleRemove,
       onUpdateFiles: handleUpdateFiles,
       onFilePriorityChange: handleFilePriorityChange,
-      onSetDownloadOrder: handleSetDownloadOrder,
+      onApplyQueue: handleApplyQueue,
       onSetSequential: handleSetSequential,
       onRecreate: handleRecreate,
       onRedownload: handleRedownload,
@@ -79,7 +79,7 @@ export const TorrentRow = memo(
         onRemove={handleRemove}
         onUpdateFiles={handleUpdateFiles}
         onFilePriorityChange={handleFilePriorityChange}
-        onSetDownloadOrder={handleSetDownloadOrder}
+        onApplyQueue={handleApplyQueue}
         onSetSequential={handleSetSequential}
         onRecreate={handleRecreate}
         onRedownload={handleRedownload}

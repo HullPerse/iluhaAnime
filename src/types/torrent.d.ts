@@ -67,6 +67,13 @@ export type FilePriority = "do_not_download" | "normal";
 
 export type FileOrder = "list" | "torrent";
 
+export interface TorrentQueueApply {
+  order: number[];
+  selected: number[];
+  deselected: number[];
+  enableSequential: boolean;
+}
+
 export interface FolderNode {
   name: string;
   path: string;
@@ -320,7 +327,7 @@ export interface TorrentItemProps {
   onRemove: (deleteFiles: boolean) => void;
   onUpdateFiles: (indices: number[]) => void;
   onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
-  onSetDownloadOrder: (indices: number[]) => void;
+  onApplyQueue: (payload: TorrentQueueApply) => Promise<boolean>;
   onSetSequential: (enabled: boolean) => void;
   onRecreate: () => void;
   onRedownload: (fileIndex: number) => void;

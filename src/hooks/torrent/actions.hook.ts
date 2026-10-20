@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import {
   usePauseTorrent,
@@ -20,12 +21,12 @@ import { ignore } from "@/lib/utils/promise.utils";
 import { setSeedPreference } from "@/store/cache.store";
 import { prepareTorrentDownload } from "@/store/download.store";
 import { addNotification } from "@/store/notification.store";
-import { torrentApi } from "@/api/torrent.api";
 import type {
   FilePriority,
   TorrentDetailFile,
   TorrentDetails,
   TorrentInfo,
+  TorrentQueueApply,
 } from "@/types/torrent";
 
 export interface TorrentItemActions {
@@ -35,8 +36,8 @@ export interface TorrentItemActions {
   onRemove: (deleteFiles: boolean) => void;
   onUpdateFiles: (indices: number[]) => void;
   onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
-  onSetDownloadOrder: (indices: number[]) => void;
   onSetSequential: (enabled: boolean) => void;
+  onApplyQueue: (payload: TorrentQueueApply) => Promise<boolean>;
   onRecreate: () => void;
   onRedownload: (fileIndex: number) => void;
   onRecheck: () => void;
@@ -91,17 +92,48 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
     },
     [setFilePriorityMutation, id, infoHash]
   );
-  const onSetDownloadOrder = useCallback(
-    (indices: number[]) => {
-      setDownloadOrderMutation.mutate({ id, indices, infoHash });
-    },
-    [setDownloadOrderMutation, id, infoHash]
-  );
   const onSetSequential = useCallback(
     (enabled: boolean) => {
       setSequentialMutation.mutate({ id, enabled, infoHash });
     },
     [setSequentialMutation, id, infoHash]
+  );
+  const onApplyQueue = useCallback(
+    async (payload: TorrentQueueApply) => {
+      if (payload.enableSequential) {
+        const [, error] = await attempt(
+          setSequentialMutation.mutateAsync({ id, enabled: true, infoHash })
+        );
+        if (error) return false;
+      }
+      if (payload.selected.length > 0) {
+        const [, error] = await attempt(
+          setFilePriorityMutation.mutateAsync({
+            id,
+            fileIndices: payload.selected,
+            priority: "normal",
+            infoHash,
+          })
+        );
+        if (error) return false;
+      }
+      if (payload.deselected.length > 0) {
+        const [, error] = await attempt(
+          setFilePriorityMutation.mutateAsync({
+            id,
+            fileIndices: payload.deselected,
+            priority: "do_not_download",
+            infoHash,
+          })
+        );
+        if (error) return false;
+      }
+      const [, error] = await attempt(
+        setDownloadOrderMutation.mutateAsync({ id, indices: payload.order, infoHash })
+      );
+      return !error;
+    },
+    [setSequentialMutation, setFilePriorityMutation, setDownloadOrderMutation, id, infoHash]
   );
   const onRecreate = useCallback(async () => {
     const removed = await removeMutation.mutateAsync({
@@ -143,8 +175,8 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
     onRemove,
     onUpdateFiles,
     onFilePriorityChange,
-    onSetDownloadOrder,
     onSetSequential,
+    onApplyQueue,
     onRecreate,
     onRedownload,
     onRecheck,

@@ -44,7 +44,7 @@ export function FolderRow({
       data-tree-path={treePath}
       data-tree-kind="folder"
       tabIndex={-1}
-      className="windows95-text hover:bg-surface absolute top-0 left-0 flex w-full cursor-pointer items-center gap-1 px-0.5 py-0.5 text-left select-none"
+      className="windows95-text hover:bg-surface absolute top-0 left-0 flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 text-left select-none"
       style={{
         height: 20,
         transform: `translateY(${virtualStart}px)`,
@@ -81,7 +81,7 @@ export function FolderRow({
         <span className="truncate font-bold" title={node.name}>
           {node.name}
         </span>
-        <span className="text-hint whitespace-nowrap">
+        <span className="text-hint ml-auto min-w-16 shrink-0 text-right whitespace-nowrap tabular-nums">
           {formatBytes(
             node.files.reduce((s, f) => s + f.size, 0) +
               node.children.reduce(

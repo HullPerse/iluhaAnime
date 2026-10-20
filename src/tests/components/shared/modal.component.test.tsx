@@ -41,6 +41,37 @@ describe("Modal stacking guard", () => {
   });
 });
 
+describe("Modal close guard", () => {
+  it("keeps the dialog open when canClose refuses", () => {
+    patchSettings({ language: "en", modalAnimation: false });
+    const onClose = vi.fn();
+    render(
+      <Modal header="Test" onClose={onClose} canClose={() => false}>
+        <span>body</span>
+      </Modal>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeDefined();
+  });
+
+  it("closes when canClose allows it", () => {
+    patchSettings({ language: "en", modalAnimation: false });
+    const onClose = vi.fn();
+    render(
+      <Modal header="Test" onClose={onClose} canClose={() => true}>
+        <span>body</span>
+      </Modal>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("Modal pager", () => {
   it("shows the position and jumps between images", () => {
     patchSettings({ language: "en", modalAnimation: false });

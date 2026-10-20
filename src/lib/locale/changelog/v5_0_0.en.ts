@@ -389,6 +389,10 @@ const changelog500 = {
     "The Similar block in anime details is rebuilt: a poster rail with a rank number, score and a recommendation-strength bar, or a dense list with the same data, switched by a segmented control above the content; strength is derived from the votes instead of the vote count printed as a percent, and the expanded section no longer stretches the window",
   "changelog.5_0_0.added.settings.detail_width":
     "Anime detail modal width setting under Additional features: default or wide",
+  "changelog.5_0_0.changed.torrents.queue_modal":
+    "Download queue window rebuilt: folders as blocks that drag as a whole, a virtualized list with per-file progress and remaining size, selection checkboxes inside the window, queue numbers in the file tree, keyboard reordering on Alt plus arrows, and saving only on OK with an unsaved order warning. When sequential mode is off, the save button turns it on together with the order",
+  "changelog.5_0_0.fixed.torrents.queue_scroll":
+    "The download queue window scrolls smoothly again: rows show up immediately, the list no longer jumps back to the top, and sizes like 1023.9 MB no longer wrap onto the next row",
 } as const;
 
 export default changelog500;

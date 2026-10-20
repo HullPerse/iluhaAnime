@@ -110,12 +110,14 @@ function TorrentFilesSection({
   onPlay,
   onOpenInApp,
   sequentialFile,
+  queuePositions,
 }: {
   id: number;
   files: TorrentFileInfo[];
   type: "torrent" | "player";
   path?: string;
   sequentialFile?: number | null;
+  queuePositions?: Map<number, number>;
   onToggle?: (id: number, indices: number[]) => void;
   onFilePriorityChange?: (id: number, fileIndices: number[], priority: FilePriority) => void;
   onResume?: () => void;
@@ -340,6 +342,7 @@ function TorrentFilesSection({
               onOpenInApp={onOpenInApp}
               onRedownload={onRedownload}
               sequential={sequentialFile === file.index}
+              queuePosition={queuePositions?.get(file.index)}
             />
           );
         })}

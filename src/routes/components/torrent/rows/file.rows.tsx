@@ -32,12 +32,25 @@ import type { TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
 
 import { PlayerFileActions } from "../actions.torrent";
 
+function QueuePosition({ position }: { position?: number }) {
+  const { t } = useI18n();
+  if (position === undefined) return null;
+  return (
+    <span
+      className="text-hint shrink-0 tabular-nums"
+      title={t("torrent.queue.position", { position })}
+      data-testid="torrent-file-queue-position"
+    >
+      {position}.
+    </span>
+  );
+}
+
 interface PlayerRowTarget {
   resolvedPath: string | undefined;
   track: boolean;
   busy: boolean;
 }
-
 function resolvePlayerRowTarget(
   file: TorrentTreeFile,
   fullPath: string | undefined,
@@ -172,6 +185,7 @@ export function TorrentFileRow({
   onOpenInApp,
   onRedownload,
   sequential,
+  queuePosition,
 }: {
   file: TorrentTreeFile;
   depth: number;
@@ -179,6 +193,7 @@ export function TorrentFileRow({
   type: "torrent" | "player";
   checked: boolean;
   sequential?: boolean;
+  queuePosition?: number;
   onToggleFile?: () => void;
   queueMap: Map<string, string>;
   extraFiles?: { name: string; size: number; fullPath: string }[];
@@ -334,6 +349,8 @@ export function TorrentFileRow({
         </span>
       )}
 
+      <QueuePosition position={queuePosition} />
+
       {file.selected && !file.completed && file.size > 0 && (
         <ProgressBar
           className="ml-1 h-3 w-10 shrink-0"
@@ -343,7 +360,9 @@ export function TorrentFileRow({
         />
       )}
 
-      <span className="text-hint shrink-0">{formatBytes(file.size)}</span>
+      <span className="text-hint min-w-16 shrink-0 text-right whitespace-nowrap tabular-nums">
+        {formatBytes(file.size)}
+      </span>
 
       {type === "torrent" && file.completed && !file.exists && onRedownload && (
         <Button

@@ -32,7 +32,7 @@ function TorrentItem({
   onRemove,
   onUpdateFiles,
   onFilePriorityChange,
-  onSetDownloadOrder,
+  onApplyQueue,
   onSetSequential,
   onRecreate,
   onRedownload,
@@ -59,9 +59,7 @@ function TorrentItem({
         recheck: t("torrent.external.recheck"),
         handleRecheck: onRecheck,
       };
-  const externalChangedTitle = [externalBadge.hint, changedNames]
-    .filter(Boolean)
-    .join("\n");
+  const externalChangedTitle = [externalBadge.hint, changedNames].filter(Boolean).join("\n");
   const draggable = queue !== null;
   const {
     attributes,
@@ -136,7 +134,11 @@ function TorrentItem({
               {changedNames && `: ${changedNames}`}
             </span>
           </span>
-          <Button className="windows95-text text-xs" disabled={busy} onClick={externalBadge.handleRecheck}>
+          <Button
+            className="windows95-text text-xs"
+            disabled={busy}
+            onClick={externalBadge.handleRecheck}
+          >
             {externalBadge.recheck}
           </Button>
         </div>
@@ -149,7 +151,7 @@ function TorrentItem({
         onResume={onResume}
         onUpdateFiles={onUpdateFiles}
         onFilePriorityChange={onFilePriorityChange}
-        onSetDownloadOrder={onSetDownloadOrder}
+        onApplyQueue={onApplyQueue}
         onRedownload={onRedownload}
         onUpdateRequest={onUpdateRequest}
       />

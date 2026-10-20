@@ -44,6 +44,7 @@ export interface ModalPager {
 export interface ModalWindow {
   header: string;
   onClose: () => void;
+  canClose?: () => boolean;
   onBack?: () => void;
   headerActions?: ReactNode;
   pager?: ModalPager;

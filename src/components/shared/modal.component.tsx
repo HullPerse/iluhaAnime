@@ -17,6 +17,7 @@ import { Button } from "../ui/button.component";
 function Modal({
   header,
   onClose,
+  canClose,
   onBack,
   headerActions,
   pager,
@@ -59,8 +60,13 @@ function Modal({
     <Dialog.Root
       defaultOpen
       modal={modal}
-      onOpenChange={(e) => {
-        if (!e) onClose();
+      onOpenChange={(open, details) => {
+        if (open) return;
+        if (canClose && !canClose()) {
+          details.cancel();
+          return;
+        }
+        onClose();
       }}
     >
       <Dialog.Portal className="z-9999">

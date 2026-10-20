@@ -79,6 +79,18 @@ afterEach(() => {
   cleanup();
 });
 
+describe("TorrentFileRow queue position", () => {
+  it("shows the queue number when the row belongs to the queue", () => {
+    const first = renderFileRow({ queuePosition: 3 });
+
+    expect(screen.getByTestId("torrent-file-queue-position").textContent).toBe("3.");
+
+    first.view.unmount();
+    renderFileRow();
+    expect(screen.queryByTestId("torrent-file-queue-position")).toBeNull();
+  });
+});
+
 describe("TorrentFileRow keyboard surface", () => {
   it("leaves torrent rows as plain text with no tab stop", () => {
     renderFileRow({ type: "torrent", path: undefined, onOpenInApp: undefined });

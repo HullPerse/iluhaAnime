@@ -181,6 +181,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.settings.summary", "settings"),
       entry("changelog.5_0_0.changed.upscale.preview_keep", "upscale"),
       entry("changelog.5_0_0.changed.anilist.similar_rail", "anilist"),
+      entry("changelog.5_0_0.changed.torrents.queue_modal", "torrents"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),
@@ -217,6 +218,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.app.vim_combobox", "app"),
       entry("changelog.5_0_0.fixed.player.settings_panel", "player"),
       entry("changelog.5_0_0.fixed.search.modern_spinner", "search"),
+      entry("changelog.5_0_0.fixed.torrents.queue_scroll", "torrents"),
     ],
   },
   {

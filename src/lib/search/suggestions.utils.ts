@@ -1,7 +1,9 @@
 import { KIND_ORDER } from "@/config/search/autocomplete.config";
-import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { ANIME_STATUS_BOOST } from "@/config/search/status.config";
 import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
+import { feedbackScore } from "@/lib/ranking/feedback.utils";
+import { countersOf, learningStatKey } from "@/lib/ranking/learning.utils";
+import { RANKING } from "@/lib/ranking/ranking.config";
 import { markSpellingReady } from "@/lib/splash/signals.utils";
 import type {
   AnilistSuggestionBoost,
@@ -15,7 +17,7 @@ import type {
 import { isTagLikeQuery } from "./intent.utils";
 import { LazySpellIndex } from "./lazySpellIndex.utils";
 import { normalizeSearchText } from "./normalize.utils";
-import { recencyBoost } from "./ranking.utils";
+import { stripReleaseNoise } from "./release.utils";
 import {
   fuzzyMatchScore,
   fuzzyMatchScorePreNormalized,
@@ -37,33 +39,25 @@ export type {
 
 export { normalizeSearchText } from "./normalize.utils";
 
-function statBoostNormalized(
-  normalized: string,
-  stats: Record<string, SearchQueryStat> | undefined
+function statFeedback(stats: Record<string, SearchQueryStat> | undefined, key: string): number {
+  const stat = stats?.[key];
+  return stat ? feedbackScore(countersOf(stat)) : 0;
+}
+
+function historyFeedback(
+  stats: Record<string, SearchQueryStat> | undefined,
+  scope: string | undefined,
+  normalized: string
 ): number {
-  const stat = stats?.[normalized];
-  if (!stat) return 0;
-  const ageHours = Math.max(0, (Date.now() - stat.lastUsedAt) / 3_600_000);
-  const recency = recencyBoost(ageHours);
-  const ignoredPenalty = Math.min(
-    SEARCH_RANKING.IGNORED_PENALTY_CAP,
-    (stat.ignoredCount ?? 0) * 10
-  );
-  return (
-    Math.min(SEARCH_RANKING.COUNT_CAP, stat.count * SEARCH_RANKING.COUNT_WEIGHT) +
-    recency +
-    Math.min(
-      SEARCH_RANKING.SELECTED_BOOST_CAP,
-      stat.selectedCount * SEARCH_RANKING.LEARNING_SELECTED_WEIGHT
-    ) -
-    ignoredPenalty
-  );
+  const scoped = stats?.[learningStatKey(scope ?? "global", normalized)];
+  return scoped ? feedbackScore(countersOf(scoped)) : statFeedback(stats, normalized);
 }
 
 export function rankHistoryEntries(
   history: string[],
   stats: Record<string, SearchQueryStat> | undefined,
-  limit: number
+  limit: number,
+  scope?: string
 ): string[] {
   const seen = new Set<string>();
   const scored: Array<{ value: string; score: number }> = [];
@@ -71,7 +65,7 @@ export function rankHistoryEntries(
     const value = entry.trim();
     if (!value || seen.has(value)) continue;
     seen.add(value);
-    scored.push({ value, score: statBoostNormalized(normalizeSearchText(value), stats) });
+    scored.push({ value, score: historyFeedback(stats, scope, normalizeSearchText(value)) });
   }
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, Math.max(1, limit)).map((item) => item.value);
@@ -185,8 +179,8 @@ function addHistorySuggestions(
       kind: "history",
       score:
         match +
-        statBoostNormalized(normalizedValue, options.queryStats) +
-        statBoostNormalized(normalizedValue, options.suggestionStats),
+        historyFeedback(options.queryStats, options.scope, normalizedValue) +
+        statFeedback(options.suggestionStats, normalizedValue),
       subtitle: "history",
       value,
     });
@@ -234,7 +228,7 @@ function addAnimeSuggestions(
       score:
         best +
         animeBoost(anime, options.anilistBoost ?? "subtle") +
-        statBoostNormalized(normalizedTitles[index]?.[0] ?? "", options.suggestionStats),
+        statFeedback(options.suggestionStats, normalizedTitles[index]?.[0] ?? ""),
       subtitle: animeSubtitle(anime),
       value: anime.title,
     });
@@ -251,19 +245,19 @@ function addExtraSuggestions(
 ): void {
   const tagBoost =
     options.scope === "filter" && isTagLikeQuery(query, normalizeSearchText(query))
-      ? SEARCH_RANKING.TAG_BOOST
+      ? RANKING.TAG_BOOST
       : 0;
   const showOperators = /[!^'$]/.test(query);
   for (const extra of options.extraValues ?? []) {
     if (extra.operator && !showOperators) continue;
     const normalizedExtra = normalizeSearchText(extra.value);
     const match = extra.operator
-      ? SEARCH_RANKING.OPERATOR_HINT_SCORE
+      ? RANKING.OPERATOR_HINT_SCORE
       : matchNormalizedTitle(terms, normalizedQuery, normalizedExtra, queryWords);
     if (match == null) continue;
     put({
       kind: extra.kind ?? "local",
-      score: match + tagBoost + statBoostNormalized(normalizedExtra, options.suggestionStats),
+      score: match + tagBoost + statFeedback(options.suggestionStats, normalizedExtra),
       value: extra.value,
       subtitle: extra.subtitle,
     });
@@ -296,7 +290,7 @@ function addCollectionSuggestions(
 ): void {
   const items = options.collectionItems;
   if (!items || items.length === 0) return;
-  const boost = options.collectionBoost ?? SEARCH_RANKING.COLLECTION_BOOST;
+  const boost = options.collectionBoost ?? RANKING.COLLECTION_BOOST;
   const normalizedTitles = getNormalizedCollectionTitles(items);
   for (let index = 0; index < normalizedTitles.length; index++) {
     const item = items[index];
@@ -309,8 +303,8 @@ function addCollectionSuggestions(
     }
     if (best == null) continue;
     const stat =
-      statBoostNormalized(titles[0] ?? "", options.suggestionStats) +
-      statBoostNormalized(titles[0] ?? "", options.queryStats);
+      historyFeedback(options.suggestionStats, options.scope, titles[0] ?? "") +
+      historyFeedback(options.queryStats, options.scope, titles[0] ?? "");
     put({
       kind: "local",
       score: best + boost + stat,
@@ -363,7 +357,7 @@ function applySymSpellFallback(
   const corrected = sym.suggest(query);
   if (!corrected) return;
   if (normalizeSearchText(corrected) === normalizedQuery) return;
-  const cands = getSearchSuggestions(corrected, { ...options, limit: 2, symSpell: false });
+  const cands = collectSuggestions(corrected, { ...options, limit: 2, symSpell: false });
   for (const c of cands) {
     put({ ...c, score: c.score - 50, subtitle: `${c.subtitle ?? c.kind} (did you mean)` });
   }
@@ -482,6 +476,42 @@ export function getSearchSuggestions(
   query: string,
   options: SearchSuggestionOptions = {}
 ): SearchSuggestion[] {
+  const fallback = suggestionFallbackQuery(query);
+  // A quality tag, episode token, or bracket group is strong evidence that the
+  // user pasted a release name; the cleaned query is then the better intent
+  // even if the raw one matched something. Generic tokens like "dual" or
+  // "web" can be part of a real title, so those keep the direct pass first.
+  if (fallback && STRONG_NOISE_RE.test(query)) {
+    const cleaned = collectSuggestions(fallback, options);
+    if (cleaned.length > 0) return cleaned;
+  }
+  const direct = collectSuggestions(query, options);
+  if (direct.length > 0 || !fallback) return direct;
+  return collectSuggestions(fallback, options);
+}
+
+const STRONG_NOISE_RE =
+  /\[[^\]]*\]|\{[^}]*\}|\b\d{3,4}p\b|\b\d{3,4}x\d{3,4}\b|\b(?:s\d{1,2})?e(?:p)?\d{1,4}\b|\bepisode\s*\d{1,4}\b/i;
+const EPISODE_TOKEN_RE = /\b(?:s\d{1,2})?e(?:p)?\d{1,4}\b/gi;
+const EPISODE_WORD_RE = /\bepisode\s*\d{1,4}\b/gi;
+const TRAILING_EPISODE_RE = /\s*[-\u2013]\s*\d{1,4}\s*$/g;
+
+function suggestionFallbackQuery(query: string): string | null {
+  const cleaned = stripReleaseNoise(query)
+    .replaceAll(EPISODE_TOKEN_RE, " ")
+    .replaceAll(EPISODE_WORD_RE, " ")
+    .replaceAll(TRAILING_EPISODE_RE, " ")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+  const normalized = normalizeSearchText(cleaned);
+  const original = normalizeSearchText(query);
+  return normalized && normalized !== original ? normalized : null;
+}
+
+function collectSuggestions(
+  query: string,
+  options: SearchSuggestionOptions
+): SearchSuggestion[] {
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return [];
   const terms = parseOperatorTerms(query);
@@ -496,12 +526,41 @@ export function getSearchSuggestions(
   };
   addSuggestionSources(query, normalizedQuery, queryWords, terms, options, put);
   applySymSpellFallback(query, normalizedQuery, options, limit, candidates, put);
-  return [...candidates.values()]
-    .sort(
-      (a, b) =>
-        b.score - a.score || a.value.length - b.value.length || a.value.localeCompare(b.value)
-    )
-    .slice(0, limit);
+  const sorted = [...candidates.values()].sort(
+    (a, b) => b.score - a.score || a.value.length - b.value.length || a.value.localeCompare(b.value)
+  );
+  promoteBaseTitles(sorted);
+  return sorted.slice(0, limit);
+}
+
+const BASE_TITLE_PROMOTION_RATIO = 0.9;
+
+function isSequelTitle(longer: string, base: string): boolean {
+  const baseTitle = normalizeSearchText(base);
+  const longerTitle = normalizeSearchText(longer);
+  return baseTitle.length > 0 && longerTitle.startsWith(`${baseTitle} `);
+}
+
+/**
+ * A six-character prefix such as "jujuts" can match a sequel or movie that
+ * carries a bigger popularity boost, pushing the base title down. When one
+ * candidate only extends another and is within 10% of its score, the base
+ * title is the better autocomplete answer. Unrelated titles never reorder.
+ */
+function promoteBaseTitles(items: SearchSuggestion[]): void {
+  for (let index = 0; index < items.length - 1; index++) {
+    const longer = items[index];
+    if (!longer) continue;
+    for (let candidate = index + 1; candidate < items.length; candidate++) {
+      const base = items[candidate];
+      if (!base || base.score < longer.score * BASE_TITLE_PROMOTION_RATIO) continue;
+      if (!isSequelTitle(longer.value, base.value)) continue;
+      items.splice(candidate, 1);
+      items.splice(index, 0, base);
+      index += 1;
+      break;
+    }
+  }
 }
 
 export function getInlineCompletion(query: string, suggestions: SearchSuggestion[]): string | null {

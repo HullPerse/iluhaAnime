@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import { collectionApi } from "@/api/collection.api";
-import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
+import { suggestionPoolSize, suggestionScore } from "@/lib/ranking/rank.utils";
 import { parseOperatorTerms } from "@/lib/search/score.utils";
 import { matchNormalizedTitle, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/search/suggestions.utils";
@@ -37,35 +37,31 @@ export function useSuggestions(
     const nq = normalizeSearchText(normalized);
     const queryWords = terms ? [] : nq.split(" ");
     (async () => {
+      // Recall pool: the backend only narrows candidates by FTS, the final
+      // order is decided below with the shared ranking model.
       const [rows, error] = await attempt(
-        collectionApi.searchUnifiedIndex(normalized, scope, limit)
+        collectionApi.searchUnifiedIndex(normalized, scope, suggestionPoolSize(limit))
       );
       if (requestRef.current !== requestId) return;
       if (error) {
         setSuggestions([]);
         return;
       }
+      const now = Date.now();
       setSuggestions(
         (Array.isArray(rows) ? rows : [])
           .map((row) => {
             const match =
               matchNormalizedTitle(terms, nq, normalizeSearchText(row.value), queryWords) ?? 0;
-            const learning =
-              Math.min(
-                SEARCH_RANKING.LEARNING_SELECTED_CAP,
-                row.selectedCount * SEARCH_RANKING.LEARNING_SELECTED_WEIGHT
-              ) +
-              Math.min(
-                SEARCH_RANKING.LEARNING_USE_CAP,
-                row.useCount * SEARCH_RANKING.LEARNING_USE_WEIGHT
-              ) -
-              Math.min(
-                SEARCH_RANKING.LEARNING_IGNORED_CAP,
-                row.ignoredCount * SEARCH_RANKING.LEARNING_IGNORED_WEIGHT
-              );
+            const counters = {
+              useCount: row.useCount,
+              selectedCount: row.selectedCount,
+              ignoredCount: row.ignoredCount,
+              lastUsedAt: row.lastUsedAt * 1000,
+            };
             return {
               kind: suggestionKind(row.kind),
-              score: match + learning,
+              score: suggestionScore(match, 0, counters, now),
               subtitle: row.subtitle ?? undefined,
               value: row.value,
             };

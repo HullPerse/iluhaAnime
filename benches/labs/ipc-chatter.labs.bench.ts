@@ -82,9 +82,9 @@ function invokes(records: Map<string, CallRecord>, command: string): number {
   return records.get(command)?.invokes ?? 0;
 }
 
-export function makeIndexRows(): UnifiedIndexRow[] {
+export function makeIndexRows(count = 8): UnifiedIndexRow[] {
   const rows: UnifiedIndexRow[] = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < count; i++) {
     rows.push({
       id: `row-${i}`,
       ignoredCount: 0,
@@ -131,7 +131,7 @@ export function makeTorrents(count: number): TorrentInfo[] {
   return out;
 }
 
-const INDEX_ROWS = makeIndexRows();
+const INDEX_ROWS = makeIndexRows(60);
 const TORRENTS_50 = makeTorrents(50);
 export const QUERIES = ["friren", "naruto ship", "attack", "one", "steins"];
 
@@ -160,7 +160,8 @@ function handlers(): Record<string, (args?: Record<string, unknown>) => unknown>
       return ids.map((id) => ({ files: fileTrees[id] ?? [], id }));
     },
     list_torrents: () => TORRENTS_50,
-    search_unified_index: () => INDEX_ROWS,
+    search_unified_index: (args) =>
+      INDEX_ROWS.slice(0, Math.max(1, Math.min(INDEX_ROWS.length, Number(args?.limit ?? 8)))),
   };
 }
 
@@ -173,6 +174,42 @@ group("ipc-chatter @ipc @quick", () => {
       for (const query of QUERIES) {
         const result = await ctx.transport.call<UnifiedIndexRow[]>("search_unified_index", {
           limit: 8,
+          query,
+          scope: "anime",
+        });
+        rows += result.length;
+      }
+      return rows + invokes(ctx.records, "search_unified_index") * 1000 + totals(ctx.records);
+    };
+    return checksum;
+  });
+
+  bench("suggest 5 settled queries pool=48", function* suggestQueriesPool48() {
+    const ctx = createCountingTransport(handlers());
+    const checksum = yield async () => {
+      ctx.reset();
+      let rows = 0;
+      for (const query of QUERIES) {
+        const result = await ctx.transport.call<UnifiedIndexRow[]>("search_unified_index", {
+          limit: 48,
+          query,
+          scope: "anime",
+        });
+        rows += result.length;
+      }
+      return rows + invokes(ctx.records, "search_unified_index") * 1000 + totals(ctx.records);
+    };
+    return checksum;
+  });
+
+  bench("suggest 5 settled queries pool=60", function* suggestQueriesPool60() {
+    const ctx = createCountingTransport(handlers());
+    const checksum = yield async () => {
+      ctx.reset();
+      let rows = 0;
+      for (const query of QUERIES) {
+        const result = await ctx.transport.call<UnifiedIndexRow[]>("search_unified_index", {
+          limit: 60,
           query,
           scope: "anime",
         });
@@ -261,9 +298,7 @@ group("ipc-chatter @ipc @quick", () => {
       );
       const count = entries.reduce((sum, entry) => sum + (entry.files?.length ?? 0), 0);
       return (
-        count +
-        invokes(ctx.records, "get_running_torrent_files_batch") * 1000 +
-        totals(ctx.records)
+        count + invokes(ctx.records, "get_running_torrent_files_batch") * 1000 + totals(ctx.records)
       );
     };
     return checksum;

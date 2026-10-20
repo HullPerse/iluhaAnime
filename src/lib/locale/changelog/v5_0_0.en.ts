@@ -123,7 +123,11 @@ const changelog500 = {
   "changelog.5_0_0.changed.anilist.detail_bundle":
     "Anime details open with one fewer server request: recommendations now ride inside the main details fetch",
   "changelog.5_0_0.changed.search.scoring_unify":
-    "Search suggestion scoring now uses the same day, week, and month steps as the SQL ranking, so suggestions and history agree",
+    "Search learning now uses one capped feedback model for suggestions and history: a select or repeated query raises a title, an ignore lowers it, and a ten-day half-life fades old signals. The old separate day, week and month steps are gone",
+  "changelog.5_0_0.changed.search.learning_persist":
+    "Search learning is stored in the app database instead of the browser: selects and ignores survive restarts, stay consistent across search surfaces, and the old anime-select counters reset once on upgrade",
+  "changelog.5_0_0.changed.search.candidate_pool":
+    "The suggestion dropdown ranks a wider candidate pool before trimming to the visible rows, so aliases and sequels are less likely to be cut before learning is applied",
   "changelog.5_0_0.changed.search.fts_startup":
     "Full text index optimization moved to a background thread at startup",
   "changelog.5_0_0.changed.app.folder_scan":
@@ -179,6 +183,12 @@ const changelog500 = {
     "Spell corrections moved into the suggestion dropdown as their own section, with a standalone panel when the dropdown is off: up to three variants to pick from and one Tab for everything",
   "changelog.5_0_0.fixed.search.spell_overlap":
     "The correction popup no longer covers the first suggestion rows or gets clipped in half on narrow inputs",
+  "changelog.5_0_0.fixed.search.base_title":
+    "A short base-title query such as `jujuts` now prefers `Jujutsu Kaisen` over `Jujutsu Kaisen 0`, and `steins` over the OVA, instead of letting a popularity boost pick a sequel",
+  "changelog.5_0_0.fixed.search.release_names":
+    "Pasting a release name such as `AKIRA S01E05 1080p` now fills the suggestion list with the title instead of leaving it empty: episode and quality tags are stripped before matching",
+  "changelog.5_0_0.fixed.search.learning_write":
+    "Selecting or ignoring a suggestion now updates every matching anime or local entry and keeps history per search surface; previously a wrong row id could drop the action",
   "changelog.5_0_0.changed.anilist.progress_blocks":
     "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
   "changelog.5_0_0.changed.settings.theme_cleanup":

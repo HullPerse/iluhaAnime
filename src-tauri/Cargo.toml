@@ -120,6 +120,10 @@ name = "file_query"
 harness = false
 
 [[bench]]
+name = "unified_index"
+harness = false
+
+[[bench]]
 name = "anilist_detail_bundle"
 harness = false
 

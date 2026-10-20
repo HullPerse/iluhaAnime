@@ -983,6 +983,7 @@ pub fn sync_franchise_to_index(app_handle: tauri::AppHandle) -> Result<usize, St
                 "animeId": id,
                 "format": cached.node.format,
             })),
+            bump_use: false,
         });
     }
     drop(guard);

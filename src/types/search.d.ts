@@ -91,6 +91,18 @@ export interface UnifiedIndexRow {
   lastUsedAt: number;
 }
 
+/** Raw feedback row returned by the SQLite index; `lastUsedAt` is in seconds. */
+export interface LearningStatRow {
+  id: string;
+  kind: string;
+  scope: string;
+  value: string;
+  useCount: number;
+  selectedCount: number;
+  ignoredCount: number;
+  lastUsedAt: number;
+}
+
 export interface SearchAnimeSuggestion {
   id: number;
   title: string;
@@ -117,13 +129,6 @@ export interface AnimeTitle {
   language: string | null;
   kind: AnimeTitleKind;
   source: string | null;
-}
-
-export interface SearchLearningSnapshot {
-  history: string[];
-  queryStats: Record<string, SearchQueryStat>;
-  suggestionStats: Record<string, SearchQueryStat>;
-  version?: number;
 }
 
 export interface SearchStore {
@@ -316,14 +321,7 @@ export interface AutocompleteParams {
 
 export type SearchPersistedState = Pick<
   SearchStore,
-  | "filters"
-  | "filterPresets"
-  | "history"
-  | "queryStats"
-  | "sortBy"
-  | "sortDirection"
-  | "suggestionStats"
-  | "spellDictionary"
+  "filters" | "filterPresets" | "history" | "sortBy" | "sortDirection" | "spellDictionary"
 >;
 export interface AuthSearchProps {
   source: string;
@@ -466,4 +464,5 @@ export interface AutocompleteInputProps extends ComponentProps<"input"> {
   onApplySpellCorrectionAt?: (correction: string) => void;
   onAddWordToDictionary?: (spanIndex?: number) => void;
   historyStats?: Record<string, SearchQueryStat>;
+  historyScope?: string;
 }

@@ -185,6 +185,7 @@ export interface SearchFieldInputProps {
   onApplySpellCorrectionAt: (correction: string) => void;
   onAddWordToDictionary: (spanIndex?: number) => void;
   historyStats?: Record<string, SearchQueryStat>;
+  historyScope?: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onAcceptCompletion: (value: string) => void;
   onDismissCompletion: () => void;

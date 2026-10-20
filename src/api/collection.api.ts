@@ -4,7 +4,7 @@ import type {
   CustomFieldDef,
   RawCollectionItem,
 } from "@/types/collection";
-import type { UnifiedIndexRow } from "@/types/search";
+import type { LearningStatRow, UnifiedIndexRow } from "@/types/search";
 
 import type { ApiTransport } from "./transport.api";
 import { tauriTransport } from "./transport.api";
@@ -22,6 +22,7 @@ export interface UnifiedIndexEntryInput {
   value: string;
   subtitle?: string;
   metadata?: unknown;
+  bumpUse?: boolean;
 }
 
 export interface CollectionApiConfig {
@@ -120,6 +121,10 @@ export class CollectionApi {
     return this.call("search_unified_index", { query, scope, limit });
   }
 
+  listLearningStats(ttlDays?: number): Promise<LearningStatRow[]> {
+    return this.call("list_learning_stats", { ttlDays });
+  }
+
   upsertUnifiedIndex(entries: UnifiedIndexEntryInput[]): Promise<void> {
     return this.call("upsert_unified_index", { entries });
   }
@@ -142,6 +147,14 @@ export class CollectionApi {
 
   recordUnifiedIndexAction(action: string, id: string): Promise<void> {
     return this.call("record_unified_index_action", { action, id });
+  }
+
+  recordUnifiedIndexValueAction(
+    action: string,
+    value: string,
+    scope?: string | null
+  ): Promise<number> {
+    return this.call("record_unified_index_value_action", { action, value, scope });
   }
 }
 

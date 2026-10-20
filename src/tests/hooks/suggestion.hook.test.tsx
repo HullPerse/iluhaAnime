@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { collectionApi } from "@/api/collection.api";
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
+import { suggestionPoolSize } from "@/lib/ranking/rank.utils";
+
+const POOL = suggestionPoolSize(8);
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -30,7 +33,7 @@ describe("useSuggestions", () => {
     expect(spy).not.toHaveBeenCalled();
     advance(150);
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenLastCalledWith("frie", "anilist", 8);
+    expect(spy).toHaveBeenLastCalledWith("frie", "anilist", POOL);
   });
 
   it("coalesces rapid keystrokes into a single backend call", () => {
@@ -44,7 +47,7 @@ describe("useSuggestions", () => {
     expect(spy).not.toHaveBeenCalled();
     advance(150);
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenLastCalledWith("frie", "anilist", 8);
+    expect(spy).toHaveBeenLastCalledWith("frie", "anilist", POOL);
   });
 
   it("skips one-character queries", () => {

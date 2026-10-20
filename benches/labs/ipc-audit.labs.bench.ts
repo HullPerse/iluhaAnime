@@ -89,7 +89,7 @@ function totals(records: Map<string, CallRecord>): number {
 }
 
 function auditHandlers(): Record<string, (args?: Record<string, unknown>) => unknown> {
-  const indexRows = Array.from({ length: 8 }, (_, i) => ({
+  const indexRows = Array.from({ length: 60 }, (_, i) => ({
     id: `row-${i}`,
     ignoredCount: 0,
     kind: "anime",
@@ -132,7 +132,8 @@ function auditHandlers(): Record<string, (args?: Record<string, unknown>) => unk
     player_open: () => ({ opened: true }),
     rutracker_get_magnet: () => "magnet:?xt=urn:btih:abc",
     search_nyaa: () => [{ title: "Release" }],
-    search_unified_index: () => indexRows,
+    search_unified_index: (args) =>
+      indexRows.slice(0, Math.max(1, Math.min(indexRows.length, Number(args?.limit ?? 8)))),
   };
 }
 
@@ -146,7 +147,13 @@ group("ipc-audit @ipc @quick", () => {
         ctx.transport.call<unknown[]>("list_custom_field_defs"),
         ctx.transport.call<unknown[]>("list_collection_statuses"),
       ]);
-      return items.length + defs.length + statuses.length + totalInvokes(ctx.records) * 1000 + totals(ctx.records);
+      return (
+        items.length +
+        defs.length +
+        statuses.length +
+        totalInvokes(ctx.records) * 1000 +
+        totals(ctx.records)
+      );
     };
     return checksum;
   });
@@ -225,7 +232,13 @@ group("ipc-audit @ipc @quick", () => {
         url: "https://nyaa.si/view/1",
       });
       const magnet = await ctx.transport.call<string>("rutracker_get_magnet", { topicId: "1" });
-      return results.length + Object.keys(details).length + magnet.length + totalInvokes(ctx.records) * 1000 + totals(ctx.records);
+      return (
+        results.length +
+        Object.keys(details).length +
+        magnet.length +
+        totalInvokes(ctx.records) * 1000 +
+        totals(ctx.records)
+      );
     };
     return checksum;
   });
@@ -260,6 +273,20 @@ group("ipc-audit @ipc @quick", () => {
       ctx.reset();
       const rows = await ctx.transport.call<unknown[]>("search_unified_index", {
         limit: 8,
+        query: "friren",
+        scope: "anime",
+      });
+      return rows.length + totalInvokes(ctx.records) * 1000 + totals(ctx.records);
+    };
+    return checksum;
+  });
+
+  bench("suggest keystroke settled pool=48 (1 invoke)", function* suggestKeystrokePool48() {
+    const ctx = createAuditTransport(auditHandlers());
+    const checksum = yield async () => {
+      ctx.reset();
+      const rows = await ctx.transport.call<unknown[]>("search_unified_index", {
+        limit: 48,
         query: "friren",
         scope: "anime",
       });
@@ -307,7 +334,11 @@ group("ipc-audit @ipc @quick", () => {
       });
       const notes = await ctx.transport.call<unknown[]>("get_anilist_notifications");
       return (
-        user.id + lists.length + notes.length + totalInvokes(ctx.records) * 1000 + totals(ctx.records)
+        user.id +
+        lists.length +
+        notes.length +
+        totalInvokes(ctx.records) * 1000 +
+        totals(ctx.records)
       );
     };
     return checksum;

@@ -306,6 +306,7 @@ export function InlineAutocompleteInput({
   onApplySpellCorrectionAt,
   onAddWordToDictionary,
   historyStats,
+  historyScope,
   value,
   ...props
 }: AutocompleteInputProps) {
@@ -333,12 +334,17 @@ export function InlineAutocompleteInput({
 
   const emptyHistorySuggestions = useMemo(
     () =>
-      rankHistoryEntries(history ?? [], historyStats, AUTOCOMPLETE_HISTORY_LIMIT).map((entry) => ({
+      rankHistoryEntries(
+        history ?? [],
+        historyStats,
+        AUTOCOMPLETE_HISTORY_LIMIT,
+        historyScope
+      ).map((entry) => ({
         kind: "history" as const,
         score: 0,
         value: entry,
       })),
-    [history, historyStats]
+    [history, historyStats, historyScope]
   );
 
   const spellItems = useMemo<SearchSuggestion[]>(

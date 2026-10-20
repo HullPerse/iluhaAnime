@@ -10,7 +10,6 @@ import {
 } from "@/lib/search/format.utils";
 import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/search/intent.utils";
 import { MASCOT_DIM_COVERAGE, overlapCoverage, shouldDimMascot } from "@/lib/search/mascot.utils";
-import { recencyBoost } from "@/lib/search/ranking.utils";
 import {
   dedupAnimeResults,
   filterAnimeResults,
@@ -36,7 +35,7 @@ import {
   buildShadowGradients,
   buildWallpaperFilter,
 } from "@/lib/wallpaper/wallpaper.utils";
-import type { SearchAnimeSuggestion, SearchQueryStat } from "@/types/search";
+import type { SearchAnimeSuggestion } from "@/types/search";
 import type { SearchFilters } from "@/types/search";
 import type { Anime } from "@/types/torrent";
 
@@ -443,8 +442,99 @@ describe("search/quality", () => {
       expect(top("shingeki")).toBe("Attack on Titan");
     });
 
+    it("prefers the base title over a sequel with a small popularity edge", () => {
+      const family: SearchAnimeSuggestion[] = [
+        {
+          aliases: [],
+          favourite: false,
+          id: 10,
+          score: 8,
+          status: "FINISHED",
+          title: "Jujutsu Kaisen",
+        },
+        {
+          aliases: [],
+          favourite: true,
+          id: 11,
+          score: 10,
+          status: "FINISHED",
+          title: "Jujutsu Kaisen 0",
+        },
+      ];
+      expect(getSearchSuggestions("jujuts", { animeIndex: family })[0]?.value).toBe(
+        "Jujutsu Kaisen"
+      );
+    });
+
     it("resolves typos through the spelling fallback", () => {
       expect(top("friren")).toBe("Frieren: Beyond Journey's End");
+    });
+
+    it("falls back to the title when a release name is pasted", () => {
+      const index: SearchAnimeSuggestion[] = [
+        {
+          aliases: [],
+          favourite: false,
+          id: 1,
+          score: 8,
+          season: null,
+          seasonYear: 1988,
+          status: "FINISHED",
+          title: "AKIRA",
+        },
+      ];
+      expect(getSearchSuggestions("AKIRA S01E05 1080p", { animeIndex: index })[0]?.value).toBe(
+        "AKIRA"
+      );
+      expect(getSearchSuggestions("AKIRA Episode 5 [1080p]", { animeIndex: index })[0]?.value).toBe(
+        "AKIRA"
+      );
+      expect(
+        getSearchSuggestions("[SubsPlease] AKIRA - 05 [1080p]", { animeIndex: index })[0]?.value
+      ).toBe("AKIRA");
+      expect(getSearchSuggestions("1080p", { animeIndex: index })).toEqual([]);
+
+      const pair: SearchAnimeSuggestion[] = [
+        {
+          aliases: [],
+          favourite: false,
+          id: 2,
+          score: 9,
+          season: null,
+          seasonYear: 2007,
+          status: "FINISHED",
+          title: "Afro Samurai",
+        },
+        {
+          aliases: [],
+          favourite: true,
+          id: 3,
+          score: 10,
+          season: null,
+          seasonYear: 2007,
+          status: "FINISHED",
+          title: "AFRO SAMURAI Movie",
+        },
+      ];
+      expect(
+        getSearchSuggestions("Afro Samurai S01E05 1080p", { animeIndex: pair })[0]?.value
+      ).toBe("Afro Samurai");
+
+      const dual: SearchAnimeSuggestion[] = [
+        {
+          aliases: [],
+          favourite: false,
+          id: 4,
+          score: 7,
+          season: null,
+          seasonYear: 1999,
+          status: "FINISHED",
+          title: "Dual! Parallel Trouble Adventure",
+        },
+      ];
+      expect(
+        getSearchSuggestions("Dual! Parallel Trouble Adventure", { animeIndex: dual })[0]?.value
+      ).toBe("Dual! Parallel Trouble Adventure");
     });
 
     it("prefers history matches learned by selection", () => {
@@ -491,39 +581,8 @@ describe("search/ranking", () => {
     });
   });
 
-  describe("ml phase1 - recency steps", () => {
-    it("recency decays in day/week/month steps matching SQL", () => {
-      expect(recencyBoost(0)).toBe(60);
-      expect(recencyBoost(24)).toBe(60);
-      expect(recencyBoost(25)).toBe(30);
-      expect(recencyBoost(24 * 7)).toBe(30);
-      expect(recencyBoost(24 * 8)).toBe(15);
-      expect(recencyBoost(24 * 30)).toBe(15);
-      expect(recencyBoost(24 * 31)).toBe(6);
-    });
-  });
-
   describe("ml phase1 - TTL", () => {
-    it("purges stats older than 90 days", async () => {
-      const { purgeSearchStats, searchAtoms } = await import("@/store/search.store");
-      const now = Date.now();
-      const old = now - 91 * 24 * 60 * 60 * 1000;
-      const queryStats: Record<string, SearchQueryStat> = {
-        fresh: { count: 1, lastUsedAt: now, selectedCount: 0 },
-        stale: { count: 5, lastUsedAt: old, selectedCount: 0 },
-      };
-      const suggestionStats: Record<string, SearchQueryStat> = {
-        stale2: { count: 1, lastUsedAt: old, selectedCount: 0 },
-      };
-      searchAtoms.queryStats.set(queryStats);
-      searchAtoms.suggestionStats.set(suggestionStats);
-      purgeSearchStats();
-      expect(searchAtoms.queryStats.get()["fresh"]).toBeDefined();
-      expect(searchAtoms.queryStats.get()["stale"]).toBeUndefined();
-      expect(searchAtoms.suggestionStats.get()["stale2"]).toBeUndefined();
-    });
-
-    it("getSearchSuggestions with Cyrillic ё still matches", () => {
+    it("keeps Cyrillic ё matching after normalization changes", () => {
       const idx: SearchAnimeSuggestion[] = [
         {
           id: 1,

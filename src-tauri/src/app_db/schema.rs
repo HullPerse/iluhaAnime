@@ -645,6 +645,24 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database game roms commit: {error}"))?;
     }
 
+    if version < 22 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database unified index value transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                CREATE INDEX IF NOT EXISTS idx_unified_index_normalized
+                    ON unified_index (normalized_value);
+                PRAGMA user_version = 22;
+                ",
+            )
+            .map_err(|error| format!("app database unified index value schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database unified index value commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"

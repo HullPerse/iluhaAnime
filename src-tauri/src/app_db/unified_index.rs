@@ -14,6 +14,21 @@ pub struct UnifiedIndexEntryInput {
     pub value: String,
     pub subtitle: Option<String>,
     pub metadata: Option<serde_json::Value>,
+    #[serde(default)]
+    pub bump_use: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningStatRow {
+    pub id: String,
+    pub kind: String,
+    pub scope: String,
+    pub value: String,
+    pub use_count: i64,
+    pub selected_count: i64,
+    pub ignored_count: i64,
+    pub last_used_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -56,7 +71,7 @@ pub fn normalize_index_text(value: &str) -> String {
         }
     }
     let trimmed = normalized.trim();
-    trimmed.chars().take(256).collect()
+    trimmed.chars().take(200).collect()
 }
 pub fn build_fts_match_query(normalized: &str) -> String {
     let tokens: Vec<&str> = normalized.split_whitespace().collect();
@@ -76,15 +91,6 @@ pub fn build_fts_match_query(normalized: &str) -> String {
         }
     }
     out
-}
-pub fn feedback_score_sql(column_prefix: &str) -> String {
-    format!(
-        "({column_prefix}selected_count * 20 + {column_prefix}use_count * 4 - {column_prefix}ignored_count * 8) * \
-         CASE WHEN {column_prefix}last_used_at > strftime('%s', 'now') - 86400 THEN 1.0 \
-         WHEN {column_prefix}last_used_at > strftime('%s', 'now') - 604800 THEN 0.5 \
-         WHEN {column_prefix}last_used_at > strftime('%s', 'now') - 2592000 THEN 0.25 \
-         ELSE 0.1 END"
-    )
 }
 fn validate_unified_index_entry(entry: &UnifiedIndexEntryInput) -> Result<String, String> {
     if entry.id.is_empty()
@@ -140,8 +146,10 @@ pub(crate) fn upsert_unified_index_batch(
         let mut statement = transaction
             .prepare(
                 "INSERT INTO unified_index
-                    (id, kind, scope, value, normalized_value, subtitle, metadata_json, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                    (id, kind, scope, value, normalized_value, subtitle, metadata_json,
+                     updated_at, use_count, last_used_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
+                    CASE WHEN ?9 > 0 THEN ?8 ELSE 0 END)
                  ON CONFLICT(id) DO UPDATE SET
                     kind = excluded.kind,
                     scope = excluded.scope,
@@ -149,7 +157,9 @@ pub(crate) fn upsert_unified_index_batch(
                     normalized_value = excluded.normalized_value,
                     subtitle = excluded.subtitle,
                     metadata_json = excluded.metadata_json,
-                    updated_at = excluded.updated_at",
+                    updated_at = excluded.updated_at,
+                    use_count = unified_index.use_count + ?9,
+                    last_used_at = CASE WHEN ?9 > 0 THEN ?8 ELSE unified_index.last_used_at END",
             )
             .map_err(|error| format!("prepare unified index upsert: {error}"))?;
         for entry in entries {
@@ -164,7 +174,8 @@ pub(crate) fn upsert_unified_index_batch(
                     normalized,
                     entry.subtitle,
                     metadata,
-                    now
+                    now,
+                    i64::from(entry.bump_use)
                 ])
                 .map_err(|error| format!("upsert unified index: {error}"))?;
         }
@@ -286,12 +297,7 @@ pub fn record_unified_index_action(
     if id.is_empty() || id.len() > 512 {
         return Err("Unified index id is invalid".into());
     }
-    let column = match action.as_str() {
-        "use" => "use_count",
-        "select" => "selected_count",
-        "ignore" => "ignored_count",
-        _ => return Err("Unknown unified index action".into()),
-    };
+    let column = action_column(&action)?;
     let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
@@ -305,6 +311,108 @@ pub fn record_unified_index_action(
     Ok(())
 }
 
+fn action_column(action: &str) -> Result<&'static str, String> {
+    match action {
+        "use" => Ok("use_count"),
+        "select" => Ok("selected_count"),
+        "ignore" => Ok("ignored_count"),
+        _ => Err("Unknown unified index action".into()),
+    }
+}
+
+/// Records feedback for every entry whose normalized value matches. History
+/// entries stay scope-isolated (they belong to a single search surface);
+/// anime and local entries are shared across scopes.
+pub(crate) fn record_value_action_inner(
+    connection: &rusqlite::Connection,
+    normalized: &str,
+    scope: Option<&str>,
+    column: &str,
+    now: i64,
+) -> Result<usize, String> {
+    connection
+        .execute(
+            &format!(
+                "UPDATE unified_index
+                 SET {column} = {column} + 1, last_used_at = ?1, updated_at = ?1
+                 WHERE normalized_value = ?2
+                   AND (?3 IS NULL OR kind <> 'history' OR scope = ?3)"
+            ),
+            params![now, normalized, scope],
+        )
+        .map_err(|error| format!("record unified index value action: {error}"))
+}
+
+#[tauri::command]
+pub fn record_unified_index_value_action(
+    app: tauri::AppHandle,
+    value: String,
+    action: String,
+    scope: Option<String>,
+) -> Result<usize, String> {
+    if value.chars().count() > 512 {
+        return Err("Unified index value is invalid".into());
+    }
+    let column = action_column(&action)?;
+    let normalized = normalize_index_text(&value);
+    if normalized.is_empty() {
+        return Ok(0);
+    }
+    let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
+    let connection = open_database(&app)?;
+    record_value_action_inner(
+        &connection,
+        &normalized,
+        scope.as_deref(),
+        column,
+        now_seconds(),
+    )
+}
+
+pub(crate) fn list_learning_stats_inner(
+    connection: &rusqlite::Connection,
+    cutoff: i64,
+) -> Result<Vec<LearningStatRow>, String> {
+    let mut statement = connection
+        .prepare(
+            "SELECT id, kind, scope, normalized_value, use_count, selected_count,
+                    ignored_count, last_used_at
+             FROM unified_index
+             WHERE (use_count + selected_count + ignored_count) > 0
+               AND last_used_at >= ?1
+             ORDER BY last_used_at DESC, id
+             LIMIT 50000",
+        )
+        .map_err(|error| format!("prepare learning stats: {error}"))?;
+    let rows = statement
+        .query_map(params![cutoff], |row| {
+            Ok(LearningStatRow {
+                id: row.get(0)?,
+                kind: row.get(1)?,
+                scope: row.get(2)?,
+                value: row.get(3)?,
+                use_count: row.get(4)?,
+                selected_count: row.get(5)?,
+                ignored_count: row.get(6)?,
+                last_used_at: row.get(7)?,
+            })
+        })
+        .map_err(|error| format!("read learning stats: {error}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("collect learning stats: {error}"))
+}
+
+#[tauri::command]
+pub fn list_learning_stats(
+    app: tauri::AppHandle,
+    ttl_days: Option<i64>,
+) -> Result<Vec<LearningStatRow>, String> {
+    let days = ttl_days.unwrap_or(90).clamp(1, 3650);
+    let cutoff = now_seconds() - days * 86_400;
+    let connection = open_database(&app)?;
+    list_learning_stats_inner(&connection, cutoff)
+}
+
 #[tauri::command]
 pub fn search_unified_index(
     app: tauri::AppHandle,
@@ -312,18 +420,30 @@ pub fn search_unified_index(
     scope: Option<String>,
     limit: Option<u32>,
 ) -> Result<Vec<UnifiedIndexEntry>, String> {
-    let normalized = normalize_index_text(&query);
+    let limit = limit.unwrap_or(20).clamp(1, 100);
+    let connection = open_database(&app)?;
+    search_unified_index_inner(&connection, &query, scope.as_deref(), limit)
+}
+
+pub(crate) fn search_unified_index_inner(
+    connection: &rusqlite::Connection,
+    query: &str,
+    scope: Option<&str>,
+    limit: u32,
+) -> Result<Vec<UnifiedIndexEntry>, String> {
+    let normalized = normalize_index_text(query);
     if normalized.is_empty() {
         return Ok(Vec::new());
     }
-    let limit = limit.unwrap_or(20).clamp(1, 100);
-    let connection = open_database(&app)?;
+    let limit = limit.clamp(1, 100);
     let prefix = format!("{normalized}%");
 
+    // Recall only: exact/prefix tiers first, then BM25. Feedback weights are
+    // applied in `src/lib/ranking` so one model owns the final order.
     let match_query = build_fts_match_query(&normalized);
     if normalized.chars().count() >= 3 && !match_query.is_empty() {
         let mut statement = connection
-            .prepare(&format!(
+            .prepare(
                 "SELECT ui.id, ui.kind, ui.scope, ui.value, ui.subtitle,
                     ui.metadata_json, ui.use_count, ui.selected_count,
                     ui.ignored_count, ui.last_used_at
@@ -336,11 +456,9 @@ pub fn search_unified_index(
                     WHEN ui.normalized_value LIKE ?4 THEN 1
                     ELSE 2 END,
                bm25(unified_index_fts) ASC,
-               {} DESC,
-               ui.last_used_at DESC, ui.value COLLATE NOCASE
+               ui.value COLLATE NOCASE
              LIMIT ?5",
-                feedback_score_sql("ui.")
-            ))
+            )
             .map_err(|error| format!("search unified index: {error}"))?;
         let rows = statement
             .query_map(
@@ -370,7 +488,7 @@ pub fn search_unified_index(
 
     let pattern = format!("%{normalized}%");
     let mut statement = connection
-        .prepare(&format!(
+        .prepare(
             "SELECT id, kind, scope, value, subtitle, metadata_json,
                     use_count, selected_count, ignored_count, last_used_at
              FROM unified_index
@@ -380,11 +498,9 @@ pub fn search_unified_index(
                CASE WHEN normalized_value = ?3 THEN 0
                     WHEN normalized_value LIKE ?4 THEN 1
                     ELSE 2 END,
-               {} DESC,
-               last_used_at DESC, value COLLATE NOCASE
+               value COLLATE NOCASE
              LIMIT ?5",
-            feedback_score_sql("")
-        ))
+        )
         .map_err(|error| format!("search unified index: {error}"))?;
     let rows = statement
         .query_map(params![pattern, scope, normalized, prefix, limit], |row| {
@@ -437,6 +553,7 @@ mod tests {
     fn unified_index_normalizes_and_orders_entries() {
         assert_eq!(normalize_index_text("  Frieren   S02  "), "frieren s02");
         assert_eq!(normalize_index_text("ЖЁсткий  Тест"), "жесткии тест");
+        assert_eq!(normalize_index_text(&"a".repeat(300)).chars().count(), 200);
     }
     #[test]
     fn scoped_pruning_never_removes_records_outside_the_scan_scope() {
@@ -589,45 +706,146 @@ mod tests {
         assert_eq!(count, 1);
     }
     #[test]
-    fn feedback_decay_prefers_fresh_over_stale_counts() {
+    fn normalized_value_index_covers_feedback_updates() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        let count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'index' AND name = 'idx_unified_index_normalized'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read index list");
+        assert_eq!(count, 1);
+        let plan: String = connection
+            .query_row(
+                "EXPLAIN QUERY PLAN
+                 UPDATE unified_index SET selected_count = selected_count + 1
+                 WHERE normalized_value = 'frieren'",
+                [],
+                |row| row.get(3),
+            )
+            .expect("read query plan");
+        assert!(
+            plan.contains("idx_unified_index_normalized"),
+            "feedback update must use the normalized value index, plan was {plan}"
+        );
+    }
+
+    #[test]
+    fn learning_stats_skip_zero_counters_and_stale_rows() {
         let connection = Connection::open_in_memory().expect("in-memory database");
         initialize_schema(&connection).expect("schema migration");
         let now = now_seconds();
-        let old = now - 60 * 86400;
-        for (id, value, use_count, ignored_count, last_used_at) in [
-            ("old_star", "probe old star", 50, 0, old),
-            ("fresh_riser", "probe fresh riser", 10, 0, now),
-            ("zero", "probe zero", 0, 0, 0),
-            ("fresh_sinner", "probe fresh sinner", 0, 5, now),
-            ("ancient", "probe ancient", 0, 100, old),
+        let old = now - 120 * 86400;
+        for (id, kind, scope, use_count, selected_count, ignored_count, last_used_at) in [
+            ("fresh", "history", "anilist", 3, 1, 0, now),
+            ("stale", "history", "anilist", 9, 0, 0, old),
+            ("zero", "anime", "anilist", 0, 0, 0, now),
+            ("ignored", "anime", "anilist", 0, 0, 2, now),
         ] {
             connection
                 .execute(
                     "INSERT INTO unified_index
                         (id, kind, scope, value, normalized_value, metadata_json,
-                         use_count, ignored_count, last_used_at, updated_at)
-                     VALUES (?1, 'anime', 'g', ?2, ?2, '{}', ?3, ?4, ?5, ?6)",
-                    params![id, value, use_count, ignored_count, last_used_at, now],
+                         use_count, selected_count, ignored_count, last_used_at, updated_at)
+                     VALUES (?1, ?2, ?3, ?1, ?1, '{}', ?4, ?5, ?6, ?7, ?7)",
+                    params![
+                        id,
+                        kind,
+                        scope,
+                        use_count,
+                        selected_count,
+                        ignored_count,
+                        last_used_at
+                    ],
                 )
-                .expect("insert entry");
+                .expect("insert learning fixture");
         }
-        let order: Vec<String> = connection
-            .prepare(&format!(
-                "SELECT id FROM unified_index
-                 WHERE normalized_value LIKE '%probe%'
-                 ORDER BY CASE WHEN normalized_value = 'probe' THEN 0 ELSE 2 END,
-                 {} DESC, last_used_at DESC, value",
-                feedback_score_sql("")
-            ))
-            .expect("prepare order")
-            .query_map([], |row| row.get(0))
-            .expect("query order")
+        let cutoff = now - 90 * 86400;
+        let rows = list_learning_stats_inner(&connection, cutoff).expect("learning stats");
+        let ids: Vec<&str> = rows.iter().map(|row| row.id.as_str()).collect();
+        assert_eq!(ids, vec!["fresh", "ignored"]);
+    }
+
+    #[test]
+    fn value_action_updates_shared_rows_and_scopes_history() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        let now = now_seconds();
+        for (id, kind, scope, normalized) in [
+            ("anime:1", "anime", "anilist", "frieren"),
+            ("anime:1:alias", "anime_alias", "anilist", "frieren"),
+            ("history:anilist:frieren", "history", "anilist", "frieren"),
+            ("history:torrent:frieren", "history", "torrent", "frieren"),
+        ] {
+            connection
+                .execute(
+                    "INSERT INTO unified_index
+                        (id, kind, scope, value, normalized_value, metadata_json, updated_at)
+                     VALUES (?1, ?2, ?3, 'Frieren', ?4, '{}', ?5)",
+                    params![id, kind, scope, normalized, now],
+                )
+                .expect("insert value action fixture");
+        }
+        let updated = record_value_action_inner(
+            &connection,
+            "frieren",
+            Some("anilist"),
+            "selected_count",
+            now,
+        )
+        .expect("record value action");
+        assert_eq!(updated, 3);
+        let counts: Vec<(String, i64)> = connection
+            .prepare("SELECT id, selected_count FROM unified_index ORDER BY id")
+            .expect("prepare counts")
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .expect("query counts")
             .collect::<Result<Vec<_>, _>>()
-            .expect("collect order");
+            .expect("collect counts");
         assert_eq!(
-            order,
-            vec!["fresh_riser", "old_star", "zero", "fresh_sinner", "ancient"]
+            counts,
+            vec![
+                ("anime:1".to_string(), 1),
+                ("anime:1:alias".to_string(), 1),
+                ("history:anilist:frieren".to_string(), 1),
+                ("history:torrent:frieren".to_string(), 0),
+            ]
         );
+    }
+
+    #[test]
+    fn upsert_bumps_use_count_only_when_requested() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        let now = now_seconds();
+        let entry = |bump_use: bool| UnifiedIndexEntryInput {
+            id: "history:anilist:frieren".into(),
+            kind: "history".into(),
+            scope: "anilist".into(),
+            value: "frieren".into(),
+            subtitle: None,
+            metadata: None,
+            bump_use,
+        };
+        let transaction = connection
+            .unchecked_transaction()
+            .expect("upsert transaction");
+        upsert_unified_index_batch(&transaction, &[entry(true)], now).expect("first upsert");
+        upsert_unified_index_batch(&transaction, &[entry(true)], now).expect("second upsert");
+        upsert_unified_index_batch(&transaction, &[entry(false)], now).expect("plain upsert");
+        transaction.commit().expect("commit upserts");
+        let (use_count, last_used_at): (i64, i64) = connection
+            .query_row(
+                "SELECT use_count, last_used_at FROM unified_index WHERE id = ?1",
+                params!["history:anilist:frieren"],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("read counters");
+        assert_eq!(use_count, 2);
+        assert_eq!(last_used_at, now);
     }
 
     /// Reproduces the production `upsert unified index: database is locked`

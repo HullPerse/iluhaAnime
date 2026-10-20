@@ -15,10 +15,9 @@ import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
-import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { markCacheReady } from "@/lib/splash/signals.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
+import { readAppCache } from "@/lib/store/cache.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import {
   DEEP_LINK_EVENT,
@@ -46,7 +45,12 @@ import {
   subscribeDeepLink,
 } from "@/store/deeplink.store";
 import { addNotification } from "@/store/notification.store";
-import { clearSearchAnimeIndex, searchAtoms, subscribeSearch } from "@/store/search.store";
+import {
+  clearSearchAnimeIndex,
+  hydrateSearchLearning,
+  searchAtoms,
+  subscribeSearch,
+} from "@/store/search.store";
 import { settingsAtoms, subscribeSettings } from "@/store/settings.store";
 import { closeUpdatePrompt, openUpdatePrompt, updateAtoms } from "@/store/update.store";
 import type {
@@ -54,7 +58,6 @@ import type {
   NotificationType,
   ShowNotificationPayload,
 } from "@/types/notification";
-import type { SearchLearningSnapshot } from "@/types/search";
 import type { TabId } from "@/types/settings";
 import type { FolderNode } from "@/types/torrent";
 
@@ -476,14 +479,14 @@ export function useApp() {
   useEffect(() => {
     let disposed = false;
     clearSearchAnimeIndex();
+    hydrateSearchLearning().catch((error) => reportBackgroundError("learning.hydrate", error));
     Promise.all([
       readAppCache<{ path: string; tree: FolderNode }[]>("player", "folderTrees"),
       readAppCache<string>("torrent", "lastSaveDir"),
       readAppCache<Record<number, boolean>>("torrent", "seedPreferences"),
       readAppCache<Record<number, number>>("player", "episodeTracker"),
-      readAppCache<SearchLearningSnapshot>("search", "learning"),
     ])
-      .then(([folderTrees, lastSaveDir, seedPreferences, episodeTracker, learning]) => {
+      .then(([folderTrees, lastSaveDir, seedPreferences, episodeTracker]) => {
         if (disposed) return;
         if (folderTrees?.payload) setFolderTrees(folderTrees.payload);
         if (lastSaveDir?.payload) {
@@ -491,21 +494,6 @@ export function useApp() {
         }
         if (seedPreferences?.payload) cacheAtoms.seedPreferences.set(seedPreferences.payload);
         if (episodeTracker?.payload) setEpisodeTracker(episodeTracker.payload);
-        if (learning?.payload) {
-          const ttlMs = 90 * 24 * 60 * 60 * 1000;
-          const now = Date.now();
-          const isExpired = (stat: { lastUsedAt: number }) => now - stat.lastUsedAt > ttlMs;
-          const filterStats = <T extends Record<string, { lastUsedAt: number }>>(stats: T): T => {
-            const out: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(stats ?? {})) {
-              if (!isExpired(v as { lastUsedAt: number })) out[k] = v;
-            }
-            return out as T;
-          };
-          searchAtoms.history.set(learning.payload.history ?? []);
-          searchAtoms.queryStats.set(filterStats(learning.payload.queryStats ?? {}));
-          searchAtoms.suggestionStats.set(filterStats(learning.payload.suggestionStats ?? {}));
-        }
         markCacheReady();
       })
       .catch((error: unknown) => {
@@ -514,55 +502,6 @@ export function useApp() {
       });
     return () => {
       disposed = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const saveLearning = () => {
-      const history = searchAtoms.history.get();
-      const queryStats = searchAtoms.queryStats.get();
-      const suggestionStats = searchAtoms.suggestionStats.get();
-      const snapshot: SearchLearningSnapshot = {
-        version: 1,
-        history,
-        queryStats,
-        suggestionStats,
-      };
-      const run = () => {
-        writeAppCache("search", "learning", snapshot).catch((error) =>
-          reportBackgroundError("learning.persist", error)
-        );
-      };
-      if (typeof window.requestIdleCallback === "function") {
-        window.requestIdleCallback(run, { timeout: 2000 });
-      } else {
-        run();
-      }
-    };
-    let previousLearning = {
-      history: searchAtoms.history.get(),
-      queryStats: searchAtoms.queryStats.get(),
-      suggestionStats: searchAtoms.suggestionStats.get(),
-    };
-    const saveSoon = new Debouncer(() => saveLearning(), { wait: 2000 });
-    const unsubscribe = subscribeSearch(() => {
-      const current = {
-        history: searchAtoms.history.get(),
-        queryStats: searchAtoms.queryStats.get(),
-        suggestionStats: searchAtoms.suggestionStats.get(),
-      };
-      if (
-        current.history !== previousLearning.history ||
-        current.queryStats !== previousLearning.queryStats ||
-        current.suggestionStats !== previousLearning.suggestionStats
-      ) {
-        previousLearning = current;
-        saveSoon.maybeExecute();
-      }
-    });
-    return () => {
-      unsubscribe();
-      saveSoon.cancel();
     };
   }, []);
 

@@ -3,8 +3,8 @@ import { useCallback, useRef, useState } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
 import { WIZARD_RESULTS_MAX } from "@/config/collection/defaults.config";
-import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
+import { RANKING } from "@/lib/ranking/ranking.config";
 import { parseOperatorTerms } from "@/lib/search/score.utils";
 import { matchNormalizedTitle, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { attempt, withFallback } from "@/lib/utils/attempt.utils";
@@ -27,8 +27,8 @@ function rankWizardResults(
       const isFavourite = favouriteIds.has(r.id);
       const score =
         base -
-        (isDuplicate ? SEARCH_RANKING.WIZARD_DUPLICATE_PENALTY : 0) +
-        (isFavourite ? SEARCH_RANKING.WIZARD_FAVOURITE_BOOST : 0);
+        (isDuplicate ? RANKING.WIZARD_DUPLICATE_PENALTY : 0) +
+        (isFavourite ? RANKING.WIZARD_FAVOURITE_BOOST : 0);
       return { r, score };
     })
     .sort((a, b) => b.score - a.score)

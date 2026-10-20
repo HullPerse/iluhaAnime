@@ -27,6 +27,9 @@
     "bench:slow": "labs \"@slow\"",
     "bench:rust": "cargo bench --manifest-path src-tauri/Cargo.toml",
     "bench:ipc": "bun scripts/e2e/measure-ipc.ts",
+    "bench:snapshot": "bun scripts/rank-snapshot.ts",
+    "bench:eval": "bun scripts/rank-eval.ts",
+    "bench:simulate": "bun scripts/rank-simulate.ts",
     "check": "ultracite check src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts",
     "fix": "ultracite fix src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts"
   },

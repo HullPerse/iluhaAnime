@@ -1,0 +1,657 @@
+{
+  "generatedFrom": "iluhaAnime app_data.sqlite3 (score desc, uniqueness checked)",
+  "note": "Draft set: each query resolves to exactly one anime across titles and aliases. Verify that the expectation matches what a user means.",
+  "queries": [
+    {
+      "expectedAliases": [
+        "Chainsaw Man – The Movie: Reze Arc",
+        "チェンソーマン レゼ篇",
+        "CSM: Reze-hen",
+        "CSM – The Movie: Reze Arc",
+        "Chainsaw Man – O Filme: Arco da Reze",
+        "Chainsaw Man - La película: El arco de Reze",
+        "Chainsaw Man - Il Film: La Storia di Reze",
+        "Человек-бензопила: Фильм – История Резе"
+      ],
+      "expectedTitle": "Chainsaw Man: Reze-hen",
+      "note": "exact title",
+      "query": "Chainsaw Man: Reze-hen"
+    },
+    {
+      "expectedAliases": [
+        "Hunter x Hunter (2011)",
+        "ハンター×ハンター",
+        "HxH",
+        "全职猎人",
+        "האנטר האנטר",
+        "ฮันเตอร์ x ฮันเตอร์",
+        "القناص ",
+        "Мисливець X Мисливець"
+      ],
+      "expectedTitle": "HUNTER×HUNTER (2011)",
+      "note": "exact title",
+      "query": "HUNTER×HUNTER (2011)"
+    },
+    {
+      "expectedAliases": [
+        "Ping Pong the Animation",
+        "ピンポン THE ANIMATION"
+      ],
+      "expectedTitle": "Ping Pong THE ANIMATION",
+      "note": "exact title",
+      "query": "Ping Pong THE ANIMATION"
+    },
+    {
+      "expectedAliases": [
+        "Serial Experiments Lain",
+        "シリアルエクスペリメンツレイン",
+        "Wirtualna Lain"
+      ],
+      "expectedTitle": "serial experiments lain",
+      "note": "exact title",
+      "query": "serial experiments lain"
+    },
+    {
+      "expectedAliases": [
+        "Afro Samurai the Movie",
+        "AFRO SAMURAI 劇場版"
+      ],
+      "expectedTitle": "AFRO SAMURAI Movie",
+      "note": "exact title",
+      "query": "AFRO SAMURAI Movie"
+    },
+    {
+      "expectedAliases": [
+        "Akira",
+        "アキラ"
+      ],
+      "expectedTitle": "AKIRA",
+      "note": "exact title",
+      "query": "AKIRA"
+    },
+    {
+      "expectedAliases": [
+        "アフロサムライ"
+      ],
+      "expectedTitle": "Afro Samurai",
+      "note": "exact title",
+      "query": "Afro Samurai"
+    },
+    {
+      "expectedAliases": [
+        "Blue Giant",
+        "블루 자이언트",
+        "蓝巨人",
+        "ブルージャイアント",
+        "Blue Giant Tokubetsu-hen",
+        "BLUE GIANT 特別編",
+        "ブルージャイント"
+      ],
+      "expectedTitle": "BLUE GIANT",
+      "note": "exact title",
+      "query": "BLUE GIANT"
+    },
+    {
+      "expectedAliases": [
+        "チェンソーマン",
+        "CSM",
+        "رجل المنشار",
+        "链锯人",
+        "Человек-бензопила",
+        "체인소 맨",
+        "Thợ Săn Quỷ"
+      ],
+      "expectedTitle": "Chainsaw Man",
+      "note": "exact title",
+      "query": "Chainsaw Man"
+    },
+    {
+      "expectedAliases": [
+        "カウボーイビバップ",
+        "카우보이 비밥",
+        "קאובוי ביבופ",
+        "คาวบอย บีบ๊อป",
+        "Ковбой Бибоп",
+        "Καουμπόηδες του Διαστήματος",
+        "Kowboj Bebop"
+      ],
+      "expectedTitle": "Cowboy Bebop",
+      "note": "exact title",
+      "query": "Cowboy Bebop"
+    },
+    {
+      "expectedAliases": [
+        "DEAD DEAD DEMONS DEDEDEDE DESTRUCTION",
+        "デッドデッドデーモンズデデデデデストラクション",
+        "DDDD"
+      ],
+      "expectedTitle": "Dead Dead Demon's Dededededestruction",
+      "note": "exact title",
+      "query": "Dead Dead Demon's Dededededestruction"
+    },
+    {
+      "expectedAliases": [
+        "デス・パレード",
+        "תהלוכת המוות"
+      ],
+      "expectedTitle": "Death Parade",
+      "note": "exact title",
+      "query": "Death Parade"
+    },
+    {
+      "expectedAliases": [
+        "灰羽連盟",
+        "Charcoal Feather Federation",
+        " Une fille qui a des ailes grises",
+        "Ailes Grises",
+        "Ali grigie",
+        "Haibane renmei: Stowarzyszenie Szaropiórych",
+        "Союз Серокрылых"
+      ],
+      "expectedTitle": "Haibane Renmei",
+      "note": "unique prefix",
+      "query": "Haibane Renm"
+    },
+    {
+      "expectedAliases": [
+        "Megalobox",
+        "メガロボクス"
+      ],
+      "expectedTitle": "Megalo Box",
+      "note": "unique prefix",
+      "query": "Megalo Box"
+    },
+    {
+      "expectedAliases": [
+        "Paranoia Agent",
+        "妄想代理人"
+      ],
+      "expectedTitle": "Mousou Dairinin",
+      "note": "unique prefix",
+      "query": "Mousou Dairi"
+    },
+    {
+      "expectedAliases": [
+        "MEGALOBOX 2: NOMAD",
+        "NOMAD メガロボクス2",
+        "เมกาโล่บ็อกซ์ เจ้าสังเวียนพันธุ์แกร่ง ภาค 2"
+      ],
+      "expectedTitle": "NOMAD: Megalo Box 2",
+      "note": "unique prefix",
+      "query": "NOMAD: Megal"
+    },
+    {
+      "expectedAliases": [
+        "Redline",
+        "Red line",
+        "レッドライン"
+      ],
+      "expectedTitle": "REDLINE",
+      "note": "unique prefix",
+      "query": "REDLINE"
+    },
+    {
+      "expectedAliases": [
+        "サムライチャンプルー",
+        "ساموراي تشامبلو",
+        "Самурай Чамплу"
+      ],
+      "expectedTitle": "Samurai Champloo",
+      "note": "unique prefix",
+      "query": "Samurai Cham"
+    },
+    {
+      "expectedAliases": [
+        "Gurren Lagann",
+        "天元突破グレンラガン",
+        "Heavenly Breakthrough Gurren Lagann",
+        "TTGL",
+        "Sfondamento dei cieli Gurren Lagann",
+        "Heaven-Piercing Gurren Lagann",
+        "Гуррен-Лаганн",
+        "Ґуррен Лаґанн",
+        "อภินิหารหุ่นทะลวงสวรรค์"
+      ],
+      "expectedTitle": "Tengen Toppa Gurren Lagann",
+      "note": "unique prefix",
+      "query": "Tengen Toppa"
+    },
+    {
+      "expectedAliases": [
+        "Akagi",
+        "闘牌伝説アカギ 闇に舞い降りた天才",
+        "Mahjong Legend Akagi: The Genius Who Descended Into the Darkness"
+      ],
+      "expectedTitle": "Touhai Densetsu Akagi: Yami ni Maiorita Tensai",
+      "note": "unique prefix",
+      "query": "Touhai Dense"
+    },
+    {
+      "expectedAliases": [
+        "The Tatami Galaxy",
+        "四畳半神話大系",
+        "Yojo-Han Shinwa Taikei",
+        "Yojou-Han Shinwa Taikei",
+        "Yojohan Shinwa Taikei",
+        "四叠半神话大系",
+        "4½ Tatami Mythological Chronicles"
+      ],
+      "expectedTitle": "Yojouhan Shinwa Taikei",
+      "note": "unique prefix",
+      "query": "Yojouhan Shi"
+    },
+    {
+      "expectedAliases": [
+        "The Night is Short, Walk on Girl",
+        "夜は短し歩けよ乙女",
+        "春宵苦短，少女前进吧！"
+      ],
+      "expectedTitle": "Yoru wa Mijikashi Arukeyo Otome",
+      "note": "unique prefix",
+      "query": "Yoru wa Miji"
+    },
+    {
+      "expectedAliases": [
+        "Ghost in the Shell",
+        "GHOST IN THE SHELL / 攻殻機動隊",
+        "GitS",
+        "Ghost in the Shell: O Fantasma do Futuro",
+        "Duch w pancerzu",
+        "Páncélba zárt szellem"
+      ],
+      "expectedTitle": "GHOST IN THE SHELL: Koukaku Kidoutai",
+      "note": "unique alias",
+      "query": "Ghost in the Shell"
+    },
+    {
+      "expectedAliases": [
+        "Kaiji - Against All Rules",
+        "逆境無頼カイジ 破戒録篇",
+        "The Suffering Pariah Kaiji: Backslide Arc",
+        "Kaiji 2"
+      ],
+      "expectedTitle": "Gyakkyou Burai Kaiji: Hakairoku-hen",
+      "note": "unique alias",
+      "query": "Kaiji - Against All Rules",
+      "comment": "English title of Gyakkyou Burai Kaiji: Hakairoku-hen (season 2), not the whole franchise."
+    },
+    {
+      "expectedAliases": [
+        "Fullmetal Alchemist: Brotherhood",
+        "鋼の錬金術師 FULLMETAL ALCHEMIST",
+        "FMA",
+        "FMAB",
+        "Hagaren",
+        "الخيميائي الفولاذي",
+        "אלכימאי המתכת: אחוות אחים",
+        "Full Metal Alchemist: Brotherhood",
+        "钢之炼金术师 FULLMETAL ALCHEMIST",
+        "แขนกล คนแปรธาตุ: บราเธอร์ฮูด",
+        "Stalowy alchemik: Misja braci",
+        "Сталевий алхімік. Братерство",
+        "Стальной алхимик: Братство"
+      ],
+      "expectedTitle": "Hagane no Renkinjutsushi: FULLMETAL ALCHEMIST",
+      "note": "unique alias",
+      "query": "Fullmetal Alchemist: Brotherhood"
+    },
+    {
+      "expectedAliases": [
+        "Baki Hanma",
+        "範馬刃牙",
+        "Baki: Son of Ogre",
+        "Hanma Baki: SON OF OGRE",
+        "ฮันมะ บากิ",
+        "Баки Ханма",
+        "Μπάκι Χάνμα",
+        "Бакі Ханма"
+      ],
+      "expectedTitle": "Hanma Baki",
+      "note": "unique alias",
+      "query": "Baki Hanma",
+      "comment": "AniList English title of Hanma Baki; the database has no separate Baki Hanma entry."
+    },
+    {
+      "expectedAliases": [
+        "Baki Hanma Season 2",
+        "範馬刃牙 シーズン２",
+        "Baki Hanma: Son of Ogre 2",
+        "Son of Ogre Baki Hanma Season 2"
+      ],
+      "expectedTitle": "Hanma Baki Season 2",
+      "note": "unique alias",
+      "query": "Baki Hanma Season 2",
+      "comment": "English title of Hanma Baki Season 2, not the base season."
+    },
+    {
+      "expectedAliases": [
+        "Land of the Lustrous",
+        "宝石の国",
+        "L'Ère des Cristaux",
+        "Das Land der Juwelen",
+        "Страна самоцветов",
+        "Vương Quốc Bảo Thạch",
+        "ดินแดนอัญมณี"
+      ],
+      "expectedTitle": "Houseki no Kuni",
+      "note": "unique alias",
+      "query": "Land of the Lustrous"
+    },
+    {
+      "expectedAliases": [
+        "JoJo's Bizarre Adventure (TV)",
+        "ジョジョの奇妙な冒険 (TV)",
+        "JoJo no Kimyou na Bouken (2012)",
+        "JoJo no Kimyou na Bouken: Sentou Chouryuu",
+        "JoJo's Bizarre Adventure: Phantom Blood",
+        "JoJo's Bizarre Adventure: Battle Tendency",
+        "مغامرات جوجو العجيبة",
+        "مغامرات جوجو العجيبة:الدماء الوهمية",
+        "مغامرات جوجو العجيبة:حمى القتال",
+        "Le bizzarre avventure di JoJo (2012)",
+        "Le bizzarre avventure di JoJo: Phantom Blood",
+        "Le bizzarre avventure di JoJo: Battle Tendency",
+        "Химерні пригоди ДжоДжо: Тяжіння до бою",
+        "Химерні пригоди ДжоДжо: Примарна кров",
+        "JJBA",
+        "Невероятные приключения ДжоДжо: Призрачная кровь",
+        "Невероятные приключения ДжоДжо: Стремление к бою"
+      ],
+      "expectedTitle": "JoJo no Kimyou na Bouken (TV)",
+      "note": "unique alias",
+      "query": "JoJo's Bizarre Adventure (TV)"
+    },
+    {
+      "expectedAliases": [
+        "JUJUTSU KAISEN Season 3: The Culling Game Part 1",
+        "呪術廻戦 死滅回游 前編",
+        "Jujutsu Kaisen 3rd Season",
+        "呪術廻戦 第3期",
+        "JJK3",
+        "มหาเวทย์ผนึกมาร จรดลล้างบาง พาร์ต 1"
+      ],
+      "expectedTitle": "Jujutsu Kaisen: Shimetsu Kaiyuu - Zenpen",
+      "note": "unique alias",
+      "query": "JUJUTSU KAISEN Season 3: The Culling Game Part 1"
+    },
+    {
+      "expectedAliases": [
+        "Chainsaw Man – The Movie: Reze Arc",
+        "チェンソーマン レゼ篇",
+        "CSM: Reze-hen",
+        "CSM – The Movie: Reze Arc",
+        "Chainsaw Man – O Filme: Arco da Reze",
+        "Chainsaw Man - La película: El arco de Reze",
+        "Chainsaw Man - Il Film: La Storia di Reze",
+        "Человек-бензопила: Фильм – История Резе"
+      ],
+      "expectedTitle": "Chainsaw Man: Reze-hen",
+      "note": "release noise",
+      "query": "Chainsaw Man: Reze-hen S01E05 1080p"
+    },
+    {
+      "expectedAliases": [
+        "Hunter x Hunter (2011)",
+        "ハンター×ハンター",
+        "HxH",
+        "全职猎人",
+        "האנטר האנטר",
+        "ฮันเตอร์ x ฮันเตอร์",
+        "القناص ",
+        "Мисливець X Мисливець"
+      ],
+      "expectedTitle": "HUNTER×HUNTER (2011)",
+      "note": "release noise",
+      "query": "HUNTER×HUNTER (2011) S01E05 1080p"
+    },
+    {
+      "expectedAliases": [
+        "Ping Pong the Animation",
+        "ピンポン THE ANIMATION"
+      ],
+      "expectedTitle": "Ping Pong THE ANIMATION",
+      "note": "release noise",
+      "query": "Ping Pong THE ANIMATION S01E05 1080p"
+    },
+    {
+      "expectedAliases": [
+        "Serial Experiments Lain",
+        "シリアルエクスペリメンツレイン",
+        "Wirtualna Lain"
+      ],
+      "expectedTitle": "serial experiments lain",
+      "note": "release noise",
+      "query": "serial experiments lain S01E05 1080p"
+    },
+    {
+      "expectedAliases": [
+        "Afro Samurai the Movie",
+        "AFRO SAMURAI 劇場版"
+      ],
+      "expectedTitle": "AFRO SAMURAI Movie",
+      "note": "release noise",
+      "query": "AFRO SAMURAI Movie S01E05 1080p"
+    },
+    {
+      "expectedAliases": [
+        "Akira",
+        "アキラ"
+      ],
+      "expectedTitle": "AKIRA",
+      "note": "release noise",
+      "query": "AKIRA S01E05 1080p"
+    },
+    {
+      "expectedAliases": [
+        "アフロサムライ"
+      ],
+      "expectedTitle": "Afro Samurai",
+      "note": "release noise",
+      "query": "Afro Samurai S01E05 1080p",
+      "comment": "Release noise must resolve to the series, not to AFRO SAMURAI Movie."
+    },
+    {
+      "expectedAliases": [
+        "Blue Giant",
+        "블루 자이언트",
+        "蓝巨人",
+        "ブルージャイアント",
+        "Blue Giant Tokubetsu-hen",
+        "BLUE GIANT 特別編",
+        "ブルージャイント"
+      ],
+      "expectedTitle": "BLUE GIANT",
+      "note": "release noise",
+      "query": "BLUE GIANT S01E05 1080p"
+    },
+    {
+      "expectedAliases": [
+        "Frieren: Beyond Journey’s End",
+        "葬送のフリーレン",
+        "Frieren at the Funeral",
+        "장송의 프리렌",
+        "Frieren - Oltre la Fine del Viaggio",
+        "คำอธิษฐานในวันที่จากลา Frieren",
+        "Frieren e a Jornada para o Além",
+        "Frieren – Nach dem Ende der Reise",
+        "葬送的芙莉蓮",
+        "Frieren: Más allá del final del viaje",
+        "Frieren en el funeral",
+        "Sōsō no Furīren",
+        "Frieren. U kresu drogi",
+        "Frieren - Pháp sư tiễn táng",
+        "Фрирен, провожающая в последний путь",
+        "فريرن: ما وراء نهاية الرحلة",
+        "Frieren: Tras finalizar el viaje"
+      ],
+      "expectedTitle": "Sousou no Frieren",
+      "note": "base title",
+      "query": "frieren",
+      "comment": "History echo 'frieren' is expected to stay #1; this checks the base season is the first title."
+    },
+    {
+      "expectedAliases": [
+        "JUJUTSU KAISEN",
+        "呪術廻戦",
+        "JJK",
+        "Sorcery Fight",
+        "咒术回战",
+        "주술회전",
+        "มหาเวทย์ผนึกมาร",
+        "جوجوتسو كايسن",
+        "Магическая битва",
+        "咒術迴戰",
+        "Chú Thuật Hồi Chiến"
+      ],
+      "expectedTitle": "Jujutsu Kaisen",
+      "note": "base title",
+      "query": "jujutsu kaisen"
+    },
+    {
+      "expectedAliases": [
+        "Attack on Titan",
+        "進撃の巨人",
+        "SnK",
+        "AoT",
+        "Ataque a los Titanes",
+        "Ataque dos Titãs",
+        "L'Attacco dei Giganti",
+        "מתקפת הטיטאנים",
+        "进击的巨人",
+        "L’Attaque des Titans",
+        "الهجوم على العمالقة",
+        "ผ่าพิภพไททัน",
+        "حمله به تایتان",
+        "Ataque de Titãs",
+        "Atak Tytanów",
+        "Атака титанов",
+        "Đại Chiến Titan"
+      ],
+      "expectedTitle": "Shingeki no Kyojin",
+      "note": "base title",
+      "query": "shingeki no kyojin"
+    },
+    {
+      "expectedAliases": [
+        "Demon Slayer: Kimetsu no Yaiba",
+        "鬼滅の刃",
+        "KnY",
+        "Kimetsu no Yaiba: Kyoudai no Kizuna",
+        "Demon Slayer: Kimetsu no Yaiba: Bonds of Siblings",
+        "鬼滅の刃-兄妹の絆-",
+        "鬼灭之刃",
+        "הלהב קוטל השדים",
+        "قاتل الشياطين",
+        "ดาบพิฆาตอสูร",
+        "Miecz zabójcy demonów – Kimetsu no Yaiba",
+        " Guardians de la nit: Kimetsu no Yaiba",
+        "İblis Keser",
+        "ΚΥΝΗΓΟΣ ΔΑΙΜΟΝΩΝ: KIMETSU NO YAIBA",
+        "Zabiják démonů",
+        "شیطان کش",
+        "귀멸의 칼날",
+        "Истребитель демонов",
+        "Клинок, рассекающий демонов"
+      ],
+      "expectedTitle": "Kimetsu no Yaiba",
+      "note": "base title",
+      "query": "kimetsu no yaiba"
+    },
+    {
+      "expectedAliases": [
+        "Vinland Saga Season 2",
+        "ヴィンランド・サガ SEASON2",
+        "Сага о Винланде 2"
+      ],
+      "expectedTitle": "VINLAND SAGA SEASON 2",
+      "note": "typo (deleted char)",
+      "query": "VINLAND SAA SEASON 2"
+    },
+    {
+      "expectedAliases": [
+        "March comes in like a lion",
+        "３月のライオン",
+        "Sangatsu no Lion",
+        "Un marzo da leoni",
+        "מרץ מגיע כאריה",
+        "أسد آذار"
+      ],
+      "expectedTitle": "3-gatsu no Lion",
+      "note": "typo (deleted char)",
+      "query": "3-gatsuno Lion"
+    },
+    {
+      "expectedAliases": [
+        "March comes in like a lion Season 2",
+        "３月のライオン 第2シリーズ",
+        "Sangatsu no Lion 2",
+        "מרץ מגיע כאריה 2"
+      ],
+      "expectedTitle": "3-gatsu no Lion 2nd Season",
+      "note": "typo (deleted char)",
+      "query": "3-gatsu no Lin 2nd Season"
+    },
+    {
+      "expectedAliases": [
+        "ACCA: 13-Territory Inspection Dept.",
+        "ACCA 13区監察課",
+        "ACCA: Jusan-ku Kansatsu-ka"
+      ],
+      "expectedTitle": "ACCA: 13-ku Kansatsu-ka",
+      "note": "typo (deleted char)",
+      "query": "ACCA: 13-kuKansatsu-ka"
+    },
+    {
+      "expectedAliases": [
+        "BEASTARS Season 2",
+        "BEASTARS 第2期",
+        "บีสตาร์ ภาค 2",
+        "Выдающиеся звери 2",
+        "ビースターズ 2"
+      ],
+      "expectedTitle": "BEASTARS 2nd Season",
+      "note": "typo (deleted char)",
+      "query": "BEASTARS nd Season"
+    },
+    {
+      "expectedAliases": [
+        "Black Lagoon",
+        "ブラック・ラグーン",
+        "البحيرة السوداء",
+        "Пираты Черной Лагуны"
+      ],
+      "expectedTitle": "BLACK LAGOON",
+      "note": "typo (deleted char)",
+      "query": "BLACK AGOON"
+    },
+    {
+      "query": "[SubsPlease] AKIRA - 05 [1080p]",
+      "expectedTitle": "AKIRA",
+      "expectedAliases": [],
+      "note": "release noise",
+      "comment": "Bracket group plus trailing episode number; exercises the strongest fallback path."
+    },
+    {
+      "query": "Баки Ханма",
+      "expectedTitle": "Hanma Baki",
+      "expectedAliases": [
+        "Baki Hanma",
+        "範馬刃牙",
+        "Baki: Son of Ogre",
+        "Hanma Baki: SON OF OGRE"
+      ],
+      "note": "cyrillic alias",
+      "comment": "Cyrillic alias from the index; checks non-Latin normalization."
+    },
+    {
+      "query": "Frieren Beyond Journeys End",
+      "expectedTitle": "Sousou no Frieren",
+      "expectedAliases": [
+        "Sousou no Frieren"
+      ],
+      "note": "english title",
+      "comment": "English title typed without punctuation; the base season is the expected answer."
+    }
+  ],
+  "version": 1
+}

@@ -1,16 +1,20 @@
-import { mockInvoke } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  addSearchQuery,
   clearAllSearchLearning,
   deleteSearchFilterPreset,
+  hydrateSearchLearning,
   indexSearchAniList,
+  recordSearchSuggestion,
   saveSearchFilterPreset,
   searchAtoms,
 } from "@/store/search.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 import type { AniMedia } from "@/types/anilist";
 import type { SearchFilters } from "@/types/search";
+
+import { mockInvoke } from "../mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -85,6 +89,9 @@ const FILTERS: SearchFilters = {
 
 beforeEach(() => {
   searchAtoms.filterPresets.set([]);
+  searchAtoms.history.set([]);
+  searchAtoms.queryStats.set({});
+  searchAtoms.suggestionStats.set({});
   localStorage.removeItem("animeIndexSyncKey");
 });
 
@@ -110,6 +117,63 @@ describe("filter presets", () => {
     saveSearchFilterPreset("b", FILTERS);
     deleteSearchFilterPreset("a");
     expect(searchAtoms.filterPresets.get().map((p) => p.name)).toEqual(["b"]);
+  });
+});
+
+describe("learning counters", () => {
+  function callArgs(command: string): Record<string, unknown> | undefined {
+    const call = mockInvoke.mock.calls.find((entry) => entry[0] === command);
+    return call?.[1] as Record<string, unknown> | undefined;
+  }
+
+  it("writes submissions with a single use bump and updates the projection", async () => {
+    mockInvoke.mockClear();
+    mockInvoke.mockResolvedValue(null);
+    addSearchQuery("  Frieren  ", "anilist");
+    await vi.waitFor(() => expect(callArgs("upsert_unified_index")).toBeDefined());
+    const args = callArgs("upsert_unified_index");
+    expect(args?.entries).toEqual([
+      expect.objectContaining({ bumpUse: true, id: "history:anilist:frieren" }),
+    ]);
+    expect(searchAtoms.queryStats.get()["anilist:frieren"]).toMatchObject({ count: 1 });
+    expect(mockInvoke.mock.calls.filter((call) => call[0] === "upsert_unified_index")).toHaveLength(
+      1
+    );
+  });
+
+  it("records a selection against every matching index row", () => {
+    mockInvoke.mockClear();
+    mockInvoke.mockResolvedValue(2);
+    recordSearchSuggestion("Frieren", "anilist");
+    expect(callArgs("record_unified_index_value_action")).toEqual({
+      action: "select",
+      scope: "anilist",
+      value: "Frieren",
+    });
+    expect(searchAtoms.suggestionStats.get().frieren?.selectedCount).toBe(1);
+  });
+
+  it("hydrates counters from SQLite seconds", async () => {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue([
+      {
+        id: "history:anilist:frieren",
+        ignoredCount: 0,
+        kind: "history",
+        lastUsedAt: nowSeconds,
+        scope: "anilist",
+        selectedCount: 1,
+        useCount: 2,
+        value: "frieren",
+      },
+    ]);
+    await hydrateSearchLearning();
+    expect(searchAtoms.queryStats.get()["anilist:frieren"]).toMatchObject({
+      count: 2,
+      selectedCount: 1,
+    });
+    expect(searchAtoms.suggestionStats.get().frieren?.selectedCount).toBe(1);
   });
 });
 

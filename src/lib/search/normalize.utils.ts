@@ -1,6 +1,6 @@
-import { SEARCH_RANKING } from "@/config/search/ranking.config";
+import { RANKING } from "@/lib/ranking/ranking.config";
 
-const MAX_QUERY_LENGTH = SEARCH_RANKING.MAX_QUERY_LENGTH;
+const MAX_QUERY_LENGTH = RANKING.MAX_QUERY_LENGTH;
 
 export function foldDiacritics(value: string): string {
   return value

@@ -9,7 +9,6 @@ import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/state/signal.hook";
-import { deleteAppCache } from "@/lib/store/cache.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import {
   clearAllSearchLearning,
@@ -469,7 +468,6 @@ export default function SettingsSearch() {
             onClick={() => {
               clearAllSearchLearning()
                 .catch((error) => reportBackgroundError("learning.clear", error));
-              deleteAppCache("search", "learning");
             }}
           >
             {t("settings.search.clear.all.learning")}
@@ -481,7 +479,6 @@ export default function SettingsSearch() {
         <Button
           onClick={() => {
             resetAnimeSuggestions();
-            deleteAppCache("search", "learning");
           }}
         >
           {t("settings.search.reset.anime.suggestions")}

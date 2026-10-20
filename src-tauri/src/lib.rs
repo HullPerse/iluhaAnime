@@ -35,6 +35,69 @@ pub mod benchmark_api {
     };
     pub use crate::scrapers::details::{parse_torrent_detail_html, TorrentDetails};
     pub use crate::user_assets::{compare_cover_bytes, CoverDiff};
+
+    /// Offline fixture hooks for `benches/unified_index.rs`. The real commands
+    /// are AppHandle-bound; these wrappers take a plain connection so the
+    /// recall queries can be measured without a Tauri runtime.
+    pub mod unified_index {
+        use rusqlite::Connection;
+
+        pub use crate::app_db::{LearningStatRow, UnifiedIndexEntry, UnifiedIndexEntryInput};
+
+        pub fn open_fixture() -> Result<Connection, String> {
+            let connection = Connection::open_in_memory()
+                .map_err(|error| format!("bench unified index connection: {error}"))?;
+            crate::app_db::schema::initialize_schema(&connection)?;
+            Ok(connection)
+        }
+
+        pub fn normalize(value: &str) -> String {
+            crate::app_db::normalize_index_text(value)
+        }
+
+        pub fn seed(
+            connection: &mut Connection,
+            entries: &[UnifiedIndexEntryInput],
+        ) -> Result<(), String> {
+            let transaction = connection
+                .transaction()
+                .map_err(|error| format!("bench unified index transaction: {error}"))?;
+            crate::app_db::upsert_unified_index_batch(
+                &transaction,
+                entries,
+                crate::app_db::db::now_seconds(),
+            )?;
+            transaction
+                .commit()
+                .map_err(|error| format!("bench unified index commit: {error}"))
+        }
+
+        pub fn search(
+            connection: &Connection,
+            query: &str,
+            scope: Option<&str>,
+            limit: u32,
+        ) -> Result<Vec<UnifiedIndexEntry>, String> {
+            crate::app_db::search_unified_index_inner(connection, query, scope, limit)
+        }
+
+        pub fn learning_stats(
+            connection: &Connection,
+            cutoff: i64,
+        ) -> Result<Vec<LearningStatRow>, String> {
+            crate::app_db::list_learning_stats_inner(connection, cutoff)
+        }
+
+        pub fn record_value(
+            connection: &Connection,
+            normalized: &str,
+            scope: Option<&str>,
+            column: &str,
+            now: i64,
+        ) -> Result<usize, String> {
+            crate::app_db::record_value_action_inner(connection, normalized, scope, column, now)
+        }
+    }
 }
 mod auth;
 mod bencode;
@@ -1264,6 +1327,7 @@ fn local_index_row(entry: &file_index::FileEntry) -> app_db::UnifiedIndexEntryIn
         value: entry.name.clone(),
         subtitle: Some(entry.path.clone()),
         metadata: Some(serde_json::json!({ "size": entry.size })),
+        bump_use: false,
     }
 }
 
@@ -1849,6 +1913,8 @@ pub fn run() {
             app_db::prune_unified_index_scope,
             app_db::optimize_unified_index,
             app_db::record_unified_index_action,
+            app_db::record_unified_index_value_action,
+            app_db::list_learning_stats,
             app_db::search_unified_index,
             app_db::list_collection_statuses,
             app_db::upsert_collection_status,

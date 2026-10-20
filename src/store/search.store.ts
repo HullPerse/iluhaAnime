@@ -1,28 +1,32 @@
 import { collectionApi } from "@/api/collection.api";
 import type { UnifiedIndexEntryInput } from "@/api/collection.api";
-import { SEARCH_RANKING } from "@/config/search/ranking.config";
+import {
+  applyLearningAction,
+  buildLearningMaps,
+  dropLearningScope,
+  learningStatKey,
+} from "@/lib/ranking/learning.utils";
+import { RANKING } from "@/lib/ranking/ranking.config";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { buildTypedTitles } from "@/lib/search/title.utils";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { settingsAtoms } from "@/store/settings.store";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 import type {
   CorrectionReason,
   SearchAnimeSuggestion,
   SearchFilters,
   SearchPersistedState,
-  SearchQueryStat,
   SearchStore,
 } from "@/types/search";
 
-export const SEARCH_SCHEMA_VERSION = 3;
+export const SEARCH_SCHEMA_VERSION = 4;
 
-const MAX_LEARNING_ITEMS = SEARCH_RANKING.MAX_LEARNING_ITEMS;
+const MAX_LEARNING_ITEMS = RANKING.MAX_LEARNING_ITEMS;
 const INDEX_BATCH_SIZE = 1000;
-const TTL_MS = SEARCH_RANKING.TTL_MS;
 
 const defaultFilters: SearchFilters = {
   codec: "all",
@@ -38,49 +42,8 @@ function normalize(value: string): string {
   return normalizeSearchText(value);
 }
 
-function purgeExpired(stats: Record<string, SearchQueryStat>): Record<string, SearchQueryStat> {
-  const now = Date.now();
-  let changed = false;
-  const next: Record<string, SearchQueryStat> = {};
-  for (const [key, value] of Object.entries(stats)) {
-    if (now - value.lastUsedAt > TTL_MS) {
-      changed = true;
-      continue;
-    }
-    next[key] = value;
-  }
-  return changed ? next : stats;
-}
-
-function updateStat(
-  stats: Record<string, SearchQueryStat>,
-  value: string,
-  selected = false,
-  ignored = false,
-  reason?: CorrectionReason
-): Record<string, SearchQueryStat> {
-  const key = normalize(value);
-  if (!key) return stats;
-  const purged = purgeExpired(stats);
-  const current = purged[key];
-  const next = {
-    ...purged,
-    [key]: {
-      count: (current?.count ?? 0) + (selected || ignored ? 0 : 1),
-      lastIgnoredAt: ignored ? Date.now() : current?.lastIgnoredAt,
-      lastReason: reason ?? current?.lastReason,
-      lastUsedAt: Date.now(),
-      selectedCount: (current?.selectedCount ?? 0) + (selected ? 1 : 0),
-      ignoredCount: (current?.ignoredCount ?? 0) + (ignored ? 1 : 0),
-    },
-  };
-  const keys = Object.keys(next);
-  if (keys.length <= MAX_LEARNING_ITEMS) return next;
-  keys
-    .sort((a, b) => (next[a].lastUsedAt ?? 0) - (next[b].lastUsedAt ?? 0))
-    .slice(0, keys.length - MAX_LEARNING_ITEMS)
-    .forEach((keyToRemove) => delete next[keyToRemove]);
-  return next;
+function historyEntryId(scope: string, normalized: string): string {
+  return `history:${scope}:${normalized}`;
 }
 
 let indexChain: Promise<unknown> = Promise.resolve();
@@ -99,17 +62,16 @@ function writeStoredSyncKey(key: string | null): void {
   });
 }
 
-function animeIndexSyncKey(
-  animeIndex: SearchAnimeSuggestion[],
-  profileId: number | null
-): string {
+function animeIndexSyncKey(animeIndex: SearchAnimeSuggestion[], profileId: number | null): string {
   let hash = 0;
   const mix = (text: string): void => {
     for (const char of text) hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
   };
   mix(`profile:${profileId ?? 0}|n:${animeIndex.length}`);
   for (const anime of animeIndex) {
-    mix(`#${anime.id}|${anime.title}|${anime.status}|${anime.score ?? 0}|${anime.favourite ? 1 : 0}`);
+    mix(
+      `#${anime.id}|${anime.title}|${anime.status}|${anime.score ?? 0}|${anime.favourite ? 1 : 0}`
+    );
     for (const alias of anime.aliases) mix(`@${alias}`);
     for (const typed of anime.typedTitles ?? []) mix(`:${typed.kind}=${typed.title}`);
   }
@@ -120,20 +82,23 @@ export function invalidateAnimeIndexSync(): void {
   writeStoredSyncKey(null);
 }
 
-function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): void {
-  if (entries.length === 0) return;
-  for (let offset = 0; offset < entries.length; offset += INDEX_BATCH_SIZE) {
-    const batch = entries.slice(offset, offset + INDEX_BATCH_SIZE);
-    indexChain = indexChain.then(() => collectionApi.upsertUnifiedIndex(batch));
-  }
-  if (entries.length > 100) {
-    indexChain = indexChain.then(() =>
-      collectionApi
-        .optimizeUnifiedIndex()
-        .catch((error) => reportBackgroundError("index.optimize", error))
-    );
-  }
-  indexChain = indexChain.catch((error) => reportBackgroundError("index.upsert", error));
+function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): Promise<boolean> {
+  if (entries.length === 0) return Promise.resolve(true);
+  const run = indexChain
+    .then(async () => {
+      for (let offset = 0; offset < entries.length; offset += INDEX_BATCH_SIZE) {
+        const batch = entries.slice(offset, offset + INDEX_BATCH_SIZE);
+        await collectionApi.upsertUnifiedIndex(batch);
+      }
+      if (entries.length > 100) await collectionApi.optimizeUnifiedIndex();
+      return true;
+    })
+    .catch((error: unknown) => {
+      reportBackgroundError("index.upsert", error);
+      return false;
+    });
+  indexChain = run;
+  return run;
 }
 
 function buildAnimeIndex(
@@ -212,6 +177,12 @@ export function migrateSearchState(persisted: unknown, version: number): SearchP
   if (version < 3 && !Array.isArray(rest.filterPresets)) {
     rest.filterPresets = [];
   }
+  if (version < 4) {
+    // Learning counters now live in SQLite (`unified_index`); local copies are
+    // a projection rebuilt at startup and must not be persisted again.
+    delete rest.queryStats;
+    delete rest.suggestionStats;
+  }
   return rest as SearchPersistedState;
 }
 
@@ -260,10 +231,7 @@ const DEFAULT_SEARCH_DATA: SearchData = {
   filterPresets: [],
 };
 
-function buildAtoms(
-  store: ReturnType<typeof createSignalStore>,
-  data: SearchData
-): SearchAtoms {
+function buildAtoms(store: ReturnType<typeof createSignalStore>, data: SearchData): SearchAtoms {
   const atoms = {} as SearchAtoms;
   const sink = atoms as unknown as Record<string, Cell<unknown>>;
   const source = data as unknown as Record<string, unknown>;
@@ -315,6 +283,7 @@ export interface SearchSignalStore {
   purgeExpiredStats: () => void;
   clearScope: (scope: string) => Promise<void>;
   clearAllLearning: () => Promise<void>;
+  hydrateLearning: () => Promise<void>;
   saveFilterPreset: (name: string, filters: SearchFilters) => void;
   deleteFilterPreset: (name: string) => void;
   setAnilistSearchQuery: (query: string | null) => void;
@@ -351,17 +320,29 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
       filters: atoms.filters.get(),
       filterPresets: atoms.filterPresets.get(),
       history: atoms.history.get(),
-      queryStats: atoms.queryStats.get(),
       sortBy: atoms.sortBy.get(),
       sortDirection: atoms.sortDirection.get(),
       spellDictionary: atoms.spellDictionary.get(),
-      suggestionStats: atoms.suggestionStats.get(),
     });
   });
+
+  const hydrateLearning = async (): Promise<void> => {
+    const [rows, error] = await attempt(collectionApi.listLearningStats(RANKING.TTL_DAYS));
+    if (error) {
+      reportBackgroundError("learning.hydrate", error);
+      return;
+    }
+    const maps = buildLearningMaps(Array.isArray(rows) ? rows : []);
+    store.batch(() => {
+      atoms.queryStats.set(maps.queryStats);
+      atoms.suggestionStats.set(maps.suggestionStats);
+    });
+  };
 
   const handle: SearchSignalStore = {
     atoms,
     persistor,
+    hydrateLearning,
     subscribeAll: (fn) => store.subscribeAll(fn),
     addQuery: (query, scope = "global") => {
       if (settingsAtoms.autocompleteMode.get() === "off") return;
@@ -375,15 +356,18 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
       );
       store.batch(() => {
         atoms.history.set(nextHistory);
-        atoms.queryStats.set(updateStat(atoms.queryStats.get(), q));
+        atoms.queryStats.set(
+          applyLearningAction(atoms.queryStats.get(), learningStatKey(scope, q), "use")
+        );
       });
       syncUnifiedIndex([
         {
-          id: `history:${scope}:${q}`,
+          id: historyEntryId(scope, q),
           kind: "history",
           scope,
           value: q,
           metadata: { scope },
+          bumpUse: true,
         },
       ]);
     },
@@ -394,6 +378,10 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
     resetAnimeSuggestions: () => {
       atoms.animeIndex.set([]);
       atoms.animeProfileId.set(null);
+      invalidateAnimeIndexSync();
+      dropUnifiedScope("anilist", "scope.prune").catch((error) =>
+        reportBackgroundError("scope.prune", error)
+      );
     },
     indexAniList: (lists, favourites, profileId) => {
       const animeIndex = buildAnimeIndex(lists, favourites);
@@ -403,9 +391,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
       });
       const syncKey = animeIndexSyncKey(animeIndex, profileId);
       if (syncKey !== readStoredSyncKey()) {
-        writeStoredSyncKey(syncKey);
-        syncUnifiedIndex(
-        animeIndex.flatMap((anime) => [
+        const entries = animeIndex.flatMap((anime) => [
           {
             id: `anime:${anime.id}`,
             kind: "anime",
@@ -429,30 +415,72 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
             subtitle: anime.title,
             metadata: { animeId: anime.id, profileId },
           })),
-        ])
-      );
+        ]);
+        // Only remember the fingerprint once the write actually landed, so a
+        // locked database retries on the next launch instead of staying stale.
+        syncUnifiedIndex(entries)
+          .then((written) => {
+            if (written) writeStoredSyncKey(syncKey);
+          })
+          .catch((error) => reportBackgroundError("index.sync", error));
       }
     },
     recordSuggestion: (value, scope = "global", reason?: CorrectionReason) => {
       if (settingsAtoms.autocompleteMode.get() === "off") return;
-      atoms.suggestionStats.set(updateStat(atoms.suggestionStats.get(), value, true, false, reason));
+      const q = normalize(value);
+      if (!q) return;
+      const now = Date.now();
+      store.batch(() => {
+        atoms.suggestionStats.set(
+          applyLearningAction(atoms.suggestionStats.get(), q, "select", now, reason)
+        );
+        if (atoms.history.get().some((entry) => normalize(entry) === q)) {
+          atoms.queryStats.set(
+            applyLearningAction(
+              atoms.queryStats.get(),
+              learningStatKey(scope, q),
+              "select",
+              now,
+              reason
+            )
+          );
+        }
+      });
       collectionApi
-        .recordUnifiedIndexAction("select", `history:${scope}:${normalize(value)}`)
+        .recordUnifiedIndexValueAction("select", value, scope)
         .catch((error) => reportBackgroundError("learning.select", error));
     },
     recordSuggestionIgnored: (value, scope = "global") => {
       if (settingsAtoms.autocompleteMode.get() === "off") return;
-      atoms.suggestionStats.set(updateStat(atoms.suggestionStats.get(), value, false, true));
+      const q = normalize(value);
+      if (!q) return;
+      const now = Date.now();
+      store.batch(() => {
+        atoms.suggestionStats.set(
+          applyLearningAction(atoms.suggestionStats.get(), q, "ignore", now)
+        );
+        if (atoms.history.get().some((entry) => normalize(entry) === q)) {
+          atoms.queryStats.set(
+            applyLearningAction(atoms.queryStats.get(), learningStatKey(scope, q), "ignore", now)
+          );
+        }
+      });
       collectionApi
-        .recordUnifiedIndexAction("ignore", `history:${scope}:${normalize(value)}`)
+        .recordUnifiedIndexValueAction("ignore", value, scope)
         .catch((error) => reportBackgroundError("learning.ignore", error));
     },
     removeQuery: (query, scope = "global") => {
       const q = normalize(query);
       const history = atoms.history.get();
       atoms.history.set(history.filter((item) => item !== query && normalize(item) !== q));
+      const key = learningStatKey(scope, q);
+      if (key in atoms.queryStats.get()) {
+        const next = { ...atoms.queryStats.get() };
+        delete next[key];
+        atoms.queryStats.set(next);
+      }
       collectionApi
-        .deleteUnifiedIndexEntry(`history:${scope}:${q}`)
+        .deleteUnifiedIndexEntry(historyEntryId(scope, q))
         .catch((error) => reportBackgroundError("learning.remove", error));
     },
     addSpellWord: (word) => {
@@ -468,11 +496,11 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
       atoms.spellDictionary.set(atoms.spellDictionary.get().filter((item) => item !== q));
     },
     purgeExpiredStats: () => {
-      atoms.queryStats.set(purgeExpired(atoms.queryStats.get()));
-      atoms.suggestionStats.set(purgeExpired(atoms.suggestionStats.get()));
+      hydrateLearning().catch((error) => reportBackgroundError("learning.purge", error));
     },
     clearScope: (scope) => {
       if (scope === "anilist") invalidateAnimeIndexSync();
+      atoms.queryStats.set(dropLearningScope(atoms.queryStats.get(), scope));
       return dropUnifiedScope(scope, "scope.prune");
     },
     clearAllLearning: async () => {
@@ -525,6 +553,7 @@ export const removeSearchQuery = search.removeQuery;
 export const addSpellWord = search.addSpellWord;
 export const removeSpellWord = search.removeSpellWord;
 export const purgeSearchStats = search.purgeExpiredStats;
+export const hydrateSearchLearning = search.hydrateLearning;
 export const clearSearchScope = search.clearScope;
 export const clearAllSearchLearning = search.clearAllLearning;
 export const saveSearchFilterPreset = search.saveFilterPreset;

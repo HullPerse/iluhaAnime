@@ -15,7 +15,7 @@ export const TRACKED_STORES: TrackedStore[] = [
   { store: "settings", current: 55 },
   { store: "theme", current: 1 },
   { store: "cache", current: 5 },
-  { store: "search", current: 3 },
+  { store: "search", current: 4 },
   { store: "collection-ui", current: 9 },
   { store: "notifications", current: 1 },
   { store: "anilistFriends", current: 1 },

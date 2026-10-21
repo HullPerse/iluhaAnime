@@ -224,6 +224,10 @@ function StatsModal({
   const isCurrentMonth = now.getMonth() === month && now.getFullYear() === year;
 
   const dayEntries = selectedDay == null ? [] : (calendarCells[selectedDay - 1]?.entries ?? []);
+  const dayTitle =
+    tab === "calendar" && selectedDay != null
+      ? `${selectedDay} ${monthLabel(month, locale, "long")} ${year}`
+      : null;
 
   if (detailId != null) {
     return (
@@ -237,7 +241,12 @@ function StatsModal({
   }
 
   return (
-    <Modal header={t("anilist.stats.title")} onClose={onClose} className="w-3xl">
+    <Modal
+      header={dayTitle ?? t("anilist.stats.title")}
+      onClose={onClose}
+      onBack={dayTitle ? () => setSelectedDay(null) : undefined}
+      className="w-3xl"
+    >
       <div className="mb-1 flex gap-1">
         <Button
           variant={tab === "overview" ? "outline" : "default"}
@@ -397,17 +406,6 @@ function StatsModal({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <section className="flex items-center gap-2">
-            <Button
-              className="flex flex-row items-center justify-center gap-1"
-              onClick={() => setSelectedDay(null)}
-            >
-              <ChevronLeft /> {t("anilist.stats.back")}
-            </Button>
-            <span className="windows95-text text-xs font-bold">
-              {selectedDay} {monthLabel(month, locale, "long")} {year}
-            </span>
-          </section>
           <section className="windows95-border bg-field min-h-80 overflow-y-auto">
             {dayEntries.map((entry) => (
               <div

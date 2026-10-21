@@ -4,6 +4,7 @@ import {
   GLOBAL_ESCALATE_COUNT,
   GLOBAL_ESCALATE_WINDOW_MS,
   isChunkError,
+  isResizeObserverLoopError,
   noteGlobalError,
   resetGlobalErrors,
   shouldEscalateGlobal,
@@ -37,6 +38,16 @@ describe("fatal classify contract", () => {
     expect(isChunkError(byMessage)).toBe(true);
     expect(isChunkError(new Error("plain render boom"))).toBe(false);
     expect(toFatalInfo(byMessage, { scope: "render" }).kind).toBe("chunk");
+  });
+
+  it("ignores the benign ResizeObserver loop warning", () => {
+    expect(
+      isResizeObserverLoopError("ResizeObserver loop completed with undelivered notifications.")
+    ).toBe(true);
+    expect(isResizeObserverLoopError(new Error("ResizeObserver loop limit exceeded"))).toBe(true);
+    expect(isResizeObserverLoopError(new Error("render boom"))).toBe(false);
+    expect(isResizeObserverLoopError(null)).toBe(false);
+    expect(isResizeObserverLoopError(undefined)).toBe(false);
   });
 
   it("keeps startup and global-loop scopes over heuristics", () => {

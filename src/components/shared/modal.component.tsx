@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useModalResize } from "@/hooks/modalResize.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
 import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
@@ -33,7 +34,9 @@ function Modal({
   const enable3dBorders = useCell(settingsAtoms.enable3dBorders);
   const backdropOpacity = useCell(settingsAtoms.modalBackdropOpacity);
   const [visible, setVisible] = useState(false);
+  const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   useOverlayDialog();
+  useModalResize(popupElement, modalAnimation);
 
   useEffect(() => {
     if (!modalAnimation) {
@@ -74,7 +77,7 @@ function Modal({
           <Dialog.Backdrop
             className={cn(
               "fixed inset-0 z-40",
-              modalAnimation && "transition-opacity duration-150",
+              modalAnimation && "modal-motion transition-opacity duration-150 ease-out",
               visible ? "opacity-100" : "opacity-0"
             )}
             style={{ backgroundColor: `rgba(0,0,0,${backdropOpacity / 100})` }}
@@ -83,10 +86,11 @@ function Modal({
           />
         )}
         <Dialog.Popup
+          ref={setPopupElement}
           className={cn(
             "bg-primary windows95-active-border fixed top-1/2 left-1/2 z-50 flex h-fit max-h-[80%] min-h-42 w-fit max-w-[80%] -translate-x-1/2 -translate-y-1/2 flex-col items-center",
-            modalAnimation && "transition-opacity duration-150",
-            visible ? "opacity-100" : "opacity-0",
+            modalAnimation && "modal-motion transition-[opacity,scale] duration-150 ease-out",
+            modalAnimation && (visible ? "scale-[1] opacity-100" : "scale-[0.97] opacity-0"),
             enable3dBorders && "windows95-3d-border",
             className
           )}

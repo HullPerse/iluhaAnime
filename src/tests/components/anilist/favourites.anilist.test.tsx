@@ -8,7 +8,6 @@ import AniListFavouritesModal from "@/routes/components/anilist/favourites.anili
 import { patchSettings } from "@/store/settings.store";
 import type { FavouriteAnime, FavouritePeople } from "@/types/anilist";
 
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -145,10 +144,12 @@ describe("AniListFavouritesModal tabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Characters (1)" }));
     fireEvent.click(screen.getByText("Char One"));
     await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toBeDefined());
+    expect(screen.getByRole("heading", { name: "Char One" })).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Favourites" })).toBeDefined();
     expect(screen.getByText("Char One")).toBeDefined();
   });
 
@@ -157,10 +158,12 @@ describe("AniListFavouritesModal tabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Staff (1)" }));
     fireEvent.click(screen.getByText("Staff One"));
     await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toBeDefined());
+    expect(screen.getByRole("heading", { name: "Staff One" })).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Favourites" })).toBeDefined();
     expect(screen.getByText("Staff One")).toBeDefined();
   });
 });

@@ -7,7 +7,11 @@ import { StrictMode } from "react";
 
 import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
 import { QUERY_CONFIG } from "@/config/store/query.config";
-import { noteGlobalError, toFatalInfo } from "@/lib/fatal/classify.utils";
+import {
+  isResizeObserverLoopError,
+  noteGlobalError,
+  toFatalInfo,
+} from "@/lib/fatal/classify.utils";
 import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/fatal/report.utils";
 import { readThemeName } from "@/lib/fatal/theme.utils";
 import { tr } from "@/lib/locale/i18n.utils";
@@ -32,7 +36,11 @@ const appError = () => tr("common.error");
 
 window.addEventListener("error", (event) => {
   event.preventDefault();
-  if (escalate(event.error ?? event.message)) return;
+  const reason = event.error ?? event.message;
+  // Animating the content-sized modal makes Chrome emit its benign ResizeObserver loop warning.
+  // Counting it would trip the fatal loop after three resizes, so it stops here.
+  if (isResizeObserverLoopError(reason)) return;
+  if (escalate(reason)) return;
   console.error("Uncaught error:", event.error);
   addNotification(appError(), "error", event.error?.message || String(event));
 });
@@ -72,7 +80,6 @@ try {
   };
   try {
     reportFatal(info);
-  } catch {
-  }
+  } catch {}
   showStartupFallback(info.message);
 }

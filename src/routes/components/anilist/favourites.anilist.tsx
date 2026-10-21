@@ -160,7 +160,7 @@ export default function AniListFavouritesModal({
 
   return (
     <Modal
-      header={t("anilist.favourites.title")}
+      header={personTop ? personTop.name : t("anilist.favourites.title")}
       onClose={onClose}
       onBack={personStack ? handlePersonBack : undefined}
       className="w-2xl"

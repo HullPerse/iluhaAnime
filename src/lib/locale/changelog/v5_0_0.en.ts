@@ -421,6 +421,14 @@ const changelog500 = {
     "Player screen modes: Normal, Television, Monitor, Black and white, and VHS. Television and Monitor bend the picture with barrel distortion plus a mask and scanlines, black and white drops the color, and VHS adds chroma bleed, jitter and grain. The effect runs through mpv shaders and is kept in view presets 1 and 2, in cinema mode and in fullscreen, switched from the player settings or the right-click menu",
   "changelog.5_0_0.added.player.screen_cabinet":
     "A cabinet around the video: off, Windows 95 style gray plastic, or wood. It is its own choice under the screen mode, off by default, never turns itself on when the mode changes, and survives the view presets, cinema mode and fullscreen. The cabinet is an overlay with 1-2% overscan that moves neither the picture nor the controls, available in the settings and the right-click menu",
+  "changelog.5_0_0.added.app.modal_motion":
+    "Modal windows open with a short fade and zoom, and their size animates when the content changes; both follow the existing Modal window animation checkbox, and closing stays instant",
+  "changelog.5_0_0.changed.anilist.detail_titlebar":
+    "Character, staff and anime screens in details and favourites now use the window titlebar for the name and Back: the second inner header and close button are gone, Back walks the screen stack, and X closes the whole window",
+  "changelog.5_0_0.changed.anilist.stats_day_title":
+    "The calendar day view in statistics shows its date and Back in the window titlebar instead of an inner button",
+  "changelog.5_0_0.fixed.app.resize_observer_crash":
+    "Opening anime details no longer falls into the fatal error screen because of the browser's ResizeObserver loop warning",
 } as const;
 
 export default changelog500;

@@ -41,6 +41,17 @@ function listsWithAiring(): AniListCollection[] {
             studios: [],
           },
         },
+        {
+          media: {
+            id: 22,
+            title: "Other Show",
+            next_airing_at: airingAt,
+            next_episode: 1,
+            cover_url: null,
+            genres: [],
+            studios: [],
+          },
+        },
       ],
     } as unknown as AniListCollection,
   ];
@@ -83,5 +94,18 @@ describe("StatsModal inline detail", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(await screen.findByText("Statistics")).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+  });
+
+  it("moves the calendar day into the modal titlebar and returns on back", async () => {
+    const user = userEvent.setup();
+    render(<StatsModal lists={listsWithAiring()} onClose={vi.fn()} detail={DETAIL} />, {
+      wrapper,
+    });
+    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    await user.click(await screen.findByRole("button", { name: /releases on/ }));
+    expect(await screen.findByRole("heading", { name: /^15 / })).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(await screen.findByRole("heading", { name: "Statistics" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
   });
 });

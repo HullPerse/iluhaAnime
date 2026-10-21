@@ -1,4 +1,3 @@
-import { ChevronLeft, X } from "lucide-react";
 import { useState } from "react";
 
 import { TabLoader } from "@/components/shared/loader.component";
@@ -7,7 +6,6 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useAnimeShowcase } from "@/hooks/showcase.hook";
 import { setCrossSearchQuery } from "@/store/search.store";
-import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 import type { AniDetailViewProps as ViewProps } from "@/types/anilist";
 import type { TFunc } from "@/types/i18n";
 
@@ -17,7 +15,6 @@ import AniListActionControls from "./controls.detail";
 import { FriendsScoresSection } from "./friendsScores.detail";
 import { GenresTagsSection } from "./genres.detail";
 import AniListMetadata from "./metadata.detail";
-import { OverlayScreens } from "./screens.detail";
 import FranchiseGraphSection from "./section.detail";
 import { SimilarSection } from "./similar.detail";
 import { StudiosSection } from "./studios.detail";
@@ -36,10 +33,6 @@ export function AniListDetailView({
   scoreFormat,
   isLoggedIn,
   favouriteIds,
-  favouriteStaffIds,
-  favouriteCharacterIds,
-  onStaffFavouriteToggle,
-  onCharacterFavouriteToggle,
   onTag,
   onGenre,
   onSeason,
@@ -56,38 +49,17 @@ export function AniListDetailView({
   isError,
   error,
   refetch,
+  onPushScreen,
 }: ViewProps) {
   const { t } = useI18n();
   const [showFranchise, setShowFranchise] = useState<boolean>(false);
   const [showDesc, setShowDesc] = useState<boolean>(false);
-  const [characterStack, setCharacterStack] = useState<AniListOverlayScreen[] | null>(null);
   const showcase = useAnimeShowcase(anime);
   const headerTrailerId = showcase?.trailerYoutubeId ?? null;
   const isFavorite = favouriteIds?.has(animeId) ?? false;
   const handleSearchTorrents = (query?: string) => {
     setCrossSearchQuery(query ?? anime?.title ?? "");
     onClose();
-  };
-  const characterTop = characterStack?.at(-1) ?? null;
-  const pushCharacter = (screen: AniListOverlayScreen) =>
-    setCharacterStack((prev) => (prev ? [...prev, screen] : prev));
-  const handleCharacterBack = () => {
-    if (characterStack && characterStack.length > 1)
-      setCharacterStack((prev) => prev?.slice(0, -1) ?? null);
-    else setCharacterStack(null);
-  };
-  const openCharacterAnime = (id: number) => {
-    setCharacterStack(null);
-    onRelated?.(id);
-  };
-  const characterContext: AniListOverlayContext = {
-    isLoggedIn,
-    favouriteCharacterIds,
-    favouriteStaffIds,
-    onCharacterFavouriteToggle,
-    onStaffFavouriteToggle,
-    onOpenAnime: openCharacterAnime,
-    onPush: pushCharacter,
   };
   if (isLoading) return <TabLoader className="min-h-48 flex-1" />;
   if (isError) {
@@ -132,14 +104,12 @@ export function AniListDetailView({
         animeId={anime.id}
         initialEdges={initialCharacters}
         onCharacterClick={(id, name, voiceActors) =>
-          setCharacterStack([{ kind: "character", id, name, voiceActors }])
+          onPushScreen({ kind: "character", id, name, voiceActors })
         }
-        onVoiceActorClick={(character, voiceActor) =>
-          setCharacterStack([
-            { kind: "character", ...character },
-            { kind: "staff", id: voiceActor.id, name: voiceActor.name },
-          ])
-        }
+        onVoiceActorClick={(character, voiceActor) => {
+          onPushScreen({ kind: "character", ...character });
+          onPushScreen({ kind: "staff", id: voiceActor.id, name: voiceActor.name });
+        }}
       />
 
       <Section
@@ -203,37 +173,6 @@ export function AniListDetailView({
         onSaved={onSaved}
         onClose={onClose}
       />
-
-      {characterTop && (
-        <div className="bg-primary absolute inset-0 z-10 flex min-h-0 flex-col">
-          <div className="flex shrink-0 items-center gap-1 border-b border-black/20 px-1 py-0.5">
-            <Button
-              size="icon"
-              className="size-5"
-              onClick={handleCharacterBack}
-              aria-label={t("common.back")}
-              title={t("common.back")}
-            >
-              <ChevronLeft className="size-3" />
-            </Button>
-            <span className="windows95-text min-w-0 flex-1 truncate text-xs font-bold">
-              {characterTop.name}
-            </span>
-            <Button
-              size="icon"
-              className="size-5"
-              onClick={() => setCharacterStack(null)}
-              aria-label={t("common.close")}
-              title={t("common.close")}
-            >
-              <X className="size-3" />
-            </Button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <OverlayScreens current={characterTop} context={characterContext} />
-          </div>
-        </div>
-      )}
     </section>
   );
 }

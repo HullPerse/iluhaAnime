@@ -449,6 +449,12 @@ select,
   transition-timing-function: ease-out !important;
 }
 
+.no-animations .modal-motion {
+  transition-property: opacity, scale !important;
+  transition-duration: 150ms !important;
+  transition-timing-function: ease-out !important;
+}
+
 html[data-theme-overlay="grid"]:not([data-yorha-scanlines="off"]) body::after {
   content: "";
   position: fixed;

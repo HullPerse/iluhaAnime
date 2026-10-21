@@ -6,6 +6,8 @@ import { patchSettings } from "@/store/settings.store";
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
+  Reflect.deleteProperty(HTMLElement.prototype, "animate");
   vi.restoreAllMocks();
 });
 
@@ -69,6 +71,67 @@ describe("Modal close guard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Modal animation", () => {
+  it("fades and zooms the popup in when the setting is on", async () => {
+    patchSettings({ language: "en", modalAnimation: true });
+    render(
+      <Modal header="Test" onClose={() => undefined}>
+        <span>body</span>
+      </Modal>
+    );
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.classList.contains("modal-motion")).toBe(true);
+    expect(dialog.className).toContain("scale-[0.97]");
+    expect(document.querySelectorAll(".modal-motion")).toHaveLength(2);
+
+    await waitFor(() => expect(dialog.classList.contains("opacity-100")).toBe(true));
+    expect(dialog.classList.contains("scale-[0.97]")).toBe(false);
+  });
+
+  it("renders without motion classes when the setting is off", () => {
+    patchSettings({ language: "en", modalAnimation: false });
+    render(
+      <Modal header="Test" onClose={() => undefined}>
+        <span>body</span>
+      </Modal>
+    );
+
+    expect(screen.getByRole("dialog").classList.contains("modal-motion")).toBe(false);
+    expect(document.querySelectorAll(".modal-motion")).toHaveLength(0);
+  });
+});
+
+describe("Modal resize observer", () => {
+  it("attaches the observer to the portalled popup", () => {
+    const observed: Element[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe(target: Element): void {
+          observed.push(target);
+        }
+        unobserve(): void {}
+        disconnect(): void {}
+      }
+    );
+    Object.defineProperty(HTMLElement.prototype, "animate", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    patchSettings({ language: "en", modalAnimation: true });
+
+    render(
+      <Modal header="Test" onClose={() => undefined}>
+        <span>body</span>
+      </Modal>
+    );
+
+    expect(observed).toEqual([screen.getByRole("dialog")]);
   });
 });
 

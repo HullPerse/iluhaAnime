@@ -66,7 +66,7 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-function renderView(isLoggedIn = false) {
+function renderView(isLoggedIn = false, onPushScreen = vi.fn()) {
   return render(
     <AniListDetailView
       animeId={21}
@@ -84,6 +84,7 @@ function renderView(isLoggedIn = false) {
       isError={false}
       error={null}
       refetch={() => undefined}
+      onPushScreen={onPushScreen}
     />,
     { wrapper }
   );
@@ -98,7 +99,8 @@ beforeEach(() => {
   invokeMock.mockReset();
   resetTransportInflight();
   invokeMock.mockImplementation((command: string) => {
-    if (command === "get_anime_franchise") return Promise.resolve({ root_id: 21, nodes: [], edges: [] });
+    if (command === "get_anime_franchise")
+      return Promise.resolve({ root_id: 21, nodes: [], edges: [] });
     if (command === "get_anime_recommendations") return Promise.resolve([]);
     if (command === "get_anilist_friend_scores") return Promise.resolve([]);
     if (command === "get_anilist_custom_lists") return Promise.resolve([]);
@@ -119,17 +121,20 @@ beforeEach(() => {
   });
 });
 
-describe("AniListDetailView character overlay", () => {
-  it("opens the character inside the detail body with back and close controls", async () => {
+describe("AniListDetailView character navigation", () => {
+  it("pushes the character screen through the shell slot", async () => {
     const user = userEvent.setup();
-    renderView();
+    const onPushScreen = vi.fn();
+    renderView(false, onPushScreen);
     const expanders = screen.getAllByRole("button", { name: "Expand section" });
     await user.click(expanders[0] as HTMLElement);
     await user.click(await screen.findByText("Char One"));
-    expect(await screen.findByRole("button", { name: "Back" })).toBeDefined();
-    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(0);
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    expect(onPushScreen).toHaveBeenCalledWith({
+      kind: "character",
+      id: 11,
+      name: "Char One",
+      voiceActors: [],
+    });
   });
 });
 

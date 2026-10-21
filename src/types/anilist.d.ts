@@ -702,6 +702,7 @@ export type AniDetailViewProps = AniDetailProps & {
   error: unknown;
   refetch: () => void;
   onTrailer: (youtubeId: string) => void;
+  onPushScreen: (screen: AniListOverlayScreen) => void;
 };
 
 export type AniListOverlayScreen =

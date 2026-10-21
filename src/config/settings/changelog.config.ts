@@ -106,6 +106,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.settings.detail_width", "settings"),
       entry("changelog.5_0_0.added.player.screen_modes", "player"),
       entry("changelog.5_0_0.added.player.screen_cabinet", "player"),
+      entry("changelog.5_0_0.added.app.modal_motion", "app"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -192,6 +193,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.anilist.similar_rail", "anilist"),
       entry("changelog.5_0_0.changed.torrents.queue_modal", "torrents"),
       entry("changelog.5_0_0.changed.anilist.franchise", "anilist"),
+      entry("changelog.5_0_0.changed.anilist.detail_titlebar", "anilist"),
+      entry("changelog.5_0_0.changed.anilist.stats_day_title", "anilist"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),
@@ -233,6 +236,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.search.modern_spinner", "search"),
       entry("changelog.5_0_0.fixed.torrents.queue_scroll", "torrents"),
       entry("changelog.5_0_0.fixed.player.torrent_pending", "player"),
+      entry("changelog.5_0_0.fixed.app.resize_observer_crash", "app"),
     ],
   },
   {

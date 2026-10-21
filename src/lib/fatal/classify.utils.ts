@@ -47,6 +47,18 @@ export function isChunkError(value: unknown): boolean {
   return CHUNK_PATTERNS.some((pattern) => pattern.test(readMessage(value)));
 }
 
+const RESIZE_OBSERVER_LOOP = /resizeobserver loop/i;
+
+/**
+ * Chrome reports a warning when a ResizeObserver callback changes the observed layout in the same
+ * delivery loop. The layout is still correct and the loop finishes; the browser only drops the
+ * extra notification for that frame. Animating a content-sized modal necessarily does this, so the
+ * warning must not be counted as an application failure.
+ */
+export function isResizeObserverLoopError(value: unknown): boolean {
+  return RESIZE_OBSERVER_LOOP.test(readMessage(value));
+}
+
 export function toFatalInfo(
   value: unknown,
   context?: { scope: string; route?: string; themeName?: string; timestamp?: number }

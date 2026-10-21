@@ -1,8 +1,10 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 
+import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import type { TreeRow } from "@/lib/player/treeArrow.utils";
 import { collectFileIndices } from "@/lib/torrent/tree.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
@@ -16,6 +18,8 @@ export function FolderRow({
   isOpen,
   type,
   treePath,
+  rows,
+  anchorPath,
   onToggleFolder,
   onToggleSelection,
 }: {
@@ -26,6 +30,8 @@ export function FolderRow({
   isOpen: boolean;
   type: "torrent" | "player";
   treePath: string;
+  rows?: readonly TreeRow[];
+  anchorPath?: string | null;
   onToggleFolder: () => void;
   onToggleSelection?: (indices: number[], target: boolean) => void;
 }) {
@@ -44,7 +50,12 @@ export function FolderRow({
       data-tree-path={treePath}
       data-tree-kind="folder"
       tabIndex={-1}
-      className="windows95-text hover:bg-surface absolute top-0 left-0 flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 text-left select-none"
+      onMouseDown={(event) => {
+        if (event.target instanceof HTMLElement && event.target.closest("button, input")) return;
+        event.preventDefault();
+        event.currentTarget.focus();
+      }}
+      className="windows95-text hover:bg-surface focus-visible:outline-text absolute top-0 left-0 flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 text-left select-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
       style={{
         height: 20,
         transform: `translateY(${virtualStart}px)`,
@@ -68,7 +79,7 @@ export function FolderRow({
         aria-expanded={isOpen}
         data-vim-target="folder"
         data-tree-activate
-        className="flex min-w-0 flex-1 items-center gap-1"
+        className="focus-visible:outline-text flex min-w-0 flex-1 items-center gap-1 outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
         onClick={onToggleFolder}
         onKeyDown={enterOrSpace(onToggleFolder)}
       >
@@ -76,6 +87,9 @@ export function FolderRow({
           <ChevronDown className="size-3 shrink-0" />
         ) : (
           <ChevronRight className="size-3 shrink-0" />
+        )}
+        {type === "player" && anchorPath != null && (
+          <TreeRowNumber rows={rows ?? []} anchorPath={anchorPath} rowPath={treePath} />
         )}
         <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4 shrink-0" />
         <span className="truncate font-bold" title={node.name}>

@@ -208,25 +208,32 @@ function TorrentFilesSection({
     overscan: 20,
   });
 
-  const treeRows = useMemo<TreeRow[]>(
-    () =>
-      flatItems.map((item) =>
-        item.kind === "folder"
-          ? {
-              path: item.node.name + item.depth,
-              depth: item.depth,
-              kind: "folder" as const,
-              expanded: open.has(item.node.name + item.depth),
-            }
-          : {
-              path: fileKey(item.file.index),
-              depth: item.depth,
-              kind: "file" as const,
-              expanded: false,
-            }
-      ),
-    [flatItems, open]
-  );
+  const treeRows = useMemo<TreeRow[]>(() => {
+    const stack: string[] = [];
+    return flatItems.map((item, index) => {
+      const path = item.kind === "folder" ? item.node.name + item.depth : fileKey(item.file.index);
+      const parent = item.depth === 0 ? "" : (stack[item.depth - 1] ?? "");
+      stack[item.depth] = String(index);
+      stack.length = item.depth + 1;
+      return item.kind === "folder"
+        ? {
+            path,
+            depth: item.depth,
+            kind: "folder" as const,
+            expanded: open.has(path),
+            parent,
+          }
+        : {
+            path,
+            depth: item.depth,
+            kind: "file" as const,
+            expanded: false,
+            parent,
+          };
+    });
+  }, [flatItems, open]);
+
+  const [anchorPath, setAnchorPath] = useState<string | null>(null);
 
   const pendingFocus = useRef<string | null>(null);
   useEffect(() => {
@@ -297,6 +304,12 @@ function TorrentFilesSection({
       data-virtual-list
       data-tree-root
       className="windows95-border bg-field h-fit max-h-40 overflow-y-auto py-0.5"
+      onFocus={(event) => {
+        const row = rowElement(event.target);
+        if (!row || !scrollRef.current?.contains(row)) return;
+        const path = row.dataset.treePath;
+        if (path) setAnchorPath(path);
+      }}
     >
       <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {
@@ -314,6 +327,8 @@ function TorrentFilesSection({
                 isOpen={open.has(key)}
                 type={type}
                 treePath={key}
+                rows={treeRows}
+                anchorPath={anchorPath}
                 onToggleFolder={() => toggle(key)}
                 onToggleSelection={handleToggleFolder}
               />
@@ -327,6 +342,8 @@ function TorrentFilesSection({
               depth={item.depth}
               virtualStart={vItem.start}
               type={type}
+              rows={treeRows}
+              anchorPath={anchorPath}
               checked={file.selected || file.completed}
               onToggleFile={
                 onFilePriorityChange

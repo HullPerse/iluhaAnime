@@ -103,4 +103,17 @@ describe("player/relative numbers", () => {
     expect(relativeRowNumber(ROWS, "gone", "A")).toBeNull();
     expect(relativeRowNumber(ROWS, "A", "gone")).toBeNull();
   });
+
+  it("groups synthetic paths by their explicit parent scope", () => {
+    const scoped: TreeRow[] = [
+      { path: "file:0", depth: 0, kind: "file", expanded: false, parent: "" },
+      { path: "A0", depth: 0, kind: "folder", expanded: true, parent: "" },
+      { path: "file:1", depth: 1, kind: "file", expanded: false, parent: "A0" },
+      { path: "file:2", depth: 1, kind: "file", expanded: false, parent: "A0" },
+    ];
+    expect(relativeRowNumber(scoped, "file:1", "file:2")).toEqual({ label: 1, current: false });
+    expect(relativeRowNumber(scoped, "file:2", "file:1")).toEqual({ label: 1, current: false });
+    expect(relativeRowNumber(scoped, "file:2", "file:2")).toEqual({ label: 2, current: true });
+    expect(relativeRowNumber(scoped, "file:1", "file:0")).toBeNull();
+  });
 });

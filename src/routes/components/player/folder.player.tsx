@@ -18,6 +18,7 @@ import { useState, useRef, useMemo, useCallback, useEffect, type RefObject } fro
 import ContextMenu from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 import { SmallLoader } from "@/components/shared/loader.component";
+import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
@@ -30,7 +31,7 @@ import { mediaFileExtension, parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
-import { relativeRowNumber, resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
+import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
 import type { TreeRow } from "@/lib/player/treeArrow.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { withFallback } from "@/lib/utils/attempt.utils";
@@ -123,31 +124,6 @@ function findRow(root: HTMLElement | null, path: string): HTMLElement | null {
     if (row.dataset.treePath === path) return row;
   }
   return null;
-}
-
-function TreeRowNumber({
-  rows,
-  anchorPath,
-  rowPath,
-}: {
-  rows: readonly TreeRow[];
-  anchorPath: string | null;
-  rowPath: string;
-}) {
-  const number = relativeRowNumber(rows, anchorPath, rowPath);
-  if (!number) return null;
-  return (
-    <span
-      aria-hidden="true"
-      className={
-        number.current
-          ? "bg-secondary text-title-text w-5 shrink-0 px-0.5 text-right text-[10px] tabular-nums select-none"
-          : "text-hint w-5 shrink-0 text-right text-[10px] tabular-nums select-none"
-      }
-    >
-      {number.label}
-    </span>
-  );
 }
 
 function FolderView({

@@ -86,6 +86,22 @@ afterEach(() => {
   cleanup();
 });
 
+describe("FolderView relative numbers", () => {
+  it("numbers siblings around the focused file", () => {
+    renderFlat();
+    const first = screen.getByTitle("a.mkv").closest<HTMLElement>("[data-tree-row]");
+    const second = screen.getByTitle("b.mkv").closest<HTMLElement>("[data-tree-row]");
+    if (!first || !second) throw new Error("file rows missing");
+
+    act(() => {
+      second.focus();
+    });
+
+    expect(second.querySelector("[data-tree-number]")?.textContent).toBe("2");
+    expect(first.querySelector("[data-tree-number]")?.textContent).toBe("1");
+  });
+});
+
 describe("FolderView tree arrows", () => {
   it("closes an expanded folder row with Left", () => {
     renderTree();

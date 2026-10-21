@@ -3,6 +3,7 @@ export interface TreeRow {
   depth: number;
   kind: "folder" | "file";
   expanded: boolean;
+  parent?: string;
 }
 
 export type TreeArrowResult =
@@ -64,6 +65,10 @@ function parentDirname(path: string): string {
   return cut < 0 ? "" : path.slice(0, cut);
 }
 
+function rowScope(row: TreeRow): string {
+  return row.parent ?? parentDirname(row.path);
+}
+
 export function relativeRowNumber(
   rows: readonly TreeRow[],
   anchorPath: string | null,
@@ -71,11 +76,14 @@ export function relativeRowNumber(
 ): RelativeRowNumber | null {
   const anchor = anchorPath ?? rows[0]?.path;
   if (!anchor) return null;
-  const parent = parentDirname(anchor);
-  if (parentDirname(rowPath) !== parent) return null;
-  const siblings = rows.filter((row) => parentDirname(row.path) === parent);
-  const anchorIndex = siblings.findIndex((row) => row.path === anchor);
-  const rowIndex = siblings.findIndex((row) => row.path === rowPath);
+  const anchorRow = rows.find((row) => row.path === anchor);
+  const row = rows.find((candidate) => candidate.path === rowPath);
+  if (!anchorRow || !row) return null;
+  const scope = rowScope(anchorRow);
+  if (rowScope(row) !== scope) return null;
+  const siblings = rows.filter((candidate) => rowScope(candidate) === scope);
+  const anchorIndex = siblings.findIndex((candidate) => candidate.path === anchor);
+  const rowIndex = siblings.findIndex((candidate) => candidate.path === rowPath);
   if (anchorIndex === -1 || rowIndex === -1) return null;
   if (rowIndex === anchorIndex) return { label: anchorIndex + 1, current: true };
   return { label: Math.abs(rowIndex - anchorIndex), current: false };

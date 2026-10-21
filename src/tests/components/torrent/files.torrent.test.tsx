@@ -56,6 +56,19 @@ function fileRow(index: number): HTMLElement {
   return node;
 }
 
+function rowNumber(row: HTMLElement): string | null {
+  return row.querySelector<HTMLElement>("[data-tree-number]")?.textContent ?? null;
+}
+
+function renderTyped(type: "player" | "torrent"): void {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <TorrentFilesSection id={1} files={FILES} type={type} path="D:/media" />
+    </QueryClientProvider>
+  );
+}
+
 function openFolder(name: string): void {
   const row = folderRow(name);
   row.focus();
@@ -151,6 +164,87 @@ describe("TorrentFilesSection ring", () => {
     } finally {
       outside.remove();
     }
+  });
+});
+
+describe("TorrentFilesSection row visuals", () => {
+  it("numbers the focused row by its sibling position and its neighbours by distance", () => {
+    renderSection();
+    openFolder("A");
+
+    act(() => {
+      fileRow(1).focus();
+    });
+
+    expect(rowNumber(fileRow(1))).toBe("2");
+    expect(rowNumber(fileRow(0))).toBe("1");
+    expect(fileRow(1).querySelector("[data-tree-number]")?.className).toContain("bg-secondary");
+    expect(fileRow(0).querySelector("[data-tree-number]")?.className).not.toContain("bg-secondary");
+  });
+
+  it("keeps numbers inside their own folder", () => {
+    renderSection();
+    openFolder("A");
+    openFolder("B");
+
+    act(() => {
+      fileRow(1).focus();
+    });
+
+    expect(rowNumber(fileRow(0))).toBe("1");
+    expect(rowNumber(fileRow(2))).toBeNull();
+  });
+
+  it("drops numbers in the torrent tab", () => {
+    renderTyped("torrent");
+    openFolder("A");
+
+    act(() => {
+      fileRow(1).focus();
+    });
+
+    expect(rowNumber(fileRow(1))).toBeNull();
+  });
+
+  it("gives the row a visible focus ring", () => {
+    renderSection();
+    openFolder("A");
+
+    expect(folderRow("A").className).toContain("focus-visible:outline-dotted");
+    expect(fileRow(0).className).toContain("focus-visible:outline-dotted");
+  });
+
+  it("matches the saved folder row density in the player only", () => {
+    renderSection();
+    openFolder("A");
+    expect(fileRow(0).className).toContain("windows95-border");
+    expect(fileRow(0).style.height).toBe("20px");
+
+    cleanup();
+    renderTyped("torrent");
+    openFolder("A");
+    expect(fileRow(0).className).not.toContain("windows95-border");
+    expect(fileRow(0).style.height).toBe("18px");
+  });
+
+  it("focuses the row on pointer down", () => {
+    renderSection();
+    openFolder("A");
+
+    fireEvent.mouseDown(fileRow(0));
+
+    expect(document.activeElement).toBe(fileRow(0));
+  });
+
+  it("leaves focus alone when a row control is pressed", () => {
+    renderSection();
+    openFolder("A");
+    const button = fileRow(0).querySelector<HTMLElement>("button");
+    if (!button) throw new Error("row button missing");
+
+    fireEvent.mouseDown(button);
+
+    expect(document.activeElement).not.toBe(fileRow(0));
   });
 });
 

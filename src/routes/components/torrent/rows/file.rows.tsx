@@ -9,12 +9,13 @@ import {
   Search,
   Wand2,
 } from "lucide-react";
-import type { MouseEvent, ReactNode } from "react";
+import type { MouseEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 import ProgressBar from "@/components/shared/progress.component";
+import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -22,6 +23,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { clickRowActionButton } from "@/lib/hotkeys/dispatch.hotkeys";
 import { fileNameFromPath, isTrackFileName, parseMediaPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
+import type { TreeRow } from "@/lib/player/treeArrow.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
@@ -150,7 +152,7 @@ function FileNameCell({
 }) {
   const cell = (
     <span
-      className="flex-1 truncate"
+      className="focus-visible:outline-text flex-1 truncate outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
       title={title}
       role={interactions.interactive ? "button" : undefined}
       tabIndex={interactions.interactive ? 0 : undefined}
@@ -169,11 +171,66 @@ function FileNameCell({
   return <ContextMenu entries={menuEntries}>{cell}</ContextMenu>;
 }
 
+function TorrentRowShell({
+  rootRef,
+  rowKey,
+  depth,
+  virtualStart,
+  type,
+  completed,
+  rows,
+  anchorPath,
+  children,
+}: {
+  rootRef: RefObject<HTMLDivElement | null>;
+  rowKey: string;
+  depth: number;
+  virtualStart: number;
+  type: "torrent" | "player";
+  completed: boolean;
+  rows?: readonly TreeRow[];
+  anchorPath?: string | null;
+  children: ReactNode;
+}) {
+  const player = type === "player";
+  return (
+    <div
+      ref={rootRef}
+      data-tree-row
+      data-tree-path={rowKey}
+      data-tree-kind="file"
+      tabIndex={-1}
+      onMouseDown={(event) => {
+        if (event.target instanceof HTMLElement && event.target.closest("button, input")) return;
+        event.preventDefault();
+        event.currentTarget.focus();
+      }}
+      className={cn(
+        "windows95-text focus-visible:outline-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted",
+        player ? "windows95-border bg-field" : undefined,
+        (player || !(type === "torrent" && completed)) && "hover:bg-surface"
+      )}
+      style={{
+        height: player ? 20 : 18,
+        transform: `translateY(${virtualStart}px)`,
+        paddingLeft: `${depth * 12 + 2}px`,
+      }}
+    >
+      {player && anchorPath != null && (
+        <TreeRowNumber rows={rows ?? []} anchorPath={anchorPath} rowPath={rowKey} />
+      )}
+      {children}
+    </div>
+  );
+}
+
 export function TorrentFileRow({
   file,
   depth,
   virtualStart,
   type,
+  rows,
+  anchorPath,
   checked,
   onToggleFile,
   queueMap,
@@ -191,6 +248,8 @@ export function TorrentFileRow({
   depth: number;
   virtualStart: number;
   type: "torrent" | "player";
+  rows?: readonly TreeRow[];
+  anchorPath?: string | null;
   checked: boolean;
   sequential?: boolean;
   queuePosition?: number;
@@ -224,6 +283,7 @@ export function TorrentFileRow({
   });
   const openSearch = () => searchPlayerFile(type, track, resolvedPath, file.displayName);
   const rootRef = useRef<HTMLDivElement>(null);
+  const rowKey = `file:${file.index}`;
 
   const entryDisabled = !file.exists || busy;
   const clickOwn = (name: "external" | "builtin" | "upscale"): void => {
@@ -286,21 +346,15 @@ export function TorrentFileRow({
       : null;
 
   return (
-    <div
-      ref={rootRef}
-      data-tree-row
-      data-tree-path={`file:${file.index}`}
-      data-tree-kind="file"
-      tabIndex={-1}
-      className={cn(
-        "windows95-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none",
-        !(type === "torrent" && file.completed) && "hover:bg-surface"
-      )}
-      style={{
-        height: 18,
-        transform: `translateY(${virtualStart}px)`,
-        paddingLeft: `${depth * 12 + 2}px`,
-      }}
+    <TorrentRowShell
+      rootRef={rootRef}
+      rowKey={rowKey}
+      depth={depth}
+      virtualStart={virtualStart}
+      type={type}
+      completed={file.completed}
+      rows={rows}
+      anchorPath={anchorPath}
     >
       {onToggleFile && (
         <Checkbox
@@ -390,6 +444,6 @@ export function TorrentFileRow({
           onSearch={openSearch}
         />
       )}
-    </div>
+    </TorrentRowShell>
   );
 }

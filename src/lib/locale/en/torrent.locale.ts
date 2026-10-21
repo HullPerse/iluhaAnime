@@ -24,6 +24,8 @@ const torrent = {
   "torrent.delete": "Delete torrent",
   "torrent.delete.message": "Delete downloaded files along with the torrent?",
   "torrent.delete.message.many": "Delete the selected torrents?",
+  "torrent.delete.unfinished":
+    "Unfinished: {{size}} on disk. Keeping the files leaves a partial that the player cannot use; it can be removed later in Settings → Torrent.",
   "torrent.delete.title": "Delete torrent",
   "torrent.delete.with.files": "Delete with files",
   "torrent.copy.infohash": "Copy info-hash",
@@ -68,8 +70,12 @@ const torrent = {
   "torrent.eta.seconds": "{{s}} sec",
   "torrent.files.count": "Files ({{done}} / {{total}})",
   "torrent.files.error": "Failed to load files",
+  "torrent.files.on.disk": "On disk: {{size}}",
+  "torrent.files.sparse.unsupported":
+    "This disk does not support sparse files: an unfinished download occupies its full size immediately. Choose an NTFS folder to avoid this.",
   "torrent.filter.placeholder": "Filter...",
   "torrent.keep.files": "Keep files",
+  "torrent.keep.unfinished": "Keep unfinished files",
   "torrent.lifecycle.completed": "Completed",
   "torrent.lifecycle.live": "Downloading",
   "torrent.lifecycle.paused": "Paused",

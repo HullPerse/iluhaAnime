@@ -12,8 +12,8 @@
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio_util::sync::CancellationToken;
@@ -50,9 +50,19 @@ pub struct FolderContentChanged {
 
 type Pending = Arc<Mutex<HashMap<PathBuf, ChangeKind>>>;
 
+/// Paths dropped before aggregation: exact payload files that are still
+/// downloading, and directories of their output roots. File writes are matched
+/// exactly so an unrelated file in a shared library root still reaches the UI.
+#[derive(Clone, Default)]
+struct IgnoredPaths {
+    roots: Vec<PathBuf>,
+    files: HashSet<String>,
+}
+
 pub struct FolderWatcher {
     watcher: Option<RecommendedWatcher>,
     cancel: CancellationToken,
+    ignored: Arc<RwLock<IgnoredPaths>>,
 }
 
 impl FolderWatcher {
@@ -61,7 +71,34 @@ impl FolderWatcher {
         Self {
             watcher: None,
             cancel: CancellationToken::new(),
+            ignored: Arc::new(RwLock::new(IgnoredPaths::default())),
         }
+    }
+
+    /// Active torrents write pieces into the library. Their exact payload files
+    /// and the directories of their output roots are dropped before
+    /// aggregation, so piece writes no longer trigger full folder rescans.
+    pub fn set_ignored_paths(&self, roots: Vec<String>, files: Vec<String>) {
+        let mut ignored = self
+            .ignored
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *ignored = IgnoredPaths {
+            roots: roots.into_iter().map(PathBuf::from).collect(),
+            files: files
+                .iter()
+                .map(|file| normalize_key(Path::new(file)))
+                .collect(),
+        };
+    }
+
+    #[cfg(test)]
+    fn ignored_snapshot(&self) -> (Vec<PathBuf>, HashSet<String>) {
+        let ignored = self
+            .ignored
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        (ignored.roots.clone(), ignored.files.clone())
     }
 
     /// Starts watching `folders`. `window_ms` is the aggregation window; a
@@ -120,6 +157,7 @@ impl FolderWatcher {
         }
 
         let roots = Arc::new(roots);
+        let ignored_state = Arc::clone(&self.ignored);
         tokio::spawn(async move {
             loop {
                 tokio::select! {
@@ -133,10 +171,17 @@ impl FolderWatcher {
                 if drained.is_empty() {
                     continue;
                 }
+                let ignored = ignored_state
+                    .read()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .clone();
                 let mut seen_roots = HashSet::new();
                 let mut roots_hit = Vec::new();
                 let mut changes = Vec::new();
                 for (path, kind) in drained {
+                    if is_ignored(&path, &ignored) {
+                        continue;
+                    }
                     let Some(root) = roots.iter().find(|root| path.starts_with(root)) else {
                         continue;
                     };
@@ -190,6 +235,45 @@ const fn classify(kind: EventKind) -> Option<ChangeKind> {
         EventKind::Remove(_) => Some(ChangeKind::Removed),
         EventKind::Modify(_) => Some(ChangeKind::Modified),
         EventKind::Access(_) | EventKind::Other | EventKind::Any => None,
+    }
+}
+
+/// Windows paths compare case-insensitively and `Path::starts_with` compares
+/// whole components, so a sibling `Anime 2` never matches `Anime`.
+fn is_ignored(path: &Path, ignored: &IgnoredPaths) -> bool {
+    if ignored.files.contains(&normalize_key(path)) {
+        return true;
+    }
+    // Only directories fall back to the output root. A file that is not one of
+    // the active payloads may belong to another download or to the user.
+    if !path.is_dir() {
+        return false;
+    }
+    ignored.roots.iter().any(|root| path_under(path, root))
+}
+
+fn normalize_key(path: &Path) -> String {
+    #[cfg(windows)]
+    {
+        path.to_string_lossy().replace('/', "\\").to_lowercase()
+    }
+    #[cfg(not(windows))]
+    {
+        path.to_string_lossy().into_owned()
+    }
+}
+
+fn path_under(path: &Path, root: &Path) -> bool {
+    if cfg!(windows) {
+        let path = path.to_string_lossy().to_lowercase();
+        let root = root.to_string_lossy().to_lowercase();
+        if !path.starts_with(&root) {
+            return false;
+        }
+        let rest = &path[root.len()..];
+        rest.is_empty() || rest.starts_with('/') || rest.starts_with('\\')
+    } else {
+        path.starts_with(root)
     }
 }
 
@@ -268,5 +352,56 @@ mod tests {
         let root = Path::new("C:/Anime");
         assert!(PathBuf::from("C:/Anime/ep01.mkv").starts_with(root));
         assert!(!PathBuf::from("C:/Other/ep01.mkv").starts_with(root));
+    }
+
+    #[test]
+    fn ignored_paths_drop_active_payloads_and_keep_unrelated_files() {
+        let dir = std::env::temp_dir().join(format!("iluha-watch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let root = dir.join("Show S01");
+        std::fs::create_dir_all(root.join("sub")).expect("create root");
+        std::fs::create_dir_all(dir.join("Show S01 extras")).expect("create sibling");
+        let active = root.join("ep01.mkv");
+        std::fs::write(&active, b"piece").expect("create payload");
+
+        let ignored = IgnoredPaths {
+            roots: vec![root.clone()],
+            files: HashSet::from([normalize_key(&active)]),
+        };
+        assert!(is_ignored(&active, &ignored));
+        assert!(is_ignored(&root, &ignored));
+        assert!(is_ignored(&root.join("sub"), &ignored));
+        assert!(
+            is_ignored(&root.join("EP01.MKV"), &ignored),
+            "Windows paths are case-insensitive"
+        );
+        assert!(
+            !is_ignored(&root.join("other.mkv"), &ignored),
+            "an unrelated file in a shared library root has to pass"
+        );
+        assert!(
+            !is_ignored(&dir.join("Show S01 extras/x.mkv"), &ignored),
+            "a sibling folder with a similar name never matches"
+        );
+        assert!(!is_ignored(&dir.join("Show S01.mkv"), &ignored));
+        assert!(!is_ignored(&active, &IgnoredPaths::default()));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn setting_ignored_paths_replaces_the_previous_set() {
+        let watcher = FolderWatcher::new();
+        watcher.set_ignored_paths(
+            vec!["D:/Anime/A".to_string()],
+            vec!["D:/Anime/A/ep.mkv".to_string()],
+        );
+        let (roots, files) = watcher.ignored_snapshot();
+        assert_eq!(roots, vec![PathBuf::from("D:/Anime/A")]);
+        assert!(files.contains(&normalize_key(Path::new("d:/anime/a/EP.MKV"))));
+
+        watcher.set_ignored_paths(Vec::new(), Vec::new());
+        let (roots, files) = watcher.ignored_snapshot();
+        assert!(roots.is_empty());
+        assert!(files.is_empty());
     }
 }

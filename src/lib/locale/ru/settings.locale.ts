@@ -330,6 +330,15 @@ const settings = {
   "settings.torrent.dl.limit": "Лимит загрузки (КБ/с)",
   "settings.torrent.fastresume": "Fastresume (быстрое восстановление)",
   "settings.torrent.files": "Файлы",
+  "settings.torrent.leftovers": "Недокачанные файлы",
+  "settings.torrent.leftovers.none": "Недокачанных файлов не осталось.",
+  "settings.torrent.leftovers.count":
+    "Торрентов с недокачанными файлами: {{count}}, занято {{size}}.",
+  "settings.torrent.leftovers.hint":
+    "Файлы, оставленные при удалении незавершённого торрента. Плеер их не откроет; удалите, чтобы вернуть место.",
+  "settings.torrent.leftovers.clear": "Удалить недокачанное",
+  "settings.torrent.leftovers.confirm": "Удалить записанные недокачанные файлы с диска?",
+  "settings.torrent.leftovers.clear.failed": "Не удалось удалить недокачанные файлы",
   "settings.torrent.file.order": "Порядок файлов",
   "settings.torrent.file.order.list": "Как в списке",
   "settings.torrent.file.order.torrent": "Как в торренте",

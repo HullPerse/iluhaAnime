@@ -325,6 +325,19 @@ const FIND_GROUPS: readonly FindGroup[] = [
   },
   {
     tab: "torrent",
+    section: "leftovers",
+    titleKey: "settings.torrent.leftovers",
+    keys: [
+      "settings.torrent.leftovers.none",
+      "settings.torrent.leftovers.count",
+      "settings.torrent.leftovers.hint",
+      "settings.torrent.leftovers.clear",
+      "settings.torrent.leftovers.confirm",
+      "settings.torrent.leftovers.clear.failed",
+    ],
+  },
+  {
+    tab: "torrent",
     section: "notifications",
     titleKey: "settings.torrent.notifications",
     keys: ["settings.torrent.on.complete", "settings.torrent.on.error"],

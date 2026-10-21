@@ -250,6 +250,10 @@ export function TorrentFiles({
       {isExpanded && (
         <>
           <TorrentLimitsSection id={item.id} infoHash={item.info_hash} />
+          {item.disk_sparse === false && (            <p className="windows95-text text-destructive px-0.5 py-0.5 text-xs">
+              {t("torrent.files.sparse.unsupported")}
+            </p>
+          )}
           <TorrentFilesSection
             id={item.id}
             files={files}

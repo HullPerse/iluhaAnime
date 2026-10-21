@@ -39,6 +39,8 @@ const torrent = {
   "torrent.delete": "Удалить торрент",
   "torrent.delete.message": "Удалить скачанные файлы вместе с торрентом?",
   "torrent.delete.message.many": "Удалить выбранные торренты?",
+  "torrent.delete.unfinished":
+    "Не докачано: {{size}} на диске. Если оставить файлы, останется частичный файл, который плеер не откроет; его можно удалить позже в Настройки → Торренты.",
   "torrent.delete.title": "Удаление торрента",
   "torrent.delete.with.files": "Удалить с файлами",
   "torrent.diagnostics.trackers": "Трекеры",
@@ -68,8 +70,12 @@ const torrent = {
   "torrent.eta.seconds": "{{s}} сек",
   "torrent.files.count": "Файлы ({{done}} / {{total}})",
   "torrent.files.error": "Не удалось загрузить файлы",
+  "torrent.files.on.disk": "На диске: {{size}}",
+  "torrent.files.sparse.unsupported":
+    "Этот диск не поддерживает разреженные файлы: незавершённая загрузка сразу занимает полный размер. Выберите папку на NTFS.",
   "torrent.filter.placeholder": "Фильтр...",
   "torrent.keep.files": "Оставить файлы",
+  "torrent.keep.unfinished": "Оставить недокачанное",
   "torrent.lifecycle.completed": "Завершено",
   "torrent.lifecycle.live": "Загружается",
   "torrent.lifecycle.paused": "Пауза",

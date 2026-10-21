@@ -191,6 +191,15 @@ export function useDhtStats() {
   });
 }
 
+export function usePartialLeftovers(enabled = true) {
+  return useAppQuery("slow", {
+    queryKey: queryKeys.partialLeftovers(),
+    queryFn: () => torrentApi.listPartialLeftovers(),
+    enabled,
+    retry: false,
+  });
+}
+
 async function fetchTorrentFiles(queryClient: QueryClient, id: number): Promise<TorrentFileInfo[]> {
   const [files, error] = await attempt(torrentApi.runningTorrentFiles(id));
   if (error) throw error;

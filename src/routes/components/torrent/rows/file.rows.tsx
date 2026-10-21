@@ -30,9 +30,15 @@ import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { joinMediaPath } from "@/lib/utils/media.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
+import type { TFunc } from "@/types/i18n";
 import type { TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
 
 import { PlayerFileActions } from "../actions.torrent";
+
+function onDiskTitle(file: TorrentTreeFile, t: TFunc): string | undefined {
+  if (!file.selected || file.completed || file.on_disk_bytes <= 0) return undefined;
+  return t("torrent.files.on.disk", { size: formatBytes(file.on_disk_bytes) });
+}
 
 function QueuePosition({ position }: { position?: number }) {
   const { t } = useI18n();
@@ -414,7 +420,10 @@ export function TorrentFileRow({
         />
       )}
 
-      <span className="text-hint min-w-16 shrink-0 text-right whitespace-nowrap tabular-nums">
+      <span
+        className="text-hint min-w-16 shrink-0 text-right whitespace-nowrap tabular-nums"
+        title={onDiskTitle(file, t)}
+      >
         {formatBytes(file.size)}
       </span>
 

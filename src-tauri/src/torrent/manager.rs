@@ -5,6 +5,7 @@
     clippy::map_unwrap_or
 )]
 
+use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
@@ -25,17 +26,18 @@ use librqbit::{
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+use super::disk;
 use super::geoip::country_code_for_addr;
 use super::helpers::{
-    build_magnet, canonical_or_raw_tracker, ensure_minimum_free_space, is_info_hash,
-    is_safe_relative_path, plan_sequential, share_ratio, to_rqbit_limits, torrent_proxy_url,
-    validate_session_config, validate_tracker_url, with_fallback_trackers,
+    build_magnet, canonical_or_raw_tracker, ensure_minimum_free_space, final_file_path,
+    is_info_hash, is_safe_relative_path, plan_sequential, share_ratio, to_rqbit_limits,
+    torrent_proxy_url, validate_session_config, validate_tracker_url, with_fallback_trackers,
     with_fallback_trackers_bytes, with_trackers_bytes, SequentialPlan, FALLBACK_TRACKERS,
 };
 use super::types::{
-    CreatedTorrent, DhtStatus, FileOrder, FilePriority, SessionConfig, TorrentCheckResult,
-    TorrentDiagPeer, TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult,
-    TorrentLimits, TorrentOrigin, TorrentResumeResult,
+    CreatedTorrent, DhtStatus, FileOrder, FilePriority, PartialLeftover, PartialLeftoverFile,
+    SessionConfig, TorrentCheckResult, TorrentDiagPeer, TorrentDiagnostics, TorrentFileInfo,
+    TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentOrigin, TorrentResumeResult,
 };
 pub const METADATA_SLOTS: usize = 8;
 
@@ -116,6 +118,10 @@ pub struct TorrentManager {
     file_snapshots: DashMap<String, Vec<FileStamp>>,
     file_watch_cache: DashMap<String, (Instant, Vec<String>)>,
     rewrite_ghosts: DashMap<String, TorrentInfo>,
+    pub partial_leftovers: DashMap<String, PartialLeftover>,
+    pub partial_leftovers_path: PathBuf,
+    hidden_files: DashMap<usize, HashSet<usize>>,
+    sparse_cache: DashMap<String, bool>,
     #[cfg(test)]
     pub peer_hints: std::sync::Mutex<Vec<std::net::SocketAddr>>,
     pub rewrites_in_flight: std::sync::atomic::AtomicUsize,
@@ -185,6 +191,18 @@ impl TorrentManager {
                         && !value.source.trim().is_empty()
                         && !value.url.trim().is_empty()
                 })
+                .collect();
+
+        let partial_leftovers_path = app_data_dir.join("partial_leftovers.json");
+        let partial_leftovers: HashMap<String, PartialLeftover> =
+            std::fs::read_to_string(&partial_leftovers_path)
+                .ok()
+                .and_then(|json| {
+                    serde_json::from_str::<HashMap<String, PartialLeftover>>(&json).ok()
+                })
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|(key, value)| is_info_hash(key) && !value.files.is_empty())
                 .collect();
 
         let session_config_path = app_data_dir.join("session_config.json");
@@ -287,13 +305,19 @@ impl TorrentManager {
             file_snapshots: DashMap::new(),
             file_watch_cache: DashMap::new(),
             rewrite_ghosts: DashMap::new(),
+            partial_leftovers: partial_leftovers.into_iter().collect(),
+            partial_leftovers_path,
+            hidden_files: DashMap::new(),
+            sparse_cache: DashMap::new(),
             #[cfg(test)]
             peer_hints: std::sync::Mutex::new(Vec::new()),
             rewrites_in_flight: std::sync::atomic::AtomicUsize::new(0),
             files_cache: DashMap::new(),
             metadata_slots: Arc::new(tokio::sync::Semaphore::new(METADATA_SLOTS)),
         };
-        manager.cleanup_unselected_files();
+        manager.reconcile_file_visibility();
+        manager.prune_partial_leftovers();
+        manager.prune_created_torrents();
         Ok(manager)
     }
 
@@ -585,6 +609,7 @@ impl TorrentManager {
                 true,
                 false,
                 was_paused,
+                false,
             )
             .await
             .map_err(|error| format!("unable to reconfigure torrent: {error:#}"));
@@ -609,6 +634,7 @@ impl TorrentManager {
                     true,
                     false,
                     was_paused,
+                    false,
                 )
                 .await
             {
@@ -712,6 +738,7 @@ impl TorrentManager {
                         },
                         |entry| entry.value().1,
                     );
+                let disk_sparse = self.sparse_capable(&save_dir);
 
                 result.push(TorrentInfo {
                     id,
@@ -747,6 +774,7 @@ impl TorrentManager {
                         .is_some_and(|entry| *entry.value()),
                     external_changes: false,
                     external_changed_files: Vec::new(),
+                    disk_sparse,
                 });
             }
             if self.is_rewriting() {
@@ -790,6 +818,7 @@ impl TorrentManager {
             true,
             sequential,
             false,
+            true,
         )
         .await
     }
@@ -814,6 +843,7 @@ impl TorrentManager {
             true,
             sequential,
             false,
+            true,
         )
         .await
     }
@@ -860,7 +890,19 @@ impl TorrentManager {
         let info_hash = created.info_hash().as_string();
 
         let id = self
-            .add_torrent_from_bytes(bytes.clone(), save_dir, None, Some(name.clone()), false)
+            .add_torrent_inner(
+                AddTorrent::from_bytes(with_fallback_trackers_bytes(&bytes)),
+                save_dir,
+                None,
+                Some(name.clone()),
+                None,
+                None,
+                LimitsConfig::default(),
+                true,
+                false,
+                false,
+                false,
+            )
             .await?;
 
         let torrent_path = self.created_dir.join(format!("{info_hash}.torrent"));
@@ -872,6 +914,7 @@ impl TorrentManager {
                     torrent_path.display()
                 )
             })?;
+        self.prune_created_torrents();
 
         Ok(CreatedTorrent {
             id,
@@ -882,6 +925,11 @@ impl TorrentManager {
         })
     }
 
+    // The add path is shared by magnets, bytes, rewrites and restores; each
+    // flag is a distinct caller decision, and splitting them into a struct
+    // would only move the argument list.
+    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::fn_params_excessive_bools)]
     async fn add_torrent_inner(
         self: &Arc<Self>,
         mut add_torrent: AddTorrent<'_>,
@@ -894,6 +942,7 @@ impl TorrentManager {
         inject_fallback: bool,
         sequential: bool,
         paused: bool,
+        release_sparse: bool,
     ) -> Result<usize> {
         ensure_minimum_free_space(Path::new(&save_dir))?;
 
@@ -915,13 +964,14 @@ impl TorrentManager {
                         .to_string()
                 },
             );
+        let fresh_add = preferred_id.is_none();
         let opts = AddTorrentOptions {
             output_folder: Some(output_folder.clone()),
             overwrite: true,
             only_files: only_files.clone(),
             preferred_id,
             ratelimits,
-            paused,
+            paused: paused || fresh_add,
             #[cfg(test)]
             initial_peers: self.test_peer_hints(),
             ..Default::default()
@@ -933,6 +983,7 @@ impl TorrentManager {
             }
             _ => self.session.add_torrent(add_torrent, Some(opts)).await?,
         };
+        let added = matches!(&response, AddTorrentResponse::Added(..));
 
         let id = match response {
             AddTorrentResponse::Added(id, _) => {
@@ -965,10 +1016,46 @@ impl TorrentManager {
             let _ = self.session.update_only_files(handle, &set).await;
         }
 
-        self.cleanup_unselected_files();
+        if fresh_add && added && release_sparse {
+            if let Some(handle) = &handle {
+                let initialized = tokio::time::timeout(
+                    std::time::Duration::from_secs(3),
+                    handle.wait_until_initialized(),
+                )
+                .await
+                .is_ok();
+                if initialized {
+                    let verified = handle.stats().progress_bytes;
+                    if verified > 0 {
+                        tracing::info!(
+                            "skipping sparse release for torrent {id}: {verified} bytes were verified on disk"
+                        );
+                    } else if let Some(dir) = self.save_dirs.get(&id).map(|entry| entry.clone()) {
+                        let worker = Arc::clone(handle);
+                        let selection = only_files.clone();
+                        let _ = tokio::task::spawn_blocking(move || {
+                            release_unwritten_files(&worker, &dir, selection.as_deref());
+                        })
+                        .await;
+                    }
+                }
+            }
+        }
+
+        self.reconcile_file_visibility();
         if let (Some(ref files), Some(handle), Some(key)) = (&only_files, &handle, &key) {
             self.pending_selections.insert(id, files.clone());
             self.materialize_priorities(handle, key, files);
+        }
+
+        if fresh_add && added && !paused {
+            if let Some(handle) = &handle {
+                if let Err(error) = self.session.unpause(handle).await {
+                    tracing::warn!(
+                        "could not start torrent {id} after releasing clusters: {error:#}"
+                    );
+                }
+            }
         }
 
         if sequential {
@@ -1102,6 +1189,7 @@ impl TorrentManager {
                 inject_fallback,
                 false,
                 was_paused,
+                false,
             )
             .await;
         self.clear_rewrite_ghost(&info_hash);
@@ -1124,6 +1212,7 @@ impl TorrentManager {
                         true,
                         false,
                         was_paused,
+                        false,
                     )
                     .await;
                 self.save_torrent_state(&info_hash, limits, sequential, priorities, order);
@@ -1188,7 +1277,7 @@ impl TorrentManager {
                     .update_only_files(&handle, &set)
                     .await
                     .map_err(|e| format!("{e}"))?;
-                self.cleanup_unselected_files();
+                self.reconcile_file_visibility();
                 self.pending_selections.remove(&new_id);
             }
         }
@@ -1355,6 +1444,7 @@ impl TorrentManager {
                                             name: f.relative_filename.to_string_lossy().to_string(),
                                             size: f.len,
                                             progress_bytes: 0,
+                                            on_disk_bytes: 0,
                                             completed: false,
                                             selected: true,
                                             priority: FilePriority::Normal,
@@ -1422,28 +1512,11 @@ impl TorrentManager {
                 name: format!("{}", d.filename),
                 size: d.len,
                 progress_bytes: 0,
+                on_disk_bytes: 0,
                 completed: false,
                 selected: true,
                 priority: FilePriority::Normal,
                 exists: false,
-            })
-            .collect();
-
-        let sub_folder = &name;
-        let conflicting_files: Vec<String> = files
-            .iter()
-            .filter_map(|f| {
-                if !is_safe_relative_path(sub_folder) || !is_safe_relative_path(&f.name) {
-                    return None;
-                }
-                let full_path = std::path::Path::new(&save_dir)
-                    .join(sub_folder)
-                    .join(&f.name);
-                if full_path.exists() {
-                    Some(f.name.clone())
-                } else {
-                    None
-                }
             })
             .collect();
 
@@ -1464,6 +1537,19 @@ impl TorrentManager {
         } else {
             false
         };
+
+        let conflicting_files: Vec<String> = files
+            .iter()
+            .filter_map(|f| {
+                let full_path = final_file_path(
+                    std::path::Path::new(&save_dir),
+                    &name,
+                    has_common_folder,
+                    &f.name,
+                )?;
+                full_path.exists().then(|| f.name.clone())
+            })
+            .collect();
 
         Ok(TorrentInfoResult {
             id: 0,
@@ -1637,6 +1723,16 @@ impl TorrentManager {
         .await
     }
 
+    pub async fn pause_for_disk_full(&self, id: usize) -> bool {
+        let Some(handle) = self.torrent_handle(id) else {
+            return false;
+        };
+        if handle.is_paused() {
+            return false;
+        }
+        self.session.pause(&handle).await.is_ok()
+    }
+
     pub async fn pause_torrent(
         self: &Arc<Self>,
         id: usize,
@@ -1805,7 +1901,33 @@ impl TorrentManager {
                 self.capture_rewrite_ghost(id, key);
             }
         }
+        let leftover = if delete_files {
+            None
+        } else {
+            let save_dir = self.save_dirs.get(&id).map(|entry| entry.clone());
+            let handle = self.torrent_handle(id);
+            let name = self
+                .aliases
+                .get(key.as_deref().unwrap_or_default())
+                .map(|entry| entry.clone())
+                .or_else(|| handle.as_ref().and_then(|handle| handle.name()))
+                .unwrap_or_default();
+            match (key.as_deref(), save_dir) {
+                (Some(key), Some(save_dir)) if !save_dir.is_empty() && !name.is_empty() => {
+                    self.partial_leftover_for(id, key, &save_dir, &name)
+                }
+                _ => None,
+            }
+        };
         self.session.delete(id.into(), delete_files).await?;
+        if let Some(key) = &key {
+            if let Some(leftover) = leftover {
+                self.partial_leftovers.insert(key.clone(), leftover);
+            } else if delete_files {
+                self.partial_leftovers.remove(key);
+            }
+            self.save_partial_leftovers();
+        }
         self.save_dirs.remove(&id);
         self.magnet_links.remove(&id);
         if let Some(key) = key {
@@ -1826,6 +1948,7 @@ impl TorrentManager {
         self.peer_counts.remove(&id);
         self.missing_files.remove(&id);
         self.files_cache.remove(&id);
+        self.hidden_files.remove(&id);
         let persisted = Arc::clone(self);
         tokio::task::spawn_blocking(move || {
             persisted.save_save_dirs();
@@ -2006,17 +2129,23 @@ impl TorrentManager {
                                             .get(i)
                                             .copied()
                                             .unwrap_or(FilePriority::Normal);
-                                        let exists = self.save_dirs.get(&id).is_some_and(|d| {
-                                            let full =
-                                                Path::new(d.value()).join(&f.relative_filename);
-                                            std::fs::metadata(&full)
+                                        let full_path = self.save_dirs.get(&id).map(|d| {
+                                            Path::new(d.value()).join(&f.relative_filename)
+                                        });
+                                        let exists = full_path.as_deref().is_some_and(|path| {
+                                            std::fs::metadata(path)
                                                 .is_ok_and(|m| m.is_file() && m.len() > 0)
                                         });
+                                        let on_disk_bytes = full_path
+                                            .as_deref()
+                                            .and_then(disk::allocated_bytes)
+                                            .unwrap_or(0);
                                         TorrentFileInfo {
                                             index: i,
                                             name: f.relative_filename.to_string_lossy().to_string(),
                                             size: f.len,
                                             progress_bytes: progress,
+                                            on_disk_bytes,
                                             completed,
                                             selected,
                                             priority,
@@ -2046,75 +2175,346 @@ impl TorrentManager {
         }
     }
 
-    pub fn cleanup_unselected_files(&self) {
+    pub fn reconcile_file_visibility(&self) {
         self.session.with_torrents(|iter| {
             for (id, handle) in iter {
-                let save_dir = self.save_dirs.get(&id).map(|r| r.clone());
-                let Some(save_dir) = save_dir else { continue };
-                let Some(only_files) = handle.only_files() else {
-                    continue;
-                };
-                let stats = handle.stats();
-
-                let _ = handle.with_metadata(|m| {
-                    for (i, file) in m.file_infos.iter().enumerate() {
-                        if !is_safe_relative_path(&file.relative_filename.to_string_lossy()) {
-                            continue;
-                        }
-                        let full_path = Path::new(&save_dir).join(&file.relative_filename);
-                        let selected = only_files.contains(&i);
-                        if selected {
-                            unhide_file(&full_path);
-                        } else if stats.file_progress.get(i).copied().unwrap_or(0) == 0
-                            && std::fs::metadata(&full_path).is_err()
-                        {
-                            let _ = std::fs::File::create(&full_path);
-                            hide_file(&full_path);
-                        }
-                    }
-                });
+                self.reconcile_torrent_files(id, handle);
             }
         });
     }
-}
 
-#[cfg(windows)]
-fn hide_file(path: &Path) {
-    use std::os::windows::ffi::OsStrExt;
-    let wide: Vec<u16> = path
-        .as_os_str()
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect();
-    let _ = unsafe { SetFileAttributesW(wide.as_ptr(), 0x2) };
-}
+    pub fn reconcile_torrent(&self, id: usize) {
+        if let Some(handle) = self.torrent_handle(id) {
+            self.reconcile_torrent_files(id, &handle);
+        }
+    }
 
-#[cfg(windows)]
-fn unhide_file(path: &Path) {
-    use std::os::windows::ffi::OsStrExt;
-    let wide: Vec<u16> = path
-        .as_os_str()
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect();
-    let attrs = unsafe { GetFileAttributesW(wide.as_ptr()) };
-    if attrs != u32::MAX {
-        unsafe {
-            SetFileAttributesW(wide.as_ptr(), attrs & !0x2);
+    fn reconcile_torrent_files(&self, id: usize, handle: &Arc<librqbit::ManagedTorrent>) {
+        let Some(save_dir) = self.save_dirs.get(&id).map(|entry| entry.clone()) else {
+            return;
+        };
+        let only_files = handle.only_files();
+        let stats = handle.stats();
+        if stats.finished {
+            let key = handle.info_hash().as_string();
+            let same_folder = self
+                .partial_leftovers
+                .get(&key)
+                .is_some_and(|record| record.save_dir == save_dir);
+            if same_folder && self.partial_leftovers.remove(&key).is_some() {
+                self.save_partial_leftovers();
+            }
+        }
+        let mut hidden = self.hidden_files.entry(id).or_default();
+        let _ = handle.with_metadata(|metadata| {
+            for (index, file) in metadata.file_infos.iter().enumerate() {
+                if !is_safe_relative_path(&file.relative_filename.to_string_lossy()) {
+                    continue;
+                }
+                let full_path = Path::new(&save_dir).join(&file.relative_filename);
+                let exists = std::fs::metadata(&full_path).is_ok_and(|meta| meta.is_file());
+                let selected = only_files
+                    .as_ref()
+                    .is_none_or(|selection| selection.contains(&index));
+                let progress = stats.file_progress.get(index).copied().unwrap_or(0);
+                let complete = file.len == 0 || progress >= file.len;
+                let was_hidden = hidden.contains(&index);
+
+                if !selected {
+                    if complete && exists && file.len > 0 {
+                        if was_hidden || disk::is_hidden(&full_path) {
+                            disk::unhide_file(&full_path);
+                            hidden.remove(&index);
+                        }
+                        continue;
+                    }
+                    if !exists {
+                        let _ = std::fs::File::create(&full_path);
+                        if std::fs::metadata(&full_path).is_err() {
+                            continue;
+                        }
+                    }
+                    if !was_hidden {
+                        disk::hide_file(&full_path);
+                        hidden.insert(index);
+                    }
+                    continue;
+                }
+
+                if complete {
+                    if was_hidden || (exists && disk::is_hidden(&full_path)) {
+                        disk::unhide_file(&full_path);
+                        hidden.remove(&index);
+                    }
+                    continue;
+                }
+
+                if exists && !was_hidden {
+                    if !disk::is_hidden(&full_path) {
+                        disk::hide_file(&full_path);
+                    }
+                    hidden.insert(index);
+                }
+            }
+        });
+    }
+
+    /// Output roots and exact payload paths of unfinished torrents. The folder
+    /// watcher drops writes to the payload files and directory events under the
+    /// roots, while unrelated files in a shared library root still pass.
+    pub fn active_download_paths(&self) -> (Vec<String>, Vec<String>) {
+        self.session.with_torrents(|iter| {
+            let mut roots = Vec::new();
+            let mut files = Vec::new();
+            for (id, handle) in iter {
+                let stats = handle.stats();
+                if stats.finished {
+                    continue;
+                }
+                let Some(dir) = self.save_dirs.get(&id).map(|entry| entry.clone()) else {
+                    continue;
+                };
+                let only_files = handle.only_files();
+                let _ = handle.with_metadata(|metadata| {
+                    for (index, file) in metadata.file_infos.iter().enumerate() {
+                        if file.attrs.padding {
+                            continue;
+                        }
+                        if only_files
+                            .as_ref()
+                            .is_some_and(|selection| !selection.contains(&index))
+                        {
+                            continue;
+                        }
+                        if stats.file_progress.get(index).copied().unwrap_or(0) >= file.len {
+                            continue;
+                        }
+                        if !is_safe_relative_path(&file.relative_filename.to_string_lossy()) {
+                            continue;
+                        }
+                        files.push(
+                            Path::new(&dir)
+                                .join(&file.relative_filename)
+                                .to_string_lossy()
+                                .to_string(),
+                        );
+                    }
+                });
+                roots.push(dir);
+            }
+            (roots, files)
+        })
+    }
+
+    pub fn sparse_capable(&self, save_dir: &str) -> bool {
+        if save_dir.is_empty() {
+            return true;
+        }
+        if let Some(known) = self.sparse_cache.get(save_dir) {
+            return *known.value();
+        }
+        let supported = disk::sparse_capable(Path::new(save_dir));
+        self.sparse_cache.insert(save_dir.to_string(), supported);
+        supported
+    }
+
+    fn partial_leftover_for(
+        &self,
+        id: usize,
+        key: &str,
+        save_dir: &str,
+        name: &str,
+    ) -> Option<PartialLeftover> {
+        let handle = self.torrent_handle(id)?;
+        if handle.stats().finished {
+            return None;
+        }
+        let stats = handle.stats();
+        let files: Vec<PartialLeftoverFile> = handle
+            .with_metadata(|metadata| {
+                metadata
+                    .file_infos
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, file)| {
+                        if !is_safe_relative_path(&file.relative_filename.to_string_lossy()) {
+                            return None;
+                        }
+                        let progress = stats.file_progress.get(index).copied().unwrap_or(0);
+                        if progress == 0 || progress >= file.len {
+                            return None;
+                        }
+                        let full_path = Path::new(save_dir).join(&file.relative_filename);
+                        if std::fs::metadata(&full_path).is_err() {
+                            return None;
+                        }
+                        Some(PartialLeftoverFile {
+                            name: file.relative_filename.to_string_lossy().to_string(),
+                            size: file.len,
+                            on_disk_bytes: disk::allocated_bytes(&full_path).unwrap_or(progress),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        if files.is_empty() {
+            return None;
+        }
+        Some(PartialLeftover {
+            info_hash: key.to_string(),
+            name: name.to_string(),
+            save_dir: save_dir.to_string(),
+            files,
+            removed_at: now_secs(),
+        })
+    }
+
+    fn save_partial_leftovers(&self) {
+        let map: HashMap<String, PartialLeftover> = self
+            .partial_leftovers
+            .iter()
+            .map(|entry| (entry.key().clone(), entry.value().clone()))
+            .collect();
+        if let Ok(json) = serde_json::to_string(&map) {
+            let _ = std::fs::write(&self.partial_leftovers_path, json);
+        }
+    }
+
+    fn prune_partial_leftovers(&self) {
+        let before = self.partial_leftovers.len();
+        self.partial_leftovers.retain(|_, leftover| {
+            leftover
+                .files
+                .iter()
+                .any(|file| Path::new(&leftover.save_dir).join(&file.name).exists())
+        });
+        if self.partial_leftovers.len() != before {
+            self.save_partial_leftovers();
+        }
+    }
+
+    fn active_info_hashes(&self) -> HashSet<String> {
+        self.session.with_torrents(|iter| {
+            iter.map(|(_, handle)| handle.info_hash().as_string())
+                .collect()
+        })
+    }
+
+    pub fn list_partial_leftovers(&self) -> Vec<PartialLeftover> {
+        self.prune_partial_leftovers();
+        let active = self.active_info_hashes();
+        let mut result: Vec<PartialLeftover> = self
+            .partial_leftovers
+            .iter()
+            .filter(|entry| !active.contains(entry.key()))
+            .map(|entry| entry.value().clone())
+            .collect();
+        result.sort_by_key(|left| Reverse(left.removed_at));
+        result
+    }
+
+    pub fn clear_partial_leftovers(&self, hashes: Option<&[String]>) -> u64 {
+        let active = self.active_info_hashes();
+        let keys: Vec<String> = self
+            .partial_leftovers
+            .iter()
+            .filter(|entry| !active.contains(entry.key()))
+            .filter(|entry| hashes.is_none_or(|wanted| wanted.contains(entry.key())))
+            .map(|entry| entry.key().clone())
+            .collect();
+        let mut freed = 0u64;
+        for key in keys {
+            let Some((_, leftover)) = self.partial_leftovers.remove(&key) else {
+                continue;
+            };
+            for file in &leftover.files {
+                if !is_safe_relative_path(&file.name) {
+                    continue;
+                }
+                let path = Path::new(&leftover.save_dir).join(&file.name);
+                if !path.starts_with(&leftover.save_dir) {
+                    continue;
+                }
+                let allocated = disk::allocated_bytes(&path).unwrap_or(file.on_disk_bytes);
+                if std::fs::remove_file(&path).is_ok() {
+                    freed = freed.saturating_add(allocated);
+                }
+                remove_empty_parents(&path, Path::new(&leftover.save_dir));
+            }
+        }
+        self.save_partial_leftovers();
+        freed
+    }
+
+    fn prune_created_torrents(&self) {
+        const KEEP: usize = 20;
+        let Ok(entries) = std::fs::read_dir(&self.created_dir) else {
+            return;
+        };
+        let mut files: Vec<(std::time::SystemTime, PathBuf)> = entries
+            .flatten()
+            .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "torrent"))
+            .filter_map(|entry| {
+                let path = entry.path();
+                let modified = entry.metadata().ok()?.modified().ok()?;
+                Some((modified, path))
+            })
+            .collect();
+        if files.len() <= KEEP {
+            return;
+        }
+        files.sort_by_key(|entry| Reverse(entry.0));
+        for (_, path) in files.into_iter().skip(KEEP) {
+            let _ = std::fs::remove_file(path);
         }
     }
 }
 
-#[cfg(not(windows))]
-fn hide_file(_path: &Path) {}
+fn release_unwritten_files(
+    handle: &Arc<librqbit::ManagedTorrent>,
+    save_dir: &str,
+    only_files: Option<&[usize]>,
+) {
+    let selection: Option<HashSet<usize>> = only_files.map(|files| files.iter().copied().collect());
+    let _ = handle.with_metadata(|metadata| {
+        for (index, file) in metadata.file_infos.iter().enumerate() {
+            if file.attrs.padding {
+                continue;
+            }
+            if let Some(selection) = &selection {
+                if !selection.contains(&index) {
+                    continue;
+                }
+            }
+            if !is_safe_relative_path(&file.relative_filename.to_string_lossy()) {
+                continue;
+            }
+            let path = Path::new(save_dir).join(&file.relative_filename);
+            if disk::allocated_bytes(&path).is_some_and(|allocated| allocated > 0) {
+                disk::release_unwritten(&path);
+            }
+        }
+    });
+}
 
-#[cfg(not(windows))]
-fn unhide_file(_path: &Path) {}
+fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or_default()
+}
 
-#[cfg(windows)]
-extern "system" {
-    fn GetFileAttributesW(lpFileName: *const u16) -> u32;
-    fn SetFileAttributesW(lpFileName: *const u16, dwFileAttributes: u32) -> i32;
+fn remove_empty_parents(path: &Path, stop: &Path) {
+    let mut current = path.parent();
+    while let Some(parent) = current {
+        if parent == stop || !parent.starts_with(stop) {
+            return;
+        }
+        if std::fs::remove_dir(parent).is_err() {
+            return;
+        }
+        current = parent.parent();
+    }
 }
 
 impl TorrentManager {
@@ -2146,7 +2546,7 @@ impl TorrentManager {
         if result.is_ok() {
             self.file_priorities.remove(&key);
             self.materialize_priorities(&handle, &key, &only_files);
-            self.cleanup_unselected_files();
+            self.reconcile_file_visibility();
         }
         result
     }
@@ -2209,7 +2609,7 @@ impl TorrentManager {
                     .update_only_files(&handle, &set)
                     .await
                     .map_err(|e| format!("{e:#}"))?;
-                self.cleanup_unselected_files();
+                self.reconcile_file_visibility();
             }
         }
 
@@ -2875,6 +3275,7 @@ mod tests {
             missing_files: false,
             external_changes: false,
             external_changed_files: Vec::new(),
+            disk_sparse: true,
         }
     }
 
@@ -4459,5 +4860,393 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn incomplete_selected_files_stay_hidden_until_their_last_byte() {
+        let dir = std::env::temp_dir().join(format!("iluha-hide-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let content: Vec<u8> = (0..4 * 1024 * 1024).map(|i| (i % 251) as u8).collect();
+        let (torrent_bytes, source_dir) =
+            create_test_torrent("hide-partial", &[("Episode 01.mkv", content)]);
+        let (seeder, addr) = start_local_seeder(&dir, &torrent_bytes, &source_dir).await;
+        seeder
+            .ratelimits
+            .set_upload_bps(NonZeroU32::new(512 * 1024));
+
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+        let id = download_from_local_seeder(&manager, torrent_bytes, &dir, addr, false).await;
+        let save_dir = dir.join("downloads");
+
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut partial = None;
+        while Instant::now() < deadline {
+            if let Ok(files) = manager.get_running_torrent_files(id) {
+                if let Some(file) = files.first() {
+                    if file.progress_bytes > 0 && !file.completed {
+                        partial = Some(file.clone());
+                        break;
+                    }
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        let partial = partial.expect("a throttled local swarm must expose a partial file");
+        let path = save_dir.join(&partial.name);
+        manager.reconcile_file_visibility();
+        assert!(
+            crate::torrent::disk::is_hidden(&path),
+            "a file that is still downloading must not show up in the library"
+        );
+        if manager.sparse_capable(&save_dir.to_string_lossy()) {
+            eprintln!(
+                "partial allocation: {} on disk, {} written, {} total",
+                partial.on_disk_bytes, partial.progress_bytes, partial.size
+            );
+            assert!(
+                partial.on_disk_bytes <= partial.progress_bytes + 1024 * 1024,
+                "sparse allocation has to track progress: {} allocated for {} written of {}",
+                partial.on_disk_bytes,
+                partial.progress_bytes,
+                partial.size
+            );
+            assert!(
+                partial.on_disk_bytes < partial.size,
+                "a sparse partial file must not allocate its final size: {} of {}",
+                partial.on_disk_bytes,
+                partial.size
+            );
+        }
+
+        let hash = manager.torrent_info_hash(id).expect("info hash");
+        manager.partial_leftovers.insert(
+            hash.clone(),
+            PartialLeftover {
+                info_hash: hash.clone(),
+                name: "Show".to_string(),
+                save_dir: save_dir.to_string_lossy().to_string(),
+                files: vec![PartialLeftoverFile {
+                    name: partial.name.clone(),
+                    size: partial.size,
+                    on_disk_bytes: partial.on_disk_bytes,
+                }],
+                removed_at: 1,
+            },
+        );
+        assert!(
+            manager.list_partial_leftovers().is_empty(),
+            "a leftover record for an active torrent has to stay hidden"
+        );
+        assert_eq!(
+            manager.clear_partial_leftovers(None),
+            0,
+            "cleanup must never delete the payload of an active torrent"
+        );
+        assert!(path.exists(), "the active partial survives cleanup");
+
+        let (roots, files) = manager.active_download_paths();
+        assert!(
+            roots.iter().any(|root| *root == save_dir.to_string_lossy()),
+            "the output root is filtered"
+        );
+        assert!(
+            files.iter().any(|file| file.contains("Episode 01.mkv")),
+            "the incomplete payload file is filtered"
+        );
+
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let mut finished = false;
+        while Instant::now() < deadline {
+            if manager
+                .get_running_torrent_files(id)
+                .is_ok_and(|files| files.first().is_some_and(|file| file.completed))
+            {
+                finished = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        assert!(finished, "the throttled download has to finish in the test");
+        manager.reconcile_file_visibility();
+        assert!(
+            !crate::torrent::disk::is_hidden(&path),
+            "the last byte has to reveal the file"
+        );
+        assert!(
+            manager.list_partial_leftovers().is_empty(),
+            "completion drops the stale leftover record"
+        );
+        assert!(
+            manager.partial_leftovers.get(&hash).is_none(),
+            "the record is gone, not just hidden"
+        );
+        assert!(path.exists(), "dropping the record keeps the payload");
+
+        manager
+            .update_torrent_only_files(id, Vec::new(), None)
+            .await
+            .expect("deselect every file");
+        manager.reconcile_file_visibility();
+        assert!(
+            !crate::torrent::disk::is_hidden(&path),
+            "a completed file stays visible when the user unselects it"
+        );
+
+        let (_, files) = manager.active_download_paths();
+        assert!(
+            files.is_empty(),
+            "a finished torrent no longer suppresses its folder events"
+        );
+
+        manager
+            .remove_torrent(id, true, None)
+            .await
+            .expect("remove");
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn partial_leftovers_are_listed_cleared_and_cannot_escape_the_save_dir() {
+        let dir = std::env::temp_dir().join(format!("iluha-leftover-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let save_dir = dir.join("library");
+        std::fs::create_dir_all(save_dir.join("Show")).expect("create save dir");
+        let inside = save_dir.join("Show").join("Episode 01.mkv");
+        std::fs::write(&inside, vec![7u8; 1024 * 1024]).expect("write partial");
+        let outside = dir.join("escape.mkv");
+        std::fs::write(&outside, b"keep me").expect("write outside");
+
+        let manager = TorrentManager::new_test(dir.clone())
+            .await
+            .expect("session starts");
+        let hash = "a".repeat(40);
+        manager.partial_leftovers.insert(
+            hash.clone(),
+            PartialLeftover {
+                info_hash: hash,
+                name: "Show".to_string(),
+                save_dir: save_dir.to_string_lossy().to_string(),
+                files: vec![
+                    PartialLeftoverFile {
+                        name: "Show/Episode 01.mkv".to_string(),
+                        size: 4 * 1024 * 1024,
+                        on_disk_bytes: 1024 * 1024,
+                    },
+                    PartialLeftoverFile {
+                        name: "../escape.mkv".to_string(),
+                        size: 7,
+                        on_disk_bytes: 7,
+                    },
+                ],
+                removed_at: 1,
+            },
+        );
+
+        let listed = manager.list_partial_leftovers();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].files.len(), 2);
+
+        let freed = manager.clear_partial_leftovers(None);
+        assert!(freed >= 1024 * 1024, "freed bytes are reported");
+        assert!(!inside.exists(), "the recorded partial is deleted");
+        assert!(!save_dir.join("Show").exists(), "empty parents are pruned");
+        assert!(
+            outside.exists(),
+            "a traversal name must never delete outside"
+        );
+        assert!(manager.list_partial_leftovers().is_empty());
+
+        manager.partial_leftovers.insert(
+            "b".repeat(40),
+            PartialLeftover {
+                info_hash: "b".repeat(40),
+                name: "Gone".to_string(),
+                save_dir: save_dir.to_string_lossy().to_string(),
+                files: vec![PartialLeftoverFile {
+                    name: "Gone/missing.mkv".to_string(),
+                    size: 10,
+                    on_disk_bytes: 10,
+                }],
+                removed_at: 2,
+            },
+        );
+        assert!(
+            manager.list_partial_leftovers().is_empty(),
+            "records whose files are gone prune themselves"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn created_torrent_cache_keeps_only_the_newest_entries() {
+        let dir = std::env::temp_dir().join(format!("iluha-created-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let manager = TorrentManager::new_test(dir.clone())
+            .await
+            .expect("session starts");
+        for index in 0..25u64 {
+            let path = manager.created_dir.join(format!("{index:040}.torrent"));
+            std::fs::write(&path, b"x").expect("write torrent");
+            let stamp = std::time::UNIX_EPOCH + std::time::Duration::from_secs(index);
+            let file = std::fs::File::options()
+                .write(true)
+                .open(&path)
+                .expect("open torrent");
+            file.set_modified(stamp).expect("set mtime");
+        }
+
+        manager.prune_created_torrents();
+
+        let mut kept: Vec<String> = std::fs::read_dir(&manager.created_dir)
+            .expect("read cache")
+            .flatten()
+            .filter_map(|entry| entry.file_name().into_string().ok())
+            .collect();
+        kept.sort();
+        assert_eq!(kept.len(), 20);
+        let indices: Vec<u64> = kept
+            .iter()
+            .filter_map(|name| name.trim_end_matches(".torrent").parse::<u64>().ok())
+            .collect();
+        assert!(indices.contains(&24), "the newest entry survives");
+        assert!(!indices.contains(&0), "the oldest entries are pruned");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn conflict_detection_uses_the_path_librqbit_actually_writes() {
+        let dir = std::env::temp_dir().join(format!("iluha-conflict-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let (bytes, source_dir) = create_test_torrent(
+            "conflict",
+            &[
+                ("Show/Episode 01.mkv", b"one".to_vec()),
+                ("Show/Episode 02.mkv", b"two".to_vec()),
+            ],
+        );
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+        let save_dir = dir.join("library").to_string_lossy().to_string();
+        let preview = manager
+            .get_torrent_info_from_bytes(bytes.clone(), save_dir.clone())
+            .await
+            .expect("preview");
+        assert!(
+            preview.has_common_folder,
+            "the fixture has to exercise the common-folder branch"
+        );
+        assert!(preview.conflicting_files.is_empty());
+
+        let actual = std::path::Path::new(&save_dir).join(&preview.files[0].name);
+        std::fs::create_dir_all(actual.parent().expect("parent")).expect("create dir");
+        std::fs::write(&actual, b"already here").expect("write conflict");
+
+        let preview = manager
+            .get_torrent_info_from_bytes(bytes, save_dir)
+            .await
+            .expect("preview again");
+        assert_eq!(
+            preview.conflicting_files,
+            vec![preview.files[0].name.clone()],
+            "the overwrite prompt has to see the file at its real path"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    /// Real-network check against a public magnet. Ignored by default because
+    /// it needs a working tracker/DHT and peers.
+    ///
+    /// `cargo test --manifest-path src-tauri/Cargo.toml --lib real_magnet -- --ignored --nocapture`
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "real network: needs a tracker and peers"]
+    async fn real_magnet_download_hides_partials_and_records_leftovers() {
+        const MAGNET: &str = "magnet:?xt=urn:btih:1ae788229e033e8c7a3023a66e76bd196058f226&dn=Yani+Neko+%5BWEB-DL+1080p%5D&tr=http%3A%2F%2Fbt4.t-ru.org%2Fann";
+        let dir = std::env::temp_dir().join(format!("iluha-real-magnet-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let save_dir = dir.join("library");
+        std::fs::create_dir_all(&save_dir).expect("create save dir");
+
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+        let id = manager
+            .add_torrent(
+                MAGNET.to_string(),
+                save_dir.to_string_lossy().to_string(),
+                None,
+                None,
+                false,
+            )
+            .await
+            .expect("the magnet has to resolve and add");
+
+        let deadline = Instant::now() + Duration::from_secs(180);
+        let mut partial = None;
+        while Instant::now() < deadline {
+            if let Ok(files) = manager.get_running_torrent_files(id) {
+                if let Some(file) = files
+                    .iter()
+                    .find(|file| file.size > 0 && file.progress_bytes > 0 && !file.completed)
+                {
+                    partial = Some(file.clone());
+                    break;
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(250)).await;
+        }
+        let partial =
+            partial.expect("no payload arrived in 180s: tracker, DHT or peers unavailable");
+
+        manager.reconcile_file_visibility();
+        let path = save_dir.join(&partial.name);
+        assert!(path.exists(), "the partial payload has to exist on disk");
+        assert!(
+            crate::torrent::disk::is_hidden(&path),
+            "an incomplete payload file must stay hidden"
+        );
+        if manager.sparse_capable(&save_dir.to_string_lossy()) {
+            assert!(
+                partial.on_disk_bytes < partial.size,
+                "sparse allocation has to track progress: {} of {} at {}",
+                partial.on_disk_bytes,
+                partial.size,
+                partial.progress_bytes
+            );
+        }
+
+        manager
+            .remove_torrent(id, false, None)
+            .await
+            .expect("remove keeping files");
+        let leftovers = manager.list_partial_leftovers();
+        assert_eq!(leftovers.len(), 1, "keeping files records the partial");
+        assert!(
+            leftovers[0]
+                .files
+                .iter()
+                .any(|file| file.name == partial.name),
+            "the recorded leftover has to include the partial payload"
+        );
+
+        let freed = manager.clear_partial_leftovers(None);
+        assert!(freed > 0, "cleanup reports the reclaimed bytes");
+        assert!(!path.exists(), "cleanup deletes the recorded partial");
+        assert!(manager.list_partial_leftovers().is_empty());
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

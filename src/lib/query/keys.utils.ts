@@ -4,6 +4,7 @@ export const queryKeys = {
   torrentFiles: (id: number) => ["torrent-files", id] as const,
   torrentDiagnostics: (id: number) => ["torrent_diagnostics", id] as const,
   torrentListenPort: () => ["torrent-listen-port"] as const,
+  partialLeftovers: () => ["partial-leftovers"] as const,
   gameRoms: () => ["game-roms"] as const,
   gamePlatforms: () => ["game-platforms"] as const,
   gameStore: () => ["game-store"] as const,

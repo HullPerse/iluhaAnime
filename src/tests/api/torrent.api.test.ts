@@ -143,4 +143,44 @@ describe("TorrentApi", () => {
     });
     expect(disabled.webviewProxyFor("rutracker")).toBeUndefined();
   });
+
+  it("forwards the selected payload size with the start command", async () => {
+    const { calls, transport } = fakeTransport(() => 7);
+    const api = new TorrentApi({ transport });
+
+    await api.startTorrentDownload({
+      magnet: "magnet:?xt=urn:btih:abc",
+      saveDir: "D:/dl",
+      onlyFiles: [1],
+      subFolder: null,
+      sequential: false,
+      requiredBytes: 123,
+    });
+
+    expect(calls[0]).toEqual({
+      command: "start_torrent_download",
+      args: {
+        magnet: "magnet:?xt=urn:btih:abc",
+        saveDir: "D:/dl",
+        onlyFiles: [1],
+        subFolder: null,
+        sequential: false,
+        requiredBytes: 123,
+      },
+    });
+  });
+
+  it("lists and clears recorded partial leftovers", async () => {
+    const { calls, transport } = fakeTransport((command) =>
+      command === "list_partial_leftovers" ? [] : 42
+    );
+    const api = new TorrentApi({ transport });
+
+    expect(await api.listPartialLeftovers()).toEqual([]);
+    expect(await api.clearPartialLeftovers(["abc"])).toBe(42);
+    expect(calls[1]).toEqual({
+      command: "clear_partial_leftovers",
+      args: { hashes: ["abc"] },
+    });
+  });
 });

@@ -104,6 +104,7 @@ export interface TorrentInfo {
   missing_files: boolean;
   external_changes: boolean;
   external_changed_files: string[];
+  disk_sparse?: boolean;
 }
 
 export interface TorrentFileInfo {
@@ -111,10 +112,25 @@ export interface TorrentFileInfo {
   name: string;
   size: number;
   progress_bytes: number;
+  on_disk_bytes?: number;
   completed: boolean;
   selected: boolean;
   priority: FilePriority;
   exists: boolean;
+}
+
+export interface PartialLeftoverFile {
+  name: string;
+  size: number;
+  on_disk_bytes: number;
+}
+
+export interface PartialLeftover {
+  info_hash: string;
+  name: string;
+  save_dir: string;
+  files: PartialLeftoverFile[];
+  removed_at: number;
 }
 
 export interface TorrentLimits {
@@ -267,6 +283,7 @@ export interface TorrentTreeFile {
   displayName: string;
   size: number;
   progress_bytes: number;
+  on_disk_bytes: number;
   completed: boolean;
   selected: boolean;
   priority: FilePriority;

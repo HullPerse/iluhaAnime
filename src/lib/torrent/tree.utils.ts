@@ -35,6 +35,7 @@ function toTreeFile(file: TorrentFileInfo, displayName: string): TorrentTreeFile
     exists: file.exists,
     index: file.index,
     name: file.name,
+    on_disk_bytes: file.on_disk_bytes ?? 0,
     priority: file.priority,
     progress_bytes: file.progress_bytes,
     selected: file.selected,

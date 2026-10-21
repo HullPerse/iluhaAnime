@@ -184,10 +184,25 @@ struct TorrentTickState {
     prev_states: HashMap<usize, (bool, Option<String>)>,
     notified_errors: HashMap<usize, String>,
     notified_health: HashSet<usize>,
+    paused_on_disk_full: HashSet<usize>,
     cleanup_counter: u32,
     ticks_since_emit: u32,
     first_run: bool,
     last_emitted: Vec<TorrentUpdateSignature>,
+}
+
+fn is_disk_full_error(error: &str) -> bool {
+    let lowered = error.to_lowercase();
+    [
+        "no space left",
+        "not enough space",
+        "not enough free disk space",
+        "disk full",
+        "os error 112",
+        "enospc",
+    ]
+    .iter()
+    .any(|needle| lowered.contains(needle))
 }
 
 async fn run_torrent_update_tick(
@@ -207,6 +222,11 @@ async fn run_torrent_update_tick(
     })
     .await
     .expect("torrent verification task panicked");
+    let watcher_state = app.state::<std::sync::Mutex<watcher::FolderWatcher>>();
+    let (download_roots, download_files) = manager.active_download_paths();
+    if let Ok(watcher) = watcher_state.lock() {
+        watcher.set_ignored_paths(download_roots, download_files);
+    }
     let signature: Vec<TorrentUpdateSignature> = torrents
         .iter()
         .map(|t| TorrentUpdateSignature {
@@ -247,100 +267,123 @@ async fn run_torrent_update_tick(
         }
         state.first_run = false;
     } else {
-        let cfg_state = app.state::<std::sync::Mutex<NotificationConfig>>();
-        let cfg = cfg_state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut reveal = Vec::new();
+        let mut pause_on_disk_full = Vec::new();
+        {
+            let cfg_state = app.state::<std::sync::Mutex<NotificationConfig>>();
+            let cfg = cfg_state
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
 
-        for t in &torrents {
-            let prev = state.prev_states.get(&t.id);
-            let prev_finished = prev.is_some_and(|(f, _)| *f);
+            for t in &torrents {
+                let prev = state.prev_states.get(&t.id);
+                let prev_finished = prev.is_some_and(|(f, _)| *f);
 
-            if cfg.enabled {
-                if cfg.on_complete && t.finished && !prev_finished && t.total_bytes > 0 {
-                    let _ = app.emit(
-                        "show-notification",
-                        serde_json::json!({
-                            "titleKey": "torrent.notify.complete.title",
-                            "body": &t.name,
-                            "type": "success",
-                            "eventKey": format!(
-                                "torrent-complete:{}:{}",
-                                t.id, t.info_hash
-                            ),
-                            "action": {
-                                "source": "folder",
-                                "path": &t.save_dir,
-                            },
-                        }),
-                    );
+                if t.finished && !prev_finished {
+                    reveal.push(t.id);
+                }
+                if t.error.as_deref().is_some_and(is_disk_full_error) {
+                    pause_on_disk_full.push(t.id);
+                } else {
+                    state.paused_on_disk_full.remove(&t.id);
                 }
 
-                if cfg.on_error {
-                    if let Some(error) = t.error.as_deref() {
-                        let already_notified = state
-                            .notified_errors
-                            .get(&t.id)
-                            .is_some_and(|last| last == error);
-                        if !already_notified {
-                            let msg = format!("{}: {}", t.name, error);
-                            let _ = app.emit(
-                                "show-notification",
-                                serde_json::json!({
-                                    "titleKey": "torrent.notify.error.title",
-                                    "body": &msg,
-                                    "type": "error",
-                                    "action": {
-                                        "source": "folder",
-                                        "path": &t.save_dir,
-                                    },
-                                }),
-                            );
-                            state.notified_errors.insert(t.id, error.to_string());
-                        }
-                    }
-                }
-
-                if cfg.on_health {
-                    let unhealthy = t.missing_files || t.external_changes;
-                    if unhealthy && !state.notified_health.contains(&t.id) {
-                        let (body_key, body_vars) = if t.missing_files {
-                            (
-                                "torrent.notify.health.missing",
-                                serde_json::json!({ "name": &t.name }),
-                            )
-                        } else {
-                            (
-                                "torrent.notify.health.external",
-                                serde_json::json!({
-                                    "name": &t.name,
-                                    "count": t.external_changed_files.len(),
-                                }),
-                            )
-                        };
+                if cfg.enabled {
+                    if cfg.on_complete && t.finished && !prev_finished && t.total_bytes > 0 {
                         let _ = app.emit(
                             "show-notification",
                             serde_json::json!({
-                                "titleKey": "torrent.notify.health.title",
-                                "bodyKey": body_key,
-                                "bodyVars": body_vars,
-                                "type": "warning",
+                                "titleKey": "torrent.notify.complete.title",
+                                "body": &t.name,
+                                "type": "success",
+                                "eventKey": format!(
+                                    "torrent-complete:{}:{}",
+                                    t.id, t.info_hash
+                                ),
                                 "action": {
                                     "source": "folder",
                                     "path": &t.save_dir,
                                 },
                             }),
                         );
-                        state.notified_health.insert(t.id);
-                    } else if !unhealthy {
-                        state.notified_health.remove(&t.id);
+                    }
+
+                    if cfg.on_error {
+                        if let Some(error) = t.error.as_deref() {
+                            let already_notified = state
+                                .notified_errors
+                                .get(&t.id)
+                                .is_some_and(|last| last == error);
+                            if !already_notified {
+                                let msg = format!("{}: {}", t.name, error);
+                                let _ = app.emit(
+                                    "show-notification",
+                                    serde_json::json!({
+                                        "titleKey": "torrent.notify.error.title",
+                                        "body": &msg,
+                                        "type": "error",
+                                        "action": {
+                                            "source": "folder",
+                                            "path": &t.save_dir,
+                                        },
+                                    }),
+                                );
+                                state.notified_errors.insert(t.id, error.to_string());
+                            }
+                        }
+                    }
+
+                    if cfg.on_health {
+                        let unhealthy = t.missing_files || t.external_changes;
+                        if unhealthy && !state.notified_health.contains(&t.id) {
+                            let (body_key, body_vars) = if t.missing_files {
+                                (
+                                    "torrent.notify.health.missing",
+                                    serde_json::json!({ "name": &t.name }),
+                                )
+                            } else {
+                                (
+                                    "torrent.notify.health.external",
+                                    serde_json::json!({
+                                        "name": &t.name,
+                                        "count": t.external_changed_files.len(),
+                                    }),
+                                )
+                            };
+                            let _ = app.emit(
+                                "show-notification",
+                                serde_json::json!({
+                                    "titleKey": "torrent.notify.health.title",
+                                    "bodyKey": body_key,
+                                    "bodyVars": body_vars,
+                                    "type": "warning",
+                                    "action": {
+                                        "source": "folder",
+                                        "path": &t.save_dir,
+                                    },
+                                }),
+                            );
+                            state.notified_health.insert(t.id);
+                        } else if !unhealthy {
+                            state.notified_health.remove(&t.id);
+                        }
                     }
                 }
-            }
 
-            state
-                .prev_states
-                .insert(t.id, (t.finished, t.error.clone()));
+                state
+                    .prev_states
+                    .insert(t.id, (t.finished, t.error.clone()));
+            }
+        }
+
+        for id in reveal {
+            let manager = Arc::clone(manager);
+            let _ = tokio::task::spawn_blocking(move || manager.reconcile_torrent(id)).await;
+        }
+        for id in pause_on_disk_full {
+            if state.paused_on_disk_full.insert(id) {
+                manager.pause_for_disk_full(id).await;
+            }
         }
     }
 
@@ -350,15 +393,18 @@ async fn run_torrent_update_tick(
         .notified_errors
         .retain(|id, _| current_ids.contains(id));
     state.notified_health.retain(|id| current_ids.contains(id));
+    state
+        .paused_on_disk_full
+        .retain(|id| current_ids.contains(id));
 
     manager.advance_sequential_torrents().await;
 
     state.cleanup_counter += 1;
-    if state.cleanup_counter >= 30 {
+    if state.cleanup_counter >= 10 {
         state.cleanup_counter = 0;
         let cleaner = Arc::clone(manager);
         if let Err(error) =
-            tokio::task::spawn_blocking(move || cleaner.cleanup_unselected_files()).await
+            tokio::task::spawn_blocking(move || cleaner.reconcile_file_visibility()).await
         {
             tracing::warn!("unselected file cleanup task failed: {error}");
         }
@@ -392,8 +438,13 @@ async fn start_torrent_download(
     only_files: Option<Vec<usize>>,
     sub_folder: Option<String>,
     sequential: Option<bool>,
+    required_bytes: Option<u64>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
+    if let Some(required) = required_bytes.filter(|value| *value > 0) {
+        torrent::helpers::ensure_free_space_for(std::path::Path::new(&save_dir), required)
+            .map_err(|error| format!("{error:#}"))?;
+    }
     backend_manager(&manager)
         .await?
         .add_torrent(
@@ -426,8 +477,13 @@ async fn start_torrent_download_from_file(
     only_files: Option<Vec<usize>>,
     sub_folder: Option<String>,
     sequential: Option<bool>,
+    required_bytes: Option<u64>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
+    if let Some(required) = required_bytes.filter(|value| *value > 0) {
+        torrent::helpers::ensure_free_space_for(std::path::Path::new(&save_dir), required)
+            .map_err(|error| format!("{error:#}"))?;
+    }
     backend_manager(&manager)
         .await?
         .add_torrent_from_bytes(
@@ -535,6 +591,27 @@ async fn remove_torrent(
         .map_err(|e| format!("{e:#}"))
 }
 
+#[tauri::command]
+async fn list_partial_leftovers(
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Vec<torrent::PartialLeftover>, String> {
+    let backend = backend_manager(&manager).await?;
+    tokio::task::spawn_blocking(move || backend.list_partial_leftovers())
+        .await
+        .map_err(|error| format!("leftover listing task failed: {error}"))
+}
+
+#[tauri::command]
+async fn clear_partial_leftovers(
+    hashes: Option<Vec<String>>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<u64, String> {
+    let backend = backend_manager(&manager).await?;
+    tokio::task::spawn_blocking(move || backend.clear_partial_leftovers(hashes.as_deref()))
+        .await
+        .map_err(|error| format!("leftover cleanup task failed: {error}"))
+}
+
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct VideoFileEntry {
     path: String,
@@ -640,7 +717,7 @@ fn video_ext_list(extensions: Vec<String>) -> Vec<String> {
 
 #[cfg(test)]
 mod scan_tests {
-    use super::{video_ext_list, walk_video_folder};
+    use super::{is_disk_full_error, video_ext_list, walk_video_folder};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static FIXTURE_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -703,6 +780,15 @@ mod scan_tests {
             ]),
             vec!["mkv".to_string(), "MP4".to_string()]
         );
+    }
+
+    #[test]
+    fn disk_full_errors_are_recognized_but_other_errors_are_not() {
+        assert!(is_disk_full_error("No space left on device (os error 28)"));
+        assert!(is_disk_full_error("there is not enough space on the disk"));
+        assert!(is_disk_full_error("OS error 112"));
+        assert!(!is_disk_full_error("timed out waiting for peers"));
+        assert!(!is_disk_full_error("torrent not found"));
     }
 }
 
@@ -1961,6 +2047,8 @@ pub fn run() {
             pause_torrent,
             resume_torrent,
             remove_torrent,
+            list_partial_leftovers,
+            clear_partial_leftovers,
             list_system_fonts,
             host_stats::get_host_stats,
             host_stats::ping,

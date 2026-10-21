@@ -189,6 +189,7 @@ function TorrentFilesSection({
           displayName: file.name,
           size: file.size,
           progress_bytes: file.size,
+          on_disk_bytes: file.size,
           completed: true,
           selected: false,
           priority: "normal",

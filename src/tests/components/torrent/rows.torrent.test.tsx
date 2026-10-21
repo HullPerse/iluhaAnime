@@ -16,6 +16,7 @@ function treeFile(overrides: Partial<TorrentTreeFile> = {}): TorrentTreeFile {
     exists: true,
     index: 0,
     name: "Show.S01E01.1080p.mkv",
+    on_disk_bytes: 0,
     priority: "normal",
     progress_bytes: 0,
     selected: true,

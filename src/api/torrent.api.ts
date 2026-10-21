@@ -7,6 +7,7 @@ import type {
   CreatedTorrent,
   DhtStatus,
   FilePriority,
+  PartialLeftover,
   TorrentCheckResult,
   TorrentDetails,
   TorrentDiagnostics,
@@ -46,6 +47,7 @@ export interface StartTorrentDownloadInput {
   onlyFiles: number[] | null;
   subFolder: string | null;
   sequential: boolean;
+  requiredBytes?: number;
 }
 
 export interface TorrentInfoResult {
@@ -231,6 +233,14 @@ export class TorrentApi {
 
   removeTorrent(id: number, deleteFiles: boolean, infoHash?: string): Promise<void> {
     return this.call("remove_torrent", { id, deleteFiles, info_hash: infoHash, infoHash });
+  }
+
+  listPartialLeftovers(): Promise<PartialLeftover[]> {
+    return this.call("list_partial_leftovers");
+  }
+
+  clearPartialLeftovers(hashes?: string[]): Promise<number> {
+    return this.call("clear_partial_leftovers", { hashes: hashes ?? null });
   }
 
   updateOnlyFiles(id: number, onlyFiles: number[], infoHash?: string): Promise<void> {

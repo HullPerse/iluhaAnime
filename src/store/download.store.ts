@@ -32,7 +32,8 @@ async function startDownloadForPending(
   saveDir: string,
   onlyFiles: number[] | null,
   subFolder: string | undefined,
-  sequential: boolean
+  sequential: boolean,
+  requiredBytes: number
 ): Promise<number | undefined> {
   if (pending.magnet || pending.fileBytes) {
     const [id, error] = await attempt(
@@ -43,6 +44,7 @@ async function startDownloadForPending(
         onlyFiles,
         subFolder: subFolder || null,
         sequential,
+        requiredBytes,
       })
     );
     if (error) {
@@ -149,13 +151,18 @@ export function createTorrentSignalStore(): TorrentSignalStore {
       setLastSaveDir(saveDir);
       await clearPreviousTorrentIfNeeded(pending.id);
       const onlyFiles = resolveOnlyFiles(pending.files, selectedIndices);
+      const requiredBytes = selectedIndices.reduce((sum, index) => {
+        const file = pending.files.find((entry) => entry.index === index);
+        return sum + (file?.size ?? 0);
+      }, 0);
 
       const id = await startDownloadForPending(
         pending,
         saveDir,
         onlyFiles,
         subFolder,
-        sequential ?? false
+        sequential ?? false,
+        requiredBytes
       );
       if (id === undefined) return;
       if (pending.origin) {

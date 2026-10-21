@@ -1,3 +1,4 @@
+pub mod disk;
 pub mod geoip;
 pub mod helpers;
 pub mod manager;

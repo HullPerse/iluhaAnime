@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { cn } from "cn";
 import { useCallback, useState } from "react";
 
@@ -9,10 +10,16 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { TORRENT_LISTEN_PORT_KEY, useTorrentListenPort } from "@/hooks/torrent/queries.hook";
+import {
+  TORRENT_LISTEN_PORT_KEY,
+  usePartialLeftovers,
+  useTorrentListenPort,
+} from "@/hooks/torrent/queries.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { toSessionConfig } from "@/lib/settings/session.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { setTorrentSpeedLimits as setSpeedLimits } from "@/store/download.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
@@ -40,8 +47,25 @@ export default function SettingsTorrent() {
   const speedSchedule = useCell(settingsAtoms.speedSchedule);
   const queryClient = useQueryClient();
   const listenPortQuery = useTorrentListenPort();
+  const partialLeftoversQuery = usePartialLeftovers();
   const { t } = useI18n();
   const isOnline = useOnlineStatus();
+  const leftovers = partialLeftoversQuery.data ?? [];
+  const leftoverBytes = leftovers.reduce(
+    (sum, item) =>
+      sum + item.files.reduce((fileSum, file) => fileSum + (file.on_disk_bytes ?? 0), 0),
+    0
+  );
+  const clearLeftovers = useCallback(async () => {
+    const confirmed = await confirm(t("settings.torrent.leftovers.confirm"));
+    if (!confirmed) return;
+    const [, error] = await attempt(torrentApi.clearPartialLeftovers());
+    if (error) {
+      showError(t("settings.torrent.leftovers.clear.failed"), error.message);
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: queryKeys.partialLeftovers() });
+  }, [queryClient, t]);
 
   const saveSessionConfig = useCallback(
     (partial: Partial<SessionConfigPayload>) => {
@@ -285,6 +309,30 @@ export default function SettingsTorrent() {
           <span className="text-hint pl-2 text-xs">
             {t("settings.torrent.file.order.description")}
           </span>
+        </div>
+      </section>
+
+      <section className="ui-panel" data-find-section="torrent.leftovers">
+        <div className="ui-titlebar">
+          <span className="text-title-text font-bold">{t("settings.torrent.leftovers")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <span className="windows95-text text-text text-xs">
+            {leftovers.length === 0
+              ? t("settings.torrent.leftovers.none")
+              : t("settings.torrent.leftovers.count", {
+                  count: leftovers.length,
+                  size: formatBytes(leftoverBytes),
+                })}
+          </span>
+          <span className="text-hint pl-2 text-xs">
+            {t("settings.torrent.leftovers.hint")}
+          </span>
+          <div className="pt-1">
+            <Button disabled={leftovers.length === 0} onClick={clearLeftovers}>
+              {t("settings.torrent.leftovers.clear")}
+            </Button>
+          </div>
         </div>
       </section>
 

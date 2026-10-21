@@ -70,6 +70,7 @@ pub struct TorrentFileInfo {
     pub name: String,
     pub size: u64,
     pub progress_bytes: u64,
+    pub on_disk_bytes: u64,
     pub completed: bool,
     pub selected: bool,
     pub priority: FilePriority,
@@ -118,12 +119,29 @@ pub struct TorrentInfo {
     pub missing_files: bool,
     pub external_changes: bool,
     pub external_changed_files: Vec<String>,
+    pub disk_sparse: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TorrentOrigin {
     pub source: String,
     pub url: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PartialLeftoverFile {
+    pub name: String,
+    pub size: u64,
+    pub on_disk_bytes: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PartialLeftover {
+    pub info_hash: String,
+    pub name: String,
+    pub save_dir: String,
+    pub files: Vec<PartialLeftoverFile>,
+    pub removed_at: i64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

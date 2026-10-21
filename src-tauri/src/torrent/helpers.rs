@@ -165,13 +165,55 @@ fn available_disk_space(_path: &Path) -> Result<u64> {
 }
 
 pub fn ensure_minimum_free_space(path: &Path) -> Result<()> {
+    ensure_free_space_for(path, 0)
+}
+
+/// Refuses a download when the volume cannot hold `required_bytes` on top of
+/// the fixed floor. Callers pass the selected payload size from the picker.
+pub fn ensure_free_space_for(path: &Path, required_bytes: u64) -> Result<()> {
     let free = available_disk_space(path)?;
-    if free < MIN_TORRENT_FREE_SPACE_BYTES {
+    let needed = required_bytes.saturating_add(MIN_TORRENT_FREE_SPACE_BYTES);
+    if free < needed {
         anyhow::bail!(
-            "not enough free disk space: {free} bytes available, at least {MIN_TORRENT_FREE_SPACE_BYTES} required"
+            "not enough free disk space: {} available, {} required",
+            human_bytes(free),
+            human_bytes(needed)
         );
     }
     Ok(())
+}
+
+fn human_bytes(bytes: u64) -> String {
+    const MB: f64 = 1024.0 * 1024.0;
+    const GB: f64 = MB * 1024.0;
+    #[allow(clippy::cast_precision_loss)]
+    let value = bytes as f64;
+    if value >= GB {
+        format!("{:.1} GB", value / GB)
+    } else {
+        format!("{:.0} MB", value / MB)
+    }
+}
+
+/// The path librqbit writes a file to. Multi-file torrents already carry their
+/// root folder in every relative name, so only single-file and flat torrents
+/// get the app's own sub-folder.
+pub fn final_file_path(
+    save_dir: &Path,
+    torrent_name: &str,
+    has_common_folder: bool,
+    file_name: &str,
+) -> Option<std::path::PathBuf> {
+    if !is_safe_relative_path(file_name) {
+        return None;
+    }
+    if has_common_folder {
+        return Some(save_dir.join(file_name));
+    }
+    if !is_safe_relative_path(torrent_name) {
+        return None;
+    }
+    Some(save_dir.join(torrent_name).join(file_name))
 }
 
 pub const FALLBACK_TRACKERS: &[&str] = &[
@@ -708,5 +750,57 @@ mod tracker_tests {
             FileOrder::List,
             "a config without the field keeps the list order"
         );
+    }
+}
+
+#[cfg(test)]
+mod incomplete_file_tests {
+    use super::{final_file_path, human_bytes, is_safe_relative_path};
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn free_space_sizes_are_human_readable() {
+        assert_eq!(human_bytes(128 * 1024 * 1024), "128 MB");
+        assert_eq!(human_bytes(3 * 1024 * 1024 * 1024), "3.0 GB");
+        assert_eq!(human_bytes(0), "0 MB");
+    }
+
+    #[test]
+    fn common_folder_torrents_are_written_under_the_save_dir() {
+        assert_eq!(
+            final_file_path(
+                Path::new("D:/Anime"),
+                "Show S01",
+                true,
+                "Show S01/Episode 01.mkv"
+            ),
+            Some(PathBuf::from("D:/Anime/Show S01/Episode 01.mkv"))
+        );
+    }
+
+    #[test]
+    fn flat_torrents_get_the_app_owned_sub_folder() {
+        assert_eq!(
+            final_file_path(
+                Path::new("D:/Anime"),
+                "Episode 01.mkv",
+                false,
+                "Episode 01.mkv"
+            ),
+            Some(PathBuf::from("D:/Anime/Episode 01.mkv/Episode 01.mkv"))
+        );
+    }
+
+    #[test]
+    fn unsafe_names_never_produce_a_path() {
+        assert_eq!(
+            final_file_path(Path::new("D:/Anime"), "Show", true, "../escape.mkv"),
+            None
+        );
+        assert_eq!(
+            final_file_path(Path::new("D:/Anime"), "../escape", false, "file.mkv"),
+            None
+        );
+        assert!(is_safe_relative_path("Show/file.mkv"));
     }
 }

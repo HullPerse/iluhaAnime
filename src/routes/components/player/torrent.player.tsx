@@ -13,6 +13,26 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { TorrentPlayerProps as Props } from "@/types/player";
 
 import TorrentFilesSection from "../torrent/file.torrent";
+import { TorrentPendingState } from "../torrent/sections/pending.sections";
+
+function SectionActions({ onRefresh, saveDir }: { onRefresh: () => void; saveDir: string }) {
+  const { t } = useI18n();
+  return (
+    <>
+      <Button size="icon" className="size-5" title={t("player.files.refresh")} onClick={onRefresh}>
+        <RefreshCw className="size-3" />
+      </Button>
+      <Button
+        size="icon"
+        className="size-5"
+        title={t("player.files.open.folder")}
+        onClick={() => openPath(saveDir)}
+      >
+        <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
+      </Button>
+    </>
+  );
+}
 
 export default function TorrentFilesPlayerSection({
   item,
@@ -47,6 +67,16 @@ export default function TorrentFilesPlayerSection({
     item.id
   );
 
+  const playable = files?.filter((file) => file.completed) ?? [];
+  const hasFiles = playable.length > 0;
+  const hasExtras = data.length > 0;
+  const counts = [
+    hasFiles ? t("player.files.count", { count: playable.length }) : "",
+    hasExtras ? t("player.files.upscales", { count: data.length }) : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <section className="windows95-active-border bg-primary flex flex-col gap-1">
       {!hideHeader && (
@@ -60,15 +90,13 @@ export default function TorrentFilesPlayerSection({
           <SmallLoader size={3} />
           <span className="text-xs">{t("player.files.loading")}</span>
         </div>
-      ) : files ? (
+      ) : hasFiles || hasExtras ? (
         <section className="flex flex-col gap-1">
           <div className="windows95-text flex w-full items-center gap-1 text-left select-none">
             <button
               type="button"
               aria-expanded={isExpanded}
-              aria-label={t("player.files.count", {
-                count: files.filter((f) => f.completed).length,
-              })}
+              aria-label={counts}
               className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
               onClick={onToggleExpand}
             >
@@ -77,38 +105,14 @@ export default function TorrentFilesPlayerSection({
               ) : (
                 <ChevronRight className="size-3" />
               )}
-              {t("player.files.count", {
-                count: files.filter((f) => f.completed).length,
-              })}{" "}
-              {data.length > 0 && t("player.files.upscales", { count: data.length })}
+              {counts}
             </button>
-            <Button
-              size="icon"
-              className="ml-auto size-5"
-              title={t("player.files.refresh")}
-              onClick={(e) => {
-                e.stopPropagation();
-                refetch();
-              }}
-            >
-              <RefreshCw className="size-3" />
-            </Button>
-            <Button
-              size="icon"
-              className="size-5"
-              title={t("player.files.open.folder")}
-              onClick={(e) => {
-                e.stopPropagation();
-                openPath(item.save_dir);
-              }}
-            >
-              <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
-            </Button>
+            <SectionActions onRefresh={() => refetch()} saveDir={item.save_dir} />
           </div>
           {isExpanded && (
             <TorrentFilesSection
               id={item.id}
-              files={files.filter((f) => f.completed)}
+              files={playable}
               type="player"
               path={item.save_dir}
               extraFiles={data}
@@ -118,6 +122,11 @@ export default function TorrentFilesPlayerSection({
             />
           )}
         </section>
+      ) : files ? (
+        <TorrentPendingState
+          item={item}
+          actions={<SectionActions onRefresh={() => refetch()} saveDir={item.save_dir} />}
+        />
       ) : null}
 
       {item.error && (

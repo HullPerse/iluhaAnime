@@ -5,6 +5,7 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 
 import TorrentFilesSection from "../../torrent/file.torrent";
+import { TorrentPendingState } from "../../torrent/sections/pending.sections";
 
 export function TorrentCategoryEntry({
   tor,
@@ -29,7 +30,8 @@ export function TorrentCategoryEntry({
     data.map((entry) => entry.fullPath),
     tor.id
   );
-  if (files.length === 0) return null;
+  if (torrentFilesMap[tor.id] === undefined && data.length === 0) return null;
+  if (files.length === 0 && data.length === 0) return <TorrentPendingState item={tor} />;
 
   const handleUpscaleDone = () => refetch();
   const handleDeleteExtraFile = () => refetch();

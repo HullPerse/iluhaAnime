@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
-
 import {
   buildModernPlayerMenu,
   type ModernMenuActions,
   type ModernMenuSnapshot,
 } from "@/routes/components/player/modern/menu.modern";
+import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
 function track(id: number, type: MpvTrack["type"], selected = false): MpvTrack {
   return { id, type, lang: "rus", codec: "srt", selected };
@@ -24,6 +23,8 @@ function snapshot(overrides: Partial<ModernMenuSnapshot> = {}): ModernMenuSnapsh
     alwaysOnTop: false,
     speed: 1,
     eofMode: "next",
+    playerMode: "normal",
+    cabinet: "none",
     ...overrides,
   };
 }
@@ -43,6 +44,8 @@ function actions(overrides: Partial<ModernMenuActions> = {}): ModernMenuActions 
     onViewMode: vi.fn(),
     onToggleAlwaysOnTop: vi.fn(),
     onEofMode: vi.fn(),
+    onPlayerMode: vi.fn(),
+    onCabinet: vi.fn(),
     onOpenSettings: vi.fn(),
     onOpenCheatsheet: vi.fn(),
     ...overrides,
@@ -103,6 +106,8 @@ describe("buildModernPlayerMenu", () => {
         if (
           entry.id === "toggle-playlist" ||
           entry.id === "view-mode" ||
+          entry.id === "screen-mode" ||
+          entry.id === "screen-cabinet" ||
           entry.id === "toggle-always-on-top" ||
           entry.id.startsWith("open-")
         ) {
@@ -131,6 +136,37 @@ describe("buildModernPlayerMenu", () => {
     expect(onViewMode).toHaveBeenCalledWith("compact");
   });
 
+  it("marks the player mode and cabinet, and wires both", () => {
+    const onPlayerMode = vi.fn();
+    const onCabinet = vi.fn();
+    const entries = buildModernPlayerMenu(
+      snapshot({ playerMode: "tv", cabinet: "wood" }),
+      actions({ onPlayerMode, onCabinet })
+    );
+
+    const mode = entries.find((entry) => entry.id === "screen-mode");
+    if (mode?.kind !== "submenu") throw new Error("missing player mode submenu");
+    expect(mode.entries).toHaveLength(5);
+    const television = mode.entries.find(
+      (entry) => entry.kind === "item" && entry.id === "screen-mode-tv"
+    );
+    if (television?.kind !== "item") throw new Error("missing television entry");
+    expect(television.checked).toBe(true);
+    television.onSelect();
+    expect(onPlayerMode).toHaveBeenCalledWith("tv");
+
+    const cabinet = entries.find((entry) => entry.id === "screen-cabinet");
+    if (cabinet?.kind !== "submenu") throw new Error("missing cabinet submenu");
+    expect(cabinet.entries).toHaveLength(3);
+    const wood = cabinet.entries.find(
+      (entry) => entry.kind === "item" && entry.id === "screen-cabinet-wood"
+    );
+    if (wood?.kind !== "item") throw new Error("missing wood entry");
+    expect(wood.checked).toBe(true);
+    wood.onSelect();
+    expect(onCabinet).toHaveBeenCalledWith("wood");
+  });
+
   it("marks always on top and wires the toggle", () => {
     const onToggleAlwaysOnTop = vi.fn();
     const entries = buildModernPlayerMenu(
@@ -152,9 +188,7 @@ describe("buildModernPlayerMenu", () => {
     );
     const speed = entries[4];
     if (speed.kind !== "submenu") throw new Error("speed must be a submenu");
-    const active = speed.entries.find(
-      (entry) => entry.kind === "item" && entry.rawText === "1.5x"
-    );
+    const active = speed.entries.find((entry) => entry.kind === "item" && entry.rawText === "1.5x");
     if (active?.kind !== "item") throw new Error("missing 1.5x entry");
     expect(active.checked).toBe(true);
     active.onSelect();
@@ -164,7 +198,8 @@ describe("buildModernPlayerMenu", () => {
     expect(playlist.checked).toBe(true);
   });
 
-  it("renders chapters with timestamps or a disabled placeholder", () => {    const chapters: MpvChapter[] = [{ title: "Intro", time: 90 }];
+  it("renders chapters with timestamps or a disabled placeholder", () => {
+    const chapters: MpvChapter[] = [{ title: "Intro", time: 90 }];
     const onSeekTo = vi.fn();
     const filled = buildModernPlayerMenu(snapshot({ chapters }), actions({ onSeekTo }));
     const menu = filled[3];
@@ -185,16 +220,11 @@ describe("buildModernPlayerMenu", () => {
 
   it("marks the end-of-file mode and wires the switch", () => {
     const onEofMode = vi.fn();
-    const entries = buildModernPlayerMenu(
-      snapshot({ eofMode: "repeat" }),
-      actions({ onEofMode })
-    );
+    const entries = buildModernPlayerMenu(snapshot({ eofMode: "repeat" }), actions({ onEofMode }));
     const eof = entries.find((entry) => entry.id === "eof-mode");
     if (eof?.kind !== "submenu") throw new Error("missing eof submenu");
     expect(eof.entries).toHaveLength(4);
-    const active = eof.entries.find(
-      (entry) => entry.kind === "item" && entry.id === "eof-repeat"
-    );
+    const active = eof.entries.find((entry) => entry.kind === "item" && entry.id === "eof-repeat");
     if (active?.kind !== "item") throw new Error("missing repeat entry");
     expect(active.checked).toBe(true);
     active.onSelect();

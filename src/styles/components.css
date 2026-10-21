@@ -587,3 +587,79 @@ html[data-theme="yorha"] .yorha-grid {
   height: 100%;
   background-color: #ffffff;
 }
+
+/* Player cabinet. The band width is the whole overscan: the picture keeps its
+   layout box and only its outer edge is covered. Wood is a material without a
+   theme token, so its palette lives here and nowhere else. */
+.player-bezel {
+  --tv-band: clamp(10px, 2vmin, 30px);
+  --tv-radius: calc(var(--tv-band) * 1.35);
+  --tv-body: var(--color-primary);
+  --tv-body-light: color-mix(in srgb, var(--color-primary) 55%, #ffffff);
+  --tv-body-dark: color-mix(in srgb, var(--color-primary) 45%, #202020);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--tv-radius);
+  pointer-events: none;
+}
+
+.player-bezel[data-variant="wood"] {
+  --tv-body: #6b4526;
+  --tv-body-light: #a4713f;
+  --tv-body-dark: #2f1c0e;
+}
+
+.player-bezel-screen {
+  position: absolute;
+  inset: var(--tv-band);
+  border-radius: calc(var(--tv-radius) * 0.72);
+  border: 1px solid color-mix(in srgb, var(--tv-body-dark) 70%, #000000);
+  box-shadow:
+    inset 0 0 14px rgba(0, 0, 0, 0.55),
+    0 0 0 9999px var(--tv-body);
+}
+
+.player-bezel-glare {
+  position: absolute;
+  inset: calc(var(--tv-band) + 2px);
+  border-radius: calc(var(--tv-radius) * 0.66);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0.02) 34%,
+    transparent 52%
+  );
+}
+
+.player-bezel-grain {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.11) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.11) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.11) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.11) 0 2px, transparent 2px 9px);
+  background-position: top, bottom, left, right;
+  background-size:
+    100% var(--tv-band),
+    100% var(--tv-band),
+    var(--tv-band) 100%,
+    var(--tv-band) 100%;
+  background-repeat: no-repeat;
+}
+
+.player-bezel[data-variant="win95"] .player-bezel-grain {
+  display: none;
+}
+
+.player-bezel-led {
+  position: absolute;
+  right: max(4px, calc(var(--tv-band) * 0.35));
+  bottom: max(4px, calc(var(--tv-band) * 0.35));
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d33a2c;
+  box-shadow: 0 0 4px #d33a2c;
+}

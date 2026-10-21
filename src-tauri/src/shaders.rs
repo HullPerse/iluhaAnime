@@ -465,6 +465,17 @@ const CATALOG: &[ShaderMeta] = &[
     },
 ];
 
+/// Player shaders shipped for live mpv custom shaders. The id is the base file
+/// name used by `glsl-shader-opts`; the second field is the bundled file name.
+pub const PLAYER_SHADERS: &[(&str, &str)] = &[("crt-tv", "crt-tv.glsl"), ("vhs", "vhs.glsl")];
+
+pub fn player_shader_file(id: &str) -> Option<&'static str> {
+    PLAYER_SHADERS
+        .iter()
+        .find(|(shader, _)| *shader == id)
+        .map(|(_, file)| *file)
+}
+
 pub fn default_selection() -> Vec<String> {
     CATALOG
         .iter()
@@ -654,6 +665,22 @@ mod tests {
             native_scale_factor("Anime4K_Restore_CNN_Soft_UL.glsl"),
             None
         );
+    }
+
+    #[test]
+    fn player_shader_ids_resolve_to_shipped_files() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("shaders");
+        for (id, filename) in PLAYER_SHADERS {
+            assert_eq!(player_shader_file(id), Some(*filename));
+            assert!(
+                dir.join(filename).is_file(),
+                "player shader is missing: {filename}"
+            );
+        }
+        assert_eq!(player_shader_file("crt-tv.glsl"), None);
+        assert_eq!(player_shader_file("missing"), None);
     }
 
     #[test]

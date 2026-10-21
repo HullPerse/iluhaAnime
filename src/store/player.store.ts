@@ -1,9 +1,10 @@
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
 import { Debouncer } from "@/lib/pacer/debounce.utils";
-import { resolveWithDefaults, type MigrationState } from "@/lib/store/migrate.utils";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import { resolveWithDefaults, type MigrationState } from "@/lib/store/migrate.utils";
+import { attemptSync } from "@/lib/utils/attempt.utils";
 import type {
   MpvChapter,
   MpvTrack,
@@ -12,15 +13,17 @@ import type {
   PlayerSettings,
   PlayerStore,
 } from "@/types/videoPlayer";
-import { attemptSync } from "@/lib/utils/attempt.utils";
 
-export const PLAYER_SCHEMA_VERSION = 2;
+export const PLAYER_SCHEMA_VERSION = 3;
 
 export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   brightness: 100,
   contrast: 100,
   saturation: 100,
   hue: 0,
+  playerMode: "normal",
+  cabinet: "none",
+  crtCurvature: 0.04,
   subFontSize: 18,
   subFontFamily: "Arial",
   subColor: "#ffffff",
@@ -235,8 +238,7 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
     setAutoHide: (autoHide) => atoms.autoHide.set(autoHide),
     setAlwaysOnTop: (alwaysOnTop) => atoms.alwaysOnTop.set(alwaysOnTop),
     setProfile: (profile) => atoms.profile.set(profile),
-    patchPlayerSettings: (patch) =>
-      atoms.settings.set({ ...atoms.settings.get(), ...patch }),
+    patchPlayerSettings: (patch) => atoms.settings.set({ ...atoms.settings.get(), ...patch }),
   };
 
   finishAdopt(() => ({ ...mirror }), { remove: "playerState" });
@@ -350,7 +352,9 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
       const tracks = atoms.tracks.get();
       atoms.tracks.set(
         tracks.map((track) =>
-          track.type === kind ? { ...track, selected: id === "no" ? false : track.id === id } : track
+          track.type === kind
+            ? { ...track, selected: id === "no" ? false : track.id === id }
+            : track
         )
       );
     },

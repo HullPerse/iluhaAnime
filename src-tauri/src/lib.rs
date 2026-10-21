@@ -1899,6 +1899,7 @@ pub fn run() {
             player::player_get_property,
             player::player_playlist_entries,
             player::player_set_video_margin_ratio,
+            player::player_shader_path,
             player::player_eof_mode,
             player::player_save_watch,
             player::player_load_watch,

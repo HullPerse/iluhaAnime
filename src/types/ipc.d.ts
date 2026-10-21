@@ -143,6 +143,7 @@ export type CommandName =
   | "player_save_frame"
   | "player_set_property"
   | "player_set_video_margin_ratio"
+  | "player_shader_path"
   | "player_take_pending_open"
   | "prefetch_anime_relations"
   | "preview_upscale_frames"

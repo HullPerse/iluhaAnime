@@ -527,6 +527,21 @@ pub async fn player_set_video_margin_ratio(
     )
 }
 
+/// Absolute path of a bundled player shader, in the forward-slash form mpv
+/// expects on Windows.
+#[tauri::command]
+pub fn player_shader_path(app: AppHandle, id: String) -> Result<String, String> {
+    let filename = crate::shaders::player_shader_file(&id)
+        .ok_or_else(|| format!("unknown player shader: {id}"))?;
+    let dir = crate::shaders::shader_dir(&app)
+        .ok_or_else(|| "player shader directory is unavailable".to_string())?;
+    let path = dir.join(filename);
+    if !path.is_file() {
+        return Err(format!("player shader is missing: {}", path.display()));
+    }
+    Ok(path.to_string_lossy().replace('\\', "/"))
+}
+
 /// Maps an end-of-file mode onto mpv properties.
 /// `none` stops after the current file (`keep-open=always` pauses on the last
 /// frame and never auto-advances, the Finished screen covers it).

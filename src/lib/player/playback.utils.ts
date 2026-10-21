@@ -249,6 +249,14 @@ async function runMpvCommand(name: string, args: unknown[] = []): Promise<void> 
   await invokeTyped("player_command", { name, args });
 }
 
+export async function runPlayerCommand(name: string, args: string[] = []): Promise<void> {
+  await runMpvCommand(name, args);
+}
+
+export async function playerShaderPath(id: string): Promise<string> {
+  return invokeTyped<string>("player_shader_path", { id });
+}
+
 export async function setMpvProperty(name: string, value: unknown): Promise<void> {
   await invokeTyped("player_set_property", { name, value });
 }

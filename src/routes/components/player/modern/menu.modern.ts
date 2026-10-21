@@ -1,5 +1,6 @@
 import {
   Captions,
+  Frame,
   Gauge,
   Keyboard,
   ListMusic,
@@ -15,14 +16,28 @@ import {
   Square,
   StepBack,
   StepForward,
+  Tv,
   Volume2,
 } from "lucide-react";
 
 import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
-import { selectableTracks, trackLabel } from "@/lib/player/tracks.utils";
+import {
+  PLAYER_CABINET_IDS,
+  PLAYER_CABINETS,
+  PLAYER_MODE_IDS,
+  PLAYER_MODES,
+} from "@/config/player/modes.config";
 import { PLAYER_SPEEDS } from "@/lib/player/speed.utils";
+import { selectableTracks, trackLabel } from "@/lib/player/tracks.utils";
 import { formatClock } from "@/lib/utils/time.utils";
-import type { EndOfFileMode, MpvChapter, MpvTrack, PlayerViewMode } from "@/types/videoPlayer";
+import type {
+  EndOfFileMode,
+  MpvChapter,
+  MpvTrack,
+  PlayerCabinetId,
+  PlayerModeId,
+  PlayerViewMode,
+} from "@/types/videoPlayer";
 
 const EOF_MODES: EndOfFileMode[] = ["none", "pause", "next", "repeat"];
 
@@ -58,6 +73,8 @@ export interface ModernMenuSnapshot {
   alwaysOnTop: boolean;
   speed: number;
   eofMode: EndOfFileMode;
+  playerMode: PlayerModeId;
+  cabinet: PlayerCabinetId;
 }
 
 export interface ModernMenuActions {
@@ -74,6 +91,8 @@ export interface ModernMenuActions {
   onViewMode: (mode: PlayerViewMode) => void;
   onToggleAlwaysOnTop: () => void;
   onEofMode: (mode: EndOfFileMode) => void;
+  onPlayerMode: (mode: PlayerModeId) => void;
+  onCabinet: (cabinet: PlayerCabinetId) => void;
   onOpenSettings: () => void;
   onOpenCheatsheet: () => void;
 }
@@ -120,7 +139,10 @@ function trackEntries(
   return entries;
 }
 
-function chapterEntries(chapters: MpvChapter[], onSeekTo: (time: number) => void): ContextMenuEntry[] {
+function chapterEntries(
+  chapters: MpvChapter[],
+  onSeekTo: (time: number) => void
+): ContextMenuEntry[] {
   if (chapters.length === 0) {
     return [
       {
@@ -287,6 +309,32 @@ export function buildModernPlayerMenu(
         hint: VIEW_HINTS[mode],
         checked: snapshot.viewMode === mode,
         onSelect: () => actions.onViewMode(mode),
+      })),
+    },
+    {
+      kind: "submenu",
+      id: "screen-mode",
+      label: "player.media.settings.mode",
+      icon: Tv,
+      entries: PLAYER_MODE_IDS.map((mode) => ({
+        kind: "item" as const,
+        id: `screen-mode-${mode}`,
+        label: PLAYER_MODES[mode].labelKey,
+        checked: snapshot.playerMode === mode,
+        onSelect: () => actions.onPlayerMode(mode),
+      })),
+    },
+    {
+      kind: "submenu",
+      id: "screen-cabinet",
+      label: "player.media.settings.cabinet",
+      icon: Frame,
+      entries: PLAYER_CABINET_IDS.map((cabinet) => ({
+        kind: "item" as const,
+        id: `screen-cabinet-${cabinet}`,
+        label: PLAYER_CABINETS[cabinet],
+        checked: snapshot.cabinet === cabinet,
+        onSelect: () => actions.onCabinet(cabinet),
       })),
     },
     {

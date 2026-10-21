@@ -104,6 +104,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.player.view_modes", "player"),
       entry("changelog.5_0_0.added.search.details_gallery", "search"),
       entry("changelog.5_0_0.added.settings.detail_width", "settings"),
+      entry("changelog.5_0_0.added.player.screen_modes", "player"),
+      entry("changelog.5_0_0.added.player.screen_cabinet", "player"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -230,6 +232,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.player.settings_panel", "player"),
       entry("changelog.5_0_0.fixed.search.modern_spinner", "search"),
       entry("changelog.5_0_0.fixed.torrents.queue_scroll", "torrents"),
+      entry("changelog.5_0_0.fixed.player.torrent_pending", "player"),
     ],
   },
   {

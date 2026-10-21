@@ -3,12 +3,23 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
+import {
+  CRT_CURVATURE_LABELS,
+  CRT_CURVATURES,
+  PLAYER_CABINET_IDS,
+  PLAYER_CABINETS,
+  PLAYER_MODE_IDS,
+  PLAYER_MODES,
+} from "@/config/player/modes.config";
 import { PLAYER_PROFILE_IDS } from "@/config/player/profiles.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import type {
+  CrtCurvature,
   EndOfFileMode,
   HwdecMode,
+  PlayerCabinetId,
+  PlayerModeId,
   PlayerProfileId,
   PlayerSettings,
   SeekMode,
@@ -107,9 +118,53 @@ function SettingsPanel({
   const trcOptions = ["auto", "bt.1886", "srgb", "linear", "gamma2.2", "pq", "hlg"].map(
     (value) => ({ value, label: value })
   );
+  const modeOptions = PLAYER_MODE_IDS.map((id) => ({
+    value: id,
+    label: t(PLAYER_MODES[id].labelKey),
+  }));
+  const cabinetOptions = PLAYER_CABINET_IDS.map((id) => ({
+    value: id,
+    label: t(PLAYER_CABINETS[id]),
+  }));
+  const curvatureOptions = CRT_CURVATURES.map((value) => ({
+    value: String(value),
+    label: t(CRT_CURVATURE_LABELS[value]),
+  }));
+  const modeDef = PLAYER_MODES[settings.playerMode];
 
   return (
     <div className="flex w-full flex-col gap-2">
+      <Section title={t("player.media.settings.screen")}>
+        <Row label={t("player.media.settings.mode")}>
+          <Select
+            className="flex-1"
+            label={t("player.media.settings.mode")}
+            value={settings.playerMode}
+            options={modeOptions}
+            onChange={(value) => onPatchSettings({ playerMode: value as PlayerModeId })}
+          />
+        </Row>
+        <Row label={t("player.media.settings.cabinet")}>
+          <Select
+            className="flex-1"
+            label={t("player.media.settings.cabinet")}
+            value={settings.cabinet}
+            options={cabinetOptions}
+            onChange={(value) => onPatchSettings({ cabinet: value as PlayerCabinetId })}
+          />
+        </Row>
+        {modeDef.curvatureEditable ? (
+          <Row label={t("player.media.settings.curvature")}>
+            <Select
+              className="flex-1"
+              label={t("player.media.settings.curvature")}
+              value={String(settings.crtCurvature)}
+              options={curvatureOptions}
+              onChange={(value) => onPatchSettings({ crtCurvature: Number(value) as CrtCurvature })}
+            />
+          </Row>
+        ) : null}
+      </Section>
       <Section title={t("player.media.settings.playback")}>
         <Row label={t("player.media.settings.hwdec")}>
           <Select

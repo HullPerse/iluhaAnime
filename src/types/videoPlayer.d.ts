@@ -117,11 +117,22 @@ export type SeekMode = "keyframes" | "exact";
 
 export type PlayerViewMode = "minimal" | "compact" | "normal";
 
+export type PlayerModeId = "normal" | "tv" | "monitor" | "mono" | "vhs";
+
+export type PlayerCabinetId = "none" | "win95" | "wood";
+
+export type PlayerBezelVariant = Exclude<PlayerCabinetId, "none">;
+
+export type CrtCurvature = 0.02 | 0.04 | 0.07;
+
 export interface PlayerSettings {
   brightness: number;
   contrast: number;
   saturation: number;
   hue: number;
+  playerMode: PlayerModeId;
+  cabinet: PlayerCabinetId;
+  crtCurvature: CrtCurvature;
   subFontSize: number;
   subFontFamily: string;
   subColor: string;

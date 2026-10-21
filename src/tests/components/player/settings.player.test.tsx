@@ -1,7 +1,8 @@
-import { mockConvertFileSrc, mockInvoke } from "../../mocks";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { mockConvertFileSrc, mockInvoke } from "../../mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke, convertFileSrc: mockConvertFileSrc }));
 
@@ -64,20 +65,63 @@ afterEach(() => {
 
 describe("SettingsPanel selects", () => {
   it.each([
-    { control: 0, option: 1, payload: ["d3d11va"], spy: "onHwdec" },
-    { control: 1, option: 1, payload: ["exact"], spy: "onSeekMode" },
-    { control: 2, option: 1, payload: ["pause"], spy: "onEofMode" },
-    { control: 3, option: 1, payload: ["speed"], spy: "onProfile" },
-    { control: 4, option: 1, payload: [{ targetPrim: "bt.709" }], spy: "onPatchSettings" },
-    { control: 5, option: 2, payload: [{ targetTrc: "srgb" }], spy: "onPatchSettings" },
-    { control: 6, option: 1, payload: [{ toneMap: "manual" }], spy: "onPatchSettings" },
-    { control: 7, option: 1, payload: [{ subFontFamily: "Verdana" }], spy: "onPatchSettings" },
+    { control: 2, option: 1, payload: ["d3d11va"], spy: "onHwdec" },
+    { control: 3, option: 1, payload: ["exact"], spy: "onSeekMode" },
+    { control: 4, option: 1, payload: ["pause"], spy: "onEofMode" },
+    { control: 5, option: 1, payload: ["speed"], spy: "onProfile" },
+    { control: 6, option: 1, payload: [{ targetPrim: "bt.709" }], spy: "onPatchSettings" },
+    { control: 7, option: 2, payload: [{ targetTrc: "srgb" }], spy: "onPatchSettings" },
+    { control: 8, option: 1, payload: [{ toneMap: "manual" }], spy: "onPatchSettings" },
+    { control: 9, option: 1, payload: [{ subFontFamily: "Verdana" }], spy: "onPatchSettings" },
   ])("select $control applies its value", async ({ control, option, payload, spy }) => {
     const user = userEvent.setup();
     const spies = renderPanel();
     const boxes = screen.getAllByRole("combobox");
     await chooseOption(boxes[control], option, user);
     expect(spies[spy as keyof typeof spies]).toHaveBeenCalledWith(...payload);
+  });
+});
+
+describe("SettingsPanel screen modes", () => {
+  it("switches the player mode", async () => {
+    const user = userEvent.setup();
+    const spies = renderPanel();
+    await chooseOption(screen.getByRole("combobox", { name: "Player mode" }), 1, user);
+    expect(spies.onPatchSettings).toHaveBeenCalledWith({ playerMode: "tv" });
+  });
+
+  it("keeps the cabinet and hides curvature in the normal mode", () => {
+    renderPanel();
+    expect(screen.queryByRole("combobox", { name: "Cabinet" })).not.toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Curvature" })).toBeNull();
+  });
+
+  it("shows cabinet and curvature for the television mode", () => {
+    renderPanel({ ...DEFAULT_PLAYER_SETTINGS, playerMode: "tv" });
+    expect(screen.queryByRole("combobox", { name: "Cabinet" })).not.toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Curvature" })).not.toBeNull();
+  });
+
+  it("shows the cabinet without curvature for the monitor mode", () => {
+    renderPanel({ ...DEFAULT_PLAYER_SETTINGS, playerMode: "monitor" });
+    expect(screen.queryByRole("combobox", { name: "Cabinet" })).not.toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Curvature" })).toBeNull();
+  });
+
+  it("applies cabinet and curvature selections", async () => {
+    const user = userEvent.setup();
+    const spies = renderPanel({ ...DEFAULT_PLAYER_SETTINGS, playerMode: "tv" });
+    await chooseOption(screen.getByRole("combobox", { name: "Cabinet" }), 2, user);
+    expect(spies.onPatchSettings).toHaveBeenCalledWith({ cabinet: "wood" });
+    await chooseOption(screen.getByRole("combobox", { name: "Curvature" }), 2, user);
+    expect(spies.onPatchSettings).toHaveBeenCalledWith({ crtCurvature: 0.07 });
+  });
+
+  it("turns the cabinet off again", async () => {
+    const user = userEvent.setup();
+    const spies = renderPanel({ ...DEFAULT_PLAYER_SETTINGS, cabinet: "wood" });
+    await chooseOption(screen.getByRole("combobox", { name: "Cabinet" }), 0, user);
+    expect(spies.onPatchSettings).toHaveBeenCalledWith({ cabinet: "none" });
   });
 });
 

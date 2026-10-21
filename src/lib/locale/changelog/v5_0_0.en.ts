@@ -415,6 +415,12 @@ const changelog500 = {
     "The download queue window scrolls smoothly again: rows show up immediately, the list no longer jumps back to the top, and sizes like 1023.9 MB no longer wrap onto the next row",
   "changelog.5_0_0.changed.anilist.franchise":
     "The Franchise section in anime details is rebuilt as a watch order: a summary of titles, aired episodes and the watched share, a numbered main line built from prequel and sequel links with a Next marker on the first unwatched title, a Not aired marker on announced titles, side stories and spin-offs grouped below, own scores and status words in the rows, relation filters with counts, search with a hit counter that jumps to the first match, and the graph now zooms on Ctrl plus wheel while a plain wheel scrolls the page",
+  "changelog.5_0_0.fixed.player.torrent_pending":
+    "A torrent with no finished files no longer expands into an empty list: the player and categories show its state, progress and speed together with the refresh and open-folder actions",
+  "changelog.5_0_0.added.player.screen_modes":
+    "Player screen modes: Normal, Television, Monitor, Black and white, and VHS. Television and Monitor bend the picture with barrel distortion plus a mask and scanlines, black and white drops the color, and VHS adds chroma bleed, jitter and grain. The effect runs through mpv shaders and is kept in view presets 1 and 2, in cinema mode and in fullscreen, switched from the player settings or the right-click menu",
+  "changelog.5_0_0.added.player.screen_cabinet":
+    "A cabinet around the video: off, Windows 95 style gray plastic, or wood. It is its own choice under the screen mode, off by default, never turns itself on when the mode changes, and survives the view presets, cinema mode and fullscreen. The cabinet is an overlay with 1-2% overscan that moves neither the picture nor the controls, available in the settings and the right-click menu",
 } as const;
 
 export default changelog500;

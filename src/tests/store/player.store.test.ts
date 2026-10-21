@@ -101,6 +101,44 @@ describe("player settings atoms", () => {
     expect(store.atoms.volume.get()).toBe(0.5);
   });
 
+  it("defaults the screen mode and keeps the stored choice", () => {
+    const backing = new Map<string, string>();
+    const first = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
+    expect(first.atoms.settings.get().playerMode).toBe("normal");
+    expect(first.atoms.settings.get().cabinet).toBe("none");
+    expect(first.atoms.settings.get().crtCurvature).toBe(0.04);
+
+    first.patchPlayerSettings({ playerMode: "tv", cabinet: "wood", crtCurvature: 0.07 });
+    first.persistor.flush();
+
+    const second = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
+    const settings = second.atoms.settings.get();
+    expect(settings.playerMode).toBe("tv");
+    expect(settings.cabinet).toBe("wood");
+    expect(settings.crtCurvature).toBe(0.07);
+  });
+
+  it("adds the screen fields to a settings payload that predates them", () => {
+    const backing = new Map<string, string>([
+      [
+        "iluha.v1.player",
+        JSON.stringify({
+          f: 1,
+          store: "player",
+          sv: 1,
+          ts: 1,
+          data: { volume: 0.5, settings: { brightness: 150 } },
+        }),
+      ],
+    ]);
+    const store = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
+    const settings = store.atoms.settings.get();
+    expect(settings.brightness).toBe(150);
+    expect(settings.playerMode).toBe("normal");
+    expect(settings.cabinet).toBe("none");
+    expect(settings.crtCurvature).toBe(0.04);
+  });
+
   it("drops settings an older schema carried and keeps the surviving ones", () => {
     const backing = new Map<string, string>([
       [

@@ -6,7 +6,9 @@ import { TAB, clickTabByAnyOf, tabLabels, waitForReady } from "../cdp";
 import type { Scenario } from "../harness";
 
 const RU_LOGIN = "\u0412\u043E\u0439\u0434\u0438\u0442\u0435";
-const RU_SUMMARY = "\u0421\u0432\u043E\u0434\u043A\u0430";
+// The summary panel is hidden below the lg breakpoint (1024px) and the app
+// window is 860px wide, so the general section is the stable settings marker.
+const RU_GENERAL = "\u041E\u0431\u0449\u0438\u0435";
 
 export const boot: Scenario = {
   name: "boot",
@@ -31,12 +33,12 @@ export const boot: Scenario = {
 
     await step("settings tab opens", async () => {
       await clickTabByAnyOf(page, TAB.settings);
-      const summary = page.locator(`text=/summary|${RU_SUMMARY}/i`).first();
-      const found = await summary
+      const general = page.locator(`text=/^general$|^${RU_GENERAL}$/i`).first();
+      const found = await general
         .waitFor({ timeout: 15_000 })
         .then(() => true)
         .catch(() => false);
-      if (!found) throw new Error("settings summary did not render");
+      if (!found) throw new Error("settings general section did not render");
     });
   },
 };

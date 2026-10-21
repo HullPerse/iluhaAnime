@@ -25,6 +25,7 @@ import { VOLUME_STEP } from "@/config/player/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
+import { usePlayerScreen } from "@/hooks/player/screen.hook";
 import { useWindowDrag } from "@/hooks/player/windowDrag.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
@@ -150,6 +151,7 @@ import type {
   SeekMode,
 } from "@/types/videoPlayer";
 
+import PlayerBezel from "./bezel.player";
 import Cheatsheet from "./media/cheatsheet.player";
 import DiagnosticsOverlay from "./media/diagnostics.player";
 import EmptyPlayer from "./media/empty.player";
@@ -268,6 +270,7 @@ function PlayerComponent() {
   const tracks = useCell(playbackAtoms.tracks);
   const chapters = useCell(playbackAtoms.chapters);
   const seekTarget = useCell(playbackAtoms.seekTarget);
+  const ready = useCell(playbackAtoms.ready);
 
   const eofMode = useCell(playerAtoms.eofMode);
   const hwdec = useCell(playerAtoms.hwdec);
@@ -1272,6 +1275,8 @@ function PlayerComponent() {
         alwaysOnTop,
         speed,
         eofMode,
+        playerMode: settings.playerMode,
+        cabinet: settings.cabinet,
       },
       {
         onPlayPause,
@@ -1287,6 +1292,8 @@ function PlayerComponent() {
         onViewMode: applyViewMode,
         onToggleAlwaysOnTop: () => applyAlwaysOnTop(!alwaysOnTop),
         onEofMode: handleEofMode,
+        onPlayerMode: (mode) => handlePatchSettings({ playerMode: mode }),
+        onCabinet: (cabinet) => handlePatchSettings({ cabinet }),
         onOpenSettings: () => setPanel("settings"),
         onOpenCheatsheet: () => setPanel("cheatsheet"),
       }
@@ -1312,10 +1319,15 @@ function PlayerComponent() {
     applyAlwaysOnTop,
     handleEofMode,
     eofMode,
+    settings.playerMode,
+    settings.cabinet,
+    handlePatchSettings,
     showModernMenu,
   ]);
 
   const eofPaused = eofReached && (eofMode === "pause" || eofMode === "none");
+
+  const cabinet = usePlayerScreen(ready, settings, hasFile);
 
   const videoWrap = (node: ReactNode): ReactNode =>
     wrapVideoMenu(node, showModernMenu, modernEntries, setMenuOpen);
@@ -1354,6 +1366,8 @@ function PlayerComponent() {
               onMouseUp={onVideoMouseUp}
               onContextMenu={showModernMenu ? undefined : (event) => event.preventDefault()}
             >
+              {cabinet !== null ? <PlayerBezel variant={cabinet} /> : null}
+
               <OsdOverlay alwaysOnTop={alwaysOnTop} />
               {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
 

@@ -58,6 +58,8 @@ interface PlayerRowTarget {
   resolvedPath: string | undefined;
   track: boolean;
   busy: boolean;
+  /** Finished files need to exist; a file still downloading can be streamed. */
+  streamable: boolean;
 }
 function resolvePlayerRowTarget(
   file: TorrentTreeFile,
@@ -73,6 +75,7 @@ function resolvePlayerRowTarget(
     resolvedPath,
     track,
     busy: queueStatus === "queued" || queueStatus === "processing",
+    streamable: !file.completed || file.exists,
   };
 }
 
@@ -92,8 +95,7 @@ function handlePlayerContextMenu(
     type: "torrent" | "player";
     track: boolean;
     busy: boolean;
-    completed: boolean;
-    exists: boolean;
+    streamable: boolean;
     resolvedPath: string | undefined;
     saveDir: string | undefined;
     onOpenInApp?: (fullPath: string) => void;
@@ -102,7 +104,7 @@ function handlePlayerContextMenu(
   event.preventDefault();
   if (args.type !== "player") return;
   if (event.ctrlKey || event.metaKey) {
-    if (args.track || args.busy || !args.completed || !args.exists || !args.resolvedPath) return;
+    if (args.track || args.busy || !args.streamable || !args.resolvedPath) return;
     args.onOpenInApp?.(args.resolvedPath);
     return;
   }
@@ -119,8 +121,7 @@ function resolveFileRowInteractions(args: {
   type: "torrent" | "player";
   track: boolean;
   busy: boolean;
-  completed: boolean;
-  exists: boolean;
+  streamable: boolean;
   resolvedPath: string | undefined;
   saveDir: string | undefined;
   onOpenInApp: ((fullPath: string) => void) | undefined;
@@ -132,8 +133,7 @@ function resolveFileRowInteractions(args: {
     ctrlClick:
       interactive &&
       !args.busy &&
-      args.completed &&
-      args.exists &&
+      args.streamable &&
       Boolean(args.resolvedPath) &&
       Boolean(args.onOpenInApp),
   };
@@ -276,13 +276,12 @@ export function TorrentFileRow({
   const fullPath = (file as TorrentTreeFileWithPath).fullPath;
   const trackExts = new Set([...audioExtensions, ...subtitleExtensions]);
   const target = resolvePlayerRowTarget(file, fullPath, path, queueMap, trackExts);
-  const { resolvedPath, track, busy } = target;
+  const { resolvedPath, track, busy, streamable } = target;
   const interactions = resolveFileRowInteractions({
     type,
     track,
     busy,
-    completed: file.completed,
-    exists: file.exists,
+    streamable,
     resolvedPath,
     saveDir: path,
     onOpenInApp,
@@ -292,6 +291,9 @@ export function TorrentFileRow({
   const rowKey = `file:${file.index}`;
 
   const entryDisabled = !file.exists || busy;
+  // The built-in player can open a file that is still downloading, so only the
+  // external player and upscaling need the payload on disk.
+  const builtinDisabled = busy || !resolvedPath || !streamable;
   const clickOwn = (name: "external" | "builtin" | "upscale"): void => {
     clickRowActionButton(rootRef.current, name);
   };
@@ -310,7 +312,7 @@ export function TorrentFileRow({
           id: "builtin",
           label: "player.folder.open.iluha.player",
           icon: Play,
-          disabled: entryDisabled,
+          disabled: builtinDisabled,
           onSelect: () => clickOwn("builtin"),
         },
         {
@@ -346,7 +348,7 @@ export function TorrentFileRow({
           if (!(event.ctrlKey || event.metaKey)) return;
           event.preventDefault();
           event.stopPropagation();
-          if (track || busy || !file.completed || !file.exists || !resolvedPath) return;
+          if (track || busy || !streamable || !resolvedPath) return;
           onOpenInApp?.(resolvedPath);
         }
       : null;
@@ -384,8 +386,7 @@ export function TorrentFileRow({
             type,
             track,
             busy,
-            completed: file.completed,
-            exists: file.exists,
+            streamable,
             resolvedPath,
             saveDir: path,
             onOpenInApp,

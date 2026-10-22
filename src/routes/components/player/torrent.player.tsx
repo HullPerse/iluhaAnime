@@ -8,8 +8,11 @@ import ImageComponent from "@/components/ui/image.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
+import { isVideoFileName } from "@/lib/player/stream.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentPlayerProps as Props } from "@/types/player";
 
 import TorrentFilesSection from "../torrent/file.torrent";
@@ -60,6 +63,7 @@ export default function TorrentFilesPlayerSection({
   }, [refetch]);
 
   const { t } = useI18n();
+  const videoExtensions = useCell(settingsAtoms.videoExtensions);
   const openInAppPlayer = useTorrentInAppPlayer(
     files,
     item.save_dir,
@@ -67,7 +71,9 @@ export default function TorrentFilesPlayerSection({
     item.id
   );
 
-  const playable = files?.filter((file) => file.completed) ?? [];
+  const playable = (files ?? []).filter((file) =>
+    isVideoFileName(file.name, videoExtensions)
+  );
   const hasFiles = playable.length > 0;
   const hasExtras = data.length > 0;
   const counts = [

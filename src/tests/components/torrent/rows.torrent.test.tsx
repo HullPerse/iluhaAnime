@@ -154,6 +154,11 @@ describe("TorrentFileRow keyboard surface", () => {
 
     renderFileRow({ file: treeFile({ completed: true, exists: false }) });
     expect(nameOf("Show.S01E01.1080p.mkv").dataset.vimCtrlclick).toBeUndefined();
+    cleanup();
+
+    // A file that is still downloading can be streamed on demand.
+    renderFileRow({ file: treeFile({ completed: false, selected: true }) });
+    expect(nameOf("Show.S01E01.1080p.mkv").dataset.vimCtrlclick).toBe("file");
   });
 
   it("hides the ctrl-click variant while the file is queued", () => {
@@ -192,7 +197,11 @@ describe("Torrent rows through the hint scanner", () => {
     const nameBadges = scanHintTargets(document.body).badges.filter(
       (badge) => badge.element === nameOf("Show.S01E01.1080p.mkv")
     );
-    expect(nameBadges.map((badge) => badge.variant)).toEqual(["plain", "contextmenu"]);
+    expect(nameBadges.map((badge) => badge.variant)).toEqual([
+      "plain",
+      "ctrl",
+      "contextmenu",
+    ]);
     expect(nameBadges.every((badge) => badge.label.length > 0)).toBe(true);
 
     const checkBox = screen.getByRole("checkbox", { name: "Show.S01E01.1080p.mkv" });

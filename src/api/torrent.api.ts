@@ -16,6 +16,7 @@ import type {
   TorrentLimits,
   TorrentOrigin,
   TorrentResumeResult,
+  TorrentStream,
 } from "@/types/torrent";
 
 import type { ApiTransport } from "./transport.api";
@@ -221,6 +222,16 @@ export class TorrentApi {
 
   runningTorrentFilesBatch(ids: readonly number[]): Promise<TorrentFilesBatchEntry[]> {
     return this.call("get_running_torrent_files_batch", { ids });
+  }
+
+  /** Prepare loopback streams for files the user asked to play. Finished files
+   * come back as local paths, so this is safe to call for a whole season. */
+  openTorrentStreams(id: number, fileIndices: readonly number[]): Promise<TorrentStream[]> {
+    return this.call("torrent_open_streams", { id, fileIndices: [...fileIndices] });
+  }
+
+  releaseTorrentStreams(tokens: readonly string[]): Promise<void> {
+    return this.call("torrent_release_streams", { tokens: [...tokens] });
   }
 
   pauseTorrent(id: number, infoHash?: string): Promise<void> {

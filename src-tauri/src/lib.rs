@@ -35,6 +35,9 @@ pub mod benchmark_api {
     };
     pub use crate::scrapers::details::{parse_torrent_detail_html, TorrentDetails};
     pub use crate::torrent::helpers::{ignored_payload_paths, part_file_path, PayloadFile};
+    pub use crate::torrent::stream::{
+        content_type, encode_path_segment, parse_range, StreamEntry, StreamRegistry,
+    };
     pub use crate::user_assets::{compare_cover_bytes, CoverDiff};
     pub use crate::watcher::FolderWatcher;
 
@@ -129,8 +132,9 @@ mod video;
 mod watcher;
 use file_index::FileEntry;
 use torrent::{
-    CreatedTorrent, FilePriority, TorrentCheckResult, TorrentDiagnostics, TorrentFileInfo,
-    TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentManager, TorrentResumeResult,
+    CreatedTorrent, FilePriority, StreamRegistry, TorrentCheckResult, TorrentDiagnostics,
+    TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentManager,
+    TorrentResumeResult, TorrentStream,
 };
 use video::{ActiveChildren, CancelFlag};
 
@@ -590,12 +594,88 @@ async fn remove_torrent(
     delete_files: bool,
     info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
+    streams: tauri::State<'_, StreamRegistry>,
 ) -> Result<(), String> {
     backend_manager(&manager)
         .await?
         .remove_torrent(id, delete_files, info_hash)
         .await
-        .map_err(|e| format!("{e:#}"))
+        .map_err(|e| format!("{e:#}"))?;
+    streams.release_torrent(id);
+    Ok(())
+}
+
+/// Open range-capable loopback streams for the requested files of one torrent.
+/// Finished files come back as their local path, so they never touch HTTP.
+#[tauri::command]
+async fn torrent_open_streams(
+    id: usize,
+    file_indices: Vec<usize>,
+    manager: tauri::State<'_, TorrentBackend>,
+    streams: tauri::State<'_, StreamRegistry>,
+) -> Result<Vec<TorrentStream>, String> {
+    if file_indices.is_empty() {
+        return Ok(Vec::new());
+    }
+    let manager = backend_manager(&manager).await?;
+    let addr = streams.ensure_server(Arc::clone(&manager)).await?;
+    let mut opened = Vec::with_capacity(file_indices.len());
+    for file_index in file_indices {
+        let info = manager.stream_file_info(id, file_index)?;
+        if info.completed {
+            let Some(local) = info.local_path else {
+                return Err(format!("{} is finished but missing on disk", info.name));
+            };
+            let target = local.to_string_lossy().to_string();
+            opened.push(TorrentStream {
+                token: None,
+                url: None,
+                target,
+                path: info.canonical_path.to_string_lossy().to_string(),
+                local_path: Some(local.to_string_lossy().to_string()),
+                name: info.name,
+                size: info.size,
+                file_index,
+                streaming: false,
+            });
+            continue;
+        }
+        if let Err(error) = manager.ensure_stream_file(id, file_index).await {
+            let tokens: Vec<String> = opened
+                .iter()
+                .filter_map(|stream: &TorrentStream| stream.token.clone())
+                .collect();
+            let _ = streams.release(&tokens);
+            return Err(error);
+        }
+        opened.push(streams.register(
+            addr,
+            torrent::stream::StreamEntry::new(
+                id,
+                file_index,
+                info.name,
+                info.size,
+                info.canonical_path.to_string_lossy().to_string(),
+            ),
+        ));
+    }
+    Ok(opened)
+}
+
+/// Drop stream tokens the player is done with. Selection is kept on purpose:
+/// the user asked to watch the file, so it keeps downloading.
+#[tauri::command]
+fn torrent_release_streams(
+    tokens: Vec<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+    streams: tauri::State<'_, StreamRegistry>,
+) {
+    let released = streams.release(&tokens);
+    if let Some(Ok(backend)) = manager.cell.get() {
+        for entry in released {
+            backend.unregister_stream_file(entry.torrent_id, entry.file_index);
+        }
+    }
 }
 
 #[tauri::command]
@@ -1782,6 +1862,7 @@ pub fn run() {
             handle.manage(file_index::FileIndexer::new());
             handle.manage(game::GameHost::default());
             handle.manage(player::PlayerHost::default());
+            handle.manage(StreamRegistry::default());
             player::state::attach(app.handle());
             #[cfg(debug_assertions)]
             match std::env::var("ILUHA_OPEN_FILE") {
@@ -1800,6 +1881,7 @@ pub fn run() {
                         if let Err(error) = player::player_open(
                             trigger_handle.clone(),
                             vec![path],
+                            None,
                             None,
                             None,
                             None,
@@ -2068,6 +2150,8 @@ pub fn run() {
             set_global_speed_limits,
             get_running_torrent_files,
             get_running_torrent_files_batch,
+            torrent_open_streams,
+            torrent_release_streams,
             save_session_config,
             torrent_listen_port,
             update_torrent_only_files,

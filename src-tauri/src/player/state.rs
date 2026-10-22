@@ -15,6 +15,23 @@ const STATE_INTERVAL: Duration = Duration::from_millis(100);
 const WATCH_SAVE_TICKS: u32 = 100;
 const METRICS_TICKS: u32 = 10;
 
+/// One playlist item plus the stable path it stands for. Streaming entries carry
+/// a loopback URL as `target`; watch positions and tracks still key on `path`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerSource {
+    pub target: String,
+    pub path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub streaming: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file_index: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerOpenRequest {
@@ -25,6 +42,8 @@ pub struct PlayerOpenRequest {
     pub start_index: Option<usize>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub watch: Option<PlaylistWatch>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sources: Vec<PlayerSource>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,6 +89,14 @@ pub struct PlaybackSnapshot {
     pub drop_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_duration: Option<f64>,
+    /// mpv is holding playback because the demuxer cache ran dry.
+    pub paused_for_cache: bool,
+    /// Bytes per second the demuxer is currently receiving.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_speed: Option<f64>,
+    /// 0-100 while buffering, 100 when the cache is full.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_buffering_state: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hwdec_current: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -117,6 +144,9 @@ pub(crate) struct Metrics {
     fps_video: Option<f64>,
     drop_count: Option<i64>,
     cache_duration: Option<f64>,
+    paused_for_cache: bool,
+    cache_speed: Option<f64>,
+    cache_buffering_state: Option<i64>,
     hwdec_current: Option<String>,
     video_width: Option<i64>,
     video_height: Option<i64>,
@@ -405,6 +435,9 @@ fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
         fps_video: metrics.fps_video,
         drop_count: metrics.drop_count,
         cache_duration: metrics.cache_duration,
+        paused_for_cache: metrics.paused_for_cache,
+        cache_speed: metrics.cache_speed,
+        cache_buffering_state: metrics.cache_buffering_state,
         hwdec_current: metrics.hwdec_current,
         video_width: metrics.video_width,
         video_height: metrics.video_height,
@@ -424,6 +457,9 @@ fn read_metrics(app: &AppHandle) -> Metrics {
         fps_video: number_property(app, "fps").filter(|value| *value > 0.0),
         drop_count,
         cache_duration: number_property(app, "demuxer-cache-duration"),
+        paused_for_cache: flag_property(app, "paused-for-cache").unwrap_or(false),
+        cache_speed: number_property(app, "cache-speed"),
+        cache_buffering_state: int_property(app, "cache-buffering-state"),
         hwdec_current: string_property(app, "hwdec-current"),
         video_width: int_property(app, "width").filter(|value| *value > 0),
         video_height: int_property(app, "height").filter(|value| *value > 0),
@@ -488,7 +524,13 @@ pub fn save_current_watch(app: &AppHandle) {
         sub_delay: number_property(app, "sub-delay"),
         updated_at: crate::app_db::now_seconds(),
     };
-    if let Err(error) = watch::save(app, &path, &state) {
+    // A streamed episode is keyed by its final path, so resume keeps working
+    // after the `.part` file is renamed and the token is long gone.
+    let key = app
+        .try_state::<crate::torrent::StreamRegistry>()
+        .and_then(|registry| registry.canonical_for_target(&path))
+        .unwrap_or(path);
+    if let Err(error) = watch::save(app, &key, &state) {
         tracing::debug!("watch position not saved: {error}");
     }
 }

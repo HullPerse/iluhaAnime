@@ -1,5 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Maximize, Maximize2, Minimize, Minimize2, Settings, X } from "lucide-react";
+import { Download, Maximize, Maximize2, Minimize, Minimize2, Settings, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -18,6 +18,7 @@ function PlayerHeader({
   title,
   cinema,
   fullscreen,
+  streaming,
   onOpenSettings,
   onToggleCinema,
   onToggleFullscreen,
@@ -26,6 +27,7 @@ function PlayerHeader({
   title: string;
   cinema: boolean;
   fullscreen: boolean;
+  streaming?: boolean;
   onOpenSettings: () => void;
   onToggleCinema: () => void;
   onToggleFullscreen: () => void;
@@ -51,6 +53,16 @@ function PlayerHeader({
     >
       <span className="windows95-text line-clamp-1 font-bold text-white">{title}</span>
       <div className="flex flex-row items-center gap-1" data-no-drag>
+        {streaming ? (
+          <span
+            className="windows95-border bg-highlight text-highlight-text flex items-center gap-1 px-1 text-xs"
+            title={t("player.stream.chip.title")}
+            data-testid="player-stream-chip"
+          >
+            <Download className="size-3" />
+            {t("player.stream.chip")}
+          </span>
+        ) : null}
         <Button
           size="icon"
           className="size-4"

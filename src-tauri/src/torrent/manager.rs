@@ -97,6 +97,18 @@ struct PartFinalizeState {
     was_finished: bool,
 }
 
+/// What the manager knows about one payload file that the player may stream.
+#[derive(Debug, Clone)]
+pub struct StreamFileInfo {
+    pub name: String,
+    pub size: u64,
+    /// Final path under the save dir: the stable key for watch and tracks.
+    pub canonical_path: PathBuf,
+    pub completed: bool,
+    /// The path that actually exists right now (`.part` or final name).
+    pub local_path: Option<PathBuf>,
+}
+
 pub struct RewriteGuard<'a>(&'a std::sync::atomic::AtomicUsize);
 
 impl Drop for RewriteGuard<'_> {
@@ -143,6 +155,9 @@ pub struct TorrentManager {
     /// Per torrent: the payloads that live in the `.part` twin and need no
     /// hidden attribute.
     part_twins: DashMap<usize, HashSet<usize>>,
+    /// Per torrent: files the player is streaming right now. They stay in the
+    /// engine selection and never lose their priority to the sequential window.
+    stream_files: DashMap<usize, HashSet<usize>>,
     hidden_paths: DashMap<String, HashSet<String>>,
     pub hidden_paths_path: PathBuf,
     hidden_paths_lock: std::sync::Mutex<()>,
@@ -346,6 +361,7 @@ impl TorrentManager {
             partial_leftovers_path,
             hidden_files: DashMap::new(),
             part_twins: DashMap::new(),
+            stream_files: DashMap::new(),
             hidden_paths: hidden_paths
                 .into_iter()
                 .map(|(key, paths)| (key, paths.into_iter().collect()))
@@ -366,7 +382,7 @@ impl TorrentManager {
         Ok(manager)
     }
 
-    fn torrent_handle(&self, id: usize) -> Option<Arc<librqbit::ManagedTorrent>> {
+    pub(crate) fn torrent_handle(&self, id: usize) -> Option<Arc<librqbit::ManagedTorrent>> {
         self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
@@ -375,6 +391,110 @@ impl TorrentManager {
             }
             None
         })
+    }
+
+    /// Payload facts for one file index, without touching the network.
+    pub fn stream_file_info(&self, id: usize, file_index: usize) -> Result<StreamFileInfo, String> {
+        let handle = self
+            .torrent_handle(id)
+            .ok_or_else(|| "Torrent not found".to_string())?;
+        let save_dir = self
+            .save_dirs
+            .get(&id)
+            .map(|entry| entry.value().clone())
+            .ok_or_else(|| "Torrent has no save directory".to_string())?;
+        let progress = handle
+            .stats()
+            .file_progress
+            .get(file_index)
+            .copied()
+            .unwrap_or(0);
+        handle
+            .with_metadata(|metadata| {
+                let file = metadata
+                    .file_infos
+                    .get(file_index)
+                    .ok_or_else(|| "File is not in the torrent".to_string())?;
+                let name = file.relative_filename.to_string_lossy().to_string();
+                let canonical_path = PathBuf::from(&save_dir).join(&file.relative_filename);
+                let resolved = resolve_payload_path(&canonical_path);
+                let local_path = std::fs::metadata(&resolved)
+                    .ok()
+                    .filter(|meta| meta.is_file() && meta.len() > 0)
+                    .map(|_| resolved);
+                Ok(StreamFileInfo {
+                    name,
+                    size: file.len,
+                    canonical_path,
+                    completed: file.len > 0 && progress >= file.len,
+                    local_path,
+                })
+            })
+            .map_err(|error| format!("{error:#}"))?
+    }
+
+    /// Mark one file as a playback target and make sure the engine downloads it.
+    /// Called only from an explicit user action (Play or "download and watch"),
+    /// so it may add a deselected file to the selection.
+    pub async fn ensure_stream_file(
+        self: &Arc<Self>,
+        id: usize,
+        file_index: usize,
+    ) -> Result<(), String> {
+        let handle = self
+            .torrent_handle(id)
+            .ok_or_else(|| "Torrent not found".to_string())?;
+        let file_count = handle.stats().file_progress.len();
+        if file_index >= file_count {
+            return Err("File is not in the torrent".to_string());
+        }
+        let current: Vec<usize> = handle
+            .only_files()
+            .unwrap_or_else(|| (0..file_count).collect());
+        let mut allowed: HashSet<usize> = current.into_iter().collect();
+        if allowed.insert(file_index) {
+            self.session
+                .update_only_files(&handle, &allowed)
+                .await
+                .map_err(|error| format!("{error:#}"))?;
+            let key = handle.info_hash().as_string();
+            {
+                // Priorities are authoritative once present: keep every other
+                // file's state and only mark the newly allowed ones Normal.
+                let mut priorities = self
+                    .file_priorities
+                    .get(&key)
+                    .map(|entry| entry.value().clone())
+                    .unwrap_or_else(|| vec![FilePriority::DoNotDownload; file_count]);
+                priorities.resize(file_count, FilePriority::DoNotDownload);
+                for &index in &allowed {
+                    if let Some(slot) = priorities.get_mut(index) {
+                        *slot = FilePriority::Normal;
+                    }
+                }
+                self.file_priorities.insert(key, priorities);
+            }
+            self.save_preferences();
+        }
+        self.stream_files.entry(id).or_default().insert(file_index);
+        Ok(())
+    }
+
+    pub fn unregister_stream_file(&self, id: usize, file_index: usize) {
+        if let Some(mut files) = self.stream_files.get_mut(&id) {
+            files.remove(&file_index);
+            if files.is_empty() {
+                drop(files);
+                self.stream_files.remove(&id);
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn is_streaming_file(&self, id: usize, file_index: usize) -> bool {
+        self.stream_files
+            .get(&id)
+            .is_some_and(|files| files.contains(&file_index))
     }
 
     #[cfg(test)]
@@ -543,7 +663,7 @@ impl TorrentManager {
         self.torrent_limits.get(key).map(|entry| *entry.value())
     }
 
-    fn torrent_is_paused(&self, id: usize) -> bool {
+    pub(crate) fn torrent_is_paused(&self, id: usize) -> bool {
         self.session
             .with_torrents(|iter| {
                 for (torrent_id, handle) in iter {
@@ -2047,6 +2167,7 @@ impl TorrentManager {
             }
         }
         self.stop_priority_stream(id);
+        self.stream_files.remove(&id);
         self.pending_selections.remove(&id);
         self.pending_starts.remove(&id);
         self.limit_locks.remove(&id);
@@ -3073,7 +3194,7 @@ impl TorrentManager {
         let priorities = self.file_priorities.get(&key).map(|entry| entry.clone());
         let pending = self.pending_selections.get(&id).map(|entry| entry.clone());
         let queue = self.download_order.get(&key).map(|entry| entry.clone());
-        Some(plan_sequential(
+        let mut plan = plan_sequential(
             &names,
             &lengths,
             &handle.stats().file_progress,
@@ -3081,7 +3202,16 @@ impl TorrentManager {
             pending.as_deref(),
             self.file_order(),
             queue.as_deref().unwrap_or_default(),
-        ))
+        );
+        if let Some(streams) = self.stream_files.get(&id) {
+            for &file in streams.iter() {
+                if file < lengths.len() && !plan.allowed.contains(&file) {
+                    plan.allowed.push(file);
+                }
+            }
+            plan.allowed.sort_unstable();
+        }
+        Some(plan)
     }
 
     async fn sync_session_selection(
@@ -3121,7 +3251,7 @@ impl TorrentManager {
             .await?;
 
         match plan.target {
-            Some(target) if !self.torrent_is_paused(id) => {
+            Some(target) if !self.torrent_is_paused(id) && !self.is_streaming_file(id, target) => {
                 self.hold_priority_stream(id, target, &handle);
             }
             Some(_) => self.stop_priority_stream(id),
@@ -6212,6 +6342,228 @@ mod tests {
         assert!(freed > 0, "cleanup reports the reclaimed bytes");
         assert!(!part_path.exists(), "cleanup deletes the recorded partial");
         assert!(manager.list_partial_leftovers().is_empty());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    async fn stream_get(
+        client: &reqwest::Client,
+        url: &str,
+        range: Option<&str>,
+    ) -> reqwest::Response {
+        let mut request = client.get(url);
+        if let Some(range) = range {
+            request = request.header(reqwest::header::RANGE, range);
+        }
+        request.send().await.expect("the stream answers")
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn streaming_serves_partial_bytes_and_ranges_over_loopback() {
+        let dir = std::env::temp_dir().join(format!("iluha-stream-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+
+        let (torrent_bytes, source_dir, root_name, _nested) = swarm_fixture("stream");
+        let content = std::fs::read(source_dir.join(&root_name)).expect("source payload");
+        let content_len = u64::try_from(content.len()).expect("payload fits in u64");
+        let (seeder, addr) = start_local_seeder(&dir, &torrent_bytes, &source_dir).await;
+        seeder
+            .ratelimits
+            .set_upload_bps(NonZeroU32::new(384 * 1024));
+
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.join("leech"))
+                .await
+                .expect("session starts"),
+        );
+        let id = download_from_local_seeder(&manager, torrent_bytes, &dir, addr, true).await;
+
+        let index = manager
+            .get_running_torrent_files(id)
+            .expect("files")
+            .into_iter()
+            .find(|file| file.name == root_name)
+            .expect("the first file is listed")
+            .index;
+
+        // Sequential mode fills from the head, so stop while the file is still
+        // downloading: the request below then has to use the live engine, not a
+        // finished file on disk.
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let mut progress = 0;
+        while Instant::now() < deadline {
+            progress = manager
+                .get_running_torrent_files(id)
+                .expect("files")
+                .into_iter()
+                .find(|file| file.index == index)
+                .map(|file| file.progress_bytes)
+                .unwrap_or(0);
+            let finished = manager
+                .torrent_handle(id)
+                .is_some_and(|handle| handle.stats().finished);
+            if (progress >= 1024 * 1024 && progress < content_len) || finished {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        assert!(
+            progress >= 1024 * 1024 && progress < content_len,
+            "the download has to be partial to exercise streaming, got {progress} of {content_len}"
+        );
+
+        let info = manager.stream_file_info(id, index).expect("payload info");
+        assert!(!info.completed, "a partial payload is not completed");
+        assert_eq!(info.size, content_len);
+
+        manager
+            .ensure_stream_file(id, index)
+            .await
+            .expect("the file becomes a stream target");
+        assert!(manager.is_streaming_file(id, index));
+
+        let registry = super::super::stream::StreamRegistry::default();
+        let server = registry
+            .ensure_server(Arc::clone(&manager))
+            .await
+            .expect("the loopback server starts");
+        let stream = registry.register(
+            server,
+            super::super::stream::StreamEntry::new(
+                id,
+                index,
+                info.name.clone(),
+                info.size,
+                info.canonical_path.to_string_lossy().to_string(),
+            ),
+        );
+        let url = stream.url.clone().expect("a live stream has a url");
+        let token = stream.token.clone().expect("a live stream has a token");
+        assert_eq!(
+            registry.canonical_for_target(&url).as_deref(),
+            Some(info.canonical_path.to_string_lossy().as_ref()),
+            "the url resolves to the final path used as the watch key"
+        );
+
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .timeout(Duration::from_secs(60))
+            .build()
+            .expect("http client");
+
+        let head = client
+            .head(&url)
+            .send()
+            .await
+            .expect("the head request answers");
+        assert_eq!(head.status(), reqwest::StatusCode::OK);
+        assert_eq!(head.headers()["accept-ranges"], "bytes");
+        assert_eq!(head.headers()["content-type"], "video/x-matroska");
+        assert_eq!(
+            head.headers()["content-length"],
+            content_len.to_string(),
+            "an open-ended request reports the whole payload"
+        );
+
+        let full_range = client
+            .head(&url)
+            .header(
+                reqwest::header::RANGE,
+                format!("bytes=0-{}", content_len - 1),
+            )
+            .send()
+            .await
+            .expect("the full range answers");
+        assert_eq!(full_range.status(), reqwest::StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            full_range.headers()["content-range"],
+            format!("bytes 0-{}/{content_len}", content_len - 1),
+            "every partial response carries its range"
+        );
+
+        let downloaded_start = 0usize;
+        let downloaded_end = 64 * 1024 - 1;
+        let response = stream_get(
+            &client,
+            &url,
+            Some(&format!("bytes={downloaded_start}-{downloaded_end}")),
+        )
+        .await;
+        assert_eq!(response.status(), reqwest::StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            response.headers()["content-range"],
+            format!("bytes {downloaded_start}-{downloaded_end}/{content_len}")
+        );
+        let bytes = response.bytes().await.expect("range body");
+        assert_eq!(
+            &bytes[..],
+            &content[downloaded_start..=downloaded_end],
+            "already downloaded bytes come back unchanged"
+        );
+
+        // A range past the sequential window proves the handler waits for the
+        // engine instead of serving zeroes from a sparse file.
+        let ahead_start = (progress + 128 * 1024).min(content_len - 64 * 1024);
+        let ahead_end = ahead_start + 64 * 1024 - 1;
+        let response = stream_get(
+            &client,
+            &url,
+            Some(&format!("bytes={ahead_start}-{ahead_end}")),
+        )
+        .await;
+        assert_eq!(response.status(), reqwest::StatusCode::PARTIAL_CONTENT);
+        let bytes = response.bytes().await.expect("ahead body");
+        let ahead_start = usize::try_from(ahead_start).expect("offset fits usize");
+        let ahead_end = usize::try_from(ahead_end).expect("offset fits usize");
+        assert_eq!(
+            &bytes[..],
+            &content[ahead_start..=ahead_end],
+            "bytes beyond the downloaded window arrive from the swarm"
+        );
+
+        let bad_range = stream_get(&client, &url, Some("bytes=999999999-")).await;
+        assert_eq!(
+            bad_range.status(),
+            reqwest::StatusCode::RANGE_NOT_SATISFIABLE
+        );
+
+        let unknown = client
+            .get(format!("http://{server}/s/not-a-token/Show.mkv"))
+            .send()
+            .await
+            .expect("unknown token answers");
+        assert_eq!(unknown.status(), reqwest::StatusCode::NOT_FOUND);
+
+        manager
+            .set_file_priority(id, vec![index], FilePriority::DoNotDownload, None)
+            .await
+            .expect("deselect the streamed file");
+        let deselected = stream_get(&client, &url, Some("bytes=0-15")).await;
+        assert_eq!(
+            deselected.status(),
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            "a token whose file was deselected answers instead of hanging"
+        );
+
+        manager
+            .pause_torrent(id, None)
+            .await
+            .expect("pause the torrent");
+        let paused = stream_get(&client, &url, Some("bytes=0-15")).await;
+        assert_eq!(
+            paused.status(),
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            "a paused torrent answers instead of hanging the player"
+        );
+
+        let released = registry.release(&[token]);
+        assert_eq!(released.len(), 1);
+        manager.unregister_stream_file(id, index);
+        assert!(!manager.is_streaming_file(id, index));
+        assert!(registry.canonical_for_target(&url).is_none());
+        let after_release = stream_get(&client, &url, None).await;
+        assert_eq!(after_release.status(), reqwest::StatusCode::NOT_FOUND);
 
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -7,7 +7,9 @@ use tauri::{
 use tauri_plugin_libmpv::{MpvConfig, VideoMarginRatio};
 
 use super::core::{LibmpvCore, PlayerCore};
-use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch};
+use super::state::{
+    save_current_watch, PlayerHost, PlayerOpenRequest, PlayerSource, PlaylistWatch,
+};
 use super::watch::{self, WatchState};
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
 use crate::app_db;
@@ -177,6 +179,7 @@ pub async fn player_open(
     resume: Option<f64>,
     start_index: Option<usize>,
     watch: Option<PlaylistWatch>,
+    sources: Option<Vec<PlayerSource>>,
 ) -> Result<(), String> {
     drop_legacy_hover_cache(&app);
     if files.iter().any(|file| file.is_empty()) {
@@ -187,6 +190,7 @@ pub async fn player_open(
         resume,
         start_index,
         watch,
+        sources: sources.unwrap_or_default(),
     };
 
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
@@ -578,7 +582,11 @@ pub async fn player_eof_mode(
 
 #[tauri::command]
 pub fn player_save_watch(app: AppHandle, path: String, state: WatchState) -> Result<(), String> {
-    watch::save(&app, &path, &state)
+    let key = app
+        .try_state::<crate::torrent::StreamRegistry>()
+        .and_then(|registry| registry.canonical_for_target(&path))
+        .unwrap_or(path);
+    watch::save(&app, &key, &state)
 }
 
 #[tauri::command]
@@ -633,7 +641,7 @@ mod tests {
 
     #[test]
     fn open_request_watch_roundtrips_as_camel_case() {
-        use super::super::state::TorrentWatch;
+        use super::super::state::{PlayerSource, TorrentWatch};
         let request = PlayerOpenRequest {
             files: vec!["C:/T/ep1.mkv".to_string()],
             resume: None,
@@ -643,14 +651,27 @@ mod tests {
                 save_dir: "C:/T".to_string(),
                 anchor: "C:/T/ep1.mkv".to_string(),
             })),
+            sources: vec![PlayerSource {
+                target: "http://127.0.0.1:4444/s/token/Show%20-%2001.mkv".to_string(),
+                path: "C:/T/Show - 01.mkv".to_string(),
+                name: Some("Show - 01.mkv".to_string()),
+                streaming: true,
+                file_index: Some(3),
+                token: Some("token".to_string()),
+            }],
         };
         let json = serde_json::to_value(&request).expect("request serializes");
         assert_eq!(json["watch"]["kind"], "torrent");
         assert_eq!(json["watch"]["torrentId"], 7);
         assert_eq!(json["watch"]["saveDir"], "C:/T");
         assert_eq!(json["watch"]["anchor"], "C:/T/ep1.mkv");
+        assert_eq!(json["sources"][0]["streaming"], true);
+        assert_eq!(json["sources"][0]["fileIndex"], 3);
+        assert_eq!(json["sources"][0]["path"], "C:/T/Show - 01.mkv");
         let back: PlayerOpenRequest = serde_json::from_value(json).expect("request deserializes");
         assert!(matches!(back.watch, Some(PlaylistWatch::Torrent(_))));
+        assert_eq!(back.sources.len(), 1);
+        assert_eq!(back.sources[0].token.as_deref(), Some("token"));
     }
 
     #[test]
@@ -660,5 +681,6 @@ mod tests {
         assert!(back.watch.is_none());
         assert!(back.resume.is_none());
         assert!(back.start_index.is_none());
+        assert!(back.sources.is_empty());
     }
 }

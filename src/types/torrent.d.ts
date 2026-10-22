@@ -119,6 +119,23 @@ export interface TorrentFileInfo {
   exists: boolean;
 }
 
+/**
+ * What the backend prepared for one playable payload. A finished file comes
+ * back as a local path; a file still downloading comes back as a loopback URL.
+ */
+export interface TorrentStream {
+  token: string | null;
+  url: string | null;
+  target: string;
+  /** Stable key for watch state and tracks: the final path under the save dir. */
+  path: string;
+  localPath: string | null;
+  name: string;
+  size: number;
+  fileIndex: number;
+  streaming: boolean;
+}
+
 export interface PartialLeftoverFile {
   name: string;
   size: number;

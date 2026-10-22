@@ -13,6 +13,17 @@ import type { TorrentTreeFile } from "@/types/torrent";
 
 import { QueueStatusIcon } from "./queueStatusIcon.torrent";
 
+function isBuiltinDisabled(
+  file: TorrentTreeFile,
+  onOpenInApp: unknown,
+  busy: boolean,
+  track?: boolean
+): boolean {
+  if (track || busy) return true;
+  if (onOpenInApp) return file.completed && !file.exists;
+  return !file.exists;
+}
+
 export function PlayerFileActions({
   file,
   fullPath,
@@ -47,6 +58,9 @@ export function PlayerFileActions({
   const queueStatus = resolvedForQueue ? queueMap.get(resolvedForQueue) : undefined;
   const busy = queueStatus === "queued" || queueStatus === "processing";
   const searchDisabled = track === true || busy;
+  // The in-app player can stream a payload that is still downloading; the
+  // external player still needs the finished file on disk.
+  const builtinDisabled = isBuiltinDisabled(file, onOpenInApp, busy, track);
 
   return (
     <div className="ml-auto flex flex-row gap-1">
@@ -85,7 +99,7 @@ export function PlayerFileActions({
                 if (onPlay) onPlay(fullPath, file.displayName);
                 else onOpenInApp?.(fullPath);
               }}
-              disabled={!file.exists}
+              disabled={builtinDisabled}
             >
               <Play className="size-3" />
             </Button>
@@ -144,7 +158,7 @@ export function PlayerFileActions({
                 if (onPlay) onPlay(joinMediaPath(path, file.name), file.displayName);
                 else if (path) onOpenInApp?.(joinMediaPath(path, file.name));
               }}
-              disabled={!file.exists}
+              disabled={builtinDisabled}
             >
               <Play className="size-3" />
             </Button>

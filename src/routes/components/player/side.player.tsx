@@ -8,6 +8,8 @@ export default function PlayerSidePanel({
   onRemove,
   onMove,
   focusedIndex,
+  lockedFiles,
+  mediaPathFor,
 }: PlayerSidePanelProps) {
   const { t } = useI18n();
 
@@ -22,6 +24,8 @@ export default function PlayerSidePanel({
           onPlay={onPlay}
           onRemove={onRemove}
           focusedIndex={focusedIndex}
+          lockedFiles={lockedFiles}
+          mediaPathFor={mediaPathFor}
         />
       </div>
     </aside>

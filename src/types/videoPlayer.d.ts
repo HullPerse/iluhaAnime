@@ -1,8 +1,20 @@
+export interface PlayerSource {
+  /** What mpv gets: a loopback stream URL while downloading, a local path when done. */
+  target: string;
+  /** Stable key for watch positions, tracks and delays (the final file path). */
+  path: string;
+  name?: string;
+  streaming?: boolean;
+  fileIndex?: number;
+  token?: string;
+}
+
 export interface PlayerOpenRequest {
   files: string[];
   resume?: number;
   startIndex?: number;
   watch?: PlaylistWatch | null;
+  sources?: PlayerSource[];
 }
 
 export type PlaylistWatch =
@@ -29,6 +41,9 @@ export interface PlaybackSnapshot {
   fpsVideo?: number;
   dropCount?: number;
   cacheDuration?: number;
+  pausedForCache?: boolean;
+  cacheSpeed?: number;
+  cacheBufferingState?: number;
   hwdecCurrent?: string;
   videoWidth?: number;
   videoHeight?: number;
@@ -201,9 +216,14 @@ export interface PlaybackStore {
   fpsVideo?: number;
   dropCount?: number;
   cacheDuration?: number;
+  pausedForCache: boolean;
+  cacheSpeed?: number;
+  cacheBufferingState?: number;
   hwdecCurrent?: string;
   videoWidth?: number;
   videoHeight?: number;
+  /** Playlist targets and the stable path each one stands for. */
+  sources: PlayerSource[];
   setSnapshot: (snapshot: PlaybackSnapshot) => void;
   setTracks: (tracks: MpvTrack[]) => void;
   setChapters: (chapters: MpvChapter[]) => void;

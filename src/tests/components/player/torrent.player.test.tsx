@@ -175,15 +175,15 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
 });
 
 describe("TorrentFilesPlayerSection with content", () => {
-  it("counts only completed files and expands the list", () => {
+  it("counts every video file and expands the list", () => {
     const { onToggleExpand } = renderSection({
       files: [file(0, "A/a.mkv"), file(1, "A/b.mkv"), file(2, "A/c.mkv", false)],
     });
 
-    expect(screen.getByText("Files: (2)")).toBeDefined();
+    expect(screen.getByText("Files: (3)")).toBeDefined();
     expect(screen.queryByText("No files ready to play")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Files: (2)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Files: (3)" }));
     expect(onToggleExpand).toHaveBeenCalledTimes(1);
   });
 

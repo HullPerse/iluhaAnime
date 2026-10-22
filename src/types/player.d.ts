@@ -70,6 +70,10 @@ export interface PlaylistBodyProps {
   onRemove: (index: number) => Promise<void>;
   onMove: (from: number, to: number) => Promise<void>;
   focusedIndex?: number | null;
+  /** Video files of the torrent that are not selected, so they cannot play. */
+  lockedFiles?: { name: string; size: number }[];
+  /** Maps a playlist target (stream URL) to the stable file path. */
+  mediaPathFor?: (target: string) => string;
 }
 
 export type PlayerSidePanelProps = PlaylistBodyProps;

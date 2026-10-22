@@ -34,6 +34,61 @@ pub fn is_safe_relative_path(name: &str) -> bool {
             .all(|component| matches!(component, std::path::Component::Normal(_)))
 }
 
+/// The incomplete twin of a payload path: the engine writes `<name>.part`
+/// until the file finishes, then the app renames it to the final name.
+#[must_use]
+pub fn part_file_path(final_path: &Path) -> std::path::PathBuf {
+    let mut name = final_path.as_os_str().to_os_string();
+    name.push(".part");
+    std::path::PathBuf::from(name)
+}
+
+/// The path the payload currently lives at: the `.part` file while it
+/// exists, the final name otherwise (finished files and torrents added before
+/// `.part` support).
+pub fn resolve_payload_path(final_path: &Path) -> std::path::PathBuf {
+    let part = part_file_path(final_path);
+    if part.is_file() {
+        part
+    } else {
+        final_path.to_path_buf()
+    }
+}
+
+/// One payload of a torrent, as the watcher needs it.
+pub struct PayloadFile<'a> {
+    /// The name of the payload inside the save folder.
+    pub relative_filename: &'a Path,
+    /// The bytes the payload has on disk.
+    pub progress: u64,
+    /// The length of the payload.
+    pub len: u64,
+}
+
+/// The paths the watcher ignores for the payloads that are not finished.
+///
+/// The final name and the `.part` twin of every unfinished file are dropped,
+/// so piece writes never trigger a folder rescan.
+#[must_use]
+pub fn ignored_payload_paths(save_dir: &str, payloads: &[PayloadFile<'_>]) -> Vec<String> {
+    let mut files = Vec::new();
+    for payload in payloads {
+        if payload.progress >= payload.len {
+            continue;
+        }
+        if !is_safe_relative_path(&payload.relative_filename.to_string_lossy()) {
+            continue;
+        }
+        let full_path = Path::new(save_dir).join(payload.relative_filename);
+        // New downloads write the `.part` twin and older ones the final
+        // name; ignoring both keeps piece writes from triggering rescans
+        // without a filesystem call.
+        files.push(full_path.to_string_lossy().to_string());
+        files.push(part_file_path(&full_path).to_string_lossy().to_string());
+    }
+    files
+}
+
 pub fn display_order(names: &[String]) -> Vec<usize> {
     type Key = (u8, String);
 
@@ -755,8 +810,48 @@ mod tracker_tests {
 
 #[cfg(test)]
 mod incomplete_file_tests {
-    use super::{final_file_path, human_bytes, is_safe_relative_path};
+    use super::{
+        final_file_path, human_bytes, is_safe_relative_path, part_file_path, resolve_payload_path,
+    };
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn payload_paths_resolve_to_the_file_the_engine_uses() {
+        let dir = std::env::temp_dir().join(format!("iluha-part-resolve-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        let final_path = dir.join("Episode 01.mkv");
+        let part_path = part_file_path(&final_path);
+
+        assert_eq!(part_path, dir.join("Episode 01.mkv.part"));
+        assert_eq!(
+            resolve_payload_path(&final_path),
+            final_path,
+            "without a .part twin the payload is the final name"
+        );
+
+        std::fs::write(&part_path, b"partial").expect("write partial");
+        assert_eq!(
+            resolve_payload_path(&final_path),
+            part_path,
+            "an existing .part twin wins while the file is incomplete"
+        );
+
+        std::fs::write(&final_path, b"complete").expect("write final");
+        std::fs::remove_file(&part_path).expect("finalization renames");
+        assert_eq!(
+            resolve_payload_path(&final_path),
+            final_path,
+            "after the rename the final name is the payload"
+        );
+
+        assert!(
+            is_safe_relative_path("Show/Episode 01.mkv.part"),
+            "a leftover record may name a .part file"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn free_space_sizes_are_human_readable() {

@@ -252,7 +252,7 @@ fn is_ignored(path: &Path, ignored: &IgnoredPaths) -> bool {
     ignored.roots.iter().any(|root| path_under(path, root))
 }
 
-fn normalize_key(path: &Path) -> String {
+pub fn normalize_key(path: &Path) -> String {
     #[cfg(windows)]
     {
         path.to_string_lossy().replace('/', "\\").to_lowercase()

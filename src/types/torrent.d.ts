@@ -104,7 +104,7 @@ export interface TorrentInfo {
   missing_files: boolean;
   external_changes: boolean;
   external_changed_files: string[];
-  disk_sparse?: boolean;
+  disk_sparse?: boolean | null;
 }
 
 export interface TorrentFileInfo {

@@ -139,10 +139,21 @@ harness = false
 name = "chip8"
 harness = false
 
+[[bench]]
+name = "torrent_payloads"
+harness = false
+
 [dev-dependencies]
 # Test-only response builder for the body-cap tests. Already in the
 # lockfile through reqwest, so this adds no new supply-chain surface.
 http = "1"
+
+[patch.crates-io]
+# Vendor copy of librqbit 9.0.1: payload files are written as <name>.part and
+# renamed when finished, a fresh download parks in the .part twin, and the
+# Windows sparse mark gets a valid lpBytesReturned outside the tracing macro.
+# See vendor/librqbit/README-vendor.md for the patched files.
+librqbit = { path = "vendor/librqbit" }
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }

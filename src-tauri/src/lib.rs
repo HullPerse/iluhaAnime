@@ -34,7 +34,9 @@ pub mod benchmark_api {
         RUTRACKER_DEFAULT_UA,
     };
     pub use crate::scrapers::details::{parse_torrent_detail_html, TorrentDetails};
+    pub use crate::torrent::helpers::{ignored_payload_paths, part_file_path, PayloadFile};
     pub use crate::user_assets::{compare_cover_bytes, CoverDiff};
+    pub use crate::watcher::FolderWatcher;
 
     /// Offline fixture hooks for `benches/unified_index.rs`. The real commands
     /// are AppHandle-bound; these wrappers take a plain connection so the
@@ -215,6 +217,10 @@ async fn run_torrent_update_tick(
     }
     let verifier = Arc::clone(manager);
     let torrents = tokio::task::spawn_blocking(move || {
+        // Rename the finished `.part` payloads first: the watcher ignore set
+        // is rebuilt after this task, so a payload that just reached its
+        // final name is not dropped from the events the watcher delivers.
+        verifier.finalize_part_files_pass();
         let mut torrents = verifier.collect_torrents();
         verifier.verify_pending_missing(&mut torrents, TORRENT_VERIFY_PER_TICK);
         verifier.watch_external_files(&mut torrents);
@@ -398,6 +404,7 @@ async fn run_torrent_update_tick(
         .retain(|id| current_ids.contains(id));
 
     manager.advance_sequential_torrents().await;
+    manager.start_pending_torrents().await;
 
     state.cleanup_counter += 1;
     if state.cleanup_counter >= 10 {

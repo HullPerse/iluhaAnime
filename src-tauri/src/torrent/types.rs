@@ -119,7 +119,8 @@ pub struct TorrentInfo {
     pub missing_files: bool,
     pub external_changes: bool,
     pub external_changed_files: Vec<String>,
-    pub disk_sparse: bool,
+    /// `None` on platforms without sparse files to report.
+    pub disk_sparse: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -111,58 +111,6 @@ fn volume_root(path: &Path) -> PathBuf {
 }
 
 #[cfg(windows)]
-#[repr(C)]
-struct ZeroData {
-    offset: i64,
-    beyond: i64,
-}
-
-#[cfg(windows)]
-pub fn release_unwritten(path: &Path) -> bool {
-    use std::os::windows::io::AsRawHandle;
-    let Ok(file) = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(path)
-    else {
-        return false;
-    };
-    if !mark_sparse(&file) {
-        return false;
-    }
-    let Ok(meta) = file.metadata() else {
-        return false;
-    };
-    let len = meta.len();
-    if len == 0 {
-        return true;
-    }
-    let info = ZeroData {
-        offset: 0,
-        beyond: i64::try_from(len).unwrap_or(i64::MAX),
-    };
-    let mut returned = 0u32;
-    let result = unsafe {
-        DeviceIoControl(
-            file.as_raw_handle() as isize,
-            0x0009_80C8,
-            std::ptr::from_ref(&info).cast(),
-            u32::try_from(std::mem::size_of::<ZeroData>()).unwrap_or(16),
-            std::ptr::null_mut(),
-            0,
-            &raw mut returned,
-            std::ptr::null(),
-        )
-    };
-    result != 0
-}
-
-#[cfg(not(windows))]
-pub fn release_unwritten(_path: &Path) -> bool {
-    true
-}
-
-#[cfg(windows)]
 fn set_sparse(handle: isize) -> bool {
     let mut returned = 0u32;
     let result = unsafe {
@@ -308,31 +256,38 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn releasing_unwritten_data_frees_clusters_but_keeps_the_length() {
-        use std::io::Write;
-        let dir = temp_dir("release");
-        let file = dir.join("partial.mkv");
+    fn a_file_opened_with_the_engine_share_mode_can_still_be_marked_sparse() {
+        use std::io::{Seek, SeekFrom, Write};
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let dir = temp_dir("sparse-share");
+        if !sparse_capable(&dir) {
+            let _ = std::fs::remove_dir_all(&dir);
+            return;
+        }
+        let file = dir.join("engine.mkv");
         let mut handle = std::fs::OpenOptions::new()
             .create(true)
-            .truncate(true)
+            .truncate(false)
+            .read(true)
             .write(true)
+            // The engine opens the payload with FILE_SHARE_DELETE so the
+            // finished `.part` can be renamed over the final name.
+            .share_mode(0x7)
             .open(&file)
             .expect("create file");
-        handle.set_len(256 * 1024 * 1024).expect("set length");
+        assert!(
+            mark_sparse(&handle),
+            "the engine share mode must not block the sparse flag"
+        );
+        handle.set_len(512 * 1024 * 1024).expect("set length");
+        handle.seek(SeekFrom::Start(0)).expect("seek");
         handle.write_all(&vec![7u8; 1024 * 1024]).expect("write");
         handle.sync_all().expect("flush");
-        drop(handle);
-        let before = allocated_bytes(&file).expect("allocated size");
-        assert!(before > 200 * 1024 * 1024, "before = {before}");
-
-        assert!(release_unwritten(&file), "release has to succeed");
-
-        let after = allocated_bytes(&file).expect("allocated size");
-        assert!(after < 1024 * 1024, "after = {after}");
-        assert_eq!(
-            std::fs::metadata(&file).expect("metadata").len(),
-            256 * 1024 * 1024,
-            "the logical length must not change"
+        let allocated = allocated_bytes(&file).expect("allocated size");
+        assert!(
+            allocated < 512 * 1024 * 1024 / 2,
+            "a sparse file must not allocate its logical length, got {allocated}"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }

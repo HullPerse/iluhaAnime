@@ -20,10 +20,11 @@ Copy of crates.io `librqbit` 9.0.1 with five patched files:
 
 `examples/` is a verbatim copy of the crates.io package. `webui/` is not
 vendored: the app never enables the `webui` feature and `build.rs` only touches
-that directory when the feature is on.
+that directory when the feature is on. The crate is Apache-2.0; `LICENSE` is
+the upstream license file.
 
-Updating: copy the new crates.io release over this directory, reapply the two
-patches above, then run
+Updating: copy the new crates.io release over this directory, reapply the five
+patches listed above, then run
 
 ```
 cargo check --manifest-path src-tauri/Cargo.toml --locked --all-targets

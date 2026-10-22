@@ -1970,6 +1970,16 @@ impl TorrentManager {
             None
         } else {
             let handle = self.torrent_handle(id);
+            // A completed torrent can still be holding a `.part` twin when the
+            // user removes it between the last piece and the tick that renames
+            // it. Finalize first, so removal sees the final name; a rename
+            // blocked by an outside handle is still recorded below.
+            if let (Some(handle), Some(key), Some(save_dir)) =
+                (&handle, key.as_deref(), save_dir.as_deref())
+            {
+                let stats = handle.stats();
+                self.finalize_part_files(key, handle, &stats, save_dir);
+            }
             let name = self
                 .aliases
                 .get(key.as_deref().unwrap_or_default())
@@ -2363,6 +2373,14 @@ impl TorrentManager {
                     }
 
                     if was_hidden || remembered {
+                        // The registry outlives the process, not the file.
+                        // Forget a missing path instead of treating a later
+                        // file with the same name as hidden forever.
+                        if !std::fs::metadata(&path).is_ok_and(|meta| meta.is_file()) {
+                            hidden.remove(&index);
+                            changed |= self.forget_hidden_path(&key, &path_key);
+                            continue;
+                        }
                         hidden.insert(index);
                         continue;
                     }
@@ -2674,9 +2692,6 @@ impl TorrentManager {
         name: &str,
     ) -> Option<PartialLeftover> {
         let handle = self.torrent_handle(id)?;
-        if handle.stats().finished {
-            return None;
-        }
         let stats = handle.stats();
         let files: Vec<PartialLeftoverFile> = handle
             .with_metadata(|metadata| {
@@ -2688,16 +2703,22 @@ impl TorrentManager {
                         if !is_safe_relative_path(&file.relative_filename.to_string_lossy()) {
                             return None;
                         }
-                        let progress = stats.file_progress.get(index).copied().unwrap_or(0);
-                        if progress >= file.len {
-                            return None;
-                        }
                         if file.attrs.padding {
                             return None;
                         }
+                        let progress = stats.file_progress.get(index).copied().unwrap_or(0);
                         let final_path = Path::new(save_dir).join(&file.relative_filename);
                         let full_path = resolve_payload_path(&final_path);
                         if !std::fs::metadata(&full_path).is_ok_and(|meta| meta.is_file()) {
+                            return None;
+                        }
+                        let is_part = full_path != final_path;
+                        let complete = file.len == 0 || progress >= file.len;
+                        // A finished payload at its final name is not a
+                        // leftover. A finished `.part` twin still is: the
+                        // rename was blocked, or this is an unselected file
+                        // whose partial data the user chose to keep.
+                        if complete && !is_part {
                             return None;
                         }
                         let allocated = disk::allocated_bytes(&full_path).unwrap_or(0);
@@ -2707,10 +2728,10 @@ impl TorrentManager {
                         }
                         // The record names the file that exists, including a
                         // `.part` partial, so cleanup and later resumes find it.
-                        let name = if full_path == final_path {
-                            file.relative_filename.to_string_lossy().to_string()
-                        } else {
+                        let name = if is_part {
                             format!("{}.part", file.relative_filename.to_string_lossy())
+                        } else {
+                            file.relative_filename.to_string_lossy().to_string()
                         };
                         Some(PartialLeftoverFile {
                             name,
@@ -5538,6 +5559,28 @@ mod tests {
         );
 
         manager
+            .update_torrent_only_files(id, vec![finished], None)
+            .await
+            .expect("deselect the pending payload");
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut complete = false;
+        while Instant::now() < deadline {
+            if manager
+                .collect_torrents()
+                .iter()
+                .any(|torrent| torrent.id == id && torrent.finished)
+            {
+                complete = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(
+            complete,
+            "deselecting the last payload finishes the torrent"
+        );
+
+        manager
             .remove_torrent(id, false, None)
             .await
             .expect("remove keeping files");
@@ -5548,7 +5591,7 @@ mod tests {
                 .files
                 .iter()
                 .any(|file| file.name == format!("{pending_name}.part")),
-            "the leftover record names the .part file"
+            "the leftover record names the unselected .part file of a finished torrent"
         );
         assert!(
             !leftovers[0]
@@ -5556,6 +5599,67 @@ mod tests {
                 .iter()
                 .any(|file| file.name == finished_name),
             "the finished payload is not a leftover"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn removing_a_finished_torrent_finalizes_the_part_before_keeping_files() {
+        let dir =
+            std::env::temp_dir().join(format!("iluha-remove-finished-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let content = payload_bytes(2 * 1024 * 1024);
+        let (torrent_bytes, source_dir) =
+            create_test_torrent("remove-finished", &[("Episode 01.mkv", content)]);
+        let (seeder, addr) = start_local_seeder(&dir, &torrent_bytes, &source_dir).await;
+        seeder
+            .ratelimits
+            .set_upload_bps(NonZeroU32::new(256 * 1024));
+
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+        let id = download_from_local_seeder(&manager, torrent_bytes, &dir, addr, false).await;
+        let save_dir = dir.join("downloads");
+
+        let deadline = Instant::now() + Duration::from_secs(90);
+        let mut name = String::new();
+        while Instant::now() < deadline {
+            if let Ok(files) = manager.get_running_torrent_files(id) {
+                if let Some(file) = files.first() {
+                    if file.completed {
+                        name = file.name.clone();
+                        break;
+                    }
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(!name.is_empty(), "the download has to finish in the test");
+        let final_path = save_dir.join(&name);
+        let part_path = part_file_path(&final_path);
+        assert!(
+            part_path.is_file(),
+            "the payload is still a .part until the tick finalizes it"
+        );
+        assert!(!final_path.exists(), "the final name appears on finalize");
+
+        manager
+            .remove_torrent(id, false, None)
+            .await
+            .expect("remove keeping files");
+        assert!(
+            final_path.is_file(),
+            "removing a finished torrent finalizes its .part first"
+        );
+        assert!(!part_path.exists(), "no orphan .part survives the removal");
+        assert!(
+            manager.list_partial_leftovers().is_empty(),
+            "the finished payload is not recorded as a leftover"
         );
 
         let _ = std::fs::remove_dir_all(&dir);

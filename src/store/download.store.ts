@@ -23,6 +23,27 @@ function hasConflictingSelection(
   });
 }
 
+/**
+ * The free space the start command asks the backend to reserve. A fresh add
+ * writes the payload into `<name>.part`, so a file that already exists at the
+ * final name stays on disk until the finished `.part` replaces it. Selected
+ * conflicting files therefore need room for both copies.
+ */
+export function requiredBytesForSelection(
+  pending: {
+    files: { index: number; name: string; size: number }[];
+    conflictingFiles: string[];
+  },
+  selectedIndices: number[]
+): number {
+  return selectedIndices.reduce((sum, index) => {
+    const file = pending.files.find((entry) => entry.index === index);
+    if (!file) return sum;
+    const existing = pending.conflictingFiles.includes(file.name) ? file.size : 0;
+    return sum + file.size + existing;
+  }, 0);
+}
+
 function resolveOnlyFiles(allFiles: { index: number }[], selected: number[]): number[] | null {
   return selected.length === allFiles.length ? null : selected;
 }
@@ -151,10 +172,7 @@ export function createTorrentSignalStore(): TorrentSignalStore {
       setLastSaveDir(saveDir);
       await clearPreviousTorrentIfNeeded(pending.id);
       const onlyFiles = resolveOnlyFiles(pending.files, selectedIndices);
-      const requiredBytes = selectedIndices.reduce((sum, index) => {
-        const file = pending.files.find((entry) => entry.index === index);
-        return sum + (file?.size ?? 0);
-      }, 0);
+      const requiredBytes = requiredBytesForSelection(pending, selectedIndices);
 
       const id = await startDownloadForPending(
         pending,

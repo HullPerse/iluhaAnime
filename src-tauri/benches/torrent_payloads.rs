@@ -1,6 +1,4 @@
-use iluhaanime_lib::benchmark_api::{
-    ignored_payload_paths, part_file_path, FolderWatcher, PayloadFile,
-};
+use iluhaanime_lib::benchmark_api::{ignored_payload_paths, FolderWatcher, PayloadFile};
 use std::hint::black_box;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -9,11 +7,9 @@ use std::time::{Duration, Instant};
 // set and the hidden-attribute pass.
 //
 // Budget (AMD Ryzen 7 5800X, Windows 11, rustc 1.98.0, bench profile, 2026-10-22):
-//   ignore paths, 5000 files      median <= 5 ms
-//   ignore paths, cached layout  median <= 5 ms
+//   ignore paths                 median <= 5 ms
 //   watcher ignore set           median <= 5 ms
 //   hidden pass stat             median <= 20 ms
-//   hidden pass stat, twins      median <= 1 ms
 //
 // The watcher ignore set is rebuilt every tick (1 s) while a torrent
 // downloads, and the hidden-attribute pass runs every tenth tick. Both walk
@@ -81,45 +77,9 @@ fn payload_files<'a>(names: &'a [PathBuf], progress: &'a [u64]) -> Vec<PayloadFi
         .collect()
 }
 
-/// The current shape: every tick rebuilds the path strings of the unfinished
-/// payloads.
-fn ignore_paths_rebuild(names: &[PathBuf], progress: &[u64]) -> Vec<String> {
+/// Every tick rebuilds the path strings of the unfinished payloads.
+fn ignore_paths(names: &[PathBuf], progress: &[u64]) -> Vec<String> {
     ignored_payload_paths(SAVE_DIR, &payload_files(names, progress))
-}
-
-/// The candidate shape: the layout never changes, so the path strings are
-/// built once and the tick only picks the unfinished ones.
-struct CachedLayout {
-    final_paths: Vec<String>,
-    part_paths: Vec<String>,
-}
-
-impl CachedLayout {
-    fn build(names: &[PathBuf]) -> Self {
-        let mut final_paths = Vec::with_capacity(names.len());
-        let mut part_paths = Vec::with_capacity(names.len());
-        for name in names {
-            let full_path = Path::new(SAVE_DIR).join(name);
-            final_paths.push(full_path.to_string_lossy().to_string());
-            part_paths.push(part_file_path(&full_path).to_string_lossy().to_string());
-        }
-        Self {
-            final_paths,
-            part_paths,
-        }
-    }
-
-    fn ignored(&self, progress: &[u64]) -> Vec<String> {
-        let mut files = Vec::new();
-        for (index, progress) in progress.iter().enumerate() {
-            if *progress >= FILE_LEN {
-                continue;
-            }
-            files.push(self.final_paths[index].clone());
-            files.push(self.part_paths[index].clone());
-        }
-        files
-    }
 }
 
 /// The hidden-attribute pass: one stat per unfinished payload, because the
@@ -128,21 +88,6 @@ impl CachedLayout {
 fn hidden_pass_stat(dir: &Path, names: &[PathBuf]) -> usize {
     let mut hits = 0;
     for name in names.iter().take(UNFINISHED) {
-        if std::fs::metadata(dir.join(name)).is_ok_and(|meta| meta.is_file()) {
-            hits += 1;
-        }
-    }
-    hits
-}
-
-/// The optimized pass: the payloads that live in the `.part` twin are
-/// remembered, so the pass stops asking the filesystem about them.
-fn hidden_pass_stat_twins(dir: &Path, names: &[PathBuf], twins: &[bool]) -> usize {
-    let mut hits = 0;
-    for (index, name) in names.iter().take(UNFINISHED).enumerate() {
-        if twins[index] {
-            continue;
-        }
         if std::fs::metadata(dir.join(name)).is_ok_and(|meta| meta.is_file()) {
             hits += 1;
         }
@@ -196,13 +141,9 @@ fn main() {
     let names = payload_names(FILES);
     let progress = progress(&names);
 
-    bench_paths("ignore paths rebuild", 5.0, || {
-        ignore_paths_rebuild(&names, &progress)
-    });
-    let layout = CachedLayout::build(&names);
-    bench_paths("ignore paths cached", 5.0, || layout.ignored(&progress));
+    bench_paths("ignore paths", 5.0, || ignore_paths(&names, &progress));
 
-    let paths = ignore_paths_rebuild(&names, &progress);
+    let paths = ignore_paths(&names, &progress);
     let watcher = FolderWatcher::new();
     bench_paths("watcher ignore set", 5.0, || {
         watcher.set_ignored_paths(vec![SAVE_DIR.to_string()], paths.clone());
@@ -216,9 +157,5 @@ fn main() {
         std::fs::write(dir.join(name), b"").expect("bench fixture file");
     }
     bench_stat("hidden pass stat", 20.0, || hidden_pass_stat(&dir, &names));
-    let twins = vec![true; UNFINISHED];
-    bench_stat("hidden pass stat, twins", 1.0, || {
-        hidden_pass_stat_twins(&dir, &names, &twins)
-    });
     let _ = std::fs::remove_dir_all(&dir);
 }

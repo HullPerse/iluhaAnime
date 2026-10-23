@@ -72,7 +72,7 @@ const FIND_GROUPS: readonly FindGroup[] = [
     tab: "general",
     section: "startup",
     titleKey: "settings.startup",
-    keys: ["settings.startup.fastLaunch", "settings.startup.fastLaunch.hint"],
+    keys: ["settings.startup.fastLaunch", "settings.startup.fastLaunch.hint", "settings.startup.rememberLastTab"],
   },
   {
     tab: "general",

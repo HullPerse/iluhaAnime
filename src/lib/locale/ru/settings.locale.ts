@@ -441,6 +441,7 @@ const settings = {
   "settings.startup": "Запуск",
   "settings.startup.fastLaunch": "Быстрый запуск",
   "settings.startup.fastLaunch.hint": "Пропускать заставку, грузить все в фоне.",
+  "settings.startup.rememberLastTab": "Помнить последнюю вкладку при запуске",
   "settings.keyboard": "Клавиатура",
   "settings.keybinds": "Сочетания клавиш",
   "settings.keybinds.search": "Поиск сочетаний...",

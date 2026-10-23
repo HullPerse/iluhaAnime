@@ -67,6 +67,7 @@ export default function SettingsGeneral() {
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
+  const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
   const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
   const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
@@ -173,6 +174,16 @@ export default function SettingsGeneral() {
               >
                 <Checkbox checked={fastLaunch} onChange={(v) => patchSettings({ fastLaunch: v })} />
                 <span className="text-xs">{t("settings.startup.fastLaunch")}</span>
+              </label>
+              <label
+                className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none"
+                title={t("settings.startup.rememberLastTab")}
+              >
+                <Checkbox
+                  checked={rememberLastTab}
+                  onChange={(v) => patchSettings({ rememberLastTab: v })}
+                />
+                <span className="text-xs">{t("settings.startup.rememberLastTab")}</span>
               </label>
             </div>
           </div>

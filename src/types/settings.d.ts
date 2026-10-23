@@ -118,6 +118,7 @@ export interface SettingsStore {
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
   gameTabUnlocked: boolean;
+  rememberLastTab: boolean;
   gameVolume: number;
   tmdbKeySet: boolean;
   tmdbPendingKey: string | null;

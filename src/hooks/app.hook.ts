@@ -68,7 +68,6 @@ export function useApp() {
   const isOnline = useOnlineStatus();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const activeTab = tabIdFromPath(pathname) ?? "search";
   const goToTab = useCallback(
     (tab: TabId) => {
       navigate({ to: tabPathFromId(tab) });
@@ -82,6 +81,9 @@ export function useApp() {
   const torrentTabEnabled = useCell(settingsAtoms.torrentTabEnabled);
   const playerTabEnabled = useCell(settingsAtoms.playerTabEnabled);
   const gameTabUnlocked = useCell(settingsAtoms.gameTabUnlocked);
+  const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
+  const urlTab = tabIdFromPath(pathname) ?? "search";
+  const activeTab = rememberLastTab ? urlTab : "search";
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
   const retroStyle = useCell(settingsAtoms.retroStyle);
   const uiDensity = useCell(settingsAtoms.uiDensity);
@@ -148,6 +150,16 @@ export function useApp() {
     const fallback = (tabs.find((tab) => !tab.disabled) ?? tabs[0]).id;
     if (fallback !== activeTab) goToTab(fallback);
   }, [activeTab, tabs, goToTab]);
+
+  const isInitial = useRef(true);
+  useEffect(() => {
+    if (!rememberLastTab && isInitial.current) {
+      isInitial.current = false;
+      if (urlTab !== "search") {
+        goToTab("search");
+      }
+    }
+  }, [rememberLastTab, urlTab, goToTab]);
 
   const altDigitDefs: ResolvedHotkeyDef<TabId>[] = visibleTabs({
     collectionTabEnabled,

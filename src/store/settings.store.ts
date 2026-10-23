@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 55;
+export const SETTINGS_SCHEMA_VERSION = 56;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -250,6 +250,14 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     from: 54,
     migrate: (state) => {
       delete state.notifyUpdateAvailable;
+    },
+  },
+  {
+    from: 55,
+    migrate: (state) => {
+      if (state.rememberLastTab === undefined) {
+        state.rememberLastTab = true;
+      }
     },
   },
 ];

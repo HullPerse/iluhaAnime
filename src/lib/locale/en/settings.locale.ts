@@ -439,6 +439,7 @@ const settings = {
   "settings.startup": "Startup",
   "settings.startup.fastLaunch": "Fast launch",
   "settings.startup.fastLaunch.hint": "No splash, everything loads in background.",
+  "settings.startup.rememberLastTab": "Remember last tab on startup",
   "settings.keyboard": "Keyboard",
   "settings.keybinds": "Keybinds",
   "settings.keybinds.search": "Search keybindings...",

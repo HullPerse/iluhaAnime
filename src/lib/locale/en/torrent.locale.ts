@@ -20,6 +20,8 @@ const torrent = {
   "torrent.bulk.recreate.message":
     "{{count}} of them still miss files. Recreating removes each torrent and adds it back by magnet: manual trackers, the file selection and priorities are lost. Recheck again later if the files may come back.",
   "torrent.bulk.title": "Bulk action",
+  "torrent.checking.file": "Checking: {{name}}",
+  "torrent.checking.files": "Checking files...",
   "torrent.choose.file": "Choose .torrent",
   "torrent.delete": "Delete torrent",
   "torrent.delete.message": "Delete downloaded files along with the torrent?",
@@ -69,6 +71,7 @@ const torrent = {
   "torrent.eta.minutes.seconds": "{{m}} min {{s}} sec",
   "torrent.eta.seconds": "{{s}} sec",
   "torrent.files.count": "Files ({{done}} / {{total}})",
+  "torrent.files.disk.usage": "On disk: {{onDisk}} of {{total}}",
   "torrent.files.error": "Failed to load files",
   "torrent.files.on.disk": "On disk: {{size}}",
   "torrent.files.sparse.unsupported":
@@ -183,6 +186,7 @@ const torrent = {
   "torrent.queue.position": "Queue position: {{position}}",
   "torrent.sort.asc": "Ascending",
   "torrent.sort.desc": "Descending",
+  "torrent.state.checking": "Checking files",
   "torrent.state.completed": "Completed",
   "torrent.state.error": "Error",
   "torrent.state.initializing": "Initializing",

@@ -104,6 +104,7 @@ export interface TorrentInfo {
   missing_files: boolean;
   external_changes: boolean;
   external_changed_files: string[];
+  checking_file?: string | null;
   disk_sparse?: boolean | null;
 }
 
@@ -117,23 +118,6 @@ export interface TorrentFileInfo {
   selected: boolean;
   priority: FilePriority;
   exists: boolean;
-}
-
-/**
- * What the backend prepared for one playable payload. A finished file comes
- * back as a local path; a file still downloading comes back as a loopback URL.
- */
-export interface TorrentStream {
-  token: string | null;
-  url: string | null;
-  target: string;
-  /** Stable key for watch state and tracks: the final path under the save dir. */
-  path: string;
-  localPath: string | null;
-  name: string;
-  size: number;
-  fileIndex: number;
-  streaming: boolean;
 }
 
 export interface PartialLeftoverFile {
@@ -270,6 +254,7 @@ export type TorrentDisplayState =
   | "stalled"
   | "paused"
   | "initializing"
+  | "checking"
   | "missing";
 
 export type TorrentLifecycle = "staging" | "live" | "paused" | "seeding" | "completed";

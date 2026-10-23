@@ -3,14 +3,14 @@ import { useEffect, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { createInterval } from "@/lib/pacer/interval.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
   fmtSpeed,
   getDisplayState,
 } from "@/lib/torrent/common.utils";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatElapsed, formatETA } from "@/lib/utils/time.utils";
 import { torrentAtoms } from "@/store/download.store";
@@ -83,6 +83,14 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
             )}
           </span>
         </div>
+        {display === "checking" && item.checking_file && (
+          <span
+            className="windows95-text text-hint min-w-0 truncate text-xs"
+            title={item.checking_file}
+          >
+            {t("torrent.checking.file", { name: item.checking_file })}
+          </span>
+        )}
       </div>
     </section>
   );

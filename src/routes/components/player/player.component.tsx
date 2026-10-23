@@ -14,7 +14,6 @@ import {
 import ContextMenu from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 import { SmallLoader } from "@/components/shared/loader.component";
-import { torrentApi } from "@/api/torrent.api";
 import {
   OFFSET_LIMIT,
   OFFSET_STEP,
@@ -27,7 +26,6 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
-import { useTorrentPlaybackState } from "@/hooks/player/torrentPlaybackState.hook";
 import { useWindowDrag } from "@/hooks/player/windowDrag.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
@@ -102,13 +100,6 @@ import {
 } from "@/lib/player/resume.utils";
 import { resolveSkipTarget } from "@/lib/player/skip.utils";
 import { stepSpeed } from "@/lib/player/speed.utils";
-import {
-  cardPlaylistEntries,
-  isStreamingTarget,
-  liveTorrentId,
-  mediaKeyForTarget,
-  streamTokens,
-} from "@/lib/player/stream.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { nextTrackId } from "@/lib/player/tracks.utils";
 import { resolveViewChrome } from "@/lib/player/view.utils";
@@ -161,10 +152,6 @@ import type {
 } from "@/types/videoPlayer";
 
 import PlayerBezel from "./bezel.player";
-import BufferingBadge, {
-  bufferingReason,
-  lockedPlaylistRows,
-} from "./media/buffering.player";
 import Cheatsheet from "./media/cheatsheet.player";
 import DiagnosticsOverlay from "./media/diagnostics.player";
 import EmptyPlayer from "./media/empty.player";
@@ -284,14 +271,6 @@ function PlayerComponent() {
   const chapters = useCell(playbackAtoms.chapters);
   const seekTarget = useCell(playbackAtoms.seekTarget);
   const ready = useCell(playbackAtoms.ready);
-  const sources = useCell(playbackAtoms.sources);
-  // Loopback tokens are cheap but not free: hand them back as soon as the
-  // player goes away instead of waiting for the server-side TTL.
-  const releaseStreams = useCallback(() => {
-    ignore(torrentApi.releaseTorrentStreams(streamTokens(playbackAtoms.sources.get())));
-  }, []);
-  const pausedForCache = useCell(playbackAtoms.pausedForCache);
-  const cacheSpeed = useCell(playbackAtoms.cacheSpeed);
 
   const eofMode = useCell(playerAtoms.eofMode);
   const hwdec = useCell(playerAtoms.hwdec);
@@ -345,8 +324,7 @@ function PlayerComponent() {
     });
   }, []);
 
-  useLivePlaylistSync(liveWatch, sources, { onPlayingFileModified: reloadPlayingFile });
-  const torrentState = useTorrentPlaybackState(liveTorrentId(liveWatch), sources, path);
+  useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
 
   const chrome = resolveViewChrome({
     mode: viewMode,
@@ -370,18 +348,11 @@ function PlayerComponent() {
     menuOpen,
     dropAlert,
   });
-  const title = useMemo(() => {
-    const mediaPath = path ? mediaKeyForTarget(sources, path) : "";
-    if (!mediaPath) return t("player.media.title");
-    return parseTitlesPlayer
-      ? formatParsedTitle(mediaPath, t)
-      : fileNameFromPath(mediaPath);
-  }, [sources, path, parseTitlesPlayer, t]);
-  const mediaPathForTarget = useCallback(
-    (target: string) => mediaKeyForTarget(playbackAtoms.sources.get(), target),
-    []
-  );
-  const streamingNow = isStreamingTarget(sources, path);
+  const title = path
+    ? parseTitlesPlayer
+      ? formatParsedTitle(path, t)
+      : fileNameFromPath(path)
+    : t("player.media.title");
 
   const hideDropSoon = useCallback(() => {
     if (dropHideRef.current === null) {
@@ -503,7 +474,6 @@ function PlayerComponent() {
       if (disposed) return;
       if (request && request.files.length > 0) {
         resumeRef.current = request.resume;
-        playbackAtoms.sources.set(request.sources ?? []);
         setLiveWatch(request.watch ?? null);
         setLoadingFile(true);
         await loadQueue(request.files, request.resume, request.startIndex);
@@ -623,9 +593,8 @@ function PlayerComponent() {
     setFinished(false);
     const loaded = await readPath();
     if (!loaded || !isCurrent()) return;
-    const key = mediaKeyForTarget(playbackAtoms.sources.get(), loaded);
     const reload = hwdecReloadRef.current;
-    const entry = await hydrateMediaEntry(key);
+    const entry = await hydrateMediaEntry(loaded);
     if (!isCurrent()) return;
 
     await applyFileState(fileStatePatch(entry, playbackAtoms.speed.get() || 1));
@@ -652,12 +621,8 @@ function PlayerComponent() {
   usePlayerEvents({
     onOpenRequest: (request) => {
       if (request.files.length === 0) return;
-      // A new open request replaces the playlist; the old loopback tokens are
-      // released right away instead of waiting for their TTL.
-      ignore(torrentApi.releaseTorrentStreams(streamTokens(playbackAtoms.sources.get())));
       loadEpochRef.current += 1;
       resumeRef.current = request.resume;
-      playbackAtoms.sources.set(request.sources ?? []);
       setLiveWatch(request.watch ?? null);
       setFinished(false);
       setLoadingFile(true);
@@ -706,17 +671,16 @@ function PlayerComponent() {
       if (!path || paused || eofReached || duration <= 0) {
         return;
       }
-      const key = mediaKeyForTarget(playbackAtoms.sources.get(), path);
       const timePos = playbackAtoms.timePos.get();
       const lastSaved = lastSavedWatchRef.current;
-      if (lastSaved && lastSaved.path === key && lastSaved.position === timePos) {
+      if (lastSaved && lastSaved.path === path && lastSaved.position === timePos) {
         return;
       }
-      lastSavedWatchRef.current = { path: key, position: timePos };
-      const entry = getMediaEntry(key);
-      setMediaPosition(key, timePos, duration);
+      lastSavedWatchRef.current = { path, position: timePos };
+      const entry = getMediaEntry(path);
+      setMediaPosition(path, timePos, duration);
       ignore(
-        saveWatch(key, {
+        saveWatch(path, {
           position: timePos,
           duration,
           subDelay: entry?.subOffset ?? 0,
@@ -735,9 +699,9 @@ function PlayerComponent() {
     ignore(
       readPlaylistEntries().then((entries) => {
         if (cancelled) return;
-        const { paths, activePath } = cardPlaylistEntries(entries, path);
-        if (playlistOpen) scheduleCardPrefetch(paths, activePath);
-        else scheduleNeighborPrefetch(paths, activePath, index);
+        const filenames = entries.map((entry) => entry.filename);
+        if (playlistOpen) scheduleCardPrefetch(filenames, path);
+        else scheduleNeighborPrefetch(filenames, path, index);
       })
     );
     return () => {
@@ -876,12 +840,11 @@ function PlayerComponent() {
           } else if (cinema) {
             setCinema(false);
           } else {
-            releaseStreams();
             await closePlayerWindow();
           }
         })
     );
-  }, [cinema, diagnosticsOpen, jumpOpen, panel, playlistOpen, viewMode, releaseStreams]);
+  }, [cinema, diagnosticsOpen, jumpOpen, panel, playlistOpen, viewMode]);
 
   const onPlay = useCallback(() => {
     if (!playbackAtoms.hasFile.get()) return;
@@ -1038,17 +1001,14 @@ function PlayerComponent() {
 
   const persistTrack = useCallback((track: MpvTrack, kind: "audio" | "sub") => {
     const current = playbackAtoms.path.get();
-    if (current) {
-      setMediaTrack(mediaKeyForTarget(playbackAtoms.sources.get(), current), kind, track.id);
-    }
+    if (current) setMediaTrack(current, kind, track.id);
   }, []);
 
   const onResetDelays = useCallback(() => {
     const current = playbackAtoms.path.get();
     if (!current) return;
-    const key = mediaKeyForTarget(playbackAtoms.sources.get(), current);
-    setMediaSubOffset(key, 0);
-    setMediaAudioOffset(key, 0);
+    setMediaSubOffset(current, 0);
+    setMediaAudioOffset(current, 0);
     ignore(setMpvProperty("sub-delay", 0));
     ignore(setMpvProperty("audio-delay", 0));
   }, []);
@@ -1095,16 +1055,15 @@ function PlayerComponent() {
   const nudgeOffset = useCallback((kind: "sub" | "audio", direction: number, fine: boolean) => {
     const current = playbackAtoms.path.get();
     if (!current) return;
-    const key = mediaKeyForTarget(playbackAtoms.sources.get(), current);
-    const entry = getMediaEntry(key);
+    const entry = getMediaEntry(current);
     const base = (kind === "sub" ? entry?.subOffset : entry?.audioOffset) ?? 0;
     const step = fine ? OFFSET_STEP_FINE : OFFSET_STEP;
     const next = Math.max(
       -OFFSET_LIMIT,
       Math.min(OFFSET_LIMIT, Number((base + direction * step).toFixed(3)))
     );
-    if (kind === "sub") setMediaSubOffset(key, next);
-    else setMediaAudioOffset(key, next);
+    if (kind === "sub") setMediaSubOffset(current, next);
+    else setMediaAudioOffset(current, next);
     if (kind === "sub") ignore(setMpvProperty("sub-delay", next));
     else ignore(setMpvProperty("audio-delay", next));
   }, []);
@@ -1294,9 +1253,8 @@ function PlayerComponent() {
   );
 
   const close = useCallback(() => {
-    releaseStreams();
     ignore(closePlayerWindow());
-  }, [releaseStreams]);
+  }, []);
 
   const restart = useCallback(() => {
     setFinished(false);
@@ -1387,7 +1345,6 @@ function PlayerComponent() {
             title={title}
             cinema={cinema}
             fullscreen={fullscreen}
-            streaming={streamingNow}
             onOpenSettings={() => setPanel("settings")}
             onToggleCinema={toggleCinema}
             onToggleFullscreen={() => ignore(toggleFullscreen())}
@@ -1424,12 +1381,6 @@ function PlayerComponent() {
                   </span>
                 </div>
               ) : null}
-
-              <BufferingBadge
-                visible={pausedForCache && hasFile}
-                cacheSpeed={cacheSpeed}
-                reason={bufferingReason(torrentState)}
-              />
 
               {shouldShowEmptyPlayer(hasFile, loadingFile, failed, hasShownFrame) ? (
                 <EmptyPlayer />
@@ -1475,8 +1426,6 @@ function PlayerComponent() {
               onPlay={onPlayIndex}
               onRemove={(index) => removePlaylistIndex(index)}
               focusedIndex={playlistFocus}
-              lockedFiles={lockedPlaylistRows(torrentState)}
-              mediaPathFor={mediaPathForTarget}
             />
           ) : null}
         </div>

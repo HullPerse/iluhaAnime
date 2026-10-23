@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
+import { TORRENT_LIST_MAX_HEIGHT } from "@/config/player/torrents.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
@@ -101,6 +102,7 @@ function TorrentFilesSection({
   onToggle,
   type,
   path,
+  listHeight,
   onFilePriorityChange,
   onResume,
   extraFiles,
@@ -116,6 +118,8 @@ function TorrentFilesSection({
   files: TorrentFileInfo[];
   type: "torrent" | "player";
   path?: string;
+  /** Fixed list height for the resizable player cards; undefined keeps the default cap. */
+  listHeight?: number;
   sequentialFile?: number | null;
   queuePositions?: Map<number, number>;
   onToggle?: (id: number, indices: number[]) => void;
@@ -304,7 +308,12 @@ function TorrentFilesSection({
       ref={scrollRef}
       data-virtual-list
       data-tree-root
-      className="windows95-border bg-field h-fit max-h-40 overflow-y-auto py-0.5"
+      data-torrent-file-list
+      className="windows95-border bg-field h-fit overflow-y-auto py-0.5"
+      style={{
+        maxHeight: listHeight ?? TORRENT_LIST_MAX_HEIGHT,
+        minHeight: listHeight,
+      }}
       onFocus={(event) => {
         const row = rowElement(event.target);
         if (!row || !scrollRef.current?.contains(row)) return;

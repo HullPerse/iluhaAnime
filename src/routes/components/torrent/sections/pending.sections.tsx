@@ -43,6 +43,14 @@ export function TorrentPendingState({ item, actions }: { item: TorrentInfo; acti
           ariaLabel={label}
         />
       )}
+      {display === "checking" && item.checking_file && (
+        <span
+          className="windows95-text text-hint min-w-0 truncate text-xs"
+          title={item.checking_file}
+        >
+          {t("torrent.checking.file", { name: item.checking_file })}
+        </span>
+      )}
       {display !== "missing" && (
         <span className="text-hint text-xs">{t("player.torrent.pending")}</span>
       )}

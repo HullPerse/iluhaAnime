@@ -9,7 +9,7 @@ import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import type { TFunc } from "@/types/i18n";
-import type { TorrentFileInfo, TorrentItemProps as Props } from "@/types/torrent";
+import type { TorrentFileInfo, TorrentInfo, TorrentItemProps as Props } from "@/types/torrent";
 
 import { TorrentPeersModal } from "./peers.torrent";
 import { DeleteTorrentDialog } from "./sections/delete.sections";
@@ -28,6 +28,16 @@ function partialDeleteNote(files: TorrentFileInfo[] | undefined, t: TFunc): stri
     0
   );
   return t("torrent.delete.unfinished", { size: formatBytes(bytes) });
+}
+
+function SparseWarning({ item, isExpanded }: { item: TorrentInfo; isExpanded: boolean }) {
+  const { t } = useI18n();
+  if (item.disk_sparse !== false || isExpanded) return null;
+  return (
+    <span data-testid="torrent-sparse-warning" className="windows95-text text-destructive text-xs">
+      {t("torrent.files.sparse.unsupported")}
+    </span>
+  );
 }
 
 function TorrentItem({
@@ -135,6 +145,7 @@ function TorrentItem({
         }
       />
       <TorrentProgress item={item} />
+      <SparseWarning item={item} isExpanded={isExpanded} />
       {item.external_changes && (
         <div className="flex items-center gap-1">
           <span

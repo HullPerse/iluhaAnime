@@ -18,6 +18,39 @@ export function sameExternalChangedFiles(
   return prev.length === next.length && prev.every((name, i) => name === next[i]);
 }
 
+/**
+ * Everything on a torrent row except the two arrays, which are rebuilt on
+ * every event and compared field by field.
+ */
+const TORRENT_FIELDS = [
+  "id",
+  "name",
+  "info_hash",
+  "total_bytes",
+  "progress_bytes",
+  "uploaded_bytes",
+  "share_ratio",
+  "download_speed",
+  "upload_speed",
+  "peers_connected",
+  "progress",
+  "state",
+  "eta_secs",
+  "finished",
+  "error",
+  "save_dir",
+  "sequential_download",
+  "sequential_file",
+  "missing_files",
+  "external_changes",
+  "checking_file",
+  "disk_sparse",
+] as const satisfies readonly (keyof TorrentInfo)[];
+
+export function sameTorrentFields(prev: TorrentInfo, next: TorrentInfo): boolean {
+  return TORRENT_FIELDS.every((field) => prev[field] === next[field]);
+}
+
 export const STALL_AFTER_MS = 30_000;
 export const TORRENT_EVENT_STALE_MS = 35_000;
 export const TORRENT_WATCHDOG_MS = 5_000;
@@ -36,6 +69,11 @@ export function shouldHealTorrentChannel(
   return shouldHealTorrentPoll(lastContact, nowMs);
 }
 
+/** The engine knows the torrent and is hashing the files it already has. */
+export function isCheckingFiles(item: TorrentInfo): boolean {
+  return item.state === "initializing" && item.total_bytes > 0;
+}
+
 export function getDisplayState(
   item: TorrentInfo,
   lastActiveAt: Record<number, number>,
@@ -46,6 +84,7 @@ export function getDisplayState(
   if (item.finished) return item.state === "live" ? "seeding" : "done";
   if (item.state === "paused") return "paused";
   if (item.total_bytes === 0) return "initializing";
+  if (isCheckingFiles(item)) return "checking";
   if (item.download_speed > 0) return "downloading";
   const last = (lastActiveAt[item.id] ?? 0) * 1000;
   return now - last >= STALL_AFTER_MS ? "stalled" : "downloading";
@@ -59,6 +98,7 @@ export const DISPLAY_BAR_CLASS: Record<TorrentDisplayState, string> = {
   stalled: "bg-torrent-idle",
   paused: "bg-torrent-idle",
   initializing: "bg-torrent-initializing",
+  checking: "bg-torrent-initializing",
   missing: "bg-torrent-missing",
 };
 
@@ -70,6 +110,7 @@ const DISPLAY_LABEL_KEY: Record<TorrentDisplayState, TranslationKey> = {
   stalled: "torrent.state.stalled",
   paused: "torrent.state.paused",
   initializing: "torrent.state.initializing",
+  checking: "torrent.state.checking",
   missing: "torrent.state.missing",
 };
 
@@ -204,25 +245,9 @@ export function TorrentListen(
       const p = prevById.get(t.id);
       if (!p) return true;
       return (
-        p.progress_bytes !== t.progress_bytes ||
-        p.state !== t.state ||
-        p.download_speed !== t.download_speed ||
-        p.upload_speed !== t.upload_speed ||
-        p.peers_connected !== t.peers_connected ||
-        p.finished !== t.finished ||
-        p.error !== t.error ||
-        p.missing_files !== t.missing_files ||
-        p.external_changes !== t.external_changes ||
+        !sameTorrentFields(p, t) ||
         !sameExternalChangedFiles(p.external_changed_files, t.external_changed_files) ||
-        p.uploaded_bytes !== t.uploaded_bytes ||
-        p.share_ratio !== t.share_ratio ||
-        p.total_bytes !== t.total_bytes ||
-        p.sequential_download !== t.sequential_download ||
-        p.sequential_file !== t.sequential_file ||
-        !sameDownloadOrder(p.download_order, t.download_order) ||
-        p.eta_secs !== t.eta_secs ||
-        p.name !== t.name ||
-        p.save_dir !== t.save_dir
+        !sameDownloadOrder(p.download_order, t.download_order)
       );
     });
   }

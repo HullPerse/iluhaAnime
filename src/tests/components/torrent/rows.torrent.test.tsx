@@ -80,6 +80,29 @@ afterEach(() => {
   cleanup();
 });
 
+describe("TorrentFileRow disk usage", () => {
+  it("reports the allocated size of an unfinished selected file, even at zero", () => {
+    renderFileRow({ file: treeFile({ on_disk_bytes: 0, progress_bytes: 0 }) });
+
+    expect(screen.getByTitle("On disk: 0 B")).toBeDefined();
+  });
+
+  it("reports the bytes a sparse partial actually occupies", () => {
+    renderFileRow({ file: treeFile({ on_disk_bytes: 2048, progress_bytes: 1024 }) });
+
+    expect(screen.getByTitle("On disk: 2.0 KB")).toBeDefined();
+  });
+
+  it("stays quiet for finished and unselected files", () => {
+    const finished = renderFileRow({ file: treeFile({ completed: true, on_disk_bytes: 0 }) });
+    expect(screen.queryByTitle(/^On disk:/)).toBeNull();
+
+    finished.view.unmount();
+    renderFileRow({ file: treeFile({ selected: false, on_disk_bytes: 0 }) });
+    expect(screen.queryByTitle(/^On disk:/)).toBeNull();
+  });
+});
+
 describe("TorrentFileRow queue position", () => {
   it("shows the queue number when the row belongs to the queue", () => {
     const first = renderFileRow({ queuePosition: 3 });
@@ -154,11 +177,6 @@ describe("TorrentFileRow keyboard surface", () => {
 
     renderFileRow({ file: treeFile({ completed: true, exists: false }) });
     expect(nameOf("Show.S01E01.1080p.mkv").dataset.vimCtrlclick).toBeUndefined();
-    cleanup();
-
-    // A file that is still downloading can be streamed on demand.
-    renderFileRow({ file: treeFile({ completed: false, selected: true }) });
-    expect(nameOf("Show.S01E01.1080p.mkv").dataset.vimCtrlclick).toBe("file");
   });
 
   it("hides the ctrl-click variant while the file is queued", () => {
@@ -197,11 +215,7 @@ describe("Torrent rows through the hint scanner", () => {
     const nameBadges = scanHintTargets(document.body).badges.filter(
       (badge) => badge.element === nameOf("Show.S01E01.1080p.mkv")
     );
-    expect(nameBadges.map((badge) => badge.variant)).toEqual([
-      "plain",
-      "ctrl",
-      "contextmenu",
-    ]);
+    expect(nameBadges.map((badge) => badge.variant)).toEqual(["plain", "contextmenu"]);
     expect(nameBadges.every((badge) => badge.label.length > 0)).toBe(true);
 
     const checkBox = screen.getByRole("checkbox", { name: "Show.S01E01.1080p.mkv" });

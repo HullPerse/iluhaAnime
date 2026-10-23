@@ -292,6 +292,35 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn a_file_open_with_the_engine_share_mode_can_still_be_hidden_and_revealed() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let dir = temp_dir("hidden-share");
+        let file = dir.join("episode.mkv.part");
+        let handle = std::fs::OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .read(true)
+            .write(true)
+            // The engine holds the payload open with FILE_SHARE_DELETE.
+            .share_mode(0x7)
+            .open(&file)
+            .expect("create file");
+
+        hide_file(&file);
+        assert!(
+            is_hidden(&file),
+            "the engine share mode must not block the hidden flag"
+        );
+        unhide_file(&file);
+        assert!(!is_hidden(&file));
+
+        drop(handle);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn missing_files_have_no_allocation() {
         let dir = temp_dir("missing");

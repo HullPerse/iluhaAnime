@@ -33,7 +33,6 @@ unicode-segmentation = "1"
 rusqlite = { version = "0.40", features = ["bundled"] }
 reqwest = { version = "0.12", features = ["json", "cookies", "stream", "socks"] }
 futures = "0.3"
-axum = "0.8"
 encoding_rs = "0.8"
 ego-tree = "0.11"
 scraper = "0.27"
@@ -41,7 +40,6 @@ regex-lite = "0.1"
 sha1 = "0.10"
 sha2 = "0.10"
 hex = "0.4"
-rand = "0.9"
 librqbit = { version = "9.0.1", default-features = false, features = ["default-tls", "http-api", "watch", "tracing-subscriber-utils"] }
 librqbit-bencode = "9.0.1"
 librqbit-dualstack-sockets = "0.7"
@@ -63,7 +61,7 @@ rayon = "1"
 dashmap = "6"
 notify = "8"
 tauri-plugin-fs = "2"
-tokio-util = { version = "0.7", features = ["rt", "io"] }
+tokio-util = { version = "0.7", features = ["rt"] }
 thiserror = "2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 keyring = "4"
@@ -143,10 +141,6 @@ harness = false
 
 [[bench]]
 name = "torrent_payloads"
-harness = false
-
-[[bench]]
-name = "torrent_stream"
 harness = false
 
 [dev-dependencies]

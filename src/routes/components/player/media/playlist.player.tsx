@@ -10,7 +10,7 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { cn } from "cn";
-import { ArrowDown, ArrowUp, GripVertical, ListVideo, Lock, Play, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, ListVideo, Play, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
@@ -24,7 +24,6 @@ import {
   readPlaylistEntries,
   type PlaylistEntry,
 } from "@/lib/player/playback.utils";
-import { isStreamTarget } from "@/lib/player/stream.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptAll, withFallback } from "@/lib/utils/attempt.utils";
@@ -32,7 +31,6 @@ import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
-import { samePath } from "@/lib/watcher/paths.watcher";
 import { playbackAtoms, subscribePlayback } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TFunc } from "@/types/i18n";
@@ -77,12 +75,10 @@ function useOnScreen<T extends HTMLElement>() {
 }
 
 function useCardArt(path: string, visible: boolean): CardArt | null {
-  const [art, setArt] = useState<CardArt | null>(() =>
-    isStreamTarget(path) ? null : getCachedCard(path)
-  );
+  const [art, setArt] = useState<CardArt | null>(() => getCachedCard(path));
 
   useEffect(() => {
-    if (!visible || !path || isStreamTarget(path)) return;
+    if (!visible || !path) return;
     const cached = getCachedCard(path);
     if (cached) {
       setArt(cached);
@@ -149,16 +145,11 @@ function CurrentProgress() {
   );
 }
 
-function entryLabel(
-  entry: PlaylistEntry,
-  mediaPath: string,
-  parseTitles: boolean,
-  t: TFunc
-): string {
+function entryLabel(entry: PlaylistEntry, parseTitles: boolean, t: TFunc): string {
   if (entry.title) return entry.title;
-  const name = mediaPath ? fileNameFromPath(mediaPath) : "";
+  const name = entry.filename ? fileNameFromPath(entry.filename) : "";
   if (!name) return `#${entry.index + 1}`;
-  return parseTitles && mediaPath ? formatParsedTitle(mediaPath, t) : name;
+  return parseTitles && entry.filename ? formatParsedTitle(entry.filename, t) : name;
 }
 
 function playlistCardKey(entries: PlaylistEntry[], position: number): string {
@@ -172,49 +163,7 @@ function playlistCardKey(entries: PlaylistEntry[], position: number): string {
 
 const PLAYLIST_VIRTUALIZE_AFTER = 50;
 
-function LockedFiles({
-  files,
-  t,
-}: {
-  files: { name: string; size: number }[];
-  t: TFunc;
-}) {
-  return (
-    <div className="mt-2" data-testid="playlist-locked">
-      <div className="windows95-text border-muted text-hint flex items-center gap-1 border-t-2 px-1 py-1 text-xs font-bold">
-        <Lock className="size-3" aria-hidden="true" />
-        {t("player.media.playlist.locked", { count: files.length })}
-      </div>
-      {files.map((file) => (
-        <div
-          key={file.name}
-          className="windows95-border bg-field mb-1 flex items-center gap-1 p-1"
-          title={t("player.media.playlist.locked.hint")}
-        >
-          <Lock className="text-hint size-3 shrink-0" aria-hidden="true" />
-          <span className="windows95-font min-w-0 flex-1 truncate text-xs">
-            {fileNameFromPath(file.name)}
-          </span>
-          <span className="text-hint shrink-0 text-xs tabular-nums">
-            {formatBytes(file.size)}
-          </span>
-        </div>
-      ))}
-      <div className="windows95-font text-hint px-1 text-xs">
-        {t("player.media.playlist.locked.hint")}
-      </div>
-    </div>
-  );
-}
-
-function PlaylistBody({
-  onPlay,
-  onRemove,
-  onMove,
-  focusedIndex,
-  lockedFiles,
-  mediaPathFor,
-}: PlaylistBodyProps) {
+function PlaylistBody({ onPlay, onRemove, onMove, focusedIndex }: PlaylistBodyProps) {
   const { t } = useI18n();
 
   const path = useCell(playbackAtoms.path);
@@ -225,10 +174,6 @@ function PlaylistBody({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const entriesRef = useRef<PlaylistEntry[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const resolveMediaPath = useCallback(
-    (target: string) => (mediaPathFor ? mediaPathFor(target) : target),
-    [mediaPathFor]
-  );
 
   const virtualizer = useVirtualizer({
     count: entries.length,
@@ -250,14 +195,9 @@ function PlaylistBody({
 
   const labels = useMemo(() => {
     const map = new Map<number, string>();
-    for (const entry of entries) {
-      map.set(
-        entry.index,
-        entryLabel(entry, resolveMediaPath(entry.filename), parseTitles, t)
-      );
-    }
+    for (const entry of entries) map.set(entry.index, entryLabel(entry, parseTitles, t));
     return map;
-  }, [entries, parseTitles, t, resolveMediaPath]);
+  }, [entries, parseTitles, t]);
 
   useEffect(() => {
     ignore(refresh());
@@ -336,12 +276,11 @@ function PlaylistBody({
     );
   }
 
-  const activeMediaPath = path ? resolveMediaPath(path) : "";
-  const matchedIndex = activeMediaPath
+  const playingName = path ? fileNameFromPath(path).toLowerCase() : "";
+  const matchedIndex = playingName
     ? entries.findIndex(
         (entry) =>
-          entry.filename !== "" &&
-          samePath(resolveMediaPath(entry.filename), activeMediaPath)
+          entry.filename !== "" && fileNameFromPath(entry.filename).toLowerCase() === playingName
       )
     : -1;
   const activeIndex = matchedIndex >= 0 ? entries[matchedIndex].index : (entries[0]?.index ?? -1);
@@ -400,7 +339,6 @@ function PlaylistBody({
                 <PlaylistCard
                   key={playlistCardKey(entries, position)}
                   entry={entry}
-                  mediaPath={resolveMediaPath(entry.filename)}
                   position={position}
                   current={current}
                   focused={position === focusPosition}
@@ -430,7 +368,6 @@ function PlaylistBody({
                   >
                     <PlaylistCard
                       entry={entry}
-                      mediaPath={resolveMediaPath(entry.filename)}
                       position={virtualItem.index}
                       current={current}
                       focused={virtualItem.index === focusPosition}
@@ -447,9 +384,6 @@ function PlaylistBody({
               })}
             </div>
           )}
-          {lockedFiles && lockedFiles.length > 0 ? (
-            <LockedFiles files={lockedFiles} t={t} />
-          ) : null}
         </div>
       </DndContext>
     </div>
@@ -536,7 +470,6 @@ function PlaylistCardActions({
 
 function PlaylistCard({
   entry,
-  mediaPath,
   position,
   current,
   focused,
@@ -549,7 +482,6 @@ function PlaylistCard({
   t,
 }: {
   entry: PlaylistEntry;
-  mediaPath: string;
   position: number;
   current: boolean;
   focused: boolean;
@@ -562,8 +494,8 @@ function PlaylistCard({
   t: TFunc;
 }) {
   const [cardRef, onScreen] = useOnScreen<HTMLDivElement>();
-  const art = useCardArt(mediaPath, onScreen || current);
-  const saved = useMediaEntry(mediaPath || null);
+  const art = useCardArt(entry.filename, onScreen || current);
+  const saved = useMediaEntry(entry.filename ?? null);
   const resumeRatio =
     !saved || saved.duration <= 0 || saved.position <= 0
       ? 0
@@ -619,7 +551,7 @@ function PlaylistCard({
           <CardThumbnail url={art?.url} position={position} current={current} duration={duration} />
           <span className="flex min-w-0 flex-1 flex-col">
             <span
-              title={mediaPath || label}
+              title={entry.filename || label}
               className={cn("windows95-font truncate text-xs", current && "font-bold")}
             >
               {label}

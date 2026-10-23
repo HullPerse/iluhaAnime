@@ -15,7 +15,7 @@ vi.mock("@tanstack/react-virtual", () => ({
 }));
 
 import TorrentFilesPlayerSection from "@/routes/components/player/torrent.player";
-import { patchSettings } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent";
 
 const SAVE_DIR = "D:/media/anime";
@@ -62,7 +62,12 @@ function file(index: number, name: string, completed = true): TorrentFileInfo {
 }
 
 function renderSection(
-  props: { item?: TorrentInfo; files?: TorrentFileInfo[]; torrentLoading?: boolean } = {}
+  props: {
+    item?: TorrentInfo;
+    files?: TorrentFileInfo[];
+    torrentLoading?: boolean;
+    expanded?: boolean;
+  } = {}
 ) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const onToggleExpand = vi.fn();
@@ -71,7 +76,7 @@ function renderSection(
       <TorrentFilesPlayerSection
         item={props.item ?? torrent()}
         files={props.files}
-        isExpanded={false}
+        isExpanded={props.expanded ?? false}
         torrentLoading={props.torrentLoading ?? false}
         onToggleExpand={onToggleExpand}
         hideHeader
@@ -142,6 +147,42 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
     expect(screen.queryByText("No files ready to play")).toBeNull();
   });
 
+  it("reports the initial check and the file being hashed", () => {
+    renderSection({
+      files: [],
+      item: torrent({
+        state: "initializing",
+        progress_bytes: 250,
+        progress: 0.25,
+        download_speed: 0,
+        checking_file: "Show/E01.mkv",
+      }),
+    });
+
+    expect(screen.getByText("Checking files")).toBeDefined();
+    expect(screen.getByText("25%")).toBeDefined();
+    expect(screen.getByTitle("Show/E01.mkv").textContent).toBe("Checking: Show/E01.mkv");
+    expect(
+      screen.getByRole("progressbar", { name: "Checking files" }).getAttribute("aria-valuenow")
+    ).toBe("250");
+  });
+
+  it("says the files are being checked instead of loaded", () => {
+    renderSection({
+      files: undefined,
+      torrentLoading: true,
+      item: torrent({
+        state: "initializing",
+        progress_bytes: 250,
+        progress: 0.25,
+        checking_file: "Show/E01.mkv",
+      }),
+    });
+
+    expect(screen.getByText("Checking files...")).toBeDefined();
+    expect(screen.queryByText("Loading files...")).toBeNull();
+  });
+
   it("explains missing files without drawing a progress bar", () => {
     renderSection({
       files: [],
@@ -175,15 +216,15 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
 });
 
 describe("TorrentFilesPlayerSection with content", () => {
-  it("counts every video file and expands the list", () => {
+  it("counts only completed files and expands the list", () => {
     const { onToggleExpand } = renderSection({
       files: [file(0, "A/a.mkv"), file(1, "A/b.mkv"), file(2, "A/c.mkv", false)],
     });
 
-    expect(screen.getByText("Files: (3)")).toBeDefined();
+    expect(screen.getByText("Files: (2)")).toBeDefined();
     expect(screen.queryByText("No files ready to play")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Files: (3)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Files: (2)" }));
     expect(onToggleExpand).toHaveBeenCalledTimes(1);
   });
 
@@ -199,5 +240,13 @@ describe("TorrentFilesPlayerSection with content", () => {
     await waitFor(() => expect(screen.getByText("+ 1 upscale")).toBeDefined());
     expect(screen.queryByText(/^Files:/)).toBeNull();
     expect(screen.queryByText("No files ready to play")).toBeNull();
+  });
+
+  it("resizes the list and remembers the height", () => {
+    renderSection({ files: [file(0, "a.mkv")], expanded: true });
+
+    fireEvent.keyDown(screen.getByRole("separator"), { key: "ArrowDown" });
+
+    expect(settingsAtoms.playerTorrentHeights.get()["hash-1"]).toBe(180);
   });
 });

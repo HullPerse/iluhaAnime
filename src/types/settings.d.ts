@@ -67,6 +67,8 @@ export interface SettingsStore {
   collectionGroupHeaderStyle: "torrent" | "folder";
   savedFolderPaths: string[];
   playerFolderHeights: Record<string, number>;
+  /** Per-info-hash height of the torrent file list in the player route. */
+  playerTorrentHeights: Record<string, number>;
   hiddenPlayerFolders: string[];
   hiddenPlayerTorrents: string[];
   hidePlayerFolder: (path: string) => void;
@@ -74,6 +76,7 @@ export interface SettingsStore {
   hidePlayerTorrent: (infoHash: string) => void;
   unhidePlayerTorrent: (infoHash: string) => void;
   setPlayerFolderHeight: (path: string, height: number | null) => void;
+  setPlayerTorrentHeight: (infoHash: string, height: number | null) => void;
   httpApiPort: number;
   ipv4Only: boolean;
   peerConnectTimeout: number;
@@ -225,6 +228,7 @@ export type SettingsDefaults = Omit<
   | "hidePlayerTorrent"
   | "unhidePlayerTorrent"
   | "setPlayerFolderHeight"
+  | "setPlayerTorrentHeight"
   | "patch"
 >;
 

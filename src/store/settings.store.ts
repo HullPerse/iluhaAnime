@@ -26,6 +26,7 @@ type SettingsActionKeys =
   | "hidePlayerTorrent"
   | "unhidePlayerTorrent"
   | "setPlayerFolderHeight"
+  | "setPlayerTorrentHeight"
   | "patch";
 
 export type SettingsData = Omit<SettingsStore, SettingsActionKeys>;
@@ -267,6 +268,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   scanThreads: (value) =>
     Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 64,
   gameVolume: (value) => typeof value === "number" && value >= 0 && value <= 1,
+  playerTorrentHeights: toValidator(z.record(z.string(), z.number())),
   keybindOverrides: toValidator(z.record(z.string(), z.union([z.string(), z.null()]))),
   anilistListSort: toValidator(
     z.object({
@@ -422,6 +424,7 @@ export interface SettingsSignalStore {
   hidePlayerTorrent: (infoHash: string) => void;
   unhidePlayerTorrent: (infoHash: string) => void;
   setPlayerFolderHeight: (path: string, height: number | null) => void;
+  setPlayerTorrentHeight: (infoHash: string, height: number | null) => void;
   subscribeAll: (fn: () => void) => () => void;
 }
 
@@ -539,6 +542,14 @@ export function createSettingsSignalStore(
       else heights[key] = height;
       cell.set(heights);
     },
+    setPlayerTorrentHeight: (infoHash, height) => {
+      if (!infoHash) return;
+      const cell = atoms.playerTorrentHeights;
+      const heights = { ...cell.get() };
+      if (height === null) delete heights[infoHash];
+      else heights[infoHash] = height;
+      cell.set(heights);
+    },
   };
 
   finishAdopt(() => ({ ...snapshot() }), { remove: "settings" });
@@ -562,6 +573,7 @@ export const unhidePlayerFolder = settings.unhidePlayerFolder;
 export const hidePlayerTorrent = settings.hidePlayerTorrent;
 export const unhidePlayerTorrent = settings.unhidePlayerTorrent;
 export const setPlayerFolderHeight = settings.setPlayerFolderHeight;
+export const setPlayerTorrentHeight = settings.setPlayerTorrentHeight;
 export function subscribeSettings(listener: () => void): () => void {
   return settings.subscribeAll(listener);
 }

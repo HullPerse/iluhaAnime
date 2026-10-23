@@ -10,7 +10,6 @@ import type {
   PlayerOpenRequest,
   PlayerProfileId,
   PlayerSettings,
-  PlayerSource,
   PlaylistInsert,
   PlaylistWatch,
   SeekMode,
@@ -212,15 +211,13 @@ export async function openPlayer(
   files: string[],
   resume?: number,
   startIndex?: number,
-  watch?: PlaylistWatch,
-  sources?: PlayerSource[]
+  watch?: PlaylistWatch
 ): Promise<void> {
   await invokeTyped("player_open", {
     files,
     resume,
     startIndex,
     watch,
-    sources: sources && sources.length > 0 ? sources : undefined,
   });
 }
 

@@ -98,6 +98,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   windowTintOpacity: null,
   savedFolderPaths: [],
   playerFolderHeights: {} as Record<string, number>,
+  playerTorrentHeights: {} as Record<string, number>,
   searchHistoryMaxItems: 100,
   searchMascotEnabled: false,
   autocompleteMode: "both",

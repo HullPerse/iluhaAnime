@@ -20,6 +20,8 @@ const torrent = {
   "torrent.bulk.recreate.message":
     "У {{count}} из них всё ещё нет файлов. Пересоздание удаляет торрент и добавляет его заново по magnet: ручные трекеры, выбранные файлы и приоритеты теряются. Если файлы могут вернуться, проверьте позже ещё раз.",
   "torrent.bulk.title": "Массовое действие",
+  "torrent.checking.file": "Проверяется: {{name}}",
+  "torrent.checking.files": "Проверка файлов...",
   "torrent.copy.infohash": "Скопировать info-hash",
   "torrent.copy.link": "Скопировать ссылку",
   "torrent.copy.magnet": "Скопировать magnet",
@@ -69,6 +71,7 @@ const torrent = {
   "torrent.eta.minutes.seconds": "{{m}} мин {{s}} сек",
   "torrent.eta.seconds": "{{s}} сек",
   "torrent.files.count": "Файлы ({{done}} / {{total}})",
+  "torrent.files.disk.usage": "На диске: {{onDisk}} из {{total}}",
   "torrent.files.error": "Не удалось загрузить файлы",
   "torrent.files.on.disk": "На диске: {{size}}",
   "torrent.files.sparse.unsupported":
@@ -183,6 +186,7 @@ const torrent = {
   "torrent.queue.position": "Позиция в очереди: {{position}}",
   "torrent.sort.asc": "По возрастанию",
   "torrent.sort.desc": "По убыванию",
+  "torrent.state.checking": "Проверка файлов",
   "torrent.state.completed": "Завершено",
   "torrent.state.error": "Ошибка",
   "torrent.state.initializing": "Инициализация",

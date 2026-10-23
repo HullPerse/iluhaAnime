@@ -11,6 +11,7 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { downloadOrderPositions } from "@/lib/torrent/queue.utils";
 import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/update.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { ignore } from "@/lib/utils/promise.utils";
@@ -187,6 +188,13 @@ export function TorrentFiles({
   const sequentialFile = files.find((file) => file.index === item.sequential_file);
   const remaining = files.filter((file) => !file.completed).length;
   const orderable = remaining > 1;
+  // What the selected payloads already occupy on the volume, next to what
+  // they will occupy once finished. Sparse files keep the first number near
+  // the downloaded bytes while the second one is the full payload.
+  const selection = files.filter((file) => file.selected);
+  const selectionBytes = selection.reduce((sum, file) => sum + file.size, 0);
+  const selectionOnDisk = selection.reduce((sum, file) => sum + (file.on_disk_bytes ?? 0), 0);
+  const showDiskUsage = !item.finished && selectionBytes > 0;
   const queuePositions = useMemo(
     () =>
       item.sequential_download ? downloadOrderPositions(files, item.download_order) : undefined,
@@ -250,7 +258,16 @@ export function TorrentFiles({
       {isExpanded && (
         <>
           <TorrentLimitsSection id={item.id} infoHash={item.info_hash} />
-          {item.disk_sparse === false && (            <p className="windows95-text text-destructive px-0.5 py-0.5 text-xs">
+          {showDiskUsage && (
+            <p className="windows95-text text-hint px-0.5 text-xs" data-testid="torrent-disk-usage">
+              {t("torrent.files.disk.usage", {
+                onDisk: formatBytes(selectionOnDisk),
+                total: formatBytes(selectionBytes),
+              })}
+            </p>
+          )}
+          {item.disk_sparse === false && (
+            <p className="windows95-text text-destructive px-0.5 py-0.5 text-xs">
               {t("torrent.files.sparse.unsupported")}
             </p>
           )}

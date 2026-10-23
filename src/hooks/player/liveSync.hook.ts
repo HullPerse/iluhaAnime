@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
 import { createInterval } from "@/lib/pacer/interval.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
@@ -10,6 +11,7 @@ import {
   planLiveRemovals,
 } from "@/lib/player/livePlaylist.utils";
 import {
+  buildTorrentPlayerPlaylist,
   insertPlaylistFiles,
   playPlaylistIndex,
   readPath,
@@ -18,12 +20,6 @@ import {
   seekTo,
 } from "@/lib/player/playback.utils";
 import { folderScanBus } from "@/lib/player/scanBus.utils";
-import {
-  isStreamTarget,
-  mediaKeyForTarget,
-  targetForMediaKey,
-  torrentPlaybackTargets,
-} from "@/lib/player/stream.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
@@ -31,9 +27,10 @@ import { touchesExtensions } from "@/lib/watcher/changes.watcher";
 import { isSameOrInside, samePath } from "@/lib/watcher/paths.watcher";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { PlayerSource, PlaylistWatch } from "@/types/videoPlayer";
+import type { PlaylistWatch } from "@/types/videoPlayer";
 
 const LIVE_TORRENT_POLL_MS = 10_000;
+const LIVE_TORRENT_FAIL_LIMIT = 3;
 
 function sameList(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((path, index) => path === b[index]);
@@ -46,14 +43,9 @@ async function removePlaylistIndexes(indices: number[]): Promise<void> {
 async function applyRemovals(
   desired: string[],
   previous: string[] | null,
-  livePaths: string[],
-  mediaKey: (target: string) => string
+  livePaths: string[]
 ): Promise<{ base: string[]; removed: string[] } | null> {
-  const removalIndices = planLiveRemovals(
-    (previous ?? []).map(mediaKey),
-    desired.map(mediaKey),
-    livePaths.map(mediaKey)
-  );
+  const removalIndices = planLiveRemovals(previous ?? [], desired, livePaths);
   if (removalIndices.length === 0) return { base: livePaths, removed: [] };
   const removed = removalIndices.map((index) => livePaths[index] ?? "");
   const [, removeError] = await attempt(removePlaylistIndexes(removalIndices));
@@ -69,19 +61,14 @@ async function applyRemovals(
   return { base: reread.map((entry) => entry.filename), removed };
 }
 
-async function restoreCurrent(
-  current: string,
-  removed: string[],
-  mediaKey: (target: string) => string
-): Promise<void> {
-  const currentKey = mediaKey(current);
-  if (removed.some((path) => path !== "" && samePath(mediaKey(path), currentKey))) return;
+async function restoreCurrent(current: string, removed: string[]): Promise<void> {
+  if (removed.some((path) => path !== "" && samePath(path, current))) return;
   const [fresh, freshError] = await attempt(readPlaylistEntries());
   if (freshError || !fresh) {
     reportBackgroundError("livePlaylist.verify", freshError ?? new Error("empty playlist entries"));
     return;
   }
-  const target = fresh.findIndex((entry) => samePath(mediaKey(entry.filename), currentKey));
+  const target = fresh.findIndex((entry) => samePath(entry.filename, current));
   if (target === -1) {
     reportBackgroundError("livePlaylist.verify", new Error("current file left the playlist"));
     return;
@@ -101,8 +88,7 @@ async function restoreCurrent(
 async function reconcile(
   desired: string[],
   anchor: string,
-  previous: string[] | null,
-  mediaKey: (target: string) => string
+  previous: string[] | null
 ): Promise<"ok" | "stale" | "retry"> {
   const [[live, liveError], current] = await Promise.all([
     attempt(readPlaylistEntries()),
@@ -116,20 +102,14 @@ async function reconcile(
   const outcome = await applyRemovals(
     desired,
     previous,
-    live.map((entry) => entry.filename),
-    mediaKey
+    live.map((entry) => entry.filename)
   );
   if (!outcome) return "retry";
   const { base, removed } = outcome;
 
-  const anchorKey = mediaKey(anchor);
-  const ops = planLiveInserts(
-    desired.map(mediaKey),
-    base.map(mediaKey),
-    anchorKey
-  ).map((op) => ({ path: desired[op.index], index: op.index }));
+  const ops = planLiveInserts(desired, base, anchor);
   if (ops.length === 0) {
-    return base.some((path) => samePath(mediaKey(path), anchorKey)) ? "ok" : "stale";
+    return base.some((path) => samePath(path, anchor)) ? "ok" : "stale";
   }
   const [, insertError] = await attempt(insertPlaylistFiles(ops));
   if (insertError) {
@@ -137,22 +117,8 @@ async function reconcile(
     return "retry";
   }
   const after = await readPath();
-  if (after !== current && current !== "") await restoreCurrent(current, removed, mediaKey);
+  if (after !== current && current !== "") await restoreCurrent(current, removed);
   return "ok";
-}
-
-async function reconcileWatch(
-  desired: string[],
-  previous: string[] | null,
-  watch: PlaylistWatch,
-  sources: readonly PlayerSource[]
-): Promise<"ok" | "stale" | "retry"> {
-  return reconcile(
-    desired,
-    targetForMediaKey(sources, watch.anchor),
-    previous,
-    (target) => mediaKeyForTarget(sources, target)
-  );
 }
 
 export interface LivePlaylistOptions {
@@ -161,27 +127,33 @@ export interface LivePlaylistOptions {
 
 export function useLivePlaylistSync(
   watch: PlaylistWatch | null | undefined,
-  sources: readonly PlayerSource[],
   options?: LivePlaylistOptions
 ): void {
   const onPlayingFileModified = options?.onPlayingFileModified;
   const queryClient = useQueryClient();
+  const audioExtensions = useCell(settingsAtoms.audioExtensions);
+  const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
   const videoExtensions = useCell(settingsAtoms.videoExtensions);
   const scanThreads = useCell(settingsAtoms.scanThreads);
   const [armed, setArmed] = useState(true);
   const busyRef = useRef(false);
   const desiredRef = useRef<string[] | null>(null);
+  const failsRef = useRef(0);
+  const stableRef = useRef(false);
 
   useEffect(() => {
     desiredRef.current = null;
+    failsRef.current = 0;
     setArmed(true);
-  }, [watch, sources]);
+  }, [watch]);
+
+  const trackExts = useMemo(
+    () => new Set([...audioExtensions, ...subtitleExtensions]),
+    [audioExtensions, subtitleExtensions]
+  );
 
   const syncDesired = useCallback(
-    async (
-      desired: string[] | null,
-      currentSources: readonly PlayerSource[]
-    ): Promise<void> => {
+    async (desired: string[] | null): Promise<void> => {
       if (!watch || desired === null) {
         setArmed(false);
         return;
@@ -190,12 +162,7 @@ export function useLivePlaylistSync(
       if (busyRef.current) return;
       busyRef.current = true;
       try {
-        const outcome = await reconcileWatch(
-          desired,
-          desiredRef.current,
-          watch,
-          currentSources
-        );
+        const outcome = await reconcile(desired, watch.anchor, desiredRef.current);
         if (outcome === "retry") return;
         desiredRef.current = desired;
         if (outcome === "stale") setArmed(false);
@@ -208,20 +175,28 @@ export function useLivePlaylistSync(
 
   const checkTorrent = useCallback(async (): Promise<void> => {
     if (!watch || watch.kind !== "torrent") return;
+    const [files, error] = await attempt(torrentApi.runningTorrentFiles(watch.torrentId));
+    if (error || !files) {
+      failsRef.current += 1;
+      if (failsRef.current >= LIVE_TORRENT_FAIL_LIMIT) setArmed(false);
+      else reportBackgroundError("livePlaylist.poll", error ?? new Error("empty torrent files"));
+      return;
+    }
+    failsRef.current = 0;
+    stableRef.current = files.every((file) => file.completed);
     const extras =
       queryClient.getQueryData<ReadonlyArray<{ fullPath: string }>>(
         queryKeys.extraFiles(watch.saveDir)
       ) ?? [];
-    // Sources were prepared when the player opened, so every item already has a
-    // target (URL or path). Extras are the only thing that can be added later.
-    await syncDesired(
-      torrentPlaybackTargets(
-        sources,
-        extras.map((entry) => entry.fullPath)
-      ),
-      sources
+    const playlist = buildTorrentPlayerPlaylist(
+      files,
+      watch.saveDir,
+      watch.anchor,
+      trackExts,
+      extras.map((entry) => entry.fullPath)
     );
-  }, [watch, sources, syncDesired, queryClient]);
+    await syncDesired(playlist ? playlist.files : null);
+  }, [watch, trackExts, syncDesired, queryClient]);
 
   const isTorrentWatch = !!watch && watch.kind === "torrent";
 
@@ -259,10 +234,7 @@ export function useLivePlaylistSync(
             reportBackgroundError("livePlaylist.scan", error ?? new Error("empty folder scan"));
             return;
           }
-          await syncDesired(
-            desiredFolderPlaylist(entries, watch.root, watch.anchor),
-            []
-          );
+          await syncDesired(desiredFolderPlaylist(entries, watch.root, watch.anchor));
           if (playingModified) onPlayingFileModified?.();
         })()
       );
@@ -279,11 +251,10 @@ export function useLivePlaylistSync(
       const playing = playbackAtoms.path.get();
       const playingModified =
         !!playing &&
-        !isStreamTarget(playing) &&
-        payload.changes.some((change) => {
-          if (change.kind !== "modified") return false;
-          return samePath(change.path, mediaKeyForTarget(sources, playing));
-        });
+        stableRef.current &&
+        payload.changes.some(
+          (change) => change.kind === "modified" && samePath(change.path, playing)
+        );
       ignore(
         (async () => {
           await queryClient.refetchQueries({ queryKey: queryKeys.extraFiles(watch.saveDir) });

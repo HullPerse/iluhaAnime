@@ -167,6 +167,14 @@ describe("settings signal actions", () => {
     expect(store.atoms.playerFolderHeights.get()).toEqual({});
   });
 
+  it("sets and clears player torrent heights", () => {
+    const { store } = setup();
+    store.setPlayerTorrentHeight("abc", 240);
+    expect(store.atoms.playerTorrentHeights.get()).toEqual({ abc: 240 });
+    store.setPlayerTorrentHeight("abc", null);
+    expect(store.atoms.playerTorrentHeights.get()).toEqual({});
+  });
+
   it("applies ui preferences through patch", () => {
     const { store } = setup();
     store.patch({ retroStyle: "soft", uiDensity: "compact" });

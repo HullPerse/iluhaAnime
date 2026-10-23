@@ -119,6 +119,8 @@ pub struct TorrentInfo {
     pub missing_files: bool,
     pub external_changes: bool,
     pub external_changed_files: Vec<String>,
+    /// The payload currently being hashed during an initial check, if any.
+    pub checking_file: Option<String>,
     /// `None` on platforms without sparse files to report.
     pub disk_sparse: Option<bool>,
 }

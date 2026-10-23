@@ -34,6 +34,29 @@ pub fn is_safe_relative_path(name: &str) -> bool {
             .all(|component| matches!(component, std::path::Component::Normal(_)))
 }
 
+/// The payload that contains `checked` bytes of the initial check, in torrent
+/// order. Padding entries are skipped; an offset inside padding names the next
+/// payload, which is what the user sees being checked.
+#[must_use]
+pub fn file_at_offset<I>(files: I, checked: u64) -> Option<usize>
+where
+    I: IntoIterator<Item = (usize, u64, bool)>,
+{
+    let mut start = 0u64;
+    let mut current = None;
+    for (index, len, padding) in files {
+        let end = start.saturating_add(len);
+        if !padding {
+            if checked < end {
+                return Some(index);
+            }
+            current = Some(index);
+        }
+        start = end;
+    }
+    current
+}
+
 /// The incomplete twin of a payload path: the engine writes `<name>.part`
 /// until the file finishes, then the app renames it to the final name.
 #[must_use]
@@ -897,5 +920,23 @@ mod incomplete_file_tests {
             None
         );
         assert!(is_safe_relative_path("Show/file.mkv"));
+    }
+}
+
+#[cfg(test)]
+mod offset_tests {
+    use super::file_at_offset;
+
+    #[test]
+    fn file_at_offset_skips_padding_and_names_the_current_payload() {
+        let files = [(0usize, 100u64, false), (1, 50, true), (2, 200, false)];
+        assert_eq!(file_at_offset(files, 0), Some(0));
+        assert_eq!(file_at_offset(files, 99), Some(0));
+        assert_eq!(file_at_offset(files, 100), Some(2));
+        assert_eq!(file_at_offset(files, 149), Some(2));
+        assert_eq!(file_at_offset(files, 150), Some(2));
+        assert_eq!(file_at_offset(files, 299), Some(2));
+        assert_eq!(file_at_offset(files, 999), Some(2));
+        assert_eq!(file_at_offset(std::iter::empty(), 0), None);
     }
 }

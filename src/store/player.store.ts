@@ -86,13 +86,9 @@ const INITIAL_PLAYBACK: PlaybackData = {
   fpsVideo: undefined,
   dropCount: undefined,
   cacheDuration: undefined,
-  pausedForCache: false,
-  cacheSpeed: undefined,
-  cacheBufferingState: undefined,
   hwdecCurrent: undefined,
   videoWidth: undefined,
   videoHeight: undefined,
-  sources: [],
 } as PlaybackData;
 
 const SEEK_TARGET_TOLERANCE = 0.4;
@@ -329,9 +325,6 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
         atoms.fpsVideo.set(snapshot.fpsVideo);
         atoms.dropCount.set(snapshot.dropCount);
         atoms.cacheDuration.set(snapshot.cacheDuration);
-        atoms.pausedForCache.set(snapshot.pausedForCache ?? false);
-        atoms.cacheSpeed.set(snapshot.cacheSpeed);
-        atoms.cacheBufferingState.set(snapshot.cacheBufferingState);
         atoms.hwdecCurrent.set(snapshot.hwdecCurrent);
         atoms.videoWidth.set(snapshot.videoWidth);
         atoms.videoHeight.set(snapshot.videoHeight);

@@ -148,7 +148,8 @@ export function flattenTorrentTree(
 ): Item[] {
   const items: Item[] = [];
   if (depth === 0 && rootFiles) {
-    for (const file of rootFiles) {
+    const files = fileFilter ? rootFiles.filter(fileFilter) : rootFiles;
+    for (const file of files) {
       items.push({ kind: "file", file, depth: 0 });
     }
   }

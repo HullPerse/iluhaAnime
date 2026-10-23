@@ -14,7 +14,8 @@ import { resetTransportInflight } from "@/api/transport.api";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { playbackAtoms } from "@/store/player.store";
-import type { PlaylistWatch, PlayerSource } from "@/types/videoPlayer";
+import type { TorrentFileInfo } from "@/types/torrent";
+import type { PlaylistWatch } from "@/types/videoPlayer";
 
 const WATCH: PlaylistWatch = {
   kind: "torrent",
@@ -33,22 +34,35 @@ function folderEntry(path: string): { path: string; name: string; size: number }
   return { path, name: path.split("/").pop() ?? path, size: 10 };
 }
 
-const SOURCES: PlayerSource[] = [
-  { target: "C:/T/ep01.mkv", path: "C:/T/ep01.mkv", streaming: false },
-  { target: "C:/T/ep02.mkv", path: "C:/T/ep02.mkv", streaming: false },
-];
+function torrentFile(name: string, completed: boolean): TorrentFileInfo {
+  return {
+    index: 0,
+    name,
+    size: 10,
+    progress_bytes: completed ? 10 : 1,
+    completed,
+    selected: false,
+    priority: "normal",
+    exists: true,
+  };
+}
 
+const pollState = { ep2done: false };
 const liveState = { entries: [{ index: 0, filename: "C:/T/ep01.mkv", title: "" }] };
 const insertCalls: Array<unknown> = [];
 
 beforeEach(() => {
   vi.useFakeTimers();
+  pollState.ep2done = false;
   liveState.entries = [{ index: 0, filename: "C:/T/ep01.mkv", title: "" }];
   insertCalls.length = 0;
   mockInvoke.mockReset();
   resetTransportInflight();
   mockListen.mockImplementation(() => Promise.resolve(() => undefined));
   mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
+    if (command === "get_running_torrent_files") {
+      return [torrentFile("ep01.mkv", true), torrentFile("ep02.mkv", pollState.ep2done)];
+    }
     if (command === "player_playlist_entries") return liveState.entries;
     if (command === "player_get_property" && args?.name === "path") return "C:/T/ep01.mkv";
     if (command === "player_get_property") return 0;
@@ -68,11 +82,10 @@ afterEach(() => {
 
 function renderSync(
   watch: PlaylistWatch,
-  sources: PlayerSource[] = [],
   options?: { onPlayingFileModified?: () => void }
 ): { queryClient: QueryClient } {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  renderHook(() => useLivePlaylistSync(watch, sources, options), {
+  renderHook(() => useLivePlaylistSync(watch, options), {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     ),
@@ -81,8 +94,9 @@ function renderSync(
 }
 
 describe("useLivePlaylistSync torrent watch", () => {
-  it("inserts a prepared source that is missing from the live list", async () => {
-    renderSync(WATCH, SOURCES);
+  it("inserts a completion that arrived before the first check", async () => {
+    pollState.ep2done = true;
+    renderSync(WATCH);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -91,11 +105,12 @@ describe("useLivePlaylistSync torrent watch", () => {
   });
 
   it("does nothing when the live list already matches", async () => {
+    pollState.ep2done = true;
     liveState.entries = [
       { index: 0, filename: "C:/T/ep01.mkv", title: "" },
       { index: 1, filename: "C:/T/ep02.mkv", title: "" },
     ];
-    renderSync(WATCH, SOURCES);
+    renderSync(WATCH);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -103,59 +118,30 @@ describe("useLivePlaylistSync torrent watch", () => {
     expect(insertCalls).toEqual([]);
   });
 
-  it("maps the anchor path to its stream url", async () => {
-    const url = "http://127.0.0.1:9/s/token/Show%20-%2001.mkv";
-    const sources: PlayerSource[] = [
-      {
-        target: url,
-        path: "C:/T/Show - 01.mkv",
-        streaming: true,
-        token: "token",
-      },
-    ];
-    liveState.entries = [{ index: 0, filename: url, title: "" }];
-    mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
-      if (command === "player_playlist_entries") return liveState.entries;
-      if (command === "player_get_property" && args?.name === "path") return url;
-      if (command === "player_get_property") return 0;
-      if (command === "player_insert_files") {
-        insertCalls.push((args as { items: unknown }).items);
-        return undefined;
-      }
-      return null;
-    });
-
-    renderSync({ ...WATCH, anchor: "C:/T/Show - 01.mkv" }, sources);
+  it("picks up a late completion on the next poll", async () => {
+    renderSync(WATCH);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-
     expect(insertCalls).toEqual([]);
-  });
 
-  it("adds a later extra file next to the sources", async () => {
-    const { queryClient } = renderSync(WATCH, [SOURCES[0]]);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    queryClient.setQueryData(queryKeys.extraFiles("C:/T"), [
-      { name: "ep03.mkv", fullPath: "C:/T/ep03.mkv", size: 10 },
-    ]);
+    pollState.ep2done = true;
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });
 
-    expect(insertCalls).toEqual([[{ path: "C:/T/ep03.mkv", index: 1 }]]);
+    expect(insertCalls).toEqual([[{ path: "C:/T/ep02.mkv", index: 1 }]]);
   });
 
   it("stays quiet after the anchor leaves the live list", async () => {
     liveState.entries = [];
-    renderSync(WATCH, SOURCES);
+    renderSync(WATCH);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(insertCalls).toEqual([]);
 
+    pollState.ep2done = true;
     liveState.entries = [{ index: 0, filename: "C:/T/ep02.mkv", title: "" }];
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60_000);
@@ -236,7 +222,7 @@ describe("useLivePlaylistSync folder modifications", () => {
     const handler = armFolder();
     playbackAtoms.path.set("C:/F/ep01.mkv");
     const reloads = vi.fn();
-    renderSync(FOLDER_WATCH, [], { onPlayingFileModified: reloads });
+    renderSync(FOLDER_WATCH, { onPlayingFileModified: reloads });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -258,7 +244,7 @@ describe("useLivePlaylistSync folder modifications", () => {
     const handler = armFolder();
     playbackAtoms.path.set("C:/F/ep01.mkv");
     const reloads = vi.fn();
-    renderSync(FOLDER_WATCH, [], { onPlayingFileModified: reloads });
+    renderSync(FOLDER_WATCH, { onPlayingFileModified: reloads });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -323,27 +309,21 @@ describe("useLivePlaylistSync torrent watcher events", () => {
     handler?.({ payload: { roots: ["C:/T"], changes } });
   }
 
-  it("does not rescan the torrent on a save-dir event", async () => {
+  it("checks the torrent immediately on a save-dir event instead of waiting for the poll", async () => {
     const handler = armTorrent();
-    liveState.entries = [
-      { index: 0, filename: "C:/T/ep01.mkv", title: "" },
-      { index: 1, filename: "C:/T/ep02.mkv", title: "" },
-    ];
-    renderSync(WATCH, SOURCES);
+    renderSync(WATCH);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(insertCalls).toEqual([]);
 
+    pollState.ep2done = true;
     await act(async () => {
       fire(handler(), [{ path: "C:/T/ep02.mkv", root: "C:/T", kind: "created" }]);
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(
-      mockInvoke.mock.calls.filter(([command]) => command === "get_running_torrent_files")
-    ).toEqual([]);
-    expect(insertCalls).toEqual([]);
+    expect(insertCalls).toEqual([[{ path: "C:/T/ep02.mkv", index: 1 }]]);
   });
 
   it("ignores events outside the torrent save dir", async () => {
@@ -366,9 +346,10 @@ describe("useLivePlaylistSync torrent watcher events", () => {
 
   it("reloads the playing file when modified after the torrent finished", async () => {
     const handler = armTorrent();
+    pollState.ep2done = true;
     playbackAtoms.path.set("C:/T/ep01.mkv");
     const reloads = vi.fn();
-    renderSync(WATCH, SOURCES, { onPlayingFileModified: reloads });
+    renderSync(WATCH, { onPlayingFileModified: reloads });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -381,16 +362,11 @@ describe("useLivePlaylistSync torrent watcher events", () => {
     expect(reloads).toHaveBeenCalledTimes(1);
   });
 
-  it("does not reload a file that is being streamed", async () => {
+  it("does not reload the playing file while the torrent is still downloading", async () => {
     const handler = armTorrent();
-    const url = "http://127.0.0.1:9/s/token/Show%20-%2001.mkv";
-    playbackAtoms.path.set(url);
+    playbackAtoms.path.set("C:/T/ep01.mkv");
     const reloads = vi.fn();
-    renderSync(
-      WATCH,
-      [{ target: url, path: "C:/T/ep01.mkv", streaming: true, token: "token" }],
-      { onPlayingFileModified: reloads }
-    );
+    renderSync(WATCH, { onPlayingFileModified: reloads });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -405,7 +381,7 @@ describe("useLivePlaylistSync torrent watcher events", () => {
 
   it("pulls save-dir extras into the torrent playlist on a save-dir event", async () => {
     const handler = armTorrent();
-    const { queryClient } = renderSync(WATCH, [SOURCES[0]]);
+    const { queryClient } = renderSync(WATCH);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -420,5 +396,49 @@ describe("useLivePlaylistSync torrent watcher events", () => {
     });
 
     expect(insertCalls).toEqual([[{ path: "C:/T/ep01_upscaled.mp4", index: 0 }]]);
+  });
+});
+
+describe("useLivePlaylistSync removals", () => {
+  it("removes a torrent file that disappeared from disk", async () => {
+    const removeCalls: unknown[] = [];
+    const entries = [
+      { index: 0, filename: "C:/T/ep01.mkv", title: "" },
+      { index: 1, filename: "C:/T/ep02.mkv", title: "" },
+    ];
+    const seen = { ep2Exists: true };
+    mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
+      if (command === "get_running_torrent_files") {
+        return [
+          torrentFile("ep01.mkv", true),
+          { ...torrentFile("ep02.mkv", true), exists: seen.ep2Exists },
+        ];
+      }
+      if (command === "player_playlist_entries") return entries.map((entry) => ({ ...entry }));
+      if (command === "player_get_property" && args?.name === "path") return "C:/T/ep01.mkv";
+      if (command === "player_get_property") return 0;
+      if (command === "player_command" && args?.name === "playlist-remove") {
+        const index = (args.args as number[])[0] ?? -1;
+        removeCalls.push(index);
+        entries.splice(index, 1);
+        entries.forEach((entry, i) => {
+          entry.index = i;
+        });
+        return undefined;
+      }
+      return null;
+    });
+
+    renderSync(WATCH);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(removeCalls).toEqual([]);
+
+    seen.ep2Exists = false;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(removeCalls).toEqual([1]);
   });
 });

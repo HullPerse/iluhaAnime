@@ -1,4 +1,3 @@
-import { mockInvoke as invokeSpy, mockOpenUrl as openUrlSpy, mockWriteText as writeTextSpy } from "../mocks";
 import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,6 +30,7 @@ import {
   applyFolderSelection,
   buildTorrentTree,
   collectFileIndices,
+  flattenTorrentTree,
   groupFilesByDirectory,
 } from "@/lib/torrent/tree.utils";
 import { notificationAtoms } from "@/store/notification.store";
@@ -38,21 +38,32 @@ import { patchSettings } from "@/store/settings.store";
 import type { TFunc, TranslationVariables } from "@/types/i18n";
 import type { Anime, TorrentCheckResult, TorrentInfo, TorrentTreeNode } from "@/types/torrent";
 
+import {
+  mockInvoke as invokeSpy,
+  mockOpenUrl as openUrlSpy,
+  mockWriteText as writeTextSpy,
+} from "../mocks";
+
 const prepareTorrentDownloadSpy = vi.fn();
 const prepareTorrentDownloadFromBytesSpy = vi.fn();
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: invokeSpy,
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
+vi.mock("@tauri-apps/api/core", async () => {
+  const { mockInvoke } = await import("../mocks");
+  return {
+    invoke: mockInvoke,
+    convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
+  };
+});
 
-vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
-  writeText: writeTextSpy,
-}));
+vi.mock("@tauri-apps/plugin-clipboard-manager", async () => {
+  const { mockWriteText } = await import("../mocks");
+  return { writeText: mockWriteText };
+});
 
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: openUrlSpy,
-}));
+vi.mock("@tauri-apps/plugin-opener", async () => {
+  const { mockOpenUrl } = await import("../mocks");
+  return { openUrl: mockOpenUrl };
+});
 
 vi.mock("@/store/download.store", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/store/download.store")>();
@@ -325,6 +336,16 @@ describe("torrent/common", () => {
       expect(result).toEqual({ torrents: next });
     });
 
+    it("returns a patch when the checked file changed", () => {
+      const current = [makeInfo(1, { state: "initializing", total_bytes: 0, checking_file: null })];
+      const next = makeInfo(1, {
+        state: "initializing",
+        total_bytes: 0,
+        checking_file: "Show/E01.mkv",
+      });
+      expect(TorrentListen(makeState(current), makeEvent([next]))).toEqual({ torrents: [next] });
+    });
+
     it("returns a patch when upload speed changes", () => {
       const current = [makeInfo(1)];
       const next = [makeInfo(1, { upload_speed: 128 })];
@@ -453,6 +474,22 @@ describe("torrent/common", () => {
     });
     it("reports initializing while metadata is unresolved", () => {
       expect(getDisplayState(makeInfo(1, { total_bytes: 0 }), live({}), NOW)).toBe("initializing");
+      expect(
+        getDisplayState(makeInfo(1, { state: "initializing", total_bytes: 0 }), live({}), NOW)
+      ).toBe("initializing");
+    });
+    it("reports checking once the initial check knows the size", () => {
+      expect(
+        getDisplayState(
+          makeInfo(1, {
+            state: "initializing",
+            progress_bytes: 25,
+            checking_file: "Show/E01.mkv",
+          }),
+          live({}),
+          NOW
+        )
+      ).toBe("checking");
     });
     it("labels every display state without falling back to raw keys", () => {
       const labels = (
@@ -464,6 +501,7 @@ describe("torrent/common", () => {
           "stalled",
           "paused",
           "initializing",
+          "checking",
           "missing",
         ] as const
       ).map((s) => displayStateLabel(s, ru));
@@ -475,10 +513,12 @@ describe("torrent/common", () => {
         "Простаивает",
         "Пауза",
         "Инициализация",
+        "Проверка файлов",
         "Файлов нет",
       ]);
       expect(Object.keys(DISPLAY_BAR_CLASS).sort()).toEqual(
         [
+          "checking",
           "done",
           "downloading",
           "error",
@@ -497,6 +537,7 @@ describe("torrent/common", () => {
         stalled: "bg-torrent-idle",
         paused: "bg-torrent-idle",
         initializing: "bg-torrent-initializing",
+        checking: "bg-torrent-initializing",
         missing: "bg-torrent-missing",
       });
     });
@@ -973,6 +1014,43 @@ describe("torrent/tree", () => {
       expect(rootFiles.map((f) => f.index)).toEqual([0, 2]);
       expect(rootFiles.map((f) => f.displayName)).toEqual(["ep6.mkv", "Season 1/ep1.mkv"]);
       expect(nodes).toEqual([]);
+    });
+  });
+
+  describe("flattenTorrentTree", () => {
+    it("applies the file filter to root files as well as folder files", () => {
+      const { nodes, rootFiles } = buildTorrentTree([
+        {
+          completed: false,
+          exists: false,
+          index: 0,
+          name: "movie.mkv",
+          priority: "normal",
+          progress_bytes: 0,
+          selected: true,
+          size: 100,
+        },
+        {
+          completed: true,
+          exists: true,
+          index: 1,
+          name: "Season 1/ep1.mkv",
+          priority: "normal",
+          progress_bytes: 100,
+          selected: true,
+          size: 100,
+        },
+      ]);
+
+      const items = flattenTorrentTree(
+        nodes,
+        new Set(["Season 10"]),
+        (file) => file.completed,
+        rootFiles
+      );
+      const names = items.flatMap((item) => (item.kind === "file" ? [item.file.displayName] : []));
+
+      expect(names).toEqual(["ep1.mkv"]);
     });
   });
 

@@ -34,6 +34,11 @@ export function isTrackFileName(name: string, trackExts: Set<string>): boolean {
   return ext !== "" && trackExts.has(ext);
 }
 
+export function isVideoFileName(name: string, extensions: readonly string[]): boolean {
+  const base = fileNameFromPath(name).toLowerCase();
+  return extensions.some((extension) => base.endsWith(`.${extension.toLowerCase()}`));
+}
+
 export function parseMediaPath(fullPath: string): MediaFileParse {
   const normalized = fullPath.replaceAll(/\\/g, "/");
   const cut = normalized.lastIndexOf("/");

@@ -11,23 +11,26 @@ export default function AniListRecsModal({
   open,
   loading,
   recommendations,
+  watchedIds,
   onClose,
   onAnimeClick,
 }: Props) {
   const { t } = useI18n();
   if (!open) return null;
 
+  const visible = recommendations.filter((r) => !watchedIds.has(r.id));
+
   return (
     <Modal header={t("anilist.recs.title")} onClose={onClose} className="w-3xl">
       {loading ? (
         <TabLoader className="flex-1" />
-      ) : recommendations.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <span className="windows95-text">{t("anilist.recs.empty")}</span>
         </div>
       ) : (
         <div className="flex flex-col gap-1">
-          {recommendations.map((r) => (
+          {visible.map((r) => (
             <div
               key={r.id}
               className="windows95-active-border bg-primary hover:bg-surface flex flex-row items-center gap-2 p-1 hover:cursor-pointer"

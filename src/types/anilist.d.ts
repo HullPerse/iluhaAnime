@@ -808,6 +808,7 @@ export interface AniRecProps {
   open: boolean;
   loading: boolean;
   recommendations: AniRecommendation[];
+  watchedIds: Set<number>;
   onClose: () => void;
   onAnimeClick: (id: number) => void;
 }

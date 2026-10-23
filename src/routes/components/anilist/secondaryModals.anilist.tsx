@@ -110,6 +110,13 @@ export default function AniListSecondaryModals({
   onPrefetchClose: () => void;
   detail: ActivityDetailBundle;
 }) {
+  const watchedIds = new Set<number>();
+  for (const collection of lists) {
+    for (const entry of collection.entries) {
+      if (entry.list_status === "COMPLETED") watchedIds.add(entry.media.id);
+    }
+  }
+
   return (
     <>
       {views.auth && <Auth onAuth={onAuthSuccess} onClose={onAuthClose} />}
@@ -118,6 +125,7 @@ export default function AniListSecondaryModals({
         open={views.recs}
         loading={views.recsLoading}
         recommendations={recs}
+        watchedIds={watchedIds}
         onClose={onRecsClose}
         onAnimeClick={onRecsAnime}
       />

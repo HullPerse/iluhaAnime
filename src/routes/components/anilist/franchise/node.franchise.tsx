@@ -56,12 +56,19 @@ const FranNode = memo(
         id={elementId}
         role="button"
         tabIndex={0}
-        onClick={() => onRelated?.(node.id)}
+        onClick={() => {
+          if (isRoot) return;
+          onRelated?.(node.id);
+        }}
         onMouseDown={(e) => onMouseDown?.(e, node.id)}
-        onKeyDown={enterOrSpace(() => onRelated?.(node.id))}
+        onKeyDown={enterOrSpace(() => {
+          if (isRoot) return;
+          onRelated?.(node.id);
+        })}
         title={nodeTooltip(node, label, isAggregator, t)}
         className={cn(
-          "windows95-text windows95-active-border bg-primary absolute flex cursor-grab flex-col items-stretch overflow-hidden transition-opacity duration-300 select-none active:cursor-grabbing",
+          "windows95-text windows95-active-border bg-primary absolute flex flex-col items-stretch overflow-hidden transition-opacity duration-300 select-none",
+          isRoot ? "cursor-default" : "cursor-grab active:cursor-grabbing",
           dimmed && "opacity-30"
         )}
         style={{

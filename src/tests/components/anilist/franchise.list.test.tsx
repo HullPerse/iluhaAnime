@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EntryLookup, EntryListInfo } from "@/lib/anilist/entries.utils";
@@ -153,5 +153,47 @@ describe("FranchiseList watch order", () => {
     expect(screen.getByText("5/5")).toBeDefined();
     expect(screen.getByRole("button", { name: "Announced. Not aired" })).toBeDefined();
     expect(screen.queryByText("Next")).toBeNull();
+  });
+
+  it("does not navigate when the current row is clicked", () => {
+    const onOpen = vi.fn();
+    render(
+      <FranchiseList
+        nodes={nodes}
+        edges={edges}
+        animeId={1}
+        entryLookup={lookup}
+        relationMap={relationMap}
+        mainlineIds={new Set([1, 2])}
+        searchMatchIds={null}
+        scoreFormat="POINT_10"
+        onNodeClick={onOpen}
+      />
+    );
+    const current = screen.getByRole("button", { name: "First Season. Watching. 6/12" });
+    fireEvent.click(current);
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(current.className).toContain("cursor-default");
+  });
+
+  it("still navigates when a non-current row is clicked", () => {
+    const onOpen = vi.fn();
+    render(
+      <FranchiseList
+        nodes={nodes}
+        edges={edges}
+        animeId={1}
+        entryLookup={lookup}
+        relationMap={relationMap}
+        mainlineIds={new Set([1, 2])}
+        searchMatchIds={null}
+        scoreFormat="POINT_10"
+        onNodeClick={onOpen}
+      />
+    );
+    const nonCurrent = screen.getByRole("button", { name: "Second Season. Completed. 12/12" });
+    fireEvent.click(nonCurrent);
+    expect(onOpen).toHaveBeenCalledWith(2);
+    expect(nonCurrent.className).toContain("cursor-pointer");
   });
 });

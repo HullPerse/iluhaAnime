@@ -155,9 +155,13 @@ function FranchiseRow({
       type="button"
       ref={rowRef}
       aria-label={accessible}
-      onClick={() => onOpen(node.id)}
+      onClick={() => {
+        if (isCurrent) return;
+        onOpen(node.id);
+      }}
       className={cn(
-        "windows95-text hover:bg-secondary/20 flex w-full cursor-pointer items-start gap-2 px-2 py-1 text-left text-xs transition-opacity duration-300",
+        "windows95-text hover:bg-secondary/20 flex w-full items-start gap-2 px-2 py-1 text-left text-xs transition-opacity duration-300",
+        isCurrent ? "cursor-default" : "cursor-pointer",
         dimmed && "opacity-30"
       )}
     >

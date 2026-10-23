@@ -159,7 +159,8 @@ export default function ScreenshotModal({
     if (path !== capture.path) {
       attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
         if (error) reportBackgroundError("screenshot.discard-copy", error);
-      });
+        return null;
+      }).catch(() => {});
     }
     if (writeError) {
       setCopied(false);

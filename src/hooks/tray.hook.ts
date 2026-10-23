@@ -127,6 +127,7 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
       .then((cleanup) => {
         if (disposed) cleanup();
         else unlisten = cleanup;
+        return null;
       })
       .catch((error) => reportBackgroundError("tray.close-requested", error));
     return () => {

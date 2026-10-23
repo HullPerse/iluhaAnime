@@ -32,7 +32,8 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
     mountedRef.current = true;
     readAppCache<PrefetchSnapshot>("anilist", "prefetch").then((record) => {
       if (mountedRef.current && record?.payload) setStored(record.payload);
-    });
+      return null;
+    }).catch(() => {});
     return () => {
       mountedRef.current = false;
       unlistenRef.current?.();
@@ -85,7 +86,8 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
     unlistenPromise.then((unlisten) => {
       if (mountedRef.current) unlistenRef.current = unlisten;
       else unlisten();
-    });
+      return null;
+    }).catch(() => {});
     let keepListening = false;
     const [result, prefetchError] = await attempt(anilistApi.prefetchRelations(seeds));
     if (prefetchError) {

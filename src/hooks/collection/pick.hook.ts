@@ -109,7 +109,7 @@ export function useWizardPick({
               trailerYoutubeId: string | null;
             }>(r.id, mediaType)
             .then((m) => {
-              if (tmdbPickRef.current !== pickId) return;
+              if (tmdbPickRef.current !== pickId) return null;
               mediaRef.current = {
                 stills: m.backdrops
                   .map((b) => b.url)
@@ -117,6 +117,7 @@ export function useWizardPick({
                   .slice(0, 8),
                 trailerYoutubeId: m.trailerYoutubeId,
               };
+              return null;
             })
             .catch((error: unknown) => {
               reportBackgroundError("tmdb.pick.media", error);
@@ -126,6 +127,7 @@ export function useWizardPick({
                   error instanceof Error ? error.message : String(error)
                 );
             });
+          return null;
         })
         .catch((error: unknown) => {
           reportBackgroundError("tmdb.pick.details", error);

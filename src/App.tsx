@@ -157,11 +157,10 @@ export default function App() {
           loading={!!preparingTorrent && !pendingTorrent}
           defaultSaveDir={lastSaveDir}
           existingTorrents={existingTorrents}
-          onConfirm={(selectedIndices, saveDir, subFolder, sequential) =>
-            confirmDownload(selectedIndices, saveDir, subFolder, sequential).then(() => {
-              queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
-            })
-          }
+          onConfirm={async (selectedIndices, saveDir, subFolder, sequential) => {
+            await confirmDownload(selectedIndices, saveDir, subFolder, sequential);
+            queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+          }}
           onCancel={cancelDownload}
         />
       )}

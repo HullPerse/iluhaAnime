@@ -88,6 +88,7 @@ function useCardArt(path: string, visible: boolean): CardArt | null {
     ignore(
       fetchVideoCard(path).then((card) => {
         if (!disposed && card) setArt(card);
+        return null;
       })
     );
     return () => {

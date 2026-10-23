@@ -421,6 +421,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
         syncUnifiedIndex(entries)
           .then((written) => {
             if (written) writeStoredSyncKey(syncKey);
+            return null;
           })
           .catch((error) => reportBackgroundError("index.sync", error));
       }

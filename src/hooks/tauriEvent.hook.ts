@@ -36,6 +36,7 @@ export function useTauriEvent<T>(
           return;
         }
         unlisten = unlistenFn;
+        return null;
       })
       .catch((error) => {
         reportBackgroundError(`${errorTag ?? event}.listen`, error);

@@ -278,6 +278,7 @@ export function useApp() {
             .then((link) => {
               if (link) openShareDeepLink(link);
               else showError(t("common.error"), t("collection.share.invalid"));
+              return null;
             })
             .catch((error) => reportBackgroundError("deeplink.share-pending", error));
         },
@@ -295,6 +296,7 @@ export function useApp() {
       .takePendingDeepLinks()
       .then((urls) => {
         if (!disposed) ingest(urls);
+        return null;
       })
       .catch((error) => reportBackgroundError("deeplink.take-pending", error));
     return () => {
@@ -358,6 +360,7 @@ export function useApp() {
           .then((link) => {
             if (link) openShareDeepLink(link);
             else showError(t("common.error"), t("collection.share.invalid"));
+            return null;
           })
           .catch((error) => reportBackgroundError("deeplink.share-paste", error));
       }
@@ -487,7 +490,7 @@ export function useApp() {
       readAppCache<Record<number, number>>("player", "episodeTracker"),
     ])
       .then(([folderTrees, lastSaveDir, seedPreferences, episodeTracker]) => {
-        if (disposed) return;
+        if (disposed) return null;
         if (folderTrees?.payload) setFolderTrees(folderTrees.payload);
         if (lastSaveDir?.payload) {
           setLastSaveDir(lastSaveDir.payload);
@@ -495,6 +498,7 @@ export function useApp() {
         if (seedPreferences?.payload) cacheAtoms.seedPreferences.set(seedPreferences.payload);
         if (episodeTracker?.payload) setEpisodeTracker(episodeTracker.payload);
         markCacheReady();
+        return null;
       })
       .catch((error: unknown) => {
         reportBackgroundError("cache.hydrate", error);

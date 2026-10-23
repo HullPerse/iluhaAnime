@@ -93,6 +93,7 @@ export function useUpscalePreview({
           return;
         }
         setState({ key: requestKey, frames: data, loading: false, error: null });
+        return null;
       })
     );  }, [filePath, requestKey, resolution, selectedShaders, t, temporalDenoise]);
 

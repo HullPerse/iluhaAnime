@@ -86,32 +86,34 @@ export function useCoverCache(
       }
       const persistedId = coverCorrectionsAtoms.blobs.get()[remoteUrl];
       if (!persistedId) {
-        downloadCover(remoteUrl, tmdbProxyUrl).then((downloaded) => {
-          if (!cancelled && downloaded) setCoverUrl(downloaded);
-        });
-        return;
+      downloadCover(remoteUrl, tmdbProxyUrl).then((downloaded) => {
+        if (!cancelled && downloaded) setCoverUrl(downloaded);
+        return null;
+      }).catch(() => {});
+      return;
       }
       resolveCachedImage(persistedId).then((url) => {
-        if (cancelled) return;
+        if (cancelled) return null;
         if (url) {
           coverCache.set(remoteUrl, { url, blobId: persistedId });
           setCoverUrl(url);
-          return;
+          return null;
         }
-        downloadCover(remoteUrl, tmdbProxyUrl).then((downloaded) => {
+        return downloadCover(remoteUrl, tmdbProxyUrl).then((downloaded) => {
           if (!cancelled && downloaded) setCoverUrl(downloaded);
-        });
-      });
+          return null;
+        }).catch(() => {});
+      }).catch(() => {});
     };
     if (blobId) {
       resolveCachedImage(blobId).then((resolved) => {
-        if (cancelled) return;
+        if (cancelled) return null;
         if (resolved) {
           setCoverUrl(resolved);
-          return;
+          return null;
         }
-        fromRemote();
-      });
+        return fromRemote();
+      }).catch(() => {});
     } else {
       fromRemote();
     }

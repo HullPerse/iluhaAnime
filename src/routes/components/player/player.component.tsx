@@ -384,16 +384,17 @@ function PlayerComponent() {
       lastMarginsRef.current = null;
       return;
     }
-    ignore(
-      setVideoMarginRatio(next)
-        .then(() => {
-          lastMarginsRef.current = next;
-        })
-        .catch((error: unknown) => {
-          lastMarginsRef.current = null;
-          reportBackgroundError("player.margins", error);
-        })
-    );
+      ignore(
+        setVideoMarginRatio(next)
+          .then(() => {
+            lastMarginsRef.current = next;
+            return null;
+          })
+          .catch((error: unknown) => {
+            lastMarginsRef.current = null;
+            reportBackgroundError("player.margins", error);
+          })
+      );
   }, []);
 
   const syncMargins = useCallback(
@@ -569,6 +570,7 @@ function PlayerComponent() {
                       properties: fresh.join(", "),
                     })
                   );
+                  return null;
                 })
               );
             },
@@ -702,6 +704,7 @@ function PlayerComponent() {
         const filenames = entries.map((entry) => entry.filename);
         if (playlistOpen) scheduleCardPrefetch(filenames, path);
         else scheduleNeighborPrefetch(filenames, path, index);
+        return null;
       })
     );
     return () => {
@@ -842,6 +845,7 @@ function PlayerComponent() {
           } else {
             await closePlayerWindow();
           }
+          return null;
         })
     );
   }, [cinema, diagnosticsOpen, jumpOpen, panel, playlistOpen, viewMode]);
@@ -1195,6 +1199,7 @@ function PlayerComponent() {
                   "success",
                   saved.path
                 );
+                return null;
               },
               (error: unknown) => {
                 reportBackgroundError("player.frame.save", error);

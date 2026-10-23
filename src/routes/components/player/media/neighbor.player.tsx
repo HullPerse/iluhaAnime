@@ -97,11 +97,13 @@ function NeighborFileButton({
           }
           ignore(
             fetchVideoCard(neighbor.filename).then((card) => {
-              if (requestRef.current !== request || !card) return;
+              if (requestRef.current !== request || !card) return null;
               setArt(card);
+              return null;
             })
           );
-        })
+        return null;
+      })
       );
     });
     return () => task.cancel();

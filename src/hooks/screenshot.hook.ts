@@ -50,7 +50,8 @@ export function useScreenshot(): ScreenshotSession {
     if (!pending) return;
     attempt(systemApi.discardScreenshot(pending.path)).then(([, error]) => {
       if (error) reportBackgroundError("screenshot.discard", error);
-    });
+      return null;
+    }).catch(() => {});
   }, [setCapture]);
 
   return { capture: shot, close };

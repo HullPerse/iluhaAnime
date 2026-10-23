@@ -32,6 +32,7 @@ function enqueueRemoteFetch<T>(task: () => Promise<T>): Promise<T> {
           activeRemoteFetches -= 1;
           pumpRemoteQueue();
           resolve(value);
+          return null;
         })
         .catch((error: unknown) => {
           activeRemoteFetches -= 1;
@@ -108,7 +109,8 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
     let cancelled = false;
     fetchCachedImage(remoteUrl, tmdbProxyUrl).then((url) => {
       if (!cancelled) setState({ src: url, failed: url === null });
-    });
+      return null;
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };

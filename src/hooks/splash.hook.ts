@@ -222,6 +222,7 @@ export function useSplashStages(
           setStages((current) => withStatus(current, "database", "degraded"));
           setDbFailed(true);
         }
+        return null;
       })
       .catch((error) => {
         if (disposed) return;

@@ -142,7 +142,8 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     });
     attempt(gameApi.key(active.session, key, pressed)).then(([, keyError]) => {
       if (keyError) reportBackgroundError("game.key", keyError);
-    });
+      return null;
+    }).catch(() => {});
   }, []);
 
   const release = useCallback((active: ActiveSession) => {
@@ -153,7 +154,8 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     setPressedKeys(NO_KEYS);
     attempt(gameApi.stop(active.session)).then(([, error]) => {
       if (error) reportBackgroundError("game.stop", error);
-    });
+      return null;
+    }).catch(() => {});
   }, []);
 
   const fail = useCallback(
@@ -194,21 +196,21 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       active.frames += 1;
       attempt(gameApi.tick(active.session, cycles, timers)).then(([buffer, error]) => {
         active.inFlight = false;
-        if (activeRef.current !== active) return;
+        if (activeRef.current !== active) return null;
         if (error) {
           fail(error.message);
-          return;
+          return null;
         }
         const [frame, decodeError] = attemptSync(() => decodeGameFrame(buffer));
         if (decodeError) {
           fail(decodeError.message);
-          return;
+          return null;
         }
         const canvas = canvasTarget.current.current;
         const [, paintError] = attemptSync(() => paintFrame(active, frame, canvas));
         if (paintError) {
           fail(paintError.message);
-          return;
+          return null;
         }
         if (frame.audio) {
           active.audio.setWavetable(frame.audio.pitchHz, frame.audio.pattern);
@@ -226,7 +228,8 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
             halted: frame.halted,
           });
         }
-      });
+        return null;
+      }).catch(() => {});
     },
     [fail]
   );
@@ -245,7 +248,8 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       if (!mountedRef.current) {
         attempt(gameApi.stop(info.session)).then(([, stopError]) => {
           if (stopError) reportBackgroundError("game.stop", stopError);
-        });
+          return null;
+        }).catch(() => {});
         return;
       }
       const canvas = canvasTarget.current.current;

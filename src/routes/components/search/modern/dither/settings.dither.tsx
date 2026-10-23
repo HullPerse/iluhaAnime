@@ -182,7 +182,8 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
           return next;
         });
       setPageLoading(false);
-    });
+      return null;
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };

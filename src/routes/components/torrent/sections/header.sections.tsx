@@ -97,6 +97,7 @@ export function TorrentHeader({
     ignore(
       attempt(writeText(value)).then(([, error]) => {
         if (error) showError(label, error.message);
+        return null;
       })
     );
   };

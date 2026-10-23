@@ -118,7 +118,8 @@ describe("sleep", () => {
     let settled = false;
     task.done.then(() => {
       settled = true;
-    });
+      return null;
+    }).catch(() => {});
     vi.advanceTimersByTime(99);
     await Promise.resolve();
     expect(settled).toBe(false);
@@ -130,7 +131,7 @@ describe("sleep", () => {
   it("settles immediately on cancel without firing the timer", async () => {
     const callback = vi.fn();
     const task = sleep(100);
-    task.done.then(callback);
+    task.done.then(callback).catch(() => {});
     task.cancel();
     await task.done;
     expect(callback).toHaveBeenCalledTimes(1);

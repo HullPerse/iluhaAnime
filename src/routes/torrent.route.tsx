@@ -261,6 +261,7 @@ function TorrentRoute() {
         })
         .then((removed) => {
           if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
+          return null;
         })
     );
   const runBulk = async (

@@ -76,6 +76,7 @@ export default function DetailsHero({
     ignore(
       attempt(writeText(posterSrc)).then(([, error]) => {
         if (error) showError(t("common.error"), t("screenshot.copy.error"));
+        return null;
       })
     );
   };
@@ -93,9 +94,11 @@ export default function DetailsHero({
           attempt(navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])).then(
             ([, writeError]) => {
               if (writeError) showError(t("common.error"), t("screenshot.copy.error"));
+              return null;
             }
           )
         );
+        return null;
       })
     );
   };
@@ -129,6 +132,7 @@ export default function DetailsHero({
             if (saveError) showError(t("common.error"), t("screenshot.save.error"));
           })()
         );
+        return null;
       })
     );
   };

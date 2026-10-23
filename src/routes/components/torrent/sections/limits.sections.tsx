@@ -14,11 +14,12 @@ export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: 
     let cancelled = false;
     getTorrentLimits(id)
       .then((limits) => {
-        if (cancelled) return;
+        if (cancelled) return null;
         if (limits.downloadBps !== null)
           setDownloadInput(String(Math.round(limits.downloadBps / 1024)));
         if (limits.uploadBps !== null) setUploadInput(String(Math.round(limits.uploadBps / 1024)));
-      });
+        return null;
+      }).catch(() => {});
     return () => {
       cancelled = true;
     };

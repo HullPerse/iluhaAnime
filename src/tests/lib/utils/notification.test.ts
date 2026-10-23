@@ -98,6 +98,7 @@ describe("openNotificationTarget", () => {
     openPathSpy.mockResolvedValue(undefined);
     deeplinkAtoms.target.set(null);
     patchSettings({ anilistTabEnabled: true });
+    Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
   });
 
   it("routes an anime target through the deep-link store", async () => {

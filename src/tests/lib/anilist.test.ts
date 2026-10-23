@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { timerFlush } from "d3-timer";
+
 import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
 import {
   buildActivityMap,
@@ -1585,7 +1587,7 @@ describe("anilist/sim", () => {
   });
 
   describe("runFranchiseSimulation", () => {
-    it("forwards throttled ticks and final positions on end", async () => {
+    it("forwards throttled ticks and final positions on end", () => {
       const seen: Map<number, FranchiseNodePosition>[] = [];
       const sim = runFranchiseSimulation(
         [
@@ -1599,11 +1601,9 @@ describe("anilist/sim", () => {
           seen.push(pos);
         }
       );
-      try {
-        await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0));
-      } finally {
-        sim.stop();
-      }
+      timerFlush();
+      sim.stop();
+      expect(seen.length).toBeGreaterThan(0);
       expect(seen.length).toBeLessThan(200);
       const last = seen.at(-1)!;
       expect(last.has(1)).toBe(true);

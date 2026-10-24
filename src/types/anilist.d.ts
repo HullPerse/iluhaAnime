@@ -166,6 +166,65 @@ export interface AniListGroup {
   entries: AniListEntry[];
 }
 
+export interface AniListStatusStatistic {
+  status: string;
+  count: number;
+  minutes_watched: number;
+}
+
+export interface AniListScoreStatistic {
+  score: number;
+  count: number;
+}
+
+export interface AniListFormatStatistic {
+  format: string;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListYearStatistic {
+  year: number;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListGenreStatistic {
+  genre: string;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListStudioStatistic {
+  id: number;
+  name: string;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListStatistics {
+  count: number;
+  mean_score: number;
+  standard_deviation: number;
+  minutes_watched: number;
+  episodes_watched: number;
+  statuses: AniListStatusStatistic[];
+  scores: AniListScoreStatistic[];
+  formats: AniListFormatStatistic[];
+  release_years: AniListYearStatistic[];
+  start_years: AniListYearStatistic[];
+  genres: AniListGenreStatistic[];
+  studios: AniListStudioStatistic[];
+}
+
 export type AniListViewMode = "self" | "friend";
 
 export interface AniListCaps {

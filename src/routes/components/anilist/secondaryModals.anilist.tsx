@@ -9,6 +9,7 @@ import AniListFriendsModal from "@/routes/components/anilist/friends.anilist";
 import PrefetchRelationsModal from "@/routes/components/anilist/prefetch/modal.prefetch";
 import AniListRecsModal from "@/routes/components/anilist/rec.anilist";
 import StatsModal from "@/routes/components/anilist/stats.anilist";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import type {
   ActivityDetailBundle,
   AniFriend,
@@ -35,6 +36,7 @@ export default function AniListSecondaryModals({
   friendIds,
   lists,
   selfUser,
+  scoreFormat,
   activityTab,
   onActivityClose,
   activityDetail,
@@ -78,6 +80,7 @@ export default function AniListSecondaryModals({
   friendIds: number[];
   lists: AniListCollection[];
   selfUser: AniUser | null;
+  scoreFormat: AnilistScoreFormat;
   activityTab: "feed" | "calendar" | "notifications" | "mentions" | "airing";
   onActivityClose: () => void;
   activityDetail: ActivityDetailBundle;
@@ -184,7 +187,15 @@ export default function AniListSecondaryModals({
         detail={detail}
       />
 
-      {views.stats && <StatsModal lists={lists} onClose={onStatsClose} detail={detail} />}
+      {views.stats && (
+        <StatsModal
+          lists={lists}
+          userId={userId}
+          scoreFormat={scoreFormat}
+          onClose={onStatsClose}
+          detail={detail}
+        />
+      )}
 
       {views.browse && (
         <BrowseAnimeModal entries={entryLookup} onClose={onBrowseClose} detail={detail} />

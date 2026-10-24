@@ -24,6 +24,7 @@ export const queryKeys = {
   animeShowcase: (id: number, tmdb: number, proxy: string) =>
     ["anilist_showcase", id, tmdb, proxy, "v3"] as const,
   anilistData: () => ["anilist_data"] as const,
+  anilistStatistics: (userId: number | null) => ["anilist_statistics", userId] as const,
   anilistCheckAuth: () => ["anilist_check_auth"] as const,
   anilistImportLists: (userId: number | null) => ["anilist_import_lists", userId] as const,
   anilistBrowse: (tab: string) => ["anilist_browse", tab] as const,

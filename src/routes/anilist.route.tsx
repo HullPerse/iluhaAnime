@@ -704,6 +704,7 @@ function AnilistRoute() {
           friendIds={friendIds}
           lists={lists}
           selfUser={user}
+          scoreFormat={viewerScoreFormat}
           activityTab={views.activity.tab}
           onActivityClose={handleCloseActivity}
           activityDetail={detailBundle}

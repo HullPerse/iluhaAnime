@@ -5,12 +5,11 @@ import { useEffect, useState, useMemo } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { listStatusLabels } from "@/config/anilist/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { dayLabel, monthLabel } from "@/lib/anilist/activity.utils";
 import { formatAiringTime } from "@/lib/anilist/airing.utils";
-import { getStatusColor } from "@/lib/anilist/entries.utils";
-import { toLocaleKey } from "@/lib/locale/key.utils";
+import { buildMediaRows } from "@/lib/anilist/stats.utils";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
@@ -19,6 +18,9 @@ import type { ActivityDetailBundle } from "@/types/anilist";
 import type { AniListCollection } from "@/types/anilist";
 
 import { InlineDetail } from "./detail/inline.detail";
+import { MediaRows } from "./stats/mediaRows.stats";
+import { StatsOverview } from "./stats/overview.stats";
+import type { StatsDrillData } from "./stats/overview.stats";
 
 function StatsReleases({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
   const { t, locale } = useI18n();
@@ -57,103 +59,16 @@ function StatsReleases({ onAnimeClick }: { onAnimeClick: (id: number) => void })
   );
 }
 
-function topEntries(counts: Map<string, number>, limit: number): Array<[string, number]> {
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
-}
-
-function StatsOverview({ lists }: { lists: AniListCollection[] }) {
-  const { t } = useI18n();
-  const summary = useMemo(() => {
-    const byStatus = new Map<string, number>();
-    const genres = new Map<string, number>();
-    const studios = new Map<string, number>();
-    let episodes = 0;
-    let scoreSum = 0;
-    let scoreCount = 0;
-    let total = 0;
-    for (const list of lists) {
-      for (const entry of list.entries) {
-        total += 1;
-        byStatus.set(entry.list_status, (byStatus.get(entry.list_status) ?? 0) + 1);
-        episodes += entry.progress ?? 0;
-        if (entry.score != null) {
-          scoreSum += entry.score;
-          scoreCount += 1;
-        }
-        for (const genre of entry.media.genres) {
-          genres.set(genre, (genres.get(genre) ?? 0) + 1);
-        }
-        for (const studio of entry.media.studios) {
-          studios.set(studio.name, (studios.get(studio.name) ?? 0) + 1);
-        }
-      }
-    }
-    return {
-      byStatus,
-      episodes,
-      mean: scoreCount > 0 ? scoreSum / scoreCount : null,
-      topGenres: topEntries(genres, 8),
-      topStudios: topEntries(studios, 8),
-      total,
-    };
-  }, [lists]);
-
-  return (
-    <div className="flex flex-col gap-2 overflow-y-auto p-1">
-      <div className="windows95-text flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold">
-        <span>{t("anilist.stats.total.titles", { count: summary.total })}</span>
-        <span>{t("anilist.stats.episodes.watched", { count: summary.episodes })}</span>
-        {summary.mean != null && (
-          <span>{t("anilist.stats.mean.score", { score: summary.mean.toFixed(1) })}</span>
-        )}
-      </div>
-      <div className="flex flex-col gap-1">
-        {[...summary.byStatus.entries()].map(([status, count]) => (
-          <div key={status} className="flex items-center gap-2">
-            <span
-              className="inline-block size-3 shrink-0"
-              style={{ background: getStatusColor(status) }}
-              aria-hidden
-            />
-            <span className="windows95-text min-w-0 flex-1 truncate text-xs">
-              {t(toLocaleKey(listStatusLabels[status] ?? status))}
-            </span>
-            <span className="windows95-text text-xs tabular-nums">{count}</span>
-          </div>
-        ))}
-      </div>
-      {summary.topGenres.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <span className="windows95-text text-xs font-bold">{t("anilist.stats.top.genres")}</span>
-          {summary.topGenres.map(([genre, count]) => (
-            <div key={genre} className="flex items-center gap-2">
-              <span className="windows95-text min-w-0 flex-1 truncate text-xs">{genre}</span>
-              <span className="windows95-text text-xs tabular-nums">{count}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {summary.topStudios.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <span className="windows95-text text-xs font-bold">{t("anilist.stats.top.studios")}</span>
-          {summary.topStudios.map(([studio, count]) => (
-            <div key={studio} className="flex items-center gap-2">
-              <span className="windows95-text min-w-0 flex-1 truncate text-xs">{studio}</span>
-              <span className="windows95-text text-xs tabular-nums">{count}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function StatsModal({
   lists,
+  userId,
+  scoreFormat,
   onClose,
   detail,
 }: {
   lists: AniListCollection[];
+  userId: number | null;
+  scoreFormat: AnilistScoreFormat;
   onClose: () => void;
   detail: ActivityDetailBundle;
 }) {
@@ -161,9 +76,16 @@ function StatsModal({
   const now = new Date();
   const [tab, setTab] = useState<"overview" | "calendar" | "released">("overview");
   const [detailId, setDetailId] = useState<number | null>(null);
+  const [drill, setDrill] = useState<StatsDrillData | null>(null);
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<null | number>(null);
+
+  const openTab = (next: typeof tab) => {
+    setTab(next);
+    setSelectedDay(null);
+    setDrill(null);
+  };
 
   const prevMonth = () => {
     if (month === 0) {
@@ -224,10 +146,15 @@ function StatsModal({
   const isCurrentMonth = now.getMonth() === month && now.getFullYear() === year;
 
   const dayEntries = selectedDay == null ? [] : (calendarCells[selectedDay - 1]?.entries ?? []);
+  const drillRows = useMemo(
+    () => (drill == null ? [] : buildMediaRows(drill.ids, lists)),
+    [drill, lists]
+  );
   const dayTitle =
     tab === "calendar" && selectedDay != null
       ? `${selectedDay} ${monthLabel(month, locale, "long")} ${year}`
       : null;
+  const drillTitle = drill == null || dayTitle != null ? null : drill.title;
 
   if (detailId != null) {
     return (
@@ -242,36 +169,54 @@ function StatsModal({
 
   return (
     <Modal
-      header={dayTitle ?? t("anilist.stats.title")}
+      header={dayTitle ?? drillTitle ?? t("anilist.stats.title")}
       onClose={onClose}
-      onBack={dayTitle ? () => setSelectedDay(null) : undefined}
-      className="w-3xl"
+      onBack={
+        dayTitle != null
+          ? () => setSelectedDay(null)
+          : drillTitle != null
+            ? () => setDrill(null)
+            : undefined
+      }
+      className={
+        dayTitle != null || drillTitle != null || tab !== "overview" ? "w-3xl" : "w-7xl"
+      }
     >
       <div className="mb-1 flex gap-1">
         <Button
           variant={tab === "overview" ? "outline" : "default"}
           className="h-6 text-xs"
-          onClick={() => setTab("overview")}
+          onClick={() => openTab("overview")}
         >
           {t("anilist.stats.overview")}
         </Button>
         <Button
           variant={tab === "calendar" ? "outline" : "default"}
           className="h-6 text-xs"
-          onClick={() => setTab("calendar")}
+          onClick={() => openTab("calendar")}
         >
           {t("anilist.stats.calendar")}
         </Button>
         <Button
           variant={tab === "released" ? "outline" : "default"}
           className="h-6 text-xs"
-          onClick={() => setTab("released")}
+          onClick={() => openTab("released")}
         >
           {t("anilist.stats.released")}
         </Button>
       </div>
-      {tab === "overview" ? (
-        <StatsOverview lists={lists} />
+      {drill != null ? (
+        <MediaRows rows={drillRows} scoreFormat={scoreFormat} onOpen={setDetailId} />
+      ) : tab === "overview" ? (
+        <StatsOverview
+          userId={userId}
+          scoreFormat={scoreFormat}
+          lists={lists}
+          onDrill={(data) => {
+            setSelectedDay(null);
+            setDrill(data);
+          }}
+        />
       ) : tab === "released" ? (
         <StatsReleases onAnimeClick={setDetailId} />
       ) : selectedDay == null ? (

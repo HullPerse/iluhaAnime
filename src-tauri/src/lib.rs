@@ -1946,6 +1946,7 @@ pub fn run() {
             anilist::anilist_login,
             anilist::check_anilist_auth,
             anilist::get_anilist_lists,
+            anilist::get_anilist_statistics,
             anilist::get_anilist_custom_lists,
             anilist::get_anilist_friend_scores,
             anilist::anilist_avatar,

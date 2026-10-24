@@ -11,6 +11,7 @@ import type {
   AniCharacterEdge,
   AniFriendScore,
   AniListCollection,
+  AniListStatistics,
   AniMedia,
   AniRecommendation,
   AniSavedEntry,
@@ -88,6 +89,10 @@ export class AnilistApi {
 
   getLists(userId: number, minimal = false): Promise<AniListCollection[]> {
     return this.call("get_anilist_lists", { userId, minimal });
+  }
+
+  getStatistics(userId: number): Promise<AniListStatistics> {
+    return this.call("get_anilist_statistics", { userId });
   }
 
   getFriendScores(mediaId: number, userIds: number[]): Promise<AniFriendScore[]> {

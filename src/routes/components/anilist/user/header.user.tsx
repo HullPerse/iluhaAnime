@@ -61,7 +61,8 @@ export default function AniListProfileHeader({
           size="icon"
           className="ml-auto h-7 w-7 text-xs"
           onClick={onStatsOpen}
-          title={t("anilist.header.calendar")}
+          title={t("anilist.stats.title")}
+          aria-label={t("anilist.stats.title")}
         >
           <Calendar className="size-3" />
         </Button>

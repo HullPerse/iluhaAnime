@@ -83,9 +83,16 @@ beforeEach(() => {
 describe("StatsModal inline detail", () => {
   it("opens the calendar entry inside the same dialog and returns on back", async () => {
     const user = userEvent.setup();
-    render(<StatsModal lists={listsWithAiring()} onClose={vi.fn()} detail={DETAIL} />, {
-      wrapper,
-    });
+    render(
+      <StatsModal
+        lists={listsWithAiring()}
+        userId={123}
+        scoreFormat="POINT_10"
+        onClose={vi.fn()}
+        detail={DETAIL}
+      />,
+      { wrapper }
+    );
     expect(screen.getByText("Statistics")).toBeDefined();
     await user.click(screen.getByRole("button", { name: "Calendar" }));
     await user.click(screen.getByRole("button", { name: "Frieren" }));
@@ -98,9 +105,16 @@ describe("StatsModal inline detail", () => {
 
   it("moves the calendar day into the modal titlebar and returns on back", async () => {
     const user = userEvent.setup();
-    render(<StatsModal lists={listsWithAiring()} onClose={vi.fn()} detail={DETAIL} />, {
-      wrapper,
-    });
+    render(
+      <StatsModal
+        lists={listsWithAiring()}
+        userId={123}
+        scoreFormat="POINT_10"
+        onClose={vi.fn()}
+        detail={DETAIL}
+      />,
+      { wrapper }
+    );
     await user.click(screen.getByRole("button", { name: "Calendar" }));
     await user.click(await screen.findByRole("button", { name: /releases on/ }));
     expect(await screen.findByRole("heading", { name: /^15 / })).toBeDefined();

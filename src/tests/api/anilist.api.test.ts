@@ -43,6 +43,20 @@ describe("AnilistApi", () => {
     ]);
   });
 
+  it("asks for the statistics of one user in one call", async () => {
+    const { calls, transport } = fakeTransport(() => ({ count: 0 }));
+    const api = new AnilistApi({ transport });
+
+    await api.getStatistics(7);
+
+    expect(calls).toEqual([
+      {
+        command: "get_anilist_statistics",
+        args: { userId: 7 },
+      },
+    ]);
+  });
+
   it("asks for every friend score in one call", async () => {
     const { calls, transport } = fakeTransport(() => []);
     const api = new AnilistApi({ transport });

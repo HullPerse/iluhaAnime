@@ -1,6 +1,5 @@
-import type { HighlightRange } from "@/types/search";
-
 import { foldDiacritics } from "@/lib/search/normalize.utils";
+import type { HighlightRange } from "@/types/search";
 
 function isAscii(value: string): boolean {
   for (let i = 0; i < value.length; i++) {
@@ -82,7 +81,7 @@ export function findSubsequenceRanges(value: string, query: string): HighlightRa
     if (isAscii(value)) return findAsciiRanges(value, queryNorm);
     return findGeneralRanges(value, queryNorm);
   }
-  const cacheKey = value + "\0" + query;
+  const cacheKey = `${value}\0${query}`;
   const cached = subsequenceCache.get(cacheKey);
   if (cached !== undefined) return cached;
   const queryNorm = normalizeText(query);
@@ -138,27 +137,55 @@ export function mergeRanges(
   priority: Record<string, number> = KIND_PRIORITY
 ): HighlightRange[] {
   if (ranges.length === 1) {
-    const r = ranges[0];
-    if (r.start >= r.end || r.start >= valueLength) return [];
-    const start = r.start < 0 ? 0 : r.start;
-    const end = r.end > valueLength ? valueLength : r.end;
-    if (start >= end) return [];
-    return [{ kind: r.kind, start, end }];
+    return clipSingleRange(ranges[0], valueLength);
   }
+  const clipped = clipRanges(ranges, valueLength, priority);
+  if (clipped.length === 0) return [];
+  const sorted = clipSort(clipped);
+  return mergeSortedRanges(sorted);
+}
+
+function clipSingleRange(
+  r: HighlightRange,
+  valueLength: number
+): HighlightRange[] {
+  if (r.start >= r.end || r.start >= valueLength) return [];
+  const start = r.start < 0 ? 0 : r.start;
+  const end = r.end > valueLength ? valueLength : r.end;
+  if (start >= end) return [];
+  return [{ kind: r.kind, start, end }];
+}
+
+function clipRanges(
+  ranges: readonly HighlightRange[],
+  valueLength: number,
+  priority: Record<string, number>
+): ClippedRange[] {
+  const clipped: ClippedRange[] = [];
   const rank = (kind: HighlightRange["kind"]): number =>
     priority[kind ?? "match"] ?? 0;
-  const clipped: ClippedRange[] = [];
-  let sorted = true;
   for (const r of ranges) {
     if (r.start >= r.end || r.start >= valueLength) continue;
     const start = r.start < 0 ? 0 : r.start;
     const end = r.end > valueLength ? valueLength : r.end;
-    const prev = clipped.at(-1);
-    if (prev && start < prev.start) sorted = false;
     clipped.push({ kind: r.kind, start, end, rank: rank(r.kind) });
   }
-  if (clipped.length === 0) return [];
+  return clipped;
+}
+
+function clipSort(clipped: ClippedRange[]): ClippedRange[] {
+  let sorted = true;
+  for (let i = 1; i < clipped.length; i++) {
+    if (clipped[i].start < clipped[i - 1].start) {
+      sorted = false;
+      break;
+    }
+  }
   if (!sorted) clipped.sort((a, b) => a.start - b.start);
+  return clipped;
+}
+
+function mergeSortedRanges(clipped: ClippedRange[]): HighlightRange[] {
   const merged: HighlightRange[] = [];
   let overlap = false;
   for (const range of clipped) {
@@ -199,10 +226,7 @@ export interface HighlightToken {
   kind?: HighlightRange["kind"];
 }
 
-export function splitByRanges(
-  value: string,
-  ranges: readonly HighlightRange[]
-): HighlightToken[] {
+export function splitByRanges(value: string, ranges: readonly HighlightRange[]): HighlightToken[] {
   const merged = mergeRanges(ranges, value.length);
   const tokens: HighlightToken[] = [];
   let cursor = 0;

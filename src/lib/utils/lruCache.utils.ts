@@ -12,8 +12,10 @@ interface LruNode<K, V> {
 export function createLruCache<K, V>(capacity: number): LruCache<K, V> {
   const maxSize = Math.max(1, Math.floor(capacity));
   const map = new Map<K, LruNode<K, V>>();
-  let head: LruNode<K, V> | null = null; // oldest
-  let tail: LruNode<K, V> | null = null; // newest
+  // oldest
+  let head: LruNode<K, V> | null = null;
+  // newest
+  let tail: LruNode<K, V> | null = null;
   let size = 0;
   let hits = 0;
   let misses = 0;

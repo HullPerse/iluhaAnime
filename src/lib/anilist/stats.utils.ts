@@ -194,52 +194,6 @@ export function buildStatsOverview({
     return cachedOverview.result;
   }
   const completion = completionFromStatistics(statistics);
-  return {
-    isEmpty: statistics.count === 0,
-    kpi: {
-      titles: statistics.count,
-      episodes: statistics.episodes_watched,
-      hours: Math.round(statistics.minutes_watched / 60),
-      mean: statistics.mean_score,
-      meanLabel: formatMeanScore(statistics.mean_score, scoreFormat),
-      completionRate: completion.rate,
-      completed: completion.completed,
-      started: completion.started,
-    },
-    scores: buildScoreBlock(statistics, scoreFormat),
-    statuses: statistics.statuses
-      .map((row) => ({ status: row.status, count: row.count }))
-      .sort(byStatusRank),
-    formats: statistics.formats
-      .map((row) => ({ format: row.format, count: row.count, mediaIds: row.media_ids }))
-      .sort((left, right) => byCountThenName(left, right, (row) => row.format)),
-    startYears: statistics.start_years
-      .map((row) => ({ year: row.year, count: row.count, mediaIds: row.media_ids }))
-      .sort((left, right) => left.year - right.year),
-    releaseYears: statistics.release_years
-      .map((row) => ({ year: row.year, count: row.count, mediaIds: row.media_ids }))
-      .sort((left, right) => left.year - right.year),
-    genres: statistics.genres
-      .map((row) => ({
-        genre: row.genre,
-        count: row.count,
-        meanScore: row.mean_score,
-        minutes: row.minutes_watched,
-        mediaIds: row.media_ids,
-      }))
-      .sort((left, right) => byCountThenName(left, right, (row) => row.genre))
-      .slice(0, STATS_GENRE_LIMIT),
-    studios: statistics.studios
-      .map((row) => ({
-        id: row.id,
-        name: row.name,
-        count: row.count,
-        mediaIds: row.media_ids,
-      }))
-      .sort((left, right) => byCountThenName(left, right, (row) => row.name))
-      .slice(0, STATS_STUDIO_LIMIT),
-    completion: buildGenreCompletion(lists),
-  };
   const model = {
     isEmpty: statistics.count === 0,
     kpi: {

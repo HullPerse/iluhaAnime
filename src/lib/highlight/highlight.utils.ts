@@ -17,6 +17,7 @@ const KIND_PRIORITY: Record<string, number> = {
 
 const NORMALIZE_CACHE_MAX = 64;
 const normalizeCache = new Map<string, string>();
+const subsequenceCache = new Map<string, HighlightRange[]>();
 
 export function normalizeText(value: string): string {
   const cached = normalizeCache.get(value);
@@ -72,11 +73,28 @@ function findGeneralRanges(value: string, queryNorm: string): HighlightRange[] {
   return ranges;
 }
 
+const SUBSEQUENCE_CACHE_MIN_VALUE_LEN = 100;
+
 export function findSubsequenceRanges(value: string, query: string): HighlightRange[] {
+  if (value.length < SUBSEQUENCE_CACHE_MIN_VALUE_LEN) {
+    const queryNorm = normalizeText(query);
+    if (!queryNorm) return [];
+    if (isAscii(value)) return findAsciiRanges(value, queryNorm);
+    return findGeneralRanges(value, queryNorm);
+  }
+  const cacheKey = value + "\0" + query;
+  const cached = subsequenceCache.get(cacheKey);
+  if (cached !== undefined) return cached;
   const queryNorm = normalizeText(query);
   if (!queryNorm) return [];
-  if (isAscii(value)) return findAsciiRanges(value, queryNorm);
-  return findGeneralRanges(value, queryNorm);
+  if (isAscii(value)) {
+    const result = findAsciiRanges(value, queryNorm);
+    subsequenceCache.set(cacheKey, result);
+    return result;
+  }
+  const result = findGeneralRanges(value, queryNorm);
+  subsequenceCache.set(cacheKey, result);
+  return result;
 }
 
 type ClippedRange = { kind: HighlightRange["kind"]; start: number; end: number; rank: number };

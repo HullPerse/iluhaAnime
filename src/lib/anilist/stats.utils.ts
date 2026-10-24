@@ -170,29 +170,12 @@ function completionFromStatistics(statistics: AniListStatistics): {
   };
 }
 
-function buildGenreCompletion(lists: AniListCollection[]): StatsGenreCompletion[] {
-  const entries = collectAllEntries(lists);
-  const counts = new Map<string, { started: number; completed: number }>();
-  for (const entry of entries) {
-    if (!STARTED.has(entry.list_status)) continue;
-    for (const genre of entry.media.genres) {
-      const row = counts.get(genre) ?? { started: 0, completed: 0 };
-      row.started += 1;
-      if (entry.list_status === "COMPLETED") row.completed += 1;
-      counts.set(genre, row);
-    }
-  }
-  return [...counts.entries()]
-    .filter(([, row]) => row.started >= STATS_MIN_GENRE_SAMPLE)
-    .map(([genre, row]) => ({
-      genre,
-      started: row.started,
-      completed: row.completed,
-      rate: row.completed / row.started,
-    }))
-    .sort((left, right) => right.started - left.started || right.rate - left.rate)
-    .slice(0, STATS_COMPLETION_GENRE_LIMIT);
-}
+let cachedOverview: {
+  statistics: AniListStatistics;
+  lists: AniListCollection[];
+  scoreFormat: AnilistScoreFormat;
+  result: StatsOverviewModel;
+} | null = null;
 
 export function buildStatsOverview({
   statistics,
@@ -203,6 +186,13 @@ export function buildStatsOverview({
   lists: AniListCollection[];
   scoreFormat: AnilistScoreFormat;
 }): StatsOverviewModel {
+  if (
+    cachedOverview?.statistics === statistics &&
+    cachedOverview?.lists === lists &&
+    cachedOverview?.scoreFormat === scoreFormat
+  ) {
+    return cachedOverview.result;
+  }
   const completion = completionFromStatistics(statistics);
   return {
     isEmpty: statistics.count === 0,
@@ -250,12 +240,106 @@ export function buildStatsOverview({
       .slice(0, STATS_STUDIO_LIMIT),
     completion: buildGenreCompletion(lists),
   };
+  const model = {
+    isEmpty: statistics.count === 0,
+    kpi: {
+      titles: statistics.count,
+      episodes: statistics.episodes_watched,
+      hours: Math.round(statistics.minutes_watched / 60),
+      mean: statistics.mean_score,
+      meanLabel: formatMeanScore(statistics.mean_score, scoreFormat),
+      completionRate: completion.rate,
+      completed: completion.completed,
+      started: completion.started,
+    },
+    scores: buildScoreBlock(statistics, scoreFormat),
+    statuses: statistics.statuses
+      .map((row) => ({ status: row.status, count: row.count }))
+      .sort(byStatusRank),
+    formats: statistics.formats
+      .map((row) => ({ format: row.format, count: row.count, mediaIds: row.media_ids }))
+      .sort((left, right) => byCountThenName(left, right, (row) => row.format)),
+    startYears: statistics.start_years
+      .map((row) => ({ year: row.year, count: row.count, mediaIds: row.media_ids }))
+      .sort((left, right) => left.year - right.year),
+    releaseYears: statistics.release_years
+      .map((row) => ({ year: row.year, count: row.count, mediaIds: row.media_ids }))
+      .sort((left, right) => left.year - right.year),
+    genres: statistics.genres
+      .map((row) => ({
+        genre: row.genre,
+        count: row.count,
+        meanScore: row.mean_score,
+        minutes: row.minutes_watched,
+        mediaIds: row.media_ids,
+      }))
+      .sort((left, right) => byCountThenName(left, right, (row) => row.genre))
+      .slice(0, STATS_GENRE_LIMIT),
+    studios: statistics.studios
+      .map((row) => ({
+        id: row.id,
+        name: row.name,
+        count: row.count,
+        mediaIds: row.media_ids,
+      }))
+      .sort((left, right) => byCountThenName(left, right, (row) => row.name))
+      .slice(0, STATS_STUDIO_LIMIT),
+    completion: buildGenreCompletion(lists),
+  };
+  cachedOverview = { statistics, lists, scoreFormat, result: model };
+  return model;
 }
+
+let cachedGenreCompletion: {
+  lists: AniListCollection[];
+  result: StatsGenreCompletion[];
+} | null = null;
+
+function buildGenreCompletion(lists: AniListCollection[]): StatsGenreCompletion[] {
+  if (cachedGenreCompletion?.lists === lists) {
+    return cachedGenreCompletion.result;
+  }
+  const entries = collectAllEntries(lists);
+  const counts = new Map<string, { started: number; completed: number }>();
+  for (const entry of entries) {
+    if (!STARTED.has(entry.list_status)) continue;
+    for (const genre of entry.media.genres) {
+      const row = counts.get(genre) ?? { started: 0, completed: 0 };
+      row.started += 1;
+      if (entry.list_status === "COMPLETED") row.completed += 1;
+      counts.set(genre, row);
+    }
+  }
+  const result = [...counts.entries()]
+    .filter(([, row]) => row.started >= STATS_MIN_GENRE_SAMPLE)
+    .map(([genre, row]) => ({
+      genre,
+      started: row.started,
+      completed: row.completed,
+      rate: row.completed / row.started,
+    }))
+    .sort((left, right) => right.started - left.started || right.rate - left.rate)
+    .slice(0, STATS_COMPLETION_GENRE_LIMIT);
+  cachedGenreCompletion = { lists, result };
+  return result;
+}
+
+let cachedMediaRows: {
+  mediaIds: readonly number[];
+  lists: AniListCollection[];
+  result: StatsMediaRow[];
+} | null = null;
 
 export function buildMediaRows(
   mediaIds: readonly number[],
   lists: AniListCollection[]
 ): StatsMediaRow[] {
+  if (
+    cachedMediaRows?.mediaIds === mediaIds &&
+    cachedMediaRows?.lists === lists
+  ) {
+    return cachedMediaRows.result;
+  }
   const byId = new Map(
     collectAllEntries(lists).map((entry) => [entry.media.id, entry])
   );
@@ -276,5 +360,6 @@ export function buildMediaRows(
       status: entry.list_status,
     });
   }
+  cachedMediaRows = { mediaIds, lists, result: rows };
   return rows;
 }

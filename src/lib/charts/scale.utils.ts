@@ -30,19 +30,35 @@ export function linearScale(domain: Domain, range: Range): (value: number) => nu
   return (value) => from + normalize(value, domain) * span;
 }
 
+let cachedBandScale: {
+  count: number;
+  length: number;
+  gap: number;
+  result: BandScale;
+} | null = null;
+
 export function bandScale(count: number, length: number, gap: number): BandScale {
+  if (
+    cachedBandScale?.count === count &&
+    cachedBandScale?.length === length &&
+    cachedBandScale?.gap === gap
+  ) {
+    return cachedBandScale.result;
+  }
   if (count <= 0 || length <= 0) return EMPTY_BAND;
   const safeGap = Math.max(0, gap);
   const available = Math.max(0, length - safeGap * (count - 1));
   const bandwidth = available / count;
   const step = bandwidth + safeGap;
   const position = (index: number) => index * step;
-  return {
+  const scale: BandScale = {
     bandwidth,
     step,
     position,
     center: (index: number) => position(index) + bandwidth / 2,
   };
+  cachedBandScale = { count, length, gap, result: scale };
+  return scale;
 }
 
 function niceStep(raw: number): number {
@@ -61,7 +77,17 @@ function settle(value: number, step: number): number {
   return Number((Math.round(value / step) * step).toPrecision(12));
 }
 
+let cachedNiceTicks: {
+  min: number;
+  max: number;
+  count: number;
+  result: number[];
+} | null = null;
+
 export function niceTicks(min: number, max: number, count = 5): number[] {
+  if (cachedNiceTicks?.min === min && cachedNiceTicks?.max === max && cachedNiceTicks?.count === count) {
+    return cachedNiceTicks.result;
+  }
   if (!Number.isFinite(min) || !Number.isFinite(max) || count <= 0) return [];
   if (max < min) return niceTicks(max, min, count);
   if (max === min) return [settle(min, 1)];
@@ -71,6 +97,7 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
   for (let value = first; value <= max + step * 1e-9; value += step) {
     ticks.push(settle(value, step));
   }
+  cachedNiceTicks = { min, max, count, result: ticks };
   return ticks;
 }
 

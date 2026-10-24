@@ -15,6 +15,78 @@ import { resolveSegments } from "@/lib/media/segments.utils";
 import { tokenizeMediaName } from "@/lib/media/tokenize.utils";
 import type { DirContext, FieldBag, MediaClassifiedToken, MediaFileParse } from "@/types/media";
 
+const MAX_CLASSIFY_CACHE = 4096;
+const classifyCache = new Map<string, ReturnType<typeof classifyMediaTokens>>();
+
+function classifyCached(stem: string): ReturnType<typeof classifyMediaTokens> {
+  const cached = classifyCache.get(stem);
+  if (cached !== undefined) return cached;
+  const result = classifyMediaTokens(tokenizeMediaName(stem));
+  if (classifyCache.size >= MAX_CLASSIFY_CACHE) {
+    const first = classifyCache.keys().next();
+    if (!first.done) classifyCache.delete(first.value);
+  }
+  classifyCache.set(stem, result);
+  return result;
+}
+
+const partCache = new Map<MediaClassifiedToken[], ReturnType<typeof extractPart>>();
+function extractPartCached(tokens: MediaClassifiedToken[]): ReturnType<typeof extractPart> {
+  const cached = partCache.get(tokens);
+  if (cached !== undefined) return cached;
+  const result = extractPart(tokens);
+  partCache.set(tokens, result);
+  return result;
+}
+
+const episodeCache = new Map<MediaClassifiedToken[], ReturnType<typeof extractEpisode>>();
+function extractEpisodeCached(tokens: MediaClassifiedToken[]): ReturnType<typeof extractEpisode> {
+  const cached = episodeCache.get(tokens);
+  if (cached !== undefined) return cached;
+  const result = extractEpisode(tokens);
+  episodeCache.set(tokens, result);
+  return result;
+}
+
+const seasonCache = new Map<MediaClassifiedToken[], ReturnType<typeof extractSeason>>();
+function extractSeasonCached(tokens: MediaClassifiedToken[]): ReturnType<typeof extractSeason> {
+  const cached = seasonCache.get(tokens);
+  if (cached !== undefined) return cached;
+  const result = extractSeason(tokens);
+  seasonCache.set(tokens, result);
+  return result;
+}
+
+const collectFieldsCache = new Map<MediaClassifiedToken[], FieldBag>();
+function collectFieldsCached(tokens: MediaClassifiedToken[], consumed: Set<number>): FieldBag {
+  const cached = collectFieldsCache.get(tokens);
+  if (cached !== undefined) {
+    return {
+      groups: [...cached.groups],
+      langs: [...cached.langs],
+      subs: [...cached.subs],
+      tags: [...cached.tags],
+      dub: cached.dub,
+      special: cached.special,
+      type: cached.type,
+      source: cached.source,
+      service: cached.service,
+      codec: cached.codec,
+      resolution: cached.resolution,
+      depth: cached.depth,
+      year: cached.year,
+      audio: cached.audio,
+      crc: cached.crc,
+      subVariant: cached.subVariant,
+      season: cached.season,
+      variant: cached.variant,
+    };
+  }
+  const result = collectFields(tokens, consumed);
+  collectFieldsCache.set(tokens, result);
+  return result;
+}
+
 const ROMAN_SEASON: Record<string, number> = {
   ii: 2,
   iii: 3,
@@ -116,26 +188,28 @@ export function assembleTitleWords(
   extras: string[] = []
 ): string[] {
   const words = [...extras];
-  tokens.forEach((token, index) => {
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (!token) continue;
     if (token.kind === "type" && /gekijouban/i.test(token.value)) {
       words.push(token.value);
-      return;
+      continue;
     }
     if (token.kind === "episode" && !consumed.has(index) && /^\d{1,3}$/.test(token.value)) {
       words.push(token.value);
-      return;
+      continue;
     }
-    if (token.kind !== "title" || consumed.has(index)) return;
+    if (token.kind !== "title" || consumed.has(index)) continue;
     if (IGNORE_SUFFIXES.includes(token.value.toLowerCase())) {
       tags.push(token.value);
-      return;
+      continue;
     }
     const next = tokens.at(index + 1);
     if (token.value.toLowerCase() === "by" && (next?.kind === "group" || next?.kind === "studio")) {
-      return;
+      continue;
     }
     words.push(token.value);
-  });
+  }
   return words;
 }
 
@@ -283,7 +357,7 @@ function initSeasonField(
   tokens: MediaClassifiedToken[],
   consumed: Set<number>
 ): { season?: number; variant?: string } {
-  const seasonHit = extractSeason(tokens);
+  const seasonHit = extractSeasonCached(tokens);
   for (const index of seasonHit.consumed) consumed.add(index);
   let season = seasonHit.season > 0 ? seasonHit.season : undefined;
   let variant = seasonHit.variant;
@@ -311,15 +385,15 @@ function startVideoHead(ctx: DirContext, stem: string): VideoHead {
   const leadingMatch = LEADING_NUMBER_RX.exec(stem);
   const leading = (leadingMatch?.[2]?.includes(" ") ?? false) ? leadingMatch : null;
   const rangeMatch = /^(\d{1,3})-(\d{1,3})\.\s*(.+)$/.exec(stem);
-  const tokens = classifyMediaTokens(tokenizeMediaName(stem));
+  const tokens = classifyCached(stem);
   const consumed = new Set<number>();
   const { season: parsedSeason, variant } = initSeasonField(tokens, consumed);
   let season = parsedSeason;
-  const partHit = extractPart(tokens);
+  const partHit = extractPartCached(tokens);
   absorbConsumed(consumed, partHit.consumed);
-  const episodeHit = extractEpisode(tokens);
+  const episodeHit = extractEpisodeCached(tokens);
   absorbConsumed(consumed, episodeHit.consumed);
-  const bag = collectFields(tokens, consumed);
+  const bag = collectFieldsCached(tokens, consumed);
   absorbStrings(bag.subs, ctx.subs);
   if (bag.subVariant === undefined) bag.subVariant = ctx.subVariant;
 
@@ -508,18 +582,31 @@ function mergeVideoContext(
   head: VideoHead,
   ctx: DirContext
 ): { groups: string[]; langs: string[] } {
-  const groups = [...head.bag.groups];
-  const langs = [...head.bag.langs];
+  const groupsSet = new Set(head.bag.groups);
+  const groups: string[] = [];
+  for (const group of head.bag.groups) groups.push(group);
   for (const group of ctx.groups) {
-    if (!groups.includes(group)) groups.push(group);
+    if (!groupsSet.has(group)) {
+      groupsSet.add(group);
+      groups.push(group);
+    }
   }
+  const langsSet = new Set(head.bag.langs);
+  const langs: string[] = [];
+  for (const lang of head.bag.langs) langs.push(lang);
   for (const lang of ctx.langs) {
-    if (!langs.includes(lang)) langs.push(lang);
+    if (!langsSet.has(lang)) {
+      langsSet.add(lang);
+      langs.push(lang);
+    }
   }
   for (const token of head.tokens) {
     if (token.kind === "lang") {
       const lang = canonicalLang(token.value);
-      if (lang && !langs.includes(lang)) langs.push(lang);
+      if (lang && !langsSet.has(lang)) {
+        langsSet.add(lang);
+        langs.push(lang);
+      }
     }
   }
   return { groups, langs };

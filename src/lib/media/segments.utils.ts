@@ -1,8 +1,26 @@
-import { KNOWN_ARCS } from "@/config/media/tokens.config";
+import { KNOWN_ARC_MAP } from "@/config/media/tokens.config";
 import { normalizeMediaDashes } from "@/lib/media/tokenize.utils";
 
 export function normForCompare(text: string): string {
   return text.toLowerCase().replace(/[._]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+const splitSegmentsCache = new Map<string, string[]>();
+function splitSegmentsCached(stem: string): string[] {
+  const cached = splitSegmentsCache.get(stem);
+  if (cached !== undefined) return cached;
+  const result = splitSegments(stem);
+  splitSegmentsCache.set(stem, result);
+  return result;
+}
+
+const normCompareCache = new Map<string, string>();
+function normForCompareCached(text: string): string {
+  const cached = normCompareCache.get(text);
+  if (cached !== undefined) return cached;
+  const result = normForCompare(text);
+  normCompareCache.set(text, result);
+  return result;
 }
 
 function splitSegments(stem: string): string[] {
@@ -35,11 +53,8 @@ function arcNorm(segment: string): string | null {
 }
 
 function canonicalArc(arc: string): string {
-  const norm = arc.toLowerCase().replace(/-/g, " ");
-  for (const known of KNOWN_ARCS) {
-    if (known.toLowerCase().replace(/-/g, " ") === norm) return known;
-  }
-  return arc;
+  const norm = arc.toLowerCase().replace(/-/g, " ").replace(/\s+/g, " ").trim();
+  return KNOWN_ARC_MAP.get(norm) ?? arc;
 }
 
 function findSegmentArc(
@@ -56,14 +71,11 @@ function findSegmentArc(
   return null;
 }
 
-export function splitKnownArcTail(
-  words: readonly string[],
-  knownArcs: readonly string[]
-): { head: string[]; arc: string } | null {
+export function splitKnownArcTail(words: readonly string[]): { head: string[]; arc: string } | null {
   for (let start = 1; start < words.length; start += 1) {
     const key = arcKey(words.slice(start).join(" "));
     if (key.length === 0) return null;
-    const known = knownArcs.find((arc) => arcKey(arc) === key);
+    const known = KNOWN_ARC_MAP.get(key);
     if (known !== undefined) return { head: words.slice(0, start), arc: known };
   }
   return null;
@@ -76,7 +88,7 @@ function joinThreeSegments(
   const first = cleanHead(segments.at(0) ?? "");
   const second = (segments.at(1) ?? "").trim();
   const contains = (part: string): boolean => {
-    const norm = normForCompare(part.replace(/^\[[^\]]*\]\s*/, ""));
+    const norm = normForCompareCached(part.replace(/^\[[^\]]*\]\s*/, ""));
     return norm.length > 0 && dirNorm.includes(norm);
   };
   const firstHit = contains(first);
@@ -105,7 +117,7 @@ export function resolveSegments(
   dirRaw: string,
   fallbackTitle: string
 ): { title: string; arc?: string; prefix?: string; movieHint?: boolean } {
-  const segments = splitSegments(stem).map((segment) => segment.trim());
+  const segments = splitSegmentsCached(stem).map((segment) => segment.trim());
   if (segments.length < 2) return { title: fallbackTitle };
   const head = cleanHead(segments.at(0) ?? "");
   const last = segments.at(-1) ?? "";

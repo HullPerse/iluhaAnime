@@ -119,6 +119,14 @@ export function mergeRanges(
   valueLength: number,
   priority: Record<string, number> = KIND_PRIORITY
 ): HighlightRange[] {
+  if (ranges.length === 1) {
+    const r = ranges[0];
+    if (r.start >= r.end || r.start >= valueLength) return [];
+    const start = r.start < 0 ? 0 : r.start;
+    const end = r.end > valueLength ? valueLength : r.end;
+    if (start >= end) return [];
+    return [{ kind: r.kind, start, end }];
+  }
   const rank = (kind: HighlightRange["kind"]): number =>
     priority[kind ?? "match"] ?? 0;
   const clipped: ClippedRange[] = [];

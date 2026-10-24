@@ -1,4 +1,4 @@
-import { resolveMediaFile } from "@/lib/media/resolve.utils";
+import { clearResolveCache, resolveMediaFile } from "@/lib/media/resolve.utils";
 import { createLruCache } from "@/lib/utils/lruCache.utils";
 import type { MediaFileParse } from "@/types/media";
 
@@ -49,4 +49,5 @@ export function parseMediaPath(fullPath: string): MediaFileParse {
 
 export function clearMediaParseCache(): void {
   parseCache.clear();
+  clearResolveCache();
 }

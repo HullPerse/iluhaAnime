@@ -1,5 +1,10 @@
 import type { AniListCollection, AniListEntry, AniListGroup } from "@/types/anilist";
 
+let cachedCollectAllEntries: {
+  lists: AniListCollection[];
+  result: AniListEntry[];
+} | null = null;
+
 export function groupEntriesByList(
   entries: AniListEntry[],
   lists: AniListCollection[]
@@ -26,14 +31,37 @@ export function groupEntriesByList(
     bucket.push(entry);
   }
   const rank = new Map(lists.map((list, index) => [list.name, index]));
-  return [...buckets]
+  const result = [...buckets]
     .sort((a, b) => (rank.get(a[0]) ?? lists.length) - (rank.get(b[0]) ?? lists.length))
     .map(([name, groupEntries]) => ({ name, entries: groupEntries }));
+  return result;
 }
 
-export const ALL_LISTS_ID = "__all";
+let cachedGroupEntriesByList: {
+  entries: AniListEntry[];
+  lists: AniListCollection[];
+  result: AniListGroup[];
+} | null = null;
+
+export function groupEntriesByListCached(
+  entries: AniListEntry[],
+  lists: AniListCollection[]
+): AniListGroup[] {
+  if (
+    cachedGroupEntriesByList?.entries === entries &&
+    cachedGroupEntriesByList?.lists === lists
+  ) {
+    return cachedGroupEntriesByList.result;
+  }
+  const result = groupEntriesByList(entries, lists);
+  cachedGroupEntriesByList = { entries, lists, result };
+  return result;
+}
 
 export function collectAllEntries(lists: AniListCollection[]): AniListEntry[] {
+  if (cachedCollectAllEntries?.lists === lists) {
+    return cachedCollectAllEntries.result;
+  }
   const seen = new Set<number>();
   const out: AniListEntry[] = [];
   for (const list of lists) {
@@ -43,8 +71,11 @@ export function collectAllEntries(lists: AniListCollection[]): AniListEntry[] {
       out.push(entry);
     }
   }
+  cachedCollectAllEntries = { lists, result: out };
   return out;
 }
+
+export const ALL_LISTS_ID = "__all";
 
 export function activeListEntries(lists: AniListCollection[], currentList: string): AniListEntry[] {
   if (currentList === ALL_LISTS_ID) return collectAllEntries(lists);

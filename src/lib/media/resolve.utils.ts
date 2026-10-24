@@ -7,8 +7,24 @@ import { absorbStrings, resolveVideo } from "@/lib/media/video.utils";
 import { createLruCache } from "@/lib/utils/lruCache.utils";
 import type { DirContext, MediaFileParse } from "@/types/media";
 
-const MAX_DIR_CONTEXT_CACHE = 200;
+const MAX_DIR_CONTEXT_CACHE = 8000;
 const dirContextCache = createLruCache<string, DirContext>(MAX_DIR_CONTEXT_CACHE);
+
+const MAX_RESOLVE_CACHE = 4096;
+const resolveCache = new Map<string, MediaFileParse>();
+
+function resolveVideoCached(ctx: DirContext, dirRaw: string, stem: string): MediaFileParse {
+  const key = `${dirRaw}\0${stem}`;
+  const cached = resolveCache.get(key);
+  if (cached !== undefined) return cached;
+  const result = resolveVideo(ctx, dirRaw, stem);
+  if (resolveCache.size >= MAX_RESOLVE_CACHE) {
+    const first = resolveCache.keys().next();
+    if (!first.done) resolveCache.delete(first.value);
+  }
+  resolveCache.set(key, result);
+  return result;
+}
 
 function splitDir(dir: string | null): string[] {
   if (!dir) return [];
@@ -151,5 +167,9 @@ export function resolveMediaFile(dir: string | null, file: string): MediaFilePar
     return resolveSidecar(dirRaw, stem, ext);
   }
   const ctx = getDirContext(dirRaw);
-  return resolveVideo(ctx, dirRaw, stem);
+  return resolveVideoCached(ctx, dirRaw, stem);
+}
+
+export function clearResolveCache(): void {
+  resolveCache.clear();
 }

@@ -139,6 +139,14 @@ export const KNOWN_ARCS: readonly string[] = [
   "Kanketsu-hen",
 ];
 
+export const KNOWN_ARC_MAP: ReadonlyMap<string, string> = (() => {
+  const map = new Map<string, string>();
+  for (const arc of KNOWN_ARCS) {
+    map.set(arc.toLowerCase().replace(/-/g, " ").replace(/\s+/g, " ").trim(), arc);
+  }
+  return map;
+})();
+
 export const SEASON_EPISODE_RX = /S(\d{1,2})E(\d{1,3})/i;
 
 export const COMPACT_SPE_RX = /S(\d{1,2})\s*-\s*P(\d{1,2})\s*-\s*E(\d{1,3})/i;

@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { KNOWN_ARCS } from "@/config/media/tokens.config";
 import { normForCompare, resolveSegments, splitKnownArcTail } from "@/lib/media/segments.utils";
 
 describe("splitKnownArcTail contract", () => {
   it("splits a known arc off the word tail", () => {
-    expect(
-      splitKnownArcTail(["Kimetsu", "no", "Yaiba", "Hashira", "Geiko", "hen"], KNOWN_ARCS)
-    ).toEqual({ head: ["Kimetsu", "no", "Yaiba"], arc: "Hashira Geiko-hen" });
+    expect(splitKnownArcTail(["Kimetsu", "no", "Yaiba", "Hashira", "Geiko", "hen"])).toEqual({
+      head: ["Kimetsu", "no", "Yaiba"],
+      arc: "Hashira Geiko-hen",
+    });
   });
 
   it("returns null when the tail is not an arc", () => {
-    expect(splitKnownArcTail(["Naruto"], KNOWN_ARCS)).toBeNull();
+    expect(splitKnownArcTail(["Naruto"])).toBeNull();
   });
 
   it("returns null for a plain title with several words", () => {
-    expect(splitKnownArcTail(["Boku", "no", "Hero"], KNOWN_ARCS)).toBeNull();
+    expect(splitKnownArcTail(["Boku", "no", "Hero"])).toBeNull();
   });
 });
 

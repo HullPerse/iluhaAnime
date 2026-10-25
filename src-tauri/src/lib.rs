@@ -1789,6 +1789,13 @@ pub fn run() {
             handle.manage(game::GameHost::default());
             handle.manage(player::PlayerHost::default());
             player::state::attach(app.handle());
+            let prewarm_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                if let Err(error) = player::prewarm_player(prewarm_handle).await {
+                    tracing::warn!("player prewarm failed: {error}");
+                }
+            });
             #[cfg(debug_assertions)]
             match std::env::var("ILUHA_OPEN_FILE") {
                 Ok(path) => {

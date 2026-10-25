@@ -207,6 +207,15 @@ export async function applyAudioOptions(settings: PlayerSettings): Promise<void>
   await applyProperties(audioOptions(settings));
 }
 
+export async function applyBatchProperties(
+  properties: Record<string, unknown>
+): Promise<void> {
+  const entries = Object.entries(properties);
+  await invokeTyped("player_apply_batch", {
+    properties: entries.map(([name, value]) => [name, value]),
+  });
+}
+
 export async function openPlayer(
   files: string[],
   resume?: number,

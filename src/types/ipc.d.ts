@@ -127,6 +127,7 @@ export type CommandName =
   | "pause_torrent"
   | "ping"
   | "player_append_files"
+  | "player_apply_batch"
   | "player_apply_file_state"
   | "player_close_window"
   | "player_command"

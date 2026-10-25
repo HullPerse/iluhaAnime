@@ -10,7 +10,6 @@ pub use commands::*;
 pub use state::PlayerHost;
 
 pub const PLAYER_WINDOW_LABEL: &str = "player";
-
 pub const PLAYER_ROUTE: &str = "player-window";
 
 pub const EVENT_STATE: &str = "player-state";

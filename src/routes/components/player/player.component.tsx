@@ -53,10 +53,8 @@ import {
   addExternalAudio,
   addExternalSubtitle,
   appendFiles,
-  applyAudioOptions,
-  applyColorOptions,
+  applyBatchProperties,
   applyFileState,
-  applyHdrOptions,
   applyPlayerProfile,
   applyProperties,
   audioOptions,
@@ -67,6 +65,7 @@ import {
   diffOptions,
   hdrOptions,
   initPlayer,
+  profileOptions,
   type FilePlaybackState,
   loadQueue,
   movePlaylistIndex,
@@ -454,21 +453,26 @@ function PlayerComponent() {
         }),
         ...marginOptions(seedMargins),
       });
-      await Promise.all([
-        applyPlayerProfile(store.profile).catch((error: unknown) =>
-          reportBackgroundError("player.init.profile", error)
-        ),
-        applyHdrOptions(store.settings).catch((error: unknown) =>
-          reportBackgroundError("player.init.hdr", error)
-        ),
-        applyColorOptions(store.settings).catch((error: unknown) =>
-          reportBackgroundError("player.init.color", error)
-        ),
-        applyAudioOptions(store.settings).catch((error: unknown) =>
-          reportBackgroundError("player.init.audio", error)
-        ),
-        setEofModeCommand(store.eofMode),
-      ]);
+      const batchProps: Record<string, unknown> = {
+        ...profileOptions(store.profile),
+        ...hdrOptions(store.settings),
+        ...colorOptions(store.settings),
+        ...audioOptions(store.settings),
+      };
+      const [keepOpen, loopFile, loopPlaylist] =
+        store.eofMode === "none"
+          ? ["always", "no", "no"]
+          : store.eofMode === "pause"
+            ? ["yes", "no", "no"]
+            : store.eofMode === "next"
+              ? ["no", "no", "no"]
+              : ["no", "inf", "no"];
+      batchProps["keep-open"] = keepOpen;
+      batchProps["loop-file"] = loopFile;
+      batchProps["loop-playlist"] = loopPlaylist;
+      await applyBatchProperties(batchProps).catch((error: unknown) =>
+        reportBackgroundError("player.init.batch", error)
+      );
       if (disposed) return;
       syncMarginsRef.current(true);
       const request = await takePendingOpen();

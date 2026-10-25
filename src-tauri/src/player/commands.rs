@@ -22,7 +22,7 @@ fn cached_player_decorations(app: &AppHandle) -> bool {
         .unwrap_or(true)
 }
 
-fn observed_properties() -> Value {
+pub(crate) fn observed_properties() -> Value {
     json!({
         "time-pos": "double",
         "duration": "double",
@@ -39,7 +39,7 @@ fn observed_properties() -> Value {
     })
 }
 
-fn with_structural_options(options: Value) -> Value {
+pub(crate) fn with_structural_options(options: Value) -> Value {
     let mut map = options.as_object().cloned().unwrap_or_default();
     for (key, value) in [
         ("idle", json!("yes")),
@@ -81,7 +81,7 @@ const ALLOWED_INITIAL_OPTIONS: &[&str] = &[
     "video-margin-ratio-right",
 ];
 
-fn sanitize_initial_options(options: Value) -> Value {
+pub(crate) fn sanitize_initial_options(options: Value) -> Value {
     let Some(map) = options.as_object() else {
         return options;
     };
@@ -188,6 +188,18 @@ pub async fn player_open(
         start_index,
         watch,
     };
+
+    let host = app.state::<PlayerHost>();
+    if host.is_active() {
+        host.set_pending_open(Some(request.clone()));
+        app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
+            .map_err(|error| error.to_string())?;
+        if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        return load_queue(&app, PLAYER_WINDOW_LABEL, &request.files, resume, start_index);
+    }
 
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
         let host = app.state::<PlayerHost>();
@@ -612,10 +624,95 @@ pub fn player_apply_file_state(
     Ok(())
 }
 
+pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
+    let label = PLAYER_WINDOW_LABEL.to_string();
+
+    if app.get_webview_window(&label).is_some() {
+        return Ok(());
+    }
+
+    let window = match WebviewWindowBuilder::new(
+        &app,
+        &label,
+        WebviewUrl::App(PLAYER_ROUTE.into()),
+    )
+    .title("iluhaAnime")
+    .inner_size(1280.0, 720.0)
+    .min_inner_size(480.0, 300.0)
+    .decorations(false)
+    .transparent(true)
+    .visible(false)
+    .center()
+    .build()
+    {
+        Ok(window) => window,
+        Err(error) => return Err(format!("prewarm create window: {error}")),
+    };
+
+    let _ = window.set_focus();
+
+    let app_for_event = app.clone();
+    let label_for_event = label.clone();
+    window.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            let backend = LibmpvCore::new(app_for_event.clone());
+            let host = app_for_event.state::<PlayerHost>();
+            host.set_active(false);
+            let label_for_destroy = label_for_event.clone();
+            drop(tauri::async_runtime::spawn_blocking(move || {
+                backend.destroy(&label_for_destroy)
+            }));
+        }
+    });
+
+    let backend = LibmpvCore::new(app.clone());
+    let config: MpvConfig = serde_json::from_value(json!({
+        "initialOptions": with_structural_options(sanitize_initial_options(json!({}))),
+        "observedProperties": observed_properties(),
+    }))
+    .map_err(|error| format!("prewarm invalid config: {error}"))?;
+
+    let init_label = label.clone();
+    tauri::async_runtime::spawn_blocking(move || backend.init(config, &init_label)).await
+        .map_err(|error| format!("prewarm init task failed: {error}"))??;
+
+    app.state::<PlayerHost>().set_active(true);
+
+    tracing::info!("player prewarm complete");
+    Ok(())
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn player_apply_batch(
+    app: AppHandle,
+    window: WebviewWindow,
+    properties: Vec<(String, Value)>,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    let backend = core(&app);
+    let results: Vec<Result<(), String>> = properties
+        .into_iter()
+        .map(|(name, value)| backend.set_property(&name, &value, &label))
+        .collect();
+
+    let mut failed: Vec<String> = Vec::new();
+    for (i, result) in results.into_iter().enumerate() {
+        if let Err(error) = result {
+            failed.push(format!("{}: {}", i, error));
+        }
+    }
+
+    if !failed.is_empty() {
+        return Err(format!("player_apply_batch: {}", failed.join(", ")));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::eof_properties;
-    use super::{PlayerOpenRequest, PlaylistWatch};
+    use super::{eof_properties, PlayerOpenRequest, PlaylistWatch};
 
     #[test]
     fn eof_modes_map_to_mpv_keep_open_and_loop_properties() {

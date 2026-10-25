@@ -56,7 +56,7 @@ function Timeline({
   const showRemainingTime = showRemaining && duration > 0;
   const timeWidth = `${formatClock(duration).length * 2 + 4}ch`;
   const timeLabel = showRemainingTime
-    ? `-${formatClock(Math.max(0, duration - displayTime))} / ${formatClock(duration)}`
+    ? `-${formatClock(Math.max(0, duration - displayTime))}`
     : `${formatClock(displayTime)} / ${formatClock(duration)}`;
   const toggleLabel = t("player.media.timeline.toggle");
 

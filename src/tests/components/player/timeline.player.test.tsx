@@ -71,7 +71,7 @@ describe("Timeline remaining toggle", () => {
     expect(toggle.textContent).toBe("0:00 / 23:20");
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(toggle);
-    expect(toggle.textContent).toBe("-23:20 / 23:20");
+    expect(toggle.textContent).toBe("-23:20");
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(toggle);
     expect(toggle.textContent).toBe("0:00 / 23:20");

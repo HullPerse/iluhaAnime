@@ -27,7 +27,7 @@ import type { SessionConfigPayload } from "@/types/settings";
 import type { FileOrder } from "@/types/torrent";
 
 import { NetworkNumberRow } from "./networkNumberRow.settings";
-import { SectionResetButton } from "./section-reset-button.settings";
+import { SectionResetButton } from "./reset.settings";
 
 export default function SettingsTorrent() {
   const limits = useCell(settingsAtoms.limits);
@@ -136,7 +136,7 @@ export default function SettingsTorrent() {
   return (
     <div className="flex flex-col gap-3">
       <section className="ui-panel" data-find-section="torrent.limits">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.speed.limits")}</span>
           <SectionResetButton sectionId="torrent.limits" />
         </div>
@@ -176,13 +176,15 @@ export default function SettingsTorrent() {
       </section>
 
       <section className="ui-panel" data-find-section="torrent.defaults">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.defaults")}</span>
           <SectionResetButton sectionId="torrent.defaults" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
-            <span className="w-40 shrink-0 font-bold">{t("settings.torrent.default.download.dir")}</span>
+            <span className="w-40 shrink-0 font-bold">
+              {t("settings.torrent.default.download.dir")}
+            </span>
             <Input
               value={defaultDownloadDir ?? ""}
               onChange={(e) => patchSettings({ defaultDownloadDir: e.target.value || null })}
@@ -191,7 +193,9 @@ export default function SettingsTorrent() {
             />
           </label>
           <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
-            <span className="w-40 shrink-0 font-bold">{t("settings.torrent.default.concurrent")}</span>
+            <span className="w-40 shrink-0 font-bold">
+              {t("settings.torrent.default.concurrent")}
+            </span>
             <Input
               type="number"
               min={1}
@@ -205,7 +209,7 @@ export default function SettingsTorrent() {
       </section>
 
       <section className="ui-panel" data-find-section="torrent.schedule">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.schedule")}</span>
           <SectionResetButton sectionId="torrent.schedule" />
         </div>
@@ -299,16 +303,16 @@ export default function SettingsTorrent() {
       </section>
 
       <section className="ui-panel" data-find-section="torrent.search">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.search")}</span>
           <SectionResetButton sectionId="torrent.search" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.torrent.results.per.page")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Input
                 type="number"
                 min={5}
@@ -323,7 +327,7 @@ export default function SettingsTorrent() {
       </section>
 
       <section className="ui-panel" data-find-section="torrent.files">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.files")}</span>
           <SectionResetButton sectionId="torrent.files" />
         </div>
@@ -363,9 +367,7 @@ export default function SettingsTorrent() {
                   size: formatBytes(leftoverBytes),
                 })}
           </span>
-          <span className="text-hint pl-2 text-xs">
-            {t("settings.torrent.leftovers.hint")}
-          </span>
+          <span className="text-hint pl-2 text-xs">{t("settings.torrent.leftovers.hint")}</span>
           <div className="pt-1">
             <Button disabled={leftovers.length === 0} onClick={clearLeftovers}>
               {t("settings.torrent.leftovers.clear")}
@@ -375,7 +377,7 @@ export default function SettingsTorrent() {
       </section>
 
       <section className="ui-panel" data-find-section="torrent.notifications">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.notifications")}</span>
           <SectionResetButton sectionId="torrent.notifications" />
         </div>
@@ -401,7 +403,7 @@ export default function SettingsTorrent() {
       </section>
 
       <section className="ui-panel" data-find-section="torrent.session">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.session")}</span>
           <SectionResetButton sectionId="torrent.session" />
         </div>
@@ -432,7 +434,7 @@ export default function SettingsTorrent() {
       </section>
 
       <section className="ui-panel" data-find-section="torrent.network">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.network")}</span>
           <SectionResetButton sectionId="torrent.network" />
         </div>
@@ -449,17 +451,11 @@ export default function SettingsTorrent() {
             <span>{t("settings.torrent.enable.upnp")}</span>
           </label>
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-            <Checkbox
-              checked={dhtEnabled}
-              onChange={(v) => patchSettings({ dhtEnabled: v })}
-            />
+            <Checkbox checked={dhtEnabled} onChange={(v) => patchSettings({ dhtEnabled: v })} />
             <span>{t("settings.torrent.dht.enabled")}</span>
           </label>
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-            <Checkbox
-              checked={pexEnabled}
-              onChange={(v) => patchSettings({ pexEnabled: v })}
-            />
+            <Checkbox checked={pexEnabled} onChange={(v) => patchSettings({ pexEnabled: v })} />
             <span>{t("settings.torrent.pex.enabled")}</span>
           </label>
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">

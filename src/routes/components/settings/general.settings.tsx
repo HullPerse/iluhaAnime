@@ -22,7 +22,7 @@ import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
 
 import SettingsMedia from "./media.settings";
-import { SectionResetButton } from "./section-reset-button.settings";
+import { SectionResetButton } from "./reset.settings";
 import ScreenshotSettings from "./screenshot.settings";
 
 function KeyboardSettings() {
@@ -30,16 +30,16 @@ function KeyboardSettings() {
   const { t } = useI18n();
   return (
     <section className="ui-panel" data-find-section="general.keyboard">
-      <div className="ui-titlebar flex items-center justify-between gap-1">
+      <div className="ui-titlebar group flex items-center justify-between gap-1">
         <span className="text-title-text font-bold">{t("settings.keyboard")}</span>
         <SectionResetButton sectionId="general.keyboard" />
       </div>
       <div className="flex flex-col gap-1 p-2">
-        <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+        <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
           <span className="windows95-text text-text flex items-center text-xs font-bold">
             {t("settings.vim.mode")}
           </span>
-          <div className="flex flex-col gap-0.5 min-w-0">
+          <div className="flex min-w-0 flex-col gap-0.5">
             <span className="text-hint text-[12px]">{t("settings.vim.mode.hint")}</span>
             <Select
               value={vimMode ? "on" : "off"}
@@ -127,12 +127,12 @@ export default function SettingsGeneral() {
   return (
     <div className="flex flex-col gap-3">
       <section className="ui-panel" data-find-section="general.tabs">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.tabs")}</span>
           <SectionResetButton sectionId="general.tabs" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1 min-[560px]:grid-cols-[140px_1fr]">
             <span />
             <div className="flex flex-col gap-4">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
@@ -165,12 +165,12 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.startup">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.startup")}</span>
           <SectionResetButton sectionId="general.startup" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1 min-[560px]:grid-cols-[140px_1fr]">
             <span />
             <div className="flex flex-col gap-4">
               <label
@@ -198,16 +198,16 @@ export default function SettingsGeneral() {
       <KeyboardSettings />
 
       <section className="ui-panel" data-find-section="general.window">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.window")}</span>
           <SectionResetButton sectionId="general.window" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.window")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
                 <Checkbox
                   checked={minimizeToTray}
@@ -224,16 +224,16 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.language">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.language")}</span>
           <SectionResetButton sectionId="general.language" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.language")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Select
                 value={language}
                 onChange={(value) => patchSettings({ language: value as Locale })}
@@ -248,7 +248,7 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.ffmpeg.source")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Select
                 value={ffmpegSource}
                 onChange={(value) =>
@@ -273,16 +273,16 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.tmdb">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.tmdb.api.key")}</span>
           <SectionResetButton sectionId="general.tmdb" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.tmdb.api.key")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <span className="text-hint text-[12px]">
                 {t("settings.tmdb.api.key.description")}
               </span>
@@ -320,7 +320,7 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.tmdb.proxy.url")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <span className="text-hint text-[12px]">
                 {t("settings.tmdb.proxy.url.description")}
               </span>
@@ -415,16 +415,16 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.anilist">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.anilist.proxy.title")}</span>
           <SectionResetButton sectionId="general.anilist" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.anilist.proxy.url")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <span className="text-hint text-[12px]">
                 {t("settings.anilist.proxy.url.description")}
               </span>
@@ -521,7 +521,7 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.anilist.title.language")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <Select
                 value={anilistTitleLanguage}
                 onChange={(value) =>
@@ -541,7 +541,7 @@ export default function SettingsGeneral() {
             <span className="windows95-text text-destructive flex items-center text-xs font-bold">
               {t("settings.anilist.adult")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
                 <Checkbox
                   checked={anilistAdultContent}
@@ -557,16 +557,16 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.parse">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.parse.titles")}</span>
           <SectionResetButton sectionId="general.parse" />
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.parse.titles")}
             </span>
-            <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
                 <Checkbox
                   checked={parseTitlesPlayer}
@@ -594,7 +594,7 @@ export default function SettingsGeneral() {
                 />
                 <span>{t("settings.parse.search")}</span>
               </label>
-              <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="windows95-text text-text text-xs">
                   {t("settings.torrent.covers")}
                 </span>
@@ -630,7 +630,7 @@ export default function SettingsGeneral() {
       <hr className="border-muted my-1 w-full border-t" />
 
       <div
-        className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5"
+        className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]"
         data-find-section="general.reset"
       >
         <span className="windows95-text text-destructive text-xs font-bold">

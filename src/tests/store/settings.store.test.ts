@@ -1,7 +1,8 @@
 import { describe, expect, it, vi, beforeAll } from "vitest";
 
+import { playerVisibility } from "@/lib/settings/playerVisibility.utils";
+
 import { mockInvoke } from "../mocks";
-import { playerVisibility } from "@/lib/settings/playerVisibility.service";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,

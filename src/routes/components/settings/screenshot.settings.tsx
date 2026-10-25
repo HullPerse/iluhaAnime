@@ -7,7 +7,7 @@ import { useCell } from "@/lib/state/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { ScreenshotFormat } from "@/types/screenshot";
 
-import { SectionResetButton } from "./section-reset-button.settings";
+import { SectionResetButton } from "./reset.settings";
 
 export default function ScreenshotSettings() {
   const screenshotDir = useCell(settingsAtoms.screenshotDir);
@@ -17,7 +17,7 @@ export default function ScreenshotSettings() {
 
   return (
     <section className="ui-panel" data-find-section="general.screenshot">
-      <div className="ui-titlebar flex items-center justify-between gap-1">
+      <div className="ui-titlebar group flex items-center justify-between gap-1">
         <span className="text-title-text font-bold">{t("settings.screenshot")}</span>
         <SectionResetButton sectionId="general.screenshot" />
       </div>
@@ -35,9 +35,7 @@ export default function ScreenshotSettings() {
           <span className="w-40 shrink-0 font-bold">{t("settings.screenshot.format")}</span>
           <Select
             value={screenshotFormat}
-            onChange={(value) =>
-              patchSettings({ screenshotFormat: value as ScreenshotFormat })
-            }
+            onChange={(value) => patchSettings({ screenshotFormat: value as ScreenshotFormat })}
             options={SCREENSHOT_FORMATS.map((f) => ({
               value: f,
               label: t(SCREENSHOT_FORMAT_LABELS[f]),
@@ -49,9 +47,7 @@ export default function ScreenshotSettings() {
           <span className="w-40 shrink-0 font-bold">{t("settings.screenshot.open.folder")}</span>
           <Checkbox
             checked={screenshotOpenFolder}
-            onChange={() =>
-              patchSettings({ screenshotOpenFolder: !screenshotOpenFolder })
-            }
+            onChange={() => patchSettings({ screenshotOpenFolder: !screenshotOpenFolder })}
           />
           <span>{t("settings.screenshot.open.folder")}</span>
         </label>

@@ -1,6 +1,6 @@
-import { mockInvoke } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { mockInvoke } from "../mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -8,12 +8,12 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
+import { PlayerVisibilityService } from "@/lib/settings/playerVisibility.utils";
 import {
   createSettingsSignalStore,
   SETTINGS_SCHEMA_VERSION,
   type SettingsSignalStore,
 } from "@/store/settings.store";
-import { PlayerVisibilityService } from "@/lib/settings/playerVisibility.service";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {
   return {

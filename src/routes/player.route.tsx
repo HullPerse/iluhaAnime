@@ -32,6 +32,7 @@ import {
 } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { playerVisibility } from "@/lib/settings/playerVisibility.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { isExtraFile } from "@/lib/torrent/extra.utils";
 import { attempt, attemptRetry, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -50,11 +51,7 @@ import {
   removeCategory,
   removeEntriesByFolderPath,
 } from "@/store/category.store";
-import {
-  patchSettings,
-  settingsAtoms,
-} from "@/store/settings.store";
-import { playerVisibility } from "@/lib/settings/playerVisibility.service";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { FolderScanResult, VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";

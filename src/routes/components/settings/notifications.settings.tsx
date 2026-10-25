@@ -19,7 +19,7 @@ import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/ani
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { NotificationPopupMode } from "@/types/settings";
 
-import { SectionResetButton } from "./section-reset-button.settings";
+import { SectionResetButton } from "./reset.settings";
 
 function NotifyRow({
   label,
@@ -86,7 +86,7 @@ export default function SettingsNotifications() {
   return (
     <div className="flex flex-col gap-3">
       <section className="ui-panel" data-find-section="notifications.system">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.notifications.system")}</span>
           <SectionResetButton sectionId="notifications.system" />
         </div>
@@ -111,7 +111,7 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.anilist">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.anilist")}
           </span>
@@ -211,7 +211,7 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.torrents">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.torrents")}
           </span>
@@ -227,7 +227,7 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.tasks">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.tasks")}
           </span>
@@ -253,7 +253,7 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.app">
-        <div className="ui-titlebar flex items-center justify-between gap-1">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.notifications.group.app")}</span>
           <SectionResetButton sectionId="notifications.app" />
         </div>

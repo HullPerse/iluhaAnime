@@ -358,6 +358,8 @@ const settings = {
   "settings.torrent.network": "Network",
   "settings.torrent.listen.port": "Listen port (0 = auto)",
   "settings.torrent.enable.upnp": "UPnP port forwarding",
+  "settings.torrent.dht.enabled": "Enable DHT",
+  "settings.torrent.pex.enabled": "Enable Peer Exchange (PEX)",
   "settings.torrent.ipv4.only": "IPv4 only",
   "settings.torrent.peer.connect.timeout": "Peer connect timeout (s)",
   "settings.torrent.peer.readwrite.timeout": "Peer read/write timeout (s)",
@@ -379,6 +381,10 @@ const settings = {
   "settings.torrent.schedule.day": "Day time",
   "settings.torrent.schedule.day.limits": "Day limits (KB/s)",
   "settings.torrent.schedule.night.limits": "Night limits (KB/s)",
+  "settings.torrent.defaults": "Torrent defaults",
+  "settings.torrent.default.download.dir": "Default download directory",
+  "settings.torrent.default.download.dir.hint": "Folder where new torrents are saved",
+  "settings.torrent.default.concurrent": "Max concurrent downloads",
   "settings.theme.schedule": "Day/night theme",
   "settings.theme.schedule.enable": "Switch theme by time of day",
   "settings.theme.schedule.day": "Day time",
@@ -489,6 +495,12 @@ const settings = {
   "settings.find.footer.hint": "Enter jump - Up/Down choose - Esc clear",
   "settings.find.results": "{{count}} matches",
   "settings.find.results.one": "{{count}} match",
+  "settings.reset.section": "Reset section defaults",
+  "settings.screenshot": "Screenshots",
+  "settings.screenshot.folder": "Screenshot folder",
+  "settings.screenshot.folder.hint": "Where screenshots are saved",
+  "settings.screenshot.format": "Default format",
+  "settings.screenshot.open.folder": "Open folder after saving",
 } as const;
 
 export default settings;

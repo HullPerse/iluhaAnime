@@ -25,6 +25,8 @@ export const DEFAULT_WALLPAPER_SHADOW: WallpaperShadow = {
 export const DEFAULT_SETTINGS: SettingsDefaults = {
   anilistMaxPages: 3,
   collectionGroupHeaderStyle: "torrent",
+  defaultDownloadDir: null,
+  maxConcurrentDownloads: 3,
   limits: { download: null, upload: null },
   speedSchedule: {
     enabled: false,
@@ -79,6 +81,8 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   enable3dBorders: true,
   enableAnimations: false,
   enableUpnp: true,
+  dhtEnabled: true,
+  pexEnabled: true,
   fastresumeEnabled: true,
   fileOrder: "list",
   ffmpegSource: "essentials",

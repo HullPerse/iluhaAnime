@@ -13,6 +13,7 @@ import {
   SETTINGS_SCHEMA_VERSION,
   type SettingsSignalStore,
 } from "@/store/settings.store";
+import { PlayerVisibilityService } from "@/lib/settings/playerVisibility.service";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {
   return {
@@ -143,35 +144,39 @@ describe("settings signal persist envelope", () => {
 describe("settings signal actions", () => {
   it("hides folders once, case-insensitively, and unhides them", () => {
     const { store } = setup();
-    store.hidePlayerFolder("C:\\Media");
-    store.hidePlayerFolder("c:/media/");
+    const svc = new PlayerVisibilityService(store.atoms);
+    svc.hidePlayerFolder("C:\\Media");
+    svc.hidePlayerFolder("c:/media/");
     expect(store.atoms.hiddenPlayerFolders.get()).toEqual(["C:\\Media"]);
-    store.unhidePlayerFolder("C:/MEDIA");
+    svc.unhidePlayerFolder("C:/MEDIA");
     expect(store.atoms.hiddenPlayerFolders.get()).toEqual([]);
   });
 
   it("hides and unhides torrents by hash", () => {
     const { store } = setup();
-    store.hidePlayerTorrent("abc");
-    store.hidePlayerTorrent("abc");
+    const svc = new PlayerVisibilityService(store.atoms);
+    svc.hidePlayerTorrent("abc");
+    svc.hidePlayerTorrent("abc");
     expect(store.atoms.hiddenPlayerTorrents.get()).toEqual(["abc"]);
-    store.unhidePlayerTorrent("abc");
+    svc.unhidePlayerTorrent("abc");
     expect(store.atoms.hiddenPlayerTorrents.get()).toEqual([]);
   });
 
   it("sets and clears player folder heights", () => {
     const { store } = setup();
-    store.setPlayerFolderHeight("C:\\Media", 240);
+    const svc = new PlayerVisibilityService(store.atoms);
+    svc.setPlayerFolderHeight("C:\\Media", 240);
     expect(store.atoms.playerFolderHeights.get()).toEqual({ "c:/media": 240 });
-    store.setPlayerFolderHeight("C:\\Media", null);
+    svc.setPlayerFolderHeight("C:\\Media", null);
     expect(store.atoms.playerFolderHeights.get()).toEqual({});
   });
 
   it("sets and clears player torrent heights", () => {
     const { store } = setup();
-    store.setPlayerTorrentHeight("abc", 240);
+    const svc = new PlayerVisibilityService(store.atoms);
+    svc.setPlayerTorrentHeight("abc", 240);
     expect(store.atoms.playerTorrentHeights.get()).toEqual({ abc: 240 });
-    store.setPlayerTorrentHeight("abc", null);
+    svc.setPlayerTorrentHeight("abc", null);
     expect(store.atoms.playerTorrentHeights.get()).toEqual({});
   });
 

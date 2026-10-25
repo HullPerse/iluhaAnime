@@ -30,6 +30,7 @@ import ThemeEditor from "./theme/editor.theme";
 import { EffectsCheckbox } from "./theme/effects.theme";
 import { FontSelector } from "./theme/font.theme";
 import { ThemePicker } from "./theme/picker.theme";
+import { SectionResetButton } from "./section-reset-button.settings";
 
 const TINT_SLIDER_MIN = 0.5;
 
@@ -190,8 +191,9 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.schedule">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.theme.schedule")}</span>
+          <SectionResetButton sectionId="theme.schedule" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
@@ -253,8 +255,9 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.retro">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.theme.retro.style")}</span>
+          <SectionResetButton sectionId="theme.retro" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
@@ -299,10 +302,11 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.retro">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.theme.collection.headers")}
           </span>
+          <SectionResetButton sectionId="theme.retro" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
@@ -335,8 +339,9 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.progress">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.progress.style")}</span>
+          <SectionResetButton sectionId="theme.progress" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
@@ -361,8 +366,9 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.font">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.font.title")}</span>
+          <SectionResetButton sectionId="theme.font" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <FontSelector />
@@ -370,8 +376,9 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.effects">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.theme.effects")}</span>
+          <SectionResetButton sectionId="theme.effects" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <EffectsCheckbox label={t("settings.theme.3d.borders")} field="enable3dBorders" />
@@ -384,8 +391,9 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.animation">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.theme.animation")}</span>
+          <SectionResetButton sectionId="theme.animation" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <EffectsCheckbox label={t("settings.theme.modal.animation")} field="modalAnimation" />
@@ -401,8 +409,9 @@ export default function SettingsTheme() {
       </section>
 
       <section className="ui-panel" data-find-section="theme.experimental">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.theme.experimental")}</span>
+          <SectionResetButton sectionId="theme.experimental" />
         </div>
 
         <div className="flex flex-col gap-1 p-2">

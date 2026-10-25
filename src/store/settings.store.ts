@@ -6,7 +6,6 @@ import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/utils/dither.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
-import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import type { Persistor } from "@/lib/state/persist.utils";
 import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
@@ -21,12 +20,6 @@ import type { SettingsStore } from "@/types/settings";
 export const SETTINGS_SCHEMA_VERSION = 57;
 
 type SettingsActionKeys =
-  | "hidePlayerFolder"
-  | "unhidePlayerFolder"
-  | "hidePlayerTorrent"
-  | "unhidePlayerTorrent"
-  | "setPlayerFolderHeight"
-  | "setPlayerTorrentHeight"
   | "patch";
 
 export type SettingsData = Omit<SettingsStore, SettingsActionKeys>;
@@ -284,6 +277,44 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
       dir: z.enum(["asc", "desc"]),
     })
   ),
+  limits: toValidator(
+    z.object({
+      download: z.union([z.number(), z.null()]),
+      upload: z.union([z.number(), z.null()]),
+    })
+  ),
+  speedSchedule: toValidator(
+    z.object({
+      enabled: z.boolean(),
+      dayStart: z.string(),
+      nightStart: z.string(),
+      dayDownload: z.union([z.number(), z.null()]),
+      dayUpload: z.union([z.number(), z.null()]),
+      nightDownload: z.union([z.number(), z.null()]),
+      nightUpload: z.union([z.number(), z.null()]),
+    })
+  ),
+  listenPort: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 65535,
+  httpApiPort: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 65535,
+  peerConnectTimeout: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
+  peerReadWriteTimeout: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
+  maxConcurrentDownloads: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
+  pageSize: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
+  resultsPerPage: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
+  defaultDownloadDir: (value) => value === null || typeof value === "string",
+  screenshotDir: (value) => value === null || typeof value === "string",
+  modalBackdropOpacity: (value) =>
+    typeof value === "number" && value >= 0 && value <= 100,
+  windowTintOpacity: (value) => value === null || (typeof value === "number" && value >= 0 && value <= 100),
+  anilistPollIntervalMin: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
 };
 
 export function migrateSettingsData(persistedState: unknown, version: number): SettingsData {
@@ -427,12 +458,6 @@ export interface SettingsSignalStore {
   snapshot: () => SettingsData;
   rehydrate: () => void;
   patch: (partial: Partial<SettingsData>) => void;
-  hidePlayerFolder: (path: string) => void;
-  unhidePlayerFolder: (path: string) => void;
-  hidePlayerTorrent: (infoHash: string) => void;
-  unhidePlayerTorrent: (infoHash: string) => void;
-  setPlayerFolderHeight: (path: string, height: number | null) => void;
-  setPlayerTorrentHeight: (infoHash: string, height: number | null) => void;
   subscribeAll: (fn: () => void) => () => void;
 }
 
@@ -514,50 +539,6 @@ export function createSettingsSignalStore(
         }
       });
     },
-    hidePlayerFolder: (path) => {
-      const cell = atoms.hiddenPlayerFolders;
-      const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
-      const exists = cell
-        .get()
-        .some((value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() === normalized);
-      if (!exists) cell.set([...cell.get(), path]);
-    },
-    unhidePlayerFolder: (path) => {
-      const cell = atoms.hiddenPlayerFolders;
-      const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
-      cell.set(
-        cell
-          .get()
-          .filter(
-            (value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() !== normalized
-          )
-      );
-    },
-    hidePlayerTorrent: (infoHash) => {
-      const cell = atoms.hiddenPlayerTorrents;
-      if (!cell.get().includes(infoHash)) cell.set([...cell.get(), infoHash]);
-    },
-    unhidePlayerTorrent: (infoHash) => {
-      const cell = atoms.hiddenPlayerTorrents;
-      cell.set(cell.get().filter((value) => value !== infoHash));
-    },
-    setPlayerFolderHeight: (path, height) => {
-      const key = normalizePlayerPath(path);
-      if (!key) return;
-      const cell = atoms.playerFolderHeights;
-      const heights = { ...cell.get() };
-      if (height === null) delete heights[key];
-      else heights[key] = height;
-      cell.set(heights);
-    },
-    setPlayerTorrentHeight: (infoHash, height) => {
-      if (!infoHash) return;
-      const cell = atoms.playerTorrentHeights;
-      const heights = { ...cell.get() };
-      if (height === null) delete heights[infoHash];
-      else heights[infoHash] = height;
-      cell.set(heights);
-    },
   };
 
   finishAdopt(() => ({ ...snapshot() }), { remove: "settings" });
@@ -576,12 +557,6 @@ export function syncCoverModeWithAnilistAuth(loggedIn: boolean): void {
   if (settingsAtoms.torrentCoverModeManual.get()) return;
   settings.patch({ torrentCoverMode: loggedIn ? "full" : "off" });
 }
-export const hidePlayerFolder = settings.hidePlayerFolder;
-export const unhidePlayerFolder = settings.unhidePlayerFolder;
-export const hidePlayerTorrent = settings.hidePlayerTorrent;
-export const unhidePlayerTorrent = settings.unhidePlayerTorrent;
-export const setPlayerFolderHeight = settings.setPlayerFolderHeight;
-export const setPlayerTorrentHeight = settings.setPlayerTorrentHeight;
 export function subscribeSettings(listener: () => void): () => void {
   return settings.subscribeAll(listener);
 }

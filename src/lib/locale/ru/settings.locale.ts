@@ -360,6 +360,8 @@ const settings = {
   "settings.torrent.network": "Сеть",
   "settings.torrent.listen.port": "Порт (0 = авто)",
   "settings.torrent.enable.upnp": "UPnP проброс портов",
+  "settings.torrent.dht.enabled": "Включить DHT",
+  "settings.torrent.pex.enabled": "Включить обмен пирами (PEX)",
   "settings.torrent.ipv4.only": "Только IPv4",
   "settings.torrent.peer.connect.timeout": "Таймаут подключения (с)",
   "settings.torrent.peer.readwrite.timeout": "Таймаут чтения/записи (с)",
@@ -381,6 +383,10 @@ const settings = {
   "settings.torrent.schedule.day": "Дневное время",
   "settings.torrent.schedule.day.limits": "Дневные лимиты (КБ/с)",
   "settings.torrent.schedule.night.limits": "Ночные лимиты (КБ/с)",
+  "settings.torrent.defaults": "Настройки торрентов по умолчанию",
+  "settings.torrent.default.download.dir": "Папка загрузки по умолчанию",
+  "settings.torrent.default.download.dir.hint": "Папка, куда сохранять новые торренты",
+  "settings.torrent.default.concurrent": "Макс. одновременных скачиваний",
   "settings.theme.schedule": "Тема день/ночь",
   "settings.theme.schedule.enable": "Переключать тему по времени суток",
   "settings.theme.schedule.day": "Дневное время",
@@ -493,6 +499,12 @@ const settings = {
   "settings.find.results.one": "{{count}} совпадение",
   "settings.find.results.few": "{{count}} совпадения",
   "settings.find.results.many": "{{count}} совпадений",
+  "settings.reset.section": "Сбросить секцию к значениям по умолчанию",
+  "settings.screenshot": "Скриншоты",
+  "settings.screenshot.folder": "Папка для скриншотов",
+  "settings.screenshot.folder.hint": "Куда сохранять скриншоты",
+  "settings.screenshot.format": "Формат по умолчанию",
+  "settings.screenshot.open.folder": "Открывать папку после сохранения",
 } as const;
 
 export default settings;

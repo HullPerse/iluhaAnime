@@ -41,6 +41,7 @@ export default function SettingsRoute() {
   const [findActive, setFindActive] = useState(0);
   const [flashSection, setFlashSection] = useState<string | null>(null);
   const [flashNonce, setFlashNonce] = useState(0);
+  const [expandedSectionIds, setExpandedSectionIds] = useState<Set<string>>(new Set());
   const contentRef = useRef<HTMLDivElement>(null);
   const findInputRef = useRef<HTMLInputElement>(null);
   const deferredQuery = useDeferredValue(findQuery);
@@ -85,6 +86,7 @@ export default function SettingsRoute() {
     setFindOpen(false);
     setFlashSection(hit.entry.sectionId);
     setFlashNonce((nonce) => nonce + 1);
+    setExpandedSectionIds((prev) => new Set(prev).add(hit.entry.sectionId));
   };
 
   const handleJumpSelected = () => {
@@ -159,7 +161,7 @@ export default function SettingsRoute() {
     torrent: <SettingsTorrent />,
     search: <SettingsSearch />,
     theme: <SettingsTheme />,
-    keybinds: <SettingsKeybinds />,
+    keybinds: <SettingsKeybinds expandedSectionIds={expandedSectionIds} />,
     changelog: <SettingsChangelog />,
     sqlite: (
       <Suspense fallback={<TabLoader className="min-h-40" />}>

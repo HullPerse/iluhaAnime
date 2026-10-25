@@ -73,7 +73,11 @@ function BindingCell({ row, scopeLabel }: { row: ResolvedKeybind; scopeLabel: st
   );
 }
 
-export function SettingsKeybinds() {
+export function SettingsKeybinds({
+  expandedSectionIds,
+}: {
+  expandedSectionIds?: Set<string>;
+}) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<ScopeFilter>("all");
@@ -83,7 +87,10 @@ export function SettingsKeybinds() {
   const [preview, setPreview] = useState<{ forId: string; chord: string } | null>(null);
   const [showConflicts, setShowConflicts] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<ReadonlySet<KeybindScope>>(new Set());
+  const shouldExpandAll = expandedSectionIds?.has("keybinds.list") === true;
+  const [collapsed, setCollapsed] = useState<ReadonlySet<KeybindScope>>(
+    shouldExpandAll ? new Set() : new Set()
+  );
   const overrides = useCell(settingsAtoms.keybindOverrides);
 
   const scopeLabels = useMemo<Record<KeybindScope, string>>(

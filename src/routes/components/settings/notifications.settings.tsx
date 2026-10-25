@@ -19,6 +19,8 @@ import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/ani
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { NotificationPopupMode } from "@/types/settings";
 
+import { SectionResetButton } from "./section-reset-button.settings";
+
 function NotifyRow({
   label,
   checked,
@@ -84,8 +86,9 @@ export default function SettingsNotifications() {
   return (
     <div className="flex flex-col gap-3">
       <section className="ui-panel" data-find-section="notifications.system">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.notifications.system")}</span>
+          <SectionResetButton sectionId="notifications.system" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <label className="windows95-text text-text flex items-center gap-2 text-xs font-bold">
@@ -108,10 +111,11 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.anilist">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.anilist")}
           </span>
+          <SectionResetButton sectionId="notifications.anilist" />
         </div>
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow
@@ -207,10 +211,11 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.torrents">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.torrents")}
           </span>
+          <SectionResetButton sectionId="notifications.torrents" />
         </div>
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow
@@ -222,10 +227,11 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.tasks">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.notifications.group.tasks")}
           </span>
+          <SectionResetButton sectionId="notifications.tasks" />
         </div>
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow
@@ -247,8 +253,9 @@ export default function SettingsNotifications() {
       </section>
 
       <section className="ui-panel" data-find-section="notifications.app">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.notifications.group.app")}</span>
+          <SectionResetButton sectionId="notifications.app" />
         </div>
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow

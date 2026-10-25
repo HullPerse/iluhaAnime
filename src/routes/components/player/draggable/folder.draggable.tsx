@@ -14,7 +14,8 @@ import { summarizeTree } from "@/lib/player/tree.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { setPlayerFolderHeight, settingsAtoms } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
+import { playerVisibility } from "@/lib/settings/playerVisibility.service";
 import { setVimCount, vimAtoms } from "@/store/vim.store";
 import type { FolderNode } from "@/types/torrent";
 
@@ -41,7 +42,7 @@ export function DraggableFolder({
 
   const savedHeight = useCell(settingsAtoms.playerFolderHeights)[normalizePlayerPath(tree.path)];
   const saveHeight = useCallback(
-    (path: string) => (height: number) => setPlayerFolderHeight(path, height),
+    (path: string) => (height: number) => playerVisibility.setPlayerFolderHeight(path, height),
     []
   );
   const onResizeEnd = useMemo(() => saveHeight(tree.path), [saveHeight, tree.path]);

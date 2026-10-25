@@ -7,7 +7,8 @@ import {
 import { useBottomResize } from "@/hooks/folderResize.hook";
 import { maxFolderHeight } from "@/lib/player/folder.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { setPlayerTorrentHeight, settingsAtoms } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
+import { playerVisibility } from "@/lib/settings/playerVisibility.service";
 
 /**
  * Drag-to-resize for one torrent card in the player route. The height is saved
@@ -34,7 +35,7 @@ export function useTorrentCardResize(
     minHeight: TORRENT_MIN_HEIGHT,
     maxHeight: viewportMax,
     getStartHeight,
-    onResizeEnd: (height) => setPlayerTorrentHeight(infoHash, height),
+    onResizeEnd: (height) => playerVisibility.setPlayerTorrentHeight(infoHash, height),
   });
 
   return {

@@ -19,6 +19,8 @@ import {
 } from "@/store/search.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
+import { SectionResetButton } from "./section-reset-button.settings";
+
 export default function SettingsSearch() {
   const defaultSearchSource = useCell(settingsAtoms.defaultSearchSource);
   const visibleSources = useCell(settingsAtoms.visibleSources);
@@ -98,8 +100,9 @@ export default function SettingsSearch() {
   return (
     <div className="flex flex-col gap-3">
       <section className="ui-panel" data-find-section="search.sources">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.search.sources")}</span>
+          <SectionResetButton sectionId="search.sources" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -261,8 +264,9 @@ export default function SettingsSearch() {
       <hr className="border-muted my-1 w-full border-t" />
 
       <section className="ui-panel" data-find-section="search.results">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.search.results")}</span>
+          <SectionResetButton sectionId="search.results" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">

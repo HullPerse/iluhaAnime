@@ -51,14 +51,10 @@ import {
   removeEntriesByFolderPath,
 } from "@/store/category.store";
 import {
-  hidePlayerFolder,
-  hidePlayerTorrent,
   patchSettings,
-  setPlayerFolderHeight,
   settingsAtoms,
-  unhidePlayerFolder,
-  unhidePlayerTorrent,
 } from "@/store/settings.store";
+import { playerVisibility } from "@/lib/settings/playerVisibility.service";
 import type { FolderScanResult, VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";
@@ -561,11 +557,11 @@ function PlayerRoute() {
   const handleRemoveFolder = useCallback(
     (path: string) => {
       removeEntriesByFolderPath(path);
-      unhidePlayerFolder(path);
+      playerVisibility.unhidePlayerFolder(path);
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
         patchSettings({ savedFolderPaths: next.map((t) => t.path) });
-        setPlayerFolderHeight(path, null);
+        playerVisibility.setPlayerFolderHeight(path, null);
         rebuildIndex(next.map((t) => t.path));
         setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
         return next;
@@ -662,8 +658,8 @@ function PlayerRoute() {
                   folderTrees={visibleFolderTrees}
                   torrents={categoryTorrents}
                   torrentFilesMap={torrentFilesMap}
-                  onHideFolder={hidePlayerFolder}
-                  onHideTorrent={hidePlayerTorrent}
+                  onHideFolder={(path) => playerVisibility.hidePlayerFolder(path)}
+                  onHideTorrent={(infoHash) => playerVisibility.hidePlayerTorrent(infoHash)}
                 />
               ))}
           </section>
@@ -676,7 +672,7 @@ function PlayerRoute() {
                 key={tree.path}
                 tree={tree}
                 onRemove={handleRemoveFolder}
-                onHide={hidePlayerFolder}
+                onHide={(path) => playerVisibility.hidePlayerFolder(path)}
               />
             ))}
           </section>
@@ -691,7 +687,7 @@ function PlayerRoute() {
               isExpanded={expanded.has(item.id)}
               torrentLoading={torrentLoading.has(item.id)}
               onToggleExpand={() => toggleExpanded(item.id)}
-              onHide={() => hidePlayerTorrent(item.info_hash)}
+              onHide={() => playerVisibility.hidePlayerTorrent(item.info_hash)}
             />
           ))}
         <QueueStrip />
@@ -723,8 +719,8 @@ function PlayerRoute() {
         <PlayerVisibilityModal
           folders={hiddenFolderItems}
           torrents={hiddenTorrentItems}
-          onUnhideFolder={unhidePlayerFolder}
-          onUnhideTorrent={unhidePlayerTorrent}
+          onUnhideFolder={(path) => playerVisibility.unhidePlayerFolder(path)}
+          onUnhideTorrent={(infoHash) => playerVisibility.unhidePlayerTorrent(infoHash)}
           onClose={() => setShowHiddenItems(false)}
         />
       )}

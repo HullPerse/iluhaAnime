@@ -20,6 +20,8 @@ export type WindowEffect = "none" | "acrylic" | "mica" | "tabbed";
 
 export interface SettingsStore {
   language: Locale;
+  defaultDownloadDir: string | null;
+  maxConcurrentDownloads: number;
   limits: SpeedLimits;
   speedSchedule: SpeedSchedule;
   themeSchedule: ThemeSchedule;
@@ -77,18 +79,14 @@ export interface SettingsStore {
   playerTorrentHeights: Record<string, number>;
   hiddenPlayerFolders: string[];
   hiddenPlayerTorrents: string[];
-  hidePlayerFolder: (path: string) => void;
-  unhidePlayerFolder: (path: string) => void;
-  hidePlayerTorrent: (infoHash: string) => void;
-  unhidePlayerTorrent: (infoHash: string) => void;
-  setPlayerFolderHeight: (path: string, height: number | null) => void;
-  setPlayerTorrentHeight: (infoHash: string, height: number | null) => void;
   httpApiPort: number;
   ipv4Only: boolean;
   peerConnectTimeout: number;
   peerReadWriteTimeout: number;
   listenPort: number;
   enableUpnp: boolean;
+  dhtEnabled: boolean;
+  pexEnabled: boolean;
   torrentProxyUrl: string | null;
   fileOrder: FileOrder;
   fastresumeEnabled: boolean;

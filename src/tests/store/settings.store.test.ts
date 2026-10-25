@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeAll } from "vitest";
 
 import { mockInvoke } from "../mocks";
+import { playerVisibility } from "@/lib/settings/playerVisibility.service";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -122,32 +123,32 @@ describe("settings signal migration", () => {
 describe("settings signal hidden player items", () => {
   it("persists folder visibility changes without deleting the path", () => {
     settings.patchSettings({ hiddenPlayerFolders: [] });
-    settings.hidePlayerFolder("C:\\Anime\\Season 1");
-    settings.hidePlayerFolder("c:/anime/season 1/");
+    playerVisibility.hidePlayerFolder("C:\\Anime\\Season 1");
+    playerVisibility.hidePlayerFolder("c:/anime/season 1/");
     expect(settings.settingsAtoms.hiddenPlayerFolders.get()).toEqual(["C:\\Anime\\Season 1"]);
 
-    settings.unhidePlayerFolder("c:/anime/season 1");
+    playerVisibility.unhidePlayerFolder("c:/anime/season 1");
     expect(settings.settingsAtoms.hiddenPlayerFolders.get()).toEqual([]);
   });
 
   it("hides and unhides torrents by stable info hash", () => {
     settings.patchSettings({ hiddenPlayerTorrents: [] });
-    settings.hidePlayerTorrent("ABC123");
-    settings.hidePlayerTorrent("ABC123");
+    playerVisibility.hidePlayerTorrent("ABC123");
+    playerVisibility.hidePlayerTorrent("ABC123");
     expect(settings.settingsAtoms.hiddenPlayerTorrents.get()).toEqual(["ABC123"]);
-    settings.unhidePlayerTorrent("ABC123");
+    playerVisibility.unhidePlayerTorrent("ABC123");
     expect(settings.settingsAtoms.hiddenPlayerTorrents.get()).toEqual([]);
   });
 
   it("stores folder heights under a normalized path key", () => {
     settings.patchSettings({ playerFolderHeights: {} });
-    settings.setPlayerFolderHeight("C:\\Anime\\\\Season\\", 420);
+    playerVisibility.setPlayerFolderHeight("C:\\Anime\\\\Season\\", 420);
     expect(settings.settingsAtoms.playerFolderHeights.get()).toEqual({ "c:/anime/season": 420 });
 
-    settings.setPlayerFolderHeight("c:/anime/season", 555);
+    playerVisibility.setPlayerFolderHeight("c:/anime/season", 555);
     expect(settings.settingsAtoms.playerFolderHeights.get()["c:/anime/season"]).toBe(555);
 
-    settings.setPlayerFolderHeight("C:/ANIME/SEASON", null);
+    playerVisibility.setPlayerFolderHeight("C:/ANIME/SEASON", null);
     expect(settings.settingsAtoms.playerFolderHeights.get()).toEqual({});
   });
 });

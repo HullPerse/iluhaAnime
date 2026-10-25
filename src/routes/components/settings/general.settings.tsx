@@ -22,14 +22,17 @@ import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
 
 import SettingsMedia from "./media.settings";
+import { SectionResetButton } from "./section-reset-button.settings";
+import ScreenshotSettings from "./screenshot.settings";
 
 function KeyboardSettings() {
   const vimMode = useCell(settingsAtoms.vimMode);
   const { t } = useI18n();
   return (
     <section className="ui-panel" data-find-section="general.keyboard">
-      <div className="ui-titlebar">
+      <div className="ui-titlebar flex items-center justify-between gap-1">
         <span className="text-title-text font-bold">{t("settings.keyboard")}</span>
+        <SectionResetButton sectionId="general.keyboard" />
       </div>
       <div className="flex flex-col gap-1 p-2">
         <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -124,8 +127,9 @@ export default function SettingsGeneral() {
   return (
     <div className="flex flex-col gap-3">
       <section className="ui-panel" data-find-section="general.tabs">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.tabs")}</span>
+          <SectionResetButton sectionId="general.tabs" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
@@ -161,8 +165,9 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.startup">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.startup")}</span>
+          <SectionResetButton sectionId="general.startup" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
@@ -193,8 +198,9 @@ export default function SettingsGeneral() {
       <KeyboardSettings />
 
       <section className="ui-panel" data-find-section="general.window">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.window")}</span>
+          <SectionResetButton sectionId="general.window" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1">
@@ -218,8 +224,9 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.language">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.language")}</span>
+          <SectionResetButton sectionId="general.language" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -266,8 +273,9 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.tmdb">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.tmdb.api.key")}</span>
+          <SectionResetButton sectionId="general.tmdb" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -407,8 +415,9 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.anilist">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.anilist.proxy.title")}</span>
+          <SectionResetButton sectionId="general.anilist" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -548,8 +557,9 @@ export default function SettingsGeneral() {
       </section>
 
       <section className="ui-panel" data-find-section="general.parse">
-        <div className="ui-titlebar">
+        <div className="ui-titlebar flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.parse.titles")}</span>
+          <SectionResetButton sectionId="general.parse" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 min-[560px]:grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -612,6 +622,8 @@ export default function SettingsGeneral() {
           </div>
         </div>
       </section>
+
+      <ScreenshotSettings />
 
       <SettingsMedia />
 

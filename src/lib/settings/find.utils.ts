@@ -155,6 +155,17 @@ const FIND_GROUPS: readonly FindGroup[] = [
   },
   {
     tab: "general",
+    section: "screenshot",
+    titleKey: "settings.screenshot",
+    keys: [
+      "settings.screenshot.folder",
+      "settings.screenshot.folder.hint",
+      "settings.screenshot.format",
+      "settings.screenshot.open.folder",
+    ],
+  },
+  {
+    tab: "general",
     section: "media",
     titleKey: "settings.media.title",
     keys: [
@@ -297,6 +308,16 @@ const FIND_GROUPS: readonly FindGroup[] = [
   },
   {
     tab: "torrent",
+    section: "defaults",
+    titleKey: "settings.torrent.defaults",
+    keys: [
+      "settings.torrent.default.download.dir",
+      "settings.torrent.default.download.dir.hint",
+      "settings.torrent.default.concurrent",
+    ],
+  },
+  {
+    tab: "torrent",
     section: "schedule",
     titleKey: "settings.torrent.schedule",
     keys: [
@@ -358,6 +379,8 @@ const FIND_GROUPS: readonly FindGroup[] = [
     titleKey: "settings.torrent.network",
     keys: [
       "settings.torrent.enable.upnp",
+      "settings.torrent.dht.enabled",
+      "settings.torrent.pex.enabled",
       "settings.torrent.ipv4.only",
       "settings.torrent.listen.port",
       "settings.torrent.listen.port.active",
@@ -626,6 +649,7 @@ export const SETTINGS_FIND_SKIP_KEYS: readonly TranslationKey[] = [
   "settings.search.proxy.test.ok",
   "settings.search.proxy.test.fail",
   "settings.tray.quit",
+  "settings.reset.section",
 ];
 
 function anchorId(tab: SettingsFindTab, section: string): string {

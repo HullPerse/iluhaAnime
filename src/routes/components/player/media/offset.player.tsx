@@ -4,14 +4,17 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useMediaEntry } from "@/hooks/media.hook";
 import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
 import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 import { playbackAtoms, playerAtoms } from "@/store/player.store";
 
 import { trackLabel } from "./tracks.player";
 
 const OSD_TIMEOUT = 2500;
+const OSD_FADE_MS = 150;
 
 function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
   const { t } = useI18n();
+  const animateOsd = useCell(settingsAtoms.animateOsd);
 
   const path = useCell(playbackAtoms.path);
   const speed = useCell(playbackAtoms.speed);
@@ -27,6 +30,7 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
   const subTrack = tracks.find((track) => track.type === "sub" && track.selected);
 
   const [visible, setVisible] = useState(false);
+  const [osdElement, setOsdElement] = useState<HTMLDivElement | null>(null);
   const timerRef = useRef<ScheduledTask | null>(null);
   const previousRef = useRef({
     audio: undefined as number | undefined,
@@ -66,19 +70,32 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
 
     setVisible(true);
     timerRef.current?.cancel();
-    timerRef.current = scheduleTask("timeout", OSD_TIMEOUT, () => setVisible(false));
+    timerRef.current = scheduleTask("timeout", OSD_TIMEOUT, () => {
+      if (!animateOsd || osdElement === null) {
+        setVisible(false);
+        return;
+      }
+      const animation = osdElement.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: OSD_FADE_MS, easing: "ease-out" }
+      );
+      animation.finished.then(() => setVisible(false)).catch(() => undefined);
+    });
     return () => {
       timerRef.current?.cancel();
       timerRef.current = null;
     };
-  }, [audioTrack?.id, subTrack?.id, subOffset, audioOffset, speed, volume, muted, alwaysOnTop]);
+  }, [audioTrack?.id, subTrack?.id, subOffset, audioOffset, speed, volume, muted, alwaysOnTop, animateOsd, osdElement]);
 
   if (!visible || !path) return null;
 
   const signed = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(2)}s`;
 
   return (
-    <div className="windows95-border windows95-font bg-primary/95 absolute top-4 right-4 z-20 min-w-48 p-2 text-left text-sm">
+    <div
+      ref={setOsdElement}
+      className={`windows95-border windows95-font bg-primary/95 absolute top-4 right-4 z-20 min-w-48 p-2 text-left text-sm ${animateOsd ? "transition-opacity duration-150" : ""}`}
+    >
       {audioTrack ? (
         <div className="mb-0.5">
           <span className="text-muted text-xs">{t("player.media.osd.audio")}:</span>{" "}

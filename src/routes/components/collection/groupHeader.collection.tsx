@@ -1,7 +1,10 @@
 import { cn } from "cn";
 import { ChevronRight, Plus } from "lucide-react";
 
+import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
+import { settingsAtoms } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { CollectionStatusDef } from "@/types/collection";
 
@@ -51,6 +54,7 @@ export function GroupHeaderCollection({
   addLabel?: string;
 }) {
   const isTorrent = variant === "torrent";
+  const animateSections = useCell(settingsAtoms.animateSections);
 
   return (
     <div
@@ -68,7 +72,11 @@ export function GroupHeaderCollection({
       )}
     >
       <ChevronRight
-        className={cn("size-3 shrink-0 transition-transform", !collapsed && "rotate-90")}
+        className={cn(
+          "size-3 shrink-0",
+          animateSections ? "transition-transform duration-300" : "transition-transform",
+          !collapsed && "rotate-90"
+        )}
         aria-hidden
       />
       <span
@@ -87,7 +95,13 @@ export function GroupHeaderCollection({
       <span
         className={cn("ml-auto shrink-0 text-xs whitespace-nowrap", isTorrent ? "" : "text-hint")}
       >
-        {maxCount != null ? `${count}/${maxCount}` : count}
+        {maxCount != null ? (
+          <>
+            <AnimatedNumber value={count} format={String} />/{maxCount}
+          </>
+        ) : (
+          <AnimatedNumber value={count} format={String} />
+        )}
       </span>
       {onAdd && (
         <button

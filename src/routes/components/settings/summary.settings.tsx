@@ -4,6 +4,7 @@ import { confirm, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { Download, Check, ChevronRight, RefreshCw, ScrollText, X } from "lucide-react";
 import { useState } from "react";
 
+import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { sqliteApi } from "@/api/sqlite.api";
 import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
@@ -244,7 +245,11 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
               ? "..."
               : newestBackup === null
                 ? t("settings.summary.none")
-                : `${data.backups.length} - ${formatBytes(backupSize(data.backups))}`
+                : (
+                  <>
+                    <AnimatedNumber value={data.backups.length} format={String} /> - {formatBytes(backupSize(data.backups))}
+                  </>
+                )
           }
           hint={newestBackup === null ? undefined : formatBackupDate(newestBackup.modifiedMs)}
           busy={data === undefined}
@@ -255,7 +260,13 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         <SummaryRow
           label={t("settings.summary.images")}
           value={
-            data === undefined ? "..." : `${data.images.count} - ${formatBytes(data.images.bytes)}`
+            data === undefined
+              ? "..."
+              : (
+                <>
+                  <AnimatedNumber value={data.images.count} format={String} /> - {formatBytes(data.images.bytes)}
+                </>
+              )
           }
           busy={data === undefined}
           actionLabel={t("settings.summary.images.clear")}

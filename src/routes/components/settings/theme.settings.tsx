@@ -374,15 +374,29 @@ export default function SettingsTheme() {
           <span className="text-title-text font-bold">{t("settings.theme.effects")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <EffectsCheckbox label={t("settings.theme.modal.animation")} field="modalAnimation" />
           <EffectsCheckbox label={t("settings.theme.3d.borders")} field="enable3dBorders" />
           <EffectsCheckbox label={t("settings.theme.button.press")} field="buttonPressEffect" />
-          <EffectsCheckbox label={t("settings.theme.spinners")} field="enableAnimations" />
-          <EffectsCheckbox label={t("settings.theme.animated.counters")} field="animateCounters" />
           <EffectsCheckbox label={t("settings.theme.scrollbar")} field="customScrollbar" />
           <BackdropSlider />
 
           {importError && <span className="text-destructive">{importError}</span>}
+        </div>
+      </section>
+
+      <section className="ui-panel" data-find-section="theme.animation">
+        <div className="ui-titlebar">
+          <span className="text-title-text font-bold">{t("settings.theme.animation")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <EffectsCheckbox label={t("settings.theme.modal.animation")} field="modalAnimation" />
+          <EffectsCheckbox label={t("settings.theme.spinners")} field="enableAnimations" />
+          <EffectsCheckbox label={t("settings.theme.animated.counters")} field="animateCounters" />
+          <EffectsCheckbox label={t("settings.theme.animate.toasts")} field="animateToasts" />
+          <EffectsCheckbox label={t("settings.theme.animate.sections")} field="animateSections" />
+          <EffectsCheckbox label={t("settings.theme.animate.modal.content")} field="animateModalContent" />
+          <EffectsCheckbox label={t("settings.theme.animate.osd")} field="animateOsd" />
+          <EffectsCheckbox label={t("settings.theme.animate.result.lists")} field="animateResultLists" />
+          <EffectsCheckbox label={t("settings.theme.animate.tab.switch")} field="animateTabSwitch" />
         </div>
       </section>
 

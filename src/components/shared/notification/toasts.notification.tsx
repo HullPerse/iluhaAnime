@@ -11,6 +11,7 @@ import {
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/state/signal.hook";
 import { createInterval } from "@/lib/pacer/interval.utils";
+import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import {
   openNotificationTarget,
@@ -31,20 +32,44 @@ const FOCUS_RING =
 function ToastItem({
   item,
   onHide,
-  onManualClose,
   onBodyClick,
+  isClosing,
+  onHidden,
 }: {
   item: NotificationItem;
   onHide: (id: number) => void;
-  onManualClose: (id: number) => void;
   onBodyClick: (item: NotificationItem) => void;
+  isClosing: boolean;
+  onHidden: (id: number) => void;
 }) {
   const { t } = useI18n();
+  const animateToasts = useCell(settingsAtoms.animateToasts);
+  const toastRef = useRef<HTMLDivElement>(null);
   const remainingRef = useRef<number>(TOAST_DURATION_MS[item.type]);
   const deadlineRef = useRef<number>(0);
   const pausedRef = useRef<boolean>(false);
   const [remainingMs, setRemainingMs] = useState<number>(TOAST_DURATION_MS[item.type]);
   const openable = Boolean(item.target);
+
+  useEffect(() => {
+    if (!animateToasts || toastRef.current === null) return;
+    toastRef.current.animate(
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: 150, easing: "ease-out" }
+    );
+  }, [animateToasts]);
+
+  const startExit = useCallback((): void => {
+    if (!animateToasts || toastRef.current === null) {
+      onHide(item.id);
+      return;
+    }
+    const animation = toastRef.current.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      { duration: 150, easing: "ease-out" }
+    );
+    animation.finished.then(() => onHidden(item.id)).catch(() => undefined);
+  }, [animateToasts, item.id, onHide, onHidden]);
 
   useEffect(() => {
     deadlineRef.current = Date.now() + remainingRef.current;
@@ -55,13 +80,13 @@ function ToastItem({
       }
       const left = Math.max(0, deadlineRef.current - Date.now());
       if (left <= 0) {
-        onHide(item.id);
+        startExit();
         return;
       }
       setRemainingMs(left);
     }, COUNTDOWN_TICK_MS);
     return () => ticker.cancel();
-  }, [item.id, onHide]);
+  }, [item.id, startExit]);
 
   const pause = () => {
     if (pausedRef.current) return;
@@ -74,7 +99,7 @@ function ToastItem({
     if (!pausedRef.current) return;
     pausedRef.current = false;
     if (remainingRef.current <= 0) {
-      onHide(item.id);
+      startExit();
       return;
     }
     deadlineRef.current = Date.now() + remainingRef.current;
@@ -84,8 +109,14 @@ function ToastItem({
   const openLabel = openable ? t("notification.open") : undefined;
   const secondsLeft = Math.max(0, Math.ceil(remainingMs / 1000));
 
+  const handleManualClose = () => {
+    markNotificationRead(item.id);
+    startExit();
+  };
+
   return (
     <div
+      ref={toastRef}
       role={item.type === "error" ? "alert" : "status"}
       onMouseEnter={pause}
       onMouseLeave={resume}
@@ -94,7 +125,7 @@ function ToastItem({
       onClick={openable ? handleActivate : undefined}
       className={`windows95-border bg-primary pointer-events-auto w-[340px] max-w-[92vw] select-none ${
         openable ? "cursor-pointer" : ""
-      }`}
+      } ${isClosing ? "opacity-0" : ""}`}
     >
       <div className="bg-secondary text-title-text flex items-center gap-1.5 px-1.5 py-1">
         <span className="min-w-0 flex-1 truncate text-[13px] font-bold leading-none">
@@ -107,7 +138,7 @@ function ToastItem({
           title={t("notification.dismiss")}
           onClick={(e) => {
             e.stopPropagation();
-            onManualClose(item.id);
+            handleManualClose();
           }}
         >
           <X className="size-3" />
@@ -169,8 +200,10 @@ export default function NotificationToasts() {
   const { t } = useI18n();
   const items = useCell(notificationAtoms.items);
   const popupMode = useCell(settingsAtoms.notificationPopups);
+  const animateToasts = useCell(settingsAtoms.animateToasts);
   const inApp = popupMode === "inapp" || popupMode === "both";
   const [queue, setQueue] = useState<number[]>([]);
+  const [closing, setClosing] = useState<Set<number>>(new Set());
   const seenRef = useRef<Set<number> | null>(null);
   if (seenRef.current === null) {
     seenRef.current = new Set(items.map((item) => item.id));
@@ -181,6 +214,7 @@ export default function NotificationToasts() {
     if (!inApp) {
       for (const item of items) seen.add(item.id);
       setQueue([]);
+      setClosing(new Set());
       return;
     }
     const fresh = items.filter((item) => !item.progress && !seen.has(item.id));
@@ -195,22 +229,29 @@ export default function NotificationToasts() {
     });
   }, [items, inApp]);
 
-  const hide = useCallback((id: number) => {
-    setQueue((prev) => prev.filter((queued) => queued !== id));
-  }, []);
-
-  const handleManualClose = useCallback(
+  const handleToastHidden = useCallback(
     (id: number) => {
-      markNotificationRead(id);
-      hide(id);
+      setQueue((prev) => prev.filter((queued) => queued !== id));
+      setClosing((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     },
-    [hide]
+    []
   );
 
   const handleBodyClick = useCallback(
     (item: NotificationItem) => {
       markNotificationRead(item.id);
-      hide(item.id);
+      if (animateToasts) {
+        setClosing((prev) => new Set(prev).add(item.id));
+        scheduleTask("timeout", 150, () => {
+          handleToastHidden(item.id);
+        });
+      } else {
+        handleToastHidden(item.id);
+      }
       const target = item.target;
       if (!target) return;
       (async () => {
@@ -220,9 +261,8 @@ export default function NotificationToasts() {
         }
       })();
     },
-    [hide, t]
+    [animateToasts, handleToastHidden, t]
   );
-
   if (!inApp || queue.length === 0) return null;
   const byId = new Map(items.map((item) => [item.id, item] as const));
 
@@ -239,9 +279,15 @@ export default function NotificationToasts() {
           <ToastItem
             key={id}
             item={item}
-            onHide={hide}
-            onManualClose={handleManualClose}
+            isClosing={closing.has(id)}
+            onHide={() => {
+              setClosing((prev) => new Set(prev).add(id));
+              if (!animateToasts) {
+                handleToastHidden(id);
+              }
+            }}
             onBodyClick={handleBodyClick}
+            onHidden={handleToastHidden}
           />
         );
       })}

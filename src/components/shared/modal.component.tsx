@@ -1,7 +1,8 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -14,6 +15,8 @@ import { settingsAtoms } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/ui";
 
 import { Button } from "../ui/button.component";
+
+const MODAL_CONTENT_FADE_MS = 150;
 
 function Modal({
   header,
@@ -31,10 +34,13 @@ function Modal({
 }: ModalWindow) {
   const { t } = useI18n();
   const modalAnimation = useCell(settingsAtoms.modalAnimation);
+  const animateModalContent = useCell(settingsAtoms.animateModalContent);
   const enable3dBorders = useCell(settingsAtoms.enable3dBorders);
   const backdropOpacity = useCell(settingsAtoms.modalBackdropOpacity);
   const [visible, setVisible] = useState(false);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
+  const contentElement = useRef<HTMLDivElement>(null);
+  const prevChildrenRef = useRef<ReactNode>(children);
   useOverlayDialog();
   useModalResize(popupElement, modalAnimation);
 
@@ -46,6 +52,16 @@ function Modal({
     const task = scheduleTask("raf", 0, () => setVisible(true));
     return () => task.cancel();
   }, [modalAnimation]);
+
+  useEffect(() => {
+    if (!animateModalContent || contentElement.current === null) return;
+    if (prevChildrenRef.current === children) return;
+    prevChildrenRef.current = children;
+    contentElement.current.animate(
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: MODAL_CONTENT_FADE_MS, easing: "ease-out" }
+    );
+  }, [animateModalContent, children]);
 
   useEffect(() => {
     if (!import.meta.env.DEV || typeof document === "undefined") return;
@@ -143,6 +159,7 @@ function Modal({
             </section>
           )}
           <section
+            ref={contentElement}
             className={cn(
               "bg-primary flex w-full flex-1 flex-col gap-2 overflow-y-auto p-3",
               contentClassName

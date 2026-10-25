@@ -1,6 +1,7 @@
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { createInterval } from "@/lib/pacer/interval.utils";
@@ -50,8 +51,17 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
           </span>
           <span className="windows95-font text-xs">
             {item.total_bytes > 0
-              ? `${formatBytes(item.progress_bytes)} / ${formatBytes(item.total_bytes)} (${progress.toFixed(1)}%)`
-              : formatBytes(item.progress_bytes)}
+              ? (
+                <>
+                  <AnimatedNumber value={item.progress_bytes} format={(v) => formatBytes(v)} />{" / "}
+                  <AnimatedNumber value={item.total_bytes} format={(v) => formatBytes(v)} /> (
+                  <AnimatedNumber value={progress} format={(v) => `${v.toFixed(1)}%`} />
+                  )
+                </>
+              )
+              : (
+                <AnimatedNumber value={item.progress_bytes} format={(v) => formatBytes(v)} />
+              )}
           </span>
           <span className="windows95-font text-hint text-xs">
             {fmtSpeed(item.download_speed)}

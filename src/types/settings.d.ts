@@ -48,6 +48,12 @@ export interface SettingsStore {
   enableAnimations: boolean;
   modalBackdropOpacity: number;
   animateCounters: boolean;
+  animateToasts: boolean;
+  animateSections: boolean;
+  animateModalContent: boolean;
+  animateOsd: boolean;
+  animateResultLists: boolean;
+  animateTabSwitch: boolean;
   customScrollbar: boolean;
   customTitleBarEnabled: boolean;
   statusBarEnabled: boolean;

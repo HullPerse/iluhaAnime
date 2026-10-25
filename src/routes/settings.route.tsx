@@ -33,6 +33,7 @@ const FIND_LIST_ID = "settings-find-listbox";
 export default function SettingsRoute() {
   const { t } = useI18n();
   const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
+  const animateTabSwitch = useCell(settingsAtoms.animateTabSwitch);
   const navigate = settingsRoute.useNavigate();
   const activeTab = settingsRoute.useSearch().tab;
   const [findQuery, setFindQuery] = useState("");
@@ -56,6 +57,18 @@ export default function SettingsRoute() {
   const navKeys = sqliteBrowserEnabled
     ? [...SETTINGS_TAB_KEYS, { id: "sqlite" as const, key: "settings.sqlite" as TranslationKey }]
     : SETTINGS_TAB_KEYS;
+  const tabContentRef = useRef<HTMLDivElement>(null);
+  const prevTabRef = useRef<SettingsTab | null>(null);
+  useEffect(() => {
+    if (!animateTabSwitch || tabContentRef.current === null) return;
+    if (prevTabRef.current !== null && prevTabRef.current !== activeTab) {
+      tabContentRef.current.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 150, easing: "ease-out" }
+      );
+    }
+    prevTabRef.current = activeTab;
+  }, [activeTab, animateTabSwitch]);
   useEffect(() => {
     if (!sqliteBrowserEnabled && activeTab === "sqlite") {
       navigate({ search: (prev) => ({ ...prev, tab: "general" }) });
@@ -195,7 +208,7 @@ export default function SettingsRoute() {
             inputRef={findInputRef}
           />
         </div>
-        <div hidden={findOpen}>{components[activeTab]}</div>
+        <div hidden={findOpen} ref={tabContentRef}>{components[activeTab]}</div>
         {findOpen && (
           <FindResults
             hits={findHits}

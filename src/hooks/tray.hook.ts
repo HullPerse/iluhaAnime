@@ -29,12 +29,17 @@ async function showMainWindow(): Promise<void> {
 export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => void): void {
   const { t } = useI18n();
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
+  const minimizeToTrayRef = useRef(minimizeToTray);
   const selectRef = useRef(onSelectTab);
   const allowQuitRef = useRef(false);
   const entries = useMemo(() => buildTrayMenuEntries(tabs, t("settings.tray.quit")), [tabs, t]);
 
   useEffect(() => {
     selectRef.current = onSelectTab;
+  });
+
+  useEffect(() => {
+    minimizeToTrayRef.current = minimizeToTray;
   });
 
   useEffect(() => {
@@ -114,7 +119,7 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
     };
     const [listening, syncError] = attemptSync(() =>
       getCurrentWindow().onCloseRequested((event) => {
-        if (!shouldHideOnClose(minimizeToTray, allowQuitRef.current)) return;
+        if (!shouldHideOnClose(minimizeToTrayRef.current, allowQuitRef.current)) return;
         event.preventDefault();
         hideWindow();
       })
@@ -134,5 +139,5 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
       disposed = true;
       unlisten?.();
     };
-  }, [minimizeToTray]);
+  }, []);
 }

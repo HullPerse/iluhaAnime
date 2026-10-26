@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, WindowEvent};
 
 mod anilist;
 mod app_db;
@@ -1776,6 +1776,15 @@ pub fn run() {
                 None => {
                     tracing::warn!("tray icon unavailable: no window icon and bundled icon failed");
                 }
+            }
+
+            if let Some(window) = app.get_webview_window("main") {
+                let app_handle = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if matches!(event, WindowEvent::Destroyed) {
+                        app_handle.exit(0);
+                    }
+                });
             }
 
             let handle = app.handle().clone();

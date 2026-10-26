@@ -107,6 +107,9 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.player.screen_modes", "player"),
       entry("changelog.5_0_0.added.player.screen_cabinet", "player"),
       entry("changelog.5_0_0.added.app.modal_motion", "app"),
+      entry("changelog.5_0_0.added.anilist.stat_charts", "anilist"),
+      entry("changelog.5_0_0.added.settings.animations", "settings"),
+      entry("changelog.5_0_0.added.app.remember_last_tab", "app"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -195,6 +198,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.anilist.franchise", "anilist"),
       entry("changelog.5_0_0.changed.anilist.detail_titlebar", "anilist"),
       entry("changelog.5_0_0.changed.anilist.stats_day_title", "anilist"),
+      entry("changelog.5_0_0.changed.anilist.recommendations_exclude_watched", "anilist"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

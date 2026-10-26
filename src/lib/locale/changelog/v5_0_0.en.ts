@@ -423,6 +423,14 @@ const changelog500 = {
     "A cabinet around the video: off, Windows 95 style gray plastic, or wood. It is its own choice under the screen mode, off by default, never turns itself on when the mode changes, and survives the view presets, cinema mode and fullscreen. The cabinet is an overlay with 1-2% overscan that moves neither the picture nor the controls, available in the settings and the right-click menu",
   "changelog.5_0_0.added.app.modal_motion":
     "Modal windows open with a short fade and zoom, and their size animates when the content changes; both follow the existing Modal window animation checkbox, and closing stays instant",
+  "changelog.5_0_0.added.anilist.stat_charts":
+    "Overview statistics gained charts: score distribution, status mix, format mix, release years, watched by year, top genres and studios, and completion by genre, with KPI tiles, tooltips, and click-through to the titles behind each bar",
+  "changelog.5_0_0.added.settings.animations":
+    "New Animation section in Settings Theme with separate toggles: toast fade in and out, section collapse and expand, modal content swap, player OSD fade, search and collection result lists, and the settings tab switch",
+  "changelog.5_0_0.added.app.remember_last_tab":
+    "Remember last tab on startup: the app reopens the tab you left behind, and the checkbox sits in Settings Startup",
+  "changelog.5_0_0.changed.anilist.recommendations_exclude_watched":
+    "The recommendations modal skips anime that are already in your lists, so it only offers something new",
   "changelog.5_0_0.changed.anilist.detail_titlebar":
     "Character, staff and anime screens in details and favourites now use the window titlebar for the name and Back: the second inner header and close button are gone, Back walks the screen stack, and X closes the whole window",
   "changelog.5_0_0.changed.anilist.stats_day_title":

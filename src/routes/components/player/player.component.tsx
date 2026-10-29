@@ -24,6 +24,7 @@ import {
 } from "@/config/player/keybinds.config";
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
@@ -412,6 +413,7 @@ function PlayerComponent() {
   const immersive = chrome.fullBleed;
   const barsAutoHide = chrome.barsAutoHide;
   const stream = useCell(streamSession);
+  usePlayerDiscordPresence();
   useEffect(() => {
     streamUrlRef.current = stream?.mediaUrl ?? null;
   }, [stream]);

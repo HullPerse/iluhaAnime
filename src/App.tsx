@@ -7,6 +7,7 @@ import { DbScreen } from "@/components/shared/db/screen.db";
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
 import { tabIdFromPath, tabPathFromId } from "@/config/tabs/paths.config";
 import { useApp } from "@/hooks/app.hook";
+import { useDiscordPresence } from "@/hooks/discordPresence.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDayNightScheduler } from "@/hooks/schedule.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
@@ -106,6 +107,7 @@ export default function App() {
   });
   useDayNightScheduler();
   useEnsureAnimeIndex();
+  useDiscordPresence(activeTab);
   usePrewarmSpellIndex();
   const { capture: screenshot, close: closeScreenshot } = useScreenshot();
 

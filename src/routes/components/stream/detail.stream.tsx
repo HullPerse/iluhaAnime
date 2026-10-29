@@ -16,8 +16,14 @@ import { ignore } from "@/lib/utils/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { streamStore } from "@/store/stream.store";
-import type { StreamPrefs, StreamVariant, StreamingEpisode } from "@/types/stream";
-import type { StreamSource } from "@/types/videoPlayer";
+import type { TFunc } from "@/types/i18n";
+import type {
+  StreamPrefs,
+  StreamVariant,
+  StreamingAnime,
+  StreamingEpisode,
+} from "@/types/stream";
+import type { AnimeLibAnime, StreamSource } from "@/types/videoPlayer";
 
 import AniListDetailModal from "../anilist/detail/modal.detail";
 import StreamEpisodes from "./episodes.stream";
@@ -125,128 +131,110 @@ async function resumePosition(watchKey: string): Promise<number | undefined> {
   return finished ? undefined : watch.position;
 }
 
-/**
- * The title modal. It lists episodes and nothing else: a click plays the
- * episode straight away with the remembered voice-over and quality, and every
- * further choice (voice-over, quality, audio, subtitles) lives in the player's
- * source panel, where the current position is already known.
- */
-export default function StreamDetail({ slug }: { slug: string }) {
-  const { t } = useI18n();
-  const title = useStreamTitle(slug);
-  const anime = title.data?.anime;
-  const episodes = title.data?.episodes;
-  // Per-episode preview art only exists on AniList, and only for titles it
-  // matched; a missing map simply means the rows show no popup.
-  const previews = useAnilistEpisodePreviews(anime?.anilistId);
-  const signedIn = useAnilistSignedIn();
-  const [anilistOpen, setAnilistOpen] = useState(false);
+async function playEpisode(
+  anime: AnimeLibAnime | undefined,
+  target: StreamingEpisode,
+  playingId: string | null,
+  setPlayingId: (id: string | null) => void,
+  t: TFunc
+): Promise<void> {
+  if (!anime || playingId) return;
+  setPlayingId(target.id);
+  // Resume from the stream watch key, not from the URL, so a rotated CDN link
+  // does not lose the position. A position at the very end starts over.
+  const watchKey = buildWatchKey(SOURCE_ID, anime.id, target.id);
+  const resolved = await resolvePlayable(anime.id, target.id, watchKey);
+  if (!("playable" in resolved)) {
+    addNotification(
+      t("stream.playFailed"),
+      "error",
+      resolved.failure || t("stream.error.noSources")
+    );
+    setPlayingId(null);
+    return;
+  }
+  const { variant, source, sources, variants } = resolved.playable;
+  const { prefs, resume } = resolved;
 
+  const base = prefs ?? emptyPrefs(SOURCE_ID, anime.id);
+  const remembered = withQuality(withVariant(base, variant), source.label);
+  const [, prefsFailure] = await attempt(streamApi.prefsSave(remembered));
+  if (prefsFailure) {
+    // Playback still proceeds: a failed preference write must not cost the
+    // episode, it only means the next one starts from the fallback.
+    addNotification(t("stream.playFailed"), "error", prefsFailure.message);
+  }
+
+  const [, openFailure] = await attempt(
+    openStream({
+      sourceId: SOURCE_ID,
+      sourceName: SOURCE_NAME,
+      mediaId: anime.id,
+      mediaTitle: anime.title,
+      episodeId: target.id,
+      episodeNumber: target.number,
+      episodeTitle: target.title ?? "",
+      cover: anime.cover,
+      anilistId: anime.anilistId ?? null,
+      watchKey,
+      resume,
+      // A stream opens paused: the user asked for the episode, not for it to
+      // start playing while the player window is still coming up.
+      paused: true,
+      headers: source.headers,
+      proxyUrl: settingsAtoms.animelibProxyUrl.get(),
+      quality: source.label,
+      variantId: source.variantId,
+      sources: toVariantSources(sources),
+      variants,
+      mediaUrl: source.url,
+    })
+  );
+  if (openFailure) addNotification(t("stream.playFailed"), "error", openFailure.message);
+  setPlayingId(null);
+}
+
+function useStreamEpisodeSelection(episodes: StreamingEpisode[] | undefined) {
   const [episode, setEpisode] = useState<StreamingEpisode | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-
-  const close = () => streamStore.selectedSlug.set(null);
-
-  // The player window is normally warm from app start, but a user who closed
-  // the player left none behind. Opening a title is the earliest reliable sign
-  // that an episode is about to be clicked, so rebuild it here rather than on
-  // the click itself. A failure costs nothing: the open command creates it.
-  useEffect(() => {
-    ignore(attempt(prewarmPlayer()).then(() => undefined));
-  }, []);
-
   useEffect(() => {
     if (episode) return;
     const first = episodes?.[0];
     if (first) setEpisode(first);
   }, [episode, episodes]);
+  return [episode, setEpisode] as const;
+}
 
-  // The first episode is the one the Play button and the highlighted row point
-  // at, so its rows are warmed as soon as the title answers, not on the click.
-  const animeId = anime?.id ?? null;
-  const firstEpisodeId = episodes?.[0]?.id ?? null;
-  useEffect(() => {
-    if (!animeId || !firstEpisodeId) return;
-    ignore(prefetchEpisode(animeId, firstEpisodeId));
-  }, [animeId, firstEpisodeId]);
-
-  const play = async (target: StreamingEpisode) => {
-    if (!anime || playingId) return;
-    setPlayingId(target.id);
-    // Resume from the stream watch key, not from the URL, so a rotated CDN link
-    // does not lose the position. A position at the very end starts over.
-    const watchKey = buildWatchKey(SOURCE_ID, anime.id, target.id);
-    const resolved = await resolvePlayable(anime.id, target.id, watchKey);
-    if (!("playable" in resolved)) {
-      addNotification(
-        t("stream.playFailed"),
-        "error",
-        resolved.failure || t("stream.error.noSources")
-      );
-      setPlayingId(null);
-      return;
-    }
-    const { variant, source, sources, variants } = resolved.playable;
-    const { prefs, resume } = resolved;
-
-    const base = prefs ?? emptyPrefs(SOURCE_ID, anime.id);
-    const remembered = withQuality(withVariant(base, variant), source.label);
-    const [, prefsFailure] = await attempt(streamApi.prefsSave(remembered));
-    if (prefsFailure) {
-      // Playback still proceeds: a failed preference write must not cost the
-      // episode, it only means the next one starts from the fallback.
-      addNotification(t("stream.playFailed"), "error", prefsFailure.message);
-    }
-
-    const [, openFailure] = await attempt(
-      openStream({
-        sourceId: SOURCE_ID,
-        sourceName: SOURCE_NAME,
-        mediaId: anime.id,
-        mediaTitle: anime.title,
-        episodeId: target.id,
-        episodeNumber: target.number,
-        episodeTitle: target.title ?? "",
-        cover: anime.cover,
-        anilistId: anime.anilistId ?? null,
-        watchKey,
-        resume,
-        // A stream opens paused: the user asked for the episode, not for it to
-        // start playing while the player window is still coming up.
-        paused: true,
-        headers: source.headers,
-        proxyUrl: settingsAtoms.animelibProxyUrl.get(),
-        quality: source.label,
-        variantId: source.variantId,
-        sources: toVariantSources(sources),
-        variants,
-        mediaUrl: source.url,
-      })
-    );
-    if (openFailure) addNotification(t("stream.playFailed"), "error", openFailure.message);
-    setPlayingId(null);
-  };
-
-  // The AniList details replace this modal instead of stacking on top of it:
-  // one dialog at a time, and Back returns to the episode list.
-  if (anilistOpen && anime?.anilistId) {
-    return (
-      <AniListDetailModal
-        animeId={anime.anilistId}
-        isLoggedIn={signedIn}
-        onTag={() => undefined}
-        onGenre={() => undefined}
-        onBack={() => setAnilistOpen(false)}
-        onClose={close}
-      />
-    );
-  }
-
+function StreamDetailView({
+  anime,
+  episode,
+  episodes,
+  onClose,
+  onOpenAnilist,
+  onPick,
+  onPlay,
+  playingId,
+  previews,
+  signedIn,
+  title,
+}: {
+  anime: StreamingAnime | undefined;
+  episode: StreamingEpisode | null;
+  episodes: StreamingEpisode[] | undefined;
+  onClose: () => void;
+  onOpenAnilist: () => void;
+  onPick: (episode: StreamingEpisode) => void;
+  onPlay: () => void;
+  playingId: string | null;
+  previews: Map<number, string>;
+  signedIn: boolean;
+  title: ReturnType<typeof useStreamTitle>;
+}) {
+  const { t } = useI18n();
   return (
     <Modal
       header={anime?.title ?? t("stream.detail.loading")}
-      onClose={close}
-      className="w-[52rem] max-w-[94%]"
+      onClose={onClose}
+      className="w-208 max-w-[94%]"
     >
       {title.isPending ? (
         <div className="windows95-border bg-primary flex h-40 items-center justify-center">
@@ -266,10 +254,8 @@ export default function StreamDetail({ slug }: { slug: string }) {
             canPlay={Boolean(episode)}
             playing={playingId !== null}
             canOpenAnilist={signedIn}
-            onPlay={() => {
-              if (episode) ignore(play(episode));
-            }}
-            onOpenAnilist={() => setAnilistOpen(true)}
+            onPlay={onPlay}
+            onOpenAnilist={onOpenAnilist}
           />
 
           <StreamEpisodes
@@ -278,14 +264,89 @@ export default function StreamDetail({ slug }: { slug: string }) {
             error={title.error}
             selectedId={playingId ?? episode?.id ?? null}
             previews={previews}
-            onPick={(picked) => {
-              setEpisode(picked);
-              ignore(play(picked));
-            }}
+            onPick={onPick}
             onRetry={() => title.refetch()}
           />
         </div>
       )}
     </Modal>
+  );
+}
+
+/**
+ * The title modal. It lists episodes and nothing else: a click plays the
+ * episode straight away with the remembered voice-over and quality, and every
+ * further choice (voice-over, quality, audio, subtitles) lives in the player's
+ * source panel, where the current position is already known.
+ */
+export default function StreamDetail({ slug }: { slug: string }) {
+  const { t } = useI18n();
+  const title = useStreamTitle(slug);
+  const anime = title.data?.anime;
+  const episodes = title.data?.episodes;
+  // Per-episode preview art only exists on AniList, and only for titles it
+  // matched; a missing map simply means the rows show no popup.
+  const previews = useAnilistEpisodePreviews(anime?.anilistId);
+  const signedIn = useAnilistSignedIn();
+  const [anilistOpen, setAnilistOpen] = useState(false);
+  const [episode, setEpisode] = useStreamEpisodeSelection(episodes);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+
+  const close = () => streamStore.selectedSlug.set(null);
+
+  // The player window is normally warm from app start, but a user who closed
+  // the player left none behind. Opening a title is the earliest reliable sign
+  // that an episode is about to be clicked, so rebuild it here rather than on
+  // the click itself. A failure costs nothing: the open command creates it.
+  useEffect(() => {
+    ignore(attempt(prewarmPlayer()).then(() => undefined));
+  }, []);
+
+  // The first episode is the one the Play button and the highlighted row point
+  // at, so its rows are warmed as soon as the title answers, not on the click.
+  const animeId = anime?.id ?? null;
+  const firstEpisodeId = episodes?.[0]?.id ?? null;
+  useEffect(() => {
+    if (!animeId || !firstEpisodeId) return;
+    ignore(prefetchEpisode(animeId, firstEpisodeId));
+  }, [animeId, firstEpisodeId]);
+
+  const play = (target: StreamingEpisode): Promise<void> =>
+    playEpisode(anime, target, playingId, setPlayingId, t);
+
+  // The AniList details replace this modal instead of stacking on top of it:
+  // one dialog at a time, and Back returns to the episode list.
+  if (anilistOpen && anime?.anilistId) {
+    return (
+      <AniListDetailModal
+        animeId={anime.anilistId}
+        isLoggedIn={signedIn}
+        onTag={() => undefined}
+        onGenre={() => undefined}
+        onBack={() => setAnilistOpen(false)}
+        onClose={close}
+      />
+    );
+  }
+
+  return (
+    <StreamDetailView
+      anime={anime}
+      episode={episode}
+      episodes={episodes}
+      onClose={close}
+      onOpenAnilist={() => setAnilistOpen(true)}
+      onPick={(picked) => {
+        setEpisode(picked);
+        ignore(play(picked));
+      }}
+      onPlay={() => {
+        if (episode) ignore(play(episode));
+      }}
+      playingId={playingId}
+      previews={previews}
+      signedIn={signedIn}
+      title={title}
+    />
   );
 }

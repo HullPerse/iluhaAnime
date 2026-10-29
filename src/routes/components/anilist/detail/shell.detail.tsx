@@ -11,6 +11,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attemptAll } from "@/lib/utils/attempt.utils";
+import { setPresenceDetail } from "@/store/presence.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   AniDetailProps as DetailProps,
@@ -101,6 +102,19 @@ function useDetailScreens(animeId: number, onRelated: ((id: number) => void) | u
   return { backScreen, openAnime, pushScreen, screenTop };
 }
 
+function useDetailPresence(
+  media: { id: number; title: string } | undefined,
+  fallbackId: number
+): void {
+  const title = media?.title;
+  const id = media?.id ?? fallbackId;
+  useEffect(() => {
+    if (!title) return;
+    setPresenceDetail({ id, title });
+    return () => setPresenceDetail(null);
+  }, [id, title]);
+}
+
 export function AnimeDetailShell({
   render,
   ...props
@@ -134,6 +148,7 @@ export function AnimeDetailShell({
       staleTime: Infinity,
     });
   }, [props.animeId, queryClient]);
+  useDetailPresence(query.data?.media, props.animeId);
   const { backScreen, openAnime, pushScreen, screenTop } = useDetailScreens(
     props.animeId,
     props.onRelated

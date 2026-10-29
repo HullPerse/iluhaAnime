@@ -11,13 +11,13 @@ import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
+import { PROXY_PRESETS, proxySelectValue } from "@/config/settings/proxy.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
-import { PROXY_PRESETS, proxySelectValue } from "@/config/settings/proxy.config";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
@@ -70,6 +70,7 @@ function StreamTabNote() {
 
 export default function SettingsGeneral() {
   const language = useCell(settingsAtoms.language);
+  const discordRpcEnabled = useCell(settingsAtoms.discordRpcEnabled);
   const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
   const parseTitlesTorrent = useCell(settingsAtoms.parseTitlesTorrent);
   const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
@@ -604,6 +605,31 @@ export default function SettingsGeneral() {
                   <span className="text-hint text-xs">{t("settings.torrent.covers.login")}</span>
                 ) : null}
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="ui-panel" data-find-section="general.rpc">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
+          <span className="text-title-text font-bold">{t("settings.rpc.title")}</span>
+          <SectionResetButton sectionId="general.rpc" />
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
+            <span className="windows95-text text-text text-xs font-bold">
+              {t("settings.rpc.title")}
+            </span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+                <Checkbox
+                  checked={discordRpcEnabled}
+                  onChange={(v) => {
+                    patchSettings({ discordRpcEnabled: v });
+                  }}
+                />
+                <span>{t("settings.rpc.enabled")}</span>
+              </label>
             </div>
           </div>
         </div>

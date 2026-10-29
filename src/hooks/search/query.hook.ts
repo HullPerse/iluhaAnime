@@ -33,6 +33,7 @@ import {
   setSearchSortBy as setSortBy,
   setSearchSortDirection as setSortDirection,
 } from "@/store/search.store";
+import { setPresenceSearching } from "@/store/presence.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { Source, SearchQueryController, SelectedSearchTorrent } from "@/types/search";
 import type { Anime } from "@/types/torrent";
@@ -75,6 +76,11 @@ export function useSearchQuery(): SearchQueryController {
     setNyaaPage(1);
     setMaxPage(Number.POSITIVE_INFINITY);
   }
+
+  useEffect(() => {
+    setPresenceSearching(submittedQuery.trim().length > 0);
+    return () => setPresenceSearching(false);
+  }, [submittedQuery]);
 
   const sortBy = useCell(searchAtoms.sortBy);
   const sortDirection = useCell(searchAtoms.sortDirection);

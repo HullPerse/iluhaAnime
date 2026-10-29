@@ -94,6 +94,8 @@ export interface SettingsStore {
   fileOrder: FileOrder;
   fastresumeEnabled: boolean;
   disablePersistence: boolean;
+  /** Publish what is playing to the Discord client. Off until the user asks. */
+  discordRpcEnabled: boolean;
   parseTitlesPlayer: boolean;
   parseTitlesTorrent: boolean;
   parseTitlesSearch: boolean;

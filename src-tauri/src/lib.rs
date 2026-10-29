@@ -16,6 +16,7 @@ use tauri::{Emitter, Manager, WindowEvent};
 
 mod anilist;
 mod app_db;
+mod discord;
 
 #[doc(hidden)]
 pub mod benchmark_api {
@@ -1798,6 +1799,7 @@ pub fn run() {
             handle.manage(file_index::FileIndexer::new());
             handle.manage(game::GameHost::default());
             handle.manage(player::PlayerHost::default());
+            handle.manage(discord::DiscordPresence::start());
             player::state::attach(app.handle());
             let prewarm_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -2025,6 +2027,9 @@ pub fn run() {
             player::player_load_watch,
             player::player_apply_file_state,
             player::player_apply_batch,
+            discord::commands::discord_presence_configure,
+            discord::commands::discord_presence_set,
+            discord::commands::discord_presence_clear,
             stream::anime_lib_search,
             stream::anime_lib_constants,
             stream::anime_lib_episodes,
@@ -2167,6 +2172,9 @@ pub fn run() {
                 cancel.cancel();
                 let children = app_handle.state::<ActiveChildren>();
                 children.kill_all();
+                if let Some(presence) = app_handle.try_state::<discord::DiscordPresence>() {
+                    presence.shutdown();
+                }
             }
         });
 }

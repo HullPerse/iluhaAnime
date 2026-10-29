@@ -14,6 +14,12 @@ use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
 use crate::app_db;
 use crate::{WINDOW_CHROME_KEY, WINDOW_CHROME_NAMESPACE};
 
+fn clear_player_presence(app: &AppHandle) {
+    if let Some(presence) = app.try_state::<crate::discord::DiscordPresence>() {
+        presence.clear_player_now();
+    }
+}
+
 fn cached_player_decorations(app: &AppHandle) -> bool {
     app_db::read_cached_payload(app, WINDOW_CHROME_NAMESPACE, WINDOW_CHROME_KEY)
         .ok()
@@ -252,6 +258,7 @@ pub async fn player_open(
     };
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
+            clear_player_presence(&app);
             let backend = LibmpvCore::new(app.clone());
             let host = app.state::<PlayerHost>();
             host.set_active(false);
@@ -331,6 +338,7 @@ pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<()
     };
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
+            clear_player_presence(&app);
             let backend = LibmpvCore::new(app.clone());
             let host = app.state::<PlayerHost>();
             host.set_active(false);
@@ -895,6 +903,7 @@ pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
     let label_for_event = label.clone();
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
+            clear_player_presence(&app_for_event);
             let backend = LibmpvCore::new(app_for_event.clone());
             let host = app_for_event.state::<PlayerHost>();
             host.set_active(false);

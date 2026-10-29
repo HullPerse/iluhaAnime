@@ -18,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 58;
+export const SETTINGS_SCHEMA_VERSION = 59;
 
 type SettingsActionKeys =
   | "patch";
@@ -259,6 +259,14 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     migrate: (state) => {
       if (state.streamDefaultQuality === undefined) {
         state.streamDefaultQuality = DEFAULT_SETTINGS.streamDefaultQuality;
+      }
+    },
+  },
+  {
+    from: 59,
+    migrate: (state) => {
+      if (state.discordRpcEnabled === undefined) {
+        state.discordRpcEnabled = false;
       }
     },
   },

@@ -75,7 +75,11 @@ const FIND_GROUPS: readonly FindGroup[] = [
     tab: "general",
     section: "startup",
     titleKey: "settings.startup",
-    keys: ["settings.startup.fastLaunch", "settings.startup.fastLaunch.hint", "settings.startup.rememberLastTab"],
+    keys: [
+      "settings.startup.fastLaunch",
+      "settings.startup.fastLaunch.hint",
+      "settings.startup.rememberLastTab",
+    ],
   },
   {
     tab: "general",
@@ -175,6 +179,12 @@ const FIND_GROUPS: readonly FindGroup[] = [
       "settings.torrent.covers.full",
       "settings.torrent.covers.login",
     ],
+  },
+  {
+    tab: "general",
+    section: "rpc",
+    titleKey: "settings.rpc.title",
+    keys: ["settings.rpc.enabled"],
   },
   {
     tab: "general",

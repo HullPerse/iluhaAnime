@@ -17,6 +17,7 @@ import changelog500 from "./changelog/v5_0_0.ru";
 import anilist from "./ru/anilist.locale";
 import collection from "./ru/collection.locale";
 import common from "./ru/common.locale";
+import discord from "./ru/discord.locale";
 import game from "./ru/game.locale";
 import keyboard from "./ru/keyboard.locale";
 import player from "./ru/player.locale";
@@ -47,6 +48,7 @@ const ru = {
   ...common,
   ...keyboard,
   ...collection,
+  ...discord,
   ...game,
   ...player,
   ...screenshot,

@@ -97,6 +97,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   notificationPopups: "off",
   notifyOnComplete: true,
   notifyOnError: true,
+  discordRpcEnabled: false,
   parseTitlesPlayer: false,
   parseTitlesTorrent: false,
   parseTitlesSearch: false,

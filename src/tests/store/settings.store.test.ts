@@ -58,6 +58,14 @@ describe("settings signal migration", () => {
     ).toBe("1080p");
   });
 
+  it("defaults Discord RPC to off on v59 and keeps an explicit choice", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 58).discordRpcEnabled).toBe(false);
+    expect(
+      settings.migrateSettingsData({ language: "en", discordRpcEnabled: true }, 58)
+        .discordRpcEnabled
+    ).toBe(true);
+  });
+
   it("migrates legacy dlLimit/ulLimit into limits.download/upload", () => {
     const result = settings.migrateSettingsData({ dlLimit: 500, ulLimit: 100, language: "en" }, 14);
     expect(result.language).toBe("en");

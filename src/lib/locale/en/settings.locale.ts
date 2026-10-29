@@ -58,6 +58,8 @@ const settings = {
   "settings.parse.player": "Player: header, folders, and playlist",
   "settings.parse.torrent": "Torrent file lists",
   "settings.parse.search": "Torrent search results",
+  "settings.rpc.title": "Discord",
+  "settings.rpc.enabled": "Discord Rich Presence",
   "settings.reset.button": "Delete all data",
   "settings.reset.data": "Reset data",
   "settings.reset.message":
@@ -509,9 +511,11 @@ const settings = {
   "settings.screenshot.format": "Default format",
   "settings.screenshot.open.folder": "Open folder after saving",
   "settings.animelib.title": "AnimeLib account",
-  "settings.animelib.description": "Optional. A token from a logged-in animelib.org session unlocks the site's own 1080p/4K qualities. Kodik works without it, but stops at 720p.",
+  "settings.animelib.description":
+    "Optional. A token from a logged-in animelib.org session unlocks the site's own 1080p/4K qualities. Kodik works without it, but stops at 720p.",
   "settings.animelib.token": "Session token",
-  "settings.animelib.token.description": "Paste the Authorization token from the site's network requests, or the token from its local storage.",
+  "settings.animelib.token.description":
+    "Paste the Authorization token from the site's network requests, or the token from its local storage.",
   "settings.animelib.token.placeholder": "Paste AnimeLib token",
   "settings.animelib.token.save": "Save token",
   "settings.animelib.token.clear": "Remove token",

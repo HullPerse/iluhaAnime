@@ -12,6 +12,7 @@ export type ResetSectionId =
   | "general.anilist"
   | "general.animelib"
   | "general.parse"
+  | "general.rpc"
   | "general.screenshot"
   | "notifications.system"
   | "notifications.anilist"
@@ -70,6 +71,7 @@ export const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[
   "theme.effects": ["enable3dBorders", "buttonPressEffect", "customScrollbar", "modalBackdropOpacity"],
   "theme.animation": ["modalAnimation", "enableAnimations", "animateCounters", "animateToasts", "animateSections", "animateModalContent", "animateOsd", "animateResultLists", "animateTabSwitch"],
   "theme.experimental": ["searchType", "playerType", "playerContextMenu", "animeDetailWidth", "searchMascotEnabled", "statusBarEnabled", "roundedWindowCorners", "windowEffect", "windowTintOpacity", "yorhaScanlinesEnabled", "customTitleBarEnabled"],
+  "general.rpc": ["discordRpcEnabled"],
   "keybinds.list": ["keybindOverrides"],
 };
 

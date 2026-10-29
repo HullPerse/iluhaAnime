@@ -132,7 +132,7 @@ export default function StreamEpisodes({
           <StreamInlineLoading />
         ) : error ? (
           <div className="text-destructive windows95-text flex items-center gap-1 p-1" role="alert">
-            <span className="min-w-0 flex-1 break-words">{error.message}</span>
+            <span className="min-w-0 flex-1 wrap-break-word">{error.message}</span>
             <Button
               size="icon"
               className="size-5"

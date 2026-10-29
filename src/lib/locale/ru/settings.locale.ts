@@ -58,6 +58,8 @@ const settings = {
   "settings.parse.player": "Плеер: шапка, папки и плейлист",
   "settings.parse.torrent": "Списки файлов торрентов",
   "settings.parse.search": "Результаты поиска торрентов",
+  "settings.rpc.title": "Discord",
+  "settings.rpc.enabled": "Discord Rich Presence",
   "settings.reset.button": "Удалить все данные",
   "settings.reset.data": "Сброс данных",
   "settings.reset.message": "Удалить кэши, историю, прогресс, настройки и входы? Медиа останется.",
@@ -443,8 +445,7 @@ const settings = {
   "settings.anilist.tab": "AniList",
   "settings.stream.tab": "Стриминг",
   "settings.stream.tab.russianOnly": "[ТОЛЬКО ПО-РУССКИ]",
-  "settings.stream.tab.russianOnly.hint":
-    "Каталог стриминга есть только на русском языке.",
+  "settings.stream.tab.russianOnly.hint": "Каталог стриминга есть только на русском языке.",
   "settings.ffmpeg.source.essentials": "gyan.dev (essentials, ~30 МБ)",
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 МБ)",
   "settings.ffmpeg.source.mirror": "GitHub через зеркало (gh-proxy)",
@@ -513,9 +514,11 @@ const settings = {
   "settings.screenshot.format": "Формат по умолчанию",
   "settings.screenshot.open.folder": "Открывать папку после сохранения",
   "settings.animelib.title": "Аккаунт AnimeLib",
-  "settings.animelib.description": "Необязательно. Токен залогиненной сессии animelib.org открывает собственные качества 1080p/4K. Kodik работает и без него, но останавливается на 720p.",
+  "settings.animelib.description":
+    "Необязательно. Токен залогиненной сессии animelib.org открывает собственные качества 1080p/4K. Kodik работает и без него, но останавливается на 720p.",
   "settings.animelib.token": "Токен сессии",
-  "settings.animelib.token.description": "Вставьте токен Authorization из сетевых запросов сайта или токен из его localStorage.",
+  "settings.animelib.token.description":
+    "Вставьте токен Authorization из сетевых запросов сайта или токен из его localStorage.",
   "settings.animelib.token.placeholder": "Вставьте токен AnimeLib",
   "settings.animelib.token.save": "Сохранить токен",
   "settings.animelib.token.clear": "Удалить токен",

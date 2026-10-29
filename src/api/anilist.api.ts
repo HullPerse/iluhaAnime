@@ -16,6 +16,7 @@ import type {
   AniRecommendation,
   AniSavedEntry,
   AniStaffDetail,
+  AniStreamingEpisode,
   AniUser,
   AniUserProfile,
   FavouriteAnime,
@@ -133,6 +134,11 @@ export class AnilistApi {
 
   getAnimeFull(id: number): Promise<AniAnimeFull> {
     return this.call("get_anime_full", { id });
+  }
+
+  /** Per-episode preview art AniList keeps for the title's streaming services. */
+  getStreamingEpisodes(id: number): Promise<AniStreamingEpisode[]> {
+    return this.call("get_anime_streaming_episodes", { id });
   }
 
   getAnimeByIds(ids: number[]): Promise<AniMedia[]> {

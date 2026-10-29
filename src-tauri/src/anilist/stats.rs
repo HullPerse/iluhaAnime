@@ -217,7 +217,10 @@ pub fn parse_statistics(value: &serde_json::Value) -> Result<AniListStatistics, 
             .iter()
             .filter_map(parse_status)
             .collect(),
-        scores: list(anime, "scores").iter().filter_map(parse_score).collect(),
+        scores: list(anime, "scores")
+            .iter()
+            .filter_map(parse_score)
+            .collect(),
         formats: list(anime, "formats")
             .iter()
             .filter_map(parse_format)
@@ -230,7 +233,10 @@ pub fn parse_statistics(value: &serde_json::Value) -> Result<AniListStatistics, 
             .iter()
             .filter_map(|entry| parse_year(entry, "startYear"))
             .collect(),
-        genres: list(anime, "genres").iter().filter_map(parse_genre).collect(),
+        genres: list(anime, "genres")
+            .iter()
+            .filter_map(parse_genre)
+            .collect(),
         studios: list(anime, "studios")
             .iter()
             .filter_map(parse_studio)

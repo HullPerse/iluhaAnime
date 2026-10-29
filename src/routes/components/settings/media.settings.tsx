@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
+import { STREAM_QUALITIES, streamQualityLabel } from "@/config/stream/quality.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseExtensions } from "@/lib/settings/media.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -15,6 +16,7 @@ export default function SettingsMedia() {
   const audioExtensions = useCell(settingsAtoms.audioExtensions);
   const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
   const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
+  const streamDefaultQuality = useCell(settingsAtoms.streamDefaultQuality);
   const watcherDelay = useCell(settingsAtoms.watcherDelay);
   const scanThreads = useCell(settingsAtoms.scanThreads);
   const { t } = useI18n();
@@ -88,6 +90,26 @@ export default function SettingsMedia() {
             className="h-6 flex-1"
           />
         </label>
+        <div className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+          <span className="w-36 shrink-0 font-bold">{t("settings.media.streamQuality")}</span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <Select
+              value={streamDefaultQuality}
+              onChange={(value) =>
+                patchSettings({ streamDefaultQuality: value as typeof streamDefaultQuality })
+              }
+              options={STREAM_QUALITIES.map((quality) => ({
+                value: quality,
+                label: streamQualityLabel(quality),
+              }))}
+              className="h-6"
+              label={t("settings.media.streamQuality")}
+            />
+            <span className="text-hint text-[12px]">
+              {t("settings.media.streamQuality.hint")}
+            </span>
+          </div>
+        </div>
         <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-36 shrink-0 font-bold">{t("settings.media.watcher")}</span>
           <Select
@@ -123,6 +145,7 @@ export default function SettingsMedia() {
                 videoExtensions: DEFAULT_SETTINGS.videoExtensions,
                 audioExtensions: DEFAULT_SETTINGS.audioExtensions,
                 subtitleExtensions: DEFAULT_SETTINGS.subtitleExtensions,
+                streamDefaultQuality: DEFAULT_SETTINGS.streamDefaultQuality,
               })
             }
           >

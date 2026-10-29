@@ -2,7 +2,10 @@ import { describe, expect, it, vi, beforeAll } from "vitest";
 
 import { playerVisibility } from "@/lib/settings/playerVisibility.utils";
 
-import { mockInvoke } from "../mocks";
+// The factory below is hoisted above the imports, so its spy has to be
+// created by `vi.hoisted`; importing the shared mock here would run after the
+// settings store has already requested the module.
+const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -39,6 +42,20 @@ describe("settings signal migration", () => {
     expect(settings.migrateSettingsData({ language: "en", fastLaunch: true }, 44).fastLaunch).toBe(
       true
     );
+  });
+
+  it("defaults the stream quality to 1080p and repairs an unknown label", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 57).streamDefaultQuality).toBe(
+      "1080p"
+    );
+    expect(
+      settings.migrateSettingsData({ language: "en", streamDefaultQuality: "2160p" }, 57)
+        .streamDefaultQuality
+    ).toBe("2160p");
+    expect(
+      settings.migrateSettingsData({ language: "en", streamDefaultQuality: "8k" }, 58)
+        .streamDefaultQuality
+    ).toBe("1080p");
   });
 
   it("migrates legacy dlLimit/ulLimit into limits.download/upload", () => {

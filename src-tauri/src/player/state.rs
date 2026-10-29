@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -14,18 +15,6 @@ use super::{
 const STATE_INTERVAL: Duration = Duration::from_millis(100);
 const WATCH_SAVE_TICKS: u32 = 100;
 const METRICS_TICKS: u32 = 10;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PlayerOpenRequest {
-    pub files: Vec<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resume: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub start_index: Option<usize>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub watch: Option<PlaylistWatch>,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -49,6 +38,88 @@ pub enum PlaylistWatch {
     Folder(FolderWatch),
 }
 
+/// Stream-specific open request carried alongside (or instead of) local files.
+/// A request has either `files` or `stream`, never both.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamOpen {
+    pub source_id: String,
+    pub source_name: String,
+    pub media_id: String,
+    pub media_title: String,
+    pub episode_id: String,
+    pub episode_number: i32,
+    pub episode_title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<String>,
+    /// The AniList id the catalog matched, when it had one. The player uses it
+    /// for episode previews; nothing plays from it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anilist_id: Option<i64>,
+    pub watch_key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resume: Option<f64>,
+    /// Request headers the media host needs. A JSON object from the frontend.
+    pub headers: BTreeMap<String, String>,
+    /// Proxy for mpv's media request; empty means a direct connection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proxy_url: Option<String>,
+    /// Whether playback was paused when the request was made, so a quality or
+    /// voice-over switch does not start a paused stream.
+    #[serde(default)]
+    pub paused: bool,
+    pub quality: String,
+    pub variant_id: String,
+    pub sources: Vec<StreamVariantSource>,
+    /// The episode's voice-over and subtitle rows, handed over by the catalog
+    /// window so the player's list is ready without another network request.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variants: Vec<StreamVariantRow>,
+    /// The selected playable media URL.
+    pub media_url: String,
+}
+
+/// A catalog row carried inside a stream open request. This mirrors the
+/// frontend's `StreamVariant` without pulling the provider's client types into
+/// the player state.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamVariantRow {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub language: Option<String>,
+    #[serde(default)]
+    pub separate_stream: bool,
+    pub player: String,
+    #[serde(default)]
+    pub source_url: String,
+}
+
+/// A single playable media source within a stream open request.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamVariantSource {
+    pub url: String,
+    pub r#type: String,
+    pub quality: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerOpenRequest {
+    pub files: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resume: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_index: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub watch: Option<PlaylistWatch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stream: Option<StreamOpen>,
+}
+
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackSnapshot {
@@ -70,6 +141,18 @@ pub struct PlaybackSnapshot {
     pub drop_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_duration: Option<f64>,
+    /// mpv's cache fill status in percent; present only while it buffers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_buffering_state: Option<f64>,
+    /// Bytes per second read from the network into the cache.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_speed: Option<f64>,
+    /// Bytes cached ahead of the current position.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_bytes: Option<i64>,
+    /// Whether mpv paused playback because the cache ran dry.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub paused_for_cache: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hwdec_current: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,6 +175,9 @@ pub struct TypedEvent {
 pub struct PlayerHost {
     pending_open: Mutex<Option<PlayerOpenRequest>>,
     current_path: Mutex<String>,
+    /// Watch key of the stream session, when one is playing. `current_path`
+    /// carries the media URL for a stream, which must never become a watch key.
+    stream_watch_key: Mutex<Option<String>>,
     dirty: AtomicBool,
     active: AtomicBool,
     metrics: Mutex<Metrics>,
@@ -144,6 +230,20 @@ impl PlayerHost {
 
     pub fn current_path(&self) -> String {
         self.current_path
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    pub fn set_stream_watch_key(&self, key: Option<String>) {
+        *self
+            .stream_watch_key
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = key;
+    }
+
+    pub fn stream_watch_key(&self) -> Option<String> {
+        self.stream_watch_key
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clone()
@@ -405,6 +505,11 @@ fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
         fps_video: metrics.fps_video,
         drop_count: metrics.drop_count,
         cache_duration: metrics.cache_duration,
+        cache_buffering_state: number_property(app, "cache-buffering-state")
+            .map(|value| value.clamp(0.0, 100.0)),
+        cache_speed: number_property(app, "cache-speed").filter(|value| *value > 0.0),
+        cache_bytes: int_property(app, "demuxer-cache-state/fw-bytes").filter(|value| *value > 0),
+        paused_for_cache: flag_property(app, "paused-for-cache"),
         hwdec_current: metrics.hwdec_current,
         video_width: metrics.video_width,
         video_height: metrics.video_height,
@@ -474,7 +579,10 @@ fn watchdog_tick(app: &AppHandle) {
 
 pub fn save_current_watch(app: &AppHandle) {
     let host = app.state::<PlayerHost>();
-    let path = host.current_path();
+    let path = host
+        .stream_watch_key()
+        .filter(|key| !key.is_empty())
+        .unwrap_or_else(|| host.current_path());
     if path.is_empty() {
         return;
     }
@@ -612,5 +720,55 @@ mod tests {
         let (out, streak) = smooth_with_streak(Some(&masked), streak, resumed);
         assert_eq!(out.time_pos, 600.4);
         assert_eq!(streak, 0);
+    }
+
+    #[test]
+    fn a_stream_open_accepts_a_header_map_and_a_pause_flag() {
+        let value = json!({
+            "sourceId": "animelib",
+            "sourceName": "AnimeLib",
+            "mediaId": "11",
+            "mediaTitle": "Naruto",
+            "episodeId": "455",
+            "episodeNumber": 1,
+            "episodeTitle": "Enter Naruto",
+            "watchKey": "stream:animelib:11:455",
+            "headers": { "Referer": "https://animelib.org/", "Origin": "https://animelib.org" },
+            "proxyUrl": "socks5h://127.0.0.1:10808",
+            "paused": true,
+            "quality": "720p",
+            "variantId": "Kodik:32416",
+            "sources": [{
+                "url": "https://cdn.example/720.m3u8",
+                "type": "m3u8",
+                "quality": "720",
+                "label": "720p"
+            }],
+            "variants": [{
+                "id": "32416",
+                "name": "AniDUB",
+                "language": "Озвучка",
+                "separateStream": true,
+                "player": "Kodik",
+                "sourceUrl": "//kodikplayer.com/seria/1/hash/720p"
+            }],
+            "mediaUrl": "https://cdn.example/720.m3u8"
+        });
+
+        let stream: StreamOpen = serde_json::from_value(value).expect("stream open parses");
+        assert_eq!(
+            stream.headers.get("Referer").map(String::as_str),
+            Some("https://animelib.org/")
+        );
+        assert!(stream.paused);
+        assert_eq!(
+            stream.proxy_url.as_deref(),
+            Some("socks5h://127.0.0.1:10808")
+        );
+        assert_eq!(stream.quality, "720p");
+        assert_eq!(stream.sources.len(), 1);
+        assert_eq!(stream.variants.len(), 1);
+        assert_eq!(stream.variants[0].name, "AniDUB");
+        assert!(stream.variants[0].separate_stream);
     }
 }

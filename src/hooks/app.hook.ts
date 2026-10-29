@@ -12,6 +12,7 @@ import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
+import { tabLabel } from "@/lib/tabs.utils";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
@@ -80,8 +81,10 @@ export function useApp() {
   const searchTabEnabled = useCell(settingsAtoms.searchTabEnabled);
   const torrentTabEnabled = useCell(settingsAtoms.torrentTabEnabled);
   const playerTabEnabled = useCell(settingsAtoms.playerTabEnabled);
+  const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
   const gameTabUnlocked = useCell(settingsAtoms.gameTabUnlocked);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
+  const language = useCell(settingsAtoms.language);
   const urlTab = tabIdFromPath(pathname) ?? "search";
   const activeTab = rememberLastTab ? urlTab : "search";
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
@@ -103,10 +106,16 @@ export function useApp() {
       searchTabEnabled,
       torrentTabEnabled,
       playerTabEnabled,
+      streamTabEnabled,
       gameTabUnlocked,
     }).map((tab) => ({
       ...tab,
-      label: t(tab.key),
+      label: tabLabel(
+        tab.id,
+        t(tab.key),
+        language,
+        t("settings.stream.tab.russianOnly")
+      ),
       badge: tab.id === "anilist" ? unreadReleases : undefined,
     })),
     isOnline
@@ -167,6 +176,7 @@ export function useApp() {
     searchTabEnabled,
     torrentTabEnabled,
     playerTabEnabled,
+    streamTabEnabled,
     gameTabUnlocked,
   }).map((tab, index) => ({
     id: tab.id,

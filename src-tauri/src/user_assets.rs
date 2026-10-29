@@ -711,6 +711,7 @@ pub async fn fetch_remote_image(
     url: String,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
+    referer: Option<String>,
 ) -> Result<UserImage, String> {
     let url = url.trim();
     if url.is_empty() || url.len() > 4_096 {
@@ -719,6 +720,15 @@ pub async fn fetch_remote_image(
     if !url.starts_with("https://") && !url.starts_with("http://") {
         return Err("Remote image URL must use http(s)".to_string());
     }
+    let referer = referer
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if let Some(value) = referer {
+        if !value.starts_with("https://") && !value.starts_with("http://") {
+            return Err("Image referer must use http(s)".to_string());
+        }
+    }
     let dir = images_dir(&app, REMOTE_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     if let Some(image) = lookup_remote_image(&dir, &conn, url) {
@@ -726,8 +736,13 @@ pub async fn fetch_remote_image(
     }
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let client = client_for_image_proxy(proxy.as_deref())?;
-    let response = client
-        .get(url)
+    let mut request = client.get(url);
+    // Some cover CDNs (AnimeLib's imglib) answer 403 unless the site's own
+    // page is named as the referer; the webview cannot send one itself.
+    if let Some(value) = referer {
+        request = request.header(reqwest::header::REFERER, value);
+    }
+    let response = request
         .send()
         .await
         .map_err(|e| format!("cached image download: {e}"))?;

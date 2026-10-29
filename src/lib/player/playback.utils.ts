@@ -13,6 +13,7 @@ import type {
   PlaylistInsert,
   PlaylistWatch,
   SeekMode,
+  StreamOpen,
   VideoMarginRatio,
   WatchState,
 } from "@/types/videoPlayer";
@@ -207,9 +208,7 @@ export async function applyAudioOptions(settings: PlayerSettings): Promise<void>
   await applyProperties(audioOptions(settings));
 }
 
-export async function applyBatchProperties(
-  properties: Record<string, unknown>
-): Promise<void> {
+export async function applyBatchProperties(properties: Record<string, unknown>): Promise<void> {
   const entries = Object.entries(properties);
   await invokeTyped("player_apply_batch", {
     properties: entries.map(([name, value]) => [name, value]),
@@ -228,6 +227,19 @@ export async function openPlayer(
     startIndex,
     watch,
   });
+}
+
+export async function openStream(stream: StreamOpen): Promise<void> {
+  await invokeTyped("player_open_stream", { stream });
+}
+
+/**
+ * Build the hidden player window before it is needed. The window survives
+ * between streams but not a close, so opening a title modal asks for it again;
+ * when it already exists the call does nothing.
+ */
+export async function prewarmPlayer(): Promise<void> {
+  await invokeTyped("player_prewarm");
 }
 
 export async function takePendingOpen(): Promise<PlayerOpenRequest | null> {

@@ -12,6 +12,7 @@ import type {
   PlaybackStore,
   PlayerSettings,
   PlayerStore,
+  StreamOpen,
 } from "@/types/videoPlayer";
 
 export const PLAYER_SCHEMA_VERSION = 3;
@@ -81,11 +82,16 @@ const INITIAL_PLAYBACK: PlaybackData = {
   tracks: [],
   chapters: [],
   seekTarget: null,
+  streamResume: null,
   seekSettle: false,
   fpsRender: undefined,
   fpsVideo: undefined,
   dropCount: undefined,
   cacheDuration: undefined,
+  cacheBufferingState: undefined,
+  cacheSpeed: undefined,
+  cacheBytes: undefined,
+  pausedForCache: undefined,
   hwdecCurrent: undefined,
   videoWidth: undefined,
   videoHeight: undefined,
@@ -248,6 +254,13 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
 
 export interface PlaybackSignalStore {
   atoms: PlaybackAtoms;
+  /**
+   * The stream the window is playing, or null for local playback.
+   *
+   * Deliberately outside `atoms`: `setSnapshot` runs at 10 Hz from mpv and
+   * must never be able to clear the session, and the session is not persisted.
+   */
+  streamSession: Cell<StreamOpen | null>;
   subscribeAll: (fn: () => void) => () => void;
   setSnapshot: (snapshot: PlaybackSnapshot) => void;
   setSeekTarget: (time: number) => void;
@@ -264,6 +277,8 @@ export interface PlaybackSignalStore {
 export function createPlaybackSignalStore(): PlaybackSignalStore {
   const store = createSignalStore();
   const atoms = buildPlaybackAtoms(store, { ...INITIAL_PLAYBACK });
+
+  const streamSession = store.atom<StreamOpen | null>("playback.streamSession", null);
 
   let seekConfirm = 0;
   const seekReset = new Debouncer(
@@ -309,11 +324,17 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     subscribeAll: (fn) => store.subscribeAll(fn),
     setSnapshot: (snapshot) => {
       const seekTarget = nextSeekTarget(snapshot);
+      // A replacement stream reports no duration while it opens. Keep the last
+      // known one until the pin is released, otherwise the bar collapses on
+      // the switch and grows back a moment later.
+      const pinned = atoms.streamResume.get() !== null;
       store.batch(() => {
         atoms.ready.set(true);
         atoms.hasFile.set(snapshot.path !== "");
         atoms.timePos.set(snapshot.timePos);
-        atoms.duration.set(snapshot.duration);
+        atoms.duration.set(
+          pinned && snapshot.duration <= 0 ? atoms.duration.get() : snapshot.duration
+        );
         atoms.paused.set(snapshot.pause);
         atoms.eofReached.set(snapshot.eofReached);
         atoms.speed.set(snapshot.speed);
@@ -325,6 +346,10 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
         atoms.fpsVideo.set(snapshot.fpsVideo);
         atoms.dropCount.set(snapshot.dropCount);
         atoms.cacheDuration.set(snapshot.cacheDuration);
+        atoms.cacheBufferingState.set(snapshot.cacheBufferingState);
+        atoms.cacheSpeed.set(snapshot.cacheSpeed);
+        atoms.cacheBytes.set(snapshot.cacheBytes);
+        atoms.pausedForCache.set(snapshot.pausedForCache);
         atoms.hwdecCurrent.set(snapshot.hwdecCurrent);
         atoms.videoWidth.set(snapshot.videoWidth);
         atoms.videoHeight.set(snapshot.videoHeight);
@@ -371,6 +396,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
         }
       });
     },
+    streamSession,
   };
 }
 
@@ -418,3 +444,4 @@ export const markTrackSelected = playback.markTrackSelected;
 export const setPlaybackTracks = playback.setTracks;
 export const setPlaybackChapters = playback.setChapters;
 export const resetPlayback = playback.resetPlayback;
+export const streamSession = playback.streamSession;

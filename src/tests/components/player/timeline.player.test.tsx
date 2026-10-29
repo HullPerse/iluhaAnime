@@ -8,6 +8,7 @@ import { patchSettings } from "@/store/settings.store";
 beforeEach(() => {
   patchSettings({ language: "en" });
   playbackAtoms.timePos.set(0);
+  playbackAtoms.cacheDuration.set(undefined);
 });
 
 afterEach(() => {
@@ -47,6 +48,49 @@ describe("Timeline hover tooltip", () => {
     expect(container.querySelector(".bottom-full")).not.toBeNull();
     fireEvent.mouseLeave(bar);
     expect(container.querySelector(".bottom-full")).toBeNull();
+  });
+});
+
+describe("Timeline buffered span", () => {
+  it("stays out of the bar until the timeline is hovered", () => {
+    playbackAtoms.timePos.set(280);
+    playbackAtoms.cacheDuration.set(140);
+    const { bar, queryByTestId } = renderTimeline(1400);
+
+    expect(queryByTestId("timeline-buffered")).toBeNull();
+
+    fireEvent.mouseMove(bar, { clientX: 100 });
+
+    expect(queryByTestId("timeline-buffered")).not.toBeNull();
+  });
+
+  it("draws how far the stream is already loaded ahead of the playhead", () => {
+    playbackAtoms.timePos.set(280);
+    playbackAtoms.cacheDuration.set(140);
+    const { bar, getByTestId } = renderTimeline(1400);
+    fireEvent.mouseMove(bar, { clientX: 100 });
+
+    const buffered = getByTestId("timeline-buffered");
+    expect(buffered.style.left).toBe("20%");
+    expect(buffered.style.width).toBe("10%");
+  });
+
+  it("shows no buffered span before the cache reports one", () => {
+    const { bar, getByTestId } = renderTimeline(1400);
+    fireEvent.mouseMove(bar, { clientX: 100 });
+
+    expect(getByTestId("timeline-buffered").style.width).toBe("0%");
+  });
+
+  it("does not draw past the end of the video", () => {
+    playbackAtoms.timePos.set(1330);
+    playbackAtoms.cacheDuration.set(200);
+    const { bar, getByTestId } = renderTimeline(1400);
+    fireEvent.mouseMove(bar, { clientX: 100 });
+
+    const buffered = getByTestId("timeline-buffered");
+    expect(buffered.style.left).toBe("95%");
+    expect(buffered.style.width).toBe("5%");
   });
 });
 

@@ -5,6 +5,7 @@ import {
   firstEnabledTabPath,
   isEnabledTabPath,
   resolveSecretTabAction,
+  tabLabel,
 } from "@/lib/tabs.utils";
 import { patchSettings } from "@/store/settings.store";
 
@@ -15,6 +16,7 @@ afterEach(() => {
     searchTabEnabled: true,
     torrentTabEnabled: true,
     playerTabEnabled: true,
+    streamTabEnabled: true,
     gameTabUnlocked: false,
   });
 });
@@ -26,6 +28,7 @@ describe("tabs visibility", () => {
       "/torrent",
       "/player",
       "/anilist",
+      "/stream",
       "/collection",
       "/settings",
     ]);
@@ -57,6 +60,7 @@ describe("tabs visibility", () => {
       searchTabEnabled: false,
       torrentTabEnabled: false,
       playerTabEnabled: false,
+      streamTabEnabled: false,
     });
 
     expect(enabledTabPaths()).toEqual(["/settings"]);
@@ -73,6 +77,19 @@ describe("tabs visibility", () => {
 
     expect(enabledTabPaths().at(-1)).toBe("/game");
     expect(isEnabledTabPath("/game")).toBe(true);
+  });
+});
+
+describe("tab labels", () => {
+  it("notes the Russian-only catalog on the stream tab in English", () => {
+    expect(tabLabel("stream", "Streaming", "en", "[RUSSIAN ONLY]")).toBe(
+      "Streaming [RUSSIAN ONLY]"
+    );
+  });
+
+  it("keeps the plain label in Russian and on other tabs", () => {
+    expect(tabLabel("stream", "Стриминг", "ru", "[ТОЛЬКО ПО-РУССКИ]")).toBe("Стриминг");
+    expect(tabLabel("anilist", "AniList", "en", "[RUSSIAN ONLY]")).toBe("AniList");
   });
 });
 

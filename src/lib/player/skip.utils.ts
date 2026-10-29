@@ -21,7 +21,9 @@ function isEndingTitle(lower: string): boolean {
   return (
     ED_PATTERN.test(lower) ||
     lower.includes("credits") ||
+    lower.includes("outro") ||
     lower.includes("эндинг") ||
+    lower.includes("аутро") ||
     lower.includes("концовка") ||
     lower.includes("титры")
   );

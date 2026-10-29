@@ -1,5 +1,6 @@
 import type { Event } from "@tauri-apps/api/event";
 
+import { formatRate } from "@/lib/utils/bytes.utils";
 import type { TFunc, TranslationKey } from "@/types/i18n";
 import type { TorrentDisplayState, TorrentLifecycle, TorrentInfo } from "@/types/torrent";
 
@@ -136,11 +137,7 @@ export function findJustFinished(
 }
 
 export function fmtSpeed(bps: number): string {
-  if (!bps || bps <= 0 || !isFinite(bps)) return "";
-
-  if (bps < 1024) return `${bps.toFixed(0)} B/s`;
-  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
-  return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
+  return formatRate(bps);
 }
 
 export function formatSpeed(bps: number): string {

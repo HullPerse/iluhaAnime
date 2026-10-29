@@ -10,6 +10,7 @@ export type ResetSectionId =
   | "general.language"
   | "general.tmdb"
   | "general.anilist"
+  | "general.animelib"
   | "general.parse"
   | "general.screenshot"
   | "notifications.system"
@@ -44,6 +45,7 @@ export const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[
   "general.language": ["language", "ffmpegSource"],
   "general.tmdb": ["tmdbKeySet", "tmdbProxyUrl"],
   "general.anilist": ["anilistProxyUrl", "anilistTitleLanguage", "anilistAdultContent"],
+  "general.animelib": ["animelibProxyUrl"],
   "general.parse": ["parseTitlesPlayer", "parseTitlesTorrent", "parseTitlesSearch", "torrentCoverMode", "torrentCoverModeManual"],
   "general.screenshot": ["screenshotDir", "screenshotFormat", "screenshotOpenFolder"],
   "notifications.system": ["notificationPopups"],

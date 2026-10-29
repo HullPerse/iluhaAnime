@@ -2,6 +2,7 @@ import type { AniListSort, AniTitlePreference } from "./anilist";
 import type { Locale, TranslationKey } from "./i18n";
 import type { ScreenshotFormat } from "./screenshot";
 import type { AutocompleteMode, SearchType, TagToleranceKey } from "./search";
+import type { StreamQuality } from "./stream";
 import type { FileOrder, SpeedLimits } from "./torrent";
 
 export type SettingsTab =
@@ -44,6 +45,8 @@ export interface SettingsStore {
   showTrackFiles: "hide" | "torrent" | "folders";
   watcherDelay: WatcherDelay;
   scanThreads: number;
+  /** Quality a stream starts at when the title has no remembered one. */
+  streamDefaultQuality: StreamQuality;
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
@@ -121,6 +124,7 @@ export interface SettingsStore {
   searchTabEnabled: boolean;
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
+  streamTabEnabled: boolean;
   gameTabUnlocked: boolean;
   rememberLastTab: boolean;
   gameVolume: number;
@@ -128,6 +132,8 @@ export interface SettingsStore {
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
   anilistProxyUrl: string | null;
+  /** SOCKS/HTTP proxy for the AnimeLib API and its Kodik resolver. */
+  animelibProxyUrl: string | null;
   anilistTitleLanguage: AniTitlePreference;
   anilistAdultContent: boolean;
   ffmpegSource: "essentials" | "github" | "github-mirror";
@@ -199,7 +205,8 @@ export type TabId =
   | "anilist"
   | "collection"
   | "settings"
-  | "game";
+  | "game"
+  | "stream";
 
 export type TorrentCoverMode = "off" | "pages" | "full";
 
@@ -244,6 +251,7 @@ export type TabSettings = Pick<
   | "searchTabEnabled"
   | "torrentTabEnabled"
   | "playerTabEnabled"
+  | "streamTabEnabled"
   | "gameTabUnlocked"
 >;
 

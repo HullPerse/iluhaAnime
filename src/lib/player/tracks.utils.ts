@@ -57,6 +57,28 @@ export function trackLabel(track: MpvTrack): string {
   return display.language ? `${display.main} - ${display.language}` : display.main;
 }
 
+/**
+ * The track that matches a remembered language. `lang` is compared as a
+ * normalized code, the title as plain text, so a stream whose tracks carry only
+ * a title still restores the user's choice.
+ */
+export function findTrackByPreference(
+  tracks: MpvTrack[],
+  kind: "audio" | "sub",
+  language: string
+): MpvTrack | null {
+  const wantedCode = normalizeLangCode(language);
+  const wantedText = language.trim().toLowerCase();
+  if (!wantedCode && !wantedText) return null;
+  return (
+    tracks.find((track) => {
+      if (track.type !== kind) return false;
+      if (wantedCode && normalizeLangCode(track.lang) === wantedCode) return true;
+      return Boolean(wantedText) && track.title?.trim().toLowerCase() === wantedText;
+    }) ?? null
+  );
+}
+
 export function selectableTracks(tracks: MpvTrack[], kind: "audio" | "sub"): MpvTrack[] {
   return sortTracksByLanguage(tracks.filter((track) => track.type === kind));
 }

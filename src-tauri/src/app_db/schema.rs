@@ -663,6 +663,22 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database unified index value commit: {error}"))?;
     }
 
+    if version < 23 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database streaming support transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                PRAGMA user_version = 23;
+                ",
+            )
+            .map_err(|error| format!("app database streaming support schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database streaming support commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"

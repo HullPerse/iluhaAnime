@@ -38,7 +38,6 @@ public/icons
 skills-lock.json
 .docs
 AGENTS.md
-coverage/
 bun.lock
 # debug outputs
 temp.txt

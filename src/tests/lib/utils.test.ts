@@ -11,7 +11,7 @@ import {
 import { translate } from "@/lib/locale/i18n.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
 import { attempt, attemptAll, attemptSync, toError, withFallback } from "@/lib/utils/attempt.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
+import { formatBytes, formatRate } from "@/lib/utils/bytes.utils";
 import {
   formatColor,
   hexToHsv,
@@ -323,6 +323,20 @@ describe("utils/bytes", () => {
       expect(formatBytes(1_073_741_824)).toBe("1.00 GB");
       expect(formatBytes(1_610_612_736)).toBe("1.50 GB");
       expect(formatBytes(2_147_483_648)).toBe("2.00 GB");
+    });
+  });
+
+  describe("formatRate", () => {
+    it("formats a known rate", () => {
+      expect(formatRate(500)).toBe("500 B/s");
+      expect(formatRate(2048)).toBe("2.0 KB/s");
+      expect(formatRate(2_097_152)).toBe("2.0 MB/s");
+    });
+
+    it("returns an empty string when there is no rate", () => {
+      expect(formatRate(0)).toBe("");
+      expect(formatRate(-1)).toBe("");
+      expect(formatRate(Number.NaN)).toBe("");
     });
   });
 });

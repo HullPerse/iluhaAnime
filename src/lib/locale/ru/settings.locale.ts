@@ -40,6 +40,9 @@ const settings = {
   "settings.media.tracks.hide": "Скрыть",
   "settings.media.tracks.folders": "Только в папках",
   "settings.media.tracks.torrent": "Только в торрентах",
+  "settings.media.streamQuality": "Качество стрима по умолчанию",
+  "settings.media.streamQuality.hint":
+    "Используется, если у тайтла ещё нет сохранённого качества. Если такого качества нет, играет ближайшее ниже.",
   "settings.media.watcher": "Скорость слежения за папками",
   "settings.media.watcher.fast": "Быстро",
   "settings.media.watcher.calm": "Спокойно",
@@ -438,6 +441,10 @@ const settings = {
   "settings.tmdb.proxy.custom": "Свой",
   "settings.collection.tab": "Коллекция",
   "settings.anilist.tab": "AniList",
+  "settings.stream.tab": "Стриминг",
+  "settings.stream.tab.russianOnly": "[ТОЛЬКО ПО-РУССКИ]",
+  "settings.stream.tab.russianOnly.hint":
+    "Каталог стриминга есть только на русском языке.",
   "settings.ffmpeg.source.essentials": "gyan.dev (essentials, ~30 МБ)",
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 МБ)",
   "settings.ffmpeg.source.mirror": "GitHub через зеркало (gh-proxy)",
@@ -505,6 +512,21 @@ const settings = {
   "settings.screenshot.folder.hint": "Куда сохранять скриншоты",
   "settings.screenshot.format": "Формат по умолчанию",
   "settings.screenshot.open.folder": "Открывать папку после сохранения",
+  "settings.animelib.title": "Аккаунт AnimeLib",
+  "settings.animelib.description": "Необязательно. Токен залогиненной сессии animelib.org открывает собственные качества 1080p/4K. Kodik работает и без него, но останавливается на 720p.",
+  "settings.animelib.token": "Токен сессии",
+  "settings.animelib.token.description": "Вставьте токен Authorization из сетевых запросов сайта или токен из его localStorage.",
+  "settings.animelib.token.placeholder": "Вставьте токен AnimeLib",
+  "settings.animelib.token.save": "Сохранить токен",
+  "settings.animelib.token.clear": "Удалить токен",
+  "settings.animelib.token.stored": "Токен хранится в системном хранилище",
+  "settings.animelib.token.empty": "Токен не сохранён",
+  "settings.animelib.token.saved": "Токен проверен и сохранён",
+  "settings.animelib.proxy.url": "Прокси",
+  "settings.animelib.proxy.url.description":
+    "Используется для запросов каталога AnimeLib, резолвера Kodik и проверки сессии. Без прокси подключение прямое.",
+  "settings.animelib.proxy.no": "Без прокси",
+  "settings.animelib.proxy.custom": "Свой",
 } as const;
 
 export default settings;

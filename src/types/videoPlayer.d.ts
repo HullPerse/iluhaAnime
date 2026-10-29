@@ -1,8 +1,112 @@
+import type { StreamVariant } from "./stream";
+
 export interface PlayerOpenRequest {
   files: string[];
   resume?: number;
   startIndex?: number;
   watch?: PlaylistWatch | null;
+  stream?: StreamOpen | null;
+}
+
+export interface StreamOpen {
+  sourceId: string;
+  sourceName: string;
+  mediaId: string;
+  mediaTitle: string;
+  episodeId: string;
+  episodeNumber: number;
+  episodeTitle: string;
+  cover?: string;
+  /** The AniList id the catalog matched, used for episode previews. */
+  anilistId?: number | null;
+  watchKey: string;
+  resume?: number;
+  headers: Record<string, string>;
+  /** Proxy for the media request as well as the catalog calls. */
+  proxyUrl?: string | null;
+  quality: string;
+  variantId: string;
+  sources: StreamVariantSource[];
+  /**
+   * The episode's voice-over and subtitle rows, carried by the window that
+   * already fetched them so the player does not repeat the request.
+   */
+  variants?: StreamVariant[];
+  mediaUrl: string;
+  /** Whether playback was paused when a switch replaced the media. */
+  paused?: boolean;
+}
+
+export interface StreamVariantSource {
+  url: string;
+  type: string;
+  quality: string;
+  label: string;
+}
+
+// AnimeLib wire types (serialized from Rust via Tauri commands)
+
+export interface AnimeLibAnime {
+  id: string;
+  title: string;
+  synonyms: string[];
+  cover?: string;
+  banner?: string;
+  description?: string;
+  year?: number;
+  status?: string;
+  genres: string[];
+  episodeCount?: number;
+  anilistId?: number;
+  subOrDub?: string;
+  slugUrl: string;
+}
+
+export interface AnimeLibEpisode {
+  id: string;
+  number: number;
+  title?: string;
+  airDate?: string;
+  duration?: number;
+  cover?: string;
+}
+
+export interface AnimeLibVariant {
+  id: string;
+  name: string;
+  language?: string;
+  separateStream: boolean;
+  /** The hoster name, for example `Kodik`. */
+  player: string;
+  /** The hoster's own player URL; empty when the site serves the row itself. */
+  sourceUrl: string;
+}
+
+/** A resolved playable source for one voice-over of one episode. */
+export interface StreamSource {
+  variantId: string;
+  quality: string;
+  label: string;
+  url: string;
+  type: string;
+  headers: Record<string, string>;
+  subtitles: StreamSubtitleTrack[];
+  audioTracks: StreamAudioTrack[];
+}
+
+export interface StreamSubtitleTrack {
+  id: string;
+  url: string;
+  language: string;
+  isDefault: boolean;
+  headers: Record<string, string>;
+}
+
+export interface StreamAudioTrack {
+  id: string;
+  language: string;
+  title?: string;
+  default: boolean;
 }
 
 export type PlaylistWatch =
@@ -29,6 +133,10 @@ export interface PlaybackSnapshot {
   fpsVideo?: number;
   dropCount?: number;
   cacheDuration?: number;
+  cacheBufferingState?: number;
+  cacheSpeed?: number;
+  cacheBytes?: number;
+  pausedForCache?: boolean;
   hwdecCurrent?: string;
   videoWidth?: number;
   videoHeight?: number;
@@ -196,11 +304,17 @@ export interface PlaybackStore {
   tracks: MpvTrack[];
   chapters: MpvChapter[];
   seekTarget: number | null;
+  /** Position pinned while a replacement stream loads, so the timeline does not jump to 0. */
+  streamResume: number | null;
   seekSettle: boolean;
   fpsRender?: number;
   fpsVideo?: number;
   dropCount?: number;
   cacheDuration?: number;
+  cacheBufferingState?: number;
+  cacheSpeed?: number;
+  cacheBytes?: number;
+  pausedForCache?: boolean;
   hwdecCurrent?: string;
   videoWidth?: number;
   videoHeight?: number;

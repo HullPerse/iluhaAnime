@@ -4,6 +4,7 @@ import { tauriTransport } from "@/api/transport.api";
 import { listSortKeys } from "@/config/anilist/list.config";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
+import { STREAM_QUALITIES } from "@/config/stream/quality.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/utils/dither.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
@@ -17,7 +18,7 @@ import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 57;
+export const SETTINGS_SCHEMA_VERSION = 58;
 
 type SettingsActionKeys =
   | "patch";
@@ -253,6 +254,14 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       }
     },
   },
+  {
+    from: 58,
+    migrate: (state) => {
+      if (state.streamDefaultQuality === undefined) {
+        state.streamDefaultQuality = DEFAULT_SETTINGS.streamDefaultQuality;
+      }
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -266,6 +275,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   notificationPopups: toValidator(z.enum(["off", "system", "inapp", "both"])),
   anilistDisplayMode: toValidator(z.enum(["scroll", "pagination"])),
   watcherDelay: toValidator(z.enum(["fast", "calm"])),
+  streamDefaultQuality: toValidator(z.enum(STREAM_QUALITIES)),
   scanThreads: (value) =>
     Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 64,
   gameVolume: (value) => typeof value === "number" && value >= 0 && value <= 1,

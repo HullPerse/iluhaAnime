@@ -1175,6 +1175,62 @@ pub async fn get_anime_full(
     })
 }
 
+/// One streaming episode row AniList keeps for a title. The thumbnail is the
+/// only field the app uses; `title` carries the episode number.
+#[derive(Debug, Serialize)]
+pub struct AniStreamingEpisode {
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thumbnail: Option<String>,
+    pub url: String,
+    pub site: String,
+}
+
+pub fn streaming_episodes_query() -> &'static str {
+    "query ($id: Int) { Media(id: $id) { streamingEpisodes { title thumbnail url site } } }"
+}
+
+/// Episode previews of one AniList title.
+///
+/// AniList collects a thumbnail per streaming episode for the services it
+/// tracks, which is the only per-episode art a stream session can get: the
+/// AnimeLib episode rows carry no image of their own in most seasons.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anime_streaming_episodes(
+    app_handle: tauri::AppHandle,
+    id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniStreamingEpisode>, String> {
+    let body = serde_json::json!({
+        "query": streaming_episodes_query(),
+        "variables": { "id": id }
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
+    let nodes = json["data"]["Media"]["streamingEpisodes"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    Ok(nodes
+        .iter()
+        .filter_map(|node| {
+            let title = node["title"].as_str()?.trim();
+            if title.is_empty() {
+                return None;
+            }
+            Some(AniStreamingEpisode {
+                title: title.to_string(),
+                thumbnail: node["thumbnail"].as_str().map(String::from),
+                url: node["url"].as_str().unwrap_or_default().to_string(),
+                site: node["site"].as_str().unwrap_or_default().to_string(),
+            })
+        })
+        .collect())
+}
+
 fn parse_character_edges(edges: &[serde_json::Value]) -> Vec<AniCharacterEdge> {
     let mut seen = std::collections::HashSet::new();
     edges
@@ -1224,6 +1280,14 @@ mod tests {
         assert!(RECOMMENDATION_SEED_QUERY.contains("sort: SCORE_DESC"));
         assert!(RECOMMENDATION_SEED_QUERY.contains("chunk: 1"));
         assert!(RECOMMENDATION_SEED_QUERY.contains("perChunk: 10"));
+    }
+
+    #[test]
+    fn streaming_episodes_query_asks_for_the_preview_fields_only() {
+        let query = streaming_episodes_query();
+        assert!(query.contains("Media(id: $id"));
+        assert!(query.contains("streamingEpisodes { title thumbnail url site }"));
+        assert!(!query.contains("coverImage"));
     }
 
     #[test]

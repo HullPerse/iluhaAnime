@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use tauri::{
     AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
@@ -7,7 +8,7 @@ use tauri::{
 use tauri_plugin_libmpv::{MpvConfig, VideoMarginRatio};
 
 use super::core::{LibmpvCore, PlayerCore};
-use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch};
+use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch, StreamOpen};
 use super::watch::{self, WatchState};
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
 use crate::app_db;
@@ -34,6 +35,13 @@ pub(crate) fn observed_properties() -> Value {
         "playlist-pos": "int64",
         "playlist-count": "int64",
         "path": "string",
+        "paused-for-cache": "flag",
+        // Cache counters drive the buffering overlay. Without observing them a
+        // stalled stream stops changing time-pos, so no snapshot is emitted and
+        // the overlay never appears.
+        "cache-buffering-state": "double",
+        "cache-speed": "double",
+        "demuxer-cache-duration": "double",
         "track-list": "node",
         "chapter-list": "node",
     })
@@ -164,6 +172,7 @@ fn load_queue(
     if window == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
         host.set_current_path(start_file.clone());
+        host.set_stream_watch_key(None);
         host.clear_pending_open();
         host.mark_dirty();
     }
@@ -187,6 +196,7 @@ pub async fn player_open(
         resume,
         start_index,
         watch,
+        stream: None,
     };
 
     let host = app.state::<PlayerHost>();
@@ -198,7 +208,13 @@ pub async fn player_open(
             let _ = window.show();
             let _ = window.set_focus();
         }
-        return load_queue(&app, PLAYER_WINDOW_LABEL, &request.files, resume, start_index);
+        return load_queue(
+            &app,
+            PLAYER_WINDOW_LABEL,
+            &request.files,
+            resume,
+            start_index,
+        );
     }
 
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
@@ -248,6 +264,213 @@ pub async fn player_open(
     Ok(())
 }
 
+/// Open a stream media URL in the existing libmpv player.
+///
+/// Sets per-source `http-header-fields` on mpv before loading, then loads the
+/// media URL with `loadfile ... replace`. When `resume` is set, seeks to that
+/// position via `start=`. Emits `player-open-request` so the frontend can
+/// capture session state (position, pause) before the replacement.
+#[tauri::command]
+pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<(), String> {
+    drop_legacy_hover_cache(&app);
+
+    // Flush the position of whatever is playing before the file is replaced.
+    // The periodic watch save runs every ten seconds; without this a switch
+    // made right after the last tick would lose that window on a crash.
+    save_current_watch(&app);
+
+    let request = PlayerOpenRequest {
+        files: vec![stream.media_url.clone()],
+        resume: stream.resume,
+        start_index: Some(0),
+        watch: None,
+        stream: Some(stream.clone()),
+    };
+
+    // An open player window always takes the same path: the request is queued,
+    // the window is raised, and the stream is loaded. Whether mpv is already
+    // initialized is not a reason to leave the player on the previous frame.
+    if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
+        let host = app.state::<PlayerHost>();
+        host.set_pending_open(Some(request.clone()));
+        app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
+            .map_err(|error| error.to_string())?;
+        if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        // A window that exists but has not initialized mpv yet cannot take the
+        // load here. Leave the request pending: `player_init` loads it once the
+        // instance is ready.
+        if !host.is_active() {
+            return Ok(());
+        }
+        return load_stream_queue(&app, PLAYER_WINDOW_LABEL, &request);
+    }
+
+    app.state::<PlayerHost>().set_pending_open(Some(request));
+
+    let window = match WebviewWindowBuilder::new(
+        &app,
+        PLAYER_WINDOW_LABEL,
+        WebviewUrl::App(PLAYER_ROUTE.into()),
+    )
+    .title("iluhaAnime")
+    .inner_size(1280.0, 720.0)
+    .min_inner_size(480.0, 300.0)
+    .decorations(cached_player_decorations(&app))
+    .transparent(true)
+    .center()
+    .build()
+    {
+        Ok(window) => window,
+        Err(error) => {
+            app.state::<PlayerHost>().set_pending_open(None);
+            return Err(format!("create player window: {error}"));
+        }
+    };
+    window.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            let backend = LibmpvCore::new(app.clone());
+            let host = app.state::<PlayerHost>();
+            host.set_active(false);
+            drop(tauri::async_runtime::spawn_blocking(move || {
+                backend.destroy(PLAYER_WINDOW_LABEL)
+            }));
+        }
+    });
+    let _ = window.set_focus();
+    Ok(())
+}
+
+/// Build mpv's `http-header-fields` value: `Name: value,Name2: value2`.
+///
+/// A name or value that could split the option (comma, colon in the name,
+/// CR/LF) is dropped instead of injected: the value comes from a remote API.
+fn header_fields(headers: &BTreeMap<String, String>) -> String {
+    headers
+        .iter()
+        .filter_map(|(name, value)| {
+            let name = name.trim();
+            let value = value.trim();
+            if name.is_empty() || value.is_empty() {
+                return None;
+            }
+            let bad = |text: &str| text.contains(['\r', '\n', ',']);
+            if bad(name) || name.contains(':') || bad(value) {
+                return None;
+            }
+            Some(format!("{name}: {value}"))
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// mpv knows `socks5`/`socks4`, not the remote-DNS spellings reqwest uses.
+fn mpv_proxy(url: &str) -> String {
+    url.trim()
+        .replacen("socks5h://", "socks5://", 1)
+        .replacen("socks4a://", "socks4://", 1)
+}
+
+/// mpv's cache settings for a stream source.
+///
+/// The player's profiles are tuned for local files, where one second of
+/// readahead is enough; a stream is read over the network and the same setting
+/// stalls on every hiccup. Twenty seconds covers a slow CDN, the byte cap keeps
+/// a long 4K title from eating the RAM, and the back buffer makes a small jump
+/// backwards come from memory instead of a new request.
+fn stream_cache_options() -> Value {
+    json!({
+        "demuxer-readahead-secs": 20.0,
+        "demuxer-max-bytes": "256MiB",
+        "demuxer-max-back-bytes": "96MiB",
+    })
+}
+
+/// Load a stream URL into mpv: set the proxy, `http-header-fields` and the
+/// pause state, then `loadfile ... replace` with optional `start=` for resume.
+///
+/// Shared by the open command and by `player_init`, so a stream that arrived
+/// while the window was still initializing is not lost. The pending request is
+/// left in place: the window takes it to restore the session identity.
+fn load_stream_media(
+    app: &AppHandle,
+    window: &str,
+    request: &PlayerOpenRequest,
+) -> Result<(), String> {
+    let Some(stream) = &request.stream else {
+        return Err("load_stream_media called without stream".to_string());
+    };
+
+    let backend = core(app);
+
+    // Always write both options, including empty values: a previous source's
+    // route and headers must not leak into a stream that needs none.
+    let proxy = stream
+        .proxy_url
+        .as_deref()
+        .map(mpv_proxy)
+        .unwrap_or_default();
+    backend
+        .set_property("http-proxy", &json!(proxy), window)
+        .map_err(|error| format!("set http-proxy: {error}"))?;
+
+    let header_string = header_fields(&stream.headers);
+    backend
+        .set_property("http-header-fields", &json!(header_string), window)
+        .map_err(|error| format!("set http-header-fields: {error}"))?;
+
+    // A deeper cache than the profile sets: the stream is not on disk.
+    if let Some(options) = stream_cache_options().as_object() {
+        for (name, value) in options {
+            backend
+                .set_property(name, value, window)
+                .map_err(|error| format!("set {name} for stream: {error}"))?;
+        }
+    }
+
+    // `pause` is set before the file loads: mpv keeps the player paused while
+    // it opens, which is what a quality switch from a paused stream needs.
+    backend
+        .set_property("pause", &json!(stream.paused), window)
+        .map_err(|error| format!("set pause for stream: {error}"))?;
+
+    let mut args: Vec<Value> = vec![json!(stream.media_url), json!("replace")];
+    if let Some(position) = request.resume {
+        if position > 0.0 {
+            args.push(json!(-1));
+            args.push(json!(format!("start={position}")));
+        }
+    }
+
+    backend
+        .command("loadfile", &args, window)
+        .map_err(|error| format!("loadfile stream: {error}"))?;
+
+    Ok(())
+}
+
+/// Load a stream and make it the player's current session.
+fn load_stream_queue(
+    app: &AppHandle,
+    window: &str,
+    request: &PlayerOpenRequest,
+) -> Result<(), String> {
+    load_stream_media(app, window, request)?;
+
+    if window == PLAYER_WINDOW_LABEL {
+        let host = app.state::<PlayerHost>();
+        if let Some(stream) = &request.stream {
+            host.set_current_path(stream.media_url.clone());
+            host.set_stream_watch_key(Some(stream.watch_key.clone()));
+        }
+        host.clear_pending_open();
+        host.mark_dirty();
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn player_take_pending_open(host: State<'_, PlayerHost>) -> Option<PlayerOpenRequest> {
     let request = host.pending_open();
@@ -286,7 +509,16 @@ pub async fn player_init(
     };
 
     if label == PLAYER_WINDOW_LABEL {
-        app.state::<PlayerHost>().set_active(true);
+        let host = app.state::<PlayerHost>();
+        host.set_active(true);
+        // A stream opened before mpv was ready is waiting in the pending
+        // request. Load it now and keep the request, so the window can still
+        // take it and restore the session identity.
+        if let Some(request) = host.pending_open() {
+            if request.stream.is_some() {
+                load_stream_media(&app, PLAYER_WINDOW_LABEL, &request)?;
+            }
+        }
     }
     Ok(label)
 }
@@ -624,6 +856,18 @@ pub fn player_apply_file_state(
     Ok(())
 }
 
+/// Build the hidden player window ahead of the click that needs it.
+///
+/// The app warms it once at startup, but the window is gone after the user
+/// closes the player, and the next stream would then pay for a cold WebView and
+/// a cold mpv. The catalog calls this when a title modal opens, so that window
+/// is back before the episode click arrives. Calling it again while the window
+/// exists is a no-op.
+#[tauri::command]
+pub async fn player_prewarm(app: AppHandle) -> Result<(), String> {
+    prewarm_player(app).await
+}
+
 pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
     let label = PLAYER_WINDOW_LABEL.to_string();
 
@@ -631,19 +875,15 @@ pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
         return Ok(());
     }
 
-    let window = match WebviewWindowBuilder::new(
-        &app,
-        &label,
-        WebviewUrl::App(PLAYER_ROUTE.into()),
-    )
-    .title("iluhaAnime")
-    .inner_size(1280.0, 720.0)
-    .min_inner_size(480.0, 300.0)
-    .decorations(false)
-    .transparent(true)
-    .visible(false)
-    .center()
-    .build()
+    let window = match WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(PLAYER_ROUTE.into()))
+        .title("iluhaAnime")
+        .inner_size(1280.0, 720.0)
+        .min_inner_size(480.0, 300.0)
+        .decorations(false)
+        .transparent(true)
+        .visible(false)
+        .center()
+        .build()
     {
         Ok(window) => window,
         Err(error) => return Err(format!("prewarm create window: {error}")),
@@ -665,19 +905,12 @@ pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
         }
     });
 
-    let backend = LibmpvCore::new(app.clone());
-    let config: MpvConfig = serde_json::from_value(json!({
-        "initialOptions": with_structural_options(sanitize_initial_options(json!({}))),
-        "observedProperties": observed_properties(),
-    }))
-    .map_err(|error| format!("prewarm invalid config: {error}"))?;
-
-    let init_label = label.clone();
-    tauri::async_runtime::spawn_blocking(move || backend.init(config, &init_label)).await
-        .map_err(|error| format!("prewarm init task failed: {error}"))??;
-
-    app.state::<PlayerHost>().set_active(true);
-
+    // The window's own `player_init` creates mpv with the stored volume,
+    // hwdec and video options. Initializing it here with an empty option set
+    // raced that call: whichever init won decided the first file's volume, and
+    // the empty one played at mpv's default 100% while the UI showed the
+    // stored value. The hidden window still loads the player route, so mpv is
+    // warmed by the frontend init that carries the real options.
     tracing::info!("player prewarm complete");
     Ok(())
 }
@@ -712,7 +945,76 @@ pub async fn player_apply_batch(
 
 #[cfg(test)]
 mod tests {
-    use super::{eof_properties, PlayerOpenRequest, PlaylistWatch};
+    use super::{
+        eof_properties, header_fields, mpv_proxy, observed_properties, stream_cache_options,
+        PlayerOpenRequest, PlaylistWatch,
+    };
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn mpv_proxy_uses_the_scheme_mpv_understands() {
+        assert_eq!(
+            mpv_proxy("socks5h://127.0.0.1:10808"),
+            "socks5://127.0.0.1:10808"
+        );
+        assert_eq!(
+            mpv_proxy("socks4a://127.0.0.1:1080"),
+            "socks4://127.0.0.1:1080"
+        );
+        assert_eq!(
+            mpv_proxy(" http://127.0.0.1:7890 "),
+            "http://127.0.0.1:7890"
+        );
+        assert_eq!(mpv_proxy(""), "");
+    }
+
+    #[test]
+    fn buffering_properties_are_observed_so_a_stalled_stream_still_reports() {
+        let properties = observed_properties();
+        assert_eq!(properties["paused-for-cache"], "flag");
+        assert_eq!(properties["cache-buffering-state"], "double");
+        assert_eq!(properties["cache-speed"], "double");
+        assert_eq!(properties["demuxer-cache-duration"], "double");
+    }
+
+    #[test]
+    fn streams_get_a_deeper_cache_than_local_files() {
+        let options = stream_cache_options();
+        let readahead = options["demuxer-readahead-secs"]
+            .as_f64()
+            .expect("readahead is a number");
+        // The profiles give a local file one second; a stream needs more than a
+        // hiccup's worth.
+        assert!(readahead >= 10.0);
+        assert_eq!(options["demuxer-max-bytes"], "256MiB");
+        assert_eq!(options["demuxer-max-back-bytes"], "96MiB");
+    }
+
+    #[test]
+    fn headers_are_comma_joined_without_extra_spaces() {
+        let mut headers = BTreeMap::new();
+        headers.insert("Referer".to_string(), "https://anilib.me/ru/".to_string());
+        headers.insert("User-Agent".to_string(), "Test/1".to_string());
+        assert_eq!(
+            header_fields(&headers),
+            "Referer: https://anilib.me/ru/,User-Agent: Test/1"
+        );
+    }
+
+    #[test]
+    fn headers_that_could_split_the_option_are_dropped() {
+        let mut headers = BTreeMap::new();
+        headers.insert("Bad,Name".to_string(), "x".to_string());
+        headers.insert("X-Injected".to_string(), "a\r\nY: b".to_string());
+        headers.insert("Empty".to_string(), "  ".to_string());
+        headers.insert("Good".to_string(), "https://cdn.example/a.m3u8".to_string());
+        assert_eq!(header_fields(&headers), "Good: https://cdn.example/a.m3u8");
+    }
+
+    #[test]
+    fn no_headers_produce_the_empty_value_that_clears_mpv() {
+        assert_eq!(header_fields(&BTreeMap::new()), "");
+    }
 
     #[test]
     fn eof_modes_map_to_mpv_keep_open_and_loop_properties() {
@@ -740,6 +1042,7 @@ mod tests {
                 save_dir: "C:/T".to_string(),
                 anchor: "C:/T/ep1.mkv".to_string(),
             })),
+            stream: None,
         };
         let json = serde_json::to_value(&request).expect("request serializes");
         assert_eq!(json["watch"]["kind"], "torrent");

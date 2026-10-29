@@ -25,6 +25,7 @@ import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
 import NeighborFileButton from "../media/neighbor.player";
+import StreamControl from "../media/stream.player";
 import Timeline from "../media/timeline.player";
 import VolumeControl from "../media/volume.player";
 
@@ -253,6 +254,8 @@ function ModernControls({
           </Button>
         </section>
 
+        <StreamControl />
+
         {immersive ? (
           <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
             <Button
@@ -269,7 +272,7 @@ function ModernControls({
 
         <section className="border-muted ml-auto flex h-6 items-center border-l-2 px-1">
           <span className="windows95-text text-xs tabular-nums">
-            {formatClock(timePos)} / {formatClock(duration)}
+            {formatClock(seekTarget ?? timePos)} / {formatClock(duration)}
           </span>
         </section>
       </main>

@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { streamApi } from "@/api/stream.api";
 import ContextMenu from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -26,9 +27,11 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
+import { useStreamNext } from "@/hooks/player/stream.hook";
 import { useWindowDrag } from "@/hooks/player/windowDrag.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
+import type { TranslationKey, TranslationVariables } from "@/types/i18n";
 import { fileNameFromPath } from "@/lib/media/parse.utils";
 import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { createInterval } from "@/lib/pacer/interval.utils";
@@ -100,10 +103,11 @@ import {
 import { resolveSkipTarget } from "@/lib/player/skip.utils";
 import { stepSpeed } from "@/lib/player/speed.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
-import { nextTrackId } from "@/lib/player/tracks.utils";
+import { findTrackByPreference, nextTrackId } from "@/lib/player/tracks.utils";
 import { resolveViewChrome } from "@/lib/player/view.utils";
+import { emptyPrefs, withTrack } from "@/lib/stream/prefs.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import {
@@ -127,6 +131,7 @@ import {
   setEofMode,
   setHwdec,
   setPlaybackMuted,
+  streamSession,
   setPlaybackPaused,
   setPlaybackSpeed,
   setProfile,
@@ -148,9 +153,11 @@ import type {
   PlayerViewMode,
   PlaylistWatch,
   SeekMode,
+  StreamOpen,
 } from "@/types/videoPlayer";
 
 import PlayerBezel from "./bezel.player";
+import BufferingOverlay from "./media/buffering.player";
 import Cheatsheet from "./media/cheatsheet.player";
 import DiagnosticsOverlay from "./media/diagnostics.player";
 import EmptyPlayer from "./media/empty.player";
@@ -168,6 +175,7 @@ import PlayerSidePanel from "./side.player";
 
 const AUTO_HIDE_DELAY = 3000;
 const WATCH_INTERVAL = 5000;
+const STREAM_HOLD_TIMEOUT = 15_000;
 const DROP_TOAST_TIMEOUT = 6000;
 const SETTINGS_FLUSH_MS = 120;
 const SUBTITLE_FILTERS = ["srt", "ass", "ssa", "vtt", "sub", "idx"];
@@ -195,6 +203,40 @@ interface CursorHiddenState {
   playlistOpen: boolean;
   menuOpen: boolean;
   dropAlert: DroppedFramesData | null;
+}
+
+/**
+ * Whether a replacement stream has taken over: only then do its own samples
+ * count and the pinned position can be released.
+ */
+function navigationAvailability({
+  stream,
+  hasNextEpisode,
+  playlistCount,
+  playlistIndex,
+}: {
+  stream: boolean;
+  hasNextEpisode: boolean;
+  playlistCount: number;
+  playlistIndex: number;
+}): { hasNext: boolean; hasPrev: boolean } {
+  if (stream) return { hasNext: hasNextEpisode, hasPrev: false };
+  return {
+    hasNext: playlistCount > 0 && playlistIndex < playlistCount - 1,
+    hasPrev: playlistIndex > 0,
+  };
+}
+
+function shouldReleaseStreamPin(state: {
+  streamResume: number | null;
+  loadingFile: boolean;
+  playbackTime: number;
+  pinnedUrl: string | null;
+  currentUrl: string | null;
+}): boolean {
+  if (state.streamResume === null || state.loadingFile) return false;
+  if (state.pinnedUrl !== null && state.currentUrl === state.pinnedUrl) return false;
+  return Math.abs(state.playbackTime - state.streamResume) <= 2;
 }
 
 function shouldHideCursor(state: CursorHiddenState): boolean {
@@ -253,6 +295,31 @@ function wrapVideoMenu(
   );
 }
 
+/**
+ * The window title. A stream session names the media and the episode, because
+ * the loaded path is a URL and means nothing to the user.
+ */
+function playerWindowTitle({
+  path,
+  stream,
+  parseTitlesPlayer,
+  t,
+}: {
+  path: string;
+  stream: StreamOpen | null;
+  parseTitlesPlayer: boolean;
+  t: (key: TranslationKey, variables?: TranslationVariables) => string;
+}): string {
+  if (stream) {
+    const episode = stream.episodeTitle
+      ? t("player.title.episode.colon", { title: stream.episodeTitle })
+      : t("player.title.episode", { n: stream.episodeNumber });
+    return `${stream.mediaTitle} - ${episode}`;
+  }
+  if (!path) return t("player.media.title");
+  return parseTitlesPlayer ? formatParsedTitle(path, t) : fileNameFromPath(path);
+}
+
 function PlayerComponent() {
   const { t } = useI18n();
 
@@ -269,6 +336,9 @@ function PlayerComponent() {
   const tracks = useCell(playbackAtoms.tracks);
   const chapters = useCell(playbackAtoms.chapters);
   const seekTarget = useCell(playbackAtoms.seekTarget);
+  const streamResume = useCell(playbackAtoms.streamResume);
+  const playbackTime = useCell(playbackAtoms.timePos);
+  const pausedForCache = useCell(playbackAtoms.pausedForCache);
   const ready = useCell(playbackAtoms.ready);
 
   const eofMode = useCell(playerAtoms.eofMode);
@@ -307,6 +377,12 @@ function PlayerComponent() {
   const destroyTaskRef = useRef<ScheduledTask | null>(null);
   const dropHideRef = useRef<Debouncer<[]> | null>(null);
   const lastSavedWatchRef = useRef<{ path: string; position: number } | null>(null);
+  const streamPrefsAppliedRef = useRef("");
+  // The source URL a pin was armed under. A replacement only counts once the
+  // session points at a different URL, which is what stops the old stream's
+  // own samples from releasing the pin before the new one opens.
+  const streamUrlRef = useRef<string | null>(null);
+  const pinnedStreamUrlRef = useRef<string | null>(null);
 
   const reloadPlayingFile = useCallback(() => {
     const playlistIndex = playbackAtoms.playlistIndex.get();
@@ -335,8 +411,19 @@ function PlayerComponent() {
   });
   const immersive = chrome.fullBleed;
   const barsAutoHide = chrome.barsAutoHide;
-  const hasNext = playlistCount > 0 && playlistIndex < playlistCount - 1;
-  const hasPrev = playlistIndex > 0;
+  const stream = useCell(streamSession);
+  useEffect(() => {
+    streamUrlRef.current = stream?.mediaUrl ?? null;
+  }, [stream]);
+  const streamNext = useStreamNext();
+  // A stream session has no mpv playlist: its next episode is a new source
+  // resolution, not playlist-next, and it has no previous item.
+  const { hasNext, hasPrev } = navigationAvailability({
+    stream: stream !== null,
+    hasNextEpisode: streamNext.hasNext,
+    playlistCount,
+    playlistIndex,
+  });
   const barsHidden = chrome.barsHidden;
   const cursorHidden = shouldHideCursor({
     barsHidden,
@@ -347,11 +434,80 @@ function PlayerComponent() {
     menuOpen,
     dropAlert,
   });
-  const title = path
-    ? parseTitlesPlayer
-      ? formatParsedTitle(path, t)
-      : fileNameFromPath(path)
-    : t("player.media.title");
+  const title = playerWindowTitle({ path, stream, parseTitlesPlayer, t });
+
+  // A replacement stream is loaded with `start=`, so the position it will
+  // report is the one it was given. Keep the timeline on that value while the
+  // new media opens instead of letting a zero sample run to the slider.
+  useEffect(() => {
+    if (streamResume === null) {
+      pinnedStreamUrlRef.current = null;
+      return;
+    }
+    pinnedStreamUrlRef.current = streamUrlRef.current;
+  }, [streamResume]);
+
+  useEffect(() => {
+    // The old source keeps reporting the position the pin was armed at. Only a
+    // different session URL means the replacement actually started, so that is
+    // the earliest point the pin may be released.
+    if (
+      shouldReleaseStreamPin({
+        streamResume,
+        loadingFile,
+        playbackTime,
+        pinnedUrl: pinnedStreamUrlRef.current,
+        currentUrl: streamUrlRef.current,
+      })
+    ) {
+      playbackAtoms.streamResume.set(null);
+    }
+  }, [loadingFile, playbackTime, streamResume]);
+
+  useEffect(() => {
+    if (streamResume === null) return;
+    const timer = setTimeout(() => playbackAtoms.streamResume.set(null), STREAM_HOLD_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [streamResume]);
+
+  // A stream reload (quality, voice-over, next episode) keeps the title's
+  // remembered audio and subtitle language. `tracks` fills in after the file
+  // opens, and the key makes this run once per loaded stream.
+  useEffect(() => {
+    if (!stream || tracks.length === 0) return;
+    const key = `${stream.mediaId}:${stream.episodeId}:${stream.variantId}:${stream.quality}`;
+    if (streamPrefsAppliedRef.current === key) return;
+    streamPrefsAppliedRef.current = key;
+    let cancelled = false;
+    const apply = async () => {
+      const [prefs] = await attempt(streamApi.prefsGet(stream.sourceId, stream.mediaId));
+      if (cancelled || !prefs) return;
+      if (prefs.audioLang) {
+        const audio = findTrackByPreference(tracks, "audio", prefs.audioLang);
+        if (audio) {
+          markTrackSelected("audio", audio.id);
+          await selectTrack("audio", audio.id);
+        }
+      }
+      if (cancelled) return;
+      if (!prefs.subEnabled || prefs.subLang === "no") {
+        markTrackSelected("sub", "no");
+        await selectTrack("sub", "no");
+        return;
+      }
+      const sub = prefs.subLang
+        ? findTrackByPreference(tracks, "sub", prefs.subLang)
+        : null;
+      if (sub) {
+        markTrackSelected("sub", sub.id);
+        await selectTrack("sub", sub.id);
+      }
+    };
+    ignore(apply());
+    return () => {
+      cancelled = true;
+    };
+  }, [stream, tracks]);
 
   const hideDropSoon = useCallback(() => {
     if (dropHideRef.current === null) {
@@ -477,7 +633,13 @@ function PlayerComponent() {
       syncMarginsRef.current(true);
       const request = await takePendingOpen();
       if (disposed) return;
-      if (request && request.files.length > 0) {
+      if (request && request.stream) {
+        // Rust already loaded the stream with its headers and resume position.
+        // A second loadfile from here would drop the headers and restart it.
+        streamSession.set(request.stream);
+        setLoadingFile(true);
+      } else if (request && request.files.length > 0) {
+        streamSession.set(null);
         resumeRef.current = request.resume;
         setLiveWatch(request.watch ?? null);
         setLoadingFile(true);
@@ -599,6 +761,12 @@ function PlayerComponent() {
     setFinished(false);
     const loaded = await readPath();
     if (!loaded || !isCurrent()) return;
+    if (streamSession.get() !== null) {
+      // A stream has no local media entry and no local watch state; its
+      // position is saved under the session's own watch key.
+      syncMarginsRef.current(true);
+      return;
+    }
     const reload = hwdecReloadRef.current;
     const entry = await hydrateMediaEntry(loaded);
     if (!isCurrent()) return;
@@ -628,10 +796,17 @@ function PlayerComponent() {
     onOpenRequest: (request) => {
       if (request.files.length === 0) return;
       loadEpochRef.current += 1;
-      resumeRef.current = request.resume;
-      setLiveWatch(request.watch ?? null);
       setFinished(false);
       setLoadingFile(true);
+      if (request.stream) {
+        // Same rule as init: the Rust side owns the stream load, because only
+        // it can set `http-header-fields` before the file is opened.
+        streamSession.set(request.stream);
+        return;
+      }
+      streamSession.set(null);
+      resumeRef.current = request.resume;
+      setLiveWatch(request.watch ?? null);
       ignore(loadQueue(request.files, request.resume, request.startIndex));
     },
     onFileLoaded: () => {
@@ -639,6 +814,12 @@ function PlayerComponent() {
     },
     onEndFile: () => {
       setFinished(false);
+      // A stream has no playlist to advance; the next episode is resolved when
+      // the end-of-file mode asks for it.
+      if (streamSession.get() !== null && eofMode === "next" && streamNext.hasNext) {
+        setLoadingFile(true);
+        ignore(streamNext.goNext());
+      }
     },
     onIdle: () => {
       setFinished(true);
@@ -671,22 +852,27 @@ function PlayerComponent() {
   useEffect(() => {
     const { cancel } = createInterval(() => {
       const path = playbackAtoms.path.get();
-      const paused = playbackAtoms.paused.get();
       const eofReached = playbackAtoms.eofReached.get();
       const duration = playbackAtoms.duration.get();
-      if (!path || paused || eofReached || duration <= 0) {
+      // A paused position is saved too: the tick only writes when the position
+      // changed, so pausing stores the exact stop point for the resume key.
+      if (!path || eofReached || duration <= 0) {
         return;
       }
       const timePos = playbackAtoms.timePos.get();
+      const session = streamSession.get();
+      // A stream saves under its synthetic watch key so a rotated CDN URL
+      // cannot lose the resume position.
+      const watchPath = session ? session.watchKey : path;
       const lastSaved = lastSavedWatchRef.current;
-      if (lastSaved && lastSaved.path === path && lastSaved.position === timePos) {
+      if (lastSaved && lastSaved.path === watchPath && lastSaved.position === timePos) {
         return;
       }
-      lastSavedWatchRef.current = { path, position: timePos };
-      const entry = getMediaEntry(path);
-      setMediaPosition(path, timePos, duration);
+      lastSavedWatchRef.current = { path: watchPath, position: timePos };
+      const entry = session ? undefined : getMediaEntry(path);
+      if (!session) setMediaPosition(path, timePos, duration);
       ignore(
-        saveWatch(path, {
+        saveWatch(watchPath, {
           position: timePos,
           duration,
           subDelay: entry?.subOffset ?? 0,
@@ -929,8 +1115,12 @@ function PlayerComponent() {
   const onFileNext = useCallback(() => {
     setFinished(false);
     setLoadingFile(true);
+    if (streamSession.get() !== null) {
+      ignore(streamNext.goNext());
+      return;
+    }
     ignore(nextFile());
-  }, []);
+  }, [streamNext]);
 
   const onFilePrev = useCallback(() => {
     setFinished(false);
@@ -1007,10 +1197,36 @@ function PlayerComponent() {
     setAutoHide(value);
   }, []);
 
-  const persistTrack = useCallback((track: MpvTrack, kind: "audio" | "sub") => {
-    const current = playbackAtoms.path.get();
-    if (current) setMediaTrack(current, kind, track.id);
-  }, []);
+  const rememberStreamTrack = useCallback(
+    async (session: StreamOpen, kind: "audio" | "sub", language: string) => {
+      const [loaded] = await attempt(
+        streamApi.prefsGet(session.sourceId, session.mediaId)
+      );
+      const base = loaded ?? emptyPrefs(session.sourceId, session.mediaId);
+      const [failure] = await attempt(
+        streamApi.prefsSave(withTrack(base, kind, language))
+      );
+      if (failure) reportBackgroundError("player.stream.prefs", failure);
+    },
+    []
+  );
+
+  const persistTrack = useCallback(
+    (track: MpvTrack, kind: "audio" | "sub") => {
+      const session = streamSession.get();
+      if (session) {
+        // A stream URL is not a media entry: the track choice lives on the
+        // title, keyed by language, so the next episode and the next launch
+        // restore it. Track ids change between files and cannot be stored.
+        const language = track.lang?.trim() || track.title?.trim() || "";
+        if (language) ignore(rememberStreamTrack(session, kind, language));
+        return;
+      }
+      const current = playbackAtoms.path.get();
+      if (current) setMediaTrack(current, kind, track.id);
+    },
+    [rememberStreamTrack]
+  );
 
   const onResetDelays = useCallback(() => {
     const current = playbackAtoms.path.get();
@@ -1030,9 +1246,14 @@ function PlayerComponent() {
       if (typeof id === "number") {
         const track = playbackAtoms.tracks.get().find((entry) => entry.id === id);
         if (track) persistTrack(track, kind);
+        return;
+      }
+      if (id === "no" && kind === "sub") {
+        const session = streamSession.get();
+        if (session) ignore(rememberStreamTrack(session, "sub", "no"));
       }
     },
-    [persistTrack]
+    [persistTrack, rememberStreamTrack]
   );
 
   const pickFiles = useCallback(
@@ -1378,6 +1599,9 @@ function PlayerComponent() {
               {cabinet !== null ? <PlayerBezel variant={cabinet} /> : null}
 
               <OsdOverlay alwaysOnTop={alwaysOnTop} />
+              <BufferingOverlay
+                visible={hasFile && !failed && !loadingFile && pausedForCache === true}
+              />
               {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
 
               {dropAlert ? (
@@ -1406,6 +1630,7 @@ function PlayerComponent() {
                   duration={duration}
                   chapters={chapters}
                   hasNext={hasNext}
+                  raised={immersive}
                   onSkip={onSkipChapter}
                   onFileNext={onFileNext}
                 />
@@ -1457,7 +1682,7 @@ function PlayerComponent() {
           volume={volume}
           muted={muted}
           playlistOpen={playlistOpen}
-          seekTarget={seekTarget}
+          seekTarget={seekTarget ?? streamResume}
           onPlay={onPlay}
           onPause={onPause}
           onPlayPause={onPlayPause}

@@ -90,6 +90,21 @@ describe("SkipButton auto-hide", () => {
     expect(screen.getByText("Skip")).toBeTruthy();
   });
 
+  it("sits above a bar drawn over the video", () => {
+    render(
+      <SkipButton
+        duration={1400}
+        chapters={CHAPTERS}
+        hasNext={false}
+        raised
+        onSkip={() => undefined}
+        onFileNext={() => undefined}
+      />
+    );
+
+    expect(screen.getByTestId("skip-button").className).toContain("bottom-14");
+  });
+
   it("renders nothing for chapters without a skippable title", () => {
     showAt(200);
     render(

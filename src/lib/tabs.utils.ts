@@ -1,7 +1,7 @@
 import { visibleTabs } from "@/config/settings/tabs.config";
 import { TAB_PATHS, tabIdFromPath, type TabPath } from "@/config/tabs/paths.config";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TabSettings } from "@/types/settings";
+import type { TabId, TabSettings } from "@/types/settings";
 
 function tabSettingsSnapshot(): TabSettings {
   return {
@@ -10,8 +10,22 @@ function tabSettingsSnapshot(): TabSettings {
     searchTabEnabled: settingsAtoms.searchTabEnabled.get(),
     torrentTabEnabled: settingsAtoms.torrentTabEnabled.get(),
     playerTabEnabled: settingsAtoms.playerTabEnabled.get(),
+    streamTabEnabled: settingsAtoms.streamTabEnabled.get(),
     gameTabUnlocked: settingsAtoms.gameTabUnlocked.get(),
   };
+}
+
+/**
+ * The tab label with the note an English UI needs: the streaming catalog is
+ * Russian only, so the tab says it rather than letting the catalog look broken.
+ */
+export function tabLabel(
+  id: TabId,
+  label: string,
+  language: "en" | "ru",
+  russianOnlyNote: string
+): string {
+  return id === "stream" && language === "en" ? `${label} ${russianOnlyNote}` : label;
 }
 
 export function enabledTabPaths(): TabPath[] {

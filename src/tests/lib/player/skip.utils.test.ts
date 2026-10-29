@@ -17,6 +17,7 @@ describe("player/skip label", () => {
     expect(skipLabel("ED")).toBe("ED");
     expect(skipLabel("ED2")).toBe("ED");
     expect(skipLabel("Credits")).toBe("ED");
+    expect(skipLabel("Outro")).toBe("ED");
     expect(skipLabel("Operation")).toBeNull();
   });
 
@@ -34,6 +35,7 @@ describe("player/skip label", () => {
     expect(skipLabel("Эндинг")).toBe("ED");
     expect(skipLabel("Концовка")).toBe("ED");
     expect(skipLabel("Титры")).toBe("ED");
+    expect(skipLabel("Аутро")).toBe("ED");
     expect(skipLabel("Интро")).toBe("Intro");
     expect(skipLabel("Превью")).toBe("Preview");
     expect(skipLabel("Анонс")).toBe("Preview");

@@ -179,6 +179,19 @@ describe("playback atoms", () => {
     expect(playback.atoms.playlistCount.get()).toBe(3);
   });
 
+  it("holds the last duration while a replacement stream is pinned", () => {
+    const playback = setup();
+    playback.setSnapshot(SNAPSHOT);
+    playback.atoms.streamResume.set(12.5);
+
+    playback.setSnapshot({ ...SNAPSHOT, duration: 0, timePos: 12.5 });
+    expect(playback.atoms.duration.get()).toBe(1400);
+
+    playback.atoms.streamResume.set(null);
+    playback.setSnapshot({ ...SNAPSHOT, duration: 0, timePos: 12.5 });
+    expect(playback.atoms.duration.get()).toBe(0);
+  });
+
   it("clears the seek target after consecutive in-tolerance snapshots", () => {
     const playback = setup();
     playback.setSnapshot(SNAPSHOT);

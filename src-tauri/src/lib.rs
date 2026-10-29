@@ -121,6 +121,7 @@ mod scrapers;
 mod screenshot;
 mod shaders;
 mod sqlite_browser;
+mod stream;
 mod tmdb;
 mod toast;
 mod torrent;
@@ -1977,6 +1978,7 @@ pub fn run() {
             anilist::toggle_favourite_character,
             anilist::get_anime_characters,
             anilist::get_anime_full,
+            anilist::get_anime_streaming_episodes,
             anilist::get_anime_staff,
             anilist::get_staff_characters,
             anilist::get_character_detail,
@@ -2002,6 +2004,8 @@ pub fn run() {
             user_assets::delete_dither_image,
             user_assets::delete_user_image,
             player::player_open,
+            player::player_open_stream,
+            player::player_prewarm,
             player::player_take_pending_open,
             player::player_init,
             player::player_destroy,
@@ -2020,6 +2024,19 @@ pub fn run() {
             player::player_save_watch,
             player::player_load_watch,
             player::player_apply_file_state,
+            player::player_apply_batch,
+            stream::anime_lib_search,
+            stream::anime_lib_constants,
+            stream::anime_lib_episodes,
+            stream::anime_lib_title,
+            stream::anime_lib_players,
+            stream::anime_lib_stream_sources,
+            stream::anime_lib_watch_key,
+            stream::animelib_token_status,
+            stream::animelib_token_save,
+            stream::animelib_token_clear,
+            stream::prefs::stream_prefs_get,
+            stream::prefs::stream_prefs_save,
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useCell } from "@/lib/state/signal.hook";
+import { isSourceImage } from "@/lib/stream/images.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
@@ -10,46 +11,77 @@ import type { UserImageFile } from "@/types/userimage";
 const resolvedUrls = createLruCache<string, string>(200);
 const inflight = new Map<string, Promise<string | null>>();
 
+/**
+ * AnimeLib's cover CDN refuses requests that do not name the site as the
+ * referer. The webview loads catalog covers through this cache so the Rust
+ * side can send it.
+ */
+export const STREAM_COVER_REFERER = "https://animelib.org/";
+
+const streamCovers = createLruCache<string, string>(300);
+const streamInflight = new Map<string, Promise<string | null>>();
+
 const REMOTE_IMAGE_CONCURRENCY = 2;
+const STREAM_COVER_CONCURRENCY = 6;
 
-let activeRemoteFetches = 0;
-const remoteFetchQueue: Array<() => void> = [];
-
-function pumpRemoteQueue(): void {
-  while (activeRemoteFetches < REMOTE_IMAGE_CONCURRENCY) {
-    const task = remoteFetchQueue.shift();
-    if (!task) return;
-    activeRemoteFetches += 1;
-    task();
-  }
+interface FetchQueue {
+  run: <T>(task: () => Promise<T>) => Promise<T>;
+  reset: () => void;
 }
 
-function enqueueRemoteFetch<T>(task: () => Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const run = (): void => {
-      task()
-        .then((value) => {
-          activeRemoteFetches -= 1;
-          pumpRemoteQueue();
-          resolve(value);
-          return null;
-        })
-        .catch((error: unknown) => {
-          activeRemoteFetches -= 1;
-          pumpRemoteQueue();
-          reject(error instanceof Error ? error : new Error("Remote fetch failed"));
+function createFetchQueue(concurrency: number): FetchQueue {
+  let active = 0;
+  const queue: Array<() => void> = [];
+
+  const pump = (): void => {
+    while (active < concurrency) {
+      const task = queue.shift();
+      if (!task) return;
+      active += 1;
+      task();
+    }
+  };
+
+  return {
+    run: <T>(task: () => Promise<T>) =>
+      new Promise<T>((resolve, reject) => {
+        queue.push(() => {
+          task()
+            .then((value) => {
+              active -= 1;
+              pump();
+              resolve(value);
+              return null;
+            })
+            .catch((error: unknown) => {
+              active -= 1;
+              pump();
+              reject(error instanceof Error ? error : new Error("Remote fetch failed"));
+            });
         });
-    };
-    remoteFetchQueue.push(run);
-    pumpRemoteQueue();
-  });
+        pump();
+      }),
+    reset: () => {
+      queue.length = 0;
+      active = 0;
+    },
+  };
+}
+
+const remoteFetchQueue = createFetchQueue(REMOTE_IMAGE_CONCURRENCY);
+const streamCoverQueue = createFetchQueue(STREAM_COVER_CONCURRENCY);
+
+function enqueueRemoteFetch<T>(task: () => Promise<T>): Promise<T> {
+  return remoteFetchQueue.run(task);
 }
 
 export function resetRemoteImageCache(): void {
   resolvedUrls.clear();
   inflight.clear();
-  remoteFetchQueue.length = 0;
-  activeRemoteFetches = 0;
+  streamCovers.clear();
+  streamInflight.clear();
+  remoteFetchQueue.reset();
+  streamCoverQueue.reset();
 }
 
 export function toSizedThumbUrl(url: string): string {
@@ -76,6 +108,61 @@ function fetchCachedImage(remoteUrl: string, proxyUrl: string | null): Promise<s
       )
     )
   );
+}
+
+function fetchStreamCover(remoteUrl: string): Promise<string | null> {
+  const cached = streamCovers.get(remoteUrl);
+  if (cached) return Promise.resolve(cached);
+  // Covers need the site's referer; AniList previews live on the streaming
+  // services' CDNs, which reject a foreign referer and need the AniList proxy
+  // in a blocked region. Rust writes either answer into the image cache, so a
+  // preview is downloaded once and read from disk on the next launch.
+  const fromSource = isSourceImage(remoteUrl);
+  const request = fromSource
+    ? { url: remoteUrl, referer: STREAM_COVER_REFERER }
+    : { url: remoteUrl, proxyUrl: settingsAtoms.anilistProxyUrl.get() ?? undefined };
+  return inflightFetch(streamInflight, remoteUrl, () =>
+    streamCoverQueue.run(() =>
+      invokeTyped<UserImageFile>("fetch_remote_image", request).then(
+        (image) => {
+          if (!image) return null;
+          const url = assetUrl(image.path);
+          streamCovers.set(remoteUrl, url);
+          return url;
+        },
+        () => null
+      )
+    )
+  );
+}
+
+/**
+ * A catalog poster, downloaded once and served from the local asset cache.
+ * `null` while the cover is still being fetched, so callers can show a
+ * placeholder instead of a broken image.
+ */
+export function useStreamCover(remoteUrl: string | null | undefined): string | null {
+  const [src, setSrc] = useState<string | null>(() =>
+    remoteUrl ? (streamCovers.get(remoteUrl) ?? null) : null
+  );
+  useEffect(() => {
+    if (!remoteUrl) {
+      setSrc(null);
+      return;
+    }
+    let cancelled = false;
+    setSrc(streamCovers.get(remoteUrl) ?? null);
+    fetchStreamCover(remoteUrl)
+      .then((url) => {
+        if (!cancelled) setSrc(url);
+        return null;
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteUrl]);
+  return src;
 }
 
 export function prefetchRemoteImages(

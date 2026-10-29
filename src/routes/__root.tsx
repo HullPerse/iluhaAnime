@@ -107,6 +107,13 @@ const collectionRoute = createRoute({
   pendingComponent: TabLoader,
 });
 
+const streamRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/stream",
+  component: lazyRouteComponent(() => import("@/routes/stream.route")),
+  pendingComponent: TabLoader,
+});
+
 const gameRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/game",
@@ -136,6 +143,7 @@ const routeTree = rootRoute.addChildren([
     playerRoute,
     anilistRoute,
     collectionRoute,
+    streamRoute,
     settingsRoute,
     gameRoute,
   ]),

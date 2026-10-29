@@ -19,12 +19,19 @@ function SkipButton({
   duration,
   chapters,
   hasNext,
+  raised = false,
   onSkip,
   onFileNext,
 }: {
   duration: number;
   chapters: MpvChapter[];
   hasNext: boolean;
+  /**
+   * The bar is drawn over the video, so the button has to clear it. Without
+   * this the bar covers the button in the compact and cinema layouts, where
+   * the video area runs to the bottom of the window.
+   */
+  raised?: boolean;
   onSkip: (time: number) => void;
   onFileNext: () => void;
 }) {
@@ -58,7 +65,10 @@ function SkipButton({
   if (!active || !label || !skip || hidden) return null;
 
   return (
-    <div className="absolute right-1 bottom-1 z-20">
+    <div
+      data-testid="skip-button"
+      className={`absolute right-1 z-30 ${raised ? "bottom-14" : "bottom-1"}`}
+    >
       <Button
         className="flex h-auto items-center gap-1 px-3 py-1.5 text-sm"
         title={active.chapter.title}

@@ -7,7 +7,8 @@ export type TabPath =
   | "/anilist"
   | "/collection"
   | "/settings"
-  | "/game";
+  | "/game"
+  | "/stream";
 
 export const TAB_PATHS: Record<TabId, TabPath> = {
   search: "/",
@@ -17,6 +18,7 @@ export const TAB_PATHS: Record<TabId, TabPath> = {
   collection: "/collection",
   settings: "/settings",
   game: "/game",
+  stream: "/stream",
 };
 
 export function tabPathFromId(tab: TabId): TabPath {

@@ -9,6 +9,7 @@ export const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
   { id: "torrent", key: "app.torrent" },
   { id: "player", key: "app.player" },
   { id: "anilist", key: "app.anilist" },
+  { id: "stream", key: "app.stream" },
   { id: "collection", key: "app.collection" },
   { id: "settings", key: "app.settings" },
 ] as const;
@@ -19,6 +20,7 @@ function isEnabled(id: TabId, s: TabSettings): boolean {
   if (id === "search") return s.searchTabEnabled;
   if (id === "torrent") return s.torrentTabEnabled;
   if (id === "player") return s.playerTabEnabled;
+  if (id === "stream") return s.streamTabEnabled;
   return true;
 }
 

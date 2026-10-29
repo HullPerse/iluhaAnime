@@ -2,9 +2,20 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { sortTracksByLanguage, toTrackDisplay, trackLabel } from "@/lib/player/tracks.utils";
 import type { MpvTrack } from "@/types/videoPlayer";
 
-import TrackDropdown from "./dropdown.tracks";
+import TrackDropdown, { type DropdownOption } from "./dropdown.tracks";
 
 export { trackLabel };
+
+function trackOptions(tracks: MpvTrack[]): DropdownOption[] {
+  return tracks.map((track) => {
+    const display = toTrackDisplay(track);
+    return {
+      value: String(track.id),
+      main: display.main,
+      hint: display.language || undefined,
+    };
+  });
+}
 
 function Tracks({
   tracks,
@@ -29,18 +40,19 @@ function Tracks({
     <section className="flex h-6 items-center gap-1 px-1">
       <TrackDropdown
         label={t("player.media.tracks.audio")}
-        tracks={audio.map((track) => ({ ...toTrackDisplay(track) }))}
-        selectedId={selectedAudio}
-        onSelect={onSelectAudio}
+        options={trackOptions(audio)}
+        value={selectedAudio === null ? null : String(selectedAudio)}
+        onSelect={(id) => onSelectAudio(id === "no" ? "no" : Number(id))}
         onAdd={onAddAudio}
         addLabel={t("player.media.tracks.add.audio")}
       />
       <TrackDropdown
         label={t("player.media.tracks.subs.short")}
-        tracks={subs.map((track) => ({ ...toTrackDisplay(track) }))}
-        selectedId={selectedSub}
+        options={trackOptions(subs)}
+        value={selectedSub === null ? null : String(selectedSub)}
         noneLabel={t("player.media.tracks.none")}
-        onSelect={onSelectSub}
+        allowNone
+        onSelect={(id) => onSelectSub(id === "no" ? "no" : Number(id))}
         onAdd={onAddSubtitle}
         addLabel={t("player.media.tracks.add.subtitle")}
       />

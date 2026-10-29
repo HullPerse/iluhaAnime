@@ -17,10 +17,12 @@ import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
+import { PROXY_PRESETS, proxySelectValue } from "@/config/settings/proxy.config";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
 
+import AnimelibSettings from "./animelib.settings";
 import SettingsMedia from "./media.settings";
 import { SectionResetButton } from "./reset.settings";
 import ScreenshotSettings from "./screenshot.settings";
@@ -58,6 +60,14 @@ function KeyboardSettings() {
   );
 }
 
+/** The catalog is Russian only, so an English UI says so next to the toggle. */
+function StreamTabNote() {
+  const { t } = useI18n();
+  const language = useCell(settingsAtoms.language);
+  if (language !== "en") return null;
+  return <span className="text-hint text-xs">{t("settings.stream.tab.russianOnly")}</span>;
+}
+
 export default function SettingsGeneral() {
   const language = useCell(settingsAtoms.language);
   const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
@@ -68,6 +78,7 @@ export default function SettingsGeneral() {
   const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
+  const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
@@ -148,6 +159,17 @@ export default function SettingsGeneral() {
                   onChange={(v) => patchSettings({ anilistTabEnabled: v })}
                 />
                 <span className="text-xs">{t("settings.anilist.tab")}</span>
+              </label>
+              <label
+                className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none"
+                title={t("settings.stream.tab.russianOnly.hint")}
+              >
+                <Checkbox
+                  checked={streamTabEnabled}
+                  onChange={(v) => patchSettings({ streamTabEnabled: v })}
+                />
+                <span className="text-xs">{t("settings.stream.tab")}</span>
+                <StreamTabNote />
               </label>
               <label
                 className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none"
@@ -430,20 +452,7 @@ export default function SettingsGeneral() {
               </span>
               <div className="flex flex-col gap-1">
                 <Select
-                  value={(() => {
-                    const p = anilistProxyUrl ?? "";
-                    const presets = [
-                      "socks5://127.0.0.1:10808",
-                      "socks5://127.0.0.1:1080",
-                      "socks5h://127.0.0.1:10808",
-                      "http://127.0.0.1:7890",
-                      "http://127.0.0.1:10809",
-                      "http://127.0.0.1:8080",
-                    ];
-                    if (p === "") return "";
-                    if (presets.includes(p)) return p;
-                    return "custom";
-                  })()}
+                  value={proxySelectValue(anilistProxyUrl)}
                   onChange={(v) => {
                     if (v === "custom") {
                       anilistProxyInputRef.current?.focus();
@@ -453,30 +462,7 @@ export default function SettingsGeneral() {
                   }}
                   options={[
                     { value: "", label: t("settings.anilist.proxy.no") },
-                    {
-                      value: "socks5://127.0.0.1:10808",
-                      label: "socks5://127.0.0.1:10808",
-                    },
-                    {
-                      value: "socks5://127.0.0.1:1080",
-                      label: "socks5://127.0.0.1:1080",
-                    },
-                    {
-                      value: "socks5h://127.0.0.1:10808",
-                      label: "socks5h://127.0.0.1:10808",
-                    },
-                    {
-                      value: "http://127.0.0.1:7890",
-                      label: "http://127.0.0.1:7890",
-                    },
-                    {
-                      value: "http://127.0.0.1:10809",
-                      label: "http://127.0.0.1:10809",
-                    },
-                    {
-                      value: "http://127.0.0.1:8080",
-                      label: "http://127.0.0.1:8080",
-                    },
+                    ...PROXY_PRESETS.map((url) => ({ value: url, label: url })),
                     { value: "custom", label: t("settings.anilist.proxy.custom") },
                   ]}
                   className="w-full min-[560px]:max-w-60"
@@ -626,6 +612,8 @@ export default function SettingsGeneral() {
       <ScreenshotSettings />
 
       <SettingsMedia />
+
+      <AnimelibSettings />
 
       <hr className="border-muted my-1 w-full border-t" />
 

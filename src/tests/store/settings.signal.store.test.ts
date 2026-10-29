@@ -141,6 +141,18 @@ describe("settings signal persist envelope", () => {
   });
 });
 
+describe("settings signal AnimeLib connection", () => {
+  it("keeps the proxy through a persisted reload", () => {
+    const { store, backing } = setup();
+    store.patch({ animelibProxyUrl: "socks5://127.0.0.1:10808" });
+    store.persistor.flush();
+
+    const reloaded = createSettingsSignalStore({ getStorage: () => memoryStorage(backing) });
+
+    expect(reloaded.atoms.animelibProxyUrl.get()).toBe("socks5://127.0.0.1:10808");
+  });
+});
+
 describe("settings signal actions", () => {
   it("hides folders once, case-insensitively, and unhides them", () => {
     const { store } = setup();

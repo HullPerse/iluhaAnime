@@ -44,6 +44,10 @@ function Timeline({
   onCommitSeek: (time: number) => void;
 }) {
   const timePos = useCell(playbackAtoms.timePos);
+  // Seconds mpv already holds ahead of the playhead. A seek inside that span
+  // does not touch the network, so it is drawn as its own segment: the bar
+  // answers "how far can I jump without buffering" before the click.
+  const cacheDuration = useCell(playbackAtoms.cacheDuration);
   const { t } = useI18n();
   const barRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -53,6 +57,15 @@ function Timeline({
 
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
+  const bufferedFrom = duration > 0 ? clamp01(timePos / duration) * 100 : 0;
+  const bufferedTo =
+    duration > 0 && cacheDuration !== undefined && cacheDuration > 0
+      ? clamp01((timePos + cacheDuration) / duration) * 100
+      : bufferedFrom;
+  // The buffered span is drawn only while the bar is being pointed at: a bar
+  // at rest already carries the chapter ticks, and a second filled segment
+  // underneath them reads as one more chapter rather than as the cache.
+  const showBuffered = hover !== null || dragging;
   const showRemainingTime = showRemaining && duration > 0;
   const timeWidth = `${formatClock(duration).length * 2 + 4}ch`;
   const timeLabel = showRemainingTime
@@ -165,6 +178,13 @@ function Timeline({
           onMouseMove={handleBarMove}
           onMouseLeave={() => setHover(null)}
         >
+          {showBuffered ? (
+            <div
+              data-testid="timeline-buffered"
+              className="bg-muted-trans pointer-events-none absolute inset-y-0"
+              style={{ left: `${bufferedFrom}%`, width: `${bufferedTo - bufferedFrom}%` }}
+            />
+          ) : null}
           <div
             className="bg-secondary absolute inset-y-0 left-0"
             style={{ width: `${progress}%` }}

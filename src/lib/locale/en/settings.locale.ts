@@ -40,6 +40,9 @@ const settings = {
   "settings.media.tracks.hide": "Hide",
   "settings.media.tracks.folders": "Folders only",
   "settings.media.tracks.torrent": "Torrents only",
+  "settings.media.streamQuality": "Stream default quality",
+  "settings.media.streamQuality.hint":
+    "Used when a title has no remembered quality. A missing quality falls back to the nearest lower one.",
   "settings.media.watcher": "Folder watching speed",
   "settings.media.watcher.fast": "Fast",
   "settings.media.watcher.calm": "Calm",
@@ -436,6 +439,10 @@ const settings = {
   "settings.tmdb.proxy.custom": "Custom",
   "settings.collection.tab": "Collection",
   "settings.anilist.tab": "AniList",
+  "settings.stream.tab": "Streaming",
+  "settings.stream.tab.russianOnly": "[RUSSIAN ONLY]",
+  "settings.stream.tab.russianOnly.hint":
+    "The streaming catalog is in Russian and has no English titles.",
   "settings.ffmpeg.source.essentials": "gyan.dev (essentials, ~30 MB)",
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 MB)",
   "settings.ffmpeg.source.mirror": "GitHub via mirror (gh-proxy)",
@@ -501,6 +508,21 @@ const settings = {
   "settings.screenshot.folder.hint": "Where screenshots are saved",
   "settings.screenshot.format": "Default format",
   "settings.screenshot.open.folder": "Open folder after saving",
+  "settings.animelib.title": "AnimeLib account",
+  "settings.animelib.description": "Optional. A token from a logged-in animelib.org session unlocks the site's own 1080p/4K qualities. Kodik works without it, but stops at 720p.",
+  "settings.animelib.token": "Session token",
+  "settings.animelib.token.description": "Paste the Authorization token from the site's network requests, or the token from its local storage.",
+  "settings.animelib.token.placeholder": "Paste AnimeLib token",
+  "settings.animelib.token.save": "Save token",
+  "settings.animelib.token.clear": "Remove token",
+  "settings.animelib.token.stored": "Token stored in OS keyring",
+  "settings.animelib.token.empty": "No token saved",
+  "settings.animelib.token.saved": "Token verified and saved",
+  "settings.animelib.proxy.url": "Proxy",
+  "settings.animelib.proxy.url.description":
+    "Used for AnimeLib catalog requests, the Kodik resolver and the session check. Leave off for a direct connection.",
+  "settings.animelib.proxy.no": "No proxy",
+  "settings.animelib.proxy.custom": "Custom",
 } as const;
 
 export default settings;

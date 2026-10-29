@@ -8,6 +8,15 @@ export const queryKeys = {
   gameRoms: () => ["game-roms"] as const,
   gamePlatforms: () => ["game-platforms"] as const,
   gameStore: () => ["game-store"] as const,
+  streamSearch: (query: string, page: number, filtersKey: string) =>
+    ["stream_search", query, page, filtersKey] as const,
+  streamConstants: () => ["stream_constants"] as const,
+  streamTitle: (slug: string) => ["stream_title", slug] as const,
+  streamPlayers: (episodeId: string) => ["stream_players", episodeId] as const,
+  streamSources: (episodeId: string, variantId: string) =>
+    ["stream_sources", episodeId, variantId] as const,
+  anilistEpisodePreviews: (anilistId: number) => ["anilist_episode_previews", anilistId] as const,
+  anilistSession: () => ["anilist_session"] as const,
   animeFull: (id: number, proxy: string, loggedIn: boolean) =>
     ["anime_full", id, proxy, loggedIn ? 1 : 0] as const,
   animeInlineSearch: (query: string, adult: boolean) =>

@@ -18,10 +18,11 @@ import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chap
 import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { PLAYER_SPEEDS as SPEEDS } from "@/lib/player/speed.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { playbackAtoms } from "@/store/player.store";
+import { playbackAtoms, streamSession } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
 import NeighborFileButton from "./neighbor.player";
+import StreamControl from "./stream.player";
 import Tracks from "./tracks.player";
 import VolumeControl from "./volume.player";
 
@@ -94,6 +95,9 @@ function Controls({
     "player.toggleAutoHide"
   );
   const timePos = useCell(playbackAtoms.timePos);
+  // A stream picks its voice-over and subtitles from the source, so the mpv
+  // audio and subtitle lists would only duplicate that choice.
+  const stream = useCell(streamSession);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [boundary, setBoundary] = useState<string | null>(null);
   const speedRef = useRef<HTMLDivElement>(null);
@@ -246,6 +250,8 @@ function Controls({
         </div>
       </section>
 
+      <StreamControl />
+
       <section className="border-muted flex h-6 items-center gap-0.5 border-r-2 px-1">
         <Button
           size="icon"
@@ -258,7 +264,7 @@ function Controls({
         </Button>
       </section>
 
-      {hideTracks !== true && tracks.length > 0 ? (
+      {hideTracks !== true && stream === null && tracks.length > 0 ? (
         <Tracks
           tracks={tracks}
           onSelectAudio={onSelectAudio}

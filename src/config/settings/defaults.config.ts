@@ -1,4 +1,5 @@
 import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
+import { DEFAULT_STREAM_QUALITY } from "@/config/stream/quality.config";
 import type {
   SettingsDefaults,
   TorrentCoverMode,
@@ -116,6 +117,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   showTrackFiles: "hide",
   watcherDelay: "calm",
   scanThreads: 0,
+  streamDefaultQuality: DEFAULT_STREAM_QUALITY,
   sqliteBrowserEnabled: false,
   sqliteShowImages: false,
   statusBarEnabled: true,
@@ -151,6 +153,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   tmdbPendingKey: null as string | null,
   tmdbProxyUrl: null as string | null,
   anilistProxyUrl: null as string | null,
+  animelibProxyUrl: null as string | null,
   anilistTitleLanguage: "account",
   anilistAdultContent: false,
   torrentProxyUrl: null as string | null,
@@ -161,6 +164,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   searchTabEnabled: true,
   torrentTabEnabled: true,
   playerTabEnabled: true,
+  streamTabEnabled: true,
   gameTabUnlocked: false,
   rememberLastTab: true,
   gameVolume: 1,

@@ -20,7 +20,7 @@ const MESSAGES: Partial<Record<TranslationKey, (variables?: TranslationVariables
   "discord.button.profile": () => "AniList profile",
   "discord.button.search": () => "Find on AniList",
   "discord.detail.state": () => "Browsing AniList",
-  "discord.idle.library": (variables) => `Anilist: ${variables?.titles}`,
+  "discord.idle.library": (variables) => `${variables?.titles} anime`,
   "discord.idle.running": () => "iluhaAnime is running",
   "discord.player.paused": () => "Paused",
   "discord.search.details": () => "Searching anime",

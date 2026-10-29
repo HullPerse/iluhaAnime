@@ -8,6 +8,7 @@ import type { MpvChapter } from "@/types/videoPlayer";
 
 const TOOLTIP_WIDTH = 128;
 const LIVE_SCRUB_INTERVAL = 80;
+const CHAPTER_SNAP_SECONDS = 20;
 
 type HoverInfo = { time: number; x: number; chapter?: string };
 
@@ -28,6 +29,23 @@ function chapterTitleAt(
     }
   }
   return undefined;
+}
+
+function nearestChapterEdge(chapters: MpvChapter[], duration: number, time: number): number | null {
+  let nearest: number | null = null;
+  let nearestDist = Infinity;
+  for (const chapter of chapters) {
+    const candidates = [chapter.time, chapter.end ?? duration];
+    for (const candidate of candidates) {
+      const dist = Math.abs(candidate - time);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = candidate;
+      }
+    }
+  }
+  if (nearest === null || nearestDist > CHAPTER_SNAP_SECONDS) return null;
+  return nearest;
 }
 
 function Timeline({
@@ -103,7 +121,10 @@ function Timeline({
     if (!dragging) return;
     let lastScrub = 0;
     const onMove = (event: MouseEvent) => {
-      const time = timeFromClientX(event.clientX);
+      const rawTime = timeFromClientX(event.clientX);
+      const time = event.ctrlKey
+        ? (nearestChapterEdge(chapters, duration, rawTime) ?? rawTime)
+        : rawTime;
       setScrubTime(time);
       describeHover(event.clientX, time);
       const now = Date.now();
@@ -115,7 +136,11 @@ function Timeline({
     const onUp = (event: MouseEvent) => {
       setDragging(false);
       setScrubTime(null);
-      onCommitSeek(timeFromClientX(event.clientX));
+      const rawTime = timeFromClientX(event.clientX);
+      const commitTime = event.ctrlKey
+        ? (nearestChapterEdge(chapters, duration, rawTime) ?? rawTime)
+        : rawTime;
+      onCommitSeek(commitTime);
     };
     document.body.style.userSelect = "none";
     window.addEventListener("mousemove", onMove);
@@ -125,12 +150,15 @@ function Timeline({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [dragging, describeHover, onCommitSeek, onScrub, timeFromClientX]);
+  }, [dragging, describeHover, onCommitSeek, onScrub, timeFromClientX, chapters, duration]);
 
   const handleBarDown = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragging(true);
-    const time = timeFromClientX(event.clientX);
+    const rawTime = timeFromClientX(event.clientX);
+    const time = event.ctrlKey
+      ? (nearestChapterEdge(chapters, duration, rawTime) ?? rawTime)
+      : rawTime;
     setScrubTime(time);
     describeHover(event.clientX, time);
   };

@@ -11,7 +11,6 @@ export interface ActiveChapter {
 
 const OP_PATTERN = /\b(?:opening|op(?:[\s_-]*\d+)?)\b/;
 const ED_PATTERN = /\b(?:ending|ed(?:[\s_-]*\d+)?)\b/;
-export const SKIP_MIN_SECONDS = 20;
 
 function isOpeningTitle(lower: string): boolean {
   return OP_PATTERN.test(lower) || lower.includes("опенинг") || lower.includes("заставка");
@@ -101,7 +100,6 @@ export function resolveSkipTarget(
   if (!active) return null;
   const label = skipLabel(active.chapter.title);
   if (!label) return null;
-  if (active.target - active.chapter.time < SKIP_MIN_SECONDS) return null;
   const isLastChapter = active.index === chapters.length - 1;
   return { nextEpisode: isLastChapter && label === "ED" && hasNext, target: active.target };
 }

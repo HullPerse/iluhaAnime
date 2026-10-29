@@ -99,8 +99,11 @@ describe("player/skip target", () => {
     expect(resolveSkipTarget([chapter("Main", 0, 300)], 10, 300, true)).toBeNull();
   });
 
-  it("offers nothing for a chapter shorter than the minimum", () => {
-    expect(resolveSkipTarget([chapter("Intro", 0, 5)], 1, 1400, true)).toBeNull();
+  it("skips even a very short named chapter", () => {
+    expect(resolveSkipTarget([chapter("Intro", 0, 5)], 1, 1400, true)).toEqual({
+      nextEpisode: false,
+      target: 5,
+    });
   });
 
   it("offers nothing outside every chapter", () => {

@@ -1109,9 +1109,15 @@ function PlayerComponent() {
   }, []);
 
   const onSkipChapter = useCallback((time: number) => {
+    const wasPaused = playbackAtoms.paused.get();
     setSeekTarget(time);
     const mode = playerAtoms.seekMode.get();
-    ignore(seekTo(time, mode).then(() => setPaused(false)));
+    ignore(
+      seekTo(time, mode).then(() => {
+        if (!wasPaused) setPaused(false);
+        return undefined;
+      })
+    );
   }, []);
 
   const onFileNext = useCallback(() => {

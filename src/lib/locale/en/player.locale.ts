@@ -358,6 +358,7 @@ const player = {
   "player.media.menu.chapter": "Chapter {{n}}",
   "player.stream.voice": "Voice-over",
   "player.stream.quality": "Quality",
+  "player.stream.menu.loading": "Loading...",
   "player.stream.buffering": "Buffering",
   "player.stream.buffer.ahead": "Ahead",
   "player.stream.buffer.cached": "Cached",

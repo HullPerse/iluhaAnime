@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { PlayerStream } from "@/hooks/player/stream.hook";
 import StreamControl from "@/routes/components/player/media/stream.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
@@ -22,8 +23,8 @@ const state = vi.hoisted(() => ({
   reloadVariants: vi.fn(),
 }));
 
-vi.mock("@/hooks/player/stream.hook", () => ({
-  usePlayerStream: () => ({
+function playerStream(): PlayerStream {
+  return {
     session: state.session,
     variants: state.variants,
     variantsLoading: state.variantsLoading,
@@ -32,8 +33,8 @@ vi.mock("@/hooks/player/stream.hook", () => ({
     switchQuality: state.switchQuality,
     switchVariant: state.switchVariant,
     reloadVariants: state.reloadVariants,
-  }),
-}));
+  };
+}
 
 const VOICE: StreamVariant = {
   id: "1",
@@ -110,7 +111,7 @@ afterEach(() => {
 
 describe("StreamControl", () => {
   it("renders the active voice-over and keeps the subtitle select at None", () => {
-    render(<StreamControl />);
+    render(<StreamControl stream={playerStream()} />);
 
     expect(screen.getByRole("button", { name: "Voice-over: AniDUB" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Subs: None" })).toBeTruthy();
@@ -119,14 +120,14 @@ describe("StreamControl", () => {
 
   it("moves the active row to the subtitle select", () => {
     state.session = session({ variantId: "Kodik:2" });
-    render(<StreamControl />);
+    render(<StreamControl stream={playerStream()} />);
 
     expect(screen.getByRole("button", { name: "Voice-over: None" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Subs: Crunchyroll" })).toBeTruthy();
   });
 
   it("switches the voice-over from the menu", async () => {
-    render(<StreamControl />);
+    render(<StreamControl stream={playerStream()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Voice-over: AniDUB" }));
     fireEvent.click(screen.getByRole("option", { name: /Other/ }));
@@ -136,7 +137,7 @@ describe("StreamControl", () => {
   });
 
   it("warms a voice-over while the pointer is still over the option", () => {
-    render(<StreamControl />);
+    render(<StreamControl stream={playerStream()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Voice-over: AniDUB" }));
     fireEvent.pointerEnter(screen.getByRole("option", { name: /Other/ }));
@@ -145,7 +146,7 @@ describe("StreamControl", () => {
   });
 
   it("switches quality from the source list", async () => {
-    render(<StreamControl />);
+    render(<StreamControl stream={playerStream()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Quality: 1080p" }));
     fireEvent.click(screen.getByRole("option", { name: "720p" }));
@@ -155,7 +156,7 @@ describe("StreamControl", () => {
   });
 
   it("opens the stream stats only through its own button", () => {
-    render(<StreamControl />);
+    render(<StreamControl stream={playerStream()} />);
     expect(screen.queryByText("1920x1080")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Stream stats" }));
@@ -168,12 +169,12 @@ describe("StreamControl", () => {
   });
 
   it("keeps one status slot so a buffering blip cannot move the controls", () => {
-    const { rerender } = render(<StreamControl />);
+    const { rerender } = render(<StreamControl stream={playerStream()} />);
     const idle = screen.getByTestId("stream-status");
     expect(idle.textContent).toBe("");
 
     playbackAtoms.pausedForCache.set(true);
-    rerender(<StreamControl />);
+    rerender(<StreamControl stream={playerStream()} />);
 
     const buffering = screen.getByTestId("stream-status");
     expect(buffering).toBe(idle);
@@ -183,7 +184,7 @@ describe("StreamControl", () => {
 
   it("renders nothing without a stream session", () => {
     state.session = null;
-    const { container } = render(<StreamControl />);
+    const { container } = render(<StreamControl stream={playerStream()} />);
     expect(container.innerHTML).toBe("");
   });
 });

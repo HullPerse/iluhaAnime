@@ -16,6 +16,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import type { PlayerStream } from "@/hooks/player/stream.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
@@ -57,6 +58,7 @@ function ModernControls({
   onMute,
   onToggleAutoHide,
   onTogglePlaylist,
+  stream,
 }: {
   paused: boolean;
   duration: number;
@@ -83,6 +85,7 @@ function ModernControls({
   onMute: () => void;
   onToggleAutoHide: () => void;
   onTogglePlaylist: () => void;
+  stream: PlayerStream;
 }) {
   const { t } = useI18n();
   const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
@@ -254,7 +257,7 @@ function ModernControls({
           </Button>
         </section>
 
-        <StreamControl />
+        <StreamControl stream={stream} />
 
         {immersive ? (
           <section className="border-muted flex h-6 gap-1 border-r-2 px-1">

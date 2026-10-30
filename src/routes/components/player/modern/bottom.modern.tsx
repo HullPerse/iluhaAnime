@@ -1,3 +1,4 @@
+import type { PlayerStream } from "@/hooks/player/stream.hook";
 import type { PlayerBottomBarKind } from "@/lib/player/view.utils";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
@@ -43,6 +44,7 @@ export interface PlayerBottomBarProps {
   onAddAudio: () => void;
   onAddSubtitle: () => void;
   hideTracks: boolean;
+  stream: PlayerStream;
 }
 
 function PlayerBottomBar(props: PlayerBottomBarProps) {
@@ -83,6 +85,7 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
     onAddAudio,
     onAddSubtitle,
     hideTracks,
+    stream,
   } = props;
   if (variant === "slim") {
     return (
@@ -126,6 +129,7 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
         onMute={onMute}
         onToggleAutoHide={onToggleAutoHide}
         onTogglePlaylist={onTogglePlaylist}
+        stream={stream}
       />
     );
   }
@@ -166,6 +170,7 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
         onAddAudio={onAddAudio}
         onAddSubtitle={onAddSubtitle}
         hideTracks={hideTracks}
+        stream={stream}
       />
     </>
   );

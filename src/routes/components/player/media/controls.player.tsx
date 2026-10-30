@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import type { PlayerStream } from "@/hooks/player/stream.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
@@ -56,6 +57,7 @@ function Controls({
   onAddAudio,
   onAddSubtitle,
   hideTracks,
+  stream,
 }: {
   paused: boolean;
   duration: number;
@@ -84,6 +86,7 @@ function Controls({
   onAddAudio: () => void;
   onAddSubtitle: () => void;
   hideTracks?: boolean;
+  stream: PlayerStream;
 }) {
   const { t } = useI18n();
   const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
@@ -97,7 +100,7 @@ function Controls({
   const timePos = useCell(playbackAtoms.timePos);
   // A stream picks its voice-over and subtitles from the source, so the mpv
   // audio and subtitle lists would only duplicate that choice.
-  const stream = useCell(streamSession);
+  const streaming = useCell(streamSession);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [boundary, setBoundary] = useState<string | null>(null);
   const speedRef = useRef<HTMLDivElement>(null);
@@ -250,7 +253,7 @@ function Controls({
         </div>
       </section>
 
-      <StreamControl />
+      <StreamControl stream={stream} />
 
       <section className="border-muted flex h-6 items-center gap-0.5 border-r-2 px-1">
         <Button
@@ -264,7 +267,7 @@ function Controls({
         </Button>
       </section>
 
-      {hideTracks !== true && stream === null && tracks.length > 0 ? (
+      {hideTracks !== true && streaming === null && tracks.length > 0 ? (
         <Tracks
           tracks={tracks}
           onSelectAudio={onSelectAudio}

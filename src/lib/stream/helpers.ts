@@ -101,6 +101,21 @@ export function buildVariantId(variant: StreamVariant): string {
 }
 
 /**
+ * The row behind a `<player>:<teamId>` id, or the same team under another
+ * hoster when the exact row is gone. The session keeps the hoster that
+ * resolved it, while the list may only carry the row under a fallback hoster.
+ */
+export function variantOf(
+  variants: readonly StreamVariant[],
+  variantId: string
+): StreamVariant | null {
+  const exact = variants.find((variant) => buildVariantId(variant) === variantId);
+  if (exact) return exact;
+  const teamId = variantId.split(":").at(-1);
+  return variants.find((variant) => variant.id === teamId) ?? null;
+}
+
+/**
  * Whether a row is a subtitle translation rather than a voice-over.
  *
  * Kodik spells the kind in the translation label (`Субтитры`) and, for some

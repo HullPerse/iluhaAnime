@@ -6,13 +6,16 @@ import {
   ListMusic,
   ListVideo,
   Maximize,
+  Mic,
   Monitor,
   Pause,
   Pin,
   Play,
+  RefreshCw,
   Settings,
   SkipBack,
   SkipForward,
+  SlidersHorizontal,
   Square,
   StepBack,
   StepForward,
@@ -29,7 +32,10 @@ import {
 } from "@/config/player/modes.config";
 import { PLAYER_SPEEDS } from "@/lib/player/speed.utils";
 import { selectableTracks, trackLabel } from "@/lib/player/tracks.utils";
+import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/stream/helpers";
 import { formatClock } from "@/lib/utils/time.utils";
+import type { TranslationKey } from "@/types/i18n";
+import type { StreamVariant } from "@/types/stream";
 import type {
   EndOfFileMode,
   MpvChapter,
@@ -37,6 +43,7 @@ import type {
   PlayerCabinetId,
   PlayerModeId,
   PlayerViewMode,
+  StreamOpen,
 } from "@/types/videoPlayer";
 
 const EOF_MODES: EndOfFileMode[] = ["none", "pause", "next", "repeat"];
@@ -62,6 +69,15 @@ const VIEW_HINTS: Record<PlayerViewMode, string> = {
   normal: "3",
 };
 
+export interface ModernMenuStream {
+  session: StreamOpen;
+  /** Every row of the episode, voice-overs and subtitle translations alike. */
+  variants: StreamVariant[];
+  variantsLoading: boolean;
+  variantsFailed: boolean;
+  switching: boolean;
+}
+
 export interface ModernMenuSnapshot {
   hasFile: boolean;
   paused: boolean;
@@ -75,6 +91,8 @@ export interface ModernMenuSnapshot {
   eofMode: EndOfFileMode;
   playerMode: PlayerModeId;
   cabinet: PlayerCabinetId;
+  /** Present only while a streaming session is playing. */
+  stream: ModernMenuStream | null;
 }
 
 export interface ModernMenuActions {
@@ -95,6 +113,9 @@ export interface ModernMenuActions {
   onCabinet: (cabinet: PlayerCabinetId) => void;
   onOpenSettings: () => void;
   onOpenCheatsheet: () => void;
+  onSelectVariant: (variant: StreamVariant) => void;
+  onSelectQuality: (label: string) => void;
+  onRetryVariants: () => void;
 }
 
 function trackEntries(
@@ -167,11 +188,136 @@ function chapterEntries(
   });
 }
 
+function disabledEntry(id: string, label: TranslationKey): ContextMenuEntry {
+  return { kind: "item", id, label, disabled: true, onSelect: () => {} };
+}
+
+/**
+ * The rows of one kind. A streaming subtitle is a separate stream, not an
+ * embedded track, so it is selected from the same list the bar offers and the
+ * selected row is the one that is playing.
+ */
+function streamVariantEntries(
+  kind: "voice" | "sub",
+  menu: ModernMenuStream,
+  actions: ModernMenuActions
+): ContextMenuEntry[] {
+  const id = `stream-${kind}`;
+  const list = menu.variants.filter(
+    (variant) => isSubtitleVariant(variant) === (kind === "sub")
+  );
+  if (menu.variantsLoading) {
+    return [disabledEntry(`${id}-loading`, "player.stream.menu.loading")];
+  }
+  if (menu.variantsFailed) {
+    return [
+      disabledEntry(`${id}-failed`, "player.stream.voice.failed"),
+      {
+        kind: "item",
+        id: `${id}-retry`,
+        label: "player.stream.retry",
+        icon: RefreshCw,
+        onSelect: actions.onRetryVariants,
+      },
+    ];
+  }
+  if (list.length === 0) return [disabledEntry(`${id}-empty`, "player.media.tracks.empty")];
+  const active = variantOf(list, menu.session.variantId);
+  const activeId = active === null ? "" : buildVariantId(active);
+  return list.map((variant) => {
+    const variantId = buildVariantId(variant);
+    return {
+      kind: "item" as const,
+      id: `${id}:${variantId}`,
+      label: "player.media.menu.track" as const,
+      rawText: variant.name,
+      hint: variant.language || undefined,
+      checked: variantId === activeId,
+      onSelect: () => actions.onSelectVariant(variant),
+    };
+  });
+}
+
+/** Quality comes from the resolved source list, never a fixed table. */
+function streamQualityEntries(
+  menu: ModernMenuStream,
+  actions: ModernMenuActions
+): ContextMenuEntry[] {
+  const labels = menu.session.sources.map((source) => source.label);
+  if (labels.length === 0) {
+    return [disabledEntry("stream-quality-empty", "player.media.tracks.empty")];
+  }
+  return labels.map((label) => ({
+    kind: "item" as const,
+    id: `stream-quality:${label}`,
+    label: "player.stream.quality" as const,
+    rawText: label,
+    checked: label === menu.session.quality,
+    onSelect: () => actions.onSelectQuality(label),
+  }));
+}
+
+/**
+ * Voice-over, subtitle stream and quality replace the mpv track lists while a
+ * stream plays: the embedded tracks of one URL are not the choice the session
+ * offers, and showing both would put two "subtitles" entries in one menu.
+ */
+function streamEntries(menu: ModernMenuStream, actions: ModernMenuActions): ContextMenuEntry[] {
+  return [
+    {
+      kind: "submenu",
+      id: "stream-voice",
+      label: "player.stream.voice",
+      icon: Mic,
+      disabled: menu.switching,
+      entries: streamVariantEntries("voice", menu, actions),
+    },
+    {
+      kind: "submenu",
+      id: "stream-subs",
+      label: "player.media.tracks.subs.short",
+      icon: Captions,
+      disabled: menu.switching,
+      entries: streamVariantEntries("sub", menu, actions),
+    },
+    {
+      kind: "submenu",
+      id: "stream-quality",
+      label: "player.stream.quality",
+      icon: SlidersHorizontal,
+      disabled: menu.switching,
+      entries: streamQualityEntries(menu, actions),
+    },
+    { kind: "separator", id: "sep-stream" },
+  ];
+}
+
 export function buildModernPlayerMenu(
   snapshot: ModernMenuSnapshot,
   actions: ModernMenuActions
 ): ContextMenuEntry[] {
   const locked = !snapshot.hasFile;
+  const trackChoices: ContextMenuEntry[] =
+    snapshot.stream === null
+      ? [
+          {
+            kind: "submenu",
+            id: "subtitles",
+            label: "player.media.tracks.subtitles",
+            icon: Captions,
+            disabled: locked,
+            entries: trackEntries("sub", snapshot.tracks, actions.onSelectSub),
+          },
+          {
+            kind: "submenu",
+            id: "audio",
+            label: "player.media.tracks.audio",
+            icon: Volume2,
+            disabled: locked,
+            entries: trackEntries("audio", snapshot.tracks, actions.onSelectAudio),
+          },
+        ]
+      : streamEntries(snapshot.stream, actions);
   return [
     {
       kind: "submenu",
@@ -223,22 +369,7 @@ export function buildModernPlayerMenu(
         },
       ],
     },
-    {
-      kind: "submenu",
-      id: "subtitles",
-      label: "player.media.tracks.subtitles",
-      icon: Captions,
-      disabled: locked,
-      entries: trackEntries("sub", snapshot.tracks, actions.onSelectSub),
-    },
-    {
-      kind: "submenu",
-      id: "audio",
-      label: "player.media.tracks.audio",
-      icon: Volume2,
-      disabled: locked,
-      entries: trackEntries("audio", snapshot.tracks, actions.onSelectAudio),
-    },
+    ...trackChoices,
     {
       kind: "submenu",
       id: "chapters",

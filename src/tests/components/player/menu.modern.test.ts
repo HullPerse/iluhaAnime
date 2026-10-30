@@ -4,8 +4,10 @@ import {
   buildModernPlayerMenu,
   type ModernMenuActions,
   type ModernMenuSnapshot,
+  type ModernMenuStream,
 } from "@/routes/components/player/modern/menu.modern";
-import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
+import type { StreamVariant } from "@/types/stream";
+import type { MpvChapter, MpvTrack, StreamOpen } from "@/types/videoPlayer";
 
 function track(id: number, type: MpvTrack["type"], selected = false): MpvTrack {
   return { id, type, lang: "rus", codec: "srt", selected };
@@ -25,6 +27,7 @@ function snapshot(overrides: Partial<ModernMenuSnapshot> = {}): ModernMenuSnapsh
     eofMode: "next",
     playerMode: "normal",
     cabinet: "none",
+    stream: null,
     ...overrides,
   };
 }
@@ -48,7 +51,70 @@ function actions(overrides: Partial<ModernMenuActions> = {}): ModernMenuActions 
     onCabinet: vi.fn(),
     onOpenSettings: vi.fn(),
     onOpenCheatsheet: vi.fn(),
+    onSelectVariant: vi.fn(),
+    onSelectQuality: vi.fn(),
+    onRetryVariants: vi.fn(),
     ...overrides,
+  };
+}
+
+const VOICE: StreamVariant = {
+  id: "1",
+  name: "AniDUB",
+  language: "Озвучка",
+  separateStream: true,
+  player: "Animelib",
+  sourceUrl: "",
+};
+
+const OTHER_VOICE: StreamVariant = {
+  id: "9",
+  name: "Other",
+  language: "Озвучка",
+  separateStream: true,
+  player: "Kodik",
+  sourceUrl: "",
+};
+
+const SUBTITLE: StreamVariant = {
+  id: "2",
+  name: "Crunchyroll",
+  language: "Субтитры",
+  separateStream: true,
+  player: "Kodik",
+  sourceUrl: "",
+};
+
+function session(patch: Partial<StreamOpen> = {}): StreamOpen {
+  return {
+    sourceId: "animelib",
+    sourceName: "AnimeLib",
+    mediaId: "1",
+    mediaTitle: "Frieren",
+    episodeId: "10",
+    episodeNumber: 1,
+    episodeTitle: "The journey",
+    watchKey: "stream:animelib:1:10",
+    headers: {},
+    quality: "1080p",
+    variantId: "Animelib:1",
+    sources: [
+      { url: "https://cdn/1080.mp4", type: "mp4", quality: "1080", label: "1080p" },
+      { url: "https://cdn/720.mp4", type: "mp4", quality: "720", label: "720p" },
+    ],
+    mediaUrl: "https://cdn/1080.mp4",
+    ...patch,
+  };
+}
+
+function streamMenu(patch: Partial<ModernMenuStream> = {}): ModernMenuStream {
+  return {
+    session: session(),
+    variants: [VOICE, OTHER_VOICE, SUBTITLE],
+    variantsLoading: false,
+    variantsFailed: false,
+    switching: false,
+    ...patch,
   };
 }
 
@@ -229,5 +295,101 @@ describe("buildModernPlayerMenu", () => {
     expect(active.checked).toBe(true);
     active.onSelect();
     expect(onEofMode).toHaveBeenCalledWith("repeat");
+  });
+
+  it("replaces the mpv track lists with the stream choices", () => {
+    const entries = buildModernPlayerMenu(snapshot({ stream: streamMenu() }), actions());
+    const ids = entries.map((entry) => entry.id);
+    expect(ids.slice(1, 4)).toEqual(["stream-voice", "stream-subs", "stream-quality"]);
+    expect(ids).not.toContain("subtitles");
+    expect(ids).not.toContain("audio");
+  });
+
+  it("marks the playing voice-over and the resolved quality, and wires both", () => {
+    const onSelectVariant = vi.fn();
+    const onSelectQuality = vi.fn();
+    const entries = buildModernPlayerMenu(
+      snapshot({ stream: streamMenu() }),
+      actions({ onSelectVariant, onSelectQuality })
+    );
+
+    const voice = entries.find((entry) => entry.id === "stream-voice");
+    if (voice?.kind !== "submenu") throw new Error("missing voice submenu");
+    const voices = voice.entries.filter((entry) => entry.kind === "item");
+    expect(voices.map((entry) => entry.rawText)).toEqual(["AniDUB", "Other"]);
+    const [current, other] = voices;
+    if (current.kind !== "item" || other.kind !== "item") throw new Error("expected items");
+    expect(current.checked).toBe(true);
+    expect(other.checked).toBe(false);
+    other.onSelect();
+    expect(onSelectVariant).toHaveBeenCalledWith(OTHER_VOICE);
+
+    const quality = entries.find((entry) => entry.id === "stream-quality");
+    if (quality?.kind !== "submenu") throw new Error("missing quality submenu");
+    const [best, lower] = quality.entries;
+    if (best.kind !== "item" || lower.kind !== "item") throw new Error("expected quality items");
+    expect(best.rawText).toBe("1080p");
+    expect(best.checked).toBe(true);
+    lower.onSelect();
+    expect(onSelectQuality).toHaveBeenCalledWith("720p");
+  });
+
+  it("keeps a subtitle stream in its own list", () => {
+    const entries = buildModernPlayerMenu(
+      snapshot({ stream: streamMenu({ session: session({ variantId: "Kodik:2" }) }) }),
+      actions()
+    );
+
+    const subs = entries.find((entry) => entry.id === "stream-subs");
+    if (subs?.kind !== "submenu") throw new Error("missing subtitle submenu");
+    const subtitleItems = subs.entries.filter((entry) => entry.kind === "item");
+    expect(subtitleItems).toHaveLength(1);
+    const only = subtitleItems[0];
+    if (only.kind !== "item") throw new Error("expected item");
+    expect(only.checked).toBe(true);
+
+    const voice = entries.find((entry) => entry.id === "stream-voice");
+    if (voice?.kind !== "submenu") throw new Error("missing voice submenu");
+    const voiceItems = voice.entries.filter((entry) => entry.kind === "item");
+    expect(voiceItems.some((entry) => entry.kind === "item" && entry.checked === true)).toBe(false);
+  });
+
+  it("shows the list states and retries a failed one", () => {
+    const loading = buildModernPlayerMenu(
+      snapshot({ stream: streamMenu({ variantsLoading: true }) }),
+      actions()
+    );
+    const waiting = loading.find((entry) => entry.id === "stream-voice");
+    if (waiting?.kind !== "submenu") throw new Error("missing voice submenu");
+    expect(waiting.entries).toHaveLength(1);
+    const status = waiting.entries[0];
+    if (status.kind !== "item") throw new Error("expected status item");
+    expect(status.label).toBe("player.stream.menu.loading");
+    expect(status.disabled).toBe(true);
+
+    const onRetryVariants = vi.fn();
+    const failed = buildModernPlayerMenu(
+      snapshot({ stream: streamMenu({ variantsFailed: true }) }),
+      actions({ onRetryVariants })
+    );
+    const failedVoice = failed.find((entry) => entry.id === "stream-voice");
+    if (failedVoice?.kind !== "submenu") throw new Error("missing voice submenu");
+    const retry = failedVoice.entries[1];
+    if (retry.kind !== "item") throw new Error("expected retry item");
+    expect(retry.label).toBe("player.stream.retry");
+    retry.onSelect();
+    expect(onRetryVariants).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the stream choices while a switch runs", () => {
+    const entries = buildModernPlayerMenu(
+      snapshot({ stream: streamMenu({ switching: true }) }),
+      actions()
+    );
+    for (const id of ["stream-voice", "stream-subs", "stream-quality"]) {
+      const entry = entries.find((candidate) => candidate.id === id);
+      if (entry?.kind !== "submenu") throw new Error(`missing ${id}`);
+      expect(entry.disabled).toBe(true);
+    }
   });
 });

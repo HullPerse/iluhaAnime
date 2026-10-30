@@ -28,7 +28,7 @@ import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
-import { useStreamNext } from "@/hooks/player/stream.hook";
+import { usePlayerStream, useStreamNext } from "@/hooks/player/stream.hook";
 import { useWindowDrag } from "@/hooks/player/windowDrag.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
@@ -418,6 +418,9 @@ function PlayerComponent() {
     streamUrlRef.current = stream?.mediaUrl ?? null;
   }, [stream]);
   const streamNext = useStreamNext();
+  // The window owns the stream session for the bar and the context menu, so a
+  // switch started from either place is the same one, guarded once.
+  const playerStream = usePlayerStream();
   // A stream session has no mpv playlist: its next episode is a new source
   // resolution, not playlist-next, and it has no previous item.
   const { hasNext, hasPrev } = navigationAvailability({
@@ -1501,6 +1504,19 @@ function PlayerComponent() {
     ignore(seekTo(0, "exact").then(() => setPaused(false)));
   }, []);
 
+  // The menu memo needs stable values, and the hook returns a fresh object on
+  // every render, so its fields are pulled out once.
+  const {
+    session: playerStreamSession,
+    variants: playerStreamVariants,
+    variantsLoading: playerStreamLoading,
+    variantsFailed: playerStreamFailed,
+    switching: playerStreamSwitching,
+    switchVariant: switchStreamVariant,
+    switchQuality: switchStreamQuality,
+    reloadVariants: reloadStreamVariants,
+  } = playerStream;
+
   const modernEntries = useMemo(() => {
     if (!showModernMenu) return [];
     return buildModernPlayerMenu(
@@ -1517,6 +1533,18 @@ function PlayerComponent() {
         eofMode,
         playerMode: settings.playerMode,
         cabinet: settings.cabinet,
+        // A stream picks its voice-over, subtitles and quality from the source,
+        // so the menu carries those choices instead of the mpv track lists.
+        stream:
+          playerStreamSession === null
+            ? null
+            : {
+                session: playerStreamSession,
+                variants: playerStreamVariants,
+                variantsLoading: playerStreamLoading,
+                variantsFailed: playerStreamFailed,
+                switching: playerStreamSwitching,
+              },
       },
       {
         onPlayPause,
@@ -1536,6 +1564,9 @@ function PlayerComponent() {
         onCabinet: (cabinet) => handlePatchSettings({ cabinet }),
         onOpenSettings: () => setPanel("settings"),
         onOpenCheatsheet: () => setPanel("cheatsheet"),
+        onSelectVariant: (variant) => ignore(switchStreamVariant(variant)),
+        onSelectQuality: (label) => ignore(switchStreamQuality(label)),
+        onRetryVariants: reloadStreamVariants,
       }
     );
   }, [
@@ -1563,6 +1594,14 @@ function PlayerComponent() {
     settings.cabinet,
     handlePatchSettings,
     showModernMenu,
+    playerStreamSession,
+    playerStreamVariants,
+    playerStreamLoading,
+    playerStreamFailed,
+    playerStreamSwitching,
+    switchStreamVariant,
+    switchStreamQuality,
+    reloadStreamVariants,
   ]);
 
   const eofPaused = eofReached && (eofMode === "pause" || eofMode === "none");
@@ -1713,6 +1752,7 @@ function PlayerComponent() {
           onSelectSub={onSelectTrack("sub")}
           onAddAudio={() => ignore(onAddExternalAudio())}
           onAddSubtitle={() => ignore(onAddExternalSubtitle())}
+          stream={playerStream}
         />
       </div>
 

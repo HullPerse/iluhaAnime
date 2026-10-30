@@ -366,6 +366,7 @@ const player = {
   "player.media.menu.chapter": "Глава {{n}}",
   "player.stream.voice": "Озвучка",
   "player.stream.quality": "Качество",
+  "player.stream.menu.loading": "Загрузка...",
   "player.stream.buffering": "Буферизация",
   "player.stream.buffer.ahead": "Впереди",
   "player.stream.buffer.cached": "В кэше",

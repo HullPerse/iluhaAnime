@@ -43,6 +43,16 @@ function props(playerType: "default" | "modern") {
     onAddAudio: vi.fn(),
     onAddSubtitle: vi.fn(),
     hideTracks: false,
+    stream: {
+      session: null,
+      variants: [],
+      variantsLoading: false,
+      variantsFailed: false,
+      switching: false,
+      switchQuality: vi.fn(async () => false),
+      switchVariant: vi.fn(async () => false),
+      reloadVariants: vi.fn(),
+    },
   };
 }
 

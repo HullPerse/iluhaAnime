@@ -5,10 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { usePlayerStream } from "@/hooks/player/stream.hook";
 import type { PlayerStream } from "@/hooks/player/stream.hook";
 import { useCell } from "@/lib/state/signal.hook";
-import { buildVariantId, isSubtitleVariant } from "@/lib/stream/helpers";
+import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/stream/helpers";
 import { loadSources } from "@/lib/stream/sessionCache.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes, formatRate } from "@/lib/utils/bytes.utils";
@@ -23,6 +22,8 @@ import TrackDropdown, { type DropdownOption } from "./dropdown.tracks";
 interface StreamControlProps {
   /** Hides the control while the player chrome is in a compact mode. */
   hidden?: boolean;
+  /** The window owns the session so the context menu can switch the same one. */
+  stream: PlayerStream;
 }
 
 function variantOptions(variants: StreamVariant[]): DropdownOption[] {
@@ -31,14 +32,6 @@ function variantOptions(variants: StreamVariant[]): DropdownOption[] {
     main: variant.name,
     hint: variant.language || undefined,
   }));
-}
-
-/** The row itself, or the same team under another hoster the list kept. */
-function voiceOf(variants: StreamVariant[], variantId: string): StreamVariant | null {
-  const exact = variants.find((variant) => buildVariantId(variant) === variantId);
-  if (exact) return exact;
-  const teamId = variantId.split(":").at(-1);
-  return variants.find((variant) => variant.id === teamId) ?? null;
 }
 
 /**
@@ -66,13 +59,13 @@ function StreamVariantSelects({
   }, [session.variantId]);
 
   const activeId = pending ?? session.variantId;
-  const activeVoice = voiceOf(voices, activeId);
-  const activeSubtitle = voiceOf(subtitles, activeId);
+  const activeVoice = variantOf(voices, activeId);
+  const activeSubtitle = variantOf(subtitles, activeId);
 
   // A Kodik row costs a player page and a POST on first use, so the pointer
   // moving over an option starts that resolve while the click is still ahead.
   const prefetch = (rows: StreamVariant[], id: string) => {
-    const variant = voiceOf(rows, id);
+    const variant = variantOf(rows, id);
     if (!variant) return;
     ignore(attempt(loadSources(session.episodeId, buildVariantId(variant))));
   };
@@ -95,7 +88,7 @@ function StreamVariantSelects({
         disabled={disabled}
         onOptionHover={(id) => prefetch(voices, id)}
         onSelect={(id) => {
-          const variant = voiceOf(voices, id);
+          const variant = variantOf(voices, id);
           if (variant) ignore(pick(variant));
         }}
       />
@@ -107,7 +100,7 @@ function StreamVariantSelects({
         disabled={disabled}
         onOptionHover={(id) => prefetch(subtitles, id)}
         onSelect={(id) => {
-          const variant = voiceOf(subtitles, id);
+          const variant = variantOf(subtitles, id);
           if (variant) ignore(pick(variant));
         }}
       />
@@ -195,7 +188,7 @@ function StreamStats({
     return () => document.removeEventListener("mousedown", onDown);
   }, [onClose]);
 
-  const voice = voiceOf(variants, session.variantId);
+  const voice = variantOf(variants, session.variantId);
   const unknown = t("player.stream.stats.unknown");
   const resolution = width !== undefined && height !== undefined ? `${width}x${height}` : unknown;
   const frameRate = fps === undefined ? unknown : fps.toFixed(2);
@@ -262,11 +255,11 @@ function StreamStats({
 /**
  * The streaming choices live in the same select row as the player tracks: a
  * voice-over, a subtitle stream and a quality, with the buffer numbers behind a
- * separate stats button instead of an open panel.
+ * separate stats button instead of an open panel. The session comes from the
+ * window, which also offers these choices in the video context menu.
  */
-export default function StreamControl({ hidden }: StreamControlProps) {
+export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const { t } = useI18n();
-  const stream = usePlayerStream();
   const pausedForCache = useCell(playbackAtoms.pausedForCache);
   const cacheBuffering = useCell(playbackAtoms.cacheBufferingState);
   const [statsOpen, setStatsOpen] = useState(false);

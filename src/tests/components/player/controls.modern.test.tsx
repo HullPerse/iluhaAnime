@@ -37,6 +37,16 @@ function props(overrides: Record<string, unknown> = {}) {
     onMute: vi.fn(),
     onToggleAutoHide: vi.fn(),
     onTogglePlaylist: vi.fn(),
+    stream: {
+      session: null,
+      variants: [],
+      variantsLoading: false,
+      variantsFailed: false,
+      switching: false,
+      switchQuality: vi.fn(async () => false),
+      switchVariant: vi.fn(async () => false),
+      reloadVariants: vi.fn(),
+    },
     ...overrides,
   };
 }

@@ -5,12 +5,12 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
-import { THEMES } from "@/config/settings/themes.config";
+import { THEMES } from "@/config/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { windowTintAlpha } from "@/lib/theme/palette.utils";
-import { findTheme, resolveTheme } from "@/lib/theme/resolve";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { useCell } from "@/lib/signal.hook";
+import { windowTintAlpha } from "@/lib/palette.utils";
+import { findTheme, resolveTheme } from "@/lib/themeResolve.utils";
+import { attempt } from "@/lib/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import {
   addCustomTheme,

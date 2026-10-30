@@ -6,11 +6,11 @@ import {
   DITHER_DEFAULTS,
   DITHER_RENDER_CACHE_CAPACITY,
   resolveDitherPreset,
-} from "@/config/utils/dither.config";
+} from "@/config/dither.config";
 import { translate } from "@/lib/locale/i18n.utils";
-import { uniqueById } from "@/lib/utils/array.utils";
-import { attempt, attemptAll, attemptSync, toError, withFallback } from "@/lib/utils/attempt.utils";
-import { formatBytes, formatRate } from "@/lib/utils/bytes.utils";
+import { uniqueById } from "@/lib/array.utils";
+import { attempt, attemptAll, attemptSync, toError, withFallback } from "@/lib/attempt.utils";
+import { formatBytes, formatRate } from "@/lib/bytes.utils";
 import {
   formatColor,
   hexToHsv,
@@ -27,7 +27,7 @@ import {
   rgbToHsl,
   rgbToHsv,
   rgbaToHex,
-} from "@/lib/utils/color.utils";
+} from "@/lib/color.utils";
 import {
   buildAnimeLink,
   buildCollectionShareLink,
@@ -42,8 +42,8 @@ import {
   parsePastedLink,
   parseStreamLink,
   parseTorrentLink,
-} from "@/lib/utils/deeplink.utils";
-import type { AnimeDeepLink } from "@/lib/utils/deeplink.utils";
+} from "@/lib/deeplink.utils";
+import type { AnimeDeepLink } from "@/lib/deeplink.utils";
 import {
   applyGlyphOverlay,
   applyHalftoneDots,
@@ -59,31 +59,31 @@ import {
   sampleChannel,
   smoothNoise,
   srgbChannelToLinear,
-} from "@/lib/utils/dither.render.utils";
+} from "@/lib/ditherRender.utils";
 import {
   ditherBuffersEqual,
   ditherCacheKey,
   ditherRenderCache,
   extractPaletteFromPixels,
   subscribeWorkerJob,
-} from "@/lib/utils/dither.utils";
-import { USER_IMAGE_PREFIX, assetUrl, isUserImageIcon, toUserImage } from "@/lib/utils/image.utils";
+} from "@/lib/dither.utils";
+import { USER_IMAGE_PREFIX, assetUrl, isUserImageIcon, toUserImage } from "@/lib/image.utils";
 import {
   createListNavigationHandler,
   enterOrSpace,
   enterSubmit,
   moveIndex,
-} from "@/lib/utils/keyboard.utils";
-import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
-import { clamp } from "@/lib/utils/math.utils";
-import { paginate } from "@/lib/utils/pagination.utils";
-import { hashStringToUint32, mulberry32 } from "@/lib/utils/random.utils";
+} from "@/lib/keyboard.utils";
+import { createLruCache, inflightFetch } from "@/lib/lruCache.utils";
+import { clamp } from "@/lib/math.utils";
+import { paginate } from "@/lib/pagination.utils";
+import { hashStringToUint32, mulberry32 } from "@/lib/random.utils";
 import {
   buildReproFrontend,
   isSecretKey,
   redactProxyUrl,
   sanitizeReproValue,
-} from "@/lib/utils/repro.utils";
+} from "@/lib/repro.utils";
 import {
   andThen,
   attemptResult,
@@ -92,8 +92,8 @@ import {
   map,
   ok,
   unwrapOr,
-} from "@/lib/utils/result.utils";
-import { formatClock, formatElapsed, formatETA } from "@/lib/utils/time.utils";
+} from "@/lib/result.utils";
+import { formatClock, formatElapsed, formatETA } from "@/lib/time.utils";
 import type { CollectionItem } from "@/types/collection";
 import type { DitherEffectOptions, DitherRGB } from "@/types/dither";
 import type { AniListId, TorrentHash } from "@/types/types";

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { formatClock } from "@/lib/utils/time.utils";
+import { useCell } from "@/lib/signal.hook";
+import { formatClock } from "@/lib/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter } from "@/types/videoPlayer";
 

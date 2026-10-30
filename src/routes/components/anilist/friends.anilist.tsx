@@ -13,11 +13,11 @@ import { Input } from "@/components/ui/input.component";
 import { useAnilistFollowing } from "@/hooks/anilist/following.hook";
 import { useFriendCompare } from "@/hooks/friendCompare.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
-import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { hasFreshCachedProfile } from "@/lib/friends.utils";
+import { formatMeanScore, parseScoreFormat } from "@/lib/anilistScore.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { enterSubmit } from "@/lib/keyboard.utils";
+import { ignore } from "@/lib/promise.utils";
 import { cacheAnilistProfile } from "@/store/anilist.store";
 import type { ActivityDetailBundle } from "@/types/anilist";
 import type {

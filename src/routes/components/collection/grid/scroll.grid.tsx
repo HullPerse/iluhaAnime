@@ -1,18 +1,12 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef } from "react";
 
-import {
-  CARD_POSTER_H,
-  CARD_TEXT_H,
-  CARD_W,
-  HEADER_ESTIMATE,
-  ROW_GAP,
-} from "@/config/collection/card.config";
+import { CARD_POSTER_H, CARD_TEXT_H, CARD_W, HEADER_ESTIMATE, ROW_GAP } from "@/config/card.config";
 import { useGridColumns } from "@/hooks/collection/columns.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildRows } from "@/lib/collection/grid.utils";
-import { statusLabel } from "@/lib/collection/status.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { buildRows } from "@/lib/grid.utils";
+import { statusLabel } from "@/lib/status.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   CollectionGroup,

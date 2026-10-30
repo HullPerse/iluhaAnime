@@ -15,11 +15,11 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { buildLearningMaps, countersOf } from "../src/lib/ranking/learning.utils";
-import { RANKING } from "../src/lib/ranking/ranking.config";
-import type { RankingCounters } from "../src/lib/ranking/types";
-import { normalizeSearchText } from "../src/lib/search/normalize.utils";
-import { getSearchSuggestions } from "../src/lib/search/suggestions.utils";
+import { buildLearningMaps, countersOf } from "@/lib/learning.utils";
+import { RANKING } from "../src/config/ranking.config";
+import type { RankingCounters } from "../src/types/ranking";
+import { normalizeSearchText } from "@/lib/normalize.utils";
+import { getSearchSuggestions } from "@/lib/suggestions.utils";
 import type { LearningStatRow, SearchAnimeSuggestion, SearchSuggestion } from "../src/types/search";
 
 function argument(name: string): string | undefined {

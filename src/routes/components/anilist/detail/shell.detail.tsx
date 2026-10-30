@@ -8,9 +8,9 @@ import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attemptAll } from "@/lib/utils/attempt.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attemptAll } from "@/lib/attempt.utils";
 import { setPresenceDetail } from "@/store/presence.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {

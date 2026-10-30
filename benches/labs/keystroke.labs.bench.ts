@@ -5,7 +5,7 @@ import {
   getSearchSuggestions,
   groupSuggestions,
   suggestSpelling,
-} from '../../src/lib/search/suggestions.utils';
+} from '@/lib/suggestions.utils';
 
 const WORDS = [
   'frieren', 'sousou', 'naruto', 'bleach', 'piece', 'attack', 'titan', 'demon',

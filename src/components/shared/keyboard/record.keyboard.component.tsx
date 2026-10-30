@@ -15,9 +15,9 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import type { KeybindScope } from "@/config/keyboard/manifest.config";
+import type { KeybindScope } from "@/config/manifest.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { humanizeChord, parseChord } from "@/lib/hotkeys/chord.hotkeys";
+import { humanizeChord, parseChord } from "@/lib/chordHotkeys.utils";
 
 import { ChordChips } from "./chord.keyboard.component";
 

@@ -4,9 +4,9 @@ import { systemApi } from "@/api/system.api";
 import Combobox from "@/components/ui/combobox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function readCachedFonts(): string[] {

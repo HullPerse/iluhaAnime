@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
-import { subscribeHotkeys } from "@/lib/hotkeys/registry.hotkeys";
-import { resolveKeybinds } from "@/lib/hotkeys/resolve.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
+import type { HotkeyDef } from "@/lib/chordHotkeys.utils";
+import { subscribeHotkeys } from "@/lib/registryHotkeys.utils";
+import { resolveKeybinds } from "@/lib/resolveHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
 export interface UseHotkeysOptions<TId extends string = string> {

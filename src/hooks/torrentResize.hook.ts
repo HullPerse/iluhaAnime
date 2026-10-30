@@ -1,10 +1,10 @@
 import { useCallback, type RefObject } from "react";
 
-import { TORRENT_LIST_MAX_HEIGHT, TORRENT_MIN_HEIGHT } from "@/config/player/torrents.config";
+import { TORRENT_LIST_MAX_HEIGHT, TORRENT_MIN_HEIGHT } from "@/config/torrents.config";
 import { useBottomResize } from "@/hooks/folderResize.hook";
-import { maxFolderHeight } from "@/lib/player/folder.utils";
-import { playerVisibility } from "@/lib/settings/playerVisibility.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { maxFolderHeight } from "@/lib/folder.utils";
+import { playerVisibility } from "@/lib/playerVisibility.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
 /**

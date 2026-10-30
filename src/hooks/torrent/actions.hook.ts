@@ -14,10 +14,10 @@ import {
   useSetSequentialDownload,
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
-import { describeRecheckOutcome } from "@/lib/torrent/recheck.utils";
-import { applyTorrentUpdate } from "@/lib/torrent/update.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { describeRecheckOutcome } from "@/lib/recheck.utils";
+import { applyTorrentUpdate } from "@/lib/torrentUpdate.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { ignore } from "@/lib/promise.utils";
 import { setSeedPreference } from "@/store/cache.store";
 import { prepareTorrentDownload } from "@/store/download.store";
 import { addNotification } from "@/store/notification.store";

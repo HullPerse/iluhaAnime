@@ -6,7 +6,7 @@ import { useRef } from "react";
 
 import { DbScreen } from "@/components/shared/db/screen.db";
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
-import { tabIdFromPath, tabPathFromId } from "@/config/tabs/paths.config";
+import { tabIdFromPath, tabPathFromId } from "@/config/tabPaths.config";
 import { useApp } from "@/hooks/app.hook";
 import { useDiscordPresence } from "@/hooks/discordPresence.hook";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -20,11 +20,11 @@ import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
-import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { isCurrentSessionSafe } from "@/lib/report.utils";
+import { useCell } from "@/lib/signal.hook";
 import { resolveSecretTabAction } from "@/lib/tabs.utils";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { ignore } from "@/lib/promise.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { cacheAtoms } from "@/store/cache.store";
 import {

@@ -1,16 +1,13 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef } from "react";
 
-import { listStatusLabels } from "@/config/anilist/labels.config";
-import {
-  ANILIST_SCROLL_HEADER_ESTIMATE,
-  ANILIST_SCROLL_ROW_ESTIMATE,
-} from "@/config/anilist/list.config";
+import { listStatusLabels } from "@/config/labels.config";
+import { ANILIST_SCROLL_HEADER_ESTIMATE, ANILIST_SCROLL_ROW_ESTIMATE } from "@/config/list.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor, type EntryLookup } from "@/lib/anilist/entries.utils";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
+import { getStatusColor, type EntryLookup } from "@/lib/entries.utils";
+import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import { GroupHeaderCollection } from "@/routes/components/collection/groupHeader.collection";
 import { settingsAtoms } from "@/store/settings.store";

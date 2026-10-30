@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeAll } from "vitest";
 
-import { playerVisibility } from "@/lib/settings/playerVisibility.utils";
+import { playerVisibility } from "@/lib/playerVisibility.utils";
 
 // The factory below is hoisted above the imports, so its spy has to be
 // created by `vi.hoisted`; importing the shared mock here would run after the
@@ -513,7 +513,7 @@ describe("yorha grid v29 migration", () => {
 
 describe("anilist title language preference", () => {
   it("defaults to the AniList account value", async () => {
-    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    const { DEFAULT_SETTINGS } = await import("@/config/settingsDefaults.config");
 
     expect(DEFAULT_SETTINGS.anilistTitleLanguage).toBe("account");
   });
@@ -530,7 +530,7 @@ describe("anilist title language preference", () => {
 
 describe("anilist adult content preference", () => {
   it("defaults to excluding adult titles", async () => {
-    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    const { DEFAULT_SETTINGS } = await import("@/config/settingsDefaults.config");
 
     expect(DEFAULT_SETTINGS.anilistAdultContent).toBe(false);
   });
@@ -545,7 +545,7 @@ describe("anilist adult content preference", () => {
 
 describe("torrent cover mode preference", () => {
   it("defaults to hidden without a manual choice", async () => {
-    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    const { DEFAULT_SETTINGS } = await import("@/config/settingsDefaults.config");
 
     expect(DEFAULT_SETTINGS.torrentCoverMode).toBe("off");
     expect(DEFAULT_SETTINGS.torrentCoverModeManual).toBe(false);
@@ -613,7 +613,7 @@ describe("torrent cover mode anilist sync", () => {
 
 describe("vim keyboard mode preference", () => {
   it("defaults to off", async () => {
-    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    const { DEFAULT_SETTINGS } = await import("@/config/settingsDefaults.config");
     expect(DEFAULT_SETTINGS.vimMode).toBe(false);
   });
 
@@ -636,7 +636,7 @@ describe("vim keyboard mode preference", () => {
 
 describe("webview proxy preference", () => {
   it("defaults to enabled", async () => {
-    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    const { DEFAULT_SETTINGS } = await import("@/config/settingsDefaults.config");
 
     expect(DEFAULT_SETTINGS.webviewProxyEnabled).toBe(true);
   });
@@ -758,7 +758,7 @@ describe("update toggle removal v54 migration", () => {
 
 describe("search source order v43 migration", () => {
   it("lists rutracker, nekobt, erai-raws first", async () => {
-    const { SOURCE_INFOS } = await import("@/config/search/sources.config");
+    const { SOURCE_INFOS } = await import("@/config/searchSources.config");
     expect(SOURCE_INFOS.map((info) => info.value)).toEqual([
       "rutracker",
       "nekobt",
@@ -769,7 +769,7 @@ describe("search source order v43 migration", () => {
   });
 
   it("defaults to rutracker first", async () => {
-    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+    const { DEFAULT_SETTINGS } = await import("@/config/settingsDefaults.config");
     expect(DEFAULT_SETTINGS.defaultSearchSource).toBe("rutracker");
     expect(DEFAULT_SETTINGS.visibleSources).toEqual(["rutracker", "nekobt", "erai-raws", "nyaa"]);
   });

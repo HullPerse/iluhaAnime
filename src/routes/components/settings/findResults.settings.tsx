@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { useEffect, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { splitByRanges } from "@/lib/highlight/highlight.utils";
+import { splitByRanges } from "@/lib/highlight.utils";
 import {
   SETTINGS_FIND_TAB_ORDER,
   SETTINGS_FIND_TAB_TITLES,
@@ -10,8 +10,8 @@ import {
   findHitMatched,
   findHitRanges,
   findSectionTitleKey,
-} from "@/lib/settings/find.utils";
-import type { SettingsFindHit } from "@/lib/settings/find.utils";
+} from "@/lib/find.utils";
+import type { SettingsFindHit } from "@/lib/find.utils";
 import type { Locale } from "@/types/i18n";
 import type { HighlightRange } from "@/types/search";
 

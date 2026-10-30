@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { FIELD_TYPES } from "@/config/collection/defaults.config";
+import { FIELD_TYPES } from "@/config/collectionDefaults.config";
 import { useCollectionMutations } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { CustomFieldDef } from "@/types/collection";

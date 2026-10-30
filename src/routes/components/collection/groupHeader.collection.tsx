@@ -2,10 +2,10 @@ import { cn } from "cn";
 import { ChevronRight, Plus } from "lucide-react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
-import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
+import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
 import { settingsAtoms } from "@/store/settings.store";
-import { useCell } from "@/lib/state/signal.hook";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { useCell } from "@/lib/signal.hook";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { CollectionStatusDef } from "@/types/collection";
 
 export function publicHeaderProps({

@@ -1,9 +1,9 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useEffect, useRef, useState } from "react";
 
-import { resolveFatalVariant } from "@/config/fatal/screens.config";
-import { resolveDbTexts, resolveFatalLocale } from "@/lib/fatal/texts.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { resolveFatalVariant } from "@/config/screens.config";
+import { resolveDbTexts, resolveFatalLocale } from "@/lib/fatalTexts.utils";
+import { attempt } from "@/lib/attempt.utils";
 import type { FatalVariant } from "@/types/fatal";
 
 export interface DbScreenProps {

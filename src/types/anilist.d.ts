@@ -1,9 +1,9 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 
-import { RELATION_FILTERS } from "@/config/anilist/graph.config";
+import { RELATION_FILTERS } from "@/config/graph.config";
 import type { RandomDiscovery } from "@/hooks/anilist/discovery.hook";
-import type { EntryLookup } from "@/lib/anilist/entries.utils";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
+import type { EntryLookup } from "@/lib/entries.utils";
+import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 
 export interface AniRanking {

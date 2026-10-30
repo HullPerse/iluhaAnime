@@ -1,4 +1,4 @@
-import { SIMILAR_COUNT } from "@/config/collection/defaults.config";
+import { SIMILAR_COUNT } from "@/config/collectionDefaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionItem } from "@/types/collection";
 

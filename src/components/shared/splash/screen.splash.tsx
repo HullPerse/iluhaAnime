@@ -1,8 +1,8 @@
 import type { ComponentType } from "react";
 
-import { resolveSplashVariant } from "@/config/fatal/screens.config";
+import { resolveSplashVariant } from "@/config/screens.config";
 import type { SplashStage } from "@/hooks/splash.hook";
-import { resolveFatalLocale, resolveSplashTexts } from "@/lib/fatal/texts.utils";
+import { resolveFatalLocale, resolveSplashTexts } from "@/lib/fatalTexts.utils";
 import type { FatalVariant } from "@/types/fatal";
 
 import { GenericSplash } from "./generic.splash";

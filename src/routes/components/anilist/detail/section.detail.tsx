@@ -7,23 +7,23 @@ import { Button } from "@/components/ui/button.component";
 import { useFranchiseViewport } from "@/hooks/anilist/franchise.hook";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { collapseGraph } from "@/lib/anilist/collapse.utils";
-import { countFranchiseGroups } from "@/lib/anilist/franchise.utils";
+import { collapseGraph } from "@/lib/collapse.utils";
+import { countFranchiseGroups } from "@/lib/franchise.utils";
 import {
   filterGraph,
   filterFranchiseNodesBySearch,
   computeNodeRelationMap,
   computeMainlineIds,
   relationGroup,
-} from "@/lib/anilist/graph.utils";
+} from "@/lib/graph.utils";
 import {
   computeNodeDimensions,
   computeGraphMetrics,
   buildSimNodes,
   runFranchiseSimulation,
-} from "@/lib/anilist/sim.utils";
-import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
+} from "@/lib/sim.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { queryKeys } from "@/lib/keys.utils";
 import type {
   FranchiseNodePosition,
   DragState,

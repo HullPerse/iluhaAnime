@@ -7,9 +7,9 @@ import type {
 } from "react";
 
 import CropFrame from "@/components/shared/screenshot/crop.screenshot";
-import { CROP_MIN_SIZE, CROP_ZOOM_STEP } from "@/config/settings/screenshot.config";
-import { measureText, paintAnnotations, paintBlurMask } from "@/lib/settings/annotation.draw";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
+import { CROP_MIN_SIZE, CROP_ZOOM_STEP } from "@/config/screenshot.config";
+import { measureText, paintAnnotations, paintBlurMask } from "@/lib/annotationDraw.utils";
+import { scheduleTask } from "@/lib/shared.utils";
 import {
   appendPoint,
   blurSigmaFor,
@@ -19,7 +19,7 @@ import {
   isBlurItem,
   nextAnnotationId,
   withDraft,
-} from "@/lib/settings/annotation.utils";
+} from "@/lib/annotation.utils";
 import {
   clampPan,
   fitView,
@@ -28,8 +28,8 @@ import {
   snapThresholdForScale,
   startCrop,
   zoomAtPoint,
-} from "@/lib/settings/crop.utils";
-import { attemptSync } from "@/lib/utils/attempt.utils";
+} from "@/lib/crop.utils";
+import { attemptSync } from "@/lib/attempt.utils";
 import type {
   AnnotationItem,
   CropBounds,

@@ -3,13 +3,13 @@ import { useMemo } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import type { CollectionStatusRow } from "@/api/collection.api";
-import { DEFAULT_COLLECTION_STATUSES } from "@/config/collection/statuses.config";
+import { DEFAULT_COLLECTION_STATUSES } from "@/config/statuses.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collection/search.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { parseIntent } from "@/lib/search/intent.utils";
-import { resolveTitleQuery } from "@/lib/search/resolve.utils";
-import { operatorTextLength } from "@/lib/search/score.utils";
+import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collectionSearch.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { parseIntent } from "@/lib/intent.utils";
+import { resolveTitleQuery } from "@/lib/searchResolve.utils";
+import { operatorTextLength } from "@/lib/searchScore.utils";
 import type {
   CollectionDataResult,
   CollectionDataState,

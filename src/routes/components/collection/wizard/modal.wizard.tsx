@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
-import { WIZARD_SEARCH_DEBOUNCE_MS, WIZARD_TABS } from "@/config/collection/defaults.config";
+import { WIZARD_SEARCH_DEBOUNCE_MS, WIZARD_TABS } from "@/config/collectionDefaults.config";
 import { useDiscardGuard, useDirtySinceMount } from "@/hooks/collection/discard.hook";
 import { useWizardPick } from "@/hooks/collection/pick.hook";
 import { useCollectionData } from "@/hooks/collection/queries.hook";
@@ -12,11 +12,11 @@ import { useWizardSearch } from "@/hooks/collection/search.hook";
 import { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
-import { isPublicStatus } from "@/lib/collection/status.utils";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
-import { normalizeSearchText } from "@/lib/search/suggestions.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, attemptAll } from "@/lib/utils/attempt.utils";
+import { isPublicStatus } from "@/lib/status.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import { normalizeSearchText } from "@/lib/suggestions.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, attemptAll } from "@/lib/attempt.utils";
 import { searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {

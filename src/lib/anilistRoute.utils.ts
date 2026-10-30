@@ -1,0 +1,85 @@
+import { NO_PEOPLE } from "@/config/anilistDefaults.config";
+import { sortAniMediaList, type sortEntries } from "@/lib/entries.utils";
+import { localFilterSignature } from "@/lib/anilistFilters.utils";
+import type {
+  AniListAnime,
+  AniListFilters,
+  AniListSort,
+  AniListViewState,
+  AnilistRouteData,
+  AniMedia,
+  FavouriteAnime,
+  FavouritePeople,
+  GlobalSort,
+} from "@/types/anilist";
+
+export function routePeople(data: AnilistRouteData | undefined): FavouritePeople {
+  return data?.people ?? NO_PEOPLE;
+}
+
+export function hasAnyFavourites(favourites: FavouriteAnime[], people: FavouritePeople): boolean {
+  return favourites.length > 0 || people.staff.length > 0 || people.characters.length > 0;
+}
+
+export function buildAnimeBackHandler(
+  animeHistory: AniListAnime[],
+  setAnimeHistory: (updater: (history: AniListAnime[]) => AniListAnime[]) => void,
+  setSelectedAnime: (anime: AniListAnime) => void
+): (() => void) | undefined {
+  if (animeHistory.length === 0) return undefined;
+  return () => {
+    const prev = animeHistory.at(-1);
+    if (prev) {
+      setAnimeHistory((h) => h.slice(0, -1));
+      setSelectedAnime(prev);
+    }
+  };
+}
+
+export function pickDisplayEntries(
+  global: boolean,
+  searchResults: AniMedia[],
+  sortedEntries: ReturnType<typeof sortEntries>,
+  globalSort: GlobalSort
+): AniMedia[] {
+  if (global) return sortAniMediaList(searchResults, globalSort.key, globalSort.dir);
+  return sortedEntries.map((e) => e.media);
+}
+
+export function buildAnilistSourceKey(params: {
+  currentList: string;
+  sort: AniListSort;
+  searchTerms: string;
+  global: boolean;
+  filters: AniListFilters;
+}): string {
+  const local = params.global ? "" : localFilterSignature(params.filters);
+  return `${params.currentList}|${params.sort.key}|${params.sort.dir}|${params.searchTerms}|${params.global}|${local}`;
+}
+
+export function isLocalSearch(searchTerms: string, global: boolean): boolean {
+  return searchTerms.trim().length > 0 && !global;
+}
+
+export function resolveAniListView(params: {
+  isLoading: boolean;
+  hasLists: boolean;
+  global: boolean;
+  isLocal: boolean;
+  hasUser: boolean;
+  loadingSearch: boolean;
+  hasSearchResults: boolean;
+  friendState?: "loading" | "error" | null;
+}): AniListViewState | null {
+  if (params.friendState === "loading") return "friendLoading";
+  if (params.friendState === "error") return "friendError";
+  if (params.isLoading && !params.hasLists) return "loading";
+  if (params.global) {
+    if (params.loadingSearch) return "globalLoading";
+    if (!params.hasSearchResults) return "globalEmpty";
+    return null;
+  }
+  if (params.isLocal) return "localEmpty";
+  if (!params.hasUser) return "login";
+  return null;
+}

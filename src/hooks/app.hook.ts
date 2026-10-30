@@ -4,9 +4,9 @@ import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import { useCallback, useEffect, useRef } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
-import { visibleTabs } from "@/config/settings/tabs.config";
-import { tabIdFromPath, tabPathFromId } from "@/config/tabs/paths.config";
+import { TOAST_ACTIVATED_EVENT } from "@/config/notifications.config";
+import { visibleTabs } from "@/config/tabs.config";
+import { tabIdFromPath, tabPathFromId } from "@/config/tabPaths.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -14,25 +14,25 @@ import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
-import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
-import { markCacheReady } from "@/lib/splash/signals.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { readAppCache } from "@/lib/store/cache.utils";
+import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilistNotifications.utils";
+import { markCacheReady } from "@/lib/signals.utils";
+import { useCell } from "@/lib/signal.hook";
+import { readAppCache } from "@/lib/cache.utils";
 import { tabLabel } from "@/lib/tabs.utils";
-import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptAll, reportBackgroundError } from "@/lib/attempt.utils";
 import {
   DEEP_LINK_EVENT,
   ingestDeepLinks,
   isEditablePasteTarget,
   parseCollectionShareLink,
   parsePastedLink,
-} from "@/lib/utils/deeplink.utils";
+} from "@/lib/deeplink.utils";
 import {
   openNotificationTarget,
   resolveNotificationText,
   showError,
   showWarning,
-} from "@/lib/utils/notification.utils";
+} from "@/lib/notification.utils";
 import { anilistNotificationsAtoms } from "@/store/anilist.store";
 import { cacheAtoms, setEpisodeTracker, setFolderTrees, setLastSaveDir } from "@/store/cache.store";
 import { collectionAtoms, subscribeCollection } from "@/store/collection.store";

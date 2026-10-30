@@ -1,8 +1,8 @@
-import { CHART_LAYOUT } from "@/config/charts/palette.config";
+import { CHART_LAYOUT } from "@/config/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { nearestIndex } from "@/lib/charts/geometry.utils";
-import { bandScale, niceMax, niceTicks } from "@/lib/charts/scale.utils";
-import { clamp } from "@/lib/utils/math.utils";
+import { nearestIndex } from "@/lib/geometry.utils";
+import { bandScale, niceMax, niceTicks } from "@/lib/scale.utils";
+import { clamp } from "@/lib/math.utils";
 
 import { ChartFrame } from "./frame.chart";
 import { BandAxisLabels, ChartGrid, ValueAxisLabels } from "./ticks.chart";

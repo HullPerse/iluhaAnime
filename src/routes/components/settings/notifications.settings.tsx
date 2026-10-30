@@ -9,12 +9,12 @@ import {
   NOTIFICATION_POPUP_MODES,
   NOTIFICATION_POPUP_KEYS,
   POLL_INTERVALS_MIN,
-} from "@/config/settings/notifications.config";
+} from "@/config/notifications.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { ignore } from "@/lib/utils/promise.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { ignore } from "@/lib/promise.utils";
 import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/anilist.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { NotificationPopupMode } from "@/types/settings";

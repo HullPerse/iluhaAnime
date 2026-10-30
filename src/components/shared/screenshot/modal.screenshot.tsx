@@ -21,27 +21,20 @@ import {
   SCREENSHOT_FORMAT_LABELS,
   SCREENSHOT_FORMATS,
   SCREENSHOT_HISTORY_DEFS,
-} from "@/config/settings/screenshot.config";
+} from "@/config/screenshot.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { Debouncer } from "@/lib/pacer/debounce.utils";
-import {
-  canRedo,
-  canUndo,
-  commit,
-  createHistory,
-  redo,
-  undo,
-} from "@/lib/settings/annotation.utils";
-import { fullCrop, isSquare, NO_PAN } from "@/lib/settings/crop.utils";
-import { canSaveScreenshot, defaultScreenshotName } from "@/lib/settings/screenshot.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { resolveFontFamily } from "@/lib/utils/font.utils";
-import { assetUrl } from "@/lib/utils/image.utils";
-import { COPIED_FEEDBACK_MS, showError } from "@/lib/utils/notification.utils";
+import { Debouncer } from "@/lib/debounce.utils";
+import { canRedo, canUndo, commit, createHistory, redo, undo } from "@/lib/annotation.utils";
+import { fullCrop, isSquare, NO_PAN } from "@/lib/crop.utils";
+import { canSaveScreenshot, defaultScreenshotName } from "@/lib/screenshot.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { resolveFontFamily } from "@/lib/font.utils";
+import { assetUrl } from "@/lib/image.utils";
+import { COPIED_FEEDBACK_MS, showError } from "@/lib/notification.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   AnnotationHistory,

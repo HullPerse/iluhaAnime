@@ -1,10 +1,10 @@
 import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
-import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { searchFiltersToParams } from "@/lib/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 

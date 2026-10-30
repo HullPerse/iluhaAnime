@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import Section from "@/components/shared/section.component";
-import { STAFF_CREDITS_PAGE_SIZE } from "@/config/anilist/pagination.config";
+import { STAFF_CREDITS_PAGE_SIZE } from "@/config/pagination.config";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { flattenMarkup } from "@/lib/anilist/text.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { uniqueById } from "@/lib/utils/array.utils";
+import { flattenMarkup } from "@/lib/text.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { uniqueById } from "@/lib/array.utils";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
 import { CreditSection } from "./creditSection.detail";

@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
-import { countActiveStreamFilters } from "@/config/stream/filters.config";
+import { countActiveStreamFilters } from "@/config/streamFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import { submitStreamSearch, streamPage, streamQuery } from "@/store/stream.store";
 import type { StreamCatalogFilters } from "@/types/stream";
 

@@ -1,6 +1,6 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { buildTorrentTree, flattenTorrentTree } from '../../src/lib/torrent/tree.utils';
+import { buildTorrentTree, flattenTorrentTree } from '@/lib/torrentTree.utils';
 import type { TorrentFileInfo } from '../../src/types/torrent';
 
 function makeRelease(episodes: number, seed: string): TorrentFileInfo[] {

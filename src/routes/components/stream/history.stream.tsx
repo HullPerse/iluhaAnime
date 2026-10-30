@@ -7,8 +7,8 @@ import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
 import { useStreamHistoryRecent } from "@/hooks/stream/catalog.hook";
-import { formatResume, isEpisodeWatched, watchShare } from "@/lib/stream/history.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { formatResume, isEpisodeWatched, watchShare } from "@/lib/history.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { StreamHistoryEntry } from "@/types/stream";
 
 /**

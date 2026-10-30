@@ -1,7 +1,7 @@
 import { tauriTransport } from "@/api/transport.api";
 import type { ApiTransport } from "@/api/transport.api";
-import { normalizeAnime, normalizeEpisode, normalizeVariant } from "@/lib/stream/helpers";
-import { streamProxyArgs } from "@/lib/stream/proxy.utils";
+import { normalizeAnime, normalizeEpisode, normalizeVariant } from "@/lib/streamHelpers.utils";
+import { streamProxyArgs } from "@/lib/streamProxy.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   StreamCatalogFilters,

@@ -1,7 +1,7 @@
 import Image from "@/components/ui/image.component";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
+import { generatePlaceholder } from "@/lib/placeholder.utils";
 import type { CollectionItem } from "@/types/collection";
 
 export function DetailCoverCollection({ item }: { item: CollectionItem }) {

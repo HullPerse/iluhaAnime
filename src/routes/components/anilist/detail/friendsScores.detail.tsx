@@ -7,15 +7,15 @@ import ProgressBar from "@/components/shared/progress.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { listStatusLabels } from "@/config/anilist/labels.config";
+import { listStatusLabels } from "@/config/labels.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor } from "@/lib/anilist/entries.utils";
-import { loadFriendScores } from "@/lib/anilist/friends.utils";
-import { formatScore, parseScoreFormat, scoreIconFor } from "@/lib/anilist/score.utils";
+import { getStatusColor } from "@/lib/entries.utils";
+import { loadFriendScores } from "@/lib/friends.utils";
+import { formatScore, parseScoreFormat, scoreIconFor } from "@/lib/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { anilistFriendsAtoms } from "@/store/anilist.store";
 
 function FriendScoreIcon({ score }: { score: number | null }) {

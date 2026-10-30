@@ -11,7 +11,7 @@ import {
   resolveDisplayScoreFormat,
   scoreIconFor,
   type AnilistScoreFormat,
-} from "../../src/lib/anilist/score.utils";
+} from "@/lib/anilistScore.utils";
 
 const FORMATS: readonly string[] = ["POINT_100", "POINT_10_DECIMAL", "POINT_10", "POINT_5", "bogus"];
 const SCORES: ReadonlyArray<number | null> = [9, 85, 8.5, 4, null, 0, 10, 3, 72, 5];

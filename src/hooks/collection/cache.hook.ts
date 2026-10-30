@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { assetUrl, isDirectImageSrc } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt } from "@/lib/attempt.utils";
+import { assetUrl, isDirectImageSrc } from "@/lib/image.utils";
+import { invokeTyped } from "@/lib/invoke.utils";
+import { createLruCache, inflightFetch } from "@/lib/lruCache.utils";
 import { coverCorrectionsAtoms, setCoverBlob } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/userimage";

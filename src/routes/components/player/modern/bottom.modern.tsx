@@ -1,5 +1,5 @@
 import type { PlayerStream } from "@/hooks/player/stream.hook";
-import type { PlayerBottomBarKind } from "@/lib/player/view.utils";
+import type { PlayerBottomBarKind } from "@/lib/view.utils";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
 import Controls from "../media/controls.player";

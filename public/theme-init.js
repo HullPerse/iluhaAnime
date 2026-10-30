@@ -21,8 +21,6 @@
     return data;
   }
 
-  // A window effect paints the desktop behind the webview: without this the first frames are
-  // opaque and the glass only appears once the settings store rehydrates.
   function applyStoredWindowStyle() {
     const raw = stored("settings");
     if (!raw) return;
@@ -37,8 +35,6 @@
     }
   }
 
-  // Payload v2 carries the variable names and dataset names, so this file never needs the
-  // token list that applyTheme owns. Keep it that way: a hardcoded color here drifts silently.
   function applyPayloadV2(value) {
     const vars = value.vars;
     if (vars && typeof vars === "object") {
@@ -59,8 +55,6 @@
     }
   }
 
-  // Payload v1 is the flat object written by releases before the token table. It stays for one
-  // upgrade cycle so an existing install does not paint a half-themed first frame.
   function applyPayloadV1(value) {
     setColor("--color-background", value.background);
     setColor("--color-primary", value.primary);
@@ -107,7 +101,7 @@
     if (typeof value.themeName === "string" && value.themeName.length > 0 && root.dataset) {
       root.dataset.theme = value.themeName;
     }
-  } catch {
-    // First-paint bootstrapping must never break the app; a bad payload leaves the CSS defaults.
+  } catch (error) {
+    return console.error(error);
   }
 })();

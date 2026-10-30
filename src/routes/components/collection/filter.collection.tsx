@@ -9,10 +9,10 @@ import Combobox from "@/components/ui/combobox.component";
 import { DualSlider } from "@/components/ui/dualSlider.component";
 import { RadioGroup } from "@/components/ui/radio/group.radio";
 import { Radio } from "@/components/ui/radio/radio.radio";
-import { ANILIST_GENRES } from "@/config/anilist/filters.config";
-import { RATING_MAX, RATING_MIN, YEAR_MAX, YEAR_MIN } from "@/config/collection/filters.config";
+import { ANILIST_GENRES } from "@/config/anilistFilters.config";
+import { RATING_MAX, RATING_MIN, YEAR_MAX, YEAR_MIN } from "@/config/collectionFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { freshDefaults } from "@/lib/collection/filter.utils";
+import { freshDefaults } from "@/lib/filter.utils";
 import type { CollectionFilters, CollectionType } from "@/types/collection";
 
 export default function FilterCollection({

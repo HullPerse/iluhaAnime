@@ -1,4 +1,4 @@
-import { THEME_FAMILIES } from "@/config/settings/themes.config";
+import { THEME_FAMILIES } from "@/config/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { ThemeDefinition } from "@/types/theme";
 

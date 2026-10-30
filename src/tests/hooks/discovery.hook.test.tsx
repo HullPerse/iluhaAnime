@@ -2,7 +2,7 @@ import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { defaultFilters } from "@/config/anilist/filters.config";
+import { defaultFilters } from "@/config/anilistFilters.config";
 import { useDiscoveryQueue, useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { patchSettings } from "@/store/settings.store";
 import type { AniListFilters, AniMedia } from "@/types/anilist";

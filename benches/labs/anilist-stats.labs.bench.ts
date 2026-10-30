@@ -1,7 +1,7 @@
 import { bench, group } from "@pmndrs/labs";
 
-import { buildMediaRows, buildStatsOverview } from "../../src/lib/anilist/stats.utils";
-import { collectAllEntries } from "../../src/lib/anilist/group.utils";
+import { buildMediaRows, buildStatsOverview } from "@/lib/anilistStats.utils";
+import { collectAllEntries } from "@/lib/anilistGroup.utils";
 import type { AniListCollection, AniListEntry, AniListStatistics } from "../../src/types/anilist";
 
 const GENRES = [

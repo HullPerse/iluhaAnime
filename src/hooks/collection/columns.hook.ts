@@ -1,6 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 
-import { CARD_W } from "@/config/collection/card.config";
+import { CARD_W } from "@/config/card.config";
 import type { GridLayout } from "@/types/collection";
 
 export function useGridColumns(

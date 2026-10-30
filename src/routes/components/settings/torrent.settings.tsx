@@ -15,12 +15,12 @@ import {
   usePartialLeftovers,
   useTorrentListenPort,
 } from "@/hooks/torrent/queries.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { toSessionConfig } from "@/lib/settings/session.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { toSessionConfig } from "@/lib/session.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt } from "@/lib/attempt.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { showError } from "@/lib/notification.utils";
 import { setTorrentSpeedLimits as setSpeedLimits } from "@/store/download.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SessionConfigPayload } from "@/types/settings";

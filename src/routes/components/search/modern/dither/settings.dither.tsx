@@ -11,24 +11,21 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import Slider from "@/components/ui/range.component";
-import {
-  WALLPAPER_DISPLAY_PRESETS,
-  WALLPAPER_DISPLAY_SLIDERS,
-} from "@/config/settings/wallpaper.config";
+import { WALLPAPER_DISPLAY_PRESETS, WALLPAPER_DISPLAY_SLIDERS } from "@/config/wallpaper.config";
 import {
   DITHER_PER_PAGE,
   DITHER_PLACEHOLDER_ID,
   DITHER_PLACEHOLDER_SRC,
-} from "@/config/utils/dither.config";
+} from "@/config/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
-import { fileNameFromPath } from "@/lib/media/parse.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { toUserImage } from "@/lib/utils/image.utils";
-import { showError } from "@/lib/utils/notification.utils";
-import { paginate } from "@/lib/utils/pagination.utils";
+import { fileNameFromPath } from "@/lib/parse.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt } from "@/lib/attempt.utils";
+import { toUserImage } from "@/lib/image.utils";
+import { showError } from "@/lib/notification.utils";
+import { paginate } from "@/lib/pagination.utils";
 import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dither/placeholder.dither";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";

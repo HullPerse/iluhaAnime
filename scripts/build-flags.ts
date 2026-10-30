@@ -16,7 +16,7 @@
  *
  * Outputs:
  *   public/images/flags.sprite.png          the spritesheet
- *   src/lib/torrent/flags.generated.ts      country code -> cell offset + sheet size
+ *   src/config/flags.config.ts      country code -> cell offset + sheet size
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
@@ -26,7 +26,7 @@ import { deflateSync, gunzipSync, inflateSync } from "node:zlib";
 const CDN = "https://flagcdn.com";
 const CACHE_DIR = join("node_modules", ".cache", "iluha-flags");
 const SPRITE_OUT = join("public", "images", "flags.sprite.png");
-const INDEX_OUT = join("src", "lib", "torrent", "flags.generated.ts");
+const INDEX_OUT = join("src", "config", "flags.config.ts");
 const DEFAULT_GEOIP = join("src-tauri", "data", "geoip-v1.bin.gz");
 const CELL_WIDTH = 16;
 const CELL_HEIGHT = 12;

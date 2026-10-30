@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { prefetchStreamConstants, usePrewarmStreamHistory } from "@/hooks/stream/catalog.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { queryKeys } from "@/lib/keys.utils";
 import { settingsAtoms } from "@/store/settings.store";
 
 const CONSTANTS = { types: [], genres: [], statuses: [], ageRatings: [] };

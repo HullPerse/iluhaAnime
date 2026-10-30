@@ -4,9 +4,9 @@ import { streamApi } from "@/api/stream.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useStreamSearch } from "@/hooks/stream/catalog.hook";
-import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
-import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
+import { focusMainSearch } from "@/lib/focusHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { consumeStreamDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { settingsAtoms } from "@/store/settings.store";
 import {

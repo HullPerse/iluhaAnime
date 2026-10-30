@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { timerFlush } from "d3-timer";
 
-import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
+import { defaultListSortDir, listSortKeys } from "@/config/list.config";
 import {
   buildActivityMap,
   buildScoreByMedia,
@@ -13,7 +13,7 @@ import {
   isMentionOf,
   monthLabel,
   selectInitialDayKey,
-} from "@/lib/anilist/activity.utils";
+} from "@/lib/activity.utils";
 import {
   cameraCenteredOn,
   cameraTransform,
@@ -22,8 +22,8 @@ import {
   screenToWorld,
   worldToScreen,
   zoomCameraAt,
-} from "@/lib/anilist/camera.utils";
-import { collapseGraph } from "@/lib/anilist/collapse.utils";
+} from "@/lib/camera.utils";
+import { collapseGraph } from "@/lib/collapse.utils";
 import {
   buildEntryLookup,
   entryListDate,
@@ -36,7 +36,7 @@ import {
   searchFiltersToParams,
   sortAniMediaList,
   sortEntries,
-} from "@/lib/anilist/entries.utils";
+} from "@/lib/entries.utils";
 import {
   computeMainlineIds,
   computeNodeRelationMap,
@@ -45,26 +45,22 @@ import {
   groupFranchiseNodes,
   relationGroup,
   sortFranchiseNodes,
-} from "@/lib/anilist/graph.utils";
+} from "@/lib/graph.utils";
 import {
   ALL_LISTS_ID,
   activeListEntries,
   collectAllEntries,
   groupEntriesByList,
-} from "@/lib/anilist/group.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
-import { buildAnilistSourceKey } from "@/lib/anilist/route.utils";
+} from "@/lib/anilistGroup.utils";
+import { anilistProxyArgs } from "@/lib/anilistProxy.utils";
+import { buildAnilistSourceKey } from "@/lib/anilistRoute.utils";
 import {
   buildSimNodes,
   computeGraphMetrics,
   computeNodeDimensions,
   runFranchiseSimulation,
-} from "@/lib/anilist/sim.utils";
-import {
-  spotlightBoundaryMs,
-  spotlightPageIndex,
-  spotlightPeriodKey,
-} from "@/lib/anilist/spotlight.utils";
+} from "@/lib/sim.utils";
+import { spotlightBoundaryMs, spotlightPageIndex, spotlightPeriodKey } from "@/lib/spotlight.utils";
 import type {
   ActivityTranslate,
   AniListCollection,

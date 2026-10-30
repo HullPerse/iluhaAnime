@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { characterRoleLabels } from "@/config/anilist/labels.config";
-import { MEDIA_PAGE_SIZE } from "@/config/anilist/pagination.config";
+import { characterRoleLabels } from "@/config/labels.config";
+import { MEDIA_PAGE_SIZE } from "@/config/pagination.config";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { uniqueById } from "@/lib/utils/array.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { uniqueById } from "@/lib/array.utils";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
 import { CreditSection } from "./creditSection.detail";

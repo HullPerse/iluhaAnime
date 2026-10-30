@@ -5,14 +5,14 @@ import {
   buildLearningMaps,
   dropLearningScope,
   learningStatKey,
-} from "@/lib/ranking/learning.utils";
-import { RANKING } from "@/lib/ranking/ranking.config";
-import { normalizeSearchText } from "@/lib/search/suggestions.utils";
-import { buildTypedTitles } from "@/lib/search/title.utils";
-import type { Persistor } from "@/lib/state/persist.utils";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+} from "@/lib/learning.utils";
+import { RANKING } from "@/config/ranking.config";
+import { normalizeSearchText } from "@/lib/suggestions.utils";
+import { buildTypedTitles } from "@/lib/searchTitle.utils";
+import type { Persistor } from "@/lib/persist.utils";
+import { createPersistedStoreContext } from "@/lib/persisted.utils";
+import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 import type {

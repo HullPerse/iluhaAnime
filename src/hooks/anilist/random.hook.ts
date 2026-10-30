@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
-import type { EntryLookup } from "@/lib/anilist/entries.utils";
-import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
+import type { EntryLookup } from "@/lib/entries.utils";
+import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilistGroup.utils";
 import type { AniListAnime, AniListCollection } from "@/types/anilist";
 
 export function useAnilistRandom(

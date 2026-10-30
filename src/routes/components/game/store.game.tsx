@@ -6,14 +6,14 @@ import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { GAME_STORE_PLATFORM_LABELS, GAME_STORE_PLATFORMS } from "@/config/game/platforms.config";
+import { GAME_STORE_PLATFORM_LABELS, GAME_STORE_PLATFORMS } from "@/config/platforms.config";
 import { useGameStore, useGameStoreInstall } from "@/hooks/game/store.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { sizeInKb } from "@/lib/game/format.utils";
+import { sizeInKb } from "@/lib/gameFormat.utils";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { showError } from "@/lib/notification.utils";
 import type { GameStoreEntry, GameStorePlatform, GameStoreProgress } from "@/types/game";
 
 const ALL_PLATFORMS = "all";

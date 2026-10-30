@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { suggestionPoolSize, suggestionScore } from "@/lib/ranking/rank.utils";
-import { parseOperatorTerms } from "@/lib/search/score.utils";
-import { matchNormalizedTitle, normalizeSearchText } from "@/lib/search/suggestions.utils";
-import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/search/suggestions.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { suggestionPoolSize, suggestionScore } from "@/lib/rank.utils";
+import { parseOperatorTerms } from "@/lib/searchScore.utils";
+import { matchNormalizedTitle, normalizeSearchText } from "@/lib/suggestions.utils";
+import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/suggestions.utils";
+import { attempt } from "@/lib/attempt.utils";
 import type { SearchSuggestionScope } from "@/types/search";
 
 function suggestionKind(kind: string): SearchSuggestionKind {

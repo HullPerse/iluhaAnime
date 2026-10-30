@@ -5,10 +5,10 @@ import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { ANILIST_CLIENT_ID, buildAnilistAuthorizeUrl } from "@/config/anilist/auth.config";
+import { ANILIST_CLIENT_ID, buildAnilistAuthorizeUrl } from "@/config/auth.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { enterOrSpace, enterSubmit } from "@/lib/utils/keyboard.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { enterOrSpace, enterSubmit } from "@/lib/keyboard.utils";
 import type { AniUser } from "@/types/anilist";
 
 function AniListAuthModal({

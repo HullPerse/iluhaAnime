@@ -7,8 +7,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
-import { PlayerVisibilityService } from "@/lib/settings/playerVisibility.utils";
+import { DEFAULT_SETTINGS } from "@/config/settingsDefaults.config";
+import { PlayerVisibilityService } from "@/lib/playerVisibility.utils";
 import {
   createSettingsSignalStore,
   SETTINGS_SCHEMA_VERSION,

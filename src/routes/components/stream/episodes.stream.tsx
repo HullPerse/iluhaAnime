@@ -8,9 +8,9 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
-import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
-import { formatResume, isEpisodeWatched } from "@/lib/stream/history.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
+import { formatResume, isEpisodeWatched } from "@/lib/history.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { StreamHistoryEntry, StreamingEpisode } from "@/types/stream";
 
 import { StreamInlineLoading } from "./states.stream";

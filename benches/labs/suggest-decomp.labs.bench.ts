@@ -6,13 +6,13 @@ import { bench, group } from '@pmndrs/labs';
 // so labs can detect dead code elimination. Fixtures are deterministic
 // (modulo arithmetic, no RNG), copied from suggest-pipeline.labs.bench.ts.
 
-import { normalizeSearchText } from '../../src/lib/search/normalize.utils';
-import { parseOperatorTerms } from '../../src/lib/search/score.utils';
+import { normalizeSearchText } from '@/lib/normalize.utils';
+import { parseOperatorTerms } from '@/lib/searchScore.utils';
 import {
   getSearchSuggestions,
   matchNormalizedTitle,
   suggestSpelling,
-} from '../../src/lib/search/suggestions.utils';
+} from '@/lib/suggestions.utils';
 import type { SearchAnimeSuggestion, SearchQueryStat } from '../../src/types/search';
 
 const WORDS = [

@@ -12,8 +12,8 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
-import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrent/search.config";
+import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/common.config";
+import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrentSearch.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -33,28 +33,28 @@ import {
   useDhtStats,
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
-import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
-import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
-import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
-import { isSameOrInside } from "@/lib/watcher/paths.watcher";
+import { focusMainSearch } from "@/lib/focusHotkeys.utils";
+import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { isSameOrInside } from "@/lib/pathsWatcher.utils";
 import {
   BULK_CONCURRENCY,
   applyBulkAction,
   pruneSelection,
   splitRecheckOutcome,
-} from "@/lib/torrent/bulk.utils";
+} from "@/lib/bulk.utils";
 import {
   countLiveTorrents,
   formatSpeed,
   fmtSpeed,
   getLifecycleLabel,
   getTorrentLifecycle,
-} from "@/lib/torrent/common.utils";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { paginate } from "@/lib/utils/pagination.utils";
-import { ignore } from "@/lib/utils/promise.utils";
-import { attemptAllLimit } from "@/lib/utils/result.utils";
+} from "@/lib/torrentCommon.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { paginate } from "@/lib/pagination.utils";
+import { ignore } from "@/lib/promise.utils";
+import { attemptAllLimit } from "@/lib/result.utils";
 import { torrentRoute } from "@/routes/__root";
 import {
   cacheAtoms,

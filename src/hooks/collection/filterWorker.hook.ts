@@ -1,11 +1,8 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  createCollectionFilterSnapshot,
-  queryCollectionFilterSnapshot,
-} from "@/lib/collection/filter.utils";
-import type { CollectionFilterSnapshot } from "@/lib/collection/filter.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { createCollectionFilterSnapshot, queryCollectionFilterSnapshot } from "@/lib/filter.utils";
+import type { CollectionFilterSnapshot } from "@/lib/filter.utils";
+import { reportBackgroundError } from "@/lib/attempt.utils";
 import { createJobRunner } from "@/lib/workers/job.utils";
 import type { JobRunner } from "@/lib/workers/job.utils";
 import type {

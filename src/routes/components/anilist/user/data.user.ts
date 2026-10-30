@@ -1,7 +1,7 @@
 import { anilistApi } from "@/api/anilist.api";
-import { NO_FAVOURITES, NO_LISTS, NO_PEOPLE } from "@/config/anilist/defaults.config";
+import { NO_FAVOURITES, NO_LISTS, NO_PEOPLE } from "@/config/anilistDefaults.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { queryKeys } from "@/lib/keys.utils";
 import type { AnilistRouteData } from "@/types/anilist";
 
 export function useUserAnilistData() {

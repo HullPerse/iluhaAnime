@@ -4,10 +4,10 @@ import { useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { playerIcons } from "@/config/player/icons.config";
+import { playerIcons } from "@/config/icons.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { useCell } from "@/lib/signal.hook";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import { categoryAtoms, changeCategoryIcon } from "@/store/category.store";
 
 function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () => void }) {

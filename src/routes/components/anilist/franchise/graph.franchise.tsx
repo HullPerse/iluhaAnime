@@ -1,4 +1,4 @@
-import { EDGE_STYLES } from "@/config/anilist/graph.config";
+import { EDGE_STYLES } from "@/config/graph.config";
 import type { FranchiseGraphProps } from "@/types/anilist";
 
 import { FranNode } from "./node.franchise";

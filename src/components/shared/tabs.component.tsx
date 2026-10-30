@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { WifiOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
+import { createListNavigationHandler } from "@/lib/keyboard.utils";
 
 interface TabEntry<T extends string> {
   id: T;

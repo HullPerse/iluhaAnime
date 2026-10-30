@@ -3,7 +3,7 @@ import {
   DITHER_SLIDER_DEFS,
   DITHER_SLIDER_GROUPS,
   DITHER_SLIDER_LABELS,
-} from "@/config/utils/dither.config";
+} from "@/config/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { DitherEffectOptions, DitherSliderField } from "@/types/dither";
 

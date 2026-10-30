@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button.component";
 import { useQuickAddMedia } from "@/hooks/collection/quickAdd.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilist/score.utils";
+import { parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilistScore.utils";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 export default function QuickAddButton({

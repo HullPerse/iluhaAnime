@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import { TMDB_LIMIT } from "@/config/collection/defaults.config";
+import { TMDB_LIMIT } from "@/config/collectionDefaults.config";
 import { useTmdbRateLimit } from "@/hooks/collection/tmdb.hook";
 
 export function TmdbBadge() {

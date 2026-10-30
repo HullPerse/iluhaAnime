@@ -1,7 +1,7 @@
-import { CHART_LAYOUT } from "@/config/charts/palette.config";
+import { CHART_LAYOUT } from "@/config/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { barLength } from "@/lib/charts/geometry.utils";
-import { clamp } from "@/lib/utils/math.utils";
+import { barLength } from "@/lib/geometry.utils";
+import { clamp } from "@/lib/math.utils";
 
 import { ChartFrame } from "./frame.chart";
 import { BandAxisLabels } from "./ticks.chart";

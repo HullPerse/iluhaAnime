@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from "react";
 
-import { Debouncer } from "@/lib/pacer/debounce.utils";
-import { createSimpleCell } from "@/lib/pacer/shared.utils";
-import { Throttler } from "@/lib/pacer/throttle.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { Debouncer } from "@/lib/debounce.utils";
+import { createSimpleCell } from "@/lib/shared.utils";
+import { Throttler } from "@/lib/throttle.utils";
+import { useCell } from "@/lib/signal.hook";
 import type {
   DebounceOptions,
   DebouncedValueOptions,

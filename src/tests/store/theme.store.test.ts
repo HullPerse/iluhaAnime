@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { THEMES } from "@/config/settings/themes.config";
-import { persistKey } from "@/lib/state/persist.utils";
-import { applyTheme } from "@/lib/theme/appearance";
+import { THEMES } from "@/config/themes.config";
+import { persistKey } from "@/lib/persist.utils";
+import { applyTheme } from "@/lib/appearance.utils";
 import {
   createThemeSignalStore,
   parseRetroismTheme,

@@ -13,10 +13,10 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { buildLearningMaps, countersOf } from "../src/lib/ranking/learning.utils";
-import { RANKING } from "../src/lib/ranking/ranking.config";
-import { normalizeSearchText } from "../src/lib/search/normalize.utils";
-import { getSearchSuggestions } from "../src/lib/search/suggestions.utils";
+import { buildLearningMaps, countersOf } from "@/lib/learning.utils";
+import { RANKING } from "../src/config/ranking.config";
+import { normalizeSearchText } from "@/lib/normalize.utils";
+import { getSearchSuggestions } from "@/lib/suggestions.utils";
 import type { LearningStatRow, SearchAnimeSuggestion } from "../src/types/search";
 
 interface EvalQuery {
@@ -242,7 +242,7 @@ console.log(`  delta Top-1=${(result.metric.top1 - baseline.top1).toFixed(3)} MR
 
 if (result.metric.top1 > baseline.top1 + 1e-6 || result.metric.mrr > baseline.mrr + 1e-6) {
   console.log("");
-  console.log("RECOMMENDATION: apply new params to src/lib/ranking/ranking.config.ts");
+  console.log("RECOMMENDATION: apply new params to src/config/ranking.config.ts");
 } else {
   console.log("");
   console.log("RECOMMENDATION: no improvement; keep current params");

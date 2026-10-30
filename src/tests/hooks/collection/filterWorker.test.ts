@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
-import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
+import { DEFAULT_FILTERS } from "@/config/collectionFilters.config";
+import { DEFAULT_TAG_TOLERANCES } from "@/config/tolerance.config";
 import { useCollectionFilterWorker } from "@/hooks/collection/filterWorker.hook";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 

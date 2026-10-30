@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FatalVariantProps } from "@/components/shared/fatal/shared.fatal";
 import { YorhaBsod } from "@/components/shared/fatal/yorha.fatal";
-import { resolveFatalTexts } from "@/lib/fatal/texts.utils";
+import { resolveFatalTexts } from "@/lib/fatalTexts.utils";
 import type { FatalInfo } from "@/types/fatal";
 
 afterEach(() => {

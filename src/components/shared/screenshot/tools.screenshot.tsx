@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
-import { ANNOTATION_BRUSH_SIZES, ANNOTATION_TEXT_SIZES } from "@/config/settings/screenshot.config";
+import { ANNOTATION_BRUSH_SIZES, ANNOTATION_TEXT_SIZES } from "@/config/screenshot.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";

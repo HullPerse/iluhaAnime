@@ -10,7 +10,7 @@ import type { StreamOpen } from "@/types/videoPlayer";
 
 const cache = vi.hoisted(() => ({ loadSources: vi.fn(async () => []) }));
 
-vi.mock("@/lib/stream/sessionCache.utils", () => ({ loadSources: cache.loadSources }));
+vi.mock("@/lib/sessionCache.utils", () => ({ loadSources: cache.loadSources }));
 
 const state = vi.hoisted(() => ({
   session: null as StreamOpen | null,

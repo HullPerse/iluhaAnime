@@ -4,11 +4,11 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { formatLabels, listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
+import { formatLabels, listStatusLabels, statusLabels } from "@/config/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
+import { getStatusColor, type EntryListInfo } from "@/lib/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
 

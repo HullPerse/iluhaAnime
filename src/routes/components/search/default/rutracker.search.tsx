@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { mapError } from "@/lib/search/rutracker.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { mapError } from "@/lib/rutracker.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt } from "@/lib/attempt.utils";
+import { enterSubmit } from "@/lib/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
 
 function RutrackerLoginModal({

@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
-import { torrentFileIcon } from "@/lib/torrent/fileIcon.utils";
+import { torrentFileIcon } from "@/lib/fileIcon.utils";
 import type { TorrentDetailFile } from "@/types/torrent";
 
 interface TorrentFileNode {

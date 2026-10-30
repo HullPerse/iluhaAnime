@@ -3,19 +3,19 @@ import { memo } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
-import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
+import { listStatusLabels, statusLabels } from "@/config/labels.config";
 import { useProgressOverride } from "@/hooks/anilist/progressOverride.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
+import { getStatusColor, type EntryListInfo } from "@/lib/entries.utils";
 import {
   formatEntryScore,
   parseScoreFormat,
   scoreIconFor,
   type AnilistScoreFormat,
-} from "@/lib/anilist/score.utils";
+} from "@/lib/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { AniCardProps as Props } from "@/types/anilist";
 
 import CardListDate from "./date.anilist";

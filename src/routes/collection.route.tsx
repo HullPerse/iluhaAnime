@@ -8,21 +8,17 @@ import { useCollectionData, useCollectionMutations } from "@/hooks/collection/qu
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { pickRandomItem } from "@/lib/collection/filter.utils";
-import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collection/group.utils";
-import { buildCollectionQueryHints } from "@/lib/collection/hints.utils";
-import { buildShareImportPlan } from "@/lib/collection/share.utils";
-import { calculateCollectionStats } from "@/lib/collection/stats.utils";
-import {
-  isPublicStatus,
-  isPublicStatusFull,
-  publicStatusPrefill,
-} from "@/lib/collection/status.utils";
-import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
-import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { buildCollectionShareLink } from "@/lib/utils/deeplink.utils";
+import { pickRandomItem } from "@/lib/filter.utils";
+import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collectionGroup.utils";
+import { buildCollectionQueryHints } from "@/lib/hints.utils";
+import { buildShareImportPlan } from "@/lib/share.utils";
+import { calculateCollectionStats } from "@/lib/collectionStats.utils";
+import { isPublicStatus, isPublicStatusFull, publicStatusPrefill } from "@/lib/status.utils";
+import { focusMainSearch } from "@/lib/focusHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt } from "@/lib/attempt.utils";
+import { buildCollectionShareLink } from "@/lib/deeplink.utils";
 import {
   collectionAtoms,
   consumeWizardPrefill,

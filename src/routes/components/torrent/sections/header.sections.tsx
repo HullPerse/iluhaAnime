@@ -24,9 +24,9 @@ import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { useSetTorrentAlias } from "@/hooks/torrent/queries.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { showError } from "@/lib/utils/notification.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { showError } from "@/lib/notification.utils";
+import { ignore } from "@/lib/promise.utils";
 import type { TorrentItemProps } from "@/types/torrent";
 
 export function TorrentHeader({

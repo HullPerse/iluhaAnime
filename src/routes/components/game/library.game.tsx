@@ -4,10 +4,10 @@ import type { KeyboardEvent } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import { GAME_PLATFORM_LABELS } from "@/config/game/platforms.config";
+import { GAME_PLATFORM_LABELS } from "@/config/platforms.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { sizeInKb } from "@/lib/game/format.utils";
-import { moveIndex } from "@/lib/utils/keyboard.utils";
+import { sizeInKb } from "@/lib/gameFormat.utils";
+import { moveIndex } from "@/lib/keyboard.utils";
 import type { GameRomInfo } from "@/types/game";
 
 export interface GameLibraryProps {

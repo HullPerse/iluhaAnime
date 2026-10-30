@@ -2,12 +2,12 @@ import { useState } from "react";
 
 import { useCollectionData, useCollectionMutations } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
-import { mediaToWizardValues } from "@/lib/collection/import.utils";
-import { withStoredMedia } from "@/lib/collection/media.utils";
-import { downloadCover, fetchAddedMedia } from "@/lib/collection/quickadd.utils";
-import { buildWizardItem } from "@/lib/collection/wizard.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import { mediaToWizardValues } from "@/lib/import.utils";
+import { withStoredMedia } from "@/lib/collectionMedia.utils";
+import { downloadCover, fetchAddedMedia } from "@/lib/quickadd.utils";
+import { buildWizardItem } from "@/lib/wizard.utils";
+import { attempt } from "@/lib/attempt.utils";
 import { addNotification } from "@/store/notification.store";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 

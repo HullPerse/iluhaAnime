@@ -1,7 +1,7 @@
-import { normalizeResolvedCover, normCoverKey } from "@/lib/search/cover.utils";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
-import type { Cell } from "@/lib/state/signal.store";
-import { attemptSync } from "@/lib/utils/attempt.utils";
+import { normalizeResolvedCover, normCoverKey } from "@/lib/cover.utils";
+import { createPersistedStoreContext } from "@/lib/persisted.utils";
+import type { Cell } from "@/lib/signal.store";
+import { attemptSync } from "@/lib/attempt.utils";
 
 export interface CoverOverride {
   id: number;

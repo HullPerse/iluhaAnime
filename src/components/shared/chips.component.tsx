@@ -4,7 +4,7 @@ const chipClass =
   "windows95-border text-xs windows95-text inline-flex cursor-pointer items-center gap-0.5 bg-field px-1 hover:bg-surface";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 
 function ChipsRow({ items, onRemove }: { items: string[]; onRemove: (v: string) => void }) {
   const { t } = useI18n();

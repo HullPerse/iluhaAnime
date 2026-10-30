@@ -9,17 +9,12 @@ import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
-import { DEFAULT_THEME_COLORS, THEME_COLOR_KEYS } from "@/config/settings/themes.config";
+import { DEFAULT_THEME_COLORS, THEME_COLOR_KEYS } from "@/config/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { previewTheme } from "@/lib/theme/appearance";
-import {
-  buildThemeColors,
-  getTitleText,
-  mixHex,
-  readImagePalette,
-} from "@/lib/theme/palette.utils";
-import { diffTheme } from "@/lib/theme/resolve";
+import { useCell } from "@/lib/signal.hook";
+import { previewTheme } from "@/lib/appearance.utils";
+import { buildThemeColors, getTitleText, mixHex, readImagePalette } from "@/lib/palette.utils";
+import { diffTheme } from "@/lib/themeResolve.utils";
 import {
   addCustomTheme,
   clearThemePatch,

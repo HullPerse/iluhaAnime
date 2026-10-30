@@ -1,4 +1,4 @@
-import type { EntryLookup } from "@/lib/anilist/entries.utils";
+import type { EntryLookup } from "@/lib/entries.utils";
 import type {
   AniFriend,
   AniListCaps,

@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { queryKeys } from "@/lib/keys.utils";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";

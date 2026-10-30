@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isMentionOf } from "@/lib/anilist/activity.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { isMentionOf } from "@/lib/activity.utils";
+import { queryKeys } from "@/lib/keys.utils";
 
 import { FeedItem } from "./feedItem.activity";
 

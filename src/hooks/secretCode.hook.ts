@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-import { KONAMI_CODES, KONAMI_TIMEOUT_MS } from "@/config/keyboard/sequence.config";
-import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
-import { subscribeSequence } from "@/lib/hotkeys/sequence.hotkeys";
+import { KONAMI_CODES, KONAMI_TIMEOUT_MS } from "@/config/sequence.config";
+import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
+import { subscribeSequence } from "@/lib/sequenceHotkeys.utils";
 
 export function useSecretCode(onMatch: () => void): void {
   const matchRef = useRef(onMatch);

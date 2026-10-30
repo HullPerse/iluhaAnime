@@ -10,8 +10,8 @@ import {
   PLAYER_CABINETS,
   PLAYER_MODE_IDS,
   PLAYER_MODES,
-} from "@/config/player/modes.config";
-import { PLAYER_PROFILE_IDS } from "@/config/player/profiles.config";
+} from "@/config/modes.config";
+import { PLAYER_PROFILE_IDS } from "@/config/profiles.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import type {

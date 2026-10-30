@@ -2,9 +2,9 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { COLOR_FORMATS } from "@/config/utils/colors.config";
+import { COLOR_FORMATS } from "@/config/colors.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatColor, hexToHsv, hsvToHex, parseColor } from "@/lib/utils/color.utils";
+import { formatColor, hexToHsv, hsvToHex, parseColor } from "@/lib/color.utils";
 import type { ColorFormat, HSV } from "@/types/color";
 
 import { SaturationValueArea } from "./area.color";

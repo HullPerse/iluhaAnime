@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 
-import { splitChordParts } from "@/lib/hotkeys/chord.hotkeys";
+import { splitChordParts } from "@/lib/chordHotkeys.utils";
 
 export function ChordChips({ chord }: { chord: string }) {
   const parts = splitChordParts(chord);

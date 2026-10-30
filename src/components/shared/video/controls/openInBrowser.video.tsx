@@ -2,8 +2,8 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { showError } from "@/lib/notification.utils";
 
 import { Win95PlayerButton } from "./win95PlayerButton.video";
 

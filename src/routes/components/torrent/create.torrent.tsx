@@ -9,9 +9,9 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { buildTorrentLink } from "@/lib/deeplink.utils";
+import { showError } from "@/lib/notification.utils";
 import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent";
 import type { TorrentHash } from "@/types/types";
 

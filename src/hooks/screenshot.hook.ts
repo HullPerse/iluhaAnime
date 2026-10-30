@@ -4,8 +4,8 @@ import { systemApi } from "@/api/system.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { showError } from "@/lib/notification.utils";
 import type { ScreenshotCapture } from "@/types/screenshot";
 
 export interface ScreenshotSession {

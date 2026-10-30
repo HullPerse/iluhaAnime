@@ -7,7 +7,7 @@ import {
   wizardDefaultsMedia,
   wizardDefaultsMeta,
   wizardDefaultsProgress,
-} from "@/lib/collection/wizard.utils";
+} from "@/lib/wizard.utils";
 import type { CollectionItem, CollectionStatus, WizardSaveValues } from "@/types/collection";
 
 function toPreviewNumber(value: string): number {

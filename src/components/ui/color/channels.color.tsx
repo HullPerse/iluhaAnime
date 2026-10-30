@@ -1,10 +1,10 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 
 import { Input } from "@/components/ui/input.component";
-import { CHANNEL_CONFIG } from "@/config/utils/colors.config";
+import { CHANNEL_CONFIG } from "@/config/colors.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { hslToHsv, hsvToChannelStrings, rgbToHsv } from "@/lib/utils/color.utils";
-import { clamp } from "@/lib/utils/math.utils";
+import { hslToHsv, hsvToChannelStrings, rgbToHsv } from "@/lib/color.utils";
+import { clamp } from "@/lib/math.utils";
 import type { ChannelFormat, HSV } from "@/types/color";
 
 function toChannels(format: ChannelFormat, values: readonly string[]): HSV | null {

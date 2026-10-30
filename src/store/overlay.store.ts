@@ -1,5 +1,5 @@
-import { subscribeHotkeys } from "@/lib/hotkeys/registry.hotkeys";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import { subscribeHotkeys } from "@/lib/registryHotkeys.utils";
+import { createSignalStore, type Cell } from "@/lib/signal.store";
 import type { OverlayEntry, OverlayStore } from "@/types/overlay";
 
 type OverlayActionKeys = "register" | "dismissTop";

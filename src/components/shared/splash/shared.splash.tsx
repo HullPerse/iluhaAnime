@@ -1,5 +1,5 @@
 import type { SplashStage } from "@/hooks/splash.hook";
-import type { SplashTexts } from "@/lib/fatal/texts.utils";
+import type { SplashTexts } from "@/lib/fatalTexts.utils";
 
 export interface SplashVariantProps {
   stages: SplashStage[];

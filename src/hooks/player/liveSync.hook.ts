@@ -3,13 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import {
-  desiredFolderPlaylist,
-  planLiveInserts,
-  planLiveRemovals,
-} from "@/lib/player/livePlaylist.utils";
+import { createInterval } from "@/lib/interval.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { desiredFolderPlaylist, planLiveInserts, planLiveRemovals } from "@/lib/livePlaylist.utils";
 import {
   buildTorrentPlayerPlaylist,
   insertPlaylistFiles,
@@ -18,13 +14,13 @@ import {
   readPlaylistEntries,
   removePlaylistIndex,
   seekTo,
-} from "@/lib/player/playback.utils";
-import { folderScanBus } from "@/lib/player/scanBus.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { ignore } from "@/lib/utils/promise.utils";
-import { touchesExtensions } from "@/lib/watcher/changes.watcher";
-import { isSameOrInside, samePath } from "@/lib/watcher/paths.watcher";
+} from "@/lib/playback.utils";
+import { folderScanBus } from "@/lib/scanBus.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { ignore } from "@/lib/promise.utils";
+import { touchesExtensions } from "@/lib/changesWatcher.utils";
+import { isSameOrInside, samePath } from "@/lib/pathsWatcher.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { PlaylistWatch } from "@/types/videoPlayer";

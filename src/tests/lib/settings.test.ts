@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  ANNOTATION_HISTORY_LIMIT,
-  ANNOTATION_TEXT_LINE_HEIGHT,
-} from "@/config/settings/screenshot.config";
+import { ANNOTATION_HISTORY_LIMIT, ANNOTATION_TEXT_LINE_HEIGHT } from "@/config/screenshot.config";
 import {
   blurPreviewSigma,
   measureText,
@@ -11,7 +8,7 @@ import {
   paintBlurMask,
   paintStroke,
   paintText,
-} from "@/lib/settings/annotation.draw";
+} from "@/lib/annotationDraw.utils";
 import {
   appendPoint,
   blurSigmaFor,
@@ -31,7 +28,7 @@ import {
   textBounds,
   undo,
   withDraft,
-} from "@/lib/settings/annotation.utils";
+} from "@/lib/annotation.utils";
 import {
   clampCrop,
   clampPan,
@@ -48,10 +45,10 @@ import {
   startCrop,
   toFrame,
   zoomAtPoint,
-} from "@/lib/settings/crop.utils";
-import { canSaveScreenshot, defaultScreenshotName } from "@/lib/settings/screenshot.utils";
-import { toSessionConfig } from "@/lib/settings/session.utils";
-import { buildTrayMenuEntries, shouldHideOnClose } from "@/lib/settings/tray.utils";
+} from "@/lib/crop.utils";
+import { canSaveScreenshot, defaultScreenshotName } from "@/lib/screenshot.utils";
+import { toSessionConfig } from "@/lib/session.utils";
+import { buildTrayMenuEntries, shouldHideOnClose } from "@/lib/tray.utils";
 import { patchSettings } from "@/store/settings.store";
 import type { AnnotationItem, StrokeItem, TextItem } from "@/types/screenshot";
 

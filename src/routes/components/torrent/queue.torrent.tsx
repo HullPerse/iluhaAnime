@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import {
   buildQueueRows,
   queueApplyDrop,
@@ -25,16 +25,16 @@ import {
   queuePointHit,
   queuePositions,
   queueRemainingBytes,
-} from "@/lib/torrent/queue.utils";
+} from "@/lib/torrentQueue.utils";
 import type {
   QueueBlock,
   QueueDisplayItem,
   QueueDragTarget,
   QueueEdge,
   QueuePlace,
-} from "@/lib/torrent/queue.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+} from "@/lib/torrentQueue.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { ignore } from "@/lib/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentFileInfo, TorrentQueueApply } from "@/types/torrent";
 

@@ -9,8 +9,8 @@
 import { statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { buildLearningMaps } from "../src/lib/ranking/learning.utils";
-import { RANKING } from "../src/lib/ranking/ranking.config";
+import { buildLearningMaps } from "@/lib/learning.utils";
+import { RANKING } from "../src/config/ranking.config";
 import type { LearningStatRow } from "../src/types/search";
 
 interface CountRow {

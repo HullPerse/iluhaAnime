@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useHotkeys, useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
-import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
+import type { HotkeyDef } from "@/lib/chordHotkeys.utils";
 import { patchSettings } from "@/store/settings.store";
 
 const DEFS: HotkeyDef<"save" | "close">[] = [

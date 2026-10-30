@@ -2,19 +2,19 @@ import { cn } from "cn";
 import { useEffect, useMemo, useRef } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
-import { FILTER_LABELS } from "@/config/anilist/graph.config";
-import { listStatusLabels } from "@/config/anilist/labels.config";
+import { FILTER_LABELS } from "@/config/graph.config";
+import { listStatusLabels } from "@/config/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
+import { getStatusColor, type EntryListInfo } from "@/lib/entries.utils";
 import {
   availableEpisodes,
   buildFranchiseSections,
   franchiseSummary,
   pickNextToWatch,
-} from "@/lib/anilist/franchise.utils";
-import { formatShort } from "@/lib/anilist/graph.utils";
-import { formatEntryScore } from "@/lib/anilist/score.utils";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
+} from "@/lib/franchise.utils";
+import { formatShort } from "@/lib/graph.utils";
+import { formatEntryScore } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { FranchiseListProps, FranchiseNode } from "@/types/anilist";
 

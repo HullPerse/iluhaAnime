@@ -10,12 +10,12 @@ import {
   parseScoreFormat,
   scoreFormatMax,
   scoreFormatSuffix,
-} from "../../src/lib/anilist/score.utils";
+} from "@/lib/anilistScore.utils";
 import {
   animeTitleFields,
   resolveAnimeTitle,
   type AnimeTitleFields,
-} from "../../src/lib/anilist/title.utils";
+} from "@/lib/anilistTitle.utils";
 import type { AniTitleLanguage } from "../../src/types/anilist";
 
 const ROMAJI = ["Sousou no Frieren", "Naruto Shippuden", "One Piece", "Steins;Gate", "Re:Zero"];

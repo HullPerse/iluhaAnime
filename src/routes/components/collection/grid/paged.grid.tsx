@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import Pagination from "@/components/shared/pagination.component";
-import { CARD_W } from "@/config/collection/card.config";
+import { CARD_W } from "@/config/card.config";
 import { usePagination } from "@/hooks/pagination.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { paginate } from "@/lib/utils/pagination.utils";
+import { useCell } from "@/lib/signal.hook";
+import { paginate } from "@/lib/pagination.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { CollectionItem, CollectionStatus, CollectionStatusDef } from "@/types/collection";
 

@@ -2,7 +2,7 @@ import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStream, useStreamNext } from "@/hooks/player/stream.hook";
-import { openStream } from "@/lib/player/playback.utils";
+import { openStream } from "@/lib/playback.utils";
 import { streamSession } from "@/store/player.store";
 import type { StreamingEpisode, StreamVariant } from "@/types/stream";
 import type { StreamOpen, StreamSource } from "@/types/videoPlayer";
@@ -14,14 +14,14 @@ const cache = vi.hoisted(() => ({
   prefetchNativeSources: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/lib/stream/sessionCache.utils", () => cache);
+vi.mock("@/lib/sessionCache.utils", () => cache);
 vi.mock("@/api/stream.api", () => ({
   streamApi: {
     prefsGet: vi.fn(async () => null),
     prefsSave: vi.fn(async () => undefined),
   },
 }));
-vi.mock("@/lib/player/playback.utils", () => ({
+vi.mock("@/lib/playback.utils", () => ({
   openStream: vi.fn(async () => undefined),
 }));
 

@@ -1,6 +1,6 @@
-import { attemptSync } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { inflightFetch } from "@/lib/utils/lruCache.utils";
+import { attemptSync } from "@/lib/attempt.utils";
+import { invokeTyped } from "@/lib/invoke.utils";
+import { inflightFetch } from "@/lib/lruCache.utils";
 import type { CommandName } from "@/types/ipc";
 
 export interface ApiTransport {

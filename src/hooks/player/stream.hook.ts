@@ -15,20 +15,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { streamApi } from "@/api/stream.api";
 import { tr } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { buildVariantId } from "@/lib/stream/helpers";
-import { emptyPrefs, preferNativeVariants } from "@/lib/stream/prefs.utils";
+import { useCell } from "@/lib/signal.hook";
+import { buildVariantId } from "@/lib/streamHelpers.utils";
+import { emptyPrefs, preferNativeVariants } from "@/lib/streamPrefs.utils";
 import {
   loadEpisodes,
   loadPlayers,
   loadSources,
   prefetchNativeSources,
-} from "@/lib/stream/sessionCache.utils";
-import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/stream/sources.utils";
-import { openStream } from "@/lib/player/playback.utils";
-import { resolveEpisodeStream, resolveNextStream } from "@/lib/player/stream.utils";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+} from "@/lib/sessionCache.utils";
+import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/sources.utils";
+import { openStream } from "@/lib/playback.utils";
+import { resolveEpisodeStream, resolveNextStream } from "@/lib/playerStream.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { ignore } from "@/lib/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";

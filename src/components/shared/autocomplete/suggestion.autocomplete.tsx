@@ -2,9 +2,9 @@ import { cn } from "cn";
 import { X } from "lucide-react";
 import { memo } from "react";
 
-import { suggestionIcons, suggestionKindLabels } from "@/config/search/autocomplete.config";
+import { suggestionIcons, suggestionKindLabels } from "@/config/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
+import type { SearchSuggestion } from "@/lib/suggestions.utils";
 
 import { HighlightedText } from "./highlightedText.autocomplete";
 

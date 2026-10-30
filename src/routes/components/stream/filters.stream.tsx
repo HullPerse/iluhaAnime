@@ -13,7 +13,7 @@ import {
   isAdultAgeRating,
   streamYearMax,
   withoutAdultFilters,
-} from "@/config/stream/filters.config";
+} from "@/config/streamFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamConstants } from "@/hooks/stream/catalog.hook";
 import type { StreamCatalogFilters, StreamConstants, StreamFilterOption } from "@/types/stream";

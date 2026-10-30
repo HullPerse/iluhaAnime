@@ -9,9 +9,9 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
-import { normalizePlayerPath } from "@/lib/player/visibility.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { formatBytes } from "@/lib/utils/bytes.utils";
+import { normalizePlayerPath } from "@/lib/visibility.utils";
+import { useCell } from "@/lib/signal.hook";
+import { formatBytes } from "@/lib/bytes.utils";
 import {
   categoryAtoms,
   moveCategoryEntry,

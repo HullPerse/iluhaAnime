@@ -1,9 +1,9 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 
-import { shouldStartWindowDrag, startsOnPlayerControl } from "@/lib/player/drag.utils";
-import { withFallback } from "@/lib/utils/attempt.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { shouldStartWindowDrag, startsOnPlayerControl } from "@/lib/playerDrag.utils";
+import { withFallback } from "@/lib/attempt.utils";
+import { ignore } from "@/lib/promise.utils";
 
 export interface WindowDragHandlers {
   onMouseDown: (event: ReactMouseEvent<HTMLElement>) => void;

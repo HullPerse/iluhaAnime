@@ -9,9 +9,9 @@ import { bench, group } from "@pmndrs/labs";
 // queries; learning adds <= 10% over the same index with no counters; cold is
 // <= 3x warm. Regression threshold is labs minDelta 5%.
 
-import { buildLearningMaps } from "../../src/lib/ranking/learning.utils";
-import { normalizeSearchText } from "../../src/lib/search/normalize.utils";
-import { getSearchSuggestions } from "../../src/lib/search/suggestions.utils";
+import { buildLearningMaps } from "@/lib/learning.utils";
+import { normalizeSearchText } from "@/lib/normalize.utils";
+import { getSearchSuggestions } from "@/lib/suggestions.utils";
 import type { LearningStatRow, SearchAnimeSuggestion } from "../../src/types/search";
 
 const WORDS = [

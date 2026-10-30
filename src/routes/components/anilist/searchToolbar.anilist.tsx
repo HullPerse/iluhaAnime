@@ -5,8 +5,8 @@ import type { ChangeEvent } from "react";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { countActiveAnilistFilters, countLocalAnilistFilters } from "@/lib/anilist/filters.utils";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { countActiveAnilistFilters, countLocalAnilistFilters } from "@/lib/anilistFilters.utils";
+import { enterSubmit } from "@/lib/keyboard.utils";
 import type { AniListFilters } from "@/types/anilist";
 import type { SearchField } from "@/types/collection";
 

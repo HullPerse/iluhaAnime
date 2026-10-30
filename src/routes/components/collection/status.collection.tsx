@@ -2,12 +2,12 @@ import { Check, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/collection/statuses.config";
+import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
-import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/collection/status.utils";
-import { Debouncer } from "@/lib/pacer/debounce.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/status.utils";
+import { Debouncer } from "@/lib/debounce.utils";
+import { attempt } from "@/lib/attempt.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
 function ShareStatusButton({ onShare }: { onShare: () => Promise<void> | void }) {

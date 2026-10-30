@@ -2,8 +2,8 @@ import { useState } from "react";
 
 import { tmdbApi } from "@/api/tmdb.api";
 import { useLiveResource } from "@/hooks/liveResource.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt } from "@/lib/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TmdbRateLimit } from "@/types/collection";
 

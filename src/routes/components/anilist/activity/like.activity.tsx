@@ -3,7 +3,7 @@ import { Heart } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useToggleActivityLike } from "@/hooks/anilist/activity.hook";
-import { ignore } from "@/lib/utils/promise.utils";
+import { ignore } from "@/lib/promise.utils";
 import type { AniActivity } from "@/types/anilist";
 
 export function ActivityLikeButton({ activity }: { activity: AniActivity }) {

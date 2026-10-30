@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { createInterval } from "@/lib/pacer/interval.utils";
+import { createInterval } from "@/lib/interval.utils";
 
 import type { SplashVariantProps } from "./shared.splash";
 import { splashStageLabel } from "./shared.splash";

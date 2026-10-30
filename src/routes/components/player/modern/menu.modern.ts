@@ -29,11 +29,11 @@ import {
   PLAYER_CABINETS,
   PLAYER_MODE_IDS,
   PLAYER_MODES,
-} from "@/config/player/modes.config";
-import { PLAYER_SPEEDS } from "@/lib/player/speed.utils";
-import { selectableTracks, trackLabel } from "@/lib/player/tracks.utils";
-import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/stream/helpers";
-import { formatClock } from "@/lib/utils/time.utils";
+} from "@/config/modes.config";
+import { PLAYER_SPEEDS } from "@/lib/speed.utils";
+import { selectableTracks, trackLabel } from "@/lib/tracks.utils";
+import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/streamHelpers.utils";
+import { formatClock } from "@/lib/time.utils";
 import type { TranslationKey } from "@/types/i18n";
 import type { StreamVariant } from "@/types/stream";
 import type {

@@ -1,7 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DIGIT_KEYS, VIEW_MODE_DIGITS } from "@/config/player/keybinds.config";
+import { DIGIT_KEYS, VIEW_MODE_DIGITS } from "@/config/keybinds.config";
 import Keyboard from "@/routes/components/player/media/keyboard.player";
 
 function fireWheel(target: Element, deltaY: number): void {

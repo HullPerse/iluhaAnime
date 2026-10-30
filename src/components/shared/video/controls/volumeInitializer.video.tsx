@@ -1,7 +1,7 @@
 import { useMedia } from "@videojs/react";
 import { useEffect, useRef } from "react";
 
-import { DEFAULT_VOLUME } from "@/config/player/video.config";
+import { DEFAULT_VOLUME } from "@/config/video.config";
 
 export function VolumeInitializer() {
   const media = useMedia();

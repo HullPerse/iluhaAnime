@@ -2,14 +2,14 @@ import type { ReactNode } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
   fmtSpeed,
   getDisplayState,
-} from "@/lib/torrent/common.utils";
-import { formatETA } from "@/lib/utils/time.utils";
+} from "@/lib/torrentCommon.utils";
+import { formatETA } from "@/lib/time.utils";
 import { torrentAtoms } from "@/store/download.store";
 import type { TorrentInfo } from "@/types/torrent";
 

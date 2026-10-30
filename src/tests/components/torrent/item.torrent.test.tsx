@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
+import { areTorrentItemsEqual } from "@/lib/torrentItem.utils";
 import TorrentItem from "@/routes/components/torrent/item.torrent";
 import { patchSettings } from "@/store/settings.store";
 import type { TorrentInfo, TorrentItemProps } from "@/types/torrent";

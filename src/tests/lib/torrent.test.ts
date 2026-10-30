@@ -2,7 +2,7 @@ import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
+import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/bulk.utils";
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
@@ -23,16 +23,16 @@ import {
   torrentErrorText,
   type TorrentListState,
   withoutPendingRemoved,
-} from "@/lib/torrent/common.utils";
-import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
-import { describeRecheckOutcome } from "@/lib/torrent/recheck.utils";
+} from "@/lib/torrentCommon.utils";
+import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/magnet.utils";
+import { describeRecheckOutcome } from "@/lib/recheck.utils";
 import {
   applyFolderSelection,
   buildTorrentTree,
   collectFileIndices,
   flattenTorrentTree,
   groupFilesByDirectory,
-} from "@/lib/torrent/tree.utils";
+} from "@/lib/torrentTree.utils";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
 import type { TFunc, TranslationVariables } from "@/types/i18n";

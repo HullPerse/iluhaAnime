@@ -3,8 +3,8 @@ import type { ChangeEvent } from "react";
 
 import { useAutocomplete } from "@/hooks/search/autocomplete.hook";
 import { useSpellCheck, useSpellCorrections } from "@/hooks/search/spellcheck.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { useCell } from "@/lib/signal.hook";
+import { enterSubmit } from "@/lib/keyboard.utils";
 import {
   addSearchQuery as addQuery,
   addSpellWord,

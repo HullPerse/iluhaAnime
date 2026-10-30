@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey, TranslationVariables } from "@/types/i18n";
 

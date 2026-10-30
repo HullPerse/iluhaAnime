@@ -8,9 +8,9 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import type { TorrentCoverState } from "@/hooks/search/cover.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { mediaToCandidate } from "@/lib/search/cover.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { mediaToCandidate } from "@/lib/cover.utils";
+import { reportBackgroundError } from "@/lib/attempt.utils";
 import CoverCandidateThumb from "@/routes/components/search/default/candidate.search";
 import {
   learnCoverAlias,

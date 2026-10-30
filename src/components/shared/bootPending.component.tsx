@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/utils/attempt.utils";
+import { attemptSync } from "@/lib/attempt.utils";
 
 import { BigLoader } from "./loader.component";
 

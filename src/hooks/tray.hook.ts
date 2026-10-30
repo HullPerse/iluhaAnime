@@ -5,9 +5,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useMemo, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/settings/tray.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/tray.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TabId } from "@/types/settings";
 

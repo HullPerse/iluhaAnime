@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dayNightFrame, nowMinutesOf, parseDayTime } from "@/lib/settings/daynight.utils";
+import { dayNightFrame, nowMinutesOf, parseDayTime } from "@/lib/daynight.utils";
 
 describe("daynight", () => {
   it("parses HH:MM to minutes", () => {

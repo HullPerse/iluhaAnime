@@ -5,13 +5,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { DITHER_PLACEHOLDER_SRC } from "@/config/utils/dither.config";
+import { DITHER_PLACEHOLDER_SRC } from "@/config/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useWallpaperImage } from "@/hooks/wallpaper.hook";
-import { shouldDimMascot } from "@/lib/search/mascot.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper/wallpaper.utils";
+import { shouldDimMascot } from "@/lib/mascot.utils";
+import { useCell } from "@/lib/signal.hook";
+import { reportBackgroundError } from "@/lib/attempt.utils";
+import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import DitherSettings from "./dither/settings.dither";

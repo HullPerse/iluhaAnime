@@ -1,13 +1,13 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { DEFAULT_FILTERS } from '../../src/config/collection/filters.config';
-import { applyShortQueryFilter, filterCollectionItems } from '../../src/lib/collection/filter.utils';
+import { DEFAULT_FILTERS } from '@/config/collectionFilters.config';
+import { applyShortQueryFilter, filterCollectionItems } from '@/lib/filter.utils';
 import {
   matchOperatorTerm,
   matchOperatorTerms,
   parseOperatorTerms,
-} from '../../src/lib/search/score.utils';
-import { normalizeSearchText } from '../../src/lib/search/normalize.utils';
+} from '@/lib/searchScore.utils';
+import { normalizeSearchText } from '@/lib/normalize.utils';
 import type { CollectionItem } from '../../src/types/collection';
 
 function mulberry32(seed: number): () => number {

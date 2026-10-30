@@ -6,8 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { createInterval } from "@/lib/interval.utils";
+import { queryKeys } from "@/lib/keys.utils";
 import {
   TorrentListen,
   TORRENT_WATCHDOG_MS,
@@ -16,10 +16,10 @@ import {
   shouldHealTorrentChannel,
   torrentErrorText,
   withoutPendingRemoved,
-} from "@/lib/torrent/common.utils";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { showError, showWarning } from "@/lib/utils/notification.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+} from "@/lib/torrentCommon.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { showError, showWarning } from "@/lib/notification.utils";
+import { ignore } from "@/lib/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { cacheAtoms, removeSeedPreference } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";

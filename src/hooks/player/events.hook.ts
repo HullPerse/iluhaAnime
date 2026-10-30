@@ -2,7 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { reportBackgroundError } from "@/lib/attempt.utils";
 import { setPlaybackChapters, setPlaybackSnapshot, setPlaybackTracks } from "@/store/player.store";
 import type {
   DroppedFramesData,

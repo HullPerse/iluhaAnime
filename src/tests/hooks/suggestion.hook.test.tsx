@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { collectionApi } from "@/api/collection.api";
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
-import { suggestionPoolSize } from "@/lib/ranking/rank.utils";
+import { suggestionPoolSize } from "@/lib/rank.utils";
 
 const POOL = suggestionPoolSize(8);
 

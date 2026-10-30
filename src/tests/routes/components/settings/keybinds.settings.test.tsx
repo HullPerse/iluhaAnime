@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { KEYBIND_MANIFEST } from "@/config/keyboard/manifest.config";
+import { KEYBIND_MANIFEST } from "@/config/manifest.config";
 import { SettingsKeybinds } from "@/routes/components/settings/keybinds.settings";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 

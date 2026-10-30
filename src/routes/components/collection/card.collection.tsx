@@ -2,14 +2,14 @@ import { Star } from "lucide-react";
 import { memo } from "react";
 
 import Image from "@/components/ui/image.component";
-import { CARD_POSTER_H, CARD_W, GENRE_PREVIEW_COUNT } from "@/config/collection/card.config";
+import { CARD_POSTER_H, CARD_W, GENRE_PREVIEW_COUNT } from "@/config/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { resolveCardCover, sameCardVisual, uncachedCoverSource } from "@/lib/collection/card.utils";
-import { statusColorOf } from "@/lib/collection/status.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { resolveCardCover, sameCardVisual, uncachedCoverSource } from "@/lib/card.utils";
+import { statusColorOf } from "@/lib/status.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { CollectionCardProps } from "@/types/collection";
 
 import { CardStatusBar } from "./cardStatusBar.collection";

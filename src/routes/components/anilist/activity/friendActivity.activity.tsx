@@ -3,11 +3,11 @@ import { MessageSquare } from "lucide-react";
 import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import ImageComponent from "@/components/ui/image.component";
-import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
+import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/activity.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatActivityTime } from "@/lib/anilist/activity.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { formatActivityTime } from "@/lib/activity.utils";
+import { queryKeys } from "@/lib/keys.utils";
 import type { AniActivity } from "@/types/anilist";
 
 import { ActivityLikeButton } from "./like.activity";

@@ -8,9 +8,9 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useModalResize } from "@/hooks/modalResize.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
-import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/ui";
 

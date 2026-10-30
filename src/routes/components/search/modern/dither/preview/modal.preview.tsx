@@ -17,18 +17,18 @@ import {
   DITHER_PRESETS,
   DITHER_PRESET_LABELS,
   resolveDitherPreset,
-} from "@/config/utils/dither.config";
+} from "@/config/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
-import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { attempt, attemptSync } from "@/lib/attempt.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,
   EXTRACT_PALETTE_MIN_COLORS,
   extractPaletteFromPixels,
-} from "@/lib/utils/dither.utils";
-import { toUserImage } from "@/lib/utils/image.utils";
-import { showError } from "@/lib/utils/notification.utils";
+} from "@/lib/dither.utils";
+import { toUserImage } from "@/lib/image.utils";
+import { showError } from "@/lib/notification.utils";
 import type { DitherEffectOptions, DitherPresetId } from "@/types/dither";
 import type { UserImage } from "@/types/userimage";
 

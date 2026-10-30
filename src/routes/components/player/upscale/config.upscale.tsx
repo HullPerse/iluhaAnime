@@ -7,16 +7,16 @@ import {
   RESOLUTIONS,
   UPSCALER_OPTIONS,
   VIDEO_CODEC_OPTIONS,
-} from "@/config/player/options.config";
-import { ANIME4K_PRESETS } from "@/config/player/presets.config";
+} from "@/config/options.config";
+import { ANIME4K_PRESETS } from "@/config/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { formatETA } from "@/lib/utils/time.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { withFallback } from "@/lib/attempt.utils";
+import { invokeTyped } from "@/lib/invoke.utils";
+import { formatETA } from "@/lib/time.utils";
 import type { PreviewFrame } from "@/types/upscale";
 
 import FFMPEG from "../ffmpeg.player";

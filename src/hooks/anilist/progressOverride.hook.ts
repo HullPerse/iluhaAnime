@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import {
   anilistProgressOverride,
   type AnilistProgressOverride,

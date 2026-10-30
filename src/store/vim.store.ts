@@ -1,5 +1,5 @@
-import type { HintBadge } from "@/lib/hotkeys/hints.hotkeys";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import type { HintBadge } from "@/lib/hintsHotkeys.utils";
+import { createSignalStore, type Cell } from "@/lib/signal.store";
 
 export interface VimHintsState {
   open: boolean;

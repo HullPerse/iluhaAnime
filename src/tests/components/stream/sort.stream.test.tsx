@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_STREAM_FILTERS } from "@/config/stream/filters.config";
+import { DEFAULT_STREAM_FILTERS } from "@/config/streamFilters.config";
 import StreamSortBar from "@/routes/components/stream/sort.stream";
 import { patchSettings } from "@/store/settings.store";
 import { applyStreamFilters, streamFilters, streamPage } from "@/store/stream.store";

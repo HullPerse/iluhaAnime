@@ -4,7 +4,7 @@ import { useState } from "react";
 import Section from "@/components/shared/section.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
 import type { DescriptionBlock } from "@/types/torrent";
 
 function DescriptionSpoiler({

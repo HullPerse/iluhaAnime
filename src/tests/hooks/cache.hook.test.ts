@@ -10,7 +10,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import { useCoverCache } from "@/hooks/collection/cache.hook";
-import { assetUrl } from "@/lib/utils/image.utils";
+import { assetUrl } from "@/lib/image.utils";
 import { setCoverBlob } from "@/store/cover.store";
 import { patchSettings } from "@/store/settings.store";
 

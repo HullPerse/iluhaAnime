@@ -11,8 +11,8 @@ import Select from "@/components/ui/select.component";
 import {
   COMPARE_DIFF_DEFAULT_THRESHOLD,
   COMPARE_LOW_CONFIDENCE_SCORED,
-} from "@/config/anilist/compare.config";
-import { listStatusLabels } from "@/config/anilist/labels.config";
+} from "@/config/compare.config";
+import { listStatusLabels } from "@/config/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import {
   buildCompareSummary,
@@ -36,14 +36,14 @@ import {
   type CompareVerdict,
   type GenreTaste,
   type TasteMatch,
-} from "@/lib/anilist/compare.utils";
-import { getStatusColor } from "@/lib/anilist/entries.utils";
+} from "@/lib/compare.utils";
+import { getStatusColor } from "@/lib/entries.utils";
 import {
   formatMeanScore,
   formatScore,
   parseScoreFormat,
   type AnilistScoreFormat,
-} from "@/lib/anilist/score.utils";
+} from "@/lib/anilistScore.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniListCollection, AniUser, AniUserProfile, FavouriteAnime } from "@/types/anilist";

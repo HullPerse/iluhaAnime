@@ -3,7 +3,7 @@ import { usePlayer } from "@videojs/react";
 import { useCallback, useRef, useState } from "react";
 
 import { useWindowDrag } from "@/hooks/windowDrag.hook";
-import { formatClock } from "@/lib/utils/time.utils";
+import { formatClock } from "@/lib/time.utils";
 
 export function ScrubBar() {
   const time = usePlayer(selectTime);

@@ -1,10 +1,10 @@
 import { cn } from "cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { DITHER_DEFAULTS } from "@/config/utils/dither.config";
-import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
-import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
-import { renderDitherImage } from "@/lib/utils/dither.render.utils";
+import { DITHER_DEFAULTS } from "@/config/dither.config";
+import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { attempt, attemptSync } from "@/lib/attempt.utils";
+import { renderDitherImage } from "@/lib/ditherRender.utils";
 import {
   ditherCacheKey,
   ditherDecodeCache,
@@ -14,7 +14,7 @@ import {
   resetDitherWorker,
   subscribeWorkerJob,
   withDitherDefaults,
-} from "@/lib/utils/dither.utils";
+} from "@/lib/dither.utils";
 import type {
   DitherCacheEntry,
   DitherCanvasProps,

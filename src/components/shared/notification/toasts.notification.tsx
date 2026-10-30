@@ -7,13 +7,13 @@ import {
   NOTIFICATION_TOAST_STRIP,
   TOAST_DEFAULTS,
   TOAST_DURATION_MS,
-} from "@/config/settings/notifications.config";
+} from "@/config/notifications.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { openNotificationTarget, showError } from "@/lib/utils/notification.utils";
+import { useCell } from "@/lib/signal.hook";
+import { createInterval } from "@/lib/interval.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
+import { openNotificationTarget, showError } from "@/lib/notification.utils";
 import { markNotificationRead, notificationAtoms } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { NotificationItem } from "@/types/notification";

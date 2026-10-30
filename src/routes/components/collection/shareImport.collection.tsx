@@ -8,16 +8,12 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Image from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
-import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
+import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
 import { COLLECTION_QUERY_KEY } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import {
-  buildCustomStatusId,
-  normalizeStatusLabel,
-  resolveStatusLabel,
-} from "@/lib/collection/status.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { buildCustomStatusId, normalizeStatusLabel, resolveStatusLabel } from "@/lib/status.utils";
+import { attempt } from "@/lib/attempt.utils";
 import { addNotification } from "@/store/notification.store";
 import type { ShareImportPlan } from "@/types/deeplink";
 

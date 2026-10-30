@@ -1,8 +1,8 @@
-import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
-import { attemptSync } from "@/lib/utils/attempt.utils";
-import type { Persistor } from "@/lib/state/persist.utils";
-import type { Cell } from "@/lib/state/signal.store";
+import { DEFAULT_FILTERS } from "@/config/collectionFilters.config";
+import { createPersistedStoreContext } from "@/lib/persisted.utils";
+import { attemptSync } from "@/lib/attempt.utils";
+import type { Persistor } from "@/lib/persist.utils";
+import type { Cell } from "@/lib/signal.store";
 import type {
   CollectionFilters,
   CollectionStatus,

@@ -7,12 +7,12 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { KEYBIND_MANIFEST, type KeybindScope } from "@/config/keyboard/manifest.config";
-import { VIM_MOTION_KEYS } from "@/config/keyboard/vim.config";
+import { KEYBIND_MANIFEST, type KeybindScope } from "@/config/manifest.config";
+import { VIM_MOTION_KEYS } from "@/config/vim.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { chordKey, humanizeChord, parseChord } from "@/lib/hotkeys/chord.hotkeys";
-import { resolveKeybinds, type ResolvedKeybind } from "@/lib/hotkeys/resolve.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
+import { chordKey, humanizeChord, parseChord } from "@/lib/chordHotkeys.utils";
+import { resolveKeybinds, type ResolvedKeybind } from "@/lib/resolveHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 const SCOPES: readonly KeybindScope[] = [

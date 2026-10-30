@@ -10,13 +10,13 @@ import { useEffect } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { streamApi } from "@/api/stream.api";
-import { QUERY_PRESETS } from "@/config/store/query.config";
-import { streamFiltersKey } from "@/config/stream/filters.config";
+import { QUERY_PRESETS } from "@/config/query.config";
+import { streamFiltersKey } from "@/config/streamFilters.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { anilistEpisodePreviews } from "@/lib/stream/episodes.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { anilistEpisodePreviews } from "@/lib/episodes.utils";
+import { ignore } from "@/lib/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { StreamCatalogFilters } from "@/types/stream";
 

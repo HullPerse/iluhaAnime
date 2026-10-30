@@ -1,7 +1,7 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt } from "@/lib/attempt.utils";
 import type { CollectionItem } from "@/types/collection";
 
 export function SitesCollection({ item }: { item: CollectionItem }) {

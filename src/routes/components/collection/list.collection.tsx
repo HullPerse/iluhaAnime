@@ -5,15 +5,15 @@ import { memo, useMemo, useRef } from "react";
 import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
-import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
+import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { rowMetaParts, sameRowVisual } from "@/lib/collection/list.utils";
-import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
-import { sortStatuses, statusColorOf, statusLabel } from "@/lib/collection/status.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { rowMetaParts, sameRowVisual } from "@/lib/list.utils";
+import { generatePlaceholder } from "@/lib/placeholder.utils";
+import { sortStatuses, statusColorOf, statusLabel } from "@/lib/status.utils";
+import { useCell } from "@/lib/signal.hook";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   CollectionGroup,

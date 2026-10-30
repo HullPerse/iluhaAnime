@@ -2,7 +2,7 @@ import { useRef, type ReactNode, type RefObject } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
-import { PAGE_SIZE } from "@/config/settings/sqlite.config";
+import { PAGE_SIZE } from "@/config/sqlite.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { SqliteRowsPage } from "@/types/sqlite";
 

@@ -5,10 +5,10 @@ import { useGameRomMutations, useGamePlatforms, useGameRoms } from "@/hooks/game
 import { useIntegerScale } from "@/hooks/game/scale.hook";
 import { useGameSession } from "@/hooks/game/session.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { GAME_PLATFORMS } from "@/config/game/platforms.config";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { GAME_PLATFORMS } from "@/config/platforms.config";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { showError } from "@/lib/notification.utils";
 import GameImportModal from "@/routes/components/game/import.game";
 import type { GameImportDraft } from "@/routes/components/game/import.game";
 import GameLibrary from "@/routes/components/game/library.game";

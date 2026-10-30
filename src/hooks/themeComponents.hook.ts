@@ -1,6 +1,6 @@
-import { THEMES } from "@/config/settings/themes.config";
-import { useCell } from "@/lib/state/signal.hook";
-import { resolveTheme } from "@/lib/theme/resolve";
+import { THEMES } from "@/config/themes.config";
+import { useCell } from "@/lib/signal.hook";
+import { resolveTheme } from "@/lib/themeResolve.utils";
 import { themeAtoms } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
 

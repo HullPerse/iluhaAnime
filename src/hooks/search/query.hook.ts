@@ -2,28 +2,28 @@ import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
-import { SOURCE_INFOS } from "@/config/search/sources.config";
+import { SOURCE_INFOS } from "@/config/searchSources.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useSearchSessions } from "@/hooks/search/sessions.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { countActiveFilters } from "@/lib/search/filters.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { countActiveFilters } from "@/lib/searchFilters.utils";
 import {
   filterAnimeResults,
   getVisibleSources,
   sortAnimeResults,
   dedupAnimeResults,
-} from "@/lib/search/results.utils";
+} from "@/lib/results.utils";
 import {
   isPagedSearchSource,
   resolveInitialSource,
   serverSideSortSource,
-} from "@/lib/search/route.utils";
-import { suggestSpellingWithReason } from "@/lib/search/resolve.utils";
-import { parseTorrentTags, torrentTagsToFilters } from "@/lib/search/torrentTags.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+} from "@/lib/searchRoute.utils";
+import { suggestSpellingWithReason } from "@/lib/searchResolve.utils";
+import { parseTorrentTags, torrentTagsToFilters } from "@/lib/torrentTags.utils";
+import { useCell } from "@/lib/signal.hook";
+import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/magnet.utils";
+import { attempt } from "@/lib/attempt.utils";
 import {
   resetSearchFilters as resetFilters,
   searchAtoms,

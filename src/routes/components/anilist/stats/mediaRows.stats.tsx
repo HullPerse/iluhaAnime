@@ -1,12 +1,12 @@
 import ImageComponent from "@/components/ui/image.component";
-import { listStatusLabels } from "@/config/anilist/labels.config";
+import { listStatusLabels } from "@/config/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor } from "@/lib/anilist/entries.utils";
-import { formatScore } from "@/lib/anilist/score.utils";
+import { getStatusColor } from "@/lib/entries.utils";
+import { formatScore } from "@/lib/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import type { StatsMediaRow } from "@/lib/anilist/stats.utils";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
+import type { StatsMediaRow } from "@/lib/anilistStats.utils";
+import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
 
 /**
  * Drill-down row list used by the statistics Overview: one row per title,

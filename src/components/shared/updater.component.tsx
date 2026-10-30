@@ -2,8 +2,8 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { installUpdate } from "@/lib/utils/update.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { installUpdate } from "@/lib/update.utils";
 
 import { Button } from "../ui/button.component";
 import ImageComponent from "../ui/image.component";

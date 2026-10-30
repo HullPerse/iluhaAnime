@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { THEMES } from "@/config/settings/themes.config";
+import { THEMES } from "@/config/themes.config";
 import { translate } from "@/lib/locale/i18n.utils";
 import { ThemePicker } from "@/routes/components/settings/theme/picker.theme";
 import { settingsAtoms } from "@/store/settings.store";

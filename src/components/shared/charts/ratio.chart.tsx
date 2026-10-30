@@ -1,7 +1,7 @@
-import { RATIO_PALETTE } from "@/config/charts/palette.config";
+import { RATIO_PALETTE } from "@/config/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { ratioSegments } from "@/lib/charts/geometry.utils";
-import { clamp } from "@/lib/utils/math.utils";
+import { ratioSegments } from "@/lib/geometry.utils";
+import { clamp } from "@/lib/math.utils";
 
 import { ChartFrame } from "./frame.chart";
 import { SvgChartTooltip, tooltipAnnouncement } from "./tooltip.chart";

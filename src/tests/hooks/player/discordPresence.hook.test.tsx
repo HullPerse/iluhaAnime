@@ -5,7 +5,7 @@ import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { discordApi } from "@/api/discord.api";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { PRESENCE_PROGRESS_INTERVAL_MS } from "@/lib/utils/presence.utils";
+import { PRESENCE_PROGRESS_INTERVAL_MS } from "@/lib/presence.utils";
 import type { StreamOpen } from "@/types/videoPlayer";
 
 vi.mock("@/api/discord.api", () => ({

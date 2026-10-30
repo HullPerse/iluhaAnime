@@ -4,13 +4,13 @@ import { anilistApi } from "@/api/anilist.api";
 import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
-import { characterRoleLabels } from "@/config/anilist/labels.config";
-import { CHAR_PAGE_SIZE } from "@/config/anilist/pagination.config";
+import { characterRoleLabels } from "@/config/labels.config";
+import { CHAR_PAGE_SIZE } from "@/config/pagination.config";
 import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { uniqueById } from "@/lib/utils/array.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { uniqueById } from "@/lib/array.utils";
 import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
 
 import { VoiceActorsPreview } from "./voiceActors.detail";

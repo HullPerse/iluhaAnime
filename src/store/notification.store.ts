@@ -1,9 +1,9 @@
 import { systemApi } from "@/api/system.api";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
-import type { Persistor } from "@/lib/state/persist.utils";
-import type { Cell } from "@/lib/state/signal.store";
+import { createPersistedStoreContext } from "@/lib/persisted.utils";
+import type { Persistor } from "@/lib/persist.utils";
+import type { Cell } from "@/lib/signal.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import type {
   DismissedEntry,
   NotificationAddOptions,

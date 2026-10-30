@@ -1,8 +1,8 @@
 import { ReactElement } from "react";
 
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
+import { focusMainSearch } from "@/lib/focusHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import { SearchType } from "@/types/search";
 

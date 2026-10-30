@@ -1,6 +1,6 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { buildTree, flattenTree } from '../../src/lib/player/tree.utils';
+import { buildTree, flattenTree } from '@/lib/playerTree.utils';
 import type { VideoFileEntry } from '../../src/types/fs';
 
 function makeEntries(count: number, sep: '/' | '\\'): VideoFileEntry[] {

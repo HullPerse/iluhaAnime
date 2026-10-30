@@ -1,12 +1,12 @@
-import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
-import type { Persistor } from "@/lib/state/persist.utils";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
-import type { Cell } from "@/lib/state/signal.store";
-import { applyTheme } from "@/lib/theme/appearance";
-import { deriveFieldColor, isHexColor } from "@/lib/theme/palette.utils";
-import { findTheme } from "@/lib/theme/resolve";
-import { normalizeAutocompleteOpacity } from "@/lib/theme/tokens";
-import { attemptSync } from "@/lib/utils/attempt.utils";
+import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/themes.config";
+import type { Persistor } from "@/lib/persist.utils";
+import { createPersistedStoreContext } from "@/lib/persisted.utils";
+import type { Cell } from "@/lib/signal.store";
+import { applyTheme } from "@/lib/appearance.utils";
+import { deriveFieldColor, isHexColor } from "@/lib/palette.utils";
+import { findTheme } from "@/lib/themeResolve.utils";
+import { normalizeAutocompleteOpacity } from "@/lib/tokens.utils";
+import { attemptSync } from "@/lib/attempt.utils";
 import type { ThemeDefinition, ThemeOverrideKey, ThemePatch, ThemeStore } from "@/types/theme";
 
 export const THEME_SCHEMA_VERSION = 1;

@@ -18,10 +18,10 @@ import {
   NSFW_TAG_SET,
   SEASONS,
   STATUSES,
-} from "@/config/anilist/filters.config";
-import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist/labels.config";
+} from "@/config/anilistFilters.config";
+import { statusLabels, seasonLabels, formatLabels } from "@/config/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
+import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
 

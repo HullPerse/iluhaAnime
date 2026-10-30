@@ -4,10 +4,10 @@ import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { TreeRow } from "@/lib/player/treeArrow.utils";
-import { collectFileIndices } from "@/lib/torrent/tree.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import type { TreeRow } from "@/lib/treeArrow.utils";
+import { collectFileIndices } from "@/lib/torrentTree.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { TorrentFileInfo, TorrentTreeNode } from "@/types/torrent";
 
 export function FolderRow({

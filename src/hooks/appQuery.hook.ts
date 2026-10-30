@@ -7,8 +7,8 @@ import type {
   UseQueryOptions,
 } from "@tanstack/react-query";
 
-import { QUERY_PRESETS } from "@/config/store/query.config";
-import type { QueryPresetName } from "@/config/store/query.config";
+import { QUERY_PRESETS } from "@/config/query.config";
+import type { QueryPresetName } from "@/config/query.config";
 
 export type { QueryPresetName };
 

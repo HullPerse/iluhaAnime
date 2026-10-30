@@ -1,5 +1,5 @@
-import { visibleTabs } from "@/config/settings/tabs.config";
-import { TAB_PATHS, tabIdFromPath, type TabPath } from "@/config/tabs/paths.config";
+import { visibleTabs } from "@/config/tabs.config";
+import { TAB_PATHS, tabIdFromPath, type TabPath } from "@/config/tabPaths.config";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TabId, TabSettings } from "@/types/settings";
 

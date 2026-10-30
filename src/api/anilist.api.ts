@@ -1,5 +1,5 @@
-import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { searchFiltersToParams } from "@/lib/entries.utils";
+import { anilistProxyArgs } from "@/lib/anilistProxy.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   ActivityLikeState,

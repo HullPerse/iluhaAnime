@@ -4,19 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { fileNameFromPath } from "@/lib/media/parse.utils";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
+import { fileNameFromPath } from "@/lib/parse.utils";
+import { scheduleTask } from "@/lib/shared.utils";
 import {
   fetchVideoCard,
   getCachedCard,
   isSameMediaPath,
   type CardArt,
-} from "@/lib/player/cardCache.utils";
-import { readPlaylistEntries, type PlaylistEntry } from "@/lib/player/playback.utils";
-import { formatParsedTitle } from "@/lib/player/title.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { ignore } from "@/lib/utils/promise.utils";
-import { formatClock } from "@/lib/utils/time.utils";
+} from "@/lib/cardCache.utils";
+import { readPlaylistEntries, type PlaylistEntry } from "@/lib/playback.utils";
+import { formatParsedTitle } from "@/lib/playerTitle.utils";
+import { useCell } from "@/lib/signal.hook";
+import { ignore } from "@/lib/promise.utils";
+import { formatClock } from "@/lib/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 

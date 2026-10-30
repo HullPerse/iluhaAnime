@@ -3,13 +3,13 @@ import { useEffect, useMemo } from "react";
 import { discordApi } from "@/api/discord.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import {
   buildPlayerActivity,
   PRESENCE_PROGRESS_INTERVAL_MS,
   samePresence,
-} from "@/lib/utils/presence.utils";
-import { reportPresenceCommand } from "@/lib/utils/presenceCommand.utils";
+} from "@/lib/presence.utils";
+import { reportPresenceCommand } from "@/lib/presenceCommand.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 

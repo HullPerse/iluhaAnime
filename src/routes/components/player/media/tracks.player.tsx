@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { sortTracksByLanguage, toTrackDisplay, trackLabel } from "@/lib/player/tracks.utils";
+import { sortTracksByLanguage, toTrackDisplay, trackLabel } from "@/lib/tracks.utils";
 import type { MpvTrack } from "@/types/videoPlayer";
 
 import TrackDropdown, { type DropdownOption } from "./dropdown.tracks";

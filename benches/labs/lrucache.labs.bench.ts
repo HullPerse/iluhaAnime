@@ -6,7 +6,7 @@ import { bench, group } from "@pmndrs/labs";
 // miss-heavy 2.1ms, eviction churn 13.5ms, Map baseline 377us.
 // Regression threshold is labs minDelta 5%.
 
-import { createLruCache } from "../../src/lib/utils/lruCache.utils";
+import { createLruCache } from "@/lib/lruCache.utils";
 
 const CAPACITY = 8000;
 

@@ -14,14 +14,14 @@ import {
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { SEEK_STEP } from "@/config/player/keybinds.config";
+import { SEEK_STEP } from "@/config/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { PlayerStream } from "@/hooks/player/stream.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { formatClock } from "@/lib/utils/time.utils";
+import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/chapter.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import { useCell } from "@/lib/signal.hook";
+import { formatClock } from "@/lib/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 

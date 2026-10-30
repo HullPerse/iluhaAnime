@@ -3,8 +3,8 @@ import { useCallback } from "react";
 
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { checkForUpdates } from "@/lib/utils/update.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { checkForUpdates } from "@/lib/update.utils";
 import { openUpdatePrompt } from "@/store/update.store";
 
 export type UpdateCheckOutcome =

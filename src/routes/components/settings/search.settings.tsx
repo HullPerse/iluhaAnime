@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { SOURCE_INFOS } from "@/config/search/sources.config";
+import { SOURCE_INFOS } from "@/config/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
 import {
   clearAllSearchLearning,
   clearSearchScope,

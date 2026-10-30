@@ -1,6 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt } from "@/lib/attempt.utils";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
 import { SearchFilterChips } from "@/routes/components/search/default/filterChips.search";
 import SearchPager from "@/routes/components/search/default/pager.search";

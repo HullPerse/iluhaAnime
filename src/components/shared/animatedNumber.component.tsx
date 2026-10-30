@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import { createAnimationLoop } from "@/lib/pacer/interval.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { createAnimationLoop } from "@/lib/interval.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
 const TWEEN_MS = 400;

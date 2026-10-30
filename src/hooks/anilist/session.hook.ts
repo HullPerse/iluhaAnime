@@ -1,6 +1,6 @@
 import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { queryKeys } from "@/lib/keys.utils";
 
 /**
  * Whether AniList has a session, without asking for the viewer's lists.

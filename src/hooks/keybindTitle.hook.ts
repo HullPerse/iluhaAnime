@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 
-import { humanizeChord } from "@/lib/hotkeys/chord.hotkeys";
-import { activeChordForKeybind, formatKeybindTitle } from "@/lib/hotkeys/title.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
+import { humanizeChord } from "@/lib/chordHotkeys.utils";
+import { activeChordForKeybind, formatKeybindTitle } from "@/lib/titleHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
 export function useKeybindTitle(title: string, keybindId: string): string {

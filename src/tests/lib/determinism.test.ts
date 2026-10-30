@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
-import { filterCollectionItems } from "@/lib/collection/filter.utils";
-import { parseMediaPath } from "@/lib/media/parse.utils";
-import { getSearchSuggestions } from "@/lib/search/suggestions.utils";
-import { buildTorrentTree } from "@/lib/torrent/tree.utils";
+import { DEFAULT_FILTERS } from "@/config/collectionFilters.config";
+import { filterCollectionItems } from "@/lib/filter.utils";
+import { parseMediaPath } from "@/lib/parse.utils";
+import { getSearchSuggestions } from "@/lib/suggestions.utils";
+import { buildTorrentTree } from "@/lib/torrentTree.utils";
 import type { CollectionItem } from "@/types/collection";
 import type { SearchAnimeSuggestion } from "@/types/search";
 import type { TorrentFileInfo } from "@/types/torrent";

@@ -5,13 +5,13 @@ import { useState } from "react";
 import { systemApi } from "@/api/system.api";
 import { InputDialog } from "@/components/shared/prompt.component";
 import { Button } from "@/components/ui/button.component";
-import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
+import { WIZARD_COVER_MAX } from "@/config/collectionDefaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { assetUrl } from "@/lib/utils/image.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { generatePlaceholder } from "@/lib/placeholder.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { assetUrl } from "@/lib/image.utils";
+import { showError } from "@/lib/notification.utils";
 
 import { MemoCoverThumb } from "./coverThumb.wizard";
 

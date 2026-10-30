@@ -25,7 +25,7 @@ import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdo
 import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
 import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import {
   collectionAtoms,
   setCollectionDisplayMode,

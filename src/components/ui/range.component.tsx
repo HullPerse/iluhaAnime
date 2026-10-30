@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { suffixText } from "@/lib/utils/format.utils";
-import { clamp } from "@/lib/utils/math.utils";
+import { suffixText } from "@/lib/format.utils";
+import { clamp } from "@/lib/math.utils";
 
 function Slider({
   wheel,

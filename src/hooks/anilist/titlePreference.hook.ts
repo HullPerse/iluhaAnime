@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AnilistRouteData, AniTitleLanguage } from "@/types/anilist";
 

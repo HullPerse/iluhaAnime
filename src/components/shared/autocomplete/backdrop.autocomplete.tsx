@@ -1,6 +1,6 @@
 import { memo } from "react";
 
-import type { HighlightToken } from "@/lib/highlight/highlight.utils";
+import type { HighlightToken } from "@/lib/highlight.utils";
 
 function spellOf(kind: HighlightToken["kind"]): "warn" | "error" | undefined {
   if (kind === "spell-error") return "error";

@@ -1,19 +1,19 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
-import { TORRENT_LIST_MAX_HEIGHT } from "@/config/player/torrents.config";
+import { TORRENT_LIST_MAX_HEIGHT } from "@/config/torrents.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
-import { clickRowActionButton, dispatchClick } from "@/lib/hotkeys/dispatch.hotkeys";
-import { mediaFileExtension } from "@/lib/media/parse.utils";
-import { resolveTreeArrow, resolveTreeMove } from "@/lib/player/treeArrow.utils";
-import type { TreeRow } from "@/lib/player/treeArrow.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { clickRowActionButton, dispatchClick } from "@/lib/dispatchHotkeys.utils";
+import { mediaFileExtension } from "@/lib/parse.utils";
+import { resolveTreeArrow, resolveTreeMove } from "@/lib/treeArrow.utils";
+import type { TreeRow } from "@/lib/treeArrow.utils";
+import { useCell } from "@/lib/signal.hook";
 import {
   applyFolderSelection,
   buildTorrentTree,
   flattenTorrentTree,
-} from "@/lib/torrent/tree.utils";
+} from "@/lib/torrentTree.utils";
 import { TorrentFileRow } from "@/routes/components/torrent/rows/file.rows";
 import { FolderRow } from "@/routes/components/torrent/rows/folder.rows";
 import { settingsAtoms } from "@/store/settings.store";

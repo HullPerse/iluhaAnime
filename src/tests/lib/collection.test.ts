@@ -1,25 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
-import {
-  applyCollectionFilters,
-  filterCollectionItems,
-  pickRandomItem,
-} from "@/lib/collection/filter.utils";
-import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collection/group.utils";
-import { buildCollectionQueryHints } from "@/lib/collection/hints.utils";
+import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
+import { applyCollectionFilters, filterCollectionItems, pickRandomItem } from "@/lib/filter.utils";
+import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collectionGroup.utils";
+import { buildCollectionQueryHints } from "@/lib/hints.utils";
 import {
   buildAnilistPrefill,
   entryDiffers,
   entrySyncState,
   entryToWizardValues,
   mediaToWizardValues,
-} from "@/lib/collection/import.utils";
-import { computeGroupProgress } from "@/lib/collection/importProgress.utils";
-import { readStoredMedia, withStoredMedia } from "@/lib/collection/media.utils";
-import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collection/search.utils";
-import { buildShareImportPlan } from "@/lib/collection/share.utils";
-import { calculateCollectionStats } from "@/lib/collection/stats.utils";
+} from "@/lib/import.utils";
+import { computeGroupProgress } from "@/lib/importProgress.utils";
+import { readStoredMedia, withStoredMedia } from "@/lib/collectionMedia.utils";
+import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collectionSearch.utils";
+import { buildShareImportPlan } from "@/lib/share.utils";
+import { calculateCollectionStats } from "@/lib/collectionStats.utils";
 import {
   buildCustomStatusId,
   isPublicStatus,
@@ -31,7 +27,7 @@ import {
   sortStatuses,
   splitStatusLabel,
   statusLabel,
-} from "@/lib/collection/status.utils";
+} from "@/lib/status.utils";
 import {
   buildWizardItem,
   mergeGenreTags,
@@ -41,7 +37,7 @@ import {
   wizardDefaultsMedia,
   wizardDefaultsMeta,
   wizardDefaultsProgress,
-} from "@/lib/collection/wizard.utils";
+} from "@/lib/wizard.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { AniListEntry } from "@/types/anilist";
 import type {

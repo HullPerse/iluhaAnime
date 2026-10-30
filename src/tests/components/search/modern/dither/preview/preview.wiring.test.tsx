@@ -5,8 +5,8 @@ import { act } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ditherDecodeCache, ditherRenderCache } from "@/lib/utils/dither.utils";
-import { toUserImage } from "@/lib/utils/image.utils";
+import { ditherDecodeCache, ditherRenderCache } from "@/lib/dither.utils";
+import { toUserImage } from "@/lib/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";

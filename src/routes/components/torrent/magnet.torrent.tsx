@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { MAGNET_RX } from "@/config/torrent/common.config";
+import { MAGNET_RX } from "@/config/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { enterSubmit } from "@/lib/keyboard.utils";
 import type { MagnetTorrentProps as Props } from "@/types/torrent";
 
 export default function AddTorrentModal({

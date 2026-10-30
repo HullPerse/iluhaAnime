@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import { deeplinkAtoms } from "@/store/deeplink.store";
 
 export type AnilistActivityTab = "feed" | "calendar" | "notifications" | "mentions" | "airing";

@@ -2,16 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { gameApi } from "@/api/game.api";
-import { GAME_DISPLAY } from "@/config/game/display.config";
-import { GAME_KEY_BY_CODE } from "@/config/game/keypad.config";
-import { createGameAudio } from "@/lib/game/audio.utils";
-import type { GameAudio } from "@/lib/game/audio.utils";
-import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/game/frame.utils";
-import type { Rgba } from "@/lib/game/frame.utils";
-import { subscribeKeypad } from "@/lib/hotkeys/keypad.hotkeys";
-import { createAnimationLoop } from "@/lib/pacer/interval.utils";
-import type { AnimationLoopTask } from "@/lib/pacer/interval.utils";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { GAME_DISPLAY } from "@/config/display.config";
+import { GAME_KEY_BY_CODE } from "@/config/keypad.config";
+import { createGameAudio } from "@/lib/audio.utils";
+import type { GameAudio } from "@/lib/audio.utils";
+import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/frame.utils";
+import type { Rgba } from "@/lib/frame.utils";
+import { subscribeKeypad } from "@/lib/keypadHotkeys.utils";
+import { createAnimationLoop } from "@/lib/interval.utils";
+import type { AnimationLoopTask } from "@/lib/interval.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import type {
   GameFrame,
   GamePalette,

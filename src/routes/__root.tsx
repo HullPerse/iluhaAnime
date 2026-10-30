@@ -16,10 +16,10 @@ import OutletComponent from "@/components/shared/outlet.component";
 import { RouteErrorScreen } from "@/components/shared/routeError.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
-import { settingsSearchSchema } from "@/config/settings/tabs.config";
-import { APP_LAYOUT_ROUTE_ID } from "@/config/tabs/routes.config";
-import { torrentSearchSchema } from "@/config/torrent/search.config";
+import { PLAYER_ROUTE } from "@/config/playerRoute.config";
+import { settingsSearchSchema } from "@/config/tabs.config";
+import { APP_LAYOUT_ROUTE_ID } from "@/config/tabRoutes.config";
+import { torrentSearchSchema } from "@/config/torrentSearch.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { firstEnabledTabPath, isEnabledTabPath } from "@/lib/tabs.utils";
 

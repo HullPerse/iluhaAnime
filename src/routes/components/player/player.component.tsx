@@ -21,8 +21,8 @@ import {
   OFFSET_STEP_FINE,
   SEEK_STEP,
   type KeybindAction,
-} from "@/config/player/keybinds.config";
-import { VOLUME_STEP } from "@/config/player/video.config";
+} from "@/config/keybinds.config";
+import { VOLUME_STEP } from "@/config/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
@@ -33,26 +33,26 @@ import { useWindowDrag } from "@/hooks/player/windowDrag.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
 import type { TranslationKey, TranslationVariables } from "@/types/i18n";
-import { fileNameFromPath } from "@/lib/media/parse.utils";
-import { Debouncer } from "@/lib/pacer/debounce.utils";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
-import { Throttler } from "@/lib/pacer/throttle.utils";
-import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/player/cardCache.utils";
-import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/player/chapter.utils";
-import { startsOnPlayerControl } from "@/lib/player/drag.utils";
+import { fileNameFromPath } from "@/lib/parse.utils";
+import { Debouncer } from "@/lib/debounce.utils";
+import { createInterval } from "@/lib/interval.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { Throttler } from "@/lib/throttle.utils";
+import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/cardCache.utils";
+import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/chapter.utils";
+import { startsOnPlayerControl } from "@/lib/playerDrag.utils";
 import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
-} from "@/lib/player/loading.utils";
+} from "@/lib/loading.utils";
 import {
   computeVideoMargins,
   marginOptions,
   marginsCloseEnough,
   ZERO_MARGINS,
   type VideoMargins,
-} from "@/lib/player/margins.utils";
+} from "@/lib/margins.utils";
 import {
   addExternalAudio,
   addExternalSubtitle,
@@ -91,8 +91,8 @@ import {
   startFrameStep,
   takePendingOpen,
   transformOptions,
-} from "@/lib/player/playback.utils";
-import { movePlaylistFocus } from "@/lib/player/playlistFocus.utils";
+} from "@/lib/playback.utils";
+import { movePlaylistFocus } from "@/lib/playlistFocus.utils";
 import {
   RESUME_END_MARGIN,
   RESUME_MIN,
@@ -100,17 +100,17 @@ import {
   needsExactSeek,
   shouldSkipFrontendSeek,
   type HwdecReload,
-} from "@/lib/player/resume.utils";
-import { resolveSkipTarget } from "@/lib/player/skip.utils";
-import { stepSpeed } from "@/lib/player/speed.utils";
-import { formatParsedTitle } from "@/lib/player/title.utils";
-import { findTrackByPreference, nextTrackId } from "@/lib/player/tracks.utils";
-import { resolveViewChrome } from "@/lib/player/view.utils";
-import { emptyPrefs, withTrack } from "@/lib/stream/prefs.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+} from "@/lib/resume.utils";
+import { resolveSkipTarget } from "@/lib/skip.utils";
+import { stepSpeed } from "@/lib/speed.utils";
+import { formatParsedTitle } from "@/lib/playerTitle.utils";
+import { findTrackByPreference, nextTrackId } from "@/lib/tracks.utils";
+import { resolveViewChrome } from "@/lib/view.utils";
+import { emptyPrefs, withTrack } from "@/lib/streamPrefs.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, reportBackgroundError, withFallback } from "@/lib/attempt.utils";
+import { invokeTyped } from "@/lib/invoke.utils";
+import { ignore } from "@/lib/promise.utils";
 import {
   getMediaEntry,
   hydrateMediaEntry,

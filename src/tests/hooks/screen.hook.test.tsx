@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   runPlayerCommand: vi.fn(async (_name: string, _args: string[]) => undefined),
 }));
 
-vi.mock("@/lib/player/playback.utils", () => ({
+vi.mock("@/lib/playback.utils", () => ({
   playerShaderPath: vi.fn(async (id: string) => `C:/shaders/${id}.glsl`),
   runPlayerCommand: mocks.runPlayerCommand,
 }));

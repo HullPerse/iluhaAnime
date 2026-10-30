@@ -1,6 +1,6 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { getSearchSuggestions } from '../../src/lib/search/suggestions.utils';
+import { getSearchSuggestions } from '@/lib/suggestions.utils';
 import type { SearchAnimeSuggestion, SearchQueryStat } from '../../src/types/search';
 
 const WORDS = [

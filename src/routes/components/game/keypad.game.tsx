@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import { GAME_KEYPAD_ROWS } from "@/config/game/keypad.config";
+import { GAME_KEYPAD_ROWS } from "@/config/keypad.config";
 import { useI18n } from "@/hooks/i18n.hook";
 
 export interface GameKeypadProps {

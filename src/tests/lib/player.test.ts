@@ -13,22 +13,22 @@ import {
   profileOptions,
   selectTrack,
   transformOptions,
-} from "@/lib/player/playback.utils";
-import { queueDepthSteps } from "@/lib/player/queue.utils";
-import { clearMediaParseCache, fileNameFromPath } from "@/lib/media/parse.utils";
-import { formatParsedTitle } from "@/lib/player/title.utils";
+} from "@/lib/playback.utils";
+import { queueDepthSteps } from "@/lib/playerQueue.utils";
+import { clearMediaParseCache, fileNameFromPath } from "@/lib/parse.utils";
+import { formatParsedTitle } from "@/lib/playerTitle.utils";
 import {
   buildOutputPath,
   buildTree,
   filterTreeByPaths,
   flattenTree,
   summarizeTree,
-} from "@/lib/player/tree.utils";
+} from "@/lib/playerTree.utils";
 import {
   filterTreeByHiddenPaths,
   isPlayerPathHidden,
   normalizePlayerPath,
-} from "@/lib/player/visibility.utils";
+} from "@/lib/visibility.utils";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import type { FolderNode } from "@/types/torrent";
 import type { UpscaleQueueItem } from "@/types/upscale";

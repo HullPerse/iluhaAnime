@@ -2,7 +2,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DitherCanvas from "@/components/shared/dither.component";
-import { ditherDecodeCache, ditherRenderCache, resetDitherWorker } from "@/lib/utils/dither.utils";
+import { ditherDecodeCache, ditherRenderCache, resetDitherWorker } from "@/lib/dither.utils";
 import type {
   DitherWorkerProgress,
   DitherWorkerRequest,

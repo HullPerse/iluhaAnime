@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { buildEntryLookup } from "@/lib/anilist/entries.utils";
-import { buildAnimeBackHandler } from "@/lib/anilist/route.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { buildEntryLookup } from "@/lib/entries.utils";
+import { buildAnimeBackHandler } from "@/lib/anilistRoute.utils";
+import { useCell } from "@/lib/signal.hook";
 import { consumeDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import type { AniListAnime, AniListCollection } from "@/types/anilist";
 

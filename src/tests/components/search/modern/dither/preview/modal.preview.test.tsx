@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { useEffect, type Ref } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { toUserImage } from "@/lib/utils/image.utils";
+import { toUserImage } from "@/lib/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";

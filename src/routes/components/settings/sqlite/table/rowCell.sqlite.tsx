@@ -1,6 +1,6 @@
 import Image from "@/components/ui/image.component";
-import { displayCell, previewCell } from "@/lib/sqlite/row.utils";
-import { isImageUrl } from "@/lib/utils/image.utils";
+import { displayCell, previewCell } from "@/lib/sqliteRow.utils";
+import { isImageUrl } from "@/lib/image.utils";
 
 import { AssetImageCell } from "./assetImageCell.sqlite";
 

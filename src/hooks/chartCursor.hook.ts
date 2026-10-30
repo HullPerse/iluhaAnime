@@ -1,7 +1,7 @@
 import type { KeyboardEvent } from "react";
 import { useCallback, useState } from "react";
 
-import { clamp } from "@/lib/utils/math.utils";
+import { clamp } from "@/lib/math.utils";
 
 const FORWARD_KEYS = new Set(["ArrowRight", "ArrowDown"]);
 const BACKWARD_KEYS = new Set(["ArrowLeft", "ArrowUp"]);

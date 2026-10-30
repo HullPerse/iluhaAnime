@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { useEffect, useRef, useState } from "react";
 
-import { WALLPAPER_LOAD_RETRIES, WALLPAPER_MAX_DPR } from "@/config/settings/wallpaper.config";
+import { WALLPAPER_LOAD_RETRIES, WALLPAPER_MAX_DPR } from "@/config/wallpaper.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { WallpaperCanvasProps } from "@/types/settings";
 

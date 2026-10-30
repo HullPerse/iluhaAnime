@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CHANGELOG } from "@/config/settings/changelog.config";
+import { CHANGELOG } from "@/config/changelog.config";
 import en from "@/lib/locale/en";
 import { translate } from "@/lib/locale/i18n.utils";
 import ru from "@/lib/locale/ru";

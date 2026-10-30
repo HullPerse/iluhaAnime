@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import Modal from "@/components/shared/modal.component";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import { clearModalScope, modalAtoms, popModal } from "@/store/modal.store";
 import type { ModalEntry, ModalScope } from "@/types/modal";
 

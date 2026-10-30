@@ -6,11 +6,11 @@ import { anilistApi } from "@/api/anilist.api";
 import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
+import { ACTIVITY_STATUS_FILTERS } from "@/config/activity.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { groupLabel, buildScoreByMedia } from "@/lib/anilist/activity.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
+import { groupLabel, buildScoreByMedia } from "@/lib/activity.utils";
+import { queryKeys } from "@/lib/keys.utils";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
 
 import { FeedItem } from "./feedItem.activity";

@@ -8,8 +8,8 @@
 
 import { bench, group } from "@pmndrs/labs";
 
-import { barLength, nearestIndex, ratioSegments } from "../../src/lib/charts/geometry.utils";
-import { bandScale, niceTicks } from "../../src/lib/charts/scale.utils";
+import { barLength, nearestIndex, ratioSegments } from "@/lib/geometry.utils";
+import { bandScale, niceTicks } from "@/lib/scale.utils";
 
 const SMALL = [8, 16, 32].map((count) =>
   Array.from({ length: count }, (_, index) => index * 24 + 12)

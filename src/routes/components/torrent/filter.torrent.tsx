@@ -4,7 +4,7 @@ import type { KeyboardEvent } from "react";
 import { BackdropLayer } from "@/components/shared/autocomplete/backdrop.autocomplete";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { HighlightToken } from "@/lib/highlight/highlight.utils";
+import type { HighlightToken } from "@/lib/highlight.utils";
 
 const NO_SEGMENTS: HighlightToken[] = [];
 

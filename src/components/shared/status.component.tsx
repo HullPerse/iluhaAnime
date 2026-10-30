@@ -1,12 +1,12 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 
-import { PROJECT_GITHUB_URL } from "@/config/settings/links.config";
+import { PROJECT_GITHUB_URL } from "@/config/links.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { isCurrentDownload } from "@/lib/torrent/common.utils";
+import { useCell } from "@/lib/signal.hook";
+import { isCurrentDownload } from "@/lib/torrentCommon.utils";
 import { notificationAtoms } from "@/store/notification.store";
 import { vimAtoms } from "@/store/vim.store";
 

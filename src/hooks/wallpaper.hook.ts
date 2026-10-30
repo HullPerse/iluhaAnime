@@ -1,10 +1,10 @@
 import { systemApi } from "@/api/system.api";
-import { DITHER_PLACEHOLDER_ID } from "@/config/utils/dither.config";
+import { DITHER_PLACEHOLDER_ID } from "@/config/dither.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { assetUrl } from "@/lib/utils/image.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { reportBackgroundError } from "@/lib/attempt.utils";
+import { assetUrl } from "@/lib/image.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { UserImage } from "@/types/userimage";
 

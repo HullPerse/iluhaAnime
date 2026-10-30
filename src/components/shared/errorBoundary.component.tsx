@@ -1,15 +1,15 @@
 import { Component } from "react";
 
-import { toFatalInfo } from "@/lib/fatal/classify.utils";
+import { toFatalInfo } from "@/lib/fatalClassify.utils";
 import {
   clearFatal,
   isCurrentSessionSafe,
   reportFatal,
   requestSafeMode,
   subscribeFatal,
-} from "@/lib/fatal/report.utils";
-import { readThemeName } from "@/lib/fatal/theme.utils";
-import { attemptSync } from "@/lib/utils/attempt.utils";
+} from "@/lib/report.utils";
+import { readThemeName } from "@/lib/fatalTheme.utils";
+import { attemptSync } from "@/lib/attempt.utils";
 import type { FatalInfo } from "@/types/fatal";
 import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types/ui";
 

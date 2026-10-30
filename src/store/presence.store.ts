@@ -1,4 +1,4 @@
-import { createSignalStore } from "@/lib/state/signal.store";
+import { createSignalStore } from "@/lib/signal.store";
 import type { DiscordPresenceDetail } from "@/types/discord";
 
 const store = createSignalStore();

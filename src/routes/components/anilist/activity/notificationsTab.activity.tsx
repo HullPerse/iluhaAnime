@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatActivityTime } from "@/lib/anilist/activity.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { formatActivityTime } from "@/lib/activity.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { anilistNotificationsAtoms, markSiteNotificationsRead } from "@/store/anilist.store";
 import type { AniSiteNotification } from "@/types/anilist";
 

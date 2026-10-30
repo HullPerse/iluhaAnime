@@ -14,18 +14,13 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { formatBackupDate } from "@/lib/settings/backup.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import {
-  attempt,
-  attemptAll,
-  reportBackgroundError,
-  withFallback,
-} from "@/lib/utils/attempt.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { showError, showInfo, showWarning } from "@/lib/utils/notification.utils";
-import { buildReproFrontend } from "@/lib/utils/repro.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { formatBackupDate } from "@/lib/backup.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, attemptAll, reportBackgroundError, withFallback } from "@/lib/attempt.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { showError, showInfo, showWarning } from "@/lib/notification.utils";
+import { buildReproFrontend } from "@/lib/repro.utils";
 import { searchAtoms } from "@/store/search.store";
 import { getSettingsSnapshot, patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SettingsTab } from "@/types/settings";

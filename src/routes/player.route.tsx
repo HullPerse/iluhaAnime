@@ -10,7 +10,7 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { NO_TORRENTS } from "@/config/torrent/common.config";
+import { NO_TORRENTS } from "@/config/common.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
@@ -20,30 +20,30 @@ import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
-import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
-import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
-import { folderTreesFromScan, fingerprint } from "@/lib/player/scan.utils";
-import { folderScanBus } from "@/lib/player/scanBus.utils";
+import { shouldIgnoreHotkeys } from "@/lib/filterHotkeys.utils";
+import { focusMainSearch } from "@/lib/focusHotkeys.utils";
+import { folderTreesFromScan, fingerprint } from "@/lib/scan.utils";
+import { folderScanBus } from "@/lib/scanBus.utils";
 import {
   buildTree,
   filterTreeByPaths,
   patchTreeFile,
   removeTreeFile,
-} from "@/lib/player/tree.utils";
-import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { playerVisibility } from "@/lib/settings/playerVisibility.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { isExtraFile } from "@/lib/torrent/extra.utils";
-import { attempt, attemptRetry, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
-import { createCoalescedRunner } from "@/lib/utils/promise.utils";
-import { unwrapOr } from "@/lib/utils/result.utils";
-import { parseValue } from "@/lib/utils/schema.utils";
-import { patchableVideoChanges, touchesExtensions } from "@/lib/watcher/changes.watcher";
-import { WATCHER_DEBOUNCE_MS } from "@/lib/watcher/delay.watcher";
-import { normalizePath } from "@/lib/watcher/paths.watcher";
+} from "@/lib/playerTree.utils";
+import { filterTreeByHiddenPaths } from "@/lib/visibility.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { playerVisibility } from "@/lib/playerVisibility.utils";
+import { useCell } from "@/lib/signal.hook";
+import { isExtraFile } from "@/lib/extra.utils";
+import { attempt, attemptRetry, reportBackgroundError } from "@/lib/attempt.utils";
+import { invokeTyped } from "@/lib/invoke.utils";
+import { showError, showErrorOnce } from "@/lib/notification.utils";
+import { createCoalescedRunner } from "@/lib/promise.utils";
+import { unwrapOr } from "@/lib/result.utils";
+import { parseValue } from "@/lib/schema.utils";
+import { patchableVideoChanges, touchesExtensions } from "@/lib/changesWatcher.utils";
+import { WATCHER_DEBOUNCE_MS } from "@/lib/delayWatcher.utils";
+import { normalizePath } from "@/lib/pathsWatcher.utils";
 import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import {
   addCategory,

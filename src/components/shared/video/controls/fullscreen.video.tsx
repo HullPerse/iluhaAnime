@@ -2,7 +2,7 @@ import { Maximize, Minimize } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { reportBackgroundError } from "@/lib/attempt.utils";
 
 import { Win95PlayerButton } from "./win95PlayerButton.video";
 

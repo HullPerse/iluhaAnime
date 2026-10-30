@@ -3,8 +3,8 @@ import { Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { showError } from "@/lib/notification.utils";
 import type { CollectionItem } from "@/types/collection";
 
 export function DetailActionsCollection({ item }: { item: CollectionItem }) {

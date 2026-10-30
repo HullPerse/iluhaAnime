@@ -1,7 +1,7 @@
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
-import type { Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { attemptSync } from "@/lib/utils/attempt.utils";
+import { createPersistedStoreContext } from "@/lib/persisted.utils";
+import type { Persistor } from "@/lib/persist.utils";
+import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { attemptSync } from "@/lib/attempt.utils";
 import type {
   AniListFriendsStore,
   AniListNotificationsStore,

@@ -1,10 +1,10 @@
 import { cn } from "cn";
 
 import { Button } from "@/components/ui/button.component";
-import { DITHER_PALETTE_PRESETS, DITHER_PALETTE_PRESET_LABELS } from "@/config/utils/dither.config";
+import { DITHER_PALETTE_PRESETS, DITHER_PALETTE_PRESET_LABELS } from "@/config/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { rgbToHex } from "@/lib/utils/color.utils";
-import { palettesEqual } from "@/lib/utils/dither.utils";
+import { rgbToHex } from "@/lib/color.utils";
+import { palettesEqual } from "@/lib/dither.utils";
 import type { DitherRGB } from "@/types/dither";
 
 export function PalettePresetStrip({

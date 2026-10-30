@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
-import { useCell } from "@/lib/state/signal.hook";
+import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
+import { useCell } from "@/lib/signal.hook";
 import {
   streamFilters,
   streamPage,

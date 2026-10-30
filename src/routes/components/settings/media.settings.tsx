@@ -2,11 +2,11 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
-import { STREAM_QUALITIES, streamQualityLabel } from "@/config/stream/quality.config";
+import { DEFAULT_SETTINGS } from "@/config/settingsDefaults.config";
+import { STREAM_QUALITIES, streamQualityLabel } from "@/config/quality.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { parseExtensions } from "@/lib/settings/media.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { parseExtensions } from "@/lib/settingsMedia.utils";
+import { useCell } from "@/lib/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import { ExtensionRow } from "./extensionRow.settings";

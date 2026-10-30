@@ -3,8 +3,8 @@ import { Check, Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { Debouncer } from "@/lib/pacer/debounce.utils";
-import { buildAnimeLink } from "@/lib/utils/deeplink.utils";
+import { Debouncer } from "@/lib/debounce.utils";
+import { buildAnimeLink } from "@/lib/deeplink.utils";
 import type { AniListId } from "@/types/types";
 
 export function CopyLinkButton({ animeId }: { animeId: number }) {

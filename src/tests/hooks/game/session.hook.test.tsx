@@ -1,7 +1,7 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { GAME_DISPLAY } from "@/config/game/display.config";
+import { GAME_DISPLAY } from "@/config/display.config";
 import { useGameSession } from "@/hooks/game/session.hook";
 import type { GameSessionHandle } from "@/hooks/game/session.hook";
 import {
@@ -15,7 +15,7 @@ import {
   LOW_XO_FRAME_BYTES,
   XO_AUDIO_BYTES,
   parseHexColor,
-} from "@/lib/game/frame.utils";
+} from "@/lib/frame.utils";
 import type { GameRomInfo, GameStartInfo } from "@/types/game";
 
 import { mockInvoke } from "../../mocks";
@@ -27,7 +27,7 @@ const audio = vi.hoisted(() => ({
   dispose: vi.fn(),
 }));
 
-vi.mock("@/lib/game/audio.utils", () => ({ createGameAudio: () => audio }));
+vi.mock("@/lib/audio.utils", () => ({ createGameAudio: () => audio }));
 
 const ROM: GameRomInfo = {
   id: "rom:test-1",

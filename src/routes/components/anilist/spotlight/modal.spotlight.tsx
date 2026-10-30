@@ -7,18 +7,18 @@ import {
   SPOTLIGHT_KINDS,
   SPOTLIGHT_LABELS,
   SPOTLIGHT_REFRESH_TICK_MS,
-} from "@/config/anilist/spotlight.config";
+} from "@/config/spotlight.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
+import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
 import {
   resolveSpotlightPick,
   spotlightBoundaryMs,
   spotlightPeriodKey,
-} from "@/lib/anilist/spotlight.utils";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { formatETA } from "@/lib/utils/time.utils";
+} from "@/lib/spotlight.utils";
+import { createInterval } from "@/lib/interval.utils";
+import { readAppCache, writeAppCache } from "@/lib/cache.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { formatETA } from "@/lib/time.utils";
 import type { ActivityDetailBundle } from "@/types/anilist";
 import type { AniMedia, SpotlightKind, SpotlightRowState } from "@/types/anilist";
 

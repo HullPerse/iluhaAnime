@@ -1,9 +1,9 @@
 import ImageComponent from "@/components/ui/image.component";
-import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
+import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/activity.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatActivityTime } from "@/lib/anilist/activity.utils";
+import { formatActivityTime } from "@/lib/activity.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { AniActivity } from "@/types/anilist";
 
 import { ActivityLikeButton } from "./like.activity";

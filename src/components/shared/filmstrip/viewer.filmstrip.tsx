@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { FilmstripTab } from "@/types/media";
 
 import { FilmstripThumb } from "./thumb.filmstrip";

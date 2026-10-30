@@ -2,12 +2,12 @@ import { Bell, BellDot } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { NO_TORRENTS } from "@/config/torrent/common.config";
+import { NO_TORRENTS } from "@/config/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { isCurrentDownload } from "@/lib/torrent/common.utils";
-import { openNotificationTarget, showError } from "@/lib/utils/notification.utils";
+import { useCell } from "@/lib/signal.hook";
+import { isCurrentDownload } from "@/lib/torrentCommon.utils";
+import { openNotificationTarget, showError } from "@/lib/notification.utils";
 import {
   clearAllNotifications as clearAll,
   clearNotification as clear,

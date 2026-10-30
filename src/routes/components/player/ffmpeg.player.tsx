@@ -3,12 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
-import { FFMPEG_SOURCE_SIZES } from "@/config/player/sources.config";
+import { FFMPEG_SOURCE_SIZES } from "@/config/playerSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { invokeTyped } from "@/lib/invoke.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { FFMPEGStatus } from "@/types/settings";

@@ -2,9 +2,9 @@ import { useCallback, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { useI18n } from "@/hooks/i18n.hook";
-import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { searchFiltersToParams } from "@/lib/entries.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { showError } from "@/lib/notification.utils";
 import type { AniListFilters, AniMedia } from "@/types/anilist";
 import type { FilterPage } from "@/types/ipc";
 

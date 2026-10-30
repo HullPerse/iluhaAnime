@@ -14,9 +14,9 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
-import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
-import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
+import { filterEntries, sortEntries } from "@/lib/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
+import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilistGroup.utils";
 import {
   buildAnilistSourceKey,
   pickDisplayEntries,
@@ -24,16 +24,16 @@ import {
   isLocalSearch,
   resolveAniListView,
   routePeople,
-} from "@/lib/anilist/route.utils";
-import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score.utils";
-import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
-import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
+} from "@/lib/anilistRoute.utils";
+import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilistScore.utils";
+import { focusMainSearch } from "@/lib/focusHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { showErrorOnce } from "@/lib/utils/notification.utils";
-import { paginate } from "@/lib/utils/pagination.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { showErrorOnce } from "@/lib/notification.utils";
+import { paginate } from "@/lib/pagination.utils";
 import {
   addAnilistFriend,
   anilistFriendsAtoms,

@@ -1,8 +1,8 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { GENRE_PREVIEW_COUNT } from "@/config/collection/card.config";
+import { GENRE_PREVIEW_COUNT } from "@/config/card.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatScore, parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilist/score.utils";
-import { anilistStatusToCollection } from "@/lib/collection/import.utils";
+import { formatScore, parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import { anilistStatusToCollection } from "@/lib/import.utils";
 import type { AniListEntry } from "@/types/anilist";
 
 export function EntryRow({

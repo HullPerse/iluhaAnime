@@ -6,15 +6,15 @@ import { Input } from "@/components/ui/input.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
+import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
 import {
   applyPageFindHighlights,
   clearPageFindHighlights,
   scrollMatchIntoView,
   searchPageFind,
   stepPageFindIndex,
-} from "@/lib/search/pageFind.search";
-import { useCell } from "@/lib/state/signal.hook";
+} from "@/lib/pageFind.utils";
+import { useCell } from "@/lib/signal.hook";
 import {
   closeFindBar,
   findBarAtoms,

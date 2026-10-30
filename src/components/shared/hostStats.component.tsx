@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatSpeed, fmtSpeed } from "@/lib/torrent/common.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
+import { formatSpeed, fmtSpeed } from "@/lib/torrentCommon.utils";
+import { formatBytes } from "@/lib/bytes.utils";
 import type { HostStats } from "@/types/ipc";
 
 const WARN_PERCENT = 80;

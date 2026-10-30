@@ -5,8 +5,8 @@ import {
   normalizeToTen,
   parseScoreFormat,
   scoreFormatMax,
-} from "../../src/lib/anilist/score.utils";
-import type { AnilistScoreFormat } from "../../src/lib/anilist/score.utils";
+} from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
 
 const FORMATS: AnilistScoreFormat[] = ["POINT_100", "POINT_10_DECIMAL", "POINT_10", "POINT_5", "POINT_3"];
 

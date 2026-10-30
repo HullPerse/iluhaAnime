@@ -5,9 +5,9 @@ import { memo, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
+import { areTorrentItemsEqual } from "@/lib/torrentItem.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { formatVerticalDragTransform } from "@/lib/drag.utils";
 import type { TFunc } from "@/types/i18n";
 import type { TorrentFileInfo, TorrentInfo, TorrentItemProps as Props } from "@/types/torrent";
 

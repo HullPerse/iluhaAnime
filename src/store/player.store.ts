@@ -1,10 +1,10 @@
-import { DEFAULT_VOLUME } from "@/config/player/video.config";
-import { Debouncer } from "@/lib/pacer/debounce.utils";
-import type { Persistor } from "@/lib/state/persist.utils";
-import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { resolveWithDefaults, type MigrationState } from "@/lib/store/migrate.utils";
-import { attemptSync } from "@/lib/utils/attempt.utils";
+import { DEFAULT_VOLUME } from "@/config/video.config";
+import { Debouncer } from "@/lib/debounce.utils";
+import type { Persistor } from "@/lib/persist.utils";
+import { createPersistedStoreContext } from "@/lib/persisted.utils";
+import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { resolveWithDefaults, type MigrationState } from "@/lib/migrate.utils";
+import { attemptSync } from "@/lib/attempt.utils";
 import type {
   MpvChapter,
   MpvTrack,

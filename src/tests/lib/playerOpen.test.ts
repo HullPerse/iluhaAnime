@@ -8,7 +8,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import { resetTransportInflight } from "@/api/transport.api";
-import { insertPlaylistFiles, openPlayer } from "@/lib/player/playback.utils";
+import { insertPlaylistFiles, openPlayer } from "@/lib/playback.utils";
 
 function playerOpenArgs(): Array<Record<string, unknown> | undefined> {
   return invokeMock.mock.calls.filter(([name]) => name === "player_open").map(([, args]) => args);

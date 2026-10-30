@@ -2,11 +2,11 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import { tr } from "@/lib/locale/i18n.utils";
-import { buildOutputPath } from "@/lib/player/tree.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { buildOutputPath } from "@/lib/playerTree.utils";
+import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { invokeTyped } from "@/lib/invoke.utils";
+import { ignore } from "@/lib/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { scheduleTask, sleep, type ScheduledTask, type SleepTask } from "@/lib/pacer/shared.utils";
-import { detectMigrations } from "@/lib/splash/migrations.utils";
+import { scheduleTask, sleep, type ScheduledTask, type SleepTask } from "@/lib/shared.utils";
+import { detectMigrations } from "@/lib/migrations.utils";
 import {
   awaitCacheReady,
   awaitSignal,
@@ -10,8 +10,8 @@ import {
   isSpellingReady,
   onIndexReady,
   onSpellingReady,
-} from "@/lib/splash/signals.utils";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+} from "@/lib/signals.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
 import type { DatabaseStatus } from "@/types/db";
 
 export type SplashStageId =

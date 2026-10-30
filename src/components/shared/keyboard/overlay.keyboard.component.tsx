@@ -7,10 +7,10 @@ import {
   hintLayoutsEqual,
   measureBadgeLayouts,
   resolveBadgeCollisions,
-} from "@/lib/hotkeys/hints.hotkeys";
-import type { HintBadgeLayout } from "@/lib/hotkeys/hints.hotkeys";
-import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
-import { useCell } from "@/lib/state/signal.hook";
+} from "@/lib/hintsHotkeys.utils";
+import type { HintBadgeLayout } from "@/lib/hintsHotkeys.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { useCell } from "@/lib/signal.hook";
 import { vimAtoms } from "@/store/vim.store";
 
 function badgeClass(layout: HintBadgeLayout): string {

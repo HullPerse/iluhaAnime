@@ -1,5 +1,5 @@
-import { CHART_LAYOUT } from "@/config/charts/palette.config";
-import { clamp } from "@/lib/utils/math.utils";
+import { CHART_LAYOUT } from "@/config/palette.config";
+import { clamp } from "@/lib/math.utils";
 
 import type { ChartPlot } from "./frame.chart";
 

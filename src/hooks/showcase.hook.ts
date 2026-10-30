@@ -1,8 +1,8 @@
 import { tmdbApi } from "@/api/tmdb.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { withFallback } from "@/lib/utils/attempt.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
+import { withFallback } from "@/lib/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniMedia, AnimeShowcase } from "@/types/anilist";
 

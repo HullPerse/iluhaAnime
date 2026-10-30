@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { createInterval } from "@/lib/interval.utils";
+import { useCell } from "@/lib/signal.hook";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
   fmtSpeed,
   getDisplayState,
-} from "@/lib/torrent/common.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { formatElapsed, formatETA } from "@/lib/utils/time.utils";
+} from "@/lib/torrentCommon.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { formatElapsed, formatETA } from "@/lib/time.utils";
 import { torrentAtoms } from "@/store/download.store";
 import type { TorrentInfo } from "@/types/torrent";
 

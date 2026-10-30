@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { reportBackgroundError } from "@/lib/attempt.utils";
 
 const CONTROL_CLASS = "relative h-5 w-5";
 const CONTROL_ICON_CLASS = "size-2.5";

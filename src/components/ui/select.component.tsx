@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useMemo, useRef } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { scheduleTask } from "@/lib/pacer/shared.utils";
+import { scheduleTask } from "@/lib/shared.utils";
 import type { SelectProps } from "@/types/ui";
 
 import { Input } from "./input.component";

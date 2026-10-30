@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { assertNever } from "@/lib/utils/type.utils";
+import { assertNever } from "@/lib/type.utils";
 import type {
   AniListId,
   ArrayElement,

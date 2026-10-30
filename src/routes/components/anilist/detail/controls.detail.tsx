@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { listStatusOptions } from "@/config/anilist/labels.config";
+import { listStatusOptions } from "@/config/labels.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isValidFuzzyDateInput } from "@/lib/anilist/entries.utils";
+import { isValidFuzzyDateInput } from "@/lib/entries.utils";
 import {
   numericInputStep,
   parseScoreFormat,
@@ -18,10 +18,10 @@ import {
   usesNumericInput,
   validateScoreInput,
   type AnilistScoreFormat,
-} from "@/lib/anilist/score.utils";
-import { buildAnilistPrefill } from "@/lib/collection/import.utils";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+} from "@/lib/anilistScore.utils";
+import { buildAnilistPrefill } from "@/lib/import.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { attempt } from "@/lib/attempt.utils";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import { requestWizardPrefill } from "@/store/collection.store";
 import type { AniMedia, AniSavedEntry, AnilistRouteData } from "@/types/anilist";

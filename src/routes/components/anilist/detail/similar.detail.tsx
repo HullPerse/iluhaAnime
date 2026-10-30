@@ -6,11 +6,11 @@ import ProgressBar from "@/components/shared/progress.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
+import { ANILIST_SIMILAR_LIMIT } from "@/config/detail.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { queryKeys } from "@/lib/keys.utils";
+import { useCell } from "@/lib/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { AniRecommendation, AniRelation } from "@/types/anilist";
 

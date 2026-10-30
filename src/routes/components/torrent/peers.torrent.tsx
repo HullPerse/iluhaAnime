@@ -10,11 +10,11 @@ import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { buildTorrentLink } from "@/lib/deeplink.utils";
+import { showError } from "@/lib/notification.utils";
 import type { TorrentHash } from "@/types/types";
 
 import { TorrentTrackersBlock } from "./sections/trackers.sections";

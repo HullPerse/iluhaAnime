@@ -4,18 +4,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import {
-  NOTIFICATION_TYPE_COLORS,
-  NOTIFICATION_TYPE_ICONS,
-} from "@/config/settings/notifications.config";
-import { Debouncer } from "@/lib/pacer/debounce.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import {
-  COPIED_FEEDBACK_MS,
-  copyNotification,
-  formatRelativeTime,
-} from "@/lib/utils/notification.utils";
+import { NOTIFICATION_TYPE_COLORS, NOTIFICATION_TYPE_ICONS } from "@/config/notifications.config";
+import { Debouncer } from "@/lib/debounce.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
+import { COPIED_FEEDBACK_MS, copyNotification, formatRelativeTime } from "@/lib/notification.utils";
 import type { NotificationRowProps } from "@/types/notification";
 
 export default function NotificationRow({

@@ -5,7 +5,7 @@ import { useRef } from "react";
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { StreamingEpisode } from "@/types/stream";
 
 const VIRTUALIZE_AFTER = 40;

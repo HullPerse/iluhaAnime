@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/query/keys.utils";
-import { downloadOrderPositions } from "@/lib/torrent/queue.utils";
-import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/update.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { showError } from "@/lib/utils/notification.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { queryKeys } from "@/lib/keys.utils";
+import { downloadOrderPositions } from "@/lib/torrentQueue.utils";
+import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrentUpdate.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { formatBytes } from "@/lib/bytes.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
+import { showError } from "@/lib/notification.utils";
+import { ignore } from "@/lib/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   FilePriority,

@@ -1,9 +1,9 @@
 import { cn } from "cn";
 import { memo } from "react";
 
-import { suggestionKindLabels } from "@/config/search/autocomplete.config";
+import { suggestionKindLabels } from "@/config/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
+import type { SearchSuggestion } from "@/lib/suggestions.utils";
 import type { SuggestionSection } from "@/types/search";
 
 import { SuggestionItem } from "./suggestion.autocomplete";

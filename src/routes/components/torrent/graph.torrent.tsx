@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { fmtSpeed } from "@/lib/torrent/common.utils";
+import { fmtSpeed } from "@/lib/torrentCommon.utils";
 import type { DhtStatus } from "@/types/torrent";
 
 const GRAPH_POINTS = 120;

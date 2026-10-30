@@ -1,4 +1,4 @@
-import { renderDitherImage } from "@/lib/utils/dither.render.utils";
+import { renderDitherImage } from "@/lib/ditherRender.utils";
 import type {
   DitherWorkerProgress,
   DitherWorkerRequest,

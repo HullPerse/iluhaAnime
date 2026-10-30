@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useMediaEntry } from "@/hooks/media.hook";
-import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
-import { useCell } from "@/lib/state/signal.hook";
+import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import { playbackAtoms, playerAtoms } from "@/store/player.store";
 

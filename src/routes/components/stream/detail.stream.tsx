@@ -11,16 +11,16 @@ import {
   useStreamHistoryForAnime,
   useStreamTitle,
 } from "@/hooks/stream/catalog.hook";
-import { loadWatch, openStream, prewarmPlayer } from "@/lib/player/playback.utils";
-import { RESUME_END_MARGIN, RESUME_MIN } from "@/lib/player/resume.utils";
-import { buildWatchKey } from "@/lib/stream/helpers";
-import { historyByEpisode, isEpisodeWatched } from "@/lib/stream/history.utils";
-import { emptyPrefs, pickVariant, withQuality, withVariant } from "@/lib/stream/prefs.utils";
-import { pickSource, toVariantSources } from "@/lib/stream/sources.utils";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { buildStreamLink } from "@/lib/utils/deeplink.utils";
-import { inflightFetch } from "@/lib/utils/lruCache.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import { loadWatch, openStream, prewarmPlayer } from "@/lib/playback.utils";
+import { RESUME_END_MARGIN, RESUME_MIN } from "@/lib/resume.utils";
+import { buildWatchKey } from "@/lib/streamHelpers.utils";
+import { historyByEpisode, isEpisodeWatched } from "@/lib/history.utils";
+import { emptyPrefs, pickVariant, withQuality, withVariant } from "@/lib/streamPrefs.utils";
+import { pickSource, toVariantSources } from "@/lib/sources.utils";
+import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { buildStreamLink } from "@/lib/deeplink.utils";
+import { inflightFetch } from "@/lib/lruCache.utils";
+import { ignore } from "@/lib/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { streamStore } from "@/store/stream.store";

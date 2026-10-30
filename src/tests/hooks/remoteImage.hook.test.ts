@@ -10,7 +10,7 @@ import {
   useRemoteImageStatus,
   useStreamCover,
 } from "@/hooks/remoteImage.hook";
-import { assetUrl } from "@/lib/utils/image.utils";
+import { assetUrl } from "@/lib/image.utils";
 import { patchSettings } from "@/store/settings.store";
 
 vi.mock("@tauri-apps/api/core", () => ({

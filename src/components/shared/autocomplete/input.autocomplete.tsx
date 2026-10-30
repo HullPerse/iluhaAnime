@@ -3,14 +3,14 @@ import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "
 import type { KeyboardEvent, RefObject } from "react";
 
 import { Input } from "@/components/ui/input.component";
-import { AUTOCOMPLETE_HISTORY_LIMIT } from "@/config/search/autocomplete.config";
+import { AUTOCOMPLETE_HISTORY_LIMIT } from "@/config/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { findSubsequenceRanges, mergeRanges, splitByRanges } from "@/lib/highlight/highlight.utils";
-import { computeGhostValue, getAriaAutocomplete } from "@/lib/search/highlight.utils";
-import { groupSuggestions, rankHistoryEntries } from "@/lib/search/suggestions.utils";
-import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
+import { findSubsequenceRanges, mergeRanges, splitByRanges } from "@/lib/highlight.utils";
+import { computeGhostValue, getAriaAutocomplete } from "@/lib/searchHighlight.utils";
+import { groupSuggestions, rankHistoryEntries } from "@/lib/suggestions.utils";
+import type { SearchSuggestion } from "@/lib/suggestions.utils";
+import { useCell } from "@/lib/signal.hook";
+import { createListNavigationHandler } from "@/lib/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   AutocompleteInputProps,

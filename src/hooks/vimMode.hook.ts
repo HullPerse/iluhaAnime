@@ -7,24 +7,24 @@ import {
   VIM_LABEL_ALPHABET,
   VIM_SCROLL_LINE_PX,
   TREE_ROW_SELECTOR,
-} from "@/config/keyboard/vim.config";
-import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
-import { TAB_PATHS } from "@/config/tabs/paths.config";
-import { flashTarget } from "@/lib/highlight/flash.utils";
-import { blurEditable, shouldBlurOnEscape } from "@/lib/hotkeys/blur.hotkeys";
-import { dispatchClick, dispatchFocus } from "@/lib/hotkeys/dispatch.hotkeys";
-import { createVimEngine } from "@/lib/hotkeys/engine.hotkeys";
-import type { VimCommand, VimEngine } from "@/lib/hotkeys/engine.hotkeys";
-import { reduceHintKey, scanHintTargets } from "@/lib/hotkeys/hints.hotkeys";
-import type { HintBadge } from "@/lib/hotkeys/hints.hotkeys";
-import { isInsideLayer, setHintsLayerVisible, topLayerElement } from "@/lib/hotkeys/layer.hotkeys";
-import { createPinTimer } from "@/lib/hotkeys/pin.hotkeys";
-import { resolveKeybinds } from "@/lib/hotkeys/resolve.hotkeys";
-import { focusTreeSibling } from "@/lib/hotkeys/tabs.hotkeys";
-import type { Debouncer } from "@/lib/pacer/debounce.utils";
-import { useCell } from "@/lib/state/signal.hook";
-import { closestScrollable, scrollAmount } from "@/lib/utils/scroll.utils";
-import type { ScrollDirection } from "@/lib/utils/scroll.utils";
+} from "@/config/vim.config";
+import { PLAYER_ROUTE } from "@/config/playerRoute.config";
+import { TAB_PATHS } from "@/config/tabPaths.config";
+import { flashTarget } from "@/lib/flash.utils";
+import { blurEditable, shouldBlurOnEscape } from "@/lib/blurHotkeys.utils";
+import { dispatchClick, dispatchFocus } from "@/lib/dispatchHotkeys.utils";
+import { createVimEngine } from "@/lib/engineHotkeys.utils";
+import type { VimCommand, VimEngine } from "@/lib/engineHotkeys.utils";
+import { reduceHintKey, scanHintTargets } from "@/lib/hintsHotkeys.utils";
+import type { HintBadge } from "@/lib/hintsHotkeys.utils";
+import { isInsideLayer, setHintsLayerVisible, topLayerElement } from "@/lib/layerHotkeys.utils";
+import { createPinTimer } from "@/lib/pinHotkeys.utils";
+import { resolveKeybinds } from "@/lib/resolveHotkeys.utils";
+import { focusTreeSibling } from "@/lib/tabsHotkeys.utils";
+import type { Debouncer } from "@/lib/debounce.utils";
+import { useCell } from "@/lib/signal.hook";
+import { closestScrollable, scrollAmount } from "@/lib/scroll.utils";
+import type { ScrollDirection } from "@/lib/scroll.utils";
 import { registerOverlay } from "@/store/overlay.store";
 import { settingsAtoms } from "@/store/settings.store";
 import {

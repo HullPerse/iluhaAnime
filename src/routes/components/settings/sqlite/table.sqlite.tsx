@@ -1,4 +1,4 @@
-import { makeRowId } from "@/lib/sqlite/row.utils";
+import { makeRowId } from "@/lib/sqliteRow.utils";
 import type { RowsTableProps } from "@/types/sqlite";
 
 import { RowsTableHead } from "./table/head.sqlite";

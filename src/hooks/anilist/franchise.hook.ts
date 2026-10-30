@@ -6,7 +6,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 
-import { FRANCHISE_VIEWPORT } from "@/config/anilist/graph.config";
+import { FRANCHISE_VIEWPORT } from "@/config/graph.config";
 import {
   cameraCenteredOn,
   cameraTransform,
@@ -14,9 +14,9 @@ import {
   panCameraBy,
   screenToWorld,
   zoomCameraAt,
-} from "@/lib/anilist/camera.utils";
-import { createAnimationLoop, type AnimationLoopTask } from "@/lib/pacer/interval.utils";
-import { scheduleTask, type ScheduledTask } from "@/lib/pacer/shared.utils";
+} from "@/lib/camera.utils";
+import { createAnimationLoop, type AnimationLoopTask } from "@/lib/interval.utils";
+import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
 import type {
   CameraPoint,
   FranchiseCamera,

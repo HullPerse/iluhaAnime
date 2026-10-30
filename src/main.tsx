@@ -6,14 +6,10 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 
 import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
-import { QUERY_CONFIG } from "@/config/store/query.config";
-import {
-  isResizeObserverLoopError,
-  noteGlobalError,
-  toFatalInfo,
-} from "@/lib/fatal/classify.utils";
-import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/fatal/report.utils";
-import { readThemeName } from "@/lib/fatal/theme.utils";
+import { QUERY_CONFIG } from "@/config/query.config";
+import { isResizeObserverLoopError, noteGlobalError, toFatalInfo } from "@/lib/fatalClassify.utils";
+import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/report.utils";
+import { readThemeName } from "@/lib/fatalTheme.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { router } from "@/routes/__root";
 import { addNotification } from "@/store/notification.store";

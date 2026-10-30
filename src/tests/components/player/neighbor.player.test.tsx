@@ -7,7 +7,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { resetCardCache } from "@/lib/player/cardCache.utils";
+import { resetCardCache } from "@/lib/cardCache.utils";
 import NeighborFileButton from "@/routes/components/player/media/neighbor.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";

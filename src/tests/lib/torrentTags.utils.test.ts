@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  normalizeTagValue,
-  parseTorrentTags,
-  torrentTagsToFilters,
-} from "@/lib/search/torrentTags.utils";
+import { normalizeTagValue, parseTorrentTags, torrentTagsToFilters } from "@/lib/torrentTags.utils";
 
 describe("parseTorrentTags", () => {
   it("splits tags from clean text", () => {

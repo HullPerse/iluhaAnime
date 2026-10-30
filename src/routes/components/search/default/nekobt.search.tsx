@@ -5,8 +5,8 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/utils/attempt.utils";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { attempt } from "@/lib/attempt.utils";
+import { enterSubmit } from "@/lib/keyboard.utils";
 
 function NekoBtApiModal({
   setNekoBtAuth,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 
-import { GAME_DISPLAY } from "@/config/game/display.config";
+import { GAME_DISPLAY } from "@/config/display.config";
 
 /**
  * Fits the stage with whole-pixel canvas scale so the framebuffer is never

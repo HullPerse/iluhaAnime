@@ -105,7 +105,7 @@ const playback = vi.hoisted(() => ({
   prewarmPlayer: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/lib/player/playback.utils", () => playback);
+vi.mock("@/lib/playback.utils", () => playback);
 
 vi.mock("@/routes/components/anilist/detail/modal.detail", () => ({
   default: ({

@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/state/signal.hook";
+import { useCell } from "@/lib/signal.hook";
 import { playbackAtoms } from "@/store/player.store";
 
 function formatFps(value: number | undefined): string {

@@ -4,7 +4,7 @@ import { Maximize, Maximize2, Minimize, Minimize2, Settings, X } from "lucide-re
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { reportBackgroundError } from "@/lib/attempt.utils";
 
 function startsOnControl(target: EventTarget | null) {
   return target instanceof Element && target.closest("button, [data-no-drag]") !== null;

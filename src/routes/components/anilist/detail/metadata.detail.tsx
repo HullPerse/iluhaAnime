@@ -2,7 +2,7 @@ import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
-import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
+import { formatLabels, seasonLabels, statusLabels } from "@/config/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import {
@@ -10,10 +10,10 @@ import {
   airingCountdownSecs,
   formatAiringCountdown,
   formatAiringLocal,
-} from "@/lib/anilist/airing.utils";
+} from "@/lib/airing.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { createInterval } from "@/lib/pacer/interval.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { createInterval } from "@/lib/interval.utils";
+import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { AniMedia } from "@/types/anilist";
 
 function AniListMetadata({

@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { useRef } from "react";
@@ -12,17 +13,19 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useDayNightScheduler } from "@/hooks/schedule.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { useEnsureAnimeIndex, usePrewarmSpellIndex } from "@/hooks/search/animeIndex.hook";
-import { useSplashStages } from "@/hooks/splash.hook";
 import { useSecretCode } from "@/hooks/secretCode.hook";
+import { useSplashStages } from "@/hooks/splash.hook";
+import { prefetchStreamConstants, usePrewarmStreamHistory } from "@/hooks/stream/catalog.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
+import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
 import { isCurrentSessionSafe } from "@/lib/fatal/report.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { resolveSecretTabAction } from "@/lib/tabs.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
-import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { cacheAtoms } from "@/store/cache.store";
 import {
   cancelTorrentDownload as cancelDownload,
@@ -36,8 +39,8 @@ import type { TabId } from "@/types/settings";
 
 import PageFindBar from "./components/shared/keyboard/findBar.keyboard.component";
 import KeyboardHintOverlay from "./components/shared/keyboard/overlay.keyboard.component";
-import NotificationTray from "./components/shared/notification/tray.notification";
 import NotificationToasts from "./components/shared/notification/toasts.notification";
+import NotificationTray from "./components/shared/notification/tray.notification";
 import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
 import StatusBar from "./components/shared/status.component";
 import Tabs from "./components/shared/tabs.component";
@@ -53,6 +56,17 @@ const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   settings: () => import("@/routes/settings.route"),
   stream: () => import("@/routes/stream.route"),
   torrent: () => import("@/routes/torrent.route"),
+};
+
+/**
+ * Data a tab can warm once its chunk is prefetched. Only the streaming tab has
+ * any: its filter lists come from one request the Rust client caches for
+ * twenty minutes, so a hover hides the network from the first "Filters" click.
+ * The app start stays out of this: the request happens only when someone shows
+ * interest in the tab.
+ */
+const TAB_WARM: Partial<Record<TabId, (client: QueryClient) => Promise<unknown>>> = {
+  stream: (client) => prefetchStreamConstants(client),
 };
 
 export default function App() {
@@ -88,14 +102,23 @@ export default function App() {
       if (error) {
         prefetchedTabs.current.delete(id);
         reportBackgroundError("tab.prefetch", error);
+        return;
       }
+      // A failed data warm is not a failed chunk prefetch: the tab still opens
+      // and its own query retries, so the warm reports nothing and stays
+      // best-effort.
+      const warm = TAB_WARM[id];
+      if (warm) ignore(attempt(warm(queryClient)).then(() => undefined));
     })();
   };
 
   useTray(tabs, goToTab);
   useVimMode();
   useSecretCode(() => {
-    const action = resolveSecretTabAction(settingsAtoms.gameTabUnlocked.get(), activeTab === "game");
+    const action = resolveSecretTabAction(
+      settingsAtoms.gameTabUnlocked.get(),
+      activeTab === "game"
+    );
     if (action === "reveal") {
       patchSettings({ gameTabUnlocked: true });
       goToTab("game");
@@ -120,6 +143,10 @@ export default function App() {
   };
 
   const splash = useSplashStages(tabs.length > 0);
+  // The history strip is read after the splash, not during it: the rows are
+  // local and cheap, and warming them here keeps the first "History" click
+  // from paying for the database read.
+  usePrewarmStreamHistory(splash.done);
   if (!fastLaunch && !splash.done && !splash.dbFailed) {
     return (
       <SplashScreen

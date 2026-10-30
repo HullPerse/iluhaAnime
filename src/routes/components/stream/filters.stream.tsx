@@ -286,7 +286,6 @@ function FiltersContent({
         />
         <span className="text-destructive font-bold">{t("stream.filters.nsfw")}</span>
       </label>
-      <p className="text-hint windows95-text text-xs">{t("stream.filters.nsfw.hint")}</p>
 
       <div className="mt-3 flex justify-end gap-1">
         <Button

@@ -240,8 +240,6 @@ const common = {
   "stream.filters.sort.desc": "Descending",
   "stream.filters.sort.asc": "Ascending",
   "stream.filters.nsfw": "Show 18+ (NSFW)",
-  "stream.filters.nsfw.hint":
-    "Includes the adult age rating and genres. The source still decides what it returns.",
   "stream.filters.reset": "Reset",
   "stream.filters.apply": "Apply",
 } as const;

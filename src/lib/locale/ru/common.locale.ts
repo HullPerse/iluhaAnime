@@ -245,8 +245,6 @@ const common = {
   "stream.filters.sort.desc": "По убыванию",
   "stream.filters.sort.asc": "По возрастанию",
   "stream.filters.nsfw": "Показывать 18+ (NSFW)",
-  "stream.filters.nsfw.hint":
-    "Добавляет возрастной рейтинг 18+ и взрослые жанры. Что вернуть, всё равно решает источник.",
   "stream.filters.reset": "Сбросить",
   "stream.filters.apply": "Применить",
 } as const;

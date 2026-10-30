@@ -2,10 +2,10 @@ import { Download } from "lucide-react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { fmtSpeed, stateLabel } from "@/lib/torrentCommon.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { formatETA } from "@/lib/time.utils";
-import type { TorrentInfo } from "@/types/torrent";
+import { fmtSpeed, stateLabel } from "@/lib/torrent/torrentCommon.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatETA } from "@/lib/core/time.utils";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
 export default function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
   const { t } = useI18n();

@@ -1,5 +1,5 @@
-import { searchFiltersToParams } from "@/lib/entries.utils";
-import { anilistProxyArgs } from "@/lib/anilistProxy.utils";
+import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
+import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   ActivityLikeState,
@@ -25,11 +25,11 @@ import type {
   FollowingPage,
   FranchiseGraph,
   PrefetchSummary,
-} from "@/types/anilist";
-import type { FilterPage, SpotlightPage } from "@/types/ipc";
+} from "@/types/anilist/anilist";
+import type { FilterPage, SpotlightPage } from "@/types/core/ipc";
 
-import { tauriTransport } from "./transport.api";
-import type { ApiTransport } from "@/types/transport";
+import { tauriTransport } from "@/api/transport.api";
+import type { ApiTransport } from "@/types/core/transport";
 
 export interface AnilistApiConfig {
   transport?: ApiTransport;

@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../../mocks";
+import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetTransportInflight } from "@/api/transport.api";
 import ImportAnilistCollection from "@/routes/components/collection/importAnilist.collection";
 import { patchSettings } from "@/store/settings.store";
-import type { AniListCollection, AniListEntry, AniMedia, AniUser } from "@/types/anilist";
-import type { CollectionItem } from "@/types/collection";
+import type { AniListCollection, AniListEntry, AniMedia, AniUser } from "@/types/anilist/anilist";
+import type { CollectionItem } from "@/types/anilist/collection";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -24,7 +24,7 @@ vi.mock("@/hooks/collection/queries.hook", async (importOriginal) => {
 
 let mockedItems: CollectionItem[] = [];
 
-function collectionItem(id: string, anilistId: number, title: string): CollectionItem {
+const collectionItem = (id: string, anilistId: number, title: string): CollectionItem => {
   return {
     id,
     title,
@@ -62,7 +62,7 @@ function collectionItem(id: string, anilistId: number, title: string): Collectio
     tvCurrentEpisode: null,
     detailsJson: null,
   };
-}
+};
 
 const USER: AniUser = {
   id: 42,
@@ -74,7 +74,7 @@ const USER: AniUser = {
   score_format: null,
 };
 
-function media(id: number, title: string): AniMedia {
+const media = (id: number, title: string): AniMedia => {
   return {
     id,
     title,
@@ -100,9 +100,9 @@ function media(id: number, title: string): AniMedia {
     rankings: [],
     relations: [],
   };
-}
+};
 
-function entry(mediaId: number, title: string): AniListEntry {
+const entry = (mediaId: number, title: string): AniListEntry => {
   return {
     media: media(mediaId, title),
     progress: 20,
@@ -116,7 +116,7 @@ function entry(mediaId: number, title: string): AniListEntry {
     repeat: null,
     custom_lists: [],
   };
-}
+};
 
 const LISTS: AniListCollection[] = [
   {
@@ -125,7 +125,7 @@ const LISTS: AniListCollection[] = [
   },
 ];
 
-function renderModal() {
+const renderModal = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -134,7 +134,7 @@ function renderModal() {
       <ImportAnilistCollection open onClose={vi.fn()} onImported={vi.fn()} />
     </QueryClientProvider>
   );
-}
+};
 
 afterEach(() => {
   cleanup();

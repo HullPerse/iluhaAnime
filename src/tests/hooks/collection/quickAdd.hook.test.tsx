@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useQuickAddMedia } from "@/hooks/collection/quickAdd.hook";
 import { notificationAtoms } from "@/store/notification.store";
-import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
+import type { QuickAddListEntry, QuickAddMedia } from "@/types/anilist/collection";
 
 const addItem = vi.fn();
 
@@ -12,7 +12,7 @@ vi.mock("@/hooks/collection/queries.hook", () => ({
   useCollectionMutations: () => ({ addItem }),
 }));
 
-vi.mock("@/lib/quickadd.utils", () => ({
+vi.mock("@/lib/core/quickadd.utils", () => ({
   downloadCover: vi.fn(async () => null),
   fetchAddedMedia: vi.fn(async () => null),
 }));

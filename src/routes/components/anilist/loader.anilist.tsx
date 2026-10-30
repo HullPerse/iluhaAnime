@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { TabLoader } from "@/components/shared/loader.component";
-import { ANILIST_LOADER_TICK_MS, ANILIST_SLOW_SEC } from "@/config/loading.config";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
+import { ANILIST_LOADER_TICK_MS, ANILIST_SLOW_SEC } from "@/config/system/loading.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { createInterval } from "@/lib/interval.utils";
-import { formatElapsed } from "@/lib/time.utils";
+import { createInterval } from "@/lib/core/interval.utils";
+import { formatElapsed } from "@/lib/core/time.utils";
 
 export default function AniListLoader({ className }: { className?: string }) {
   const { t } = useI18n();

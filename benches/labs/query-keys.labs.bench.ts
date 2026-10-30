@@ -6,7 +6,7 @@ import { bench, group } from "@pmndrs/labs";
 // build+stringify 265us, wide 1.6ms. Regression threshold is labs
 // minDelta 5%.
 
-import { queryKeys } from "@/lib/keys.utils";
+import { queryKeys } from "../../src/lib/core/keys.utils";
 
 function buildMix(i: number): readonly unknown[] {
   switch (i % 8) {

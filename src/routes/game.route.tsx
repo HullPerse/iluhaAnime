@@ -5,17 +5,17 @@ import { useGameRomMutations, useGamePlatforms, useGameRoms } from "@/hooks/game
 import { useIntegerScale } from "@/hooks/game/scale.hook";
 import { useGameSession } from "@/hooks/game/session.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { GAME_PLATFORMS } from "@/config/platforms.config";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { showError } from "@/lib/notification.utils";
+import { GAME_PLATFORMS } from "@/config/system/platforms.config";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { showError } from "@/lib/core/notification.utils";
 import GameImportModal from "@/routes/components/game/import.game";
-import type { GameImportDraft } from "@/types/import.game";
+import type { GameImportDraft } from "@/types/core/import.game";
 import GameLibrary from "@/routes/components/game/library.game";
 import GameScreen from "@/routes/components/game/screen.game";
 import GameStoreModal from "@/routes/components/game/store.game";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { GameRomInfo } from "@/types/game";
+import type { GameRomInfo } from "@/types/core/game";
 
 const ROM_FILTERS = [{ name: "Chip-8", extensions: ["ch8", "c8", "sc8", "bin"] }];
 

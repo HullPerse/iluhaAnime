@@ -1,12 +1,12 @@
-import { normalizeResolvedCover, normCoverKey } from "@/lib/cover.utils";
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import { attemptSync } from "@/lib/attempt.utils";
+import { normalizeResolvedCover, normCoverKey } from "@/lib/core/cover.utils";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   CoverCorrectionsAtoms,
   CoverCorrectionsData,
   CoverCorrectionsStore,
   ResolvedCover,
-} from "@/types/cover";
+} from "@/types/core/cover";
 
 const RESOLVED_CAP = 500;
 const BLOBS_CAP = 500;

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { gameApi } from "@/api/game.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/keys.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
 
 export const GAME_STORE_QUERY_KEY = queryKeys.gameStore();
 

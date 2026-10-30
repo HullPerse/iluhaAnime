@@ -2,7 +2,7 @@ import Section from "@/components/shared/section.component";
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
-import type { StreamingAnime } from "@/types/stream";
+import type { StreamingAnime } from "@/types/player/stream";
 
 /**
  * The title header of the detail modal: poster, identity, badges, genres and

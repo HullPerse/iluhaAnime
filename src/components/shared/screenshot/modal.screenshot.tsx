@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { systemApi } from "@/api/system.api";
 import Modal from "@/components/shared/modal.component";
 import ScreenshotStage from "@/components/shared/screenshot/stage.screenshot";
-import type { StageHandle } from "@/types/stage.screenshot";
+import type { StageHandle } from "@/types/core/stage.screenshot";
 import ScreenshotToolbar from "@/components/shared/screenshot/tools.screenshot";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -21,20 +21,20 @@ import {
   SCREENSHOT_FORMAT_LABELS,
   SCREENSHOT_FORMATS,
   SCREENSHOT_HISTORY_DEFS,
-} from "@/config/screenshot.config";
+} from "@/config/graphics/screenshot.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { Debouncer } from "@/lib/debounce.utils";
-import { canRedo, canUndo, commit, createHistory, redo, undo } from "@/lib/annotation.utils";
-import { fullCrop, isSquare, NO_PAN } from "@/lib/crop.utils";
-import { canSaveScreenshot, defaultScreenshotName } from "@/lib/screenshot.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { resolveFontFamily } from "@/lib/font.utils";
-import { assetUrl } from "@/lib/image.utils";
-import { COPIED_FEEDBACK_MS, showError } from "@/lib/notification.utils";
+import { Debouncer } from "@/lib/core/debounce.utils";
+import { canRedo, canUndo, commit, createHistory, redo, undo } from "@/lib/core/annotation.utils";
+import { fullCrop, isSquare, NO_PAN } from "@/lib/core/crop.utils";
+import { canSaveScreenshot, defaultScreenshotName } from "@/lib/core/screenshot.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { resolveFontFamily } from "@/lib/graphics/font.utils";
+import { assetUrl } from "@/lib/graphics/image.utils";
+import { COPIED_FEEDBACK_MS, showError } from "@/lib/core/notification.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   AnnotationHistory,
@@ -45,7 +45,7 @@ import type {
   ScreenshotFormat,
   ScreenshotScale,
   ScreenshotTool,
-} from "@/types/screenshot";
+} from "@/types/core/screenshot";
 
 const FIT: ScreenshotScale = { zoom: CROP_ZOOM_FIT, pan: NO_PAN };
 
@@ -74,6 +74,7 @@ export default function ScreenshotModal({
   const [openFolder, setOpenFolder] = useState(savedOpenFolder);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [crop, setCrop] = useState<CropRect | null>(null);
   const [scale, setScale] = useState<ScreenshotScale>(FIT);
   const [tool, setTool] = useState<ScreenshotTool>("select");
@@ -138,28 +139,34 @@ export default function ScreenshotModal({
   };
 
   const copy = async () => {
+    if (copying) return;
+    setCopying(true);
     setCopied(true);
     hideCopiedSoon();
-    const [path, prepareError] = await attempt(
-      systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
-    );
-    if (prepareError) {
-      setCopied(false);
-      showError(t("common.error"), t("screenshot.copy.error"));
-      return;
-    }
-    const [, writeError] = await attempt(writeImage(path));
-    if (path !== capture.path) {
-      attempt(systemApi.discardScreenshot(path))
-        .then(([, error]) => {
-          if (error) reportBackgroundError("screenshot.discard-copy", error);
-          return null;
-        })
-        .catch(() => {});
-    }
-    if (writeError) {
-      setCopied(false);
-      showError(t("common.error"), t("screenshot.copy.error"));
+    try {
+      const [path, prepareError] = await attempt(
+        systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
+      );
+      if (prepareError) {
+        setCopied(false);
+        showError(t("common.error"), t("screenshot.copy.error"));
+        return;
+      }
+      const [, writeError] = await attempt(writeImage(path));
+      if (path !== capture.path) {
+        attempt(systemApi.discardScreenshot(path))
+          .then(([, error]) => {
+            if (error) reportBackgroundError("screenshot.discard-copy", error);
+            return null;
+          })
+          .catch(() => {});
+      }
+      if (writeError) {
+        setCopied(false);
+        showError(t("common.error"), t("screenshot.copy.error"));
+      }
+    } finally {
+      setCopying(false);
     }
   };
 
@@ -196,6 +203,7 @@ export default function ScreenshotModal({
     <Modal
       header={t("screenshot.title")}
       onClose={onClose}
+      canClose={() => !saving && !copying}
       className="w-4xl"
       contentClassName="gap-2"
     >
@@ -241,11 +249,15 @@ export default function ScreenshotModal({
         <span className="windows95-text text-xs tabular-nums">
           {t("screenshot.size", { width: active.width, height: active.height })}
         </span>
-        {selection !== null && isSquare(active) && (
-          <span className="windows95-active-border bg-primary windows95-text px-1 text-xs">
-            {t("screenshot.crop.square")}
-          </span>
-        )}
+        <span
+          className={
+            selection !== null && isSquare(active)
+              ? "windows95-active-border bg-primary windows95-text px-1 text-xs"
+              : "hidden"
+          }
+        >
+          {t("screenshot.crop.square")}
+        </span>
         <span className="windows95-text text-hint text-xs">
           {tool === "select" && selection === null
             ? t("screenshot.crop.empty")
@@ -307,7 +319,7 @@ export default function ScreenshotModal({
         <Button
           variant="outline"
           onClick={() => copy()}
-          disabled={copied}
+          disabled={copied || copying}
           title={t("screenshot.copy")}
         >
           {copied ? <Check /> : <ClipboardCopy />}

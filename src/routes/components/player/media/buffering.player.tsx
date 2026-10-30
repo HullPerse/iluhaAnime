@@ -1,6 +1,6 @@
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { playbackAtoms } from "@/store/player.store";
 
 /**

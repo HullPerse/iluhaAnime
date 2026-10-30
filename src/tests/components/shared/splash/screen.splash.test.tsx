@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
-import type { SplashStage } from "@/types/splash";
+import type { SplashStage } from "@/types/core/splash";
 
 afterEach(() => {
   cleanup();

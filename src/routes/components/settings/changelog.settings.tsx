@@ -1,10 +1,10 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
-import { CHANGELOG } from "@/config/changelog.config";
+import { CHANGELOG } from "@/config/system/changelog.config";
 import { useI18n } from "@/hooks/i18n.hook";
 
-import { ChangelogCategory } from "./changelogCategory.settings";
+import { ChangelogCategory } from "@/routes/components/settings/changelogCategory.settings";
 
 export function SettingsChangelog() {
   const { t } = useI18n();

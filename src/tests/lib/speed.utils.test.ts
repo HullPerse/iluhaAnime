@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_PLAYER_SPEED, PLAYER_SPEEDS, stepSpeed } from "@/lib/speed.utils";
+import { DEFAULT_PLAYER_SPEED, PLAYER_SPEEDS, stepSpeed } from "@/lib/core/speed.utils";
 
 const SLOWEST = PLAYER_SPEEDS.at(0) ?? DEFAULT_PLAYER_SPEED;
 const FASTEST = PLAYER_SPEEDS.at(-1) ?? DEFAULT_PLAYER_SPEED;

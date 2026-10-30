@@ -1,10 +1,10 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import Slider from "@/components/ui/range.component";
-import { WALLPAPER_SHADOW_SIDE_KEYS } from "@/config/wallpaper.config";
+import { WALLPAPER_SHADOW_SIDE_KEYS } from "@/config/graphics/wallpaper.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { TranslationKey } from "@/types/i18n";
-import type { WallpaperShadow } from "@/types/settings";
+import type { TranslationKey } from "@/types/core/i18n";
+import type { WallpaperShadow } from "@/types/ui/settings";
 
 export function ShadowControls({
   heading,

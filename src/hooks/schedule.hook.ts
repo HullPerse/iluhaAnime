@@ -1,10 +1,10 @@
 import { useRef } from "react";
 
-import { THEMES } from "@/config/themes.config";
+import { THEMES } from "@/config/graphics/themes.config";
 import { useLiveResource } from "@/hooks/liveResource.hook";
-import { dayNightFrame, nowMinutesOf } from "@/lib/daynight.utils";
-import type { DayNightFrame } from "@/types/daynight";
-import { reportBackgroundError } from "@/lib/attempt.utils";
+import { dayNightFrame, nowMinutesOf } from "@/lib/core/daynight.utils";
+import type { DayNightFrame } from "@/types/core/daynight";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { setTorrentSpeedLimits } from "@/store/download.store";
 import { getSettingsSnapshot, patchSettings } from "@/store/settings.store";
 import { setTheme, themeAtoms } from "@/store/theme.store";

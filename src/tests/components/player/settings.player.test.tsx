@@ -2,16 +2,16 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockConvertFileSrc, mockInvoke } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke, convertFileSrc: mockConvertFileSrc }));
 
 import SettingsPanel from "@/routes/components/player/media/settings.player";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
-import type { PlayerSettings } from "@/types/videoPlayer";
+import type { PlayerSettings } from "@/types/player/videoPlayer";
 
-function callbacks() {
+const callbacks = () => {
   return {
     onPatchSettings: vi.fn(),
     onHwdec: vi.fn(),
@@ -20,11 +20,11 @@ function callbacks() {
     onAutoHide: vi.fn(),
     onProfile: vi.fn(),
   };
-}
+};
 
 const PANEL_DEFAULTS: PlayerSettings = { ...DEFAULT_PLAYER_SETTINGS };
 
-function renderPanel(settings: PlayerSettings = PANEL_DEFAULTS) {
+const renderPanel = (settings: PlayerSettings = PANEL_DEFAULTS) => {
   const spies = callbacks();
   render(
     <SettingsPanel
@@ -38,21 +38,21 @@ function renderPanel(settings: PlayerSettings = PANEL_DEFAULTS) {
     />
   );
   return spies;
-}
+};
 
-async function chooseOption(
+const chooseOption = async (
   combobox: HTMLElement,
   index: number,
   user: ReturnType<typeof userEvent.setup>
-): Promise<void> {
+): Promise<void> => {
   await user.click(combobox);
   const options = await screen.findAllByRole("option");
   await user.click(options[index]);
-}
+};
 
-function rootCheckboxes(): HTMLElement[] {
+const rootCheckboxes = (): HTMLElement[] => {
   return screen.getAllByRole("checkbox").filter((element) => element.tagName !== "INPUT");
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

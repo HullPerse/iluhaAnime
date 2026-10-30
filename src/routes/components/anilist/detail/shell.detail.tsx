@@ -1,6 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -8,106 +6,19 @@ import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attemptAll } from "@/lib/attempt.utils";
-import { setPresenceDetail } from "@/store/presence.store";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attemptAll } from "@/lib/core/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type {
-  AniDetailProps as DetailProps,
-  AniListOverlayContext,
-  AniListOverlayScreen,
-} from "@/types/anilist";
+import { resolveDetailBack } from "@/lib/anilist/detailBack.utils";
+import { useDetailScreens } from "@/hooks/anilist/detailScreens.hook";
+import { useDetailPresence } from "@/hooks/anilist/detailPresence.hook";
+import { ShellHeaderActions } from "@/routes/components/anilist/detail/shellHeaderActions.detail";
+import type { AniDetailProps as DetailProps, AniListOverlayContext } from "@/types/anilist/anilist";
 
-import { CopyLinkButton } from "./copyLinkButton.detail";
-import { FavHeartButton } from "./favHeartButton.detail";
 import { OverlayScreens } from "./screens.detail";
 import { AniListDetailView } from "./view.detail";
-import type { DetailShellSlot } from "@/types/shell.detail";
-
-function ShellHeaderActions({
-  animeId,
-  favoriteLoading,
-  hasAnime,
-  isFavorite,
-  isLoggedIn,
-  onToggle,
-  siteId,
-}: {
-  animeId: number;
-  favoriteLoading: boolean;
-  hasAnime: boolean;
-  isFavorite: boolean;
-  isLoggedIn: boolean;
-  onToggle: () => void;
-  siteId: number;
-}) {
-  const { t } = useI18n();
-  return (
-    <>
-      <CopyLinkButton animeId={animeId} />
-      {isLoggedIn && hasAnime ? (
-        <FavHeartButton isFavorite={isFavorite} loading={favoriteLoading} onToggle={onToggle} />
-      ) : null}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          openUrl(`https://anilist.co/anime/${siteId}`);
-        }}
-        title={t("anilist.controls.open.site")}
-        aria-label={t("anilist.controls.open.site")}
-        className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
-      >
-        <ExternalLink className="size-2.5" />
-      </button>
-    </>
-  );
-}
-
-function resolveBack(
-  screenTop: AniListOverlayScreen | null,
-  trailerId: string | null,
-  backScreen: () => void,
-  closeTrailer: () => void,
-  fallback: (() => void) | undefined
-): (() => void) | undefined {
-  if (screenTop) return backScreen;
-  if (trailerId != null) return closeTrailer;
-  return fallback;
-}
-
-function useDetailScreens(animeId: number, onRelated: ((id: number) => void) | undefined) {
-  const [screens, setScreens] = useState<AniListOverlayScreen[]>([]);
-  useEffect(() => {
-    setScreens([]);
-  }, [animeId]);
-  const screenTop = screens.at(-1) ?? null;
-  const pushScreen = (screen: AniListOverlayScreen) => {
-    setScreens((prev) => [...prev, screen]);
-  };
-  const backScreen = () => {
-    setScreens((prev) => prev.slice(0, -1));
-  };
-  const openAnime = (id: number) => {
-    setScreens([]);
-    onRelated?.(id);
-  };
-  return { backScreen, openAnime, pushScreen, screenTop };
-}
-
-function useDetailPresence(
-  media: { id: number; title: string } | undefined,
-  fallbackId: number
-): void {
-  const title = media?.title;
-  const id = media?.id ?? fallbackId;
-  useEffect(() => {
-    if (!title) return;
-    setPresenceDetail({ id, title });
-    return () => setPresenceDetail(null);
-  }, [id, title]);
-}
+import type { DetailShellSlot } from "@/types/core/shell.detail";
 
 export function AnimeDetailShell({
   render,
@@ -171,7 +82,7 @@ export function AnimeDetailShell({
       siteId={query.data?.media.id ?? props.animeId}
     />
   );
-  const onBack = resolveBack(
+  const onBack = resolveDetailBack(
     screenTop,
     trailerId,
     backScreen,

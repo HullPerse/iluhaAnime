@@ -7,7 +7,7 @@ import {
   resolveEnabled,
   scheduleTask,
   sleep,
-} from "@/lib/shared.utils";
+} from "@/lib/core/shared.utils";
 
 beforeEach(() => {
   vi.useFakeTimers();

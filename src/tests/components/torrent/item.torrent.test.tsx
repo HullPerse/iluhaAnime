@@ -3,14 +3,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { areTorrentItemsEqual } from "@/lib/torrentItem.utils";
+import { areTorrentItemsEqual } from "@/lib/torrent/torrentItem.utils";
 import TorrentItem from "@/routes/components/torrent/item.torrent";
 import { patchSettings } from "@/store/settings.store";
-import type { TorrentInfo, TorrentItemProps } from "@/types/torrent";
+import type { TorrentInfo, TorrentItemProps } from "@/types/torrent/torrent";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
-function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
+const info = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
   return {
     download_order: [],
     download_speed: 0,
@@ -36,9 +36,9 @@ function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     uploaded_bytes: 0,
     ...overrides,
   };
-}
+};
 
-function props(overrides: Partial<TorrentItemProps> = {}): TorrentItemProps {
+const props = (overrides: Partial<TorrentItemProps> = {}): TorrentItemProps => {
   return {
     busy: false,
     files: undefined,
@@ -63,9 +63,9 @@ function props(overrides: Partial<TorrentItemProps> = {}): TorrentItemProps {
     selected: false,
     ...overrides,
   };
-}
+};
 
-function renderItem(overrides: Partial<TorrentItemProps> = {}) {
+const renderItem = (overrides: Partial<TorrentItemProps> = {}) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -74,7 +74,7 @@ function renderItem(overrides: Partial<TorrentItemProps> = {}) {
       </DndContext>
     </QueryClientProvider>
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

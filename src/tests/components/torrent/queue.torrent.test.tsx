@@ -12,15 +12,15 @@ vi.mock("@tanstack/react-virtual", () => ({
 
 import { TorrentQueueModal } from "@/routes/components/torrent/queue.torrent";
 import { patchSettings } from "@/store/settings.store";
-import type { TorrentFileInfo } from "@/types/torrent";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
 type Props = Parameters<typeof TorrentQueueModal>[0];
 
-function file(
+const file = (
   index: number,
   name: string,
   overrides: Partial<TorrentFileInfo> = {}
-): TorrentFileInfo {
+): TorrentFileInfo => {
   return {
     index,
     name,
@@ -32,11 +32,11 @@ function file(
     exists: true,
     ...overrides,
   };
-}
+};
 
 const FILES = [file(0, "S1/01.mkv"), file(1, "S1/02.mkv"), file(2, "S2/01.mkv")];
 
-function props(overrides: Partial<Props> = {}): Props {
+const props = (overrides: Partial<Props> = {}): Props => {
   return {
     files: FILES,
     order: [1],
@@ -46,9 +46,9 @@ function props(overrides: Partial<Props> = {}): Props {
     onClose: vi.fn(),
     ...overrides,
   };
-}
+};
 
-function renderQueue(overrides: Partial<Props> = {}) {
+const renderQueue = (overrides: Partial<Props> = {}) => {
   const base = props(overrides);
   const view = render(<TorrentQueueModal {...base} />);
   return {
@@ -57,29 +57,29 @@ function renderQueue(overrides: Partial<Props> = {}) {
     rerender: (next: Partial<Props> = {}) =>
       view.rerender(<TorrentQueueModal {...base} {...next} />),
   };
-}
+};
 
-function row(index: number): HTMLElement {
+const row = (index: number): HTMLElement => {
   const found = document.querySelector<HTMLElement>(`[data-queue-index="${index}"]`);
   if (!found) throw new Error(`queue row missing: ${index}`);
   return found;
-}
+};
 
-function rowOrder(): string[] {
+const rowOrder = (): string[] => {
   return [...document.querySelectorAll<HTMLElement>("[data-queue-index]")].map(
     (node) => node.dataset.queueIndex ?? ""
   );
-}
+};
 
-function folder(dir: string): HTMLElement {
+const folder = (dir: string): HTMLElement => {
   const found = document.querySelector<HTMLElement>(`[data-queue-folder="${dir}"]`);
   if (!found) throw new Error(`queue folder missing: ${dir}`);
   return found;
-}
+};
 
-function saveButton(): HTMLElement {
+const saveButton = (): HTMLElement => {
   return screen.getByRole("button", { name: "Turn on and save" });
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en", modalAnimation: false });

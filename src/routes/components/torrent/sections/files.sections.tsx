@@ -1,21 +1,12 @@
-import { ChevronDown, ChevronRight, ListOrdered, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, ListOrdered } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { torrentApi } from "@/api/torrent.api";
-import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
-import { useAppQuery } from "@/hooks/appQuery.hook";
+import UpdateCheck from "./update.sections";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { downloadOrderPositions } from "@/lib/torrentQueue.utils";
-import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrentUpdate.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import { showError } from "@/lib/notification.utils";
-import { ignore } from "@/lib/promise.utils";
-import { settingsAtoms } from "@/store/settings.store";
+import { downloadOrderPositions } from "@/lib/torrent/torrentQueue.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type {
   FilePriority,
   TorrentDetailFile,
@@ -23,140 +14,11 @@ import type {
   TorrentFileInfo,
   TorrentInfo,
   TorrentQueueApply,
-} from "@/types/torrent";
+} from "@/types/torrent/torrent";
 
-function UpdateCheck({
-  item,
-  files,
-  onUpdateRequest,
-}: {
-  item: TorrentInfo;
-  files: TorrentFileInfo[];
-  onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
-}) {
-  const { t } = useI18n();
-  const sourceQuery = useAppQuery("slow", {
-    queryKey: queryKeys.torrentSource(item.id, item.info_hash),
-    queryFn: () => torrentApi.getTorrentSource(item.id, item.info_hash),
-  });
-  const sourceData = sourceQuery.data;
-  const origin = sourceData && UPDATE_SOURCES_WITH_FILES.has(sourceData.source) ? sourceData : null;
-  const [checking, setChecking] = useState(false);
-  const [update, setUpdate] = useState<{
-    added: TorrentDetailFile[];
-    details: TorrentDetails;
-    replaced: boolean;
-  } | null>(null);
-  const [picked, setPicked] = useState<Set<string>>(new Set());
-
-  if (origin === null) return null;
-
-  const check = async () => {
-    if (checking) return;
-    setChecking(true);
-    const proxy = settingsAtoms.searchProxyUrls.get()[origin.source] || undefined;
-    const [details, error] = await attempt(
-      torrentApi.getTorrentDetails(origin.source, origin.url, proxy)
-    );
-    setChecking(false);
-    if (error || !details) {
-      if (error) showError(t("torrent.files.update.error"), error.message);
-      return;
-    }
-    const added = findUpdatedFiles(files, details.files);
-    const replaced =
-      Boolean(details.infoHash) && details.infoHash.toLowerCase() !== item.info_hash.toLowerCase();
-    if (added.length === 0 && !replaced) return;
-    setUpdate({ added, details, replaced });
-    setPicked(new Set(added.map((file) => file.name)));
-  };
-
-  const togglePicked = (name: string) => {
-    setPicked((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
-
-  const confirm = () => {
-    if (!update) return;
-    const added = update.added.filter((file) => picked.has(file.name));
-    setUpdate(null);
-    if (added.length === 0) return;
-    onUpdateRequest({ added, details: update.details });
-  };
-
-  return (
-    <>
-      <Button
-        size="icon"
-        className="ml-auto size-5"
-        title={t("torrent.files.check.new")}
-        aria-label={t("torrent.files.check.new")}
-        loading={checking}
-        onClick={(event) => {
-          event.stopPropagation();
-          ignore(check());
-        }}
-      >
-        <RefreshCw className="size-3" />
-      </Button>
-      {update && (
-        <Modal
-          header={t("torrent.files.update.title")}
-          onClose={() => setUpdate(null)}
-          className="w-xl"
-        >
-          <div className="flex max-h-80 flex-col gap-1 overflow-y-auto p-1">
-            {update.replaced && (
-              <span className="windows95-text text-xs font-bold">
-                {t("torrent.files.update.replaced")}
-              </span>
-            )}
-            <span className="windows95-text text-xs font-bold">
-              {t("torrent.files.new.found", { count: update.added.length })}
-            </span>
-            {update.added.map((file) => (
-              <label
-                key={file.name}
-                className="windows95-text hover:bg-surface flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 select-none"
-              >
-                <Checkbox
-                  checked={picked.has(file.name)}
-                  onChange={() => togglePicked(file.name)}
-                />
-                <span className="min-w-0 flex-1 truncate" title={file.name}>
-                  {file.name}
-                </span>
-                <span className="text-hint shrink-0 text-xs">{file.size || "-"}</span>
-              </label>
-            ))}
-            <span className="windows95-text text-hint mt-1 text-xs">
-              {t("torrent.files.new.existing", {
-                count: files.filter((file) => file.selected).length,
-                total: files.length,
-              })}
-            </span>
-          </div>
-          <div className="flex justify-end gap-1 p-1">
-            <Button variant="outline" onClick={() => setUpdate(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button onClick={confirm} disabled={picked.size === 0}>
-              {t("torrent.files.update.download")}
-            </Button>
-          </div>
-        </Modal>
-      )}
-    </>
-  );
-}
-
-import TorrentFilesSection from "../file.torrent";
-import { TorrentQueueModal } from "../queue.torrent";
-import { TorrentLimitsSection } from "./limits.sections";
+import TorrentFilesSection from "@/routes/components/torrent/file.torrent";
+import { TorrentQueueModal } from "@/routes/components/torrent/queue.torrent";
+import { TorrentLimitsSection } from "@/routes/components/torrent/sections/limits.sections";
 
 export function TorrentFiles({
   item,

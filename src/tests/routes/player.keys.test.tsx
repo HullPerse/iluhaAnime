@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke as invokeMock, mockDialogOpen, mockListen as listenMock } from "../mocks";
+import { mockInvoke as invokeMock, mockDialogOpen, mockListen as listenMock } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -14,7 +14,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mockDialogOpen }));
 import PlayerRoute from "@/routes/player.route";
 import { patchSettings } from "@/store/settings.store";
 import { upscaleItems } from "@/store/upscale.store";
-import type { UpscaleConfig, UpscaleQueueItem } from "@/types/upscale";
+import type { UpscaleConfig, UpscaleQueueItem } from "@/types/core/upscale";
 
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -31,7 +31,7 @@ const CONFIG: UpscaleConfig = {
   temporalDenoise: false,
 };
 
-function queueItem(): UpscaleQueueItem {
+const queueItem = (): UpscaleQueueItem => {
   return {
     id: "job_1",
     jobType: "upscale",
@@ -42,27 +42,27 @@ function queueItem(): UpscaleQueueItem {
     status: "queued",
     progress: 0,
   };
-}
+};
 
-function pressKey(code: string, target: EventTarget = window, repeat = false): void {
+const pressKey = (code: string, target: EventTarget = window, repeat = false): void => {
   act(() => {
     target.dispatchEvent(
       new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code, repeat })
     );
   });
-}
+};
 
-function renderRoute() {
+const renderRoute = () => {
   return render(
     <QueryClientProvider client={client}>
       <PlayerRoute />
     </QueryClientProvider>
   );
-}
+};
 
-function expanded(): string | null {
+const expanded = (): string | null => {
   return screen.getByTestId("queue-toggle").getAttribute("aria-expanded");
-}
+};
 
 beforeEach(() => {
   invokeMock.mockReset();

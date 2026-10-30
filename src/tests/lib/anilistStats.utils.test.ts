@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMediaRows, buildStatsOverview } from "@/lib/anilistStats.utils";
-import type { AniListCollection, AniListEntry, AniListStatistics } from "@/types/anilist";
+import { buildMediaRows, buildStatsOverview } from "@/lib/anilist/anilistStats.utils";
+import type { AniListCollection, AniListEntry, AniListStatistics } from "@/types/anilist/anilist";
 
 function statistics(overrides: Partial<AniListStatistics> = {}): AniListStatistics {
   return {

@@ -25,8 +25,8 @@ import { bench, group } from "@pmndrs/labs";
 // getBoundingClientRect cost of the scan and the measure is NOT measured
 // here and needs a live run. Regression threshold is labs minDelta 5%.
 
-import { VIM_LABEL_ALPHABET } from "@/config/vim.config";
-import { createVimCommandTable } from "@/lib/engineHotkeys.utils";
+import { VIM_LABEL_ALPHABET } from "../../src/config/settings/vim.config";
+import { createVimCommandTable } from "../../src/lib/core/engineHotkeys.utils";
 import {
   assignLabels,
   hintLayoutsEqual,
@@ -35,9 +35,9 @@ import {
   reduceHintKey,
   resolveBadgeCollisions,
   scanHintTargets,
-} from "@/lib/hintsHotkeys.utils";
-import type { HintBadge } from "@/types/hintsHotkeys";
-import { scrollAmount } from "@/lib/scroll.utils";
+} from "../../src/lib/core/hintsHotkeys.utils";
+import type { HintBadge } from "../../src/types/core/hintsHotkeys";
+import { scrollAmount } from "../../src/lib/ui/scroll.utils";
 
 // The scanner reads the viewport through `window`; node has none.
 (globalThis as { window?: unknown }).window = { innerWidth: 1920, innerHeight: 1080 };

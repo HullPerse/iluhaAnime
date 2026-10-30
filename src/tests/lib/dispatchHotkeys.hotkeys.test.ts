@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { clickRowActionButton, dispatchClick, dispatchFocus } from "@/lib/dispatchHotkeys.utils";
+import {
+  clickRowActionButton,
+  dispatchClick,
+  dispatchFocus,
+} from "@/lib/core/dispatchHotkeys.utils";
 
 const nodes: HTMLElement[] = [];
 

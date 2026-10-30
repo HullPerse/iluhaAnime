@@ -3,10 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
-import { useCell } from "@/lib/signal.hook";
+import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   streamFilters,
   streamPage,
@@ -14,10 +14,12 @@ import {
   streamStore,
   submitStreamSearch,
 } from "@/store/stream.store";
-import type { StreamSearchPage, StreamingAnime } from "@/types/stream";
+import type { StreamSearchPage, StreamingAnime } from "@/types/player/stream";
 
-import { StreamCard } from "./card.stream";
-import { StreamEmpty, StreamError, StreamLoadingGrid } from "./states.stream";
+import { StreamCard } from "@/routes/components/stream/card.stream";
+import { StreamEmpty } from "@/routes/components/stream/states/empty.states";
+import { StreamError } from "@/routes/components/stream/states/error.states";
+import { StreamLoadingGrid } from "@/routes/components/stream/states/loadingGrid.states";
 
 /**
  * The site answers 60 titles per page. When the API sends its own `meta` the
@@ -38,13 +40,7 @@ const GRID_KEYBINDS: ResolvedHotkeyDef<GridKeyAction>[] = [
   { id: "grid-down", chord: "KeyJ", repeat: "hold", keybindId: "tree.move.down" },
 ];
 
-/** How many tiles the CSS grid puts in a row right now. */
-function gridColumns(element: HTMLElement | null): number {
-  if (!element) return 1;
-  const template = getComputedStyle(element).gridTemplateColumns;
-  const count = template.split(" ").filter(Boolean).length;
-  return Math.max(1, count);
-}
+import { gridColumns } from "@/lib/stream/gridColumns.utils";
 
 export default function StreamResults({
   data,

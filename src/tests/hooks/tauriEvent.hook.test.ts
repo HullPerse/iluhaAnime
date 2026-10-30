@@ -1,4 +1,4 @@
-import { mockListen } from "../mocks";
+import { mockListen } from "@/tests/mocks";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

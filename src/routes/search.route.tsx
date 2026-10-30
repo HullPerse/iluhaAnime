@@ -1,13 +1,13 @@
 import { ReactElement } from "react";
 
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import { focusMainSearch } from "@/lib/focusHotkeys.utils";
-import { useCell } from "@/lib/signal.hook";
+import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-import { SearchType } from "@/types/search";
+import { SearchType } from "@/types/search/search";
 
-import SearchDefault from "./components/search/default/index.search";
-import SearchModern from "./components/search/modern/index.search";
+import SearchDefault from "@/routes/components/search/default/index.search";
+import SearchModern from "@/routes/components/search/modern/index.search";
 
 const searchMap: Record<SearchType, () => ReactElement> = {
   default: () => <SearchDefault />,

@@ -2,46 +2,19 @@ import { Star } from "lucide-react";
 import { memo } from "react";
 
 import Image from "@/components/ui/image.component";
-import { CARD_POSTER_H, CARD_W, GENRE_PREVIEW_COUNT } from "@/config/card.config";
+import { CARD_POSTER_H, CARD_W } from "@/config/anilist/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { resolveCardCover, sameCardVisual, uncachedCoverSource } from "@/lib/card.utils";
-import { statusColorOf } from "@/lib/status.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { CollectionCardProps } from "@/types/collection";
+import { resolveCardCover, sameCardVisual, uncachedCoverSource } from "@/lib/core/card.utils";
+import { statusColorOf } from "@/lib/core/status.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { CollectionCardProps } from "@/types/anilist/collection";
 
-import { CardStatusBar } from "./cardStatusBar.collection";
+import { CardStatusBar } from "@/routes/components/collection/cardStatusBar.collection";
 
-function CardMetaLine({
-  item,
-  shortMeta,
-}: {
-  item: CollectionCardProps["item"];
-  shortMeta: boolean;
-}) {
-  return (
-    <div className="text-hint flex items-center gap-1 truncate text-xs leading-none">
-      {!shortMeta && item.year != null && <span className="shrink-0">{item.year}</span>}
-      {!shortMeta && item.genres[0] && (
-        <span
-          className="min-w-0 truncate"
-          title={item.genres.slice(0, GENRE_PREVIEW_COUNT).join(", ")}
-        >
-          {item.genres.slice(0, GENRE_PREVIEW_COUNT).join(", ")}
-        </span>
-      )}
-      <span className="ml-auto shrink-0 font-bold">
-        {item.progressTotal
-          ? `${item.progressValue}/${item.progressTotal}`
-          : item.progressValue > 0
-            ? `${item.progressValue} ${item.progressUnit}`
-            : ""}
-      </span>
-    </div>
-  );
-}
+import { CardMetaLine } from "./card/metaLine.card";
 
 function CollectionCardView({
   item,

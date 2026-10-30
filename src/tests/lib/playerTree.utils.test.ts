@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { buildTree, patchTreeFile, removeTreeFile } from "@/lib/playerTree.utils";
-import type { VideoFileEntry } from "@/types/fs";
-import type { FolderNode } from "@/types/torrent";
+import { buildTree, patchTreeFile, removeTreeFile } from "@/lib/player/playerTree.utils";
+import type { VideoFileEntry } from "@/types/core/fs";
+import type { FolderNode } from "@/types/torrent/torrent";
 
 const ROOT = "C:/Anime/Show";
 

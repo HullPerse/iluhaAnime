@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
-import { PROXY_PRESETS, proxySelectValue } from "@/config/proxy.config";
+import { PROXY_PRESETS, proxySelectValue } from "@/config/system/proxy.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
-import { SectionResetButton } from "./reset.settings";
+import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
 /**
  * AnimeLib session token. Kodik works anonymously, but the site's own

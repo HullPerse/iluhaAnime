@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_FILTERS } from "@/config/collectionFilters.config";
-import { DEFAULT_TAG_TOLERANCES } from "@/config/tolerance.config";
+import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
+import { DEFAULT_TAG_TOLERANCES } from "@/config/graphics/tolerance.config";
 import {
   createCollectionFilterSnapshot,
   filterCollectionItems,
   queryCollectionFilterSnapshot,
-} from "@/lib/filter.utils";
-import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collectionSearch.utils";
-import { parseIntent } from "@/lib/intent.utils";
-import { operatorTextLength } from "@/lib/searchScore.utils";
-import type { CollectionItem } from "@/types/collection";
+} from "@/lib/core/filter.utils";
+import {
+  buildCollectionSearchIndex,
+  searchCollectionIndex,
+} from "@/lib/anilist/collectionSearch.utils";
+import { parseIntent } from "@/lib/core/intent.utils";
+import { operatorTextLength } from "@/lib/search/searchScore.utils";
+import type { CollectionItem } from "@/types/anilist/collection";
 
 const item = (id: string, title: string, extra: Partial<CollectionItem> = {}) =>
   ({

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { hsvToHex } from "@/lib/color.utils";
-import { clamp } from "@/lib/math.utils";
-import type { HSV } from "@/types/color";
+import { hsvToHex } from "@/lib/graphics/color.utils";
+import { clamp } from "@/lib/core/math.utils";
+import type { HSV } from "@/types/graphics/color";
 
 export function SaturationValueArea({
   hsv,

@@ -5,14 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CollectionCard } from "@/routes/components/collection/card.collection";
 import { GroupHeaderCollection } from "@/routes/components/collection/groupHeader.collection";
 import { patchSettings } from "@/store/settings.store";
-import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
+import type { CollectionItem, CollectionStatusDef } from "@/types/anilist/collection";
 
 const STATUSES: CollectionStatusDef[] = [
   { color: "#9ca3af", id: "planned", isCore: true, kind: "private", label: "Planned", order: 0 },
   { color: "#3b82f6", id: "watching", isCore: true, kind: "private", label: "Watching", order: 1 },
 ];
 
-function item(overrides: Partial<CollectionItem> = {}): CollectionItem {
+const item = (overrides: Partial<CollectionItem> = {}): CollectionItem => {
   return {
     addedAt: 0,
     altTitles: [],
@@ -51,9 +51,9 @@ function item(overrides: Partial<CollectionItem> = {}): CollectionItem {
     year: 1998,
     ...overrides,
   };
-}
+};
 
-function renderCard(props: Partial<Parameters<typeof CollectionCard>[0]> = {}) {
+const renderCard = (props: Partial<Parameters<typeof CollectionCard>[0]> = {}) => {
   const onOpen = vi.fn();
   const view = render(
     <QueryClientProvider client={new QueryClient()}>
@@ -61,7 +61,7 @@ function renderCard(props: Partial<Parameters<typeof CollectionCard>[0]> = {}) {
     </QueryClientProvider>
   );
   return { view, onOpen };
-}
+};
 
 afterEach(() => {
   cleanup();
@@ -102,7 +102,7 @@ describe("CollectionCard keyboard surface", () => {
 });
 
 describe("GroupHeaderCollection keyboard surface", () => {
-  function renderHeader(collapsed: boolean, onAdd?: () => void) {
+  const renderHeader = (collapsed: boolean, onAdd?: () => void) => {
     const onToggle = vi.fn();
     const view = render(
       <GroupHeaderCollection
@@ -117,7 +117,7 @@ describe("GroupHeaderCollection keyboard surface", () => {
       />
     );
     return { view, onToggle };
-  }
+  };
 
   it("hints as a button and reports its expanded state", () => {
     renderHeader(false);

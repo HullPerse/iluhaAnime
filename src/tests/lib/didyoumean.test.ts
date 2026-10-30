@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveTitleQuery, suggestSpellingWithReason } from "@/lib/searchResolve.utils";
-import { suggestSpelling } from "@/lib/suggestions.utils";
-import { buildSymSpellFromTitles } from "@/lib/symspell.utils";
-import type { AnimeTitle, SearchAnimeSuggestion } from "@/types/search";
+import { resolveTitleQuery } from "@/lib/search/searchHypothesis.utils";
+import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
+import { suggestSpelling } from "@/lib/core/suggestions.utils";
+import { buildSymSpellFromTitles } from "@/lib/core/symspell.utils";
+import type { AnimeTitle, SearchAnimeSuggestion } from "@/types/search/search";
 
 function typed(
   id: number,

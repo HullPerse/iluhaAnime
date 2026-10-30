@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TranslationKey } from "@/types/i18n";
-import type { CommandName } from "@/types/ipc";
-import type { UpscaleToolStatus } from "@/types/player";
-import type { UpscaleTool } from "@/types/toolStatus";
+import type { TranslationKey } from "@/types/core/i18n";
+import type { CommandName } from "@/types/core/ipc";
+import type { UpscaleToolStatus } from "@/types/player/player";
+import type { UpscaleTool } from "@/types/core/toolStatus";
 
 const CHECK_COMMAND: Record<UpscaleTool, CommandName> = {
   rife: "check_rife",

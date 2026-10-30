@@ -1,8 +1,8 @@
 import { anilistApi } from "@/api/anilist.api";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { ignore } from "@/lib/promise.utils";
-import type { AniFriendMinimal } from "@/types/anilist";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import type { AniFriendMinimal } from "@/types/anilist/anilist";
 
 const FOLLOWING_PER_PAGE = 25;
 

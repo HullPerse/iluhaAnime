@@ -1,11 +1,11 @@
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent/torrent";
 
-import TorrentFilesSection from "../../torrent/file.torrent";
-import { TorrentPendingState } from "../../torrent/sections/pending.sections";
+import TorrentFilesSection from "@/routes/components/torrent/file.torrent";
+import { TorrentPendingState } from "@/routes/components/torrent/sections/pending.sections";
 
 export function TorrentCategoryEntry({
   tor,

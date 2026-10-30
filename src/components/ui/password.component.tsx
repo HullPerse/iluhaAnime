@@ -3,9 +3,9 @@ import { Eye, EyeOff } from "lucide-react";
 import * as React from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import type { PasswordInputProps } from "@/types/ui";
+import type { PasswordInputProps } from "@/types/core/ui";
 
-import { Input } from "./input.component";
+import { Input } from "@/components/ui/input.component";
 
 function PasswordInput({ className, wrapperClassName, ...props }: PasswordInputProps) {
   const { t } = useI18n();

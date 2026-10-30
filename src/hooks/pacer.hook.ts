@@ -1,16 +1,16 @@
 import { useEffect, useMemo } from "react";
 
-import { Debouncer } from "@/lib/debounce.utils";
-import { createSimpleCell } from "@/lib/shared.utils";
-import { Throttler } from "@/lib/throttle.utils";
-import { useCell } from "@/lib/signal.hook";
+import { Debouncer } from "@/lib/core/debounce.utils";
+import { createSimpleCell } from "@/lib/core/shared.utils";
+import { Throttler } from "@/lib/core/throttle.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import type {
   DebounceOptions,
   DebouncedValueOptions,
   PacedControls,
   ThrottledValueOptions,
   ThrottleOptions,
-} from "@/types/pacer";
+} from "@/types/core/pacer";
 
 export type PacedCallback<TArgs extends unknown[]> = ((...args: TArgs) => void) & {
   cancel: () => void;

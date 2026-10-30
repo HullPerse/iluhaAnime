@@ -1,14 +1,14 @@
-import { mockInvoke } from "../../../../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, type Ref } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { toUserImage } from "@/lib/image.utils";
+import { toUserImage } from "@/lib/graphics/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
-import type { UserImage, UserImageFile } from "@/types/userimage";
+import type { UserImage, UserImageFile } from "@/types/core/userimage";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -75,12 +75,12 @@ class FakeImage {
   }
 }
 
-function errorMessages() {
+const errorMessages = () => {
   return notificationAtoms.items
     .get()
     .filter((item) => item.type === "error")
     .map((item) => item.message);
-}
+};
 
 afterEach(() => cleanup());
 

@@ -1,10 +1,8 @@
 import { X } from "lucide-react";
 
-const chipClass =
-  "windows95-border text-xs windows95-text inline-flex cursor-pointer items-center gap-0.5 bg-field px-1 hover:bg-surface";
-
 import { useI18n } from "@/hooks/i18n.hook";
-import { enterOrSpace } from "@/lib/keyboard.utils";
+import { chipClass } from "@/lib/ui/chip.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 
 function ChipsRow({ items, onRemove }: { items: string[]; onRemove: (v: string) => void }) {
   const { t } = useI18n();

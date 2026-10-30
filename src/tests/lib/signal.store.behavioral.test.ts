@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createSignalStore } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/core/signal.store";
 
 describe("signal store - player-safe subscriptions", () => {
   it("fires subscribers exactly once per distinct value change", () => {

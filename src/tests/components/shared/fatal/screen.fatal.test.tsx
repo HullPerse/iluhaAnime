@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FatalScreen } from "@/components/shared/fatal/screen.fatal";
-import type { FatalInfo } from "@/types/fatal";
+import type { FatalInfo } from "@/types/core/fatal";
 
-import { mockWriteText } from "../../../mocks";
+import { mockWriteText } from "@/tests/mocks";
 
 afterEach(() => {
   cleanup();

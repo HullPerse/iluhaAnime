@@ -2,83 +2,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { ListVideo } from "lucide-react";
 import { useRef } from "react";
 
-import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useStreamCover } from "@/hooks/remoteImage.hook";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { StreamingEpisode } from "@/types/stream";
+import type { StreamingEpisode } from "@/types/player/stream";
+
+import EpisodeRow from "@/routes/components/player/media/episodeRow.player";
 
 const VIRTUALIZE_AFTER = 40;
 
-/**
- * One row of the season a stream session belongs to.
- *
- * The episode's own cover exists only on some titles, so the row falls back to
- * the title's cover from the session: a season list without art is harder to
- * scan than one with repeated art, and an empty box is worse than both.
- */
-function EpisodeRow({
-  episode,
-  current,
-  cover,
-  fallbackCover,
-  onPick,
-}: {
-  episode: StreamingEpisode;
-  current: boolean;
-  /** The best art for this episode: its own cover or an AniList preview. */
-  cover: string | null;
-  /** The title's cover, fetched only when the episode art is missing. */
-  fallbackCover: string | null;
-  onPick: (episode: StreamingEpisode) => void;
-}) {
-  const { t } = useI18n();
-  const art = useStreamCover(cover);
-  const fallback = useStreamCover(art ? null : fallbackCover);
-  const image = art ?? fallback;
-  const label = episode.title
-    ? `${episode.number}. ${episode.title}`
-    : t("player.stream.episodes.number", { n: episode.number });
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-current={current ? "true" : undefined}
-      onClick={() => onPick(episode)}
-      onKeyDown={enterOrSpace(() => onPick(episode))}
-      title={label}
-      className={`windows95-border mb-1 flex cursor-pointer items-center gap-1 p-1 select-none ${
-        current ? "windows95-active-border bg-secondary text-primary" : "bg-field hover:bg-surface"
-      }`}
-    >
-      <div className="windows95-border bg-field relative flex h-10 w-18 shrink-0 items-center justify-center overflow-hidden">
-        {image ? (
-          <Image src={image} alt={label} className="h-full w-full" type="cover" loading="lazy" />
-        ) : (
-          <ListVideo className="text-hint size-3" aria-hidden />
-        )}
-      </div>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className={`windows95-font truncate text-xs ${current ? "font-bold" : ""}`}>
-          {label}
-        </span>
-        <span className="text-hint text-xs tabular-nums">
-          {episode.duration ? t("player.stream.episodes.duration", { n: episode.duration }) : ""}
-        </span>
-      </span>
-    </div>
-  );
-}
-
-/**
- * The season of a stream session, in the player's side panel.
- *
- * A stream has no mpv playlist: its "playlist" is the title's episodes, and
- * picking one resolves its sources the same way Next does. Only the current
- * episode is marked; the list itself is not reordered, because the episode
- * order belongs to the site.
- */
 export default function StreamEpisodeList({
   episodes,
   currentId,

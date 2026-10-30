@@ -2,13 +2,13 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard.component";
-import type { HintBadge } from "@/types/hintsHotkeys";
+import type { HintBadge } from "@/types/core/hintsHotkeys";
 import { patchSettings } from "@/store/settings.store";
 import { openHints, resetVimHints, setVimPinned } from "@/store/vim.store";
 
 const nodes: HTMLElement[] = [];
 
-function node(text = "", rect: Partial<DOMRect> = {}): HTMLElement {
+const node = (text = "", rect: Partial<DOMRect> = {}): HTMLElement => {
   const element = document.createElement("button");
   element.textContent = text;
   element.getBoundingClientRect = () =>
@@ -27,11 +27,11 @@ function node(text = "", rect: Partial<DOMRect> = {}): HTMLElement {
   document.body.append(element);
   nodes.push(element);
   return element;
-}
+};
 
-function plain(element: HTMLElement, label: string): HintBadge {
+const plain = (element: HTMLElement, label: string): HintBadge => {
   return { element, label, variant: "plain" };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "ru" });

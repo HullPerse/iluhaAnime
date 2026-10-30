@@ -2,13 +2,13 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSplashStages } from "@/hooks/splash.hook";
-import type { DbCheckResult } from "@/types/splash";
+import type { DbCheckResult } from "@/types/core/splash";
 import {
   markCacheReady,
   markIndexReady,
   markSpellingReady,
   resetSplashSignals,
-} from "@/lib/signals.utils";
+} from "@/lib/core/signals.utils";
 
 const OPTIONS = { minMs: 50, stageTimeoutMs: 100, stepMs: 30 };
 

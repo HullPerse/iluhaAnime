@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 
-import { STATUS_TAB_WIDTH } from "@/config/statuses.config";
+import { STATUS_TAB_WIDTH } from "@/config/anilist/statuses.config";
 
 export function usePagedRow(
   count: number,

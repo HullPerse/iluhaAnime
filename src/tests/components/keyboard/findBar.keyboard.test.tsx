@@ -13,13 +13,13 @@ import { patchSettings } from "@/store/settings.store";
 
 const nodes: HTMLElement[] = [];
 
-function content(text: string): HTMLElement {
+const content = (text: string): HTMLElement => {
   const element = document.createElement("div");
   element.textContent = text;
   document.body.append(element);
   nodes.push(element);
   return element;
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });
@@ -40,10 +40,10 @@ afterEach(() => {
   for (const item of nodes.splice(0)) item.remove();
 });
 
-function openBar(): void {
+const openBar = (): void => {
   render(<PageFindBar />);
   openFindBar();
-}
+};
 
 describe("PageFindBar", () => {
   it("renders nothing while closed", () => {

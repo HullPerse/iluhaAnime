@@ -2,17 +2,18 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import ContextMenu, { closeOpenContextMenus } from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/types/contextMenu";
+import ContextMenu from "@/components/shared/contextMenu.component";
+import { closeOpenContextMenus } from "@/lib/ui/contextMenuClose.utils";
+import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 
-function entries(onSelect = vi.fn()): ContextMenuEntry[] {
+const entries = (onSelect = vi.fn()): ContextMenuEntry[] => {
   return [
     { kind: "item", id: "first", label: "common.close", onSelect },
     { kind: "item", id: "disabled", label: "common.cancel", onSelect, disabled: true },
     { kind: "separator", id: "sep" },
     { kind: "item", id: "last", label: "common.delete", onSelect, variant: "destructive" },
   ];
-}
+};
 
 afterEach(() => {
   cleanup();

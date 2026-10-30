@@ -2,7 +2,7 @@ import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/bulk.utils";
+import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/core/bulk.utils";
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
@@ -22,33 +22,38 @@ import {
   TorrentListen,
   torrentErrorText,
   withoutPendingRemoved,
-} from "@/lib/torrentCommon.utils";
-import type { TorrentListState } from "@/types/torrentCommon";
-import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/magnet.utils";
-import { describeRecheckOutcome } from "@/lib/recheck.utils";
+} from "@/lib/torrent/torrentCommon.utils";
+import type { TorrentListState } from "@/types/torrent/torrentCommon";
+import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
+import { describeRecheckOutcome } from "@/lib/core/recheck.utils";
 import {
   applyFolderSelection,
   buildTorrentTree,
   collectFileIndices,
   flattenTorrentTree,
   groupFilesByDirectory,
-} from "@/lib/torrentTree.utils";
+} from "@/lib/torrent/torrentTree.utils";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
-import type { TFunc, TranslationVariables } from "@/types/i18n";
-import type { Anime, TorrentCheckResult, TorrentInfo, TorrentTreeNode } from "@/types/torrent";
+import type { TFunc, TranslationVariables } from "@/types/core/i18n";
+import type {
+  Anime,
+  TorrentCheckResult,
+  TorrentInfo,
+  TorrentTreeNode,
+} from "@/types/torrent/torrent";
 
 import {
   mockInvoke as invokeSpy,
   mockOpenUrl as openUrlSpy,
   mockWriteText as writeTextSpy,
-} from "../mocks";
+} from "@/tests/mocks";
 
 const prepareTorrentDownloadSpy = vi.fn();
 const prepareTorrentDownloadFromBytesSpy = vi.fn();
 
 vi.mock("@tauri-apps/api/core", async () => {
-  const { mockInvoke } = await import("../mocks");
+  const { mockInvoke } = await import("@/tests/mocks");
   return {
     invoke: mockInvoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -56,12 +61,12 @@ vi.mock("@tauri-apps/api/core", async () => {
 });
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", async () => {
-  const { mockWriteText } = await import("../mocks");
+  const { mockWriteText } = await import("@/tests/mocks");
   return { writeText: mockWriteText };
 });
 
 vi.mock("@tauri-apps/plugin-opener", async () => {
-  const { mockOpenUrl } = await import("../mocks");
+  const { mockOpenUrl } = await import("@/tests/mocks");
   return { openUrl: mockOpenUrl };
 });
 

@@ -1,7 +1,7 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -10,7 +10,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { useUpscalePreview } from "@/hooks/player/upscalePreview.hook";
 import { patchSettings } from "@/store/settings.store";
-import type { PreviewFrame } from "@/types/upscale";
+import type { PreviewFrame } from "@/types/core/upscale";
 
 const FRAME: PreviewFrame = {
   timestamp: 1,
@@ -18,7 +18,7 @@ const FRAME: PreviewFrame = {
   after: "a1",
 };
 
-function params(overrides: Partial<Parameters<typeof useUpscalePreview>[0]> = {}) {
+const params = (overrides: Partial<Parameters<typeof useUpscalePreview>[0]> = {}) => {
   return {
     filePath: "D:/video/ep01.mkv",
     resolution: "1920x1080",
@@ -26,7 +26,7 @@ function params(overrides: Partial<Parameters<typeof useUpscalePreview>[0]> = {}
     temporalDenoise: false,
     ...overrides,
   };
-}
+};
 
 afterEach(() => {
   cleanup();

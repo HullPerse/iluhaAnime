@@ -1,8 +1,8 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { rankHistoryEntries } from '@/lib/suggestions.utils';
-import { createSignalStore } from '@/lib/signal.store';
-import type { SearchQueryStat } from '../../src/types/search';
+import { rankHistoryEntries } from '../../src/lib/core/suggestions.utils';
+import { createSignalStore } from '../../src/lib/core/signal.store';
+import type { SearchQueryStat } from '../../src/types/search/search';
 
 function makeHistory(count: number): string[] {
   const out: string[] = [];

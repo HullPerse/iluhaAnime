@@ -1,7 +1,7 @@
 import { useEffect, useState, type RefObject } from "react";
 
-import { CARD_W } from "@/config/card.config";
-import type { GridLayout } from "@/types/collection";
+import { CARD_W } from "@/config/anilist/card.config";
+import type { GridLayout } from "@/types/anilist/collection";
 
 export function useGridColumns(
   parentRef: RefObject<HTMLDivElement | null>,

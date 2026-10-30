@@ -1,4 +1,4 @@
-import { mockInvoke, mockOpenPath } from "../../mocks";
+import { mockInvoke, mockOpenPath } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TorrentHeader } from "@/routes/components/torrent/sections/header.sections";
 import { patchSettings } from "@/store/settings.store";
-import type { TorrentInfo } from "@/types/torrent";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -19,7 +19,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 
 const SEQUENTIAL_NAME = /Sequential download/;
 
-function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
+const info = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
   return {
     download_order: [],
     download_speed: 0,
@@ -45,9 +45,9 @@ function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     uploaded_bytes: 0,
     ...overrides,
   };
-}
+};
 
-function renderHeader(item: TorrentInfo, onSetSequential = vi.fn()) {
+const renderHeader = (item: TorrentInfo, onSetSequential = vi.fn()) => {
   const client = new QueryClient();
   return {
     onSetSequential,
@@ -72,7 +72,7 @@ function renderHeader(item: TorrentInfo, onSetSequential = vi.fn()) {
       </QueryClientProvider>
     ),
   };
-}
+};
 
 afterEach(() => cleanup());
 

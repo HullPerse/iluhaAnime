@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createGameAudio } from "@/lib/audio.utils";
+import { createGameAudio } from "@/lib/player/audio.utils";
 
 type FakeParam = {
   value: number;

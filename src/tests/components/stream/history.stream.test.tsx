@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StreamHistoryModal from "@/routes/components/stream/history.stream";
 import { patchSettings } from "@/store/settings.store";
-import type { StreamHistoryEntry } from "@/types/stream";
+import type { StreamHistoryEntry } from "@/types/player/stream";
 
 vi.mock("@/hooks/remoteImage.hook", () => ({
   useStreamCover: () => null,
@@ -38,12 +38,12 @@ const ROW: StreamHistoryEntry = {
   updatedAt: 100,
 };
 
-function renderHistory(open = true) {
+const renderHistory = (open = true) => {
   const onOpen = vi.fn();
   const onClose = vi.fn();
   const result = render(<StreamHistoryModal open={open} onOpen={onOpen} onClose={onClose} />);
   return { ...result, onOpen, onClose };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

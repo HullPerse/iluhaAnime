@@ -1,13 +1,13 @@
 import { test } from "vitest";
 
-import { getCachedCard, orderCardPaths } from "@/lib/cardCache.utils";
-import { languageName, normalizeLangCode } from "@/lib/language.utils";
-import { shouldShowEmptyPlayer, shouldShowLoadingSpinner } from "@/lib/loading.utils";
-import { findActiveChapter, skipLabel } from "@/lib/skip.utils";
-import { sortTracksByLanguage, toTrackDisplay, trackLabel } from "@/lib/tracks.utils";
-import { isPlayerPathHidden, normalizePlayerPath } from "@/lib/visibility.utils";
-import { formatClock } from "@/lib/time.utils";
-import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
+import { getCachedCard, orderCardPaths } from "@/lib/core/cardCache.utils";
+import { languageName, normalizeLangCode } from "@/lib/core/language.utils";
+import { shouldShowEmptyPlayer, shouldShowLoadingSpinner } from "@/lib/core/loading.utils";
+import { findActiveChapter, skipLabel } from "@/lib/core/skip.utils";
+import { sortTracksByLanguage, toTrackDisplay, trackLabel } from "@/lib/torrent/tracks.utils";
+import { isPlayerPathHidden, normalizePlayerPath } from "@/lib/core/visibility.utils";
+import { formatClock } from "@/lib/core/time.utils";
+import type { MpvChapter, MpvTrack } from "@/types/player/videoPlayer";
 
 const LANGS = [
   "eng",

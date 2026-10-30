@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { containsBox, intersectsBox } from "@/lib/collisionAabb.utils";
-import type { CollisionBox } from "@/types/collisionAabb";
+import { containsBox, intersectsBox } from "@/lib/core/collisionAabb.utils";
+import type { CollisionBox } from "@/types/core/collisionAabb";
 
 function box(minX: number, minY: number, maxX: number, maxY: number): CollisionBox {
   return { minX, minY, maxX, maxY };

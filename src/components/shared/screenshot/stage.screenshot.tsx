@@ -7,9 +7,10 @@ import type {
 } from "react";
 
 import CropFrame from "@/components/shared/screenshot/crop.screenshot";
-import { CROP_MIN_SIZE, CROP_ZOOM_STEP } from "@/config/screenshot.config";
-import { measureText, paintAnnotations, paintBlurMask } from "@/lib/annotationDraw.utils";
-import { scheduleTask } from "@/lib/shared.utils";
+import { CROP_MIN_SIZE, CROP_ZOOM_STEP } from "@/config/graphics/screenshot.config";
+import { measureText, paintAnnotations, paintBlurMask } from "@/lib/core/annotationDraw.utils";
+import { paintOffscreen } from "@/lib/graphics/screenshotPaint.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
 import {
   appendPoint,
   blurSigmaFor,
@@ -19,7 +20,7 @@ import {
   isBlurItem,
   nextAnnotationId,
   withDraft,
-} from "@/lib/annotation.utils";
+} from "@/lib/core/annotation.utils";
 import {
   clampPan,
   fitView,
@@ -28,8 +29,8 @@ import {
   snapThresholdForScale,
   startCrop,
   zoomAtPoint,
-} from "@/lib/crop.utils";
-import { attemptSync } from "@/lib/attempt.utils";
+} from "@/lib/core/crop.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   AnnotationItem,
   CropBounds,
@@ -42,8 +43,8 @@ import type {
   ScreenshotLayersPayload,
   ScreenshotScale,
   ScreenshotTool,
-} from "@/types/screenshot";
-import type { StageHandle } from "@/types/stage.screenshot";
+} from "@/types/core/screenshot";
+import type { StageHandle } from "@/types/core/stage.screenshot";
 
 const LEFT_BUTTON = 0;
 const RIGHT_BUTTON = 2;
@@ -74,22 +75,6 @@ interface TextEditor {
   editingId: string | null;
 
   size: number;
-}
-
-function paintOffscreen(
-  bounds: CropBounds,
-  paint: (context: CanvasRenderingContext2D) => void
-): string | undefined {
-  const [url] = attemptSync(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = bounds.width;
-    canvas.height = bounds.height;
-    const context = canvas.getContext("2d");
-    if (!context) return undefined;
-    paint(context);
-    return canvas.toDataURL("image/png");
-  });
-  return url ?? undefined;
 }
 
 interface ScreenshotStageProps {

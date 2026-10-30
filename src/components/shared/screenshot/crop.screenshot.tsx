@@ -1,8 +1,14 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
-import { CROP_DIM_OPACITY } from "@/config/screenshot.config";
-import { moveCrop, resizeCrop, toFrame } from "@/lib/crop.utils";
-import type { CropBounds, CropGuide, CropHandle, CropRect, CropView } from "@/types/screenshot";
+import { CROP_DIM_OPACITY } from "@/config/graphics/screenshot.config";
+import { moveCrop, resizeCrop, toFrame } from "@/lib/core/crop.utils";
+import type {
+  CropBounds,
+  CropGuide,
+  CropHandle,
+  CropRect,
+  CropView,
+} from "@/types/core/screenshot";
 
 const CORNERS: readonly Exclude<CropHandle, "move" | "n" | "s" | "e" | "w">[] = [
   "nw",

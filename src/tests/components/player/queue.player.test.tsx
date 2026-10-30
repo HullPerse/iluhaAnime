@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import QueuePanel from "@/routes/components/player/queue.player";
 import { patchSettings } from "@/store/settings.store";
 import { upscaleItems } from "@/store/upscale.store";
-import type { UpscaleConfig, UpscaleQueueItem } from "@/types/upscale";
+import type { UpscaleConfig, UpscaleQueueItem } from "@/types/core/upscale";
 
 const CONFIG: UpscaleConfig = {
   width: 1920,
@@ -19,7 +19,7 @@ const CONFIG: UpscaleConfig = {
   temporalDenoise: false,
 };
 
-function item(id: string, name: string): UpscaleQueueItem {
+const item = (id: string, name: string): UpscaleQueueItem => {
   return {
     id,
     jobType: "upscale",
@@ -30,11 +30,11 @@ function item(id: string, name: string): UpscaleQueueItem {
     status: "queued",
     progress: 0,
   };
-}
+};
 
-function queueToggle(): HTMLElement {
+const queueToggle = (): HTMLElement => {
   return screen.getByTestId("queue-toggle");
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

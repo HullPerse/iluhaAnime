@@ -16,9 +16,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function advance(seconds: number) {
+const advance = async (seconds: number) => {
   await vi.advanceTimersByTimeAsync(seconds * 1000);
-}
+};
 
 describe("AniListLoader", () => {
   it("shows elapsed seconds without the proxy hint while fast", async () => {

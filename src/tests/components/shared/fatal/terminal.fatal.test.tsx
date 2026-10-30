@@ -3,10 +3,10 @@ import userEvent from "@testing-library/user-event";
 import type { RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { FatalVariantProps } from "@/types/shared.fatal";
+import type { FatalVariantProps } from "@/types/core/shared.fatal";
 import { TerminalBsod } from "@/components/shared/fatal/terminal.fatal";
-import { resolveFatalTexts } from "@/lib/fatalTexts.utils";
-import type { FatalInfo } from "@/types/fatal";
+import { resolveFatalTexts } from "@/lib/core/fatalTexts.utils";
+import type { FatalInfo } from "@/types/core/fatal";
 
 afterEach(() => {
   cleanup();

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { focusMainSearch } from "@/lib/focusHotkeys.utils";
+import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 
 afterEach(() => {
   document.body.innerHTML = "";

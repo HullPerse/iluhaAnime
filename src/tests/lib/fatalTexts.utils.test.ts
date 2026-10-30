@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveFatalLocale, resolveFatalTexts, resolveSplashTexts } from "@/lib/fatalTexts.utils";
+import {
+  resolveFatalLocale,
+  resolveFatalTexts,
+  resolveSplashTexts,
+} from "@/lib/core/fatalTexts.utils";
 
 describe("fatal texts contract", () => {
   it("defaults to english without persisted settings", () => {

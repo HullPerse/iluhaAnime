@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
+import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/anilist/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { normalizeStatusLabel } from "@/lib/status.utils";
-import type { CollectionStatusDef, CollectionStatusKind } from "@/types/collection";
+import { normalizeStatusLabel } from "@/lib/core/status.utils";
+import type { CollectionStatusDef, CollectionStatusKind } from "@/types/anilist/collection";
 
-import { BilingualPreview } from "./bilingualPreview.collection";
+import { BilingualPreview } from "@/routes/components/collection/bilingualPreview.collection";
 
 export function StatusRow({
   status,

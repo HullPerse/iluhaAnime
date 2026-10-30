@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StreamDetail from "@/routes/components/stream/detail.stream";
 import { patchSettings } from "@/store/settings.store";
-import type { StreamingAnime, StreamingEpisode } from "@/types/stream";
+import type { StreamingAnime, StreamingEpisode } from "@/types/player/stream";
 
 vi.mock("@/hooks/remoteImage.hook", () => ({
   useStreamCover: () => null,
@@ -105,7 +105,7 @@ const playback = vi.hoisted(() => ({
   prewarmPlayer: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/lib/playback.utils", () => playback);
+vi.mock("@/lib/player/playback.utils", () => playback);
 
 vi.mock("@/routes/components/anilist/detail/modal.detail", () => ({
   default: ({

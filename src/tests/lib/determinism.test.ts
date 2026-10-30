@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_FILTERS } from "@/config/collectionFilters.config";
-import { filterCollectionItems } from "@/lib/filter.utils";
-import { parseMediaPath } from "@/lib/parse.utils";
-import { getSearchSuggestions } from "@/lib/suggestions.utils";
-import { buildTorrentTree } from "@/lib/torrentTree.utils";
-import type { CollectionItem } from "@/types/collection";
-import type { SearchAnimeSuggestion } from "@/types/search";
-import type { TorrentFileInfo } from "@/types/torrent";
+import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
+import { filterCollectionItems } from "@/lib/core/filter.utils";
+import { parseMediaPath } from "@/lib/search/parse.utils";
+import { getSearchSuggestions } from "@/lib/core/suggestions.utils";
+import { buildTorrentTree } from "@/lib/torrent/torrentTree.utils";
+import type { CollectionItem } from "@/types/anilist/collection";
+import type { SearchAnimeSuggestion } from "@/types/search/search";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
 const SEEDS = [1, 2, 7, 42, 1337];
 

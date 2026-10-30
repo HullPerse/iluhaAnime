@@ -4,7 +4,7 @@ import { Heart } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import type { PosterTilePreview } from "@/types/posterTile";
+import type { PosterTilePreview } from "@/types/core/posterTile";
 import ImageComponent from "@/components/ui/image.component";
 
 const TILE_WIDTHS = {

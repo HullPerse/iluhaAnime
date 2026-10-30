@@ -105,6 +105,58 @@ describe("Modal animation", () => {
   });
 });
 
+describe("Modal content animation", () => {
+  const installAnimateMock = () => {
+    return vi.fn(() => ({ cancel: vi.fn() }));
+  };
+
+  it("does not animate on re-renders with the same content structure", () => {
+    patchSettings({ language: "en", modalAnimation: false, animateModalContent: true });
+    const animate = installAnimateMock();
+    Object.defineProperty(HTMLElement.prototype, "animate", {
+      configurable: true,
+      writable: true,
+      value: animate,
+    });
+
+    const { rerender } = render(
+      <Modal header="Test" onClose={() => undefined}>
+        <span>body</span>
+      </Modal>
+    );
+    rerender(
+      <Modal header="Test" onClose={() => undefined}>
+        <span>body</span>
+      </Modal>
+    );
+
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it("animates when the content structure changes", () => {
+    patchSettings({ language: "en", modalAnimation: false, animateModalContent: true });
+    const animate = installAnimateMock();
+    Object.defineProperty(HTMLElement.prototype, "animate", {
+      configurable: true,
+      writable: true,
+      value: animate,
+    });
+
+    const { rerender } = render(
+      <Modal header="Test" onClose={() => undefined}>
+        <span>body</span>
+      </Modal>
+    );
+    rerender(
+      <Modal header="Test" onClose={() => undefined}>
+        <div>body</div>
+      </Modal>
+    );
+
+    expect(animate).toHaveBeenCalled();
+  });
+});
+
 describe("Modal resize observer", () => {
   it("attaches the observer to the portalled popup", () => {
     const observed: Element[] = [];

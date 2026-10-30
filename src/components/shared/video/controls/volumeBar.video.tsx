@@ -2,7 +2,7 @@ import { selectVolume } from "@videojs/core/dom";
 import { usePlayer } from "@videojs/react";
 import { useCallback, useRef, useState } from "react";
 
-import { VOLUME_STEP } from "@/config/video.config";
+import { VOLUME_STEP } from "@/config/player/video.config";
 import { useWindowDrag } from "@/hooks/windowDrag.hook";
 
 export function VolumeBar() {

@@ -3,29 +3,29 @@ import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
 import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
-import { BROWSE_SORT_MAP, BROWSE_TABS } from "@/config/browse.config";
-import { BROWSE_GENRE_COUNT } from "@/config/anilistFilters.config";
-import { listStatusLabels, seasonLabels, statusLabels } from "@/config/labels.config";
-import { BROWSE_PAGE_SIZE } from "@/config/pagination.config";
-import { QUERY_PRESETS } from "@/config/query.config";
+import { BROWSE_SORT_MAP, BROWSE_TABS } from "@/config/search/browse.config";
+import { BROWSE_GENRE_COUNT } from "@/config/anilist/anilistFilters.config";
+import { listStatusLabels, seasonLabels, statusLabels } from "@/config/system/labels.config";
+import { BROWSE_PAGE_SIZE } from "@/config/system/pagination.config";
+import { QUERY_PRESETS } from "@/config/system/query.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
-import { getStatusColor } from "@/lib/entries.utils";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
-import { queryKeys } from "@/lib/keys.utils";
-import { paginate } from "@/lib/pagination.utils";
-import type { ActivityDetailBundle } from "@/types/anilist";
-import type { BrowseTab } from "@/types/anilist";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { paginate } from "@/lib/core/pagination.utils";
+import type { ActivityDetailBundle } from "@/types/anilist/anilist";
+import type { BrowseTab } from "@/types/anilist/anilist";
 
-import { InlineDetail } from "./detail/inline.detail";
+import { InlineDetail } from "@/routes/components/anilist/detail/inline.detail";
 
 export default function BrowseAnimeModal({
   onClose,

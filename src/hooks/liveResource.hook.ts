@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-import { createInterval } from "@/lib/interval.utils";
-import { attempt } from "@/lib/attempt.utils";
-import type { LiveResourceOptions } from "@/types/liveResource";
+import { createInterval } from "@/lib/core/interval.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import type { LiveResourceOptions } from "@/types/core/liveResource";
 
 const BACKOFF_BASE_MS = 2000;
 const BACKOFF_MAX_MS = 30_000;

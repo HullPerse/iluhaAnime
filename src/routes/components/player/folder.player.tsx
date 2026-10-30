@@ -16,36 +16,42 @@ import {
 import { useState, useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/types/contextMenu";
-import { SmallLoader } from "@/components/shared/loader.component";
+import type { ContextMenuEntry } from "@/types/ui/contextMenu";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/folders.config";
+import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/system/folders.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { clickRowActionButton, dispatchClick } from "@/lib/dispatchHotkeys.utils";
-import { mediaFileExtension, parseMediaPath } from "@/lib/parse.utils";
-import { loadWatch, openPlayer } from "@/lib/playback.utils";
-import { formatParsedTitle } from "@/lib/playerTitle.utils";
-import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/playerTree.utils";
-import { resolveTreeArrow, resolveTreeMove } from "@/lib/treeArrow.utils";
-import type { TreeRow } from "@/types/treeArrow";
-import { useCell } from "@/lib/signal.hook";
-import { withFallback } from "@/lib/attempt.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { openFileInPlayer } from "@/lib/media.utils";
-import { showError } from "@/lib/notification.utils";
-import { ignore } from "@/lib/promise.utils";
+import { clickRowActionButton } from "@/lib/core/dispatchHotkeys.utils";
+import { mediaFileExtension, parseMediaPath } from "@/lib/search/parse.utils";
+import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
+import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
+import {
+  findFolderContainingFile,
+  flattenTree,
+  folderFilePaths,
+} from "@/lib/player/playerTree.utils";
+import { resolveTreeArrow } from "@/lib/core/treeArrow.utils";
+import { moveRingFocus } from "@/lib/ui/treeFocus.utils";
+import { findRow, rowElement, runRowAction } from "@/lib/ui/treeRow.utils";
+import type { TreeRow } from "@/types/core/treeArrow";
+import { useCell } from "@/lib/core/signal.hook";
+import { withFallback } from "@/lib/core/attempt.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { openFileInPlayer } from "@/lib/player/media.utils";
+import { showError } from "@/lib/core/notification.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { upscaleItems } from "@/store/upscale.store";
-import { setVimCount, vimAtoms } from "@/store/vim.store";
-import type { FolderNode } from "@/types/torrent";
+import { setVimCount } from "@/store/vim.store";
+import type { FolderNode } from "@/types/torrent/torrent";
 
-import UpscalePlayer from "./upscale/modal.upscale";
+import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
 
 type TreeKeyAction =
   | "treeCollapse"
@@ -74,10 +80,6 @@ const TREE_KEYBINDS: ResolvedHotkeyDef<TreeKeyAction>[] = [
   { id: "rowReveal", chord: "KeyR", repeat: "once", keybindId: "tree.reveal" },
 ];
 
-function rowElement(target: EventTarget | null): HTMLElement | null {
-  return target instanceof HTMLElement ? target.closest<HTMLElement>("[data-tree-row]") : null;
-}
-
 type FileRowAction = "external" | "builtin" | "search" | "upscale" | "reveal";
 
 const FILE_ACTION_BY_KEY: Partial<Record<TreeKeyAction, FileRowAction>> = {
@@ -87,44 +89,6 @@ const FILE_ACTION_BY_KEY: Partial<Record<TreeKeyAction, FileRowAction>> = {
   rowUpscale: "upscale",
   rowReveal: "reveal",
 };
-
-function runFileRowAction(row: HTMLElement, action: FileRowAction): void {
-  if (action === "reveal") {
-    const name = row.querySelector<HTMLElement>("[data-tree-activate]");
-    if (name) dispatchClick(name, "contextmenu");
-    return;
-  }
-  clickRowActionButton(row, action);
-}
-
-function moveRingFocus(
-  treeRows: TreeRow[],
-  treeRef: RefObject<HTMLDivElement | null>,
-  nodePath: string,
-  path: string,
-  direction: -1 | 1
-): void {
-  if (path === nodePath && !treeRows.some((row) => row.path === path)) {
-    if (direction > 0) {
-      const first = treeRows[0];
-      if (first) findRow(treeRef.current, first.path)?.focus();
-    }
-    return;
-  }
-  const count = vimAtoms.count.get();
-  setVimCount("");
-  const step = count === "" ? 1 : Math.max(Number.parseInt(count, 10) || 1, 1);
-  const next = resolveTreeMove(treeRows, path, direction * step);
-  if (next) findRow(treeRef.current, next)?.focus();
-}
-
-function findRow(root: HTMLElement | null, path: string): HTMLElement | null {
-  if (!root) return null;
-  for (const row of root.querySelectorAll<HTMLElement>("[data-tree-row]")) {
-    if (row.dataset.treePath === path) return row;
-  }
-  return null;
-}
 
 function FolderView({
   node,
@@ -291,7 +255,7 @@ function FolderView({
       if (fileAction !== undefined) {
         setVimCount("");
         if (row.dataset.vimTarget !== "file") return;
-        runFileRowAction(row, fileAction);
+        runRowAction(row, fileAction);
         return;
       }
 

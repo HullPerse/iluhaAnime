@@ -1,9 +1,9 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { GAME_DISPLAY } from "@/config/display.config";
+import { GAME_DISPLAY } from "@/config/player/display.config";
 import { useGameSession } from "@/hooks/game/session.hook";
-import type { GameSessionHandle } from "@/types/gameSession";
+import type { GameSessionHandle } from "@/types/core/gameSession";
 import {
   FRAME_FLAG_DIRTY,
   FRAME_FLAG_HIRES,
@@ -15,10 +15,10 @@ import {
   LOW_XO_FRAME_BYTES,
   XO_AUDIO_BYTES,
   parseHexColor,
-} from "@/lib/frame.utils";
-import type { GameRomInfo, GameStartInfo } from "@/types/game";
+} from "@/lib/core/frame.utils";
+import type { GameRomInfo, GameStartInfo } from "@/types/core/game";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 const audio = vi.hoisted(() => ({
   setActive: vi.fn(),
@@ -27,7 +27,7 @@ const audio = vi.hoisted(() => ({
   dispose: vi.fn(),
 }));
 
-vi.mock("@/lib/audio.utils", () => ({ createGameAudio: () => audio }));
+vi.mock("@/lib/player/audio.utils", () => ({ createGameAudio: () => audio }));
 
 const ROM: GameRomInfo = {
   id: "rom:test-1",
@@ -61,19 +61,19 @@ let clock = 0;
 let putImageData: ReturnType<typeof vi.fn>;
 const originalGetContext = HTMLCanvasElement.prototype.getContext;
 
-function tickResponse(flags: number, pixels: number[] = [], hires = false): ArrayBuffer {
+const tickResponse = (flags: number, pixels: number[] = [], hires = false): ArrayBuffer => {
   const bytes = new Uint8Array(FRAME_HEADER_BYTES + (hires ? HIGH_FRAME_BYTES : LOW_FRAME_BYTES));
   bytes[0] = flags;
   bytes.set(pixels, FRAME_HEADER_BYTES);
   return bytes.buffer;
-}
+};
 
-function xoResponse(
+const xoResponse = (
   flags: number,
   pitchHz: number,
   pattern: number[],
   pixels: number[] = []
-): ArrayBuffer {
+): ArrayBuffer => {
   const bytes = new Uint8Array(FRAME_HEADER_BYTES + XO_AUDIO_BYTES + LOW_XO_FRAME_BYTES);
   bytes[0] = flags | FRAME_FLAG_XO;
   bytes[FRAME_HEADER_BYTES] = pitchHz & 0xff;
@@ -81,28 +81,28 @@ function xoResponse(
   bytes.set(pattern, FRAME_HEADER_BYTES + 2);
   bytes.set(pixels, FRAME_HEADER_BYTES + XO_AUDIO_BYTES);
   return bytes.buffer;
-}
+};
 
-function step(deltaMs: number): void {
+const step = (deltaMs: number): void => {
   clock += deltaMs;
   const pending = frames;
   frames = [];
   for (const scheduled of pending) scheduled(clock);
-}
+};
 
-function startMock(tick: () => ArrayBuffer | Promise<ArrayBuffer>): void {
+const startMock = (tick: () => ArrayBuffer | Promise<ArrayBuffer>): void => {
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "game_start") return START;
     if (command === "game_tick") return await tick();
     return null;
   });
-}
+};
 
-function tickCalls(): number {
+const tickCalls = (): number => {
   return mockInvoke.mock.calls.filter(([command]) => command === "game_tick").length;
-}
+};
 
-function renderSession(muted = false, volume = 1) {
+const renderSession = (muted = false, volume = 1) => {
   const canvas = document.createElement("canvas");
   const ref = { current: canvas };
   const view = renderHook(
@@ -111,13 +111,13 @@ function renderSession(muted = false, volume = 1) {
     { initialProps: { muted, volume } }
   );
   return { canvas, ...view };
-}
+};
 
-async function start(view: { result: { current: GameSessionHandle } }): Promise<void> {
+const start = async (view: { result: { current: GameSessionHandle } }): Promise<void> => {
   await act(async () => {
     await view.result.current.start(ROM);
   });
-}
+};
 
 beforeEach(() => {
   frames = [];

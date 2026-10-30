@@ -1,9 +1,9 @@
-import type { EntryLookup } from "@/types/entries";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
+import type { EntryLookup } from "@/types/anilist/entries";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
-import type { AniListAnime, AniMedia } from "@/types/anilist";
+import type { AniListAnime, AniMedia } from "@/types/anilist/anilist";
 
-import AniListResultsPagination from "./resultsPagination.anilist";
+import AniListResultsPagination from "@/routes/components/anilist/resultsPagination.anilist";
 
 export default function AniListResults({
   entries,

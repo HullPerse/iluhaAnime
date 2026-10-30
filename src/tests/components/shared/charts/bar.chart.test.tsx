@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BarChart } from "@/components/shared/charts/bar.chart";
 
-function rect(width: number, height: number): DOMRect {
+const rect = (width: number, height: number): DOMRect => {
   return {
     width,
     height,
@@ -15,7 +15,7 @@ function rect(width: number, height: number): DOMRect {
     y: 0,
     toJSON: () => ({}),
   } as DOMRect;
-}
+};
 
 const DATA = [
   { key: "a", label: "Alpha", value: 10 },
@@ -31,7 +31,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderBars(onActivate = vi.fn()) {
+const renderBars = (onActivate = vi.fn()) => {
   render(
     <BarChart
       data={DATA}
@@ -45,7 +45,7 @@ function renderBars(onActivate = vi.fn()) {
     />
   );
   return onActivate;
-}
+};
 
 describe("BarChart", () => {
   it("renders one label and one value per row and truncates long labels", async () => {

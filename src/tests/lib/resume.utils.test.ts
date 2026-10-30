@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { needsExactSeek, resolveLoadPosition, shouldSkipFrontendSeek } from "@/lib/resume.utils";
-import type { HwdecReload } from "@/types/resume";
+import {
+  needsExactSeek,
+  resolveLoadPosition,
+  shouldSkipFrontendSeek,
+} from "@/lib/player/resume.utils";
+import type { HwdecReload } from "@/types/player/resume";
 
 const RELOAD: HwdecReload = { position: 321, paused: true };
 

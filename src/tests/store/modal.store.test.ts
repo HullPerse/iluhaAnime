@@ -11,7 +11,7 @@ import {
   topModal,
   type ModalSignalStore,
 } from "@/store/modal.store";
-import type { ModalEntry, ModalScope } from "@/types/modal";
+import type { ModalEntry, ModalScope } from "@/types/ui/modal";
 
 function seed(
   store: ModalSignalStore,

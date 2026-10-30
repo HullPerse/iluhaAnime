@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { relativeRowNumber, resolveTreeArrow, resolveTreeMove } from "@/lib/treeArrow.utils";
-import type { TreeRow } from "@/types/treeArrow";
+import { relativeRowNumber, resolveTreeArrow, resolveTreeMove } from "@/lib/core/treeArrow.utils";
+import type { TreeRow } from "@/types/core/treeArrow";
 
 function folder(path: string, depth: number, expanded: boolean): TreeRow {
   return { path, depth, kind: "folder", expanded };

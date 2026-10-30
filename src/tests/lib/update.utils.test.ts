@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { findUpdatedFiles, normalizeUpdateFileName } from "@/lib/torrentUpdate.utils";
-import type { TorrentFileInfo } from "@/types/torrent";
+import { findUpdatedFiles, normalizeUpdateFileName } from "@/lib/torrent/torrentUpdate.utils";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
 function file(name: string): TorrentFileInfo {
   return {

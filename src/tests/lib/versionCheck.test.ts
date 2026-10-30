@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveMediaFile } from "@/lib/mediaResolve.utils";
+import { resolveMediaFile } from "@/lib/player/mediaResolve.utils";
 
 describe("version episode feature", () => {
   it("parses single-token version 01v2", () => {

@@ -3,8 +3,8 @@ import { StepBack } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatMeanScore, parseScoreFormat } from "@/lib/anilistScore.utils";
-import type { AniFriend, AniUserProfile } from "@/types/anilist";
+import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
+import type { AniFriend, AniUserProfile } from "@/types/anilist/anilist";
 
 export default function AniListFriendHeader({
   friend,

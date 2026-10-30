@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (command: string, args?: Record<string, unknown>) => invokeMock(command, args),
@@ -8,7 +8,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import { resetTransportInflight } from "@/api/transport.api";
-import { insertPlaylistFiles, openPlayer } from "@/lib/playback.utils";
+import { insertPlaylistFiles, openPlayer } from "@/lib/player/playback.utils";
 
 function playerOpenArgs(): Array<Record<string, unknown> | undefined> {
   return invokeMock.mock.calls.filter(([name]) => name === "player_open").map(([, args]) => args);

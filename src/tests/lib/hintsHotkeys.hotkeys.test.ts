@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { VIM_LABEL_ALPHABET } from "@/config/vim.config";
+import { VIM_LABEL_ALPHABET } from "@/config/settings/vim.config";
 import {
   assignLabels,
   badgeWidth,
@@ -15,9 +15,9 @@ import {
   resolveBadgeCollisions,
   resolveHintDescription,
   scanHintTargets,
-} from "@/lib/hintsHotkeys.utils";
-import type { HintBadge, HintBadgeLayout, HintVariant } from "@/types/hintsHotkeys";
-import type { TranslationKey } from "@/types/i18n";
+} from "@/lib/core/hintsHotkeys.utils";
+import type { HintBadge, HintBadgeLayout, HintVariant } from "@/types/core/hintsHotkeys";
+import type { TranslationKey } from "@/types/core/i18n";
 
 const nodes: HTMLElement[] = [];
 

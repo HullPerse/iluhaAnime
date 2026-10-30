@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
 const PROGRESS_SLOTS_CAP = 12;

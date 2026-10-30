@@ -4,14 +4,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { StatusManagerCollection } from "@/routes/components/collection/statusManager.collection";
 import { patchSettings } from "@/store/settings.store";
-import type { CollectionStatusDef } from "@/types/collection";
+import type { CollectionStatusDef } from "@/types/anilist/collection";
 
 const STATUSES: CollectionStatusDef[] = [
   { id: "watching", label: "Watching", color: "#3b82f6", order: 0, isCore: true, kind: "private" },
   { id: "custom_1", label: "Friends", color: "#0ea5e9", order: 1, isCore: false, kind: "private" },
 ];
 
-function renderManager(onDelete: (id: string) => void = () => undefined) {
+const renderManager = (onDelete: (id: string) => void = () => undefined) => {
   return render(
     <StatusManagerCollection
       statuses={STATUSES}
@@ -21,7 +21,7 @@ function renderManager(onDelete: (id: string) => void = () => undefined) {
       onClose={() => undefined}
     />
   );
-}
+};
 
 afterEach(() => {
   cleanup();

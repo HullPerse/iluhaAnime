@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import GameStoreModal from "@/routes/components/game/store.game";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
-import type { GameStoreProgress } from "@/types/game";
+import type { GameStoreProgress } from "@/types/core/game";
 
-import { mockInvoke, mockListen } from "../../../mocks";
+import { mockInvoke, mockListen } from "@/tests/mocks";
 
 const STORE = [
   {
@@ -56,14 +56,14 @@ const listener: { handler: ((event: { payload: GameStoreProgress }) => void) | n
   handler: null,
 };
 
-function renderStore() {
+const renderStore = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <GameStoreModal onClose={() => undefined} />
     </QueryClientProvider>
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en", modalAnimation: false });

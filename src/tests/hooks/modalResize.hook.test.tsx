@@ -63,16 +63,16 @@ function DelayedHarness({ enabled }: { enabled: boolean }) {
   );
 }
 
-function setSize(width: number, height: number): void {
+const setSize = (width: number, height: number): void => {
   size.width = width;
   size.height = height;
-}
+};
 
-function triggerResize(): void {
+const triggerResize = (): void => {
   act(() => {
     resizeCallback?.([], {} as ResizeObserver);
   });
-}
+};
 
 beforeEach(() => {
   size.width = 320;
@@ -119,17 +119,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function restoreProperty(
+const restoreProperty = (
   target: object,
   key: string,
   descriptor: PropertyDescriptor | undefined
-): void {
+): void => {
   if (descriptor) {
     Object.defineProperty(target, key, descriptor);
     return;
   }
   Reflect.deleteProperty(target, key);
-}
+};
 
 describe("useModalResize", () => {
   it("does not animate the size the popup already settled at", () => {

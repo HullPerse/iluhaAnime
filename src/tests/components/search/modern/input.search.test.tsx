@@ -1,11 +1,11 @@
-import { mockInvoke } from "../../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import InputSearch from "@/routes/components/search/modern/input.search";
 import { patchSettings } from "@/store/settings.store";
-import type { Anime } from "@/types/torrent";
+import type { Anime } from "@/types/torrent/torrent";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -24,16 +24,16 @@ const ITEM: Anime = {
   date: "2024-01-01",
 };
 
-function renderInputSearch() {
+const renderInputSearch = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <InputSearch />
     </QueryClientProvider>
   );
-}
+};
 
-function pendingSearches() {
+const pendingSearches = () => {
   const resolvers: Array<(value: Anime[]) => void> = [];
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "search_rutracker") {
@@ -43,17 +43,17 @@ function pendingSearches() {
     return null;
   });
   return resolvers;
-}
+};
 
-function submitButton() {
+const submitButton = () => {
   return screen.getByRole("button", { name: "Search" }) as HTMLButtonElement;
-}
+};
 
-async function submitQuery(query: string, button: HTMLButtonElement) {
+const submitQuery = async (query: string, button: HTMLButtonElement) => {
   fireEvent.change(screen.getByPlaceholderText("Search anime..."), { target: { value: query } });
   await waitFor(() => expect(button.disabled).toBe(false));
   fireEvent.click(button);
-}
+};
 
 afterEach(cleanup);
 

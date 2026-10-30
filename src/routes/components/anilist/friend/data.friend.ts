@@ -1,12 +1,17 @@
 import { useMemo } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { PROFILE_CACHE_TTL_MS } from "@/config/friends.config";
+import { PROFILE_CACHE_TTL_MS } from "@/config/anilist/friends.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { buildEntryLookup } from "@/lib/entries.utils";
-import { hasFreshCachedProfile } from "@/lib/friends.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import type { AniFriend, AniListCollection, AniUserProfile, FavouriteAnime } from "@/types/anilist";
+import { buildEntryLookup } from "@/lib/anilist/entries.utils";
+import { hasFreshCachedProfile } from "@/lib/core/friends.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import type {
+  AniFriend,
+  AniListCollection,
+  AniUserProfile,
+  FavouriteAnime,
+} from "@/types/anilist/anilist";
 
 const EMPTY_LISTS: AniListCollection[] = [];
 const EMPTY_FAVOURITES: FavouriteAnime[] = [];

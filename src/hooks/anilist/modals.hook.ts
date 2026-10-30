@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { deeplinkAtoms } from "@/store/deeplink.store";
-import type { AnilistActivityTab, AnilistModalName, AnilistModalViews } from "@/types/modals";
+import type { AnilistActivityTab, AnilistModalName, AnilistModalViews } from "@/types/ui/modals";
 
 const CLOSED_VIEWS: AnilistModalViews = {
   auth: false,

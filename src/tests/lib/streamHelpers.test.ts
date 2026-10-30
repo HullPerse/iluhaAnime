@@ -7,15 +7,15 @@ import {
   normalizeAnime,
   normalizeEpisode,
   normalizeVariant,
-} from "@/lib/streamHelpers.utils";
+} from "@/lib/player/streamHelpers.utils";
 import {
   pickSource,
   qualityRank,
   sortSourcesByQuality,
   toVariantSources,
   variantSourceUrl,
-} from "@/lib/sources.utils";
-import type { StreamSource } from "@/types/videoPlayer";
+} from "@/lib/search/sources.utils";
+import type { StreamSource } from "@/types/player/videoPlayer";
 
 function source(url: string, label: string): StreamSource {
   return {

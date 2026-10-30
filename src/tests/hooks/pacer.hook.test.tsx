@@ -16,18 +16,18 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function advance(ms: number) {
+const advance = (ms: number) => {
   act(() => {
     vi.advanceTimersByTime(ms);
   });
-}
+};
 
 describe("useDebouncedValue", () => {
-  function renderValue(initial: string) {
+  const renderValue = (initial: string) => {
     return renderHook(({ value }: { value: string }) => useDebouncedValue(value, { wait: 300 }), {
       initialProps: { value: initial },
     });
-  }
+  };
 
   it("holds the previous value until the wait elapses", () => {
     const { result, rerender } = renderValue("a");

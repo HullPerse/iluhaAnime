@@ -3,12 +3,12 @@ import { useEffect, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
-import { countActiveStreamFilters } from "@/config/streamFilters.config";
+import { countActiveStreamFilters } from "@/config/player/streamFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { submitStreamSearch, streamPage, streamQuery } from "@/store/stream.store";
-import type { StreamCatalogFilters } from "@/types/stream";
+import type { StreamCatalogFilters } from "@/types/player/stream";
 
 /**
  * One toolbar row, the same shape the AniList tab uses: the shared smart input

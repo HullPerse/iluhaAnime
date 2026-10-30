@@ -1,8 +1,8 @@
-import { SIMILAR_COUNT } from "@/config/collectionDefaults.config";
+import { SIMILAR_COUNT } from "@/config/anilist/collectionDefaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CollectionItem } from "@/types/collection";
+import type { CollectionItem } from "@/types/anilist/collection";
 
-import { SimilarCard } from "./similarCard.detail";
+import { SimilarCard } from "@/routes/components/collection/detail/similarCard.detail";
 
 export function SimilarCollection({
   items,

@@ -2,12 +2,13 @@ import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { flattenMarkup } from "@/lib/text.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
+import { flattenMarkup } from "@/lib/core/text.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
 
-import AniListMetadata from "./metadata.detail";
-import { DetailError, DetailLoading } from "./screenState.detail";
+import AniListMetadata from "@/routes/components/anilist/detail/metadata.detail";
+import { DetailError } from "@/routes/components/anilist/detail/state/error.state";
+import { DetailLoading } from "@/routes/components/anilist/detail/state/loading.state";
 
 export function AnimeScreen({
   screen,

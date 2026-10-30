@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createPersistor, persistKey } from "@/lib/persist.utils";
+import { createPersistor, persistKey } from "@/lib/core/persist.utils";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {
   return {

@@ -1,11 +1,11 @@
 import { bench, group } from "@pmndrs/labs";
 
-import { LazySpellIndex } from "@/lib/lazySpellIndex.utils";
-import { normalizeSearchText } from "@/lib/normalize.utils";
-import { suggestSpellingWithReason } from "@/lib/searchResolve.utils";
-import { suggestSpelling } from "@/lib/suggestions.utils";
-import { buildSymSpellFromTitles, normalizedSpellWords } from "@/lib/symspell.utils";
-import type { SearchAnimeSuggestion } from "../../src/types/search";
+import { LazySpellIndex } from "../../src/lib/core/lazySpellIndex.utils";
+import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { suggestSpellingWithReason } from "../../src/lib/search/searchResolve.utils";
+import { suggestSpelling } from "../../src/lib/core/suggestions.utils";
+import { buildSymSpellFromTitles, normalizedSpellWords } from "../../src/lib/core/symspell.utils";
+import type { SearchAnimeSuggestion } from "../../src/types/search/search";
 
 const WORDS = [
   "frieren",

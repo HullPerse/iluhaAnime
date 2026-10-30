@@ -1,7 +1,7 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { buildTree, flattenTree } from '@/lib/playerTree.utils';
-import type { VideoFileEntry } from '../../src/types/fs';
+import { buildTree, flattenTree } from '../../src/lib/player/playerTree.utils';
+import type { VideoFileEntry } from '../../src/types/core/fs';
 
 function makeEntries(count: number, sep: '/' | '\\'): VideoFileEntry[] {
   const entries: VideoFileEntry[] = [];

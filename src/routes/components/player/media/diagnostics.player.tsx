@@ -1,18 +1,7 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
+import { formatFps, formatCount, formatCache } from "@/lib/player/diagnostics.utils";
 import { playbackAtoms } from "@/store/player.store";
-
-function formatFps(value: number | undefined): string {
-  return value === undefined ? "-" : `${value.toFixed(1)} fps`;
-}
-
-function formatCount(value: number | undefined): string {
-  return value === undefined ? "-" : `${value}`;
-}
-
-function formatCache(value: number | undefined): string {
-  return value === undefined ? "-" : `${value.toFixed(1)}s`;
-}
 
 function DiagnosticsOverlay() {
   const { t } = useI18n();

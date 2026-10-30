@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { useChartCursor } from "@/hooks/chartCursor.hook";
 
-function key(k: string, modifiers: Partial<KeyboardEvent<HTMLElement>> = {}) {
+const key = (k: string, modifiers: Partial<KeyboardEvent<HTMLElement>> = {}) => {
   return {
     key: k,
     altKey: false,
@@ -14,7 +14,7 @@ function key(k: string, modifiers: Partial<KeyboardEvent<HTMLElement>> = {}) {
     stopPropagation: vi.fn(),
     ...modifiers,
   } as unknown as KeyboardEvent<HTMLElement>;
-}
+};
 
 describe("useChartCursor", () => {
   it("starts empty and selects the first mark on focus", () => {

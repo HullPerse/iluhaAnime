@@ -1,9 +1,9 @@
 import Pagination from "@/components/shared/pagination.component";
-import { listStatusLabels } from "@/config/labels.config";
+import { listStatusLabels } from "@/config/system/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { ALL_LISTS_ID } from "@/lib/anilistGroup.utils";
+import { ALL_LISTS_ID } from "@/lib/anilist/anilistGroup.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import type { SearchMode } from "@/types/anilist";
+import type { SearchMode } from "@/types/anilist/anilist";
 
 export default function AniListResultsPagination({
   global,

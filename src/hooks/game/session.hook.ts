@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { gameApi } from "@/api/game.api";
-import { GAME_DISPLAY } from "@/config/display.config";
-import { GAME_KEY_BY_CODE } from "@/config/keypad.config";
-import { createGameAudio } from "@/lib/audio.utils";
-import type { GameAudio } from "@/types/audio";
-import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/frame.utils";
-import type { Rgba } from "@/types/frame";
-import { subscribeKeypad } from "@/lib/keypadHotkeys.utils";
-import { createAnimationLoop } from "@/lib/interval.utils";
-import type { AnimationLoopTask } from "@/types/interval";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
-import type { GameFrame, GamePalette, GameRomInfo, GameTelemetry } from "@/types/game";
+import { GAME_DISPLAY } from "@/config/player/display.config";
+import { GAME_KEY_BY_CODE } from "@/config/settings/keypad.config";
+import { createGameAudio } from "@/lib/player/audio.utils";
+import type { GameAudio } from "@/types/player/audio";
+import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/core/frame.utils";
+import type { Rgba } from "@/types/core/frame";
+import { subscribeKeypad } from "@/lib/core/keypadHotkeys.utils";
+import { createAnimationLoop } from "@/lib/core/interval.utils";
+import type { AnimationLoopTask } from "@/types/core/interval";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import type { GameFrame, GamePalette, GameRomInfo, GameTelemetry } from "@/types/core/game";
 import type {
   GameSessionHandle,
   GameSessionOptions,
   GameSessionRuntime,
-} from "@/types/gameSession";
+} from "@/types/core/gameSession";
 
 const PALETTE = {
   on: tryParseHexColor(GAME_DISPLAY.pixel, [255, 255, 255, 255]),

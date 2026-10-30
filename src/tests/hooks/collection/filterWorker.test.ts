@@ -1,10 +1,10 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_FILTERS } from "@/config/collectionFilters.config";
-import { DEFAULT_TAG_TOLERANCES } from "@/config/tolerance.config";
+import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
+import { DEFAULT_TAG_TOLERANCES } from "@/config/graphics/tolerance.config";
 import { useCollectionFilterWorker } from "@/hooks/collection/filterWorker.hook";
-import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
+import type { CollectionItem, CollectionStatusDef } from "@/types/anilist/collection";
 
 const STATUSES: CollectionStatusDef[] = [];
 

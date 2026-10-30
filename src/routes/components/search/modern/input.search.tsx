@@ -8,16 +8,16 @@ import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchQuery } from "@/hooks/search/query.hook";
-import { useCell } from "@/lib/signal.hook";
-import { buildShadow } from "@/lib/wallpaper.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { buildShadow } from "@/lib/graphics/wallpaper.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
 import { settingsAtoms } from "@/store/settings.store";
-import type { SearchFilters } from "@/types/search";
+import type { SearchFilters } from "@/types/search/search";
 
-import ModernResults from "./results.modern";
+import ModernResults from "@/routes/components/search/modern/results.modern";
 
 function InputSearch({
   onDockedChange,

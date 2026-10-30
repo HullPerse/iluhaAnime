@@ -1,8 +1,8 @@
-import { attemptSync } from "@/lib/attempt.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
 
-import { BigLoader } from "./loader.component";
+import { BigLoader } from "@/components/shared/loader/big.loader";
 
-export function readFastLaunch(): boolean {
+export const readFastLaunch = (): boolean => {
   if (typeof localStorage === "undefined") return false;
   const [raw, readError] = attemptSync(() => localStorage.getItem("iluha.v1.settings"));
   if (readError !== null || !raw) return false;
@@ -11,7 +11,7 @@ export function readFastLaunch(): boolean {
   const data = (parsed as { data?: unknown }).data;
   if (typeof data !== "object" || data === null) return false;
   return (data as { fastLaunch?: unknown }).fastLaunch === true;
-}
+};
 
 export function BootPending() {
   if (!readFastLaunch()) return null;

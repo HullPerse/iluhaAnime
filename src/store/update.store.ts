@@ -1,5 +1,5 @@
-import { createSignalStore } from "@/lib/signal.store";
-import type { UpdateSignalStore } from "@/types/update";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { UpdateSignalStore } from "@/types/core/update";
 
 export function createUpdateSignalStore(): UpdateSignalStore {
   const store = createSignalStore();

@@ -5,8 +5,8 @@ import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { discordApi } from "@/api/discord.api";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { PRESENCE_PROGRESS_INTERVAL_MS } from "@/lib/presence.utils";
-import type { StreamOpen } from "@/types/videoPlayer";
+import { PRESENCE_PROGRESS_INTERVAL_MS } from "@/lib/core/presence.utils";
+import type { StreamOpen } from "@/types/player/videoPlayer";
 
 vi.mock("@/api/discord.api", () => ({
   discordApi: {
@@ -21,7 +21,7 @@ vi.mock("@/hooks/i18n.hook", () => ({
   useI18n: () => ({ t }),
 }));
 
-function reset(): void {
+const reset = (): void => {
   act(() => {
     settingsAtoms.discordRpcEnabled.set(false);
     settingsAtoms.parseTitlesPlayer.set(false);
@@ -36,7 +36,7 @@ function reset(): void {
   vi.mocked(discordApi.set).mockClear();
   vi.mocked(discordApi.clear).mockClear();
   vi.mocked(discordApi.configure).mockClear();
-}
+};
 
 beforeEach(() => {
   reset();

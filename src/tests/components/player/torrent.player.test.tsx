@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke, mockOpenPath } from "../../mocks";
+import { mockInvoke, mockOpenPath } from "@/tests/mocks";
 
 vi.mock("@tanstack/react-virtual", () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
@@ -16,11 +16,11 @@ vi.mock("@tanstack/react-virtual", () => ({
 
 import TorrentFilesPlayerSection from "@/routes/components/player/torrent.player";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent";
+import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent/torrent";
 
 const SAVE_DIR = "D:/media/anime";
 
-function torrent(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
+const torrent = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
   return {
     id: 1,
     name: "Test release",
@@ -46,9 +46,9 @@ function torrent(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     external_changed_files: [],
     ...overrides,
   };
-}
+};
 
-function file(index: number, name: string, completed = true): TorrentFileInfo {
+const file = (index: number, name: string, completed = true): TorrentFileInfo => {
   return {
     index,
     name,
@@ -59,16 +59,16 @@ function file(index: number, name: string, completed = true): TorrentFileInfo {
     priority: "normal",
     exists: true,
   };
-}
+};
 
-function renderSection(
+const renderSection = (
   props: {
     item?: TorrentInfo;
     files?: TorrentFileInfo[];
     torrentLoading?: boolean;
     expanded?: boolean;
   } = {}
-) {
+) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const onToggleExpand = vi.fn();
   render(
@@ -84,7 +84,7 @@ function renderSection(
     </QueryClientProvider>
   );
   return { onToggleExpand };
-}
+};
 
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) =>

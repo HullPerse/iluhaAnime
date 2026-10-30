@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../../mocks";
+import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,14 +7,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StatsModal from "@/routes/components/anilist/stats.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { ActivityDetailBundle, AniListCollection, AniListStatistics } from "@/types/anilist";
+import type {
+  ActivityDetailBundle,
+  AniListCollection,
+  AniListStatistics,
+} from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-function rect(width: number, height: number): DOMRect {
+const rect = (width: number, height: number): DOMRect => {
   return {
     width,
     height,
@@ -26,7 +30,7 @@ function rect(width: number, height: number): DOMRect {
     y: 0,
     toJSON: () => ({}),
   } as DOMRect;
-}
+};
 
 const DETAIL: ActivityDetailBundle = {
   entryLookup: new Map(),
@@ -37,7 +41,7 @@ const DETAIL: ActivityDetailBundle = {
   onGenre: () => undefined,
 };
 
-function listEntry(id: number, status: string, score: number | null, progress: number) {
+const listEntry = (id: number, status: string, score: number | null, progress: number) => {
   return {
     media: {
       id,
@@ -50,9 +54,9 @@ function listEntry(id: number, status: string, score: number | null, progress: n
     score,
     progress,
   };
-}
+};
 
-function listsFixture(): AniListCollection[] {
+const listsFixture = (): AniListCollection[] => {
   return [
     {
       name: "Completed",
@@ -68,9 +72,9 @@ function listsFixture(): AniListCollection[] {
       entries: [listEntry(5, "COMPLETED", 80, 24)],
     },
   ] as unknown as AniListCollection[];
-}
+};
 
-function statisticsFixture(): AniListStatistics {
+const statisticsFixture = (): AniListStatistics => {
   return {
     count: 3,
     mean_score: 74.4,
@@ -110,9 +114,9 @@ function statisticsFixture(): AniListStatistics {
       },
     ],
   };
-}
+};
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -120,9 +124,9 @@ function wrapper({ children }: { children: ReactNode }) {
       {children}
     </QueryClientProvider>
   );
-}
+};
 
-function renderModal(scoreFormat: "POINT_10" | "POINT_100") {
+const renderModal = (scoreFormat: "POINT_10" | "POINT_100") => {
   return render(
     <StatsModal
       lists={listsFixture()}
@@ -133,7 +137,7 @@ function renderModal(scoreFormat: "POINT_10" | "POINT_100") {
     />,
     { wrapper }
   );
-}
+};
 
 afterEach(() => {
   cleanup();

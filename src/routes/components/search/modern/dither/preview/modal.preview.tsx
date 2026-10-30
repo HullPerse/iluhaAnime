@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
 import DitherCanvas from "@/components/shared/dither.component";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
@@ -17,25 +17,25 @@ import {
   DITHER_PRESETS,
   DITHER_PRESET_LABELS,
   resolveDitherPreset,
-} from "@/config/dither.config";
+} from "@/config/graphics/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
-import { attempt, attemptSync } from "@/lib/attempt.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
+import { attempt, attemptSync } from "@/lib/core/attempt.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,
   EXTRACT_PALETTE_MIN_COLORS,
   extractPaletteFromPixels,
-} from "@/lib/dither.utils";
-import { toUserImage } from "@/lib/image.utils";
-import { showError } from "@/lib/notification.utils";
-import type { DitherEffectOptions, DitherPresetId } from "@/types/dither";
-import type { UserImage } from "@/types/userimage";
+} from "@/lib/graphics/dither.utils";
+import { toUserImage } from "@/lib/graphics/image.utils";
+import { showError } from "@/lib/core/notification.utils";
+import type { DitherEffectOptions, DitherPresetId } from "@/types/graphics/dither";
+import type { UserImage } from "@/types/core/userimage";
 
-import DitherControls from "./controls.preview";
-import { PalettePresetStrip } from "./palettePreset.preview";
-import { PaletteSwatchStrip } from "./paletteSwatch.preview";
+import DitherControls from "@/routes/components/search/modern/dither/preview/controls.preview";
+import { PalettePresetStrip } from "@/routes/components/search/modern/dither/preview/palettePreset.preview";
+import { PaletteSwatchStrip } from "@/routes/components/search/modern/dither/preview/paletteSwatch.preview";
 
 export default function DitherPreviewModal({
   image,

@@ -9,7 +9,7 @@ import {
   resetGlobalErrors,
   shouldEscalateGlobal,
   toFatalInfo,
-} from "@/lib/fatalClassify.utils";
+} from "@/lib/core/fatalClassify.utils";
 
 describe("fatal classify contract", () => {
   it("marks plain render failures as render kind with context", () => {

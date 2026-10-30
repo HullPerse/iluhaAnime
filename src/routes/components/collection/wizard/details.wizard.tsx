@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { sortStatuses, statusLabel } from "@/lib/status.utils";
+import { sortStatuses, statusLabel } from "@/lib/core/status.utils";
 import type {
   CollectionItem,
   CollectionStatus,
   CollectionStatusDef,
   CustomFieldDef,
-} from "@/types/collection";
+} from "@/types/anilist/collection";
 
-import { WizardMoreFields } from "./more.wizard";
+import { WizardMoreFields } from "@/routes/components/collection/wizard/more.wizard";
 
 export function WizardDetailsPanel(props: {
   title: string;

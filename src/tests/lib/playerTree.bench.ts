@@ -1,6 +1,6 @@
 import { test } from "vitest";
 
-import { fingerprint } from "@/lib/scan.utils";
+import { fingerprint } from "@/lib/core/scan.utils";
 import {
   buildTree,
   filterTreeByPaths,
@@ -8,10 +8,10 @@ import {
   flattenTree,
   folderFilePaths,
   summarizeTree,
-} from "@/lib/playerTree.utils";
-import { filterTreeByHiddenPaths } from "@/lib/visibility.utils";
-import type { VideoFileEntry } from "@/types/fs";
-import type { FolderNode } from "@/types/torrent";
+} from "@/lib/player/playerTree.utils";
+import { filterTreeByHiddenPaths } from "@/lib/core/visibility.utils";
+import type { VideoFileEntry } from "@/types/core/fs";
+import type { FolderNode } from "@/types/torrent/torrent";
 
 function makeEntries(seasons: number, epsPerSeason: number, movies: number): VideoFileEntry[] {
   const entries: VideoFileEntry[] = [];

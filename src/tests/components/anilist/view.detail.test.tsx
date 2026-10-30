@@ -1,4 +1,4 @@
-import { mockConvertFileSrc, mockInvoke as invokeMock } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -8,14 +8,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetTransportInflight } from "@/api/transport.api";
 import { AniListDetailView } from "@/routes/components/anilist/detail/view.detail";
 import { patchSettings } from "@/store/settings.store";
-import type { AniCharacterEdge, AniMedia } from "@/types/anilist";
+import type { AniCharacterEdge, AniMedia } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
   convertFileSrc: mockConvertFileSrc,
 }));
 
-function edge(id: number, name: string): AniCharacterEdge {
+const edge = (id: number, name: string): AniCharacterEdge => {
   return {
     role: "MAIN",
     character: {
@@ -28,7 +28,7 @@ function edge(id: number, name: string): AniCharacterEdge {
     },
     voice_actors: [],
   };
-}
+};
 
 const ANIME = {
   id: 21,
@@ -56,7 +56,7 @@ const ANIME = {
   score: null,
 } as unknown as AniMedia;
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -64,9 +64,9 @@ function wrapper({ children }: { children: ReactNode }) {
       {children}
     </QueryClientProvider>
   );
-}
+};
 
-function renderView(isLoggedIn = false, onPushScreen = vi.fn()) {
+const renderView = (isLoggedIn = false, onPushScreen = vi.fn()) => {
   return render(
     <AniListDetailView
       animeId={21}
@@ -88,7 +88,7 @@ function renderView(isLoggedIn = false, onPushScreen = vi.fn()) {
     />,
     { wrapper }
   );
-}
+};
 
 afterEach(() => {
   cleanup();

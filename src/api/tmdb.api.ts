@@ -1,9 +1,14 @@
 import { settingsAtoms } from "@/store/settings.store";
-import type { TmdbRateLimit } from "@/types/collection";
+import type { TmdbRateLimit } from "@/types/anilist/collection";
 
-import type { ApiTransport } from "@/types/transport";
-import { tauriTransport } from "./transport.api";
-import type { TmdbApiConfig, TmdbDetails, TmdbMediaParts, TmdbSearchParams } from "@/types/tmdb";
+import type { ApiTransport } from "@/types/core/transport";
+import { tauriTransport } from "@/api/transport.api";
+import type {
+  TmdbApiConfig,
+  TmdbDetails,
+  TmdbMediaParts,
+  TmdbSearchParams,
+} from "@/types/search/tmdb";
 
 export class TmdbApi {
   private readonly transport: ApiTransport;

@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockOpenPath } from "../../mocks";
+import { mockOpenPath } from "@/tests/mocks";
 
 vi.mock("@tanstack/react-virtual", () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
@@ -18,7 +18,7 @@ import FolderView from "@/routes/components/player/folder.player";
 import { searchAtoms } from "@/store/search.store";
 import { patchSettings } from "@/store/settings.store";
 import { setVimCount } from "@/store/vim.store";
-import type { FolderNode } from "@/types/torrent";
+import type { FolderNode } from "@/types/torrent/torrent";
 
 const TREE: FolderNode = {
   name: "Anime",
@@ -41,23 +41,23 @@ const TREE: FolderNode = {
   ],
 };
 
-function renderTree(wrap?: (tree: React.ReactNode) => React.ReactNode) {
+const renderTree = (wrap?: (tree: React.ReactNode) => React.ReactNode) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const tree = <FolderView node={TREE} depth={0} searchQuery="" />;
   return render(
     <QueryClientProvider client={client}>{wrap ? wrap(tree) : tree}</QueryClientProvider>
   );
-}
+};
 
-function row(path: string): HTMLElement {
+const row = (path: string): HTMLElement => {
   return screen.getByRole("button", { name: path.split("/").pop() ?? path });
-}
+};
 
-function pressKey(code: string, target: EventTarget): void {
+const pressKey = (code: string, target: EventTarget): void => {
   act(() => {
     target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code }));
   });
-}
+};
 
 const FLAT: FolderNode = {
   name: "video",
@@ -69,14 +69,14 @@ const FLAT: FolderNode = {
   children: [],
 };
 
-function renderFlat(): void {
+const renderFlat = (): void => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <FolderView node={FLAT} depth={0} searchQuery="" />
     </QueryClientProvider>
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });
@@ -183,11 +183,11 @@ describe("FolderView tree arrows", () => {
 });
 
 describe("FolderView row movement", () => {
-  function fileRow(name: string): HTMLElement {
+  const fileRow = (name: string): HTMLElement => {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
     if (!node) throw new Error(`row missing for ${name}`);
     return node;
-  }
+  };
 
   it("steps from the folder row onto its first file with Down", () => {
     renderTree();
@@ -309,20 +309,20 @@ describe("FolderView count steps", () => {
     children: [],
   };
 
-  function renderFour(): void {
+  const renderFour = (): void => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
         <FolderView node={FOUR} depth={0} searchQuery="" />
       </QueryClientProvider>
     );
-  }
+  };
 
-  function fileRow(name: string): HTMLElement {
+  const fileRow = (name: string): HTMLElement => {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
     if (!node) throw new Error(`row missing for ${name}`);
     return node;
-  }
+  };
 
   it("moves two flat rows up with a count and K", () => {
     renderFour();
@@ -360,13 +360,13 @@ describe("FolderView count steps", () => {
 });
 
 describe("FolderView row actions", () => {
-  function fileRow(name: string): HTMLElement {
+  const fileRow = (name: string): HTMLElement => {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
     if (!node) throw new Error(`row missing for ${name}`);
     return node;
-  }
+  };
 
-  function clicked(action: string): { file: HTMLElement; spy: ReturnType<typeof vi.fn> } {
+  const clicked = (action: string): { file: HTMLElement; spy: ReturnType<typeof vi.fn> } => {
     renderTree();
     const file = fileRow("ep1.mkv");
     const holder = file.querySelector<HTMLElement>(`[data-file-action="${action}"]`);
@@ -377,7 +377,7 @@ describe("FolderView row actions", () => {
     target.addEventListener("click", spy);
     file.focus();
     return { file, spy };
-  }
+  };
 
   it("clicks the external button with O", () => {
     const { file, spy } = clicked("external");
@@ -429,19 +429,19 @@ describe("FolderView row actions", () => {
 });
 
 describe("FolderView file menu", () => {
-  function fileRow(name: string): HTMLElement {
+  const fileRow = (name: string): HTMLElement => {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
     if (!node) throw new Error(`row missing for ${name}`);
     return node;
-  }
+  };
 
-  function openMenu(name: string): HTMLElement {
+  const openMenu = (name: string): HTMLElement => {
     const file = fileRow(name);
     const target = file.querySelector<HTMLElement>("[data-tree-activate]");
     if (!target) throw new Error("activation target missing");
     fireEvent.contextMenu(target);
     return file;
-  }
+  };
 
   it("opens five entries on right click", async () => {
     renderTree();

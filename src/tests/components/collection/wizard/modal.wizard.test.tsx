@@ -1,4 +1,4 @@
-import { mockInvoke, mockDialogOpen as mockOpenDialog } from "../../../mocks";
+import { mockInvoke, mockDialogOpen as mockOpenDialog } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { WizardModal } from "@/routes/components/collection/wizard/modal.wizard";
 import { patchSettings } from "@/store/settings.store";
-import type { CollectionStatusDef } from "@/types/collection";
+import type { CollectionStatusDef } from "@/types/anilist/collection";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -18,8 +18,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mockOpenDialog,
 }));
 
-vi.mock("@/lib/placeholder.utils", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/placeholder.utils")>();
+vi.mock("@/lib/core/placeholder.utils", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/core/placeholder.utils")>();
   return {
     ...actual,
     generatePlaceholder: () => "data:image/png;base64,PLACEHOLDER",
@@ -31,7 +31,7 @@ const STATUSES: CollectionStatusDef[] = [
   { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: true, kind: "private" },
 ];
 
-function renderWizard(props: Partial<React.ComponentProps<typeof WizardModal>> = {}) {
+const renderWizard = (props: Partial<React.ComponentProps<typeof WizardModal>> = {}) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -47,7 +47,7 @@ function renderWizard(props: Partial<React.ComponentProps<typeof WizardModal>> =
       />
     </QueryClientProvider>
   );
-}
+};
 
 afterEach(() => cleanup());
 

@@ -1,9 +1,9 @@
-import type { PlayerBottomBarProps } from "@/types/bottom.modern";
+import type { PlayerBottomBarProps } from "@/types/core/bottom.modern";
 
-import Controls from "../media/controls.player";
-import PlayerSlimBar from "../media/slim.player";
-import Timeline from "../media/timeline.player";
-import ModernControls from "./controls.modern";
+import Controls from "@/routes/components/player/media/controls.player";
+import PlayerSlimBar from "@/routes/components/player/media/slim.player";
+import Timeline from "@/routes/components/player/media/timeline.player";
+import ModernControls from "@/routes/components/player/modern/controls.modern";
 
 function PlayerBottomBar(props: PlayerBottomBarProps) {
   const {

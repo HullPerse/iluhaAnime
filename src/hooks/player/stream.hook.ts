@@ -15,26 +15,26 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { streamApi } from "@/api/stream.api";
 import { tr } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/signal.hook";
-import { buildVariantId } from "@/lib/streamHelpers.utils";
-import { emptyPrefs, preferNativeVariants } from "@/lib/streamPrefs.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { buildVariantId } from "@/lib/player/streamHelpers.utils";
+import { emptyPrefs, preferNativeVariants } from "@/lib/player/streamPrefs.utils";
 import {
   loadEpisodes,
   loadPlayers,
   loadSources,
   prefetchNativeSources,
-} from "@/lib/sessionCache.utils";
-import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/sources.utils";
-import { openStream } from "@/lib/playback.utils";
-import { resolveEpisodeStream, resolveNextStream } from "@/lib/playerStream.utils";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
+} from "@/lib/core/sessionCache.utils";
+import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/search/sources.utils";
+import { openStream } from "@/lib/player/playback.utils";
+import { resolveEpisodeStream, resolveNextStream } from "@/lib/player/playerStream.utils";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { StreamPrefs, StreamVariant, StreamingEpisode } from "@/types/stream";
-import type { StreamOpen } from "@/types/videoPlayer";
-import type { PlayerStream, PlayerStreamNext } from "@/types/playerStream";
+import type { StreamPrefs, StreamVariant, StreamingEpisode } from "@/types/player/stream";
+import type { StreamOpen } from "@/types/player/videoPlayer";
+import type { PlayerStream, PlayerStreamNext } from "@/types/player/playerStream";
 
 function currentPosition(): number {
   return playbackAtoms.timePos.get();

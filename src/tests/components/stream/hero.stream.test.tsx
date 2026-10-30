@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StreamHero from "@/routes/components/stream/hero.stream";
 import { patchSettings } from "@/store/settings.store";
-import type { StreamingAnime } from "@/types/stream";
+import type { StreamingAnime } from "@/types/player/stream";
 
 vi.mock("@/hooks/remoteImage.hook", () => ({
   useStreamCover: () => null,
@@ -23,9 +23,9 @@ const ANIME: StreamingAnime = {
   slugUrl: "21371--sousou-no-frieren-anime",
 };
 
-function renderHero(anime: StreamingAnime = ANIME) {
+const renderHero = (anime: StreamingAnime = ANIME) => {
   return render(<StreamHero anime={anime} />);
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

@@ -3,42 +3,23 @@ import { useEffect } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import {
   NOTIFICATION_POPUP_MODES,
   NOTIFICATION_POPUP_KEYS,
   POLL_INTERVALS_MIN,
-} from "@/config/notifications.config";
+} from "@/config/system/notifications.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { ignore } from "@/lib/promise.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { ignore } from "@/lib/core/promise.utils";
 import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/anilist.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { NotificationPopupMode } from "@/types/settings";
+import type { NotificationPopupMode } from "@/types/ui/settings";
 
-import { SectionResetButton } from "./reset.settings";
-
-function NotifyRow({
-  label,
-  checked,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-      <Checkbox checked={checked} disabled={disabled} onChange={onChange} />
-      <span className="text-xs">{label}</span>
-    </label>
-  );
-}
+import { SectionResetButton } from "@/routes/components/settings/reset.settings";
+import NotifyRow from "@/routes/components/settings/notifyRow.settings";
 
 export default function SettingsNotifications() {
   const { t } = useI18n();

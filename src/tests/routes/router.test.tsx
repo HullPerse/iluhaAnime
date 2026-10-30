@@ -45,11 +45,11 @@ vi.mock("@/routes/game.route", () => ({
   default: () => <div data-testid="route-game">game</div>,
 }));
 
-function renderAt(href: string) {
+const renderAt = (href: string) => {
   const router = createAppRouter(createMemoryHistory({ initialEntries: [href] }));
   render(<RouterProvider router={router} />);
   return router;
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SqliteTableInfo } from "@/types/sqlite";
+import type { SqliteTableInfo } from "@/types/core/sqlite";
 
 export function SqliteFilterTags({
   columns,

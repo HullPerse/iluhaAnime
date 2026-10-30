@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { useEffect, useId, useRef, useState } from "react";
-import type { ChartFrameProps, ChartMargin, ChartPlot } from "@/types/frame.chart";
+import type { ChartFrameProps, ChartMargin, ChartPlot } from "@/types/core/frame.chart";
 
 const DEFAULT_MARGIN: ChartMargin = { top: 4, right: 4, bottom: 4, left: 4 };
 

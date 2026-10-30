@@ -1,4 +1,4 @@
-import { mockInvoke, mockListen } from "../mocks";
+import { mockInvoke, mockListen } from "@/tests/mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 
@@ -14,7 +14,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 import { createUpscaleSignalStore, type UpscaleSignalStore } from "@/store/upscale.store";
-import type { UpscaleConfig } from "@/types/upscale";
+import type { UpscaleConfig } from "@/types/core/upscale";
 
 const CONFIG: UpscaleConfig = {
   width: 1920,

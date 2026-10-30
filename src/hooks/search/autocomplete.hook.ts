@@ -1,10 +1,10 @@
 import { useDeferredValue, useMemo } from "react";
 
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
-import { getInlineCompletion, getSearchSuggestions } from "@/lib/suggestions.utils";
-import { useCell } from "@/lib/signal.hook";
+import { getInlineCompletion, getSearchSuggestions } from "@/lib/core/suggestions.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AutocompleteParams } from "@/types/search";
+import type { AutocompleteParams } from "@/types/search/search";
 
 export function useAutocomplete(params: AutocompleteParams) {
   const {

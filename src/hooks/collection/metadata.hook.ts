@@ -3,12 +3,12 @@ import { useCallback } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
 import { useI18n } from "@/hooks/i18n.hook";
-import { readStoredMedia, withStoredMedia } from "@/lib/collectionMedia.utils";
-import { mergeGenreTags } from "@/lib/wizard.utils";
+import { readStoredMedia, withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
+import { mergeGenreTags } from "@/lib/core/wizard.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { attempt } from "@/lib/attempt.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import { addNotification } from "@/store/notification.store";
-import type { CollectionItem } from "@/types/collection";
+import type { CollectionItem } from "@/types/anilist/collection";
 
 export function useCollectionMetadata(
   updateItem: (id: string, patch: Partial<CollectionItem>, opts?: { touch?: boolean }) => void

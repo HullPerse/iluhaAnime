@@ -1,31 +1,25 @@
 import { Component } from "react";
 
-import { toFatalInfo } from "@/lib/fatalClassify.utils";
+import { toFatalInfo } from "@/lib/core/fatalClassify.utils";
+import { readRoutePath } from "@/lib/core/routePath.utils";
 import {
   clearFatal,
   isCurrentSessionSafe,
   reportFatal,
   requestSafeMode,
   subscribeFatal,
-} from "@/lib/report.utils";
-import { readThemeName } from "@/lib/fatalTheme.utils";
-import { attemptSync } from "@/lib/attempt.utils";
-import type { FatalInfo } from "@/types/fatal";
-import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types/ui";
+} from "@/lib/core/report.utils";
+import { readThemeName } from "@/lib/core/fatalTheme.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
+import type { FatalInfo } from "@/types/core/fatal";
+import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types/core/ui";
 
-import { FatalScreen } from "./fatal/screen.fatal";
+import { FatalScreen } from "@/components/shared/fatal/screen.fatal";
 
 interface FatalBoundaryState extends ErrorBoundaryState {
   info: FatalInfo | null;
   live: FatalInfo | null;
   retries: number;
-}
-
-function readRoute(): string {
-  if (typeof window !== "undefined" && typeof window.location?.pathname === "string") {
-    return window.location.pathname;
-  }
-  return "/";
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundaryState> {
@@ -50,7 +44,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundarySt
   componentDidCatch(error: Error) {
     console.error("ErrorBoundary caught:", error);
     const info: FatalInfo = {
-      ...toFatalInfo(error, { scope: "render", route: readRoute(), themeName: readThemeName() }),
+      ...toFatalInfo(error, {
+        scope: "render",
+        route: readRoutePath(),
+        themeName: readThemeName(),
+      }),
       retryCount: this.state.retries,
     };
     this.setState((state) => ({ info, retries: state.retries + 1 }));
@@ -81,7 +79,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundarySt
       ({
         ...toFatalInfo(this.state.error, {
           scope: "render",
-          route: readRoute(),
+          route: readRoutePath(),
           themeName: readThemeName(),
         }),
         retryCount: this.state.retries,

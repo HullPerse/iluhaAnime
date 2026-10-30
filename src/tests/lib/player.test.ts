@@ -1,4 +1,4 @@
-import { mockConvertFileSrc, mockInvoke } from "../mocks";
+import { mockConvertFileSrc, mockInvoke } from "@/tests/mocks";
 import { describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
@@ -13,26 +13,26 @@ import {
   profileOptions,
   selectTrack,
   transformOptions,
-} from "@/lib/playback.utils";
-import { queueDepthSteps } from "@/lib/playerQueue.utils";
-import { clearMediaParseCache, fileNameFromPath } from "@/lib/parse.utils";
-import { formatParsedTitle } from "@/lib/playerTitle.utils";
+} from "@/lib/player/playback.utils";
+import { queueDepthSteps } from "@/lib/player/playerQueue.utils";
+import { clearMediaParseCache, fileNameFromPath } from "@/lib/search/parse.utils";
+import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import {
   buildOutputPath,
   buildTree,
   filterTreeByPaths,
   flattenTree,
   summarizeTree,
-} from "@/lib/playerTree.utils";
+} from "@/lib/player/playerTree.utils";
 import {
   filterTreeByHiddenPaths,
   isPlayerPathHidden,
   normalizePlayerPath,
-} from "@/lib/visibility.utils";
+} from "@/lib/core/visibility.utils";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
-import type { FolderNode } from "@/types/torrent";
-import type { UpscaleQueueItem } from "@/types/upscale";
-import type { PlayerSettings } from "@/types/videoPlayer";
+import type { FolderNode } from "@/types/torrent/torrent";
+import type { UpscaleQueueItem } from "@/types/core/upscale";
+import type { PlayerSettings } from "@/types/player/videoPlayer";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke, convertFileSrc: mockConvertFileSrc }));
 

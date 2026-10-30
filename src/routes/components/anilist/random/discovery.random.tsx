@@ -1,28 +1,16 @@
 import { ChevronLeft, ChevronRight, Dices, Star } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
-import ImageComponent from "@/components/ui/image.component";
-import { formatLabels, listStatusLabels, statusLabels } from "@/config/labels.config";
+import { formatLabels, listStatusLabels, statusLabels } from "@/config/system/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { getStatusColor } from "@/lib/entries.utils";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import type { AniMedia } from "@/types/anilist";
-import type { DiscoveryCardProps } from "@/types/discovery.random";
+import type { DiscoveryCardProps } from "@/types/core/discovery.random";
 
-function Poster({ media }: { media: AniMedia }) {
-  const coverSrc = useRemoteImage(media.cover_url);
-  return (
-    <ImageComponent
-      src={coverSrc ?? "/images/unknown_source.png"}
-      alt={media.title}
-      className="block h-54 w-36"
-    />
-  );
-}
+import { Poster } from "./discovery/poster.discovery";
 
 export function DiscoveryCard({ item, nav }: DiscoveryCardProps) {
   const { t } = useI18n();

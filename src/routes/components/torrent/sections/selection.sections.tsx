@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import type { TorrentSelectionBarProps } from "@/types/torrent";
+import type { TorrentSelectionBarProps } from "@/types/torrent/torrent";
 
 export function TorrentSelectionBar({
   count,

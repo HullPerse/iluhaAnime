@@ -4,8 +4,8 @@ import { createRef } from "react";
 import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { searchSettingsFind } from "@/lib/find.utils";
-import type { SettingsFindHit } from "@/types/find";
+import { searchSettingsFind } from "@/lib/core/find.utils";
+import type { SettingsFindHit } from "@/types/core/find";
 import { FindBox } from "@/routes/components/settings/findBox.settings";
 import { FindResults } from "@/routes/components/settings/findResults.settings";
 import { patchSettings } from "@/store/settings.store";
@@ -19,7 +19,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function boxProps(overrides?: {
+const boxProps = (overrides?: {
   value?: string;
   onChange?: (value: string) => void;
   onJumpSelected?: () => void;
@@ -27,7 +27,7 @@ function boxProps(overrides?: {
   activeIndex?: number;
   onActiveChange?: (index: number) => void;
   inputRef?: RefObject<HTMLInputElement | null>;
-}) {
+}) => {
   return {
     value: overrides?.value ?? "прок",
     onChange: overrides?.onChange ?? (() => {}),
@@ -38,16 +38,16 @@ function boxProps(overrides?: {
     listId: "settings-find-test",
     inputRef: overrides?.inputRef ?? createRef<HTMLInputElement>(),
   };
-}
+};
 
-function resultsProps(
+const resultsProps = (
   hits: readonly SettingsFindHit[],
   overrides?: {
     activeIndex?: number;
     onActiveChange?: (index: number) => void;
     onJump?: (hit: SettingsFindHit) => void;
   }
-) {
+) => {
   return {
     hits,
     activeIndex: overrides?.activeIndex ?? 0,
@@ -55,7 +55,7 @@ function resultsProps(
     onJump: overrides?.onJump ?? (() => {}),
     listId: "settings-find-test",
   };
-}
+};
 
 describe("settings find box", () => {
   it("clears the query on Escape", async () => {

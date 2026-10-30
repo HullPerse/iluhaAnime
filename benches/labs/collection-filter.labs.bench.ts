@@ -1,14 +1,14 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { DEFAULT_FILTERS } from '@/config/collectionFilters.config';
-import { applyShortQueryFilter, filterCollectionItems } from '@/lib/filter.utils';
+import { DEFAULT_FILTERS } from '../../src/config/anilist/collectionFilters.config';
+import { applyShortQueryFilter, filterCollectionItems } from '../../src/lib/core/filter.utils';
 import {
   matchOperatorTerm,
   matchOperatorTerms,
   parseOperatorTerms,
-} from '@/lib/searchScore.utils';
-import { normalizeSearchText } from '@/lib/normalize.utils';
-import type { CollectionItem } from '../../src/types/collection';
+} from '../../src/lib/search/searchScore.utils';
+import { normalizeSearchText } from '../../src/lib/core/normalize.utils';
+import type { CollectionItem } from '../../src/types/anilist/collection';
 
 function mulberry32(seed: number): () => number {
   let state = Math.trunc(seed);

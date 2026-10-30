@@ -4,16 +4,16 @@ import { Check, Link, Save } from "lucide-react";
 import { useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { buildTorrentLink } from "@/lib/deeplink.utils";
-import { showError } from "@/lib/notification.utils";
-import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent";
-import type { TorrentHash } from "@/types/types";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { buildTorrentLink } from "@/lib/core/deeplink.utils";
+import { showError } from "@/lib/core/notification.utils";
+import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent/torrent";
+import type { TorrentHash } from "@/types/core/types";
 
 export default function CreateTorrentModal({ open, onClose, onCreated }: CreateTorrentProps) {
   const { t } = useI18n();

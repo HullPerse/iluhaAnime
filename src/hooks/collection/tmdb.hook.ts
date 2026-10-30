@@ -2,10 +2,10 @@ import { useState } from "react";
 
 import { tmdbApi } from "@/api/tmdb.api";
 import { useLiveResource } from "@/hooks/liveResource.hook";
-import { useCell } from "@/lib/signal.hook";
-import { attempt } from "@/lib/attempt.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@/lib/core/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TmdbRateLimit } from "@/types/collection";
+import type { TmdbRateLimit } from "@/types/anilist/collection";
 
 export function useTmdbRateLimit(pollMs = 10000, enabled = true) {
   const [rate, setRate] = useState<TmdbRateLimit>({

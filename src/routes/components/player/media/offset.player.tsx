@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useMediaEntry } from "@/hooks/media.hook";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
-import { useCell } from "@/lib/signal.hook";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import { playbackAtoms, playerAtoms } from "@/store/player.store";
 
-import { trackLabel } from "./tracks.player";
+import { trackLabel } from "@/routes/components/player/media/tracks.player";
 
 const OSD_TIMEOUT = 2500;
 const OSD_FADE_MS = 150;

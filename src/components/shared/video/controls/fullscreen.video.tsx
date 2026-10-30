@@ -2,9 +2,9 @@ import { Maximize, Minimize } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { reportBackgroundError } from "@/lib/attempt.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
-import { Win95PlayerButton } from "./win95PlayerButton.video";
+import { Win95PlayerButton } from "@/components/shared/video/controls/win95PlayerButton.video";
 
 export function FullscreenToggle({
   iframeRef,

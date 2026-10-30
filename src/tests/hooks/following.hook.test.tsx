@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../mocks";
+import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
@@ -12,7 +12,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return createElement(
     QueryClientProvider,
     {
@@ -22,7 +22,7 @@ function wrapper({ children }: { children: ReactNode }) {
     },
     children
   );
-}
+};
 
 const PAGE_ONE = {
   users: [

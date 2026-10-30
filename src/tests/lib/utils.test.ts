@@ -6,11 +6,11 @@ import {
   DITHER_DEFAULTS,
   DITHER_RENDER_CACHE_CAPACITY,
   resolveDitherPreset,
-} from "@/config/dither.config";
+} from "@/config/graphics/dither.config";
 import { translate } from "@/lib/locale/i18n.utils";
-import { uniqueById } from "@/lib/array.utils";
-import { attempt, attemptAll, attemptSync, toError, withFallback } from "@/lib/attempt.utils";
-import { formatBytes, formatRate } from "@/lib/bytes.utils";
+import { uniqueById } from "@/lib/core/array.utils";
+import { attempt, attemptAll, attemptSync, toError, withFallback } from "@/lib/core/attempt.utils";
+import { formatBytes, formatRate } from "@/lib/core/bytes.utils";
 import {
   formatColor,
   hexToHsv,
@@ -27,7 +27,7 @@ import {
   rgbToHsl,
   rgbToHsv,
   rgbaToHex,
-} from "@/lib/color.utils";
+} from "@/lib/graphics/color.utils";
 import {
   buildAnimeLink,
   buildCollectionShareLink,
@@ -42,8 +42,8 @@ import {
   parsePastedLink,
   parseStreamLink,
   parseTorrentLink,
-} from "@/lib/deeplink.utils";
-import type { AnimeDeepLink } from "@/lib/deeplink.utils";
+} from "@/lib/core/deeplink.utils";
+import type { AnimeDeepLink } from "@/lib/core/deeplink.utils";
 import {
   applyGlyphOverlay,
   applyHalftoneDots,
@@ -59,31 +59,36 @@ import {
   sampleChannel,
   smoothNoise,
   srgbChannelToLinear,
-} from "@/lib/ditherRender.utils";
+} from "@/lib/graphics/ditherRender.utils";
 import {
   ditherBuffersEqual,
   ditherCacheKey,
   ditherRenderCache,
   extractPaletteFromPixels,
   subscribeWorkerJob,
-} from "@/lib/dither.utils";
-import { USER_IMAGE_PREFIX, assetUrl, isUserImageIcon, toUserImage } from "@/lib/image.utils";
+} from "@/lib/graphics/dither.utils";
+import {
+  USER_IMAGE_PREFIX,
+  assetUrl,
+  isUserImageIcon,
+  toUserImage,
+} from "@/lib/graphics/image.utils";
 import {
   createListNavigationHandler,
   enterOrSpace,
   enterSubmit,
   moveIndex,
-} from "@/lib/keyboard.utils";
-import { createLruCache, inflightFetch } from "@/lib/lruCache.utils";
-import { clamp } from "@/lib/math.utils";
-import { paginate } from "@/lib/pagination.utils";
-import { hashStringToUint32, mulberry32 } from "@/lib/random.utils";
+} from "@/lib/ui/keyboard.utils";
+import { createLruCache, inflightFetch } from "@/lib/core/lruCache.utils";
+import { clamp } from "@/lib/core/math.utils";
+import { paginate } from "@/lib/core/pagination.utils";
+import { hashStringToUint32, mulberry32 } from "@/lib/core/random.utils";
 import {
   buildReproFrontend,
   isSecretKey,
   redactProxyUrl,
   sanitizeReproValue,
-} from "@/lib/repro.utils";
+} from "@/lib/core/repro.utils";
 import {
   andThen,
   attemptResult,
@@ -92,16 +97,16 @@ import {
   map,
   ok,
   unwrapOr,
-} from "@/lib/result.utils";
-import { formatClock, formatElapsed, formatETA } from "@/lib/time.utils";
-import type { CollectionItem } from "@/types/collection";
-import type { DitherEffectOptions, DitherRGB } from "@/types/dither";
-import type { AniListId, TorrentHash } from "@/types/types";
+} from "@/lib/core/result.utils";
+import { formatClock, formatElapsed, formatETA } from "@/lib/core/time.utils";
+import type { CollectionItem } from "@/types/anilist/collection";
+import type { DitherEffectOptions, DitherRGB } from "@/types/graphics/dither";
+import type { AniListId, TorrentHash } from "@/types/core/types";
 
 // The factory resolves the shared mock itself: a top-level import would be
 // read before this hoisted call and the whole suite would fail to load.
 vi.mock("@tauri-apps/api/core", async () => {
-  const { mockInvoke } = await import("../mocks");
+  const { mockInvoke } = await import("@/tests/mocks");
   return {
     invoke: mockInvoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,

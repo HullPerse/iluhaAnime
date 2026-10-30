@@ -3,38 +3,38 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { sqliteApi } from "@/api/sqlite.api";
-import { PAGE_SIZE } from "@/config/sqlite.config";
+import { PAGE_SIZE } from "@/config/system/sqlite.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
-import { displayCell } from "@/lib/sqliteRow.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, attemptSync } from "@/lib/attempt.utils";
+import { displayCell } from "@/lib/core/sqliteRow.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, attemptSync } from "@/lib/core/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   SqliteDatabaseInfo,
   SqliteRowsPage,
   SqliteTableInfo,
   SortState,
-} from "@/types/sqlite";
+} from "@/types/core/sqlite";
 
-import { BackupPanel } from "./backup.sqlite";
-import { SqliteBrowseResult } from "./browseResult.sqlite";
-import { CellModal } from "./cell.sqlite";
-import { SqliteDialogs } from "./dialogs.sqlite";
-import { DisplayToggle } from "./display.sqlite";
-import { SqliteFilterBuilder } from "./filter.sqlite";
-import { FilterBar } from "./filterbar.sqlite";
-import { SqliteHeader } from "./header.sqlite";
-import { SqliteObjectGrid } from "./objectGrid.sqlite";
-import { SqliteObjectPane } from "./objectPane.sqlite";
-import { SchemaSection } from "./schema.sqlite";
-import { SqliteSelectorGrid } from "./selector.sqlite";
-import { RowsTable } from "./table.sqlite";
-import { TableActions } from "./tableactions.sqlite";
-import { SqliteFilterTags } from "./tags.sqlite";
-import { ViewFlags } from "./viewflags.sqlite";
-import { VirtualRowsTable } from "./virtual.sqlite";
+import { BackupPanel } from "@/routes/components/settings/sqlite/backup.sqlite";
+import { SqliteBrowseResult } from "@/routes/components/settings/sqlite/browseResult.sqlite";
+import { CellModal } from "@/routes/components/settings/sqlite/cell.sqlite";
+import { SqliteDialogs } from "@/routes/components/settings/sqlite/dialogs.sqlite";
+import { DisplayToggle } from "@/routes/components/settings/sqlite/display.sqlite";
+import { SqliteFilterBuilder } from "@/routes/components/settings/sqlite/filter.sqlite";
+import { FilterBar } from "@/routes/components/settings/sqlite/filterbar.sqlite";
+import { SqliteHeader } from "@/routes/components/settings/sqlite/header.sqlite";
+import { SqliteObjectGrid } from "@/routes/components/settings/sqlite/objectGrid.sqlite";
+import { SqliteObjectPane } from "@/routes/components/settings/sqlite/objectPane.sqlite";
+import { SchemaSection } from "@/routes/components/settings/sqlite/schema.sqlite";
+import { SqliteSelectorGrid } from "@/routes/components/settings/sqlite/selector.sqlite";
+import { RowsTable } from "@/routes/components/settings/sqlite/table.sqlite";
+import { TableActions } from "@/routes/components/settings/sqlite/tableactions.sqlite";
+import { SqliteFilterTags } from "@/routes/components/settings/sqlite/tags.sqlite";
+import { ViewFlags } from "@/routes/components/settings/sqlite/viewflags.sqlite";
+import { VirtualRowsTable } from "@/routes/components/settings/sqlite/virtual.sqlite";
 
 export default function SqliteSettings() {
   const { t } = useI18n();

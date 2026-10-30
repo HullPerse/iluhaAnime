@@ -1,7 +1,11 @@
 import { tauriTransport } from "@/api/transport.api";
-import type { ApiTransport } from "@/types/transport";
-import { normalizeAnime, normalizeEpisode, normalizeVariant } from "@/lib/streamHelpers.utils";
-import { streamProxyArgs } from "@/lib/streamProxy.utils";
+import type { ApiTransport } from "@/types/core/transport";
+import {
+  normalizeAnime,
+  normalizeEpisode,
+  normalizeVariant,
+} from "@/lib/player/streamHelpers.utils";
+import { streamProxyArgs } from "@/lib/player/streamProxy.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   StreamCatalogFilters,
@@ -14,13 +18,13 @@ import type {
   StreamTitle,
   StreamVariant,
   StreamingAnime,
-} from "@/types/stream";
+} from "@/types/player/stream";
 import type {
   AnimeLibAnime as RawAnime,
   AnimeLibEpisode as RawEpisode,
   AnimeLibVariant as RawVariant,
   StreamSource,
-} from "@/types/videoPlayer";
+} from "@/types/player/videoPlayer";
 
 export interface StreamApiConfig {
   transport?: ApiTransport;

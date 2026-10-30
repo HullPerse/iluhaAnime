@@ -2,12 +2,16 @@ import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DitherCanvas from "@/components/shared/dither.component";
-import { ditherDecodeCache, ditherRenderCache, resetDitherWorker } from "@/lib/dither.utils";
+import {
+  ditherDecodeCache,
+  ditherRenderCache,
+  resetDitherWorker,
+} from "@/lib/graphics/dither.utils";
 import type {
   DitherWorkerProgress,
   DitherWorkerRequest,
   DitherWorkerResponse,
-} from "@/types/dither";
+} from "@/types/graphics/dither";
 
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -31,7 +35,7 @@ interface MockImageHandle {
   fireLoad: () => void;
 }
 
-function installImageHarness(naturalWidth: number, naturalHeight: number): MockImageHandle[] {
+const installImageHarness = (naturalWidth: number, naturalHeight: number): MockImageHandle[] => {
   const instances: MockImageHandle[] = [];
   class MockImage {
     naturalWidth = naturalWidth;
@@ -53,9 +57,9 @@ function installImageHarness(naturalWidth: number, naturalHeight: number): MockI
   }
   vi.stubGlobal("Image", MockImage as unknown as typeof Image);
   return instances;
-}
+};
 
-function installCanvasHarness(source: Uint8ClampedArray) {
+const installCanvasHarness = (source: Uint8ClampedArray) => {
   const putImageData = vi.fn<(imageData: ImageData, dx: number, dy: number) => void>();
   const context = {
     drawImage: vi.fn(() => {}),
@@ -71,15 +75,15 @@ function installCanvasHarness(source: Uint8ClampedArray) {
   }
   vi.stubGlobal("ImageData", FakeImageData as unknown as typeof ImageData);
   return { putImageData };
-}
+};
 
-function installFrameHarness() {
+const installFrameHarness = () => {
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
     callback(0);
     return 0;
   });
   vi.stubGlobal("cancelAnimationFrame", () => {});
-}
+};
 
 describe("DitherCanvas remount", () => {
   beforeEach(() => {
@@ -114,7 +118,7 @@ interface MockWorkerHandle {
   respond: (response: DitherWorkerResponse | DitherWorkerProgress) => void;
 }
 
-function installWorkerHarness(): MockWorkerHandle {
+const installWorkerHarness = (): MockWorkerHandle => {
   const posted: unknown[] = [];
   const listeners = new Map<string, Array<(event: { data: unknown }) => void>>();
   function MockWorker(_url: string | URL, _options?: WorkerOptions) {
@@ -138,7 +142,7 @@ function installWorkerHarness(): MockWorkerHandle {
       for (const listener of listeners.get("message") ?? []) listener({ data: response });
     },
   };
-}
+};
 describe("DitherCanvas worker", () => {
   beforeEach(() => {
     ditherRenderCache.clear();
@@ -227,7 +231,7 @@ describe("DitherCanvas worker", () => {
   });
 });
 
-function installSplitCanvasHarness(source: Uint8ClampedArray) {
+const installSplitCanvasHarness = (source: Uint8ClampedArray) => {
   const visibleDraw = vi.fn<() => void>();
   const visiblePut = vi.fn<(imageData: ImageData, dx: number, dy: number) => void>();
   const visibleCtx = {
@@ -252,7 +256,7 @@ function installSplitCanvasHarness(source: Uint8ClampedArray) {
   }
   vi.stubGlobal("ImageData", FakeImageData as unknown as typeof ImageData);
   return { visibleDraw, visiblePut, workDraw };
-}
+};
 
 describe("DitherCanvas offscreen", () => {
   beforeEach(() => {
@@ -315,7 +319,7 @@ describe("DitherCanvas display cap", () => {
     resetDitherWorker();
   });
 
-  function renderCapped(capToDisplay: boolean) {
+  const renderCapped = (capToDisplay: boolean) => {
     const source = new Uint8ClampedArray(2 * 1 * 4).fill(200);
     installCanvasHarness(source);
     const images = installImageHarness(3840, 2160);
@@ -326,7 +330,7 @@ describe("DitherCanvas display cap", () => {
     Object.defineProperty(canvas, "clientWidth", { value: 672 });
     Object.defineProperty(canvas, "clientHeight", { value: 256 });
     return { images, worker };
-  }
+  };
 
   it("renders at display resolution when capped", async () => {
     const { images, worker } = renderCapped(true);

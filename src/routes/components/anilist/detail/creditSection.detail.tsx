@@ -2,7 +2,7 @@ import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CreditItem } from "@/types/creditSection.detail";
+import type { CreditItem } from "@/types/core/creditSection.detail";
 
 export function CreditSection({
   header,

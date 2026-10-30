@@ -2,15 +2,15 @@ import { Filter, Palette, Plus, SortAsc, SortDesc } from "lucide-react";
 import { useMemo } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { tokenizeIntent } from "@/lib/intent.utils";
-import type { CollectionStore, SearchField } from "@/types/collection";
+import { tokenizeIntent } from "@/lib/core/intent.utils";
+import type { CollectionStore, SearchField } from "@/types/anilist/collection";
 
-import DataCollection from "./data.collection";
+import DataCollection from "@/routes/components/collection/data.collection";
 
 export default function ToolbarCollection({
   field,

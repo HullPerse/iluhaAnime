@@ -1,12 +1,12 @@
 import { systemApi } from "@/api/system.api";
-import { DITHER_PLACEHOLDER_ID } from "@/config/dither.config";
+import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { reportBackgroundError } from "@/lib/attempt.utils";
-import { assetUrl } from "@/lib/image.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { assetUrl } from "@/lib/graphics/image.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { UserImage } from "@/types/userimage";
+import type { UserImage } from "@/types/core/userimage";
 
 export function useWallpaperImage() {
   const selectedId = useCell(settingsAtoms.selectedDitherId);

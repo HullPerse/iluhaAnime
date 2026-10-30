@@ -4,16 +4,16 @@ import { anilistApi } from "@/api/anilist.api";
 import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
-import { characterRoleLabels } from "@/config/labels.config";
-import { CHAR_PAGE_SIZE } from "@/config/pagination.config";
+import { characterRoleLabels } from "@/config/system/labels.config";
+import { CHAR_PAGE_SIZE } from "@/config/system/pagination.config";
 import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { uniqueById } from "@/lib/array.utils";
-import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { uniqueById } from "@/lib/core/array.utils";
+import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist/anilist";
 
-import { VoiceActorsPreview } from "./voiceActors.detail";
+import { VoiceActorsPreview } from "@/routes/components/anilist/detail/voiceActors.detail";
 
 type RoleFilter = "all" | "MAIN" | "SUPPORTING";
 

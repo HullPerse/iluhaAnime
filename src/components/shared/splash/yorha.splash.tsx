@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { createInterval } from "@/lib/interval.utils";
+import { createInterval } from "@/lib/core/interval.utils";
 
-import type { SplashVariantProps } from "@/types/shared.splash";
-import { splashStageLabel } from "./shared.splash";
+import type { SplashVariantProps } from "@/types/core/shared.splash";
+import { splashStageLabel } from "@/lib/splash/stages.utils";
 
 export function YorhaSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: SplashVariantProps) {
   const [dots, setDots] = useState(0);

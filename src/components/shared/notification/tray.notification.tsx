@@ -2,12 +2,12 @@ import { Bell, BellDot } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { NO_TORRENTS } from "@/config/common.config";
+import { NO_TORRENTS } from "@/config/system/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
-import { useCell } from "@/lib/signal.hook";
-import { isCurrentDownload } from "@/lib/torrentCommon.utils";
-import { openNotificationTarget, showError } from "@/lib/notification.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { isCurrentDownload } from "@/lib/torrent/torrentCommon.utils";
+import { openNotificationTarget, showError } from "@/lib/core/notification.utils";
 import {
   clearAllNotifications as clearAll,
   clearNotification as clear,
@@ -15,9 +15,9 @@ import {
   markNotificationRead as markRead,
   notificationAtoms,
 } from "@/store/notification.store";
-import type { NotificationFilter, NotificationItem } from "@/types/notification";
+import type { NotificationFilter, NotificationItem } from "@/types/core/notification";
 
-import NotificationPanel from "./panel.notification";
+import NotificationPanel from "@/components/shared/notification/panel.notification";
 
 export default function NotificationTray() {
   const items = useCell(notificationAtoms.items);

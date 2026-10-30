@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { anilistApi } from "@/api/anilist.api";
 import { useAnilistStatistics } from "@/hooks/anilist/stats.hook";
-import type { AniListStatistics } from "@/types/anilist";
+import type { AniListStatistics } from "@/types/anilist/anilist";
 
 const EMPTY_STATISTICS: AniListStatistics = {
   count: 0,
@@ -24,9 +24,9 @@ const EMPTY_STATISTICS: AniListStatistics = {
 
 let client: QueryClient;
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-}
+};
 
 beforeEach(() => {
   client = new QueryClient({

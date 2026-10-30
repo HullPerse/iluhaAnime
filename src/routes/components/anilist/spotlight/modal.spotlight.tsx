@@ -1,29 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import {
   SPOTLIGHT_KINDS,
   SPOTLIGHT_LABELS,
   SPOTLIGHT_REFRESH_TICK_MS,
-} from "@/config/spotlight.config";
+} from "@/config/system/spotlight.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import {
   resolveSpotlightPick,
   spotlightBoundaryMs,
   spotlightPeriodKey,
-} from "@/lib/spotlight.utils";
-import { createInterval } from "@/lib/interval.utils";
-import { readAppCache, writeAppCache } from "@/lib/cache.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { formatETA } from "@/lib/time.utils";
-import type { ActivityDetailBundle } from "@/types/anilist";
-import type { AniMedia, SpotlightKind, SpotlightRowState } from "@/types/anilist";
+} from "@/lib/core/spotlight.utils";
+import { createInterval } from "@/lib/core/interval.utils";
+import { readAppCache, writeAppCache } from "@/lib/core/cache.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { formatETA } from "@/lib/core/time.utils";
+import type { ActivityDetailBundle } from "@/types/anilist/anilist";
+import type { AniMedia, SpotlightKind, SpotlightRowState } from "@/types/anilist/anilist";
 
-import { InlineDetail } from "../detail/inline.detail";
-import { SpotlightRow } from "./spotlightRow.spotlight";
+import { InlineDetail } from "@/routes/components/anilist/detail/inline.detail";
+import { SpotlightRow } from "@/routes/components/anilist/spotlight/spotlightRow.spotlight";
 
 export default function SpotlightModal({
   hasUser,

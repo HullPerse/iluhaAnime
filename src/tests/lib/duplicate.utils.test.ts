@@ -4,8 +4,8 @@ import {
   findDuplicateByHash,
   normalizeInfoHash,
   parseInfoHashFromMagnet,
-} from "@/lib/duplicate.utils";
-import type { TorrentInfo } from "@/types/torrent";
+} from "@/lib/core/duplicate.utils";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
 const HEX = "0123456789abcdef0123456789abcdef01234567";
 const HEX_UPPER = HEX.toUpperCase();

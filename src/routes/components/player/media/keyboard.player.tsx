@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 
-import { PLAYER_HOTKEYS } from "@/config/keybinds.config";
-import type { KeybindAction } from "@/types/keybinds";
+import { PLAYER_HOTKEYS } from "@/config/settings/keybinds.config";
+import type { KeybindAction } from "@/types/ui/keybinds";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import { shouldIgnoreHotkeys } from "@/lib/filterHotkeys.utils";
-import { isInsideScrollable } from "@/lib/scroll.utils";
+import { shouldIgnoreHotkeys } from "@/lib/core/filterHotkeys.utils";
+import { isInsideScrollable } from "@/lib/ui/scroll.utils";
 
 function Keyboard({
   onAction,

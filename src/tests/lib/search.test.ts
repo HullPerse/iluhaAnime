@@ -7,16 +7,16 @@ import {
   parseReleaseDate,
   parseSize,
   qualityMatch,
-} from "@/lib/searchFormat.utils";
-import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/intent.utils";
-import { MASCOT_DIM_COVERAGE, overlapCoverage, shouldDimMascot } from "@/lib/mascot.utils";
-import { dedupAnimeResults, filterAnimeResults, sortAnimeResults } from "@/lib/results.utils";
-import { mapError } from "@/lib/rutracker.utils";
+} from "@/lib/search/searchFormat.utils";
+import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/core/intent.utils";
+import { MASCOT_DIM_COVERAGE, overlapCoverage, shouldDimMascot } from "@/lib/core/mascot.utils";
+import { dedupAnimeResults, filterAnimeResults, sortAnimeResults } from "@/lib/core/results.utils";
+import { mapError } from "@/lib/core/rutracker.utils";
 import {
   fuzzyMatchScorePreNormalized,
   matchOperatorTerms,
   parseOperatorTerms,
-} from "@/lib/searchScore.utils";
+} from "@/lib/search/searchScore.utils";
 import {
   fuzzyMatchScore,
   getInlineCompletion,
@@ -25,11 +25,15 @@ import {
   normalizeSearchText,
   suggestSpelling,
   suggestSpellings,
-} from "@/lib/suggestions.utils";
-import { buildShadow, buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper.utils";
-import type { SearchAnimeSuggestion } from "@/types/search";
-import type { SearchFilters } from "@/types/search";
-import type { Anime } from "@/types/torrent";
+} from "@/lib/core/suggestions.utils";
+import {
+  buildShadow,
+  buildShadowGradients,
+  buildWallpaperFilter,
+} from "@/lib/graphics/wallpaper.utils";
+import type { SearchAnimeSuggestion } from "@/types/search/search";
+import type { SearchFilters } from "@/types/search/search";
+import type { Anime } from "@/types/torrent/torrent";
 
 describe("search/format", () => {
   describe("detectLanguages", () => {

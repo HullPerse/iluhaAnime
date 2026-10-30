@@ -1,45 +1,13 @@
-import { Check, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/statuses.config";
+import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/anilist/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
-import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/status.utils";
-import { Debouncer } from "@/lib/debounce.utils";
-import { attempt } from "@/lib/attempt.utils";
-import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
+import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/core/status.utils";
+import type { CollectionStatus, CollectionStatusDef } from "@/types/anilist/collection";
 
-function ShareStatusButton({ onShare }: { onShare: () => Promise<void> | void }) {
-  const { t } = useI18n();
-  const [copied, setCopied] = useState(false);
-  const copyHideRef = useRef<Debouncer<[]> | null>(null);
-  useEffect(() => () => copyHideRef.current?.cancel(), []);
-
-  return (
-    <Button
-      size="icon"
-      className="size-6 shrink-0"
-      title={t("collection.share.copy")}
-      aria-label={t("collection.share.copy")}
-      onClick={() => {
-        const result = onShare();
-        if (result === undefined) return;
-        (async () => {
-          const [, error] = await attempt(result);
-          if (error) return;
-          setCopied(true);
-          if (copyHideRef.current === null) {
-            copyHideRef.current = new Debouncer(() => setCopied(false), { wait: 1500 });
-          }
-          copyHideRef.current.maybeExecute();
-        })();
-      }}
-    >
-      {copied ? <Check className="size-3.5" /> : <Share2 className="size-3.5" />}
-    </Button>
-  );
-}
+import { ShareStatusButton } from "./status/shareButton.status";
 
 export function StatusCollection({
   statuses,

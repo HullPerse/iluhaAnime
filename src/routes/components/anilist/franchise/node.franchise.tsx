@@ -1,22 +1,12 @@
 import { cn } from "cn";
 import { memo } from "react";
 
-import { FILTER_LABELS, IMG_H, NODE_BORDER_COLORS, NODE_H, NODE_W } from "@/config/graph.config";
+import { IMG_H, NODE_BORDER_COLORS, NODE_H, NODE_W } from "@/config/graphics/graph.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatShort } from "@/lib/graph.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { FranchiseNode } from "@/types/anilist";
-import type { TFunc } from "@/types/i18n";
-
-function aggregateLabel(node: FranchiseNode, t: TFunc): string {
-  if (!node.aggregate) return node.title;
-  return `${t(FILTER_LABELS[node.aggregate.group])} +${node.aggregate.count}`;
-}
-
-function nodeTooltip(node: FranchiseNode, label: string, isAggregator: boolean, t: TFunc): string {
-  if (isAggregator) return `${label} - ${t("anilist.franchise.expand")}`;
-  return `${node.title} (${node.year ?? "?"}) - ${node.score ?? "-"} - ${node.format ?? ""}`;
-}
+import { formatShort } from "@/lib/graphics/graph.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import { aggregateLabel, nodeTooltip } from "@/lib/anilist/franchiseNode.utils";
+import type { FranchiseNode } from "@/types/anilist/anilist";
 
 const FranNode = memo(
   ({

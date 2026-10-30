@@ -5,15 +5,19 @@ import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatProgressLog } from "@/lib/prefetch.utils";
-import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/cache.utils";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { formatProgressLog } from "@/lib/core/prefetch.utils";
+import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/core/cache.utils";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { addNotification } from "@/store/notification.store";
-import type { PrefetchProgressPayload, PrefetchSnapshot, PrefetchSummary } from "@/types/anilist";
-import type { AniPrefetchProps as Props } from "@/types/anilist";
+import type {
+  PrefetchProgressPayload,
+  PrefetchSnapshot,
+  PrefetchSummary,
+} from "@/types/anilist/anilist";
+import type { AniPrefetchProps as Props } from "@/types/anilist/anilist";
 
-import { CacheSummary } from "./cache.prefetch";
-import { RunningSummary } from "./running.prefetch";
+import { CacheSummary } from "@/routes/components/anilist/prefetch/cache.prefetch";
+import { RunningSummary } from "@/routes/components/anilist/prefetch/running.prefetch";
 
 export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   const { t } = useI18n();

@@ -4,12 +4,12 @@ import { sqliteApi } from "@/api/sqlite.api";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatBackupDate } from "@/lib/backup.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { formatBytes } from "@/lib/bytes.utils";
+import { formatBackupDate } from "@/lib/core/backup.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { SqliteBackupInfo } from "@/types/sqlite";
+import type { SqliteBackupInfo } from "@/types/core/sqlite";
 
 export function BackupPanel({
   database,

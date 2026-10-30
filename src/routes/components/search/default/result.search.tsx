@@ -2,38 +2,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
 import { useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { SOURCE_INFOS } from "@/config/searchSources.config";
+import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentCover } from "@/hooks/search/cover.hook";
-import type { TorrentCoverState } from "@/types/searchCover";
-import { queryKeys } from "@/lib/keys.utils";
-import { detectLanguages, formatReleaseAge, formatSize } from "@/lib/searchFormat.utils";
-import { getLanguageColors } from "@/lib/results.utils";
-import { useCell } from "@/lib/signal.hook";
-import { ignore } from "@/lib/promise.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { detectLanguages, formatReleaseAge, formatSize } from "@/lib/search/searchFormat.utils";
+import { getLanguageColors } from "@/lib/core/results.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { ignore } from "@/lib/core/promise.utils";
+import { coverVisual } from "@/lib/torrent/coverVisual.utils";
 import TorrentActions from "@/routes/components/search/default/actions.search";
 import CoverCorrectionModal from "@/routes/components/search/default/correction.search";
 import { removeResolvedCover } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { ResultSearchProps as Props } from "@/types/search";
-import type { TorrentCoverMode } from "@/types/settings";
-
-type CoverVisual = { mode: "hidden" } | { mode: "waiting" } | { mode: "show"; src: string };
-
-function coverVisual(cover: TorrentCoverState, mode: TorrentCoverMode): CoverVisual {
-  if (mode === "off") return { mode: "hidden" };
-  if (cover.status === "pending") return { mode: "waiting" };
-  if (mode === "pages") {
-    if (cover.status !== "page" && cover.status !== "override") return { mode: "hidden" };
-    const src = cover.coverUrl ?? cover.remoteUrl;
-    if (!src) return { mode: "hidden" };
-    return { mode: "show", src };
-  }
-  return { mode: "show", src: cover.coverUrl ?? cover.remoteUrl ?? "/images/unknown_source.png" };
-}
+import type { ResultSearchProps as Props } from "@/types/search/search";
 
 export default function SearchResultItem({
   item,

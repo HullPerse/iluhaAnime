@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { collectionApi } from "@/api/collection.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { attempt, attemptSync } from "@/lib/attempt.utils";
+import { attempt, attemptSync } from "@/lib/core/attempt.utils";
 import { addNotification } from "@/store/notification.store";
 
 export function useCollectionDataActions() {

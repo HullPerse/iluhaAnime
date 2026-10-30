@@ -6,12 +6,12 @@ import type {
   CollectionStatusDef,
   CustomFieldDef,
   WizardPrefill,
-} from "@/types/collection";
+} from "@/types/anilist/collection";
 
-import { DetailCollection } from "./detail/modal.detail";
-import ImportAnilistCollection from "./importAnilist.collection";
-import { StatusManagerCollection } from "./statusManager.collection";
-import { WizardModal } from "./wizard/modal.wizard";
+import { DetailCollection } from "@/routes/components/collection/detail/modal.detail";
+import ImportAnilistCollection from "@/routes/components/collection/importAnilist.collection";
+import { StatusManagerCollection } from "@/routes/components/collection/statusManager.collection";
+import { WizardModal } from "@/routes/components/collection/wizard/modal.wizard";
 
 export default function CollectionModals({
   showWizard,

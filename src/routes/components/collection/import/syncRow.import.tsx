@@ -1,5 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
-import type { AniListEntry } from "@/types/anilist";
+import type { AniListEntry } from "@/types/anilist/anilist";
 
 export function SyncRow({
   entry,

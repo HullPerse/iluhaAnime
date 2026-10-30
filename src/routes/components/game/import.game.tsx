@@ -4,10 +4,10 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { GAME_PLATFORM_LABELS } from "@/config/platforms.config";
+import { GAME_PLATFORM_LABELS } from "@/config/system/platforms.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { GamePlatform } from "@/types/game";
-import type { GameImportModalProps } from "@/types/import.game";
+import type { GamePlatform } from "@/types/core/game";
+import type { GameImportModalProps } from "@/types/core/import.game";
 
 export default function GameImportModal({
   filePath,

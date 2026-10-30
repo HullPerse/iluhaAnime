@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { SPELL_CORRECTION_LIMIT } from "@/config/autocomplete.config";
+import { SPELL_CORRECTION_LIMIT } from "@/config/search/autocomplete.config";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { normalizeSearchText } from "@/lib/normalize.utils";
-import { suggestSpellingWithReason } from "@/lib/searchResolve.utils";
-import { suggestSpellings } from "@/lib/suggestions.utils";
-import { damerauLevenshtein } from "@/lib/symspell.utils";
-import { useCell } from "@/lib/signal.hook";
+import { normalizeSearchText } from "@/lib/core/normalize.utils";
+import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
+import { suggestSpellings } from "@/lib/core/suggestions.utils";
+import { damerauLevenshtein } from "@/lib/core/symspell.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { searchAtoms } from "@/store/search.store";
-import type { SearchAnimeSuggestion, SpellCheck, SpellWordSpan } from "@/types/search";
+import type { SearchAnimeSuggestion, SpellCheck, SpellWordSpan } from "@/types/search/search";
 
 interface SpellCheckOptions {
   history?: string[];

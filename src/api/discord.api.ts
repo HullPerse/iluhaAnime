@@ -1,6 +1,6 @@
 import { tauriTransport } from "@/api/transport.api";
-import type { ApiTransport } from "@/types/transport";
-import type { DiscordActivity, DiscordPresenceSource } from "@/types/discord";
+import type { ApiTransport } from "@/types/core/transport";
+import type { DiscordActivity, DiscordPresenceSource } from "@/types/core/discord";
 
 export interface DiscordApiConfig {
   transport?: ApiTransport;

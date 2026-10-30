@@ -3,7 +3,7 @@ import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { useCallback, useState } from "react";
 
 import { addCategoryEntry } from "@/store/category.store";
-import type { CategoryDragData } from "@/types/category";
+import type { CategoryDragData } from "@/types/core/category";
 
 export function usePlayerDrag() {
   const [activeDrag, setActiveDrag] = useState<{ name: string } | null>(null);

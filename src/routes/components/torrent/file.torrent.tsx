@@ -1,19 +1,19 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
-import { TORRENT_LIST_MAX_HEIGHT } from "@/config/torrents.config";
+import { TORRENT_LIST_MAX_HEIGHT } from "@/config/torrent/torrents.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
-import { clickRowActionButton, dispatchClick } from "@/lib/dispatchHotkeys.utils";
-import { mediaFileExtension } from "@/lib/parse.utils";
-import { resolveTreeArrow, resolveTreeMove } from "@/lib/treeArrow.utils";
-import type { TreeRow } from "@/types/treeArrow";
-import { useCell } from "@/lib/signal.hook";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
+import { activateTreeRow, findRow, rowElement, runRowAction } from "@/lib/ui/treeRow.utils";
+import { mediaFileExtension } from "@/lib/search/parse.utils";
+import { resolveTreeArrow, resolveTreeMove } from "@/lib/core/treeArrow.utils";
+import type { TreeRow } from "@/types/core/treeArrow";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   applyFolderSelection,
   buildTorrentTree,
   flattenTorrentTree,
-} from "@/lib/torrentTree.utils";
+} from "@/lib/torrent/torrentTree.utils";
 import { TorrentFileRow } from "@/routes/components/torrent/rows/file.rows";
 import { FolderRow } from "@/routes/components/torrent/rows/folder.rows";
 import { settingsAtoms } from "@/store/settings.store";
@@ -24,7 +24,7 @@ import type {
   TorrentFileInfo,
   TorrentTreeFile,
   TorrentTreeFileWithPath,
-} from "@/types/torrent";
+} from "@/types/torrent/torrent";
 
 type TorrentTreeKeyAction =
   | "treeCollapse"
@@ -53,22 +53,6 @@ const TORRENT_TREE_KEYBINDS: ResolvedHotkeyDef<TorrentTreeKeyAction>[] = [
   { id: "rowReveal", chord: "KeyR", repeat: "once", keybindId: "tree.reveal" },
 ];
 
-function rowElement(target: EventTarget | null): HTMLElement | null {
-  return target instanceof HTMLElement ? target.closest<HTMLElement>("[data-tree-row]") : null;
-}
-
-function findRow(root: HTMLElement | null, path: string): HTMLElement | null {
-  if (!root) return null;
-  for (const row of root.querySelectorAll<HTMLElement>("[data-tree-row]")) {
-    if (row.dataset.treePath === path) return row;
-  }
-  return null;
-}
-
-function fileKey(index: number): string {
-  return `file:${index}`;
-}
-
 type TorrentFileRowAction = "external" | "builtin" | "upscale" | "reveal";
 
 const TORRENT_FILE_ACTION_BY_KEY: Partial<Record<TorrentTreeKeyAction, TorrentFileRowAction>> = {
@@ -77,24 +61,6 @@ const TORRENT_FILE_ACTION_BY_KEY: Partial<Record<TorrentTreeKeyAction, TorrentFi
   rowUpscale: "upscale",
   rowReveal: "reveal",
 };
-
-function runTorrentFileRowAction(row: HTMLElement, action: TorrentFileRowAction): void {
-  if (action === "reveal") {
-    const name = row.querySelector<HTMLElement>("[data-tree-activate]");
-    if (name) dispatchClick(name, "contextmenu");
-    return;
-  }
-  clickRowActionButton(row, action);
-}
-
-function activateTorrentRow(row: HTMLElement): void {
-  setVimCount("");
-  if (row.dataset.treeKind === "file") {
-    row.querySelector<HTMLElement>('[data-file-action="search"]')?.click();
-  } else {
-    row.querySelector<HTMLElement>("[data-tree-activate]")?.click();
-  }
-}
 
 function TorrentFilesSection({
   id,
@@ -216,7 +182,7 @@ function TorrentFilesSection({
   const treeRows = useMemo<TreeRow[]>(() => {
     const stack: string[] = [];
     return flatItems.map((item, index) => {
-      const path = item.kind === "folder" ? item.node.name + item.depth : fileKey(item.file.index);
+      const path = item.kind === "folder" ? item.node.name + item.depth : `file:${item.file.index}`;
       const parent = item.depth === 0 ? "" : (stack[item.depth - 1] ?? "");
       stack[item.depth] = String(index);
       stack.length = item.depth + 1;
@@ -260,7 +226,7 @@ function TorrentFilesSection({
       if (!path) return;
 
       if (action === "treeActivate" || action === "rowSearch") {
-        activateTorrentRow(row);
+        activateTreeRow(row);
         return;
       }
 
@@ -277,7 +243,7 @@ function TorrentFilesSection({
       if (torrentFileAction !== undefined) {
         setVimCount("");
         if (row.dataset.treeKind !== "file") return;
-        runTorrentFileRowAction(row, torrentFileAction);
+        runRowAction(row, torrentFileAction);
         return;
       }
 

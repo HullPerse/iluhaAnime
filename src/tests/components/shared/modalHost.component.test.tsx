@@ -5,14 +5,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ModalHost } from "@/components/shared/modalHost.component";
 import { clearModalScope, pushModal, resetModalAtoms } from "@/store/modal.store";
 import { patchSettings } from "@/store/settings.store";
-import type { ModalEntry } from "@/types/modal";
+import type { ModalEntry } from "@/types/ui/modal";
 
-function resolve(entry: ModalEntry) {
+const resolve = (entry: ModalEntry) => {
   return {
     header: `title-${entry.key}`,
     body: <span>{`body-${entry.key}`}</span>,
   };
-}
+};
 
 afterEach(() => {
   cleanup();

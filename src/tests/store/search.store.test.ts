@@ -10,11 +10,11 @@ import {
   saveSearchFilterPreset,
   searchAtoms,
 } from "@/store/search.store";
-import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
-import type { AniMedia } from "@/types/anilist";
-import type { SearchFilters } from "@/types/search";
+import type { AniListCollection, FavouriteAnime } from "@/types/anilist/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
+import type { SearchFilters } from "@/types/search/search";
 
-import { mockInvoke } from "../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,

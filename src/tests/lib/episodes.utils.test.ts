@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { anilistEpisodePreviews, episodeNumberFromTitle } from "@/lib/episodes.utils";
+import { anilistEpisodePreviews, episodeNumberFromTitle } from "@/lib/player/episodes.utils";
 
 function row(title: string, thumbnail?: string) {
   return { title, thumbnail, url: "", site: "Crunchyroll" };

@@ -10,16 +10,16 @@ const OPTIONS = [
   { value: "c", label: "Gamma" },
 ];
 
-function openSearchable(onChange: (value: string) => void = () => undefined) {
+const openSearchable = (onChange: (value: string) => void = () => undefined) => {
   patchSettings({ language: "en" });
   render(<Select value="a" onChange={onChange} options={OPTIONS} searchable />);
   fireEvent.mouseDown(screen.getByRole("combobox"));
   return onChange;
-}
+};
 
-function searchInput(): HTMLInputElement {
+const searchInput = (): HTMLInputElement => {
   return screen.getByPlaceholderText("Search...") as HTMLInputElement;
-}
+};
 
 afterEach(() => {
   cleanup();

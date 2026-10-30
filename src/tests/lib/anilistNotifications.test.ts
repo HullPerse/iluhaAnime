@@ -1,7 +1,10 @@
 import { mockConvertFileSrc, mockInvoke } from "@/tests/mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilistNotifications.utils";
+import {
+  pollAniListReleases,
+  pollSiteNotifications,
+} from "@/lib/anilist/anilistNotifications.utils";
 import {
   anilistNotificationsAtoms,
   createAnilistNotificationsSignalStore,
@@ -11,8 +14,8 @@ import {
 } from "@/store/anilist.store";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
-import type { AniNotificationEntry, AniSiteNotification } from "@/types/anilist";
-import type { TFunc } from "@/types/i18n";
+import type { AniNotificationEntry, AniSiteNotification } from "@/types/anilist/anilist";
+import type { TFunc } from "@/types/core/i18n";
 
 const checkAuth = vi.fn();
 const getLists = vi.fn();

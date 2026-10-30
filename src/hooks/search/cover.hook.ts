@@ -4,8 +4,8 @@ import { anilistApi } from "@/api/anilist.api";
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
-import { parseMediaFile } from "@/lib/parse.utils";
-import { queryKeys } from "@/lib/keys.utils";
+import { parseMediaFile } from "@/lib/search/parse.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
 import {
   findLocalMatch,
   findResolvedAlias,
@@ -14,15 +14,15 @@ import {
   POSTER_TIMEOUT_MS,
   resolveCover,
   withTimeout,
-} from "@/lib/cover.utils";
-import type { CoverCandidate, CoverProfile, CoverQuery } from "@/types/cover";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
+} from "@/lib/core/cover.utils";
+import type { CoverCandidate, CoverProfile, CoverQuery } from "@/types/core/cover";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { coverCorrectionsAtoms, coverKey, setResolvedCover } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
-import type { AniMedia } from "@/types/anilist";
-import type { TorrentCoverMode } from "@/types/settings";
-import type { TorrentCoverState } from "@/types/searchCover";
+import type { AniMedia } from "@/types/anilist/anilist";
+import type { TorrentCoverMode } from "@/types/ui/settings";
+import type { TorrentCoverState } from "@/types/search/searchCover";
 
 async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
   const [media, error] = await attempt(

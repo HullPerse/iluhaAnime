@@ -3,14 +3,17 @@ import { CheckCheck, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { NOTIFICATION_FILTERS, NOTIFICATION_FILTER_KEYS } from "@/config/notifications.config";
+import {
+  NOTIFICATION_FILTERS,
+  NOTIFICATION_FILTER_KEYS,
+} from "@/config/system/notifications.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getVisibleNotifications } from "@/lib/notification.utils";
-import type { NotificationFilter, NotificationItem } from "@/types/notification";
-import type { TorrentInfo } from "@/types/torrent";
+import { getVisibleNotifications } from "@/lib/core/notification.utils";
+import type { NotificationFilter, NotificationItem } from "@/types/core/notification";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
-import NotificationRow from "./row.notification";
-import ActiveTorrentItem from "./torrentItem.notification";
+import NotificationRow from "@/components/shared/notification/row.notification";
+import ActiveTorrentItem from "@/components/shared/notification/torrentItem.notification";
 
 export default function NotificationPanel({
   items,

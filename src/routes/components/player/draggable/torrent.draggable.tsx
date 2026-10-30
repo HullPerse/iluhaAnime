@@ -3,9 +3,9 @@ import { EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
+import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent/torrent";
 
-import TorrentFilesPlayerSection from "../torrent.player";
+import TorrentFilesPlayerSection from "@/routes/components/player/torrent.player";
 
 export function DraggableTorrent({
   item,

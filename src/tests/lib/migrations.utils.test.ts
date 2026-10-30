@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { detectMigrations, TRACKED_STORES } from "@/lib/migrations.utils";
+import { detectMigrations, TRACKED_STORES } from "@/lib/core/migrations.utils";
 import {
   ANILIST_FRIENDS_SCHEMA_VERSION,
   ANILIST_NOTIFICATIONS_SCHEMA_VERSION,

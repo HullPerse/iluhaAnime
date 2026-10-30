@@ -11,10 +11,10 @@ import {
   formatAiringCountdown,
   formatAiringLocal,
   groupAiringByDay,
-} from "@/lib/airing.utils";
-import { createInterval } from "@/lib/interval.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { AniListCollection } from "@/types/anilist";
+} from "@/lib/core/airing.utils";
+import { createInterval } from "@/lib/core/interval.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { AniListCollection } from "@/types/anilist/anilist";
 
 export function AiringTab({
   lists,

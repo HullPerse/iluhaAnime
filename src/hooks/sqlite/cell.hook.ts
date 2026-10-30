@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
 
 import { sqliteApi } from "@/api/sqlite.api";
-import { Debouncer } from "@/lib/debounce.utils";
-import { displayCell } from "@/lib/sqliteRow.utils";
-import { attemptAll, reportBackgroundError } from "@/lib/attempt.utils";
-import { assetUrl, isImageUrl } from "@/lib/image.utils";
-import { COPIED_FEEDBACK_MS } from "@/lib/notification.utils";
-import type { SqliteRowsPage, SqliteSelectedCell, SqliteTableInfo } from "@/types/sqlite";
+import { Debouncer } from "@/lib/core/debounce.utils";
+import { displayCell } from "@/lib/core/sqliteRow.utils";
+import { attemptAll, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { assetUrl, isImageUrl } from "@/lib/graphics/image.utils";
+import { COPIED_FEEDBACK_MS } from "@/lib/core/notification.utils";
+import type { SqliteRowsPage, SqliteSelectedCell, SqliteTableInfo } from "@/types/core/sqlite";
 
 export function useSqliteCell(params: {
   rows: SqliteRowsPage | null;

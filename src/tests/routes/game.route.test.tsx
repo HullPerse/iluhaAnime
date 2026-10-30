@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import GameRoute from "@/routes/game.route";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
-import { mockDialogConfirm, mockInvoke, mockListen } from "../mocks";
+import { mockDialogConfirm, mockInvoke, mockListen } from "@/tests/mocks";
 
 const SNAKE_HOWTO = "Keys 5 7 8 9 starts it and steers.";
 
@@ -30,14 +30,14 @@ const ROMS = [
   },
 ];
 
-function renderRoute() {
+const renderRoute = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <GameRoute />
     </QueryClientProvider>
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en", gameVolume: 1 });

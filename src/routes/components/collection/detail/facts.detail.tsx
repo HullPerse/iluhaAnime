@@ -1,7 +1,7 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatDate, statusColorOf } from "@/lib/status.utils";
+import { formatDate, statusColorOf } from "@/lib/core/status.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import type { CollectionItem } from "@/types/collection";
+import type { CollectionItem } from "@/types/anilist/collection";
 
 export function DetailFactsCollection({
   item,

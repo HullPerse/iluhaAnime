@@ -1,4 +1,4 @@
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListFavouritesModal from "@/routes/components/anilist/favourites.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { FavouriteAnime, FavouritePeople } from "@/types/anilist";
+import type { FavouriteAnime, FavouritePeople } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -30,14 +30,14 @@ const PEOPLE: FavouritePeople = {
 
 const EMPTY_PEOPLE: FavouritePeople = { staff: [], characters: [] };
 
-function renderModal(node: ReactNode) {
+const renderModal = (node: ReactNode) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
-}
+};
 
-function renderOpen(overrides: Partial<Parameters<typeof AniListFavouritesModal>[0]> = {}) {
+const renderOpen = (overrides: Partial<Parameters<typeof AniListFavouritesModal>[0]> = {}) => {
   const onClose = vi.fn();
   const onAnimeClick = vi.fn();
   renderModal(
@@ -52,7 +52,7 @@ function renderOpen(overrides: Partial<Parameters<typeof AniListFavouritesModal>
     />
   );
   return { onClose, onAnimeClick };
-}
+};
 
 afterEach(() => cleanup());
 

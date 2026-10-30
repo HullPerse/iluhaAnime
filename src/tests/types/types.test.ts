@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { assertNever } from "@/lib/type.utils";
+import { assertNever } from "@/lib/core/type.utils";
 import type {
   AniListId,
   ArrayElement,
@@ -21,7 +21,7 @@ import type {
   Prettify,
   TorrentHash,
   XOR,
-} from "@/types/types";
+} from "@/types/core/types";
 
 interface XorA {
   a: string;

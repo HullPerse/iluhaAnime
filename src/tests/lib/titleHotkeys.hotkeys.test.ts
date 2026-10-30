@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { activeChordForKeybind, formatKeybindTitle } from "@/lib/titleHotkeys.utils";
+import { activeChordForKeybind, formatKeybindTitle } from "@/lib/search/titleHotkeys.utils";
 
 describe("formatKeybindTitle", () => {
   it("prefixes the title with the humanized chord", () => {

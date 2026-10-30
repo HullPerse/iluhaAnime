@@ -2,18 +2,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EntryListInfo, EntryLookup } from "@/types/entries";
+import type { EntryListInfo, EntryLookup } from "@/types/anilist/entries";
 import AniListCard from "@/routes/components/anilist/card.anilist";
 import { ProgressStepper } from "@/routes/components/anilist/stepper.anilist";
 import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { patchSettings } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", async () => {
-  const { mockInvoke } = await import("../../mocks");
+  const { mockInvoke } = await import("@/tests/mocks");
   return {
     invoke: mockInvoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -22,7 +22,7 @@ vi.mock("@tauri-apps/api/core", async () => {
 
 const MEDIA_ID = 501;
 
-function makeMedia(overrides: Partial<AniMedia> = {}): AniMedia {
+const makeMedia = (overrides: Partial<AniMedia> = {}): AniMedia => {
   return {
     id: MEDIA_ID,
     title: "Frieren",
@@ -49,9 +49,9 @@ function makeMedia(overrides: Partial<AniMedia> = {}): AniMedia {
     relations: [],
     ...overrides,
   };
-}
+};
 
-function makeEntry(overrides: Partial<EntryListInfo> = {}): EntryListInfo {
+const makeEntry = (overrides: Partial<EntryListInfo> = {}): EntryListInfo => {
   return {
     list_status: "COMPLETED",
     progress: 20,
@@ -64,13 +64,13 @@ function makeEntry(overrides: Partial<EntryListInfo> = {}): EntryListInfo {
     custom_lists: [],
     ...overrides,
   };
-}
+};
 
-function makeLookup(score: number | null, overrides: Partial<EntryListInfo> = {}): EntryLookup {
+const makeLookup = (score: number | null, overrides: Partial<EntryListInfo> = {}): EntryLookup => {
   return new Map([[MEDIA_ID, makeEntry({ score, ...overrides })]]);
-}
+};
 
-function renderCard(scoreFormat: string, score: number | null) {
+const renderCard = (scoreFormat: string, score: number | null) => {
   const client = new QueryClient();
   return render(
     <QueryClientProvider client={client}>
@@ -83,7 +83,7 @@ function renderCard(scoreFormat: string, score: number | null) {
       />
     </QueryClientProvider>
   );
-}
+};
 
 afterEach(() => {
   themeAtoms.currentTheme.set("win95");
@@ -126,7 +126,7 @@ describe("AniListCard score badge", () => {
 });
 
 describe("ProgressStepper", () => {
-  function renderWithData() {
+  const renderWithData = () => {
     const client = new QueryClient();
     client.setQueryData(["anilist_data"], {
       user: { id: 7 },
@@ -163,7 +163,7 @@ describe("ProgressStepper", () => {
         />
       </QueryClientProvider>
     );
-  }
+  };
 
   it("debounces the save and shows loader then a checkmark", async () => {
     vi.useFakeTimers();
@@ -207,7 +207,7 @@ describe("ProgressStepper", () => {
 });
 
 describe("ProgressStepper coalescing", () => {
-  function renderCoalescing() {
+  const renderCoalescing = () => {
     const client = new QueryClient();
     client.setQueryData(["anilist_data"], {
       user: { id: 7 },
@@ -245,11 +245,11 @@ describe("ProgressStepper coalescing", () => {
       </QueryClientProvider>
     );
     return client;
-  }
+  };
 
-  function saveCalls(invoke: ReturnType<typeof vi.fn>) {
+  const saveCalls = (invoke: ReturnType<typeof vi.fn>) => {
     return invoke.mock.calls.filter((call) => call[0] === "save_anilist_entry");
-  }
+  };
 
   it("applies rapid clicks instantly and syncs the trailing target once", async () => {
     vi.useFakeTimers();
@@ -403,7 +403,7 @@ describe("ProgressStepper coalescing", () => {
 });
 
 describe("ProgressStepper completion", () => {
-  function renderProgress(status: string, initialProgress: number) {
+  const renderProgress = (status: string, initialProgress: number) => {
     const client = new QueryClient();
     client.setQueryData(["anilist_data"], {
       user: { id: 7 },
@@ -442,7 +442,7 @@ describe("ProgressStepper completion", () => {
       </QueryClientProvider>
     );
     return client;
-  }
+  };
 
   it("shows completed immediately and sends it with the final episode", async () => {
     vi.useFakeTimers();
@@ -545,7 +545,7 @@ describe("ProgressStepper completion", () => {
 });
 
 describe("AniListCard short meta", () => {
-  function renderReleasing() {
+  const renderReleasing = () => {
     const client = new QueryClient();
     return render(
       <QueryClientProvider client={client}>
@@ -558,7 +558,7 @@ describe("AniListCard short meta", () => {
         />
       </QueryClientProvider>
     );
-  }
+  };
 
   it("shows the aired count on full meta themes", () => {
     renderReleasing();

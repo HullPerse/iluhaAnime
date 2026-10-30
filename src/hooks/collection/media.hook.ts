@@ -1,9 +1,9 @@
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { withFallback } from "@/lib/attempt.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { withFallback } from "@/lib/core/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
 
 export function useCollectionMedia(

@@ -1,6 +1,6 @@
 import { ListVideo } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 
 export function QueueStatusIcon({ status }: { status: string | undefined }) {
   if (status === "queued") return <ListVideo className="text-hint size-3" />;

@@ -9,7 +9,7 @@ import {
   attemptSync,
   toError,
   withFallback,
-} from "@/lib/attempt.utils";
+} from "@/lib/core/attempt.utils";
 import {
   attemptAllLimit,
   attemptResult,
@@ -21,7 +21,7 @@ import {
   unwrapOr,
   withResource,
   withTimeout,
-} from "@/lib/result.utils";
+} from "@/lib/core/result.utils";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 

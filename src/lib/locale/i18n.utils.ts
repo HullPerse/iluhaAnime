@@ -1,7 +1,7 @@
 import en from "@/lib/locale/en";
 import ru from "@/lib/locale/ru";
 import { settingsAtoms } from "@/store/settings.store";
-import type { Locale, TranslationKey, TranslationVariables } from "@/types/i18n";
+import type { Locale, TranslationKey, TranslationVariables } from "@/types/core/i18n";
 
 export type { Locale, TranslationVariables };
 export type { TranslationKey };

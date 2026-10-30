@@ -6,9 +6,9 @@ import {
   countersOf,
   dropLearningScope,
   learningStatKey,
-} from "@/lib/learning.utils";
-import { RANKING } from "@/config/ranking.config";
-import type { LearningStatRow } from "@/types/search";
+} from "@/lib/core/learning.utils";
+import { RANKING } from "@/config/anilist/ranking.config";
+import type { LearningStatRow } from "@/types/search/search";
 
 const NOW = 1_700_000_000_000;
 const SECONDS = Math.floor(NOW / 1000);

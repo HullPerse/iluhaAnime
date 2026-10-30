@@ -1,12 +1,12 @@
-import { DEFAULT_VOLUME } from "@/config/video.config";
-import { Debouncer } from "@/lib/debounce.utils";
-import type { Persistor } from "@/types/persist";
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
-import { resolveWithDefaults } from "@/lib/migrate.utils";
-import type { MigrationState } from "@/types/migrate";
-import { attemptSync } from "@/lib/attempt.utils";
+import { DEFAULT_VOLUME } from "@/config/player/video.config";
+import { Debouncer } from "@/lib/core/debounce.utils";
+import type { Persistor } from "@/types/core/persist";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
+import { resolveWithDefaults } from "@/lib/core/migrate.utils";
+import type { MigrationState } from "@/types/core/migrate";
+import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   MpvChapter,
   MpvTrack,
@@ -15,7 +15,7 @@ import type {
   PlayerSettings,
   PlayerStore,
   StreamOpen,
-} from "@/types/videoPlayer";
+} from "@/types/player/videoPlayer";
 
 export const PLAYER_SCHEMA_VERSION = 3;
 

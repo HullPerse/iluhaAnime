@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { KONAMI_CODES, KONAMI_TIMEOUT_MS } from "@/config/sequence.config";
-import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
-import { subscribeSequence } from "@/lib/sequenceHotkeys.utils";
+import { KONAMI_CODES, KONAMI_TIMEOUT_MS } from "@/config/settings/sequence.config";
+import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
+import { subscribeSequence } from "@/lib/core/sequenceHotkeys.utils";
 
 function press(code: string, target: EventTarget = window): void {
   target.dispatchEvent(new KeyboardEvent("keydown", { code, bubbles: true }));

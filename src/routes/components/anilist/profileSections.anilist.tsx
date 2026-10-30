@@ -1,15 +1,15 @@
 import { useMemo } from "react";
 
-import { listStatusLabels } from "@/config/labels.config";
+import { listStatusLabels } from "@/config/system/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor } from "@/lib/entries.utils";
-import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilistGroup.utils";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/anilistGroup.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import AniListFriendHeader from "@/routes/components/anilist/friend/header.friend";
 import AniListListsRow from "@/routes/components/anilist/lists.anilist";
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
 import AniListProfileHeader from "@/routes/components/anilist/user/header.user";
-import type { AniListEntry, AniListSort, AniListSource } from "@/types/anilist";
+import type { AniListEntry, AniListSort, AniListSource } from "@/types/anilist/anilist";
 
 export default function AniListProfileSections({
   source,

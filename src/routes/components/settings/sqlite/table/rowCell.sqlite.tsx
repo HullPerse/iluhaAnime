@@ -1,8 +1,8 @@
 import Image from "@/components/ui/image.component";
-import { displayCell, previewCell } from "@/lib/sqliteRow.utils";
-import { isImageUrl } from "@/lib/image.utils";
+import { displayCell, previewCell } from "@/lib/core/sqliteRow.utils";
+import { isImageUrl } from "@/lib/graphics/image.utils";
 
-import { AssetImageCell } from "./assetImageCell.sqlite";
+import { AssetImageCell } from "@/routes/components/settings/sqlite/table/assetImageCell.sqlite";
 
 export function RowCell({
   value,

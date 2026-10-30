@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { anilistApi } from "@/api/anilist.api";
-import { loadFriendScores } from "@/lib/friends.utils";
-import type { FriendScore } from "@/types/anilist";
+import { loadFriendScores } from "@/lib/core/friends.utils";
+import type { FriendScore } from "@/types/anilist/anilist";
 
 function makeFriend(id: number, name: string): FriendScore {
   return {

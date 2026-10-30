@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCompact, formatPercent } from "@/lib/chartsFormat.utils";
+import { formatCompact, formatPercent } from "@/lib/graphics/chartsFormat.utils";
 
 describe("formatCompact", () => {
   it("keeps small numbers readable", () => {

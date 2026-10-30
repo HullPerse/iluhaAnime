@@ -4,14 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DetailsHero from "@/routes/components/search/default/details/hero.details";
 import { patchSettings } from "@/store/settings.store";
-import type { Anime, TorrentView } from "@/types/torrent";
+import type { Anime, TorrentView } from "@/types/torrent/torrent";
 
-import { mockDialogSave, mockInvoke, mockWriteText } from "../../mocks";
+import { mockDialogSave, mockInvoke, mockWriteText } from "@/tests/mocks";
 
 const REMOTE_POSTER = "https://cdn.example.com/covers/123.jpg";
 const ASSET_POSTER = "https://asset.localhost/C%3A/covers/123.jpg";
 
-function view(): TorrentView {
+const view = (): TorrentView => {
   return {
     source: "nyaa",
     url: "https://example.com/torrent/1",
@@ -38,9 +38,9 @@ function view(): TorrentView {
     comments: [],
     notice: null,
   };
-}
+};
 
-function item(): Anime {
+const item = (): Anime => {
   return {
     title: "Show",
     magnet: "magnet:?xt=1",
@@ -51,9 +51,9 @@ function item(): Anime {
     category: "Anime",
     link: "https://example.com/torrent/1",
   };
-}
+};
 
-function renderHero(poster: string) {
+const renderHero = (poster: string) => {
   const noop = () => undefined;
   render(
     <DetailsHero
@@ -69,18 +69,18 @@ function renderHero(poster: string) {
       onZoom={noop}
     />
   );
-}
+};
 
-function posterButton(): HTMLElement {
+const posterButton = (): HTMLElement => {
   const button = screen.getByRole("button", { name: "Open image" });
   return button;
-}
+};
 
-function pngBlob(): Blob {
+const pngBlob = (): Blob => {
   return new Blob(["fakepng"], { type: "image/png" });
-}
+};
 
-function stubImagePipeline(blob: Blob = pngBlob()) {
+const stubImagePipeline = (blob: Blob = pngBlob()) => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => ({ ok: true, blob: async () => blob }) as Response)
@@ -110,7 +110,7 @@ function stubImagePipeline(blob: Blob = pngBlob()) {
       }
     }
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

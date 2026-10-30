@@ -1,5 +1,5 @@
-import type { SplashVariantProps } from "@/types/shared.splash";
-import { splashProgress, splashStageLabel } from "./shared.splash";
+import type { SplashVariantProps } from "@/types/core/shared.splash";
+import { splashProgress, splashStageLabel } from "@/lib/splash/stages.utils";
 
 export function GenericSplash({
   stages,

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AniVoiceActor } from "@/types/anilist";
+import type { AniVoiceActor } from "@/types/anilist/anilist";
 
 export function VoiceActorsPreview({
   voiceActors,

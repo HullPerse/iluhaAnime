@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { GameApi } from "@/api/game.api";
-import type { ApiTransport } from "@/types/transport";
+import type { ApiTransport } from "@/types/core/transport";
 
 function fakeTransport() {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];

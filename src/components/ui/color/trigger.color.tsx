@@ -1,7 +1,7 @@
 import { Popover } from "@base-ui/react/popover";
 import { useState } from "react";
 
-import { ColorPicker } from "./picker.color";
+import { ColorPicker } from "@/components/ui/color/picker.color";
 
 export function ColorPickerTrigger({
   value,

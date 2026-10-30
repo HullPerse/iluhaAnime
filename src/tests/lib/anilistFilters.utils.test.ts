@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultFilters } from "@/config/anilistFilters.config";
-import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
+import { defaultFilters } from "@/config/anilist/anilistFilters.config";
+import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 
 describe("defaultAniListFilters", () => {
   it("applies the requested adult flag on top of the config defaults", () => {

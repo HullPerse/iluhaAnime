@@ -4,17 +4,11 @@ import type { KeyboardEvent } from "react";
 import { BackdropLayer } from "@/components/shared/autocomplete/backdrop.autocomplete";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { HighlightToken } from "@/types/highlight";
+import type { HighlightToken } from "@/types/core/highlight";
 
 const NO_SEGMENTS: HighlightToken[] = [];
 
-function firstPrefixMatch(names: readonly string[], query: string): string {
-  const trimmed = query.trim();
-  if (trimmed.length === 0) return "";
-  const lower = trimmed.toLowerCase();
-  const match = names.find((name) => name.toLowerCase().startsWith(lower));
-  return match !== undefined && match.length > query.length ? match : "";
-}
+import { firstPrefixMatch } from "@/lib/torrent/filter.utils";
 
 export default function TorrentNameFilter({
   className,

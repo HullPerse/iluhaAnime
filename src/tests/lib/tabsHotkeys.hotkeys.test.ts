@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { ignoreTabCycle, focusTreeSibling, stepTabId } from "@/lib/tabsHotkeys.utils";
+import { ignoreTabCycle, focusTreeSibling, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 
 afterEach(() => {
   document.body.innerHTML = "";

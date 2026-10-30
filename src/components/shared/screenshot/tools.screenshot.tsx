@@ -3,11 +3,12 @@ import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
-import { ANNOTATION_BRUSH_SIZES, ANNOTATION_TEXT_SIZES } from "@/config/screenshot.config";
+import { paintsWithColor } from "@/lib/graphics/screenshotTools.utils";
+import { ANNOTATION_BRUSH_SIZES, ANNOTATION_TEXT_SIZES } from "@/config/graphics/screenshot.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import type { ScreenshotTool } from "@/types/screenshot";
+import type { ScreenshotTool } from "@/types/core/screenshot";
 
 const SCREENSHOT_TOOLS: readonly ScreenshotTool[] = ["select", "pencil", "eraser", "text", "blur"];
 
@@ -26,10 +27,6 @@ const TOOL_KEYS: Record<ScreenshotTool, TranslationKey> = {
   text: "screenshot.tool.text",
   blur: "screenshot.tool.blur",
 };
-
-function paintsWithColor(tool: ScreenshotTool): boolean {
-  return tool === "pencil" || tool === "text";
-}
 
 const GROUP = "windows95-active-border bg-field flex flex-row p-0.5";
 const OPTION =

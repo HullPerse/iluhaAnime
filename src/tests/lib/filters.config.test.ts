@@ -8,8 +8,8 @@ import {
   streamFiltersKey,
   streamYearMax,
   withoutAdultFilters,
-} from "@/config/streamFilters.config";
-import type { StreamGenreOption } from "@/types/stream";
+} from "@/config/player/streamFilters.config";
+import type { StreamGenreOption } from "@/types/player/stream";
 
 const GENRES: StreamGenreOption[] = [
   { id: 1, label: "Action", adult: false },

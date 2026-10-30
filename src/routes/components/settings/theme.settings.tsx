@@ -5,12 +5,12 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
-import { THEMES } from "@/config/themes.config";
+import { THEMES } from "@/config/graphics/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
-import { windowTintAlpha } from "@/lib/palette.utils";
-import { findTheme, resolveTheme } from "@/lib/themeResolve.utils";
-import { attempt } from "@/lib/attempt.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { windowTintAlpha } from "@/lib/graphics/palette.utils";
+import { findTheme, resolveTheme } from "@/lib/graphics/themeResolve.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import {
   addCustomTheme,
@@ -23,14 +23,14 @@ import {
   themePatchToJson,
   themeToJson,
 } from "@/store/theme.store";
-import type { ThemeDefinition } from "@/types/theme";
+import type { ThemeDefinition } from "@/types/graphics/theme";
 
-import { SectionResetButton } from "./reset.settings";
-import { BackdropSlider } from "./theme/backdrop.theme";
-import ThemeEditor from "./theme/editor.theme";
-import { EffectsCheckbox } from "./theme/effects.theme";
-import { FontSelector } from "./theme/font.theme";
-import { ThemePicker } from "./theme/picker.theme";
+import { SectionResetButton } from "@/routes/components/settings/reset.settings";
+import { BackdropSlider } from "@/routes/components/settings/theme/backdrop.theme";
+import ThemeEditor from "@/routes/components/settings/theme/editor.theme";
+import { EffectsCheckbox } from "@/routes/components/settings/theme/effects.theme";
+import { FontSelector } from "@/routes/components/settings/theme/font.theme";
+import { ThemePicker } from "@/routes/components/settings/theme/picker.theme";
 
 const TINT_SLIDER_MIN = 0.5;
 

@@ -1,129 +1,15 @@
-import { useMemo, useState } from "react";
+import { STAFF_CREDITS_PAGE_SIZE } from "@/config/system/pagination.config";
+import { flattenMarkup } from "@/lib/core/text.utils";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
 
-import { anilistApi } from "@/api/anilist.api";
-import Section from "@/components/shared/section.component";
-import { STAFF_CREDITS_PAGE_SIZE } from "@/config/pagination.config";
-import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
-import { useI18n } from "@/hooks/i18n.hook";
-import { flattenMarkup } from "@/lib/text.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { uniqueById } from "@/lib/array.utils";
-import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
-
-import { CreditSection } from "./creditSection.detail";
-import { PersonFavButton } from "./favbutton.detail";
-import { DetailProfileHeader } from "./profileHeader.detail";
-import { DetailError, DetailLoading } from "./screenState.detail";
-
-function useStaffPage(
-  key: string,
-  id: number,
-  list: "characters" | "media",
-  pageParamName: "page" | "charPage",
-  pageSize: number
-) {
-  return useAppInfiniteQuery("slow", {
-    queryKey: queryKeys.staffDetail(id, key),
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      anilistApi.getStaffCharacters(
-        id,
-        pageParamName === "page" ? pageParam : 1,
-        pageParamName === "charPage" ? pageParam : 1
-      ),
-    getNextPageParam: (lastPage, pages) =>
-      (Array.isArray(lastPage?.[list]) ? lastPage[list].length : 0) < pageSize
-        ? undefined
-        : pages.length + 1,
-  });
-}
-
-type StaffPage = ReturnType<typeof useStaffPage>;
-
-function StaffCharactersSection({
-  query,
-  context,
-}: {
-  query: StaffPage;
-  context: AniListOverlayContext;
-}) {
-  const { t } = useI18n();
-  const characters = useMemo(
-    () =>
-      uniqueById(
-        (query.data?.pages ?? []).flatMap((page) => (page ? page.characters : [])),
-        (character) => character.id
-      ),
-    [query.data]
-  );
-  return (
-    <CreditSection
-      header={t("anilist.characters.characters.of", {
-        count: query.data?.pages[0]?.character_count || characters.length,
-      })}
-      items={characters.map((character) => ({
-        id: character.id,
-        image: character.image,
-        label: character.name,
-        favourite: context.favouriteCharacterIds?.has(character.id) ?? false,
-      }))}
-      hasNextPage={query.hasNextPage}
-      isFetchingNextPage={query.isFetchingNextPage}
-      onShowMore={() => query.fetchNextPage()}
-      onSelect={(item) =>
-        context.onPush({ kind: "character", id: item.id, name: item.label, voiceActors: [] })
-      }
-    />
-  );
-}
-
-function StaffAboutSection({ about }: { about: string }) {
-  const { t } = useI18n();
-  const [expanded, setExpanded] = useState(false);
-  if (about === "") {
-    return null;
-  }
-  return (
-    <Section
-      header={t("anilist.staff.about")}
-      className="windows95-text bg-field leading-relaxed whitespace-pre-line"
-      expanded={expanded}
-      onExpand={() => setExpanded((prev) => !prev)}
-    >
-      <span className="text-xs">{expanded ? about : about.split("\n")[0]}</span>
-    </Section>
-  );
-}
-
-function StaffMediaSection({
-  query,
-  context,
-}: {
-  query: StaffPage;
-  context: AniListOverlayContext;
-}) {
-  const { t } = useI18n();
-  const media = useMemo(
-    () =>
-      uniqueById(
-        (query.data?.pages ?? []).flatMap((page) => (page ? page.media : [])),
-        (item) => item.id
-      ),
-    [query.data]
-  );
-  return (
-    <CreditSection
-      header={t("anilist.characters.anime.of", {
-        count: query.data?.pages[0]?.media_count || media.length,
-      })}
-      items={media.map((item) => ({ id: item.id, image: item.cover_url, label: item.title }))}
-      hasNextPage={query.hasNextPage}
-      isFetchingNextPage={query.isFetchingNextPage}
-      onShowMore={() => query.fetchNextPage()}
-      onSelect={(item) => context.onPush({ kind: "anime", id: item.id, name: item.label })}
-    />
-  );
-}
+import { DetailProfileHeader } from "@/routes/components/anilist/detail/profileHeader.detail";
+import { PersonFavButton } from "@/routes/components/anilist/detail/favbutton.detail";
+import { DetailError } from "@/routes/components/anilist/detail/state/error.state";
+import { DetailLoading } from "@/routes/components/anilist/detail/state/loading.state";
+import { useStaffPage } from "@/hooks/anilist/staff.hook";
+import { StaffCharactersSection } from "@/routes/components/anilist/detail/staffCharacters.detail";
+import { StaffAboutSection } from "@/routes/components/anilist/detail/staffAbout.detail";
+import { StaffMediaSection } from "@/routes/components/anilist/detail/staffMedia.detail";
 
 export function StaffScreen({
   screen,

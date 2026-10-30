@@ -12,7 +12,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 const nodes: HTMLElement[] = [];
 
-function hintableButton(label: string): HTMLButtonElement {
+const hintableButton = (label: string): HTMLButtonElement => {
   const element = document.createElement("button");
   element.textContent = label;
   element.getBoundingClientRect = () =>
@@ -30,23 +30,23 @@ function hintableButton(label: string): HTMLButtonElement {
   document.body.append(element);
   nodes.push(element);
   return element;
-}
+};
 
-function pressF(): void {
+const pressF = (): void => {
   window.dispatchEvent(
     new KeyboardEvent("keydown", { code: "KeyF", bubbles: true, cancelable: true })
   );
-}
+};
 
-function click(button: number, type = "pointerdown"): void {
+const click = (button: number, type = "pointerdown"): void => {
   nodes[0]?.dispatchEvent(new MouseEvent(type, { bubbles: true, button }));
-}
+};
 
-function hintsOpen(): boolean {
+const hintsOpen = (): boolean => {
   return vimAtoms.hints.get().open;
-}
+};
 
-function renderMenu(onOpenChange: (open: boolean) => void): void {
+const renderMenu = (onOpenChange: (open: boolean) => void): void => {
   render(
     <ContextMenu
       entries={[{ kind: "item", id: "one", label: "common.close", onSelect: () => undefined }]}
@@ -56,7 +56,7 @@ function renderMenu(onOpenChange: (open: boolean) => void): void {
       <button type="button">row</button>
     </ContextMenu>
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ vimMode: true });

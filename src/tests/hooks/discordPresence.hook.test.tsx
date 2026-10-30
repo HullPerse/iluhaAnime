@@ -5,7 +5,7 @@ import { useDiscordPresence } from "@/hooks/discordPresence.hook";
 import { discordApi } from "@/api/discord.api";
 import { settingsAtoms } from "@/store/settings.store";
 import { presenceAtoms } from "@/store/presence.store";
-import type { TabId } from "@/types/settings";
+import type { TabId } from "@/types/ui/settings";
 
 vi.mock("@/api/discord.api", () => ({
   discordApi: {
@@ -21,7 +21,7 @@ vi.mock("@/hooks/i18n.hook", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
-function reset(): void {
+const reset = (): void => {
   act(() => {
     settingsAtoms.discordRpcEnabled.set(false);
     presenceAtoms.detail.set(null);
@@ -30,7 +30,7 @@ function reset(): void {
   vi.mocked(discordApi.set).mockClear();
   vi.mocked(discordApi.clear).mockClear();
   vi.mocked(discordApi.configure).mockClear();
-}
+};
 
 beforeEach(() => {
   reset();

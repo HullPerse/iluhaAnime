@@ -10,10 +10,10 @@ import {
   buildSearchActivity,
   presenceText,
   samePresence,
-} from "@/lib/presence.utils";
-import type { DiscordActivity } from "@/types/discord";
-import type { TFunc, TranslationKey, TranslationVariables } from "@/types/i18n";
-import type { StreamOpen } from "@/types/videoPlayer";
+} from "@/lib/core/presence.utils";
+import type { DiscordActivity } from "@/types/core/discord";
+import type { TFunc, TranslationKey, TranslationVariables } from "@/types/core/i18n";
+import type { StreamOpen } from "@/types/player/videoPlayer";
 
 const MESSAGES: Partial<Record<TranslationKey, (variables?: TranslationVariables) => string>> = {
   "discord.button.anilist": () => "View on AniList",

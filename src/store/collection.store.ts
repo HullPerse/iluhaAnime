@@ -1,14 +1,14 @@
-import { DEFAULT_FILTERS } from "@/config/collectionFilters.config";
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import { attemptSync } from "@/lib/attempt.utils";
-import type { Persistor } from "@/types/persist";
-import type { Cell } from "@/types/signal";
+import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
+import type { Persistor } from "@/types/core/persist";
+import type { Cell } from "@/types/core/signal";
 import type {
   CollectionFilters,
   CollectionStatus,
   CollectionStore,
   WizardPrefill,
-} from "@/types/collection";
+} from "@/types/anilist/collection";
 
 export const COLLECTION_SCHEMA_VERSION = 9;
 

@@ -10,40 +10,40 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { NO_TORRENTS } from "@/config/common.config";
+import { NO_TORRENTS } from "@/config/system/common.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
-import { shouldIgnoreHotkeys } from "@/lib/filterHotkeys.utils";
-import { focusMainSearch } from "@/lib/focusHotkeys.utils";
-import { folderTreesFromScan, fingerprint } from "@/lib/scan.utils";
-import { folderScanBus } from "@/lib/scanBus.utils";
+import { shouldIgnoreHotkeys } from "@/lib/core/filterHotkeys.utils";
+import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
+import { folderTreesFromScan, fingerprint } from "@/lib/core/scan.utils";
+import { folderScanBus } from "@/lib/core/scanBus.utils";
 import {
   buildTree,
   filterTreeByPaths,
   patchTreeFile,
   removeTreeFile,
-} from "@/lib/playerTree.utils";
-import { filterTreeByHiddenPaths } from "@/lib/visibility.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { playerVisibility } from "@/lib/playerVisibility.utils";
-import { useCell } from "@/lib/signal.hook";
-import { isExtraFile } from "@/lib/extra.utils";
-import { attempt, attemptRetry, reportBackgroundError } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { showError, showErrorOnce } from "@/lib/notification.utils";
-import { createCoalescedRunner } from "@/lib/promise.utils";
-import { unwrapOr } from "@/lib/result.utils";
-import { parseValue } from "@/lib/schema.utils";
-import { patchableVideoChanges, touchesExtensions } from "@/lib/changesWatcher.utils";
-import { WATCHER_DEBOUNCE_MS } from "@/lib/delayWatcher.utils";
-import { normalizePath } from "@/lib/pathsWatcher.utils";
+} from "@/lib/player/playerTree.utils";
+import { filterTreeByHiddenPaths } from "@/lib/core/visibility.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { playerVisibility } from "@/lib/player/playerVisibility.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { isExtraFile } from "@/lib/core/extra.utils";
+import { attempt, attemptRetry, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { showError, showErrorOnce } from "@/lib/core/notification.utils";
+import { createCoalescedRunner } from "@/lib/core/promise.utils";
+import { unwrapOr } from "@/lib/core/result.utils";
+import { parseValue } from "@/lib/core/schema.utils";
+import { patchableVideoChanges, touchesExtensions } from "@/lib/core/changesWatcher.utils";
+import { WATCHER_DEBOUNCE_MS } from "@/lib/core/delayWatcher.utils";
+import { normalizePath } from "@/lib/core/pathsWatcher.utils";
 import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import {
   addCategory,
@@ -52,20 +52,20 @@ import {
   removeEntriesByFolderPath,
 } from "@/store/category.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { FolderScanResult, VideoFileEntry } from "@/types/fs";
-import type { ScanType, FileSearchResult } from "@/types/player";
-import type { FFMPEGStatus } from "@/types/settings";
-import type { FolderNode } from "@/types/torrent";
-import type { FolderChange } from "@/types/watcher";
+import type { FolderScanResult, VideoFileEntry } from "@/types/core/fs";
+import type { ScanType, FileSearchResult } from "@/types/player/player";
+import type { FFMPEGStatus } from "@/types/ui/settings";
+import type { FolderNode } from "@/types/torrent/torrent";
+import type { FolderChange } from "@/types/core/watcher";
 
-import CategoryView from "./components/player/category.player";
-import { DraggableFolder } from "./components/player/draggable/folder.draggable";
-import { DragOverlayItem } from "./components/player/draggable/overlay.draggable";
-import { DraggableTorrent } from "./components/player/draggable/torrent.draggable";
-import FFMPEG from "./components/player/ffmpeg.player";
-import QueuePanel from "./components/player/queue.player";
-import { QueueStrip } from "./components/player/strip.player";
-import PlayerVisibilityModal from "./components/player/visibility.player";
+import CategoryView from "@/routes/components/player/category.player";
+import { DraggableFolder } from "@/routes/components/player/draggable/folder.draggable";
+import { DragOverlayItem } from "@/routes/components/player/draggable/overlay.draggable";
+import { DraggableTorrent } from "@/routes/components/player/draggable/torrent.draggable";
+import FFMPEG from "@/routes/components/player/ffmpeg.player";
+import QueuePanel from "@/routes/components/player/queue.player";
+import { QueueStrip } from "@/routes/components/player/strip.player";
+import PlayerVisibilityModal from "@/routes/components/player/visibility.player";
 
 const FfprobeSchema = z.boolean();
 

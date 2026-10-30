@@ -9,7 +9,7 @@ import {
   openAnimeDeepLink,
   openTorrentDeepLink,
 } from "@/store/deeplink.store";
-import type { AniListId } from "@/types/types";
+import type { AniListId } from "@/types/core/types";
 
 afterEach(() => {
   cleanup();

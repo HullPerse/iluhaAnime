@@ -2,31 +2,9 @@ import { cn } from "cn";
 import { ChevronRight, Plus } from "lucide-react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
-import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
 import { settingsAtoms } from "@/store/settings.store";
-import { useCell } from "@/lib/signal.hook";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { CollectionStatusDef } from "@/types/collection";
-
-export function publicHeaderProps({
-  status,
-  count,
-  addLabel,
-  onAddToStatus,
-}: {
-  status: CollectionStatusDef;
-  count: number;
-  addLabel: string;
-  onAddToStatus?: (status: CollectionStatusDef) => void;
-}): { maxCount?: number; onAdd?: () => void; addDisabled?: boolean; addLabel?: string } {
-  if (status.kind !== "public") return {};
-  return {
-    maxCount: PUBLIC_STATUS_MAX_ITEMS,
-    onAdd: onAddToStatus ? () => onAddToStatus(status) : undefined,
-    addDisabled: count >= PUBLIC_STATUS_MAX_ITEMS,
-    addLabel,
-  };
-}
+import { useCell } from "@/lib/core/signal.hook";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 
 export function GroupHeaderCollection({
   label,

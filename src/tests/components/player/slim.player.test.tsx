@@ -5,7 +5,7 @@ import PlayerSlimBar from "@/routes/components/player/media/slim.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
 
-function props(paused: boolean) {
+const props = (paused: boolean) => {
   return {
     paused,
     hasFile: true,
@@ -16,7 +16,7 @@ function props(paused: boolean) {
     onScrub: vi.fn(),
     onCommitSeek: vi.fn(),
   };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

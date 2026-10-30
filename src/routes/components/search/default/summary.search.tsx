@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import type { Anime } from "@/types/torrent";
+import type { Anime } from "@/types/torrent/torrent";
 
 export default function SearchResultsSummary({
   data,

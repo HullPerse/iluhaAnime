@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { changedRoots, isSameOrInside, normalizePath, samePath } from "@/lib/pathsWatcher.utils";
-import type { FolderContentChanged } from "@/types/watcher";
+import {
+  changedRoots,
+  isSameOrInside,
+  normalizePath,
+  samePath,
+} from "@/lib/core/pathsWatcher.utils";
+import type { FolderContentChanged } from "@/types/core/watcher";
 
 describe("normalizePath", () => {
   it("unifies separators and case", () => {

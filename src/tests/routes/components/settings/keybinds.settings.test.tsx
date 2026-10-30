@@ -2,19 +2,19 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { KEYBIND_MANIFEST } from "@/config/manifest.config";
+import { KEYBIND_MANIFEST } from "@/config/system/manifest.config";
 import { SettingsKeybinds } from "@/routes/components/settings/keybinds.settings";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
-function rows(): HTMLElement[] {
+const rows = (): HTMLElement[] => {
   return screen.queryAllByRole("row").filter((row) => row.querySelector('[role="cell"]') !== null);
-}
+};
 
-function rowWith(text: string): HTMLElement {
+const rowWith = (text: string): HTMLElement => {
   const found = rows().find((row) => row.textContent?.includes(text));
   if (!found) throw new Error(`row missing: ${text}`);
   return found;
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });
@@ -74,9 +74,9 @@ describe("SettingsKeybinds", () => {
 });
 
 describe("SettingsKeybinds editor", () => {
-  function recordBox(): HTMLElement {
+  const recordBox = (): HTMLElement => {
     return screen.getByRole("textbox", { name: "Press a chord..." });
-  }
+  };
 
   it("shows the rebound chord with a reset button", () => {
     patchSettings({ keybindOverrides: { "tree.move.down": "KeyX" } });

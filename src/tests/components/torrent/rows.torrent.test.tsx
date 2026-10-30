@@ -2,14 +2,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { scanHintTargets } from "@/lib/hintsHotkeys.utils";
+import { scanHintTargets } from "@/lib/core/hintsHotkeys.utils";
 import { TorrentFileRow } from "@/routes/components/torrent/rows/file.rows";
 import { FolderRow } from "@/routes/components/torrent/rows/folder.rows";
 import { searchAtoms } from "@/store/search.store";
 import { patchSettings } from "@/store/settings.store";
-import type { TorrentTreeFile, TorrentTreeNode, TorrentTreeFileWithPath } from "@/types/torrent";
+import type {
+  TorrentTreeFile,
+  TorrentTreeNode,
+  TorrentTreeFileWithPath,
+} from "@/types/torrent/torrent";
 
-function treeFile(overrides: Partial<TorrentTreeFile> = {}): TorrentTreeFile {
+const treeFile = (overrides: Partial<TorrentTreeFile> = {}): TorrentTreeFile => {
   return {
     completed: false,
     displayName: "Show.S01E01.1080p.mkv",
@@ -23,16 +27,16 @@ function treeFile(overrides: Partial<TorrentTreeFile> = {}): TorrentTreeFile {
     size: 1000,
     ...overrides,
   };
-}
+};
 
-function treeNode(): TorrentTreeNode {
+const treeNode = (): TorrentTreeNode => {
   return { children: [], files: [treeFile()], name: "Season 1" };
-}
+};
 
-function renderFileRow(
+const renderFileRow = (
   props: Partial<Parameters<typeof TorrentFileRow>[0]> = {},
   onOpenInApp = vi.fn()
-) {
+) => {
   const view = render(
     <QueryClientProvider client={new QueryClient()}>
       <TorrentFileRow
@@ -49,11 +53,11 @@ function renderFileRow(
     </QueryClientProvider>
   );
   return { view, onOpenInApp };
-}
+};
 
-function nameOf(label: string): HTMLElement {
+const nameOf = (label: string): HTMLElement => {
   return screen.getByTitle(label);
-}
+};
 
 const VISIBLE_RECT = {
   bottom: 30,
@@ -247,7 +251,7 @@ describe("Torrent rows through the hint scanner", () => {
 });
 
 describe("FolderRow keyboard surface", () => {
-  function renderFolder(node: TorrentTreeNode, isOpen = false) {
+  const renderFolder = (node: TorrentTreeNode, isOpen = false) => {
     const onToggleFolder = vi.fn();
     const view = render(
       <FolderRow
@@ -262,7 +266,7 @@ describe("FolderRow keyboard surface", () => {
       />
     );
     return { view, onToggleFolder };
-  }
+  };
 
   it("is a hintable, expandable button", () => {
     renderFolder(treeNode(), true);

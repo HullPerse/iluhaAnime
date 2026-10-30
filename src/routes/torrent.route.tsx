@@ -7,13 +7,13 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { torrentApi } from "@/api/torrent.api";
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
-import { HostStatsBars } from "@/components/shared/hostStats.component";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { HostStatsBars } from "@/components/shared/hostStats/bars.hostStats";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/common.config";
-import type { TorrentLifecycleFilter, TorrentSort } from "@/config/torrentSearch.config";
+import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/system/common.config";
+import type { TorrentLifecycleFilter, TorrentSort } from "@/config/search/torrentSearch.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -33,28 +33,28 @@ import {
   useDhtStats,
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
-import { focusMainSearch } from "@/lib/focusHotkeys.utils";
-import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
-import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { isSameOrInside } from "@/lib/pathsWatcher.utils";
+import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
+import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { isSameOrInside } from "@/lib/core/pathsWatcher.utils";
 import {
   BULK_CONCURRENCY,
   applyBulkAction,
   pruneSelection,
   splitRecheckOutcome,
-} from "@/lib/bulk.utils";
+} from "@/lib/core/bulk.utils";
 import {
   countLiveTorrents,
   formatSpeed,
   fmtSpeed,
   getLifecycleLabel,
   getTorrentLifecycle,
-} from "@/lib/torrentCommon.utils";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { paginate } from "@/lib/pagination.utils";
-import { ignore } from "@/lib/promise.utils";
-import { attemptAllLimit } from "@/lib/result.utils";
+} from "@/lib/torrent/torrentCommon.utils";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { paginate } from "@/lib/core/pagination.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import { attemptAllLimit } from "@/lib/core/result.utils";
 import { torrentRoute } from "@/routes/__root";
 import {
   cacheAtoms,
@@ -76,17 +76,18 @@ import {
 } from "@/store/download.store";
 import { addNotification } from "@/store/notification.store";
 import { getSettingsSnapshot } from "@/store/settings.store";
-import type { TorrentInfo } from "@/types/torrent";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
-import { BulkLimitsModal, BulkTrackerModal } from "./components/torrent/bulk.torrent";
-import CreateTorrentModal from "./components/torrent/create.torrent";
-import TorrentNameFilter from "./components/torrent/filter.torrent";
-import { SpeedGraph } from "./components/torrent/graph.torrent";
-import AddTorrentModal from "./components/torrent/magnet.torrent";
-import { TorrentRow } from "./components/torrent/row.torrent";
-import { DeleteTorrentDialog } from "./components/torrent/sections/delete.sections";
-import { TorrentSelectionBar } from "./components/torrent/sections/selection.sections";
-import SpeedLimitForm from "./components/torrent/speed.torrent";
+import { BulkLimitsModal } from "@/routes/components/torrent/bulk/limits.bulk";
+import { BulkTrackerModal } from "@/routes/components/torrent/bulk/trackers.bulk";
+import CreateTorrentModal from "@/routes/components/torrent/create.torrent";
+import TorrentNameFilter from "@/routes/components/torrent/filter.torrent";
+import { SpeedGraph } from "@/routes/components/torrent/graph.torrent";
+import AddTorrentModal from "@/routes/components/torrent/magnet.torrent";
+import { TorrentRow } from "@/routes/components/torrent/row.torrent";
+import { DeleteTorrentDialog } from "@/routes/components/torrent/sections/delete.sections";
+import { TorrentSelectionBar } from "@/routes/components/torrent/sections/selection.sections";
+import SpeedLimitForm from "@/routes/components/torrent/speed.torrent";
 
 const LIFECYCLE_TABS = ["all", "staging", "live", "paused", "seeding", "completed"] as const;
 

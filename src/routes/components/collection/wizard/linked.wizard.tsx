@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CollectionItem } from "@/types/collection";
+import type { CollectionItem } from "@/types/anilist/collection";
 
 export function WizardLinkedIds({ externalIds }: { externalIds: CollectionItem["externalIds"] }) {
   const { t } = useI18n();

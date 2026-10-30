@@ -6,7 +6,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 
-import { FRANCHISE_VIEWPORT } from "@/config/graph.config";
+import { FRANCHISE_VIEWPORT } from "@/config/graphics/graph.config";
 import {
   cameraCenteredOn,
   cameraTransform,
@@ -14,17 +14,17 @@ import {
   panCameraBy,
   screenToWorld,
   zoomCameraAt,
-} from "@/lib/camera.utils";
-import { createAnimationLoop } from "@/lib/interval.utils";
-import type { AnimationLoopTask } from "@/types/interval";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
+} from "@/lib/core/camera.utils";
+import { createAnimationLoop } from "@/lib/core/interval.utils";
+import type { AnimationLoopTask } from "@/types/core/interval";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
 import type {
   CameraPoint,
   FranchiseCamera,
   FranchiseViewport,
   UseFranchiseViewportOptions,
-} from "@/types/anilist";
+} from "@/types/anilist/anilist";
 
 const DEFAULT_OPTIONS = FRANCHISE_VIEWPORT;
 

@@ -6,7 +6,7 @@ import { useRef } from "react";
 
 import { DbScreen } from "@/components/shared/db/screen.db";
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
-import { tabIdFromPath, tabPathFromId } from "@/config/tabPaths.config";
+import { tabIdFromPath, tabPathFromId } from "@/config/settings/tabPaths.config";
 import { useApp } from "@/hooks/app.hook";
 import { useDiscordPresence } from "@/hooks/discordPresence.hook";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -20,11 +20,11 @@ import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
-import { isCurrentSessionSafe } from "@/lib/report.utils";
-import { useCell } from "@/lib/signal.hook";
-import { resolveSecretTabAction } from "@/lib/tabs.utils";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
+import { isCurrentSessionSafe } from "@/lib/core/report.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { resolveSecretTabAction } from "@/lib/ui/tabs.utils";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { cacheAtoms } from "@/store/cache.store";
 import {
@@ -35,17 +35,17 @@ import {
 import { overlayAtoms } from "@/store/overlay.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
-import type { TabId } from "@/types/settings";
+import type { TabId } from "@/types/ui/settings";
 
-import PageFindBar from "./components/shared/keyboard/findBar.keyboard.component";
-import KeyboardHintOverlay from "./components/shared/keyboard/overlay.keyboard.component";
-import NotificationToasts from "./components/shared/notification/toasts.notification";
-import NotificationTray from "./components/shared/notification/tray.notification";
-import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
-import StatusBar from "./components/shared/status.component";
-import Tabs from "./components/shared/tabs.component";
-import TitleBar from "./components/shared/titlebar.component";
-import Updater from "./components/shared/updater.component";
+import PageFindBar from "@/components/shared/keyboard/findBar.keyboard.component";
+import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard.component";
+import NotificationToasts from "@/components/shared/notification/toasts.notification";
+import NotificationTray from "@/components/shared/notification/tray.notification";
+import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
+import StatusBar from "@/components/shared/status.component";
+import Tabs from "@/components/shared/tabs.component";
+import TitleBar from "@/components/shared/titlebar.component";
+import Updater from "@/components/shared/updater.component";
 
 const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   anilist: () => import("@/routes/anilist.route"),

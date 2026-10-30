@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDistanceToNowOwn } from "@/lib/distance.utils";
+import { formatDistanceToNowOwn } from "@/lib/core/distance.utils";
 
 const NOW = new Date(2026, 5, 15, 12, 0, 0).getTime();
 

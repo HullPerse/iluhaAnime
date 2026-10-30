@@ -1,13 +1,18 @@
-import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/themes.config";
-import type { Persistor } from "@/types/persist";
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Cell } from "@/types/signal";
-import { applyTheme } from "@/lib/appearance.utils";
-import { deriveFieldColor, isHexColor } from "@/lib/palette.utils";
-import { findTheme } from "@/lib/themeResolve.utils";
-import { normalizeAutocompleteOpacity } from "@/lib/tokens.utils";
-import { attemptSync } from "@/lib/attempt.utils";
-import type { ThemeDefinition, ThemeOverrideKey, ThemePatch, ThemeStore } from "@/types/theme";
+import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/graphics/themes.config";
+import type { Persistor } from "@/types/core/persist";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import type { Cell } from "@/types/core/signal";
+import { applyTheme } from "@/lib/core/appearance.utils";
+import { deriveFieldColor, isHexColor } from "@/lib/graphics/palette.utils";
+import { findTheme } from "@/lib/graphics/themeResolve.utils";
+import { normalizeAutocompleteOpacity } from "@/lib/graphics/tokens.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
+import type {
+  ThemeDefinition,
+  ThemeOverrideKey,
+  ThemePatch,
+  ThemeStore,
+} from "@/types/graphics/theme";
 
 export const THEME_SCHEMA_VERSION = 1;
 

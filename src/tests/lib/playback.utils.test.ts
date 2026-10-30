@@ -7,7 +7,11 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { buildTorrentPlayerPlaylist, readDuration, readPlaylistIndex } from "@/lib/playback.utils";
+import {
+  buildTorrentPlayerPlaylist,
+  readDuration,
+  readPlaylistIndex,
+} from "@/lib/player/playback.utils";
 
 beforeEach(() => {
   mockInvoke.mockReset();

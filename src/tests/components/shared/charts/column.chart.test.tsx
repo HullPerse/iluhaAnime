@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ColumnChart } from "@/components/shared/charts/column.chart";
 
-function rect(width: number, height: number): DOMRect {
+const rect = (width: number, height: number): DOMRect => {
   return {
     width,
     height,
@@ -15,7 +15,7 @@ function rect(width: number, height: number): DOMRect {
     y: 0,
     toJSON: () => ({}),
   } as DOMRect;
-}
+};
 
 const DATA = [
   { key: "2021", label: "2021", value: 2 },
@@ -32,13 +32,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderColumns({
+const renderColumns = ({
   onActivate = vi.fn(),
   withReference = false,
 }: {
   onActivate?: (index: number) => void;
   withReference?: boolean;
-} = {}) {
+} = {}) => {
   render(
     <ColumnChart
       data={DATA}
@@ -55,7 +55,7 @@ function renderColumns({
     />
   );
   return onActivate;
-}
+};
 
 describe("ColumnChart", () => {
   it("renders value ticks and category labels", async () => {

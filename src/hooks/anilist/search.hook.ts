@@ -2,20 +2,20 @@ import { useCallback, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import type { AnilistFilterPageParams, AnilistSearchParams } from "@/api/anilist.api";
-import { seasonLabels } from "@/config/labels.config";
+import { seasonLabels } from "@/config/system/labels.config";
 import { useAppInfiniteQuery, useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { searchFiltersToParams } from "@/lib/entries.utils";
-import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
+import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { ignore } from "@/lib/promise.utils";
-import { assertNever } from "@/lib/type.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import { assertNever } from "@/lib/core/type.utils";
 import { addSearchQuery } from "@/store/search.store";
 import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
-import type { AniListFilters, AniMedia, AniUser, SearchMode } from "@/types/anilist";
-import type { FilterPage } from "@/types/ipc";
-import type { AniListSearchRequest } from "@/types/anilistSearch";
+import type { AniListFilters, AniMedia, AniUser, SearchMode } from "@/types/anilist/anilist";
+import type { FilterPage } from "@/types/core/ipc";
+import type { AniListSearchRequest } from "@/types/anilist/anilistSearch";
 
 async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia[]> {
   switch (request.kind) {

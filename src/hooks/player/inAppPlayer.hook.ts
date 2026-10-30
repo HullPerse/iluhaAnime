@@ -1,14 +1,14 @@
 import { useCallback } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildTorrentPlayerPlaylist, loadWatch, openPlayer } from "@/lib/playback.utils";
-import { useCell } from "@/lib/signal.hook";
-import { withFallback } from "@/lib/attempt.utils";
-import { showError } from "@/lib/notification.utils";
-import { ignore } from "@/lib/promise.utils";
+import { buildTorrentPlayerPlaylist, loadWatch, openPlayer } from "@/lib/player/playback.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { withFallback } from "@/lib/core/attempt.utils";
+import { showError } from "@/lib/core/notification.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TorrentFileInfo } from "@/types/torrent";
-import type { PlaylistWatch } from "@/types/videoPlayer";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
+import type { PlaylistWatch } from "@/types/player/videoPlayer";
 
 export function useTorrentInAppPlayer(
   files: TorrentFileInfo[] | undefined,

@@ -16,7 +16,7 @@
  *
  * Outputs:
  *   public/images/flags.sprite.png          the spritesheet
- *   src/config/flags.config.ts      country code -> cell offset + sheet size
+ *   src/config/settings/flags.config.ts      country code -> cell offset + sheet size
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";

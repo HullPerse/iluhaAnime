@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePrewarmSpellIndex } from "@/hooks/search/animeIndex.hook";
 import { searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { SearchAnimeSuggestion } from "@/types/search";
+import type { SearchAnimeSuggestion } from "@/types/search/search";
 
 const STORAGE_KEY = "iluha.v1.spellindex";
 
-function anime(title: string): SearchAnimeSuggestion {
+const anime = (title: string): SearchAnimeSuggestion => {
   return {
     id: 1,
     title,
@@ -19,13 +19,13 @@ function anime(title: string): SearchAnimeSuggestion {
     score: null,
     favourite: false,
   };
-}
+};
 
-function flushIdle(): void {
+const flushIdle = (): void => {
   act(() => {
     vi.advanceTimersByTime(2000);
   });
-}
+};
 
 beforeEach(() => {
   vi.useFakeTimers();

@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { WizardSearchResult } from "@/types/collection";
+import type { WizardSearchResult } from "@/types/anilist/collection";
 
-import { WizardSourceSearch } from "./search.wizard";
-import { TmdbBadge } from "./tmdbBadge.wizard";
+import { WizardSourceSearch } from "@/routes/components/collection/wizard/search.wizard";
+import { TmdbBadge } from "@/routes/components/collection/wizard/tmdbBadge.wizard";
 
 export function WizardSourcePanel({
   source,

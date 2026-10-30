@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { AniSortProps } from "@/types/anilist";
+import type { AniSortProps } from "@/types/anilist/anilist";
 
-function renderBar(overrides: Partial<AniSortProps> = {}) {
+const renderBar = (overrides: Partial<AniSortProps> = {}) => {
   const props: AniSortProps = {
     sort: { key: "title", dir: "asc" },
     onSortChange: vi.fn(),
@@ -23,14 +23,14 @@ function renderBar(overrides: Partial<AniSortProps> = {}) {
   };
   render(<AniListSortBar {...props} />);
   return props;
-}
+};
 
-async function openMenu() {
+const openMenu = async () => {
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "More actions" }));
   await screen.findByRole("menuitem", { name: "Activity history" });
   return user;
-}
+};
 
 afterEach(() => cleanup());
 

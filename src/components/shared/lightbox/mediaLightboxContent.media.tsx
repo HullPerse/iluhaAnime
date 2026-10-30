@@ -1,5 +1,5 @@
 import { FilmstripViewer } from "@/components/shared/filmstrip/viewer.filmstrip";
-import type { MediaLightboxContentProps } from "@/types/media";
+import type { MediaLightboxContentProps } from "@/types/player/media";
 
 export function MediaLightboxContent({
   stills,

@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useUpscaleToolStatus } from "@/hooks/player/toolStatus.hook";

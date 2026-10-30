@@ -3,17 +3,17 @@ import { CalendarDays, List } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { ACTIVITY_STATUS_FILTERS } from "@/config/activity.config";
+import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { groupLabel, buildScoreByMedia } from "@/lib/activity.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import type { AniActivity, AniListCollection } from "@/types/anilist";
+import { groupLabel, buildScoreByMedia } from "@/lib/core/activity.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import type { AniActivity, AniListCollection } from "@/types/anilist/anilist";
 
-import { FeedItem } from "./feedItem.activity";
+import { FeedItem } from "@/routes/components/anilist/activity/feedItem.activity";
 
 export function FeedTab({
   userId,

@@ -1,22 +1,25 @@
 import * as z from "zod/mini";
 
 import { tauriTransport } from "@/api/transport.api";
-import { listSortKeys } from "@/config/list.config";
-import { SOURCE_INFOS } from "@/config/searchSources.config";
-import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settingsDefaults.config";
-import { STREAM_QUALITIES } from "@/config/quality.config";
-import { DITHER_PLACEHOLDER_ID } from "@/config/dither.config";
+import { listSortKeys } from "@/config/anilist/list.config";
+import { SOURCE_INFOS } from "@/config/search/searchSources.config";
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_WALLPAPER_SHADOW,
+} from "@/config/settings/settingsDefaults.config";
+import { STREAM_QUALITIES } from "@/config/player/quality.config";
+import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
-import { applyWindowChrome } from "@/lib/window.utils";
-import type { Persistor } from "@/types/persist";
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Cell, SignalStore } from "@/types/signal";
-import type { MigrationState, MigrationTransform } from "@/types/migrate";
-import { resolveWithDefaults, runTransforms } from "@/lib/migrate.utils";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
-import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/font.utils";
-import { toValidator } from "@/lib/schema.utils";
-import type { SettingsStore } from "@/types/settings";
+import { applyWindowChrome } from "@/lib/core/window.utils";
+import type { Persistor } from "@/types/core/persist";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import type { Cell, SignalStore } from "@/types/core/signal";
+import type { MigrationState, MigrationTransform } from "@/types/core/migrate";
+import { resolveWithDefaults, runTransforms } from "@/lib/core/migrate.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/graphics/font.utils";
+import { toValidator } from "@/lib/core/schema.utils";
+import type { SettingsStore } from "@/types/ui/settings";
 
 export const SETTINGS_SCHEMA_VERSION = 59;
 

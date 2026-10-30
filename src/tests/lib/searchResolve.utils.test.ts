@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  parseTitleAttributes,
-  resolveTitleQuery,
-  romanToInt,
-  suggestSpellingWithReason,
-} from "@/lib/searchResolve.utils";
-import type { SearchAnimeSuggestion } from "@/types/search";
+import { parseTitleAttributes, romanToInt } from "@/lib/search/searchMarkers.utils";
+import { resolveTitleQuery } from "@/lib/search/searchHypothesis.utils";
+import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
+import type { SearchAnimeSuggestion } from "@/types/search/search";
 
 function anime(id: number, title: string, aliases: string[] = []): SearchAnimeSuggestion {
   return { aliases, favourite: false, id, score: null, status: "FINISHED", title };

@@ -1,9 +1,9 @@
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Persistor } from "@/types/persist";
-import type { Cell } from "@/types/signal";
-import { attempt, attemptSync } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import type { MediaEntry, WatchState } from "@/types/videoPlayer";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import type { Persistor } from "@/types/core/persist";
+import type { Cell } from "@/types/core/signal";
+import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import type { MediaEntry, WatchState } from "@/types/player/videoPlayer";
 
 export const MEDIA_SCHEMA_VERSION = 0;
 

@@ -10,8 +10,8 @@ import {
   QUEUE_ROW_HEIGHT,
   QUEUE_VIEW_HEIGHT,
   QueueFileRow,
-  QueueFolderRow,
 } from "@/routes/components/torrent/rows/queue.rows";
+import { QueueFolderRow } from "@/routes/components/torrent/rows/queue/folder.queue";
 
 export function QueueList({
   display,

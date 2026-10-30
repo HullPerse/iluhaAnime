@@ -6,8 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { createInterval } from "@/lib/interval.utils";
-import { queryKeys } from "@/lib/keys.utils";
+import { createInterval } from "@/lib/core/interval.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
 import {
   TorrentListen,
   TORRENT_WATCHDOG_MS,
@@ -16,10 +16,10 @@ import {
   shouldHealTorrentChannel,
   torrentErrorText,
   withoutPendingRemoved,
-} from "@/lib/torrentCommon.utils";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { showError, showWarning } from "@/lib/notification.utils";
-import { ignore } from "@/lib/promise.utils";
+} from "@/lib/torrent/torrentCommon.utils";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { showError, showWarning } from "@/lib/core/notification.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { cacheAtoms, removeSeedPreference } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";
@@ -28,8 +28,8 @@ import type {
   TorrentCheckResult,
   TorrentFileInfo,
   TorrentInfo,
-} from "@/types/torrent";
-import type { RemoveTorrentVars } from "@/types/torrentQueries";
+} from "@/types/torrent/torrent";
+import type { RemoveTorrentVars } from "@/types/torrent/torrentQueries";
 
 export const TORRENTS_QUERY_KEY = queryKeys.torrents();
 export const torrentFilesKey = (id: number) => queryKeys.torrentFiles(id);

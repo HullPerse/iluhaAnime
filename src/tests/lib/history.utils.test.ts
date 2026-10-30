@@ -7,8 +7,8 @@ import {
   historyByEpisode,
   isEpisodeWatched,
   watchShare,
-} from "@/lib/history.utils";
-import type { StreamHistoryEntry } from "@/types/stream";
+} from "@/lib/core/history.utils";
+import type { StreamHistoryEntry } from "@/types/player/stream";
 
 function entry(overrides: Partial<StreamHistoryEntry> = {}): StreamHistoryEntry {
   return {

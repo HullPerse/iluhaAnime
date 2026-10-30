@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { suggestionPoolSize, suggestionScore } from "@/lib/rank.utils";
-import { parseOperatorTerms } from "@/lib/searchScore.utils";
-import { matchNormalizedTitle, normalizeSearchText } from "@/lib/suggestions.utils";
-import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/suggestions.utils";
-import { attempt } from "@/lib/attempt.utils";
-import type { SearchSuggestionScope } from "@/types/search";
+import { suggestionPoolSize, suggestionScore } from "@/lib/core/rank.utils";
+import { parseOperatorTerms } from "@/lib/search/searchScore.utils";
+import { matchNormalizedTitle, normalizeSearchText } from "@/lib/core/suggestions.utils";
+import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/core/suggestions.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import type { SearchSuggestionScope } from "@/types/search/search";
 
 function suggestionKind(kind: string): SearchSuggestionKind {
   if (kind === "anime" || kind === "anime_alias") return "anime";

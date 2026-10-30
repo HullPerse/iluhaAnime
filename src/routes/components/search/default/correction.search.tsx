@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import type { TorrentCoverState } from "@/types/searchCover";
-import { queryKeys } from "@/lib/keys.utils";
-import { mediaToCandidate } from "@/lib/cover.utils";
-import { reportBackgroundError } from "@/lib/attempt.utils";
+import type { TorrentCoverState } from "@/types/search/searchCover";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { mediaToCandidate } from "@/lib/core/cover.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import CoverCandidateThumb from "@/routes/components/search/default/candidate.search";
 import {
   learnCoverAlias,
@@ -18,7 +18,7 @@ import {
   removeCoverOverride,
   setCoverOverride,
 } from "@/store/cover.store";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
 
 const MANUAL_DEBOUNCE_MS = 400;
 

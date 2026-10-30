@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
+import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/anilist/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildCustomStatusId, normalizeStatusLabel } from "@/lib/status.utils";
-import type { CollectionStatusDef, CollectionStatusKind } from "@/types/collection";
+import { buildCustomStatusId, normalizeStatusLabel } from "@/lib/core/status.utils";
+import type { CollectionStatusDef, CollectionStatusKind } from "@/types/anilist/collection";
 
-import { BilingualPreview } from "./bilingualPreview.collection";
-import { StatusRow } from "./statusRow.collection";
+import { BilingualPreview } from "@/routes/components/collection/bilingualPreview.collection";
+import { StatusRow } from "@/routes/components/collection/statusRow.collection";
 
 export function StatusManagerCollection({
   statuses,

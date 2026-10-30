@@ -5,10 +5,10 @@ import { createContext, useContext, useState, useMemo, useRef } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { SelectProps } from "@/types/ui";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { SelectProps } from "@/types/core/ui";
 
-import { Input } from "./input.component";
+import { Input } from "@/components/ui/input.component";
 
 export const SelectPortalContainerContext = createContext<HTMLElement | null>(null);
 

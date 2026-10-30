@@ -5,7 +5,7 @@ import PlayerBottomBar from "@/routes/components/player/modern/bottom.modern";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
 
-function props(playerType: "default" | "modern") {
+const props = (playerType: "default" | "modern") => {
   return {
     variant: "full" as const,
     playerType,
@@ -54,7 +54,7 @@ function props(playerType: "default" | "modern") {
       reloadVariants: vi.fn(),
     },
   };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

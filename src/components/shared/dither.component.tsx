@@ -1,11 +1,11 @@
 import { cn } from "cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { DITHER_DEFAULTS } from "@/config/dither.config";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
-import { attempt, attemptSync } from "@/lib/attempt.utils";
-import { renderDitherImage } from "@/lib/ditherRender.utils";
+import { DITHER_DEFAULTS } from "@/config/graphics/dither.config";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
+import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { renderDitherImage } from "@/lib/graphics/ditherRender.utils";
 import {
   ditherCacheKey,
   ditherDecodeCache,
@@ -15,7 +15,7 @@ import {
   resetDitherWorker,
   subscribeWorkerJob,
   withDitherDefaults,
-} from "@/lib/dither.utils";
+} from "@/lib/graphics/dither.utils";
 import type {
   DitherCacheEntry,
   DitherCanvasProps,
@@ -23,9 +23,9 @@ import type {
   DitherWorkerProgress,
   DitherWorkerRequest,
   DitherWorkerResponse,
-} from "@/types/dither";
+} from "@/types/graphics/dither";
 
-import ImageComponent from "../ui/image.component";
+import ImageComponent from "@/components/ui/image.component";
 
 function DitherCanvas({
   src,

@@ -3,9 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
-import { createInterval } from "@/lib/interval.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { desiredFolderPlaylist, planLiveInserts, planLiveRemovals } from "@/lib/livePlaylist.utils";
+import { createInterval } from "@/lib/core/interval.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import {
+  desiredFolderPlaylist,
+  planLiveInserts,
+  planLiveRemovals,
+} from "@/lib/core/livePlaylist.utils";
 import {
   buildTorrentPlayerPlaylist,
   insertPlaylistFiles,
@@ -14,17 +18,17 @@ import {
   readPlaylistEntries,
   removePlaylistIndex,
   seekTo,
-} from "@/lib/playback.utils";
-import { folderScanBus } from "@/lib/scanBus.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
-import { touchesExtensions } from "@/lib/changesWatcher.utils";
-import { isSameOrInside, samePath } from "@/lib/pathsWatcher.utils";
+} from "@/lib/player/playback.utils";
+import { folderScanBus } from "@/lib/core/scanBus.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import { touchesExtensions } from "@/lib/core/changesWatcher.utils";
+import { isSameOrInside, samePath } from "@/lib/core/pathsWatcher.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { PlaylistWatch } from "@/types/videoPlayer";
-import type { LivePlaylistOptions } from "@/types/liveSync";
+import type { PlaylistWatch } from "@/types/player/videoPlayer";
+import type { LivePlaylistOptions } from "@/types/core/liveSync";
 
 const LIVE_TORRENT_POLL_MS = 10_000;
 const LIVE_TORRENT_FAIL_LIMIT = 3;

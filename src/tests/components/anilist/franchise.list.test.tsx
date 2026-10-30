@@ -1,18 +1,18 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EntryListInfo, EntryLookup } from "@/types/entries";
+import type { EntryListInfo, EntryLookup } from "@/types/anilist/entries";
 import { FranchiseList } from "@/routes/components/anilist/franchise/list.franchise";
 import { patchSettings } from "@/store/settings.store";
-import type { FranchiseEdge, FranchiseNode } from "@/types/anilist";
+import type { FranchiseEdge, FranchiseNode } from "@/types/anilist/anilist";
 
-function node(
+const node = (
   id: number,
   title: string,
   year: number,
   episodes: number | null,
   overrides: Partial<FranchiseNode> = {}
-): FranchiseNode {
+): FranchiseNode => {
   return {
     cover_url: null,
     episodes,
@@ -26,9 +26,9 @@ function node(
     next_airing_episode: null,
     ...overrides,
   };
-}
+};
 
-function entry(overrides: Partial<EntryListInfo>): EntryListInfo {
+const entry = (overrides: Partial<EntryListInfo>): EntryListInfo => {
   return {
     completed_at: null,
     created_at: null,
@@ -44,7 +44,7 @@ function entry(overrides: Partial<EntryListInfo>): EntryListInfo {
     updated_at: null,
     ...overrides,
   };
-}
+};
 
 const nodes = [
   node(1, "First Season", 2015, 12),
@@ -62,7 +62,7 @@ const lookup: EntryLookup = new Map([
   [2, entry({ list_status: "COMPLETED", progress: 12 })],
 ]);
 
-function renderList(searchMatchIds: Set<number> | null = null) {
+const renderList = (searchMatchIds: Set<number> | null = null) => {
   return render(
     <FranchiseList
       nodes={nodes}
@@ -76,7 +76,7 @@ function renderList(searchMatchIds: Set<number> | null = null) {
       onNodeClick={() => undefined}
     />
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

@@ -5,12 +5,12 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useMemo, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/tray.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
+import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/core/tray.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TabId } from "@/types/settings";
-import type { TrayTab } from "@/types/tray";
+import type { TabId } from "@/types/ui/settings";
+import type { TrayTab } from "@/types/core/tray";
 
 async function showMainWindow(): Promise<void> {
   const window = getCurrentWindow();

@@ -1,4 +1,4 @@
-import type { EntryLookup } from "@/types/entries";
+import type { EntryLookup } from "@/types/anilist/entries";
 import type {
   AniFriend,
   AniListCaps,
@@ -6,8 +6,8 @@ import type {
   AniListSource,
   AniUser,
   FavouriteAnime,
-} from "@/types/anilist";
-import type { FriendSourceData } from "@/types/source.anilist";
+} from "@/types/anilist/anilist";
+import type { FriendSourceData } from "@/types/search/source.anilist";
 
 const SELF_CAPS: AniListCaps = {
   headerActions: true,

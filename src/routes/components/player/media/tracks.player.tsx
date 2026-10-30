@@ -1,22 +1,10 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { sortTracksByLanguage, toTrackDisplay, trackLabel } from "@/lib/tracks.utils";
-import type { MpvTrack } from "@/types/videoPlayer";
+import { sortTracksByLanguage, trackOptions, trackLabel } from "@/lib/torrent/tracks.utils";
+import type { MpvTrack } from "@/types/player/videoPlayer";
 
-import TrackDropdown from "./dropdown.tracks";
-import type { DropdownOption } from "@/types/dropdown.tracks";
+import TrackDropdown from "@/routes/components/player/media/dropdown.tracks";
 
 export { trackLabel };
-
-function trackOptions(tracks: MpvTrack[]): DropdownOption[] {
-  return tracks.map((track) => {
-    const display = toTrackDisplay(track);
-    return {
-      value: String(track.id),
-      main: display.main,
-      hint: display.language || undefined,
-    };
-  });
-}
 
 function Tracks({
   tracks,

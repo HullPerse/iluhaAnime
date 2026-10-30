@@ -1,15 +1,15 @@
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Persistor } from "@/types/persist";
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
-import { attemptSync } from "@/lib/attempt.utils";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import type { Persistor } from "@/types/core/persist";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
+import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   AniListFriendsStore,
   AniListNotificationsStore,
   AniListObservation,
   AniListRelease,
   AniUserProfile,
-} from "@/types/anilist";
+} from "@/types/anilist/anilist";
 
 export const ANILIST_FRIENDS_SCHEMA_VERSION = 1;
 export const ANILIST_NOTIFICATIONS_SCHEMA_VERSION = 6;

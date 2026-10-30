@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { FilmstripTab } from "@/types/media";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { FilmstripTab } from "@/types/player/media";
 
-import { FilmstripThumb } from "./thumb.filmstrip";
+import { FilmstripThumb } from "@/components/shared/filmstrip/thumb.filmstrip";
 
 export function FilmstripViewer({
   stills,

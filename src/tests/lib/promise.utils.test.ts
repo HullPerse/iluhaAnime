@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createCoalescedRunner } from "@/lib/promise.utils";
+import { createCoalescedRunner } from "@/lib/core/promise.utils";
 
 async function flushMicrotasks(turns = 20): Promise<void> {
   for (let i = 0; i < turns; i++) {

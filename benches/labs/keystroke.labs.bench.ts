@@ -1,11 +1,11 @@
 import { bench, group } from '@pmndrs/labs';
 
-import type { SearchAnimeSuggestion } from '../../src/types/search';
+import type { SearchAnimeSuggestion } from '../../src/types/search/search';
 import {
   getSearchSuggestions,
   groupSuggestions,
   suggestSpelling,
-} from '@/lib/suggestions.utils';
+} from '../../src/lib/core/suggestions.utils';
 
 const WORDS = [
   'frieren', 'sousou', 'naruto', 'bleach', 'piece', 'attack', 'titan', 'demon',

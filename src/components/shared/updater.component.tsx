@@ -2,12 +2,12 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { installUpdate } from "@/lib/update.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { installUpdate } from "@/lib/core/update.utils";
 
-import { Button } from "../ui/button.component";
-import ImageComponent from "../ui/image.component";
-import Modal from "./modal.component";
+import { Button } from "@/components/ui/button.component";
+import ImageComponent from "@/components/ui/image.component";
+import Modal from "@/components/shared/modal.component";
 
 function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
   const [loading, setLoading] = useState<boolean>(false);

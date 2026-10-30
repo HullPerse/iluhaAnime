@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { Button } from "@/components/ui/button.component";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
@@ -14,9 +13,9 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { filterEntries, sortEntries } from "@/lib/entries.utils";
-import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
-import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilistGroup.utils";
+import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
+import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/anilistGroup.utils";
 import {
   buildAnilistSourceKey,
   pickDisplayEntries,
@@ -24,16 +23,16 @@ import {
   isLocalSearch,
   resolveAniListView,
   routePeople,
-} from "@/lib/anilistRoute.utils";
-import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilistScore.utils";
-import { focusMainSearch } from "@/lib/focusHotkeys.utils";
-import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
+} from "@/lib/anilist/anilistRoute.utils";
+import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/anilistScore.utils";
+import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { showErrorOnce } from "@/lib/notification.utils";
-import { paginate } from "@/lib/pagination.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { showErrorOnce } from "@/lib/core/notification.utils";
+import { paginate } from "@/lib/core/pagination.utils";
 import {
   addAnilistFriend,
   anilistFriendsAtoms,
@@ -54,42 +53,20 @@ import type {
   AniUserProfile,
   AnilistRouteData,
   GlobalSort,
-} from "@/types/anilist";
+} from "@/types/anilist/anilist";
 
-import AniListDetailModalHost from "./components/anilist/detail/host.detail";
-import { useFriendAnilistData } from "./components/anilist/friend/data.friend";
-import AniListGlobalSortBar from "./components/anilist/globalSortBar.anilist";
-import AniListProfileSections from "./components/anilist/profileSections.anilist";
-import AniListResultsHost from "./components/anilist/resultsHost.anilist";
-import AniListSearchToolbar from "./components/anilist/searchToolbar.anilist";
-import AniListSecondaryModals from "./components/anilist/secondaryModals.anilist";
-import { buildAniListSource } from "./components/anilist/source.anilist";
-import SpotlightModal from "./components/anilist/spotlight/modal.spotlight";
-import AniListStateViews from "./components/anilist/stateViews.anilist";
-import { useUserAnilistData } from "./components/anilist/user/data.user";
-
-function GlobalSearchFooter({
-  global,
-  hasNext,
-  count,
-  loading,
-  onLoad,
-  label,
-}: {
-  global: boolean;
-  hasNext: boolean;
-  count: number;
-  loading: boolean;
-  onLoad: () => void;
-  label: string;
-}) {
-  if (!global || !hasNext || count === 0) return null;
-  return (
-    <Button onClick={onLoad} disabled={loading}>
-      {loading ? `${label}...` : label}
-    </Button>
-  );
-}
+import AniListDetailModalHost from "@/routes/components/anilist/detail/host.detail";
+import GlobalSearchFooter from "@/routes/components/anilist/globalSearchFooter.anilist";
+import { useFriendAnilistData } from "@/routes/components/anilist/friend/data.friend";
+import AniListGlobalSortBar from "@/routes/components/anilist/globalSortBar.anilist";
+import AniListProfileSections from "@/routes/components/anilist/profileSections.anilist";
+import AniListResultsHost from "@/routes/components/anilist/resultsHost.anilist";
+import AniListSearchToolbar from "@/routes/components/anilist/searchToolbar.anilist";
+import AniListSecondaryModals from "@/routes/components/anilist/secondaryModals.anilist";
+import { buildAniListSource } from "@/routes/components/anilist/source.anilist";
+import SpotlightModal from "@/routes/components/anilist/spotlight/modal.spotlight";
+import AniListStateViews from "@/routes/components/anilist/stateViews.anilist";
+import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 
 function AnilistRoute() {
   const { t } = useI18n();

@@ -1,6 +1,6 @@
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { ScanPlayerProps as Props } from "@/types/player";
+import type { ScanPlayerProps as Props } from "@/types/player/player";
 
 export default function FolderScanProgress({ scanProgress }: Props) {
   const { t } = useI18n();

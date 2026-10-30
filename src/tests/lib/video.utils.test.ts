@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { SEARCH_ALIASES } from "@/config/tokens.config";
-import { finalizeSearchTitle } from "@/lib/video.utils";
+import { SEARCH_ALIASES } from "@/config/graphics/tokens.config";
+import { finalizeSearchTitle } from "@/lib/player/videoTitle.utils";
 
 describe("finalizeSearchTitle contract", () => {
   it("puts the arc after a colon", () => {

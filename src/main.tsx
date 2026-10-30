@@ -6,17 +6,21 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 
 import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
-import { QUERY_CONFIG } from "@/config/query.config";
-import { isResizeObserverLoopError, noteGlobalError, toFatalInfo } from "@/lib/fatalClassify.utils";
-import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/report.utils";
-import { readThemeName } from "@/lib/fatalTheme.utils";
+import { QUERY_CONFIG } from "@/config/system/query.config";
+import {
+  isResizeObserverLoopError,
+  noteGlobalError,
+  toFatalInfo,
+} from "@/lib/core/fatalClassify.utils";
+import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/core/report.utils";
+import { readThemeName } from "@/lib/core/fatalTheme.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { router } from "@/routes/__root";
 import { addNotification } from "@/store/notification.store";
 
 if (consumeSafeMode()) markSessionSafe();
 
-function escalate(value: unknown): boolean {
+const escalate = (value: unknown): boolean => {
   if (!noteGlobalError(Date.now())) return false;
   reportFatal({
     ...toFatalInfo(value, {
@@ -26,7 +30,7 @@ function escalate(value: unknown): boolean {
     }),
   });
   return true;
-}
+};
 
 const appError = () => tr("common.error");
 
@@ -50,10 +54,10 @@ window.addEventListener("unhandledrejection", (event) => {
 
 const queryClient = new QueryClient(QUERY_CONFIG);
 
-function showStartupFallback(message: string): void {
+const showStartupFallback = (message: string): void => {
   const safe = message.replaceAll("<", "&lt;");
   document.body.innerHTML = `<div style="background:#0000aa;color:#fff;font-family:monospace;padding:48px"><p>Startup error</p><p>${safe}</p><button onclick="location.reload()">Reload</button></div>`;
-}
+};
 
 try {
   const rootElement = document.querySelector("#root");

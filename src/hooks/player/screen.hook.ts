@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 
-import { PLAYER_MODES } from "@/config/modes.config";
-import { buildModeCommands, playerModeParams } from "@/lib/crt.utils";
-import type { ActivePlayerShader } from "@/types/crt";
-import { playerShaderPath, runPlayerCommand } from "@/lib/playback.utils";
-import { reportBackgroundError } from "@/lib/attempt.utils";
-import type { PlayerBezelVariant, PlayerSettings } from "@/types/videoPlayer";
+import { PLAYER_MODES } from "@/config/settings/modes.config";
+import { buildModeCommands, playerModeParams } from "@/lib/core/crt.utils";
+import type { ActivePlayerShader } from "@/types/core/crt";
+import { playerShaderPath, runPlayerCommand } from "@/lib/player/playback.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import type { PlayerBezelVariant, PlayerSettings } from "@/types/player/videoPlayer";
 
 /**
  * Applies the selected screen mode to mpv and returns the cabinet variant to

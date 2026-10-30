@@ -2,10 +2,10 @@ import { useCallback } from "react";
 
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { checkForUpdates } from "@/lib/update.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { checkForUpdates } from "@/lib/core/update.utils";
 import { openUpdatePrompt } from "@/store/update.store";
-import type { UpdateCheckOutcome } from "@/types/update";
+import type { UpdateCheckOutcome } from "@/types/core/update";
 
 export function useUpdateCheck() {
   const isOnline = useOnlineStatus();

@@ -1,5 +1,5 @@
-import { relativeRowNumber } from "@/lib/treeArrow.utils";
-import type { TreeRow } from "@/types/treeArrow";
+import { relativeRowNumber } from "@/lib/core/treeArrow.utils";
+import type { TreeRow } from "@/types/core/treeArrow";
 
 function TreeRowNumber({
   rows,

@@ -1,52 +1,20 @@
 import { cn } from "cn";
-import { ChevronDown, ChevronRight, GripVertical, Play } from "lucide-react";
+import { ChevronDown, Play } from "lucide-react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { memo } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { QueueDragTarget, QueuePlace } from "@/types/torrentQueue";
-import { formatBytes } from "@/lib/bytes.utils";
-import type { TorrentFileInfo } from "@/types/torrent";
+import type { QueueDragTarget, QueuePlace } from "@/types/torrent/torrentQueue";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
+
+import DropLine from "./queue/dropLine.queue";
+import QueueGrip from "./queue/grip.queue";
 
 export const QUEUE_ROW_HEIGHT = 20;
 export const QUEUE_VIEW_HEIGHT = 224;
-
-function DropLine({ place }: { place: QueuePlace | null }) {
-  if (!place) return null;
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "bg-highlight pointer-events-none absolute inset-x-0 h-0.5",
-        place === "before" ? "top-0" : "bottom-0"
-      )}
-    />
-  );
-}
-
-function QueueGrip({
-  onPointerDown,
-  title,
-}: {
-  onPointerDown: (event: PointerEvent<HTMLSpanElement>) => void;
-  title: string;
-}) {
-  return (
-    <span
-      data-testid="torrent-queue-handle"
-      aria-hidden="true"
-      tabIndex={-1}
-      className="text-hint shrink-0 cursor-grab active:cursor-grabbing"
-      style={{ touchAction: "none" }}
-      title={title}
-      onPointerDown={onPointerDown}
-    >
-      <GripVertical className="size-3" />
-    </span>
-  );
-}
 
 interface QueueFileRowProps {
   file: TorrentFileInfo;
@@ -171,81 +139,6 @@ export const QueueFileRow = memo(
         >
           <ChevronDown className="size-3" />
         </Button>
-      </div>
-    );
-  }
-);
-
-interface QueueFolderRowProps {
-  dir: string;
-  first: number;
-  count: number;
-  remainingBytes: number;
-  collapsed: boolean;
-  virtualStart: number;
-  drop: QueuePlace | null;
-  dragging: boolean;
-  onToggleCollapsed: (dir: string) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLDivElement>, first: number) => void;
-  onGripPointerDown: (event: PointerEvent<HTMLSpanElement>, target: QueueDragTarget) => void;
-}
-
-export const QueueFolderRow = memo(
-  ({
-    dir,
-    first,
-    count,
-    remainingBytes,
-    collapsed,
-    virtualStart,
-    drop,
-    dragging,
-    onToggleCollapsed,
-    onKeyDown,
-    onGripPointerDown,
-  }: QueueFolderRowProps) => {
-    const { t } = useI18n();
-    const handleToggle = () => onToggleCollapsed(dir);
-    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => onKeyDown(event, first);
-    const handleGripDown = (event: PointerEvent<HTMLSpanElement>) =>
-      onGripPointerDown(event, { kind: "folder", first });
-
-    return (
-      <div
-        role="treeitem"
-        tabIndex={0}
-        aria-expanded={!collapsed}
-        aria-label={t("torrent.queue.folder.label", {
-          name: dir || t("torrent.queue.folder.root"),
-          count,
-        })}
-        data-testid="torrent-queue-folder"
-        data-queue-folder={dir}
-        onKeyDown={handleKeyDown}
-        className={cn(
-          "windows95-text bg-surface absolute top-0 left-0 flex w-full items-center gap-1 px-1 font-bold select-none",
-          dragging && "opacity-40",
-          "focus-visible:outline-text focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-        )}
-        style={{ height: QUEUE_ROW_HEIGHT, transform: `translateY(${virtualStart}px)` }}
-      >
-        <DropLine place={drop} />
-        <QueueGrip onPointerDown={handleGripDown} title={t("torrent.queue.drag")} />
-        <Button
-          size="icon"
-          className="size-4"
-          title={collapsed ? t("common.expand") : t("common.collapse")}
-          aria-label={collapsed ? t("common.expand") : t("common.collapse")}
-          onClick={handleToggle}
-        >
-          {collapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
-        </Button>
-        <span className="min-w-0 flex-1 truncate" title={dir}>
-          {dir || t("torrent.queue.folder.root")}
-        </span>
-        <span className="text-hint shrink-0 tabular-nums">
-          {t("torrent.queue.folder", { count, size: formatBytes(remainingBytes) })}
-        </span>
       </div>
     );
   }

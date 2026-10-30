@@ -15,7 +15,7 @@ afterEach(() => {
   cleanup();
 });
 
-function renderTimeline(duration = 1400, chapters = [{ time: 0, title: "Opening", end: 89 }]) {
+const renderTimeline = (duration = 1400, chapters = [{ time: 0, title: "Opening", end: 89 }]) => {
   const callbacks = { onScrub: vi.fn(), onCommitSeek: vi.fn() };
   const result = render(
     <Timeline duration={duration} chapters={chapters} seekTarget={null} {...callbacks} />
@@ -23,7 +23,7 @@ function renderTimeline(duration = 1400, chapters = [{ time: 0, title: "Opening"
   const bar = result.container.querySelector(".h-4");
   if (!bar) throw new Error("timeline bar not found");
   return { ...result, bar, ...callbacks };
-}
+};
 
 describe("Timeline hover tooltip", () => {
   it("shows time with no thumbnail image", () => {

@@ -2,11 +2,11 @@ import { useCallback, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { showError } from "@/lib/notification.utils";
-import type { ScreenshotCapture } from "@/types/screenshot";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { showError } from "@/lib/core/notification.utils";
+import type { ScreenshotCapture } from "@/types/core/screenshot";
 
 export interface ScreenshotSession {
   capture: ScreenshotCapture | null;

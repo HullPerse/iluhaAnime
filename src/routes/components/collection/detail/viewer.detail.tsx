@@ -1,10 +1,10 @@
 import { MediaLightboxContent } from "@/components/shared/lightbox/mediaLightboxContent.media";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Tabs from "@/components/shared/tabs.component";
 import { useViewerMedia } from "@/hooks/collection/viewer.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { MediaViewerParts } from "@/types/collection";
-import type { FilmstripTab } from "@/types/media";
+import type { MediaViewerParts } from "@/types/anilist/collection";
+import type { FilmstripTab } from "@/types/player/media";
 
 export function MediaViewerContent({
   tmdbId,

@@ -1,11 +1,11 @@
 import { anilistApi } from "@/api/anilist.api";
 import type { useWizardForm } from "@/hooks/collection/wizard.hook";
-import { withStoredMedia } from "@/lib/collectionMedia.utils";
-import { attempt, withFallback } from "@/lib/attempt.utils";
-import { isDirectImageSrc } from "@/lib/image.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist";
-import type { CollectionItem, WizardPickedMedia } from "@/types/collection";
+import { withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
+import { attempt, withFallback } from "@/lib/core/attempt.utils";
+import { isDirectImageSrc } from "@/lib/graphics/image.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist/anilist";
+import type { CollectionItem, WizardPickedMedia } from "@/types/anilist/collection";
 
 type WizardForm = ReturnType<typeof useWizardForm>;
 

@@ -3,13 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
-import type { PlayerSettings } from "@/types/videoPlayer";
+import type { PlayerSettings } from "@/types/player/videoPlayer";
 
 const mocks = vi.hoisted(() => ({
   runPlayerCommand: vi.fn(async (_name: string, _args: string[]) => undefined),
 }));
 
-vi.mock("@/lib/playback.utils", () => ({
+vi.mock("@/lib/player/playback.utils", () => ({
   playerShaderPath: vi.fn(async (id: string) => `C:/shaders/${id}.glsl`),
   runPlayerCommand: mocks.runPlayerCommand,
 }));

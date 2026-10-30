@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
-import { WIZARD_SEARCH_DEBOUNCE_MS, WIZARD_TABS } from "@/config/collectionDefaults.config";
+import { WIZARD_SEARCH_DEBOUNCE_MS, WIZARD_TABS } from "@/config/anilist/collectionDefaults.config";
 import { useDiscardGuard, useDirtySinceMount } from "@/hooks/collection/discard.hook";
 import { useWizardPick } from "@/hooks/collection/pick.hook";
 import { useCollectionData } from "@/hooks/collection/queries.hook";
@@ -12,11 +12,11 @@ import { useWizardSearch } from "@/hooks/collection/search.hook";
 import { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
-import { isPublicStatus } from "@/lib/status.utils";
-import { scheduleTask } from "@/lib/shared.utils";
-import { normalizeSearchText } from "@/lib/suggestions.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, attemptAll } from "@/lib/attempt.utils";
+import { isPublicStatus } from "@/lib/core/status.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import { normalizeSearchText } from "@/lib/core/suggestions.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, attemptAll } from "@/lib/core/attempt.utils";
 import { searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
@@ -26,26 +26,16 @@ import type {
   CustomFieldDef,
   WizardPrefill,
   WizardTab,
-} from "@/types/collection";
+} from "@/types/anilist/collection";
 
-import { WizardCoverPanel } from "./cover.wizard";
-import { WizardDetailsPanel } from "./details.wizard";
-import { WizardFooter } from "./footer.wizard";
-import { WizardLocalPanel } from "./local.wizard";
-import { WizardPreview } from "./preview.wizard";
-import { WizardSourcePanel } from "./source.wizard";
+import { WizardCoverPanel } from "@/routes/components/collection/wizard/cover.wizard";
+import { WizardDetailsPanel } from "@/routes/components/collection/wizard/details.wizard";
+import { WizardFooter } from "@/routes/components/collection/wizard/footer.wizard";
+import { WizardLocalPanel } from "@/routes/components/collection/wizard/local.wizard";
+import { WizardPreview } from "@/routes/components/collection/wizard/preview.wizard";
+import { WizardSourcePanel } from "@/routes/components/collection/wizard/source.wizard";
 
-function prefillRatingValue(prefill: WizardPrefill | null | undefined): string {
-  return prefill?.rating == null ? "" : String(prefill.rating);
-}
-
-function prefillRatingOrigin(
-  initial: CollectionItem | null | undefined,
-  prefill: WizardPrefill | null | undefined
-): string | null {
-  if (initial) return null;
-  return prefill?.scoreOrigin ?? null;
-}
+import { prefillRatingValue, prefillRatingOrigin } from "@/lib/collectionWizard.utils";
 
 export function WizardModal({
   open,

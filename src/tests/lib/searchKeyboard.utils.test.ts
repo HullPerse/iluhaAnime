@@ -4,7 +4,7 @@ import {
   isKeyboardNeighbor,
   keyboardSubstitutionCost,
   keyboardWordDistance,
-} from "@/lib/searchKeyboard.utils";
+} from "@/lib/search/searchKeyboard.utils";
 
 describe("search/keyboard neighbors", () => {
   it("treats adjacent QWERTY keys as neighbors", () => {

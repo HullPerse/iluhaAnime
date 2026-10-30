@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { PaginationProps } from "@/types/pagination";
+import type { PaginationProps } from "@/types/core/pagination";
 
 export default function Pagination({
   total,

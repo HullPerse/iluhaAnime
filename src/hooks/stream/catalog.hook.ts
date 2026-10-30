@@ -10,15 +10,15 @@ import { useEffect } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { streamApi } from "@/api/stream.api";
-import { QUERY_PRESETS } from "@/config/query.config";
-import { streamFiltersKey } from "@/config/streamFilters.config";
+import { QUERY_PRESETS } from "@/config/system/query.config";
+import { streamFiltersKey } from "@/config/player/streamFilters.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { anilistEpisodePreviews } from "@/lib/episodes.utils";
-import { ignore } from "@/lib/promise.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { anilistEpisodePreviews } from "@/lib/player/episodes.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { StreamCatalogFilters } from "@/types/stream";
+import type { StreamCatalogFilters } from "@/types/player/stream";
 
 /** Search results, or the site's browse list when the query is empty. */
 export function useStreamSearch(query: string, page: number, filters: StreamCatalogFilters) {

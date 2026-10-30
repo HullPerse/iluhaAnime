@@ -6,12 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SearchResultItem from "@/routes/components/search/default/result.search";
 import { coverCorrectionsAtoms, removeResolvedCover } from "@/store/cover.store";
 import { patchSettings } from "@/store/settings.store";
-import type { Anime } from "@/types/torrent";
+import type { Anime } from "@/types/torrent/torrent";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", async () => {
-  const { mockInvoke: invoke } = await import("../../mocks");
+  const { mockInvoke: invoke } = await import("@/tests/mocks");
   return {
     invoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -40,11 +40,11 @@ const NARUTO_MEDIA = {
   cover_url: "https://s4.anilist.co/file/naruto.jpg",
 };
 
-function renderRow(
+const renderRow = (
   handlers?: { onOpenDetails?: (item: Anime) => void },
   item: Anime = ITEM,
   source = "erai-raws"
-) {
+) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
@@ -60,7 +60,7 @@ function renderRow(
       />
     </QueryClientProvider>
   );
-}
+};
 
 const RUTRACKER_ITEM: Anime = {
   ...ITEM,
@@ -78,7 +78,7 @@ beforeEach(() => {
   mockInvoke.mockReset();
 });
 
-function mockCoverPipeline() {
+const mockCoverPipeline = () => {
   patchSettings({ torrentCoverMode: "full" });
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "search_anilist") return [NARUTO_MEDIA];
@@ -86,7 +86,7 @@ function mockCoverPipeline() {
     if (command === "get_user_image") return { id: "blob1", path: "covers/naruto.jpg" };
     return null;
   });
-}
+};
 
 describe("SearchResultItem keyboard surface", () => {
   it("exposes the title as a hintable title button", () => {

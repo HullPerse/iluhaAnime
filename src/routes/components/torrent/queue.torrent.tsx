@@ -1,17 +1,18 @@
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { GripVertical } from "lucide-react";
-import type { KeyboardEvent, PointerEvent, RefObject } from "react";
+import type { KeyboardEvent, PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
+import { QUEUE_SCROLL_EDGE, QUEUE_SCROLL_STEP } from "@/config/torrent/queue.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   buildQueueRows,
   queueApplyDrop,
-  queueBlockOf,
   queueBlocks,
   queueDir,
   queueDisplay,
@@ -25,202 +26,25 @@ import {
   queuePointHit,
   queuePositions,
   queueRemainingBytes,
-} from "@/lib/torrentQueue.utils";
-import type {
-  QueueBlock,
-  QueueDisplayItem,
-  QueueDragTarget,
-  QueueEdge,
-  QueuePlace,
-} from "@/types/torrentQueue";
-import { formatBytes } from "@/lib/bytes.utils";
-import { ignore } from "@/lib/promise.utils";
-import { settingsAtoms } from "@/store/settings.store";
-import type { TorrentFileInfo, TorrentQueueApply } from "@/types/torrent";
-
+} from "@/lib/torrent/torrentQueue.utils";
 import {
-  QUEUE_ROW_HEIGHT,
-  QUEUE_VIEW_HEIGHT,
-  QueueFileRow,
-  QueueFolderRow,
-} from "./rows/queue.rows";
+  canQueueDrop,
+  queueDragLabel,
+  sameQueueTarget,
+} from "@/lib/torrent/torrentQueueDrag.utils";
+import { settingsAtoms } from "@/store/settings.store";
+import type { TorrentFileInfo, TorrentQueueApply } from "@/types/torrent/torrent";
+import type { QueueBlock, QueueDragTarget, QueueEdge } from "@/types/torrent/torrentQueue";
+import type {
+  QueueDragState,
+  QueueGhost,
+  QueueHint,
+  QueueScroll,
+  QueueSnapshot,
+} from "@/types/torrent/torrentQueueDrag";
 
-interface QueueHint {
-  target: QueueDragTarget;
-  place: QueuePlace;
-}
-
-interface QueueSnapshot {
-  rows: number[];
-  included: Set<number>;
-}
-
-interface QueueGhost {
-  x: number;
-  y: number;
-  width: number;
-}
-
-interface QueueScroll {
-  scrollToIndex: (index: number, options?: { align?: "auto" | "start" | "center" | "end" }) => void;
-}
-
-interface QueueDragState {
-  target: QueueDragTarget;
-  pointerId: number;
-  clientY: number;
-  grabY: number;
-  raf: number;
-  stop: () => void;
-}
-
-const QUEUE_SCROLL_EDGE = 24;
-const QUEUE_SCROLL_STEP = 12;
-
-function sameQueueTarget(left: QueueDragTarget | null, right: QueueDragTarget): boolean {
-  if (!left || left.kind !== right.kind) return false;
-  if (left.kind === "file" && right.kind === "file") return left.index === right.index;
-  if (left.kind === "folder" && right.kind === "folder") return left.first === right.first;
-  return false;
-}
-
-function canQueueDrop(
-  rows: number[],
-  byIndex: Map<number, TorrentFileInfo>,
-  active: QueueDragTarget,
-  over: QueueDragTarget
-): boolean {
-  if (active.kind === "file" && over.kind === "folder") return false;
-  const from = queueBlockOf(rows, byIndex, active);
-  const to = queueBlockOf(rows, byIndex, over);
-  if (!from || !to) return false;
-  return active.kind === "folder" ? from.start !== to.start : from.start === to.start;
-}
-
-function QueueList({
-  display,
-  byIndex,
-  rowBlocks,
-  positions,
-  included,
-  current,
-  drag,
-  hint,
-  listRef,
-  treeRef,
-  scrollRef,
-  onToggleIncluded,
-  onFileKeyDown,
-  onFolderKeyDown,
-  onMoveStep,
-  onToggleCollapsed,
-  onGripPointerDown,
-}: {
-  display: QueueDisplayItem[];
-  byIndex: Map<number, TorrentFileInfo>;
-  rowBlocks: Map<number, { block: QueueBlock; at: number }>;
-  positions: Map<number, number>;
-  included: Set<number>;
-  current: number | null;
-  drag: QueueDragTarget | null;
-  hint: QueueHint | null;
-  listRef: RefObject<HTMLDivElement | null>;
-  treeRef: RefObject<HTMLDivElement | null>;
-  scrollRef: RefObject<QueueScroll | null>;
-  onToggleIncluded: (index: number) => void;
-  onFileKeyDown: (event: KeyboardEvent<HTMLDivElement>, index: number) => void;
-  onFolderKeyDown: (event: KeyboardEvent<HTMLDivElement>, first: number) => void;
-  onMoveStep: (index: number, delta: -1 | 1) => void;
-  onToggleCollapsed: (dir: string) => void;
-  onGripPointerDown: (event: PointerEvent<HTMLSpanElement>, target: QueueDragTarget) => void;
-}) {
-  const { t } = useI18n();
-  const virtualizer = useVirtualizer({
-    count: display.length,
-    getScrollElement: () => listRef.current,
-    estimateSize: () => QUEUE_ROW_HEIGHT,
-    overscan: 8,
-    initialRect: { width: 0, height: QUEUE_VIEW_HEIGHT },
-  });
-  useEffect(() => {
-    scrollRef.current = virtualizer;
-    return () => {
-      scrollRef.current = null;
-    };
-  }, [scrollRef, virtualizer]);
-  const virtualItems = virtualizer.getVirtualItems();
-  const dropOf = (target: QueueDragTarget): QueuePlace | null => {
-    if (!hint || !sameQueueTarget(hint.target, target)) return null;
-    return hint.place;
-  };
-
-  return (
-    <div
-      ref={listRef}
-      data-testid="torrent-queue-list"
-      className="windows95-border bg-field max-h-[50vh] overflow-y-auto p-0.5"
-      style={{ minHeight: display.length > 0 ? QUEUE_VIEW_HEIGHT : undefined }}
-    >
-      {display.length === 0 ? (
-        <span className="windows95-text text-hint block p-1" data-testid="torrent-queue-empty">
-          {t("torrent.queue.empty.done")}
-        </span>
-      ) : (
-        <div
-          ref={treeRef}
-          className="relative"
-          role="tree"
-          aria-label={t("torrent.queue.title")}
-          style={{ height: virtualizer.getTotalSize() }}
-        >
-          {virtualItems.map((virtualRow) => {
-            const item = display[virtualRow.index];
-            if (!item) return null;
-            if (item.kind === "folder") {
-              return (
-                <QueueFolderRow
-                  key={`folder:${item.first}`}
-                  dir={item.dir}
-                  first={item.first}
-                  count={item.count}
-                  remainingBytes={item.remainingBytes}
-                  collapsed={item.collapsed}
-                  virtualStart={virtualRow.start}
-                  drop={dropOf({ kind: "folder", first: item.first })}
-                  dragging={sameQueueTarget(drag, { kind: "folder", first: item.first })}
-                  onToggleCollapsed={onToggleCollapsed}
-                  onKeyDown={onFolderKeyDown}
-                  onGripPointerDown={onGripPointerDown}
-                />
-              );
-            }
-            const file = byIndex.get(item.index);
-            if (!file) return null;
-            const entry = rowBlocks.get(item.index);
-            return (
-              <QueueFileRow
-                key={`file:${item.index}`}
-                file={file}
-                virtualStart={virtualRow.start}
-                position={positions.get(item.index)}
-                included={included.has(item.index)}
-                current={item.index === current}
-                drop={dropOf({ kind: "file", index: item.index })}
-                dragging={sameQueueTarget(drag, { kind: "file", index: item.index })}
-                canMoveUp={Boolean(entry && entry.at > entry.block.start)}
-                canMoveDown={Boolean(entry && entry.at < entry.block.end)}
-                onToggleIncluded={onToggleIncluded}
-                onKeyDown={onFileKeyDown}
-                onMoveStep={onMoveStep}
-                onGripPointerDown={onGripPointerDown}
-              />
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+import { QueueList } from "@/routes/components/torrent/queue/queueList.torrent";
+import { QUEUE_ROW_HEIGHT } from "@/routes/components/torrent/rows/queue.rows";
 
 export function TorrentQueueModal({
   files,
@@ -258,9 +82,9 @@ export function TorrentQueueModal({
   const [drag, setDrag] = useState<QueueDragTarget | null>(null);
   const [ghost, setGhost] = useState<QueueGhost | null>(null);
   const [hint, setHint] = useState<QueueHint | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [confirm, setConfirm] = useState(false);
-  const [announcement, setAnnouncement] = useState("");
+  const [busy, setBusy] = useState<boolean>(false);
+  const [confirm, setConfirm] = useState<boolean>(false);
+  const [announcement, setAnnouncement] = useState<string>("");
 
   const byIndex = useMemo(() => new Map(files.map((file) => [file.index, file])), [files]);
   const activeRows = useMemo(() => rows.filter((index) => byIndex.has(index)), [rows, byIndex]);
@@ -554,20 +378,7 @@ export function TorrentQueueModal({
     setHint(null);
   };
 
-  const handleReset = reset;
-  const handleCancel = onClose;
-  const handleSave = () => ignore(save());
-  const handleKeep = onClose;
-  const handleStay = () => setConfirm(false);
-  const handleToggleIncluded = toggleIncluded;
-  const handleToggleCollapsed = toggleCollapsed;
-  const handleMoveFileStep = moveFileStep;
-
-  const dragLabel = drag
-    ? drag.kind === "file"
-      ? (byIndex.get(drag.index)?.name ?? "")
-      : queueDir(byIndex.get(drag.first)?.name ?? "")
-    : "";
+  const dragLabel = queueDragLabel(drag, byIndex);
 
   return (
     <Modal
@@ -599,11 +410,11 @@ export function TorrentQueueModal({
           listRef={listRef}
           treeRef={treeRef}
           scrollRef={scrollRef}
-          onToggleIncluded={handleToggleIncluded}
+          onToggleIncluded={toggleIncluded}
           onFileKeyDown={handleFileKeyDown}
           onFolderKeyDown={handleFolderKeyDown}
-          onMoveStep={handleMoveFileStep}
-          onToggleCollapsed={handleToggleCollapsed}
+          onMoveStep={moveFileStep}
+          onToggleCollapsed={toggleCollapsed}
           onGripPointerDown={beginDrag}
         />
         {confirm && (
@@ -613,27 +424,27 @@ export function TorrentQueueModal({
           >
             <span className="windows95-text">{t("torrent.queue.confirm")}</span>
             <div className="flex flex-wrap justify-end gap-1">
-              <Button variant="secondary" onClick={handleStay}>
+              <Button variant="secondary" onClick={() => setConfirm(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button variant="secondary" onClick={handleKeep}>
+              <Button variant="secondary" onClick={onClose}>
                 {t("torrent.queue.discard")}
               </Button>
-              <Button onClick={handleSave} loading={busy}>
+              <Button onClick={() => ignore(save())} loading={busy}>
                 {t("torrent.queue.save")}
               </Button>
             </div>
           </div>
         )}
         <div className="bg-primary sticky bottom-0 flex flex-wrap items-center justify-between gap-1 pt-1">
-          <Button variant="secondary" onClick={handleReset} disabled={busy}>
+          <Button variant="secondary" onClick={reset} disabled={busy}>
             {t("torrent.queue.reset")}
           </Button>
           <div className="flex gap-1">
-            <Button variant="secondary" onClick={handleCancel} disabled={busy}>
+            <Button variant="secondary" onClick={onClose} disabled={busy}>
               {t("common.cancel")}
             </Button>
-            <Button onClick={handleSave} loading={busy} disabled={positions.size === 0}>
+            <Button onClick={() => ignore(save())} loading={busy} disabled={positions.size === 0}>
               {sequential ? t("torrent.queue.save") : t("torrent.queue.save.enable")}
             </Button>
           </div>

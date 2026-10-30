@@ -1,5 +1,5 @@
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
 import type {
   AnimeDeepLink,
   AnilistAuthDeepLink,
@@ -7,7 +7,7 @@ import type {
   DeepLinkStore,
   StreamDeepLink,
   TorrentDeepLink,
-} from "@/types/deeplink";
+} from "@/types/core/deeplink";
 
 type DeepLinkActionKeys =
   | "openAnime"

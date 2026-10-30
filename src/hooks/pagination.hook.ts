@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { PaginationResult } from "@/types/pagination";
+import type { PaginationResult } from "@/types/core/pagination";
 
 export function usePagination(
   totalItems: number,

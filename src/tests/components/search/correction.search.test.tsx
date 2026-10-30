@@ -3,14 +3,14 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TorrentCoverState } from "@/types/searchCover";
+import type { TorrentCoverState } from "@/types/search/searchCover";
 import CoverCorrectionModal from "@/routes/components/search/default/correction.search";
 import { coverCorrectionsAtoms, removeCoverOverride } from "@/store/cover.store";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", async () => {
-  const { mockInvoke: invoke } = await import("../../mocks");
+  const { mockInvoke: invoke } = await import("@/tests/mocks");
   return {
     invoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -19,7 +19,7 @@ vi.mock("@tauri-apps/api/core", async () => {
 
 const KEY = "modal test show|0";
 
-function coverState(): TorrentCoverState {
+const coverState = (): TorrentCoverState => {
   return {
     status: "resolved",
     coverUrl: null,
@@ -31,21 +31,21 @@ function coverState(): TorrentCoverState {
     ],
     coverKey: KEY,
   };
-}
+};
 
 afterEach(() => {
   cleanup();
   removeCoverOverride(KEY);
 });
 
-function renderModal(cover: TorrentCoverState, onClose: () => void) {
+const renderModal = (cover: TorrentCoverState, onClose: () => void) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <CoverCorrectionModal torrentTitle="Modal Test Show" cover={cover} onClose={onClose} />
     </QueryClientProvider>
   );
-}
+};
 
 beforeEach(() => {
   mockInvoke.mockReset();

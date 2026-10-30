@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { stripReleaseNoise } from "@/lib/release.utils";
+import { stripReleaseNoise } from "@/lib/search/release.utils";
 
 describe("search/release noise", () => {
   const cases: Array<[input: string, clean: string]> = [

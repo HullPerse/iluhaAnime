@@ -1,7 +1,7 @@
-import type { GridCollectionProps } from "@/types/collection";
+import type { GridCollectionProps } from "@/types/anilist/collection";
 
-import { GridPagedView } from "./grid/paged.grid";
-import { GridScrollView } from "./grid/scroll.grid";
+import { GridPagedView } from "@/routes/components/collection/grid/paged.grid";
+import { GridScrollView } from "@/routes/components/collection/grid/scroll.grid";
 
 export default function GridCollection({
   items,

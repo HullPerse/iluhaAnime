@@ -1,5 +1,5 @@
-import { createSignalStore } from "@/lib/signal.store";
-import type { VimHintsState, VimSignalStore } from "@/types/vim";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { VimHintsState, VimSignalStore } from "@/types/ui/vim";
 
 export const EMPTY_VIM_HINTS: VimHintsState = {
   open: false,

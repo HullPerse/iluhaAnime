@@ -3,8 +3,8 @@ import type { ChangeEvent } from "react";
 
 import { useAutocomplete } from "@/hooks/search/autocomplete.hook";
 import { useSpellCheck, useSpellCorrections } from "@/hooks/search/spellcheck.hook";
-import { useCell } from "@/lib/signal.hook";
-import { enterSubmit } from "@/lib/keyboard.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { enterSubmit } from "@/lib/ui/keyboard.utils";
 import {
   addSearchQuery as addQuery,
   addSpellWord,
@@ -14,8 +14,8 @@ import {
   searchAtoms,
 } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { SearchField, SearchFieldParams } from "@/types/collection";
-import type { CorrectionReason } from "@/types/search";
+import { SearchField, SearchFieldParams } from "@/types/anilist/collection";
+import type { CorrectionReason } from "@/types/search/search";
 
 export function useSearchField(params: SearchFieldParams): SearchField {
   const {

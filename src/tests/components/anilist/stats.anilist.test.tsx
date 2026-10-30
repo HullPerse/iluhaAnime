@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../../mocks";
+import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StatsModal from "@/routes/components/anilist/stats.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist";
+import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -23,7 +23,7 @@ const DETAIL: ActivityDetailBundle = {
   onGenre: () => undefined,
 };
 
-function listsWithAiring(): AniListCollection[] {
+const listsWithAiring = (): AniListCollection[] => {
   const now = new Date();
   const airingAt = Math.floor(new Date(now.getFullYear(), now.getMonth(), 15, 12).getTime() / 1000);
   return [
@@ -55,9 +55,9 @@ function listsWithAiring(): AniListCollection[] {
       ],
     } as unknown as AniListCollection,
   ];
-}
+};
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -65,7 +65,7 @@ function wrapper({ children }: { children: ReactNode }) {
       {children}
     </QueryClientProvider>
   );
-}
+};
 
 afterEach(() => {
   cleanup();

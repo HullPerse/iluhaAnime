@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { collectionApi } from "@/api/collection.api";
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
-import { suggestionPoolSize } from "@/lib/rank.utils";
+import { suggestionPoolSize } from "@/lib/core/rank.utils";
 
 const POOL = suggestionPoolSize(8);
 
@@ -17,11 +17,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function advance(ms: number): void {
+const advance = (ms: number): void => {
   act(() => {
     vi.advanceTimersByTime(ms);
   });
-}
+};
 
 describe("useSuggestions", () => {
   it("does not query the backend until the debounce settles", () => {

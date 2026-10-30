@@ -1,12 +1,12 @@
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { TAG_NUMERIC_KEYS } from "@/config/tags.config";
-import { clampTolerance, DEFAULT_TAG_TOLERANCES } from "@/config/tolerance.config";
+import { TAG_NUMERIC_KEYS } from "@/config/graphics/tags.config";
+import { clampTolerance, DEFAULT_TAG_TOLERANCES } from "@/config/graphics/tolerance.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { exampleFor, opsFor } from "@/lib/tags.utils";
-import { FILTER_KEYS } from "@/lib/intent.utils";
-import { useCell } from "@/lib/signal.hook";
+import { exampleFor, opsFor } from "@/lib/core/tags.utils";
+import { FILTER_KEYS } from "@/lib/core/intent.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: () => void }) {

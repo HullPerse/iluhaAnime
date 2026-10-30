@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../../mocks";
+import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,7 +7,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { resetCardCache } from "@/lib/cardCache.utils";
+import { resetCardCache } from "@/lib/core/cardCache.utils";
 import NeighborFileButton from "@/routes/components/player/media/neighbor.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
@@ -20,7 +20,7 @@ const DEFAULT_ENTRIES = [
 
 let liveEntries = DEFAULT_ENTRIES;
 
-function renderButton(direction: "prev" | "next", onActivate = () => undefined) {
+const renderButton = (direction: "prev" | "next", onActivate = () => undefined) => {
   return render(
     <NeighborFileButton
       direction={direction}
@@ -30,7 +30,7 @@ function renderButton(direction: "prev" | "next", onActivate = () => undefined) 
       onActivate={onActivate}
     />
   );
-}
+};
 
 beforeEach(() => {
   resetCardCache();

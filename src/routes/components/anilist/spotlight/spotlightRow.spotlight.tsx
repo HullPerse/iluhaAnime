@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import QuickAddButton from "@/routes/components/anilist/detail/quickadd.detail";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
 
 export function SpotlightRow({
   media,

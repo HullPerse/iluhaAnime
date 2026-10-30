@@ -2,11 +2,9 @@ import { Clipboard, Download, ExternalLink, Link2, Magnet } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { Anime } from "@/types/torrent";
+import type { Anime } from "@/types/torrent/torrent";
 
-function ActionSeparator() {
-  return <span className="ui-toolbar-separator" aria-hidden />;
-}
+import { ActionSeparator } from "./actions/separator.actions";
 
 export default function TorrentActions({
   item,

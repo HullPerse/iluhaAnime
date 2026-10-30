@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 
 export function DitherUploadPlaceholder({
   fileName,

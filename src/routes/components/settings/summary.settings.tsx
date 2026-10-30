@@ -14,19 +14,22 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { formatBackupDate } from "@/lib/backup.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, attemptAll, reportBackgroundError, withFallback } from "@/lib/attempt.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { showError, showInfo, showWarning } from "@/lib/notification.utils";
-import { buildReproFrontend } from "@/lib/repro.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { formatBackupDate } from "@/lib/core/backup.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, attemptAll, reportBackgroundError, withFallback } from "@/lib/core/attempt.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { pickDatabase, backupSize } from "@/lib/summarySettings.utils";
+import { showError, showInfo, showWarning } from "@/lib/core/notification.utils";
+import { buildReproFrontend } from "@/lib/core/repro.utils";
 import { searchAtoms } from "@/store/search.store";
 import { getSettingsSnapshot, patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { SettingsTab } from "@/types/settings";
-import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/sqlite";
+import type { SettingsTab } from "@/types/ui/settings";
+import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/core/sqlite";
 
-import { SummaryButton, SummaryRow, SummarySection } from "./summaryRow.settings";
+import { SummaryButton } from "@/routes/components/settings/summary/button.settings";
+import { SummaryRow } from "@/routes/components/settings/summary/row.settings";
+import { SummarySection } from "@/routes/components/settings/summary/section.settings";
 
 const STORAGE_QUERY_KEY = queryKeys.summaryStorage();
 
@@ -39,14 +42,6 @@ interface SummaryStorage {
   database: SqliteDatabaseInfo | null;
   backups: SqliteBackupInfo[];
   images: RemoteImageStats;
-}
-
-function pickDatabase(databases: SqliteDatabaseInfo[]): SqliteDatabaseInfo | null {
-  return databases.find((database) => database.available) ?? databases[0] ?? null;
-}
-
-function backupSize(backups: SqliteBackupInfo[]): number {
-  return backups.reduce((total, backup) => total + backup.sizeBytes, 0);
 }
 
 export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void }) {

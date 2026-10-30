@@ -3,22 +3,22 @@ import { ChevronsLeft, ChevronsRight, ListVideo, Pause, Play, Square, SquareX } 
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { SEEK_STEP } from "@/config/keybinds.config";
+import { SEEK_STEP } from "@/config/settings/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { PlayerStream } from "@/types/playerStream";
+import type { PlayerStream } from "@/types/player/playerStream";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { resolveChapterJump } from "@/lib/chapter.utils";
-import type { ChapterJumpDirection } from "@/types/chapter";
-import { scheduleTask } from "@/lib/shared.utils";
-import { PLAYER_SPEEDS as SPEEDS } from "@/lib/speed.utils";
-import { useCell } from "@/lib/signal.hook";
+import { resolveChapterJump } from "@/lib/core/chapter.utils";
+import type { ChapterJumpDirection } from "@/types/core/chapter";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import { PLAYER_SPEEDS as SPEEDS } from "@/lib/core/speed.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { playbackAtoms, streamSession } from "@/store/player.store";
-import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
+import type { MpvChapter, MpvTrack } from "@/types/player/videoPlayer";
 
-import NeighborFileButton from "./neighbor.player";
-import StreamControl from "./stream.player";
-import Tracks from "./tracks.player";
-import VolumeControl from "./volume.player";
+import NeighborFileButton from "@/routes/components/player/media/neighbor.player";
+import StreamControl from "@/routes/components/player/media/stream.player";
+import Tracks from "@/routes/components/player/media/tracks.player";
+import VolumeControl from "@/routes/components/player/media/volume.player";
 
 const BOUNDARY_TIMEOUT = 2000;
 

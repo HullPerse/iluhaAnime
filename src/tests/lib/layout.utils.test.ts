@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { flipLayout, looksCyrillic } from "@/lib/layout.utils";
-import { suggestSpellingWithReason } from "@/lib/searchResolve.utils";
+import { flipLayout, looksCyrillic } from "@/lib/graphics/layout.utils";
+import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
 
 describe("search/layout flip", () => {
   it("maps english typed in russian layout back to english", () => {

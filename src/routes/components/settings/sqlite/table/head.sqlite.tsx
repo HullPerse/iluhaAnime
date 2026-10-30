@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, Check } from "lucide-react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SortState } from "@/types/sqlite";
+import type { SortState } from "@/types/core/sqlite";
 
 export function RowsTableHead({
   columns,

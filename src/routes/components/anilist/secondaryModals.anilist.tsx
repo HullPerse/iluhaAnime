@@ -1,5 +1,5 @@
-import type { RandomDiscovery } from "@/types/discovery";
-import { buildEntryLookup } from "@/lib/entries.utils";
+import type { RandomDiscovery } from "@/types/core/discovery";
+import { buildEntryLookup } from "@/lib/anilist/entries.utils";
 import ActivityHistoryModal from "@/routes/components/anilist/activity.anilist";
 import Auth from "@/routes/components/anilist/auth.anilist";
 import BrowseAnimeModal from "@/routes/components/anilist/browse.anilist";
@@ -9,7 +9,7 @@ import AniListFriendsModal from "@/routes/components/anilist/friends.anilist";
 import PrefetchRelationsModal from "@/routes/components/anilist/prefetch/modal.prefetch";
 import AniListRecsModal from "@/routes/components/anilist/rec.anilist";
 import StatsModal from "@/routes/components/anilist/stats.anilist";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import type {
   ActivityDetailBundle,
   AniFriend,
@@ -22,7 +22,7 @@ import type {
   AniUserProfile,
   FavouriteAnime,
   FavouritePeople,
-} from "@/types/anilist";
+} from "@/types/anilist/anilist";
 
 export default function AniListSecondaryModals({
   entryLookup,

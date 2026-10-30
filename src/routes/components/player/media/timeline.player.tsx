@@ -1,52 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
-import { formatClock } from "@/lib/time.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { formatClock } from "@/lib/core/time.utils";
+import {
+  TOOLTIP_WIDTH,
+  LIVE_SCRUB_INTERVAL,
+  type HoverInfo,
+  clamp01,
+  chapterTitleAt,
+  nearestChapterEdge,
+} from "@/lib/player/timeline.utils";
 import { playbackAtoms } from "@/store/player.store";
-import type { MpvChapter } from "@/types/videoPlayer";
-
-const TOOLTIP_WIDTH = 128;
-const LIVE_SCRUB_INTERVAL = 80;
-const CHAPTER_SNAP_SECONDS = 20;
-
-type HoverInfo = { time: number; x: number; chapter?: string };
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function chapterTitleAt(
-  chapters: MpvChapter[],
-  time: number,
-  duration: number
-): string | undefined {
-  for (let index = 0; index < chapters.length; index += 1) {
-    const start = chapters[index].time;
-    const end = chapters[index].end ?? chapters[index + 1]?.time ?? duration;
-    if (time >= start && time < end) {
-      return chapters[index].title;
-    }
-  }
-  return undefined;
-}
-
-function nearestChapterEdge(chapters: MpvChapter[], duration: number, time: number): number | null {
-  let nearest: number | null = null;
-  let nearestDist = Infinity;
-  for (const chapter of chapters) {
-    const candidates = [chapter.time, chapter.end ?? duration];
-    for (const candidate of candidates) {
-      const dist = Math.abs(candidate - time);
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = candidate;
-      }
-    }
-  }
-  if (nearest === null || nearestDist > CHAPTER_SNAP_SECONDS) return null;
-  return nearest;
-}
+import type { MpvChapter } from "@/types/player/videoPlayer";
 
 function Timeline({
   duration,

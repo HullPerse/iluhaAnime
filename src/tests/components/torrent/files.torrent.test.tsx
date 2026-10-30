@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockOpenPath } from "../../mocks";
+import { mockOpenPath } from "@/tests/mocks";
 
 vi.mock("@tanstack/react-virtual", () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
@@ -17,9 +17,9 @@ vi.mock("@tanstack/react-virtual", () => ({
 import TorrentFilesSection from "@/routes/components/torrent/file.torrent";
 import { patchSettings } from "@/store/settings.store";
 import { setVimCount } from "@/store/vim.store";
-import type { TorrentFileInfo } from "@/types/torrent";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
-function info(index: number, name: string): TorrentFileInfo {
+const info = (index: number, name: string): TorrentFileInfo => {
   return {
     index,
     name,
@@ -30,11 +30,11 @@ function info(index: number, name: string): TorrentFileInfo {
     priority: "normal",
     exists: true,
   };
-}
+};
 
 const FILES: TorrentFileInfo[] = [info(0, "A/a1.mkv"), info(1, "A/a2.mkv"), info(2, "B/b1.mkv")];
 
-function renderSection(onPlay = vi.fn()) {
+const renderSection = (onPlay = vi.fn()) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -42,44 +42,44 @@ function renderSection(onPlay = vi.fn()) {
     </QueryClientProvider>
   );
   return { onPlay };
-}
+};
 
-function folderRow(name: string): HTMLElement {
+const folderRow = (name: string): HTMLElement => {
   const node = document.querySelector<HTMLElement>(`[data-tree-path="${name}0"]`);
   if (!node) throw new Error(`folder row missing: ${name}`);
   return node;
-}
+};
 
-function fileRow(index: number): HTMLElement {
+const fileRow = (index: number): HTMLElement => {
   const node = document.querySelector<HTMLElement>(`[data-tree-path="file:${index}"]`);
   if (!node) throw new Error(`file row missing: ${index}`);
   return node;
-}
+};
 
-function rowNumber(row: HTMLElement): string | null {
+const rowNumber = (row: HTMLElement): string | null => {
   return row.querySelector<HTMLElement>("[data-tree-number]")?.textContent ?? null;
-}
+};
 
-function renderTyped(type: "player" | "torrent"): void {
+const renderTyped = (type: "player" | "torrent"): void => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <TorrentFilesSection id={1} files={FILES} type={type} path="D:/media" />
     </QueryClientProvider>
   );
-}
+};
 
-function openFolder(name: string): void {
+const openFolder = (name: string): void => {
   const row = folderRow(name);
   row.focus();
   pressKey("ArrowRight", row);
-}
+};
 
-function pressKey(code: string, target: EventTarget): void {
+const pressKey = (code: string, target: EventTarget): void => {
   act(() => {
     target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code }));
   });
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });
@@ -249,7 +249,10 @@ describe("TorrentFilesSection row visuals", () => {
 });
 
 describe("TorrentFilesSection row actions", () => {
-  function actionTarget(index: number, action: string): { row: HTMLElement; button: HTMLElement } {
+  const actionTarget = (
+    index: number,
+    action: string
+  ): { row: HTMLElement; button: HTMLElement } => {
     openFolder("A");
     const row = fileRow(index);
     const holder = row.querySelector<HTMLElement>(`[data-file-action="${action}"]`);
@@ -258,7 +261,7 @@ describe("TorrentFilesSection row actions", () => {
     if (!button) throw new Error(`action target missing: ${action}`);
     row.focus();
     return { row, button };
-  }
+  };
 
   it("clicks the external button with O", () => {
     renderSection();
@@ -376,24 +379,24 @@ describe("TorrentFilesSection row actions", () => {
 });
 
 describe("TorrentFilesSection file menu", () => {
-  function menuitems(): HTMLElement[] {
+  const menuitems = (): HTMLElement[] => {
     return [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')];
-  }
+  };
 
-  function menuitem(name: string): HTMLElement {
+  const menuitem = (name: string): HTMLElement => {
     const found = menuitems().find((entry) => entry.textContent === name);
     if (!found) throw new Error(`menu entry missing: ${name}`);
     return found;
-  }
+  };
 
-  function openMenu(index: number): HTMLElement {
+  const openMenu = (index: number): HTMLElement => {
     openFolder("A");
     const row = fileRow(index);
     const target = row.querySelector<HTMLElement>("[data-tree-activate]");
     if (!target) throw new Error("activation target missing");
     fireEvent.contextMenu(target);
     return row;
-  }
+  };
 
   it("opens five entries on right click", async () => {
     renderSection();

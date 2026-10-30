@@ -1,4 +1,4 @@
-import { mockConvertFileSrc, mockInvoke as invokeMock } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetTransportInflight } from "@/api/transport.api";
 import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
 import { patchSettings } from "@/store/settings.store";
-import type { AniCharacterEdge, AniMedia } from "@/types/anilist";
+import type { AniCharacterEdge, AniMedia } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -61,7 +61,7 @@ const CHARACTER_EDGE: AniCharacterEdge = {
   voice_actors: [],
 };
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -69,9 +69,9 @@ function wrapper({ children }: { children: ReactNode }) {
       {children}
     </QueryClientProvider>
   );
-}
+};
 
-function renderModal(onRelated = vi.fn()) {
+const renderModal = (onRelated = vi.fn()) => {
   render(
     <AniListDetailModal
       animeId={21}
@@ -84,7 +84,7 @@ function renderModal(onRelated = vi.fn()) {
     { wrapper }
   );
   return onRelated;
-}
+};
 
 afterEach(() => {
   cleanup();
@@ -148,7 +148,7 @@ describe("AniListDetailModal width", () => {
   });
 });
 
-async function openCharacter(user: ReturnType<typeof userEvent.setup>) {
+const openCharacter = async (user: ReturnType<typeof userEvent.setup>) => {
   await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "T" })).toBeDefined());
   const expanders = screen.getAllByRole("button", { name: "Expand section" });
   await user.click(expanders[0] as HTMLElement);
@@ -156,7 +156,7 @@ async function openCharacter(user: ReturnType<typeof userEvent.setup>) {
   await waitFor(() =>
     expect(screen.getByRole("heading", { level: 2, name: "Char One" })).toBeDefined()
   );
-}
+};
 
 describe("AniListDetailModal content stack", () => {
   it("shows the character in the modal titlebar and returns to the anime on back", async () => {

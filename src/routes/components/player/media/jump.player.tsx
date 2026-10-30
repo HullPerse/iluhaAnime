@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { parseTimecode } from "@/lib/playback.utils";
+import { parseTimecode } from "@/lib/player/playback.utils";
 
 function JumpToTime({
   onCommit,

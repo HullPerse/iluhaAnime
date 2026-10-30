@@ -1,9 +1,9 @@
 import { cn } from "cn";
 import { useEffect, useRef, useState } from "react";
 
-import { WALLPAPER_LOAD_RETRIES, WALLPAPER_MAX_DPR } from "@/config/wallpaper.config";
+import { WALLPAPER_LOAD_RETRIES, WALLPAPER_MAX_DPR } from "@/config/graphics/wallpaper.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { WallpaperCanvasProps } from "@/types/settings";
+import type { WallpaperCanvasProps } from "@/types/ui/settings";
 
 export default function WallpaperCanvas({ src, alt, className, filter }: WallpaperCanvasProps) {
   const { t } = useI18n();

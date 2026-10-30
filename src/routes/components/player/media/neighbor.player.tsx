@@ -4,43 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { fileNameFromPath } from "@/lib/parse.utils";
-import { scheduleTask } from "@/lib/shared.utils";
-import { fetchVideoCard, getCachedCard, isSameMediaPath } from "@/lib/cardCache.utils";
-import type { CardArt } from "@/types/cardCache";
-import { readPlaylistEntries } from "@/lib/playback.utils";
-import type { PlaylistEntry } from "@/types/playback";
-import { formatParsedTitle } from "@/lib/playerTitle.utils";
-import { useCell } from "@/lib/signal.hook";
-import { ignore } from "@/lib/promise.utils";
-import { formatClock } from "@/lib/time.utils";
+import { fileNameFromPath } from "@/lib/search/parse.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import { fetchVideoCard, getCachedCard } from "@/lib/core/cardCache.utils";
+import type { CardArt } from "@/types/core/cardCache";
+import { readPlaylistEntries } from "@/lib/player/playback.utils";
+import type { PlaylistEntry } from "@/types/player/playback";
+import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { ignore } from "@/lib/core/promise.utils";
+import { formatClock } from "@/lib/core/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 
-const HOVER_DEBOUNCE_MS = 150;
-
-function neighborAt(
-  entries: PlaylistEntry[],
-  currentPath: string,
-  playlistIndex: number,
-  direction: "prev" | "next"
-): PlaylistEntry | null {
-  if (!currentPath) return null;
-  const delta = direction === "prev" ? -1 : 1;
-  const anchor =
-    playlistIndex >= 0 && playlistIndex < entries.length ? entries[playlistIndex] : undefined;
-  if (anchor && isSameMediaPath(anchor.filename, currentPath)) {
-    return entries[playlistIndex + delta] ?? null;
-  }
-  let pos = entries.findIndex((entry) => entry.filename === currentPath);
-  if (pos === -1) {
-    pos = entries.findIndex(
-      (entry) => entry.filename && isSameMediaPath(entry.filename, currentPath)
-    );
-  }
-  if (pos === -1) return null;
-  return entries[pos + delta] ?? null;
-}
+import { HOVER_DEBOUNCE_MS, neighborAt } from "@/lib/player/neighbor.utils";
 
 function NeighborFileButton({
   direction,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveFatalVariant, resolveSplashVariant } from "@/config/screens.config";
+import { resolveFatalVariant, resolveSplashVariant } from "@/config/settings/screens.config";
 
 describe("fatal screens mapping", () => {
   it("maps windows themes to their historical screens", () => {

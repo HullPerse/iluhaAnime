@@ -1,11 +1,12 @@
-import { RATIO_PALETTE } from "@/config/palette.config";
+import { RATIO_PALETTE } from "@/config/graphics/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { ratioSegments } from "@/lib/geometry.utils";
-import { clamp } from "@/lib/math.utils";
+import { ratioSegments } from "@/lib/core/geometry.utils";
+import { clamp } from "@/lib/core/math.utils";
 
-import { ChartFrame } from "./frame.chart";
-import { SvgChartTooltip, tooltipAnnouncement } from "./tooltip.chart";
-import type { RatioChartProps } from "@/types/ratio.chart";
+import { ChartFrame } from "@/components/shared/charts/frame.chart";
+import { SvgChartTooltip } from "@/components/shared/charts/tooltip.chart";
+import { tooltipAnnouncement } from "@/lib/graphics/chartTooltip.utils";
+import type { RatioChartProps } from "@/types/core/ratio.chart";
 
 const BAR_HEIGHT = 22;
 

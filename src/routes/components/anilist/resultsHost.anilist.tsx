@@ -1,10 +1,10 @@
-import type { EntryLookup } from "@/types/entries";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
+import type { EntryLookup } from "@/types/anilist/entries";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import AniListScrollView from "@/routes/components/anilist/scroll.anilist";
-import type { AniListAnime, AniListGroup, AniMedia } from "@/types/anilist";
+import type { AniListAnime, AniListGroup, AniMedia } from "@/types/anilist/anilist";
 
-import AniListResults from "./results.anilist";
-import type AniListResultsPagination from "./resultsPagination.anilist";
+import AniListResults from "@/routes/components/anilist/results.anilist";
+import type AniListResultsPagination from "@/routes/components/anilist/resultsPagination.anilist";
 
 export default function AniListResultsHost({
   scroll,

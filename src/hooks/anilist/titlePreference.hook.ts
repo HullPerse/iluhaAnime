@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AnilistRouteData, AniTitleLanguage } from "@/types/anilist";
+import type { AnilistRouteData, AniTitleLanguage } from "@/types/anilist/anilist";
 
 const TITLE_LANGUAGES: readonly AniTitleLanguage[] = ["romaji", "english", "native"];
 

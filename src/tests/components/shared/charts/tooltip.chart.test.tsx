@@ -1,8 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { SvgChartTooltip, tooltipAnnouncement } from "@/components/shared/charts/tooltip.chart";
-import { truncateLabel } from "@/components/shared/charts/ticks.chart";
+import { SvgChartTooltip } from "@/components/shared/charts/tooltip.chart";
+import { tooltipAnnouncement } from "@/lib/graphics/chartTooltip.utils";
+import { truncateLabel } from "@/lib/graphics/chartTicks.utils";
 
 const DATA = {
   title: "Drama",

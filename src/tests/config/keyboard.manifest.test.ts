@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { KEYBIND_MANIFEST, keybindEntriesByScope } from "@/config/manifest.config";
-import { KEYBINDS } from "@/config/keybinds.config";
-import { chordKey, parseChord } from "@/lib/chordHotkeys.utils";
+import { KEYBIND_MANIFEST, keybindEntriesByScope } from "@/config/system/manifest.config";
+import { KEYBINDS } from "@/config/settings/keybinds.config";
+import { chordKey, parseChord } from "@/lib/core/chordHotkeys.utils";
 import en from "@/lib/locale/en";
 import ru from "@/lib/locale/ru";
 

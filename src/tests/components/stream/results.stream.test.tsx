@@ -8,7 +8,7 @@ vi.mock("@/hooks/stream/catalog.hook", () => ({
 import StreamResults from "@/routes/components/stream/results.stream";
 import { patchSettings } from "@/store/settings.store";
 import { streamQuery, submitStreamSearch } from "@/store/stream.store";
-import type { StreamingAnime } from "@/types/stream";
+import type { StreamingAnime } from "@/types/player/stream";
 
 const NARUTO: StreamingAnime = {
   id: "11",
@@ -25,7 +25,7 @@ const NARUTO: StreamingAnime = {
   slugUrl: "11--naruto-anime",
 };
 
-function renderResults(overrides: Partial<React.ComponentProps<typeof StreamResults>> = {}) {
+const renderResults = (overrides: Partial<React.ComponentProps<typeof StreamResults>> = {}) => {
   return render(
     <StreamResults
       data={undefined}
@@ -36,7 +36,7 @@ function renderResults(overrides: Partial<React.ComponentProps<typeof StreamResu
       {...overrides}
     />
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

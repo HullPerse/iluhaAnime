@@ -1,9 +1,9 @@
 import { memo, useMemo } from "react";
 
 import { useTorrentItemActions } from "@/hooks/torrent/actions.hook";
-import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent";
+import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent/torrent";
 
-import TorrentItem from "./item.torrent";
+import TorrentItem from "@/routes/components/torrent/item.torrent";
 
 interface TorrentRowProps {
   item: TorrentInfo;

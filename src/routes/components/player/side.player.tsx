@@ -1,13 +1,13 @@
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamNext } from "@/hooks/player/stream.hook";
 import { useAnilistEpisodePreviews } from "@/hooks/stream/catalog.hook";
-import { useCell } from "@/lib/signal.hook";
-import { ignore } from "@/lib/promise.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { ignore } from "@/lib/core/promise.utils";
 import { streamSession } from "@/store/player.store";
-import type { PlayerSidePanelProps } from "@/types/player";
+import type { PlayerSidePanelProps } from "@/types/player/player";
 
-import StreamEpisodeList from "./media/episodes.player";
-import PlaylistBody from "./media/playlist.player";
+import StreamEpisodeList from "@/routes/components/player/media/episodes.player";
+import PlaylistBody from "@/routes/components/player/media/playlist.player";
 
 /**
  * The side panel is a local playlist for files and the title's season for a

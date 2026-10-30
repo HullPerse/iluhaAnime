@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TranslationKey, TranslationVariables } from "@/types/i18n";
+import type { TranslationKey, TranslationVariables } from "@/types/core/i18n";
 
 export function useI18n() {
   const locale = useCell(settingsAtoms.language);

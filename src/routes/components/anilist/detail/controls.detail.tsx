@@ -1,15 +1,24 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { listStatusOptions } from "@/config/labels.config";
+import { listStatusOptions } from "@/config/system/labels.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isValidFuzzyDateInput } from "@/lib/entries.utils";
+import { useListDraft } from "@/hooks/anilist/listDraft.hook";
+import {
+  buildSaveValues,
+  datesInvalid,
+  patchListEntry,
+  readListStatus,
+  reconcileSavedEntry,
+  scoreErrorKey,
+} from "@/lib/anilist/listEntry.utils";
+import { DeleteListEntryButton } from "@/routes/components/anilist/detail/controls/deleteListEntryButton.controls";
 import {
   numericInputStep,
   parseScoreFormat,
@@ -17,291 +26,15 @@ import {
   scoreOptions,
   usesNumericInput,
   validateScoreInput,
-} from "@/lib/anilistScore.utils";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
-import { buildAnilistPrefill } from "@/lib/import.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { attempt } from "@/lib/attempt.utils";
+} from "@/lib/anilist/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
+import { buildAnilistPrefill } from "@/lib/core/import.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import { requestWizardPrefill } from "@/store/collection.store";
-import type { AniMedia, AniSavedEntry, AnilistRouteData } from "@/types/anilist";
-import type { TranslationKey } from "@/types/i18n";
-
-function scoreErrorKey(error: TranslationKey | null): TranslationKey {
-  return error ?? "anilist.controls.score.invalid";
-}
-
-interface ListEntryPatch {
-  list_status: string;
-  progress: number | null;
-  score: number | null;
-  notes: string | null;
-  repeat?: number | null;
-  private?: boolean | null;
-  hidden_from_status_lists?: boolean | null;
-  started_at?: string | null;
-  completed_at?: string | null;
-  custom_lists: string[];
-}
-
-function parseRepeatInput(value: string): number | null {
-  if (value.trim() === "") return null;
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed)) return null;
-  return Math.min(999, Math.max(0, parsed));
-}
-
-function dateArg(input: string, previous: string | null | undefined): string | undefined {
-  if (input.trim() !== "") return input.trim();
-  if (previous) return "";
-  return undefined;
-}
-
-function parseProgressInput(value: string, max: number): number | null {
-  if (value.trim() === "") return null;
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed)) return null;
-  return Math.min(max, Math.max(0, parsed));
-}
-
-function patchListEntry(
-  queryClient: ReturnType<typeof useQueryClient>,
-  mediaId: number,
-  patch: ListEntryPatch
-): void {
-  const clean = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
-  queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) => {
-    if (!old) return old;
-    const data = old as AnilistRouteData;
-    return {
-      ...data,
-      lists: data.lists.map((list) => ({
-        ...list,
-        entries: list.entries.map((entry) =>
-          entry.media.id === mediaId ? { ...entry, ...clean } : entry
-        ),
-      })),
-    };
-  });
-}
-
-function readListStatus(
-  queryClient: ReturnType<typeof useQueryClient>,
-  mediaId: number
-): string | null {
-  const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-  if (!data) return null;
-  for (const list of data.lists) {
-    const found = list.entries.find((entry) => entry.media.id === mediaId);
-    if (found) return found.list_status;
-  }
-  return null;
-}
-
-function reconcileSavedEntry(
-  queryClient: ReturnType<typeof useQueryClient>,
-  mediaId: number,
-  previousStatus: string | null,
-  draft: ListEntryPatch,
-  saved: AniSavedEntry | null
-): { status: string; bucketChanged: boolean } {
-  const status = saved?.status ?? draft.list_status;
-  const customLists = saved?.customLists ?? [];
-  const patch: ListEntryPatch = {
-    list_status: status,
-    progress: saved?.progress ?? draft.progress,
-    score: draft.score,
-    notes: draft.notes,
-    custom_lists: customLists.length > 0 ? customLists : draft.custom_lists,
-  };
-  if (draft.repeat !== undefined) patch.repeat = saved?.repeat ?? draft.repeat;
-  if (draft.private !== undefined) patch.private = draft.private;
-  if (draft.hidden_from_status_lists !== undefined)
-    patch.hidden_from_status_lists = draft.hidden_from_status_lists;
-  if (draft.started_at !== undefined) patch.started_at = draft.started_at;
-  if (draft.completed_at !== undefined) patch.completed_at = draft.completed_at;
-  if (previousStatus !== null) {
-    patchListEntry(queryClient, mediaId, patch);
-  }
-  return { status, bucketChanged: previousStatus === null || previousStatus !== status };
-}
-
-function DeleteListEntryButton({
-  animeId,
-  disabled,
-  onSaved,
-  onClose,
-  onError,
-}: {
-  animeId: number;
-  disabled: boolean;
-  onSaved?: () => void;
-  onClose?: () => void;
-  onError: (message: string) => void;
-}) {
-  const { t } = useI18n();
-  const queryClient = useQueryClient();
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    const userId = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData())?.user?.id;
-    if (!userId) {
-      onError(t("anilist.controls.delete.error"));
-      return;
-    }
-    setDeleting(true);
-    const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-    removeListEntry(queryClient, animeId);
-    const [, error] = await attempt(anilistApi.deleteEntry(animeId, userId));
-    if (error) {
-      queryClient.setQueryData(queryKeys.anilistData(), previous);
-      onError(t("anilist.controls.delete.error"));
-      setDeleting(false);
-      return;
-    }
-    onSaved?.();
-    onClose?.();
-  };
-
-  return (
-    <Button variant="error" onClick={handleDelete} disabled={disabled || deleting}>
-      {t("anilist.controls.delete")}
-    </Button>
-  );
-}
-function removeListEntry(queryClient: ReturnType<typeof useQueryClient>, mediaId: number): void {
-  queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) => {
-    if (!old) return old;
-    const data = old as AnilistRouteData;
-    return {
-      ...data,
-      lists: data.lists.map((list) => ({
-        ...list,
-        entries: list.entries.filter((entry) => entry.media.id !== mediaId),
-      })),
-    };
-  });
-}
-
-interface ListEntryDraft {
-  progress: number | null;
-  score: number | null;
-  list_status: string;
-  notes: string | null;
-  repeat?: number | null;
-  private?: boolean | null;
-  hidden_from_status_lists?: boolean | null;
-  started_at?: string | null;
-  completed_at?: string | null;
-  custom_lists: string[];
-}
-
-function textOrEmpty(value: string | null | undefined): string {
-  return value ?? "";
-}
-
-function numText(value: number | null | undefined): string {
-  return value?.toString() ?? "";
-}
-
-function flagOrFalse(value: boolean | null | undefined): boolean {
-  return value ?? false;
-}
-
-function useListDraft(animeId: number, listEntry: ListEntryDraft | undefined) {
-  const [editStatus, setEditStatus] = useState(listEntry?.list_status ?? "PLANNING");
-  const [editProgress, setEditProgress] = useState(numText(listEntry?.progress));
-  const [editScore, setEditScore] = useState(numText(listEntry?.score));
-  const [editNotes, setEditNotes] = useState(textOrEmpty(listEntry?.notes));
-  const [editRepeat, setEditRepeat] = useState(numText(listEntry?.repeat));
-  const [editPrivate, setEditPrivate] = useState(flagOrFalse(listEntry?.private));
-  const [editHidden, setEditHidden] = useState(flagOrFalse(listEntry?.hidden_from_status_lists));
-  const [editStarted, setEditStarted] = useState(textOrEmpty(listEntry?.started_at));
-  const [editCompleted, setEditCompleted] = useState(textOrEmpty(listEntry?.completed_at));
-  const [editCustomLists, setEditCustomLists] = useState<string[]>(listEntry?.custom_lists ?? []);
-  const [flagsTouched, setFlagsTouched] = useState(false);
-
-  const syncedAnimeId = useRef(animeId);
-  useEffect(() => {
-    if (syncedAnimeId.current === animeId) return;
-    syncedAnimeId.current = animeId;
-    setEditStatus(listEntry?.list_status ?? "PLANNING");
-    setEditProgress(numText(listEntry?.progress));
-    setEditScore(numText(listEntry?.score));
-    setEditNotes(textOrEmpty(listEntry?.notes));
-    setEditRepeat(numText(listEntry?.repeat));
-    setEditPrivate(flagOrFalse(listEntry?.private));
-    setEditHidden(flagOrFalse(listEntry?.hidden_from_status_lists));
-    setEditStarted(textOrEmpty(listEntry?.started_at));
-    setEditCompleted(textOrEmpty(listEntry?.completed_at));
-    setEditCustomLists(listEntry?.custom_lists ?? []);
-    setFlagsTouched(false);
-  }, [animeId, listEntry]);
-
-  return {
-    editStatus,
-    setEditStatus,
-    editProgress,
-    setEditProgress,
-    editScore,
-    setEditScore,
-    editNotes,
-    setEditNotes,
-    editRepeat,
-    setEditRepeat,
-    editPrivate,
-    setEditPrivate,
-    editHidden,
-    setEditHidden,
-    editStarted,
-    setEditStarted,
-    editCompleted,
-    setEditCompleted,
-    editCustomLists,
-    setEditCustomLists,
-    flagsTouched,
-    setFlagsTouched,
-  };
-}
-
-function datesInvalid(started: string, completed: string): boolean {
-  const badStarted = started.trim() !== "" && !isValidFuzzyDateInput(started);
-  const badCompleted = completed.trim() !== "" && !isValidFuzzyDateInput(completed);
-  return badStarted || badCompleted;
-}
-
-function buildSaveValues(params: {
-  status: string;
-  progressInput: string;
-  maxEpisodes: number;
-  score: number | null;
-  notesInput: string;
-  repeatInput: string;
-  isPrivate: boolean;
-  hidden: boolean;
-  flagsTouched: boolean;
-  startedInput: string;
-  completedInput: string;
-  customLists: string[];
-  listEntry: ListEntryDraft | undefined;
-}): ListEntryPatch {
-  const flagsKnown =
-    params.listEntry?.private !== undefined ||
-    params.listEntry?.hidden_from_status_lists !== undefined;
-  const trimmed = params.notesInput.trim();
-  return {
-    list_status: params.status,
-    progress: parseProgressInput(params.progressInput, params.maxEpisodes),
-    score: params.score,
-    notes: trimmed ? trimmed : null,
-    repeat: params.repeatInput.trim() === "" ? undefined : parseRepeatInput(params.repeatInput),
-    private: params.flagsTouched || flagsKnown ? params.isPrivate : undefined,
-    hidden_from_status_lists: params.flagsTouched || flagsKnown ? params.hidden : undefined,
-    started_at: dateArg(params.startedInput, params.listEntry?.started_at),
-    completed_at: dateArg(params.completedInput, params.listEntry?.completed_at),
-    custom_lists: params.customLists,
-  };
-}
+import type { AniMedia, AnilistRouteData } from "@/types/anilist/anilist";
+import type { ListEntryDraft } from "@/types/anilist/listEntry";
 
 function AniListActionControls({
   anime,

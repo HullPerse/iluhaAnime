@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isMentionOf } from "@/lib/activity.utils";
-import { queryKeys } from "@/lib/keys.utils";
+import { isMentionOf } from "@/lib/core/activity.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
 
-import { FeedItem } from "./feedItem.activity";
+import { FeedItem } from "@/routes/components/anilist/activity/feedItem.activity";
 
 export function MentionsTab({
   userId,

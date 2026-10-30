@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { closestScrollable, isInsideScrollable, scrollAmount } from "@/lib/scroll.utils";
+import { closestScrollable, isInsideScrollable, scrollAmount } from "@/lib/ui/scroll.utils";
 
 const created: HTMLElement[] = [];
 

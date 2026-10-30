@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveTitleQuery, suggestSpellingWithReason } from "@/lib/searchResolve.utils";
-import { getSearchSuggestions } from "@/lib/suggestions.utils";
-import type { AnimeTitle, SearchAnimeSuggestion } from "@/types/search";
+import { resolveTitleQuery } from "@/lib/search/searchHypothesis.utils";
+import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
+import { getSearchSuggestions } from "@/lib/core/suggestions.utils";
+import type { AnimeTitle, SearchAnimeSuggestion } from "@/types/search/search";
 
 interface FixtureVariant {
   kind: AnimeTitle["kind"];

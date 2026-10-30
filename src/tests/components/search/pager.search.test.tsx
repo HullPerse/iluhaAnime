@@ -6,12 +6,12 @@ import SearchPager from "@/routes/components/search/default/pager.search";
 
 afterEach(cleanup);
 
-function renderPager(props?: {
+const renderPager = (props?: {
   page?: number;
   pageFull?: boolean;
   isLoading?: boolean;
   onPageChange?: (page: number) => void;
-}) {
+}) => {
   return render(
     <SearchPager
       page={props?.page ?? 2}
@@ -22,7 +22,7 @@ function renderPager(props?: {
       onPageChange={props?.onPageChange ?? vi.fn()}
     />
   );
-}
+};
 
 describe("SearchPager", () => {
   it("disables next on a short page", () => {

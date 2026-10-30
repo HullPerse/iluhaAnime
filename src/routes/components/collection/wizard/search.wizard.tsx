@@ -4,9 +4,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { WizardSearchResult } from "@/types/collection";
+import type { WizardSearchResult } from "@/types/anilist/collection";
 
-import { SearchResultCover } from "./searchResultCover.wizard";
+import { SearchResultCover } from "@/routes/components/collection/wizard/searchResultCover.wizard";
 
 export function WizardSourceSearch({
   source,
@@ -46,12 +46,12 @@ export function WizardSourceSearch({
   const showEmpty = searched && !loading && !searchError && searchResults.length === 0;
   const showLoadingRow = loading && searchResults.length === 0;
 
-  function pick(index: number) {
+  const pick = (index: number) => {
     const result = searchResults[index];
     if (!result) return;
     setActiveIndex(-1);
     onPickResult(result);
-  }
+  };
 
   return (
     <div className="flex flex-col gap-1">

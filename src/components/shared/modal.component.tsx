@@ -1,20 +1,20 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useModalResize } from "@/hooks/modalResize.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
-import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
-import { scheduleTask } from "@/lib/shared.utils";
-import { useCell } from "@/lib/signal.hook";
+import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import { getContentSignature } from "@/lib/ui/modalSignature.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-import type { ModalWindow } from "@/types/ui";
+import type { ModalWindow } from "@/types/core/ui";
 
-import { Button } from "../ui/button.component";
+import { Button } from "@/components/ui/button.component";
 
 const MODAL_CONTENT_FADE_MS = 150;
 
@@ -40,7 +40,8 @@ function Modal({
   const [visible, setVisible] = useState(false);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const contentElement = useRef<HTMLDivElement>(null);
-  const prevChildrenRef = useRef<ReactNode>(children);
+  const prevContentSignatureRef = useRef<string | undefined>(undefined);
+  const contentSignature = getContentSignature(children);
   useOverlayDialog();
   useModalResize(popupElement, modalAnimation);
 
@@ -54,14 +55,18 @@ function Modal({
   }, [modalAnimation]);
 
   useEffect(() => {
-    if (!animateModalContent || contentElement.current === null) return;
-    if (prevChildrenRef.current === children) return;
-    prevChildrenRef.current = children;
-    contentElement.current.animate([{ opacity: 0 }, { opacity: 1 }], {
+    if (!animateModalContent) return;
+    const previous = prevContentSignatureRef.current;
+    prevContentSignatureRef.current = contentSignature;
+    if (previous === undefined || previous === contentSignature) return;
+    const element = contentElement.current;
+    if (element === null) return;
+    const animation = element.animate([{ opacity: 0 }, { opacity: 1 }], {
       duration: MODAL_CONTENT_FADE_MS,
       easing: "ease-out",
     });
-  }, [animateModalContent, children]);
+    return () => animation.cancel();
+  }, [animateModalContent, contentSignature]);
 
   useEffect(() => {
     if (!import.meta.env.DEV || typeof document === "undefined") return;

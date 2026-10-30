@@ -1,7 +1,7 @@
-import { KEYBINDS } from "@/config/keybinds.config";
-import type { KeybindDef } from "@/types/keybinds";
+import { KEYBINDS } from "@/config/settings/keybinds.config";
+import type { KeybindDef } from "@/types/ui/keybinds";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { TranslationKey } from "@/types/i18n";
+import type { TranslationKey } from "@/types/core/i18n";
 
 const CATEGORIES: KeybindDef["category"][] = ["playback", "navigation", "subtitles", "ui"];
 

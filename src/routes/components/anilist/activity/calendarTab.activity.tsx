@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { CELL_GAP, CELL_LEVELS, CELL_SIZE } from "@/config/activity.config";
+import { CELL_GAP, CELL_LEVELS, CELL_SIZE } from "@/config/anilist/activity.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import {
   buildActivityMap,
@@ -11,9 +11,9 @@ import {
   dayKey,
   monthLabel,
   selectInitialDayKey,
-} from "@/lib/activity.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { AniListCollection } from "@/types/anilist";
+} from "@/lib/core/activity.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { AniListCollection } from "@/types/anilist/anilist";
 
 export function CalendarTab({
   lists,

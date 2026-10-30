@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { DIGIT_KEYS, KEYBINDS, PLAYER_HOTKEYS, VIEW_MODE_DIGITS } from "@/config/keybinds.config";
-import { parseChord } from "@/lib/chordHotkeys.utils";
-import { createHotkeyRegistry } from "@/lib/registryHotkeys.utils";
+import {
+  DIGIT_KEYS,
+  KEYBINDS,
+  PLAYER_HOTKEYS,
+  VIEW_MODE_DIGITS,
+} from "@/config/settings/keybinds.config";
+import { parseChord } from "@/lib/core/chordHotkeys.utils";
+import { createHotkeyRegistry } from "@/lib/core/registryHotkeys.utils";
 
 describe("KEYBINDS", () => {
   it("gives every entry a unique parseable chord", () => {

@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { joinMediaPath, openFileInPlayer } from "@/lib/media.utils";
-import { showError } from "@/lib/notification.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { joinMediaPath, openFileInPlayer } from "@/lib/player/media.utils";
+import { showError } from "@/lib/core/notification.utils";
 import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
-import type { TorrentTreeFile } from "@/types/torrent";
+import type { TorrentTreeFile } from "@/types/torrent/torrent";
 
-import { QueueStatusIcon } from "./queueStatusIcon.torrent";
+import { QueueStatusIcon } from "@/routes/components/torrent/queueStatusIcon.torrent";
 
 export function PlayerFileActions({
   file,

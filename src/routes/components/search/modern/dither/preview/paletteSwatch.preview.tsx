@@ -4,8 +4,8 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
-import { hexToRgba, rgbToHex } from "@/lib/color.utils";
-import type { DitherRGB } from "@/types/dither";
+import { hexToRgba, rgbToHex } from "@/lib/graphics/color.utils";
+import type { DitherRGB } from "@/types/graphics/dither";
 
 export function PaletteSwatchStrip({
   palette,

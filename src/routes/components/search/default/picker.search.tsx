@@ -1,47 +1,31 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useState, useEffect, useRef, useCallback, useMemo, type ReactElement } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
-import { PICKER_ELAPSED_TICK_MS } from "@/config/common.config";
+import { PICKER_ELAPSED_TICK_MS } from "@/config/system/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { createInterval } from "@/lib/interval.utils";
-import { formatParsedTitle } from "@/lib/playerTitle.utils";
-import { useCell } from "@/lib/signal.hook";
-import { duplicateOfMagnet } from "@/lib/duplicate.utils";
-import { torrentFileIcon } from "@/lib/fileIcon.utils";
-import { groupFilesByDirectory } from "@/lib/torrentTree.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { showError } from "@/lib/notification.utils";
-import { formatElapsed } from "@/lib/time.utils";
+import { createInterval } from "@/lib/core/interval.utils";
+import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { duplicateOfMagnet } from "@/lib/core/duplicate.utils";
+import { torrentFileIcon } from "@/lib/core/fileIcon.utils";
+import { groupFilesByDirectory } from "@/lib/torrent/torrentTree.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { showError } from "@/lib/core/notification.utils";
+import { formatElapsed } from "@/lib/core/time.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { PickerTorrent, TorrentInfo } from "@/types/torrent";
+import type { PickerTorrent, TorrentInfo } from "@/types/torrent/torrent";
+
+import { DuplicateNotice } from "@/routes/components/search/default/duplicateNotice.picker";
+import { isDownloadBlocked } from "@/lib/torrent/picker.utils";
 
 const NO_EXISTING_TORRENTS: readonly TorrentInfo[] = [];
-
-function DuplicateNotice({ duplicate }: { duplicate: TorrentInfo | null }): ReactElement | null {
-  const { t } = useI18n();
-  if (!duplicate) return null;
-  return (
-    <div role="alert" className="windows95-text text-destructive w-full px-1 text-xs">
-      {t("picker.duplicate", { name: duplicate.name })}
-    </div>
-  );
-}
-
-function isDownloadBlocked(
-  pending: boolean,
-  saveDir: string,
-  selectedCount: number,
-  duplicate: TorrentInfo | null
-): boolean {
-  return pending || selectedCount === 0 || !saveDir || duplicate !== null;
-}
 
 function TorrentFilePicker({
   torrent,

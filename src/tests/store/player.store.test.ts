@@ -6,7 +6,7 @@ import {
   createPlayerSignalStore,
   type PlaybackSignalStore,
 } from "@/store/player.store";
-import type { PlaybackSnapshot } from "@/types/videoPlayer";
+import type { PlaybackSnapshot } from "@/types/player/videoPlayer";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {
   return {

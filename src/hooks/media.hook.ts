@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import { mediaEntries } from "@/store/media.store";
-import type { MediaEntry } from "@/types/videoPlayer";
+import type { MediaEntry } from "@/types/player/videoPlayer";
 
 const entrySnapshots = new WeakMap<MediaEntry[], Map<string, MediaEntry | undefined>>();
 

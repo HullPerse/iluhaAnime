@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normForCompare, resolveSegments, splitKnownArcTail } from "@/lib/segments.utils";
+import { normForCompare, resolveSegments, splitKnownArcTail } from "@/lib/core/segments.utils";
 
 describe("splitKnownArcTail contract", () => {
   it("splits a known arc off the word tail", () => {

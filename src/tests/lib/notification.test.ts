@@ -13,7 +13,7 @@ import {
   showErrorOnce,
   formatRelativeTime,
   resolveNotificationText,
-} from "@/lib/notification.utils";
+} from "@/lib/core/notification.utils";
 import { deeplinkAtoms } from "@/store/deeplink.store";
 import {
   addNotification,
@@ -22,7 +22,7 @@ import {
   updateNotification,
 } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
-import type { AniListId } from "@/types/types";
+import type { AniListId } from "@/types/core/types";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,

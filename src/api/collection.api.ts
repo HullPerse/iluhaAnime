@@ -3,11 +3,11 @@ import type {
   CollectionStatusDef,
   CustomFieldDef,
   RawCollectionItem,
-} from "@/types/collection";
-import type { LearningStatRow, UnifiedIndexRow } from "@/types/search";
+} from "@/types/anilist/collection";
+import type { LearningStatRow, UnifiedIndexRow } from "@/types/search/search";
 
-import type { ApiTransport } from "@/types/transport";
-import { tauriTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/core/transport";
+import { tauriTransport } from "@/api/transport.api";
 
 export interface CollectionStatusRow extends Omit<CollectionStatusDef, "order" | "kind"> {
   order?: number;

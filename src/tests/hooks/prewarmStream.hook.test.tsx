@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { prefetchStreamConstants, usePrewarmStreamHistory } from "@/hooks/stream/catalog.hook";
-import { queryKeys } from "@/lib/keys.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
 import { settingsAtoms } from "@/store/settings.store";
 
 const CONSTANTS = { types: [], genres: [], statuses: [], ageRatings: [] };
@@ -18,9 +18,9 @@ vi.mock("@/api/stream.api", () => ({ streamApi: api }));
 
 let client: QueryClient;
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-}
+};
 
 beforeEach(() => {
   client = new QueryClient();

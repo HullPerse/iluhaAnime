@@ -1,21 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
-import { applyCollectionFilters, filterCollectionItems, pickRandomItem } from "@/lib/filter.utils";
-import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collectionGroup.utils";
-import { buildCollectionQueryHints } from "@/lib/hints.utils";
+import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/anilist/statuses.config";
+import {
+  applyCollectionFilters,
+  filterCollectionItems,
+  pickRandomItem,
+} from "@/lib/core/filter.utils";
+import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/anilist/collectionGroup.utils";
+import { buildCollectionQueryHints } from "@/lib/core/hints.utils";
 import {
   buildAnilistPrefill,
   entryDiffers,
   entrySyncState,
   entryToWizardValues,
   mediaToWizardValues,
-} from "@/lib/import.utils";
-import { computeGroupProgress } from "@/lib/importProgress.utils";
-import { readStoredMedia, withStoredMedia } from "@/lib/collectionMedia.utils";
-import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collectionSearch.utils";
-import { buildShareImportPlan } from "@/lib/share.utils";
-import { calculateCollectionStats } from "@/lib/collectionStats.utils";
+} from "@/lib/core/import.utils";
+import { computeGroupProgress } from "@/lib/core/importProgress.utils";
+import { readStoredMedia, withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
+import {
+  buildCollectionSearchIndex,
+  searchCollectionIndex,
+} from "@/lib/anilist/collectionSearch.utils";
+import { buildShareImportPlan } from "@/lib/core/share.utils";
+import { calculateCollectionStats } from "@/lib/anilist/collectionStats.utils";
 import {
   buildCustomStatusId,
   isPublicStatus,
@@ -27,7 +34,7 @@ import {
   sortStatuses,
   splitStatusLabel,
   statusLabel,
-} from "@/lib/status.utils";
+} from "@/lib/core/status.utils";
 import {
   buildWizardItem,
   mergeGenreTags,
@@ -37,9 +44,9 @@ import {
   wizardDefaultsMedia,
   wizardDefaultsMeta,
   wizardDefaultsProgress,
-} from "@/lib/wizard.utils";
+} from "@/lib/core/wizard.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import type { AniListEntry } from "@/types/anilist";
+import type { AniListEntry } from "@/types/anilist/anilist";
 import type {
   CollectionItem,
   CollectionStatusDef,
@@ -47,8 +54,8 @@ import type {
   QuickAddListEntry,
   QuickAddMedia,
   WizardSaveValues,
-} from "@/types/collection";
-import type { CollectionShareDeepLink } from "@/types/deeplink";
+} from "@/types/anilist/collection";
+import type { CollectionShareDeepLink } from "@/types/core/deeplink";
 
 describe("collection/filter", () => {
   function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {

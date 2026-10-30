@@ -1,16 +1,16 @@
-import { mockInvoke } from "../../../../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ditherDecodeCache, ditherRenderCache } from "@/lib/dither.utils";
-import { toUserImage } from "@/lib/image.utils";
+import { ditherDecodeCache, ditherRenderCache } from "@/lib/graphics/dither.utils";
+import { toUserImage } from "@/lib/graphics/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
-import type { UserImage, UserImageFile } from "@/types/userimage";
+import type { UserImage, UserImageFile } from "@/types/core/userimage";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -34,7 +34,7 @@ const UPDATED_FILE: UserImageFile = {
   version: "2",
 };
 
-function installCanvasHarness(source: Uint8ClampedArray) {
+const installCanvasHarness = (source: Uint8ClampedArray) => {
   const context = {
     drawImage: vi.fn(() => {}),
     getImageData: vi.fn(() => ({ data: source })),
@@ -48,9 +48,9 @@ function installCanvasHarness(source: Uint8ClampedArray) {
     return { data, width, height };
   }
   vi.stubGlobal("ImageData", FakeImageData as unknown as typeof ImageData);
-}
+};
 
-function installImageHarness(naturalWidth: number, naturalHeight: number) {
+const installImageHarness = (naturalWidth: number, naturalHeight: number) => {
   const instances: Array<{ fireLoad: () => void }> = [];
   class MockImage {
     naturalWidth = naturalWidth;
@@ -72,7 +72,7 @@ function installImageHarness(naturalWidth: number, naturalHeight: number) {
   }
   vi.stubGlobal("Image", MockImage as unknown as typeof Image);
   return instances;
-}
+};
 
 afterEach(() => {
   cleanup();

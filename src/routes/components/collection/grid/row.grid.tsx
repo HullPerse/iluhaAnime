@@ -1,6 +1,10 @@
-import type { CollectionItem, CollectionStatus, CollectionStatusDef } from "@/types/collection";
+import type {
+  CollectionItem,
+  CollectionStatus,
+  CollectionStatusDef,
+} from "@/types/anilist/collection";
 
-import { CollectionCard } from "../card.collection";
+import { CollectionCard } from "@/routes/components/collection/card.collection";
 
 export function GridRow({
   rowItems,

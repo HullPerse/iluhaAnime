@@ -1,8 +1,8 @@
-import { attemptSync } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { inflightFetch } from "@/lib/lruCache.utils";
-import type { CommandName } from "@/types/ipc";
-import type { ApiTransport, TransportStats } from "@/types/transport";
+import { attemptSync } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { inflightFetch } from "@/lib/core/lruCache.utils";
+import type { CommandName } from "@/types/core/ipc";
+import type { ApiTransport, TransportStats } from "@/types/core/transport";
 
 const inflight = new Map<string, Promise<unknown>>();
 

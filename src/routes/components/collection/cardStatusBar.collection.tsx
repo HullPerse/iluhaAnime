@@ -3,8 +3,12 @@ import { Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { sortStatuses, statusLabel } from "@/lib/status.utils";
-import type { CollectionItem, CollectionStatus, CollectionStatusDef } from "@/types/collection";
+import { sortStatuses, statusLabel } from "@/lib/core/status.utils";
+import type {
+  CollectionItem,
+  CollectionStatus,
+  CollectionStatusDef,
+} from "@/types/anilist/collection";
 
 export function CardStatusBar({
   item,

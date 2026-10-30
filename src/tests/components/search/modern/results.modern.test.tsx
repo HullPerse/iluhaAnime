@@ -1,12 +1,12 @@
-import { mockInvoke } from "../../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ModernResults from "@/routes/components/search/modern/results.modern";
 import { patchSettings } from "@/store/settings.store";
-import type { SearchQueryController } from "@/types/search";
-import type { Anime } from "@/types/torrent";
+import type { SearchQueryController } from "@/types/search/search";
+import type { Anime } from "@/types/torrent/torrent";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -31,7 +31,7 @@ const FULL_PAGE: Anime[] = Array.from({ length: 20 }, (_, index) => ({
   link: `https://animetosho.org/view/${index + 1}`,
 }));
 
-function renderResults(controller: Partial<SearchQueryController>) {
+const renderResults = (controller: Partial<SearchQueryController>) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
@@ -64,7 +64,7 @@ function renderResults(controller: Partial<SearchQueryController>) {
       />
     </QueryClientProvider>
   );
-}
+};
 
 afterEach(() => {
   cleanup();

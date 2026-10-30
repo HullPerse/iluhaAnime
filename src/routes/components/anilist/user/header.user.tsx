@@ -3,8 +3,8 @@ import { Calendar, Flame, UserStar, LogOut, GitBranch, Users } from "lucide-reac
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatMeanScore, parseScoreFormat } from "@/lib/anilistScore.utils";
-import type { AniHeaderProps as Props } from "@/types/anilist";
+import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
+import type { AniHeaderProps as Props } from "@/types/anilist/anilist";
 
 export default function AniListProfileHeader({
   user,

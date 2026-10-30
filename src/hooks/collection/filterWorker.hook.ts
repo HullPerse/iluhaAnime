@@ -1,16 +1,19 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
-import { createCollectionFilterSnapshot, queryCollectionFilterSnapshot } from "@/lib/filter.utils";
-import type { CollectionFilterSnapshot } from "@/types/filter";
-import { reportBackgroundError } from "@/lib/attempt.utils";
+import {
+  createCollectionFilterSnapshot,
+  queryCollectionFilterSnapshot,
+} from "@/lib/core/filter.utils";
+import type { CollectionFilterSnapshot } from "@/types/core/filter";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { createJobRunner } from "@/lib/workers/job.utils";
-import type { JobRunner } from "@/types/job";
+import type { JobRunner } from "@/types/core/job";
 import type {
   CollectionFilterWorkerPayload,
   CollectionFilterWorkerResult,
   CollectionItem,
-} from "@/types/collection";
-import type { CollectionFilterWorkerParams } from "@/types/filterWorker";
+} from "@/types/anilist/collection";
+import type { CollectionFilterWorkerParams } from "@/types/core/filterWorker";
 
 export function useCollectionFilterWorker(params: CollectionFilterWorkerParams): {
   filtered: CollectionItem[];

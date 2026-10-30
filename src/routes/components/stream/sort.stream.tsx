@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { setStreamSort, streamFilters } from "@/store/stream.store";
-import type { StreamSortBy } from "@/types/stream";
+import type { StreamSortBy } from "@/types/player/stream";
 
 /**
  * One sort axis, the same shape the AniList list uses: a feed and a named

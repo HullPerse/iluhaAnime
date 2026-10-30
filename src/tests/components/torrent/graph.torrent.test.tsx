@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { SpeedGraph } from "@/routes/components/torrent/graph.torrent";
 import { patchSettings } from "@/store/settings.store";
-import type { DhtStatus } from "@/types/torrent";
+import type { DhtStatus } from "@/types/torrent/torrent";
 
 const DHT: DhtStatus = { nodes_v4: 10, nodes_v6: 5, pending: 0 };
 

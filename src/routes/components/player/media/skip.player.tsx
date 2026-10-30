@@ -3,17 +3,17 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { scheduleTask } from "@/lib/shared.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
 import {
   SKIP_AUTO_HIDE_MS,
   SKIP_SEEK_BACK_THRESHOLD,
   findActiveChapter,
   resolveSkipTarget,
   skipLabel,
-} from "@/lib/skip.utils";
-import { useCell } from "@/lib/signal.hook";
+} from "@/lib/core/skip.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { playbackAtoms } from "@/store/player.store";
-import type { MpvChapter } from "@/types/videoPlayer";
+import type { MpvChapter } from "@/types/player/videoPlayer";
 
 function SkipButton({
   duration,

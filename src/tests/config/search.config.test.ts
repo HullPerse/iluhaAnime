@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { settingsSearchSchema } from "@/config/tabs.config";
-import { torrentSearchSchema } from "@/config/torrentSearch.config";
+import { settingsSearchSchema } from "@/config/settings/tabs.config";
+import { torrentSearchSchema } from "@/config/search/torrentSearch.config";
 
 describe("torrentSearchSchema", () => {
   it("defaults every field when the query string is empty", () => {

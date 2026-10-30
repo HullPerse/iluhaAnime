@@ -3,19 +3,19 @@ import { useEffect, useMemo } from "react";
 import { discordApi } from "@/api/discord.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   buildDetailActivity,
   buildIdleActivity,
   buildSearchActivity,
   samePresence,
-} from "@/lib/presence.utils";
-import { reportPresenceCommand } from "@/lib/presenceCommand.utils";
+} from "@/lib/core/presence.utils";
+import { reportPresenceCommand } from "@/lib/core/presenceCommand.utils";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { presenceAtoms } from "@/store/presence.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { DiscordActivity } from "@/types/discord";
-import type { TabId } from "@/types/settings";
+import type { DiscordActivity } from "@/types/core/discord";
+import type { TabId } from "@/types/ui/settings";
 
 const PRESENCE_DEBOUNCE_MS = 800;
 

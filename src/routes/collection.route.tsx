@@ -8,17 +8,17 @@ import { useCollectionData, useCollectionMutations } from "@/hooks/collection/qu
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { pickRandomItem } from "@/lib/filter.utils";
-import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collectionGroup.utils";
-import { buildCollectionQueryHints } from "@/lib/hints.utils";
-import { buildShareImportPlan } from "@/lib/share.utils";
-import { calculateCollectionStats } from "@/lib/collectionStats.utils";
-import { isPublicStatus, isPublicStatusFull, publicStatusPrefill } from "@/lib/status.utils";
-import { focusMainSearch } from "@/lib/focusHotkeys.utils";
-import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { buildCollectionShareLink } from "@/lib/deeplink.utils";
+import { pickRandomItem } from "@/lib/core/filter.utils";
+import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/anilist/collectionGroup.utils";
+import { buildCollectionQueryHints } from "@/lib/core/hints.utils";
+import { buildShareImportPlan } from "@/lib/core/share.utils";
+import { calculateCollectionStats } from "@/lib/anilist/collectionStats.utils";
+import { isPublicStatus, isPublicStatusFull, publicStatusPrefill } from "@/lib/core/status.utils";
+import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@/lib/core/attempt.utils";
+import { buildCollectionShareLink } from "@/lib/core/deeplink.utils";
 import {
   collectionAtoms,
   consumeWizardPrefill,
@@ -37,16 +37,16 @@ import type {
   CollectionStatus,
   CollectionStatusDef,
   WizardPrefill,
-} from "@/types/collection";
+} from "@/types/anilist/collection";
 
-import FilterCollection from "./components/collection/filter.collection";
-import GridCollection from "./components/collection/grid.collection";
-import ListCollection from "./components/collection/list.collection";
-import CollectionModals from "./components/collection/modals.collection";
-import { CollectionQuerySlot } from "./components/collection/querySlot.collection";
-import { ShareImportCollection } from "./components/collection/shareImport.collection";
-import { StatusCollection } from "./components/collection/status.collection";
-import ToolbarCollection from "./components/collection/toolbar.collection";
+import FilterCollection from "@/routes/components/collection/filter.collection";
+import GridCollection from "@/routes/components/collection/grid.collection";
+import ListCollection from "@/routes/components/collection/list.collection";
+import CollectionModals from "@/routes/components/collection/modals.collection";
+import { CollectionQuerySlot } from "@/routes/components/collection/querySlot.collection";
+import { ShareImportCollection } from "@/routes/components/collection/shareImport.collection";
+import { StatusCollection } from "@/routes/components/collection/status.collection";
+import ToolbarCollection from "@/routes/components/collection/toolbar.collection";
 
 export default function CollectionRoute() {
   const { t } = useI18n();

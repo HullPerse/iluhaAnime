@@ -1,5 +1,5 @@
 import { useCollectionMedia } from "@/hooks/collection/media.hook";
-import type { MediaViewerParts } from "@/types/collection";
+import type { MediaViewerParts } from "@/types/anilist/collection";
 
 export function useViewerMedia(
   tmdbId: number | null,

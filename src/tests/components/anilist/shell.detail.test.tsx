@@ -1,4 +1,4 @@
-import { mockConvertFileSrc, mockInvoke as invokeMock } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -13,7 +13,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: mockConvertFileSrc,
 }));
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -21,7 +21,7 @@ function wrapper({ children }: { children: ReactNode }) {
       {children}
     </QueryClientProvider>
   );
-}
+};
 
 describe("AnimeDetailShell transport", () => {
   beforeEach(() => {

@@ -2,9 +2,9 @@ import { useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SelectDialogProps } from "@/types/ui";
+import type { SelectDialogProps } from "@/types/core/ui";
 
-import Modal from "./modal.component";
+import Modal from "@/components/shared/modal.component";
 
 export function SelectDialog({ header, label, options, onSubmit, onClose }: SelectDialogProps) {
   const { t } = useI18n();

@@ -5,18 +5,12 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { reportBackgroundError } from "@/lib/attempt.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
 const CONTROL_CLASS = "relative h-5 w-5";
 const CONTROL_ICON_CLASS = "size-2.5";
 
-function run(action: Promise<unknown>, scope: string) {
-  action.catch((error) => reportBackgroundError(scope, error));
-}
-
-function startsOnControl(target: EventTarget | null) {
-  return target instanceof Element && target.closest("button, [data-no-drag]") !== null;
-}
+import { startsOnControl, runPlayerHeaderAction as run } from "@/lib/player/playerHeader.utils";
 
 export default function TitleBar({ title, children }: { title: string; children?: ReactNode }) {
   const { t } = useI18n();

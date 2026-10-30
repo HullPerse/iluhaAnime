@@ -1,18 +1,26 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef } from "react";
 
-import { listStatusLabels } from "@/config/labels.config";
-import { ANILIST_SCROLL_HEADER_ESTIMATE, ANILIST_SCROLL_ROW_ESTIMATE } from "@/config/list.config";
+import { listStatusLabels } from "@/config/system/labels.config";
+import {
+  ANILIST_SCROLL_HEADER_ESTIMATE,
+  ANILIST_SCROLL_ROW_ESTIMATE,
+} from "@/config/anilist/list.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor } from "@/lib/entries.utils";
-import type { EntryLookup } from "@/types/entries";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
+import type { EntryLookup } from "@/types/anilist/entries";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import { GroupHeaderCollection } from "@/routes/components/collection/groupHeader.collection";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AniListAnime, AniListGroup, AniListScrollRow, AniMedia } from "@/types/anilist";
+import type {
+  AniListAnime,
+  AniListGroup,
+  AniListScrollRow,
+  AniMedia,
+} from "@/types/anilist/anilist";
 
 export default function AniListScrollView({
   items,

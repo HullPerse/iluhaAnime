@@ -3,8 +3,8 @@ import { Check, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
-import type { DropdownOption } from "@/types/dropdown.tracks";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
+import type { DropdownOption } from "@/types/core/dropdown.tracks";
 
 const CLOSE_DEFS: ResolvedHotkeyDef<"close">[] = [
   { id: "close", chord: "Escape", repeat: "once", keybindId: "menu.close" },

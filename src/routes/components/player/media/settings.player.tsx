@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
@@ -10,8 +8,9 @@ import {
   PLAYER_CABINETS,
   PLAYER_MODE_IDS,
   PLAYER_MODES,
-} from "@/config/modes.config";
-import { PLAYER_PROFILE_IDS } from "@/config/profiles.config";
+} from "@/config/settings/modes.config";
+import { PLAYER_PROFILE_IDS } from "@/config/settings/profiles.config";
+import { PLAYER_FONT_OPTIONS } from "@/config/player/fonts.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import type {
@@ -23,40 +22,13 @@ import type {
   PlayerProfileId,
   PlayerSettings,
   SeekMode,
-} from "@/types/videoPlayer";
+} from "@/types/player/videoPlayer";
 
-import PlayerSlider from "./slider.player";
+import PlayerSlider from "@/routes/components/player/media/slider.player";
 
-const FONT_OPTIONS = ["Arial", "Verdana", "Tahoma", "Segoe UI", "Courier New", "Times New Roman"];
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="border-muted flex flex-col gap-1 border-b-2 pb-2">
-      <span className="windows95-text text-xs font-bold">{title}</span>
-      {children}
-    </section>
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-row items-center gap-1">
-      <span className="windows95-font w-28 shrink-0 text-xs">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function ColorInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return (
-    <input
-      type="color"
-      className="windows95-border h-5 w-12 cursor-pointer bg-white p-0"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  );
-}
+import { Section } from "@/routes/components/player/media/settings/section.settings";
+import { Row } from "@/routes/components/player/media/settings/row.settings";
+import { ColorInput } from "@/routes/components/player/media/settings/colorInput.settings";
 
 function SettingsPanel({
   settings,
@@ -86,7 +58,7 @@ function SettingsPanel({
   onProfile: (profile: PlayerProfileId) => void;
 }) {
   const { t } = useI18n();
-  const fontOptions = FONT_OPTIONS.map((font) => ({ value: font, label: font }));
+  const fontOptions = PLAYER_FONT_OPTIONS.map((font) => ({ value: font, label: font }));
   const hwdecOptions = [
     { value: "auto-safe", label: t("player.media.settings.hwdec.auto.safe") },
     { value: "d3d11va", label: t("player.media.settings.hwdec.d3d11va") },

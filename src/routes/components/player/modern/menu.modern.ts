@@ -23,20 +23,29 @@ import {
   Volume2,
 } from "lucide-react";
 
-import type { ContextMenuEntry } from "@/types/contextMenu";
+import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 import {
   PLAYER_CABINET_IDS,
   PLAYER_CABINETS,
   PLAYER_MODE_IDS,
   PLAYER_MODES,
-} from "@/config/modes.config";
-import { PLAYER_SPEEDS } from "@/lib/speed.utils";
-import { selectableTracks, trackLabel } from "@/lib/tracks.utils";
-import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/streamHelpers.utils";
-import { formatClock } from "@/lib/time.utils";
-import type { TranslationKey } from "@/types/i18n";
-import type { EndOfFileMode, MpvChapter, MpvTrack, PlayerViewMode } from "@/types/videoPlayer";
-import type { ModernMenuActions, ModernMenuSnapshot, ModernMenuStream } from "@/types/menu.modern";
+} from "@/config/settings/modes.config";
+import { PLAYER_SPEEDS } from "@/lib/core/speed.utils";
+import { selectableTracks, trackLabel } from "@/lib/torrent/tracks.utils";
+import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/player/streamHelpers.utils";
+import { formatClock } from "@/lib/core/time.utils";
+import type { TranslationKey } from "@/types/core/i18n";
+import type {
+  EndOfFileMode,
+  MpvChapter,
+  MpvTrack,
+  PlayerViewMode,
+} from "@/types/player/videoPlayer";
+import type {
+  ModernMenuActions,
+  ModernMenuSnapshot,
+  ModernMenuStream,
+} from "@/types/core/menu.modern";
 
 const EOF_MODES: EndOfFileMode[] = ["none", "pause", "next", "repeat"];
 

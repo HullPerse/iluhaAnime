@@ -2,9 +2,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { TorrentProgress } from "@/routes/components/torrent/sections/progress.sections";
-import type { TorrentInfo } from "@/types/torrent";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
-function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
+const info = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
   return {
     download_order: [],
     download_speed: 0,
@@ -30,7 +30,7 @@ function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     uploaded_bytes: 0,
     ...overrides,
   };
-}
+};
 
 afterEach(cleanup);
 

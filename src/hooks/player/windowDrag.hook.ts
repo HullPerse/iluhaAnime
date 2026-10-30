@@ -1,10 +1,10 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 
-import { shouldStartWindowDrag, startsOnPlayerControl } from "@/lib/playerDrag.utils";
-import { withFallback } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
-import type { WindowDragHandlers } from "@/types/playerWindowDrag";
+import { shouldStartWindowDrag, startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
+import { withFallback } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import type { WindowDragHandlers } from "@/types/player/playerWindowDrag";
 
 export function useWindowDrag(enabled: boolean): WindowDragHandlers {
   const originRef = useRef<{ x: number; y: number } | null>(null);

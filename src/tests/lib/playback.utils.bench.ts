@@ -9,9 +9,9 @@ import {
   profileOptions,
   rotateQueue,
   transformOptions,
-} from "@/lib/playback.utils";
+} from "@/lib/player/playback.utils";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
-import type { PlayerSettings } from "@/types/videoPlayer";
+import type { PlayerSettings } from "@/types/player/videoPlayer";
 
 const HEAVY: PlayerSettings = {
   ...DEFAULT_PLAYER_SETTINGS,

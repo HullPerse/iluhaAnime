@@ -1,11 +1,11 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useEffect, useRef, useState } from "react";
 
-import { resolveFatalVariant } from "@/config/screens.config";
-import { resolveDbTexts, resolveFatalLocale } from "@/lib/fatalTexts.utils";
-import { attempt } from "@/lib/attempt.utils";
-import type { FatalVariant } from "@/types/fatal";
-import type { DbScreenProps } from "@/types/screen.db";
+import { resolveFatalVariant } from "@/config/settings/screens.config";
+import { resolveDbTexts, resolveFatalLocale } from "@/lib/core/fatalTexts.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import type { FatalVariant } from "@/types/core/fatal";
+import type { DbScreenProps } from "@/types/core/screen.db";
 
 const WRAP: Record<FatalVariant, { backgroundColor: string; color: string; fontFamily: string }> = {
   win95: {

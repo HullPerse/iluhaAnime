@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CollectionItem } from "@/types/collection";
+import type { CollectionItem } from "@/types/anilist/collection";
 
 export function WizardFooter({
   editing,

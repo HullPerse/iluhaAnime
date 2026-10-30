@@ -1,44 +1,23 @@
-import { openPath } from "@tauri-apps/plugin-opener";
-import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
-import { Button } from "@/components/ui/button.component";
-import ImageComponent from "@/components/ui/image.component";
-import { TORRENT_RESIZE_STEP } from "@/config/torrents.config";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
+import { TORRENT_RESIZE_STEP } from "@/config/torrent/torrents.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
 import { useTorrentCardResize } from "@/hooks/torrentResize.hook";
-import { isVideoFileName } from "@/lib/parse.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { isCheckingFiles } from "@/lib/torrentCommon.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
+import { isVideoFileName } from "@/lib/search/parse.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { isCheckingFiles } from "@/lib/torrent/torrentCommon.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TorrentPlayerProps as Props } from "@/types/player";
+import type { TorrentPlayerProps as Props } from "@/types/player/player";
 
-import TorrentFilesSection from "../torrent/file.torrent";
-import { TorrentPendingState } from "../torrent/sections/pending.sections";
-
-function SectionActions({ onRefresh, saveDir }: { onRefresh: () => void; saveDir: string }) {
-  const { t } = useI18n();
-  return (
-    <>
-      <Button size="icon" className="size-5" title={t("player.files.refresh")} onClick={onRefresh}>
-        <RefreshCw className="size-3" />
-      </Button>
-      <Button
-        size="icon"
-        className="size-5"
-        title={t("player.files.open.folder")}
-        onClick={() => openPath(saveDir)}
-      >
-        <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
-      </Button>
-    </>
-  );
-}
+import TorrentFilesSection from "@/routes/components/torrent/file.torrent";
+import SectionActions from "./sectionActions.player";
+import { TorrentPendingState } from "@/routes/components/torrent/sections/pending.sections";
 
 export default function TorrentFilesPlayerSection({
   item,

@@ -5,7 +5,7 @@ import {
   PLAYER_CABINETS,
   PLAYER_MODE_IDS,
   PLAYER_MODES,
-} from "@/config/modes.config";
+} from "@/config/settings/modes.config";
 
 describe("player screen modes", () => {
   it("keeps one definition per id", () => {

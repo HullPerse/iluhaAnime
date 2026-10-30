@@ -14,14 +14,14 @@ afterEach(() => {
   cleanup();
 });
 
-function renderFilter(query: string) {
+const renderFilter = (query: string) => {
   const onQueryChange = vi.fn();
   const { container } = render(
     <TorrentNameFilter names={NAMES} query={query} onQueryChange={onQueryChange} />
   );
   const input = screen.getByPlaceholderText("Filter...") as HTMLInputElement;
   return { container, onQueryChange, input };
-}
+};
 
 describe("TorrentNameFilter", () => {
   it("shows the inline completion of the first matching torrent name", () => {

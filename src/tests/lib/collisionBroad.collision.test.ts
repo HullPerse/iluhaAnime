@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bucketRows } from "@/lib/collisionBroad.utils";
+import { bucketRows } from "@/lib/core/collisionBroad.utils";
 
 describe("bucketRows", () => {
   it("returns no bands for no tops", () => {

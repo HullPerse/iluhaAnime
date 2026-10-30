@@ -5,20 +5,20 @@ import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
-import { readStoredMedia } from "@/lib/collectionMedia.utils";
-import { statusLabel } from "@/lib/status.utils";
-import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
+import { readStoredMedia } from "@/lib/anilist/collectionMedia.utils";
+import { statusLabel } from "@/lib/core/status.utils";
+import type { CollectionItem, CollectionStatusDef } from "@/types/anilist/collection";
 
-import { DetailActionsCollection } from "./actions.detail";
-import { DetailCoverCollection } from "./cover.detail";
-import { CreditsCollection } from "./credits.detail";
-import { DetailFactsCollection } from "./facts.detail";
-import { DetailHeaderActions } from "./headerActions.detail";
-import { SeasonsCollection } from "./seasons.detail";
-import { SimilarCollection } from "./similar.detail";
-import { SitesCollection } from "./sites.detail";
-import { TitlesCollection } from "./titles.detail";
-import { MediaViewerContent } from "./viewer.detail";
+import { DetailActionsCollection } from "@/routes/components/collection/detail/actions.detail";
+import { DetailCoverCollection } from "@/routes/components/collection/detail/cover.detail";
+import { CreditsCollection } from "@/routes/components/collection/detail/credits.detail";
+import { DetailFactsCollection } from "@/routes/components/collection/detail/facts.detail";
+import { DetailHeaderActions } from "@/routes/components/collection/detail/headerActions.detail";
+import { SeasonsCollection } from "@/routes/components/collection/detail/seasons.detail";
+import { SimilarCollection } from "@/routes/components/collection/detail/similar.detail";
+import { SitesCollection } from "@/routes/components/collection/detail/sites.detail";
+import { TitlesCollection } from "@/routes/components/collection/detail/titles.detail";
+import { MediaViewerContent } from "@/routes/components/collection/detail/viewer.detail";
 
 export function DetailCollection({
   item,

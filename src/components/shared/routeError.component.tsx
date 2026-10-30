@@ -2,10 +2,15 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 
 import { FatalScreen } from "@/components/shared/fatal/screen.fatal";
-import { toFatalInfo } from "@/lib/fatalClassify.utils";
-import { clearFatal, isCurrentSessionSafe, reportFatal, requestSafeMode } from "@/lib/report.utils";
-import { readThemeName } from "@/lib/fatalTheme.utils";
-import { attemptSync } from "@/lib/attempt.utils";
+import { toFatalInfo } from "@/lib/core/fatalClassify.utils";
+import {
+  clearFatal,
+  isCurrentSessionSafe,
+  reportFatal,
+  requestSafeMode,
+} from "@/lib/core/report.utils";
+import { readThemeName } from "@/lib/core/fatalTheme.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
 
 export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {
   const fatal = useMemo(

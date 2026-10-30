@@ -4,22 +4,22 @@ import { useCallback, useMemo, useRef } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/folders.config";
+import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/system/folders.config";
 import { useBottomResize, resolveResizeMultiplier } from "@/hooks/folderResize.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindChord } from "@/hooks/keybindTitle.hook";
-import { maxFolderHeight } from "@/lib/folder.utils";
-import { summarizeTree } from "@/lib/playerTree.utils";
-import { normalizePlayerPath } from "@/lib/visibility.utils";
-import { playerVisibility } from "@/lib/playerVisibility.utils";
-import { useCell } from "@/lib/signal.hook";
-import { formatBytes } from "@/lib/bytes.utils";
+import { maxFolderHeight } from "@/lib/core/folder.utils";
+import { summarizeTree } from "@/lib/player/playerTree.utils";
+import { normalizePlayerPath } from "@/lib/core/visibility.utils";
+import { playerVisibility } from "@/lib/player/playerVisibility.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { formatBytes } from "@/lib/core/bytes.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { setVimCount, vimAtoms } from "@/store/vim.store";
-import type { FolderNode } from "@/types/torrent";
+import type { FolderNode } from "@/types/torrent/torrent";
 
-import FolderView from "../folder.player";
+import FolderView from "@/routes/components/player/folder.player";
 
 export function DraggableFolder({
   tree,

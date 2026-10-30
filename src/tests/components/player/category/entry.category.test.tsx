@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { TorrentCategoryEntry } from "@/routes/components/player/category/entry.category";
 import { patchSettings } from "@/store/settings.store";
-import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent";
+import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent/torrent";
 
-import { mockInvoke } from "../../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 const SAVE_DIR = "D:/media/anime";
 
-function torrent(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
+const torrent = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
   return {
     id: 1,
     name: "Test release",
@@ -36,9 +36,9 @@ function torrent(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     external_changed_files: [],
     ...overrides,
   };
-}
+};
 
-function file(index: number, name: string, completed = true): TorrentFileInfo {
+const file = (index: number, name: string, completed = true): TorrentFileInfo => {
   return {
     index,
     name,
@@ -49,16 +49,16 @@ function file(index: number, name: string, completed = true): TorrentFileInfo {
     priority: "normal",
     exists: true,
   };
-}
+};
 
-function renderEntry(torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>) {
+const renderEntry = (torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <TorrentCategoryEntry tor={torrent()} torrentFilesMap={torrentFilesMap} />
     </QueryClientProvider>
   );
-}
+};
 
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) =>

@@ -2,16 +2,16 @@ import type { ReactNode } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
   fmtSpeed,
   getDisplayState,
-} from "@/lib/torrentCommon.utils";
-import { formatETA } from "@/lib/time.utils";
+} from "@/lib/torrent/torrentCommon.utils";
+import { formatETA } from "@/lib/core/time.utils";
 import { torrentAtoms } from "@/store/download.store";
-import type { TorrentInfo } from "@/types/torrent";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
 export function TorrentPendingState({ item, actions }: { item: TorrentInfo; actions?: ReactNode }) {
   const { t } = useI18n();

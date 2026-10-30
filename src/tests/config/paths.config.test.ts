@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { TAB_PATHS, tabIdFromPath, tabPathFromId } from "@/config/tabPaths.config";
-import type { TabId } from "@/types/settings";
+import { TAB_PATHS, tabIdFromPath, tabPathFromId } from "@/config/settings/tabPaths.config";
+import type { TabId } from "@/types/ui/settings";
 
 describe("tabs/paths", () => {
   it("maps every tab id to its path", () => {

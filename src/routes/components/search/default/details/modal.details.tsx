@@ -1,341 +1,39 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
-import {
-  AlertCircle,
-  ExternalLink,
-  FileText,
-  Image as ImageIcon,
-  Info,
-  Link2,
-  MessageSquare,
-  RefreshCw,
-  Rss,
-} from "lucide-react";
+import { ExternalLink, Info } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
-import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
-import { Button } from "@/components/ui/button.component";
-import ImageComponent from "@/components/ui/image.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentCover } from "@/hooks/search/cover.hook";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { buildTorrentView } from "@/lib/torrentDetails.utils";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
-import { settingsAtoms } from "@/store/settings.store";
-import type { Source, TorrentDetailsProps as Props } from "@/types/search";
-import type { Anime, TorrentDetailField, TorrentView } from "@/types/torrent";
-import type { ModalPager } from "@/types/ui";
-
-import DescriptionBlocks from "./description.details";
-import DetailsHero from "./hero.details";
+import { ignore } from "@/lib/core/promise.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { buildTorrentView } from "@/lib/torrent/torrentDetails.utils";
 import {
-  CommentsPanel,
-  DetailsTabBar,
-  FilesPanel,
-  MediainfoPanel,
-  ScreenshotsPanel,
-} from "./panels.details";
-import type { DetailsTab } from "@/types/panels.details";
-import { DetailSection } from "./section.details";
+  buildDetailTabs,
+  detailsErrorText,
+  heroPoster,
+  isExtraMetadataField,
+  lightboxImage,
+  lightboxPager,
+  openDetailsOriginalUrl,
+  resolveActiveTab,
+} from "@/lib/torrent/torrentDetailsModal.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { settingsAtoms } from "@/store/settings.store";
+import type { ImageLightbox } from "@/types/core/detailsModal";
+import type { DetailsTab } from "@/types/core/panels.details";
+import type { TorrentDetailsProps as Props } from "@/types/search/search";
+import type { Anime } from "@/types/torrent/torrent";
 
-const KNOWN_FIELD_LABELS = [
-  "size",
-  "размер",
-  "seeder",
-  "leecher",
-  "category",
-  "категория",
-  "uploaded",
-  "added",
-  "updated",
-  "hash",
-  "хеш",
-  "completed",
-];
+import Hero from "@/routes/components/search/default/details/hero.details";
+import { DetailsError } from "@/routes/components/search/default/details/modal/error.modal";
+import { DetailsLightbox } from "@/routes/components/search/default/details/modal/lightbox.modal";
+import { DetailsLoading } from "@/routes/components/search/default/details/modal/loading.modal";
+import { DetailsTabPanels } from "@/routes/components/search/default/details/modal/tabPanels.modal";
+import { DetailsTabBar } from "@/routes/components/search/default/details/panels/tabBar.panels";
 
-function isExtraMetadataField(field: TorrentDetailField): boolean {
-  const label = field.label.toLowerCase();
-  return !KNOWN_FIELD_LABELS.some((known) => label.includes(known));
-}
-
-function buildDetailTabs(
-  view: TorrentView,
-  t: (key: TranslationKey) => string
-): { id: DetailsTab; label: string; count?: number }[] {
-  const tabs: { id: DetailsTab; label: string; count?: number }[] = [
-    { id: "description", label: t("search.details.description") },
-  ];
-  if (view.screenshots.length > 0) {
-    tabs.push({
-      id: "screenshots",
-      label: t("search.details.screenshots"),
-      count: view.screenshots.length,
-    });
-  }
-  if (view.files.length > 0) {
-    tabs.push({ id: "files", label: t("search.details.files"), count: view.files.length });
-  }
-  if (view.mediainfo) {
-    tabs.push({ id: "mediainfo", label: t("search.details.mediainfo") });
-  }
-  tabs.push({
-    id: "comments",
-    label: t("search.details.comments"),
-    count: view.comments.length,
-  });
-  return tabs;
-}
-
-function resolveActiveTab(
-  tabs: { id: DetailsTab; label: string; count?: number }[],
-  tab: DetailsTab
-): DetailsTab {
-  if (tabs.some((entry) => entry.id === tab)) return tab;
-  return tabs[0]?.id ?? "description";
-}
-
-function heroPoster(
-  view: TorrentView | null,
-  coverUrl: string | null,
-  remoteUrl: string | null
-): string | null {
-  if (view?.poster) return view.poster;
-  const shot = view?.screenshots[0];
-  if (shot) return shot;
-  return coverUrl ?? remoteUrl;
-}
-
-interface ImageLightbox {
-  images: string[];
-  index: number;
-}
-
-function lightboxImage(lightbox: ImageLightbox): string {
-  return lightbox.images[lightbox.index] ?? "";
-}
-
-function lightboxPager(
-  lightbox: ImageLightbox | null,
-  label: string,
-  setLightbox: (updater: (prev: ImageLightbox | null) => ImageLightbox | null) => void
-): ModalPager | undefined {
-  if (!lightbox || lightbox.images.length < 2) return undefined;
-  const step = (delta: number) => () =>
-    setLightbox((prev) =>
-      prev === null
-        ? prev
-        : { ...prev, index: (prev.index + delta + prev.images.length) % prev.images.length }
-    );
-  return {
-    index: lightbox.index,
-    total: lightbox.images.length,
-    label,
-    onPrevious: step(-1),
-    onNext: step(1),
-  };
-}
-
-async function openOriginalUrl(
-  source: Source,
-  item: Anime,
-  view: TorrentView | null,
-  detailUrl: string
-): Promise<void> {
-  const originalUrl = (source === "erai-raws" && item.website) || view?.url || detailUrl;
-  if (source === "erai-raws" && item.website) {
-    const [, pageError] = await attempt(torrentApi.eraiOpenPage(item.website));
-    if (!pageError) return;
-    if (!String(pageError).includes("webview_not_found")) {
-      reportBackgroundError("erai.open-page", pageError);
-      return;
-    }
-    const [, loginError] = await attempt(torrentApi.eraiWebviewLogin());
-    if (loginError) {
-      reportBackgroundError("erai.open-page", loginError);
-      return;
-    }
-    const [, retryError] = await attempt(torrentApi.eraiOpenPage(item.website));
-    if (retryError) reportBackgroundError("erai.open-page", retryError);
-    return;
-  }
-  const [, openError] = await attempt(openUrl(originalUrl));
-  if (openError) reportBackgroundError("details.open-original", openError);
-}
-
-function DetailsLoading() {
-  const { t } = useI18n();
-  return (
-    <div className="flex min-h-48 flex-col items-center justify-center gap-2">
-      <SmallLoader size={6} />
-      <span className="windows95-text">{t("search.details.loading")}</span>
-    </div>
-  );
-}
-
-function DetailsError({
-  error,
-  onRetry,
-  onOpenOriginal,
-}: {
-  error: string;
-  onRetry: () => void;
-  onOpenOriginal: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="text-destructive flex min-h-36 flex-col items-center justify-center gap-2">
-      <AlertCircle className="size-7" />
-      <span className="windows95-text max-w-2xl text-center whitespace-pre-wrap">{error}</span>
-      <div className="flex flex-wrap justify-center gap-1">
-        <Button onClick={onRetry}>
-          <RefreshCw className="mr-1 size-3" />
-          {t("search.details.retry")}
-        </Button>
-        <Button onClick={onOpenOriginal}>
-          <ExternalLink className="mr-1 size-3" />
-          {t("search.details.original")}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function DetailsLightbox({ url }: { url: string }) {
-  const { t } = useI18n();
-  const openImage = async () => {
-    const [, openError] = await attempt(openUrl(url));
-    if (openError) reportBackgroundError("details.open-image", openError);
-  };
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <div className="flex justify-end">
-        <Button onClick={() => openImage()}>
-          <ExternalLink className="size-3" />
-          {t("search.details.open.image")}
-        </Button>
-      </div>
-      <div className="windows95-border h-[62vh] overflow-auto bg-black/20">
-        <ImageComponent key={url} src={url} alt="" className="h-full w-full" type="contain" />
-      </div>
-    </div>
-  );
-}
-
-function DetailsTabPanels({
-  view,
-  activeTab,
-  metadataFields,
-  onZoom,
-  onZoomScreenshot,
-}: {
-  view: TorrentView;
-  activeTab: DetailsTab;
-  metadataFields: TorrentDetailField[];
-  onZoom: (url: string) => void;
-  onZoomScreenshot: (url: string) => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <>
-      {activeTab === "description" && (
-        <DetailSection
-          icon={<Rss className="size-3" />}
-          title={t("search.details.description")}
-          className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
-        >
-          <DescriptionBlocks
-            blocks={view.descriptionBlocks}
-            fallback={view.description}
-            onZoom={onZoom}
-          />
-        </DetailSection>
-      )}
-
-      {metadataFields.length > 0 && activeTab === "description" && (
-        <DetailSection
-          icon={<Info className="size-3" />}
-          title={t("search.details.information")}
-          count={metadataFields.length}
-        >
-          <div className="grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
-            {metadataFields.map((field, index) => (
-              <div
-                key={`${field.label}-${index}`}
-                className="windows95-border bg-surface min-w-0 px-1.5 py-1"
-              >
-                <div className="windows95-text text-hint text-xs">{field.label}</div>
-                <div className="windows95-text mt-0.5 text-xs wrap-break-word whitespace-pre-wrap">
-                  {field.value}
-                </div>
-              </div>
-            ))}
-          </div>
-        </DetailSection>
-      )}
-
-      {activeTab === "screenshots" && (
-        <DetailSection
-          icon={<ImageIcon className="size-3" />}
-          title={t("search.details.screenshots")}
-          count={view.screenshots.length}
-          className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
-        >
-          <ScreenshotsPanel screenshots={view.screenshots} onZoom={onZoomScreenshot} />
-        </DetailSection>
-      )}
-
-      {activeTab === "files" && (
-        <DetailSection
-          icon={<FileText className="size-3" />}
-          title={t("search.details.files")}
-          count={view.files.length}
-          className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
-        >
-          <FilesPanel view={view} />
-        </DetailSection>
-      )}
-
-      {activeTab === "mediainfo" && view.mediainfo && (
-        <DetailSection
-          icon={<Info className="size-3" />}
-          title={t("search.details.mediainfo")}
-          className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
-        >
-          <MediainfoPanel mediainfo={view.mediainfo} />
-        </DetailSection>
-      )}
-
-      {activeTab === "comments" && (
-        <DetailSection
-          icon={<MessageSquare className="size-3" />}
-          title={t("search.details.comments")}
-          count={view.comments.length}
-          className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
-        >
-          <CommentsPanel view={view} />
-        </DetailSection>
-      )}
-
-      {view.infoHash && (
-        <DetailSection icon={<Link2 className="size-3" />} title={t("search.details.hash")}>
-          <p className="windows95-text text-xs break-all">{view.infoHash}</p>
-        </DetailSection>
-      )}
-    </>
-  );
-}
-
-function TorrentDetailsModal({
+export default function TorrentDetailsModal({
   item,
   source,
   magnets,
@@ -358,12 +56,7 @@ function TorrentDetailsModal({
   });
   const info = detailsQuery.data ?? null;
   const loading = detailsQuery.isLoading;
-  const error =
-    detailsQuery.error instanceof Error
-      ? detailsQuery.error.message
-      : detailsQuery.error == null
-        ? null
-        : String(detailsQuery.error);
+  const error = detailsErrorText(detailsQuery.error);
 
   const view = useMemo(
     () => (info ? buildTorrentView(info, item, magnets, source) : null),
@@ -404,7 +97,7 @@ function TorrentDetailsModal({
   const poster = coverMode === "off" ? null : heroPoster(view, cover.coverUrl, cover.remoteUrl);
   const hidePoster = coverMode === "off" || (coverMode === "pages" && poster === null);
   const openOriginal = () => {
-    ignore(openOriginalUrl(source, item, view, detailUrl));
+    ignore(openDetailsOriginalUrl(source, item, view, detailUrl));
   };
 
   return (
@@ -443,7 +136,7 @@ function TorrentDetailsModal({
         view &&
         !loading && (
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <DetailsHero
+            <Hero
               view={view}
               item={actionItem}
               source={source}
@@ -479,5 +172,3 @@ function TorrentDetailsModal({
     </Modal>
   );
 }
-
-export default TorrentDetailsModal;

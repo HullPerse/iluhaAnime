@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 
-import { Button } from "../ui/button.component";
+import { Button } from "@/components/ui/button.component";
 
 export function BigError({
   error,

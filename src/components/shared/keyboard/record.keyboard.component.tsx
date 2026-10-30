@@ -15,20 +15,13 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import type { KeybindScope } from "@/types/manifest";
+import type { KeybindScope } from "@/types/core/manifest";
 import { useI18n } from "@/hooks/i18n.hook";
-import { humanizeChord, parseChord } from "@/lib/chordHotkeys.utils";
+import { humanizeChord, parseChord } from "@/lib/core/chordHotkeys.utils";
+import { chordFromKeyboardEvent } from "@/lib/ui/keyboardChord.utils";
+import type { LiveModifiers } from "@/types/ui/keyboardChord";
 
-import { ChordChips } from "./chord.keyboard.component";
-
-const MODIFIER_KEYS = new Set(["Control", "Shift", "Alt", "Meta"]);
-
-interface LiveModifiers {
-  ctrl: boolean;
-  alt: boolean;
-  shift: boolean;
-  meta: boolean;
-}
+import { ChordChips } from "@/components/shared/keyboard/chord.keyboard.component";
 
 const NO_MODIFIERS: LiveModifiers = { ctrl: false, alt: false, shift: false, meta: false };
 
@@ -48,17 +41,6 @@ const SCOPE_ICONS: Record<KeybindScope, LucideIcon> = {
   menu: Menu,
   tree: ListTree,
 };
-
-function chordFromKeyboardEvent(event: React.KeyboardEvent, live: LiveModifiers): string | null {
-  if (MODIFIER_KEYS.has(event.key)) return null;
-  const parts: string[] = [];
-  if (event.ctrlKey || live.ctrl) parts.push("ctrl");
-  if (event.altKey || live.alt) parts.push("alt");
-  if (event.shiftKey || live.shift) parts.push("shift");
-  if (event.metaKey || live.meta) parts.push("meta");
-  parts.push(event.code);
-  return parts.join("+");
-}
 
 export function KeybindRecorder({
   currentChord,

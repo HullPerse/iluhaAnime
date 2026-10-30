@@ -1,18 +1,18 @@
-import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "@/tests/mocks";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { defaultFilters } from "@/config/anilistFilters.config";
+import { defaultFilters } from "@/config/anilist/anilistFilters.config";
 import { useDiscoveryQueue, useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { patchSettings } from "@/store/settings.store";
-import type { AniListFilters, AniMedia } from "@/types/anilist";
+import type { AniListFilters, AniMedia } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
   convertFileSrc: mockConvertFileSrc,
 }));
 
-function makeMedia(id: number, title: string): AniMedia {
+const makeMedia = (id: number, title: string): AniMedia => {
   return {
     id,
     title,
@@ -38,7 +38,7 @@ function makeMedia(id: number, title: string): AniMedia {
     season: null,
     season_year: 2020,
   };
-}
+};
 
 const FILTERS: AniListFilters = { ...defaultFilters };
 

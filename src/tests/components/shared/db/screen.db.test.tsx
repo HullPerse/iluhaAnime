@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DbScreen } from "@/components/shared/db/screen.db";
 
-import { mockOpenPath, mockWriteText } from "../../../mocks";
+import { mockOpenPath, mockWriteText } from "@/tests/mocks";
 
 afterEach(() => {
   cleanup();

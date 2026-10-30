@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke } from "../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { DEFAULT_SETTINGS } from "@/config/settingsDefaults.config";
-import { PlayerVisibilityService } from "@/lib/playerVisibility.utils";
+import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
+import { PlayerVisibilityService } from "@/lib/player/playerVisibility.utils";
 import {
   createSettingsSignalStore,
   SETTINGS_SCHEMA_VERSION,

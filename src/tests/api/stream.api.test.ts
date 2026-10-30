@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { StreamApi } from "@/api/stream.api";
-import type { ApiTransport } from "@/types/transport";
+import type { ApiTransport } from "@/types/core/transport";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {

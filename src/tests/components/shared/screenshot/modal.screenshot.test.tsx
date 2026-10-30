@@ -3,7 +3,7 @@ import {
   mockDialogOpen as mockOpen,
   mockWriteImage,
   mockOpenPath,
-} from "../../../mocks";
+} from "@/tests/mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { SavedScreenshot, ScreenshotCapture } from "@/types/screenshot";
+import type { SavedScreenshot, ScreenshotCapture } from "@/types/core/screenshot";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -47,7 +47,7 @@ const CROPPED_PATH = "C:/Temp/iluha_screenshot_2.png";
 
 const LAYER_DATA_URL = "data:image/png;base64,LAYER";
 
-function installCanvasStub() {
+const installCanvasStub = () => {
   const context = {
     arc: vi.fn(),
     beginPath: vi.fn(),
@@ -77,26 +77,26 @@ function installCanvasStub() {
   );
   vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(LAYER_DATA_URL);
   return context;
-}
+};
 
 let canvas: ReturnType<typeof installCanvasStub> | null = null;
 
-function saveArgs(): Record<string, unknown> | undefined {
+const saveArgs = (): Record<string, unknown> | undefined => {
   return mockInvoke.mock.calls.find(([command]) => command === "save_screenshot")?.[1] as
     | Record<string, unknown>
     | undefined;
-}
+};
 
-function tool(name: string | RegExp): HTMLElement {
+const tool = (name: string | RegExp): HTMLElement => {
   return screen.getByRole("button", { name });
-}
+};
 
-function drawStroke(x1: number, y1: number, x2: number, y2: number) {
+const drawStroke = (x1: number, y1: number, x2: number, y2: number) => {
   const surface = overlay();
   fireEvent.pointerDown(surface, { clientX: x1, clientY: y1 });
   fireEvent.pointerMove(surface, { clientX: x2, clientY: y2 });
   fireEvent.pointerUp(surface, { clientX: x2, clientY: y2 });
-}
+};
 
 interface CommandOptions {
   saved?: SavedScreenshot;
@@ -105,12 +105,12 @@ interface CommandOptions {
   failCopy?: boolean;
 }
 
-function serveCommands({
+const serveCommands = ({
   saved = SAVED,
   copyPath = CAPTURE.path,
   failSave = false,
   failCopy = false,
-}: CommandOptions = {}) {
+}: CommandOptions = {}) => {
   mockInvoke.mockImplementation((command: string) => {
     if (command === "save_screenshot") {
       return failSave ? Promise.reject(new Error("no such folder")) : Promise.resolve(saved);
@@ -122,41 +122,41 @@ function serveCommands({
     }
     return Promise.resolve(undefined);
   });
-}
+};
 
-function renderModal(onClose = vi.fn(), capture: ScreenshotCapture = CAPTURE) {
+const renderModal = (onClose = vi.fn(), capture: ScreenshotCapture = CAPTURE) => {
   return { onClose, ...render(<ScreenshotModal capture={capture} onClose={onClose} />) };
-}
+};
 
-function folderValue(): string {
+const folderValue = (): string => {
   return (screen.getByLabelText("Folder") as HTMLInputElement).value;
-}
+};
 
-function isDisabled(element: HTMLElement): boolean {
+const isDisabled = (element: HTMLElement): boolean => {
   return (element as HTMLButtonElement).disabled;
-}
+};
 
-function selection(): HTMLElement | null {
+const selection = (): HTMLElement | null => {
   return screen.queryByRole("button", { name: /Selection/ });
-}
+};
 
-function overlay(): HTMLElement {
+const overlay = (): HTMLElement => {
   return screen.getByTestId("screenshot-surface");
-}
+};
 
-function readout(): string {
+const readout = (): string => {
   return screen.getByText(/px$/).textContent ?? "";
-}
+};
 
-function stage(): HTMLElement {
+const stage = (): HTMLElement => {
   return screen.getByTestId("screenshot-stage");
-}
+};
 
-function space(): HTMLElement {
+const space = (): HTMLElement => {
   return screen.getByTestId("screenshot-space");
-}
+};
 
-function stubStageBox(width: number, height: number) {
+const stubStageBox = (width: number, height: number) => {
   const rect = {
     bottom: height,
     height,
@@ -169,17 +169,17 @@ function stubStageBox(width: number, height: number) {
     toJSON: () => ({}),
   };
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect as DOMRect);
-}
+};
 
-function picture(): HTMLElement {
+const picture = (): HTMLElement => {
   return screen.getByAltText("Screenshot");
-}
+};
 
-function zoomLabel(): string {
+const zoomLabel = (): string => {
   return screen.getByRole("button", { name: /%$/ }).textContent ?? "";
-}
+};
 
-async function wheelStage(deltaY: number, x = 400, y = 200): Promise<WheelEvent> {
+const wheelStage = async (deltaY: number, x = 400, y = 200): Promise<WheelEvent> => {
   const event = new WheelEvent("wheel", {
     deltaY,
     clientX: x,
@@ -191,28 +191,28 @@ async function wheelStage(deltaY: number, x = 400, y = 200): Promise<WheelEvent>
     stage().dispatchEvent(event);
   });
   return event;
-}
+};
 
-async function settle() {
+const settle = async () => {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 32));
   });
-}
+};
 
-async function cropOnce(user: ReturnType<typeof userEvent.setup>, keys: string) {
+const cropOnce = async (user: ReturnType<typeof userEvent.setup>, keys: string) => {
   await settle();
   selection()?.focus();
   await user.keyboard(keys);
-}
+};
 
-function dragSelection(x1: number, y1: number, x2: number, y2: number) {
+const dragSelection = (x1: number, y1: number, x2: number, y2: number) => {
   const surface = overlay();
   fireEvent.pointerDown(surface, { clientX: x1, clientY: y1 });
   fireEvent.pointerMove(surface, { clientX: x2, clientY: y2 });
   fireEvent.pointerUp(surface, { clientX: x2, clientY: y2 });
-}
+};
 
-function installPointerCapture(): { element: Element | null } {
+const installPointerCapture = (): { element: Element | null } => {
   const captured: { element: Element | null } = { element: null };
   Object.defineProperty(Element.prototype, "setPointerCapture", {
     configurable: true,
@@ -227,7 +227,7 @@ function installPointerCapture(): { element: Element | null } {
     },
   });
   return captured;
-}
+};
 
 beforeEach(() => {
   mockInvoke.mockReset();

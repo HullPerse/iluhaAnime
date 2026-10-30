@@ -15,19 +15,19 @@ import {
   usePartialLeftovers,
   useTorrentListenPort,
 } from "@/hooks/torrent/queries.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { toSessionConfig } from "@/lib/session.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { showError } from "@/lib/notification.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { toSessionConfig } from "@/lib/core/session.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@/lib/core/attempt.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { showError } from "@/lib/core/notification.utils";
 import { setTorrentSpeedLimits as setSpeedLimits } from "@/store/download.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { SessionConfigPayload } from "@/types/settings";
-import type { FileOrder } from "@/types/torrent";
+import type { SessionConfigPayload } from "@/types/ui/settings";
+import type { FileOrder } from "@/types/torrent/torrent";
 
-import { NetworkNumberRow } from "./networkNumberRow.settings";
-import { SectionResetButton } from "./reset.settings";
+import { NetworkNumberRow } from "@/routes/components/settings/networkNumberRow.settings";
+import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
 export default function SettingsTorrent() {
   const limits = useCell(settingsAtoms.limits);

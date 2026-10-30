@@ -1,6 +1,6 @@
 import { test } from "vitest";
 
-import { createPersistor } from "@/lib/persist.utils";
+import { createPersistor } from "@/lib/core/persist.utils";
 
 function memoryStorage(backing = new Map<string, string>()) {
   return {

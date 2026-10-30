@@ -1,8 +1,8 @@
 import { anilistApi } from "@/api/anilist.api";
-import { NO_FAVOURITES, NO_LISTS, NO_PEOPLE } from "@/config/anilistDefaults.config";
+import { NO_FAVOURITES, NO_LISTS, NO_PEOPLE } from "@/config/anilist/anilistDefaults.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import type { AnilistRouteData } from "@/types/anilist";
+import { queryKeys } from "@/lib/core/keys.utils";
+import type { AnilistRouteData } from "@/types/anilist/anilist";
 
 export function useUserAnilistData() {
   const query = useAppQuery<AnilistRouteData>("slow", {

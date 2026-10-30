@@ -5,14 +5,14 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { queryKeys } from "@/lib/keys.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
 import { updateAtoms } from "@/store/update.store";
-import type { SqliteDatabaseInfo } from "@/types/sqlite";
+import type { SqliteDatabaseInfo } from "@/types/core/sqlite";
 
-import { mockUpdaterCheck } from "../../../mocks";
+import { mockUpdaterCheck } from "@/tests/mocks";
 
 const ONLINE = Object.getOwnPropertyDescriptor(window.navigator, "onLine");
 
@@ -25,7 +25,7 @@ const DATABASE: SqliteDatabaseInfo = {
   tables: [],
 };
 
-function renderSummary(seed: Update | null = null) {
+const renderSummary = (seed: Update | null = null) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   queryClient.setQueryData<Update | null>(queryKeys.appUpdates(), seed);
   queryClient.setQueryData(queryKeys.summaryVersion(), "5.0.0");
@@ -40,11 +40,11 @@ function renderSummary(seed: Update | null = null) {
       <SettingsSummary onJump={() => {}} />
     </QueryClientProvider>
   );
-}
+};
 
-function checkButton(): HTMLElement {
+const checkButton = (): HTMLElement => {
   return screen.getByRole("button", { name: translate("en", "updater.check") });
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

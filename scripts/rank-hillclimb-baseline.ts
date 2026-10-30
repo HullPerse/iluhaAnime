@@ -4,9 +4,9 @@
 //
 // Run: bun scripts/rank-hillclimb-baseline.ts
 
-import { buildLearningMaps, countersOf } from "@/lib/learning.utils";
-import { RANKING } from "../src/config/ranking.config";
-import { normalizeSearchText } from "@/lib/normalize.utils";
+import { buildLearningMaps, countersOf } from "../src/lib/core/learning.utils";
+import { RANKING } from "../src/config/anilist/ranking.config";
+import { normalizeSearchText } from "../src/lib/core/normalize.utils";
 
 const NOW = 1_700_000_000_000;
 const LIMIT = 8;

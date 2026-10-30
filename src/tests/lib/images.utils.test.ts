@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isSourceImage } from "@/lib/images.utils";
+import { isSourceImage } from "@/lib/graphics/images.utils";
 
 describe("stream/images", () => {
   it("treats AnimeLib and Kodik hosts as source images", () => {

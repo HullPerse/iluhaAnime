@@ -1,7 +1,7 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { getSearchSuggestions } from '@/lib/suggestions.utils';
-import type { SearchAnimeSuggestion, SearchQueryStat } from '../../src/types/search';
+import { getSearchSuggestions } from '../../src/lib/core/suggestions.utils';
+import type { SearchAnimeSuggestion, SearchQueryStat } from '../../src/types/search/search';
 
 const WORDS = [
   'Frieren', 'Naruto', 'Titan', 'Slayer', 'Gate', 'Hunter', 'Bebop', 'Bleach',

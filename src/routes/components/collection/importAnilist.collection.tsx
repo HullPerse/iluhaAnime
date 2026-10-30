@@ -3,29 +3,29 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { collectionApi } from "@/api/collection.api";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { parseScoreFormat } from "@/lib/anilistScore.utils";
-import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/import.utils";
-import { resolveStatusLabel } from "@/lib/status.utils";
+import { parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
+import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/core/import.utils";
+import { resolveStatusLabel } from "@/lib/core/status.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { attempt } from "@/lib/attempt.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import { addNotification } from "@/store/notification.store";
-import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist";
-import type { CollectionItem, ImportMode } from "@/types/collection";
-import type { TranslationVariables } from "@/types/i18n";
+import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist/anilist";
+import type { CollectionItem, ImportMode } from "@/types/anilist/collection";
+import type { TranslationVariables } from "@/types/core/i18n";
 
-import { EntryRow } from "./import/entryRow.import";
-import { ImportFooter } from "./import/footer.import";
-import { OperationStatus } from "./import/operationStatus.import";
-import { ImportStatusSection } from "./import/status.import";
-import { SyncRow } from "./import/syncRow.import";
+import { EntryRow } from "@/routes/components/collection/import/entryRow.import";
+import { ImportFooter } from "@/routes/components/collection/import/footer.import";
+import { OperationStatus } from "@/routes/components/collection/import/operationStatus.import";
+import { ImportStatusSection } from "@/routes/components/collection/import/status.import";
+import { SyncRow } from "@/routes/components/collection/import/syncRow.import";
 
 export default function ImportAnilistCollection({
   open,

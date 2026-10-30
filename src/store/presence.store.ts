@@ -1,5 +1,5 @@
-import { createSignalStore } from "@/lib/signal.store";
-import type { DiscordPresenceDetail } from "@/types/discord";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { DiscordPresenceDetail } from "@/types/core/discord";
 
 const store = createSignalStore();
 

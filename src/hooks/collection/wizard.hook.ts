@@ -7,8 +7,12 @@ import {
   wizardDefaultsMedia,
   wizardDefaultsMeta,
   wizardDefaultsProgress,
-} from "@/lib/wizard.utils";
-import type { CollectionItem, CollectionStatus, WizardSaveValues } from "@/types/collection";
+} from "@/lib/core/wizard.utils";
+import type {
+  CollectionItem,
+  CollectionStatus,
+  WizardSaveValues,
+} from "@/types/anilist/collection";
 
 function toPreviewNumber(value: string): number {
   return Number(value) || 0;

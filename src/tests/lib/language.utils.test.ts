@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { languageName, normalizeLangCode } from "@/lib/language.utils";
+import { languageName, normalizeLangCode } from "@/lib/core/language.utils";
 
 describe("player/language normalize", () => {
   it("maps three-letter mpv codes to two-letter ones", () => {

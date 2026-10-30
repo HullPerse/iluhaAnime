@@ -5,40 +5,17 @@ import { memo, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { areTorrentItemsEqual } from "@/lib/torrentItem.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { formatVerticalDragTransform } from "@/lib/drag.utils";
-import type { TFunc } from "@/types/i18n";
-import type { TorrentFileInfo, TorrentInfo, TorrentItemProps as Props } from "@/types/torrent";
+import { areTorrentItemsEqual, partialDeleteNote } from "@/lib/torrent/torrentItem.utils";
+import { formatVerticalDragTransform } from "@/lib/ui/drag.utils";
+import type { TorrentItemProps as Props } from "@/types/torrent/torrent";
 
-import { TorrentPeersModal } from "./peers.torrent";
-import { DeleteTorrentDialog } from "./sections/delete.sections";
-import { TorrentProblem } from "./sections/error.sections";
-import { TorrentFiles } from "./sections/files.sections";
-import { TorrentHeader } from "./sections/header.sections";
-import { TorrentProgress } from "./sections/progress.sections";
-
-function partialDeleteNote(files: TorrentFileInfo[] | undefined, t: TFunc): string | undefined {
-  const unfinished = (files ?? []).filter(
-    (file) => file.selected && file.size > 0 && !file.completed
-  );
-  if (unfinished.length === 0) return undefined;
-  const bytes = unfinished.reduce(
-    (sum, file) => sum + (file.on_disk_bytes || file.progress_bytes),
-    0
-  );
-  return t("torrent.delete.unfinished", { size: formatBytes(bytes) });
-}
-
-function SparseWarning({ item, isExpanded }: { item: TorrentInfo; isExpanded: boolean }) {
-  const { t } = useI18n();
-  if (item.disk_sparse !== false || isExpanded) return null;
-  return (
-    <span data-testid="torrent-sparse-warning" className="windows95-text text-destructive text-xs">
-      {t("torrent.files.sparse.unsupported")}
-    </span>
-  );
-}
+import { TorrentPeersModal } from "@/routes/components/torrent/peers.torrent";
+import { DeleteTorrentDialog } from "@/routes/components/torrent/sections/delete.sections";
+import { TorrentProblem } from "@/routes/components/torrent/sections/error.sections";
+import { TorrentFiles } from "@/routes/components/torrent/sections/files.sections";
+import { TorrentHeader } from "@/routes/components/torrent/sections/header.sections";
+import { TorrentProgress } from "@/routes/components/torrent/sections/progress.sections";
+import { SparseWarning } from "@/routes/components/torrent/sparseWarning.torrent";
 
 function TorrentItem({
   item,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { QUERY_PRESETS } from "@/config/query.config";
+import { QUERY_PRESETS } from "@/config/system/query.config";
 
 describe("QUERY_PRESETS", () => {
   it("keeps cached data alive past its freshness window", () => {

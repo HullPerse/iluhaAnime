@@ -1,43 +1,10 @@
 import { useEffect, useRef } from "react";
 
+import { GRAPH_HEIGHT, GRAPH_POINTS, GRAPH_WIDTH } from "@/config/torrent/graph.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { fmtSpeed } from "@/lib/torrentCommon.utils";
-import type { DhtStatus } from "@/types/torrent";
-
-const GRAPH_POINTS = 120;
-const GRAPH_WIDTH = 240;
-const GRAPH_HEIGHT = 30;
-
-function drawGraph(
-  canvas: HTMLCanvasElement,
-  download: number[],
-  upload: number[],
-  colors: { download: string; upload: string }
-): void {
-  const context = canvas.getContext("2d");
-  if (!context) return;
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = GRAPH_WIDTH * ratio;
-  canvas.height = GRAPH_HEIGHT * ratio;
-  context.scale(ratio, ratio);
-  context.clearRect(0, 0, GRAPH_WIDTH, GRAPH_HEIGHT);
-  const max = Math.max(1, ...download, ...upload);
-  const line = (values: number[], color: string) => {
-    if (values.length < 2 || values.every((value) => value === 0)) return;
-    context.strokeStyle = color;
-    context.lineWidth = 1;
-    context.beginPath();
-    values.forEach((value, index) => {
-      const x = (index / (GRAPH_POINTS - 1)) * GRAPH_WIDTH;
-      const y = GRAPH_HEIGHT - 1 - (value / max) * (GRAPH_HEIGHT - 2);
-      if (index === 0) context.moveTo(x, y);
-      else context.lineTo(x, y);
-    });
-    context.stroke();
-  };
-  line(upload, colors.upload);
-  line(download, colors.download);
-}
+import { drawSpeedGraph } from "@/lib/core/speedGraph.utils";
+import { fmtSpeed } from "@/lib/torrent/torrentCommon.utils";
+import type { DhtStatus } from "@/types/torrent/torrent";
 
 export function SpeedGraph({
   download,
@@ -64,7 +31,7 @@ export function SpeedGraph({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const styles = getComputedStyle(document.documentElement);
-    drawGraph(canvas, downloadRef.current, uploadRef.current, {
+    drawSpeedGraph(canvas, downloadRef.current, uploadRef.current, {
       download: styles.getPropertyValue("--color-highlight").trim() || "#4caf50",
       upload: styles.getPropertyValue("--color-text").trim() || "#888888",
     });

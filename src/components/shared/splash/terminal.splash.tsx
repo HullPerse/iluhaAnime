@@ -1,14 +1,7 @@
-import type { SplashVariantProps } from "@/types/shared.splash";
-import { splashProgress, splashStageLabel } from "./shared.splash";
+import type { SplashVariantProps } from "@/types/core/shared.splash";
+import { splashProgress, splashStageLabel, stageMarker } from "@/lib/splash/stages.utils";
 
 const FONT = '"Perfect DOS VGA 437", monospace';
-
-function marker(status: string): string {
-  if (status === "done") return "[  OK  ]";
-  if (status === "degraded") return "[ FAIL ]";
-  if (status === "active") return "[  ..  ]";
-  return "[  --  ]";
-}
 
 export function TerminalSplash({
   stages,
@@ -29,7 +22,7 @@ export function TerminalSplash({
         <ul className="mt-8 space-y-1 text-xl leading-relaxed">
           {stages.map((stage) => (
             <li key={stage.id} className={stage.status === "pending" ? "opacity-50" : undefined}>
-              {marker(stage.status)} {splashStageLabel(texts, stage.id)}
+              {stageMarker(stage.status)} {splashStageLabel(texts, stage.id)}
               {stage.status === "active" ? "_" : ""}
             </li>
           ))}

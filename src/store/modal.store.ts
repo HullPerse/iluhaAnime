@@ -1,6 +1,6 @@
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
-import type { ModalEntry, ModalScope, ModalStacks, ModalStore } from "@/types/modal";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
+import type { ModalEntry, ModalScope, ModalStacks, ModalStore } from "@/types/ui/modal";
 
 export type ModalData = Pick<ModalStore, "stacks">;
 export type ModalAtoms = { [K in keyof ModalData]: Cell<ModalData[K]> };

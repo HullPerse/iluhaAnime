@@ -1,11 +1,11 @@
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Persistor } from "@/types/persist";
-import type { Cell } from "@/types/signal";
-import { writeAppCache } from "@/lib/cache.utils";
-import { moveItem } from "@/lib/array.utils";
-import { attemptSync } from "@/lib/attempt.utils";
-import type { CacheStore } from "@/types/cache";
-import type { FolderNode } from "@/types/torrent";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import type { Persistor } from "@/types/core/persist";
+import type { Cell } from "@/types/core/signal";
+import { writeAppCache } from "@/lib/core/cache.utils";
+import { moveItem } from "@/lib/core/array.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
+import type { CacheStore } from "@/types/core/cache";
+import type { FolderNode } from "@/types/torrent/torrent";
 
 export const CACHE_SCHEMA_VERSION = 5;
 

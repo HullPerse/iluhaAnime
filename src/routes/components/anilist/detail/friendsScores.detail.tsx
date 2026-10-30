@@ -1,35 +1,29 @@
 import { Tooltip } from "@base-ui/react/tooltip";
-import { Frown, Meh, MessageCircle, RotateCw, Smile, Star } from "lucide-react";
+import { MessageCircle, RotateCw, Star } from "lucide-react";
 import { useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import ProgressBar from "@/components/shared/progress.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { listStatusLabels } from "@/config/labels.config";
+import { listStatusLabels } from "@/config/system/labels.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor } from "@/lib/entries.utils";
-import { loadFriendScores } from "@/lib/friends.utils";
-import { formatScore, parseScoreFormat, scoreIconFor } from "@/lib/anilistScore.utils";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { formatScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
+import { loadFriendScores } from "@/lib/core/friends.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
 import { anilistFriendsAtoms } from "@/store/anilist.store";
 
-function FriendScoreIcon({ score }: { score: number | null }) {
-  const icon = scoreIconFor("POINT_3", score);
-  if (icon === "frown") return <Frown className="size-3.5" />;
-  if (icon === "meh") return <Meh className="size-3.5" />;
-  if (icon === "smile") return <Smile className="size-3.5" />;
-  return <Star className="size-3 fill-yellow-400 text-yellow-600" />;
-}
+import { FriendScoreIcon } from "./friendsScores/scoreIcon.friendsScores";
 
 export function FriendsScoresSection({ animeId }: { animeId: number }) {
   const { t } = useI18n();
   const friends = useCell(anilistFriendsAtoms.friends);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState<boolean>(false);
   const base = friends.map((friend) => ({
     id: friend.id,
     name: friend.name,

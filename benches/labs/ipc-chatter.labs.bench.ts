@@ -22,10 +22,10 @@ import { bench, group } from "@pmndrs/labs";
 // Regression threshold is labs minDelta 5% on bytes; invoke counts are
 // exact pins.
 
-import type { ApiTransport } from "@/types/transport";
-import { inflightFetch } from "@/lib/lruCache.utils";
-import type { UnifiedIndexRow } from "../../src/types/search";
-import type { TorrentInfo } from "../../src/types/torrent";
+import type { ApiTransport } from "../../src/types/core/transport";
+import { inflightFetch } from "../../src/lib/core/lruCache.utils";
+import type { UnifiedIndexRow } from "../../src/types/search/search";
+import type { TorrentInfo } from "../../src/types/torrent/torrent";
 
 interface CallRecord {
   invokes: number;

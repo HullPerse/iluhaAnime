@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { getSearchSuggestions } from "@/lib/suggestions.utils";
-import { buildTypedTitles, titleKindBonus, typedTitlesOf } from "@/lib/searchTitle.utils";
-import type { SearchAnimeSuggestion } from "@/types/search";
+import { getSearchSuggestions } from "@/lib/core/suggestions.utils";
+import { buildTypedTitles, titleKindBonus, typedTitlesOf } from "@/lib/search/searchTitle.utils";
+import type { SearchAnimeSuggestion } from "@/types/search/search";
 
 describe("search/title", () => {
   it("marks english main title as official and keeps language tags", () => {

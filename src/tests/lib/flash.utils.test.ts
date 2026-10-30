@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { flashTarget, TARGET_FLASH_MS } from "@/lib/flash.utils";
+import { flashTarget, TARGET_FLASH_MS } from "@/lib/core/flash.utils";
 
 beforeEach(() => {
   vi.useFakeTimers();

@@ -1,19 +1,19 @@
-import { mockInvoke } from "../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSearchQuery } from "@/hooks/search/query.hook";
 import { setCrossSearchQuery, setResultSource } from "@/store/search.store";
-import type { Source } from "@/types/search";
-import type { Anime } from "@/types/torrent";
+import type { Source } from "@/types/search/search";
+import type { Anime } from "@/types/torrent/torrent";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-function item(title: string, link: string): Anime {
+const item = (title: string, link: string): Anime => {
   return {
     title,
     magnet: "",
@@ -25,27 +25,27 @@ function item(title: string, link: string): Anime {
     link,
     date: "2024-01-01",
   };
-}
+};
 
 const ITEM_A = item("[Erai] Naruto - 01", "https://erai/1");
 const ITEM_B = item("Naruto [1080p]", "https://rutracker/2");
 
-function commandFor(source: Source): string {
+const commandFor = (source: Source): string => {
   return source === "rutracker" ? "search_rutracker" : "search_erairaws";
-}
+};
 
-function itemFor(source: Source): Anime {
+const itemFor = (source: Source): Anime => {
   return source === "rutracker" ? ITEM_B : ITEM_A;
-}
+};
 
-function renderSearch() {
+const renderSearch = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderHook(() => useSearchQuery(), {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     ),
   });
-}
+};
 
 afterEach(() => {
   cleanup();

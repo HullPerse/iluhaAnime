@@ -12,8 +12,8 @@ import {
   requestSafeMode,
   resetFatalModule,
   subscribeFatal,
-} from "@/lib/report.utils";
-import type { FatalInfo } from "@/types/fatal";
+} from "@/lib/core/report.utils";
+import type { FatalInfo } from "@/types/core/fatal";
 
 const info = (overrides: Partial<FatalInfo> = {}): FatalInfo => ({
   kind: "render",

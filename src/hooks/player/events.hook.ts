@@ -2,7 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 
-import { reportBackgroundError } from "@/lib/attempt.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { setPlaybackChapters, setPlaybackSnapshot, setPlaybackTracks } from "@/store/player.store";
 import type {
   DroppedFramesData,
@@ -11,8 +11,8 @@ import type {
   PlaybackEvent,
   PlaybackSnapshot,
   PlayerOpenRequest,
-} from "@/types/videoPlayer";
-import type { PlayerEventHandlers } from "@/types/events";
+} from "@/types/player/videoPlayer";
+import type { PlayerEventHandlers } from "@/types/core/events";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

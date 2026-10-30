@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { feedbackScore } from "@/lib/feedback.utils";
-import { suggestionPoolSize } from "@/lib/rank.utils";
-import { RANKING } from "@/config/ranking.config";
+import { feedbackScore } from "@/lib/core/feedback.utils";
+import { suggestionPoolSize } from "@/lib/core/rank.utils";
+import { RANKING } from "@/config/anilist/ranking.config";
 
 const NOW = 1_700_000_000_000;
 const HOUR = 3_600_000;

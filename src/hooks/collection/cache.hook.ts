@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { useCell } from "@/lib/signal.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { assetUrl, isDirectImageSrc } from "@/lib/image.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { createLruCache, inflightFetch } from "@/lib/lruCache.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@/lib/core/attempt.utils";
+import { assetUrl, isDirectImageSrc } from "@/lib/graphics/image.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { createLruCache, inflightFetch } from "@/lib/core/lruCache.utils";
 import { coverCorrectionsAtoms, setCoverBlob } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { UserImageFile } from "@/types/userimage";
+import type { UserImageFile } from "@/types/core/userimage";
 
 export const COVER_CACHE_CAPACITY = 200;
 

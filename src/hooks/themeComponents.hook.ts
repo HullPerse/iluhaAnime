@@ -1,9 +1,9 @@
-import { THEMES } from "@/config/themes.config";
-import { useCell } from "@/lib/signal.hook";
-import { resolveTheme } from "@/lib/themeResolve.utils";
+import { THEMES } from "@/config/graphics/themes.config";
+import { useCell } from "@/lib/core/signal.hook";
+import { resolveTheme } from "@/lib/graphics/themeResolve.utils";
 import { themeAtoms } from "@/store/theme.store";
-import type { ThemeDefinition } from "@/types/theme";
-import type { ResolvedThemeComponents } from "@/types/themeComponents";
+import type { ThemeDefinition } from "@/types/graphics/theme";
+import type { ResolvedThemeComponents } from "@/types/graphics/themeComponents";
 
 export function resolveThemeComponents(
   theme: ThemeDefinition | undefined

@@ -1,6 +1,6 @@
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import type { ChangelogEntry } from "@/types/settings";
+import type { ChangelogEntry } from "@/types/ui/settings";
 
 export function ChangelogCategory({
   titleKey,

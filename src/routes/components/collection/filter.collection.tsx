@@ -9,11 +9,16 @@ import Combobox from "@/components/ui/combobox.component";
 import { DualSlider } from "@/components/ui/dualSlider.component";
 import { RadioGroup } from "@/components/ui/radio/group.radio";
 import { Radio } from "@/components/ui/radio/radio.radio";
-import { ANILIST_GENRES } from "@/config/anilistFilters.config";
-import { RATING_MAX, RATING_MIN, YEAR_MAX, YEAR_MIN } from "@/config/collectionFilters.config";
+import { ANILIST_GENRES } from "@/config/anilist/anilistFilters.config";
+import {
+  RATING_MAX,
+  RATING_MIN,
+  YEAR_MAX,
+  YEAR_MIN,
+} from "@/config/anilist/collectionFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { freshDefaults } from "@/lib/filter.utils";
-import type { CollectionFilters, CollectionType } from "@/types/collection";
+import { freshDefaults } from "@/lib/core/filter.utils";
+import type { CollectionFilters, CollectionType } from "@/types/anilist/collection";
 
 export default function FilterCollection({
   open,

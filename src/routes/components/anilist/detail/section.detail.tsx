@@ -2,40 +2,40 @@ import type { Simulation } from "d3-force";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
 import { useFranchiseViewport } from "@/hooks/anilist/franchise.hook";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { collapseGraph } from "@/lib/collapse.utils";
-import { countFranchiseGroups } from "@/lib/franchise.utils";
+import { collapseGraph } from "@/lib/core/collapse.utils";
+import { countFranchiseGroups } from "@/lib/anilist/franchise.utils";
 import {
   filterGraph,
   filterFranchiseNodesBySearch,
   computeNodeRelationMap,
   computeMainlineIds,
   relationGroup,
-} from "@/lib/graph.utils";
+} from "@/lib/graphics/graph.utils";
 import {
   computeNodeDimensions,
   computeGraphMetrics,
   buildSimNodes,
   runFranchiseSimulation,
-} from "@/lib/sim.utils";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
-import { queryKeys } from "@/lib/keys.utils";
+} from "@/lib/core/sim.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
+import { queryKeys } from "@/lib/core/keys.utils";
 import type {
   FranchiseNodePosition,
   DragState,
   RelationFilter,
   SimNode,
   FranchiseGraphSectionProps,
-} from "@/types/anilist";
+} from "@/types/anilist/anilist";
 
-import { FranchiseGraph as FranchiseGraphView } from "../franchise/graph.franchise";
-import { FranchiseList } from "../franchise/list.franchise";
-import { FranchiseToolbar } from "../franchise/toolbar.franchise";
+import { FranchiseGraph as FranchiseGraphView } from "@/routes/components/anilist/franchise/graph.franchise";
+import { FranchiseList } from "@/routes/components/anilist/franchise/list.franchise";
+import { FranchiseToolbar } from "@/routes/components/anilist/franchise/toolbar.franchise";
 
 const LOADING_HEIGHT = 300;
 

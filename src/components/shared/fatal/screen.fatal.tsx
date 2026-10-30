@@ -1,20 +1,20 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useEffect, useRef, useState } from "react";
 
-import { resolveFatalVariant } from "@/config/screens.config";
-import { resolveFatalLocale, resolveFatalTexts } from "@/lib/fatalTexts.utils";
-import { attempt } from "@/lib/attempt.utils";
+import { resolveFatalVariant } from "@/config/settings/screens.config";
+import { resolveFatalLocale, resolveFatalTexts } from "@/lib/core/fatalTexts.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 
-import { GenericBsod } from "./generic.fatal";
-import { RetroismBsod } from "./retroism.fatal";
-import { formatFatalCopy } from "./shared.fatal";
-import { TerminalBsod } from "./terminal.fatal";
-import { Win7Bsod } from "./win7.fatal";
-import { Win95Bsod } from "./win95.fatal";
-import { XpBsod } from "./xp.fatal";
-import { YorhaBsod } from "./yorha.fatal";
-import type { FatalScreenProps } from "@/types/screen.fatal";
+import { GenericBsod } from "@/components/shared/fatal/generic.fatal";
+import { RetroismBsod } from "@/components/shared/fatal/retroism.fatal";
+import { formatFatalCopy } from "@/components/shared/fatal/shared.fatal";
+import { TerminalBsod } from "@/components/shared/fatal/terminal.fatal";
+import { Win7Bsod } from "@/components/shared/fatal/win7.fatal";
+import { Win95Bsod } from "@/components/shared/fatal/win95.fatal";
+import { XpBsod } from "@/components/shared/fatal/xp.fatal";
+import { YorhaBsod } from "@/components/shared/fatal/yorha.fatal";
+import type { FatalScreenProps } from "@/types/core/screen.fatal";
 
 export function FatalScreen({
   info,

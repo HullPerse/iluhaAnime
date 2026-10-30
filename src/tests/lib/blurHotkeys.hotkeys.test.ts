@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { BlurGate } from "@/types/blurHotkeys";
-import { blurEditable, shouldBlurOnEscape } from "@/lib/blurHotkeys.utils";
+import type { BlurGate } from "@/types/core/blurHotkeys";
+import { blurEditable, shouldBlurOnEscape } from "@/lib/core/blurHotkeys.utils";
 
 function makeElement(tag: string, attrs: Record<string, string> = {}): HTMLElement {
   const element = document.createElement(tag);

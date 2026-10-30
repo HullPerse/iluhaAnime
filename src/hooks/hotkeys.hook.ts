@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 
-import type { HotkeyDef } from "@/types/chordHotkeys";
-import { subscribeHotkeys } from "@/lib/registryHotkeys.utils";
-import { resolveKeybinds } from "@/lib/resolveHotkeys.utils";
-import { useCell } from "@/lib/signal.hook";
+import type { HotkeyDef } from "@/types/core/chordHotkeys";
+import { subscribeHotkeys } from "@/lib/core/registryHotkeys.utils";
+import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-import type { ResolvedHotkeyDef, UseHotkeysOptions } from "@/types/hotkeys";
+import type { ResolvedHotkeyDef, UseHotkeysOptions } from "@/types/ui/hotkeys";
 
 export function useHotkeys<TId extends string>(
   defs: readonly HotkeyDef<TId>[],

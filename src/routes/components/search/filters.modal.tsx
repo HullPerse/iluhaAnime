@@ -8,14 +8,14 @@ import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   deleteSearchFilterPreset,
   saveSearchFilterPreset,
   searchAtoms,
 } from "@/store/search.store";
-import type { SearchFilters, SortKey } from "@/types/search";
-import type { ModalFiltersProps as Props } from "@/types/search";
+import type { SearchFilters, SortKey } from "@/types/search/search";
+import type { ModalFiltersProps as Props } from "@/types/search/search";
 
 const FILTER_PRESETS: Array<{ name: string; filters: Partial<SearchFilters> }> = [
   { name: "1080p+", filters: { quality: "1080p", minSeeders: 10 } },

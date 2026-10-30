@@ -1,4 +1,4 @@
-import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "@/tests/mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -6,8 +6,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: mockConvertFileSrc,
 }));
 
-vi.mock("@/lib/image.utils", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/lib/image.utils")>();
+vi.mock("@/lib/graphics/image.utils", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/graphics/image.utils")>();
   return { ...original, assetUrl: (path: string) => `asset://${path}` };
 });
 
@@ -19,7 +19,7 @@ import {
   resetCardCache,
   scheduleCardPrefetch,
   scheduleNeighborPrefetch,
-} from "@/lib/cardCache.utils";
+} from "@/lib/core/cardCache.utils";
 
 beforeEach(() => {
   resetCardCache();

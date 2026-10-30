@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveChapterJump } from "@/lib/chapter.utils";
+import { resolveChapterJump } from "@/lib/core/chapter.utils";
 
 const CHAPTERS = [{ time: 0 }, { time: 60 }, { time: 120 }];
 

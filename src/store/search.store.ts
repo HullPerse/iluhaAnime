@@ -5,24 +5,24 @@ import {
   buildLearningMaps,
   dropLearningScope,
   learningStatKey,
-} from "@/lib/learning.utils";
-import { RANKING } from "@/config/ranking.config";
-import { normalizeSearchText } from "@/lib/suggestions.utils";
-import { buildTypedTitles } from "@/lib/searchTitle.utils";
-import type { Persistor } from "@/types/persist";
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
+} from "@/lib/core/learning.utils";
+import { RANKING } from "@/config/anilist/ranking.config";
+import { normalizeSearchText } from "@/lib/core/suggestions.utils";
+import { buildTypedTitles } from "@/lib/search/searchTitle.utils";
+import type { Persistor } from "@/types/core/persist";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
+import type { AniListCollection, FavouriteAnime } from "@/types/anilist/anilist";
 import type {
   CorrectionReason,
   SearchAnimeSuggestion,
   SearchFilters,
   SearchPersistedState,
   SearchStore,
-} from "@/types/search";
+} from "@/types/search/search";
 
 export const SEARCH_SCHEMA_VERSION = 4;
 

@@ -8,7 +8,7 @@ import {
   mockDialogOpen,
   mockSetAlwaysOnTop,
   mockStartDragging,
-} from "../mocks";
+} from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -41,7 +41,7 @@ import {
 } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
 
-function pressKey(code: string, options: { ctrlKey?: boolean } = {}): void {
+const pressKey = (code: string, options: { ctrlKey?: boolean } = {}): void => {
   window.dispatchEvent(
     new KeyboardEvent("keydown", {
       bubbles: true,
@@ -50,31 +50,31 @@ function pressKey(code: string, options: { ctrlKey?: boolean } = {}): void {
       ctrlKey: options.ctrlKey ?? false,
     })
   );
-}
+};
 
-function headerVisible(): boolean {
+const headerVisible = (): boolean => {
   return screen.queryByRole("button", { name: "Settings" }) !== null;
-}
+};
 
-function fullBarVisible(): boolean {
+const fullBarVisible = (): boolean => {
   return screen.queryByRole("button", { name: "Previous file" }) !== null;
-}
+};
 
-function slimBarVisible(): boolean {
+const slimBarVisible = (): boolean => {
   return screen.queryAllByRole("button", { name: "Play / pause" }).length === 1;
-}
+};
 
-function slimBarHidden(): boolean {
+const slimBarHidden = (): boolean => {
   const button = screen.queryByRole("button", { name: "Play / pause" });
   if (!button) return true;
   return button.closest(".transition-opacity")?.classList.contains("opacity-0") ?? false;
-}
+};
 
-function video(): Element {
+const video = (): Element => {
   const node = document.querySelector("[data-player-video]");
   if (!node) throw new Error("video container missing");
   return node;
-}
+};
 
 beforeEach(() => {
   invokeMock.mockReset();
@@ -112,7 +112,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountPlayer(): Promise<void> {
+const mountPlayer = async (): Promise<void> => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
@@ -120,7 +120,7 @@ async function mountPlayer(): Promise<void> {
     </QueryClientProvider>
   );
   await act(async () => {});
-}
+};
 
 describe("player view modes", () => {
   it("starts in the normal preset with the full chrome", async () => {

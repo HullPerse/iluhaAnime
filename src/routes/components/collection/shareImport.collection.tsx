@@ -5,60 +5,25 @@ import { useRef, useState } from "react";
 import { collectionApi } from "@/api/collection.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
-import Image from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
-import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/statuses.config";
+import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/anilist/statuses.config";
 import { COLLECTION_QUERY_KEY } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { buildCustomStatusId, normalizeStatusLabel, resolveStatusLabel } from "@/lib/status.utils";
-import { attempt } from "@/lib/attempt.utils";
+
+import {
+  buildCustomStatusId,
+  normalizeStatusLabel,
+  resolveStatusLabel,
+} from "@/lib/core/status.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import { addNotification } from "@/store/notification.store";
-import type { ShareImportPlan } from "@/types/deeplink";
+import type { ShareImportPlan } from "@/types/core/deeplink";
 
-import { BilingualPreview } from "./bilingualPreview.collection";
-import { OperationStatus } from "./import/operationStatus.import";
+import { BilingualPreview } from "@/routes/components/collection/bilingualPreview.collection";
+import { OperationStatus } from "@/routes/components/collection/import/operationStatus.import";
+import { ShareImportRow } from "@/routes/components/collection/shareImportRow.collection";
 
-function shareRowToExportRow(row: ShareImportPlan["rows"][number], status: string) {
-  return {
-    id: "",
-    title: row.snapshot.title,
-    altTitles: [],
-    type: row.snapshot.type,
-    status,
-    progressValue: 0,
-    progressTotal: null,
-    progressUnit: "episodes",
-    durationMinutes: null,
-    rating: null,
-    priority: "normal",
-    isFavorite: false,
-    year: row.snapshot.year,
-    releaseDate: null,
-    genres: [],
-    studio: null,
-    description: null,
-    notes: null,
-    coverUrl: row.snapshot.coverUrl,
-    coverBlobId: null,
-    thumbBlobId: null,
-    externalIds: row.snapshot.externalIds,
-    customFields: {},
-    localPath: null,
-    localKind: null,
-    startedAt: null,
-    finishedAt: null,
-    lastWatchedAt: null,
-    rewatchCount: 0,
-    addedAt: 0,
-    updatedAt: 0,
-    sitesToView: [],
-    tvCurrentSeason: null,
-    tvCurrentEpisode: null,
-    detailsJson: null,
-  };
-}
+import { shareRowToExportRow } from "@/lib/shareImport.utils";
 
 export function ShareImportCollection({
   plan,
@@ -297,54 +262,5 @@ export function ShareImportCollection({
         </div>
       </div>
     </Modal>
-  );
-}
-
-function ShareImportRow({
-  row,
-  index,
-  checked,
-  importing,
-  atCap,
-  onToggle,
-}: {
-  row: ShareImportPlan["rows"][number];
-  index: number;
-  checked: boolean;
-  importing: boolean;
-  atCap: boolean;
-  onToggle: (index: number) => void;
-}) {
-  const coverSrc = useRemoteImage(row.snapshot.coverUrl ?? null);
-  return (
-    <li>
-      <label
-        className={`windows95-border flex items-center gap-2 p-1 select-none ${
-          checked ? "bg-field" : "bg-primary"
-        } ${importing ? "opacity-60" : "cursor-pointer"}`}
-      >
-        <Checkbox
-          checked={checked}
-          disabled={importing || (!checked && atCap)}
-          onChange={() => onToggle(index)}
-        />
-        {coverSrc ? (
-          <Image
-            src={coverSrc}
-            alt=""
-            className="windows95-border h-10 w-8 shrink-0"
-            type="cover"
-          />
-        ) : (
-          <div className="bg-surface windows95-border h-10 w-8 shrink-0" aria-hidden />
-        )}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="windows95-text truncate text-xs font-bold">{row.snapshot.title}</span>
-          <span className="text-hint windows95-font truncate text-xs">
-            {row.snapshot.year ?? ""}
-          </span>
-        </div>
-      </label>
-    </li>
   );
 }

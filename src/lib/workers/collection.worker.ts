@@ -1,11 +1,14 @@
-import { createCollectionFilterSnapshot, queryCollectionFilterSnapshot } from "@/lib/filter.utils";
-import type { CollectionFilterSnapshot } from "@/types/filter";
-import { attemptSync } from "@/lib/attempt.utils";
-import type { WorkerJobEnvelope, WorkerJobResponse } from "@/types/job";
+import {
+  createCollectionFilterSnapshot,
+  queryCollectionFilterSnapshot,
+} from "@/lib/core/filter.utils";
+import type { CollectionFilterSnapshot } from "@/types/core/filter";
+import { attemptSync } from "@/lib/core/attempt.utils";
+import type { WorkerJobEnvelope, WorkerJobResponse } from "@/types/core/job";
 import type {
   CollectionFilterWorkerPayload,
   CollectionFilterWorkerResult,
-} from "@/types/collection";
+} from "@/types/anilist/collection";
 
 let snapshot: CollectionFilterSnapshot | null = null;
 

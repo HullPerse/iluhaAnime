@@ -1,8 +1,8 @@
 import type { KeyboardEvent } from "react";
 import { useCallback, useState } from "react";
 
-import { clamp } from "@/lib/math.utils";
-import type { ChartCursor } from "@/types/chartCursor";
+import { clamp } from "@/lib/core/math.utils";
+import type { ChartCursor } from "@/types/graphics/chartCursor";
 
 const FORWARD_KEYS = new Set(["ArrowRight", "ArrowDown"]);
 const BACKWARD_KEYS = new Set(["ArrowLeft", "ArrowUp"]);

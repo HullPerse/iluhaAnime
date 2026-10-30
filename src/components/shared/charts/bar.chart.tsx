@@ -1,12 +1,13 @@
-import { CHART_LAYOUT } from "@/config/palette.config";
+import { CHART_LAYOUT } from "@/config/graphics/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { barLength } from "@/lib/geometry.utils";
-import { clamp } from "@/lib/math.utils";
+import { barLength } from "@/lib/core/geometry.utils";
+import { clamp } from "@/lib/core/math.utils";
 
-import { ChartFrame } from "./frame.chart";
-import { BandAxisLabels } from "./ticks.chart";
-import { SvgChartTooltip, tooltipAnnouncement } from "./tooltip.chart";
-import type { BarChartProps } from "@/types/bar.chart";
+import { ChartFrame } from "@/components/shared/charts/frame.chart";
+import { BandAxisLabels } from "@/components/shared/charts/ticks/bandAxis.ticks";
+import { SvgChartTooltip } from "@/components/shared/charts/tooltip.chart";
+import { tooltipAnnouncement } from "@/lib/graphics/chartTooltip.utils";
+import type { BarChartProps } from "@/types/core/bar.chart";
 
 export function BarChart({
   data,

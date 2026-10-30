@@ -1,13 +1,13 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { SCREENSHOT_FORMATS, SCREENSHOT_FORMAT_LABELS } from "@/config/screenshot.config";
+import { SCREENSHOT_FORMATS, SCREENSHOT_FORMAT_LABELS } from "@/config/graphics/screenshot.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { ScreenshotFormat } from "@/types/screenshot";
+import type { ScreenshotFormat } from "@/types/core/screenshot";
 
-import { SectionResetButton } from "./reset.settings";
+import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
 export default function ScreenshotSettings() {
   const screenshotDir = useCell(settingsAtoms.screenshotDir);

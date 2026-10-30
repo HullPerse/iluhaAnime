@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DeleteTorrentDialog } from "@/routes/components/torrent/sections/delete.sections";
 import { patchSettings } from "@/store/settings.store";
 
-function dialog(overrides: Partial<Parameters<typeof DeleteTorrentDialog>[0]> = {}) {
+const dialog = (overrides: Partial<Parameters<typeof DeleteTorrentDialog>[0]> = {}) => {
   return (
     <DeleteTorrentDialog
       open
@@ -15,7 +15,7 @@ function dialog(overrides: Partial<Parameters<typeof DeleteTorrentDialog>[0]> = 
       {...overrides}
     />
   );
-}
+};
 
 describe("DeleteTorrentDialog", () => {
   beforeEach(() => {

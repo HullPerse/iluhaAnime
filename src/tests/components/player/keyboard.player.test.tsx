@@ -1,17 +1,17 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DIGIT_KEYS, VIEW_MODE_DIGITS } from "@/config/keybinds.config";
+import { DIGIT_KEYS, VIEW_MODE_DIGITS } from "@/config/settings/keybinds.config";
 import Keyboard from "@/routes/components/player/media/keyboard.player";
 
-function fireWheel(target: Element, deltaY: number): void {
+const fireWheel = (target: Element, deltaY: number): void => {
   target.dispatchEvent(new WheelEvent("wheel", { deltaY, bubbles: true }));
-}
+};
 
-function pressKey(
+const pressKey = (
   code: string,
   options: { ctrlKey?: boolean; shiftKey?: boolean; repeat?: boolean } = {}
-): KeyboardEvent {
+): KeyboardEvent => {
   const event = new KeyboardEvent("keydown", {
     bubbles: true,
     cancelable: true,
@@ -22,7 +22,7 @@ function pressKey(
   });
   window.dispatchEvent(event);
   return event;
-}
+};
 
 afterEach(() => {
   cleanup();

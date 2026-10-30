@@ -3,97 +3,32 @@ import { Check, Minus, Plus, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { EntryListInfo } from "@/types/entries";
-import { Debouncer } from "@/lib/debounce.utils";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
+import type { EntryListInfo } from "@/types/anilist/entries";
+import type { AniMedia } from "@/types/anilist/anilist";
+import { Debouncer } from "@/lib/core/debounce.utils";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import {
+  patchEntry,
+  readLiveFields,
+  clampProgress,
+  resolveSaveStatus,
+  shortReason,
+  STEPPER_SYNC_WAIT_MS,
+  STEPPER_SYNC_MAX_WAIT_MS,
+  STEPPER_SAVED_MS,
+} from "@/lib/anilist/progressStepper.utils";
+import type { StepperFailure, StepperPhase } from "@/lib/anilist/progressStepper.utils";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { addNotification } from "@/store/notification.store";
-import type { AnilistRouteData, AniMedia } from "@/types/anilist";
-
-interface EntryPatch {
-  progress?: number;
-  list_status?: string;
-  custom_lists?: string[];
-}
-
-function patchEntry(
-  queryClient: ReturnType<typeof useQueryClient>,
-  mediaId: number,
-  patch: EntryPatch
-): void {
-  queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) => {
-    if (!old) return old;
-    const data = old as AnilistRouteData;
-    let touched = false;
-    const lists = data.lists.map((list) => {
-      const index = list.entries.findIndex((item) => item.media.id === mediaId);
-      if (index === -1) return list;
-      const previous = list.entries[index];
-      if (!previous) return list;
-      touched = true;
-      const entries = list.entries.slice();
-      entries[index] = { ...previous, ...patch };
-      return { ...list, entries };
-    });
-    return touched ? { ...data, lists } : data;
-  });
-}
-
-interface LiveEntryFields {
-  status: string;
-  score: number | null;
-  notes: string | null;
-}
-
-function readLiveFields(
-  queryClient: ReturnType<typeof useQueryClient>,
-  mediaId: number,
-  fallback: LiveEntryFields
-): LiveEntryFields {
-  const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-  if (data) {
-    for (const list of data.lists) {
-      const found = list.entries.find((item) => item.media.id === mediaId);
-      if (found) return { status: found.list_status, score: found.score, notes: found.notes };
-    }
-  }
-  return fallback;
-}
-
-function clampProgress(value: number, max: number | null): number {
-  if (max != null) return Math.min(max, Math.max(0, value));
-  return Math.max(0, value);
-}
-
-function resolveSaveStatus(target: number, max: number | null, current: string): string {
-  if (max != null && max > 0 && target >= max) return "COMPLETED";
-  return current;
-}
-
-function shortReason(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.length > 300 ? `${message.slice(0, 300)}...` : message;
-}
-
-interface StepperFailure {
-  target: number;
-  reason: string;
-}
-
-const STEPPER_SYNC_WAIT_MS = 600;
-const STEPPER_SYNC_MAX_WAIT_MS = 4000;
-const STEPPER_SAVED_MS = 1500;
-
-type StepperPhase = "idle" | "syncing" | "saved" | "error";
 
 export function ProgressStepper({
   media,

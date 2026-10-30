@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { InputDialogProps } from "@/types/ui";
+import type { InputDialogProps } from "@/types/core/ui";
 
-import Modal from "./modal.component";
+import Modal from "@/components/shared/modal.component";
 
 export function InputDialog({
   header,

@@ -3,15 +3,15 @@ import { ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { CATEGORY_ORDER, SHADER_CATEGORY_LABELS } from "@/config/shaders.config";
+import { CATEGORY_ORDER, SHADER_CATEGORY_LABELS } from "@/config/graphics/shaders.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { formatETA } from "@/lib/time.utils";
-import type { ShaderPlayerProps as Props } from "@/types/player";
-import type { ShaderInfo } from "@/types/upscale";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { formatETA } from "@/lib/core/time.utils";
+import type { ShaderPlayerProps as Props } from "@/types/player/player";
+import type { ShaderInfo } from "@/types/core/upscale";
 
 export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs }: Props) {
   const { t } = useI18n();

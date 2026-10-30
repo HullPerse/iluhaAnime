@@ -2,21 +2,21 @@ import { cn } from "cn";
 import { Image } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { DITHER_PLACEHOLDER_SRC } from "@/config/dither.config";
+import { DITHER_PLACEHOLDER_SRC } from "@/config/graphics/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useWallpaperImage } from "@/hooks/wallpaper.hook";
-import { shouldDimMascot } from "@/lib/mascot.utils";
-import { useCell } from "@/lib/signal.hook";
-import { reportBackgroundError } from "@/lib/attempt.utils";
-import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper.utils";
+import { shouldDimMascot } from "@/lib/core/mascot.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { buildShadowGradients, buildWallpaperFilter } from "@/lib/graphics/wallpaper.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
-import DitherSettings from "./dither/settings.dither";
-import InputSearch from "./input.search";
-import WallpaperCanvas from "./wallpaper.canvas";
+import DitherSettings from "@/routes/components/search/modern/dither/settings.dither";
+import InputSearch from "@/routes/components/search/modern/input.search";
+import WallpaperCanvas from "@/routes/components/search/modern/wallpaper.canvas";
 
 const MASCOT_SRC = "/avatar.png";
 

@@ -12,9 +12,9 @@ afterEach(() => {
   cleanup();
 });
 
-function overlayOf(text: string): HTMLElement | null {
+const overlayOf = (text: string): HTMLElement | null => {
   return screen.getByText(text).closest("div.absolute");
-}
+};
 
 describe("PlayerStatus", () => {
   it("renders the finished overlay on a solid background", () => {

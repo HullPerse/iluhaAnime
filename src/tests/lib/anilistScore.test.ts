@@ -12,7 +12,7 @@ import {
   smileyForScore,
   validateScoreInput,
   formatMeanScore,
-} from "@/lib/anilistScore.utils";
+} from "@/lib/anilist/anilistScore.utils";
 
 describe("anilist/score format", () => {
   it("parses known formats and falls back to POINT_10", () => {

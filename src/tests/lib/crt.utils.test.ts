@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildModeCommands, formatShaderOpts, playerModeParams } from "@/lib/crt.utils";
+import { buildModeCommands, formatShaderOpts, playerModeParams } from "@/lib/core/crt.utils";
 
 const CRT_PATH = "C:/app/shaders/crt-tv.glsl";
 const VHS_PATH = "C:/app/shaders/vhs.glsl";

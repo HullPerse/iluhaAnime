@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { stripMediaExtension, tokenizeMediaName } from "@/lib/tokenize.utils";
+import { stripMediaExtension, tokenizeMediaName } from "@/lib/graphics/tokenize.utils";
 
 const EXT_ORACLE: [string, string, string | null][] = [
   ["Horimiya - 01.mkv", "Horimiya - 01", "mkv"],

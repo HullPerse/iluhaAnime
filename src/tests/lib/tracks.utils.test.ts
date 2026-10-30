@@ -7,8 +7,8 @@ import {
   trackLabel,
   trackLanguageName,
   trackMainLabel,
-} from "@/lib/tracks.utils";
-import type { MpvTrack } from "@/types/videoPlayer";
+} from "@/lib/torrent/tracks.utils";
+import type { MpvTrack } from "@/types/player/videoPlayer";
 
 function track(overrides: Partial<MpvTrack> & { id: number; type: MpvTrack["type"] }): MpvTrack {
   return { ...overrides };

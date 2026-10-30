@@ -1,7 +1,7 @@
 import { bench, group } from "@pmndrs/labs";
 
-import { collectAllEntries, groupEntriesByListCached } from "@/lib/anilistGroup.utils";
-import type { AniListCollection, AniListEntry } from "../../src/types/anilist";
+import { collectAllEntries, groupEntriesByListCached } from "../../src/lib/anilist/anilistGroup.utils";
+import type { AniListCollection, AniListEntry } from "../../src/types/anilist/anilist";
 
 const STATUSES = ["COMPLETED", "CURRENT", "PLANNING", "DROPPED", "PAUSED", "REPEATING"];
 

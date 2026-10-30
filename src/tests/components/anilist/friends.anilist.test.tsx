@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../../mocks";
+import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListFriendsModal from "@/routes/components/anilist/friends.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { ActivityDetailBundle, AniFriend, AniUser } from "@/types/anilist";
+import type { ActivityDetailBundle, AniFriend, AniUser } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -26,7 +26,7 @@ const SELF: AniUser = {
 
 const ADDED: AniFriend = { id: 7, name: "A", avatar: null, added_at: 1 };
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -34,9 +34,9 @@ function wrapper({ children }: { children: ReactNode }) {
       {children}
     </QueryClientProvider>
   );
-}
+};
 
-function renderModal(friends: AniFriend[], onAddMany: (friends: unknown[]) => void) {
+const renderModal = (friends: AniFriend[], onAddMany: (friends: unknown[]) => void) => {
   const detail: ActivityDetailBundle = {
     entryLookup: new Map(),
     favouriteIds: new Set(),
@@ -60,14 +60,14 @@ function renderModal(friends: AniFriend[], onAddMany: (friends: unknown[]) => vo
     />,
     { wrapper }
   );
-}
+};
 
-async function openImport() {
+const openImport = async () => {
   await userEvent.click(screen.getByRole("button", { name: "From AniList" }));
   await waitFor(() => {
     expect(screen.getByText("B")).toBeDefined();
   });
-}
+};
 
 afterEach(() => cleanup());
 

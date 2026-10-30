@@ -7,7 +7,7 @@ import {
   FLAG_SHEET_HEIGHT,
   FLAG_SHEET_WIDTH,
   FLAG_SPRITE_PATH,
-} from "@/config/flags.config";
+} from "@/config/settings/flags.config";
 
 export function FlagIcon({ code, className }: { code?: string | null; className?: string }) {
   const cell = code ? FLAG_CELLS[code.toLowerCase()] : undefined;

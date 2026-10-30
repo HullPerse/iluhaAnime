@@ -1,7 +1,7 @@
-import { EDGE_STYLES } from "@/config/graph.config";
-import type { FranchiseGraphProps } from "@/types/anilist";
+import { EDGE_STYLES } from "@/config/graphics/graph.config";
+import type { FranchiseGraphProps } from "@/types/anilist/anilist";
 
-import { FranNode } from "./node.franchise";
+import { FranNode } from "@/routes/components/anilist/franchise/node.franchise";
 
 function FranchiseGraph({
   filtered,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldIgnoreHotkeys } from "@/lib/filterHotkeys.utils";
+import { shouldIgnoreHotkeys } from "@/lib/core/filterHotkeys.utils";
 
 function makeElement(tag: string, attrs: Record<string, string> = {}): HTMLElement {
   const element = document.createElement(tag);

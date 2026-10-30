@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import AnimelibSettings from "@/routes/components/settings/animelib.settings";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 beforeEach(() => {
   patchSettings({ language: "en", animelibProxyUrl: null });

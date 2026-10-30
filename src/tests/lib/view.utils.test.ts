@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveViewChrome } from "@/lib/view.utils";
-import type { ViewChromeInput } from "@/types/view";
+import { resolveViewChrome } from "@/lib/core/view.utils";
+import type { ViewChromeInput } from "@/types/core/view";
 
 function input(overrides: Partial<ViewChromeInput> = {}): ViewChromeInput {
   return {

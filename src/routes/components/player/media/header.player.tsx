@@ -4,15 +4,7 @@ import { Maximize, Maximize2, Minimize, Minimize2, Settings, X } from "lucide-re
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { reportBackgroundError } from "@/lib/attempt.utils";
-
-function startsOnControl(target: EventTarget | null) {
-  return target instanceof Element && target.closest("button, [data-no-drag]") !== null;
-}
-
-function run(action: Promise<unknown>, scope: string) {
-  action.catch((error) => reportBackgroundError(scope, error));
-}
+import { startsOnControl, runPlayerHeaderAction as run } from "@/lib/player/playerHeader.utils";
 
 function PlayerHeader({
   title,

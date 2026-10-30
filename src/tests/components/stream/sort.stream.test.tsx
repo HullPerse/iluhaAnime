@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_STREAM_FILTERS } from "@/config/streamFilters.config";
+import { DEFAULT_STREAM_FILTERS } from "@/config/player/streamFilters.config";
 import StreamSortBar from "@/routes/components/stream/sort.stream";
 import { patchSettings } from "@/store/settings.store";
 import { applyStreamFilters, streamFilters, streamPage } from "@/store/stream.store";
@@ -10,12 +10,12 @@ const noop = () => undefined;
 
 // jsdom measures every element as zero wide, which pages the bar down to one
 // key. A real window fits all four, so the tests set the measured width.
-function setMeasuredWidth(width: number) {
+const setMeasuredWidth = (width: number) => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", {
     configurable: true,
     get: () => width,
   });
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

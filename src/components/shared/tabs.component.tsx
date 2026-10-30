@@ -2,7 +2,8 @@ import { cn } from "cn";
 import { WifiOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { createListNavigationHandler } from "@/lib/keyboard.utils";
+import { createListNavigationHandler } from "@/lib/ui/keyboard.utils";
+import { resolveEnabledIndex } from "@/lib/ui/tabsIndex.utils";
 
 interface TabEntry<T extends string> {
   id: T;
@@ -11,18 +12,6 @@ interface TabEntry<T extends string> {
   badge?: number;
   disabled?: boolean;
   disabledReason?: string;
-}
-
-function resolveEnabledIndex<T extends string>(
-  tabs: readonly TabEntry<T>[],
-  index: number
-): number {
-  if (!tabs[index]?.disabled) return index;
-  for (let step = 1; step < tabs.length; step += 1) {
-    const forward = (index + step) % tabs.length;
-    if (!tabs[forward]?.disabled) return forward;
-  }
-  return index;
 }
 
 function Tabs<T extends string>({

@@ -16,17 +16,17 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { feedbackScore } from "@/lib/feedback.utils";
-import { buildLearningMaps, countersOf } from "@/lib/learning.utils";
-import { RANKING } from "../src/config/ranking.config";
-import { normalizeSearchText } from "@/lib/normalize.utils";
-import { getSearchSuggestions } from "@/lib/suggestions.utils";
+import { feedbackScore } from "../src/lib/core/feedback.utils";
+import { buildLearningMaps, countersOf } from "../src/lib/core/learning.utils";
+import { RANKING } from "../src/config/anilist/ranking.config";
+import { normalizeSearchText } from "../src/lib/core/normalize.utils";
+import { getSearchSuggestions } from "../src/lib/core/suggestions.utils";
 import type {
   LearningStatRow,
   SearchAnimeSuggestion,
   SearchQueryStat,
   SearchSuggestion,
-} from "../src/types/search";
+} from "../src/types/search/search";
 
 interface EvalQuery {
   query: string;

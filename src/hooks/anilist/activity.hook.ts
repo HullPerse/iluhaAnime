@@ -3,10 +3,10 @@ import { useRef } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { tr } from "@/lib/locale/i18n.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { attempt } from "@/lib/attempt.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import { addNotification } from "@/store/notification.store";
-import type { ActivityLikeState, AniActivity } from "@/types/anilist";
+import type { ActivityLikeState, AniActivity } from "@/types/anilist/anilist";
 
 export function useToggleActivityLike() {
   const queryClient = useQueryClient();

@@ -1,78 +1,15 @@
 import { useEffect, useMemo } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
-import ImageComponent from "@/components/ui/image.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatActivityTime } from "@/lib/activity.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { anilistNotificationsAtoms, markSiteNotificationsRead } from "@/store/anilist.store";
-import type { AniSiteNotification } from "@/types/anilist";
 
-function notificationText(item: AniSiteNotification): string {
-  if (item.context) return item.context;
-  if (item.contexts.length > 0) return item.contexts.join(" ");
-  if (item.text) return item.text;
-  return "";
-}
-
-function NotificationRow({
-  item,
-  unread,
-  onAnimeClick,
-}: {
-  item: AniSiteNotification;
-  unread: boolean;
-  onAnimeClick: (id: number) => void;
-}) {
-  const { locale } = useI18n();
-  const avatar = item.user_avatar ?? item.anime_cover;
-  const title = item.user_name ?? item.anime_title ?? "";
-  const body =
-    item.kind === "airing" && item.anime_title
-      ? `${item.anime_title} - Ep. ${item.episode ?? "?"}`
-      : notificationText(item);
-  const clickable = item.anime_id != null;
-  const coverClass = clickable
-    ? "windows95-active-border h-8 w-6 shrink-0 object-cover hover:cursor-pointer"
-    : "windows95-active-border h-8 w-6 shrink-0 object-cover";
-  const titleClass = clickable
-    ? "truncate font-bold underline decoration-dotted hover:cursor-pointer"
-    : "truncate";
-  return (
-    <button
-      type="button"
-      disabled={!clickable}
-      onClick={() => {
-        if (item.anime_id != null) onAnimeClick(item.anime_id);
-      }}
-      className="windows95-border bg-primary flex w-full items-start gap-1 px-1 py-0.5 text-left disabled:cursor-default"
-    >
-      {avatar ? (
-        <ImageComponent src={avatar} alt="" className={coverClass} />
-      ) : (
-        <div className="windows95-active-border bg-field flex h-8 w-6 shrink-0 items-center justify-center text-xs font-bold">
-          {title[0] ?? "?"}
-        </div>
-      )}
-      <div className="windows95-text flex min-w-0 flex-1 flex-col text-xs">
-        <span className={titleClass} title={title}>
-          {unread && <span className="text-highlight font-bold">{"* "}</span>}
-          {title}
-        </span>
-        <span className="line-clamp-2" title={body}>
-          {body}
-        </span>
-        <span className="text-hint windows95-font text-xs">
-          {formatActivityTime(item.created_at, locale)}
-        </span>
-      </div>
-    </button>
-  );
-}
+import { NotificationRow } from "./notifications/row.notifications";
 
 export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
   const { t } = useI18n();

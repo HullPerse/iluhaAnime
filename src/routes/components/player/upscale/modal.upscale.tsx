@@ -2,187 +2,29 @@ import { Wand2 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 import Modal from "@/components/shared/modal.component";
-import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
-import { GPU_LABELS, TABS } from "@/config/options.config";
-import { ANIME4K_PRESETS } from "@/config/presets.config";
+import { GPU_LABELS } from "@/config/settings/options.config";
+import { ANIME4K_PRESETS } from "@/config/settings/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { useUpscalePreview } from "@/hooks/player/upscalePreview.hook";
-import type { UpscalePreviewController } from "@/types/upscalePreview";
-import { fileNameFromPath } from "@/lib/parse.utils";
-import { formatParsedTitle } from "@/lib/playerTitle.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { withFallback } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
+import { fileNameFromPath } from "@/lib/search/parse.utils";
+import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { withFallback } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { addConvertItem, addUpscaleItem, upscaleItems } from "@/store/upscale.store";
-import type { UpscaleConfig, ConvertConfig, PreviewFrame } from "@/types/upscale";
-import type { ModalPager } from "@/types/ui";
+import type { UpscaleConfig, ConvertConfig } from "@/types/core/upscale";
 
-import { PreviewZoom } from "../preview.player";
-import { UpscaleConfigPanel } from "./config.upscale";
-import { UpscaleProgressPanel } from "./progress.upscale";
-import { UpscaleStatusPanels } from "./status.upscale";
+import { PreviewZoom } from "@/routes/components/player/preview/zoom.preview";
+import UpscaleConfigView from "@/routes/components/player/upscale/configView.upscale";
+import { UpscaleProgressPanel } from "@/routes/components/player/upscale/progress.upscale";
+import { UpscaleStatusPanels } from "@/routes/components/player/upscale/status.upscale";
 
-function zoomedFrameAt(frames: PreviewFrame[], index: number | null): PreviewFrame | null {
-  if (index === null) return null;
-  return frames[index] ?? null;
-}
-
-function framePager(
-  frames: PreviewFrame[],
-  index: number | null,
-  label: string,
-  setIndex: (updater: (prev: number | null) => number | null) => void
-): ModalPager | undefined {
-  if (index === null || frames.length < 2) return undefined;
-  const step = (delta: number) => () =>
-    setIndex((prev) => (prev === null ? prev : (prev + delta + frames.length) % frames.length));
-  return {
-    index,
-    total: frames.length,
-    label,
-    onPrevious: step(-1),
-    onNext: step(1),
-  };
-}
-
-function UpscaleConfigView({
-  filePath,
-  activeTab,
-  onTabChange,
-  resolution,
-  onResolution,
-  upscaler,
-  onUpscaler,
-  quality,
-  onQuality,
-  videoCodec,
-  onVideoCodec,
-  fpsValue,
-  onFpsValue,
-  gpuBackend,
-  onGpuBackend,
-  gpuOptions,
-  anime4kPreset,
-  onPresetChange,
-  selectedShaders,
-  onShaders,
-  temporalDenoise,
-  onTemporalDenoise,
-  suggestion,
-  ffmpegStatus,
-  onFfmpegStatus,
-  targetFormat,
-  onTargetFormat,
-  copyStreams,
-  onCopyStreams,
-  preview,
-  onPreviewZoom,
-  onCancel,
-  onQueue,
-  onStartUpscale,
-  onStartConvert,
-}: {
-  filePath: string;
-  activeTab: "upscale" | "convert";
-  onTabChange: (tab: "upscale" | "convert") => void;
-  resolution: string;
-  onResolution: (value: string) => void;
-  upscaler: string;
-  onUpscaler: (value: string) => void;
-  quality: string;
-  onQuality: (value: string) => void;
-  videoCodec: string;
-  onVideoCodec: (value: string) => void;
-  fpsValue: string;
-  onFpsValue: (value: string) => void;
-  gpuBackend: string;
-  onGpuBackend: (value: string) => void;
-  gpuOptions: { value: string; label: string }[];
-  anime4kPreset: string;
-  onPresetChange: (preset: string) => void;
-  selectedShaders: string[];
-  onShaders: (value: string[]) => void;
-  temporalDenoise: boolean;
-  onTemporalDenoise: (value: boolean) => void;
-  suggestion: { preset: string; reason: string } | null;
-  ffmpegStatus: "checking" | "ok" | "missing" | "downloading";
-  onFfmpegStatus: (status: "checking" | "ok" | "missing" | "downloading") => void;
-  targetFormat: string;
-  onTargetFormat: (value: string) => void;
-  copyStreams: boolean;
-  onCopyStreams: (value: boolean) => void;
-  preview: UpscalePreviewController;
-  onPreviewZoom: (frame: PreviewFrame) => void;
-  onCancel: () => void;
-  onQueue: () => void;
-  onStartUpscale: () => void;
-  onStartConvert: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="flex flex-col">
-      <div className="shrink-0">
-        <Tabs
-          ariaLabel={t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}
-          tabs={TABS.map((tab) => ({
-            ...tab,
-            label: t(tab.label),
-          }))}
-          activeTab={activeTab}
-          onChange={onTabChange}
-        />
-      </div>
-
-      <section className="windows95-border flex-1 overflow-hidden p-1">
-        <UpscaleConfigPanel
-          filePath={filePath}
-          activeTab={activeTab}
-          resolution={resolution}
-          setResolution={onResolution}
-          upscaler={upscaler}
-          setUpscaler={onUpscaler}
-          quality={quality}
-          setQuality={onQuality}
-          videoCodec={videoCodec}
-          setVideoCodec={onVideoCodec}
-          fpsValue={fpsValue}
-          setFpsValue={onFpsValue}
-          gpuBackend={gpuBackend}
-          setGpuBackend={onGpuBackend}
-          gpuOptions={gpuOptions}
-          anime4kPreset={anime4kPreset}
-          onPresetChange={onPresetChange}
-          selectedShaders={selectedShaders}
-          setSelectedShaders={onShaders}
-          temporalDenoise={temporalDenoise}
-          setTemporalDenoise={onTemporalDenoise}
-          suggestion={suggestion}
-          ffmpegStatus={ffmpegStatus}
-          setFfmpegStatus={onFfmpegStatus}
-          targetFormat={targetFormat}
-          setTargetFormat={onTargetFormat}
-          copyStreams={copyStreams}
-          setCopyStreams={onCopyStreams}
-          preview={preview}
-          onPreviewZoom={onPreviewZoom}
-        />
-      </section>
-
-      <div className="mt-2 flex flex-row justify-end gap-1">
-        <Button onClick={onCancel}>{t("common.cancel")}</Button>
-        <Button onClick={onQueue}>{t("player.upscale.to.queue")}</Button>
-        <Button onClick={activeTab === "upscale" ? onStartUpscale : onStartConvert}>
-          {t(activeTab === "upscale" ? "player.upscale.start" : "player.upscale.convert")}
-        </Button>
-      </div>
-    </div>
-  );
-}
+import { zoomedFrameAt, framePager } from "@/lib/player/upscaleModal.utils";
 
 export default function UpscalePlayer({
   filePath,

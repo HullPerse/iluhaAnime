@@ -2,8 +2,8 @@ import { renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useHotkeys, useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
-import type { HotkeyDef } from "@/types/chordHotkeys";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
+import type { HotkeyDef } from "@/types/core/chordHotkeys";
 import { patchSettings } from "@/store/settings.store";
 
 const DEFS: HotkeyDef<"save" | "close">[] = [
@@ -11,9 +11,9 @@ const DEFS: HotkeyDef<"save" | "close">[] = [
   { id: "close", chord: "Escape", repeat: "once" },
 ];
 
-function press(init: KeyboardEventInit & { code: string }): void {
+const press = (init: KeyboardEventInit & { code: string }): void => {
   window.dispatchEvent(new KeyboardEvent("keydown", init));
-}
+};
 
 describe("useHotkeys", () => {
   it("fires the latest callback and cleans up on unmount", () => {

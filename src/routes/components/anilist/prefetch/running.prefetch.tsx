@@ -1,6 +1,6 @@
 import ProgressBar from "@/components/shared/progress.component";
-import { formatClock } from "@/lib/time.utils";
-import type { ActivityTranslate, PrefetchProgressPayload } from "@/types/anilist";
+import { formatClock } from "@/lib/core/time.utils";
+import type { ActivityTranslate, PrefetchProgressPayload } from "@/types/anilist/anilist";
 
 export function RunningSummary({
   progress,

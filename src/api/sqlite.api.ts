@@ -3,10 +3,10 @@ import type {
   SqliteDatabaseInfo,
   SqliteRowsPage,
   SqliteTableInfo,
-} from "@/types/sqlite";
+} from "@/types/core/sqlite";
 
-import type { ApiTransport } from "@/types/transport";
-import { tauriTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/core/transport";
+import { tauriTransport } from "@/api/transport.api";
 
 interface SqliteApiConfig {
   transport?: ApiTransport;

@@ -11,7 +11,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mockSpellRect() {
+const mockSpellRect = () => {
   const rect = {
     x: 40,
     y: 10,
@@ -24,7 +24,7 @@ function mockSpellRect() {
     toJSON: () => {},
   } as unknown as DOMRect;
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect);
-}
+};
 
 describe("InlineAutocompleteInput", () => {
   it("aligns the ghost text with the input content box", async () => {
@@ -787,10 +787,10 @@ describe("InlineAutocompleteInput per-word spell actions", () => {
     ],
   };
 
-  function renderTwoWords(callbacks: {
+  const renderTwoWords = (callbacks: {
     onApplySpellCorrection?: (spanIndex?: number) => void;
     onAddWordToDictionary?: (spanIndex?: number) => void;
-  }) {
+  }) => {
     mockSpellRect();
     render(
       <InlineAutocompleteInput
@@ -802,7 +802,7 @@ describe("InlineAutocompleteInput per-word spell actions", () => {
       />
     );
     return screen.getByRole("textbox", { name: "Search spell words" }) as HTMLInputElement;
-  }
+  };
 
   it("underlines every misspelled word", async () => {
     const user = userEvent.setup();

@@ -1,20 +1,9 @@
-import { CHART_LAYOUT } from "@/config/palette.config";
-import { clamp } from "@/lib/math.utils";
+import { CHART_LAYOUT } from "@/config/graphics/palette.config";
+import { tooltipHeight } from "@/lib/graphics/chartTooltip.utils";
+import { clamp } from "@/lib/core/math.utils";
 
-import type { ChartPlot } from "@/types/frame.chart";
-import type { ChartTooltipData } from "@/types/tooltip.chart";
-
-export function tooltipAnnouncement(data: ChartTooltipData): string {
-  const values = data.rows.map((row) => `${row.label} ${row.value}`).join(", ");
-  return values ? `${data.title}: ${values}` : data.title;
-}
-
-const LINE_HEIGHT = 14;
-const VERTICAL_PADDING = 10;
-
-function tooltipHeight(data: ChartTooltipData): number {
-  return VERTICAL_PADDING + LINE_HEIGHT * (data.rows.length + 1);
-}
+import type { ChartPlot } from "@/types/core/frame.chart";
+import type { ChartTooltipData } from "@/types/core/tooltip.chart";
 
 export function SvgChartTooltip({
   x,

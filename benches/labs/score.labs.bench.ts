@@ -1,7 +1,7 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { fuzzyMatchScore, fuzzyMatchScorePreNormalized } from '@/lib/searchScore.utils';
-import { normalizeSearchText } from '@/lib/normalize.utils';
+import { fuzzyMatchScore, fuzzyMatchScorePreNormalized } from '../../src/lib/search/searchScore.utils';
+import { normalizeSearchText } from '../../src/lib/core/normalize.utils';
 
 const QUERIES = [
   'naruto shippuden',

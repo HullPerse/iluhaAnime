@@ -80,9 +80,9 @@ describe("ProgressBar", () => {
 });
 
 describe("ProgressBar slots mode", () => {
-  function slotCells(): Element[] {
+  const slotCells = (): Element[] => {
     return Array.from(screen.getByRole("progressbar").children);
-  }
+  };
 
   it("renders a fixed 12 cells with one cell per episode at max 12", () => {
     render(<ProgressBar value={5} max={12} slots />);

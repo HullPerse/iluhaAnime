@@ -1,4 +1,4 @@
-import { mockInvoke } from "../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,15 +12,15 @@ import {
   setResolvedCover,
 } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
-import type { AniMedia } from "@/types/anilist";
-import type { TorrentCoverMode } from "@/types/settings";
+import type { AniMedia } from "@/types/anilist/anilist";
+import type { TorrentCoverMode } from "@/types/ui/settings";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-function media(partial: Partial<AniMedia>): AniMedia {
+const media = (partial: Partial<AniMedia>): AniMedia => {
   return {
     id: 0,
     title: "",
@@ -47,7 +47,7 @@ function media(partial: Partial<AniMedia>): AniMedia {
     relations: [],
     ...partial,
   };
-}
+};
 
 const NARUTO = media({
   id: 20,
@@ -59,17 +59,17 @@ const NARUTO = media({
   cover_url: "https://s4.anilist.co/file/naruto.jpg",
 });
 
-function renderCover(
+const renderCover = (
   title: string,
   options?: { source?: string; url?: string | null; mode?: TorrentCoverMode }
-) {
+) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderHook(() => useTorrentCover(title, options), {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     ),
   });
-}
+};
 
 afterEach(() => {
   removeCoverOverride("naruto|0");

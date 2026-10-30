@@ -1,8 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { useCell, useDerived } from "@/lib/signal.hook";
-import { createSignalStore } from "@/lib/signal.store";
+import { useCell, useDerived } from "@/lib/core/signal.hook";
+import { createSignalStore } from "@/lib/core/signal.store";
 
 describe("useCell", () => {
   it("renders the current value and updates on set", () => {

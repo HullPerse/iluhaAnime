@@ -1,13 +1,13 @@
 import { Ban, ListVideo } from "lucide-react";
 
-import { HostStatsLine } from "@/components/shared/hostStats.component";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { HostStatsLine } from "@/components/shared/hostStats/line.hostStats";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatETA } from "@/lib/time.utils";
-import type { UpscaleQueueItem } from "@/types/upscale";
+import { formatETA } from "@/lib/core/time.utils";
+import type { UpscaleQueueItem } from "@/types/core/upscale";
 
 export function UpscaleProgressPanel({
   activeItem,

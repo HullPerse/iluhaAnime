@@ -1,6 +1,6 @@
 import { test } from "vitest";
 
-import { createSignalStore } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/core/signal.store";
 
 interface BaselineState {
   value: number;

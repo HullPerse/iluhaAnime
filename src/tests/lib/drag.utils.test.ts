@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatVerticalDragTransform } from "@/lib/drag.utils";
+import { formatVerticalDragTransform } from "@/lib/ui/drag.utils";
 
 describe("formatVerticalDragTransform", () => {
   it("returns undefined without a transform", () => {

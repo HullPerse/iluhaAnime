@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { animeTitleFields, resolveAnimeTitle } from "@/lib/anilistTitle.utils";
+import { animeTitleFields, resolveAnimeTitle } from "@/lib/anilist/anilistTitle.utils";
 
 const FULL = {
   romaji: "Sousou no Frieren",

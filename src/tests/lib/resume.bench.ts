@@ -1,6 +1,10 @@
 import { test } from "vitest";
 
-import { needsExactSeek, resolveLoadPosition, shouldSkipFrontendSeek } from "@/lib/resume.utils";
+import {
+  needsExactSeek,
+  resolveLoadPosition,
+  shouldSkipFrontendSeek,
+} from "@/lib/player/resume.utils";
 
 const RELOAD = { position: 321, paused: true };
 

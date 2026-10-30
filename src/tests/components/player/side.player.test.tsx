@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PlayerSidePanel from "@/routes/components/player/side.player";
 import { streamSession } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
-import type { StreamingEpisode } from "@/types/stream";
-import type { StreamOpen } from "@/types/videoPlayer";
+import type { StreamingEpisode } from "@/types/player/stream";
+import type { StreamOpen } from "@/types/player/videoPlayer";
 
 const playlistBodyProps = vi.hoisted(() => ({
   current: null as { focusedIndex?: number | null } | null,
@@ -47,7 +47,7 @@ const EPISODES: StreamingEpisode[] = [
   { id: "12", number: 3 },
 ];
 
-function streamSessionValue(): StreamOpen {
+const streamSessionValue = (): StreamOpen => {
   return {
     sourceId: "animelib",
     sourceName: "AnimeLib",
@@ -64,7 +64,7 @@ function streamSessionValue(): StreamOpen {
     sources: [],
     mediaUrl: "https://cdn/1080.mp4",
   };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

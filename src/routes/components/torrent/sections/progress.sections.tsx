@@ -4,18 +4,18 @@ import { useEffect, useState } from "react";
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { createInterval } from "@/lib/interval.utils";
-import { useCell } from "@/lib/signal.hook";
+import { createInterval } from "@/lib/core/interval.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
   fmtSpeed,
   getDisplayState,
-} from "@/lib/torrentCommon.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { formatElapsed, formatETA } from "@/lib/time.utils";
+} from "@/lib/torrent/torrentCommon.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatElapsed, formatETA } from "@/lib/core/time.utils";
 import { torrentAtoms } from "@/store/download.store";
-import type { TorrentInfo } from "@/types/torrent";
+import type { TorrentInfo } from "@/types/torrent/torrent";
 
 export function TorrentProgress({ item }: { item: TorrentInfo }) {
   const { t } = useI18n();

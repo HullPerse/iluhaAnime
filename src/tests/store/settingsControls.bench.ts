@@ -5,7 +5,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { transformOptions } from "@/lib/playback.utils";
+import { transformOptions } from "@/lib/player/playback.utils";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import { createSettingsSignalStore } from "@/store/settings.store";
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import * as z from "zod/mini";
 
-import { err, ok } from "@/lib/result.utils";
-import { parseJson, parseValue, toValidator } from "@/lib/schema.utils";
+import { err, ok } from "@/lib/core/result.utils";
+import { parseJson, parseValue, toValidator } from "@/lib/core/schema.utils";
 
 const ItemSchema = z.object({
   id: z.number().check(z.gt(0)),

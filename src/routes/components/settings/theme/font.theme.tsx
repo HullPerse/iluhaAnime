@@ -4,27 +4,10 @@ import { systemApi } from "@/api/system.api";
 import Combobox from "@/components/ui/combobox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { readCachedFonts, writeCachedFonts } from "@/lib/ui/fontCache.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-
-function readCachedFonts(): string[] {
-  const [parsed, error] = attemptSync(() => {
-    const raw = localStorage.getItem("systemFontsCache");
-    if (!raw) return null;
-    const value = JSON.parse(raw) as { fonts: string[]; ts: number };
-    if (
-      Array.isArray(value.fonts) &&
-      typeof value.ts === "number" &&
-      Date.now() - value.ts < 7 * 24 * 60 * 60 * 1000
-    )
-      return value.fonts;
-    return null;
-  });
-  if (error) reportBackgroundError("fonts.cache.parse", error);
-  return parsed ?? [];
-}
 
 export function FontSelector() {
   const appFont = useCell(settingsAtoms.appFont);
@@ -34,10 +17,7 @@ export function FontSelector() {
     queryKey: queryKeys.systemFonts(),
     queryFn: async () => {
       const list = await systemApi.listSystemFonts();
-      const [, cacheError] = attemptSync(() =>
-        localStorage.setItem("systemFontsCache", JSON.stringify({ fonts: list, ts: Date.now() }))
-      );
-      if (cacheError) reportBackgroundError("fonts.cache.write", cacheError);
+      writeCachedFonts(list);
       return list;
     },
     enabled: initialFonts.length === 0,

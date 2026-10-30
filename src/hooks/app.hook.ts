@@ -4,35 +4,38 @@ import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import { useCallback, useEffect, useRef } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { TOAST_ACTIVATED_EVENT } from "@/config/notifications.config";
-import { visibleTabs } from "@/config/tabs.config";
-import { tabIdFromPath, tabPathFromId } from "@/config/tabPaths.config";
+import { TOAST_ACTIVATED_EVENT } from "@/config/system/notifications.config";
+import { visibleTabs } from "@/config/settings/tabs.config";
+import { tabIdFromPath, tabPathFromId } from "@/config/settings/tabPaths.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
+import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
-import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilistNotifications.utils";
-import { markCacheReady } from "@/lib/signals.utils";
-import { useCell } from "@/lib/signal.hook";
-import { readAppCache } from "@/lib/cache.utils";
-import { tabLabel } from "@/lib/tabs.utils";
-import { attemptAll, reportBackgroundError } from "@/lib/attempt.utils";
+import {
+  pollAniListReleases,
+  pollSiteNotifications,
+} from "@/lib/anilist/anilistNotifications.utils";
+import { markCacheReady } from "@/lib/core/signals.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { readAppCache } from "@/lib/core/cache.utils";
+import { tabLabel } from "@/lib/ui/tabs.utils";
+import { attemptAll, reportBackgroundError } from "@/lib/core/attempt.utils";
 import {
   DEEP_LINK_EVENT,
   ingestDeepLinks,
   isEditablePasteTarget,
   parseCollectionShareLink,
   parsePastedLink,
-} from "@/lib/deeplink.utils";
+} from "@/lib/core/deeplink.utils";
 import {
   openNotificationTarget,
   resolveNotificationText,
   showError,
   showWarning,
-} from "@/lib/notification.utils";
+} from "@/lib/core/notification.utils";
 import { anilistNotificationsAtoms } from "@/store/anilist.store";
 import { cacheAtoms, setEpisodeTracker, setFolderTrees, setLastSaveDir } from "@/store/cache.store";
 import { collectionAtoms, subscribeCollection } from "@/store/collection.store";
@@ -59,9 +62,9 @@ import type {
   NotificationTarget,
   NotificationType,
   ShowNotificationPayload,
-} from "@/types/notification";
-import type { TabId } from "@/types/settings";
-import type { FolderNode } from "@/types/torrent";
+} from "@/types/core/notification";
+import type { TabId } from "@/types/ui/settings";
+import type { FolderNode } from "@/types/torrent/torrent";
 
 const NOTIFICATION_TYPES = new Set<NotificationType>(["info", "success", "warning", "error"]);
 

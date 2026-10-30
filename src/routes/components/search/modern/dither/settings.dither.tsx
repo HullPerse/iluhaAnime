@@ -5,33 +5,36 @@ import { ChevronLeft, ChevronRight, Pencil, Plus, Trash } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import Slider from "@/components/ui/range.component";
-import { WALLPAPER_DISPLAY_PRESETS, WALLPAPER_DISPLAY_SLIDERS } from "@/config/wallpaper.config";
+import {
+  WALLPAPER_DISPLAY_PRESETS,
+  WALLPAPER_DISPLAY_SLIDERS,
+} from "@/config/graphics/wallpaper.config";
 import {
   DITHER_PER_PAGE,
   DITHER_PLACEHOLDER_ID,
   DITHER_PLACEHOLDER_SRC,
-} from "@/config/dither.config";
+} from "@/config/graphics/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
-import { fileNameFromPath } from "@/lib/parse.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { toUserImage } from "@/lib/image.utils";
-import { showError } from "@/lib/notification.utils";
-import { paginate } from "@/lib/pagination.utils";
+import { fileNameFromPath } from "@/lib/search/parse.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@/lib/core/attempt.utils";
+import { toUserImage } from "@/lib/graphics/image.utils";
+import { showError } from "@/lib/core/notification.utils";
+import { paginate } from "@/lib/core/pagination.utils";
 import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dither/placeholder.dither";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { WallpaperDisplayFilters } from "@/types/settings";
-import type { DitherImageMeta, UserImage } from "@/types/userimage";
+import type { WallpaperDisplayFilters } from "@/types/ui/settings";
+import type { DitherImageMeta, UserImage } from "@/types/core/userimage";
 
 function DitherSettings({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();

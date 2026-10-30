@@ -1,1 +1,0 @@
-export const PROFILE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChartFrame } from "@/components/shared/charts/frame.chart";
 
-function rect(width: number, height: number): DOMRect {
+const rect = (width: number, height: number): DOMRect => {
   return {
     width,
     height,
@@ -15,7 +15,7 @@ function rect(width: number, height: number): DOMRect {
     y: 0,
     toJSON: () => ({}),
   } as DOMRect;
-}
+};
 
 beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(rect(640, 200));

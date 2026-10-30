@@ -1,5 +1,5 @@
 import ProgressBar from "@/components/shared/progress.component";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { upscaleItems } from "@/store/upscale.store";
 
 export function QueueStrip() {

@@ -2,8 +2,8 @@ import { useMemo } from "react";
 
 import { emojiApi } from "@/api/emoji.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { assetUrl } from "@/lib/image.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { assetUrl } from "@/lib/graphics/image.utils";
 
 export function useCustomEmoji(): ReadonlyMap<string, string> {
   const { data } = useAppQuery<Awaited<ReturnType<typeof emojiApi.list>>>("static", {

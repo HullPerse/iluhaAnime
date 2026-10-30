@@ -1,8 +1,8 @@
 import Modal from "@/components/shared/modal.component";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import { clearModalScope, modalAtoms, popModal } from "@/store/modal.store";
-import type { ModalEntry, ModalScope } from "@/types/modal";
-import type { ModalHostContent } from "@/types/modalHost";
+import type { ModalEntry, ModalScope } from "@/types/ui/modal";
+import type { ModalHostContent } from "@/types/ui/modalHost";
 
 export function ModalHost({
   scope,

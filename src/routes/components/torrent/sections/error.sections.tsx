@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { describeTorrentProblem } from "@/lib/problem.utils";
+import { describeTorrentProblem } from "@/lib/core/problem.utils";
 
 export function TorrentProblem({
   error,

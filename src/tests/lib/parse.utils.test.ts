@@ -5,8 +5,8 @@ import {
   isTrackFileName,
   mediaFileExtension,
   parseMediaFile,
-} from "@/lib/parse.utils";
-import type { MediaFileParse } from "@/types/media";
+} from "@/lib/search/parse.utils";
+import type { MediaFileParse } from "@/types/player/media";
 
 import expectedRows from "@/tests/lib/media/expected.json";
 import fixtureRows from "@/tests/lib/media/fixtures.json";

@@ -3,7 +3,7 @@ import { useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist";
+import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist/anilist";
 
 import { AiringTab } from "./activity/airingTab.activity";
 import { CalendarTab } from "./activity/calendarTab.activity";

@@ -10,10 +10,10 @@ import {
   parseScoreFormat,
   scoreFormatMax,
   scoreFormatSuffix,
-} from "@/lib/anilistScore.utils";
-import { animeTitleFields, resolveAnimeTitle } from "@/lib/anilistTitle.utils";
-import type { AnimeTitleFields } from "@/types/anilistTitle";
-import type { AniTitleLanguage } from "../../src/types/anilist";
+} from "../../src/lib/anilist/anilistScore.utils";
+import { animeTitleFields, resolveAnimeTitle } from "../../src/lib/anilist/anilistTitle.utils";
+import type { AnimeTitleFields } from "../../src/types/anilist/anilistTitle";
+import type { AniTitleLanguage } from "../../src/types/anilist/anilist";
 
 const ROMAJI = ["Sousou no Frieren", "Naruto Shippuden", "One Piece", "Steins;Gate", "Re:Zero"];
 const ENGLISH = ["Frieren", "Naruto Shippuden", "One Piece", "", "Re:Zero Starting Life"];

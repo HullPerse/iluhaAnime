@@ -1,5 +1,5 @@
-import { createSignalStore } from "@/lib/signal.store";
-import type { FindBarSignalStore, FindBarState } from "@/types/findBar";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { FindBarSignalStore, FindBarState } from "@/types/core/findBar";
 
 export const EMPTY_FIND_BAR: FindBarState = {
   open: false,

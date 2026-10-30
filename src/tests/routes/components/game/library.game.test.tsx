@@ -2,9 +2,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import GameLibrary from "@/routes/components/game/library.game";
-import type { GameLibraryProps } from "@/types/library.game";
+import type { GameLibraryProps } from "@/types/core/library.game";
 import { patchSettings } from "@/store/settings.store";
-import type { GameRomInfo } from "@/types/game";
+import type { GameRomInfo } from "@/types/core/game";
 
 const ROMS: GameRomInfo[] = [
   {
@@ -27,7 +27,7 @@ const ROMS: GameRomInfo[] = [
   },
 ];
 
-function renderLibrary(overrides: Partial<GameLibraryProps> = {}): GameLibraryProps {
+const renderLibrary = (overrides: Partial<GameLibraryProps> = {}): GameLibraryProps => {
   const props: GameLibraryProps = {
     roms: ROMS,
     activeId: null,
@@ -45,7 +45,7 @@ function renderLibrary(overrides: Partial<GameLibraryProps> = {}): GameLibraryPr
   };
   render(<GameLibrary {...props} />);
   return props;
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

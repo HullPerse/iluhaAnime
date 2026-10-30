@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchQuery } from "@/hooks/search/query.hook";
-import { parseTorrentTags } from "@/lib/torrentTags.utils";
-import { attempt } from "@/lib/attempt.utils";
+import { parseTorrentTags } from "@/lib/torrent/torrentTags.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
@@ -20,7 +20,7 @@ import SearchResultsSummary from "@/routes/components/search/default/summary.sea
 import DidYouMeanRow from "@/routes/components/search/didyoumean.search";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
-import type { SearchFilters } from "@/types/search";
+import type { SearchFilters } from "@/types/search/search";
 
 function SearchDefault() {
   const { t } = useI18n();

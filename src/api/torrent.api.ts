@@ -1,6 +1,6 @@
 import { settingsAtoms } from "@/store/settings.store";
-import type { Source } from "@/types/search";
-import type { SessionConfigPayload } from "@/types/settings";
+import type { Source } from "@/types/search/search";
+import type { SessionConfigPayload } from "@/types/ui/settings";
 import type {
   Anime,
   CreatedTorrent,
@@ -15,10 +15,10 @@ import type {
   TorrentLimits,
   TorrentOrigin,
   TorrentResumeResult,
-} from "@/types/torrent";
+} from "@/types/torrent/torrent";
 
-import type { ApiTransport } from "@/types/transport";
-import { tauriTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/core/transport";
+import { tauriTransport } from "@/api/transport.api";
 
 export interface TorrentApiConfig {
   transport?: ApiTransport;

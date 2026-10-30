@@ -10,8 +10,8 @@ import { bench, group } from "@pmndrs/labs";
 // Result wrapper, which is noise against a 5-50ms native invoke.
 // Regression threshold is labs minDelta 5%.
 
-import { attempt } from "@/lib/attempt.utils";
-import { attemptAllLimit, attemptResult } from "@/lib/result.utils";
+import { attempt } from "../../src/lib/core/attempt.utils";
+import { attemptAllLimit, attemptResult } from "../../src/lib/core/result.utils";
 
 const ITEMS = Array.from({ length: 30 }, (_, index) => index);
 

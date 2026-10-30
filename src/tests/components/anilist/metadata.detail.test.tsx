@@ -1,10 +1,10 @@
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListMetadata from "@/routes/components/anilist/detail/metadata.detail";
 import { patchSettings } from "@/store/settings.store";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -13,7 +13,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const NOW = 1_728_000_000_000;
 
-function makeAnime(overrides: Partial<AniMedia> = {}): AniMedia {
+const makeAnime = (overrides: Partial<AniMedia> = {}): AniMedia => {
   return {
     id: 501,
     title: "Frieren",
@@ -40,7 +40,7 @@ function makeAnime(overrides: Partial<AniMedia> = {}): AniMedia {
     relations: [],
     ...overrides,
   };
-}
+};
 
 afterEach(() => {
   cleanup();

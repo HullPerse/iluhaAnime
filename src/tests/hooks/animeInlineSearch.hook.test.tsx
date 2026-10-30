@@ -5,15 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { anilistApi } from "@/api/anilist.api";
 import { useAnimeInlineSearch } from "@/hooks/anilist/inlineSearch.hook";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
 
 let client: QueryClient;
 
-function wrapper({ children }: { children: ReactNode }) {
+const wrapper = ({ children }: { children: ReactNode }) => {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-}
+};
 
-function media(overrides: Partial<AniMedia> = {}): AniMedia {
+const media = (overrides: Partial<AniMedia> = {}): AniMedia => {
   return {
     banner_image: null,
     cover_url: null,
@@ -46,7 +46,7 @@ function media(overrides: Partial<AniMedia> = {}): AniMedia {
     trailer_youtube_id: null,
     ...overrides,
   };
-}
+};
 
 beforeEach(() => {
   client = new QueryClient({

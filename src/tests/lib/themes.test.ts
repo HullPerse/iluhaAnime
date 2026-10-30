@@ -5,7 +5,7 @@ import {
   THEMES,
   THEME_ACCENT_EXEMPT,
   THEME_FAMILIES,
-} from "@/config/themes.config";
+} from "@/config/graphics/themes.config";
 import {
   buildThemeColors,
   colorDistance,
@@ -17,7 +17,7 @@ import {
   windowTintAlpha,
   WINDOW_TINT_MAX,
   WINDOW_TINT_MIN,
-} from "@/lib/palette.utils";
+} from "@/lib/graphics/palette.utils";
 import { parseRetroismTheme } from "@/store/theme.store";
 
 const MIN_COLOR_DISTANCE = 32;

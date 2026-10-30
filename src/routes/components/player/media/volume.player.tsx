@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
+import { clamp01 } from "@/lib/player/timeline.utils";
 
 function VolumeControl({
   volume,

@@ -1,7 +1,7 @@
-import { DEFAULT_STREAM_FILTERS } from "@/config/streamFilters.config";
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
-import type { StreamCatalogFilters, StreamSortBy } from "@/types/stream";
+import { DEFAULT_STREAM_FILTERS } from "@/config/player/streamFilters.config";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
+import type { StreamCatalogFilters, StreamSortBy } from "@/types/player/stream";
 
 // Client state only. Results, episodes, players and sources are server state
 // and belong to the query cache (`hooks/stream/catalog.hook.ts`); duplicating

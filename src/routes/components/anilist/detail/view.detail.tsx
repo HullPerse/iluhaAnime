@@ -1,31 +1,24 @@
 import { useState } from "react";
 
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useAnimeShowcase } from "@/hooks/showcase.hook";
 import { setCrossSearchQuery } from "@/store/search.store";
-import type { AniDetailViewProps as ViewProps } from "@/types/anilist";
-import type { TFunc } from "@/types/i18n";
+import type { AniDetailViewProps as ViewProps } from "@/types/anilist/anilist";
+import { detailErrorText } from "@/lib/anilist/detailError.utils";
 
-import { DetailHeaderActions } from "./actions.detail";
-import AniListCharactersPanel from "./characters.detail";
-import AniListActionControls from "./controls.detail";
-import { FriendsScoresSection } from "./friendsScores.detail";
-import { GenresTagsSection } from "./genres.detail";
-import AniListMetadata from "./metadata.detail";
-import FranchiseGraphSection from "./section.detail";
-import { SimilarSection } from "./similar.detail";
-import { StudiosSection } from "./studios.detail";
-import { TitlesSection } from "./titles.detail";
-
-function detailErrorText(error: unknown, isLoggedIn: boolean, t: TFunc): string {
-  const raw = String(error ?? "");
-  if (!isLoggedIn && /403/.test(raw)) return t("anilist.details.login.required");
-  if (/404|Not Found/i.test(raw)) return t("anilist.details.unavailable");
-  return String(error ?? t("anilist.details.load.error"));
-}
+import { DetailHeaderActions } from "@/routes/components/anilist/detail/actions.detail";
+import AniListCharactersPanel from "@/routes/components/anilist/detail/characters.detail";
+import AniListActionControls from "@/routes/components/anilist/detail/controls.detail";
+import { FriendsScoresSection } from "@/routes/components/anilist/detail/friendsScores.detail";
+import { GenresTagsSection } from "@/routes/components/anilist/detail/genres.detail";
+import AniListMetadata from "@/routes/components/anilist/detail/metadata.detail";
+import FranchiseGraphSection from "@/routes/components/anilist/detail/section.detail";
+import { SimilarSection } from "@/routes/components/anilist/detail/similar.detail";
+import { StudiosSection } from "@/routes/components/anilist/detail/studios.detail";
+import { TitlesSection } from "@/routes/components/anilist/detail/titles.detail";
 
 export function AniListDetailView({
   animeId,

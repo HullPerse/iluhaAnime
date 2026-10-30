@@ -1,30 +1,34 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
-import { closeOpenContextMenus } from "@/components/shared/contextMenu.component";
+import { closeOpenContextMenus } from "@/lib/ui/contextMenuClose.utils";
 import {
   VIM_CONTENT_SELECTOR,
   VIM_LABEL_ALPHABET,
   VIM_SCROLL_LINE_PX,
   TREE_ROW_SELECTOR,
-} from "@/config/vim.config";
-import { PLAYER_ROUTE } from "@/config/playerRoute.config";
-import { TAB_PATHS } from "@/config/tabPaths.config";
-import { flashTarget } from "@/lib/flash.utils";
-import { blurEditable, shouldBlurOnEscape } from "@/lib/blurHotkeys.utils";
-import { dispatchClick, dispatchFocus } from "@/lib/dispatchHotkeys.utils";
-import { createVimEngine } from "@/lib/engineHotkeys.utils";
-import type { VimCommand, VimEngine } from "@/types/engineHotkeys";
-import { reduceHintKey, scanHintTargets } from "@/lib/hintsHotkeys.utils";
-import type { HintBadge } from "@/types/hintsHotkeys";
-import { isInsideLayer, setHintsLayerVisible, topLayerElement } from "@/lib/layerHotkeys.utils";
-import { createPinTimer } from "@/lib/pinHotkeys.utils";
-import { resolveKeybinds } from "@/lib/resolveHotkeys.utils";
-import { focusTreeSibling } from "@/lib/tabsHotkeys.utils";
-import type { Debouncer } from "@/lib/debounce.utils";
-import { useCell } from "@/lib/signal.hook";
-import { closestScrollable, scrollAmount } from "@/lib/scroll.utils";
-import type { ScrollDirection } from "@/types/scroll";
+} from "@/config/settings/vim.config";
+import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
+import { TAB_PATHS } from "@/config/settings/tabPaths.config";
+import { flashTarget } from "@/lib/core/flash.utils";
+import { blurEditable, shouldBlurOnEscape } from "@/lib/core/blurHotkeys.utils";
+import { dispatchClick, dispatchFocus } from "@/lib/core/dispatchHotkeys.utils";
+import { createVimEngine } from "@/lib/core/engineHotkeys.utils";
+import type { VimCommand, VimEngine } from "@/types/core/engineHotkeys";
+import { reduceHintKey, scanHintTargets } from "@/lib/core/hintsHotkeys.utils";
+import type { HintBadge } from "@/types/core/hintsHotkeys";
+import {
+  isInsideLayer,
+  setHintsLayerVisible,
+  topLayerElement,
+} from "@/lib/core/layerHotkeys.utils";
+import { createPinTimer } from "@/lib/core/pinHotkeys.utils";
+import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
+import { focusTreeSibling } from "@/lib/ui/tabsHotkeys.utils";
+import type { Debouncer } from "@/lib/core/debounce.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { closestScrollable, scrollAmount } from "@/lib/ui/scroll.utils";
+import type { ScrollDirection } from "@/types/ui/scroll";
 import { registerOverlay } from "@/store/overlay.store";
 import { settingsAtoms } from "@/store/settings.store";
 import {

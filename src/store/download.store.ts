@@ -1,16 +1,16 @@
 import { open, confirm } from "@tauri-apps/plugin-dialog";
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
 
 import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
 import { tr } from "@/lib/locale/i18n.utils";
-import { torrentErrorText } from "@/lib/torrentCommon.utils";
-import { attempt, reportBackgroundError, withFallback } from "@/lib/attempt.utils";
-import { showError } from "@/lib/notification.utils";
-import { ignore } from "@/lib/promise.utils";
+import { torrentErrorText } from "@/lib/torrent/torrentCommon.utils";
+import { attempt, reportBackgroundError, withFallback } from "@/lib/core/attempt.utils";
+import { showError } from "@/lib/core/notification.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { cacheAtoms, setLastSaveDir } from "@/store/cache.store";
-import type { TorrentAtoms, TorrentData, TorrentSignalStore } from "@/types/download";
+import type { TorrentAtoms, TorrentData, TorrentSignalStore } from "@/types/core/download";
 
 export { tr };
 

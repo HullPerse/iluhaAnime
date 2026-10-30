@@ -4,8 +4,8 @@ import { torrentApi } from "@/api/torrent.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { mapError } from "@/lib/erai.utils";
-import { attempt } from "@/lib/attempt.utils";
+import { mapError } from "@/lib/core/erai.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 
 export default function EraiLoginModal({
   setEraiAuth,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveThemeComponents } from "@/hooks/themeComponents.hook";
-import type { ThemeDefinition } from "@/types/theme";
+import type { ThemeDefinition } from "@/types/graphics/theme";
 
 function makeTheme(components: ThemeDefinition["components"]): ThemeDefinition {
   return {

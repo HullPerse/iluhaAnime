@@ -4,9 +4,9 @@ import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
 import { useStreamHistoryProgress } from "@/hooks/stream/catalog.hook";
-import { formatResume } from "@/lib/history.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { StreamingAnime } from "@/types/stream";
+import { formatResume } from "@/lib/core/history.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { StreamingAnime } from "@/types/player/stream";
 
 /**
  * One catalog tile, shaped like the collection card: poster on top, a dense

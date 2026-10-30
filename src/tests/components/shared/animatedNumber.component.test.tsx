@@ -8,7 +8,7 @@ interface FrameHarness {
   frame: (now: number) => void;
 }
 
-function installFrameHarness(): FrameHarness {
+const installFrameHarness = (): FrameHarness => {
   let nextId = 0;
   const callbacks = new Map<number, FrameRequestCallback>();
   vi.stubGlobal("requestAnimationFrame", (step: FrameRequestCallback): number => {
@@ -28,11 +28,11 @@ function installFrameHarness(): FrameHarness {
       }
     },
   };
-}
+};
 
-function format(value: number): string {
+const format = (value: number): string => {
   return value.toFixed(0);
-}
+};
 
 beforeEach(() => {
   vi.spyOn(performance, "now").mockReturnValue(1000);

@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { findSubsequenceRanges, splitByRanges } from "@/lib/highlight.utils";
+import { findSubsequenceRanges, splitByRanges } from "@/lib/core/highlight.utils";
 
 export default function DidYouMeanRow({
   correction,

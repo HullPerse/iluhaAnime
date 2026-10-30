@@ -1,8 +1,8 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CollectionItem, CustomFieldDef } from "@/types/collection";
+import type { CollectionItem, CustomFieldDef } from "@/types/anilist/collection";
 
-import { WizardCustomFields } from "./customFields.wizard";
-import { WizardLinkedIds } from "./linked.wizard";
+import { WizardCustomFields } from "@/routes/components/collection/wizard/customFields.wizard";
+import { WizardLinkedIds } from "@/routes/components/collection/wizard/linked.wizard";
 
 export function WizardMoreFields(props: {
   altTitles: string;

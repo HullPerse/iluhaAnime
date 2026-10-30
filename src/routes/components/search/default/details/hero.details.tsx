@@ -3,44 +3,20 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { Copy, Link, Save } from "lucide-react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/types/contextMenu";
+import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatSize } from "@/lib/searchFormat.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { showError } from "@/lib/notification.utils";
-import { ignore } from "@/lib/promise.utils";
+import { formatSize } from "@/lib/search/searchFormat.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { showError } from "@/lib/core/notification.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import { canCopyPosterUrl, posterPngBlob } from "@/lib/torrent/poster.utils";
 import TorrentActions from "@/routes/components/search/default/actions.search";
-import type { Source } from "@/types/search";
-import type { Anime, TorrentView } from "@/types/torrent";
+import type { Source } from "@/types/search/search";
+import type { Anime, TorrentView } from "@/types/torrent/torrent";
 
-import { MetaItem } from "./meta.details";
-
-const POSTER_COPY_URL_RE = /^https?:\/\/(?!asset\.localhost)/i;
-
-function canCopyPosterUrl(poster: string): boolean {
-  return POSTER_COPY_URL_RE.test(poster);
-}
-
-async function posterPngBlob(src: string): Promise<Blob> {
-  const response = await fetch(src);
-  if (!response.ok) throw new Error(`poster fetch failed: ${response.status}`);
-  const bitmap = await createImageBitmap(await response.blob());
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("no 2d canvas context");
-    context.drawImage(bitmap, 0, 0);
-    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-    if (!png) throw new Error("png encode failed");
-    return png;
-  } finally {
-    bitmap.close();
-  }
-}
+import { MetaItem } from "@/routes/components/search/default/details/meta.details";
 
 export default function DetailsHero({
   view,

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SkipButton from "@/routes/components/player/media/skip.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
-import type { MpvChapter } from "@/types/videoPlayer";
+import type { MpvChapter } from "@/types/player/videoPlayer";
 
 const CHAPTERS: MpvChapter[] = [
   { title: "Opening", time: 0, end: 90 },
@@ -12,9 +12,9 @@ const CHAPTERS: MpvChapter[] = [
   { title: "Ending", time: 1300 },
 ];
 
-function showAt(timePos: number) {
+const showAt = (timePos: number) => {
   playbackAtoms.timePos.set(timePos);
-}
+};
 
 beforeEach(() => {
   vi.useFakeTimers();

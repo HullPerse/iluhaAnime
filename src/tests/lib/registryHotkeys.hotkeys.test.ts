@@ -4,7 +4,7 @@ import {
   createHotkeyRegistry,
   createHotkeysHandler,
   subscribeHotkeys,
-} from "@/lib/registryHotkeys.utils";
+} from "@/lib/core/registryHotkeys.utils";
 
 function keydown(init: KeyboardEventInit & { code: string }): KeyboardEvent {
   return new KeyboardEvent("keydown", { cancelable: true, ...init });

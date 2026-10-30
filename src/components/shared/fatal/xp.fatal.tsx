@@ -1,4 +1,4 @@
-import type { FatalVariantProps } from "@/types/shared.fatal";
+import type { FatalVariantProps } from "@/types/core/shared.fatal";
 
 export function XpBsod({
   info,

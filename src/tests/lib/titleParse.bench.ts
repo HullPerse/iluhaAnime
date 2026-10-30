@@ -1,8 +1,8 @@
 import { test } from "vitest";
 
-import { formatParsedTitle } from "@/lib/playerTitle.utils";
-import { fileNameFromPath } from "@/lib/parse.utils";
-import { clearMediaParseCache, parseMediaPath } from "@/lib/parse.utils";
+import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
+import { fileNameFromPath } from "@/lib/search/parse.utils";
+import { clearMediaParseCache, parseMediaPath } from "@/lib/search/parse.utils";
 import fixtureRows from "@/tests/lib/media/fixtures.json";
 
 interface Fixture {

@@ -8,8 +8,8 @@ import {
   withQuality,
   withTrack,
   withVariant,
-} from "@/lib/streamPrefs.utils";
-import type { StreamPrefs, StreamVariant } from "@/types/stream";
+} from "@/lib/player/streamPrefs.utils";
+import type { StreamPrefs, StreamVariant } from "@/types/player/stream";
 
 function variant(player: string, id: string, name: string): StreamVariant {
   return {

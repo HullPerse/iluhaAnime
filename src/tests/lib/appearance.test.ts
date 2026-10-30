@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { THEMES } from "@/config/themes.config";
+import { THEMES } from "@/config/graphics/themes.config";
 import {
   applyTheme,
   previewTheme,
   resolveThemeFont,
   themePrePaintPayload,
-} from "@/lib/appearance.utils";
-import { diffTheme, resolveTheme } from "@/lib/themeResolve.utils";
-import { buildThemeState, THEME_VAR_BINDINGS } from "@/lib/tokens.utils";
-import { DEFAULT_FONT_FAMILY, toCssFontFamily } from "@/lib/font.utils";
-import type { ThemeDefinition } from "@/types/theme";
+} from "@/lib/core/appearance.utils";
+import { diffTheme, resolveTheme } from "@/lib/graphics/themeResolve.utils";
+import { buildThemeState, THEME_VAR_BINDINGS } from "@/lib/graphics/tokens.utils";
+import { DEFAULT_FONT_FAMILY, toCssFontFamily } from "@/lib/graphics/font.utils";
+import type { ThemeDefinition } from "@/types/graphics/theme";
 
 function theme(name: string): ThemeDefinition {
   const found = THEMES.find((item) => item.name === name);

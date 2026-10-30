@@ -7,23 +7,23 @@ import {
   RESOLUTIONS,
   UPSCALER_OPTIONS,
   VIDEO_CODEC_OPTIONS,
-} from "@/config/options.config";
-import { ANIME4K_PRESETS } from "@/config/presets.config";
+} from "@/config/settings/options.config";
+import { ANIME4K_PRESETS } from "@/config/settings/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { UpscalePreviewController } from "@/types/upscalePreview";
+import type { UpscalePreviewController } from "@/types/core/upscalePreview";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { withFallback } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { formatETA } from "@/lib/time.utils";
-import type { PreviewFrame } from "@/types/upscale";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { withFallback } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { formatETA } from "@/lib/core/time.utils";
+import type { PreviewFrame } from "@/types/core/upscale";
 
-import FFMPEG from "../ffmpeg.player";
-import { UpscalePreview } from "../preview.player";
-import { RealCUGAN } from "../realcugan.player";
-import { RIFE } from "../rife.player";
-import ShaderPicker from "../shader.player";
+import FFMPEG from "@/routes/components/player/ffmpeg.player";
+import { UpscalePreview } from "@/routes/components/player/preview/upscale.preview";
+import { RealCUGAN } from "@/routes/components/player/realcugan.player";
+import { RIFE } from "@/routes/components/player/rife.player";
+import ShaderPicker from "@/routes/components/player/shader.player";
 
 export function UpscaleConfigPanel({
   filePath,

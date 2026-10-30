@@ -4,7 +4,7 @@ import {
   mockDialogOpen,
   mockSetAlwaysOnTop,
   mockStartDragging,
-} from "../mocks";
+} from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -38,13 +38,13 @@ import {
 } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
 
-function setPropertyCalls(name: string): unknown[] {
+const setPropertyCalls = (name: string): unknown[] => {
   return invokeMock.mock.calls
     .filter(([command]) => command === "player_set_property")
     .map(([, args]) => args)
     .filter((args) => (args as { name?: string }).name === name)
     .map((args) => (args as { value?: unknown }).value);
-}
+};
 
 beforeEach(() => {
   invokeMock.mockReset();
@@ -76,7 +76,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountPlayer(): Promise<void> {
+const mountPlayer = async (): Promise<void> => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
@@ -84,7 +84,7 @@ async function mountPlayer(): Promise<void> {
     </QueryClientProvider>
   );
   await act(async () => {});
-}
+};
 
 describe("player settings chain store -> debounce -> mpv", () => {
   it("delivers volume to mpv immediately without debounce", async () => {

@@ -1,9 +1,9 @@
-import { renderDitherImage } from "@/lib/ditherRender.utils";
+import { renderDitherImage } from "@/lib/graphics/ditherRender.utils";
 import type {
   DitherWorkerProgress,
   DitherWorkerRequest,
   DitherWorkerResponse,
-} from "@/types/dither";
+} from "@/types/graphics/dither";
 
 const scope = self as unknown as Worker;
 

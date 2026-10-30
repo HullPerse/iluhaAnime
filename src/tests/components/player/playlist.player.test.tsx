@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke as invokeMock, mockDialogOpen } from "../../mocks";
+import { mockInvoke as invokeMock, mockDialogOpen } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -11,7 +11,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mockDialogOpen,
 }));
 
-import { fetchVideoCard, resetCardCache } from "@/lib/cardCache.utils";
+import { fetchVideoCard, resetCardCache } from "@/lib/core/cardCache.utils";
 import PlaylistBody from "@/routes/components/player/media/playlist.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
@@ -21,13 +21,13 @@ const ENTRIES = [
   { index: 1, filename: "D:/b.mkv", title: "" },
 ];
 
-function props() {
+const props = () => {
   return {
     onPlay: () => Promise.resolve(),
     onRemove: () => Promise.resolve(),
     onMove: () => Promise.resolve(),
   };
-}
+};
 
 beforeEach(() => {
   resetCardCache();
@@ -49,7 +49,7 @@ afterEach(() => {
 
 type IntersectionHandler = (entries: Array<{ isIntersecting: boolean }>) => void;
 
-function stubIntersectionObserver(): { trigger: (visible: boolean) => void } {
+const stubIntersectionObserver = (): { trigger: (visible: boolean) => void } => {
   let handler: IntersectionHandler | null = null;
   vi.stubGlobal(
     "IntersectionObserver",
@@ -69,7 +69,7 @@ function stubIntersectionObserver(): { trigger: (visible: boolean) => void } {
       });
     },
   };
-}
+};
 
 describe("PlaylistBody thumbnails", () => {
   it("syncs a prefetched card that lands after mount instead of sticking null", async () => {
@@ -150,10 +150,10 @@ describe("PlaylistBody focus ring", () => {
 });
 
 describe("PlaylistBody mutations", () => {
-  function entriesCalls(): number {
+  const entriesCalls = (): number => {
     return invokeMock.mock.calls.filter(([command]) => command === "player_playlist_entries")
       .length;
-  }
+  };
 
   it("does not refetch entries after remove (count subscriber covers it)", async () => {
     const onRemove = vi.fn(() => Promise.resolve());

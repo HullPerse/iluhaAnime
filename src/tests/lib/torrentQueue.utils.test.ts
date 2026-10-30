@@ -16,8 +16,8 @@ import {
   queuePointHit,
   queuePositions,
   queueRemainingBytes,
-} from "@/lib/torrentQueue.utils";
-import type { TorrentFileInfo } from "@/types/torrent";
+} from "@/lib/torrent/torrentQueue.utils";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
 function file(
   index: number,

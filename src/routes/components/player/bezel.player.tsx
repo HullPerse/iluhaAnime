@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import type { PlayerBezelVariant } from "@/types/videoPlayer";
+import type { PlayerBezelVariant } from "@/types/player/videoPlayer";
 
 /**
  * Cabinet drawn over the picture edges. It is a passive overlay: no layout

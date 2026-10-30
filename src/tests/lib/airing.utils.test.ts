@@ -7,9 +7,9 @@ import {
   formatAiringLocal,
   formatAiringTime,
   groupAiringByDay,
-} from "@/lib/airing.utils";
+} from "@/lib/core/airing.utils";
 import { translate } from "@/lib/locale/i18n.utils";
-import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist";
+import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist/anilist";
 
 const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
   translate("ru", key, vars);

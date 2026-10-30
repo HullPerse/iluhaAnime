@@ -1,13 +1,13 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 
-import { attempt } from "@/lib/attempt.utils";
+import { attempt } from "@/lib/core/attempt.utils";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
 import { SearchFilterChips } from "@/routes/components/search/default/filterChips.search";
 import SearchPager from "@/routes/components/search/default/pager.search";
 import SearchResultItem from "@/routes/components/search/default/result.search";
 import SearchResultsSummary from "@/routes/components/search/default/summary.search";
 import DidYouMeanRow from "@/routes/components/search/didyoumean.search";
-import type { SearchQueryController } from "@/types/search";
+import type { SearchQueryController } from "@/types/search/search";
 
 export default function ModernResults({ controller }: { controller: SearchQueryController }) {
   const {

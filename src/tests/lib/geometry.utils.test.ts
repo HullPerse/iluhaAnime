@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { barLength, nearestIndex, ratioSegments } from "@/lib/geometry.utils";
+import { barLength, nearestIndex, ratioSegments } from "@/lib/core/geometry.utils";
 
 describe("barLength", () => {
   it("scales a value against the maximum", () => {

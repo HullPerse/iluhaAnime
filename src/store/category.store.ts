@@ -1,9 +1,9 @@
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Persistor } from "@/types/persist";
-import type { Cell } from "@/types/signal";
-import { attemptSync } from "@/lib/attempt.utils";
-import { isUserImageIcon } from "@/lib/image.utils";
-import type { Category, CategoryEntry, CategoryStore } from "@/types/category";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import type { Persistor } from "@/types/core/persist";
+import type { Cell } from "@/types/core/signal";
+import { attemptSync } from "@/lib/core/attempt.utils";
+import { isUserImageIcon } from "@/lib/graphics/image.utils";
+import type { Category, CategoryEntry, CategoryStore } from "@/types/core/category";
 
 export const CATEGORY_SCHEMA_VERSION = 1;
 

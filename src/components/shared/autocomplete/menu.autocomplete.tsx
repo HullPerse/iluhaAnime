@@ -1,12 +1,12 @@
 import { cn } from "cn";
 import { memo } from "react";
 
-import { suggestionKindLabels } from "@/config/autocomplete.config";
+import { suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SearchSuggestion } from "@/lib/suggestions.utils";
-import type { SuggestionSection } from "@/types/search";
+import type { SearchSuggestion } from "@/lib/core/suggestions.utils";
+import type { SuggestionSection } from "@/types/search/search";
 
-import { SuggestionItem } from "./suggestion.autocomplete";
+import { SuggestionItem } from "@/components/shared/autocomplete/suggestion.autocomplete";
 
 export const SuggestionMenu = memo(
   ({

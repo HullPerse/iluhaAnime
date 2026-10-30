@@ -1,10 +1,10 @@
 import { useRef, type ReactNode, type RefObject } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Pagination from "@/components/shared/pagination.component";
-import { PAGE_SIZE } from "@/config/sqlite.config";
+import { PAGE_SIZE } from "@/config/system/sqlite.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SqliteRowsPage } from "@/types/sqlite";
+import type { SqliteRowsPage } from "@/types/core/sqlite";
 
 export function SqliteBrowseResult({
   loadingRows,

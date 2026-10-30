@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { EntryListInfo, EntryLookup } from "@/types/entries";
+import type { EntryListInfo, EntryLookup } from "@/types/anilist/entries";
 import {
   availableEpisodes,
   buildFranchiseSections,
@@ -8,8 +8,8 @@ import {
   franchiseSummary,
   orderMainline,
   pickNextToWatch,
-} from "@/lib/franchise.utils";
-import type { FranchiseEdge, FranchiseNode } from "@/types/anilist";
+} from "@/lib/anilist/franchise.utils";
+import type { FranchiseEdge, FranchiseNode } from "@/types/anilist/anilist";
 
 function node(
   id: number,

@@ -7,73 +7,17 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { KEYBIND_MANIFEST } from "@/config/manifest.config";
-import type { KeybindScope } from "@/types/manifest";
-import { VIM_MOTION_KEYS } from "@/config/vim.config";
+import { KEYBIND_SCOPES, RESERVED_KEYBIND_CHORDS } from "@/config/settings/keybindScopes.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { chordKey, humanizeChord, parseChord } from "@/lib/chordHotkeys.utils";
-import { resolveKeybinds } from "@/lib/resolveHotkeys.utils";
-import type { ResolvedKeybind } from "@/types/resolveHotkeys";
-import { useCell } from "@/lib/signal.hook";
+import { chordIdentity } from "@/lib/core/chordHotkeys.utils";
+import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import type { KeybindScope } from "@/types/core/manifest";
+import type { ResolvedKeybind } from "@/types/search/resolveHotkeys";
+import type { ScopeFilter } from "@/types/ui/keybindScope";
 
-const SCOPES: readonly KeybindScope[] = [
-  "global",
-  "settings",
-  "player",
-  "vim",
-  "find",
-  "menu",
-  "tree",
-];
-
-type ScopeFilter = KeybindScope | "all";
-
-const RESERVED_CHORDS: readonly string[] = [VIM_MOTION_KEYS.firstPrefix];
-
-function chordIdentity(chord: string): string | null {
-  const parsed = parseChord(chord);
-  return parsed ? chordKey(parsed) : null;
-}
-
-function BindingCell({ row, scopeLabel }: { row: ResolvedKeybind; scopeLabel: string }) {
-  const { t } = useI18n();
-  if (row.shadowedChord) {
-    const winner = KEYBIND_MANIFEST.find((entry) => entry.id === row.shadowedBy);
-    return (
-      <span className="flex w-60 min-w-0 shrink-0 items-center gap-1" role="cell">
-        <span className="text-hint shrink-0 text-xs select-none">{scopeLabel}:</span>
-        <s
-          className="text-hint shrink-0 px-1 text-xs whitespace-nowrap select-none"
-          title={
-            winner ? t("settings.keybinds.shadowed", { name: t(winner.description) }) : undefined
-          }
-        >
-          {humanizeChord(row.shadowedChord)}
-        </s>
-        {row.activeChord ? (
-          <ChordChips chord={row.activeChord} />
-        ) : (
-          <span className="text-hint shrink-0 text-xs select-none">
-            {t("settings.keybinds.unbound")}
-          </span>
-        )}
-      </span>
-    );
-  }
-  return (
-    <span className="flex w-60 min-w-0 shrink-0 items-center gap-1" role="cell">
-      <span className="text-hint shrink-0 text-xs select-none">{scopeLabel}:</span>
-      {row.activeChord ? (
-        <ChordChips chord={row.activeChord} />
-      ) : (
-        <span className="text-hint shrink-0 text-xs select-none">
-          {t("settings.keybinds.unbound")}
-        </span>
-      )}
-    </span>
-  );
-}
+import { BindingCell } from "@/routes/components/settings/keybinds/binding.keybinds";
 
 export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: Set<string> }) {
   const { t } = useI18n();
@@ -107,7 +51,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
   const options = useMemo(
     () => [
       { value: "all", label: t("settings.keybinds.scope.all") },
-      ...SCOPES.map((entry) => ({ value: entry, label: scopeLabels[entry] })),
+      ...KEYBIND_SCOPES.map((entry) => ({ value: entry, label: scopeLabels[entry] })),
     ],
     [t, scopeLabels]
   );
@@ -136,9 +80,10 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
       list.push(row);
       byScope.set(row.entry.scope, list);
     }
-    return SCOPES.map((entry) => ({ scope: entry, rows: byScope.get(entry) ?? [] })).filter(
-      (group) => group.rows.length > 0
-    );
+    return KEYBIND_SCOPES.map((entry) => ({
+      scope: entry,
+      rows: byScope.get(entry) ?? [],
+    })).filter((group) => group.rows.length > 0);
   }, [rows, descriptions, query, scope, captured]);
 
   const overriddenCount = Object.keys(overrides).length;
@@ -260,7 +205,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
       {capturing ? (
         <KeybindRecorder
           currentChord={null}
-          reservedChords={RESERVED_CHORDS}
+          reservedChords={RESERVED_KEYBIND_CHORDS}
           canReset={false}
           bare
           onCommit={(chord) => {
@@ -413,7 +358,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
         >
           <KeybindRecorder
             currentChord={editingRow.activeChord}
-            reservedChords={RESERVED_CHORDS}
+            reservedChords={RESERVED_KEYBIND_CHORDS}
             canReset={editingRow.overridden}
             actionTitle={descriptions.get(editingRow.entry.id) ?? editingRow.entry.id}
             actionId={editingRow.entry.id}

@@ -4,7 +4,7 @@ import {
   DRAG_THRESHOLD_PX,
   shouldStartWindowDrag,
   startsOnPlayerControl,
-} from "@/lib/playerDrag.utils";
+} from "@/lib/player/playerDrag.utils";
 
 describe("shouldStartWindowDrag", () => {
   it("keeps a plain click a click", () => {

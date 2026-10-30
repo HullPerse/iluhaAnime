@@ -14,10 +14,10 @@ import {
   useSetSequentialDownload,
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
-import { describeRecheckOutcome } from "@/lib/recheck.utils";
-import { applyTorrentUpdate } from "@/lib/torrentUpdate.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { ignore } from "@/lib/promise.utils";
+import { describeRecheckOutcome } from "@/lib/core/recheck.utils";
+import { applyTorrentUpdate } from "@/lib/torrent/torrentUpdate.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { setSeedPreference } from "@/store/cache.store";
 import { prepareTorrentDownload } from "@/store/download.store";
 import { addNotification } from "@/store/notification.store";
@@ -27,8 +27,8 @@ import type {
   TorrentDetails,
   TorrentInfo,
   TorrentQueueApply,
-} from "@/types/torrent";
-import type { TorrentItemActions } from "@/types/actions";
+} from "@/types/torrent/torrent";
+import type { TorrentItemActions } from "@/types/core/actions";
 
 export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
   const pauseMutation = usePauseTorrent();

@@ -3,13 +3,16 @@ import { useMemo } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import type { CollectionStatusRow } from "@/api/collection.api";
-import { DEFAULT_COLLECTION_STATUSES } from "@/config/statuses.config";
+import { DEFAULT_COLLECTION_STATUSES } from "@/config/anilist/statuses.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collectionSearch.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { parseIntent } from "@/lib/intent.utils";
-import { resolveTitleQuery } from "@/lib/searchResolve.utils";
-import { operatorTextLength } from "@/lib/searchScore.utils";
+import {
+  buildCollectionSearchIndex,
+  searchCollectionIndex,
+} from "@/lib/anilist/collectionSearch.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { parseIntent } from "@/lib/core/intent.utils";
+import { resolveTitleQuery } from "@/lib/search/searchHypothesis.utils";
+import { operatorTextLength } from "@/lib/search/searchScore.utils";
 import type {
   CollectionDataResult,
   CollectionDataState,
@@ -17,7 +20,7 @@ import type {
   CollectionStatusDef,
   CustomFieldDef,
   RawCollectionItem,
-} from "@/types/collection";
+} from "@/types/anilist/collection";
 
 export const COLLECTION_QUERY_KEY = queryKeys.collectionData();
 

@@ -3,7 +3,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke, mockListen } from "../../mocks";
+import { mockInvoke, mockListen } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -12,10 +12,10 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { resetTransportInflight } from "@/api/transport.api";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
-import { queryKeys } from "@/lib/keys.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
 import { playbackAtoms } from "@/store/player.store";
-import type { TorrentFileInfo } from "@/types/torrent";
-import type { PlaylistWatch } from "@/types/videoPlayer";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
+import type { PlaylistWatch } from "@/types/player/videoPlayer";
 
 const WATCH: PlaylistWatch = {
   kind: "torrent",
@@ -30,11 +30,11 @@ const FOLDER_WATCH: PlaylistWatch = {
   anchor: "C:/F/ep01.mkv",
 };
 
-function folderEntry(path: string): { path: string; name: string; size: number } {
+const folderEntry = (path: string): { path: string; name: string; size: number } => {
   return { path, name: path.split("/").pop() ?? path, size: 10 };
-}
+};
 
-function torrentFile(name: string, completed: boolean): TorrentFileInfo {
+const torrentFile = (name: string, completed: boolean): TorrentFileInfo => {
   return {
     index: 0,
     name,
@@ -45,7 +45,7 @@ function torrentFile(name: string, completed: boolean): TorrentFileInfo {
     priority: "normal",
     exists: true,
   };
-}
+};
 
 const pollState = { ep2done: false };
 const liveState = { entries: [{ index: 0, filename: "C:/T/ep01.mkv", title: "" }] };
@@ -80,10 +80,10 @@ afterEach(() => {
   playbackAtoms.path.set("");
 });
 
-function renderSync(
+const renderSync = (
   watch: PlaylistWatch,
   options?: { onPlayingFileModified?: () => void }
-): { queryClient: QueryClient } {
+): { queryClient: QueryClient } => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   renderHook(() => useLivePlaylistSync(watch, options), {
     wrapper: ({ children }: { children: ReactNode }) => (
@@ -91,7 +91,7 @@ function renderSync(
     ),
   });
   return { queryClient };
-}
+};
 
 describe("useLivePlaylistSync torrent watch", () => {
   it("inserts a completion that arrived before the first check", async () => {
@@ -195,7 +195,7 @@ describe("useLivePlaylistSync folder watch", () => {
 });
 
 describe("useLivePlaylistSync folder modifications", () => {
-  function armFolder(): () => ((event: { payload: unknown }) => void) | undefined {
+  const armFolder = (): (() => ((event: { payload: unknown }) => void) | undefined) => {
     let handler: ((event: { payload: unknown }) => void) | undefined;
     mockListen.mockImplementation(
       (_event: string, callback: (event: { payload: unknown }) => void) => {
@@ -216,7 +216,7 @@ describe("useLivePlaylistSync folder modifications", () => {
       return null;
     });
     return () => handler;
-  }
+  };
 
   it("reloads when the playing file itself was modified", async () => {
     const handler = armFolder();
@@ -291,7 +291,7 @@ describe("useLivePlaylistSync folder modifications", () => {
 });
 
 describe("useLivePlaylistSync torrent watcher events", () => {
-  function armTorrent(): () => ((event: { payload: unknown }) => void) | undefined {
+  const armTorrent = (): (() => ((event: { payload: unknown }) => void) | undefined) => {
     let handler: ((event: { payload: unknown }) => void) | undefined;
     mockListen.mockImplementation(
       (_event: string, callback: (event: { payload: unknown }) => void) => {
@@ -300,14 +300,14 @@ describe("useLivePlaylistSync torrent watcher events", () => {
       }
     );
     return () => handler;
-  }
+  };
 
-  function fire(
+  const fire = (
     handler: ((event: { payload: unknown }) => void) | undefined,
     changes: Array<{ path: string; root: string; kind: string }>
-  ): void {
+  ): void => {
     handler?.({ payload: { roots: ["C:/T"], changes } });
-  }
+  };
 
   it("checks the torrent immediately on a save-dir event instead of waiting for the poll", async () => {
     const handler = armTorrent();

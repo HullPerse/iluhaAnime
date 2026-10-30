@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FranchiseToolbar } from "@/routes/components/anilist/franchise/toolbar.franchise";
 import { patchSettings } from "@/store/settings.store";
-import type { FranchiseToolbarProps, RelationFilter } from "@/types/anilist";
+import type { FranchiseToolbarProps, RelationFilter } from "@/types/anilist/anilist";
 
 const groupCounts: Record<RelationFilter, number> = {
   OTHER: 4,
@@ -13,7 +13,7 @@ const groupCounts: Record<RelationFilter, number> = {
   SPIN_OFF: 0,
 };
 
-function toolbarProps(overrides: Partial<FranchiseToolbarProps> = {}): FranchiseToolbarProps {
+const toolbarProps = (overrides: Partial<FranchiseToolbarProps> = {}): FranchiseToolbarProps => {
   return {
     activeFilters: new Set<RelationFilter>(["SEQUEL", "PREQUEL"]),
     groupCounts,
@@ -29,13 +29,13 @@ function toolbarProps(overrides: Partial<FranchiseToolbarProps> = {}): Franchise
     onRefresh: vi.fn(),
     ...overrides,
   };
-}
+};
 
-function renderToolbar(overrides: Partial<FranchiseToolbarProps> = {}) {
+const renderToolbar = (overrides: Partial<FranchiseToolbarProps> = {}) => {
   const props = toolbarProps(overrides);
   const view = render(<FranchiseToolbar {...props} />);
   return { props, view };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

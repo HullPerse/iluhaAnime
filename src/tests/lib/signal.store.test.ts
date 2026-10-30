@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createSignalStore } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/core/signal.store";
 
 describe("cell get/set", () => {
   it.each([

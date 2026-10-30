@@ -17,8 +17,8 @@ import {
   spearmanCorrelation,
   topGenreOverlap,
   topGenreTaste,
-} from "@/lib/compare.utils";
-import type { AniListCollection, AniListEntry, FavouriteAnime } from "@/types/anilist";
+} from "@/lib/core/compare.utils";
+import type { AniListCollection, AniListEntry, FavouriteAnime } from "@/types/anilist/anilist";
 
 function makeEntry(
   id: number,

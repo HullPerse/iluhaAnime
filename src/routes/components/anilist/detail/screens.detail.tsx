@@ -1,8 +1,8 @@
-import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
 
-import { AnimeScreen } from "./animeScreen.detail";
-import { CharacterScreen } from "./characterScreen.detail";
-import { StaffScreen } from "./staffScreen.detail";
+import { AnimeScreen } from "@/routes/components/anilist/detail/animeScreen.detail";
+import { CharacterScreen } from "@/routes/components/anilist/detail/characterScreen.detail";
+import { StaffScreen } from "@/routes/components/anilist/detail/staffScreen.detail";
 
 export function OverlayScreens({
   current,

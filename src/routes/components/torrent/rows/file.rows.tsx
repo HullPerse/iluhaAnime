@@ -1,5 +1,4 @@
 import { openPath } from "@tauri-apps/plugin-opener";
-import { cn } from "cn";
 import {
   ArrowDownNarrowWide,
   FolderOpen,
@@ -9,226 +8,35 @@ import {
   Search,
   Wand2,
 } from "lucide-react";
-import type { MouseEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
+import type { MouseEvent } from "react";
 
-import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/types/contextMenu";
 import ProgressBar from "@/components/shared/progress.component";
-import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { clickRowActionButton } from "@/lib/dispatchHotkeys.utils";
-import { fileNameFromPath, isTrackFileName, parseMediaPath } from "@/lib/parse.utils";
-import { formatParsedTitle } from "@/lib/playerTitle.utils";
-import type { TreeRow } from "@/types/treeArrow";
-import { useCell } from "@/lib/signal.hook";
-import { formatBytes } from "@/lib/bytes.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import { joinMediaPath } from "@/lib/media.utils";
+import { clickRowActionButton } from "@/lib/core/dispatchHotkeys.utils";
+import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
+import { parseMediaPath } from "@/lib/search/parse.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import {
+  handlePlayerContextMenu,
+  onDiskTitle,
+  resolveFileRowInteractions,
+  resolvePlayerRowTarget,
+} from "@/lib/torrent/torrentFileRow.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TFunc } from "@/types/i18n";
-import type { TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
+import type { ContextMenuEntry } from "@/types/ui/contextMenu";
+import type { TreeRow } from "@/types/core/treeArrow";
+import type { TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent/torrent";
 
-import { PlayerFileActions } from "../actions.torrent";
-
-function onDiskTitle(file: TorrentTreeFile, t: TFunc): string | undefined {
-  if (!file.selected || file.completed) return undefined;
-  return t("torrent.files.on.disk", { size: formatBytes(file.on_disk_bytes ?? 0) });
-}
-
-function QueuePosition({ position }: { position?: number }) {
-  const { t } = useI18n();
-  if (position === undefined) return null;
-  return (
-    <span
-      className="text-hint shrink-0 tabular-nums"
-      title={t("torrent.queue.position", { position })}
-      data-testid="torrent-file-queue-position"
-    >
-      {position}.
-    </span>
-  );
-}
-
-interface PlayerRowTarget {
-  resolvedPath: string | undefined;
-  track: boolean;
-  busy: boolean;
-}
-function resolvePlayerRowTarget(
-  file: TorrentTreeFile,
-  fullPath: string | undefined,
-  saveDir: string | undefined,
-  queueMap: Map<string, string>,
-  trackExts: Set<string>
-): PlayerRowTarget {
-  const resolvedPath = fullPath ?? (saveDir ? joinMediaPath(saveDir, file.name) : undefined);
-  const track = isTrackFileName(fileNameFromPath(resolvedPath ?? file.displayName), trackExts);
-  const queueStatus = resolvedPath ? queueMap.get(resolvedPath) : undefined;
-  return {
-    resolvedPath,
-    track,
-    busy: queueStatus === "queued" || queueStatus === "processing",
-  };
-}
-
-function searchPlayerFile(
-  type: "torrent" | "player",
-  track: boolean,
-  resolvedPath: string | undefined,
-  displayName: string
-): void {
-  if (type !== "player" || track) return;
-  setAnilistSearchQuery(parseMediaPath(resolvedPath ?? displayName).searchTitle);
-}
-
-function handlePlayerContextMenu(
-  event: MouseEvent,
-  args: {
-    type: "torrent" | "player";
-    track: boolean;
-    busy: boolean;
-    completed: boolean;
-    exists: boolean;
-    resolvedPath: string | undefined;
-    saveDir: string | undefined;
-    onOpenInApp?: (fullPath: string) => void;
-  }
-): void {
-  event.preventDefault();
-  if (args.type !== "player") return;
-  if (event.ctrlKey || event.metaKey) {
-    if (args.track || args.busy || !args.completed || !args.exists || !args.resolvedPath) return;
-    args.onOpenInApp?.(args.resolvedPath);
-    return;
-  }
-  openPath(String(args.saveDir));
-}
-
-interface FileRowInteractions {
-  interactive: boolean;
-  contextMenu: boolean;
-  ctrlClick: boolean;
-}
-
-function resolveFileRowInteractions(args: {
-  type: "torrent" | "player";
-  track: boolean;
-  busy: boolean;
-  completed: boolean;
-  exists: boolean;
-  resolvedPath: string | undefined;
-  saveDir: string | undefined;
-  onOpenInApp: ((fullPath: string) => void) | undefined;
-}): FileRowInteractions {
-  const interactive = args.type === "player" && !args.track;
-  return {
-    interactive,
-    contextMenu: interactive && Boolean(args.saveDir),
-    ctrlClick:
-      interactive &&
-      !args.busy &&
-      args.completed &&
-      args.exists &&
-      Boolean(args.resolvedPath) &&
-      Boolean(args.onOpenInApp),
-  };
-}
-
-function FileNameCell({
-  title,
-  interactions,
-  onActivate,
-  onOpenFolder,
-  menuEntries,
-  onCtrlContextMenu,
-  children,
-}: {
-  title: string;
-  interactions: FileRowInteractions;
-  onActivate: () => void;
-  onOpenFolder: (event: MouseEvent) => void;
-  menuEntries: ContextMenuEntry[] | null;
-  onCtrlContextMenu: ((event: MouseEvent) => void) | null;
-  children: ReactNode;
-}) {
-  const cell = (
-    <span
-      className="focus-visible:outline-text flex-1 truncate outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-      title={title}
-      role={interactions.interactive ? "button" : undefined}
-      tabIndex={interactions.interactive ? 0 : undefined}
-      data-vim-target={interactions.interactive ? "file" : undefined}
-      data-tree-activate={interactions.interactive ? "" : undefined}
-      data-vim-contextmenu={interactions.contextMenu ? "file" : undefined}
-      data-vim-ctrlclick={interactions.ctrlClick ? "file" : undefined}
-      onKeyDown={interactions.interactive ? enterOrSpace(onActivate) : undefined}
-      onContextMenu={menuEntries ? undefined : onOpenFolder}
-      onContextMenuCapture={onCtrlContextMenu ?? undefined}
-    >
-      {children}
-    </span>
-  );
-  if (!menuEntries) return cell;
-  return <ContextMenu entries={menuEntries}>{cell}</ContextMenu>;
-}
-
-function TorrentRowShell({
-  rootRef,
-  rowKey,
-  depth,
-  virtualStart,
-  type,
-  completed,
-  rows,
-  anchorPath,
-  children,
-}: {
-  rootRef: RefObject<HTMLDivElement | null>;
-  rowKey: string;
-  depth: number;
-  virtualStart: number;
-  type: "torrent" | "player";
-  completed: boolean;
-  rows?: readonly TreeRow[];
-  anchorPath?: string | null;
-  children: ReactNode;
-}) {
-  const player = type === "player";
-  return (
-    <div
-      ref={rootRef}
-      data-tree-row
-      data-tree-path={rowKey}
-      data-tree-kind="file"
-      tabIndex={-1}
-      onMouseDown={(event) => {
-        if (event.target instanceof HTMLElement && event.target.closest("button, input")) return;
-        event.preventDefault();
-        event.currentTarget.focus();
-      }}
-      className={cn(
-        "windows95-text focus-visible:outline-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted",
-        player ? "windows95-border bg-field" : undefined,
-        (player || !(type === "torrent" && completed)) && "hover:bg-surface"
-      )}
-      style={{
-        height: player ? 20 : 18,
-        transform: `translateY(${virtualStart}px)`,
-        paddingLeft: `${depth * 12 + 2}px`,
-      }}
-    >
-      {player && anchorPath != null && (
-        <TreeRowNumber rows={rows ?? []} anchorPath={anchorPath} rowPath={rowKey} />
-      )}
-      {children}
-    </div>
-  );
-}
+import { PlayerFileActions } from "@/routes/components/torrent/actions.torrent";
+import { FileNameCell } from "@/routes/components/torrent/rows/file/nameCell.file";
+import { QueuePosition } from "@/routes/components/torrent/rows/file/queuePosition.file";
+import { TorrentRowShell } from "@/routes/components/torrent/rows/file/shell.file";
 
 export function TorrentFileRow({
   file,
@@ -287,7 +95,10 @@ export function TorrentFileRow({
     saveDir: path,
     onOpenInApp,
   });
-  const openSearch = () => searchPlayerFile(type, track, resolvedPath, file.displayName);
+  const openSearch = () => {
+    if (type !== "player" || track) return;
+    setAnilistSearchQuery(parseMediaPath(resolvedPath ?? file.displayName).searchTitle);
+  };
   const rootRef = useRef<HTMLDivElement>(null);
   const rowKey = `file:${file.index}`;
 

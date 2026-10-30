@@ -1,11 +1,11 @@
 import { Star } from "lucide-react";
 
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { AniRecProps as Props } from "@/types/anilist";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { AniRecProps as Props } from "@/types/anilist/anilist";
 
 export default function AniListRecsModal({
   open,

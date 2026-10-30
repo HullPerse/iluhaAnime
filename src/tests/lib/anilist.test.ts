@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { timerFlush } from "d3-timer";
 
-import { defaultListSortDir, listSortKeys } from "@/config/list.config";
+import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
 import {
   buildActivityMap,
   buildScoreByMedia,
@@ -13,7 +13,7 @@ import {
   isMentionOf,
   monthLabel,
   selectInitialDayKey,
-} from "@/lib/activity.utils";
+} from "@/lib/core/activity.utils";
 import {
   cameraCenteredOn,
   cameraTransform,
@@ -22,8 +22,8 @@ import {
   screenToWorld,
   worldToScreen,
   zoomCameraAt,
-} from "@/lib/camera.utils";
-import { collapseGraph } from "@/lib/collapse.utils";
+} from "@/lib/core/camera.utils";
+import { collapseGraph } from "@/lib/core/collapse.utils";
 import {
   buildEntryLookup,
   entryListDate,
@@ -36,7 +36,7 @@ import {
   searchFiltersToParams,
   sortAniMediaList,
   sortEntries,
-} from "@/lib/entries.utils";
+} from "@/lib/anilist/entries.utils";
 import {
   computeMainlineIds,
   computeNodeRelationMap,
@@ -45,22 +45,26 @@ import {
   groupFranchiseNodes,
   relationGroup,
   sortFranchiseNodes,
-} from "@/lib/graph.utils";
+} from "@/lib/graphics/graph.utils";
 import {
   ALL_LISTS_ID,
   activeListEntries,
   collectAllEntries,
   groupEntriesByList,
-} from "@/lib/anilistGroup.utils";
-import { anilistProxyArgs } from "@/lib/anilistProxy.utils";
-import { buildAnilistSourceKey } from "@/lib/anilistRoute.utils";
+} from "@/lib/anilist/anilistGroup.utils";
+import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
+import { buildAnilistSourceKey } from "@/lib/anilist/anilistRoute.utils";
 import {
   buildSimNodes,
   computeGraphMetrics,
   computeNodeDimensions,
   runFranchiseSimulation,
-} from "@/lib/sim.utils";
-import { spotlightBoundaryMs, spotlightPageIndex, spotlightPeriodKey } from "@/lib/spotlight.utils";
+} from "@/lib/core/sim.utils";
+import {
+  spotlightBoundaryMs,
+  spotlightPageIndex,
+  spotlightPeriodKey,
+} from "@/lib/core/spotlight.utils";
 import type {
   ActivityTranslate,
   AniListCollection,
@@ -72,7 +76,7 @@ import type {
   FranchiseNode,
   FranchiseNodePosition,
   RelationFilter,
-} from "@/types/anilist";
+} from "@/types/anilist/anilist";
 
 describe("anilist/activity", () => {
   function makeT(): ActivityTranslate {

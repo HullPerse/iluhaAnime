@@ -2,11 +2,11 @@ import { cn } from "cn";
 import { X } from "lucide-react";
 import { memo } from "react";
 
-import { suggestionIcons, suggestionKindLabels } from "@/config/autocomplete.config";
+import { suggestionIcons, suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SearchSuggestion } from "@/lib/suggestions.utils";
+import type { SearchSuggestion } from "@/lib/core/suggestions.utils";
 
-import { HighlightedText } from "./highlightedText.autocomplete";
+import { HighlightedText } from "@/components/shared/autocomplete/highlightedText.autocomplete";
 
 export const SuggestionItem = memo(
   ({

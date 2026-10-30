@@ -1,7 +1,7 @@
 import { mockOpenPath as openPathSpy } from "@/tests/mocks";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import { joinMediaPath, openFileInPlayer } from "@/lib/media.utils";
+import { joinMediaPath, openFileInPlayer } from "@/lib/player/media.utils";
 
 const showErrorSpy = vi.fn();
 
@@ -9,7 +9,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
   openPath: openPathSpy,
 }));
 
-vi.mock("@/lib/notification.utils", () => ({
+vi.mock("@/lib/core/notification.utils", () => ({
   showError: (...args: unknown[]) => showErrorSpy(...args),
 }));
 

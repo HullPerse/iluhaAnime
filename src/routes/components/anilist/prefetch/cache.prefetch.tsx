@@ -1,7 +1,11 @@
 import { cn } from "cn";
 
-import { getCachePercentages } from "@/lib/prefetch.utils";
-import type { ActivityTranslate, PrefetchProgressPayload, PrefetchSummary } from "@/types/anilist";
+import { getCachePercentages } from "@/lib/core/prefetch.utils";
+import type {
+  ActivityTranslate,
+  PrefetchProgressPayload,
+  PrefetchSummary,
+} from "@/types/anilist/anilist";
 
 export function CacheSummary({
   progress,

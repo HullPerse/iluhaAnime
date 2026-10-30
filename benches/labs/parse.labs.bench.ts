@@ -1,6 +1,6 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { clearMediaParseCache, parseMediaPath } from '@/lib/parse.utils';
+import { clearMediaParseCache, parseMediaPath } from '../../src/lib/search/parse.utils';
 import fixtureRows from '../../src/tests/lib/media/fixtures.json';
 
 interface Fixture {

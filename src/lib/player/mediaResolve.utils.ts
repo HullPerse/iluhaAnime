@@ -3,7 +3,8 @@ import { classifyMediaTokens, collectFields } from "@/lib/player/mediaClassify.u
 import { extractSeason, extractTvSeason, isCountPair } from "@/lib/player/episode.utils";
 import { parseSidecarSuffix, splitSidecarStem } from "@/lib/core/sidecar.utils";
 import { stripMediaExtension, tokenizeMediaName } from "@/lib/graphics/tokenize.utils";
-import { absorbStrings, resolveVideo } from "@/lib/player/video.utils";
+import { resolveVideo } from "@/lib/player/video.utils";
+import { absorbStrings } from "@/lib/player/videoTitle.utils";
 import { createLruCache } from "@/lib/core/lruCache.utils";
 import type { DirContext, MediaFileParse } from "@/types/player/media";
 

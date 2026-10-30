@@ -14,14 +14,14 @@ vi.mock("@tanstack/react-virtual", () => ({
 
 import { TorrentFiles } from "@/routes/components/torrent/sections/files.sections";
 import { patchSettings } from "@/store/settings.store";
-import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent";
+import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent/torrent";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 const SAVE_DIR = "D:/media/anime";
 const GB = 1024 * 1024 * 1024;
 
-function item(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
+const item = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
   return {
     id: 1,
     name: "Test release",
@@ -47,13 +47,13 @@ function item(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     external_changed_files: [],
     ...overrides,
   };
-}
+};
 
-function file(
+const file = (
   index: number,
   name: string,
   overrides: Partial<TorrentFileInfo> = {}
-): TorrentFileInfo {
+): TorrentFileInfo => {
   return {
     index,
     name,
@@ -66,11 +66,11 @@ function file(
     exists: true,
     ...overrides,
   };
-}
+};
 
-function renderFiles(
+const renderFiles = (
   props: { item?: TorrentInfo; files?: TorrentFileInfo[]; expanded?: boolean } = {}
-) {
+) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -88,7 +88,7 @@ function renderFiles(
       />
     </QueryClientProvider>
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

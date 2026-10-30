@@ -1,17 +1,17 @@
-import type { HostStats } from "@/types/ipc";
-import type { NotificationTarget } from "@/types/notification";
+import type { HostStats } from "@/types/core/ipc";
+import type { NotificationTarget } from "@/types/core/notification";
 import type {
   CropRect,
   SavedScreenshot,
   ScreenshotCapture,
   ScreenshotLayersPayload,
-} from "@/types/screenshot";
-import type { SettingsStore } from "@/types/settings";
-import type { DitherImageMeta, UserImageFile } from "@/types/userimage";
+} from "@/types/core/screenshot";
+import type { SettingsStore } from "@/types/ui/settings";
+import type { DitherImageMeta, UserImageFile } from "@/types/core/userimage";
 
-import type { ApiTransport } from "@/types/transport";
-import { tauriTransport } from "./transport.api";
-import type { SaveScreenshotInput, SystemApiConfig } from "@/types/system";
+import type { ApiTransport } from "@/types/core/transport";
+import { tauriTransport } from "@/api/transport.api";
+import type { SaveScreenshotInput, SystemApiConfig } from "@/types/core/system";
 
 export class SystemApi {
   private readonly transport: ApiTransport;

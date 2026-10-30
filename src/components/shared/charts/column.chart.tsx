@@ -1,13 +1,16 @@
-import { CHART_LAYOUT } from "@/config/palette.config";
+import { CHART_LAYOUT } from "@/config/graphics/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { nearestIndex } from "@/lib/geometry.utils";
-import { bandScale, niceMax, niceTicks } from "@/lib/scale.utils";
-import { clamp } from "@/lib/math.utils";
+import { nearestIndex } from "@/lib/core/geometry.utils";
+import { bandScale, niceMax, niceTicks } from "@/lib/core/scale.utils";
+import { clamp } from "@/lib/core/math.utils";
 
-import { ChartFrame } from "./frame.chart";
-import { BandAxisLabels, ChartGrid, ValueAxisLabels } from "./ticks.chart";
-import { SvgChartTooltip, tooltipAnnouncement } from "./tooltip.chart";
-import type { ColumnChartProps } from "@/types/column.chart";
+import { ChartFrame } from "@/components/shared/charts/frame.chart";
+import { BandAxisLabels } from "@/components/shared/charts/ticks/bandAxis.ticks";
+import { ChartGrid } from "@/components/shared/charts/ticks/grid.ticks";
+import { ValueAxisLabels } from "@/components/shared/charts/ticks/valueAxis.ticks";
+import { SvgChartTooltip } from "@/components/shared/charts/tooltip.chart";
+import { tooltipAnnouncement } from "@/lib/graphics/chartTooltip.utils";
+import type { ColumnChartProps } from "@/types/core/column.chart";
 
 export function ColumnChart({
   data,

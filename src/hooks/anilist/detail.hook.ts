@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { buildEntryLookup } from "@/lib/entries.utils";
-import { buildAnimeBackHandler } from "@/lib/anilistRoute.utils";
-import { useCell } from "@/lib/signal.hook";
+import { buildEntryLookup } from "@/lib/anilist/entries.utils";
+import { buildAnimeBackHandler } from "@/lib/anilist/anilistRoute.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { consumeDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
-import type { AniListAnime, AniListCollection } from "@/types/anilist";
+import type { AniListAnime, AniListCollection } from "@/types/anilist/anilist";
 
 export function useAnilistDetail(lists: AniListCollection[]) {
   const target = useCell(deeplinkAtoms.target);

@@ -5,10 +5,13 @@ import type { ChangeEvent } from "react";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { countActiveAnilistFilters, countLocalAnilistFilters } from "@/lib/anilistFilters.utils";
-import { enterSubmit } from "@/lib/keyboard.utils";
-import type { AniListFilters } from "@/types/anilist";
-import type { SearchField } from "@/types/collection";
+import {
+  countActiveAnilistFilters,
+  countLocalAnilistFilters,
+} from "@/lib/anilist/anilistFilters.utils";
+import { enterSubmit } from "@/lib/ui/keyboard.utils";
+import type { AniListFilters } from "@/types/anilist/anilist";
+import type { SearchField } from "@/types/anilist/collection";
 
 export default memo(AniListSearchToolbar);
 

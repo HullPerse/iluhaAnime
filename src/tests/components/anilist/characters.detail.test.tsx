@@ -1,4 +1,4 @@
-import { mockConvertFileSrc, mockInvoke as invokeMock } from "../../mocks";
+import { mockConvertFileSrc, mockInvoke as invokeMock } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,14 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetTransportInflight } from "@/api/transport.api";
 import AniListCharactersPanel from "@/routes/components/anilist/detail/characters.detail";
 import { patchSettings } from "@/store/settings.store";
-import type { AniCharacterEdge } from "@/types/anilist";
+import type { AniCharacterEdge } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
   convertFileSrc: mockConvertFileSrc,
 }));
 
-function edge(id: number, name: string): AniCharacterEdge {
+const edge = (id: number, name: string): AniCharacterEdge => {
   return {
     role: "MAIN",
     character: {
@@ -26,9 +26,9 @@ function edge(id: number, name: string): AniCharacterEdge {
     },
     voice_actors: [],
   };
-}
+};
 
-function renderPanel(initialEdges?: AniCharacterEdge[]) {
+const renderPanel = (initialEdges?: AniCharacterEdge[]) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -37,7 +37,7 @@ function renderPanel(initialEdges?: AniCharacterEdge[]) {
       <AniListCharactersPanel animeId={21} initialEdges={initialEdges} />
     </QueryClientProvider>
   );
-}
+};
 
 afterEach(() => {
   cleanup();

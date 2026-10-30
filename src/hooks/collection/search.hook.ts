@@ -2,13 +2,13 @@ import { useCallback, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
-import { WIZARD_RESULTS_MAX } from "@/config/collectionDefaults.config";
+import { WIZARD_RESULTS_MAX } from "@/config/anilist/collectionDefaults.config";
 import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
-import { RANKING } from "@/config/ranking.config";
-import { parseOperatorTerms } from "@/lib/searchScore.utils";
-import { matchNormalizedTitle, normalizeSearchText } from "@/lib/suggestions.utils";
-import { attempt, withFallback } from "@/lib/attempt.utils";
-import type { WizardSearchResult } from "@/types/collection";
+import { RANKING } from "@/config/anilist/ranking.config";
+import { parseOperatorTerms } from "@/lib/search/searchScore.utils";
+import { matchNormalizedTitle, normalizeSearchText } from "@/lib/core/suggestions.utils";
+import { attempt, withFallback } from "@/lib/core/attempt.utils";
+import type { WizardSearchResult } from "@/types/anilist/collection";
 
 function rankWizardResults(
   results: WizardSearchResult[],

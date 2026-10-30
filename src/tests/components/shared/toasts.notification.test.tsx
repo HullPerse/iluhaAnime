@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockOpenPath, mockOpenUrl } from "../../mocks";
+import { mockOpenPath, mockOpenUrl } from "@/tests/mocks";
 import NotificationToasts from "@/components/shared/notification/toasts.notification";
 import { addNotification, notificationAtoms, updateNotification } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
@@ -23,13 +23,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function addInfo(title = "Hello", message = "World"): number {
+const addInfo = (title = "Hello", message = "World"): number => {
   let id = -1;
   act(() => {
     id = addNotification(title, "info", message);
   });
   return id;
-}
+};
 
 describe("NotificationToasts", () => {
   it("shows a new notification and hides it after the default duration, keeping it unread", () => {

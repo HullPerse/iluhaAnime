@@ -1,9 +1,10 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import StreamEpisodes, { previewPosition } from "@/routes/components/stream/episodes.stream";
+import StreamEpisodes from "@/routes/components/stream/episodes.stream";
+import { previewPosition } from "@/lib/player/episodePreview.utils";
 import { patchSettings } from "@/store/settings.store";
-import type { StreamingEpisode } from "@/types/stream";
+import type { StreamingEpisode } from "@/types/player/stream";
 
 vi.mock("@/hooks/remoteImage.hook", () => ({
   useStreamCover: (url: string | null | undefined) => (url ? `asset://${url}` : null),
@@ -17,7 +18,7 @@ const EPISODES: StreamingEpisode[] = Array.from({ length: 220 }, (_, index) => (
   airDate: "2002-10-03T00:00:00",
 }));
 
-function renderEpisodes(overrides: Partial<React.ComponentProps<typeof StreamEpisodes>> = {}) {
+const renderEpisodes = (overrides: Partial<React.ComponentProps<typeof StreamEpisodes>> = {}) => {
   return render(
     <StreamEpisodes
       episodes={EPISODES}
@@ -29,7 +30,7 @@ function renderEpisodes(overrides: Partial<React.ComponentProps<typeof StreamEpi
       {...overrides}
     />
   );
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

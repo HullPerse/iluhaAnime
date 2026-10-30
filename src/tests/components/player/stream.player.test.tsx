@@ -1,16 +1,16 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerStream } from "@/types/playerStream";
+import type { PlayerStream } from "@/types/player/playerStream";
 import StreamControl from "@/routes/components/player/media/stream.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
-import type { StreamVariant } from "@/types/stream";
-import type { StreamOpen } from "@/types/videoPlayer";
+import type { StreamVariant } from "@/types/player/stream";
+import type { StreamOpen } from "@/types/player/videoPlayer";
 
 const cache = vi.hoisted(() => ({ loadSources: vi.fn(async () => []) }));
 
-vi.mock("@/lib/sessionCache.utils", () => ({ loadSources: cache.loadSources }));
+vi.mock("@/lib/core/sessionCache.utils", () => ({ loadSources: cache.loadSources }));
 
 const state = vi.hoisted(() => ({
   session: null as StreamOpen | null,
@@ -23,7 +23,7 @@ const state = vi.hoisted(() => ({
   reloadVariants: vi.fn(),
 }));
 
-function playerStream(): PlayerStream {
+const playerStream = (): PlayerStream => {
   return {
     session: state.session,
     variants: state.variants,
@@ -34,7 +34,7 @@ function playerStream(): PlayerStream {
     switchVariant: state.switchVariant,
     reloadVariants: state.reloadVariants,
   };
-}
+};
 
 const VOICE: StreamVariant = {
   id: "1",
@@ -63,7 +63,7 @@ const SUBTITLE: StreamVariant = {
   sourceUrl: "",
 };
 
-function session(patch: Partial<StreamOpen> = {}): StreamOpen {
+const session = (patch: Partial<StreamOpen> = {}): StreamOpen => {
   return {
     sourceId: "animelib",
     sourceName: "AnimeLib",
@@ -83,7 +83,7 @@ function session(patch: Partial<StreamOpen> = {}): StreamOpen {
     mediaUrl: "https://cdn/1080.mp4",
     ...patch,
   };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

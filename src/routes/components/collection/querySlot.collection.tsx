@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CollectionDataResult } from "@/types/collection";
+import type { CollectionDataResult } from "@/types/anilist/collection";
 
 export function CollectionQuerySlot({
   status,

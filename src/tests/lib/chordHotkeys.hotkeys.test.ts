@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { chordKey, chordKeyFromEvent, humanizeChord, parseChord } from "@/lib/chordHotkeys.utils";
+import {
+  chordKey,
+  chordKeyFromEvent,
+  humanizeChord,
+  parseChord,
+} from "@/lib/core/chordHotkeys.utils";
 
 describe("parseChord", () => {
   it("parses a bare code", () => {

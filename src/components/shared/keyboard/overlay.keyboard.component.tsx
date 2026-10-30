@@ -7,20 +7,13 @@ import {
   hintLayoutsEqual,
   measureBadgeLayouts,
   resolveBadgeCollisions,
-} from "@/lib/hintsHotkeys.utils";
-import type { HintBadgeLayout } from "@/types/hintsHotkeys";
-import { scheduleTask } from "@/lib/shared.utils";
-import type { ScheduledTask } from "@/types/shared";
-import { useCell } from "@/lib/signal.hook";
+} from "@/lib/core/hintsHotkeys.utils";
+import { badgeClass } from "@/lib/ui/badgeClass.utils";
+import type { HintBadgeLayout } from "@/types/core/hintsHotkeys";
+import { scheduleTask } from "@/lib/core/shared.utils";
+import type { ScheduledTask } from "@/types/core/shared";
+import { useCell } from "@/lib/core/signal.hook";
 import { vimAtoms } from "@/store/vim.store";
-
-function badgeClass(layout: HintBadgeLayout): string {
-  const base =
-    "windows95-text absolute flex items-center gap-0.5 px-1 py-0.5 text-[11px] font-bold leading-none";
-  return layout.variant === "plain"
-    ? `${base} windows95-border bg-secondary text-title-text`
-    : `${base} windows95-active-border bg-primary text-text`;
-}
 
 export default function KeyboardHintOverlay() {
   const { t } = useI18n();

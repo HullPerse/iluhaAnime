@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { findActiveChapter, resolveSkipTarget, skipLabel } from "@/lib/skip.utils";
-import type { MpvChapter } from "@/types/videoPlayer";
+import { findActiveChapter, resolveSkipTarget, skipLabel } from "@/lib/core/skip.utils";
+import type { MpvChapter } from "@/types/player/videoPlayer";
 
 function chapter(title: string, time: number, end?: number): MpvChapter {
   return end === undefined ? { title, time } : { title, time, end };

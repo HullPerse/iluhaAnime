@@ -4,9 +4,9 @@ import { streamApi } from "@/api/stream.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useStreamSearch } from "@/hooks/stream/catalog.hook";
-import { focusMainSearch } from "@/lib/focusHotkeys.utils";
-import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
-import { useCell } from "@/lib/signal.hook";
+import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { consumeStreamDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { settingsAtoms } from "@/store/settings.store";
 import {
@@ -19,16 +19,17 @@ import {
   streamStore,
 } from "@/store/stream.store";
 
-import StreamDetail from "./components/stream/detail.stream";
-import StreamFiltersModal from "./components/stream/filters.stream";
-import StreamHistoryModal from "./components/stream/history.stream";
-import StreamResults from "./components/stream/results.stream";
+import StreamDetail from "@/routes/components/stream/detail.stream";
+import StreamFiltersModal from "@/routes/components/stream/filters.stream";
+import StreamHistoryModal from "@/routes/components/stream/history.stream";
+import StreamResults from "@/routes/components/stream/results.stream";
 import StreamSortBar, {
   STREAM_SORT_CYCLE,
   STREAM_SORT_DEFAULT_DIR,
-} from "./components/stream/sort.stream";
-import { StreamDisabled, StreamOffline } from "./components/stream/states.stream";
-import StreamToolbar from "./components/stream/toolbar.stream";
+} from "@/routes/components/stream/sort.stream";
+import { StreamDisabled } from "@/routes/components/stream/states/disabled.states";
+import { StreamOffline } from "@/routes/components/stream/states/offline.states";
+import StreamToolbar from "@/routes/components/stream/toolbar.stream";
 
 export default function StreamRoute() {
   useResolvedHotkeys<"focus-main">(

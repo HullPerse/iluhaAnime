@@ -2,10 +2,10 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { showError } from "@/lib/notification.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { showError } from "@/lib/core/notification.utils";
 
-import { Win95PlayerButton } from "./win95PlayerButton.video";
+import { Win95PlayerButton } from "@/components/shared/video/controls/win95PlayerButton.video";
 
 export function OpenInBrowserButton({ youtubeId }: { youtubeId: string }) {
   const { t } = useI18n();

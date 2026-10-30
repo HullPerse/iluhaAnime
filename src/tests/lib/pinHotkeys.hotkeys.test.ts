@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createPinTimer, PIN_DESCRIPTION_MS } from "@/lib/pinHotkeys.utils";
+import { createPinTimer, PIN_DESCRIPTION_MS } from "@/lib/core/pinHotkeys.utils";
 
 describe("createPinTimer", () => {
   afterEach(() => {

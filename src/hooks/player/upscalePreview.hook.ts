@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/attempt.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { ignore } from "@/lib/promise.utils";
-import type { PreviewFrame } from "@/types/upscale";
-import type { UpscalePreviewController } from "@/types/upscalePreview";
+import { attempt } from "@/lib/core/attempt.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import type { PreviewFrame } from "@/types/core/upscale";
+import type { UpscalePreviewController } from "@/types/core/upscalePreview";
 
 interface PreviewState {
   key: string;

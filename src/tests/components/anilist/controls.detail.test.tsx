@@ -1,4 +1,4 @@
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListActionControls from "@/routes/components/anilist/detail/controls.detail";
 import { patchSettings } from "@/store/settings.store";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -15,7 +15,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const MEDIA_ID = 501;
 
-function makeAnime(): AniMedia {
+const makeAnime = (): AniMedia => {
   return {
     id: MEDIA_ID,
     title: "Frieren",
@@ -41,9 +41,9 @@ function makeAnime(): AniMedia {
     rankings: [],
     relations: [],
   };
-}
+};
 
-function renderControls(scoreFormat: string, score: number | null = null) {
+const renderControls = (scoreFormat: string, score: number | null = null) => {
   const client = new QueryClient();
   return render(
     <QueryClientProvider client={client}>
@@ -61,17 +61,17 @@ function renderControls(scoreFormat: string, score: number | null = null) {
       />
     </QueryClientProvider>
   );
-}
+};
 
-function saveButton() {
+const saveButton = () => {
   return screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
-}
+};
 
-function renderEditable(
+const renderEditable = (
   seed: { status: string; progress: number } | null,
   saved: unknown,
   onSaved: () => void
-) {
+) => {
   const client = new QueryClient();
   client.setQueryData(["anilist_data"], {
     user: { id: 7 },
@@ -120,16 +120,16 @@ function renderEditable(
     </QueryClientProvider>
   );
   return { client };
-}
+};
 
-function cachedEntry(client: QueryClient) {
+const cachedEntry = (client: QueryClient) => {
   const data = client.getQueryData(["anilist_data"]);
   if (!data) return null;
   const typed = data as {
     lists: { entries: { progress: number | null; list_status: string }[] }[];
   };
   return typed.lists[0]?.entries[0] ?? null;
-}
+};
 
 afterEach(() => cleanup());
 
@@ -341,7 +341,7 @@ describe("AniListActionControls entry fields", () => {
 });
 
 describe("AniListActionControls delete", () => {
-  function renderWithUser() {
+  const renderWithUser = () => {
     const client = new QueryClient();
     client.setQueryData(["anilist_data"], {
       user: { id: 7 },
@@ -365,7 +365,7 @@ describe("AniListActionControls delete", () => {
         />
       </QueryClientProvider>
     );
-  }
+  };
 
   it("deletes the entry with both id casings", async () => {
     const user = userEvent.setup();

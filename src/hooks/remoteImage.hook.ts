@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
-import { useCell } from "@/lib/signal.hook";
-import { isSourceImage } from "@/lib/images.utils";
-import { assetUrl } from "@/lib/image.utils";
-import { invokeTyped } from "@/lib/invoke.utils";
-import { createLruCache, inflightFetch } from "@/lib/lruCache.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { isSourceImage } from "@/lib/graphics/images.utils";
+import { assetUrl } from "@/lib/graphics/image.utils";
+import { invokeTyped } from "@/lib/core/invoke.utils";
+import { createLruCache, inflightFetch } from "@/lib/core/lruCache.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { UserImageFile } from "@/types/userimage";
+import type { UserImageFile } from "@/types/core/userimage";
 
 const resolvedUrls = createLruCache<string, string>(200);
 const inflight = new Map<string, Promise<string | null>>();

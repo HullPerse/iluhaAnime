@@ -1,7 +1,7 @@
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queueDepthSteps } from "@/lib/playerQueue.utils";
-import type { UpscaleQueueItem } from "@/types/upscale";
+import { queueDepthSteps } from "@/lib/player/playerQueue.utils";
+import type { UpscaleQueueItem } from "@/types/core/upscale";
 
 export function QueueItemDepth({ item }: { item: UpscaleQueueItem }) {
   const { t } = useI18n();

@@ -15,12 +15,12 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { buildLearningMaps, countersOf } from "@/lib/learning.utils";
-import { RANKING } from "../src/config/ranking.config";
-import type { RankingCounters } from "../src/types/ranking";
-import { normalizeSearchText } from "@/lib/normalize.utils";
-import { getSearchSuggestions } from "@/lib/suggestions.utils";
-import type { LearningStatRow, SearchAnimeSuggestion, SearchSuggestion } from "../src/types/search";
+import { buildLearningMaps, countersOf } from "../src/lib/core/learning.utils";
+import { RANKING } from "../src/config/anilist/ranking.config";
+import type { RankingCounters } from "../src/types/core/ranking";
+import { normalizeSearchText } from "../src/lib/core/normalize.utils";
+import { getSearchSuggestions } from "../src/lib/core/suggestions.utils";
+import type { LearningStatRow, SearchAnimeSuggestion, SearchSuggestion } from "../src/types/search/search";
 
 function argument(name: string): string | undefined {
   const prefix = `--${name}=`;

@@ -2,14 +2,14 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { COLOR_FORMATS } from "@/config/colors.config";
+import { COLOR_FORMATS } from "@/config/graphics/colors.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatColor, hexToHsv, hsvToHex, parseColor } from "@/lib/color.utils";
-import type { ColorFormat, HSV } from "@/types/color";
+import { formatColor, hexToHsv, hsvToHex, parseColor } from "@/lib/graphics/color.utils";
+import type { ColorFormat, HSV } from "@/types/graphics/color";
 
-import { SaturationValueArea } from "./area.color";
-import { ChannelInputs } from "./channels.color";
-import { HueSlider } from "./hue.color";
+import { SaturationValueArea } from "@/components/ui/color/area.color";
+import { ChannelInputs } from "@/components/ui/color/channels.color";
+import { HueSlider } from "@/components/ui/color/hue.color";
 
 const FALLBACK_HSV: HSV = { h: 0, s: 0, v: 50 };
 

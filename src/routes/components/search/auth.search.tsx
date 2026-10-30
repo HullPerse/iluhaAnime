@@ -2,7 +2,7 @@ import { Key, LogOut, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AuthSearchProps as Props } from "@/types/search";
+import type { AuthSearchProps as Props } from "@/types/search/search";
 
 export default function SearchAuthButtons({
   source,

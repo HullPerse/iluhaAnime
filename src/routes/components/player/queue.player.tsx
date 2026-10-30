@@ -1,12 +1,12 @@
 import { Check, Trash2, X, RefreshCw, ListVideo, FileVideo, Pause, Play } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { useCell } from "@/lib/signal.hook";
+import { useCell } from "@/lib/core/signal.hook";
 import {
   clearUpscaleAll as clearAll,
   clearUpscaleDone as clearDone,
@@ -17,10 +17,10 @@ import {
   upscaleItems,
   upscalePaused,
 } from "@/store/upscale.store";
-import type { ScanType } from "@/types/player";
+import type { ScanType } from "@/types/player/player";
 
-import { QueueItemDepth } from "./depth.player";
-import FolderScanProgress from "./scan.player";
+import { QueueItemDepth } from "@/routes/components/player/depth.player";
+import FolderScanProgress from "@/routes/components/player/scan.player";
 
 export default function QueuePanel({
   scan,

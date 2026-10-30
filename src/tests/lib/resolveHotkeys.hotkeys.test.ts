@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveKeybinds, resolveScopeChords } from "@/lib/resolveHotkeys.utils";
+import { resolveKeybinds, resolveScopeChords } from "@/lib/search/resolveHotkeys.utils";
 
 function row(id: string) {
   const found = resolveKeybinds({}).find((entry) => entry.entry.id === id);

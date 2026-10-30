@@ -1,6 +1,6 @@
 import { Check, Copy, Pencil } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import Image from "@/components/ui/image.component";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { TabId } from "@/types/settings";
+import type { TabId } from "@/types/ui/settings";
 
 const OFFLINE_DISABLED_TABS: readonly TabId[] = ["anilist", "search", "stream"];
 

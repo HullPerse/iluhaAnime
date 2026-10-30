@@ -1,4 +1,4 @@
-import { mockInvoke as invokeMock } from "../mocks";
+import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,7 +10,7 @@ import {
   useRemoteImageStatus,
   useStreamCover,
 } from "@/hooks/remoteImage.hook";
-import { assetUrl } from "@/lib/image.utils";
+import { assetUrl } from "@/lib/graphics/image.utils";
 import { patchSettings } from "@/store/settings.store";
 
 vi.mock("@tauri-apps/api/core", () => ({

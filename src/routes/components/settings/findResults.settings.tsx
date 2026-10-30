@@ -2,52 +2,17 @@ import { cn } from "cn";
 import { useEffect, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { splitByRanges } from "@/lib/highlight.utils";
+import { SETTINGS_FIND_TAB_ORDER, SETTINGS_FIND_TAB_TITLES } from "@/config/settings/find.config";
 import {
-  SETTINGS_FIND_TAB_ORDER,
-  SETTINGS_FIND_TAB_TITLES,
   findHitLabel,
   findHitMatched,
   findHitRanges,
   findSectionTitleKey,
-} from "@/lib/find.utils";
-import type { SettingsFindHit } from "@/types/find";
-import type { Locale } from "@/types/i18n";
-import type { HighlightRange } from "@/types/search";
+} from "@/lib/core/find.utils";
+import type { SettingsFindHit } from "@/types/core/find";
+import type { Locale } from "@/types/core/i18n";
 
-function FindMarkedText({
-  text,
-  ranges,
-  active,
-}: {
-  text: string;
-  ranges: readonly HighlightRange[];
-  active: boolean;
-}) {
-  const tokens = splitByRanges(text, ranges);
-  if (tokens.length === 0) return <span>{text}</span>;
-  return (
-    <>
-      {tokens.map((token, index) =>
-        token.highlighted ? (
-          <span
-            key={index}
-            className={cn(
-              "font-bold",
-              active ? "text-white underline" : "bg-highlight text-title-text"
-            )}
-          >
-            {token.text}
-          </span>
-        ) : (
-          <span key={index} className={active ? "text-white" : "text-text"}>
-            {token.text}
-          </span>
-        )
-      )}
-    </>
-  );
-}
+import { FindMarkedText } from "./findResults/markedText.findResults";
 
 export function FindResults({
   hits,

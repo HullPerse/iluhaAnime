@@ -2,10 +2,10 @@ import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStream, useStreamNext } from "@/hooks/player/stream.hook";
-import { openStream } from "@/lib/playback.utils";
+import { openStream } from "@/lib/player/playback.utils";
 import { streamSession } from "@/store/player.store";
-import type { StreamingEpisode, StreamVariant } from "@/types/stream";
-import type { StreamOpen, StreamSource } from "@/types/videoPlayer";
+import type { StreamingEpisode, StreamVariant } from "@/types/player/stream";
+import type { StreamOpen, StreamSource } from "@/types/player/videoPlayer";
 
 const cache = vi.hoisted(() => ({
   loadEpisodes: vi.fn(async (): Promise<StreamingEpisode[]> => []),
@@ -14,14 +14,14 @@ const cache = vi.hoisted(() => ({
   prefetchNativeSources: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/lib/sessionCache.utils", () => cache);
+vi.mock("@/lib/core/sessionCache.utils", () => cache);
 vi.mock("@/api/stream.api", () => ({
   streamApi: {
     prefsGet: vi.fn(async () => null),
     prefsSave: vi.fn(async () => undefined),
   },
 }));
-vi.mock("@/lib/playback.utils", () => ({
+vi.mock("@/lib/player/playback.utils", () => ({
   openStream: vi.fn(async () => undefined),
 }));
 
@@ -43,7 +43,7 @@ const NATIVE: StreamVariant = {
   sourceUrl: "",
 };
 
-function session(variants?: StreamVariant[]): StreamOpen {
+const session = (variants?: StreamVariant[]): StreamOpen => {
   return {
     sourceId: "animelib",
     sourceName: "AnimeLib",
@@ -60,7 +60,7 @@ function session(variants?: StreamVariant[]): StreamOpen {
     variants,
     mediaUrl: "https://cdn/1080.mp4",
   };
-}
+};
 
 const EPISODES: StreamingEpisode[] = [
   { id: "10", number: 1, title: "The journey" },

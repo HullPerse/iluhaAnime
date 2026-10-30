@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Debouncer, debounce } from "@/lib/debounce.utils";
+import { Debouncer, debounce } from "@/lib/core/debounce.utils";
 
 beforeEach(() => {
   vi.useFakeTimers();

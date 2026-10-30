@@ -9,9 +9,9 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
-import { normalizePlayerPath } from "@/lib/visibility.utils";
-import { useCell } from "@/lib/signal.hook";
-import { formatBytes } from "@/lib/bytes.utils";
+import { normalizePlayerPath } from "@/lib/core/visibility.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { formatBytes } from "@/lib/core/bytes.utils";
 import {
   categoryAtoms,
   moveCategoryEntry,
@@ -20,11 +20,11 @@ import {
   setCategoryCollapsed,
 } from "@/store/category.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TorrentInfo, TorrentFileInfo, FolderNode } from "@/types/torrent";
+import type { TorrentInfo, TorrentFileInfo, FolderNode } from "@/types/torrent/torrent";
 
-import { TorrentCategoryEntry } from "./category/entry.category";
-import CategoryIconModal from "./category/icon.category";
-import FolderView from "./folder.player";
+import { TorrentCategoryEntry } from "@/routes/components/player/category/entry.category";
+import CategoryIconModal from "@/routes/components/player/category/icon.category";
+import FolderView from "@/routes/components/player/folder.player";
 
 function CategoryView({
   categoryId,

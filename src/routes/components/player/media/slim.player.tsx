@@ -3,9 +3,9 @@ import { Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import type { MpvChapter } from "@/types/videoPlayer";
+import type { MpvChapter } from "@/types/player/videoPlayer";
 
-import Timeline from "./timeline.player";
+import Timeline from "@/routes/components/player/media/timeline.player";
 
 function PlayerSlimBar({
   paused,

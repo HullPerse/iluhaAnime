@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
 import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
-import { TabLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
-import { SETTINGS_TAB_KEYS } from "@/config/tabs.config";
+import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { flashTarget } from "@/lib/flash.utils";
-import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
+import { flashTarget } from "@/lib/core/flash.utils";
+import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { searchSettingsFind } from "@/lib/find.utils";
-import type { SettingsFindHit, SettingsFindTab } from "@/types/find";
-import { useCell } from "@/lib/signal.hook";
+import { searchSettingsFind } from "@/lib/core/find.utils";
+import type { SettingsFindHit, SettingsFindTab } from "@/types/core/find";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsRoute } from "@/routes/__root";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import { FindBox } from "@/routes/components/settings/findBox.settings";
@@ -24,7 +24,7 @@ import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
 import { settingsAtoms } from "@/store/settings.store";
-import type { SettingsTab } from "@/types/settings";
+import type { SettingsTab } from "@/types/ui/settings";
 
 const SettingsSqlite = lazy(() => import("@/routes/components/settings/sqlite/sqlite.settings"));
 

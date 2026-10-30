@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { SOURCE_INFOS } from "@/config/searchSources.config";
+import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
 import {
   clearAllSearchLearning,
   clearSearchScope,
@@ -19,7 +19,7 @@ import {
 } from "@/store/search.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
-import { SectionResetButton } from "./reset.settings";
+import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
 export default function SettingsSearch() {
   const defaultSearchSource = useCell(settingsAtoms.defaultSearchSource);

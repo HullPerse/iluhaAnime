@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SearchFilters, SearchQuickChip } from "@/types/search";
+import type { SearchFilters, SearchQuickChip } from "@/types/search/search";
 
 export function SearchFilterChips({
   query,

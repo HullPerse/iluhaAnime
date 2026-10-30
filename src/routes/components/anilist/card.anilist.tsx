@@ -1,127 +1,22 @@
-import { Frown, Heart, Meh, Smile, Star } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 import { memo } from "react";
 
-import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
-import { listStatusLabels, statusLabels } from "@/config/labels.config";
+import { statusLabels } from "@/config/system/labels.config";
 import { useProgressOverride } from "@/hooks/anilist/progressOverride.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { getStatusColor } from "@/lib/entries.utils";
-import type { EntryListInfo } from "@/types/entries";
-import { formatEntryScore, parseScoreFormat, scoreIconFor } from "@/lib/anilistScore.utils";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
+import { cardListEntry } from "@/lib/anilist/card.utils";
+import { formatEntryScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { AniCardProps as Props } from "@/types/anilist";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { AniCardProps as Props } from "@/types/anilist/anilist";
 
-import CardListDate from "./date.anilist";
-import CardAiredCount from "./episode.anilist";
-import { ProgressStepper } from "./stepper.anilist";
-
-function ScoreIcon({
-  format,
-  score,
-}: {
-  format: ReturnType<typeof parseScoreFormat>;
-  score: number;
-}) {
-  const icon = scoreIconFor(format, score);
-  if (icon === "frown") return <Frown className="size-3.5" />;
-  if (icon === "meh") return <Meh className="size-3.5" />;
-  if (icon === "smile") return <Smile className="size-3.5" />;
-  return <Star className="size-3 fill-yellow-400 text-yellow-600" />;
-}
-
-function StatusDot({ status }: { status: string }) {
-  const { t } = useI18n();
-  return (
-    <span
-      className="windows95-border mt-0.5 shrink-0"
-      style={{
-        display: "inline-block",
-        width: 10,
-        height: 10,
-        backgroundColor: getStatusColor(status),
-      }}
-      title={t(toLocaleKey(listStatusLabels[status] ?? status))}
-    />
-  );
-}
-
-function cardListEntry(
-  entry: EntryListInfo | undefined,
-  status: string | undefined,
-  progress: number | null
-) {
-  if (!entry || !status) return undefined;
-  return {
-    progress,
-    score: entry.score,
-    list_status: status,
-    notes: entry.notes,
-    custom_lists: entry.custom_lists ?? [],
-  };
-}
-
-function MyScoreBadge({
-  score,
-  format,
-  title,
-}: {
-  score: number | null | undefined;
-  format: AnilistScoreFormat;
-  title: string;
-}) {
-  const display = formatEntryScore(score, format);
-  if (!display) return null;
-  if (format === "POINT_3") {
-    return (
-      <span
-        className="bg-secondary text-primary flex shrink-0 flex-row items-center gap-0.5 px-1 text-xs whitespace-nowrap"
-        title={title}
-        aria-label={title}
-      >
-        <ScoreIcon format={format} score={score ?? 0} />
-      </span>
-    );
-  }
-  return (
-    <span
-      className="bg-secondary text-primary flex shrink-0 flex-row items-center gap-0.5 px-1 text-xs whitespace-nowrap"
-      title={title}
-    >
-      <ScoreIcon format={format} score={score ?? 0} /> {display}
-    </span>
-  );
-}
-
-function CardProgressBlock({
-  item,
-  entry,
-  progress,
-}: {
-  item: Props["item"];
-  entry: EntryListInfo | undefined;
-  progress: number | null;
-}) {
-  if (entry?.progress == null || progress == null) return null;
-  if (item.episodes) {
-    return (
-      <div className="flex items-center gap-1">
-        <ProgressStepper media={item} entry={entry} progress={progress} />
-        <ProgressBar value={progress} max={item.episodes} className="h-3.5 w-20" slots />
-        <span className="windows95-text text-xs">
-          {progress}/{item.episodes}
-        </span>
-      </div>
-    );
-  }
-  if (progress > 0) {
-    return <span className="bg-secondary text-title-text px-1 text-xs">{progress}</span>;
-  }
-  return null;
-}
+import CardListDate from "@/routes/components/anilist/date.anilist";
+import CardAiredCount from "@/routes/components/anilist/episode.anilist";
+import { StatusDot } from "@/routes/components/anilist/card/statusDot.card";
+import { MyScoreBadge } from "@/routes/components/anilist/card/myScoreBadge.card";
+import { CardProgressBlock } from "@/routes/components/anilist/card/cardProgressBlock.card";
 
 function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick }: Props) {
   const { t } = useI18n();

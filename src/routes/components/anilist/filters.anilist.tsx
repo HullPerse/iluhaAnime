@@ -18,15 +18,15 @@ import {
   NSFW_TAG_SET,
   SEASONS,
   STATUSES,
-} from "@/config/anilistFilters.config";
-import { statusLabels, seasonLabels, formatLabels } from "@/config/labels.config";
+} from "@/config/anilist/anilistFilters.config";
+import { statusLabels, seasonLabels, formatLabels } from "@/config/system/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
+import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
+import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist/anilist";
 
-import { InlineDetail } from "./detail/inline.detail";
-import { DiscoveryCard } from "./random/discovery.random";
+import { InlineDetail } from "@/routes/components/anilist/detail/inline.detail";
+import { DiscoveryCard } from "@/routes/components/anilist/random/discovery.random";
 
 function FiltersModal({
   open,

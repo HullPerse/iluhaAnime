@@ -13,20 +13,20 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function check(query: string, history = ["frieren"]) {
+const check = (query: string, history = ["frieren"]) => {
   const { result } = renderHook(() => useSpellCheck(query, { history }));
   expect(result.current).toBeNull();
   act(() => {
     vi.advanceTimersByTime(400);
   });
   return result.current;
-}
+};
 
-function settle() {
+const settle = () => {
   act(() => {
     vi.advanceTimersByTime(400);
   });
-}
+};
 
 describe("useSpellCheck", () => {
   it("flags a one-letter typo as a warning", () => {
@@ -232,14 +232,14 @@ describe("useSpellCheck", () => {
 });
 
 describe("useSpellCorrections", () => {
-  function corrections(query: string, history = ["frieren"], limit = 3) {
+  const corrections = (query: string, history = ["frieren"], limit = 3) => {
     const { result } = renderHook(() => useSpellCorrections(query, { history }, limit));
     expect(result.current).toEqual([]);
     act(() => {
       vi.advanceTimersByTime(400);
     });
     return result.current;
-  }
+  };
 
   it("returns the single correction for a one-candidate typo", () => {
     expect(corrections("friren")).toEqual(["frieren"]);

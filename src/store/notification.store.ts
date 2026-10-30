@@ -1,16 +1,16 @@
 import { systemApi } from "@/api/system.api";
-import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Persistor } from "@/types/persist";
-import type { Cell } from "@/types/signal";
+import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import type { Persistor } from "@/types/core/persist";
+import type { Cell } from "@/types/core/signal";
 import { settingsAtoms } from "@/store/settings.store";
-import { attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import type {
   DismissedEntry,
   NotificationAddOptions,
   NotificationItem,
   NotificationTarget,
   NotificationType,
-} from "@/types/notification";
+} from "@/types/core/notification";
 
 export const NOTIFICATION_SCHEMA_VERSION = 1;
 

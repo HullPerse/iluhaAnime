@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { ConfirmDialogProps } from "@/types/ui";
+import type { ConfirmDialogProps } from "@/types/core/ui";
 
-import Modal from "./modal.component";
+import Modal from "@/components/shared/modal.component";
 
 function ConfirmDialog({
   open,

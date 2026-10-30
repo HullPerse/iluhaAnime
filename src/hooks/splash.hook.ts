@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { scheduleTask, sleep } from "@/lib/shared.utils";
-import type { ScheduledTask, SleepTask } from "@/types/shared";
-import { detectMigrations } from "@/lib/migrations.utils";
+import { scheduleTask, sleep } from "@/lib/core/shared.utils";
+import type { ScheduledTask, SleepTask } from "@/types/core/shared";
+import { detectMigrations } from "@/lib/core/migrations.utils";
 import {
   awaitCacheReady,
   awaitSignal,
@@ -11,16 +11,16 @@ import {
   isSpellingReady,
   onIndexReady,
   onSpellingReady,
-} from "@/lib/signals.utils";
-import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import type { DatabaseStatus } from "@/types/db";
+} from "@/lib/core/signals.utils";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import type { DatabaseStatus } from "@/types/core/db";
 import type {
   DbCheckResult,
   SplashOptions,
   SplashStage,
   SplashStageId,
   SplashStageStatus,
-} from "@/types/splash";
+} from "@/types/core/splash";
 
 const DEFAULT_MIN_MS = 600;
 const DEFAULT_STAGE_TIMEOUT_MS = 8000;

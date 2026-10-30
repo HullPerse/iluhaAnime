@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isExtraFile } from "@/lib/extra.utils";
+import { isExtraFile } from "@/lib/core/extra.utils";
 
 describe("isExtraFile", () => {
   it("matches upscaled and converted outputs", () => {

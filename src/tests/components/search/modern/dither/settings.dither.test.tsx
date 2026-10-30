@@ -1,4 +1,4 @@
-import { mockInvoke, mockDialogOpen as mockOpenDialog } from "../../../../mocks";
+import { mockInvoke, mockDialogOpen as mockOpenDialog } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DitherSettings from "@/routes/components/search/modern/dither/settings.dither";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { UserImageFile } from "@/types/userimage";
+import type { UserImageFile } from "@/types/core/userimage";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -75,7 +75,7 @@ const FOURTH: UserImageFile = {
   createdAt: 1,
 };
 
-function serveLibrary(rows: UserImageFile[]) {
+const serveLibrary = (rows: UserImageFile[]) => {
   const metas = rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -90,23 +90,23 @@ function serveLibrary(rows: UserImageFile[]) {
       return (args?.ids ?? []).map((id) => byId.get(id)).filter((row) => row !== undefined);
     return null;
   };
-}
+};
 
-function renderPanel(onClose: () => void = vi.fn()) {
+const renderPanel = (onClose: () => void = vi.fn()) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <DitherSettings onClose={onClose} />
     </QueryClientProvider>
   );
-}
+};
 
-function errorMessages() {
+const errorMessages = () => {
   return notificationAtoms.items
     .get()
     .filter((item) => item.type === "error")
     .map((item) => item.message);
-}
+};
 
 afterEach(() => cleanup());
 

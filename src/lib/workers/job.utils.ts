@@ -1,10 +1,10 @@
-import { attemptSync } from "@/lib/attempt.utils";
+import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   JobRunner,
   JobRunnerOptions,
   WorkerJobEnvelope,
   WorkerJobResponse,
-} from "@/types/job";
+} from "@/types/core/job";
 
 export function createJobRunner<P, R>(options: JobRunnerOptions<P, R>): JobRunner<P> {
   const { createWorker, onResult, onError, runSync } = options;

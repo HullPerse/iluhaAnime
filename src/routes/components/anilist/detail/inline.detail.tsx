@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
-import type { ActivityDetailBundle } from "@/types/anilist";
+import type { ActivityDetailBundle } from "@/types/anilist/anilist";
 
 import { AnimeDetailShell } from "./shell.detail";
 

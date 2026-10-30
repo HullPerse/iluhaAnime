@@ -1,4 +1,5 @@
 import type { MpvTrack } from "@/types/player/videoPlayer";
+import type { DropdownOption } from "@/types/core/dropdown.tracks";
 
 import { languageName, normalizeLangCode } from "@/lib/core/language.utils";
 import type { TrackDisplay } from "@/types/torrent/tracks";
@@ -100,4 +101,15 @@ export function sortTracksByLanguage(tracks: MpvTrack[]): MpvTrack[] {
       return compared !== 0 ? compared : left.index - right.index;
     })
     .map((entry) => entry.track);
+}
+
+export function trackOptions(tracks: MpvTrack[]): DropdownOption[] {
+  return tracks.map((track) => {
+    const display = toTrackDisplay(track);
+    return {
+      value: String(track.id),
+      main: display.main,
+      hint: display.language || undefined,
+    };
+  });
 }

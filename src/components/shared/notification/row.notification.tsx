@@ -2,14 +2,21 @@ import { cn } from "cn";
 import { Check, Copy, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
-import { NOTIFICATION_TYPE_COLORS, NOTIFICATION_TYPE_ICONS } from "@/config/notifications.config";
-import { Debouncer } from "@/lib/debounce.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import { COPIED_FEEDBACK_MS, copyNotification, formatRelativeTime } from "@/lib/notification.utils";
-import type { NotificationRowProps } from "@/types/notification";
+import {
+  NOTIFICATION_TYPE_COLORS,
+  NOTIFICATION_TYPE_ICONS,
+} from "@/config/system/notifications.config";
+import { Debouncer } from "@/lib/core/debounce.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import {
+  COPIED_FEEDBACK_MS,
+  copyNotification,
+  formatRelativeTime,
+} from "@/lib/core/notification.utils";
+import type { NotificationRowProps } from "@/types/core/notification";
 
 export default function NotificationRow({
   item,

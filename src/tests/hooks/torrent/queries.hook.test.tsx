@@ -3,14 +3,14 @@ import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { useTorrentFilesMap } from "@/hooks/torrent/queries.hook";
-import type { TorrentFileInfo } from "@/types/torrent";
+import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 const TWO_IDS = [1, 2];
 const ONE_ID = [1];
 
-function torrentFile(name: string): TorrentFileInfo {
+const torrentFile = (name: string): TorrentFileInfo => {
   return {
     index: 0,
     name,
@@ -21,13 +21,13 @@ function torrentFile(name: string): TorrentFileInfo {
     priority: "normal",
     exists: true,
   };
-}
+};
 
-function wrapper(client: QueryClient) {
+const wrapper = (client: QueryClient) => {
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-}
+};
 
 afterEach(() => cleanup());
 

@@ -1,0 +1,31 @@
+import { cva } from "class-variance-authority";
+
+export const buttonVariants = cva(
+  "group/button windows95-active-border bg-primary text-text windows95-text disabled:border-t-muted disabled:border-l-muted disabled:border-b-win-highlight disabled:border-r-win-highlight focus-visible:outline-text inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-none outline-none select-none hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted disabled:pointer-events-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
+  {
+    defaultVariants: {
+      size: "default",
+      variant: "default",
+    },
+    variants: {
+      size: {
+        default:
+          "min-h-[var(--ui-control-height)] gap-1 px-1.5 has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1",
+
+        icon: "size-[var(--ui-icon-size)]",
+      },
+      variant: {
+        default: "",
+        destructive: "text-destructive active:bg-destructive active:text-white",
+        error: "bg-primary text-destructive active:bg-destructive active:text-white",
+        ghost:
+          "hover:bg-primary hover:border-b-muted hover:border-r-muted hover:border-t-win-highlight hover:border-l-win-highlight border-transparent bg-transparent",
+        link: "text-highlight hover:text-link-hover border-0 border-transparent bg-transparent p-0 underline hover:underline active:translate-x-0 active:translate-y-0",
+        outline:
+          "border-t-muted border-l-muted border-r-win-highlight border-b-win-highlight bg-field",
+        secondary: "bg-surface",
+        success: "bg-primary text-success active:bg-success active:text-white",
+      },
+    },
+  }
+);

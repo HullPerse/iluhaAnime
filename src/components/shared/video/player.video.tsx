@@ -14,7 +14,7 @@ import { VolumeGlyph } from "@/components/shared/video/controls/volumeGlyph.vide
 import { VolumeInitializer } from "@/components/shared/video/controls/volumeInitializer.video";
 import { Win95PlayerButton } from "@/components/shared/video/controls/win95PlayerButton.video";
 import NativeVideo from "@/components/shared/video/native.video";
-import type { VideoPlayerProps } from "@/types/media";
+import type { VideoPlayerProps } from "@/types/player/media";
 
 const { Player: VideoPlayerProvider } = createPlayer({
   features: videoFeatures,

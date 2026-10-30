@@ -1,15 +1,15 @@
 import { useRef } from "react";
 
 import { tmdbApi } from "@/api/tmdb.api";
-import { WIZARD_COVER_MAX } from "@/config/collectionDefaults.config";
+import { WIZARD_COVER_MAX } from "@/config/anilist/collectionDefaults.config";
 import type { useWizardSearch } from "@/hooks/collection/search.hook";
 import type { useWizardForm } from "@/hooks/collection/wizard.hook";
-import { mergeGenreTags } from "@/lib/wizard.utils";
+import { mergeGenreTags } from "@/lib/core/wizard.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { reportBackgroundError } from "@/lib/attempt.utils";
-import { showError } from "@/lib/notification.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { showError } from "@/lib/core/notification.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { WizardPickedMedia, WizardSearchResult } from "@/types/collection";
+import type { WizardPickedMedia, WizardSearchResult } from "@/types/anilist/collection";
 
 type WizardForm = ReturnType<typeof useWizardForm>;
 type WizardSearchState = ReturnType<typeof useWizardSearch>;

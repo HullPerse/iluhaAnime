@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
-import type { TabId } from "@/types/settings";
+import type { TabId } from "@/types/ui/settings";
 
 const ONLINE = Object.getOwnPropertyDescriptor(window.navigator, "onLine");
 

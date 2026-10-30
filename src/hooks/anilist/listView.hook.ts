@@ -1,8 +1,13 @@
 import { useMemo } from "react";
 
-import { filterEntries, sortEntries } from "@/lib/entries.utils";
-import { groupEntriesByList } from "@/lib/anilistGroup.utils";
-import type { AniListCollection, AniListGroup, AniListSort, AniUser } from "@/types/anilist";
+import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
+import { groupEntriesByList } from "@/lib/anilist/anilistGroup.utils";
+import type {
+  AniListCollection,
+  AniListGroup,
+  AniListSort,
+  AniUser,
+} from "@/types/anilist/anilist";
 
 export function useAnilistListView({
   lists,

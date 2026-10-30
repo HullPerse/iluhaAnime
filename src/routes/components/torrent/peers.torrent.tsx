@@ -4,30 +4,22 @@ import { useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { FlagIcon } from "@/components/shared/flag.component";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/keys.utils";
-import { attempt } from "@/lib/attempt.utils";
-import { formatBytes } from "@/lib/bytes.utils";
-import { buildTorrentLink } from "@/lib/deeplink.utils";
-import { showError } from "@/lib/notification.utils";
-import type { TorrentHash } from "@/types/types";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import { formatBytes } from "@/lib/core/bytes.utils";
+import { buildTorrentLink } from "@/lib/core/deeplink.utils";
+import { showError } from "@/lib/core/notification.utils";
+import type { TorrentHash } from "@/types/core/types";
 
-import { TorrentTrackersBlock } from "./sections/trackers.sections";
+import { TorrentTrackersBlock } from "@/routes/components/torrent/sections/trackers.sections";
 
-function splitAddr(addr: string): { host: string; port: string } {
-  const closingBracket = addr.lastIndexOf("]");
-  if (addr.startsWith("[") && closingBracket > 0) {
-    return { host: addr.slice(0, closingBracket + 1), port: addr.slice(closingBracket + 2) };
-  }
-  const at = addr.lastIndexOf(":");
-  if (at === -1) return { host: addr, port: "" };
-  return { host: addr.slice(0, at), port: addr.slice(at + 1) };
-}
+import { splitAddr } from "@/lib/torrent/peers.utils";
 
 export function TorrentPeersModal({
   id,

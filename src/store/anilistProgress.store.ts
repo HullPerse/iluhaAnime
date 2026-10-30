@@ -1,6 +1,6 @@
-import { createSignalStore } from "@/lib/signal.store";
-import type { Cell } from "@/types/signal";
-import type { AnilistProgressOverride } from "@/types/anilistProgress";
+import { createSignalStore } from "@/lib/core/signal.store";
+import type { Cell } from "@/types/core/signal";
+import type { AnilistProgressOverride } from "@/types/anilist/anilistProgress";
 
 const store = createSignalStore();
 const cells = new Map<number, Cell<AnilistProgressOverride | null>>();

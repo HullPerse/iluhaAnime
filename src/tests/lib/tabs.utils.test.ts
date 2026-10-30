@@ -6,7 +6,7 @@ import {
   isEnabledTabPath,
   resolveSecretTabAction,
   tabLabel,
-} from "@/lib/tabs.utils";
+} from "@/lib/ui/tabs.utils";
 import { patchSettings } from "@/store/settings.store";
 
 afterEach(() => {

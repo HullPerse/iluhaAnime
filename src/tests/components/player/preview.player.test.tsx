@@ -3,18 +3,19 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import type { UpscalePreviewController } from "@/types/upscalePreview";
-import { PreviewZoom, UpscalePreview } from "@/routes/components/player/preview.player";
+import type { UpscalePreviewController } from "@/types/core/upscalePreview";
+import { UpscalePreview } from "@/routes/components/player/preview/upscale.preview";
+import { PreviewZoom } from "@/routes/components/player/preview/zoom.preview";
 import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
 import { patchSettings } from "@/store/settings.store";
-import type { PreviewFrame } from "@/types/upscale";
+import type { PreviewFrame } from "@/types/core/upscale";
 
 const FRAME: PreviewFrame = {
   timestamp: 12.4,
@@ -28,7 +29,9 @@ const SECOND_FRAME: PreviewFrame = {
   after: "http://img2/after.png",
 };
 
-function controller(overrides: Partial<UpscalePreviewController> = {}): UpscalePreviewController {
+const controller = (
+  overrides: Partial<UpscalePreviewController> = {}
+): UpscalePreviewController => {
   return {
     frames: [FRAME],
     loading: false,
@@ -36,9 +39,9 @@ function controller(overrides: Partial<UpscalePreviewController> = {}): UpscaleP
     load: vi.fn(),
     ...overrides,
   };
-}
+};
 
-function mockPreviewInvoke(frames: PreviewFrame[]): void {
+const mockPreviewInvoke = (frames: PreviewFrame[]): void => {
   mockInvoke.mockImplementation((cmd: unknown) => {
     const responses: Record<string, unknown> = {
       check_ffprobe: true,
@@ -51,18 +54,18 @@ function mockPreviewInvoke(frames: PreviewFrame[]): void {
     };
     return Promise.resolve(responses[cmd as string] ?? null);
   });
-}
+};
 
-function renderUpscalePlayer() {
+const renderUpscalePlayer = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <UpscalePlayer filePath="D:/video/ep01.mkv" />
     </QueryClientProvider>
   );
-}
+};
 
-async function selectAnime4k(): Promise<void> {
+const selectAnime4k = async (): Promise<void> => {
   const upscaler = screen
     .getAllByRole("combobox")
     .find((element) => element.textContent?.includes("Lanczos"));
@@ -74,7 +77,7 @@ async function selectAnime4k(): Promise<void> {
   if (!active || active === listbox) throw new Error("upscaler option not highlighted");
   fireEvent.keyDown(active, { key: "Enter" });
   await waitFor(() => expect(upscaler.textContent).toContain("Anime4K"));
-}
+};
 
 afterEach(() => {
   cleanup();

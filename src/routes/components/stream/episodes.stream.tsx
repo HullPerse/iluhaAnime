@@ -1,89 +1,19 @@
 import { Check, RotateCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
+import { EPISODE_FILTER_THRESHOLD, EPISODE_ROW_KEYBINDS } from "@/config/player/episodes.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useStreamCover } from "@/hooks/remoteImage.hook";
-import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
-import { formatResume, isEpisodeWatched } from "@/lib/history.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { StreamHistoryEntry, StreamingEpisode } from "@/types/stream";
+import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
+import { formatResume, isEpisodeWatched } from "@/lib/core/history.utils";
+import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import type { PreviewAnchor, RowKeyAction } from "@/types/player/episodes.stream";
+import type { StreamHistoryEntry, StreamingEpisode } from "@/types/player/stream";
 
-import { StreamInlineLoading } from "./states.stream";
-import type { PreviewAnchor } from "@/types/episodes.stream";
-
-/** Above this many episodes the list gets a filter field. */
-const FILTER_THRESHOLD = 24;
-
-type RowKeyAction = "row-up" | "row-down";
-
-/**
- * The season walks like the player's file tree: one row is a Tab stop, the
- * arrows and j/k move it, Enter opens the focused row (the row's own key
- * handler). Only two actions need a binding; the vertical pair is the whole
- * list.
- */
-const ROW_KEYBINDS: ResolvedHotkeyDef<RowKeyAction>[] = [
-  { id: "row-up", chord: "ArrowUp", repeat: "hold", keybindId: "tree.move.up" },
-  { id: "row-down", chord: "ArrowDown", repeat: "hold", keybindId: "tree.move.down" },
-  { id: "row-up", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
-  { id: "row-down", chord: "KeyJ", repeat: "hold", keybindId: "tree.move.down" },
-];
-
-function airDateLabel(value: string | undefined): string {
-  if (!value) return "";
-  return value.slice(0, 10);
-}
-
-const PREVIEW_WIDTH = 176;
-const PREVIEW_HEIGHT = 112;
-const PREVIEW_GAP = 8;
-
-/**
- * Where the preview goes for a hovered row: always to the left of it, since
- * the episode list is the right column of the modal and the art belongs over
- * the content beside it. It is lifted by half its height so it centres on the
- * row rather than hanging below it, and both edges stay inside the window.
- */
-export function previewPosition(
-  rect: PreviewAnchor["rect"],
-  viewport: { width: number; height: number }
-): { left: number; top: number } {
-  const left = Math.max(PREVIEW_GAP, rect.left - PREVIEW_WIDTH - PREVIEW_GAP);
-  const maxTop = Math.max(PREVIEW_GAP, viewport.height - PREVIEW_HEIGHT - PREVIEW_GAP);
-  const rowCenter = (rect.top + rect.bottom) / 2;
-  const top = Math.min(Math.max(PREVIEW_GAP, rowCenter - PREVIEW_HEIGHT / 2), maxTop);
-  return { left, top };
-}
-
-/**
- * The preview of the hovered row. It is portalled to the body because the
- * modal and its panels animate with transforms, and a fixed child of a
- * transformed ancestor is positioned against that ancestor rather than the
- * window, which is what put the popup in the wrong place.
- */
-function EpisodePreview({ anchor }: { anchor: PreviewAnchor }) {
-  const src = useStreamCover(anchor.url);
-  if (!src || typeof document === "undefined") return null;
-  const position = previewPosition(anchor.rect, {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-  return createPortal(
-    <div
-      data-testid="episode-preview"
-      className="windows95-active-border bg-primary pointer-events-none fixed z-50 p-0.5"
-      style={position}
-    >
-      <img src={src} alt="" className="block h-24 w-44 object-cover" />
-    </div>,
-    document.body
-  );
-}
+import { EpisodePreview } from "@/routes/components/stream/episodes/preview.episodes";
+import { StreamInlineLoading } from "@/routes/components/stream/states/inlineLoading.states";
 
 /**
  * Episodes as dense rows, not a grid of buttons: a 220 episode season has to
@@ -140,7 +70,7 @@ export default function StreamEpisodes({
     rows?.[next]?.focus();
   };
 
-  useResolvedHotkeys<RowKeyAction>(ROW_KEYBINDS, {
+  useResolvedHotkeys<RowKeyAction>(EPISODE_ROW_KEYBINDS, {
     // The season filter lives inside this panel: typing "j" there must not
     // move the ring.
     ignore: (event) =>
@@ -167,7 +97,7 @@ export default function StreamEpisodes({
         <span className="text-title-text/75 font-normal">
           {t("stream.episodes.count", { count: episodes.length })}
         </span>
-        {episodes.length > FILTER_THRESHOLD ? (
+        {episodes.length > EPISODE_FILTER_THRESHOLD ? (
           <div className="ml-auto flex items-center gap-1">
             <Input
               value={filter}
@@ -208,7 +138,7 @@ export default function StreamEpisodes({
         ) : (
           visible.map((episode, index) => {
             const selected = episode.id === selectedId;
-            const date = airDateLabel(episode.airDate);
+            const date = episode.airDate?.slice(0, 10) ?? "";
             const preview = previews?.get(episode.number);
             const entry = history?.get(episode.id);
             const watched = isEpisodeWatched(entry);

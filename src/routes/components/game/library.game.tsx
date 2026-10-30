@@ -2,13 +2,13 @@ import { cn } from "cn";
 import { Gamepad2, Play, Store, Trash2, Upload } from "lucide-react";
 import type { KeyboardEvent } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
-import { GAME_PLATFORM_LABELS } from "@/config/platforms.config";
+import { GAME_PLATFORM_LABELS } from "@/config/system/platforms.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { sizeInKb } from "@/lib/gameFormat.utils";
-import { moveIndex } from "@/lib/keyboard.utils";
-import type { GameLibraryProps } from "@/types/library.game";
+import { sizeInKb } from "@/lib/core/gameFormat.utils";
+import { moveIndex } from "@/lib/ui/keyboard.utils";
+import type { GameLibraryProps } from "@/types/core/library.game";
 
 export default function GameLibrary({
   roms,

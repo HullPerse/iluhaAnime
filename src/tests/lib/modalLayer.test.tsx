@@ -2,13 +2,13 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Modal from "@/components/shared/modal.component";
-import { createVimEngine } from "@/lib/engineHotkeys.utils";
-import type { VimEngine } from "@/types/engineHotkeys";
-import { scanHintTargets } from "@/lib/hintsHotkeys.utils";
-import { isInsideLayer, topLayerElement } from "@/lib/layerHotkeys.utils";
+import { createVimEngine } from "@/lib/core/engineHotkeys.utils";
+import type { VimEngine } from "@/types/core/engineHotkeys";
+import { scanHintTargets } from "@/lib/core/hintsHotkeys.utils";
+import { isInsideLayer, topLayerElement } from "@/lib/core/layerHotkeys.utils";
 import { patchSettings } from "@/store/settings.store";
 
-function box(node: HTMLElement): HTMLElement {
+const box = (node: HTMLElement): HTMLElement => {
   node.getBoundingClientRect = () =>
     ({
       top: 10,
@@ -22,7 +22,7 @@ function box(node: HTMLElement): HTMLElement {
       toJSON: () => ({}),
     }) as DOMRect;
   return node;
-}
+};
 
 const engines: VimEngine[] = [];
 
@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe("modal-scoped hints", () => {
-  function openModal(): { dialog: HTMLElement; inside: HTMLElement; behind: HTMLElement } {
+  const openModal = (): { dialog: HTMLElement; inside: HTMLElement; behind: HTMLElement } => {
     patchSettings({ language: "en", modalAnimation: false });
     const behind = box(document.createElement("button"));
     document.body.append(behind);
@@ -46,7 +46,7 @@ describe("modal-scoped hints", () => {
     box(dialog);
     const inside = box(screen.getByRole("button", { name: "ok" }));
     return { dialog, inside, behind };
-  }
+  };
 
   it("treats the open dialog as the top layer", () => {
     const { dialog } = openModal();

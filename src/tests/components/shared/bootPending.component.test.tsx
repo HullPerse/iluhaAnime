@@ -7,9 +7,9 @@ afterEach(() => {
   cleanup();
 });
 
-function stored(fastLaunch: unknown): string {
+const stored = (fastLaunch: unknown): string => {
   return JSON.stringify({ f: 1, store: "settings", sv: 45, ts: 1, data: { fastLaunch } });
-}
+};
 
 describe("BootPending", () => {
   it("reads the persisted fast-launch flag", () => {

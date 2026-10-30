@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ModernControls from "@/routes/components/player/modern/controls.modern";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
-import type { MpvTrack } from "@/types/videoPlayer";
+import type { MpvTrack } from "@/types/player/videoPlayer";
 
-function subTrack(id: number): MpvTrack {
+const subTrack = (id: number): MpvTrack => {
   return { id, type: "sub", lang: "rus", codec: "srt", selected: id === 1 };
-}
+};
 
-function props(overrides: Record<string, unknown> = {}) {
+const props = (overrides: Record<string, unknown> = {}) => {
   return {
     paused: true,
     duration: 1421,
@@ -49,7 +49,7 @@ function props(overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   };
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en" });

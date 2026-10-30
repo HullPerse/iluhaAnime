@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CHANGELOG } from "@/config/changelog.config";
+import { CHANGELOG } from "@/config/system/changelog.config";
 import en from "@/lib/locale/en";
 import { translate } from "@/lib/locale/i18n.utils";
 import ru from "@/lib/locale/ru";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
-import type { TranslationKey } from "@/types/i18n";
+import type { TranslationKey } from "@/types/core/i18n";
 
 describe("locale/dictionaries", () => {
   const PLURAL_SUFFIX = /\.(zero|one|two|few|many|other|past|future)$/;

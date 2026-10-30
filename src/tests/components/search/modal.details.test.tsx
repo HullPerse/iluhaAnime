@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mockInvoke } from "../../mocks";
+import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
@@ -30,7 +30,7 @@ vi.mock("@/hooks/search/cover.hook", () => ({
 import { torrentApi } from "@/api/torrent.api";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import { patchSettings } from "@/store/settings.store";
-import type { Anime, TorrentDetails } from "@/types/torrent";
+import type { Anime, TorrentDetails } from "@/types/torrent/torrent";
 
 const DESC_ONE = "https://cdn.example.com/desc-1.jpg";
 const DESC_TWO = "https://cdn.example.com/desc-2.jpg";
@@ -68,7 +68,7 @@ const DETAILS: TorrentDetails = {
   notice: null,
 };
 
-function item(): Anime {
+const item = (): Anime => {
   return {
     title: "Show",
     magnet: "magnet:?xt=1",
@@ -79,9 +79,9 @@ function item(): Anime {
     category: "Anime",
     link: "https://example.com/torrent/1",
   };
-}
+};
 
-function renderDetails() {
+const renderDetails = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
@@ -97,13 +97,13 @@ function renderDetails() {
       />
     </QueryClientProvider>
   );
-}
+};
 
-function imageAt(src: string): HTMLImageElement | null {
+const imageAt = (src: string): HTMLImageElement | null => {
   return document.querySelector<HTMLImageElement>(`img[src="${src}"]`);
-}
+};
 
-async function openImage(user: ReturnType<typeof userEvent.setup>, src: string) {
+const openImage = async (user: ReturnType<typeof userEvent.setup>, src: string) => {
   const img = await waitFor(() => {
     const found = imageAt(src);
     if (!found) throw new Error(`image not rendered: ${src}`);
@@ -112,7 +112,7 @@ async function openImage(user: ReturnType<typeof userEvent.setup>, src: string) 
   const button = img.closest("button");
   if (!button) throw new Error(`image is not zoomable: ${src}`);
   await user.click(button);
-}
+};
 
 beforeEach(() => {
   patchSettings({ language: "en", modalAnimation: false });

@@ -1,18 +1,18 @@
 import type { ComponentType } from "react";
 
-import { resolveSplashVariant } from "@/config/screens.config";
-import { resolveFatalLocale, resolveSplashTexts } from "@/lib/fatalTexts.utils";
-import type { FatalVariant } from "@/types/fatal";
+import { resolveSplashVariant } from "@/config/settings/screens.config";
+import { resolveFatalLocale, resolveSplashTexts } from "@/lib/core/fatalTexts.utils";
+import type { FatalVariant } from "@/types/core/fatal";
 
-import { GenericSplash } from "./generic.splash";
-import { RetroismSplash } from "./retroism.splash";
-import type { SplashVariantProps } from "@/types/shared.splash";
-import { TerminalSplash } from "./terminal.splash";
-import { Win7Splash } from "./win7.splash";
-import { Win95Splash } from "./win95.splash";
-import { XpSplash } from "./xp.splash";
-import { YorhaSplash } from "./yorha.splash";
-import type { SplashScreenProps } from "@/types/screen.splash";
+import { GenericSplash } from "@/components/shared/splash/generic.splash";
+import { RetroismSplash } from "@/components/shared/splash/retroism.splash";
+import type { SplashVariantProps } from "@/types/core/shared.splash";
+import { TerminalSplash } from "@/components/shared/splash/terminal.splash";
+import { Win7Splash } from "@/components/shared/splash/win7.splash";
+import { Win95Splash } from "@/components/shared/splash/win95.splash";
+import { XpSplash } from "@/components/shared/splash/xp.splash";
+import { YorhaSplash } from "@/components/shared/splash/yorha.splash";
+import type { SplashScreenProps } from "@/types/core/screen.splash";
 
 const VARIANTS: Record<FatalVariant, ComponentType<SplashVariantProps>> = {
   win95: Win95Splash,

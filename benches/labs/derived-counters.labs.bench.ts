@@ -1,8 +1,8 @@
 import { bench, group } from '@pmndrs/labs';
 
-import { calculateCollectionStats } from '@/lib/collectionStats.utils';
-import { createSignalStore } from '@/lib/signal.store';
-import type { CollectionItem } from '../../src/types/collection';
+import { calculateCollectionStats } from '../../src/lib/anilist/collectionStats.utils';
+import { createSignalStore } from '../../src/lib/core/signal.store';
+import type { CollectionItem } from '../../src/types/anilist/collection';
 
 function mulberry32(seed: number): () => number {
   let state = Math.trunc(seed);

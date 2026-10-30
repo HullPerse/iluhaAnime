@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-import { createInterval } from "@/lib/interval.utils";
-import { attempt } from "@/lib/attempt.utils";
-import type { PollingOptions } from "@/types/polling";
+import { createInterval } from "@/lib/core/interval.utils";
+import { attempt } from "@/lib/core/attempt.utils";
+import type { PollingOptions } from "@/types/core/polling";
 
 export type { PollingOptions };
 

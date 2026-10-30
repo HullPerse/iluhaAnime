@@ -1,12 +1,12 @@
 import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { searchFiltersToParams } from "@/lib/entries.utils";
-import { defaultAniListFilters } from "@/lib/anilistFilters.utils";
-import { queryKeys } from "@/lib/keys.utils";
-import { useCell } from "@/lib/signal.hook";
+import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
+import { queryKeys } from "@/lib/core/keys.utils";
+import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia } from "@/types/anilist/anilist";
 
 const INLINE_SEARCH_MIN_CHARS = 2;
 const INLINE_SEARCH_DEBOUNCE_MS = 250;

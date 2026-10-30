@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
-import type { PickerTorrent, TorrentInfo } from "@/types/torrent";
+import type { PickerTorrent, TorrentInfo } from "@/types/torrent/torrent";
 
 const TORRENT: PickerTorrent = {
   id: 1,
@@ -45,7 +45,7 @@ const TORRENT: PickerTorrent = {
   seeders: 5,
 };
 
-function renderPicker() {
+const renderPicker = () => {
   return render(
     <TorrentFilePicker
       torrent={TORRENT}
@@ -54,7 +54,7 @@ function renderPicker() {
       onCancel={vi.fn()}
     />
   );
-}
+};
 
 afterEach(cleanup);
 
@@ -87,7 +87,7 @@ describe("TorrentFilePicker files", () => {
 describe("TorrentFilePicker duplicate guard", () => {
   const HASH = "0123456789abcdef0123456789abcdef01234567";
 
-  function existing(): TorrentInfo[] {
+  const existing = (): TorrentInfo[] => {
     return [
       {
         download_order: [],
@@ -114,9 +114,9 @@ describe("TorrentFilePicker duplicate guard", () => {
         uploaded_bytes: 200,
       },
     ];
-  }
+  };
 
-  function renderDuplicate(magnet: string | undefined, list: TorrentInfo[]) {
+  const renderDuplicate = (magnet: string | undefined, list: TorrentInfo[]) => {
     return render(
       <TorrentFilePicker
         torrent={{ ...TORRENT, magnet }}
@@ -126,7 +126,7 @@ describe("TorrentFilePicker duplicate guard", () => {
         onCancel={vi.fn()}
       />
     );
-  }
+  };
 
   it("blocks the download when the magnet hash is already registered", () => {
     renderDuplicate(`magnet:?xt=urn:btih:${HASH}`, existing());

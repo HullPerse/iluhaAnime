@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AnilistScoreFormat } from "@/types/anilistScore";
-import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
+import type { QuickAddListEntry, QuickAddMedia } from "@/types/anilist/collection";
 
-import QuickAddButton from "./quickadd.detail";
+import QuickAddButton from "@/routes/components/anilist/detail/quickadd.detail";
 
 export function DetailHeaderActions({
   isFavorite,

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { desiredFolderPlaylist, planLiveInserts, planLiveRemovals } from "@/lib/livePlaylist.utils";
+import {
+  desiredFolderPlaylist,
+  planLiveInserts,
+  planLiveRemovals,
+} from "@/lib/core/livePlaylist.utils";
 
 describe("planLiveInserts", () => {
   it("inserts a late download before its sorted successor", () => {

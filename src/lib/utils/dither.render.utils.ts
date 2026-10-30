@@ -345,13 +345,11 @@ function applyOrderedDither(
   const usePalette = palette.length > 0 && options.paletteMix > 0;
   const paletteMix = Math.max(0, Math.min(1, options.paletteMix));
   const linearPalette = usePalette
-    ? palette.map(
-        ([r, g, b]): [number, number, number] => [
-          srgbChannelToLinear(r),
-          srgbChannelToLinear(g),
-          srgbChannelToLinear(b),
-        ]
-      )
+    ? palette.map(([r, g, b]): [number, number, number] => [
+        srgbChannelToLinear(r),
+        srgbChannelToLinear(g),
+        srgbChannelToLinear(b),
+      ])
     : [];
   const shiftG = DITHER_CHANNEL_SHIFT[1] as readonly [number, number];
   const shiftB = DITHER_CHANNEL_SHIFT[2] as readonly [number, number];
@@ -530,7 +528,12 @@ function nearestRampIndex(value: number, ramp: readonly DitherRGB[]): number {
   return best;
 }
 
-function nearestPaletteIndex(r: number, g: number, b: number, palette: readonly DitherRGB[]): number {
+function nearestPaletteIndex(
+  r: number,
+  g: number,
+  b: number,
+  palette: readonly DitherRGB[]
+): number {
   let best = 0;
   let bestDistance = Infinity;
   for (let i = 0; i < palette.length; i++) {
@@ -630,7 +633,9 @@ export function applyGlyphOverlay(
   const pad = Math.min(DITHER_GLYPH_PAD, cell >> 1);
   const inner = Math.max(1, cell - pad * 2);
   const ink =
-    options.palette.length > 0 ? lightestPaletteColor(options.palette) : ([255, 255, 255] as DitherRGB);
+    options.palette.length > 0
+      ? lightestPaletteColor(options.palette)
+      : ([255, 255, 255] as DitherRGB);
   const cols = Math.ceil(width / cell);
   const rows = Math.ceil(height / cell);
   for (let cy = 0; cy < rows; cy++) {
@@ -694,8 +699,17 @@ function applyHalftonePass(
   const amount = Math.max(0, Math.min(1, options.halftone));
   if (amount <= 0 || options.dotSize <= 0) return image;
   const paper =
-    options.palette.length > 0 ? lightestPaletteColor(options.palette) : ([255, 255, 255] as DitherRGB);
-  const dotted = applyHalftoneDots(image, width, height, options.dotSize, options.dotSoftness, paper);
+    options.palette.length > 0
+      ? lightestPaletteColor(options.palette)
+      : ([255, 255, 255] as DitherRGB);
+  const dotted = applyHalftoneDots(
+    image,
+    width,
+    height,
+    options.dotSize,
+    options.dotSoftness,
+    paper
+  );
   if (amount >= 1) return dotted;
   for (let i = 0; i < image.length; i++) dotted[i] = lerp(image[i], dotted[i], amount);
   return dotted;

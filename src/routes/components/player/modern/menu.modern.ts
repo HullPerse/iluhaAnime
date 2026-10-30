@@ -203,9 +203,7 @@ function streamVariantEntries(
   actions: ModernMenuActions
 ): ContextMenuEntry[] {
   const id = `stream-${kind}`;
-  const list = menu.variants.filter(
-    (variant) => isSubtitleVariant(variant) === (kind === "sub")
-  );
+  const list = menu.variants.filter((variant) => isSubtitleVariant(variant) === (kind === "sub"));
   if (menu.variantsLoading) {
     return [disabledEntry(`${id}-loading`, "player.stream.menu.loading")];
   }

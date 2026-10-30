@@ -139,11 +139,7 @@ export default function AnimelibSettings() {
               >
                 {t("settings.animelib.token.save")}
               </Button>
-              <Button
-                className="h-6 px-2 text-xs"
-                onClick={clear}
-                disabled={!hasToken}
-              >
+              <Button className="h-6 px-2 text-xs" onClick={clear} disabled={!hasToken}>
                 {t("settings.animelib.token.clear")}
               </Button>
               <span className="windows95-text text-hint text-xs">

@@ -44,7 +44,10 @@ function renderColumns({
       data={DATA}
       ariaLabel="Watched by year"
       formatValue={String}
-      tooltip={(datum) => ({ title: datum.label, rows: [{ label: "Titles", value: String(datum.value) }] })}
+      tooltip={(datum) => ({
+        title: datum.label,
+        rows: [{ label: "Titles", value: String(datum.value) }],
+      })}
       onActivate={onActivate}
       reference={withReference ? { value: 1.5, label: "mean" } : undefined}
       band={withReference ? { from: 0.5, to: 2.5 } : undefined}

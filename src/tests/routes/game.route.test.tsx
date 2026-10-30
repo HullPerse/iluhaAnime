@@ -102,9 +102,7 @@ describe("game route", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
-    await waitFor(() =>
-      expect(mockInvoke).toHaveBeenCalledWith("game_rom_delete", { id: "sha1" })
-    );
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("game_rom_delete", { id: "sha1" }));
   });
 
   it("opens the ROM store from the library header", async () => {
@@ -113,9 +111,7 @@ describe("game route", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Store" }));
 
-    await waitFor(() =>
-      expect(mockInvoke).toHaveBeenCalledWith("game_store_list", undefined)
-    );
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("game_store_list", undefined));
     expect(screen.getByText("ROM store")).toBeTruthy();
     await waitFor(() => expect(screen.getByText("Nothing found.")).toBeTruthy());
   });

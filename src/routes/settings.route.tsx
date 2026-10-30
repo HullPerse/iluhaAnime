@@ -63,10 +63,10 @@ export default function SettingsRoute() {
   useEffect(() => {
     if (!animateTabSwitch || tabContentRef.current === null) return;
     if (prevTabRef.current !== null && prevTabRef.current !== activeTab) {
-      tabContentRef.current.animate(
-        [{ opacity: 0 }, { opacity: 1 }],
-        { duration: 150, easing: "ease-out" }
-      );
+      tabContentRef.current.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 150,
+        easing: "ease-out",
+      });
     }
     prevTabRef.current = activeTab;
   }, [activeTab, animateTabSwitch]);
@@ -210,7 +210,9 @@ export default function SettingsRoute() {
             inputRef={findInputRef}
           />
         </div>
-        <div hidden={findOpen} ref={tabContentRef}>{components[activeTab]}</div>
+        <div hidden={findOpen} ref={tabContentRef}>
+          {components[activeTab]}
+        </div>
         {findOpen && (
           <FindResults
             hits={findHits}

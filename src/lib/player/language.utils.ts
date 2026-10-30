@@ -77,9 +77,7 @@ export function languageName(code: string | undefined): string {
   } else {
     const [name] = attemptSync(() => names.of(normalized));
     resolved =
-      !name || name.toLowerCase() === normalized.toLowerCase()
-        ? normalized.toUpperCase()
-        : name;
+      !name || name.toLowerCase() === normalized.toLowerCase() ? normalized.toUpperCase() : name;
   }
   nameCache.set(normalized, resolved);
   return resolved;

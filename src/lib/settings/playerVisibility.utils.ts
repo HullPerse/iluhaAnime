@@ -8,16 +8,12 @@ export class PlayerVisibilityService {
     this.atoms = atoms;
   }
 
-
   hidePlayerFolder(path: string): void {
     const cell = this.atoms.hiddenPlayerFolders;
     const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
     const exists = cell
       .get()
-      .some(
-        (value) =>
-          value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() === normalized
-      );
+      .some((value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() === normalized);
     if (!exists) cell.set([...cell.get(), path]);
   }
 
@@ -25,10 +21,11 @@ export class PlayerVisibilityService {
     const cell = this.atoms.hiddenPlayerFolders;
     const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
     cell.set(
-      cell.get().filter(
-        (value) =>
-          value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() !== normalized
-      )
+      cell
+        .get()
+        .filter(
+          (value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() !== normalized
+        )
     );
   }
 

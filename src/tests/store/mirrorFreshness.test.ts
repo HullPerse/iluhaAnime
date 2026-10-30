@@ -1,7 +1,6 @@
 import { mockInvoke } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,

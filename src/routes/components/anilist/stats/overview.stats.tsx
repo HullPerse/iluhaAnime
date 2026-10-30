@@ -66,7 +66,10 @@ function KpiStrip({
         {model.kpi.completionRate == null ? (
           "-"
         ) : (
-          <AnimatedNumber value={model.kpi.completionRate} format={(v) => formatPercent(v, locale)} />
+          <AnimatedNumber
+            value={model.kpi.completionRate}
+            format={(v) => formatPercent(v, locale)}
+          />
         )}
       </Kpi>
     </div>
@@ -178,7 +181,10 @@ function FormatsCard({
         onActivate={(index) => {
           const row = model.formats[index];
           if (row) {
-            onDrill({ title: `${t("anilist.stats.formats")} (${row.mediaIds.length})`, ids: row.mediaIds });
+            onDrill({
+              title: `${t("anilist.stats.formats")} (${row.mediaIds.length})`,
+              ids: row.mediaIds,
+            });
           }
         }}
         emptyLabel={t("anilist.stats.drill.empty")}
@@ -347,7 +353,8 @@ export function StatsOverview({
   onDrill: (data: StatsDrillData) => void;
 }) {
   const { t, locale } = useI18n();
-  const { statistics, isLoading, isFetching, error, updatedAt, retry } = useAnilistStatistics(userId);
+  const { statistics, isLoading, isFetching, error, updatedAt, retry } =
+    useAnilistStatistics(userId);
   const model = useMemo(
     () => (statistics == null ? null : buildStatsOverview({ statistics, lists, scoreFormat })),
     [statistics, lists, scoreFormat]
@@ -357,7 +364,9 @@ export function StatsOverview({
     return (
       <StatsCard title={t("anilist.stats.title")}>
         <div className="flex h-40 items-center justify-center gap-2">
-          <span className="text-hint windows95-font text-xs">{error ?? t("anilist.stats.error")}</span>
+          <span className="text-hint windows95-font text-xs">
+            {error ?? t("anilist.stats.error")}
+          </span>
           {userId != null && (
             <Button className="h-5 text-xs" disabled={isFetching} onClick={retry}>
               {t("anilist.stats.refresh")}
@@ -383,7 +392,9 @@ export function StatsOverview({
       <div className="flex items-center justify-between gap-2 px-1">
         <span className="text-hint windows95-font min-w-0 truncate text-xs">
           {updatedAt > 0
-            ? t("anilist.stats.updated", { time: formatDistanceToNowOwn(new Date(updatedAt), locale) })
+            ? t("anilist.stats.updated", {
+                time: formatDistanceToNowOwn(new Date(updatedAt), locale),
+              })
             : null}
         </span>
         <Button className="h-5 text-xs" disabled={isFetching} onClick={retry}>

@@ -48,10 +48,9 @@ beforeEach(() => {
 
 describe("InlineDetail single slot", () => {
   it("renders the loading detail in exactly one dialog with a back button", async () => {
-    render(
-      <InlineDetail initialId={21} detail={DETAIL} onBack={vi.fn()} onClose={vi.fn()} />,
-      { wrapper }
-    );
+    render(<InlineDetail initialId={21} detail={DETAIL} onBack={vi.fn()} onClose={vi.fn()} />, {
+      wrapper,
+    });
     expect(await screen.findByText("Loading...")).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Back" })).toBeDefined();

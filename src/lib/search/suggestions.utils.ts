@@ -508,10 +508,7 @@ function suggestionFallbackQuery(query: string): string | null {
   return normalized && normalized !== original ? normalized : null;
 }
 
-function collectSuggestions(
-  query: string,
-  options: SearchSuggestionOptions
-): SearchSuggestion[] {
+function collectSuggestions(query: string, options: SearchSuggestionOptions): SearchSuggestion[] {
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return [];
   const terms = parseOperatorTerms(query);

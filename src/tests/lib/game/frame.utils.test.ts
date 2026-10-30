@@ -162,9 +162,7 @@ describe("countLitPixels", () => {
   it("counts set pixels for one-bit and XO frames alike", () => {
     expect(countLitPixels(decodeGameFrame(response(0, [0b10000001, 0b00000011])))).toBe(4);
     expect(
-      countLitPixels(
-        decodeGameFrame(response(FRAME_FLAG_XO, [0b01_10_11_00], LOW_XO_FRAME_BYTES))
-      )
+      countLitPixels(decodeGameFrame(response(FRAME_FLAG_XO, [0b01_10_11_00], LOW_XO_FRAME_BYTES)))
     ).toBe(3);
   });
 });

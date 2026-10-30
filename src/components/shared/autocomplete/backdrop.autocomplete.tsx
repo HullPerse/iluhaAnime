@@ -28,7 +28,11 @@ const HighlightTokenSpan = memo(({ text, highlighted, kind }: HighlightToken) =>
   );
 });
 
-function tokenKey(segment: HighlightToken, index: number, seen: Map<string, number>): string | number {
+function tokenKey(
+  segment: HighlightToken,
+  index: number,
+  seen: Map<string, number>
+): string | number {
   if (!segment.highlighted) return index;
   const base = `spell:${segment.kind ?? "match"}:${segment.text}`;
   const count = seen.get(base) ?? 0;

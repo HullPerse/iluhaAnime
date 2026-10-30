@@ -84,7 +84,9 @@ describe("PlayerBottomBar", () => {
 
   it("hides the default track selects when asked", () => {
     const audio = { id: 1, type: "audio", lang: "rus", codec: "aac" } as const;
-    const shown = render(<PlayerBottomBar {...props("default")} hideTracks={false} tracks={[audio]} />);
+    const shown = render(
+      <PlayerBottomBar {...props("default")} hideTracks={false} tracks={[audio]} />
+    );
     expect(screen.getByRole("button", { name: "Audio:" })).toBeTruthy();
     shown.unmount();
     render(<PlayerBottomBar {...props("default")} hideTracks tracks={[audio]} />);

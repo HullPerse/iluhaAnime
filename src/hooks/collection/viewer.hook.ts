@@ -16,11 +16,7 @@ export function useViewerMedia(
   );
   const data = media.data;
   const pending = media.isLoading || anilistTrailer.isLoading;
-  const trailer =
-    stored.trailerYoutubeId ??
-    data?.trailerYoutubeId ??
-    anilistTrailer.data ??
-    null;
+  const trailer = stored.trailerYoutubeId ?? data?.trailerYoutubeId ?? anilistTrailer.data ?? null;
   const stills =
     stored.stills.length > 0 ? stored.stills : (data?.backdrops ?? []).map((b) => b.url);
   return { stills, trailer, pending };

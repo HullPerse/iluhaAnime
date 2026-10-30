@@ -173,7 +173,11 @@ function isCovered(element: HTMLElement, rect: DOMRect, sticky: readonly DOMRect
     return false;
   }
   const nearSticky = sticky.some(
-    (box) => rect.top < box.bottom && box.top < rect.bottom && rect.left < box.right && box.left < rect.right
+    (box) =>
+      rect.top < box.bottom &&
+      box.top < rect.bottom &&
+      rect.left < box.right &&
+      box.left < rect.right
   );
   if (!nearSticky) return false;
   const hit = hitTest.call(document, rect.left + rect.width / 2, rect.top + rect.height / 2);
@@ -240,7 +244,8 @@ export function scanHintTargets(
       return 1;
     };
     collected.sort(
-      (a, b) => rank(a.element) - rank(b.element) || a.rect.top - b.rect.top || a.rect.left - b.rect.left
+      (a, b) =>
+        rank(a.element) - rank(b.element) || a.rect.top - b.rect.top || a.rect.left - b.rect.left
     );
   }
 

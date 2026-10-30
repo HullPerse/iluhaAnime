@@ -19,7 +19,8 @@ export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: 
           setDownloadInput(String(Math.round(limits.downloadBps / 1024)));
         if (limits.uploadBps !== null) setUploadInput(String(Math.round(limits.uploadBps / 1024)));
         return null;
-      }).catch(() => {});
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

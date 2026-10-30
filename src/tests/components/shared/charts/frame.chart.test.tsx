@@ -30,7 +30,15 @@ describe("ChartFrame", () => {
   it("measures the container and hands the plot to its children", async () => {
     render(
       <ChartFrame height={120} ariaLabel="Chart frame" margin={{ left: 20, right: 10 }}>
-        {(plot) => <rect data-testid="mark" x={plot.left} y={plot.top} width={plot.width} height={plot.height} />}
+        {(plot) => (
+          <rect
+            data-testid="mark"
+            x={plot.left}
+            y={plot.top}
+            width={plot.width}
+            height={plot.height}
+          />
+        )}
       </ChartFrame>
     );
 

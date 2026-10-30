@@ -82,9 +82,7 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
   const rawEntries: unknown = persisted
     ? (persisted.data as { entries?: unknown }).entries
     : undefined;
-  const initial: MediaEntry[] = Array.isArray(rawEntries)
-    ? (rawEntries as MediaEntry[])
-    : [];
+  const initial: MediaEntry[] = Array.isArray(rawEntries) ? (rawEntries as MediaEntry[]) : [];
   const mirror: Record<string, unknown> = { entries: initial };
   const raw = store.atom("entries", initial);
   const entries: Cell<MediaEntry[]> = {

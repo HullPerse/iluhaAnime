@@ -145,10 +145,7 @@ export function mergeRanges(
   return mergeSortedRanges(sorted);
 }
 
-function clipSingleRange(
-  r: HighlightRange,
-  valueLength: number
-): HighlightRange[] {
+function clipSingleRange(r: HighlightRange, valueLength: number): HighlightRange[] {
   if (r.start >= r.end || r.start >= valueLength) return [];
   const start = r.start < 0 ? 0 : r.start;
   const end = r.end > valueLength ? valueLength : r.end;
@@ -162,8 +159,7 @@ function clipRanges(
   priority: Record<string, number>
 ): ClippedRange[] {
   const clipped: ClippedRange[] = [];
-  const rank = (kind: HighlightRange["kind"]): number =>
-    priority[kind ?? "match"] ?? 0;
+  const rank = (kind: HighlightRange["kind"]): number => priority[kind ?? "match"] ?? 0;
   for (const r of ranges) {
     if (r.start >= r.end || r.start >= valueLength) continue;
     const start = r.start < 0 ? 0 : r.start;

@@ -116,7 +116,9 @@ function byCountThenName<T extends { count: number }>(
   right: T,
   name: (row: T) => string
 ): number {
-  return right.count === left.count ? name(left).localeCompare(name(right)) : right.count - left.count;
+  return right.count === left.count
+    ? name(left).localeCompare(name(right))
+    : right.count - left.count;
 }
 
 function scoreWidth(format: AnilistScoreFormat): number {
@@ -288,15 +290,10 @@ export function buildMediaRows(
   mediaIds: readonly number[],
   lists: AniListCollection[]
 ): StatsMediaRow[] {
-  if (
-    cachedMediaRows?.mediaIds === mediaIds &&
-    cachedMediaRows?.lists === lists
-  ) {
+  if (cachedMediaRows?.mediaIds === mediaIds && cachedMediaRows?.lists === lists) {
     return cachedMediaRows.result;
   }
-  const byId = new Map(
-    collectAllEntries(lists).map((entry) => [entry.media.id, entry])
-  );
+  const byId = new Map(collectAllEntries(lists).map((entry) => [entry.media.id, entry]));
   const seen = new Set<number>();
   const rows: StatsMediaRow[] = [];
   for (const id of mediaIds) {

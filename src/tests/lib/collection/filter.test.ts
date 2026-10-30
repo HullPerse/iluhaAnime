@@ -40,10 +40,20 @@ function legacyIds(query: string): string[] {
     operatorTextLength(trimmed) < 3
       ? ITEMS
       : searchCollectionIndex(buildCollectionSearchIndex(ITEMS), trimmed);
-  return filterCollectionItems(ITEMS, searchResults, "all", query, DEFAULT_FILTERS, "date", "desc", [], {
-    intentEnabled: true,
-    tagTolerances: DEFAULT_TAG_TOLERANCES,
-  }).map((entry) => entry.id);
+  return filterCollectionItems(
+    ITEMS,
+    searchResults,
+    "all",
+    query,
+    DEFAULT_FILTERS,
+    "date",
+    "desc",
+    [],
+    {
+      intentEnabled: true,
+      tagTolerances: DEFAULT_TAG_TOLERANCES,
+    }
+  ).map((entry) => entry.id);
 }
 
 function workerIds(query: string): string[] {

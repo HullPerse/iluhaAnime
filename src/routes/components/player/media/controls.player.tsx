@@ -1,13 +1,5 @@
 import { cn } from "cn";
-import {
-  ChevronsLeft,
-  ChevronsRight,
-  ListVideo,
-  Pause,
-  Play,
-  Square,
-  SquareX,
-} from "lucide-react";
+import { ChevronsLeft, ChevronsRight, ListVideo, Pause, Play, Square, SquareX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
@@ -90,8 +82,14 @@ function Controls({
 }) {
   const { t } = useI18n();
   const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
-  const prevChapterTitle = useKeybindTitle(t("player.media.controls.backward"), "player.prevChapter");
-  const nextChapterTitle = useKeybindTitle(t("player.media.controls.forward"), "player.nextChapter");
+  const prevChapterTitle = useKeybindTitle(
+    t("player.media.controls.backward"),
+    "player.prevChapter"
+  );
+  const nextChapterTitle = useKeybindTitle(
+    t("player.media.controls.forward"),
+    "player.nextChapter"
+  );
   const playlistTitle = useKeybindTitle(t("player.media.playlist.toggle"), "player.togglePlaylist");
   const autoHideTitle = useKeybindTitle(
     t("player.media.key.autohide.toggle"),
@@ -137,7 +135,10 @@ function Controls({
       step: SEEK_STEP,
     });
     if (jump.kind === "seek") onSeekTo(jump.time);
-    else showBoundaryMsg(t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last"));
+    else
+      showBoundaryMsg(
+        t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last")
+      );
   };
 
   const handleForward = () => runChapterJump(1);

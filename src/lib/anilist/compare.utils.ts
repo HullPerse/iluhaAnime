@@ -132,9 +132,7 @@ function mean(values: readonly number[]): number {
 }
 
 function averageRanks(values: readonly number[]): number[] {
-  const order = values
-    .map((value, index) => ({ value, index }))
-    .sort((a, b) => a.value - b.value);
+  const order = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
   const ranks = Array.from({ length: values.length }, () => 0);
   let start = 0;
   while (start < order.length) {
@@ -156,18 +154,12 @@ function averageRanks(values: readonly number[]): number[] {
   return ranks;
 }
 
-export function spearmanCorrelation(
-  xs: readonly number[],
-  ys: readonly number[]
-): number | null {
+export function spearmanCorrelation(xs: readonly number[], ys: readonly number[]): number | null {
   if (xs.length !== ys.length || xs.length < COMPARE_MIN_RANK_SAMPLES) return null;
   return pearsonCorrelation(averageRanks(xs), averageRanks(ys));
 }
 
-export function meanAbsoluteGap(
-  xs: readonly number[],
-  ys: readonly number[]
-): number | null {
+export function meanAbsoluteGap(xs: readonly number[], ys: readonly number[]): number | null {
   if (xs.length !== ys.length || xs.length === 0) return null;
   let total = 0;
   for (let index = 0; index < xs.length; index += 1) {
@@ -212,8 +204,7 @@ function directionAgreement(
   }
   const decisive = agree + split;
   return {
-    score:
-      decisive >= COMPARE_MIN_DIRECTION_PAIRS ? Math.round((agree / decisive) * 100) : null,
+    score: decisive >= COMPARE_MIN_DIRECTION_PAIRS ? Math.round((agree / decisive) * 100) : null,
     agree,
     split,
     neutral,
@@ -235,10 +226,7 @@ function emptyTaste(count: number): TasteMatch {
   };
 }
 
-export function buildTasteMatch(
-  mine: readonly number[],
-  friend: readonly number[]
-): TasteMatch {
+export function buildTasteMatch(mine: readonly number[], friend: readonly number[]): TasteMatch {
   if (mine.length !== friend.length || mine.length === 0) return emptyTaste(0);
   const count = mine.length;
   const meanGap = meanAbsoluteGap(mine, friend);
@@ -256,8 +244,7 @@ export function buildTasteMatch(
   const score =
     totalWeight > 0
       ? Math.round(
-          available.reduce((sum, part) => sum + (part.value ?? 0) * part.weight, 0) /
-            totalWeight
+          available.reduce((sum, part) => sum + (part.value ?? 0) * part.weight, 0) / totalWeight
         )
       : null;
   return {
@@ -403,8 +390,7 @@ export function buildCompareSummary(
   const mineScores = scored.map((row) => row.mine as number);
   const friendScores = scored.map((row) => row.friend as number);
   const meanDelta = meanAbsoluteGap(mineScores, friendScores);
-  const pearson =
-    scored.length >= 2 ? pearsonCorrelation(mineScores, friendScores) : null;
+  const pearson = scored.length >= 2 ? pearsonCorrelation(mineScores, friendScores) : null;
   const union = shared.length + onlyMine.length + onlyFriend.length;
   const libraryOverlap = union > 0 ? Math.round((shared.length / union) * 100) : null;
   const taste = buildTasteMatch(mineScores, friendScores);
@@ -530,19 +516,14 @@ export function topGenreTaste(
   }
   rows.sort(
     (a, b) =>
-      b.mineCount +
-        b.friendCount -
-        (a.mineCount + a.friendCount) ||
+      b.mineCount + b.friendCount - (a.mineCount + a.friendCount) ||
       Math.abs(b.delta) - Math.abs(a.delta) ||
       a.genre.localeCompare(b.genre)
   );
   return rows.slice(0, limit);
 }
 
-export function filterCompareRows(
-  rows: readonly ComparedTitle[],
-  query: string
-): ComparedTitle[] {
+export function filterCompareRows(rows: readonly ComparedTitle[], query: string): ComparedTitle[] {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return [...rows];
   return rows.filter(

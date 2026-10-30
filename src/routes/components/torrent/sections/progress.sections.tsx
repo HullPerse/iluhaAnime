@@ -50,18 +50,16 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
             {initElapsedSecs !== null && ` - ${formatElapsed(initElapsedSecs, t)}`}
           </span>
           <span className="windows95-font text-xs">
-            {item.total_bytes > 0
-              ? (
-                <>
-                  <AnimatedNumber value={item.progress_bytes} format={(v) => formatBytes(v)} />{" / "}
-                  <AnimatedNumber value={item.total_bytes} format={(v) => formatBytes(v)} /> (
-                  <AnimatedNumber value={progress} format={(v) => `${v.toFixed(1)}%`} />
-                  )
-                </>
-              )
-              : (
+            {item.total_bytes > 0 ? (
+              <>
                 <AnimatedNumber value={item.progress_bytes} format={(v) => formatBytes(v)} />
-              )}
+                {" / "}
+                <AnimatedNumber value={item.total_bytes} format={(v) => formatBytes(v)} /> (
+                <AnimatedNumber value={progress} format={(v) => `${v.toFixed(1)}%`} />)
+              </>
+            ) : (
+              <AnimatedNumber value={item.progress_bytes} format={(v) => formatBytes(v)} />
+            )}
           </span>
           <span className="windows95-font text-hint text-xs">
             {fmtSpeed(item.download_speed)}

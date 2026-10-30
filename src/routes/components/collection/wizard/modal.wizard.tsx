@@ -20,7 +20,6 @@ import { attempt, attemptAll } from "@/lib/utils/attempt.utils";
 import { searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
-
   CollectionItem,
   CollectionStatus,
   CollectionStatusDef,

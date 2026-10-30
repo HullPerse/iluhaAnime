@@ -3,7 +3,6 @@ import { useMemo, useRef } from "react";
 
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import {
-
   ANILIST_SCROLL_HEADER_ESTIMATE,
   ANILIST_SCROLL_ROW_ESTIMATE,
 } from "@/config/anilist/list.config";

@@ -14,19 +14,13 @@ describe("requiredBytesForSelection", () => {
 
   it("reserves both copies of a selected file that already exists", () => {
     expect(
-      requiredBytesForSelection(
-        { files, conflictingFiles: ["Show/Episode 01.mkv"] },
-        [0, 1]
-      )
+      requiredBytesForSelection({ files, conflictingFiles: ["Show/Episode 01.mkv"] }, [0, 1])
     ).toBe(100 + 100 + 200);
   });
 
   it("does not reserve an unselected conflicting file", () => {
     expect(
-      requiredBytesForSelection(
-        { files, conflictingFiles: ["Show/Episode 01.mkv"] },
-        [1]
-      )
+      requiredBytesForSelection({ files, conflictingFiles: ["Show/Episode 01.mkv"] }, [1])
     ).toBe(200);
   });
 

@@ -124,10 +124,7 @@ describe("spearmanCorrelation", () => {
   });
 
   it("uses average ranks for ties", () => {
-    expect(spearmanCorrelation([1, 2, 2, 3], [1, 2, 3, 4])).toBeCloseTo(
-      0.9486832980505138,
-      10
-    );
+    expect(spearmanCorrelation([1, 2, 2, 3], [1, 2, 3, 4])).toBeCloseTo(0.9486832980505138, 10);
   });
 
   it("returns null for flat series and fewer than three samples", () => {
@@ -371,11 +368,7 @@ describe("compare row filtering and sorting", () => {
     makeEntry(2, "B", 8, "COMPLETED", [], ["Beta"]),
     makeEntry(3, "C", 7),
   ]);
-  const friend = lists([
-    makeEntry(1, "A", 5),
-    makeEntry(2, "B", 8),
-    makeEntry(3, "C", 7),
-  ]);
+  const friend = lists([makeEntry(1, "A", 5), makeEntry(2, "B", 8), makeEntry(3, "C", 7)]);
   const rows = buildCompareSummary(mine, friend, "POINT_10", "POINT_10").shared;
 
   it("filters by primary and alternative titles", () => {

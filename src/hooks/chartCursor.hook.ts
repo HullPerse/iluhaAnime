@@ -15,10 +15,7 @@ export interface ChartCursor {
   handleBlur: () => void;
 }
 
-export function useChartCursor(
-  count: number,
-  onActivate?: (index: number) => void
-): ChartCursor {
+export function useChartCursor(count: number, onActivate?: (index: number) => void): ChartCursor {
   const [rawActive, setRawActive] = useState<number | null>(null);
   const active = rawActive != null && rawActive >= 0 && rawActive < count ? rawActive : null;
 

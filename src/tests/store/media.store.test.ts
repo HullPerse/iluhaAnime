@@ -1,7 +1,6 @@
 import { mockInvoke } from "../mocks";
 import { describe, expect, it, vi } from "vitest";
 
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -102,10 +101,7 @@ describe("media entries", () => {
 
   it("adopts the legacy mediaState envelope once", () => {
     const backing = new Map<string, string>([
-      [
-        "mediaState",
-        JSON.stringify({ state: { entries: [{ path: "/a.mkv", position: 5 }] } }),
-      ],
+      ["mediaState", JSON.stringify({ state: { entries: [{ path: "/a.mkv", position: 5 }] } })],
     ]);
     const store = createMediaSignalStore({ getStorage: () => memoryStorage(backing) });
     expect(store.getEntry("/a.mkv")?.position).toBe(5);

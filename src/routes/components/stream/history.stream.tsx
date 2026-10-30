@@ -23,7 +23,7 @@ function HistoryRow({ entry, onOpen }: { entry: StreamHistoryEntry; onOpen: () =
   const watched = isEpisodeWatched(entry);
   const share = watchShare(entry);
   const episodeLabel = `${t("stream.episode.short", { n: entry.episodeNumber })}${
-    entry.episodeTitle ? ` · ${entry.episodeTitle}` : ""
+    entry.episodeTitle ? `, ${entry.episodeTitle}` : ""
   }`;
 
   return (

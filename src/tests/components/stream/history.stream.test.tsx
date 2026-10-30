@@ -61,7 +61,7 @@ describe("StreamHistoryModal", () => {
     const { onOpen } = renderHistory();
 
     expect(screen.getByText("Sousou no Frieren")).toBeDefined();
-    expect(screen.getByText("Episode 3 · Killing Magic")).toBeDefined();
+    expect(screen.getByText("Episode 3, Killing Magic")).toBeDefined();
     expect(screen.getByText("Resume at 10:00")).toBeDefined();
 
     const row = screen.getByText("Sousou no Frieren").closest("[role='button']");

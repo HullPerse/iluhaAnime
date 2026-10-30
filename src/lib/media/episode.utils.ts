@@ -177,7 +177,11 @@ function findVersionEpisode(
     }
     if (/^\d{1,3}$/.test(token.value)) {
       const next = tokens.at(index + 1);
-      if (next && (next.kind === "unknown" || next.kind === "title") && (next.enclosed === "plain" || next.enclosed === "paren")) {
+      if (
+        next &&
+        (next.kind === "unknown" || next.kind === "title") &&
+        (next.enclosed === "plain" || next.enclosed === "paren")
+      ) {
         const versionMatch = /^\(v(\d+)\)$/i.exec(next.value) ?? /^v(\d+)$/i.exec(next.value);
         if (versionMatch) {
           consumed.add(index);
@@ -252,10 +256,7 @@ function findBracketEpisode(
 
 const RANGE_JOINER_RX = /^[~～〜]$/;
 
-function findTildeRange(
-  tokens: MediaClassifiedToken[],
-  consumed: Set<number>
-): EpisodeHit | null {
+function findTildeRange(tokens: MediaClassifiedToken[], consumed: Set<number>): EpisodeHit | null {
   for (let index = 0; index < tokens.length - 2; index += 1) {
     const first = tokens.at(index);
     const joiner = tokens.at(index + 1);
@@ -279,10 +280,7 @@ function findTildeRange(
   return null;
 }
 
-function findCountPair(
-  tokens: MediaClassifiedToken[],
-  consumed: Set<number>
-): EpisodeHit | null {
+function findCountPair(tokens: MediaClassifiedToken[], consumed: Set<number>): EpisodeHit | null {
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens.at(index);
     if (!token || token.kind !== "episode" || !/^\d{1,3}$/.test(token.value)) continue;

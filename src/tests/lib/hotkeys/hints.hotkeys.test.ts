@@ -140,7 +140,14 @@ describe("scanHintTargets", () => {
     hidden.setAttribute("type", "checkbox");
     hidden.setAttribute("aria-hidden", "true");
     hidden.tabIndex = -1;
-    const subFloor = el("button", { top: 40, left: 40, right: 44, bottom: 44, width: 4, height: 4 });
+    const subFloor = el("button", {
+      top: 40,
+      left: 40,
+      right: 44,
+      bottom: 44,
+      width: 4,
+      height: 4,
+    });
     const atFloor = el("button", {
       top: 60,
       left: 60,
@@ -273,7 +280,14 @@ describe("scanHintTargets", () => {
   });
 
   it("skips a target painted under sticky chrome", () => {
-    const covered = el("button", { top: 40, left: 40, bottom: 60, right: 100, width: 60, height: 20 });
+    const covered = el("button", {
+      top: 40,
+      left: 40,
+      bottom: 60,
+      right: 100,
+      width: 60,
+      height: 20,
+    });
     const visible = el("button", {
       top: 80,
       left: 40,
@@ -297,7 +311,14 @@ describe("scanHintTargets", () => {
   });
 
   it("labels the marked content region before the chrome", () => {
-    const chrome = el("button", { top: 10, left: 10, bottom: 30, right: 60, width: 50, height: 20 });
+    const chrome = el("button", {
+      top: 10,
+      left: 10,
+      bottom: 30,
+      right: 60,
+      width: 50,
+      height: 20,
+    });
     const panel = document.createElement("div");
     panel.dataset.scrollRoot = "";
     const firstCard = box(document.createElement("button"), {
@@ -326,8 +347,22 @@ describe("scanHintTargets", () => {
   });
 
   it("keeps pure DOM order without a content marker", () => {
-    const first = el("button", { top: 200, left: 10, bottom: 220, right: 60, width: 50, height: 20 });
-    const second = el("button", { top: 10, left: 10, bottom: 30, right: 60, width: 50, height: 20 });
+    const first = el("button", {
+      top: 200,
+      left: 10,
+      bottom: 220,
+      right: 60,
+      width: 50,
+      height: 20,
+    });
+    const second = el("button", {
+      top: 10,
+      left: 10,
+      bottom: 30,
+      right: 60,
+      width: 50,
+      height: 20,
+    });
     const { badges } = scanHintTargets(document.body);
     expect(badges[0]?.element).toBe(first);
     expect(badges[1]?.element).toBe(second);

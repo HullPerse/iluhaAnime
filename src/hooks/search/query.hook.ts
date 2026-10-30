@@ -218,7 +218,8 @@ export function useSearchQuery(): SearchQueryController {
     else queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
   };
 
-  const onAuthenticated = () => queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
+  const onAuthenticated = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
 
   const changeSource = (value: string) => {
     setSource(value as Source);

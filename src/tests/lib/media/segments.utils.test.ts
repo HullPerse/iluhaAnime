@@ -40,11 +40,7 @@ describe("resolveSegments arc contract", () => {
 
   it("finds the arc in the middle of three segments", () => {
     expect(
-      resolveSegments(
-        "[Moozzi2] Kimetsu no Yaiba - Hashira Geiko-hen - 01 [BDRip]",
-        "",
-        "fallback"
-      )
+      resolveSegments("[Moozzi2] Kimetsu no Yaiba - Hashira Geiko-hen - 01 [BDRip]", "", "fallback")
     ).toEqual({ title: "Kimetsu no Yaiba", arc: "Hashira Geiko-hen", movieHint: true });
   });
 
@@ -88,7 +84,11 @@ describe("resolveSegments arc contract", () => {
 
   it("strips stacked tech brackets off joined segments", () => {
     expect(
-      resolveSegments("Youjo Senki - Sabaku no Pasta Dai Sakusen [1080p][Multiple Subtitle]", "", "fallback")
+      resolveSegments(
+        "Youjo Senki - Sabaku no Pasta Dai Sakusen [1080p][Multiple Subtitle]",
+        "",
+        "fallback"
+      )
     ).toEqual({ title: "Youjo Senki: Sabaku no Pasta Dai Sakusen", movieHint: true });
   });
 

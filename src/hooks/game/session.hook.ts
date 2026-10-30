@@ -12,7 +12,13 @@ import { subscribeKeypad } from "@/lib/hotkeys/keypad.hotkeys";
 import { createAnimationLoop } from "@/lib/pacer/interval.utils";
 import type { AnimationLoopTask } from "@/lib/pacer/interval.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import type { GameFrame, GamePalette, GameRomInfo, GameStartInfo, GameTelemetry } from "@/types/game";
+import type {
+  GameFrame,
+  GamePalette,
+  GameRomInfo,
+  GameStartInfo,
+  GameTelemetry,
+} from "@/types/game";
 
 export type GameSessionStatus = "idle" | "starting" | "running" | "error";
 
@@ -140,10 +146,12 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       else next.delete(key);
       return next;
     });
-    attempt(gameApi.key(active.session, key, pressed)).then(([, keyError]) => {
-      if (keyError) reportBackgroundError("game.key", keyError);
-      return null;
-    }).catch(() => {});
+    attempt(gameApi.key(active.session, key, pressed))
+      .then(([, keyError]) => {
+        if (keyError) reportBackgroundError("game.key", keyError);
+        return null;
+      })
+      .catch(() => {});
   }, []);
 
   const release = useCallback((active: ActiveSession) => {
@@ -152,10 +160,12 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     active.releaseKeypad();
     active.audio.dispose();
     setPressedKeys(NO_KEYS);
-    attempt(gameApi.stop(active.session)).then(([, error]) => {
-      if (error) reportBackgroundError("game.stop", error);
-      return null;
-    }).catch(() => {});
+    attempt(gameApi.stop(active.session))
+      .then(([, error]) => {
+        if (error) reportBackgroundError("game.stop", error);
+        return null;
+      })
+      .catch(() => {});
   }, []);
 
   const fail = useCallback(
@@ -194,42 +204,44 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       if (cycles <= 0 && timers <= 0) return;
       active.inFlight = true;
       active.frames += 1;
-      attempt(gameApi.tick(active.session, cycles, timers)).then(([buffer, error]) => {
-        active.inFlight = false;
-        if (activeRef.current !== active) return null;
-        if (error) {
-          fail(error.message);
+      attempt(gameApi.tick(active.session, cycles, timers))
+        .then(([buffer, error]) => {
+          active.inFlight = false;
+          if (activeRef.current !== active) return null;
+          if (error) {
+            fail(error.message);
+            return null;
+          }
+          const [frame, decodeError] = attemptSync(() => decodeGameFrame(buffer));
+          if (decodeError) {
+            fail(decodeError.message);
+            return null;
+          }
+          const canvas = canvasTarget.current.current;
+          const [, paintError] = attemptSync(() => paintFrame(active, frame, canvas));
+          if (paintError) {
+            fail(paintError.message);
+            return null;
+          }
+          if (frame.audio) {
+            active.audio.setWavetable(frame.audio.pitchHz, frame.audio.pattern);
+          }
+          active.audio.setActive(frame.sound && !mutedRef.current);
+          const since = now - active.telemetryStamp;
+          if (since >= GAME_DISPLAY.telemetryIntervalMs) {
+            const fps = Math.round((active.frames * 1000) / since);
+            active.frames = 0;
+            active.telemetryStamp = now;
+            setTelemetry({
+              fps,
+              hires: frame.hires,
+              waitingKey: frame.waitingKey,
+              halted: frame.halted,
+            });
+          }
           return null;
-        }
-        const [frame, decodeError] = attemptSync(() => decodeGameFrame(buffer));
-        if (decodeError) {
-          fail(decodeError.message);
-          return null;
-        }
-        const canvas = canvasTarget.current.current;
-        const [, paintError] = attemptSync(() => paintFrame(active, frame, canvas));
-        if (paintError) {
-          fail(paintError.message);
-          return null;
-        }
-        if (frame.audio) {
-          active.audio.setWavetable(frame.audio.pitchHz, frame.audio.pattern);
-        }
-        active.audio.setActive(frame.sound && !mutedRef.current);
-        const since = now - active.telemetryStamp;
-        if (since >= GAME_DISPLAY.telemetryIntervalMs) {
-          const fps = Math.round((active.frames * 1000) / since);
-          active.frames = 0;
-          active.telemetryStamp = now;
-          setTelemetry({
-            fps,
-            hires: frame.hires,
-            waitingKey: frame.waitingKey,
-            halted: frame.halted,
-          });
-        }
-        return null;
-      }).catch(() => {});
+        })
+        .catch(() => {});
     },
     [fail]
   );
@@ -246,10 +258,12 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
         return;
       }
       if (!mountedRef.current) {
-        attempt(gameApi.stop(info.session)).then(([, stopError]) => {
-          if (stopError) reportBackgroundError("game.stop", stopError);
-          return null;
-        }).catch(() => {});
+        attempt(gameApi.stop(info.session))
+          .then(([, stopError]) => {
+            if (stopError) reportBackgroundError("game.stop", stopError);
+            return null;
+          })
+          .catch(() => {});
         return;
       }
       const canvas = canvasTarget.current.current;

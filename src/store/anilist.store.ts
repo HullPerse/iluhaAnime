@@ -155,14 +155,12 @@ export function migrateNotificationsData(
   return {
     ...(state as AniListNotificationsStore),
     observations: Object.fromEntries(
-      Object.entries(
-        (state.observations ?? {}) as Record<string, Partial<AniListObservation>>
-      ).map(([id, obs]) => [id, normalizeObservation(obs)])
+      Object.entries((state.observations ?? {}) as Record<string, Partial<AniListObservation>>).map(
+        ([id, obs]) => [id, normalizeObservation(obs)]
+      )
     ),
     siteMaxSeenId:
-      typeof state.siteMaxSeenId === "number" && state.siteMaxSeenId > 0
-        ? state.siteMaxSeenId
-        : 0,
+      typeof state.siteMaxSeenId === "number" && state.siteMaxSeenId > 0 ? state.siteMaxSeenId : 0,
     releases,
     readNotificationIds: Array.isArray(state.readNotificationIds)
       ? state.readNotificationIds.filter(
@@ -356,10 +354,10 @@ export function createAnilistNotificationsSignalStore(
       const legacy = readLegacyEnvelope(get, "anilistReleaseObservations");
       if (!legacy) return null;
       return {
-        data: migrateNotificationsData(
-          legacy.state,
-          legacy.version
-        ) as unknown as Record<string, unknown>,
+        data: migrateNotificationsData(legacy.state, legacy.version) as unknown as Record<
+          string,
+          unknown
+        >,
         schemaVersion: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,
       };
     },
@@ -397,12 +395,12 @@ export function createAnilistNotificationsSignalStore(
     addRelease: (release) => {
       const releases = atoms.releases.get();
       if (
-        releases.some((item) => item.mediaId === release.mediaId && item.episode === release.episode)
+        releases.some(
+          (item) => item.mediaId === release.mediaId && item.episode === release.episode
+        )
       )
         return;
-      atoms.releases.set(
-        [{ ...release, read: false }, ...releases].slice(0, RELEASE_FEED_CAP)
-      );
+      atoms.releases.set([{ ...release, read: false }, ...releases].slice(0, RELEASE_FEED_CAP));
     },
     markReleasesRead: () => {
       atoms.releases.set(

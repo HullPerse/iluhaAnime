@@ -113,10 +113,7 @@ function MenuEntries({ entries, t }: { entries: readonly ContextMenuEntry[]; t: 
           const text = entry.rawText ?? t(entry.label, entry.labelVars);
           return (
             <ContextMenuPrimitive.SubmenuRoot key={entry.id}>
-              <ContextMenuPrimitive.SubmenuTrigger
-                disabled={entry.disabled}
-                className={ITEM_CLASS}
-              >
+              <ContextMenuPrimitive.SubmenuTrigger disabled={entry.disabled} className={ITEM_CLASS}>
                 <EntryLabel icon={entry.icon} text={text} hint={entry.hint} chevron />
               </ContextMenuPrimitive.SubmenuTrigger>
               <ContextMenuPrimitive.Portal>
@@ -138,12 +135,7 @@ function MenuEntries({ entries, t }: { entries: readonly ContextMenuEntry[]; t: 
             className={ITEM_CLASS}
             onClick={() => entry.onSelect()}
           >
-            <EntryLabel
-              icon={entry.icon}
-              text={text}
-              hint={entry.hint}
-              checked={entry.checked}
-            />
+            <EntryLabel icon={entry.icon} text={text} hint={entry.hint} checked={entry.checked} />
           </ContextMenuPrimitive.Item>
         );
       })}
@@ -201,12 +193,7 @@ export default function ContextMenu({
       <ContextMenuPrimitive.Trigger className="contents">{children}</ContextMenuPrimitive.Trigger>
       <ContextMenuPrimitive.Portal>
         <ContextMenuPrimitive.Positioner className="z-50 outline-none">
-          <ContextMenuPrimitive.Popup
-            className={cn(
-              POPUP_CLASS,
-              className
-            )}
-          >
+          <ContextMenuPrimitive.Popup className={cn(POPUP_CLASS, className)}>
             <MenuEntries entries={entries} t={t} />
           </ContextMenuPrimitive.Popup>
         </ContextMenuPrimitive.Positioner>

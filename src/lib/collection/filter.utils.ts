@@ -238,7 +238,10 @@ function matchesOperatorShortQuery(fields: string[], terms: OperatorTerm[]): boo
   return fields.some((field) => matchOperatorTerms(terms, field) != null);
 }
 
-export function applyShortQueryFilter(list: CollectionItem[], cleanQuery: string): CollectionItem[] {
+export function applyShortQueryFilter(
+  list: CollectionItem[],
+  cleanQuery: string
+): CollectionItem[] {
   if (!cleanQuery.trim() || operatorTextLength(cleanQuery) >= 3) return list;
   const terms = parseOperatorTerms(cleanQuery);
   if (!terms) {

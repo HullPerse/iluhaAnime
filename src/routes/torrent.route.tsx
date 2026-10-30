@@ -440,8 +440,11 @@ function TorrentRoute() {
     () => new Set(visibleIds.filter((id) => expanded.has(id))),
     [visibleIds, expanded]
   );
-  const { files: torrentFilesMap, errors: torrentFilesErrors, requestRefresh } =
-    useTorrentFilesMap(visibleIds, 5000, expandedIds);
+  const {
+    files: torrentFilesMap,
+    errors: torrentFilesErrors,
+    requestRefresh,
+  } = useTorrentFilesMap(visibleIds, 5000, expandedIds);
 
   useFolderContentChanged(
     (payload) => {

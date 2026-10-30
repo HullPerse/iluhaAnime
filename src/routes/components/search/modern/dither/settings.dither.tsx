@@ -172,18 +172,20 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
     if (missing.length === 0) return;
     let cancelled = false;
     setPageLoading(true);
-    attempt(systemApi.getDitherImages(missing)).then(([data, error]) => {
-      if (cancelled) return;
-      if (error) showError(t("common.error"), t("search.dither.load.error"));
-      else
-        setRows((prev) => {
-          const next = { ...prev };
-          for (const image of data.map(toUserImage)) next[image.id] = image;
-          return next;
-        });
-      setPageLoading(false);
-      return null;
-    }).catch(() => {});
+    attempt(systemApi.getDitherImages(missing))
+      .then(([data, error]) => {
+        if (cancelled) return;
+        if (error) showError(t("common.error"), t("search.dither.load.error"));
+        else
+          setRows((prev) => {
+            const next = { ...prev };
+            for (const image of data.map(toUserImage)) next[image.id] = image;
+            return next;
+          });
+        setPageLoading(false);
+        return null;
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

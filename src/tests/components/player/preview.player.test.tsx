@@ -101,10 +101,7 @@ describe("UpscalePreview", () => {
     const user = userEvent.setup();
     const onZoom = vi.fn();
     render(
-      <UpscalePreview
-        preview={controller({ frames: [FRAME, SECOND_FRAME] })}
-        onZoom={onZoom}
-      />
+      <UpscalePreview preview={controller({ frames: [FRAME, SECOND_FRAME] })} onZoom={onZoom} />
     );
 
     await user.click(screen.getByTitle("12s"));

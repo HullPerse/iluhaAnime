@@ -1,4 +1,9 @@
-import { mockInvoke, mockDialogOpen as mockOpen, mockWriteImage, mockOpenPath } from "../../../mocks";
+import {
+  mockInvoke,
+  mockDialogOpen as mockOpen,
+  mockWriteImage,
+  mockOpenPath,
+} from "../../../mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -11,10 +11,12 @@ describe("version episode feature", () => {
   });
 
   it("parses parenthesized version 01 (v2)", () => {
-    expect(resolveMediaFile("Anime", "[BudLightSubs] One Piece 01 (v2) [1080p].mkv")).toMatchObject({
-      title: "One Piece",
-      episode: { number: 1, version: 2 },
-    });
+    expect(resolveMediaFile("Anime", "[BudLightSubs] One Piece 01 (v2) [1080p].mkv")).toMatchObject(
+      {
+        title: "One Piece",
+        episode: { number: 1, version: 2 },
+      }
+    );
   });
 
   it("parses split version 01 (v2) without space", () => {
@@ -25,7 +27,9 @@ describe("version episode feature", () => {
   });
 
   it("extracts epTitle after versioned episode number", () => {
-    expect(resolveMediaFile("Anime", "[BudLightSubs] One Piece 01v2 Weatheria [1080p].mkv")).toMatchObject({
+    expect(
+      resolveMediaFile("Anime", "[BudLightSubs] One Piece 01v2 Weatheria [1080p].mkv")
+    ).toMatchObject({
       title: "One Piece",
       episode: { number: 1, version: 2, title: "Weatheria" },
     });

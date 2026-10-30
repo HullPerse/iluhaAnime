@@ -114,9 +114,7 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
       const torrentOrder = atoms.torrentOrder.get();
       const known = new Set(ids);
       const kept = torrentOrder.filter((id) => known.has(id));
-      const missing = [...ids]
-        .filter((id) => !torrentOrder.includes(id))
-        .sort((a, b) => a - b);
+      const missing = [...ids].filter((id) => !torrentOrder.includes(id)).sort((a, b) => a - b);
       const next = [...kept, ...missing];
       if (
         next.length === torrentOrder.length &&

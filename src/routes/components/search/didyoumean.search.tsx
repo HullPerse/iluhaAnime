@@ -16,7 +16,9 @@ export default function DidYouMeanRow({
 }) {
   const { t } = useI18n();
   const diff =
-    correction && query ? splitByRanges(correction, findSubsequenceRanges(correction, query)) : null;
+    correction && query
+      ? splitByRanges(correction, findSubsequenceRanges(correction, query))
+      : null;
   if (!correction || loading || resultCount > 0) return null;
   return (
     <button

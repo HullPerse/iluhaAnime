@@ -1,9 +1,6 @@
 import { cn } from "cn";
 
-import {
-  findSubsequenceRanges,
-  splitByRanges,
-} from "@/lib/highlight/highlight.utils";
+import { findSubsequenceRanges, splitByRanges } from "@/lib/highlight/highlight.utils";
 
 export function HighlightedText({
   candidate,

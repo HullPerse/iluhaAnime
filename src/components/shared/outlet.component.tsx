@@ -1,7 +1,7 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { cn } from "cn";
 
-import { PLAYER_ROUTE } from "@/config/player/player-route.config";
+import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
 
 export default function OutletComponent() {
   const isPlayerWindow = useRouterState({

@@ -102,8 +102,8 @@ function NeighborFileButton({
               return null;
             })
           );
-        return null;
-      })
+          return null;
+        })
       );
     });
     return () => task.cancel();

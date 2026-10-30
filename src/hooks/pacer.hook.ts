@@ -40,7 +40,10 @@ function readControls(
   };
 }
 
-export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>): [T, PacedControls] {
+export function useDebouncedValue<T>(
+  value: T,
+  options: DebouncedValueOptions<T>
+): [T, PacedControls] {
   const { wait, leading, trailing, maxWait, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
     const committed = createSimpleCell<{ current: T } | null>(null);
@@ -87,7 +90,10 @@ export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>
   return [shown, readControls(engine, status)];
 }
 
-export function useThrottledValue<T>(value: T, options: ThrottledValueOptions<T>): [T, PacedControls] {
+export function useThrottledValue<T>(
+  value: T,
+  options: ThrottledValueOptions<T>
+): [T, PacedControls] {
   const { wait, leading, trailing, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
     const committed = createSimpleCell<{ current: T } | null>(null);

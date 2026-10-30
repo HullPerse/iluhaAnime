@@ -268,10 +268,13 @@ describe("buildStatsOverview", () => {
 describe("buildMediaRows", () => {
   it("keeps the requested order, dedupes and skips missing ids", () => {
     const entries = [entry(2, "COMPLETED", ["Drama"]), entry(1, "CURRENT", ["Comedy"])];
-    const rows = buildMediaRows([1, 2, 1, 99], [
-      { name: "Watching", entries },
-      { name: "Custom", entries: [entries[0]!] },
-    ]);
+    const rows = buildMediaRows(
+      [1, 2, 1, 99],
+      [
+        { name: "Watching", entries },
+        { name: "Custom", entries: [entries[0]!] },
+      ]
+    );
 
     expect(rows.map((row) => row.id)).toEqual([1, 2]);
     expect(rows[0]).toMatchObject({

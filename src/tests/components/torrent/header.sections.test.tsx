@@ -8,7 +8,6 @@ import { TorrentHeader } from "@/routes/components/torrent/sections/header.secti
 import { patchSettings } from "@/store/settings.store";
 import type { TorrentInfo } from "@/types/torrent";
 
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,

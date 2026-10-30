@@ -37,7 +37,10 @@ describe("stream session cache", () => {
     const rows = [variant("Animelib", "1", "Team")];
     api.players.mockResolvedValue(rows);
 
-    const [first, second] = await Promise.all([loadPlayers("cache-concurrent"), loadPlayers("cache-concurrent")]);
+    const [first, second] = await Promise.all([
+      loadPlayers("cache-concurrent"),
+      loadPlayers("cache-concurrent"),
+    ]);
 
     expect(api.players).toHaveBeenCalledTimes(1);
     expect(first).toBe(rows);

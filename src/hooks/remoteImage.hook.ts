@@ -169,8 +169,7 @@ export function prefetchRemoteImages(
   urls: Array<string | null | undefined>,
   proxyUrl?: string | null
 ): void {
-  const proxy =
-    proxyUrl === undefined ? (settingsAtoms.tmdbProxyUrl.get() ?? null) : proxyUrl;
+  const proxy = proxyUrl === undefined ? (settingsAtoms.tmdbProxyUrl.get() ?? null) : proxyUrl;
   for (const raw of urls) {
     if (!raw) continue;
     const url = toSizedThumbUrl(raw);
@@ -194,10 +193,12 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
       return;
     }
     let cancelled = false;
-    fetchCachedImage(remoteUrl, tmdbProxyUrl).then((url) => {
-      if (!cancelled) setState({ src: url, failed: url === null });
-      return null;
-    }).catch(() => {});
+    fetchCachedImage(remoteUrl, tmdbProxyUrl)
+      .then((url) => {
+        if (!cancelled) setState({ src: url, failed: url === null });
+        return null;
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

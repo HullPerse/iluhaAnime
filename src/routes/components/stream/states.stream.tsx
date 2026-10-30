@@ -50,7 +50,7 @@ export function StreamLoadingGrid({ count = 12 }: { count?: number }) {
       aria-busy="true"
     >
       <span className="sr-only">{t("stream.loading")}</span>
-      <div className="grid content-start gap-2 [grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))]">
+      <div className="grid [grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))] content-start gap-2">
         {Array.from({ length: count }, (_, index) => (
           <div
             key={index}
@@ -69,13 +69,7 @@ export function StreamLoadingGrid({ count = 12 }: { count?: number }) {
   );
 }
 
-export function StreamEmpty({
-  message,
-  action,
-}: {
-  message?: string;
-  action?: ReactNode;
-}) {
+export function StreamEmpty({ message, action }: { message?: string; action?: ReactNode }) {
   const { t } = useI18n();
   return (
     <StatePanel
@@ -106,7 +100,12 @@ export function StreamError({
       description={[message, detail].filter(Boolean).join("\n") || undefined}
       action={
         onRetry ? (
-          <Button size="icon" title={t("stream.retry")} aria-label={t("stream.retry")} onClick={onRetry}>
+          <Button
+            size="icon"
+            title={t("stream.retry")}
+            aria-label={t("stream.retry")}
+            onClick={onRetry}
+          >
             <RotateCw className="size-4" />
           </Button>
         ) : undefined

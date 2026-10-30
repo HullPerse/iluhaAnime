@@ -298,7 +298,9 @@ describe("DitherPreviewModal", () => {
       await user.click(screen.getByRole("button", { name: "From image" }));
       await waitFor(() =>
         expect(
-          notificationAtoms.items.get().some((item) => item.message === "Could not read image colors.")
+          notificationAtoms.items
+            .get()
+            .some((item) => item.message === "Could not read image colors.")
         ).toBe(true)
       );
     } finally {

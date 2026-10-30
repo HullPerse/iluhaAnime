@@ -433,7 +433,8 @@ const anilist = {
   "anilist.stats.completion": "Завершённость по жанрам",
   "anilist.stats.completion.empty": "Жанры появятся после пяти начатых тайтлов",
   "anilist.stats.drill.empty": "Тайтлов в списке нет",
-  "anilist.stats.empty": "Отслеживаемых тайтлов пока нет. Добавьте их в список, и статистика появится здесь.",
+  "anilist.stats.empty":
+    "Отслеживаемых тайтлов пока нет. Добавьте их в список, и статистика появится здесь.",
   "anilist.stats.error": "Статистика недоступна",
   "anilist.stats.formats": "По форматам",
   "anilist.stats.kpi.completion": "Завершённость",

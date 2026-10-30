@@ -505,7 +505,7 @@ function StatsModal({
         daysInMonth,
         calendarCells,
         isCurrentMonth,
-        today,
+        today
       )}
     </Modal>
   );
@@ -533,12 +533,10 @@ function renderModalContent(
   daysInMonth: number,
   calendarCells: { date: number; entries: AiringEntry[] }[],
   isCurrentMonth: boolean,
-  today: number,
+  today: number
 ) {
   if (drill != null) {
-    return (
-      <MediaRows rows={drillRows} scoreFormat={scoreFormat} onOpen={setDetailId} />
-    );
+    return <MediaRows rows={drillRows} scoreFormat={scoreFormat} onOpen={setDetailId} />;
   }
   if (tab === "overview") {
     return (
@@ -585,12 +583,7 @@ function renderModalContent(
   }
   return (
     <div className="flex flex-col gap-2">
-      <DayEntriesList
-        dayEntries={dayEntries}
-        locale={locale}
-        onEntryClick={setDetailId}
-        t={t}
-      />
+      <DayEntriesList dayEntries={dayEntries} locale={locale} onEntryClick={setDetailId} t={t} />
     </div>
   );
 }

@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { createSignalStore } from '@/lib/state/signal.store';
+import { createSignalStore } from "@/lib/state/signal.store";
 
-describe('signal store - player-safe subscriptions', () => {
-  it('fires subscribers exactly once per distinct value change', () => {
+describe("signal store - player-safe subscriptions", () => {
+  it("fires subscribers exactly once per distinct value change", () => {
     const store = createSignalStore();
     const cell = store.cell(0);
     const calls: number[] = [];
@@ -17,7 +17,7 @@ describe('signal store - player-safe subscriptions', () => {
     expect(calls).toEqual([1, 2, 1]);
   });
 
-  it('does not fire the same subscriber multiple times inside one batch', () => {
+  it("does not fire the same subscriber multiple times inside one batch", () => {
     const store = createSignalStore();
     const cell = store.cell(0);
     const calls: number[] = [];
@@ -32,7 +32,7 @@ describe('signal store - player-safe subscriptions', () => {
     expect(calls).toEqual([3]);
   });
 
-  it('does not call subscribers of a cell that stayed at its initial value', () => {
+  it("does not call subscribers of a cell that stayed at its initial value", () => {
     const store = createSignalStore();
     const cell = store.cell(10);
     let calls = 0;
@@ -40,7 +40,7 @@ describe('signal store - player-safe subscriptions', () => {
     expect(calls).toBe(0);
   });
 
-  it('derived cells notify on each value change and converge without staleness', () => {
+  it("derived cells notify on each value change and converge without staleness", () => {
     const store = createSignalStore();
     const a = store.cell(1);
     const b = store.cell(2);
@@ -57,7 +57,7 @@ describe('signal store - player-safe subscriptions', () => {
     expect(derived.get()).toBe(3);
   });
 
-  it('derived recomputes in dependency order without re-reading stale state', () => {
+  it("derived recomputes in dependency order without re-reading stale state", () => {
     const store = createSignalStore();
     const base = store.cell(0);
     const d1 = store.derive([base], (args) => (args[0] as number) * 2);
@@ -77,7 +77,7 @@ describe('signal store - player-safe subscriptions', () => {
     unsub();
   });
 
-  it('nested batches do not leak partial state to subscribers', () => {
+  it("nested batches do not leak partial state to subscribers", () => {
     const store = createSignalStore();
     const cell = store.cell(0);
     const updates: number[][] = [];
@@ -95,7 +95,7 @@ describe('signal store - player-safe subscriptions', () => {
     expect(updates).toEqual([[4]]);
   });
 
-  it('unsubscribe() prevents subsequent notification', () => {
+  it("unsubscribe() prevents subsequent notification", () => {
     const store = createSignalStore();
     const cell = store.cell(0);
     let calls = 0;
@@ -107,19 +107,19 @@ describe('signal store - player-safe subscriptions', () => {
     expect(calls).toBe(1);
   });
 
-  it('multiple subscribers all see the committed value after batch', () => {
+  it("multiple subscribers all see the committed value after batch", () => {
     const store = createSignalStore();
     const cell = store.cell(0);
     const results: Array<[string, number]> = [];
-    cell.subscribe(() => results.push(['first', cell.get()]));
-    cell.subscribe(() => results.push(['second', cell.get()]));
+    cell.subscribe(() => results.push(["first", cell.get()]));
+    cell.subscribe(() => results.push(["second", cell.get()]));
 
     store.batch(() => cell.set(7));
 
-    expect(results.every(r => r[1] === 7)).toBe(true);
+    expect(results.every((r) => r[1] === 7)).toBe(true);
   });
 
-  it('set() with the same identity stays silent, fresh-but-equal objects notify (Object.is)', () => {
+  it("set() with the same identity stays silent, fresh-but-equal objects notify (Object.is)", () => {
     const store = createSignalStore();
     const cell = store.cell({ n: 0 });
     let renderCount = 0;

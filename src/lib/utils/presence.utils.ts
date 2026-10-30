@@ -64,10 +64,7 @@ export function buildIdleActivity(
   });
 }
 
-export function buildDetailActivity(
-  detail: DiscordPresenceDetail,
-  t: TFunc
-): DiscordActivity {
+export function buildDetailActivity(detail: DiscordPresenceDetail, t: TFunc): DiscordActivity {
   const button = presenceButton(t("discord.button.anilist"), anilistAnimeUrl(detail.id));
   return compactActivity({
     details: presenceText(detail.title),
@@ -85,9 +82,7 @@ export function buildPlayerActivity(
   t: TFunc,
   now = Date.now()
 ): DiscordActivity | null {
-  const card = input.stream
-    ? streamCard(input.stream, t)
-    : localCard(input, t);
+  const card = input.stream ? streamCard(input.stream, t) : localCard(input, t);
   if (!card) return null;
 
   const state = playerState(card.state, input, t);
@@ -169,9 +164,7 @@ function streamCard(stream: StreamOpen, t: TFunc): PlayerCard {
     state: episodeTitle
       ? t("player.title.episode.colon", { title: episodeTitle })
       : t("player.title.episode", { n: stream.episodeNumber }),
-    buttonLabel: stream.anilistId
-      ? t("discord.button.anilist")
-      : t("discord.button.search"),
+    buttonLabel: stream.anilistId ? t("discord.button.anilist") : t("discord.button.search"),
     buttonUrl: stream.anilistId
       ? anilistAnimeUrl(stream.anilistId)
       : anilistSearchUrl(stream.mediaTitle),

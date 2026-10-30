@@ -13,14 +13,8 @@ import { useCell } from "@/lib/state/signal.hook";
 import { createInterval } from "@/lib/pacer/interval.utils";
 import { scheduleTask } from "@/lib/pacer/shared.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import {
-  openNotificationTarget,
-  showError,
-} from "@/lib/utils/notification.utils";
-import {
-  markNotificationRead,
-  notificationAtoms,
-} from "@/store/notification.store";
+import { openNotificationTarget, showError } from "@/lib/utils/notification.utils";
+import { markNotificationRead, notificationAtoms } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { NotificationItem } from "@/types/notification";
 
@@ -53,10 +47,10 @@ function ToastItem({
 
   useEffect(() => {
     if (!animateToasts || toastRef.current === null) return;
-    toastRef.current.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      { duration: 150, easing: "ease-out" }
-    );
+    toastRef.current.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: 150,
+      easing: "ease-out",
+    });
   }, [animateToasts]);
 
   const startExit = useCallback((): void => {
@@ -64,10 +58,10 @@ function ToastItem({
       onHide(item.id);
       return;
     }
-    const animation = toastRef.current.animate(
-      [{ opacity: 1 }, { opacity: 0 }],
-      { duration: 150, easing: "ease-out" }
-    );
+    const animation = toastRef.current.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 150,
+      easing: "ease-out",
+    });
     animation.finished.then(() => onHidden(item.id)).catch(() => undefined);
   }, [animateToasts, item.id, onHide, onHidden]);
 
@@ -128,7 +122,7 @@ function ToastItem({
       } ${isClosing ? "opacity-0" : ""}`}
     >
       <div className="bg-secondary text-title-text flex items-center gap-1.5 px-1.5 py-1">
-        <span className="min-w-0 flex-1 truncate text-[13px] font-bold leading-none">
+        <span className="min-w-0 flex-1 truncate text-[13px] leading-none font-bold">
           iluhaAnime
         </span>
         <Button
@@ -147,12 +141,10 @@ function ToastItem({
       <div className="px-2.5 pt-2">
         <div className="min-w-0 flex-1 pb-1">
           {item.message ? (
-            <div className="text-text truncate text-sm font-bold leading-tight">
-              {item.title}
-            </div>
+            <div className="text-text truncate text-sm leading-tight font-bold">{item.title}</div>
           ) : (
             <span
-              className={`text-text block truncate text-sm font-bold leading-tight ${FOCUS_RING} ${
+              className={`text-text block truncate text-sm leading-tight font-bold ${FOCUS_RING} ${
                 openable ? "hover:underline" : ""
               }`}
               role={openable ? "button" : undefined}
@@ -220,26 +212,21 @@ export default function NotificationToasts() {
     const fresh = items.filter((item) => !item.progress && !seen.has(item.id));
     for (const item of fresh) seen.add(item.id);
     setQueue((prev) => {
-      const visible = new Set(
-        items.filter((item) => !item.progress).map((item) => item.id)
-      );
+      const visible = new Set(items.filter((item) => !item.progress).map((item) => item.id));
       const kept = prev.filter((id) => visible.has(id));
       const freshIds = fresh.map((item) => item.id).filter((id) => !kept.includes(id));
       return [...freshIds, ...kept].slice(0, TOAST_DEFAULTS.maxVisible);
     });
   }, [items, inApp]);
 
-  const handleToastHidden = useCallback(
-    (id: number) => {
-      setQueue((prev) => prev.filter((queued) => queued !== id));
-      setClosing((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    },
-    []
-  );
+  const handleToastHidden = useCallback((id: number) => {
+    setQueue((prev) => prev.filter((queued) => queued !== id));
+    setClosing((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
 
   const handleBodyClick = useCallback(
     (item: NotificationItem) => {

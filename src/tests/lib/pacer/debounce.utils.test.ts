@@ -202,7 +202,11 @@ describe("Debouncer", () => {
     expect(onExecute).toHaveBeenCalledTimes(1);
     pacer.maybeExecute("b");
     pacer.reset();
-    expect(pacer.status.get()).toMatchObject({ executionCount: 0, isPending: false, status: "idle" });
+    expect(pacer.status.get()).toMatchObject({
+      executionCount: 0,
+      isPending: false,
+      status: "idle",
+    });
     vi.advanceTimersByTime(500);
     expect(task).toHaveBeenCalledTimes(1);
   });

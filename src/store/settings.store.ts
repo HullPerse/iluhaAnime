@@ -20,8 +20,7 @@ import type { SettingsStore } from "@/types/settings";
 
 export const SETTINGS_SCHEMA_VERSION = 59;
 
-type SettingsActionKeys =
-  | "patch";
+type SettingsActionKeys = "patch";
 
 export type SettingsData = Omit<SettingsStore, SettingsActionKeys>;
 export type SettingsAtoms = { [K in keyof SettingsData]: Cell<SettingsData[K]> };
@@ -316,21 +315,18 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
     typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 65535,
   httpApiPort: (value) =>
     typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 65535,
-  peerConnectTimeout: (value) =>
-    typeof value === "number" && Number.isInteger(value) && value > 0,
+  peerConnectTimeout: (value) => typeof value === "number" && Number.isInteger(value) && value > 0,
   peerReadWriteTimeout: (value) =>
     typeof value === "number" && Number.isInteger(value) && value > 0,
   maxConcurrentDownloads: (value) =>
     typeof value === "number" && Number.isInteger(value) && value > 0,
-  pageSize: (value) =>
-    typeof value === "number" && Number.isInteger(value) && value > 0,
-  resultsPerPage: (value) =>
-    typeof value === "number" && Number.isInteger(value) && value > 0,
+  pageSize: (value) => typeof value === "number" && Number.isInteger(value) && value > 0,
+  resultsPerPage: (value) => typeof value === "number" && Number.isInteger(value) && value > 0,
   defaultDownloadDir: (value) => value === null || typeof value === "string",
   screenshotDir: (value) => value === null || typeof value === "string",
-  modalBackdropOpacity: (value) =>
-    typeof value === "number" && value >= 0 && value <= 100,
-  windowTintOpacity: (value) => value === null || (typeof value === "number" && value >= 0 && value <= 100),
+  modalBackdropOpacity: (value) => typeof value === "number" && value >= 0 && value <= 100,
+  windowTintOpacity: (value) =>
+    value === null || (typeof value === "number" && value >= 0 && value <= 100),
   anilistPollIntervalMin: (value) =>
     typeof value === "number" && Number.isInteger(value) && value > 0,
 };

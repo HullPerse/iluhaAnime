@@ -8,7 +8,7 @@ import {
   VIM_SCROLL_LINE_PX,
   TREE_ROW_SELECTOR,
 } from "@/config/keyboard/vim.config";
-import { PLAYER_ROUTE } from "@/config/player/player-route.config";
+import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
 import { TAB_PATHS } from "@/config/tabs/paths.config";
 import { flashTarget } from "@/lib/highlight/flash.utils";
 import { blurEditable, shouldBlurOnEscape } from "@/lib/hotkeys/blur.hotkeys";

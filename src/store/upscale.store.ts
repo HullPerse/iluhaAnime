@@ -196,9 +196,7 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
           }
 
           items.set(
-            items.get().map((i) =>
-              i.id === next.id ? { ...i, status: "done", progress: 100 } : i
-            )
+            items.get().map((i) => (i.id === next.id ? { ...i, status: "done", progress: 100 } : i))
           );
           if (settingsAtoms.notifyUpscaleDone.get()) {
             const doneKey =
@@ -213,9 +211,7 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
         const msg =
           typeof error.message === "string" && error.message ? error.message : tr("common.error");
         items.set(
-          items.get().map((i) =>
-            i.id === next.id ? { ...i, status: "error", error: msg } : i
-          )
+          items.get().map((i) => (i.id === next.id ? { ...i, status: "error", error: msg } : i))
         );
         if (settingsAtoms.notifyUpscaleDone.get()) {
           const failedKey =

@@ -49,9 +49,7 @@ function EpisodeRow({
       onKeyDown={enterOrSpace(() => onPick(episode))}
       title={label}
       className={`windows95-border mb-1 flex cursor-pointer items-center gap-1 p-1 select-none ${
-        current
-          ? "windows95-active-border bg-secondary text-primary"
-          : "bg-field hover:bg-surface"
+        current ? "windows95-active-border bg-secondary text-primary" : "bg-field hover:bg-surface"
       }`}
     >
       <div className="windows95-border bg-field relative flex h-10 w-18 shrink-0 items-center justify-center overflow-hidden">

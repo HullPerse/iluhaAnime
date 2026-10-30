@@ -5,15 +5,8 @@ import type { KeyboardEvent, RefObject } from "react";
 import { Input } from "@/components/ui/input.component";
 import { AUTOCOMPLETE_HISTORY_LIMIT } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import {
-  findSubsequenceRanges,
-  mergeRanges,
-  splitByRanges,
-} from "@/lib/highlight/highlight.utils";
-import {
-  computeGhostValue,
-  getAriaAutocomplete,
-} from "@/lib/search/highlight.utils";
+import { findSubsequenceRanges, mergeRanges, splitByRanges } from "@/lib/highlight/highlight.utils";
+import { computeGhostValue, getAriaAutocomplete } from "@/lib/search/highlight.utils";
 import { groupSuggestions, rankHistoryEntries } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import { useCell } from "@/lib/state/signal.hook";
@@ -52,8 +45,7 @@ function spellSpansOf(check: SpellCheck | null): SpellWordSpan[] {
 function spellRangeOf(check: SpellCheck | null): readonly HighlightRange[] {
   if (!check) return EMPTY_SPELL_RANGES;
   return spellSpansOf(check).map((span) => {
-    const kind: HighlightRange["kind"] =
-      span.severity === "error" ? "spell-error" : "spell-warn";
+    const kind: HighlightRange["kind"] = span.severity === "error" ? "spell-error" : "spell-warn";
     return { start: span.start, end: span.end, kind };
   });
 }
@@ -127,7 +119,7 @@ const SpellCorrectionRow = memo(
         type="button"
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => onApply?.(correction)}
-        className="windows95-text hover:bg-highlight hover:text-white flex w-full min-w-0 items-center gap-1 px-1 py-px text-left font-bold"
+        className="windows95-text hover:bg-highlight flex w-full min-w-0 items-center gap-1 px-1 py-px text-left font-bold hover:text-white"
       >
         <span className="min-w-0 flex-1 truncate">
           {diff.map((token, index) =>
@@ -185,7 +177,7 @@ const SpellCorrectionsPanel = memo(
             title={t("search.spell.save.word.title")}
             aria-label={t("search.spell.save.word.title")}
             onClick={onSave}
-            className="windows95-small-border bg-primary windows95-text shrink-0 px-1 py-px font-bold hover:bg-surface active:translate-x-px active:translate-y-px"
+            className="windows95-small-border bg-primary windows95-text hover:bg-surface shrink-0 px-1 py-px font-bold active:translate-x-px active:translate-y-px"
           >
             {t("search.spell.save.word")}
           </button>
@@ -334,37 +326,35 @@ export function InlineAutocompleteInput({
 
   const emptyHistorySuggestions = useMemo(
     () =>
-      rankHistoryEntries(
-        history ?? [],
-        historyStats,
-        AUTOCOMPLETE_HISTORY_LIMIT,
-        historyScope
-      ).map((entry) => ({
-        kind: "history" as const,
-        score: 0,
-        value: entry,
-      })),
+      rankHistoryEntries(history ?? [], historyStats, AUTOCOMPLETE_HISTORY_LIMIT, historyScope).map(
+        (entry) => ({
+          kind: "history" as const,
+          score: 0,
+          value: entry,
+        })
+      ),
     [history, historyStats, historyScope]
   );
 
   const spellItems = useMemo<SearchSuggestion[]>(
     () =>
-      spellCorrections.map((correction) => ({ kind: "spell" as const, score: 0, value: correction })),
+      spellCorrections.map((correction) => ({
+        kind: "spell" as const,
+        score: 0,
+        value: correction,
+      })),
     [spellCorrections]
   );
 
   const { items: groupedSuggestions, sections } = useMemo(
     () =>
-      groupSuggestions(
-        isEmptyQuery ? emptyHistorySuggestions : [...spellItems, ...suggestions]
-      ),
+      groupSuggestions(isEmptyQuery ? emptyHistorySuggestions : [...spellItems, ...suggestions]),
     [emptyHistorySuggestions, isEmptyQuery, spellItems, suggestions]
   );
 
   const showMenu =
     enabled && mode !== "inline" && !dismissed && focused && groupedSuggestions.length > 0;
-  const showSpellPanel =
-    focused && !dismissed && !showMenu && spellCorrections.length > 0;
+  const showSpellPanel = focused && !dismissed && !showMenu && spellCorrections.length > 0;
   const safeActiveIndex = showMenu ? Math.min(activeIndex, groupedSuggestions.length - 1) : -1;
   const activeSuggestion = safeActiveIndex >= 0 ? groupedSuggestions[safeActiveIndex] : undefined;
   const ghostValue = computeGhostValue({
@@ -478,14 +468,7 @@ export function InlineAutocompleteInput({
         />
         <Input
           {...props}
-          {...textFieldA11y(
-            listboxId,
-            safeActiveIndex,
-            activeSuggestion,
-            showMenu,
-            mode,
-            enabled
-          )}
+          {...textFieldA11y(listboxId, safeActiveIndex, activeSuggestion, showMenu, mode, enabled)}
           ref={inputRef}
           spellCheck={false}
           aria-keyshortcuts="Tab, Control+Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"

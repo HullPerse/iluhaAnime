@@ -22,10 +22,7 @@ export function sortSourcesByQuality(sources: StreamSource[]): StreamSource[] {
  * list has nothing that low, the lowest available one plays. Without a
  * preference the best source plays.
  */
-export function pickSource(
-  sources: StreamSource[],
-  preferred?: string
-): StreamSource | null {
+export function pickSource(sources: StreamSource[], preferred?: string): StreamSource | null {
   if (sources.length === 0) return null;
   const sorted = sortSourcesByQuality(sources);
   if (!preferred) return sorted[0];
@@ -51,9 +48,6 @@ export function toVariantSources(sources: StreamSource[]): StreamVariantSource[]
 }
 
 /** The URL of a quality in an already resolved list, or null. */
-export function variantSourceUrl(
-  sources: StreamVariantSource[],
-  label: string
-): string | null {
+export function variantSourceUrl(sources: StreamVariantSource[], label: string): string | null {
   return sources.find((source) => source.label === label)?.url ?? null;
 }

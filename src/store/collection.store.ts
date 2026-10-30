@@ -109,9 +109,7 @@ function readLegacyCollection(
   const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
   const version = typeof envelope.version === "number" ? envelope.version : 0;
   if (!state || typeof state !== "object") return null;
-  const [migrated, migrateError] = attemptSync(() =>
-    migrateCollectionData(state, version)
-  );
+  const [migrated, migrateError] = attemptSync(() => migrateCollectionData(state, version));
   if (migrateError !== null || !migrated || typeof migrated !== "object") return null;
   return {
     data: migrated as unknown as Record<string, unknown>,

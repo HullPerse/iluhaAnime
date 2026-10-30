@@ -155,9 +155,7 @@ function ConfidenceNote({ taste }: { taste: TasteMatch }) {
   const { t } = useI18n();
   if (taste.confidence === "none") {
     return (
-      <p className="windows95-text text-hint mt-1 text-xs">
-        {t("anilist.compare.no.scores")}
-      </p>
+      <p className="windows95-text text-hint mt-1 text-xs">{t("anilist.compare.no.scores")}</p>
     );
   }
   if (taste.confidence === "low") {
@@ -222,14 +220,10 @@ function CompareHero({
       </div>
       <div className="mt-2 flex flex-wrap items-end gap-2">
         <span className="windows95-text text-2xl leading-none font-bold">{selectedText}</span>
-        <span className="windows95-text text-hint pb-0.5 text-xs">
-          {t(METRIC_KEYS[metric])}
-        </span>
+        <span className="windows95-text text-hint pb-0.5 text-xs">{t(METRIC_KEYS[metric])}</span>
       </div>
       <div className="mt-1 flex items-center gap-1">
-        <span className="windows95-text text-hint text-xs">
-          {t("anilist.compare.metric")}
-        </span>
+        <span className="windows95-text text-hint text-xs">{t("anilist.compare.metric")}</span>
         <Select
           value={metric}
           onChange={(value) => onMetric(value as CompareMetric)}
@@ -301,12 +295,7 @@ function CompareTabs({
   ];
   return (
     <div className="shrink-0 border-t border-black/20 p-2">
-      <Tabs
-        ariaLabel={t("anilist.compare.compare")}
-        tabs={tabs}
-        activeTab={tab}
-        onChange={onTab}
-      />
+      <Tabs ariaLabel={t("anilist.compare.compare")} tabs={tabs} activeTab={tab} onChange={onTab} />
     </div>
   );
 }
@@ -399,7 +388,11 @@ function ScoreCell({
   return (
     <div
       className="flex min-w-0 flex-col items-end gap-0.5"
-      title={raw == null ? undefined : t("anilist.compare.score.raw", { label: rawLabel, score: rawScore })}
+      title={
+        raw == null
+          ? undefined
+          : t("anilist.compare.score.raw", { label: rawLabel, score: rawScore })
+      }
     >
       <span className="windows95-text text-xs font-bold">{formatNormalizedScore(score)}</span>
       <StatusMark status={status} />
@@ -429,8 +422,7 @@ function RowContent({
 }) {
   const { t } = useI18n();
   const altTitle = row.titles.find((title) => title !== row.title);
-  const absoluteDelta =
-    row.signedDelta == null ? "-" : (Math.abs(row.signedDelta) / 10).toFixed(1);
+  const absoluteDelta = row.signedDelta == null ? "-" : (Math.abs(row.signedDelta) / 10).toFixed(1);
   const deltaTitle =
     row.signedDelta == null
       ? undefined
@@ -457,9 +449,7 @@ function RowContent({
       )}
       <div className="min-w-0">
         <p className="windows95-text truncate text-xs">{row.title}</p>
-        {altTitle && (
-          <p className="windows95-text text-hint truncate text-xs">{altTitle}</p>
-        )}
+        {altTitle && <p className="windows95-text text-hint truncate text-xs">{altTitle}</p>}
       </div>
       <ScoreCell
         score={row.mine}
@@ -573,9 +563,7 @@ function EmptyRows({
       : tab === "mine"
         ? t("anilist.compare.no.mine.titles")
         : t("anilist.compare.no.friend.titles", { name: friendName });
-  return (
-    <p className="windows95-text text-hint p-3 text-center text-xs">{label}</p>
-  );
+  return <p className="windows95-text text-hint p-3 text-center text-xs">{label}</p>;
 }
 
 function TitleRows({
@@ -668,12 +656,8 @@ function GenreSection({ genres, friendName }: { genres: GenreTaste[]; friendName
               ({genre.mineCount}/{genre.friendCount})
             </span>
           </span>
-          <span className="windows95-text text-right">
-            {formatNormalizedScore(genre.mine)}
-          </span>
-          <span className="windows95-text text-right">
-            {formatNormalizedScore(genre.friend)}
-          </span>
+          <span className="windows95-text text-right">{formatNormalizedScore(genre.mine)}</span>
+          <span className="windows95-text text-right">{formatNormalizedScore(genre.friend)}</span>
           <span className="windows95-text text-hint text-right">
             {formatSignedDelta(genre.delta)}
           </span>
@@ -779,11 +763,7 @@ export default function CompareAnilist({
     [selfFavourites, friendFavourites]
   );
   const rows =
-    tab === "shared"
-      ? summary.shared
-      : tab === "mine"
-        ? summary.onlyMine
-        : summary.onlyFriend;
+    tab === "shared" ? summary.shared : tab === "mine" ? summary.onlyMine : summary.onlyFriend;
   const sortOptions = useMemo(
     () =>
       SORTS_BY_TAB[tab].map((value) => ({

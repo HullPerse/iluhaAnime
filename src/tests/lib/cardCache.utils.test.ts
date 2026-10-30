@@ -1,7 +1,6 @@
 import { mockConvertFileSrc, mockInvoke as invokeMock } from "../mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (command: string, args?: Record<string, unknown>) => invokeMock(command, args),
   convertFileSrc: mockConvertFileSrc,

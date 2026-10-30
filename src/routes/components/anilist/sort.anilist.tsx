@@ -88,10 +88,7 @@ function SortMoreMenu({
               <InfinityIcon className="size-4" />
               {t("anilist.sort.display.scroll")}
             </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem
-              value="pagination"
-              title={t("anilist.sort.display.pagination")}
-            >
+            <DropdownMenuRadioItem value="pagination" title={t("anilist.sort.display.pagination")}>
               <Hash className="size-4" />
               {t("anilist.sort.display.pagination")}
             </DropdownMenuRadioItem>

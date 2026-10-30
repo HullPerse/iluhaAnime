@@ -57,10 +57,10 @@ function Modal({
     if (!animateModalContent || contentElement.current === null) return;
     if (prevChildrenRef.current === children) return;
     prevChildrenRef.current = children;
-    contentElement.current.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      { duration: MODAL_CONTENT_FADE_MS, easing: "ease-out" }
-    );
+    contentElement.current.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: MODAL_CONTENT_FADE_MS,
+      easing: "ease-out",
+    });
   }, [animateModalContent, children]);
 
   useEffect(() => {

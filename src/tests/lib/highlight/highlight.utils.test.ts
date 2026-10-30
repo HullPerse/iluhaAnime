@@ -63,7 +63,10 @@ describe("mergeRanges", () => {
         ],
         10
       )
-    ).toEqual([{ start: 0, end: 3 }, { start: 8, end: 10 }]);
+    ).toEqual([
+      { start: 0, end: 3 },
+      { start: 8, end: 10 },
+    ]);
   });
 
   it("merges adjacent ranges of the same kind", () => {

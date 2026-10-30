@@ -2,7 +2,6 @@ import { settingsAtoms } from "@/store/settings.store";
 import type { Source } from "@/types/search";
 import type { SessionConfigPayload } from "@/types/settings";
 import type {
-
   Anime,
   CreatedTorrent,
   DhtStatus,

@@ -48,9 +48,7 @@ describe("torrent/duplicate", () => {
     });
 
     it("reads the first xt param among others", () => {
-      expect(
-        parseInfoHashFromMagnet(`magnet:?dn=Show&xt=urn:btih:${HEX}&tr=udp://t`)
-      ).toBe(HEX);
+      expect(parseInfoHashFromMagnet(`magnet:?dn=Show&xt=urn:btih:${HEX}&tr=udp://t`)).toBe(HEX);
     });
 
     it("decodes a base32 hash to hex", () => {

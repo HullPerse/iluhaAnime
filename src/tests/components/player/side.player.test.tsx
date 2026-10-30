@@ -26,7 +26,11 @@ vi.mock("@/hooks/stream/catalog.hook", () => ({
 }));
 
 vi.mock("@/hooks/player/stream.hook", () => ({
-  useStreamNext: () => ({ ...streamNext.current, goTo: streamNext.goTo, goNext: streamNext.goNext }),
+  useStreamNext: () => ({
+    ...streamNext.current,
+    goTo: streamNext.goTo,
+    goNext: streamNext.goNext,
+  }),
   usePlayerStream: () => ({}),
 }));
 

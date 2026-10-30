@@ -71,7 +71,9 @@ function findSegmentArc(
   return null;
 }
 
-export function splitKnownArcTail(words: readonly string[]): { head: string[]; arc: string } | null {
+export function splitKnownArcTail(
+  words: readonly string[]
+): { head: string[]; arc: string } | null {
   for (let start = 1; start < words.length; start += 1) {
     const key = arcKey(words.slice(start).join(" "));
     if (key.length === 0) return null;

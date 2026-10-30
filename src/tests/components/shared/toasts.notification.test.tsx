@@ -3,11 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { mockOpenPath, mockOpenUrl } from "../../mocks";
 import NotificationToasts from "@/components/shared/notification/toasts.notification";
-import {
-  addNotification,
-  notificationAtoms,
-  updateNotification,
-} from "@/store/notification.store";
+import { addNotification, notificationAtoms, updateNotification } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
@@ -114,9 +110,9 @@ describe("NotificationToasts", () => {
       vi.advanceTimersByTime(8000);
     });
     expect(screen.getByText("Hello")).toBeTruthy();
-    expect(
-      screen.getByRole("progressbar", { name: "Hello" }).getAttribute("aria-valuenow")
-    ).toBe("8000");
+    expect(screen.getByRole("progressbar", { name: "Hello" }).getAttribute("aria-valuenow")).toBe(
+      "8000"
+    );
     fireEvent.mouseLeave(toast);
     act(() => {
       vi.advanceTimersByTime(8000);

@@ -299,8 +299,7 @@ const anilist = {
   "anilist.compare.component.gap": "Scores: {{value}}",
   "anilist.compare.component.rank": "Order: {{value}}",
   "anilist.compare.component.direction": "Taste: {{value}}",
-  "anilist.compare.direction.hint":
-    "Agree: {{agree}}, split: {{split}}, neutral: {{neutral}}",
+  "anilist.compare.direction.hint": "Agree: {{agree}}, split: {{split}}, neutral: {{neutral}}",
   "anilist.compare.confidence.low": "Low data: {{count}} of {{need}} scored",
   "anilist.compare.confidence.medium": "medium",
   "anilist.compare.confidence.high": "high",
@@ -425,7 +424,8 @@ const anilist = {
   "anilist.stats.completion": "Completion by genre",
   "anilist.stats.completion.empty": "Genres appear after five started titles",
   "anilist.stats.drill.empty": "No titles found in your list",
-  "anilist.stats.empty": "No tracked titles yet. Add titles to your list and statistics will appear here.",
+  "anilist.stats.empty":
+    "No tracked titles yet. Add titles to your list and statistics will appear here.",
   "anilist.stats.error": "Statistics unavailable",
   "anilist.stats.formats": "Format mix",
   "anilist.stats.kpi.completion": "Completion",

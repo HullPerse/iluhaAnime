@@ -50,10 +50,15 @@ describe("useHotkeys", () => {
 
   it("resubscribes when the def set changes", () => {
     const onAction = vi.fn();
-    const render = renderHook(({ digit }) => {
-      const defs: HotkeyDef<"tab">[] = [{ id: "tab", chord: `alt+Digit${digit}`, repeat: "once" }];
-      useHotkeys(defs, { onAction });
-    }, { initialProps: { digit: 1 } });
+    const render = renderHook(
+      ({ digit }) => {
+        const defs: HotkeyDef<"tab">[] = [
+          { id: "tab", chord: `alt+Digit${digit}`, repeat: "once" },
+        ];
+        useHotkeys(defs, { onAction });
+      },
+      { initialProps: { digit: 1 } }
+    );
     press({ code: "Digit1", altKey: true });
     expect(onAction).toHaveBeenCalledTimes(1);
     render.rerender({ digit: 2 });

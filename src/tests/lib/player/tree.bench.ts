@@ -1,6 +1,6 @@
-import { test } from 'vitest';
+import { test } from "vitest";
 
-import { fingerprint } from '@/lib/player/scan.utils';
+import { fingerprint } from "@/lib/player/scan.utils";
 import {
   buildTree,
   filterTreeByPaths,
@@ -8,10 +8,10 @@ import {
   flattenTree,
   folderFilePaths,
   summarizeTree,
-} from '@/lib/player/tree.utils';
-import { filterTreeByHiddenPaths } from '@/lib/player/visibility.utils';
-import type { VideoFileEntry } from '@/types/fs';
-import type { FolderNode } from '@/types/torrent';
+} from "@/lib/player/tree.utils";
+import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
+import type { VideoFileEntry } from "@/types/fs";
+import type { FolderNode } from "@/types/torrent";
 
 function makeEntries(seasons: number, epsPerSeason: number, movies: number): VideoFileEntry[] {
   const entries: VideoFileEntry[] = [];
@@ -56,42 +56,42 @@ function findBigLeaf(node: FolderNode): FolderNode {
 const SMALL = makeEntries(4, 24, 20);
 const BIG = makeEntries(20, 240, 200);
 
-test('folder tree - buildTree (per scan)', async ({ bench }) => {
-  const b1 = bench('buildTree 116 files', () => {
-    const tree = buildTree(SMALL, 'D:/Anime');
+test("folder tree - buildTree (per scan)", async ({ bench }) => {
+  const b1 = bench("buildTree 116 files", () => {
+    const tree = buildTree(SMALL, "D:/Anime");
     return summarizeTree(tree).count;
   });
 
-  const b2 = bench('buildTree 5000 files', () => {
-    const tree = buildTree(BIG, 'D:/Anime');
+  const b2 = bench("buildTree 5000 files", () => {
+    const tree = buildTree(BIG, "D:/Anime");
     return summarizeTree(tree).count;
   });
 
   await bench.compare(b1, b2, { time: 100, iterations: 3 });
 });
 
-test('folder tree - flattenTree (per render / keystroke)', async ({ bench }) => {
-  const tree = buildTree(BIG, 'D:/Anime');
+test("folder tree - flattenTree (per render / keystroke)", async ({ bench }) => {
+  const tree = buildTree(BIG, "D:/Anime");
   const allOpen = new Set(collectFolderPaths(tree));
   const rootOnly = new Set([tree.path]);
 
-  const b1 = bench('flattenTree full expand 5000 files', () => {
-    return flattenTree(tree, allOpen, '', undefined, 0, undefined).length;
+  const b1 = bench("flattenTree full expand 5000 files", () => {
+    return flattenTree(tree, allOpen, "", undefined, 0, undefined).length;
   });
 
-  const b2 = bench('flattenTree collapsed root', () => {
-    return flattenTree(tree, rootOnly, '', undefined, 0, undefined).length;
+  const b2 = bench("flattenTree collapsed root", () => {
+    return flattenTree(tree, rootOnly, "", undefined, 0, undefined).length;
   });
 
-  const b3 = bench('flattenTree search query full expand', () => {
-    return flattenTree(tree, allOpen, 'ep 12', undefined, 0, undefined).length;
+  const b3 = bench("flattenTree search query full expand", () => {
+    return flattenTree(tree, allOpen, "ep 12", undefined, 0, undefined).length;
   });
 
   await bench.compare(b1, b2, b3, { time: 100, iterations: 3 });
 });
 
-test('folder tree - queue/open lookups (per file open)', async ({ bench }) => {
-  const tree = buildTree(BIG, 'D:/Anime');
+test("folder tree - queue/open lookups (per file open)", async ({ bench }) => {
+  const tree = buildTree(BIG, "D:/Anime");
   const files = collectFilePaths(tree);
   const deepFile = files.at(-1) ?? "";
   const bigLeaf = findBigLeaf(tree);
@@ -100,47 +100,47 @@ test('folder tree - queue/open lookups (per file open)', async ({ bench }) => {
     name: `Ep ${i}.mkv`,
     size: 1_400_000_000,
   }));
-  const flatTree = buildTree(flatEntries, 'D:/Anime/Flat');
+  const flatTree = buildTree(flatEntries, "D:/Anime/Flat");
 
-  const b1 = bench('folderFilePaths localeCompare sort 2000', () => {
+  const b1 = bench("folderFilePaths localeCompare sort 2000", () => {
     return folderFilePaths(flatTree).length;
   });
 
-  const b2 = bench('findFolderContainingFile deep hit', () => {
+  const b2 = bench("findFolderContainingFile deep hit", () => {
     return findFolderContainingFile(tree, deepFile)?.files.length ?? -1;
   });
 
-  const b3 = bench('findFolderContainingFile miss (full walk)', () => {
-    return findFolderContainingFile(tree, 'D:/Anime/Nowhere/ghost.mkv') === null ? 1 : 0;
+  const b3 = bench("findFolderContainingFile miss (full walk)", () => {
+    return findFolderContainingFile(tree, "D:/Anime/Nowhere/ghost.mkv") === null ? 1 : 0;
   });
 
-  const b4 = bench('folderFilePaths flat 240 sort cached', () => {
+  const b4 = bench("folderFilePaths flat 240 sort cached", () => {
     return folderFilePaths(bigLeaf).length;
   });
 
   await bench.compare(b1, b2, b3, b4, { time: 100, iterations: 3 });
 });
 
-test('folder tree - filters and snapshot (per scan / toggle)', async ({ bench }) => {
-  const tree = buildTree(BIG, 'D:/Anime');
+test("folder tree - filters and snapshot (per scan / toggle)", async ({ bench }) => {
+  const tree = buildTree(BIG, "D:/Anime");
   const files = collectFilePaths(tree);
   const keepHalf = new Set(files.filter((_, i) => i % 2 === 0));
   const hidden = Array.from({ length: 20 }, (_, i) => `D:/Anime/Hidden${i}`);
 
-  const b1 = bench('filterTreeByPaths keep half 5000', () => {
+  const b1 = bench("filterTreeByPaths keep half 5000", () => {
     return summarizeTree(filterTreeByPaths(tree, keepHalf) ?? tree).count;
   });
 
-  const b2 = bench('filterTreeByHiddenPaths 20 rules', () => {
+  const b2 = bench("filterTreeByHiddenPaths 20 rules", () => {
     return summarizeTree(filterTreeByHiddenPaths(tree, hidden) ?? tree).count;
   });
 
-  const b4 = bench('fingerprint 50 paths', () => {
+  const b4 = bench("fingerprint 50 paths", () => {
     const paths = Array.from({ length: 50 }, (_, i) => `D:/Anime/Show${i}`);
-    return fingerprint(paths, ['mkv', 'mp4', 'avi']).length;
+    return fingerprint(paths, ["mkv", "mp4", "avi"]).length;
   });
 
-  const b5 = bench('filterTreeByHiddenPaths empty hidden x50k', () => {
+  const b5 = bench("filterTreeByHiddenPaths empty hidden x50k", () => {
     let checksum = 0;
     for (let i = 0; i < 50000; i++) {
       checksum += (filterTreeByHiddenPaths(tree, []) ?? tree).files.length;

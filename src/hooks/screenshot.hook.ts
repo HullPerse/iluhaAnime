@@ -48,10 +48,12 @@ export function useScreenshot(): ScreenshotSession {
     const pending = captureRef.current;
     setCapture(null);
     if (!pending) return;
-    attempt(systemApi.discardScreenshot(pending.path)).then(([, error]) => {
-      if (error) reportBackgroundError("screenshot.discard", error);
-      return null;
-    }).catch(() => {});
+    attempt(systemApi.discardScreenshot(pending.path))
+      .then(([, error]) => {
+        if (error) reportBackgroundError("screenshot.discard", error);
+        return null;
+      })
+      .catch(() => {});
   }, [setCapture]);
 
   return { capture: shot, close };

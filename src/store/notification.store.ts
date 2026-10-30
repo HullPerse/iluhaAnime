@@ -148,10 +148,7 @@ export function createNotificationSignalStore(
   const mirror: Record<string, unknown> = { items: persistedItems, dismissed: persistedDismissed };
   const items = store.atom("items", persistedItems);
   const dismissed = store.atom("dismissed", persistedDismissed);
-  const unreadCount = store.atom(
-    "unreadCount",
-    persistedItems.filter((item) => !item.read).length
-  );
+  const unreadCount = store.atom("unreadCount", persistedItems.filter((item) => !item.read).length);
   const wrapItems = {
     id: items.id,
     get: items.get,

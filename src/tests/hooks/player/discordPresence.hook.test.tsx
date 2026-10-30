@@ -89,7 +89,9 @@ describe("usePlayerDiscordPresence", () => {
     expect(discordApi.set).toHaveBeenCalledWith("player", {
       details: "Frieren",
       activityType: 3,
-      buttons: [{ label: "discord.button.search", url: "https://anilist.co/search/anime?search=Frieren" }],
+      buttons: [
+        { label: "discord.button.search", url: "https://anilist.co/search/anime?search=Frieren" },
+      ],
     });
   });
 
@@ -104,7 +106,9 @@ describe("usePlayerDiscordPresence", () => {
       details: "Frieren",
       state: "discord.player.paused",
       activityType: 3,
-      buttons: [{ label: "discord.button.search", url: "https://anilist.co/search/anime?search=Frieren" }],
+      buttons: [
+        { label: "discord.button.search", url: "https://anilist.co/search/anime?search=Frieren" },
+      ],
     });
   });
 

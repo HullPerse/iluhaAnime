@@ -47,10 +47,7 @@ export function groupEntriesByListCached(
   entries: AniListEntry[],
   lists: AniListCollection[]
 ): AniListGroup[] {
-  if (
-    cachedGroupEntriesByList?.entries === entries &&
-    cachedGroupEntriesByList?.lists === lists
-  ) {
+  if (cachedGroupEntriesByList?.entries === entries && cachedGroupEntriesByList?.lists === lists) {
     return cachedGroupEntriesByList.result;
   }
   const result = groupEntriesByList(entries, lists);

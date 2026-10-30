@@ -12,7 +12,6 @@ import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
-
   SqliteDatabaseInfo,
   SqliteRowsPage,
   SqliteTableInfo,

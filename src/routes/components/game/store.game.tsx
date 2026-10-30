@@ -6,10 +6,7 @@ import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import {
-  GAME_STORE_PLATFORM_LABELS,
-  GAME_STORE_PLATFORMS,
-} from "@/config/game/platforms.config";
+import { GAME_STORE_PLATFORM_LABELS, GAME_STORE_PLATFORMS } from "@/config/game/platforms.config";
 import { useGameStore, useGameStoreInstall } from "@/hooks/game/store.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { sizeInKb } from "@/lib/game/format.utils";

@@ -85,7 +85,11 @@ let cachedNiceTicks: {
 } | null = null;
 
 export function niceTicks(min: number, max: number, count = 5): number[] {
-  if (cachedNiceTicks?.min === min && cachedNiceTicks?.max === max && cachedNiceTicks?.count === count) {
+  if (
+    cachedNiceTicks?.min === min &&
+    cachedNiceTicks?.max === max &&
+    cachedNiceTicks?.count === count
+  ) {
     return cachedNiceTicks.result;
   }
   if (!Number.isFinite(min) || !Number.isFinite(max) || count <= 0) return [];

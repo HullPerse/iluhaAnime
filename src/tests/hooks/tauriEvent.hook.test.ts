@@ -45,7 +45,6 @@ const tauri = vi.hoisted(() => {
   return { listen, calls, last, reset };
 });
 
-
 vi.mock("@tauri-apps/api/event", () => ({
   listen: mockListen,
 }));

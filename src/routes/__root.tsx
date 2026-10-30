@@ -16,7 +16,7 @@ import OutletComponent from "@/components/shared/outlet.component";
 import { RouteErrorScreen } from "@/components/shared/routeError.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { PLAYER_ROUTE } from "@/config/player/player-route.config";
+import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
 import { settingsSearchSchema } from "@/config/settings/tabs.config";
 import { APP_LAYOUT_ROUTE_ID } from "@/config/tabs/routes.config";
 import { torrentSearchSchema } from "@/config/torrent/search.config";

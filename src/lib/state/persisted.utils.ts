@@ -1,11 +1,6 @@
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 
-import {
-  createPersistor,
-  persistKey,
-  type PersistedData,
-  type Persistor,
-} from "./persist.utils";
+import { createPersistor, persistKey, type PersistedData, type Persistor } from "./persist.utils";
 import { createSignalStore, type SignalStore } from "./signal.store";
 
 export function defaultGetStorage(): Storage | undefined {

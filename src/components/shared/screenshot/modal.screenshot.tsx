@@ -157,10 +157,12 @@ export default function ScreenshotModal({
     }
     const [, writeError] = await attempt(writeImage(path));
     if (path !== capture.path) {
-      attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
-        if (error) reportBackgroundError("screenshot.discard-copy", error);
-        return null;
-      }).catch(() => {});
+      attempt(systemApi.discardScreenshot(path))
+        .then(([, error]) => {
+          if (error) reportBackgroundError("screenshot.discard-copy", error);
+          return null;
+        })
+        .catch(() => {});
     }
     if (writeError) {
       setCopied(false);

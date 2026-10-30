@@ -48,10 +48,12 @@ export function useUpscaleToolStatus(tool: UpscaleTool) {
 
   useEffect(() => {
     let alive = true;
-    attempt(invokeTyped<boolean>(CHECK_COMMAND[tool])).then(([ok, err]) => {
-      if (alive) setStatus(ok && !err ? "ok" : "missing");
-      return null;
-    }).catch(() => {});
+    attempt(invokeTyped<boolean>(CHECK_COMMAND[tool]))
+      .then(([ok, err]) => {
+        if (alive) setStatus(ok && !err ? "ok" : "missing");
+        return null;
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };

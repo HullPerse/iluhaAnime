@@ -107,7 +107,9 @@ export interface TorrentSignalStore {
     subFolder: string | undefined,
     sequential?: boolean
   ) => Promise<void>;
-  getTorrentLimits: (id: number) => Promise<{ downloadBps: number | null; uploadBps: number | null }>;
+  getTorrentLimits: (
+    id: number
+  ) => Promise<{ downloadBps: number | null; uploadBps: number | null }>;
   queueTorrentFiles: (filePaths: string[]) => void;
   prepareNextInQueue: () => void;
   prepareTorrentDownload: (

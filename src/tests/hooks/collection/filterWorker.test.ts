@@ -39,17 +39,21 @@ const ITEMS = [
 ];
 
 function setup(query: string, items: CollectionItem[] = ITEMS) {
-  return renderHook(({ q, list }) => useCollectionFilterWorker({
-    items: list,
-    statuses: STATUSES,
-    searchQuery: q,
-    selectedStatus: "all",
-    filters: DEFAULT_FILTERS,
-    sortBy: "date",
-    sortDir: "desc",
-    intentEnabled: true,
-    tagTolerances: DEFAULT_TAG_TOLERANCES,
-  }), { initialProps: { q: query, list: items } });
+  return renderHook(
+    ({ q, list }) =>
+      useCollectionFilterWorker({
+        items: list,
+        statuses: STATUSES,
+        searchQuery: q,
+        selectedStatus: "all",
+        filters: DEFAULT_FILTERS,
+        sortBy: "date",
+        sortDir: "desc",
+        intentEnabled: true,
+        tagTolerances: DEFAULT_TAG_TOLERANCES,
+      }),
+    { initialProps: { q: query, list: items } }
+  );
 }
 
 describe("useCollectionFilterWorker", () => {

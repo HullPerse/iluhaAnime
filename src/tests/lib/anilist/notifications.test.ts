@@ -26,7 +26,6 @@ vi.mock("@/api/anilist.api", () => ({
   },
 }));
 
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: mockConvertFileSrc,

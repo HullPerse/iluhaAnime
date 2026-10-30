@@ -54,18 +54,18 @@ async function fetchFreshTorrentBytes(
     return { ok: true, bytes };
   }
   const torrentUrl = details.torrentUrl || details.magnet;
-  if (!torrentUrl.startsWith("http")) return { ok: false, error: tr("torrent.files.update.no.url") };
+  if (!torrentUrl.startsWith("http"))
+    return { ok: false, error: tr("torrent.files.update.no.url") };
   const [bytes, error] = await attempt(torrentApi.fetchTorrentBytes(torrentUrl, origin.source));
   if (error || !bytes || bytes.length === 0)
     return { ok: false, error: error?.message ?? tr("torrent.files.update.bytes.error") };
   return { ok: true, bytes };
 }
 
-function matchPickedIndices(
-  picked: TorrentDetailFile[],
-  freshFiles: TorrentFileInfo[]
-): number[] {
-  const byFull = new Map(freshFiles.map((file) => [normalizeUpdateFileName(file.name), file.index]));
+function matchPickedIndices(picked: TorrentDetailFile[], freshFiles: TorrentFileInfo[]): number[] {
+  const byFull = new Map(
+    freshFiles.map((file) => [normalizeUpdateFileName(file.name), file.index])
+  );
   const byBase = new Map(
     freshFiles.map((file) => {
       const normalized = normalizeUpdateFileName(file.name);
@@ -75,8 +75,7 @@ function matchPickedIndices(
   const indices: number[] = [];
   for (const file of picked) {
     const normalized = normalizeUpdateFileName(file.name);
-    const index =
-      byFull.get(normalized) ?? byBase.get(fileNameFromPath(normalized));
+    const index = byFull.get(normalized) ?? byBase.get(fileNameFromPath(normalized));
     if (index !== undefined) indices.push(index);
   }
   return [...new Set(indices)];
@@ -109,9 +108,7 @@ export async function applyTorrentUpdate(
   const [freshFiles] = await attempt(torrentApi.runningTorrentFiles(newId));
   const indices = matchPickedIndices(picked, freshFiles ?? []);
   if (indices.length > 0 && indices.length < (freshFiles ?? []).length) {
-    const [, selectError] = await attempt(
-      torrentApi.updateOnlyFiles(newId, indices, undefined)
-    );
+    const [, selectError] = await attempt(torrentApi.updateOnlyFiles(newId, indices, undefined));
     if (selectError) showError(tr("torrent.files.update.error"), selectError.message);
   }
   const [, sourceError] = await attempt(torrentApi.setTorrentSource(newId, origin, undefined));

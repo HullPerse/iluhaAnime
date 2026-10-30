@@ -183,7 +183,7 @@ describe("popup mode gating for system toasts", () => {
     });
     return mockInvoke.mock.calls
       .filter((call) => call[0] === "show_toast")
-      .map((call) => (call[1] as { title: string }));
+      .map((call) => call[1] as { title: string });
   }
 
   it("sends a system toast when popups are system-only", async () => {

@@ -1,9 +1,6 @@
-import { test } from 'vitest';
+import { test } from "vitest";
 
-import {
-  createPlaybackSignalStore,
-  createPlayerSignalStore,
-} from '@/store/player.store';
+import { createPlaybackSignalStore, createPlayerSignalStore } from "@/store/player.store";
 
 function memoryStorage(backing = new Map<string, string>()) {
   return {
@@ -19,7 +16,7 @@ function memoryStorage(backing = new Map<string, string>()) {
 }
 
 const SNAPSHOT = {
-  path: '/media/ep01.mkv',
+  path: "/media/ep01.mkv",
   timePos: 1234.5,
   duration: 7200,
   pause: false,
@@ -33,22 +30,21 @@ const SNAPSHOT = {
   fpsVideo: 24,
   dropCount: 3,
   cacheDuration: 4,
-  hwdecCurrent: 'cuda',
+  hwdecCurrent: "cuda",
   videoWidth: 1920,
   videoHeight: 1080,
 };
 
-
-test('player store - settings atoms', async ({ bench }) => {
-  const b1 = bench('patch + setVolume x50k', () => {
+test("player store - settings atoms", async ({ bench }) => {
+  const b1 = bench("patch + setVolume x50k", () => {
     const store = createPlayerSignalStore({ getStorage: () => memoryStorage() });
     for (let i = 0; i < 50000; i++) {
-      store.setVolume(i % 100 / 50);
+      store.setVolume((i % 100) / 50);
       store.patchPlayerSettings({ brightness: i % 200, contrast: i % 200 });
     }
   });
 
-  const b2 = bench('snapshot: read mirror x50k', () => {
+  const b2 = bench("snapshot: read mirror x50k", () => {
     const store = createPlayerSignalStore({ getStorage: () => memoryStorage() });
     let checksum = 0;
     for (let i = 0; i < 50000; i++) {
@@ -61,15 +57,15 @@ test('player store - settings atoms', async ({ bench }) => {
   await bench.compare(b1, b2, { time: 100, iterations: 3 });
 });
 
-test('player store - playback snapshot path (hot)', async ({ bench }) => {
-  const b1 = bench('playback setSnapshot x50k (timePos varies)', () => {
+test("player store - playback snapshot path (hot)", async ({ bench }) => {
+  const b1 = bench("playback setSnapshot x50k (timePos varies)", () => {
     const store = createPlaybackSignalStore();
     for (let i = 0; i < 50000; i++) {
       store.setSnapshot({ ...SNAPSHOT, timePos: 100 + i });
     }
   });
 
-  const b2 = bench('setSnapshot + settle: unreached target kept x50k', () => {
+  const b2 = bench("setSnapshot + settle: unreached target kept x50k", () => {
     const store = createPlaybackSignalStore();
     store.setSeekTarget(1e6);
     for (let i = 0; i < 50000; i++) {
@@ -77,7 +73,7 @@ test('player store - playback snapshot path (hot)', async ({ bench }) => {
     }
   });
 
-  const b3 = bench('setSnapshot + settle: file change clears target x50k', () => {
+  const b3 = bench("setSnapshot + settle: file change clears target x50k", () => {
     const store = createPlaybackSignalStore();
     store.setSeekTarget(600);
     for (let i = 0; i < 50000; i++) {
@@ -88,8 +84,8 @@ test('player store - playback snapshot path (hot)', async ({ bench }) => {
   await bench.compare(b1, b2, b3, { time: 100, iterations: 3 });
 });
 
-test('player store - seek target timer', async ({ bench }) => {
-  await bench('setSeekTarget + settleSeek x50k', () => {
+test("player store - seek target timer", async ({ bench }) => {
+  await bench("setSeekTarget + settleSeek x50k", () => {
     const store = createPlaybackSignalStore();
     for (let i = 0; i < 50000; i++) {
       store.setSeekTarget(i);

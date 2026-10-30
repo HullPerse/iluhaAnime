@@ -397,11 +397,7 @@ describe("player/title", () => {
 
     it("uses the folder for number-prefixed files", () => {
       expect(
-        formatParsedTitle(
-          "133-134. Женщина, что полюбила Сещемару.mkv",
-          ru,
-          "Anime/Inuyasha"
-        )
+        formatParsedTitle("133-134. Женщина, что полюбила Сещемару.mkv", ru, "Anime/Inuyasha")
       ).toBe("Inuyasha, Серии 133-134: Женщина, что полюбила Сещемару");
     });
 

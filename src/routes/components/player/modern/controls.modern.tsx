@@ -89,8 +89,14 @@ function ModernControls({
 }) {
   const { t } = useI18n();
   const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
-  const prevChapterTitle = useKeybindTitle(t("player.media.controls.backward"), "player.prevChapter");
-  const nextChapterTitle = useKeybindTitle(t("player.media.controls.forward"), "player.nextChapter");
+  const prevChapterTitle = useKeybindTitle(
+    t("player.media.controls.backward"),
+    "player.prevChapter"
+  );
+  const nextChapterTitle = useKeybindTitle(
+    t("player.media.controls.forward"),
+    "player.nextChapter"
+  );
   const playlistTitle = useKeybindTitle(t("player.media.playlist.toggle"), "player.togglePlaylist");
   const autoHideTitle = useKeybindTitle(
     t("player.media.key.autohide.toggle"),

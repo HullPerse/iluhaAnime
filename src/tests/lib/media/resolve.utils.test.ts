@@ -224,9 +224,7 @@ describe("resolveMediaFile rutracker folder vocabulary", () => {
   });
 
   it("reads compact lang pairs like JAP+Sub", () => {
-    expect(
-      resolveMediaFile("Anime/[RUS(int), JAP+Sub]", "Show - 01 [1080p].mkv")
-    ).toMatchObject({
+    expect(resolveMediaFile("Anime/[RUS(int), JAP+Sub]", "Show - 01 [1080p].mkv")).toMatchObject({
       title: "Show",
       lang: ["rus", "jpn"],
     });
@@ -240,9 +238,7 @@ describe("resolveMediaFile rutracker folder vocabulary", () => {
   });
 
   it("surfaces subtitle markers from the folder", () => {
-    expect(
-      resolveMediaFile("Anime/[RUS(int), JAP+Sub]", "Show - 01 [1080p].mkv")
-    ).toMatchObject({
+    expect(resolveMediaFile("Anime/[RUS(int), JAP+Sub]", "Show - 01 [1080p].mkv")).toMatchObject({
       title: "Show",
       subs: ["sub"],
     });

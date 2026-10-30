@@ -95,7 +95,8 @@ export function useUpscalePreview({
         setState({ key: requestKey, frames: data, loading: false, error: null });
         return null;
       })
-    );  }, [filePath, requestKey, resolution, selectedShaders, t, temporalDenoise]);
+    );
+  }, [filePath, requestKey, resolution, selectedShaders, t, temporalDenoise]);
 
   if (state.key !== requestKey) return { ...EMPTY_STATE(requestKey), load };
   return { frames: state.frames, loading: state.loading, error: state.error, load };

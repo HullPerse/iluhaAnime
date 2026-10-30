@@ -65,8 +65,7 @@ function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentInfo[]>
     }
   );
   if (patch.torrents !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, patch.torrents);
-  if (patch.lastActiveAt !== undefined)
-    torrentAtoms.lastActiveAt.set(patch.lastActiveAt);
+  if (patch.lastActiveAt !== undefined) torrentAtoms.lastActiveAt.set(patch.lastActiveAt);
   for (const t of findNewErrors(prev, payload)) {
     showError(tr("torrent.state.error"), `${t.name}: ${t.error}`);
   }

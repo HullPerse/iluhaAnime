@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  bandScale,
-  linearScale,
-  niceMax,
-  niceTicks,
-  normalize,
-} from "@/lib/charts/scale.utils";
+import { bandScale, linearScale, niceMax, niceTicks, normalize } from "@/lib/charts/scale.utils";
 
 describe("normalize", () => {
   it("maps the domain onto zero and one", () => {

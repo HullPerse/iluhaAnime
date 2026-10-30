@@ -75,17 +75,28 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
         setVisible(false);
         return;
       }
-      const animation = osdElement.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        { duration: OSD_FADE_MS, easing: "ease-out" }
-      );
+      const animation = osdElement.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: OSD_FADE_MS,
+        easing: "ease-out",
+      });
       animation.finished.then(() => setVisible(false)).catch(() => undefined);
     });
     return () => {
       timerRef.current?.cancel();
       timerRef.current = null;
     };
-  }, [audioTrack?.id, subTrack?.id, subOffset, audioOffset, speed, volume, muted, alwaysOnTop, animateOsd, osdElement]);
+  }, [
+    audioTrack?.id,
+    subTrack?.id,
+    subOffset,
+    audioOffset,
+    speed,
+    volume,
+    muted,
+    alwaysOnTop,
+    animateOsd,
+    osdElement,
+  ]);
 
   if (!visible || !path) return null;
 

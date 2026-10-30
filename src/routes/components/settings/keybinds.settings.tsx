@@ -73,11 +73,7 @@ function BindingCell({ row, scopeLabel }: { row: ResolvedKeybind; scopeLabel: st
   );
 }
 
-export function SettingsKeybinds({
-  expandedSectionIds,
-}: {
-  expandedSectionIds?: Set<string>;
-}) {
+export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: Set<string> }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<ScopeFilter>("all");

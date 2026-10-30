@@ -62,7 +62,5 @@ export function nearestIndex(sorted: readonly number[], target: number): number 
   }
   const previous = low - 1;
   if (previous < 0) return low;
-  return Math.abs(sorted[previous]! - target) <= Math.abs(sorted[low]! - target)
-    ? previous
-    : low;
+  return Math.abs(sorted[previous]! - target) <= Math.abs(sorted[low]! - target) ? previous : low;
 }

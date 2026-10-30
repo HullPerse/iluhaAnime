@@ -140,7 +140,9 @@ export function BarChart({
             {tooltipData && activeDatum ? (
               <SvgChartTooltip
                 x={plot.left + activeLength + CHART_LAYOUT.tooltipOffset}
-                y={cursor.active != null && cursor.active <= 1 ? activeCenter + 10 : activeCenter - 6}
+                y={
+                  cursor.active != null && cursor.active <= 1 ? activeCenter + 10 : activeCenter - 6
+                }
                 data={tooltipData}
                 plot={plot}
                 placement={cursor.active != null && cursor.active <= 1 ? "below" : "above"}

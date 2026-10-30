@@ -4,10 +4,7 @@ import {
 } from "@/lib/collection/filter.utils";
 import type { CollectionFilterSnapshot } from "@/lib/collection/filter.utils";
 import { attemptSync } from "@/lib/utils/attempt.utils";
-import type {
-  WorkerJobEnvelope,
-  WorkerJobResponse,
-} from "@/lib/workers/job.utils";
+import type { WorkerJobEnvelope, WorkerJobResponse } from "@/lib/workers/job.utils";
 import type {
   CollectionFilterWorkerPayload,
   CollectionFilterWorkerResult,

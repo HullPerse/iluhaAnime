@@ -580,11 +580,8 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
   }
 }
 
-async function streamRuns(browser: Browser, main: Page): Promise<void> {
-  // Two different titles: the first keeps the catalog cold, the second reuses
-  // whatever the client caches, so the chain numbers cover both.
-  let chains: Chain[] = [];
-  const started = now();
+async function collectStreamChains(main: Page): Promise<Chain[]> {
+  const chains: Chain[] = [];
   for (let attempt = 0; attempt < 8 && chains.length < 2; attempt++) {
     try {
       const search = await invoke<{ items: AnimeLibAnime[] }>(main, "anime_lib_search", {
@@ -593,12 +590,19 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
       const candidate = search.items[attempt === 0 ? 0 : attempt] ?? search.items[0];
       if (!candidate) break;
       if (chains.some((chain) => chain.anime.id === candidate.id)) continue;
-      const chain = await catalogChain(main, candidate.slugUrl, `каталог: ${candidate.title}`);
-      chains.push(chain);
+      chains.push(await catalogChain(main, candidate.slugUrl, `каталог: ${candidate.title}`));
     } catch (error) {
       console.log(`  skip title: ${String(error)}`);
     }
   }
+  return chains;
+}
+
+async function streamRuns(browser: Browser, main: Page): Promise<void> {
+  // Two different titles: the first keeps the catalog cold, the second reuses
+  // whatever the client caches, so the chain numbers cover both.
+  const started = now();
+  const chains = await collectStreamChains(main);
   record("каталог: два тайтла подряд", "итого на поиск двух тайтлов", now() - started);
   if (chains.length === 0) {
     failures.push("stream: no playable AnimeLib title resolved");

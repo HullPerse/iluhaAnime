@@ -37,7 +37,10 @@ function renderBars(onActivate = vi.fn()) {
       data={DATA}
       ariaLabel="Genres"
       formatValue={(value) => `${value} titles`}
-      tooltip={(datum) => ({ title: datum.label, rows: [{ label: "Titles", value: String(datum.value) }] })}
+      tooltip={(datum) => ({
+        title: datum.label,
+        rows: [{ label: "Titles", value: String(datum.value) }],
+      })}
       onActivate={onActivate}
     />
   );
@@ -89,12 +92,7 @@ describe("BarChart", () => {
 
   it("shows the empty label instead of a plot", () => {
     render(
-      <BarChart
-        data={[]}
-        ariaLabel="Empty genres"
-        formatValue={String}
-        emptyLabel="No data yet"
-      />
+      <BarChart data={[]} ariaLabel="Empty genres" formatValue={String} emptyLabel="No data yet" />
     );
 
     expect(screen.getByText("No data yet")).toBeDefined();

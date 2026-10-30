@@ -96,16 +96,27 @@ function statisticsFixture(): AniListStatistics {
     start_years: [
       { year: 2019, count: 3, mean_score: 74, minutes_watched: 3000, media_ids: [1, 2, 3] },
     ],
-    genres: [{ genre: "Drama", count: 3, mean_score: 78, minutes_watched: 3000, media_ids: [1, 2, 3] }],
+    genres: [
+      { genre: "Drama", count: 3, mean_score: 78, minutes_watched: 3000, media_ids: [1, 2, 3] },
+    ],
     studios: [
-      { id: 43, name: "ufotable", count: 2, mean_score: 84, minutes_watched: 2000, media_ids: [1, 2] },
+      {
+        id: 43,
+        name: "ufotable",
+        count: 2,
+        mean_score: 84,
+        minutes_watched: 2000,
+        media_ids: [1, 2],
+      },
     ],
   };
 }
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       {children}
     </QueryClientProvider>
   );
@@ -176,9 +187,14 @@ describe("StatsModal overview", () => {
     );
     const user = userEvent.setup();
     renderModal("POINT_10");
-    await vi.waitFor(() => {
-      expect(screen.queryByText(/Statistics unavailable|boom get_anilist_statistics/u)).not.toBeNull();
-    }, { timeout: 10000 });
+    await vi.waitFor(
+      () => {
+        expect(
+          screen.queryByText(/Statistics unavailable|boom get_anilist_statistics/u)
+        ).not.toBeNull();
+      },
+      { timeout: 10000 }
+    );
     const before = invokeMock.mock.calls.length;
     await user.click(screen.getByRole("button", { name: "Refresh" }));
     await vi.waitFor(() => {

@@ -1,9 +1,4 @@
-import {
-  chordKey,
-  chordKeyFromEvent,
-  parseChord,
-  type HotkeyDef,
-} from "./chord.hotkeys";
+import { chordKey, chordKeyFromEvent, parseChord, type HotkeyDef } from "./chord.hotkeys";
 
 export interface ResolvedHotkey<TId extends string = string> {
   id: TId;
@@ -23,7 +18,9 @@ export function createHotkeyRegistry<TId extends string>(
     const key = chordKey(chord);
     const clash = registry.get(key);
     if (clash) {
-      console.warn(`hotkeys: chord "${def.chord}" of "${def.id}" clashes with "${clash.id}", skipped`);
+      console.warn(
+        `hotkeys: chord "${def.chord}" of "${def.id}" clashes with "${clash.id}", skipped`
+      );
       continue;
     }
     registry.set(key, { id: def.id, repeat: def.repeat });
@@ -51,8 +48,10 @@ export function createHotkeysHandler<TId extends string>(
   };
 }
 
-export interface SubscribeHotkeysOptions<TId extends string = string>
-  extends Omit<HotkeysHandlerOptions<TId>, "registry"> {
+export interface SubscribeHotkeysOptions<TId extends string = string> extends Omit<
+  HotkeysHandlerOptions<TId>,
+  "registry"
+> {
   defs: readonly HotkeyDef<TId>[];
   capture?: boolean;
 }

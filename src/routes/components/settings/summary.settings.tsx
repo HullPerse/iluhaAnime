@@ -241,15 +241,16 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         <SummaryRow
           label={t("settings.summary.backups")}
           value={
-            data === undefined
-              ? "..."
-              : newestBackup === null
-                ? t("settings.summary.none")
-                : (
-                  <>
-                    <AnimatedNumber value={data.backups.length} format={String} /> - {formatBytes(backupSize(data.backups))}
-                  </>
-                )
+            data === undefined ? (
+              "..."
+            ) : newestBackup === null ? (
+              t("settings.summary.none")
+            ) : (
+              <>
+                <AnimatedNumber value={data.backups.length} format={String} /> -{" "}
+                {formatBytes(backupSize(data.backups))}
+              </>
+            )
           }
           hint={newestBackup === null ? undefined : formatBackupDate(newestBackup.modifiedMs)}
           busy={data === undefined}
@@ -260,13 +261,14 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         <SummaryRow
           label={t("settings.summary.images")}
           value={
-            data === undefined
-              ? "..."
-              : (
-                <>
-                  <AnimatedNumber value={data.images.count} format={String} /> - {formatBytes(data.images.bytes)}
-                </>
-              )
+            data === undefined ? (
+              "..."
+            ) : (
+              <>
+                <AnimatedNumber value={data.images.count} format={String} /> -{" "}
+                {formatBytes(data.images.bytes)}
+              </>
+            )
           }
           busy={data === undefined}
           actionLabel={t("settings.summary.images.clear")}

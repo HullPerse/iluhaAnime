@@ -5,9 +5,9 @@ import { finalizeSearchTitle } from "@/lib/media/video.utils";
 
 describe("finalizeSearchTitle contract", () => {
   it("puts the arc after a colon", () => {
-    expect(
-      finalizeSearchTitle({ title: "Overlord", arc: "Sei Oukoku-hen", aliases: [] })
-    ).toBe("Overlord: Sei Oukoku-hen");
+    expect(finalizeSearchTitle({ title: "Overlord", arc: "Sei Oukoku-hen", aliases: [] })).toBe(
+      "Overlord: Sei Oukoku-hen"
+    );
   });
 
   it("puts the prefix before a colon", () => {
@@ -43,8 +43,8 @@ describe("finalizeSearchTitle contract", () => {
   });
 
   it("maps a plain alias without season interference", () => {
-    expect(
-      finalizeSearchTitle({ title: "Bounen no Xamdou", aliases: SEARCH_ALIASES })
-    ).toBe("Bounen no Zamned");
+    expect(finalizeSearchTitle({ title: "Bounen no Xamdou", aliases: SEARCH_ALIASES })).toBe(
+      "Bounen no Zamned"
+    );
   });
 });

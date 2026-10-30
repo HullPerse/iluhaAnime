@@ -26,9 +26,7 @@ function memoryStorage(backing = new Map<string, string>()): Storage {
   } as Storage;
 }
 
-function setupNotifications(
-  backing = new Map<string, string>()
-): AnilistNotificationsSignalStore {
+function setupNotifications(backing = new Map<string, string>()): AnilistNotificationsSignalStore {
   return createAnilistNotificationsSignalStore({
     getStorage: () => memoryStorage(backing),
   });
@@ -158,20 +156,20 @@ describe("migrate helpers", () => {
   it("migrateFriendsData drops invalid rows", () => {
     expect(migrateFriendsData(null)).toEqual({ friends: [] });
     expect(
-      migrateFriendsData({ friends: [{ id: 1, name: "  A  " }, { id: -2, name: "Bad" }] })
+      migrateFriendsData({
+        friends: [
+          { id: 1, name: "  A  " },
+          { id: -2, name: "Bad" },
+        ],
+      })
     ).toEqual({
-      friends: [
-        expect.objectContaining({ id: 1, name: "A" }),
-      ],
+      friends: [expect.objectContaining({ id: 1, name: "A" })],
     });
   });
 
   it("migrateNotificationsData handles legacy versions", () => {
     expect(migrateNotificationsData(null, 0).initialized).toBe(false);
-    const migrated = migrateNotificationsData(
-      { observations: { "1": { status: "CURRENT" } } },
-      1
-    );
+    const migrated = migrateNotificationsData({ observations: { "1": { status: "CURRENT" } } }, 1);
     expect(migrated.observations["1"].status).toBe("CURRENT");
     expect(migrated.releases).toEqual([]);
   });

@@ -31,9 +31,9 @@ describe("torrent/problem", () => {
   });
 
   it("maps network stalls to no peers", () => {
-    expect(
-      describeTorrentProblem("Timed out while resolving magnet metadata", false).cause
-    ).toBe("noPeers");
+    expect(describeTorrentProblem("Timed out while resolving magnet metadata", false).cause).toBe(
+      "noPeers"
+    );
     expect(describeTorrentProblem("tracker unreachable", false).cause).toBe("noPeers");
   });
 

@@ -137,14 +137,11 @@ describe("TorrentFilePicker duplicate guard", () => {
   });
 
   it("allows a different hash with the same name", () => {
-    renderDuplicate(
-      "magnet:?xt=urn:btih:ffffffffffffffffffffffffffffffffffffffff",
-      existing()
-    );
+    renderDuplicate("magnet:?xt=urn:btih:ffffffffffffffffffffffffffffffffffffffff", existing());
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(
-      (screen.getByRole("button", { name: "Download" }) as HTMLButtonElement).disabled
-    ).toBe(false);
+    expect((screen.getByRole("button", { name: "Download" }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
   });
 
   it("stays quiet without a magnet or library", () => {

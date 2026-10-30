@@ -4,10 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
 import { useCollectionFilterWorker } from "@/hooks/collection/filterWorker.hook";
 import { useCollectionMetadata } from "@/hooks/collection/metadata.hook";
-import {
-  useCollectionData,
-  useCollectionMutations,
-} from "@/hooks/collection/queries.hook";
+import { useCollectionData, useCollectionMutations } from "@/hooks/collection/queries.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
@@ -223,8 +220,7 @@ export default function CollectionRoute() {
       return;
     }
     const [, copyError] = await attempt(writeText(link));
-    if (copyError)
-      addNotification(t("app.collection"), "error", copyError.message);
+    if (copyError) addNotification(t("app.collection"), "error", copyError.message);
   }, [items, selectedStatus, statuses, t]);
 
   useEffect(() => {
@@ -235,12 +231,9 @@ export default function CollectionRoute() {
 
   const handleShareImportClose = useCallback(() => setIncomingShare(null), []);
 
-  const handleAddToStatus = useCallback(
-    (status: CollectionStatusDef) => {
-      requestWizardPrefill({ title: "", coverUrl: null, status: status.id });
-    },
-    []
-  );
+  const handleAddToStatus = useCallback((status: CollectionStatusDef) => {
+    requestWizardPrefill({ title: "", coverUrl: null, status: status.id });
+  }, []);
 
   return (
     <div className="flex h-full w-full flex-col gap-1 overflow-hidden">

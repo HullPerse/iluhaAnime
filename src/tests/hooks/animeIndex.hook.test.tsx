@@ -9,7 +9,6 @@ import { useEnsureAnimeIndex } from "@/hooks/search/animeIndex.hook";
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
 import { searchAtoms } from "@/store/search.store";
 
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
   convertFileSrc: mockConvertFileSrc,

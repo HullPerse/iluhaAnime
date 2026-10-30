@@ -61,8 +61,6 @@ export const NOTIFICATION_TOAST_STRIP: Record<NotificationType, string> = {
   warning: "bg-yellow-500",
 };
 
-
-
 export interface ToastDefaults {
   durationMs: number;
   maxVisible: number;

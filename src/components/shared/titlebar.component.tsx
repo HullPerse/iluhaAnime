@@ -30,10 +30,10 @@ export default function TitleBar({ title, children }: { title: string; children?
     const syncMaximized = () => {
       appWindow
         .isMaximized()
-      .then((value) => {
-        if (!disposed) setMaximized(value);
-        return null;
-      })
+        .then((value) => {
+          if (!disposed) setMaximized(value);
+          return null;
+        })
         .catch((error) => reportBackgroundError("titlebar.maximized", error));
     };
 

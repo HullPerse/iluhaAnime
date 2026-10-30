@@ -22,4 +22,10 @@ export const suggestionKindLabels: Record<SearchSuggestion["kind"], TranslationK
   spell: "search.suggestion.spell",
 };
 
-export const KIND_ORDER: SearchSuggestion["kind"][] = ["spell", "anime", "history", "local", "torrent"];
+export const KIND_ORDER: SearchSuggestion["kind"][] = [
+  "spell",
+  "anime",
+  "history",
+  "local",
+  "torrent",
+];

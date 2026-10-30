@@ -45,9 +45,7 @@ describe("settings signal migration", () => {
   });
 
   it("defaults the stream quality to 1080p and repairs an unknown label", () => {
-    expect(settings.migrateSettingsData({ language: "en" }, 57).streamDefaultQuality).toBe(
-      "1080p"
-    );
+    expect(settings.migrateSettingsData({ language: "en" }, 57).streamDefaultQuality).toBe("1080p");
     expect(
       settings.migrateSettingsData({ language: "en", streamDefaultQuality: "2160p" }, 57)
         .streamDefaultQuality

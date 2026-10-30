@@ -28,7 +28,8 @@ export function parseSidecarSuffix(
   }
   for (const token of classifyMediaTokens(tokenizeMediaName(suffix))) {
     if (token.kind === "studio") sidecar.studio = token.value;
-    else if (token.kind === "service") sidecar.origin = canonicalService(token.value) ?? token.value;
+    else if (token.kind === "service")
+      sidecar.origin = canonicalService(token.value) ?? token.value;
     else if (token.kind === "dub") sidecar.dub = true;
     else if (token.kind === "lang") {
       const lang = canonicalLang(token.value);

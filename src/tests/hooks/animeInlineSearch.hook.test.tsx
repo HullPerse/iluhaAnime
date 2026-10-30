@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { anilistApi } from "@/api/anilist.api";
-import { useAnimeInlineSearch } from "@/hooks/anilist/inline-search.hook";
+import { useAnimeInlineSearch } from "@/hooks/anilist/inlineSearch.hook";
 import type { AniMedia } from "@/types/anilist";
 
 let client: QueryClient;

@@ -39,14 +39,12 @@ beforeEach(() => {
   mockInvoke.mockReset();
   mockInvoke.mockResolvedValue(undefined);
   listeners.clear();
-  mockListen.mockImplementation(
-    (event: string, handler: (event: { payload: unknown }) => void) => {
-      listeners.set(event, handler);
-      return Promise.resolve(() => {
-        listeners.delete(event);
-      });
-    }
-  );
+  mockListen.mockImplementation((event: string, handler: (event: { payload: unknown }) => void) => {
+    listeners.set(event, handler);
+    return Promise.resolve(() => {
+      listeners.delete(event);
+    });
+  });
 });
 
 describe("upscale queue", () => {

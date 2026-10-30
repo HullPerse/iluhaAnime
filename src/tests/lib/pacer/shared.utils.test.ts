@@ -116,10 +116,12 @@ describe("sleep", () => {
   it("resolves after the wait", async () => {
     const task = sleep(100);
     let settled = false;
-    task.done.then(() => {
-      settled = true;
-      return null;
-    }).catch(() => {});
+    task.done
+      .then(() => {
+        settled = true;
+        return null;
+      })
+      .catch(() => {});
     vi.advanceTimersByTime(99);
     await Promise.resolve();
     expect(settled).toBe(false);

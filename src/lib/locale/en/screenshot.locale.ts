@@ -16,7 +16,8 @@ const screenshot = {
   "screenshot.crop.aria": "Selection {{width}} x {{height}} px at {{x}}, {{y}}",
   "screenshot.crop.empty": "Drag across the image to select an area, hold Shift for a square",
   "screenshot.crop.reset": "Reset selection",
-  "screenshot.crop.zoom": "Wheel zooms, right drag moves, click fits. Drawing works on the shot only",
+  "screenshot.crop.zoom":
+    "Wheel zooms, right drag moves, click fits. Drawing works on the shot only",
   "screenshot.crop.square": "1:1",
   "screenshot.tools": "Tools",
   "screenshot.tool.select": "Select an area",

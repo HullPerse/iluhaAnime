@@ -105,9 +105,7 @@ export default function SettingsMedia() {
               className="h-6"
               label={t("settings.media.streamQuality")}
             />
-            <span className="text-hint text-[12px]">
-              {t("settings.media.streamQuality.hint")}
-            </span>
+            <span className="text-hint text-[12px]">{t("settings.media.streamQuality.hint")}</span>
           </div>
         </div>
         <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">

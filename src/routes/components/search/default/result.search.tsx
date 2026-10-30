@@ -58,7 +58,9 @@ export default function SearchResultItem({
   const queryClient = useQueryClient();
   const refreshCover = () => {
     removeResolvedCover(cover.coverKey);
-    ignore(queryClient.invalidateQueries({ queryKey: queryKeys.coverResolveScope(cover.coverKey) }));
+    ignore(
+      queryClient.invalidateQueries({ queryKey: queryKeys.coverResolveScope(cover.coverKey) })
+    );
   };
   const total = item.seeders + item.leechers;
   const share = total > 0 ? Math.round((item.seeders / total) * 100) : 0;

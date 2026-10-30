@@ -500,9 +500,7 @@ function PlayerComponent() {
         await selectTrack("sub", "no");
         return;
       }
-      const sub = prefs.subLang
-        ? findTrackByPreference(tracks, "sub", prefs.subLang)
-        : null;
+      const sub = prefs.subLang ? findTrackByPreference(tracks, "sub", prefs.subLang) : null;
       if (sub) {
         markTrackSelected("sub", sub.id);
         await selectTrack("sub", sub.id);
@@ -544,17 +542,17 @@ function PlayerComponent() {
       lastMarginsRef.current = null;
       return;
     }
-      ignore(
-        setVideoMarginRatio(next)
-          .then(() => {
-            lastMarginsRef.current = next;
-            return null;
-          })
-          .catch((error: unknown) => {
-            lastMarginsRef.current = null;
-            reportBackgroundError("player.margins", error);
-          })
-      );
+    ignore(
+      setVideoMarginRatio(next)
+        .then(() => {
+          lastMarginsRef.current = next;
+          return null;
+        })
+        .catch((error: unknown) => {
+          lastMarginsRef.current = null;
+          reportBackgroundError("player.margins", error);
+        })
+    );
   }, []);
 
   const syncMargins = useCallback(
@@ -1212,13 +1210,9 @@ function PlayerComponent() {
 
   const rememberStreamTrack = useCallback(
     async (session: StreamOpen, kind: "audio" | "sub", language: string) => {
-      const [loaded] = await attempt(
-        streamApi.prefsGet(session.sourceId, session.mediaId)
-      );
+      const [loaded] = await attempt(streamApi.prefsGet(session.sourceId, session.mediaId));
       const base = loaded ?? emptyPrefs(session.sourceId, session.mediaId);
-      const [failure] = await attempt(
-        streamApi.prefsSave(withTrack(base, kind, language))
-      );
+      const [failure] = await attempt(streamApi.prefsSave(withTrack(base, kind, language)));
       if (failure) reportBackgroundError("player.stream.prefs", failure);
     },
     []

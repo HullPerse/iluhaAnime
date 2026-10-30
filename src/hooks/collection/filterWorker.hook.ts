@@ -52,10 +52,7 @@ export function useCollectionFilterWorker(params: CollectionFilterWorkerParams):
   const runnerRef = useRef<JobRunner<CollectionFilterWorkerPayload> | null>(null);
 
   useEffect(() => {
-    const runner = createJobRunner<
-      CollectionFilterWorkerPayload,
-      CollectionFilterWorkerResult
-    >({
+    const runner = createJobRunner<CollectionFilterWorkerPayload, CollectionFilterWorkerResult>({
       createWorker: () =>
         new Worker(new URL("../../lib/workers/collection.worker", import.meta.url), {
           type: "module",
@@ -71,10 +68,7 @@ export function useCollectionFilterWorker(params: CollectionFilterWorkerParams):
       },
       runSync: (payload) => {
         if (payload.kind === "init") {
-          syncSnapshot.current = createCollectionFilterSnapshot(
-            payload.items,
-            payload.statuses
-          );
+          syncSnapshot.current = createCollectionFilterSnapshot(payload.items, payload.statuses);
           return null;
         }
         const snapshot = syncSnapshot.current;

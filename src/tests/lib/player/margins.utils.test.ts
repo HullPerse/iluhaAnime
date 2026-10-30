@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  computeVideoMargins,
-  marginOptions,
-  marginsCloseEnough,
-} from "@/lib/player/margins.utils";
+import { computeVideoMargins, marginOptions, marginsCloseEnough } from "@/lib/player/margins.utils";
 
 describe("computeVideoMargins", () => {
   it("converts all four field insets into fractions of the viewport", () => {
@@ -20,9 +16,12 @@ describe("computeVideoMargins", () => {
   });
 
   it("can measure a field that reaches the right edge", () => {
-    expect(
-      computeVideoMargins(1280, 720, { left: 4, top: 28, right: 1280, bottom: 660 })
-    ).toEqual({ top: 28 / 720, bottom: 60 / 720, left: 4 / 1280, right: 0 });
+    expect(computeVideoMargins(1280, 720, { left: 4, top: 28, right: 1280, bottom: 660 })).toEqual({
+      top: 28 / 720,
+      bottom: 60 / 720,
+      left: 4 / 1280,
+      right: 0,
+    });
   });
 
   it("falls back to zero margins without a measured rect or viewport", () => {
@@ -32,9 +31,12 @@ describe("computeVideoMargins", () => {
       left: 0,
       right: 0,
     });
-    expect(
-      computeVideoMargins(0, 0, { left: 10, top: 10, right: 20, bottom: 20 })
-    ).toEqual({ top: 0, bottom: 0, left: 0, right: 0 });
+    expect(computeVideoMargins(0, 0, { left: 10, top: 10, right: 20, bottom: 20 })).toEqual({
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+    });
   });
 });
 

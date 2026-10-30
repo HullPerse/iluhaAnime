@@ -80,9 +80,9 @@ describe("ModernControls", () => {
 
   it("disables the subtitle cycle without sub tracks and fires it with tracks", () => {
     const empty = render(<ModernControls {...props()} />);
-    expect(
-      (screen.getByRole("button", { name: "Subtitles" }) as HTMLButtonElement).disabled
-    ).toBe(true);
+    expect((screen.getByRole("button", { name: "Subtitles" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
     empty.unmount();
     const owned = props({ tracks: [subTrack(1)] });
     render(<ModernControls {...owned} />);

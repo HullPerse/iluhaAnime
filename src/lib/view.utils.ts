@@ -1,23 +1,4 @@
-import type { PlayerViewMode } from "@/types/videoPlayer";
-
-export type PlayerBottomBarKind = "full" | "slim";
-
-export interface ViewChrome {
-  fullBleed: boolean;
-  showHeader: boolean;
-  bottom: PlayerBottomBarKind;
-  barsAutoHide: boolean;
-  barsHidden: boolean;
-}
-
-export interface ViewChromeInput {
-  mode: PlayerViewMode;
-  cinema: boolean;
-  fullscreen: boolean;
-  autoHide: boolean;
-  barsVisible: boolean;
-  menuOpen: boolean;
-}
+import type { ViewChrome, ViewChromeInput } from "@/types/view";
 
 export function resolveViewChrome(input: ViewChromeInput): ViewChrome {
   if (input.mode === "minimal") {

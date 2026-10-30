@@ -1,6 +1,6 @@
 import type { GamePlatform, GameRomInfo, GameStartInfo, GameStoreEntry } from "@/types/game";
 
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { tauriTransport } from "./transport.api";
 
 export interface GameApiConfig {

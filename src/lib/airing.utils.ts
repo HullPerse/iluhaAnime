@@ -1,6 +1,7 @@
 import { formatETA } from "@/lib/time.utils";
 import type { AniListCollection } from "@/types/anilist";
 import type { TFunc } from "@/types/i18n";
+import type { AiringDay, AiringRow } from "@/types/airing";
 
 export const AIRING_TICK_MS = 30_000;
 
@@ -39,20 +40,6 @@ export function formatAiringTime(airingAt: number | null, locale: string): strin
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-export interface AiringRow {
-  id: number;
-  title: string;
-  cover: string | null;
-  episode: number | null;
-  airingAt: number;
-  listStatus: string;
-}
-
-export interface AiringDay {
-  dayStartMs: number;
-  rows: AiringRow[];
 }
 
 export function collectAiringRows(lists: AniListCollection[], statusFilter: string): AiringRow[] {

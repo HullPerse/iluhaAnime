@@ -10,11 +10,7 @@ import { useCell } from "@/lib/signal.hook";
 import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TabId } from "@/types/settings";
-
-export interface TrayTab {
-  id: TabId;
-  label: string;
-}
+import type { TrayTab } from "@/types/tray";
 
 async function showMainWindow(): Promise<void> {
   const window = getCurrentWindow();

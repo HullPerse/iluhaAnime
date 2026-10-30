@@ -15,8 +15,10 @@ import {
   screenToWorld,
   zoomCameraAt,
 } from "@/lib/camera.utils";
-import { createAnimationLoop, type AnimationLoopTask } from "@/lib/interval.utils";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { createAnimationLoop } from "@/lib/interval.utils";
+import type { AnimationLoopTask } from "@/types/interval";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import type {
   CameraPoint,
   FranchiseCamera,

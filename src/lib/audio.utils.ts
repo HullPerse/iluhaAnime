@@ -1,4 +1,5 @@
 import { attemptSync } from "@/lib/attempt.utils";
+import type { GameAudio, GameAudioMode } from "@/types/audio";
 
 const BEEP_HZ = 440;
 const BEEP_GAIN = 0.05;
@@ -8,18 +9,6 @@ const GAIN_RAMP_SECONDS = 0.005;
 const PATTERN_BITS = 128;
 /** The pitch register default, matching the interpreter's 4000 Hz. */
 const DEFAULT_PITCH_HZ = 4000;
-
-export type GameAudioMode = "beep" | "wavetable";
-
-export interface GameAudio {
-  /** Follows the VM sound flag; a no-op when the state does not change. */
-  setActive: (active: boolean) => void;
-  /** Output level 0..1; multiplies the base gain of both modes. */
-  setVolume: (volume: number) => void;
-  /** XO-CHIP buzzer state; ignored by beep sessions. */
-  setWavetable: (pitchHz: number, pattern: Uint8Array) => void;
-  dispose: () => void;
-}
 
 interface WavetableBuzzer {
   set: (pitchHz: number, pattern: Uint8Array) => void;

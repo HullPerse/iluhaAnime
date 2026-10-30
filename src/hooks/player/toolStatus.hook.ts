@@ -9,8 +9,7 @@ import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey } from "@/types/i18n";
 import type { CommandName } from "@/types/ipc";
 import type { UpscaleToolStatus } from "@/types/player";
-
-export type UpscaleTool = "rife" | "realcugan";
+import type { UpscaleTool } from "@/types/toolStatus";
 
 const CHECK_COMMAND: Record<UpscaleTool, CommandName> = {
   rife: "check_rife",

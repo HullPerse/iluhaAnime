@@ -3,11 +3,11 @@ import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
 import { TORRENT_LIST_MAX_HEIGHT } from "@/config/torrents.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { clickRowActionButton, dispatchClick } from "@/lib/dispatchHotkeys.utils";
 import { mediaFileExtension } from "@/lib/parse.utils";
 import { resolveTreeArrow, resolveTreeMove } from "@/lib/treeArrow.utils";
-import type { TreeRow } from "@/lib/treeArrow.utils";
+import type { TreeRow } from "@/types/treeArrow";
 import { useCell } from "@/lib/signal.hook";
 import {
   applyFolderSelection,

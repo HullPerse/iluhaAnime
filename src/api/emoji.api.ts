@@ -1,4 +1,4 @@
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { tauriTransport } from "./transport.api";
 
 interface EmojiFile {

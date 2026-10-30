@@ -1,17 +1,6 @@
-import type { CollisionBox } from "@/lib/collisionAabb.utils";
+import type { CollisionBox } from "@/types/collisionAabb";
 import { bucketRows } from "@/lib/collisionBroad.utils";
-
-export interface RowCollisionOptions {
-  rowGap: number;
-  maxPasses?: number;
-  anchored?: (index: number) => boolean;
-  filter?: (a: number, b: number) => boolean;
-}
-
-export interface RowCollisionResult {
-  left: number[];
-  moved: number[];
-}
+import type { RowCollisionOptions, RowCollisionResult } from "@/types/collisionResolve";
 
 const DEFAULT_MAX_PASSES = 5;
 

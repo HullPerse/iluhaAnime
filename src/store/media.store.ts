@@ -1,6 +1,6 @@
 import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Persistor } from "@/lib/persist.utils";
-import type { Cell } from "@/lib/signal.store";
+import type { Persistor } from "@/types/persist";
+import type { Cell } from "@/types/signal";
 import { attempt, attemptSync } from "@/lib/attempt.utils";
 import { invokeTyped } from "@/lib/invoke.utils";
 import type { MediaEntry, WatchState } from "@/types/videoPlayer";

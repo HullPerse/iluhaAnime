@@ -11,8 +11,8 @@ import {
   scoreCoverCandidate,
   stripBracketGroups,
   withTimeout,
-  type CoverCandidate,
 } from "@/lib/cover.utils";
+import type { CoverCandidate } from "@/types/cover";
 
 const naruto: CoverCandidate = { id: 20, romaji: "NARUTO", format: "TV", seasonYear: 2002 };
 const shippuuden: CoverCandidate = {

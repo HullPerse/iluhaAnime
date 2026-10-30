@@ -1,5 +1,6 @@
 import { foldDiacritics } from "@/lib/normalize.utils";
 import type { HighlightRange } from "@/types/search";
+import type { HighlightToken } from "@/types/highlight";
 
 function isAscii(value: string): boolean {
   for (let i = 0; i < value.length; i++) {
@@ -214,12 +215,6 @@ function resolvePair(first: ClippedRange, second: ClippedRange): HighlightRange[
   if (a.end > b.end) push(a.kind, b.end, a.end);
   else if (b.end > a.end) push(b.kind, a.end, b.end);
   return out;
-}
-
-export interface HighlightToken {
-  text: string;
-  highlighted: boolean;
-  kind?: HighlightRange["kind"];
 }
 
 export function splitByRanges(value: string, ranges: readonly HighlightRange[]): HighlightToken[] {

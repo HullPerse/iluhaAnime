@@ -1,14 +1,5 @@
 import type { TabId } from "@/types/settings";
-
-export type TabPath =
-  | "/"
-  | "/torrent"
-  | "/player"
-  | "/anilist"
-  | "/collection"
-  | "/settings"
-  | "/game"
-  | "/stream";
+import type { TabPath } from "@/types/tabPaths";
 
 export const TAB_PATHS: Record<TabId, TabPath> = {
   search: "/",

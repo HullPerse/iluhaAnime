@@ -5,7 +5,7 @@ import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { searchSettingsFind } from "@/lib/find.utils";
-import type { SettingsFindHit } from "@/lib/find.utils";
+import type { SettingsFindHit } from "@/types/find";
 import { FindBox } from "@/routes/components/settings/findBox.settings";
 import { FindResults } from "@/routes/components/settings/findResults.settings";
 import { patchSettings } from "@/store/settings.store";

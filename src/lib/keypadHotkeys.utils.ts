@@ -1,10 +1,5 @@
 import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
-
-export interface KeypadOptions {
-  /** Physical `KeyboardEvent.code` to emulator key index. */
-  keys: ReadonlyMap<string, number>;
-  onKey: (key: number, pressed: boolean) => void;
-}
+import type { KeypadOptions } from "@/types/keypadHotkeys";
 
 /**
  * Captures the mapped keypad keys for the running game session: key state is

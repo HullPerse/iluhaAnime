@@ -2,8 +2,8 @@ import { renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useHotkeys, useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
-import type { HotkeyDef } from "@/lib/chordHotkeys.utils";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
+import type { HotkeyDef } from "@/types/chordHotkeys";
 import { patchSettings } from "@/store/settings.store";
 
 const DEFS: HotkeyDef<"save" | "close">[] = [

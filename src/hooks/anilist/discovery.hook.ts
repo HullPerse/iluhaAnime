@@ -7,17 +7,7 @@ import { attempt } from "@/lib/attempt.utils";
 import { showError } from "@/lib/notification.utils";
 import type { AniListFilters, AniMedia } from "@/types/anilist";
 import type { FilterPage } from "@/types/ipc";
-
-export interface DiscoveryQueue<T> {
-  history: T[];
-  index: number;
-  current: T | undefined;
-  total: number;
-  canPrev: boolean;
-  push: (item: T) => void;
-  prev: () => void;
-  reset: () => void;
-}
+import type { DiscoveryQueue, RandomDiscovery } from "@/types/discovery";
 
 export function useDiscoveryQueue<T>(): DiscoveryQueue<T> {
   const [state, setState] = useState<{ history: T[]; index: number }>({
@@ -66,19 +56,6 @@ async function fetchRandomMedia(
   const fresh = pool.filter((media) => !seen.has(media.id));
   const source = fresh.length > 0 ? fresh : pool;
   return source.length > 0 ? (source[Math.floor(Math.random() * source.length)] ?? null) : null;
-}
-
-export interface RandomDiscovery {
-  open: boolean;
-  current: AniMedia | undefined;
-  index: number;
-  total: number;
-  canPrev: boolean;
-  pending: boolean;
-  start: (filters: AniListFilters) => void;
-  reroll: () => void;
-  prev: () => void;
-  close: () => void;
 }
 
 export function useRandomDiscovery(): RandomDiscovery {

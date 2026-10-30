@@ -1,14 +1,5 @@
 import { clamp } from "@/lib/math.utils";
-
-export type Domain = readonly [number, number];
-export type Range = readonly [number, number];
-
-export interface BandScale {
-  bandwidth: number;
-  step: number;
-  position: (index: number) => number;
-  center: (index: number) => number;
-}
+import type { BandScale, Domain, Range } from "@/types/scale";
 
 const EMPTY_BAND: BandScale = {
   bandwidth: 0,

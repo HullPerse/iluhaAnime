@@ -1,25 +1,9 @@
 import { RELATION_FILTERS } from "@/config/graph.config";
 import type { FranchiseEdge, FranchiseNode, RelationFilter } from "@/types/anilist";
 
-import type { EntryLookup } from "@/lib/entries.utils";
+import type { EntryLookup } from "@/types/entries";
 import { relationGroup, sortFranchiseNodes } from "@/lib/graph.utils";
-
-export interface FranchiseSection {
-  key: "mainline" | RelationFilter;
-  items: FranchiseNode[];
-}
-
-export interface FranchiseNext {
-  id: number;
-  episode: number | null;
-}
-
-export interface FranchiseSummary {
-  titles: number;
-  episodes: number;
-  watched: number;
-  percent: number | null;
-}
+import type { FranchiseNext, FranchiseSection, FranchiseSummary } from "@/types/franchise";
 
 function byYearAndTitle(a: FranchiseNode, b: FranchiseNode): number {
   const yearA = a.year ?? Number.MAX_SAFE_INTEGER;

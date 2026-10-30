@@ -1,9 +1,5 @@
-import type { ChartPlot } from "./frame.chart";
-
-export interface TickEntry {
-  position: number;
-  label: string;
-}
+import type { ChartPlot } from "@/types/frame.chart";
+import type { TickEntry } from "@/types/ticks.chart";
 
 const TEXT_CLASS = "windows95-font fill-text";
 const TICK_FONT_SIZE = 10;

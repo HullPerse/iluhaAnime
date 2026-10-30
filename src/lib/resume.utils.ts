@@ -1,10 +1,7 @@
+import type { HwdecReload } from "@/types/resume";
+
 export const RESUME_MIN = 5;
 export const RESUME_END_MARGIN = 10;
-
-export interface HwdecReload {
-  position: number;
-  paused: boolean;
-}
 
 export function resolveLoadPosition(
   reload: HwdecReload | null,

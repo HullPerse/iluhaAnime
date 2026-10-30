@@ -1,5 +1,6 @@
-import type { Cell } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 import type { PacerEnabled, PacerMode, PacerWait } from "@/types/pacer";
+import type { ScheduledTask, SleepTask } from "@/types/shared";
 
 export const MAX_TIMEOUT_MS = 2_147_483_647;
 
@@ -19,10 +20,6 @@ export function normalizeMaxWait(value: number | undefined): number | undefined 
 export function resolveEnabled(enabled: PacerEnabled | undefined): boolean {
   if (enabled === undefined) return true;
   return typeof enabled === "function" ? enabled() : enabled;
-}
-
-export interface ScheduledTask {
-  cancel: () => void;
 }
 
 let nextSimpleCellId = 1;
@@ -74,11 +71,6 @@ export function scheduleTask(mode: PacerMode, waitMs: number, run: () => void): 
       cancelAnimationFrame(frame);
     },
   };
-}
-
-export interface SleepTask {
-  readonly done: Promise<void>;
-  cancel: () => void;
 }
 
 export function sleep(waitMs: number): SleepTask {

@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RetroismBsod } from "@/components/shared/fatal/retroism.fatal";
-import type { FatalVariantProps } from "@/components/shared/fatal/shared.fatal";
+import type { FatalVariantProps } from "@/types/shared.fatal";
 import { resolveFatalTexts } from "@/lib/fatalTexts.utils";
 import type { FatalInfo } from "@/types/fatal";
 

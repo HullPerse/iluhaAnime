@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
 import { showError } from "@/lib/notification.utils";

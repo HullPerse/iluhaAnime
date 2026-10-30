@@ -1,11 +1,7 @@
 import { collectionApi } from "@/api/collection.api";
 import { IMPORT_CHUNK_SIZE } from "@/config/collectionDefaults.config";
-import {
-  formatScore,
-  normalizeToTen,
-  parseScoreFormat,
-  type AnilistScoreFormat,
-} from "@/lib/anilistScore.utils";
+import { formatScore, normalizeToTen, parseScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { withFallback } from "@/lib/attempt.utils";
 import type { AniListEntry, AniMedia } from "@/types/anilist";
 import type {
@@ -17,12 +13,7 @@ import type {
 } from "@/types/collection";
 
 import { buildWizardItem, mergeGenreTags, parseNonNegative, parseRating } from "@/lib/wizard.utils";
-
-export interface AniListSyncState {
-  status: string;
-  progressValue: number;
-  rating: number | null;
-}
+import type { AniListSyncState } from "@/types/import";
 
 export function entrySyncState(
   entry: AniListEntry,

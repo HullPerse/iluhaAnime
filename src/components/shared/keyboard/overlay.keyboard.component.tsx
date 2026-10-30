@@ -8,8 +8,9 @@ import {
   measureBadgeLayouts,
   resolveBadgeCollisions,
 } from "@/lib/hintsHotkeys.utils";
-import type { HintBadgeLayout } from "@/lib/hintsHotkeys.utils";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import type { HintBadgeLayout } from "@/types/hintsHotkeys";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import { useCell } from "@/lib/signal.hook";
 import { vimAtoms } from "@/store/vim.store";
 

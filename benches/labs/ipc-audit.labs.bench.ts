@@ -28,7 +28,7 @@ import { bench, group } from "@pmndrs/labs";
 // Regression threshold is labs minDelta 5% on
 // bytes; invoke counts are exact pins.
 
-import type { ApiTransport } from "../../src/api/transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { inflightFetch } from "@/lib/lruCache.utils";
 
 interface CallRecord {

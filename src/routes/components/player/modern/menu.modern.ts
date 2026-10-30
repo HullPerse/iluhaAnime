@@ -23,7 +23,7 @@ import {
   Volume2,
 } from "lucide-react";
 
-import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/types/contextMenu";
 import {
   PLAYER_CABINET_IDS,
   PLAYER_CABINETS,
@@ -35,16 +35,8 @@ import { selectableTracks, trackLabel } from "@/lib/tracks.utils";
 import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/streamHelpers.utils";
 import { formatClock } from "@/lib/time.utils";
 import type { TranslationKey } from "@/types/i18n";
-import type { StreamVariant } from "@/types/stream";
-import type {
-  EndOfFileMode,
-  MpvChapter,
-  MpvTrack,
-  PlayerCabinetId,
-  PlayerModeId,
-  PlayerViewMode,
-  StreamOpen,
-} from "@/types/videoPlayer";
+import type { EndOfFileMode, MpvChapter, MpvTrack, PlayerViewMode } from "@/types/videoPlayer";
+import type { ModernMenuActions, ModernMenuSnapshot, ModernMenuStream } from "@/types/menu.modern";
 
 const EOF_MODES: EndOfFileMode[] = ["none", "pause", "next", "repeat"];
 
@@ -68,55 +60,6 @@ const VIEW_HINTS: Record<PlayerViewMode, string> = {
   compact: "2",
   normal: "3",
 };
-
-export interface ModernMenuStream {
-  session: StreamOpen;
-  /** Every row of the episode, voice-overs and subtitle translations alike. */
-  variants: StreamVariant[];
-  variantsLoading: boolean;
-  variantsFailed: boolean;
-  switching: boolean;
-}
-
-export interface ModernMenuSnapshot {
-  hasFile: boolean;
-  paused: boolean;
-  tracks: MpvTrack[];
-  chapters: MpvChapter[];
-  playlistOpen: boolean;
-  fullscreen: boolean;
-  viewMode: PlayerViewMode;
-  alwaysOnTop: boolean;
-  speed: number;
-  eofMode: EndOfFileMode;
-  playerMode: PlayerModeId;
-  cabinet: PlayerCabinetId;
-  /** Present only while a streaming session is playing. */
-  stream: ModernMenuStream | null;
-}
-
-export interface ModernMenuActions {
-  onPlayPause: () => void;
-  onFrameStep: (forward: boolean) => void;
-  onPrevFile: () => void;
-  onNextFile: () => void;
-  onSelectAudio: (id: number | "no") => void;
-  onSelectSub: (id: number | "no") => void;
-  onSeekTo: (time: number) => void;
-  onSpeed: (value: number) => void;
-  onTogglePlaylist: () => void;
-  onToggleFullscreen: () => void;
-  onViewMode: (mode: PlayerViewMode) => void;
-  onToggleAlwaysOnTop: () => void;
-  onEofMode: (mode: EndOfFileMode) => void;
-  onPlayerMode: (mode: PlayerModeId) => void;
-  onCabinet: (cabinet: PlayerCabinetId) => void;
-  onOpenSettings: () => void;
-  onOpenCheatsheet: () => void;
-  onSelectVariant: (variant: StreamVariant) => void;
-  onSelectQuality: (label: string) => void;
-  onRetryVariants: () => void;
-}
 
 function trackEntries(
   kind: "audio" | "sub",

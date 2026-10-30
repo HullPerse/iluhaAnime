@@ -3,7 +3,8 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import { tr } from "@/lib/locale/i18n.utils";
 import { buildOutputPath } from "@/lib/playerTree.utils";
-import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
 import { invokeTyped } from "@/lib/invoke.utils";
 import { ignore } from "@/lib/promise.utils";

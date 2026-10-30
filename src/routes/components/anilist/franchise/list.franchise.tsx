@@ -5,7 +5,8 @@ import ProgressBar from "@/components/shared/progress.component";
 import { FILTER_LABELS } from "@/config/graph.config";
 import { listStatusLabels } from "@/config/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor, type EntryListInfo } from "@/lib/entries.utils";
+import { getStatusColor } from "@/lib/entries.utils";
+import type { EntryListInfo } from "@/types/entries";
 import {
   availableEpisodes,
   buildFranchiseSections,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/franchise.utils";
 import { formatShort } from "@/lib/graph.utils";
 import { formatEntryScore } from "@/lib/anilistScore.utils";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { FranchiseListProps, FranchiseNode } from "@/types/anilist";
 

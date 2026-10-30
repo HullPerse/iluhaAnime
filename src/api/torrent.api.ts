@@ -17,7 +17,7 @@ import type {
   TorrentResumeResult,
 } from "@/types/torrent";
 
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { tauriTransport } from "./transport.api";
 
 export interface TorrentApiConfig {

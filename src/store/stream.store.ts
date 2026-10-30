@@ -1,5 +1,6 @@
 import { DEFAULT_STREAM_FILTERS } from "@/config/streamFilters.config";
-import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 import type { StreamCatalogFilters, StreamSortBy } from "@/types/stream";
 
 // Client state only. Results, episodes, players and sources are server state

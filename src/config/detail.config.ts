@@ -1,8 +1,6 @@
-import type { SettingsStore } from "@/types/settings";
+import type { AnimeDetailWidth } from "@/types/detail";
 
 export const ANILIST_SIMILAR_LIMIT = 8;
-
-export type AnimeDetailWidth = SettingsStore["animeDetailWidth"];
 
 /**
  * Width classes for the anime detail modal. `default` keeps the previous

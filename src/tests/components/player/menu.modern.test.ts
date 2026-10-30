@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  buildModernPlayerMenu,
-  type ModernMenuActions,
-  type ModernMenuSnapshot,
-  type ModernMenuStream,
-} from "@/routes/components/player/modern/menu.modern";
+import { buildModernPlayerMenu } from "@/routes/components/player/modern/menu.modern";
+import type { ModernMenuActions, ModernMenuSnapshot, ModernMenuStream } from "@/types/menu.modern";
 import type { StreamVariant } from "@/types/stream";
 import type { MpvChapter, MpvTrack, StreamOpen } from "@/types/videoPlayer";
 

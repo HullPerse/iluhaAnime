@@ -1,6 +1,7 @@
 import { tmdbApi } from "@/api/tmdb.api";
 import { invokeTyped } from "@/lib/invoke.utils";
-import { attemptResult, err, map, ok, unwrapOr, type Result } from "@/lib/result.utils";
+import { attemptResult, err, map, ok, unwrapOr } from "@/lib/result.utils";
+import type { Result } from "@/types/result";
 import type { AddedMedia, QuickAddMedia } from "@/types/collection";
 
 export async function downloadCover(url: string): Promise<string | null> {

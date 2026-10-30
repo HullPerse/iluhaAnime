@@ -1,5 +1,5 @@
-import type { EntryLookup } from "@/lib/entries.utils";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { EntryLookup } from "@/types/entries";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import AniListScrollView from "@/routes/components/anilist/scroll.anilist";
 import type { AniListAnime, AniListGroup, AniMedia } from "@/types/anilist";
 

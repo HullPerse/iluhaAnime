@@ -29,7 +29,7 @@ import type {
 import type { FilterPage, SpotlightPage } from "@/types/ipc";
 
 import { tauriTransport } from "./transport.api";
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/transport";
 
 export interface AnilistApiConfig {
   transport?: ApiTransport;

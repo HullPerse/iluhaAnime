@@ -1,11 +1,5 @@
-import { createSignalStore, type Cell } from "@/lib/signal.store";
-
-export interface UpdateSignalStore {
-  atoms: { promptOpen: Cell<boolean> };
-  openPrompt: () => void;
-  closePrompt: () => void;
-  reset: () => void;
-}
+import { createSignalStore } from "@/lib/signal.store";
+import type { UpdateSignalStore } from "@/types/update";
 
 export function createUpdateSignalStore(): UpdateSignalStore {
   const store = createSignalStore();

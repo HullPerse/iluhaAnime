@@ -6,7 +6,7 @@ import type {
 } from "@/types/collection";
 import type { LearningStatRow, UnifiedIndexRow } from "@/types/search";
 
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { tauriTransport } from "./transport.api";
 
 export interface CollectionStatusRow extends Omit<CollectionStatusDef, "order" | "kind"> {

@@ -1,14 +1,6 @@
 import type { TFunc } from "@/types/i18n";
 import type { ConvertConfig, UpscaleConfig, UpscaleQueueItem } from "@/types/upscale";
-
-export interface QueueDepthStep {
-  key: string;
-  label: string;
-  detail: string;
-  done: boolean;
-  active: boolean;
-  percent: number;
-}
+import type { QueueDepthStep } from "@/types/playerQueue";
 
 function stageIndex(stage: string | undefined): number {
   if (stage === "encoding") return 2;

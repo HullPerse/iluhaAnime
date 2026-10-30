@@ -36,7 +36,7 @@ import {
   resolveBadgeCollisions,
   scanHintTargets,
 } from "@/lib/hintsHotkeys.utils";
-import type { HintBadge } from "@/lib/hintsHotkeys.utils";
+import type { HintBadge } from "@/types/hintsHotkeys";
 import { scrollAmount } from "@/lib/scroll.utils";
 
 // The scanner reads the viewport through `window`; node has none.

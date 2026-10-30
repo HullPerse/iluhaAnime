@@ -1,4 +1,4 @@
-export type ClickVariant = "plain" | "ctrl" | "contextmenu";
+import type { ClickVariant } from "@/types/dispatchHotkeys";
 
 export function dispatchClick(element: Element, variant: ClickVariant): MouseEvent {
   const contextMenu = variant === "contextmenu";

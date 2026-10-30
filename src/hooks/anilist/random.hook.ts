@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import type { EntryLookup } from "@/lib/entries.utils";
+import type { EntryLookup } from "@/types/entries";
 import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilistGroup.utils";
 import type { AniListAnime, AniListCollection } from "@/types/anilist";
 

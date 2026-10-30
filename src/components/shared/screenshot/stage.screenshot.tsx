@@ -43,6 +43,7 @@ import type {
   ScreenshotScale,
   ScreenshotTool,
 } from "@/types/screenshot";
+import type { StageHandle } from "@/types/stage.screenshot";
 
 const LEFT_BUTTON = 0;
 const RIGHT_BUTTON = 2;
@@ -89,10 +90,6 @@ function paintOffscreen(
     return canvas.toDataURL("image/png");
   });
   return url ?? undefined;
-}
-
-export interface StageHandle {
-  layers: () => ScreenshotLayersPayload | null;
 }
 
 interface ScreenshotStageProps {

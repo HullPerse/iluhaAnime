@@ -2,18 +2,10 @@ import type { KeyboardEvent } from "react";
 import { useCallback, useState } from "react";
 
 import { clamp } from "@/lib/math.utils";
+import type { ChartCursor } from "@/types/chartCursor";
 
 const FORWARD_KEYS = new Set(["ArrowRight", "ArrowDown"]);
 const BACKWARD_KEYS = new Set(["ArrowLeft", "ArrowUp"]);
-
-export interface ChartCursor {
-  active: number | null;
-  setActive: (index: number | null) => void;
-  handlePointerLeave: () => void;
-  handleKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
-  handleFocus: () => void;
-  handleBlur: () => void;
-}
 
 export function useChartCursor(count: number, onActivate?: (index: number) => void): ChartCursor {
   const [rawActive, setRawActive] = useState<number | null>(null);

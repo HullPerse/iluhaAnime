@@ -13,7 +13,7 @@ import type { MouseEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/types/contextMenu";
 import ProgressBar from "@/components/shared/progress.component";
 import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Button } from "@/components/ui/button.component";
@@ -23,7 +23,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { clickRowActionButton } from "@/lib/dispatchHotkeys.utils";
 import { fileNameFromPath, isTrackFileName, parseMediaPath } from "@/lib/parse.utils";
 import { formatParsedTitle } from "@/lib/playerTitle.utils";
-import type { TreeRow } from "@/lib/treeArrow.utils";
+import type { TreeRow } from "@/types/treeArrow";
 import { useCell } from "@/lib/signal.hook";
 import { formatBytes } from "@/lib/bytes.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";

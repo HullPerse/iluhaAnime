@@ -17,8 +17,8 @@ import {
   scoreOptions,
   usesNumericInput,
   validateScoreInput,
-  type AnilistScoreFormat,
 } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { buildAnilistPrefill } from "@/lib/import.utils";
 import { queryKeys } from "@/lib/keys.utils";
 import { attempt } from "@/lib/attempt.utils";

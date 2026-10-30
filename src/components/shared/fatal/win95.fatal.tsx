@@ -1,4 +1,4 @@
-import type { FatalVariantProps } from "./shared.fatal";
+import type { FatalVariantProps } from "@/types/shared.fatal";
 
 const FONT = '"Perfect DOS VGA 437", monospace';
 

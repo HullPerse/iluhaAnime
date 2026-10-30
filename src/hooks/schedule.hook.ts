@@ -2,7 +2,8 @@ import { useRef } from "react";
 
 import { THEMES } from "@/config/themes.config";
 import { useLiveResource } from "@/hooks/liveResource.hook";
-import { dayNightFrame, nowMinutesOf, type DayNightFrame } from "@/lib/daynight.utils";
+import { dayNightFrame, nowMinutesOf } from "@/lib/daynight.utils";
+import type { DayNightFrame } from "@/types/daynight";
 import { reportBackgroundError } from "@/lib/attempt.utils";
 import { setTorrentSpeedLimits } from "@/store/download.store";
 import { getSettingsSnapshot, patchSettings } from "@/store/settings.store";

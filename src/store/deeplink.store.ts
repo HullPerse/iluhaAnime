@@ -1,4 +1,5 @@
-import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 import type {
   AnimeDeepLink,
   AnilistAuthDeepLink,

@@ -1,11 +1,4 @@
-export interface GameKeypadKey {
-  /** CHIP-8 keypad index (0x0-0xF). */
-  key: number;
-  /** Physical `KeyboardEvent.code` that presses it. */
-  code: string;
-  /** Single-character label of the original hex keypad. */
-  label: string;
-}
+import type { GameKeypadKey } from "@/types/keypad";
 
 /** Classic 4x4 hex keypad mapped to the main keyboard block. */
 export const GAME_KEYPAD_ROWS: readonly (readonly GameKeypadKey[])[] = [

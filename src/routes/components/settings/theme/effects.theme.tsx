@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/signal.hook";
-import type { Cell } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 import { patchSettings, settingsAtoms, type SettingsData } from "@/store/settings.store";
 
 export function EffectsCheckbox({

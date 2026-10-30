@@ -1,5 +1,6 @@
 import { humanizeChord } from "@/lib/chordHotkeys.utils";
-import { resolveKeybinds, type KeybindOverride } from "@/lib/resolveHotkeys.utils";
+import { resolveKeybinds } from "@/lib/resolveHotkeys.utils";
+import type { KeybindOverride } from "@/types/resolveHotkeys";
 
 export function formatKeybindTitle(title: string, activeChord: string | null | undefined): string {
   if (!title || !activeChord) return title;

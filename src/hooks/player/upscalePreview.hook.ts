@@ -5,13 +5,7 @@ import { attempt } from "@/lib/attempt.utils";
 import { invokeTyped } from "@/lib/invoke.utils";
 import { ignore } from "@/lib/promise.utils";
 import type { PreviewFrame } from "@/types/upscale";
-
-export interface UpscalePreviewController {
-  frames: PreviewFrame[];
-  loading: boolean;
-  error: string | null;
-  load: () => void;
-}
+import type { UpscalePreviewController } from "@/types/upscalePreview";
 
 interface PreviewState {
   key: string;

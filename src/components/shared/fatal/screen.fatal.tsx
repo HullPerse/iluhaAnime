@@ -5,7 +5,6 @@ import { resolveFatalVariant } from "@/config/screens.config";
 import { resolveFatalLocale, resolveFatalTexts } from "@/lib/fatalTexts.utils";
 import { attempt } from "@/lib/attempt.utils";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
-import type { FatalInfo } from "@/types/fatal";
 
 import { GenericBsod } from "./generic.fatal";
 import { RetroismBsod } from "./retroism.fatal";
@@ -15,14 +14,7 @@ import { Win7Bsod } from "./win7.fatal";
 import { Win95Bsod } from "./win95.fatal";
 import { XpBsod } from "./xp.fatal";
 import { YorhaBsod } from "./yorha.fatal";
-
-export interface FatalScreenProps {
-  info: FatalInfo;
-  safe?: boolean;
-  onReload: () => void;
-  onSafeReload: () => void;
-  onRetry: () => void;
-}
+import type { FatalScreenProps } from "@/types/screen.fatal";
 
 export function FatalScreen({
   info,

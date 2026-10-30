@@ -10,7 +10,7 @@ import { useCell } from "@/lib/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
 import { showError } from "@/lib/notification.utils";
 import GameImportModal from "@/routes/components/game/import.game";
-import type { GameImportDraft } from "@/routes/components/game/import.game";
+import type { GameImportDraft } from "@/types/import.game";
 import GameLibrary from "@/routes/components/game/library.game";
 import GameScreen from "@/routes/components/game/screen.game";
 import GameStoreModal from "@/routes/components/game/store.game";

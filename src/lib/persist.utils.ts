@@ -3,41 +3,12 @@ import * as z from "zod/mini";
 import { Debouncer } from "@/lib/debounce.utils";
 import { attemptSync } from "@/lib/attempt.utils";
 import { parseJson } from "@/lib/schema.utils";
+import type { PersistEnvelope, PersistOptions, PersistedData, Persistor } from "@/types/persist";
 
 export const PERSIST_FORMAT_VERSION = 1;
 
 export function persistKey(storeName: string): string {
   return `iluha.v1.${storeName}`;
-}
-
-export interface PersistEnvelope {
-  f: number;
-  store: string;
-  sv: number;
-  ts: number;
-  data: Record<string, unknown>;
-}
-
-export interface PersistedData {
-  data: Record<string, unknown>;
-  schemaVersion: number;
-}
-
-export interface PersistOptions {
-  storeName: string;
-  schemaVersion: number;
-  getStorage: () => Storage | undefined;
-  debounceMs?: number;
-  fallback?: () => PersistedData | null;
-  onError?: (scope: string, error: unknown) => void;
-  now?: () => number;
-}
-
-export interface Persistor {
-  write: (data: Record<string, unknown>) => void;
-  flush: () => void;
-  read: () => PersistedData | null;
-  dispose: () => void;
 }
 
 const EnvelopeSchema = z.object({

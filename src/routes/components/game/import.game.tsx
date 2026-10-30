@@ -7,20 +7,7 @@ import Select from "@/components/ui/select.component";
 import { GAME_PLATFORM_LABELS } from "@/config/platforms.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { GamePlatform } from "@/types/game";
-
-export interface GameImportDraft {
-  path: string;
-  platform: GamePlatform;
-  name: string | undefined;
-}
-
-export interface GameImportModalProps {
-  filePath: string;
-  platforms: readonly GamePlatform[];
-  busy: boolean;
-  onConfirm: (draft: GameImportDraft) => void;
-  onClose: () => void;
-}
+import type { GameImportModalProps } from "@/types/import.game";
 
 export default function GameImportModal({
   filePath,

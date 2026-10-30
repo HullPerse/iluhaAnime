@@ -1,18 +1,4 @@
-export type ChapterJumpDirection = -1 | 1;
-
-export type ChapterJumpResult =
-  | { kind: "seek"; time: number }
-  | { kind: "boundary"; edge: "first" | "last" };
-
-export interface ChapterJumpArgs {
-  chapters: readonly { time: number }[];
-  timePos: number;
-  duration: number;
-  hasPrev: boolean;
-  hasNext: boolean;
-  direction: ChapterJumpDirection;
-  step: number;
-}
+import type { ChapterJumpArgs, ChapterJumpResult } from "@/types/chapter";
 
 function currentChapterIndex(chapters: readonly { time: number }[], timePos: number): number {
   for (let index = chapters.length - 1; index >= 0; index -= 1) {

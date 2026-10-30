@@ -1,7 +1,7 @@
 import { systemApi } from "@/api/system.api";
 import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Persistor } from "@/lib/persist.utils";
-import type { Cell } from "@/lib/signal.store";
+import type { Persistor } from "@/types/persist";
+import type { Cell } from "@/types/signal";
 import { settingsAtoms } from "@/store/settings.store";
 import { attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import type {

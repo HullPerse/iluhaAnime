@@ -1,32 +1,12 @@
 import { normalizeResolvedCover, normCoverKey } from "@/lib/cover.utils";
 import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Cell } from "@/lib/signal.store";
 import { attemptSync } from "@/lib/attempt.utils";
-
-export interface CoverOverride {
-  id: number;
-  coverUrl: string | null;
-  title: string;
-  at: number;
-}
-
-export interface ResolvedCover {
-  id: number;
-  coverUrl: string | null;
-  title: string;
-  at: number;
-  names?: string[];
-  season?: number;
-  year?: number;
-}
-
-interface CoverCorrectionsData {
-  overrides: Record<string, CoverOverride>;
-  rejections: Record<string, number[]>;
-  aliases: Record<string, string>;
-  resolved: Record<string, ResolvedCover>;
-  blobs: Record<string, string>;
-}
+import type {
+  CoverCorrectionsAtoms,
+  CoverCorrectionsData,
+  CoverCorrectionsStore,
+  ResolvedCover,
+} from "@/types/cover";
 
 const RESOLVED_CAP = 500;
 const BLOBS_CAP = 500;
@@ -48,23 +28,9 @@ function capRecord<T>(
   return next;
 }
 
-type CoverCorrectionsAtoms = { [K in keyof CoverCorrectionsData]: Cell<CoverCorrectionsData[K]> };
-
 export function coverKey(title: string, season?: number): string {
   const norm = normCoverKey(title);
   return `${norm}|${season ?? 0}`;
-}
-
-export interface CoverCorrectionsStore {
-  atoms: CoverCorrectionsAtoms;
-  flush: () => void;
-  setOverride: (key: string, value: CoverOverride) => void;
-  removeOverride: (key: string) => void;
-  rejectCandidate: (key: string, id: number) => void;
-  learnAlias: (key: string, animeTitle: string) => void;
-  setResolved: (key: string, value: ResolvedCover) => void;
-  removeResolved: (key: string) => void;
-  setBlob: (remoteUrl: string, blobId: string) => void;
 }
 
 export function createCoverCorrectionsStore(

@@ -1,32 +1,7 @@
 import { THEME_OVERRIDE_VARS } from "@/config/themes.config";
 import { deriveFieldColor, getTitleText, isHexColor, windowTintAlpha } from "@/lib/palette.utils";
 import type { ThemeDefinition, ThemeOverrideKey } from "@/types/theme";
-
-export interface ThemeVarBinding {
-  varName: `--${string}`;
-  derive: (theme: ThemeDefinition) => string;
-}
-
-export interface ThemeOverrideBinding {
-  key: ThemeOverrideKey;
-  varName: `--${string}`;
-}
-
-export interface ThemeDatasets {
-  theme: string;
-  radius: NonNullable<ThemeDefinition["radius"]>;
-  bevel: NonNullable<ThemeDefinition["bevel"]>;
-  themeOverlay: NonNullable<ThemeDefinition["overlay"]>;
-  themeTitlebarArt: "on" | "off";
-}
-
-export interface ThemeState {
-  themeName: string;
-  vars: Record<string, string>;
-  overrides: Record<string, string>;
-  datasets: ThemeDatasets;
-  fontFamily: string | null;
-}
+import type { ThemeOverrideBinding, ThemeState, ThemeVarBinding } from "@/types/tokens";
 
 export function normalizeAutocompleteOpacity(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0.6;

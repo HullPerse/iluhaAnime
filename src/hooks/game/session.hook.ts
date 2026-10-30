@@ -1,49 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
 
 import { gameApi } from "@/api/game.api";
 import { GAME_DISPLAY } from "@/config/display.config";
 import { GAME_KEY_BY_CODE } from "@/config/keypad.config";
 import { createGameAudio } from "@/lib/audio.utils";
-import type { GameAudio } from "@/lib/audio.utils";
+import type { GameAudio } from "@/types/audio";
 import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/frame.utils";
-import type { Rgba } from "@/lib/frame.utils";
+import type { Rgba } from "@/types/frame";
 import { subscribeKeypad } from "@/lib/keypadHotkeys.utils";
 import { createAnimationLoop } from "@/lib/interval.utils";
-import type { AnimationLoopTask } from "@/lib/interval.utils";
+import type { AnimationLoopTask } from "@/types/interval";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
+import type { GameFrame, GamePalette, GameRomInfo, GameTelemetry } from "@/types/game";
 import type {
-  GameFrame,
-  GamePalette,
-  GameRomInfo,
-  GameStartInfo,
-  GameTelemetry,
-} from "@/types/game";
-
-export type GameSessionStatus = "idle" | "starting" | "running" | "error";
-
-export interface GameSessionRuntime {
-  status: GameSessionStatus;
-  info: GameStartInfo | null;
-  error: string | null;
-}
-
-export interface GameSessionOptions {
-  canvas: RefObject<HTMLCanvasElement | null>;
-  muted: boolean;
-  volume: number;
-}
-
-export interface GameSessionHandle {
-  runtime: GameSessionRuntime;
-  telemetry: GameTelemetry;
-  /** Emulator keys held right now, from physical presses and keypad clicks. */
-  pressedKeys: ReadonlySet<number>;
-  start: (rom: GameRomInfo) => Promise<void>;
-  stop: () => void;
-  /** Emulator key path for UI keypad clicks; inert without a running session. */
-  pressKey: (key: number, pressed: boolean) => void;
-}
+  GameSessionHandle,
+  GameSessionOptions,
+  GameSessionRuntime,
+} from "@/types/gameSession";
 
 const PALETTE = {
   on: tryParseHexColor(GAME_DISPLAY.pixel, [255, 255, 255, 255]),

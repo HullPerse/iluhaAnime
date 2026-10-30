@@ -20,7 +20,8 @@ import {
 } from "@/config/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import { attempt, attemptSync } from "@/lib/attempt.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,

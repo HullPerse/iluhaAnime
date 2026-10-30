@@ -1,19 +1,5 @@
 import type { TranslationKey } from "@/types/i18n";
-
-export type TorrentProblemCause =
-  | "missing"
-  | "noAccess"
-  | "readOnly"
-  | "diskFull"
-  | "diskError"
-  | "noPeers"
-  | "other"
-  | "unknown";
-
-export interface TorrentProblemDescriptor {
-  cause: TorrentProblemCause;
-  headlineKey: TranslationKey;
-}
+import type { TorrentProblemCause, TorrentProblemDescriptor } from "@/types/problem";
 
 const HEADLINE_KEY: Record<TorrentProblemCause, TranslationKey> = {
   missing: "torrent.problem.missing",

@@ -9,9 +9,10 @@ import {
 import { RANKING } from "@/config/ranking.config";
 import { normalizeSearchText } from "@/lib/suggestions.utils";
 import { buildTypedTitles } from "@/lib/searchTitle.utils";
-import type { Persistor } from "@/lib/persist.utils";
+import type { Persistor } from "@/types/persist";
 import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";

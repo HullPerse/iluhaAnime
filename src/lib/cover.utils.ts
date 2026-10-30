@@ -1,40 +1,18 @@
-import { scheduleTask, sleep, type ScheduledTask } from "@/lib/shared.utils";
-import type { ResolvedCover } from "@/store/cover.store";
-
-export interface CoverParsed {
-  title: string;
-  searchTitle: string;
-  season?: number;
-  year?: number;
-  kind?: string;
-  arc?: string;
-  altTitles?: string[];
-}
-
-export interface CoverProfile {
-  userScore?: number | null;
-  listStatus?: string | null;
-  favourite?: boolean;
-}
-
-export interface CoverCandidate {
-  id: number;
-  romaji: string;
-  english?: string | null;
-  extraTitles?: string[];
-  format?: string | null;
-  seasonYear?: number | null;
-  coverUrl?: string | null;
-  userScore?: number | null;
-  listStatus?: string | null;
-  favourite?: boolean;
-}
-
-export interface LocalIndexEntry {
-  id: number;
-  title: string;
-  aliases: string[];
-}
+import { scheduleTask, sleep } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
+import type { ResolvedCover } from "@/types/cover";
+import type {
+  CoverCandidate,
+  CoverMediaLike,
+  CoverParsed,
+  CoverProfile,
+  CoverQuery,
+  CoverResolution,
+  CoverSearchBackend,
+  LocalIndexEntry,
+  NormalizedResolvedCover,
+  ResolveCoverOptions,
+} from "@/types/cover";
 
 export function withProfile(
   candidates: CoverCandidate[],
@@ -70,27 +48,10 @@ export function findLocalMatch(
   return null;
 }
 
-export interface CoverQuery {
-  query: string;
-  format?: string;
-  seasonYear?: number;
-}
-
 export const COVER_SCORE_THRESHOLD = 45;
 export const COVER_MAX_CANDIDATES = 5;
 
 const UNMARKED_SEASON_PENALTY = 4;
-
-export interface CoverMediaLike {
-  id: number;
-  title: string;
-  title_romaji?: string | null;
-  title_english?: string | null;
-  titles: string[];
-  format?: string | null;
-  season_year?: number | null;
-  cover_url?: string | null;
-}
 
 export function mediaToCandidate(media: CoverMediaLike): CoverCandidate {
   return {
@@ -104,29 +65,10 @@ export function mediaToCandidate(media: CoverMediaLike): CoverCandidate {
   };
 }
 
-export interface CoverSearchBackend {
-  search: (query: CoverQuery) => Promise<CoverCandidate[]>;
-  delay?: (ms: number) => Promise<void>;
-}
-
-export interface CoverResolution {
-  pick: { candidate: CoverCandidate; score: number } | null;
-  candidates: CoverCandidate[];
-}
-
 const COVER_RETRY_DELAY_MS = 800;
 
 const NO_TRUSTED: ReadonlySet<number> = new Set();
 const NO_REJECTED: ReadonlySet<number> = new Set();
-
-export interface ResolveCoverOptions {
-  rejected?: ReadonlySet<number>;
-  learnedTitle?: string | null;
-  profileById?: ReadonlyMap<number, CoverProfile>;
-  localTitle?: string | null;
-  trustedIds?: ReadonlySet<number>;
-  rawTitle?: string | null;
-}
 
 export async function resolveCover(
   parsed: CoverParsed,
@@ -294,16 +236,6 @@ export function normCoverKey(value: string): string {
     .replaceAll(/[^\p{Letter}\p{Number}]+/gu, " ")
     .trim()
     .replaceAll(/\s+/gu, " ");
-}
-
-export interface NormalizedResolvedCover {
-  id: number;
-  coverUrl: string | null;
-  title: string;
-  at: number;
-  names: string[];
-  season: number;
-  year?: number;
 }
 
 export function normalizeResolvedCover(key: string, entry: ResolvedCover): NormalizedResolvedCover {

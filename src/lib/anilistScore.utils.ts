@@ -1,11 +1,5 @@
 import type { TranslationKey } from "@/types/i18n";
-
-export type AnilistScoreFormat =
-  | "POINT_100"
-  | "POINT_10_DECIMAL"
-  | "POINT_10"
-  | "POINT_5"
-  | "POINT_3";
+import type { AnilistScoreFormat, ScoreIcon, ValidatedScore } from "@/types/anilistScore";
 
 export const DEFAULT_SCORE_FORMAT: AnilistScoreFormat = "POINT_10";
 
@@ -101,8 +95,6 @@ export function smileyForScore(score: number | null | undefined): string | null 
   return SMILEYS[score] ?? null;
 }
 
-export type ScoreIcon = "star" | "frown" | "meh" | "smile";
-
 export function scoreIconFor(
   format: AnilistScoreFormat,
   score: number | null | undefined
@@ -154,11 +146,6 @@ const SCORE_FORMAT_ERROR: Record<AnilistScoreFormat, TranslationKey> = {
   POINT_5: "anilist.controls.score.need.int.5",
   POINT_3: "anilist.controls.score.need.int.3",
 };
-
-export interface ValidatedScore {
-  value: number | null;
-  error: TranslationKey | null;
-}
 
 export function validateScoreInput(raw: string, format: AnilistScoreFormat): ValidatedScore {
   const trimmed = raw.trim();

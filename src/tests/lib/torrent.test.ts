@@ -21,9 +21,9 @@ import {
   TORRENT_EVENT_STALE_MS,
   TorrentListen,
   torrentErrorText,
-  type TorrentListState,
   withoutPendingRemoved,
 } from "@/lib/torrentCommon.utils";
+import type { TorrentListState } from "@/types/torrentCommon";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/magnet.utils";
 import { describeRecheckOutcome } from "@/lib/recheck.utils";
 import {

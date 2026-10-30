@@ -1,18 +1,4 @@
-export interface HotkeyChord {
-  code: string;
-  ctrl: boolean;
-  shift: boolean;
-  alt: boolean;
-  meta: boolean;
-}
-
-export type HotkeyRepeat = "once" | "hold";
-
-export interface HotkeyDef<TId extends string = string> {
-  id: TId;
-  chord: string;
-  repeat: HotkeyRepeat;
-}
+import type { HotkeyChord } from "@/types/chordHotkeys";
 
 const CODE_PATTERN = /^[A-Za-z][A-Za-z0-9]*$/;
 

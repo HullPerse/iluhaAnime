@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
 import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
@@ -14,6 +14,7 @@ import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { StreamHistoryEntry, StreamingEpisode } from "@/types/stream";
 
 import { StreamInlineLoading } from "./states.stream";
+import type { PreviewAnchor } from "@/types/episodes.stream";
 
 /** Above this many episodes the list gets a filter field. */
 const FILTER_THRESHOLD = 24;
@@ -41,12 +42,6 @@ function airDateLabel(value: string | undefined): string {
 const PREVIEW_WIDTH = 176;
 const PREVIEW_HEIGHT = 112;
 const PREVIEW_GAP = 8;
-
-export interface PreviewAnchor {
-  url: string;
-  /** The hovered row, in viewport coordinates. */
-  rect: { top: number; bottom: number; left: number; right: number };
-}
 
 /**
  * Where the preview goes for a hovered row: always to the left of it, since

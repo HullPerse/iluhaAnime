@@ -6,12 +6,8 @@ import { bench, group } from "@pmndrs/labs";
 // 1.08us, similar filter-sort 3.00us; this file is noise-flagged (±5-15%).
 // Regression threshold is labs minDelta 5%.
 
-import {
-  formatScore,
-  resolveDisplayScoreFormat,
-  scoreIconFor,
-  type AnilistScoreFormat,
-} from "@/lib/anilistScore.utils";
+import { formatScore, resolveDisplayScoreFormat, scoreIconFor } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 
 const FORMATS: readonly string[] = ["POINT_100", "POINT_10_DECIMAL", "POINT_10", "POINT_5", "bogus"];
 const SCORES: ReadonlyArray<number | null> = [9, 85, 8.5, 4, null, 0, 10, 3, 72, 5];

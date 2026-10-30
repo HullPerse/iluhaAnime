@@ -1,10 +1,7 @@
+import type { BlurGate } from "@/types/blurHotkeys";
+
 const BLUR_SELECTOR =
   'input:not([type="hidden"]), textarea, select, button, [contenteditable="true"]';
-
-export interface BlurGate {
-  hintsOpen: boolean;
-  topLayer: HTMLElement | null;
-}
 
 const FIND_BAR_SELECTOR = "[data-find-bar]";
 

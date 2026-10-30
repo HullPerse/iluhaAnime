@@ -1,16 +1,6 @@
-import type { TabId } from "@/types/settings";
+import type { TrayMenuEntry, TrayTabEntry } from "@/types/tray";
 
 export const TRAY_ICON_ID = "iluhaanime-tray";
-
-export interface TrayTabEntry {
-  id: TabId;
-  label: string;
-}
-
-export type TrayMenuEntry =
-  | { kind: "tab"; id: string; tabId: TabId; text: string }
-  | { kind: "separator"; id: string }
-  | { kind: "quit"; id: string; text: string };
 
 export function shouldHideOnClose(minimizeToTray: boolean, allowQuit: boolean): boolean {
   return minimizeToTray && !allowQuit;

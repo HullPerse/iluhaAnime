@@ -1,9 +1,10 @@
-import { chordKey, chordKeyFromEvent, parseChord, type HotkeyDef } from "@/lib/chordHotkeys.utils";
-
-export interface ResolvedHotkey<TId extends string = string> {
-  id: TId;
-  repeat: HotkeyDef<TId>["repeat"];
-}
+import { chordKey, chordKeyFromEvent, parseChord } from "@/lib/chordHotkeys.utils";
+import type { HotkeyDef } from "@/types/chordHotkeys";
+import type {
+  HotkeysHandlerOptions,
+  ResolvedHotkey,
+  SubscribeHotkeysOptions,
+} from "@/types/registryHotkeys";
 
 export function createHotkeyRegistry<TId extends string>(
   defs: readonly HotkeyDef<TId>[]
@@ -28,12 +29,6 @@ export function createHotkeyRegistry<TId extends string>(
   return registry;
 }
 
-export interface HotkeysHandlerOptions<TId extends string = string> {
-  registry: Map<string, ResolvedHotkey<TId>>;
-  ignore?: (event: KeyboardEvent) => boolean;
-  onAction: (id: TId, event: KeyboardEvent) => void;
-}
-
 export function createHotkeysHandler<TId extends string>(
   options: HotkeysHandlerOptions<TId>
 ): (event: KeyboardEvent) => void {
@@ -46,14 +41,6 @@ export function createHotkeysHandler<TId extends string>(
     event.preventDefault();
     onAction(hit.id, event);
   };
-}
-
-export interface SubscribeHotkeysOptions<TId extends string = string> extends Omit<
-  HotkeysHandlerOptions<TId>,
-  "registry"
-> {
-  defs: readonly HotkeyDef<TId>[];
-  capture?: boolean;
 }
 
 export function subscribeHotkeys<TId extends string>(

@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 
-import type { HotkeyDef } from "@/lib/chordHotkeys.utils";
+import type { HotkeyDef } from "@/types/chordHotkeys";
 import { subscribeHotkeys } from "@/lib/registryHotkeys.utils";
 import { resolveKeybinds } from "@/lib/resolveHotkeys.utils";
 import { useCell } from "@/lib/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
-
-export interface UseHotkeysOptions<TId extends string = string> {
-  ignore?: (event: KeyboardEvent) => boolean;
-  capture?: boolean;
-  enabled?: boolean;
-  target?: React.RefObject<HTMLElement | null>;
-  onAction: (id: TId, event: KeyboardEvent) => void;
-}
+import type { ResolvedHotkeyDef, UseHotkeysOptions } from "@/types/hotkeys";
 
 export function useHotkeys<TId extends string>(
   defs: readonly HotkeyDef<TId>[],
@@ -38,10 +31,6 @@ export function useHotkeys<TId extends string>(
       },
     });
   }, [signature]);
-}
-
-export interface ResolvedHotkeyDef<TId extends string = string> extends HotkeyDef<TId> {
-  keybindId: string;
 }
 
 export function useResolvedHotkeys<TId extends string>(

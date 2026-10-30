@@ -35,12 +35,12 @@ import DescriptionBlocks from "./description.details";
 import DetailsHero from "./hero.details";
 import {
   CommentsPanel,
-  DetailsTab,
   DetailsTabBar,
   FilesPanel,
   MediainfoPanel,
   ScreenshotsPanel,
 } from "./panels.details";
+import type { DetailsTab } from "@/types/panels.details";
 import { DetailSection } from "./section.details";
 
 const KNOWN_FIELD_LABELS = [

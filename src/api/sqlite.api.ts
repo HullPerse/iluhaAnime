@@ -5,7 +5,7 @@ import type {
   SqliteTableInfo,
 } from "@/types/sqlite";
 
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { tauriTransport } from "./transport.api";
 
 interface SqliteApiConfig {

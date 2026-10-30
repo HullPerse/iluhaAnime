@@ -1,18 +1,11 @@
 import { MAX_TIMEOUT_MS, normalizeWait } from "@/lib/shared.utils";
-
-export interface IntervalTask {
-  cancel: () => void;
-}
+import type { AnimationLoopTask, IntervalTask } from "@/types/interval";
 
 export function createInterval(task: () => void, waitMs: number, immediate = false): IntervalTask {
   const wait = Math.min(Math.max(0, normalizeWait(waitMs)), MAX_TIMEOUT_MS);
   if (immediate) task();
   const id = setInterval(task, wait);
   return { cancel: () => clearInterval(id) };
-}
-
-export interface AnimationLoopTask {
-  cancel: () => void;
 }
 
 export function createAnimationLoop(step: (now: number) => void): AnimationLoopTask {

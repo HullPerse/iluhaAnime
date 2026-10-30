@@ -6,13 +6,10 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { fileNameFromPath } from "@/lib/parse.utils";
 import { scheduleTask } from "@/lib/shared.utils";
-import {
-  fetchVideoCard,
-  getCachedCard,
-  isSameMediaPath,
-  type CardArt,
-} from "@/lib/cardCache.utils";
-import { readPlaylistEntries, type PlaylistEntry } from "@/lib/playback.utils";
+import { fetchVideoCard, getCachedCard, isSameMediaPath } from "@/lib/cardCache.utils";
+import type { CardArt } from "@/types/cardCache";
+import { readPlaylistEntries } from "@/lib/playback.utils";
+import type { PlaylistEntry } from "@/types/playback";
 import { formatParsedTitle } from "@/lib/playerTitle.utils";
 import { useCell } from "@/lib/signal.hook";
 import { ignore } from "@/lib/promise.utils";

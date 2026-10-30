@@ -11,7 +11,7 @@ import {
   findHitRanges,
   findSectionTitleKey,
 } from "@/lib/find.utils";
-import type { SettingsFindHit } from "@/lib/find.utils";
+import type { SettingsFindHit } from "@/types/find";
 import type { Locale } from "@/types/i18n";
 import type { HighlightRange } from "@/types/search";
 

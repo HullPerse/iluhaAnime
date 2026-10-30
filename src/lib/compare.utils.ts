@@ -6,87 +6,29 @@ import {
   COMPARE_VERDICT_THRESHOLDS,
   COMPARE_WEIGHTS,
 } from "@/config/compare.config";
-import { normalizeToTen, type AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import { normalizeToTen } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import type { AniListCollection, AniListEntry, FavouriteAnime } from "@/types/anilist";
-
-export type CompareMetric = "iluha" | "mal" | "delta";
+import type {
+  CompareConfidence,
+  CompareDiffKind,
+  CompareMetric,
+  CompareSort,
+  CompareSummary,
+  CompareVerdict,
+  ComparedTitle,
+  GenreOverlap,
+  GenreTaste,
+  TasteMatch,
+} from "@/types/compare";
 
 export const COMPARE_METRICS: readonly CompareMetric[] = ["iluha", "mal", "delta"];
 
-export type CompareConfidence = "none" | "low" | "medium" | "high";
-
-export type CompareVerdict = "identical" | "close" | "mixed" | "opposite" | "unknown";
-
-export type CompareDiffKind = "same" | "close" | "far" | "unknown";
-
-export type CompareSort = "gap" | "close" | "title" | "mine" | "friend";
-
 export const COMPARE_SORTS: readonly CompareSort[] = ["gap", "close", "title", "mine", "friend"];
-
-export interface TasteMatch {
-  score: number | null;
-  gapScore: number | null;
-  rankScore: number | null;
-  directionScore: number | null;
-  spearman: number | null;
-  confidence: CompareConfidence;
-  scoredCount: number;
-  agree: number;
-  split: number;
-  neutral: number;
-}
 
 const MIN_SHARED_FOR_CONFIDENCE = COMPARE_LOW_CONFIDENCE_SCORED;
 const ILUHA_DELTA_WEIGHT = 0.7;
 const ILUHA_PEARSON_WEIGHT = 0.3;
-
-export interface ComparedTitle {
-  id: number;
-  title: string;
-  titles: string[];
-  coverUrl: string | null;
-  episodes: number | null;
-  mine: number | null;
-  mineRaw: number | null;
-  friend: number | null;
-  friendRaw: number | null;
-  delta: number | null;
-  signedDelta: number | null;
-  myStatus: string;
-  friendStatus: string;
-  myProgress: number | null;
-  friendProgress: number | null;
-}
-
-export interface CompareSummary {
-  shared: ComparedTitle[];
-  onlyMine: ComparedTitle[];
-  onlyFriend: ComparedTitle[];
-  sharedScoredCount: number;
-  meanDelta: number | null;
-  pearson: number | null;
-  malAffinity: number | null;
-  deltaScore: number | null;
-  iluhaAffinity: number | null;
-  lowConfidence: boolean;
-  libraryOverlap: number | null;
-  taste: TasteMatch;
-}
-
-export interface GenreOverlap {
-  genre: string;
-  mine: number;
-  friend: number;
-}
-
-export interface GenreTaste {
-  genre: string;
-  mine: number;
-  friend: number;
-  mineCount: number;
-  friendCount: number;
-  delta: number;
-}
 
 export function normalizeScoreToHundred(
   score: number | null | undefined,

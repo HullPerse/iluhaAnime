@@ -10,7 +10,7 @@ import { flashTarget } from "@/lib/flash.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/tabsHotkeys.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { searchSettingsFind } from "@/lib/find.utils";
-import type { SettingsFindHit, SettingsFindTab } from "@/lib/find.utils";
+import type { SettingsFindHit, SettingsFindTab } from "@/types/find";
 import { useCell } from "@/lib/signal.hook";
 import { settingsRoute } from "@/routes/__root";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";

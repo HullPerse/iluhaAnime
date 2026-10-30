@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TorrentCoverState } from "@/hooks/search/cover.hook";
+import type { TorrentCoverState } from "@/types/searchCover";
 import CoverCorrectionModal from "@/routes/components/search/default/correction.search";
 import { coverCorrectionsAtoms, removeCoverOverride } from "@/store/cover.store";
 

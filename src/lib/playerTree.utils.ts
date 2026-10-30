@@ -1,12 +1,9 @@
 import { fileNameFromPath, mediaFileExtension } from "@/lib/parse.utils";
 import type { VideoFileEntry } from "@/types/fs";
 import type { FolderNode } from "@/types/torrent";
+import type { PlayerTreeItem } from "@/types/playerTree";
 
 const PATH_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-
-export type PlayerTreeItem =
-  | { kind: "folder"; node: FolderNode; depth: number }
-  | { kind: "file"; file: FolderNode["files"][number]; depth: number };
 
 export function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
   const normalizedRoot = rootPath.replaceAll("\\", "/").replace(/\/$/, "");

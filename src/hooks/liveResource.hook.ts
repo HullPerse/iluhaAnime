@@ -2,11 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { createInterval } from "@/lib/interval.utils";
 import { attempt } from "@/lib/attempt.utils";
-import type { PollingOptions } from "@/types/polling";
-
-export interface LiveResourceOptions<K> extends PollingOptions<K> {
-  pauseOnHidden?: boolean;
-}
+import type { LiveResourceOptions } from "@/types/liveResource";
 
 const BACKOFF_BASE_MS = 2000;
 const BACKOFF_MAX_MS = 30_000;

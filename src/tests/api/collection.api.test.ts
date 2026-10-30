@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CollectionApi } from "@/api/collection.api";
-import type { ApiTransport } from "@/api/transport.api";
+import type { ApiTransport } from "@/types/transport";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];

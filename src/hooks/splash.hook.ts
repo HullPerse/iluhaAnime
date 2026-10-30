@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { scheduleTask, sleep, type ScheduledTask, type SleepTask } from "@/lib/shared.utils";
+import { scheduleTask, sleep } from "@/lib/shared.utils";
+import type { ScheduledTask, SleepTask } from "@/types/shared";
 import { detectMigrations } from "@/lib/migrations.utils";
 import {
   awaitCacheReady,
@@ -13,35 +14,13 @@ import {
 } from "@/lib/signals.utils";
 import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
 import type { DatabaseStatus } from "@/types/db";
-
-export type SplashStageId =
-  | "theme"
-  | "migrations"
-  | "cache"
-  | "database"
-  | "tabs"
-  | "spelling"
-  | "index";
-
-export type SplashStageStatus = "pending" | "active" | "done" | "degraded";
-
-export interface SplashStage {
-  id: SplashStageId;
-  status: SplashStageStatus;
-}
-
-export interface DbCheckResult {
-  ok: boolean;
-  message: string;
-  status: DatabaseStatus | null;
-}
-
-export interface SplashOptions {
-  minMs?: number;
-  stageTimeoutMs?: number;
-  stepMs?: number;
-  checkDatabase?: () => Promise<DbCheckResult>;
-}
+import type {
+  DbCheckResult,
+  SplashOptions,
+  SplashStage,
+  SplashStageId,
+  SplashStageStatus,
+} from "@/types/splash";
 
 const DEFAULT_MIN_MS = 600;
 const DEFAULT_STAGE_TIMEOUT_MS = 8000;

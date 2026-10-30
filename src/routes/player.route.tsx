@@ -13,7 +13,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { NO_TORRENTS } from "@/config/common.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";

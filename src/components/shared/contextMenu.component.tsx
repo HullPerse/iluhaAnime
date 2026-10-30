@@ -2,62 +2,17 @@ import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu
 import { cn } from "cn";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { registerOverlay } from "@/store/overlay.store";
-import type { TFunc, TranslationKey, TranslationVariables } from "@/types/i18n";
-
-export interface ContextMenuItem {
-  kind: "item";
-  id: string;
-  label: TranslationKey;
-  /** Interpolation for label, e.g. chapter numbers. */
-  labelVars?: TranslationVariables;
-  /** Dynamic data text (track names, chapter titles). Static UI copy stays in label. */
-  rawText?: string;
-  icon?: ComponentType<{ className?: string }>;
-  /** Right-aligned hotkey hint, e.g. "Space". */
-  hint?: string;
-  /** Selected-state dot, e.g. the active track. Never the only state signal alone. */
-  checked?: boolean;
-  onSelect: () => void;
-  disabled?: boolean;
-  variant?: "default" | "destructive";
-}
-
-export interface ContextMenuSubmenu {
-  kind: "submenu";
-  id: string;
-  label: TranslationKey;
-  labelVars?: TranslationVariables;
-  rawText?: string;
-  icon?: ComponentType<{ className?: string }>;
-  hint?: string;
-  disabled?: boolean;
-  entries: readonly ContextMenuEntry[];
-}
-
-export type ContextMenuEntry = ContextMenuItem | ContextMenuSubmenu | ContextMenuSeparator;
-
-export interface ContextMenuSeparator {
-  kind: "separator";
-  id: string;
-}
+import type { TFunc } from "@/types/i18n";
+import type { ContextMenuEntry, ContextMenuProps } from "@/types/contextMenu";
 
 const menuClosers = new Set<() => void>();
 
 export function closeOpenContextMenus(): void {
   for (const close of menuClosers) close();
-}
-
-export interface ContextMenuProps {
-  entries: readonly ContextMenuEntry[];
-  children: ReactNode;
-  className?: string;
-  open?: boolean;
-  defaultOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
 const ITEM_CLASS = cn(

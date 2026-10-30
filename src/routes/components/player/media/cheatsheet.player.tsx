@@ -1,5 +1,5 @@
 import { KEYBINDS } from "@/config/keybinds.config";
-import type { KeybindDef } from "@/config/keybinds.config";
+import type { KeybindDef } from "@/types/keybinds";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/types/i18n";
 

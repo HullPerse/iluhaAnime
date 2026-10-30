@@ -9,7 +9,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { dayLabel, monthLabel } from "@/lib/activity.utils";
 import { formatAiringTime } from "@/lib/airing.utils";
 import { buildMediaRows } from "@/lib/anilistStats.utils";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { useCell } from "@/lib/signal.hook";
 import { formatDistanceToNowOwn } from "@/lib/distance.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";
@@ -21,7 +21,7 @@ import type { Locale } from "@/types/i18n";
 import { InlineDetail } from "./detail/inline.detail";
 import { MediaRows } from "./stats/mediaRows.stats";
 import { StatsOverview } from "./stats/overview.stats";
-import type { StatsDrillData } from "./stats/overview.stats";
+import type { StatsDrillData } from "@/types/overview.stats";
 
 function StatsReleases({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
   const { t, locale } = useI18n();

@@ -2,35 +2,7 @@ import { translate } from "@/lib/locale/i18n.utils";
 import { attemptSync } from "@/lib/attempt.utils";
 import type { FatalInfo, FatalTexts } from "@/types/fatal";
 import type { Locale, TranslationKey } from "@/types/i18n";
-
-export interface SplashTexts {
-  theme: string;
-  migrations: string;
-  cache: string;
-  database: string;
-  tabs: string;
-  spelling: string;
-  index: string;
-  loading: string;
-  fastLaunch: string;
-  yorhaTitle: string;
-  yorhaTagline: string;
-  xpBrand: string;
-  xpCopyright: string;
-  win7Brand: string;
-  win7Copyright: string;
-}
-
-export interface DbTexts {
-  title: string;
-  hint: string;
-  details: string;
-  retry: string;
-  reload: string;
-  copy: string;
-  copied: string;
-  openFolder: string;
-}
+import type { DbTexts, SplashTexts } from "@/types/fatalTexts";
 
 export function resolveFatalLocale(): Locale {
   if (typeof localStorage === "undefined") return "en";

@@ -2,23 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useCell } from "@/lib/signal.hook";
 import { deeplinkAtoms } from "@/store/deeplink.store";
-
-export type AnilistActivityTab = "feed" | "calendar" | "notifications" | "mentions" | "airing";
-
-export type AnilistModalName =
-  | "auth"
-  | "recs"
-  | "favourites"
-  | "browse"
-  | "stats"
-  | "prefetch"
-  | "spotlight"
-  | "friends"
-  | "filters";
-
-export interface AnilistModalViews extends Record<AnilistModalName, boolean> {
-  activity: { open: boolean; tab: AnilistActivityTab };
-}
+import type { AnilistActivityTab, AnilistModalName, AnilistModalViews } from "@/types/modals";
 
 const CLOSED_VIEWS: AnilistModalViews = {
   auth: false,

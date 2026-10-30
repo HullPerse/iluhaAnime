@@ -4,27 +4,14 @@ import type {
   CropRect,
   SavedScreenshot,
   ScreenshotCapture,
-  ScreenshotFormat,
   ScreenshotLayersPayload,
 } from "@/types/screenshot";
 import type { SettingsStore } from "@/types/settings";
 import type { DitherImageMeta, UserImageFile } from "@/types/userimage";
 
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { tauriTransport } from "./transport.api";
-
-export interface SystemApiConfig {
-  transport?: ApiTransport;
-}
-
-export interface SaveScreenshotInput {
-  sourcePath: string;
-  dir: string;
-  name: string;
-  format: ScreenshotFormat;
-  crop: CropRect | null;
-  layers?: ScreenshotLayersPayload;
-}
+import type { SaveScreenshotInput, SystemApiConfig } from "@/types/system";
 
 export class SystemApi {
   private readonly transport: ApiTransport;

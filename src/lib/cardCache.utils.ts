@@ -5,12 +5,7 @@ import { withFallback } from "@/lib/attempt.utils";
 import { assetUrl } from "@/lib/image.utils";
 import { createLruCache, inflightFetch } from "@/lib/lruCache.utils";
 import { ignore } from "@/lib/promise.utils";
-
-export interface CardArt {
-  url: string;
-  duration: number;
-  size: number;
-}
+import type { CardArt } from "@/types/cardCache";
 
 const CARD_CACHE_CAPACITY = 200;
 const PREFETCH_CONCURRENCY = 2;

@@ -1,7 +1,8 @@
 import * as z from "zod/mini";
 
 import { attemptSync } from "@/lib/attempt.utils";
-import { err, ok, type Result } from "@/lib/result.utils";
+import { err, ok } from "@/lib/result.utils";
+import type { Result } from "@/types/result";
 
 function issueText(parsed: {
   success: false;

@@ -1,9 +1,4 @@
-export interface CollisionBox {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-}
+import type { CollisionBox } from "@/types/collisionAabb";
 
 export function intersectsBox(a: CollisionBox, b: CollisionBox): boolean {
   return a.minX < b.maxX && b.minX < a.maxX && a.minY < b.maxY && b.minY < a.maxY;

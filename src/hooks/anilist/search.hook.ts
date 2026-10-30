@@ -15,13 +15,7 @@ import { addSearchQuery } from "@/store/search.store";
 import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
 import type { AniListFilters, AniMedia, AniUser, SearchMode } from "@/types/anilist";
 import type { FilterPage } from "@/types/ipc";
-
-export type AniListSearchRequest =
-  | { kind: "global"; params: AnilistSearchParams }
-  | { kind: "season"; season: string; seasonYear: number | null }
-  | { kind: "studio"; studioId: number }
-  | { kind: "tag"; tag: string }
-  | { kind: "genre"; genre: string };
+import type { AniListSearchRequest } from "@/types/anilistSearch";
 
 async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia[]> {
   switch (request.kind) {

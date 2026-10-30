@@ -1,15 +1,4 @@
-export interface TreeRow {
-  path: string;
-  depth: number;
-  kind: "folder" | "file";
-  expanded: boolean;
-  parent?: string;
-}
-
-export type TreeArrowResult =
-  | { kind: "toggle"; path: string }
-  | { kind: "focus"; path: string }
-  | null;
+import type { RelativeRowNumber, TreeArrowResult, TreeRow } from "@/types/treeArrow";
 
 function parentOf(rows: readonly TreeRow[], index: number): TreeRow | null {
   const row = rows[index];
@@ -53,11 +42,6 @@ export function resolveTreeMove(
   const next = Math.min(rows.length - 1, Math.max(0, index + delta));
   const row = rows[next];
   return row ? row.path : null;
-}
-
-export interface RelativeRowNumber {
-  label: number;
-  current: boolean;
 }
 
 function parentDirname(path: string): string {

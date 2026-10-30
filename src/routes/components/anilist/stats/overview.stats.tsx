@@ -12,20 +12,16 @@ import { useAnilistStatistics } from "@/hooks/anilist/stats.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { getStatusColor } from "@/lib/entries.utils";
 import { formatMeanScore } from "@/lib/anilistScore.utils";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { buildStatsOverview } from "@/lib/anilistStats.utils";
-import type { StatsOverviewModel } from "@/lib/anilistStats.utils";
+import type { StatsOverviewModel } from "@/types/anilistStats";
 import { formatCompact, formatPercent } from "@/lib/chartsFormat.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { formatDistanceToNowOwn } from "@/lib/distance.utils";
 import type { AniListCollection } from "@/types/anilist";
 
 import { StatsCard } from "./card.stats";
-
-export interface StatsDrillData {
-  title: string;
-  ids: number[];
-}
+import type { StatsDrillData } from "@/types/overview.stats";
 
 function Kpi({ label, children }: { label: string; children: ReactNode }) {
   return (

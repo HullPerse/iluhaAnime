@@ -1,36 +1,15 @@
 import { Info, Maximize2, Minimize2, Square, TriangleAlert, Volume2, VolumeX } from "lucide-react";
-import type { RefObject } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Slider from "@/components/ui/range.component";
 import { GAME_DISPLAY } from "@/config/display.config";
 import { GAME_PLATFORM_LABELS } from "@/config/platforms.config";
-import type { GameSessionRuntime, GameSessionStatus } from "@/hooks/game/session.hook";
+import type { GameSessionRuntime, GameSessionStatus } from "@/types/gameSession";
 import { useI18n } from "@/hooks/i18n.hook";
 import GameKeypad from "@/routes/components/game/keypad.game";
 import type { GameTelemetry } from "@/types/game";
-
-export interface GameScreenProps {
-  runtime: GameSessionRuntime;
-  telemetry: GameTelemetry;
-  /** Keys held right now, from physical presses and keypad clicks. */
-  pressedKeys: ReadonlySet<number>;
-  muted: boolean;
-  volume: number;
-  cols: number;
-  rows: number;
-  scale: number;
-  expanded: boolean;
-  stageRef: RefObject<HTMLDivElement | null>;
-  canvasRef: RefObject<HTMLCanvasElement | null>;
-  onStop: () => void;
-  onToggleMute: () => void;
-  onVolumeChange: (volume: number) => void;
-  onPressKey: (key: number, pressed: boolean) => void;
-  onRetry: () => void;
-  onToggleExpanded: () => void;
-}
+import type { GameScreenProps } from "@/types/screen.game";
 
 /** Idle / starting / error content shown over the empty stage. */
 function StageOverlay({

@@ -1,4 +1,5 @@
 import { MAX_TIMEOUT_MS, scheduleTask } from "@/lib/shared.utils";
+import type { AttemptAllOptions, RetryOptions } from "@/types/attempt";
 
 export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
@@ -18,10 +19,6 @@ export function attemptSync<T>(fn: () => T): [T, null] | [null, Error] {
   } catch (error) {
     return [null, toError(error)];
   }
-}
-
-export interface AttemptAllOptions {
-  onFinally?: () => unknown;
 }
 
 export async function attemptAll(
@@ -49,15 +46,6 @@ export async function attemptAll(
 export async function withFallback<T>(promise: Promise<T>, fallback: T): Promise<T> {
   const [data, error] = await attempt(promise);
   return error ? fallback : data;
-}
-
-export interface RetryOptions {
-  attempts?: number;
-  delay?: number;
-  backoff?: number;
-  maxDelay?: number;
-  signal?: AbortSignal;
-  shouldRetry?: (error: Error, attempt: number) => boolean;
 }
 
 const RETRY_DEFAULTS = { attempts: 3, delay: 200, backoff: 2 } as const;

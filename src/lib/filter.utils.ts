@@ -9,29 +9,18 @@ import {
   matchOperatorTerms,
   operatorTextLength,
   parseOperatorTerms,
-  type OperatorTerm,
 } from "@/lib/searchScore.utils";
+import type { OperatorTerm } from "@/types/searchScore";
 import type {
   CollectionFilters,
   CollectionFilterWorkerQuery,
   CollectionItem,
-  CollectionSearchIndex,
   CollectionStatus,
   CollectionStatusDef,
   FilterParams,
 } from "@/types/collection";
-import type { DateCond, NumericCond, ParsedIntent, TagToleranceKey } from "@/types/search";
-
-export interface CollectionFilterOptions {
-  intentEnabled?: boolean;
-  tagTolerances?: Record<TagToleranceKey, number>;
-}
-
-export interface CollectionFilterSnapshot {
-  items: CollectionItem[];
-  statuses: CollectionStatusDef[];
-  index: CollectionSearchIndex;
-}
+import type { DateCond, NumericCond, ParsedIntent } from "@/types/search";
+import type { CollectionFilterOptions, CollectionFilterSnapshot } from "@/types/filter";
 
 export function createCollectionFilterSnapshot(
   items: CollectionItem[],

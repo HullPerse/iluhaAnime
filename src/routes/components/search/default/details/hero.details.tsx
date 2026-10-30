@@ -3,7 +3,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { Copy, Link, Save } from "lucide-react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/types/contextMenu";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatSize } from "@/lib/searchFormat.utils";

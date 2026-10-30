@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useCollectionData, useCollectionMutations } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { mediaToWizardValues } from "@/lib/import.utils";
 import { withStoredMedia } from "@/lib/collectionMedia.utils";
 import { downloadCover, fetchAddedMedia } from "@/lib/quickadd.utils";

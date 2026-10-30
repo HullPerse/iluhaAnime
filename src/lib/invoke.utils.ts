@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import * as z from "zod/mini";
 
 import { attempt } from "@/lib/attempt.utils";
-import type { Result } from "@/lib/result.utils";
+import type { Result } from "@/types/result";
 import { err } from "@/lib/result.utils";
 import { parseValue } from "@/lib/schema.utils";
 import type { CommandName } from "@/types/ipc";

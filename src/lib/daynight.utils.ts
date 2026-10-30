@@ -1,4 +1,4 @@
-export type DayNightFrame = "day" | "night";
+import type { DayNightFrame } from "@/types/daynight";
 
 export function parseDayTime(value: string): number | null {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());

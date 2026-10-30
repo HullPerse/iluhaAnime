@@ -4,13 +4,7 @@ import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { shouldStartWindowDrag, startsOnPlayerControl } from "@/lib/playerDrag.utils";
 import { withFallback } from "@/lib/attempt.utils";
 import { ignore } from "@/lib/promise.utils";
-
-export interface WindowDragHandlers {
-  onMouseDown: (event: ReactMouseEvent<HTMLElement>) => void;
-  onMouseMove: (event: ReactMouseEvent<HTMLElement>) => void;
-  onMouseUp: () => void;
-  consumeDrag: () => boolean;
-}
+import type { WindowDragHandlers } from "@/types/playerWindowDrag";
 
 export function useWindowDrag(enabled: boolean): WindowDragHandlers {
   const originRef = useRef<{ x: number; y: number } | null>(null);

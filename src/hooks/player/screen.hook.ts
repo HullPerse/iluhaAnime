@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 
 import { PLAYER_MODES } from "@/config/modes.config";
-import { buildModeCommands, playerModeParams, type ActivePlayerShader } from "@/lib/crt.utils";
+import { buildModeCommands, playerModeParams } from "@/lib/crt.utils";
+import type { ActivePlayerShader } from "@/types/crt";
 import { playerShaderPath, runPlayerCommand } from "@/lib/playback.utils";
 import { reportBackgroundError } from "@/lib/attempt.utils";
 import type { PlayerBezelVariant, PlayerSettings } from "@/types/videoPlayer";

@@ -6,26 +6,7 @@ import { clamp } from "@/lib/math.utils";
 import { ChartFrame } from "./frame.chart";
 import { BandAxisLabels } from "./ticks.chart";
 import { SvgChartTooltip, tooltipAnnouncement } from "./tooltip.chart";
-import type { ChartTooltipData } from "./tooltip.chart";
-
-export interface BarDatum {
-  key: string;
-  label: string;
-  value: number;
-}
-
-export interface BarChartProps {
-  data: readonly BarDatum[];
-  ariaLabel: string;
-  description?: string;
-  formatValue: (value: number) => string;
-  tooltip?: (datum: BarDatum, index: number) => ChartTooltipData;
-  activeText?: (datum: BarDatum, index: number) => string;
-  onActivate?: (index: number) => void;
-  height?: number;
-  emptyLabel?: string;
-  labelChars?: number;
-}
+import type { BarChartProps } from "@/types/bar.chart";
 
 export function BarChart({
   data,

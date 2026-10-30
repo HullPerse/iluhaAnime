@@ -1,24 +1,11 @@
-import { createSignalStore, type Cell } from "@/lib/signal.store";
-
-export interface FindBarState {
-  open: boolean;
-  caseSensitive: boolean;
-  wholeWords: boolean;
-}
+import { createSignalStore } from "@/lib/signal.store";
+import type { FindBarSignalStore, FindBarState } from "@/types/findBar";
 
 export const EMPTY_FIND_BAR: FindBarState = {
   open: false,
   caseSensitive: false,
   wholeWords: false,
 };
-
-export interface FindBarSignalStore {
-  atoms: { bar: Cell<FindBarState> };
-  openBar: () => void;
-  closeBar: () => void;
-  setCaseSensitive: (value: boolean) => void;
-  setWholeWords: (value: boolean) => void;
-}
 
 export function createFindBarSignalStore(): FindBarSignalStore {
   const store = createSignalStore();

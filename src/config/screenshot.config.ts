@@ -1,4 +1,4 @@
-import type { HotkeyDef } from "@/lib/chordHotkeys.utils";
+import type { HotkeyDef } from "@/types/chordHotkeys";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ScreenshotFormat } from "@/types/screenshot";
 

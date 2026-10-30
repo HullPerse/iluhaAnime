@@ -3,11 +3,7 @@ import { useCell } from "@/lib/signal.hook";
 import { resolveTheme } from "@/lib/themeResolve.utils";
 import { themeAtoms } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
-
-export interface ResolvedThemeComponents {
-  titlebarArt: boolean;
-  cardMeta: "full" | "short";
-}
+import type { ResolvedThemeComponents } from "@/types/themeComponents";
 
 export function resolveThemeComponents(
   theme: ThemeDefinition | undefined

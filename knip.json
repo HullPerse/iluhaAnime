@@ -1,0 +1,12 @@
+{
+  "entry": [
+    "index.html",
+    "src/routes/*.tsx",
+    "src/tests/**/*.test.ts",
+    "src/tests/**/*.test.tsx",
+    "src/tests/**/*.bench.ts",
+    "scripts/**/*.ts",
+    "benches/**/*.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "benches/**/*.ts"]
+}

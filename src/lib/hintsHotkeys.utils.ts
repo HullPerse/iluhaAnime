@@ -7,25 +7,14 @@ import {
 } from "@/config/vim.config";
 import { resolveRowCollisions } from "@/lib/collisionResolve.utils";
 import type { TranslationKey } from "@/types/i18n";
-
-export type HintVariant = "plain" | "ctrl" | "contextmenu" | "focus";
-
-export interface HintBadge {
-  element: HTMLElement;
-  label: string;
-  variant: HintVariant;
-}
-
-export interface HintScanResult {
-  badges: HintBadge[];
-  overflow: number;
-}
-
-export interface HintScanOptions {
-  max?: number;
-  alphabet?: string;
-  maxLabelLength?: number;
-}
+import type {
+  HintBadge,
+  HintBadgeLayout,
+  HintKeyResult,
+  HintScanOptions,
+  HintScanResult,
+  HintVariant,
+} from "@/types/hintsHotkeys";
 
 const FOCUS_SELECTOR = 'input:not([type="hidden"]), textarea, select, [contenteditable="true"]';
 const SCANNER_SELECTOR = `button, a, [role="button"], [data-vim-target], ${FOCUS_SELECTOR}`;
@@ -269,15 +258,6 @@ export function hasLabelPrefix(badges: readonly HintBadge[], buffer: string): bo
   return badges.some((badge) => badge.label.startsWith(buffer));
 }
 
-export interface HintBadgeLayout {
-  label: string;
-  variant: HintVariant;
-  description: string;
-  pinned: boolean;
-  top: number;
-  left: number;
-}
-
 export const HINT_BADGE_OFFSET = 24;
 
 export const BADGE_CHAR_PX = 7;
@@ -356,14 +336,6 @@ export function hintLayoutsEqual(
       item.left === other.left
     );
   });
-}
-
-export type HintKeyOutcome = "activate" | "pin" | "buffer" | "clear";
-
-export interface HintKeyResult {
-  outcome: HintKeyOutcome;
-  badge?: HintBadge;
-  buffer: string;
 }
 
 function hasLongerLabelPrefix(badges: readonly HintBadge[], value: string): boolean {

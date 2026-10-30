@@ -1,12 +1,7 @@
 import { DEFAULT_THEME_COLORS } from "@/config/themes.config";
 import { attemptSync } from "@/lib/attempt.utils";
 import type { ThemeDefinition } from "@/types/theme";
-
-export interface RGB {
-  r: number;
-  g: number;
-  b: number;
-}
+import type { RGB } from "@/types/palette";
 
 const PALETTE_LIMIT = 8;
 const PALETTE_SAMPLE_SIZE = 64;

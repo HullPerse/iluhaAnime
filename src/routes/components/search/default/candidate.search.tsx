@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CoverCandidate } from "@/lib/cover.utils";
+import type { CoverCandidate } from "@/types/cover";
 
 export default function CoverCandidateThumb({
   candidate,

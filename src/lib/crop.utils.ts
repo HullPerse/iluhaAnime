@@ -18,23 +18,13 @@ import type {
   CropSnap,
   CropView,
 } from "@/types/screenshot";
+import type { CropResizeOptions, CropStartOptions } from "@/types/crop";
 
 export const NO_PAN: CropPan = { x: 0, y: 0 };
 
 interface AxisSnap {
   delta: number;
   guide: number | null;
-}
-
-export interface CropResizeOptions {
-  minSize?: number;
-  ratio?: number | null;
-  snapThreshold?: number;
-}
-
-export interface CropStartOptions {
-  snapThreshold?: number;
-  square?: boolean;
 }
 
 function movingWest(handle: CropHandle): boolean {

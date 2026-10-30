@@ -1,6 +1,7 @@
 import { KIND_ORDER } from "@/config/autocomplete.config";
 import { ANIME_STATUS_BOOST } from "@/config/status.config";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import { feedbackScore } from "@/lib/feedback.utils";
 import { countersOf, learningStatKey } from "@/lib/learning.utils";
 import { RANKING } from "@/config/ranking.config";
@@ -24,7 +25,7 @@ import {
   matchOperatorTerms,
   parseOperatorTerms,
 } from "@/lib/searchScore.utils";
-import type { OperatorTerm } from "@/lib/searchScore.utils";
+import type { OperatorTerm } from "@/types/searchScore";
 import { readCachedSpellWords, writeCachedSpellWords } from "@/lib/spellIndexCache.utils";
 import { normalizedSpellWords } from "@/lib/symspell.utils";
 import { titleKindBonus, typedTitlesOf } from "@/lib/searchTitle.utils";

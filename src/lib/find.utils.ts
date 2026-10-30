@@ -4,14 +4,12 @@ import ruSettings from "@/lib/locale/ru/settings.locale";
 import type { Locale } from "@/types/i18n";
 import type { TranslationKey } from "@/types/i18n";
 import type { HighlightRange } from "@/types/search";
-
-export type SettingsFindTab =
-  | "general"
-  | "notifications"
-  | "search"
-  | "torrent"
-  | "theme"
-  | "keybinds";
+import type {
+  SettingsFindEntry,
+  SettingsFindHit,
+  SettingsFindKind,
+  SettingsFindTab,
+} from "@/types/find";
 
 export const SETTINGS_FIND_TAB_ORDER: readonly SettingsFindTab[] = [
   "general",
@@ -30,24 +28,6 @@ export const SETTINGS_FIND_TAB_TITLES: Record<SettingsFindTab, TranslationKey> =
   theme: "settings.theme",
   keybinds: "settings.keybinds",
 };
-
-export type SettingsFindKind = "tab" | "section" | "setting";
-
-export interface SettingsFindEntry {
-  key: TranslationKey;
-  tab: SettingsFindTab;
-  sectionId: string;
-  kind: SettingsFindKind;
-}
-
-export interface SettingsFindHit {
-  entry: SettingsFindEntry;
-  score: number;
-  matchedRu: boolean;
-  matchedEn: boolean;
-  rangesRu: HighlightRange[];
-  rangesEn: HighlightRange[];
-}
 
 interface FindGroup {
   tab: SettingsFindTab;

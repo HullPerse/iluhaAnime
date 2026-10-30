@@ -1,13 +1,5 @@
-import type { HintBadge } from "@/lib/hintsHotkeys.utils";
-import { createSignalStore, type Cell } from "@/lib/signal.store";
-
-export interface VimHintsState {
-  open: boolean;
-  badges: HintBadge[];
-  buffer: string;
-  pinned: string | null;
-  overflow: number;
-}
+import { createSignalStore } from "@/lib/signal.store";
+import type { VimHintsState, VimSignalStore } from "@/types/vim";
 
 export const EMPTY_VIM_HINTS: VimHintsState = {
   open: false,
@@ -16,16 +8,6 @@ export const EMPTY_VIM_HINTS: VimHintsState = {
   pinned: null,
   overflow: 0,
 };
-
-export interface VimSignalStore {
-  atoms: { hints: Cell<VimHintsState>; count: Cell<string> };
-  openHints: (badges: HintBadge[], overflow: number) => void;
-  closeHints: () => void;
-  setBuffer: (buffer: string) => void;
-  setPinned: (pinned: string | null) => void;
-  setCount: (count: string) => void;
-  reset: () => void;
-}
 
 export function createVimSignalStore(): VimSignalStore {
   const store = createSignalStore();

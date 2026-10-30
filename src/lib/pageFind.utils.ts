@@ -1,21 +1,4 @@
-export interface PageFindMatch {
-  node: Text;
-  start: number;
-  end: number;
-}
-
-export interface PageFindCollection {
-  matches: PageFindMatch[];
-  truncated: boolean;
-}
-
-export interface PageFindOptions {
-  root?: ParentNode;
-  maxNodes?: number;
-  maxMatches?: number;
-  caseSensitive?: boolean;
-  wholeWords?: boolean;
-}
+import type { PageFindCollection, PageFindMatch, PageFindOptions } from "@/types/pageFind";
 
 export const PAGE_FIND_NODE_CAP = 20000;
 export const PAGE_FIND_MATCH_CAP = 2000;

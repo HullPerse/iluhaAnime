@@ -1,15 +1,5 @@
 import { attemptSync } from "@/lib/attempt.utils";
-
-export interface StoreMigration {
-  store: string;
-  from: number;
-  to: number;
-}
-
-export interface TrackedStore {
-  store: string;
-  current: number;
-}
+import type { StoreMigration, TrackedStore } from "@/types/migrations";
 
 export const TRACKED_STORES: TrackedStore[] = [
   { store: "settings", current: 59 },

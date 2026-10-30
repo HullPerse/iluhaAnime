@@ -23,13 +23,7 @@ import { CopyLinkButton } from "./copyLinkButton.detail";
 import { FavHeartButton } from "./favHeartButton.detail";
 import { OverlayScreens } from "./screens.detail";
 import { AniListDetailView } from "./view.detail";
-
-export interface DetailShellSlot {
-  title: string;
-  actions: ReactNode;
-  onBack: (() => void) | undefined;
-  body: ReactNode;
-}
+import type { DetailShellSlot } from "@/types/shell.detail";
 
 function ShellHeaderActions({
   animeId,

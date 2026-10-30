@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GAME_DISPLAY } from "@/config/display.config";
 import { useGameSession } from "@/hooks/game/session.hook";
-import type { GameSessionHandle } from "@/hooks/game/session.hook";
+import type { GameSessionHandle } from "@/types/gameSession";
 import {
   FRAME_FLAG_DIRTY,
   FRAME_FLAG_HIRES,

@@ -28,22 +28,20 @@ import {
   sharedFavourites,
   sortCompareRows,
   topGenreTaste,
-  type ComparedTitle,
-  type CompareDiffKind,
-  type CompareMetric,
-  type CompareSort,
-  type CompareSummary,
-  type CompareVerdict,
-  type GenreTaste,
-  type TasteMatch,
 } from "@/lib/compare.utils";
+import type {
+  CompareDiffKind,
+  CompareMetric,
+  CompareSort,
+  CompareSummary,
+  CompareVerdict,
+  ComparedTitle,
+  GenreTaste,
+  TasteMatch,
+} from "@/types/compare";
 import { getStatusColor } from "@/lib/entries.utils";
-import {
-  formatMeanScore,
-  formatScore,
-  parseScoreFormat,
-  type AnilistScoreFormat,
-} from "@/lib/anilistScore.utils";
+import { formatMeanScore, formatScore, parseScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniListCollection, AniUser, AniUserProfile, FavouriteAnime } from "@/types/anilist";

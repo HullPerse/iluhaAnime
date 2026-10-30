@@ -1,4 +1,6 @@
+import type { OperatorMode } from "@/types/searchScore";
 import { normalizeSearchText } from "@/lib/normalize.utils";
+import type { OperatorTerm } from "@/types/searchScore";
 
 function levenshtein(a: string, b: string): number {
   const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
@@ -151,14 +153,6 @@ export function fuzzyMatchScore(query: string, candidate: string): number | null
   const q = normalizeSearchText(query);
   if (!q) return null;
   return normalizedMatchScore(q, target, q.split(" "));
-}
-
-type OperatorMode = "fuzzy" | "exact" | "prefix" | "suffix" | "full";
-
-export interface OperatorTerm {
-  negate: boolean;
-  mode: OperatorMode;
-  text: string;
 }
 
 function parseOperatorToken(token: string): OperatorTerm | null {

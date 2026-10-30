@@ -8,6 +8,7 @@ import type {
 } from "@/types/anilist";
 import type { HexType } from "@/types/color";
 import type { TranslationKey } from "@/types/i18n";
+import type { EntryListInfo, EntryLookup } from "@/types/entries";
 
 export function filterEntries(
   entries: AniListEntry[],
@@ -137,23 +138,6 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
 
   return statusMap[status] ?? "#888";
 }
-
-export interface EntryListInfo {
-  progress: number | null;
-  score: number | null;
-  list_status: string;
-  created_at: number | null;
-  updated_at: number | null;
-  completed_at: string | null;
-  started_at: string | null;
-  notes: string | null;
-  repeat?: number | null;
-  private?: boolean | null;
-  hidden_from_status_lists?: boolean | null;
-  custom_lists: string[];
-}
-
-export type EntryLookup = Map<number, EntryListInfo>;
 
 export function buildEntryLookup(lists: AniListCollection[]): EntryLookup {
   const map: EntryLookup = new Map();

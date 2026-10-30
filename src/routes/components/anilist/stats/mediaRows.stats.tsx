@@ -5,8 +5,8 @@ import { getStatusColor } from "@/lib/entries.utils";
 import { formatScore } from "@/lib/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { StatsMediaRow } from "@/lib/anilistStats.utils";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { StatsMediaRow } from "@/types/anilistStats";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 
 /**
  * Drill-down row list used by the statistics Overview: one row per title,

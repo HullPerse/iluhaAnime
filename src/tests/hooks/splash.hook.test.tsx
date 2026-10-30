@@ -2,7 +2,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSplashStages } from "@/hooks/splash.hook";
-import type { DbCheckResult } from "@/hooks/splash.hook";
+import type { DbCheckResult } from "@/types/splash";
 import {
   markCacheReady,
   markIndexReady,

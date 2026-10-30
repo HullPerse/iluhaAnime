@@ -1,13 +1,8 @@
 import type { MpvChapter } from "@/types/videoPlayer";
+import type { ActiveChapter, SkipTarget } from "@/types/skip";
 
 export const SKIP_AUTO_HIDE_MS = 8000;
 export const SKIP_SEEK_BACK_THRESHOLD = 2;
-
-export interface ActiveChapter {
-  chapter: MpvChapter;
-  index: number;
-  target: number;
-}
 
 const OP_PATTERN = /\b(?:opening|op(?:[\s_-]*\d+)?)\b/;
 const ED_PATTERN = /\b(?:ending|ed(?:[\s_-]*\d+)?)\b/;
@@ -83,11 +78,6 @@ export function findActiveChapter(
     }
   }
   return null;
-}
-
-export interface SkipTarget {
-  target: number;
-  nextEpisode: boolean;
 }
 
 export function resolveSkipTarget(

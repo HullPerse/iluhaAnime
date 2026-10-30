@@ -1,36 +1,8 @@
 import { cn } from "cn";
 import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
-
-export interface ChartPlot {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-export interface ChartMargin {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
+import type { ChartFrameProps, ChartMargin, ChartPlot } from "@/types/frame.chart";
 
 const DEFAULT_MARGIN: ChartMargin = { top: 4, right: 4, bottom: 4, left: 4 };
-
-export interface ChartFrameProps {
-  height: number;
-  ariaLabel: string;
-  description?: string;
-  announcement?: string | null;
-  margin?: Partial<ChartMargin>;
-  interactive?: boolean;
-  className?: string;
-  onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  children: (plot: ChartPlot, width: number) => ReactNode;
-}
 
 export function ChartFrame({
   height,

@@ -1,10 +1,6 @@
 import { normalizeSearchText } from "@/lib/normalize.utils";
-import {
-  matchOperatorTerm,
-  matchOperatorTerms,
-  parseOperatorTerms,
-  type OperatorTerm,
-} from "@/lib/searchScore.utils";
+import { matchOperatorTerm, matchOperatorTerms, parseOperatorTerms } from "@/lib/searchScore.utils";
+import type { OperatorTerm } from "@/types/searchScore";
 import type { CollectionItem, CollectionSearchIndex } from "@/types/collection";
 
 export function buildCollectionSearchIndex(items: CollectionItem[]): CollectionSearchIndex {

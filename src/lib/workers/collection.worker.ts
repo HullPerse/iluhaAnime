@@ -1,7 +1,7 @@
 import { createCollectionFilterSnapshot, queryCollectionFilterSnapshot } from "@/lib/filter.utils";
-import type { CollectionFilterSnapshot } from "@/lib/filter.utils";
+import type { CollectionFilterSnapshot } from "@/types/filter";
 import { attemptSync } from "@/lib/attempt.utils";
-import type { WorkerJobEnvelope, WorkerJobResponse } from "@/lib/workers/job.utils";
+import type { WorkerJobEnvelope, WorkerJobResponse } from "@/types/job";
 import type {
   CollectionFilterWorkerPayload,
   CollectionFilterWorkerResult,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { SystemApi } from "@/api/system.api";
-import type { ApiTransport } from "@/api/transport.api";
+import type { ApiTransport } from "@/types/transport";
 
 function fakeTransport() {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];

@@ -1,10 +1,6 @@
 import type { TFunc } from "@/types/i18n";
 import type { TorrentCheckResult } from "@/types/torrent";
-
-export interface RecheckNotice {
-  tone: "success" | "error";
-  message: string;
-}
+import type { RecheckNotice } from "@/types/recheck";
 
 export function describeRecheckOutcome(result: TorrentCheckResult, t: TFunc): RecheckNotice {
   if (result.missing.length === 0 && result.size_mismatch.length === 0) {

@@ -1,10 +1,5 @@
 import type { AniMedia, AniTitleLanguage } from "@/types/anilist";
-
-export interface AnimeTitleFields {
-  romaji: string;
-  english?: string | null;
-  native?: string | null;
-}
+import type { AnimeTitleFields } from "@/types/anilistTitle";
 
 export function resolveAnimeTitle(
   titles: AnimeTitleFields | null | undefined,

@@ -1,15 +1,6 @@
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
-
-export interface SequenceDef {
-  codes: readonly string[];
-  timeoutMs: number;
-}
-
-export interface SequenceOptions {
-  sequence: SequenceDef;
-  ignore?: (event: KeyboardEvent) => boolean;
-  onMatch: () => void;
-}
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
+import type { SequenceOptions } from "@/types/sequenceHotkeys";
 
 /**
  * Observes a key sequence (e.g. the Konami code) without claiming the keys:

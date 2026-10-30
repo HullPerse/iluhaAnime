@@ -16,7 +16,7 @@ import {
   resolveHintDescription,
   scanHintTargets,
 } from "@/lib/hintsHotkeys.utils";
-import type { HintBadge, HintBadgeLayout, HintVariant } from "@/lib/hintsHotkeys.utils";
+import type { HintBadge, HintBadgeLayout, HintVariant } from "@/types/hintsHotkeys";
 import type { TranslationKey } from "@/types/i18n";
 
 const nodes: HTMLElement[] = [];

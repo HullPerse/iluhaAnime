@@ -6,7 +6,6 @@ import { clamp } from "@/lib/math.utils";
 import { joinMediaPath } from "@/lib/media.utils";
 import type {
   EndOfFileMode,
-  HwdecMode,
   PlayerOpenRequest,
   PlayerProfileId,
   PlayerSettings,
@@ -17,6 +16,13 @@ import type {
   VideoMarginRatio,
   WatchState,
 } from "@/types/videoPlayer";
+import type {
+  FilePlaybackState,
+  MpvInitParams,
+  PlaylistEntry,
+  TorrentPlaylistSource,
+  VideoCardInfo,
+} from "@/types/playback";
 
 export function rotateQueue(files: string[], startIndex: number): string[] {
   if (files.length === 0) return files;
@@ -25,13 +31,6 @@ export function rotateQueue(files: string[], startIndex: number): string[] {
 }
 
 const PLAYLIST_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-
-export interface TorrentPlaylistSource {
-  name: string;
-  fullPath?: string;
-  completed: boolean;
-  exists: boolean;
-}
 
 export function buildTorrentPlayerPlaylist(
   files: TorrentPlaylistSource[],
@@ -92,12 +91,6 @@ function withAlpha(color: string, opacity: number): string {
     .toString(16)
     .padStart(2, "0");
   return `#${alpha}${color.slice(1)}`;
-}
-
-export interface MpvInitParams {
-  volume: number;
-  hwdec: HwdecMode;
-  settings: PlayerSettings;
 }
 
 export function transformOptions(settings: PlayerSettings): Record<string, unknown> {
@@ -327,14 +320,6 @@ export function selectTrack(kind: "audio" | "sub", id: number | "no" | "auto"): 
   return setMpvProperty(kind === "audio" ? "aid" : "sid", String(id));
 }
 
-export interface FilePlaybackState {
-  speed: number;
-  subDelay: number;
-  audioDelay: number;
-  audioTrack?: number;
-  subtitleTrack?: number;
-}
-
 export async function applyFileState(state: FilePlaybackState): Promise<void> {
   await invokeTyped("player_apply_file_state", {
     speed: state.speed,
@@ -372,20 +357,8 @@ export async function insertPlaylistFiles(items: PlaylistInsert[]): Promise<void
   await invokeTyped("player_insert_files", { items });
 }
 
-export interface PlaylistEntry {
-  index: number;
-  filename: string;
-  title: string;
-}
-
 export async function readPlaylistEntries(): Promise<PlaylistEntry[]> {
   return invokeTyped<PlaylistEntry[]>("player_playlist_entries");
-}
-
-export interface VideoCardInfo {
-  path: string;
-  duration: number;
-  size: number;
 }
 
 export async function readVideoCard(path: string): Promise<VideoCardInfo> {

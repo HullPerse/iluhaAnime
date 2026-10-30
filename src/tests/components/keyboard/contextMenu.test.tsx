@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import ContextMenu, { closeOpenContextMenus } from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/types/contextMenu";
 
 function entries(onSelect = vi.fn()): ContextMenuEntry[] {
   return [

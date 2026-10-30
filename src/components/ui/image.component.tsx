@@ -2,7 +2,8 @@ import { cn } from "cn";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import type { ImageProps } from "@/types/ui";
 
 const RETRY_DELAYS = [500, 1500];

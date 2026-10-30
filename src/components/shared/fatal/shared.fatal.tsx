@@ -1,21 +1,4 @@
-import type { RefObject } from "react";
-
-import type { FatalInfo, FatalTexts } from "@/types/fatal";
-
-export interface FatalVariantProps {
-  info: FatalInfo;
-  texts: FatalTexts;
-  canRetry: boolean;
-  safe: boolean;
-  detailsOpen: boolean;
-  copied: boolean;
-  reloadRef: RefObject<HTMLButtonElement | null>;
-  onToggleDetails: () => void;
-  onReload: () => void;
-  onSafeReload: () => void;
-  onRetry: () => void;
-  onCopy: () => void;
-}
+import type { FatalInfo } from "@/types/fatal";
 
 export function formatFatalCopy(info: FatalInfo): string {
   const lines = [

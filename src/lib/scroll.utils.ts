@@ -1,3 +1,5 @@
+import type { ScrollDirection } from "@/types/scroll";
+
 const NO_WHEEL_SELECTOR = "[data-no-wheel]";
 const PLAYLIST_SCROLL_SELECTOR = "[data-playlist-scroll]";
 
@@ -18,8 +20,6 @@ export function isInsideScrollable(target: EventTarget | null): boolean {
   if (!element) return false;
   return closestScrollable(element) !== null;
 }
-
-export type ScrollDirection = "down" | "up" | "half.down" | "half.up";
 
 export function scrollAmount(
   direction: ScrollDirection,

@@ -1,7 +1,7 @@
 import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/themes.config";
-import type { Persistor } from "@/lib/persist.utils";
+import type { Persistor } from "@/types/persist";
 import { createPersistedStoreContext } from "@/lib/persisted.utils";
-import type { Cell } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 import { applyTheme } from "@/lib/appearance.utils";
 import { deriveFieldColor, isHexColor } from "@/lib/palette.utils";
 import { findTheme } from "@/lib/themeResolve.utils";

@@ -1,21 +1,9 @@
-import {
-  KEYBIND_MANIFEST,
-  type KeybindManifestEntry,
-  type KeybindScope,
-} from "@/config/manifest.config";
+import { KEYBIND_MANIFEST } from "@/config/manifest.config";
+import type { KeybindManifestEntry, KeybindScope } from "@/types/manifest";
 import { VIM_MOTION_KEYS } from "@/config/vim.config";
 
 import { chordKey, parseChord } from "@/lib/chordHotkeys.utils";
-
-export type KeybindOverride = string | null;
-
-export interface ResolvedKeybind {
-  entry: KeybindManifestEntry;
-  activeChord: string | null;
-  shadowedChord: string | null;
-  shadowedBy: string | null;
-  overridden: boolean;
-}
+import type { KeybindOverride, ResolvedKeybind } from "@/types/resolveHotkeys";
 
 const RESERVED_PREFIX_CODES: readonly string[] = [VIM_MOTION_KEYS.firstPrefix];
 

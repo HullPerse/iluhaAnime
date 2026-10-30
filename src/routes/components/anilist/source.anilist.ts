@@ -1,13 +1,13 @@
-import type { EntryLookup } from "@/lib/entries.utils";
+import type { EntryLookup } from "@/types/entries";
 import type {
   AniFriend,
   AniListCaps,
   AniListCollection,
   AniListSource,
   AniUser,
-  AniUserProfile,
   FavouriteAnime,
 } from "@/types/anilist";
+import type { FriendSourceData } from "@/types/source.anilist";
 
 const SELF_CAPS: AniListCaps = {
   headerActions: true,
@@ -22,14 +22,6 @@ const FRIEND_CAPS: AniListCaps = {
   modals: false,
   search: false,
 };
-
-export interface FriendSourceData {
-  lists: AniListCollection[];
-  favourites: FavouriteAnime[];
-  entryLookup: EntryLookup;
-  displayFavouriteIds: Set<number>;
-  profile: AniUserProfile | null;
-}
 
 export function buildAniListSource(params: {
   user: AniUser | null;

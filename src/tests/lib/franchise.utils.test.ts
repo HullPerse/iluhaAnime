@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { EntryLookup, EntryListInfo } from "@/lib/entries.utils";
+import type { EntryListInfo, EntryLookup } from "@/types/entries";
 import {
   availableEpisodes,
   buildFranchiseSections,

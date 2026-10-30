@@ -2,10 +2,9 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TorrentView } from "@/types/torrent";
+import type { DetailsTab } from "@/types/panels.details";
 
 import TorrentFileTree from "./tree.details";
-
-export type DetailsTab = "description" | "screenshots" | "files" | "mediainfo" | "comments";
 
 export function DetailsTabBar({
   tabs,

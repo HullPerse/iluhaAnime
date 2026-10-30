@@ -14,27 +14,15 @@ import {
   POSTER_TIMEOUT_MS,
   resolveCover,
   withTimeout,
-  type CoverCandidate,
-  type CoverProfile,
-  type CoverQuery,
 } from "@/lib/cover.utils";
+import type { CoverCandidate, CoverProfile, CoverQuery } from "@/types/cover";
 import { useCell } from "@/lib/signal.hook";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import { coverCorrectionsAtoms, coverKey, setResolvedCover } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
 import type { AniMedia } from "@/types/anilist";
 import type { TorrentCoverMode } from "@/types/settings";
-
-export type TorrentCoverStatus = "override" | "page" | "resolved" | "pending" | "empty";
-
-export interface TorrentCoverState {
-  status: TorrentCoverStatus;
-  coverUrl: string | null;
-  remoteUrl: string | null;
-  anilistId: number | null;
-  candidates: CoverCandidate[];
-  coverKey: string;
-}
+import type { TorrentCoverState } from "@/types/searchCover";
 
 async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
   const [media, error] = await attempt(

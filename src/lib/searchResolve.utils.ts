@@ -1,9 +1,4 @@
-import type {
-  CorrectionEvidence,
-  CorrectionReason,
-  SearchAnimeSuggestion,
-  SpellWordSpan,
-} from "@/types/search";
+import type { CorrectionReason, SearchAnimeSuggestion, SpellWordSpan } from "@/types/search";
 
 import { flipLayout } from "@/lib/layout.utils";
 import { normalizeSearchText } from "@/lib/normalize.utils";
@@ -18,25 +13,11 @@ import {
 import { damerauLevenshtein, isKnownGlueWord } from "@/lib/symspell.utils";
 import { titleKindBonus, typedTitlesOf } from "@/lib/searchTitle.utils";
 import { findInvalidTorrentTag } from "@/lib/torrentTags.utils";
-
-export interface ParsedTitleAttributes {
-  season: number | null;
-  episode: number | null;
-  year: number | null;
-  remainder: string;
-  markers: string[];
-  explicit: boolean;
-}
-
-export interface TitleHypothesis {
-  animeId: number | null;
-  title: string;
-  season: number | null;
-  episode: number | null;
-  year: number | null;
-  remainder: string;
-  score: number;
-}
+import type {
+  ParsedTitleAttributes,
+  SpellingWithReason,
+  TitleHypothesis,
+} from "@/types/searchResolve";
 
 const MAX_SEASON = 50;
 const MAX_EPISODE_AMBIGUOUS = 1500;
@@ -218,15 +199,6 @@ function scoreRemainder(
     }
   }
   return best;
-}
-
-export interface SpellingWithReason {
-  correction: string;
-  reason: CorrectionReason;
-  evidence: CorrectionEvidence;
-  spans?: SpellWordSpan[];
-  titleId?: number;
-  confidence?: number;
 }
 
 export const PHRASE_CONFIDENCE = 60;

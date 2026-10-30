@@ -1,12 +1,5 @@
-import type { SplashStage } from "@/hooks/splash.hook";
-import type { SplashTexts } from "@/lib/fatalTexts.utils";
-
-export interface SplashVariantProps {
-  stages: SplashStage[];
-  texts: SplashTexts;
-  fastLaunch: boolean;
-  onToggleFastLaunch: () => void;
-}
+import type { SplashStage } from "@/types/splash";
+import type { SplashTexts } from "@/types/fatalTexts";
 
 export function splashProgress(stages: SplashStage[]): number {
   if (stages.length === 0) return 0;

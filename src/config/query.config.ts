@@ -1,3 +1,5 @@
+import type { QueryPresetName } from "@/types/query";
+
 export const QUERY_CONFIG = {
   defaultOptions: {
     mutations: {
@@ -13,8 +15,6 @@ export const QUERY_CONFIG = {
     },
   },
 };
-
-export type QueryPresetName = "static" | "slow" | "live" | "realtime";
 
 interface QueryPreset {
   staleTime: number;

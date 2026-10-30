@@ -1,31 +1,7 @@
 import { KEYBINDS } from "@/config/keybinds.config";
 import { SCREENSHOT_HISTORY_DEFS } from "@/config/screenshot.config";
 import { TAB_KEYS } from "@/config/tabs.config";
-import type { HotkeyRepeat } from "@/lib/chordHotkeys.utils";
-import type { TranslationKey } from "@/types/i18n";
-
-export type KeybindScope = "global" | "settings" | "player" | "vim" | "find" | "menu" | "tree";
-
-export type KeybindMode = "base" | "vim";
-
-export type KeybindCategory =
-  | "navigation"
-  | "playback"
-  | "subtitles"
-  | "interface"
-  | "search"
-  | "screenshot"
-  | "vim";
-
-export interface KeybindManifestEntry {
-  id: string;
-  chord: string;
-  repeat: HotkeyRepeat;
-  scope: KeybindScope;
-  mode: KeybindMode;
-  description: TranslationKey;
-  category: KeybindCategory;
-}
+import type { KeybindManifestEntry, KeybindScope } from "@/types/manifest";
 
 function altDigitEntries(): KeybindManifestEntry[] {
   return TAB_KEYS.map((tab, index) => ({

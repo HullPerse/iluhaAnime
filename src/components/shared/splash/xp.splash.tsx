@@ -1,4 +1,4 @@
-import type { SplashVariantProps } from "./shared.splash";
+import type { SplashVariantProps } from "@/types/shared.splash";
 import { splashProgress, splashStageLabel } from "./shared.splash";
 
 export function XpSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: SplashVariantProps) {

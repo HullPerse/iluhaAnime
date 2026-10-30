@@ -1,3 +1,5 @@
+import type { ReproFrontendInput } from "@/types/repro";
+
 export const REPRO_REDACTED = "[redacted]";
 export const REPRO_TRUNCATED = "[truncated]";
 export const REPRO_MAX_STRING = 500;
@@ -58,12 +60,6 @@ export function sanitizeReproValue(value: unknown, depth = 0): unknown {
     return out;
   }
   return REPRO_TRUNCATED;
-}
-
-export interface ReproFrontendInput {
-  version: string;
-  settings: unknown;
-  counts: Record<string, number>;
 }
 
 export function buildReproFrontend(input: ReproFrontendInput): string {

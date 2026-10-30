@@ -6,7 +6,7 @@ import { memo } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { QueueDragTarget, QueuePlace } from "@/lib/torrentQueue.utils";
+import type { QueueDragTarget, QueuePlace } from "@/types/torrentQueue";
 import { formatBytes } from "@/lib/bytes.utils";
 import type { TorrentFileInfo } from "@/types/torrent";
 

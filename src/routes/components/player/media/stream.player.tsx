@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { PlayerStream } from "@/hooks/player/stream.hook";
+import type { PlayerStream } from "@/types/playerStream";
 import { useCell } from "@/lib/signal.hook";
 import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/streamHelpers.utils";
 import { loadSources } from "@/lib/sessionCache.utils";
@@ -17,7 +17,8 @@ import { playbackAtoms } from "@/store/player.store";
 import type { StreamVariant } from "@/types/stream";
 import type { StreamOpen } from "@/types/videoPlayer";
 
-import TrackDropdown, { type DropdownOption } from "./dropdown.tracks";
+import TrackDropdown from "./dropdown.tracks";
+import type { DropdownOption } from "@/types/dropdown.tracks";
 
 interface StreamControlProps {
   /** Hides the control while the player chrome is in a compact mode. */

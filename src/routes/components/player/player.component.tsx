@@ -13,15 +13,10 @@ import {
 
 import { streamApi } from "@/api/stream.api";
 import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/types/contextMenu";
 import { SmallLoader } from "@/components/shared/loader.component";
-import {
-  OFFSET_LIMIT,
-  OFFSET_STEP,
-  OFFSET_STEP_FINE,
-  SEEK_STEP,
-  type KeybindAction,
-} from "@/config/keybinds.config";
+import { OFFSET_LIMIT, OFFSET_STEP, OFFSET_STEP_FINE, SEEK_STEP } from "@/config/keybinds.config";
+import type { KeybindAction } from "@/types/keybinds";
 import { VOLUME_STEP } from "@/config/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
@@ -36,10 +31,12 @@ import type { TranslationKey, TranslationVariables } from "@/types/i18n";
 import { fileNameFromPath } from "@/lib/parse.utils";
 import { Debouncer } from "@/lib/debounce.utils";
 import { createInterval } from "@/lib/interval.utils";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import { Throttler } from "@/lib/throttle.utils";
 import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/cardCache.utils";
-import { resolveChapterJump, type ChapterJumpDirection } from "@/lib/chapter.utils";
+import { resolveChapterJump } from "@/lib/chapter.utils";
+import type { ChapterJumpDirection } from "@/types/chapter";
 import { startsOnPlayerControl } from "@/lib/playerDrag.utils";
 import {
   LOADING_TIMEOUT_MS,
@@ -51,8 +48,8 @@ import {
   marginOptions,
   marginsCloseEnough,
   ZERO_MARGINS,
-  type VideoMargins,
 } from "@/lib/margins.utils";
+import type { VideoMargins } from "@/types/margins";
 import {
   addExternalAudio,
   addExternalSubtitle,
@@ -70,7 +67,6 @@ import {
   hdrOptions,
   initPlayer,
   profileOptions,
-  type FilePlaybackState,
   loadQueue,
   movePlaylistIndex,
   nextFile,
@@ -92,6 +88,7 @@ import {
   takePendingOpen,
   transformOptions,
 } from "@/lib/playback.utils";
+import type { FilePlaybackState } from "@/types/playback";
 import { movePlaylistFocus } from "@/lib/playlistFocus.utils";
 import {
   RESUME_END_MARGIN,
@@ -99,8 +96,8 @@ import {
   resolveLoadPosition,
   needsExactSeek,
   shouldSkipFrontendSeek,
-  type HwdecReload,
 } from "@/lib/resume.utils";
+import type { HwdecReload } from "@/types/resume";
 import { resolveSkipTarget } from "@/lib/skip.utils";
 import { stepSpeed } from "@/lib/speed.utils";
 import { formatParsedTitle } from "@/lib/playerTitle.utils";

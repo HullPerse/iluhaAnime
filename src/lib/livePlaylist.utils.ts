@@ -1,11 +1,7 @@
 import { buildTree, findFolderContainingFile, folderFilePaths } from "@/lib/playerTree.utils";
 import { normalizePath } from "@/lib/pathsWatcher.utils";
 import type { VideoFileEntry } from "@/types/fs";
-
-export interface PlannedInsert {
-  path: string;
-  index: number;
-}
+import type { PlannedInsert } from "@/types/livePlaylist";
 
 export function planLiveInserts(
   desired: string[],

@@ -1,26 +1,18 @@
 import type { ComponentType } from "react";
 
 import { resolveSplashVariant } from "@/config/screens.config";
-import type { SplashStage } from "@/hooks/splash.hook";
 import { resolveFatalLocale, resolveSplashTexts } from "@/lib/fatalTexts.utils";
 import type { FatalVariant } from "@/types/fatal";
 
 import { GenericSplash } from "./generic.splash";
 import { RetroismSplash } from "./retroism.splash";
-import type { SplashVariantProps } from "./shared.splash";
+import type { SplashVariantProps } from "@/types/shared.splash";
 import { TerminalSplash } from "./terminal.splash";
 import { Win7Splash } from "./win7.splash";
 import { Win95Splash } from "./win95.splash";
 import { XpSplash } from "./xp.splash";
 import { YorhaSplash } from "./yorha.splash";
-
-export interface SplashScreenProps {
-  stages: SplashStage[];
-  themeName: string;
-  safe?: boolean;
-  fastLaunch: boolean;
-  onToggleFastLaunch: () => void;
-}
+import type { SplashScreenProps } from "@/types/screen.splash";
 
 const VARIANTS: Record<FatalVariant, ComponentType<SplashVariantProps>> = {
   win95: Win95Splash,

@@ -1,9 +1,4 @@
-export interface OverlapRect {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}
+import type { OverlapRect } from "@/types/mascot";
 
 export const MASCOT_DIM_COVERAGE = 0.2;
 

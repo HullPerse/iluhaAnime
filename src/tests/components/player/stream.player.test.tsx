@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerStream } from "@/hooks/player/stream.hook";
+import type { PlayerStream } from "@/types/playerStream";
 import StreamControl from "@/routes/components/player/media/stream.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";

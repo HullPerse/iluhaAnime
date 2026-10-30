@@ -1,15 +1,6 @@
 import type { TranslationKey } from "@/types/i18n";
 import type { CrtCurvature, PlayerCabinetId, PlayerModeId } from "@/types/videoPlayer";
-
-export interface PlayerModeDef {
-  id: PlayerModeId;
-  labelKey: TranslationKey;
-  /** Shader base name used by glsl-shader-opts; null turns the effect off. */
-  shader: string | null;
-  params: Record<string, number>;
-  /** Curvature comes from the player setting instead of the fixed params. */
-  curvatureEditable: boolean;
-}
+import type { PlayerModeDef } from "@/types/modes";
 
 export const PLAYER_MODES: Record<PlayerModeId, PlayerModeDef> = {
   normal: {

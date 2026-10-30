@@ -7,6 +7,7 @@ import {
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { CollectionStatus, CollectionStatusDef, WizardPrefill } from "@/types/collection";
 import type { Locale } from "@/types/i18n";
+import type { BilingualLabel } from "@/types/status";
 
 export function statusColorOf(statuses: CollectionStatusDef[], id: string): string {
   return statuses.find((s) => s.id === id)?.color ?? "#9ca3af";
@@ -47,11 +48,6 @@ export function sortStatuses(statuses: CollectionStatusDef[]): CollectionStatusD
       (Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER) -
         (Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER)
   );
-}
-
-export interface BilingualLabel {
-  en: string;
-  ru: string;
 }
 
 export function splitStatusLabel(label: string): BilingualLabel {

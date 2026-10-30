@@ -8,7 +8,7 @@ import { TOAST_ACTIVATED_EVENT } from "@/config/notifications.config";
 import { visibleTabs } from "@/config/tabs.config";
 import { tabIdFromPath, tabPathFromId } from "@/config/tabPaths.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";

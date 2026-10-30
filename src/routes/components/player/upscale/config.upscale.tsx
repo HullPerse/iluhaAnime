@@ -11,7 +11,7 @@ import {
 import { ANIME4K_PRESETS } from "@/config/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
+import type { UpscalePreviewController } from "@/types/upscalePreview";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/keys.utils";
 import { withFallback } from "@/lib/attempt.utils";

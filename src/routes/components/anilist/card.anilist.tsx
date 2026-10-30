@@ -7,13 +7,10 @@ import { listStatusLabels, statusLabels } from "@/config/labels.config";
 import { useProgressOverride } from "@/hooks/anilist/progressOverride.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { getStatusColor, type EntryListInfo } from "@/lib/entries.utils";
-import {
-  formatEntryScore,
-  parseScoreFormat,
-  scoreIconFor,
-  type AnilistScoreFormat,
-} from "@/lib/anilistScore.utils";
+import { getStatusColor } from "@/lib/entries.utils";
+import type { EntryListInfo } from "@/types/entries";
+import { formatEntryScore, parseScoreFormat, scoreIconFor } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { AniCardProps as Props } from "@/types/anilist";

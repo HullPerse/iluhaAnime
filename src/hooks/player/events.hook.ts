@@ -12,17 +12,7 @@ import type {
   PlaybackSnapshot,
   PlayerOpenRequest,
 } from "@/types/videoPlayer";
-
-export interface PlayerEventHandlers {
-  onOpenRequest?: (request: PlayerOpenRequest) => void;
-  onFileLoaded?: () => void;
-  onEndFile?: (reason: string) => void;
-  onPlaybackRestart?: () => void;
-  onIdle?: () => void;
-  onShutdown?: () => void;
-  onError?: () => void;
-  onDroppedFrames?: (data: DroppedFramesData) => void;
-}
+import type { PlayerEventHandlers } from "@/types/events";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

@@ -1,12 +1,6 @@
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ChangelogEntry, ChangelogScope } from "@/types/settings";
-
-export interface ChangelogVersion {
-  version: string;
-  added: ChangelogEntry[];
-  changed: ChangelogEntry[];
-  fixed: ChangelogEntry[];
-}
+import type { ChangelogVersion } from "@/types/changelog";
 
 function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
   return { key, scope };

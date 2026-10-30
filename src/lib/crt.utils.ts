@@ -1,21 +1,6 @@
 import { PLAYER_MODES } from "@/config/modes.config";
 import type { CrtCurvature, PlayerModeId } from "@/types/videoPlayer";
-
-export interface ActivePlayerShader {
-  shader: string;
-  path: string;
-}
-
-export interface PlayerShaderTarget {
-  shader: string | null;
-  path: string | null;
-  params: Record<string, number>;
-}
-
-export interface MpvCommand {
-  name: string;
-  args: string[];
-}
+import type { ActivePlayerShader, MpvCommand, PlayerShaderTarget } from "@/types/crt";
 
 /** Parameters for a mode, with the player curvature replacing the fixed one. */
 export function playerModeParams(

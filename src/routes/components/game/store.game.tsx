@@ -15,14 +15,11 @@ import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt } from "@/lib/attempt.utils";
 import { showError } from "@/lib/notification.utils";
 import type { GameStoreEntry, GameStorePlatform, GameStoreProgress } from "@/types/game";
+import type { GameStoreModalProps } from "@/types/store.game";
 
 const ALL_PLATFORMS = "all";
 
 type PlatformFilter = GameStorePlatform | typeof ALL_PLATFORMS;
-
-export interface GameStoreModalProps {
-  onClose: () => void;
-}
 
 export default function GameStoreModal({ onClose }: GameStoreModalProps) {
   const { t } = useI18n();

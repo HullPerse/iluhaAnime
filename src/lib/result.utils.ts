@@ -1,13 +1,8 @@
-import { normalizeWait, scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
-import {
-  attempt,
-  attemptRetry,
-  attemptSync,
-  toError,
-  type RetryOptions,
-} from "@/lib/attempt.utils";
-
-export type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
+import { normalizeWait, scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
+import { attempt, attemptRetry, attemptSync, toError } from "@/lib/attempt.utils";
+import type { RetryOptions } from "@/types/attempt";
+import type { ResourceUse, Result, TapHandlers } from "@/types/result";
 
 export function ok<T>(value: T): Result<T> {
   return { ok: true, value };
@@ -53,11 +48,6 @@ export function unwrapOr<T, F>(result: Result<T>, fallback: F): T | F {
   return result.ok ? result.value : fallback;
 }
 
-export interface TapHandlers<T, E> {
-  onSuccess?: (value: T) => void;
-  onFailure?: (error: E) => void;
-}
-
 export function tap<T, E>(result: Result<T, E>, handlers: TapHandlers<T, E>): Result<T, E> {
   if (result.ok) handlers.onSuccess?.(result.value);
   else handlers.onFailure?.(result.error);
@@ -86,12 +76,6 @@ export async function withTimeout<T>(
     return err(new Error(message ?? `Timed out after ${timeout}ms`));
   }
   return toResult(outcome);
-}
-
-export interface ResourceUse<T, R> {
-  acquire: () => T | Promise<T>;
-  use: (resource: T) => R | Promise<R>;
-  release: (resource: T) => void | Promise<void>;
 }
 
 function runResourceUse<T, R>(steps: ResourceUse<T, R>, resource: T): Promise<Result<R>> {

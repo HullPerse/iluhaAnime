@@ -5,16 +5,7 @@ import { resolveFatalVariant } from "@/config/screens.config";
 import { resolveDbTexts, resolveFatalLocale } from "@/lib/fatalTexts.utils";
 import { attempt } from "@/lib/attempt.utils";
 import type { FatalVariant } from "@/types/fatal";
-
-export interface DbScreenProps {
-  error: string;
-  themeName: string;
-  safe?: boolean;
-  dataDir: string;
-  onRetry: () => void;
-  onReload: () => void;
-  onOpenFolder: () => void;
-}
+import type { DbScreenProps } from "@/types/screen.db";
 
 const WRAP: Record<FatalVariant, { backgroundColor: string; color: string; fontFamily: string }> = {
   win95: {

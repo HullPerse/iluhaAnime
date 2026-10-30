@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { resetSection, sectionHasCustomReset } from "@/lib/reset.utils";
-import type { ResetSectionId } from "@/lib/reset.utils";
+import type { ResetSectionId } from "@/types/reset";
 
 interface SectionResetButtonProps {
   sectionId: ResetSectionId;

@@ -1,4 +1,3 @@
-import type { Update } from "@tauri-apps/plugin-updater";
 import { useCallback } from "react";
 
 import { useAppQuery } from "@/hooks/appQuery.hook";
@@ -6,12 +5,7 @@ import { useOnlineStatus } from "@/hooks/network.hook";
 import { queryKeys } from "@/lib/keys.utils";
 import { checkForUpdates } from "@/lib/update.utils";
 import { openUpdatePrompt } from "@/store/update.store";
-
-export type UpdateCheckOutcome =
-  | { status: "available"; update: Update }
-  | { status: "none" }
-  | { status: "error"; error: Error }
-  | { status: "offline" };
+import type { UpdateCheckOutcome } from "@/types/update";
 
 export function useUpdateCheck() {
   const isOnline = useOnlineStatus();

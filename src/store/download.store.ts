@@ -1,5 +1,6 @@
 import { open, confirm } from "@tauri-apps/plugin-dialog";
-import { createSignalStore, type Cell } from "@/lib/signal.store";
+import { createSignalStore } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 
 import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
@@ -9,7 +10,7 @@ import { attempt, reportBackgroundError, withFallback } from "@/lib/attempt.util
 import { showError } from "@/lib/notification.utils";
 import { ignore } from "@/lib/promise.utils";
 import { cacheAtoms, setLastSaveDir } from "@/store/cache.store";
-import type { SpeedLimits, TorrentOrigin, TorrentStore } from "@/types/torrent";
+import type { TorrentAtoms, TorrentData, TorrentSignalStore } from "@/types/download";
 
 export { tr };
 
@@ -81,51 +82,6 @@ async function clearPreviousTorrentIfNeeded(id: number | undefined): Promise<voi
   if (!id) return;
   const [, error] = await attempt(torrentApi.removeTorrent(id, false));
   if (error) showError(tr("download.error.clear"), error.message);
-}
-
-type TorrentActionKeys =
-  | "cancelDownload"
-  | "confirmDownload"
-  | "getTorrentLimits"
-  | "queueTorrentFiles"
-  | "prepareNextInQueue"
-  | "prepareTorrentDownload"
-  | "prepareTorrentDownloadFromFile"
-  | "prepareTorrentDownloadFromBytes"
-  | "setSpeedLimits"
-  | "setTorrentLimits";
-
-export type TorrentData = Omit<TorrentStore, TorrentActionKeys>;
-export type TorrentAtoms = { [K in keyof TorrentData]: Cell<TorrentData[K]> };
-
-export interface TorrentSignalStore {
-  atoms: TorrentAtoms;
-  cancelDownload: () => Promise<void>;
-  confirmDownload: (
-    selectedIndices: number[],
-    saveDir: string,
-    subFolder: string | undefined,
-    sequential?: boolean
-  ) => Promise<void>;
-  getTorrentLimits: (
-    id: number
-  ) => Promise<{ downloadBps: number | null; uploadBps: number | null }>;
-  queueTorrentFiles: (filePaths: string[]) => void;
-  prepareNextInQueue: () => void;
-  prepareTorrentDownload: (
-    magnet: string,
-    info?: { seeders?: number; origin?: TorrentOrigin }
-  ) => Promise<void>;
-  prepareTorrentDownloadFromFile: (
-    filePath: string,
-    info?: { seeders?: number; origin?: TorrentOrigin }
-  ) => Promise<void>;
-  prepareTorrentDownloadFromBytes: (
-    fileBytes: number[],
-    info?: { seeders?: number; origin?: TorrentOrigin }
-  ) => Promise<void>;
-  setSpeedLimits: (limits: SpeedLimits) => Promise<void>;
-  setTorrentLimits: (id: number, limits: SpeedLimits, infoHash?: string) => Promise<void>;
 }
 
 export function createTorrentSignalStore(): TorrentSignalStore {

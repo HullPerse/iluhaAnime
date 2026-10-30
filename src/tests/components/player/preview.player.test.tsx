@@ -10,7 +10,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
+import type { UpscalePreviewController } from "@/types/upscalePreview";
 import { PreviewZoom, UpscalePreview } from "@/routes/components/player/preview.player";
 import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
 import { patchSettings } from "@/store/settings.store";

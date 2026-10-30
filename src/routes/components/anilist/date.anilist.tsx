@@ -1,7 +1,8 @@
 import { memo } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { entryListTime, fuzzyDateToTime, type EntryListInfo } from "@/lib/entries.utils";
+import { entryListTime, fuzzyDateToTime } from "@/lib/entries.utils";
+import type { EntryListInfo } from "@/types/entries";
 import { formatDistanceToNowOwn } from "@/lib/distance.utils";
 
 function CardListDate({

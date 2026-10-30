@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import GameLibrary from "@/routes/components/game/library.game";
-import type { GameLibraryProps } from "@/routes/components/game/library.game";
+import type { GameLibraryProps } from "@/types/library.game";
 import { patchSettings } from "@/store/settings.store";
 import type { GameRomInfo } from "@/types/game";
 

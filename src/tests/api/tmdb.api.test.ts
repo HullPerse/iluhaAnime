@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { TmdbApi } from "@/api/tmdb.api";
-import type { ApiTransport } from "@/api/transport.api";
+import type { ApiTransport } from "@/types/transport";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {

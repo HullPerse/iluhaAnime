@@ -16,14 +16,14 @@ import {
 import { useState, useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/components/shared/contextMenu.component";
+import type { ContextMenuEntry } from "@/types/contextMenu";
 import { SmallLoader } from "@/components/shared/loader.component";
 import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/folders.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { clickRowActionButton, dispatchClick } from "@/lib/dispatchHotkeys.utils";
@@ -32,7 +32,7 @@ import { loadWatch, openPlayer } from "@/lib/playback.utils";
 import { formatParsedTitle } from "@/lib/playerTitle.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/playerTree.utils";
 import { resolveTreeArrow, resolveTreeMove } from "@/lib/treeArrow.utils";
-import type { TreeRow } from "@/lib/treeArrow.utils";
+import type { TreeRow } from "@/types/treeArrow";
 import { useCell } from "@/lib/signal.hook";
 import { withFallback } from "@/lib/attempt.utils";
 import { formatBytes } from "@/lib/bytes.utils";

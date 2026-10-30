@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { VimCommand, VimEngine, VimEngineState } from "@/lib/engineHotkeys.utils";
+import type { VimCommand, VimEngine, VimEngineState } from "@/types/engineHotkeys";
 import { createVimCommandTable, createVimEngine } from "@/lib/engineHotkeys.utils";
 import { isInsideLayer } from "@/lib/layerHotkeys.utils";
 

@@ -1,4 +1,4 @@
-import type { SplashVariantProps } from "./shared.splash";
+import type { SplashVariantProps } from "@/types/shared.splash";
 import { splashProgress, splashStageLabel } from "./shared.splash";
 
 const ORBS = ["#f65314", "#7cbb00", "#00a1f1", "#ffbb00"];

@@ -10,7 +10,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { useUpscalePreview } from "@/hooks/player/upscalePreview.hook";
-import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
+import type { UpscalePreviewController } from "@/types/upscalePreview";
 import { fileNameFromPath } from "@/lib/parse.utils";
 import { formatParsedTitle } from "@/lib/playerTitle.utils";
 import { queryKeys } from "@/lib/keys.utils";

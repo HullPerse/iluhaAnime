@@ -1,7 +1,9 @@
 import { visibleTabs } from "@/config/tabs.config";
-import { TAB_PATHS, tabIdFromPath, type TabPath } from "@/config/tabPaths.config";
+import { TAB_PATHS, tabIdFromPath } from "@/config/tabPaths.config";
+import type { TabPath } from "@/types/tabPaths";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TabId, TabSettings } from "@/types/settings";
+import type { SecretTabAction } from "@/types/tabs";
 
 function tabSettingsSnapshot(): TabSettings {
   return {
@@ -41,8 +43,6 @@ export function isEnabledTabPath(pathname: string): boolean {
   if (!tab) return true;
   return visibleTabs(tabSettingsSnapshot()).some((entry) => entry.id === tab);
 }
-
-export type SecretTabAction = "reveal" | "hide" | "none";
 
 export function resolveSecretTabAction(unlocked: boolean, onGameTab: boolean): SecretTabAction {
   if (!unlocked) return "reveal";

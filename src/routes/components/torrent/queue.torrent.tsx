@@ -32,7 +32,7 @@ import type {
   QueueDragTarget,
   QueueEdge,
   QueuePlace,
-} from "@/lib/torrentQueue.utils";
+} from "@/types/torrentQueue";
 import { formatBytes } from "@/lib/bytes.utils";
 import { ignore } from "@/lib/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";

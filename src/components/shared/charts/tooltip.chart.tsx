@@ -1,12 +1,8 @@
 import { CHART_LAYOUT } from "@/config/palette.config";
 import { clamp } from "@/lib/math.utils";
 
-import type { ChartPlot } from "./frame.chart";
-
-export interface ChartTooltipData {
-  title: string;
-  rows: { label: string; value: string }[];
-}
+import type { ChartPlot } from "@/types/frame.chart";
+import type { ChartTooltipData } from "@/types/tooltip.chart";
 
 export function tooltipAnnouncement(data: ChartTooltipData): string {
   const values = data.rows.map((row) => `${row.label} ${row.value}`).join(", ");

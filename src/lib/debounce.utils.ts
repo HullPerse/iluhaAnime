@@ -1,4 +1,4 @@
-import type { Cell } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 
 import type { DebounceOptions, PacerState } from "@/types/pacer";
 
@@ -8,8 +8,8 @@ import {
   normalizeWait,
   resolveEnabled,
   scheduleTask,
-  type ScheduledTask,
 } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 
 export class Debouncer<TArgs extends unknown[]> {
   readonly status: Cell<PacerState>;

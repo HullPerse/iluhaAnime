@@ -29,6 +29,7 @@ import type {
   TorrentFileInfo,
   TorrentInfo,
 } from "@/types/torrent";
+import type { RemoveTorrentVars } from "@/types/torrentQueries";
 
 export const TORRENTS_QUERY_KEY = queryKeys.torrents();
 export const torrentFilesKey = (id: number) => queryKeys.torrentFiles(id);
@@ -389,13 +390,6 @@ function notifyResumeReverified(check: TorrentCheckResult | null): void {
     parts.push(tr("torrent.recheck.size", { count: check.size_mismatch.length }));
   }
   showWarning(tr("torrent.resume.external.title"), parts.join(" - "));
-}
-
-export interface RemoveTorrentVars {
-  id: number;
-  deleteFiles: boolean;
-  infoHash?: string;
-  silent?: boolean;
 }
 
 export function useRemoveTorrent() {

@@ -1,31 +1,16 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { createCollectionFilterSnapshot, queryCollectionFilterSnapshot } from "@/lib/filter.utils";
-import type { CollectionFilterSnapshot } from "@/lib/filter.utils";
+import type { CollectionFilterSnapshot } from "@/types/filter";
 import { reportBackgroundError } from "@/lib/attempt.utils";
 import { createJobRunner } from "@/lib/workers/job.utils";
-import type { JobRunner } from "@/lib/workers/job.utils";
+import type { JobRunner } from "@/types/job";
 import type {
   CollectionFilterWorkerPayload,
   CollectionFilterWorkerResult,
   CollectionItem,
-  CollectionStatus,
-  CollectionStatusDef,
-  FilterParams,
 } from "@/types/collection";
-import type { TagToleranceKey } from "@/types/search";
-
-export interface CollectionFilterWorkerParams {
-  items: CollectionItem[];
-  statuses: CollectionStatusDef[];
-  searchQuery: string;
-  selectedStatus: CollectionStatus | "all";
-  filters: FilterParams;
-  sortBy: "date" | "name" | "rating" | "year";
-  sortDir: "asc" | "desc";
-  intentEnabled: boolean;
-  tagTolerances: Record<TagToleranceKey, number>;
-}
+import type { CollectionFilterWorkerParams } from "@/types/filterWorker";
 
 export function useCollectionFilterWorker(params: CollectionFilterWorkerParams): {
   filtered: CollectionItem[];

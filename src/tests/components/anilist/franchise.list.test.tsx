@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EntryLookup, EntryListInfo } from "@/lib/entries.utils";
+import type { EntryListInfo, EntryLookup } from "@/types/entries";
 import { FranchiseList } from "@/routes/components/anilist/franchise/list.franchise";
 import { patchSettings } from "@/store/settings.store";
 import type { FranchiseEdge, FranchiseNode } from "@/types/anilist";

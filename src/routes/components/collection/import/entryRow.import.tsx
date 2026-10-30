@@ -1,7 +1,8 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { GENRE_PREVIEW_COUNT } from "@/config/card.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatScore, parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import { formatScore, parseScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import { anilistStatusToCollection } from "@/lib/import.utils";
 import type { AniListEntry } from "@/types/anilist";
 

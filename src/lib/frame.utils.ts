@@ -1,5 +1,6 @@
 import { attemptSync } from "@/lib/attempt.utils";
 import type { GameAudioBlock, GameFrame } from "@/types/game";
+import type { Rgba } from "@/types/frame";
 
 /** `game_tick` response layout: 4 header bytes, an optional XO audio block,
  * then the packed framebuffer. */
@@ -18,8 +19,6 @@ export const LOW_FRAME_BYTES = (64 * 32) / 8;
 export const HIGH_FRAME_BYTES = (128 * 64) / 8;
 export const LOW_XO_FRAME_BYTES = (64 * 32) / 4;
 export const HIGH_XO_FRAME_BYTES = (128 * 64) / 4;
-
-export type Rgba = readonly [number, number, number, number];
 
 export function parseHexColor(hex: string): Rgba {
   const match = /^#?([\da-f]{6})$/iu.exec(hex.trim());

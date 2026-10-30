@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import type { Cell, Derived } from "@/lib/signal.store";
+import type { Cell, Derived } from "@/types/signal";
 
 export function useCell<T>(handle: Cell<T>): T {
   return useSyncExternalStore(handle.subscribe, handle.get, handle.get);

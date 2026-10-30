@@ -1,16 +1,4 @@
-export interface VideoMargins {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-export interface ViewportRect {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
+import type { VideoMargins, ViewportRect } from "@/types/margins";
 
 const MARGIN_EPSILON = 0.001;
 

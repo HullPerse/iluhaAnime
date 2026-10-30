@@ -1,4 +1,4 @@
-import type { RandomDiscovery } from "@/hooks/anilist/discovery.hook";
+import type { RandomDiscovery } from "@/types/discovery";
 import { buildEntryLookup } from "@/lib/entries.utils";
 import ActivityHistoryModal from "@/routes/components/anilist/activity.anilist";
 import Auth from "@/routes/components/anilist/auth.anilist";
@@ -9,7 +9,7 @@ import AniListFriendsModal from "@/routes/components/anilist/friends.anilist";
 import PrefetchRelationsModal from "@/routes/components/anilist/prefetch/modal.prefetch";
 import AniListRecsModal from "@/routes/components/anilist/rec.anilist";
 import StatsModal from "@/routes/components/anilist/stats.anilist";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import type {
   ActivityDetailBundle,
   AniFriend,

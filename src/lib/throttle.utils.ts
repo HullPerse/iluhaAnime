@@ -1,14 +1,9 @@
-import type { Cell } from "@/lib/signal.store";
+import type { Cell } from "@/types/signal";
 
 import type { PacerState, ThrottleOptions } from "@/types/pacer";
 
-import {
-  createSimpleCell,
-  normalizeWait,
-  resolveEnabled,
-  scheduleTask,
-  type ScheduledTask,
-} from "@/lib/shared.utils";
+import { createSimpleCell, normalizeWait, resolveEnabled, scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 
 export class Throttler<TArgs extends unknown[]> {
   readonly status: Cell<PacerState>;

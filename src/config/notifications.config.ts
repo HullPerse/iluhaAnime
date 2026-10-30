@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from "luc
 import type { TranslationKey } from "@/types/i18n";
 import type { NotificationFilter, NotificationType } from "@/types/notification";
 import type { NotificationPopupMode } from "@/types/settings";
+import type { ToastDefaults } from "@/types/notifications";
 
 export const TOAST_ACTIVATED_EVENT = "notification-activated";
 
@@ -60,11 +61,6 @@ export const NOTIFICATION_TOAST_STRIP: Record<NotificationType, string> = {
   success: "bg-green-600",
   warning: "bg-yellow-500",
 };
-
-export interface ToastDefaults {
-  durationMs: number;
-  maxVisible: number;
-}
 
 export const TOAST_DEFAULTS: ToastDefaults = {
   durationMs: 8000,

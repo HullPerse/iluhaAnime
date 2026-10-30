@@ -2,43 +2,14 @@ import { Debouncer } from "@/lib/debounce.utils";
 import { invokeTyped } from "@/lib/invoke.utils";
 import { isSameOrInside, normalizePath } from "@/lib/pathsWatcher.utils";
 import type { VideoFileEntry } from "@/types/fs";
-
-export interface FullScanRequest {
-  root: string;
-  extensions: string[];
-  threads: number;
-}
-
-export interface PatchScanRequest extends FullScanRequest {
-  upserts: string[];
-  removals: string[];
-}
-
-export type PatchScanOutcome =
-  | { kind: "full"; entries: VideoFileEntry[] }
-  | { kind: "patch"; fresh: VideoFileEntry[]; removed: string[] };
-
-export interface ScanExecutors {
-  walk: (roots: string[], extensions: string[], threads: number) => Promise<VideoFileEntry[]>;
-  patch: (
-    upserts: string[],
-    removals: string[],
-    extensions: string[],
-    threads: number
-  ) => Promise<VideoFileEntry[]>;
-}
-
-export interface ScanBus {
-  fullScan: (request: FullScanRequest) => Promise<VideoFileEntry[]>;
-  patchScan: (request: PatchScanRequest) => Promise<PatchScanOutcome>;
-  flush: () => void;
-  cancel: () => void;
-}
-
-export interface ScanBusOptions extends Partial<ScanExecutors> {
-  waitMs?: number;
-  maxWaitMs?: number;
-}
+import type {
+  FullScanRequest,
+  PatchScanOutcome,
+  PatchScanRequest,
+  ScanBus,
+  ScanBusOptions,
+  ScanExecutors,
+} from "@/types/scanBus";
 
 const DEFAULT_WAIT_MS = 50;
 const DEFAULT_MAX_WAIT_MS = 500;

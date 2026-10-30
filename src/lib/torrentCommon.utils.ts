@@ -3,6 +3,7 @@ import type { Event } from "@tauri-apps/api/event";
 import { formatRate } from "@/lib/bytes.utils";
 import type { TFunc, TranslationKey } from "@/types/i18n";
 import type { TorrentDisplayState, TorrentLifecycle, TorrentInfo } from "@/types/torrent";
+import type { TorrentListState } from "@/types/torrentCommon";
 
 export function sameDownloadOrder(prev: number[] | undefined, next: number[] | undefined): boolean {
   if (prev === next) return true;
@@ -194,11 +195,6 @@ export function getLifecycleLabel(lifecycle: TorrentLifecycle, t: TFunc): string
 export function stateLabel(state: string, t: TFunc): string {
   const key: TranslationKey | undefined = STATE_LABEL_KEY[state];
   return key === undefined ? state : t(key);
-}
-
-export interface TorrentListState {
-  torrents: TorrentInfo[];
-  lastActiveAt: Record<number, number>;
 }
 
 export function withoutPendingRemoved(

@@ -1,16 +1,8 @@
-import type { ReactNode } from "react";
-
 import Modal from "@/components/shared/modal.component";
 import { useCell } from "@/lib/signal.hook";
 import { clearModalScope, modalAtoms, popModal } from "@/store/modal.store";
 import type { ModalEntry, ModalScope } from "@/types/modal";
-
-export interface ModalHostContent {
-  header: string;
-  body: ReactNode;
-  className?: string;
-  headerActions?: ReactNode;
-}
+import type { ModalHostContent } from "@/types/modalHost";
 
 export function ModalHost({
   scope,

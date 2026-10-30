@@ -1,36 +1,12 @@
 import { attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 
-import {
-  createPersistor,
-  persistKey,
-  type PersistedData,
-  type Persistor,
-} from "@/lib/persist.utils";
-import { createSignalStore, type SignalStore } from "@/lib/signal.store";
+import { createPersistor, persistKey } from "@/lib/persist.utils";
+import { createSignalStore } from "@/lib/signal.store";
+import type { PersistedStoreContext, PersistedStoreOptions } from "@/types/persisted";
 
 export function defaultGetStorage(): Storage | undefined {
   if (typeof localStorage === "undefined") return undefined;
   return localStorage;
-}
-
-export interface PersistedStoreOptions {
-  storeName: string;
-  short: string;
-  schemaVersion: number;
-  getStorage?: () => Storage | undefined;
-  debounceMs?: number;
-  onFallback?: (getStorage: () => Storage | undefined) => PersistedData | null;
-}
-
-export interface PersistedStoreContext {
-  store: SignalStore;
-  persistor: Persistor;
-  getStorage: () => Storage | undefined;
-  adopted: () => boolean;
-  finishAdopt: (
-    snapshot?: () => Record<string, unknown>,
-    keys?: { probe?: string; remove?: string }
-  ) => void;
 }
 
 export function createPersistedStoreContext(options: PersistedStoreOptions): PersistedStoreContext {

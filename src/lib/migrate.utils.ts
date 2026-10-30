@@ -1,9 +1,4 @@
-export type MigrationState = Record<string, unknown>;
-
-export interface MigrationTransform {
-  from?: number;
-  migrate: (state: MigrationState) => void;
-}
+import type { MigrationState, MigrationTransform } from "@/types/migrate";
 
 export function runTransforms(
   state: MigrationState,

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { UpscalePreviewController } from "@/hooks/player/upscalePreview.hook";
+import type { UpscalePreviewController } from "@/types/upscalePreview";
 import type { PreviewFrame } from "@/types/upscale";
 
 export function PreviewZoom({ frame }: { frame: PreviewFrame }) {

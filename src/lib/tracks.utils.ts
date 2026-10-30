@@ -1,12 +1,7 @@
 import type { MpvTrack } from "@/types/videoPlayer";
 
 import { languageName, normalizeLangCode } from "@/lib/language.utils";
-
-export interface TrackDisplay {
-  id: number;
-  main: string;
-  language: string;
-}
+import type { TrackDisplay } from "@/types/tracks";
 
 function langCodeOf(track: MpvTrack): string {
   const raw = track.lang?.trim() ?? "";

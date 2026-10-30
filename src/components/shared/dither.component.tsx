@@ -2,7 +2,8 @@ import { cn } from "cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DITHER_DEFAULTS } from "@/config/dither.config";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import { attempt, attemptSync } from "@/lib/attempt.utils";
 import { renderDitherImage } from "@/lib/ditherRender.utils";
 import {

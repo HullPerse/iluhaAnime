@@ -1,22 +1,15 @@
 import { THEMES } from "@/config/themes.config";
 import { resolveTheme } from "@/lib/themeResolve.utils";
-import { buildThemeState, THEME_OVERRIDE_BINDINGS, type ThemeState } from "@/lib/tokens.utils";
+import { buildThemeState, THEME_OVERRIDE_BINDINGS } from "@/lib/tokens.utils";
+import type { ThemeState } from "@/types/tokens";
 import { attemptSync, reportBackgroundError } from "@/lib/attempt.utils";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/font.utils";
 import type { ThemeDefinition, ThemePatch } from "@/types/theme";
+import type { ThemePrePaintPayload } from "@/types/appearance";
 
 export const THEME_VARS_SCHEMA = 2;
 
 const THEME_VARS_STORAGE_KEY = "themeVars";
-
-export interface ThemePrePaintPayload {
-  schema: number;
-  themeName: string;
-  vars: Record<string, string>;
-  overrides: Record<string, string>;
-  datasets: ThemeState["datasets"];
-  fontFamily: string | null;
-}
 
 export function resolveThemeFont(themeFont: string | null | undefined): string {
   const stored = getStoredAppFont();

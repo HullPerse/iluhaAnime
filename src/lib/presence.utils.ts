@@ -3,6 +3,7 @@ import type { AniUser } from "@/types/anilist";
 import type { DiscordActivity, DiscordButton, DiscordPresenceDetail } from "@/types/discord";
 import type { TFunc } from "@/types/i18n";
 import type { StreamOpen } from "@/types/videoPlayer";
+import type { PlayerPresenceInput } from "@/types/presence";
 
 const ANILIST_ORIGIN = "https://anilist.co";
 const MAX_TEXT_CHARS = 128;
@@ -11,17 +12,6 @@ const MAX_URL_CHARS = 512;
 const WATCHING_TYPE = 3;
 
 export const PRESENCE_PROGRESS_INTERVAL_MS = 15_000;
-
-export interface PlayerPresenceInput {
-  stream: StreamOpen | null;
-  path: string;
-  hasFile: boolean;
-  paused: boolean;
-  eofReached: boolean;
-  duration: number;
-  timePos: number;
-  parseTitles: boolean;
-}
 
 interface PlayerCard {
   details: string;

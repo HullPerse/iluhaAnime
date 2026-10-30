@@ -8,30 +8,10 @@ import { formatLabels, listStatusLabels, statusLabels } from "@/config/labels.co
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { getStatusColor, type EntryListInfo } from "@/lib/entries.utils";
+import { getStatusColor } from "@/lib/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
-
-interface DiscoveryItem {
-  media: AniMedia;
-  entry?: EntryListInfo;
-}
-
-interface DiscoveryNav {
-  index: number;
-  total: number;
-  canPrev: boolean;
-  busy: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-  onReroll: () => void;
-  onDetails: (id: number) => void;
-}
-
-export interface DiscoveryCardProps {
-  item: DiscoveryItem;
-  nav: DiscoveryNav;
-}
+import type { DiscoveryCardProps } from "@/types/discovery.random";
 
 function Poster({ media }: { media: AniMedia }) {
   const coverSrc = useRemoteImage(media.cover_url);

@@ -1,11 +1,6 @@
 import { systemApi } from "@/api/system.api";
 import { attempt, reportBackgroundError } from "@/lib/attempt.utils";
-import type { SettingsStore } from "@/types/settings";
-
-export type WindowChrome = Pick<
-  SettingsStore,
-  "customTitleBarEnabled" | "roundedWindowCorners" | "windowEffect"
->;
+import type { WindowChrome } from "@/types/window";
 
 export async function applyWindowChrome(chrome: WindowChrome): Promise<void> {
   const [, error] = await attempt(

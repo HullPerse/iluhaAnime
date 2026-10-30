@@ -1,51 +1,9 @@
-import type { PlayerStream } from "@/hooks/player/stream.hook";
-import type { PlayerBottomBarKind } from "@/lib/view.utils";
-import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
+import type { PlayerBottomBarProps } from "@/types/bottom.modern";
 
 import Controls from "../media/controls.player";
 import PlayerSlimBar from "../media/slim.player";
 import Timeline from "../media/timeline.player";
 import ModernControls from "./controls.modern";
-
-export interface PlayerBottomBarProps {
-  variant: PlayerBottomBarKind;
-  playerType: "default" | "modern";
-  hasFile: boolean;
-  paused: boolean;
-  duration: number;
-  chapters: MpvChapter[];
-  tracks: MpvTrack[];
-  hasPrev: boolean;
-  hasNext: boolean;
-  immersive: boolean;
-  autoHide: boolean;
-  speed: number;
-  volume: number;
-  muted: boolean;
-  playlistOpen: boolean;
-  seekTarget: number | null;
-  onPlay: () => void;
-  onPause: () => void;
-  onPlayPause: () => void;
-  onSeekTo: (seconds: number) => void;
-  onScrub: (time: number) => void;
-  onCommitSeek: (time: number) => void;
-  onFilePrev: () => void;
-  onFileNext: () => void;
-  onFrameStep: (forward: boolean) => void;
-  onCycleSub: () => void;
-  onSpeed: (speed: number) => void;
-  onVolume: (volume: number) => void;
-  onMute: () => void;
-  onToggleAutoHide: () => void;
-  onTogglePlaylist: () => void;
-  onSelectAudio: (id: number | "no") => void;
-  onSelectSub: (id: number | "no") => void;
-  onAddAudio: () => void;
-  onAddSubtitle: () => void;
-  hideTracks: boolean;
-  stream: PlayerStream;
-}
 
 function PlayerBottomBar(props: PlayerBottomBarProps) {
   const {

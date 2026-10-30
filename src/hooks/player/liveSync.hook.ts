@@ -24,6 +24,7 @@ import { isSameOrInside, samePath } from "@/lib/pathsWatcher.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { PlaylistWatch } from "@/types/videoPlayer";
+import type { LivePlaylistOptions } from "@/types/liveSync";
 
 const LIVE_TORRENT_POLL_MS = 10_000;
 const LIVE_TORRENT_FAIL_LIMIT = 3;
@@ -115,10 +116,6 @@ async function reconcile(
   const after = await readPath();
   if (after !== current && current !== "") await restoreCurrent(current, removed);
   return "ok";
-}
-
-export interface LivePlaylistOptions {
-  onPlayingFileModified?: () => void;
 }
 
 export function useLivePlaylistSync(

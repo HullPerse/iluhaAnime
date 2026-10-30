@@ -1,13 +1,7 @@
 import { isHexColor } from "@/lib/palette.utils";
 import { normalizeAutocompleteOpacity } from "@/lib/tokens.utils";
 import type { ThemeComponents, ThemeDefinition, ThemeOverrides, ThemePatch } from "@/types/theme";
-
-export interface ResolveThemeOptions {
-  builtins: readonly ThemeDefinition[];
-  customThemes?: readonly ThemeDefinition[];
-  name: string;
-  patch?: ThemePatch;
-}
+import type { ResolveThemeOptions } from "@/types/themeResolve";
 
 export function findTheme(
   name: string,

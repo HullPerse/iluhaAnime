@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { isTextEntryTarget } from "@/lib/filterHotkeys.utils";
 import { useCell } from "@/lib/signal.hook";

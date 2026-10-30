@@ -9,7 +9,7 @@ import {
   SPOTLIGHT_REFRESH_TICK_MS,
 } from "@/config/spotlight.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AnilistScoreFormat } from "@/lib/anilistScore.utils";
+import type { AnilistScoreFormat } from "@/types/anilistScore";
 import {
   resolveSpotlightPick,
   spotlightBoundaryMs,

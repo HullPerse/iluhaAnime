@@ -8,23 +8,7 @@ import { GAME_PLATFORM_LABELS } from "@/config/platforms.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { sizeInKb } from "@/lib/gameFormat.utils";
 import { moveIndex } from "@/lib/keyboard.utils";
-import type { GameRomInfo } from "@/types/game";
-
-export interface GameLibraryProps {
-  roms: GameRomInfo[];
-  activeId: string | null;
-  /** ROM being started right now; its row shows a spinner instead of an idle Play. */
-  startingId: string | null;
-  importPending: boolean;
-  deletingId: string | null;
-  loading: boolean;
-  error: string | null;
-  onImport: () => void;
-  onOpenStore: () => void;
-  onPlay: (rom: GameRomInfo) => void;
-  onDelete: (rom: GameRomInfo) => void;
-  onReload: () => void;
-}
+import type { GameLibraryProps } from "@/types/library.game";
 
 export default function GameLibrary({
   roms,

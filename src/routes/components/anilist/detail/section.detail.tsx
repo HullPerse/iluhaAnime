@@ -22,7 +22,8 @@ import {
   buildSimNodes,
   runFranchiseSimulation,
 } from "@/lib/sim.utils";
-import { scheduleTask, type ScheduledTask } from "@/lib/shared.utils";
+import { scheduleTask } from "@/lib/shared.utils";
+import type { ScheduledTask } from "@/types/shared";
 import { queryKeys } from "@/lib/keys.utils";
 import type {
   FranchiseNodePosition,

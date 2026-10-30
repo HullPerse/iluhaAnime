@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { systemApi } from "@/api/system.api";
 import Modal from "@/components/shared/modal.component";
 import ScreenshotStage from "@/components/shared/screenshot/stage.screenshot";
-import type { StageHandle } from "@/components/shared/screenshot/stage.screenshot";
+import type { StageHandle } from "@/types/stage.screenshot";
 import ScreenshotToolbar from "@/components/shared/screenshot/tools.screenshot";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -23,7 +23,7 @@ import {
   SCREENSHOT_HISTORY_DEFS,
 } from "@/config/screenshot.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/types/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { Debouncer } from "@/lib/debounce.utils";

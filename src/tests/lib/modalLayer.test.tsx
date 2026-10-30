@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Modal from "@/components/shared/modal.component";
 import { createVimEngine } from "@/lib/engineHotkeys.utils";
-import type { VimEngine } from "@/lib/engineHotkeys.utils";
+import type { VimEngine } from "@/types/engineHotkeys";
 import { scanHintTargets } from "@/lib/hintsHotkeys.utils";
 import { isInsideLayer, topLayerElement } from "@/lib/layerHotkeys.utils";
 import { patchSettings } from "@/store/settings.store";

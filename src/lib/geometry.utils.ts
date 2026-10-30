@@ -1,9 +1,6 @@
-const LINEAR_SCAN_LIMIT = 32;
+import type { RatioSegment } from "@/types/geometry";
 
-export interface RatioSegment {
-  start: number;
-  length: number;
-}
+const LINEAR_SCAN_LIMIT = 32;
 
 export function barLength(value: number, max: number, length: number): number {
   if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0 || length <= 0) return 0;

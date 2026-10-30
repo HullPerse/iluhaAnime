@@ -1,42 +1,7 @@
 import { DEFAULT_SETTINGS } from "@/config/settingsDefaults.config";
 import { patchSettings } from "@/store/settings.store";
 import type { SettingsDefaults, SettingsStore } from "@/types/settings";
-
-export type ResetSectionId =
-  | "general.tabs"
-  | "general.startup"
-  | "general.keyboard"
-  | "general.window"
-  | "general.language"
-  | "general.tmdb"
-  | "general.anilist"
-  | "general.animelib"
-  | "general.parse"
-  | "general.rpc"
-  | "general.screenshot"
-  | "notifications.system"
-  | "notifications.anilist"
-  | "notifications.torrents"
-  | "notifications.tasks"
-  | "notifications.app"
-  | "search.sources"
-  | "search.results"
-  | "torrent.limits"
-  | "torrent.defaults"
-  | "torrent.schedule"
-  | "torrent.search"
-  | "torrent.files"
-  | "torrent.notifications"
-  | "torrent.session"
-  | "torrent.network"
-  | "theme.schedule"
-  | "theme.retro"
-  | "theme.progress"
-  | "theme.font"
-  | "theme.effects"
-  | "theme.animation"
-  | "theme.experimental"
-  | "keybinds.list";
+import type { ResetSectionId } from "@/types/reset";
 
 export const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
   "general.tabs": ["collectionTabEnabled", "anilistTabEnabled", "sqliteBrowserEnabled"],

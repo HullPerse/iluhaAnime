@@ -1,28 +1,12 @@
 import { groupFilesByDirectory } from "@/lib/torrentTree.utils";
 import type { FileOrder, TorrentFileInfo, TorrentQueueApply } from "@/types/torrent";
-
-export type QueuePlace = "before" | "after";
-export type QueueEdge = "start" | "end";
-
-export interface QueueBlock {
-  dir: string;
-  first: number;
-  start: number;
-  end: number;
-}
-
-export type QueueDragTarget = { kind: "file"; index: number } | { kind: "folder"; first: number };
-
-export type QueueDisplayItem =
-  | {
-      kind: "folder";
-      dir: string;
-      first: number;
-      count: number;
-      remainingBytes: number;
-      collapsed: boolean;
-    }
-  | { kind: "file"; index: number };
+import type {
+  QueueBlock,
+  QueueDisplayItem,
+  QueueDragTarget,
+  QueueEdge,
+  QueuePlace,
+} from "@/types/torrentQueue";
 
 export function queueDir(name: string): string {
   const at = name.search(/[/\\]/);

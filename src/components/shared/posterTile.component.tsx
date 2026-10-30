@@ -2,9 +2,9 @@ import { PreviewCard } from "@base-ui/react/preview-card";
 import { cn } from "cn";
 import { Heart } from "lucide-react";
 import { useState } from "react";
-import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import type { PosterTilePreview } from "@/types/posterTile";
 import ImageComponent from "@/components/ui/image.component";
 
 const TILE_WIDTHS = {
@@ -16,8 +16,6 @@ const PREVIEW_DELAY = 250;
 const PREVIEW_CLOSE_DELAY = 100;
 
 export type PosterTileSize = keyof typeof TILE_WIDTHS;
-
-export type PosterTilePreview = ReactNode | ((close: () => void) => ReactNode);
 
 export function PosterTile({
   src,

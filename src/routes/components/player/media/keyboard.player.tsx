@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import { PLAYER_HOTKEYS, type KeybindAction } from "@/config/keybinds.config";
+import { PLAYER_HOTKEYS } from "@/config/keybinds.config";
+import type { KeybindAction } from "@/types/keybinds";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { shouldIgnoreHotkeys } from "@/lib/filterHotkeys.utils";
 import { isInsideScrollable } from "@/lib/scroll.utils";

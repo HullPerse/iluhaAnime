@@ -1,0 +1,17 @@
+import { getSettingsSnapshot } from "@/store/settings.store";
+import type { SessionConfigPayload } from "@/types/ui/settings";
+
+export function toSessionConfig(): SessionConfigPayload {
+  const s = getSettingsSnapshot();
+  return {
+    fastresume: s.fastresumeEnabled,
+    ipv4Only: s.ipv4Only,
+    peerConnectTimeout: s.peerConnectTimeout,
+    peerReadWriteTimeout: s.peerReadWriteTimeout,
+    listenPort: s.listenPort,
+    enableUpnp: s.enableUpnp,
+    disablePersistence: s.disablePersistence,
+    proxyUrl: s.torrentProxyUrl,
+    fileOrder: s.fileOrder,
+  };
+}

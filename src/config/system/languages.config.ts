@@ -1,0 +1,18 @@
+export const LANG_CODE_MAP = {
+  ARA: "AR",
+  CHI: "ZH",
+  DE: "DE",
+  FR: "FR",
+  FRE: "FR",
+  GER: "DE",
+  ITA: "IT",
+  JP: "JP",
+  JPN: "JP",
+  KOR: "KO",
+  POR: "PT",
+  "POR-BR": "PT",
+  SPA: "ES",
+  "SPA-LA": "ES",
+  THA: "TH",
+  VIE: "VI",
+} as const;

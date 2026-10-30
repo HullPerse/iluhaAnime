@@ -1,0 +1,416 @@
+import * as z from "zod/mini";
+
+import { MAGNET_RX } from "@/config/system/common.config";
+import { attemptAll, attemptSync } from "@/lib/core/attempt.utils";
+import { attemptResult, attemptResultSync, unwrapOr } from "@/lib/core/result.utils";
+import type { CollectionExternalIds, CollectionItem } from "@/types/anilist/collection";
+import type {
+  AnimeDeepLink,
+  AnilistAuthDeepLink,
+  CollectionShareDeepLink,
+  CollectionShareItem,
+  StreamDeepLink,
+  TorrentDeepLink,
+} from "@/types/core/deeplink";
+import type { AniListId, TorrentHash } from "@/types/core/types";
+
+export type {
+  AnimeDeepLink,
+  AnilistAuthDeepLink,
+  CollectionShareDeepLink,
+  StreamDeepLink,
+  TorrentDeepLink,
+};
+
+const DEEP_LINK_SCHEME = "iluhaanime";
+export const DEEP_LINK_EVENT = "deep-link-opened";
+export function buildAnimeLink(
+  anilistId: AniListId
+): `${typeof DEEP_LINK_SCHEME}://anime/anilist/${number}` {
+  return `${DEEP_LINK_SCHEME}://anime/anilist/${anilistId}`;
+}
+export function buildStreamLink(
+  slug: string
+): `${typeof DEEP_LINK_SCHEME}://stream/animelib/${string}` {
+  return `${DEEP_LINK_SCHEME}://stream/animelib/${slug}`;
+}
+export function buildTorrentLink(
+  infoHash: TorrentHash
+): `${typeof DEEP_LINK_SCHEME}://torrent/${string}` {
+  return `${DEEP_LINK_SCHEME}://torrent/${infoHash.toLowerCase()}`;
+}
+
+export function parseTorrentLink(raw: string): TorrentDeepLink | null {
+  const trimmed = raw.trim();
+  if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) !== 0) return null;
+  const rest = trimmed.slice(DEEP_LINK_SCHEME.length + 3);
+  if (rest.includes("?") || rest.includes("#")) return null;
+  const parts = rest.split("/");
+  if (parts.length !== 2 || parts[0] !== "torrent") return null;
+  if (!/^[0-9a-fA-F]{40}$/.test(parts[1])) return null;
+  return { infoHash: parts[1].toLowerCase() as TorrentHash };
+}
+
+/**
+ * A streaming title link. The source is part of the path so a second catalog
+ * can add its own segment without changing the existing links.
+ */
+export function parseStreamLink(raw: string): StreamDeepLink | null {
+  const trimmed = raw.trim();
+  if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) !== 0) return null;
+  const rest = trimmed.slice(DEEP_LINK_SCHEME.length + 3);
+  if (rest.includes("?") || rest.includes("#")) return null;
+  const parts = rest.split("/");
+  if (parts.length !== 3 || parts[0] !== "stream" || parts[1] !== "animelib") return null;
+  const slug = parts[2];
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(slug) || !slug.includes("--")) return null;
+  return { source: "animelib", slug };
+}
+
+export function parseAnimeLink(raw: string): AnimeDeepLink | null {
+  const schemeEnd = raw.trim().toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`);
+  if (schemeEnd !== 0) return null;
+  const rest = raw.trim().slice(DEEP_LINK_SCHEME.length + 3);
+  if (rest.includes("?") || rest.includes("#")) return null;
+  const parts = rest.split("/");
+  if (parts.length !== 3 || parts[0] !== "anime" || parts[1] !== "anilist") return null;
+  if (!/^\d{1,10}$/.test(parts[2])) return null;
+  const id = Number(parts[2]);
+  if (!Number.isSafeInteger(id) || id < 1) return null;
+  return { source: "anilist", id: id as AniListId };
+}
+
+const AUTH_PREFIX = `${DEEP_LINK_SCHEME}://auth/anilist`;
+
+export function parseAnilistAuthCallback(raw: string): AnilistAuthDeepLink | null {
+  const trimmed = raw.trim();
+  if (trimmed.toLowerCase().indexOf(AUTH_PREFIX) !== 0) return null;
+  const rest = trimmed.slice(AUTH_PREFIX.length);
+  if (rest !== "" && !rest.startsWith("?") && !rest.startsWith("#")) return null;
+  const hashIndex = rest.indexOf("#");
+  const queryPart = (hashIndex !== -1 ? rest.slice(0, hashIndex) : rest).replace(/^\?/, "");
+  const fragmentPart = hashIndex !== -1 ? rest.slice(hashIndex + 1) : "";
+  const params = new URLSearchParams(fragmentPart || queryPart);
+  const token = (params.get("access_token") ?? "").trim();
+  if (token.length === 0 || token.length > 4096 || /\s/.test(token)) return null;
+  return { accessToken: token };
+}
+
+export function ingestDeepLinks(
+  urls: unknown,
+  openAnime: (link: AnimeDeepLink) => void,
+  onInvalid: () => void,
+  openTorrent?: (link: TorrentDeepLink) => void,
+  openShare?: (rawUrl: string) => void,
+  openAuth?: (link: AnilistAuthDeepLink) => void,
+  openStream?: (link: StreamDeepLink) => void
+): void {
+  if (!Array.isArray(urls)) return;
+  let bad = false;
+  for (const raw of urls) {
+    if (typeof raw !== "string") {
+      bad = true;
+      continue;
+    }
+    if (openAuth) {
+      const auth = parseAnilistAuthCallback(raw);
+      if (auth) {
+        openAuth(auth);
+        continue;
+      }
+    }
+    if (openShare && looksLikeCollectionShareLink(raw)) {
+      openShare(raw);
+      continue;
+    }
+    const anime = parseAnimeLink(raw);
+    if (anime) {
+      openAnime(anime);
+      continue;
+    }
+    const stream = openStream ? parseStreamLink(raw) : null;
+    if (stream && openStream) {
+      openStream(stream);
+      continue;
+    }
+    const torrent = openTorrent ? parseTorrentLink(raw) : null;
+    if (torrent && openTorrent) openTorrent(torrent);
+    else bad = true;
+  }
+  if (bad) onInvalid();
+}
+
+export type PastedLink =
+  | { kind: "anime"; link: AnimeDeepLink }
+  | { kind: "stream"; link: StreamDeepLink }
+  | { kind: "torrent"; link: TorrentDeepLink }
+  | { kind: "magnet"; magnet: string }
+  | { kind: "collectionShare" };
+
+export function parseAnilistPageUrl(raw: string): AnimeDeepLink | null {
+  const match = /^https:\/\/anilist\.co\/anime\/(\d{1,10})(?:\/[^\s?#]*)?\/?$/i.exec(raw.trim());
+  if (!match) return null;
+  const id = Number(match[1]);
+  if (!Number.isSafeInteger(id) || id < 1) return null;
+  return { source: "anilist", id: id as AniListId };
+}
+
+export function parsePastedLink(text: string): PastedLink | "invalid" | null {
+  const trimmed = text.trim();
+  if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) === 0) {
+    if (looksLikeCollectionShareLink(trimmed)) return { kind: "collectionShare" };
+    const anime = parseAnimeLink(trimmed);
+    if (anime) return { kind: "anime", link: anime };
+    const stream = parseStreamLink(trimmed);
+    if (stream) return { kind: "stream", link: stream };
+    const torrent = parseTorrentLink(trimmed);
+    if (torrent) return { kind: "torrent", link: torrent };
+    return "invalid";
+  }
+  if (MAGNET_RX.test(trimmed)) return { kind: "magnet", magnet: trimmed };
+  const page = parseAnilistPageUrl(trimmed);
+  if (page) return { kind: "anime", link: page };
+  return null;
+}
+
+export function isEditablePasteTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement && target.closest("input, textarea, [contenteditable]") !== null
+  );
+}
+
+const COLLECTION_SHARE_PREFIX = `${DEEP_LINK_SCHEME}://collection/share/`;
+const SHARE_VERSION = 1 as const;
+
+const SHARE_MAX_ITEMS = 500;
+const SHARE_MAX_LABEL = 80;
+const SHARE_MAX_TITLE = 200;
+const SHARE_MAX_STATUS = 64;
+const SHARE_MAX_COVER_URL = 2048;
+const SHARE_MAX_PAYLOAD_CHARS = 262_144;
+const SHARE_MAX_BYTES = 1_000_000;
+
+const ShareItemSchema = z.object({
+  title: z.string(),
+  type: z.enum(["anime", "movie", "series", "custom"]),
+  year: z.optional(z.unknown()),
+  status: z.string(),
+  externalIds: z.optional(z.unknown()),
+  coverUrl: z.optional(z.unknown()),
+});
+
+const SharePayloadSchema = z.object({
+  version: z.literal(SHARE_VERSION),
+  label: z.optional(z.unknown()),
+  items: z.array(ShareItemSchema).check(z.minLength(1), z.maxLength(SHARE_MAX_ITEMS)),
+});
+
+const CompiledSharePayload = z.compile(SharePayloadSchema);
+
+interface ByteTransform {
+  readonly readable: ReadableStream<Uint8Array>;
+  readonly writable: WritableStream<Uint8Array>;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readShareId(value: unknown): number | undefined {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 1 ||
+    value > 2_147_483_647
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
+function normalizeYear(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value)) return null;
+  return value >= 1000 && value <= 9999 ? value : null;
+}
+
+function normalizeCoverUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > SHARE_MAX_COVER_URL) return null;
+  const [parsed, error] = attemptSync(() => new URL(trimmed));
+  if (error !== null) return null;
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  return parsed.toString();
+}
+
+function normalizeExternalIds(value: unknown): CollectionExternalIds {
+  const ids: CollectionExternalIds = {};
+  if (!isRecord(value)) return ids;
+  const anilist = readShareId(value.anilist);
+  if (anilist !== undefined) ids.anilist = anilist;
+  const mal = readShareId(value.mal);
+  if (mal !== undefined) ids.mal = mal;
+  const tmdb = readShareId(value.tmdb);
+  if (tmdb !== undefined) ids.tmdb = tmdb;
+  if (typeof value.imdb === "string" && /^tt\d{5,10}$/.test(value.imdb)) ids.imdb = value.imdb;
+  return ids;
+}
+
+function toShareItem(item: CollectionItem): CollectionShareItem {
+  return {
+    title: item.title.trim().slice(0, SHARE_MAX_TITLE),
+    type: item.type,
+    year: normalizeYear(item.year),
+    status: item.status.trim().slice(0, SHARE_MAX_STATUS),
+    externalIds: normalizeExternalIds(item.externalIds),
+    coverUrl: normalizeCoverUrl(item.coverUrl),
+  };
+}
+
+function readSharePayload(value: unknown): CollectionShareDeepLink | null {
+  const parsed = CompiledSharePayload.safeParse(value);
+  if (!parsed.success) return null;
+  const items: CollectionShareItem[] = [];
+  for (const item of parsed.data.items) {
+    const title = item.title.trim();
+    if (title.length === 0 || title.length > SHARE_MAX_TITLE) return null;
+    const status = item.status.trim();
+    if (status.length === 0 || status.length > SHARE_MAX_STATUS) return null;
+    items.push({
+      title,
+      type: item.type,
+      year: normalizeYear(item.year),
+      status,
+      externalIds: normalizeExternalIds(item.externalIds),
+      coverUrl: normalizeCoverUrl(item.coverUrl),
+    });
+  }
+  const label = typeof parsed.data.label === "string" ? parsed.data.label.trim() : "";
+  return {
+    version: SHARE_VERSION,
+    label: label.length > 0 ? label.slice(0, SHARE_MAX_LABEL) : null,
+    items,
+  };
+}
+
+async function collectBytes(
+  stream: ReadableStream<Uint8Array>,
+  maxBytes: number
+): Promise<Uint8Array | null> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  const read = await attemptResult(
+    (async (): Promise<boolean> => {
+      for (;;) {
+        const result = await reader.read();
+        if (result.done) return false;
+        total += result.value.byteLength;
+        if (total > maxBytes) {
+          await reader.cancel();
+          return true;
+        }
+        chunks.push(result.value);
+      }
+    })()
+  );
+  reader.releaseLock();
+  if (!read.ok || read.value) return null;
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function runByteTransform(
+  transform: ByteTransform,
+  input: Uint8Array,
+  maxBytes: number
+): Promise<Uint8Array | null> {
+  const writer = transform.writable.getWriter();
+  const collected = collectBytes(transform.readable, maxBytes);
+  await attemptAll([() => writer.write(input), () => writer.close()]);
+  return collected;
+}
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCodePoint(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/[=]+$/, "");
+}
+
+function base64UrlToBytes(value: string): Uint8Array | null {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return null;
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const remainder = base64.length % 4;
+  if (remainder === 1) return null;
+  const padded = remainder === 0 ? base64 : base64 + "=".repeat(4 - remainder);
+  const bytes = attemptResultSync(() => {
+    const binary = atob(padded);
+    const out = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      out[index] = binary.codePointAt(index) ?? 0;
+    }
+    return out;
+  });
+  return unwrapOr(bytes, null);
+}
+
+export async function buildCollectionShareLink(
+  items: readonly CollectionItem[],
+  label?: string | null
+): Promise<string> {
+  if (items.length === 0) throw new Error("Cannot share an empty collection status");
+  if (items.length > SHARE_MAX_ITEMS) {
+    throw new Error(`Cannot share more than ${SHARE_MAX_ITEMS} items`);
+  }
+  const payload: CollectionShareDeepLink = {
+    version: SHARE_VERSION,
+    label:
+      typeof label === "string" && label.trim().length > 0
+        ? label.trim().slice(0, SHARE_MAX_LABEL)
+        : null,
+    items: items.map(toShareItem),
+  };
+  const compressed = await runByteTransform(
+    new CompressionStream("gzip") as unknown as ByteTransform,
+    new TextEncoder().encode(JSON.stringify(payload)),
+    SHARE_MAX_BYTES
+  );
+  if (!compressed) throw new Error("Collection share payload is too large");
+  return `${COLLECTION_SHARE_PREFIX}${bytesToBase64Url(compressed)}`;
+}
+
+export async function parseCollectionShareLink(
+  raw: string
+): Promise<CollectionShareDeepLink | null> {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  if (!trimmed.toLowerCase().startsWith(COLLECTION_SHARE_PREFIX)) return null;
+  const segment = trimmed.slice(COLLECTION_SHARE_PREFIX.length);
+  if (segment.length === 0 || segment.length > SHARE_MAX_PAYLOAD_CHARS) return null;
+  const compressed = base64UrlToBytes(segment);
+  if (!compressed) return null;
+  const decompressed = await runByteTransform(
+    new DecompressionStream("gzip") as unknown as ByteTransform,
+    compressed,
+    SHARE_MAX_BYTES
+  );
+  if (!decompressed) return null;
+  const decoded = attemptResultSync(
+    () => JSON.parse(new TextDecoder().decode(decompressed)) as unknown
+  );
+  return decoded.ok ? readSharePayload(decoded.value) : null;
+}
+
+function looksLikeCollectionShareLink(raw: string): boolean {
+  return raw.trim().toLowerCase().startsWith(COLLECTION_SHARE_PREFIX);
+}

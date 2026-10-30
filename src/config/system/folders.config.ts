@@ -1,0 +1,5 @@
+export const FOLDER_LIST_MAX_HEIGHT = 300;
+export const FOLDER_VIRTUALIZE_AFTER = 50;
+export const FOLDER_MIN_HEIGHT = 48;
+export const FOLDER_RESIZE_STEP = 20;
+export const FOLDER_MAX_VIEWPORT_MARGIN = 120;

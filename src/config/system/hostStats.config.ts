@@ -1,0 +1,2 @@
+export const HOST_STATS_WARN_PERCENT = 80;
+export const HOST_STATS_CRITICAL_PERCENT = 95;

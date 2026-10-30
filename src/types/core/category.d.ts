@@ -1,0 +1,47 @@
+export interface Category {
+  id: string;
+  icon: string;
+  name: string;
+  order: number;
+  createdAt: number;
+}
+
+export interface CategoryEntry {
+  id: string;
+  type: "torrent" | "folder";
+  name: string;
+  torrentId?: number;
+  infoHash?: string;
+  saveDir?: string;
+  totalBytes?: number;
+  folderPath?: string;
+}
+
+export interface CategoryStore {
+  categories: Category[];
+  entries: Record<string, CategoryEntry[]>;
+  collapsedIds: string[];
+
+  addCategory: (name: string) => string;
+  removeCategory: (id: string) => void;
+  renameCategory: (id: string, name: string) => void;
+  changeIcon: (id: string, icon: string) => void;
+  reorderCategories: (ids: string[]) => void;
+  setCategoryCollapsed: (id: string, collapsed: boolean) => void;
+  addEntry: (categoryId: string, entry: Omit<CategoryEntry, "id">) => void;
+  removeEntry: (categoryId: string, entryId: string) => void;
+  moveEntry: (categoryId: string, entryId: string, delta: -1 | 1) => void;
+  removeEntriesByFolderPath: (path: string) => void;
+  removeEntriesByTorrentId: (id: number) => void;
+}
+
+export type CategoryDragData =
+  | { type: "folder"; name: string; folderPath: string }
+  | {
+      type: "torrent";
+      name: string;
+      infoHash: string;
+      torrentId: number;
+      saveDir: string;
+      totalBytes: number;
+    };

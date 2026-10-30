@@ -1,0 +1,48 @@
+import { isPublicStatus } from "@/lib/core/status.utils";
+import type {
+  CollectionGroup,
+  CollectionItem,
+  CollectionStatus,
+  CollectionStatusDef,
+} from "@/types/anilist/collection";
+
+const UNKNOWN_STATUS_COLOR = "#9ca3af";
+
+export function shouldGroupByStatus(
+  groupByStatus: boolean,
+  selectedStatus: CollectionStatus | "all",
+  statuses: readonly CollectionStatusDef[]
+): boolean {
+  if (groupByStatus) return true;
+  return statuses.some((status) => status.id === selectedStatus && isPublicStatus(status));
+}
+
+export function groupItemsByStatus(
+  items: CollectionItem[],
+  statuses: CollectionStatusDef[]
+): CollectionGroup[] {
+  const defs = [...statuses].sort((a, b) => a.order - b.order);
+  const defById = new Map(defs.map((def) => [def.id, def]));
+  const buckets = new Map<string, { def: CollectionStatusDef; items: CollectionItem[] }>();
+
+  for (const item of items) {
+    const def = defById.get(item.status) ?? {
+      id: item.status,
+      label: item.status,
+      color: UNKNOWN_STATUS_COLOR,
+      order: defs.length,
+      isCore: false,
+      kind: "private",
+    };
+    let bucket = buckets.get(item.status);
+    if (!bucket) {
+      bucket = { def, items: [] };
+      buckets.set(item.status, bucket);
+    }
+    bucket.items.push(item);
+  }
+
+  return [...buckets.values()]
+    .sort((a, b) => a.def.order - b.def.order)
+    .map(({ def, items }) => ({ status: def, items }));
+}

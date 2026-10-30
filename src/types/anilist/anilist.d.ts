@@ -1,0 +1,940 @@
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
+
+import { RELATION_FILTERS } from "@/config/graphics/graph.config";
+import type { RandomDiscovery } from "@/types/core/discovery";
+import type { EntryLookup } from "@/types/anilist/entries";
+import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
+
+export interface AniRanking {
+  rank: number;
+  type: string;
+  context: string;
+}
+
+export interface AniStudio {
+  id: number;
+  name: string;
+}
+
+export interface AniRelatedMedia {
+  id: number;
+  title: string;
+  cover_url: string | null;
+  episodes: number | null;
+  score: number | null;
+  format: string | null;
+  media_type: string | null;
+}
+
+export interface AniRelation {
+  relation_type: string;
+  media: AniRelatedMedia;
+}
+
+export interface AniMedia {
+  id: number;
+  title: string;
+  titles: string[];
+  title_romaji?: string | null;
+  title_english?: string | null;
+  title_native?: string | null;
+  episodes: number | null;
+  duration: number | null;
+  format: string | null;
+  status: string;
+  score: number | null;
+  genres: string[];
+  tags: string[];
+  description: string | null;
+  cover_url: string | null;
+  banner_image?: string | null;
+  id_mal?: number | null;
+  trailer_youtube_id?: string | null;
+  season: string | null;
+  season_year: number | null;
+  studios: AniStudio[];
+  next_episode: number | null;
+  next_airing_at: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  popularity: number | null;
+  favourites: number | null;
+  rankings: AniRanking[];
+  relations: AniRelation[];
+}
+
+export type AniTitleLanguage = "romaji" | "english" | "native";
+
+export type AniTitlePreference = "account" | AniTitleLanguage;
+
+export interface AniUser {
+  id: number;
+  name: string;
+  avatar: string | null;
+  anime_count: number;
+  episodes_watched: number;
+  mean_score: number | null;
+  score_format: AnilistScoreFormat | null;
+  title_language?: AniTitleLanguage | null;
+  favourites?: FavouriteAnime[];
+}
+
+export interface AniUserProfile extends AniUser {
+  banner_image: string | null;
+  about: string | null;
+  is_following: boolean | null;
+  is_follower: boolean | null;
+}
+
+export interface AniFriend {
+  id: number;
+  name: string;
+  avatar: string | null;
+  added_at: number;
+  profile?: AniUserProfile;
+  profile_fetched_at?: number;
+}
+
+export interface AniFriendMinimal {
+  id: number;
+  name: string;
+  avatar: string | null;
+}
+
+export interface FollowingPage {
+  users: AniFriendMinimal[];
+  has_next_page: boolean;
+  total?: number | null;
+}
+
+export interface FavouriteAnime {
+  id: number;
+  title: { romaji: string; english: string | null };
+  cover_image: { medium: string | null } | null;
+  mean_score: number | null;
+  format: string | null;
+}
+
+export interface FavouritePerson {
+  id: number;
+  name: string;
+  image: string | null;
+}
+
+export interface FavouritePeople {
+  staff: FavouritePerson[];
+  characters: FavouritePerson[];
+}
+
+export interface FavouriteOverview {
+  anime: FavouriteAnime[];
+  people: FavouritePeople;
+}
+
+export interface AniListEntry {
+  media: AniMedia;
+  progress: number | null;
+  score: number | null;
+  list_status: string;
+  created_at: number | null;
+  completed_at: string | null;
+  started_at: string | null;
+  updated_at: number | null;
+  notes: string | null;
+  repeat: number | null;
+  private?: boolean | null;
+  hidden_from_status_lists?: boolean | null;
+  custom_lists: string[];
+}
+
+/** One streaming episode row of an AniList title; only the preview is used. */
+export interface AniStreamingEpisode {
+  title: string;
+  thumbnail?: string;
+  url: string;
+  site: string;
+}
+
+export interface AniSavedEntry {
+  id: number | null;
+  status: string | null;
+  progress: number | null;
+  repeat?: number | null;
+  customLists: string[];
+}
+
+export interface AniListCollection {
+  name: string;
+  entries: AniListEntry[];
+}
+
+export interface AniListGroup {
+  name: string;
+  entries: AniListEntry[];
+}
+
+export interface AniListStatusStatistic {
+  status: string;
+  count: number;
+  minutes_watched: number;
+}
+
+export interface AniListScoreStatistic {
+  score: number;
+  count: number;
+}
+
+export interface AniListFormatStatistic {
+  format: string;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListYearStatistic {
+  year: number;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListGenreStatistic {
+  genre: string;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListStudioStatistic {
+  id: number;
+  name: string;
+  count: number;
+  mean_score: number;
+  minutes_watched: number;
+  media_ids: number[];
+}
+
+export interface AniListStatistics {
+  count: number;
+  mean_score: number;
+  standard_deviation: number;
+  minutes_watched: number;
+  episodes_watched: number;
+  statuses: AniListStatusStatistic[];
+  scores: AniListScoreStatistic[];
+  formats: AniListFormatStatistic[];
+  release_years: AniListYearStatistic[];
+  start_years: AniListYearStatistic[];
+  genres: AniListGenreStatistic[];
+  studios: AniListStudioStatistic[];
+}
+
+export type AniListViewMode = "self" | "friend";
+
+export interface AniListCaps {
+  headerActions: boolean;
+  listActions: boolean;
+  modals: boolean;
+  search: boolean;
+}
+
+export interface AniListSource {
+  mode: AniListViewMode;
+  user: AniUser | null;
+  friend: AniFriend | null;
+  friendProfile: AniUserProfile | null;
+  lists: AniListCollection[];
+  favourites: FavouriteAnime[];
+  displayLookup: EntryLookup;
+  myEntryLookup: EntryLookup;
+  displayFavouriteIds: Set<number>;
+  myFavouriteIds: Set<number>;
+  caps: AniListCaps;
+}
+
+export type AniListAnime = {
+  animeId: number;
+  listEntry?: {
+    progress: number | null;
+    score: number | null;
+    list_status: string;
+    notes: string | null;
+    custom_lists: string[];
+  };
+} | null;
+
+export interface AniRecommendation {
+  id: number;
+  title: string;
+  cover_url: string | null;
+  episodes: number | null;
+  score: number | null;
+  format: string | null;
+  recommendation_rating: number;
+}
+
+export interface AniCharacterNode {
+  id: number;
+  name: string;
+  native_name: string | null;
+  image: string | null;
+  favourites: number | null;
+  site_url: string | null;
+}
+
+export interface AniVoiceActor {
+  id: number;
+  name: string;
+  native_name: string | null;
+  image: string | null;
+  language: string | null;
+}
+
+export interface AniCharacterEdge {
+  role: string;
+  character: AniCharacterNode;
+  voice_actors: AniVoiceActor[];
+}
+
+export interface AniCharacterMediaEdge {
+  id: number;
+  title: string;
+  cover_url: string | null;
+}
+
+export interface AniCharacterDetail {
+  id: number;
+  name: string;
+  native_name: string | null;
+  image: string | null;
+  favourites: number | null;
+  site_url: string | null;
+  media: AniCharacterMediaEdge[];
+}
+
+export interface AniStaffCharacterEdge {
+  id: number;
+  name: string;
+  image: string | null;
+}
+
+export interface AniStaffMediaEdge {
+  id: number;
+  title: string;
+  cover_url: string | null;
+}
+
+export interface AniAnimeStaffEdge {
+  role: string;
+  id: number;
+  name: string;
+}
+
+export interface AniAnimeFull {
+  media: AniMedia;
+  characters: AniCharacterEdge[];
+  staff: AniAnimeStaffEdge[];
+  recommendations: AniRecommendation[];
+}
+
+export interface AniStaffDetail {
+  id: number;
+  name: string;
+  native_name: string | null;
+  image: string | null;
+  about: string | null;
+  favourites: number | null;
+  site_url: string | null;
+  character_count: number;
+  media_count: number;
+  characters: AniStaffCharacterEdge[];
+  media: AniStaffMediaEdge[];
+}
+
+export interface AniActivity {
+  id: number;
+  created_at: number;
+  activity_type: string;
+  status: string | null;
+  progress: string | null;
+  text: string | null;
+  media_id: number | null;
+  media_title: string | null;
+  media_cover: string | null;
+  user_id: number;
+  user_name: string;
+  user_avatar: string | null;
+  like_count: number;
+  is_liked: boolean;
+}
+
+export interface ActivityLikeState {
+  like_count: number;
+  is_liked: boolean;
+}
+
+export interface AniListSort {
+  key: "title" | "score" | "myScore" | "progress" | "completed" | "release" | "status";
+  dir: "asc" | "desc";
+}
+
+export interface AniListFilters {
+  tags: string[];
+  genres: string[];
+  format: string;
+  status: string;
+  season: string;
+  seasonYear: number | null;
+  adult: boolean;
+  sort: string;
+  source: string;
+  country: string;
+  year: [number, number];
+  episodes: [number, number];
+  score: [number, number];
+}
+
+export interface FranchiseNextAiringEpisode {
+  episode: number;
+  airing_at: number;
+}
+
+export interface FranchiseNode {
+  id: number;
+  title: string;
+  cover_url: string | null;
+  episodes: number | null;
+  score: number | null;
+  format: string | null;
+  media_type: string | null;
+  year: number | null;
+  status: string | null;
+  next_airing_episode: FranchiseNextAiringEpisode | null;
+  aggregate?: { group: RelationFilter; count: number } | null;
+}
+
+export interface FranchiseEdge {
+  source: number;
+  target: number;
+  relation_type: string;
+}
+
+export interface FranchiseGraph {
+  root_id: number;
+  nodes: FranchiseNode[];
+  edges: FranchiseEdge[];
+}
+
+export interface AniListFiltersModalProps {
+  open: boolean;
+  filters: AniListFilters;
+  isLocal: boolean;
+  onApply: (filters: AniListFilters) => void;
+  onReset: () => void;
+  onClose: () => void;
+  onRandom: (filters: AniListFilters) => void;
+  randomPending: boolean;
+  discovery: RandomDiscovery;
+  entryLookup: EntryLookup;
+  detail: ActivityDetailBundle;
+}
+
+export interface ActivityDetailBundle {
+  entryLookup: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
+  favouriteIds: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  favouriteCharacterIds?: Set<number>;
+  isLoggedIn: boolean;
+  onFavouriteToggle: (animeId: number) => Promise<void>;
+  onStaffFavouriteToggle?: (staffId: number) => void;
+  onCharacterFavouriteToggle?: (characterId: number) => void;
+  onTag: (value: string) => void;
+  onGenre: (value: string) => void;
+  onStudio?: (id: number, name: string) => void;
+  onSeason?: (season: string, year: number | null) => void;
+  onSaved?: () => void;
+}
+
+export type RelationFilter = (typeof RELATION_FILTERS)[number];
+
+export interface SimNode {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  fy?: number;
+  clusterX: number;
+}
+
+export interface FranchiseNodePosition {
+  x: number;
+  y: number;
+}
+
+export interface DragState {
+  id: number;
+  startMouseX: number;
+  startMouseY: number;
+  startNodeX: number;
+  startNodeY: number;
+}
+
+export interface FranchiseCamera {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  node: FranchiseNode;
+}
+
+export interface FranchiseGraphSectionProps {
+  animeId: number;
+  entryLookup?: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
+  onRelated?: (id: number) => void;
+  expanded?: boolean;
+}
+
+export interface GlobalSort {
+  key: string;
+  dir: "asc" | "desc";
+}
+
+export type SearchMode = "tag" | "genre" | "studio" | "season" | null;
+
+export interface AnilistRouteData {
+  user: AniUser | null;
+  lists: AniListCollection[];
+  favourites: FavouriteAnime[];
+  people: FavouritePeople;
+}
+
+export interface AniListFriendsStore {
+  friends: AniFriend[];
+  addFriend: (friend: Omit<AniFriend, "added_at" | "profile" | "profile_fetched_at">) => void;
+  cacheProfile: (profile: AniUserProfile) => void;
+  removeFriend: (id: number) => void;
+}
+
+export interface AniListObservation {
+  signature: string;
+  status: string;
+  mediaStatus: string;
+  title: string;
+  updatedAt: number;
+  nextEpisode: number | null;
+  nextAiringAt: number | null;
+}
+
+export interface AniListRelease {
+  mediaId: number;
+  title: string;
+  episode: number | string;
+  airedAt: number;
+  read: boolean;
+}
+
+export interface AniSiteNotification {
+  id: number;
+  kind: string;
+  created_at: number;
+  context: string | null;
+  contexts: string[];
+  user_id: number | null;
+  user_name: string | null;
+  user_avatar: string | null;
+  anime_id: number | null;
+  anime_title: string | null;
+  anime_cover: string | null;
+  episode: number | null;
+  activity_id: number | null;
+  text: string | null;
+}
+
+export interface AniListNotificationsStore {
+  observations: Record<string, AniListObservation>;
+  releases: AniListRelease[];
+  readNotificationIds: number[];
+  initialized: boolean;
+  knownListNames: string[];
+  siteMaxSeenId: number;
+  saveObservation: (id: string, observation: AniListObservation) => void;
+  markOwnListStatus: (mediaId: number, status: string) => void;
+  addRelease: (release: Omit<AniListRelease, "read">) => void;
+  markReleasesRead: () => void;
+  markSiteNotificationsRead: (ids: number[]) => void;
+  setInitialized: (value: boolean) => void;
+  setKnownListNames: (names: string[]) => void;
+  setSiteMaxSeenId: (id: number) => void;
+}
+
+export interface FilteredGraph {
+  edges: { source: number; target: number; relation_type: string }[];
+  ids: Set<number>;
+  nodeMap: Map<number, FranchiseNode>;
+}
+
+export type ActivityTranslate = (key: TranslationKey, variables?: TranslationVariables) => string;
+
+export interface DayActivityItem {
+  id: number;
+  title: string;
+  cover: string | null;
+  progress: number | null;
+  events: string;
+}
+
+export interface DayActivity {
+  added: number;
+  progress: number;
+  completed: number;
+  count: number;
+  items: DayActivityItem[];
+}
+
+export interface YearGridCell {
+  date: Date;
+  level: number;
+  count: number;
+}
+
+export interface CollapsedGraph {
+  graph: FilteredGraph;
+  aggregators: Map<number, { group: RelationFilter; count: number }>;
+}
+
+export type AniListViewState =
+  | "loading"
+  | "globalLoading"
+  | "globalEmpty"
+  | "localEmpty"
+  | "friendLoading"
+  | "friendError"
+  | "login";
+
+export type BrowseTab = "popular" | "trending" | "top";
+
+export interface PrefetchItem {
+  id: number;
+  title: string;
+  relations: string[];
+}
+
+export interface PrefetchProgressPayload {
+  done: number;
+  total: number;
+  remaining: number;
+  fetched: number;
+  skipped: number;
+  current: string | null;
+  items: PrefetchItem[];
+  elapsed_ms: number;
+  eta_secs: number | null;
+  next_batch_in_ms: number;
+}
+
+export interface PrefetchSummary {
+  processed: number;
+  fetched: number;
+  skipped: number;
+  cancelled: boolean;
+}
+
+export type AniListModalViews = {
+  auth: boolean;
+  recs: boolean;
+  recsLoading: boolean;
+  activity: boolean;
+  friends: boolean;
+  favourites: boolean;
+  filters: boolean;
+  stats: boolean;
+  browse: boolean;
+  prefetch: boolean;
+};
+
+export interface AniNotificationEntry {
+  media: {
+    id: number;
+    title: string;
+    next_episode: number | null;
+    next_airing_at: number | null;
+    status: string;
+  };
+  list_status: string;
+  listName: string;
+}
+
+export interface CameraPoint {
+  x: number;
+  y: number;
+}
+
+export interface CameraTransform {
+  scale: number;
+  x: number;
+  y: number;
+}
+
+export interface UseFranchiseViewportOptions {
+  initialScale?: number;
+  maxScale?: number;
+  minScale?: number;
+  wheelStep?: number;
+}
+
+export interface FranchiseViewport {
+  getScale: () => number;
+  transformStyle: CSSProperties;
+  wrapperProps: {
+    onMouseDown: (event: ReactMouseEvent) => void;
+    ref: (node: HTMLDivElement | null) => void;
+  };
+  zoomToElement: (elementId: string, targetScale: number, animationDurationMs?: number) => void;
+}
+
+export interface AniCardProps {
+  item: AniMedia;
+  entryLookup: EntryLookup;
+  isFavorite: boolean;
+  scoreFormat?: AnilistScoreFormat | null;
+  onClick: (anime: AniListAnime) => void;
+}
+
+export interface AniListDetailModalHostProps {
+  selectedAnime: AniListAnime;
+  entryLookup?: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
+  favouriteIds: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  favouriteCharacterIds?: Set<number>;
+  isLoggedIn: boolean;
+  onFavouriteToggle: (animeId: number) => Promise<void>;
+  onStaffFavouriteToggle?: (staffId: number) => void;
+  onCharacterFavouriteToggle?: (characterId: number) => void;
+  onTag: (tag: string) => void;
+  onGenre: (genre: string) => void;
+  onStudio: (id: number, name: string) => void;
+  onSeason: (season: string, seasonYear: number | null) => void;
+  onRelated: (id: number) => void;
+  onBack: (() => void) | undefined;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+export interface AniDetailProps {
+  animeId: number;
+  entryLookup?: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
+  listEntry?: {
+    progress: number | null;
+    score: number | null;
+    list_status: string;
+    notes: string | null;
+    custom_lists: string[];
+  };
+  isLoggedIn: boolean;
+  favouriteIds?: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  favouriteCharacterIds?: Set<number>;
+  onFavouriteToggle?: (animeId: number) => Promise<void> | void;
+  onStaffFavouriteToggle?: (staffId: number) => void;
+  onCharacterFavouriteToggle?: (characterId: number) => void;
+  onTag: (value: string) => void;
+  onGenre: (value: string) => void;
+  onSeason?: (season: string, year: number | null) => void;
+  onStudio?: (id: number, name: string) => void;
+  onRelated?: (id: number) => void;
+  onBack?: () => void;
+  onClose: () => void;
+  onSaved?: () => void;
+}
+
+export type AniDetailViewProps = AniDetailProps & {
+  anime?: AniMedia;
+  initialCharacters?: AniCharacterEdge[];
+  initialRecommendations?: AniRecommendation[];
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  refetch: () => void;
+  onTrailer: (youtubeId: string) => void;
+  onPushScreen: (screen: AniListOverlayScreen) => void;
+};
+
+export type AniListOverlayScreen =
+  | { kind: "character"; id: number; name: string; role?: string; voiceActors: AniVoiceActor[] }
+  | { kind: "staff"; id: number; name: string }
+  | { kind: "anime"; id: number; name: string };
+
+export interface AniListOverlayContext {
+  isLoggedIn: boolean;
+  favouriteCharacterIds?: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  onCharacterFavouriteToggle?: (id: number) => void;
+  onStaffFavouriteToggle?: (id: number) => void;
+  onOpenAnime: (id: number) => void;
+  onPush: (screen: AniListOverlayScreen) => void;
+}
+
+export type FavouritesTab = "anime" | "characters" | "staff";
+
+export interface AniFavouritesProps {
+  open: boolean;
+  favourites: FavouriteAnime[];
+  people: FavouritePeople;
+  isLoggedIn: boolean;
+  favouriteCharacterIds?: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  onCharacterFavouriteToggle?: (id: number) => void;
+  onStaffFavouriteToggle?: (id: number) => void;
+  onClose: () => void;
+  onAnimeClick: (id: number) => void;
+}
+
+export interface FranchiseGraphProps {
+  filtered: FilteredGraph;
+  animeId: number;
+  containerWidth: number;
+  totalHeight: number;
+  dims: { w: number; h: number; imgH: number };
+  positions: Map<number, FranchiseNodePosition>;
+  relationMap: Map<number, string>;
+  searchMatchIds: Set<number> | null;
+  viewport: FranchiseViewport;
+  onNodeClick: (nodeId: number) => void;
+  onNodeMouseDown: (event: ReactMouseEvent, nodeId: number) => void;
+}
+
+export interface FranchiseListProps {
+  nodes: FranchiseNode[];
+  edges: FranchiseEdge[];
+  animeId: number;
+  entryLookup?: EntryLookup;
+  relationMap: Map<number, string>;
+  mainlineIds: Set<number>;
+  searchMatchIds: Set<number> | null;
+  scoreFormat?: AnilistScoreFormat | null;
+  onNodeClick: (nodeId: number) => void;
+}
+
+export interface FranchiseToolbarProps {
+  activeFilters: Set<RelationFilter>;
+  groupCounts: Record<RelationFilter, number>;
+  searchQuery: string;
+  matchCount: number | null;
+  listView: boolean;
+  refreshing: boolean;
+  onToggleFilter: (filter: RelationFilter) => void;
+  onSearchChange: (query: string) => void;
+  onToggleView: () => void;
+  onFocusCurrent: () => void;
+  onResetLayout: () => void;
+  onRefresh: () => void;
+}
+
+export interface AniFriendsProps {
+  friends: AniFriend[];
+  selfUser: AniUser | null;
+  selfLists: AniListCollection[];
+  selfFavourites: FavouriteAnime[];
+  onAdd: (profile: AniUserProfile) => void;
+  onAddMany: (friends: AniFriendMinimal[]) => void;
+  onRemove: (id: number) => void;
+  onViewLists: (friend: AniFriend) => void;
+  onClose: () => void;
+}
+
+export interface AniHeaderProps {
+  user: AniUser;
+  loadingList: boolean;
+  onStatsOpen: () => void;
+  onBrowseOpen: () => void;
+  onRecsOpen: () => void;
+  onPrefetchOpen: () => void;
+  onFriendsOpen: () => void;
+  onLogout: () => void;
+}
+
+export interface AniPrefetchProps {
+  animeIds: number[];
+  onClose: () => void;
+}
+
+export interface AniRecProps {
+  open: boolean;
+  loading: boolean;
+  recommendations: AniRecommendation[];
+  watchedIds: Set<number>;
+  onClose: () => void;
+  onAnimeClick: (id: number) => void;
+}
+
+export interface AniSortProps {
+  sort: AniListSort;
+  onSortChange: (sort: AniListSort) => void;
+  onActivityOpen: () => void;
+  onFavouritesOpen: () => void;
+  onRandom: () => void;
+  onSpotlight: () => void;
+  hasFavourites: boolean;
+  groupByStatus: boolean;
+  onGroupChange: (grouped: boolean) => void;
+  displayMode: "scroll" | "pagination";
+  onDisplayChange: (mode: "scroll" | "pagination") => void;
+  showActions?: boolean;
+}
+
+export interface AnimeShowcase {
+  stills: string[];
+  trailerYoutubeId: string | null;
+}
+
+export type SpotlightKind = "day" | "week" | "month";
+
+export interface FriendScore {
+  id: number;
+  name: string;
+  avatar: string | null;
+  score: number | null;
+  scoreFormat: AnilistScoreFormat | null;
+  status: string;
+  comment: string | null;
+  repeat: number | null;
+  progress: number | null;
+  episodes: number | null;
+}
+
+export interface AniFriendScore {
+  userId: number;
+  score: number | null;
+  scoreFormat: string | null;
+  status: string | null;
+  progress: number | null;
+  repeat: number | null;
+  notes: string | null;
+  episodes: number | null;
+}
+
+export interface PrefetchSnapshot {
+  ids: number[];
+  done: number;
+  total: number;
+}
+
+export type AniListScrollRow = { kind: "header"; name: string } | { kind: "item"; media: AniMedia };
+
+export type SpotlightRowState =
+  | { status: "loading" }
+  | { status: "ready"; media: AniMedia }
+  | { status: "error" };

@@ -8,7 +8,10 @@ use tauri::{
 use tauri_plugin_libmpv::{MpvConfig, VideoMarginRatio};
 
 use super::core::{LibmpvCore, PlayerCore};
-use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch, StreamOpen};
+use super::state::{
+    current_watch_snapshot, save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch,
+    StreamOpen,
+};
 use super::watch::{self, WatchState};
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
 use crate::app_db;
@@ -177,6 +180,7 @@ fn load_queue(
     }
     if window == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
+        host.invalidate_stream_pause();
         host.set_current_path(start_file.clone());
         host.set_stream_watch_key(None);
         host.clear_pending_open();
@@ -205,33 +209,34 @@ pub async fn player_open(
         stream: None,
     };
 
+    // Show the window before the request reaches the frontend. A prewarmed
+    // window is hidden, and WebView2 throttles a hidden renderer: the event
+    // sat in the queue until the window was shown, which made the first click
+    // take hundreds of milliseconds longer than the load itself.
     let host = app.state::<PlayerHost>();
-    if host.is_active() {
-        host.set_pending_open(Some(request.clone()));
-        app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
-            .map_err(|error| error.to_string())?;
+    let raise = |app: &AppHandle| {
         if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
             let _ = window.show();
             let _ = window.set_focus();
         }
-        return load_queue(
-            &app,
-            PLAYER_WINDOW_LABEL,
-            &request.files,
-            resume,
-            start_index,
-        );
+    };
+    if host.is_active() {
+        host.set_pending_open(Some(request.clone()));
+        raise(&app);
+        app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
+            .map_err(|error| error.to_string())?;
+        // The window owns the load: its `player-open-request` handler calls
+        // `player_load`, which is the call that carries the request's resume
+        // position and watch state. Loading here as well made every file
+        // change a double `loadfile`.
+        return Ok(());
     }
 
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
-        let host = app.state::<PlayerHost>();
         host.set_pending_open(Some(request.clone()));
+        raise(&app);
         app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
             .map_err(|error| error.to_string())?;
-        if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
-            let _ = window.show();
-            let _ = window.set_focus();
-        }
         return Ok(());
     }
 
@@ -271,6 +276,21 @@ pub async fn player_open(
     Ok(())
 }
 
+/// Snapshot the position of whatever is playing, then write it on a blocking
+/// task. The snapshot is taken before the media is replaced; the SQLite write
+/// must not sit in front of a switch.
+fn flush_watch(app: &AppHandle) {
+    let Some((path, state)) = current_watch_snapshot(app) else {
+        return;
+    };
+    let app = app.clone();
+    drop(tauri::async_runtime::spawn_blocking(move || {
+        if let Err(error) = watch::save(&app, &path, &state) {
+            tracing::debug!("watch position not saved: {error}");
+        }
+    }));
+}
+
 /// Open a stream media URL in the existing libmpv player.
 ///
 /// Sets per-source `http-header-fields` on mpv before loading, then loads the
@@ -284,7 +304,7 @@ pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<()
     // Flush the position of whatever is playing before the file is replaced.
     // The periodic watch save runs every ten seconds; without this a switch
     // made right after the last tick would lose that window on a crash.
-    save_current_watch(&app);
+    flush_watch(&app);
 
     let request = PlayerOpenRequest {
         files: vec![stream.media_url.clone()],
@@ -300,12 +320,14 @@ pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<()
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
         let host = app.state::<PlayerHost>();
         host.set_pending_open(Some(request.clone()));
-        app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
-            .map_err(|error| error.to_string())?;
+        // Raise first: a hidden prewarmed window has a throttled renderer, and
+        // the frontend has to see the request to paint the new session.
         if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
             let _ = window.show();
             let _ = window.set_focus();
         }
+        app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
+            .map_err(|error| error.to_string())?;
         // A window that exists but has not initialized mpv yet cannot take the
         // load here. Leave the request pending: `player_init` loads it once the
         // instance is ready.
@@ -412,37 +434,57 @@ fn load_stream_media(
     };
 
     let backend = core(app);
+    let host = app.state::<PlayerHost>();
 
-    // Always write both options, including empty values: a previous source's
-    // route and headers must not leak into a stream that needs none.
+    // A quality or voice-over switch usually keeps the same route, the same
+    // headers and the same cache profile. mpv keeps those options on the
+    // instance, so only a changed value is worth an IPC hop.
     let proxy = stream
         .proxy_url
         .as_deref()
         .map(mpv_proxy)
         .unwrap_or_default();
-    backend
-        .set_property("http-proxy", &json!(proxy), window)
-        .map_err(|error| format!("set http-proxy: {error}"))?;
-
     let header_string = header_fields(&stream.headers);
-    backend
-        .set_property("http-header-fields", &json!(header_string), window)
-        .map_err(|error| format!("set http-header-fields: {error}"))?;
+    let writes = host.stream_option_writes(&proxy, &header_string, stream.paused);
 
-    // A deeper cache than the profile sets: the stream is not on disk.
-    if let Some(options) = stream_cache_options().as_object() {
-        for (name, value) in options {
+    let applied = (|| -> Result<(), String> {
+        // An empty value is a real write: a previous source's route and
+        // headers must not leak into a stream that needs none.
+        if writes.proxy {
             backend
-                .set_property(name, value, window)
-                .map_err(|error| format!("set {name} for stream: {error}"))?;
+                .set_property("http-proxy", &json!(proxy), window)
+                .map_err(|error| format!("set http-proxy: {error}"))?;
         }
+        if writes.headers {
+            backend
+                .set_property("http-header-fields", &json!(header_string), window)
+                .map_err(|error| format!("set http-header-fields: {error}"))?;
+        }
+        // A deeper cache than the profile sets: the stream is not on disk.
+        if writes.cache {
+            if let Some(options) = stream_cache_options().as_object() {
+                for (name, value) in options {
+                    backend
+                        .set_property(name, value, window)
+                        .map_err(|error| format!("set {name} for stream: {error}"))?;
+                }
+            }
+        }
+        // `pause` is set before the file loads: mpv keeps the player paused
+        // while it opens, which is what a switch from a paused stream needs.
+        if writes.pause {
+            backend
+                .set_property("pause", &json!(stream.paused), window)
+                .map_err(|error| format!("set pause for stream: {error}"))?;
+        }
+        Ok(())
+    })();
+    if let Err(error) = applied {
+        // A failed write leaves mpv and the cache disagreeing; make the next
+        // request write everything again.
+        host.reset_stream_options();
+        return Err(error);
     }
-
-    // `pause` is set before the file loads: mpv keeps the player paused while
-    // it opens, which is what a quality switch from a paused stream needs.
-    backend
-        .set_property("pause", &json!(stream.paused), window)
-        .map_err(|error| format!("set pause for stream: {error}"))?;
 
     let mut args: Vec<Value> = vec![json!(stream.media_url), json!("replace")];
     if let Some(position) = request.resume {
@@ -518,6 +560,8 @@ pub async fn player_init(
 
     if label == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
+        // A fresh instance has none of the previous stream's options.
+        host.reset_stream_options();
         host.set_active(true);
         // A stream opened before mpv was ready is waiting in the pending
         // request. Load it now and keep the request, so the window can still

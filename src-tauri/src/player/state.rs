@@ -171,9 +171,29 @@ pub struct TypedEvent {
     pub data: Option<Value>,
 }
 
+/// The stream-specific mpv options the last request wrote. mpv keeps them on
+/// the instance across files, so a quality or voice-over switch only has to
+/// rewrite the ones that actually changed.
+#[derive(Default)]
+pub(crate) struct StreamOptions {
+    proxy: Option<String>,
+    headers: Option<String>,
+    cache: bool,
+    paused: Option<bool>,
+}
+
+/// Which stream options a request still has to write to mpv.
+pub(crate) struct StreamWrites {
+    pub proxy: bool,
+    pub headers: bool,
+    pub cache: bool,
+    pub pause: bool,
+}
+
 #[derive(Default)]
 pub struct PlayerHost {
     pending_open: Mutex<Option<PlayerOpenRequest>>,
+    stream_options: Mutex<StreamOptions>,
     current_path: Mutex<String>,
     /// Watch key of the stream session, when one is playing. `current_path`
     /// carries the media URL for a stream, which must never become a watch key.
@@ -270,6 +290,47 @@ impl PlayerHost {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clone()
+    }
+
+    /// Diff a stream request against what mpv already has, and remember the
+    /// new values so the next switch can skip them.
+    pub(crate) fn stream_option_writes(
+        &self,
+        proxy: &str,
+        headers: &str,
+        paused: bool,
+    ) -> StreamWrites {
+        let mut state = self
+            .stream_options
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let writes = StreamWrites {
+            proxy: state.proxy.as_deref() != Some(proxy),
+            headers: state.headers.as_deref() != Some(headers),
+            cache: !state.cache,
+            pause: state.paused != Some(paused),
+        };
+        state.proxy = Some(proxy.to_string());
+        state.headers = Some(headers.to_string());
+        state.cache = true;
+        state.paused = Some(paused);
+        writes
+    }
+
+    /// Forget what mpv was told, so the next stream writes every option again.
+    pub(crate) fn reset_stream_options(&self) {
+        *self
+            .stream_options
+            .lock()
+            .unwrap_or_else(|error| error.into_inner()) = StreamOptions::default();
+    }
+
+    /// A local file load changes `pause` behind the stream cache's back.
+    pub(crate) fn invalidate_stream_pause(&self) {
+        self.stream_options
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .paused = None;
     }
 
     pub fn reset_file_state(&self) {
@@ -577,24 +638,33 @@ fn watchdog_tick(app: &AppHandle) {
     }
 }
 
-pub fn save_current_watch(app: &AppHandle) {
+/// The watch key and state for whatever is playing right now. Reading the
+/// position is cheap; writing it is not, so the two are separate.
+pub fn current_watch_snapshot(app: &AppHandle) -> Option<(String, WatchState)> {
     let host = app.state::<PlayerHost>();
     let path = host
         .stream_watch_key()
         .filter(|key| !key.is_empty())
         .unwrap_or_else(|| host.current_path());
     if path.is_empty() {
-        return;
+        return None;
     }
-    let Some(position) = number_property(app, "time-pos") else {
+    let position = number_property(app, "time-pos")?;
+    Some((
+        path,
+        WatchState {
+            position,
+            duration: number_property(app, "duration").unwrap_or_default(),
+            audio_delay: number_property(app, "audio-delay"),
+            sub_delay: number_property(app, "sub-delay"),
+            updated_at: crate::app_db::now_seconds(),
+        },
+    ))
+}
+
+pub fn save_current_watch(app: &AppHandle) {
+    let Some((path, state)) = current_watch_snapshot(app) else {
         return;
-    };
-    let state = WatchState {
-        position,
-        duration: number_property(app, "duration").unwrap_or_default(),
-        audio_delay: number_property(app, "audio-delay"),
-        sub_delay: number_property(app, "sub-delay"),
-        updated_at: crate::app_db::now_seconds(),
     };
     if let Err(error) = watch::save(app, &path, &state) {
         tracing::debug!("watch position not saved: {error}");

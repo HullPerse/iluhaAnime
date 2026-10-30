@@ -809,6 +809,8 @@ function PlayerComponent() {
       streamSession.set(null);
       resumeRef.current = request.resume;
       setLiveWatch(request.watch ?? null);
+      // The window owns the load for a local queue: the backend only raises it
+      // and emits this request, so this is the one `loadfile` for the file.
       ignore(loadQueue(request.files, request.resume, request.startIndex));
     },
     onFileLoaded: () => {

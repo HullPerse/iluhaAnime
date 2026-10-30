@@ -4,6 +4,7 @@ import type {
   AnilistAuthDeepLink,
   CollectionShareDeepLink,
   DeepLinkStore,
+  StreamDeepLink,
   TorrentDeepLink,
 } from "@/types/deeplink";
 
@@ -12,6 +13,8 @@ type DeepLinkActionKeys =
   | "consume"
   | "openTorrent"
   | "consumeTorrent"
+  | "openStream"
+  | "consumeStream"
   | "openMagnet"
   | "consumeMagnet"
   | "openShare"
@@ -25,6 +28,7 @@ export type DeepLinkAtoms = { [K in keyof DeepLinkData]: Cell<DeepLinkData[K]> }
 const DEFAULT_DEEPLINK_DATA: DeepLinkData = {
   target: null,
   torrentTarget: null,
+  streamTarget: null,
   magnetTarget: null,
   shareTarget: null,
   authTarget: null,
@@ -37,6 +41,8 @@ export interface DeepLinkSignalStore {
   consume: () => void;
   openTorrent: (link: TorrentDeepLink) => void;
   consumeTorrent: () => void;
+  openStream: (link: StreamDeepLink) => void;
+  consumeStream: () => void;
   openMagnet: (magnet: string) => void;
   consumeMagnet: () => void;
   openShare: (link: CollectionShareDeepLink) => void;
@@ -61,6 +67,8 @@ export function createDeepLinkSignalStore(): DeepLinkSignalStore {
     consume: () => atoms.target.set(null),
     openTorrent: (link) => atoms.torrentTarget.set(link),
     consumeTorrent: () => atoms.torrentTarget.set(null),
+    openStream: (link) => atoms.streamTarget.set(link),
+    consumeStream: () => atoms.streamTarget.set(null),
     openMagnet: (magnet) => atoms.magnetTarget.set(magnet),
     consumeMagnet: () => atoms.magnetTarget.set(null),
     openShare: (link) => atoms.shareTarget.set(link),
@@ -80,6 +88,8 @@ export const openAnimeDeepLink = deeplinks.openAnime;
 export const consumeDeepLink = deeplinks.consume;
 export const openTorrentDeepLink = deeplinks.openTorrent;
 export const consumeTorrentDeepLink = deeplinks.consumeTorrent;
+export const openStreamDeepLink = deeplinks.openStream;
+export const consumeStreamDeepLink = deeplinks.consumeStream;
 export const openMagnetDeepLink = deeplinks.openMagnet;
 export const consumeMagnetDeepLink = deeplinks.consumeMagnet;
 export const openShareDeepLink = deeplinks.openShare;

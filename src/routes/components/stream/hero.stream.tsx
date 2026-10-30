@@ -1,34 +1,16 @@
-import { Info, Play } from "lucide-react";
-
-import { Button } from "@/components/ui/button.component";
+import Section from "@/components/shared/section.component";
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
 import type { StreamingAnime } from "@/types/stream";
 
 /**
- * The title header of the detail modal: poster, identity, synopsis and the one
- * primary action. The AniList button appears only when the source returned an
- * `anilist_id` and there is a session to read the details with; it swaps this
- * modal for the AniList detail instead of leaving the streaming tab.
+ * The title header of the detail modal: poster, identity, badges, genres and
+ * synopsis. It carries no action: playback is the episode rows, and the
+ * AniList and copy-link buttons sit in the modal header beside the close
+ * button, where every dialog in the app keeps its window actions.
  */
-export default function StreamHero({
-  anime,
-  episodeNumber,
-  canPlay,
-  playing,
-  canOpenAnilist,
-  onPlay,
-  onOpenAnilist,
-}: {
-  anime: StreamingAnime;
-  episodeNumber: number | null;
-  canPlay: boolean;
-  playing: boolean;
-  canOpenAnilist: boolean;
-  onPlay: () => void;
-  onOpenAnilist: () => void;
-}) {
+export default function StreamHero({ anime }: { anime: StreamingAnime }) {
   const { t } = useI18n();
   const cover = useStreamCover(anime.cover);
   const meta = [
@@ -59,21 +41,7 @@ export default function StreamHero({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-start gap-1">
-          <h2 className="windows95-text min-w-0 flex-1 text-sm leading-tight font-bold">
-            {anime.title}
-          </h2>
-          {anime.anilistId && canOpenAnilist ? (
-            <Button
-              size="icon"
-              title={t("stream.anilist.open")}
-              aria-label={t("stream.anilist.open")}
-              onClick={onOpenAnilist}
-            >
-              <Info className="size-3" />
-            </Button>
-          ) : null}
-        </div>
+        <h2 className="windows95-text min-w-0 text-sm leading-tight font-bold">{anime.title}</h2>
 
         {anime.synonyms.length > 0 ? (
           <span
@@ -108,23 +76,18 @@ export default function StreamHero({
           </div>
         ) : null}
 
-        {anime.description ? (
-          <p className="text-text windows95-text max-h-20 overflow-y-auto text-xs break-words whitespace-pre-wrap">
-            {anime.description}
-          </p>
-        ) : null}
-
-        <div className="mt-auto flex flex-wrap items-center gap-1">
-          <Button onClick={onPlay} disabled={!canPlay} loading={playing}>
-            <Play className="size-3" />
-            {playing ? t("stream.resolving") : t("stream.play")}
-          </Button>
-          {episodeNumber != null ? (
-            <span className="text-hint windows95-text">
-              {t("stream.episode.selected", { n: episodeNumber })}
-            </span>
-          ) : null}
-        </div>
+        {anime.description && (
+          <Section
+            header={t("anilist.details.description")}
+            className="windows95-text bg-field overflow-y-auto leading-relaxed whitespace-pre-line"
+          >
+            <textarea
+              readOnly
+              value={anime.description}
+              className="text-text windows95-text bg-field h-36 max-h-64 w-full overflow-y-auto text-xs wrap-break-word whitespace-pre-wrap"
+            />
+          </Section>
+        )}
       </div>
     </section>
   );

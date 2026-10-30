@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StreamResults from "@/routes/components/stream/results.stream";
@@ -15,13 +15,13 @@ const NARUTO: StreamingAnime = {
   status: "Завершён",
   genres: ["Action"],
   episodeCount: 220,
+  rating: 8.4,
+  mediaType: "TV Сериал",
   anilistId: 20,
   slugUrl: "11--naruto-anime",
 };
 
-function renderResults(
-  overrides: Partial<React.ComponentProps<typeof StreamResults>> = {}
-) {
+function renderResults(overrides: Partial<React.ComponentProps<typeof StreamResults>> = {}) {
   return render(
     <StreamResults
       data={undefined}
@@ -86,17 +86,40 @@ describe("StreamResults grid", () => {
     renderResults({ data: { items: [NARUTO], page: 1, lastPage: 1, total: 1 }, onOpen });
 
     expect(screen.getByText("Naruto")).toBeDefined();
-    expect(screen.getByText("2002, 220 episodes")).toBeDefined();
-    expect(screen.getByText("AniList")).toBeDefined();
+    expect(screen.getByText("2002, TV Сериал")).toBeDefined();
+    expect(screen.getByText("8.4/10")).toBeDefined();
+    expect(screen.queryByText("AniList")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Naruto" }));
     expect(onOpen).toHaveBeenCalledWith(NARUTO);
+  });
+
+  it("walks the grid with the arrow keys and keeps one Tab stop", () => {
+    renderResults({
+      data: { items: [NARUTO, { ...NARUTO, id: "12", title: "Bleach" }], page: 1, lastPage: 1 },
+    });
+    const tiles = screen
+      .getAllByRole("button")
+      .filter((tile) => tile.dataset.streamCard !== undefined);
+    expect(tiles).toHaveLength(2);
+    expect(tiles.filter((tile) => tile.tabIndex === 0)).toHaveLength(1);
+
+    tiles[0].focus();
+    act(() => {
+      tiles[0].dispatchEvent(
+        new KeyboardEvent("keydown", { code: "ArrowRight", bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(document.activeElement).toBe(tiles[1]);
+    expect(tiles[1].tabIndex).toBe(0);
   });
 
   it("takes the last page and the total from the API meta", () => {
     renderResults({ data: { items: [NARUTO], page: 2, lastPage: 5, total: 250 } });
 
     expect(screen.getByRole("spinbutton", { name: "Page 2 of 5" })).toBeDefined();
+    expect(screen.getByText("Rating - Page 2 - 60 per page")).toBeDefined();
     expect(screen.getByText("Showing 61 to 61 of 250")).toBeDefined();
   });
 

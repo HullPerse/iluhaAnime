@@ -21,6 +21,19 @@ pub struct AnimeLibAnime {
     pub status: Option<String>,
     pub genres: Vec<String>,
     pub episode_count: Option<i32>,
+    /// Average site score (`rating.average`), 0..10. Present on both the list
+    /// and the details answer, so a catalog card can show it without a second
+    /// request.
+    pub rating: Option<f64>,
+    /// How many viewers scored the title (`rating.votes`).
+    pub rating_votes: Option<i64>,
+    /// The site's media type label (`TV Сериал`, `Фильм`, ...).
+    pub media_type: Option<String>,
+    /// The site's age rating label (`PG-13`, `18+`, ...).
+    pub age_rating: Option<String>,
+    /// Total views. Only the details answer serves it: the list endpoint
+    /// rejects the `fields[]` request that would include it.
+    pub views: Option<i64>,
     pub anilist_id: Option<i64>,
     pub sub_or_dub: Option<String>,
     pub slug_url: String,

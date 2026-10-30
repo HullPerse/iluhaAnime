@@ -13,6 +13,16 @@ export interface StreamingAnime {
   status?: string;
   genres: string[];
   episodeCount?: number;
+  /** The site's average score, 0..10, from the list answer itself. */
+  rating?: number;
+  /** How many viewers scored the title. */
+  ratingVotes?: number;
+  /** The site's media type label, for example `TV Сериал` or `Фильм`. */
+  mediaType?: string;
+  /** The site's age rating label, for example `PG-13`. */
+  ageRating?: string;
+  /** Total views; only the details answer serves it. */
+  views?: number;
   anilistId?: number;
   subOrDub?: string;
   slugUrl: string;

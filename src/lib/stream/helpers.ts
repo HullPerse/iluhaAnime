@@ -4,11 +4,7 @@
 // domain types the UI uses and build the one identity the player persists
 // against. Every export here has a caller.
 
-import type {
-  StreamingAnime,
-  StreamingEpisode,
-  StreamVariant,
-} from "@/types/stream";
+import type { StreamingAnime, StreamingEpisode, StreamVariant } from "@/types/stream";
 
 interface RawAnimeLibAnime {
   id: string;
@@ -21,6 +17,11 @@ interface RawAnimeLibAnime {
   status?: string;
   genres?: string[];
   episodeCount?: number;
+  rating?: number;
+  ratingVotes?: number;
+  mediaType?: string;
+  ageRating?: string;
+  views?: number;
   anilistId?: number;
   subOrDub?: string;
   slugUrl?: string;
@@ -56,6 +57,11 @@ export function normalizeAnime(raw: RawAnimeLibAnime): StreamingAnime {
     status: raw.status ?? undefined,
     genres: raw.genres ?? [],
     episodeCount: raw.episodeCount ?? undefined,
+    rating: raw.rating ?? undefined,
+    ratingVotes: raw.ratingVotes ?? undefined,
+    mediaType: raw.mediaType ?? undefined,
+    ageRating: raw.ageRating ?? undefined,
+    views: raw.views ?? undefined,
     anilistId: raw.anilistId ?? undefined,
     subOrDub: raw.subOrDub ?? undefined,
     slugUrl: raw.slugUrl ?? "",
@@ -112,10 +118,6 @@ export function isSubtitleVariant(variant: StreamVariant): boolean {
  * Format: `stream:<sourceId>:<mediaId>:<episodeId>`. A media URL is never a
  * key, so a rotated CDN URL cannot lose the resume position.
  */
-export function buildWatchKey(
-  sourceId: string,
-  mediaId: string,
-  episodeId: string
-): string {
+export function buildWatchKey(sourceId: string, mediaId: string, episodeId: string): string {
   return `stream:${sourceId}:${mediaId}:${episodeId}`;
 }

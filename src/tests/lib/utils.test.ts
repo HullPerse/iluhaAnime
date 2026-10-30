@@ -1,4 +1,3 @@
-import { mockInvoke } from "../mocks";
 import type { KeyboardEvent } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -32,6 +31,7 @@ import {
 import {
   buildAnimeLink,
   buildCollectionShareLink,
+  buildStreamLink,
   buildTorrentLink,
   ingestDeepLinks,
   isEditablePasteTarget,
@@ -40,6 +40,7 @@ import {
   parseAnilistPageUrl,
   parseCollectionShareLink,
   parsePastedLink,
+  parseStreamLink,
   parseTorrentLink,
 } from "@/lib/utils/deeplink.utils";
 import type { AnimeDeepLink } from "@/lib/utils/deeplink.utils";
@@ -97,10 +98,15 @@ import type { CollectionItem } from "@/types/collection";
 import type { DitherEffectOptions, DitherRGB } from "@/types/dither";
 import type { AniListId, TorrentHash } from "@/types/types";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: mockInvoke,
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
+// The factory resolves the shared mock itself: a top-level import would be
+// read before this hoisted call and the whole suite would fail to load.
+vi.mock("@tauri-apps/api/core", async () => {
+  const { mockInvoke } = await import("../mocks");
+  return {
+    invoke: mockInvoke,
+    convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
+  };
+});
 
 describe("utils/array", () => {
   describe("uniqueById", () => {
@@ -558,6 +564,52 @@ describe("utils/deeplink", () => {
         source: "anilist",
         id: 5114,
       });
+    });
+  });
+
+  describe("stream links", () => {
+    const SLUG = "21371--sousou-no-frieren-anime";
+
+    it("builds the animelib shape and round-trips it", () => {
+      const link = buildStreamLink(SLUG);
+      expect(link).toBe(`iluhaanime://stream/animelib/${SLUG}`);
+      expect(parseStreamLink(link)).toEqual({ source: "animelib", slug: SLUG });
+    });
+
+    it("rejects another source, a missing slug and a bad slug", () => {
+      expect(parseStreamLink(`iluhaanime://stream/kodik/${SLUG}`)).toBeNull();
+      expect(parseStreamLink("iluhaanime://stream/animelib")).toBeNull();
+      expect(parseStreamLink("iluhaanime://stream/animelib/nonaruto")).toBeNull();
+      expect(parseStreamLink(`iluhaanime://stream/animelib/${SLUG}?x=1`)).toBeNull();
+      expect(parseStreamLink(`https://animelib.org/anime/${SLUG}`)).toBeNull();
+    });
+
+    it("is recognized as a pasted link", () => {
+      expect(parsePastedLink(buildStreamLink(SLUG))).toEqual({
+        kind: "stream",
+        link: { source: "animelib", slug: SLUG },
+      });
+    });
+
+    it("reaches its own open callback instead of the anime one", () => {
+      const streams: string[] = [];
+      const anime: AnimeDeepLink[] = [];
+      ingestDeepLinks(
+        [buildStreamLink(SLUG)],
+        (link) => {
+          anime.push(link);
+        },
+        () => undefined,
+        undefined,
+        undefined,
+        undefined,
+        (link) => {
+          streams.push(link.slug);
+        }
+      );
+
+      expect(streams).toEqual([SLUG]);
+      expect(anime).toEqual([]);
     });
   });
 

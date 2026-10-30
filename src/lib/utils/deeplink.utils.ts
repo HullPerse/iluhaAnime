@@ -9,11 +9,18 @@ import type {
   AnilistAuthDeepLink,
   CollectionShareDeepLink,
   CollectionShareItem,
+  StreamDeepLink,
   TorrentDeepLink,
 } from "@/types/deeplink";
 import type { AniListId, TorrentHash } from "@/types/types";
 
-export type { AnimeDeepLink, AnilistAuthDeepLink, CollectionShareDeepLink, TorrentDeepLink };
+export type {
+  AnimeDeepLink,
+  AnilistAuthDeepLink,
+  CollectionShareDeepLink,
+  StreamDeepLink,
+  TorrentDeepLink,
+};
 
 const DEEP_LINK_SCHEME = "iluhaanime";
 export const DEEP_LINK_EVENT = "deep-link-opened";
@@ -21,6 +28,11 @@ export function buildAnimeLink(
   anilistId: AniListId
 ): `${typeof DEEP_LINK_SCHEME}://anime/anilist/${number}` {
   return `${DEEP_LINK_SCHEME}://anime/anilist/${anilistId}`;
+}
+export function buildStreamLink(
+  slug: string
+): `${typeof DEEP_LINK_SCHEME}://stream/animelib/${string}` {
+  return `${DEEP_LINK_SCHEME}://stream/animelib/${slug}`;
 }
 export function buildTorrentLink(
   infoHash: TorrentHash
@@ -37,6 +49,22 @@ export function parseTorrentLink(raw: string): TorrentDeepLink | null {
   if (parts.length !== 2 || parts[0] !== "torrent") return null;
   if (!/^[0-9a-fA-F]{40}$/.test(parts[1])) return null;
   return { infoHash: parts[1].toLowerCase() as TorrentHash };
+}
+
+/**
+ * A streaming title link. The source is part of the path so a second catalog
+ * can add its own segment without changing the existing links.
+ */
+export function parseStreamLink(raw: string): StreamDeepLink | null {
+  const trimmed = raw.trim();
+  if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) !== 0) return null;
+  const rest = trimmed.slice(DEEP_LINK_SCHEME.length + 3);
+  if (rest.includes("?") || rest.includes("#")) return null;
+  const parts = rest.split("/");
+  if (parts.length !== 3 || parts[0] !== "stream" || parts[1] !== "animelib") return null;
+  const slug = parts[2];
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(slug) || !slug.includes("--")) return null;
+  return { source: "animelib", slug };
 }
 
 export function parseAnimeLink(raw: string): AnimeDeepLink | null {
@@ -74,7 +102,8 @@ export function ingestDeepLinks(
   onInvalid: () => void,
   openTorrent?: (link: TorrentDeepLink) => void,
   openShare?: (rawUrl: string) => void,
-  openAuth?: (link: AnilistAuthDeepLink) => void
+  openAuth?: (link: AnilistAuthDeepLink) => void,
+  openStream?: (link: StreamDeepLink) => void
 ): void {
   if (!Array.isArray(urls)) return;
   let bad = false;
@@ -99,6 +128,11 @@ export function ingestDeepLinks(
       openAnime(anime);
       continue;
     }
+    const stream = openStream ? parseStreamLink(raw) : null;
+    if (stream && openStream) {
+      openStream(stream);
+      continue;
+    }
     const torrent = openTorrent ? parseTorrentLink(raw) : null;
     if (torrent && openTorrent) openTorrent(torrent);
     else bad = true;
@@ -108,6 +142,7 @@ export function ingestDeepLinks(
 
 export type PastedLink =
   | { kind: "anime"; link: AnimeDeepLink }
+  | { kind: "stream"; link: StreamDeepLink }
   | { kind: "torrent"; link: TorrentDeepLink }
   | { kind: "magnet"; magnet: string }
   | { kind: "collectionShare" };
@@ -126,6 +161,8 @@ export function parsePastedLink(text: string): PastedLink | "invalid" | null {
     if (looksLikeCollectionShareLink(trimmed)) return { kind: "collectionShare" };
     const anime = parseAnimeLink(trimmed);
     if (anime) return { kind: "anime", link: anime };
+    const stream = parseStreamLink(trimmed);
+    if (stream) return { kind: "stream", link: stream };
     const torrent = parseTorrentLink(trimmed);
     if (torrent) return { kind: "torrent", link: torrent };
     return "invalid";

@@ -1,5 +1,5 @@
-import type { StreamCatalogFilters, StreamGenreOption, StreamSortBy } from "@/types/stream";
 import type { TranslationKey } from "@/types/i18n";
+import type { StreamCatalogFilters, StreamGenreOption, StreamSortBy } from "@/types/stream";
 
 /** The default catalog view: the site's own popularity order, no filters. */
 export const DEFAULT_STREAM_FILTERS: StreamCatalogFilters = {
@@ -36,11 +36,15 @@ export const STREAM_SORT_OPTIONS: readonly {
 /** Number of filters the user changed from the default view. */
 export function countActiveStreamFilters(filters: StreamCatalogFilters): number {
   let count =
-    filters.types.length + filters.genres.length + filters.statuses.length + filters.ageRatings.length;
+    filters.types.length +
+    filters.genres.length +
+    filters.statuses.length +
+    filters.ageRatings.length;
   if (filters.adult) count += 1;
   if (filters.yearMin !== null || filters.yearMax !== null) count += 1;
   if (filters.episodesMin !== null || filters.episodesMax !== null) count += 1;
-  if (filters.sortBy !== DEFAULT_STREAM_FILTERS.sortBy || filters.sortType !== "desc") count += 1;
+  // Sort is not counted: it has its own bar and is never hidden behind this
+  // modal, so it cannot be an invisible active filter.
   return count;
 }
 

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StreamEpisodes, { previewPosition } from "@/routes/components/stream/episodes.stream";
@@ -89,6 +89,39 @@ describe("StreamEpisodes", () => {
     renderEpisodes({ onPick });
     fireEvent.click(screen.getByText("Episode 7"));
     expect(onPick).toHaveBeenCalledWith(EPISODES[6]);
+  });
+
+  it("walks the season with the arrow keys and keeps one Tab stop", () => {
+    renderEpisodes({ episodes: EPISODES.slice(0, 5) });
+    const rows = screen.getAllByRole("button");
+    expect(rows.filter((row) => row.tabIndex === 0)).toHaveLength(1);
+
+    rows[0].focus();
+    act(() => {
+      rows[0].dispatchEvent(
+        new KeyboardEvent("keydown", { code: "ArrowDown", bubbles: true, cancelable: true })
+      );
+    });
+    expect(document.activeElement).toBe(rows[1]);
+    expect(rows[1].tabIndex).toBe(0);
+    expect(rows[0].tabIndex).toBe(-1);
+
+    act(() => {
+      rows[1].dispatchEvent(
+        new KeyboardEvent("keydown", { code: "KeyK", bubbles: true, cancelable: true })
+      );
+    });
+    expect(document.activeElement).toBe(rows[0]);
+  });
+
+  it("opens the focused row with Enter", () => {
+    const onPick = vi.fn();
+    renderEpisodes({ episodes: EPISODES.slice(0, 3), onPick });
+    const rows = screen.getAllByRole("button");
+
+    fireEvent.keyDown(rows[1], { key: "Enter" });
+
+    expect(onPick).toHaveBeenCalledWith(EPISODES[1]);
   });
 
   it("shows an empty season without crashing", () => {

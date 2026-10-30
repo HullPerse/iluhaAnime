@@ -1,3 +1,5 @@
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { Copy, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { streamApi } from "@/api/stream.api";
@@ -10,19 +12,15 @@ import { RESUME_END_MARGIN, RESUME_MIN } from "@/lib/player/resume.utils";
 import { buildWatchKey } from "@/lib/stream/helpers";
 import { emptyPrefs, pickVariant, withQuality, withVariant } from "@/lib/stream/prefs.utils";
 import { pickSource, toVariantSources } from "@/lib/stream/sources.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { buildStreamLink } from "@/lib/utils/deeplink.utils";
 import { inflightFetch } from "@/lib/utils/lruCache.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { streamStore } from "@/store/stream.store";
 import type { TFunc } from "@/types/i18n";
-import type {
-  StreamPrefs,
-  StreamVariant,
-  StreamingAnime,
-  StreamingEpisode,
-} from "@/types/stream";
+import type { StreamPrefs, StreamVariant, StreamingAnime, StreamingEpisode } from "@/types/stream";
 import type { AnimeLibAnime, StreamSource } from "@/types/videoPlayer";
 
 import AniListDetailModal from "../anilist/detail/modal.detail";
@@ -204,6 +202,29 @@ function useStreamEpisodeSelection(episodes: StreamingEpisode[] | undefined) {
   return [episode, setEpisode] as const;
 }
 
+/** The small square button the modal header carries next to its close. */
+function HeaderAction({
+  title,
+  onClick,
+  icon,
+}: {
+  title: string;
+  onClick: () => void;
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
+    >
+      {icon}
+    </button>
+  );
+}
+
 function StreamDetailView({
   anime,
   episode,
@@ -211,9 +232,9 @@ function StreamDetailView({
   onClose,
   onOpenAnilist,
   onPick,
-  onPlay,
   playingId,
   previews,
+  slug,
   signedIn,
   title,
 }: {
@@ -223,18 +244,44 @@ function StreamDetailView({
   onClose: () => void;
   onOpenAnilist: () => void;
   onPick: (episode: StreamingEpisode) => void;
-  onPlay: () => void;
   playingId: string | null;
   previews: Map<number, string>;
+  /** The catalog slug the modal is open for, so the shared link is stable. */
+  slug: string;
   signedIn: boolean;
   title: ReturnType<typeof useStreamTitle>;
 }) {
   const { t } = useI18n();
+  const copyLink = () => {
+    const link = buildStreamLink(anime?.slugUrl ?? slug);
+    writeText(link)
+      .then(() => {
+        addNotification(t("stream.link.copied"), "info", link);
+        return null;
+      })
+      .catch((error: unknown) => reportBackgroundError("stream.copy-link", error));
+  };
   return (
     <Modal
       header={anime?.title ?? t("stream.detail.loading")}
       onClose={onClose}
       className="w-208 max-w-[94%]"
+      headerActions={
+        <>
+          {anime?.anilistId && signedIn ? (
+            <HeaderAction
+              title={t("stream.anilist.open")}
+              onClick={onOpenAnilist}
+              icon={<Info className="size-2.5" />}
+            />
+          ) : null}
+          <HeaderAction
+            title={t("stream.link.copy")}
+            onClick={copyLink}
+            icon={<Copy className="size-2.5" />}
+          />
+        </>
+      }
     >
       {title.isPending ? (
         <div className="windows95-border bg-primary flex h-40 items-center justify-center">
@@ -248,15 +295,7 @@ function StreamDetailView({
         />
       ) : (
         <div className="flex w-full min-w-0 flex-col gap-2">
-          <StreamHero
-            anime={anime}
-            episodeNumber={episode?.number ?? null}
-            canPlay={Boolean(episode)}
-            playing={playingId !== null}
-            canOpenAnilist={signedIn}
-            onPlay={onPlay}
-            onOpenAnilist={onOpenAnilist}
-          />
+          <StreamHero anime={anime} />
 
           <StreamEpisodes
             episodes={episodes ?? []}
@@ -340,11 +379,9 @@ export default function StreamDetail({ slug }: { slug: string }) {
         setEpisode(picked);
         ignore(play(picked));
       }}
-      onPlay={() => {
-        if (episode) ignore(play(episode));
-      }}
       playingId={playingId}
       previews={previews}
+      slug={slug}
       signedIn={signedIn}
       title={title}
     />

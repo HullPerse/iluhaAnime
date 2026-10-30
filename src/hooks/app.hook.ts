@@ -12,13 +12,13 @@ import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
-import { tabLabel } from "@/lib/tabs.utils";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
 import { markCacheReady } from "@/lib/splash/signals.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { readAppCache } from "@/lib/store/cache.utils";
+import { tabLabel } from "@/lib/tabs.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import {
   DEEP_LINK_EVENT,
@@ -42,6 +42,7 @@ import {
   openAuthDeepLink,
   openMagnetDeepLink,
   openShareDeepLink,
+  openStreamDeepLink,
   openTorrentDeepLink,
   subscribeDeepLink,
 } from "@/store/deeplink.store";
@@ -110,12 +111,7 @@ export function useApp() {
       gameTabUnlocked,
     }).map((tab) => ({
       ...tab,
-      label: tabLabel(
-        tab.id,
-        t(tab.key),
-        language,
-        t("settings.stream.tab.russianOnly")
-      ),
+      label: tabLabel(tab.id, t(tab.key), language, t("settings.stream.tab.russianOnly")),
       badge: tab.id === "anilist" ? unreadReleases : undefined,
     })),
     isOnline
@@ -306,6 +302,18 @@ export function useApp() {
         },
         (link) => {
           openAuthDeepLink(link);
+        },
+        (link) => {
+          if (!settingsAtoms.streamTabEnabled.get()) {
+            showError(t("common.error"), t("anilist.details.link.invalid"));
+            return;
+          }
+          if (!isOnline) {
+            showWarning(t("network.offline.title"), t("network.action.unavailable"));
+            return;
+          }
+          openStreamDeepLink(link);
+          goToTab("stream");
         }
       );
     },
@@ -367,6 +375,17 @@ export function useApp() {
           return;
         }
         openAnimeDeepLink(parsed.link);
+      } else if (parsed.kind === "stream") {
+        if (!settingsAtoms.streamTabEnabled.get()) {
+          showError(t("common.error"), t("anilist.details.link.invalid"));
+          return;
+        }
+        if (!isOnline) {
+          showWarning(t("network.offline.title"), t("network.action.unavailable"));
+          return;
+        }
+        openStreamDeepLink(parsed.link);
+        goToTab("stream");
       } else if (parsed.kind === "torrent") {
         if (!ensureTorrentTab()) return;
         openTorrentDeepLink(parsed.link);
@@ -404,6 +423,20 @@ export function useApp() {
       previousTarget = next;
     });
   }, [isOnline, goToTab]);
+
+  useEffect(() => {
+    const switchToStream = () => {
+      if (!settingsAtoms.streamTabEnabled.get()) return;
+      goToTab("stream");
+    };
+    if (deeplinkAtoms.streamTarget.get()) switchToStream();
+    let previousStream = deeplinkAtoms.streamTarget.get();
+    return subscribeDeepLink(() => {
+      const next = deeplinkAtoms.streamTarget.get();
+      if (next && next !== previousStream) switchToStream();
+      previousStream = next;
+    });
+  }, [goToTab]);
 
   useEffect(() => {
     const switchToCollection = () => {

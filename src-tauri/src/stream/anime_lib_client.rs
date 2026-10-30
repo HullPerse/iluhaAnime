@@ -75,7 +75,7 @@ impl AnimeLibClient {
 
     fn with_options(token: Option<String>, proxy: Option<String>) -> Result<Self, String> {
         Ok(Self {
-            client: build_client(proxy.as_deref())?,
+            client: shared_client(proxy.as_deref())?,
             token,
             proxy,
         })
@@ -148,8 +148,15 @@ impl AnimeLibClient {
 
     /// Fetch anime details. `slug` is the `slug` or `slug_url` field from a
     /// search result; the numeric id is not a valid path segment.
+    ///
+    /// The `fields[]` selection is what makes the synopsis, genres and views
+    /// available, and it costs nothing extra: the site serves them in the same
+    /// answer. The list endpoint rejects the same parameter, which is why the
+    /// cards get rating and type but not a synopsis.
     pub async fn details(&self, slug: &str) -> Result<AnimeLibAnime, StreamResolutionError> {
-        let url = format!("{ANIMELIB_API_BASE}/anime/{slug}");
+        let url = format!(
+            "{ANIMELIB_API_BASE}/anime/{slug}?fields[]=genres&fields[]=summary&fields[]=views&fields[]=releaseDate"
+        );
         let response: WireAnimeResponse = self.get_json(&url).await?;
         Ok(into_anime(response.data))
     }
@@ -638,6 +645,28 @@ fn site_headers() -> std::collections::BTreeMap<String, String> {
     headers
 }
 
+/// One client per proxy value, so consecutive catalog requests reuse the same
+/// connection pool instead of paying a TLS handshake each time. A `Client` is
+/// a handle over a shared pool, so handing out clones is cheap.
+fn shared_client(proxy: Option<&str>) -> Result<Client, String> {
+    static CACHE: OnceLock<Mutex<HashMap<Option<String>, Client>>> = OnceLock::new();
+    let key = proxy
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(existing) = cache.lock() {
+        if let Some(client) = existing.get(&key) {
+            return Ok(client.clone());
+        }
+    }
+    let client = build_client(key.as_deref())?;
+    if let Ok(mut cache) = cache.lock() {
+        cache.insert(key, client.clone());
+    }
+    Ok(client)
+}
+
 fn build_client(proxy: Option<&str>) -> Result<Client, String> {
     let mut builder = Client::builder()
         .timeout(Duration::from_secs(30))
@@ -693,29 +722,105 @@ impl VariantKey {
 }
 
 fn into_anime(item: WireAnimeInfo) -> AnimeLibAnime {
-    let synonyms = item
-        .eng_name
-        .filter(|name| !name.is_empty() && name != &item.name)
+    let WireAnimeInfo {
+        id,
+        name,
+        rus_name,
+        eng_name,
+        slug_url,
+        cover,
+        release_date_string,
+        status,
+        anilist_id,
+        rating,
+        media_type,
+        age_restriction,
+        views,
+        genres,
+        summary,
+    } = item;
+    let synonyms = eng_name
+        .filter(|label| !label.is_empty() && label != &name)
         .into_iter()
         .collect();
     AnimeLibAnime {
-        id: item.id.to_string(),
-        title: item.rus_name.clone().unwrap_or_else(|| item.name.clone()),
+        id: id.to_string(),
+        title: rus_name.clone().unwrap_or(name),
         synonyms,
-        cover: Some(item.cover.default),
+        cover: Some(cover.default),
         banner: None,
-        description: None,
-        year: item
-            .release_date_string
-            .as_deref()
-            .and_then(year_from_label),
-        status: item.status.map(|status| status.label),
-        genres: Vec::new(),
+        description: summary.as_ref().map(summary_text).filter(|text| !text.is_empty()),
+        year: release_date_string.as_deref().and_then(year_from_label),
+        status: status.map(|label| label.label),
+        genres: genres
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|genre| genre.name)
+            .collect(),
         episode_count: None,
-        anilist_id: item.anilist_id,
+        rating: rating
+            .as_ref()
+            .and_then(|value| value.average.as_deref())
+            .and_then(|value| value.replace(',', ".").parse::<f64>().ok()),
+        rating_votes: rating.as_ref().and_then(|value| value.votes),
+        media_type: media_type.map(|label| label.label),
+        age_rating: age_restriction.map(|label| label.label),
+        views: views.and_then(|value| value.total),
+        anilist_id,
         sub_or_dub: None,
-        slug_url: item.slug_url,
+        slug_url,
     }
+}
+
+/// Longest synopsis sent to the frontend. The site sends a rich text document
+/// and a few titles carry several thousand characters; the modal shows a
+/// scrollable block, not a wall of text over the IPC boundary.
+const SUMMARY_MAX_CHARS: usize = 2000;
+
+/// Flatten the site's rich text `summary` document into plain paragraphs.
+fn summary_text(document: &serde_json::Value) -> String {
+    fn walk(value: &serde_json::Value, out: &mut String) {
+        match value {
+            serde_json::Value::Object(map) => {
+                let kind = map.get("type").and_then(|kind| kind.as_str()).unwrap_or_default();
+                if let Some(serde_json::Value::String(text)) = map.get("text") {
+                    out.push_str(text);
+                }
+                if kind == "hardBreak" {
+                    out.push('\n');
+                }
+                if let Some(serde_json::Value::Array(children)) = map.get("content") {
+                    for child in children {
+                        walk(child, out);
+                    }
+                    if matches!(kind, "paragraph" | "heading" | "listItem" | "blockquote") {
+                        out.push('\n');
+                    }
+                }
+            }
+            serde_json::Value::Array(items) => {
+                for item in items {
+                    walk(item, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut text = String::new();
+    walk(document, &mut text);
+    let flattened: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+    let joined = flattened.join("\n");
+    if joined.chars().count() <= SUMMARY_MAX_CHARS {
+        return joined;
+    }
+    let mut capped: String = joined.chars().take(SUMMARY_MAX_CHARS).collect();
+    capped.push('…');
+    capped
 }
 
 /// The API returns a localized date label such as `03 октября 2002 г.`, not an
@@ -856,6 +961,44 @@ struct WireAnimeInfo {
     status: Option<WireLabel>,
     #[serde(default)]
     anilist_id: Option<i64>,
+    // The list answer already carries rating, type and age restriction. The
+    // last three only arrive when the details request asks for them, which is
+    // why they stay optional.
+    #[serde(default)]
+    rating: Option<WireRating>,
+    #[serde(default, rename = "type")]
+    media_type: Option<WireLabel>,
+    #[serde(default, rename = "ageRestriction")]
+    age_restriction: Option<WireLabel>,
+    #[serde(default)]
+    views: Option<WireViews>,
+    #[serde(default)]
+    genres: Option<Vec<WireGenre>>,
+    /// The synopsis as a rich text document; flattened by `summary_text`.
+    #[serde(default)]
+    summary: Option<serde_json::Value>,
+}
+
+/// The site's score envelope. `average` is a decimal string (`"9.36"`), not a
+/// number, and `votes` counts the viewers behind it.
+#[derive(Deserialize)]
+struct WireRating {
+    #[serde(default)]
+    average: Option<String>,
+    #[serde(default)]
+    votes: Option<i64>,
+}
+
+#[derive(Deserialize)]
+struct WireViews {
+    #[serde(default)]
+    total: Option<i64>,
+}
+
+#[derive(Deserialize)]
+struct WireGenre {
+    #[serde(default)]
+    name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -957,6 +1100,101 @@ mod tests {
         assert_eq!(year_from_label("осень 2024"), Some(2024));
         assert_eq!(year_from_label("дата неизвестна"), None);
         assert_eq!(year_from_label(""), None);
+    }
+
+    #[test]
+    fn a_details_answer_maps_rating_type_and_summary() {
+        let json = serde_json::json!({ "data": {
+            "id": 21371,
+            "name": "Sousou no Frieren",
+            "rus_name": "Провожающая в последний путь Фрирен",
+            "slug_url": "21371--sousou-no-frieren-anime",
+            "cover": { "default": "https://static.cdnlibs.org/frieren.jpg" },
+            "releaseDateString": "29 сентября 2023 г.",
+            "status": { "label": "Завершён" },
+            "anilist_id": 52991,
+            "rating": { "average": "9.36", "votes": 9753 },
+            "type": { "id": 16, "label": "TV Сериал" },
+            "ageRestriction": { "id": 2, "label": "PG-13" },
+            "views": { "total": 489421 },
+            "genres": [
+                { "id": 43, "name": "Драма" },
+                { "id": 7, "name": "Приключения" }
+            ],
+            "summary": {
+                "type": "doc",
+                "content": [
+                    { "type": "paragraph", "content": [
+                        { "type": "text", "text": "Фрирен, эльфийка-маг." }
+                    ] },
+                    { "type": "paragraph", "content": [
+                        { "type": "text", "text": "Второй абзац." }
+                    ] }
+                ]
+            }
+        } });
+        let wire: WireAnimeResponse = serde_json::from_value(json).expect("details parse");
+        let anime = into_anime(wire.data);
+
+        assert_eq!(anime.rating, Some(9.36));
+        assert_eq!(anime.rating_votes, Some(9753));
+        assert_eq!(anime.media_type.as_deref(), Some("TV Сериал"));
+        assert_eq!(anime.age_rating.as_deref(), Some("PG-13"));
+        assert_eq!(anime.views, Some(489_421));
+        assert_eq!(anime.genres, vec!["Драма".to_string(), "Приключения".to_string()]);
+        assert_eq!(
+            anime.description.as_deref(),
+            Some("Фрирен, эльфийка-маг.\nВторой абзац.")
+        );
+        assert_eq!(anime.year, Some(2023));
+    }
+
+    #[test]
+    fn a_list_answer_without_the_extra_fields_maps_to_empty_options() {
+        let json = serde_json::json!({ "data": {
+            "id": 1,
+            "name": "Test",
+            "slug_url": "1--test-anime",
+            "cover": { "default": "https://static.cdnlibs.org/test.jpg" }
+        } });
+        let wire: WireAnimeResponse = serde_json::from_value(json).expect("list answer parses");
+        let anime = into_anime(wire.data);
+
+        assert_eq!(anime.rating, None);
+        assert_eq!(anime.rating_votes, None);
+        assert_eq!(anime.media_type, None);
+        assert_eq!(anime.age_rating, None);
+        assert_eq!(anime.views, None);
+        assert!(anime.genres.is_empty());
+        assert_eq!(anime.description, None);
+    }
+
+    #[test]
+    fn a_rating_string_accepts_a_comma_and_a_summary_is_capped() {
+        let mut rating = serde_json::json!({ "average": "9,36", "votes": 12 });
+        assert_eq!(
+            rating
+                .get("average")
+                .and_then(|value| value.as_str())
+                .and_then(|value| value.replace(',', ".").parse::<f64>().ok()),
+            Some(9.36)
+        );
+        rating = serde_json::json!({ "average": "", "votes": 12 });
+        assert_eq!(
+            rating
+                .get("average")
+                .and_then(|value| value.as_str())
+                .and_then(|value| value.parse::<f64>().ok()),
+            None
+        );
+
+        let long = "a".repeat(SUMMARY_MAX_CHARS + 500);
+        let text = summary_text(&serde_json::json!({
+            "type": "doc",
+            "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": long }] }]
+        }));
+        assert_eq!(text.chars().count(), SUMMARY_MAX_CHARS + 1);
+        assert!(text.ends_with('…'));
     }
 
     #[test]

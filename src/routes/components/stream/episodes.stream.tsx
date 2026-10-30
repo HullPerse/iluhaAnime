@@ -1,11 +1,14 @@
-import { RotateCw, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { RotateCw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
+import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
+import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
+import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { StreamingEpisode } from "@/types/stream";
 
@@ -13,6 +16,21 @@ import { StreamInlineLoading } from "./states.stream";
 
 /** Above this many episodes the list gets a filter field. */
 const FILTER_THRESHOLD = 24;
+
+type RowKeyAction = "row-up" | "row-down";
+
+/**
+ * The season walks like the player's file tree: one row is a Tab stop, the
+ * arrows and j/k move it, Enter opens the focused row (the row's own key
+ * handler). Only two actions need a binding; the vertical pair is the whole
+ * list.
+ */
+const ROW_KEYBINDS: ResolvedHotkeyDef<RowKeyAction>[] = [
+  { id: "row-up", chord: "ArrowUp", repeat: "hold", keybindId: "tree.move.up" },
+  { id: "row-down", chord: "ArrowDown", repeat: "hold", keybindId: "tree.move.down" },
+  { id: "row-up", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
+  { id: "row-down", chord: "KeyJ", repeat: "hold", keybindId: "tree.move.down" },
+];
 
 function airDateLabel(value: string | undefined): string {
   if (!value) return "";
@@ -96,6 +114,8 @@ export default function StreamEpisodes({
   const { t } = useI18n();
   const [filter, setFilter] = useState("");
   const [hover, setHover] = useState<PreviewAnchor | null>(null);
+  const listRef = useRef<HTMLElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const visible = useMemo(() => {
     const needle = filter.trim().toLowerCase();
@@ -105,16 +125,51 @@ export default function StreamEpisodes({
     );
   }, [episodes, filter]);
 
+  // The highlighted row follows the playing selection, and a filter that hides
+  // it sends the ring back to the top instead of leaving it off screen.
+  const activeRow = useMemo(() => {
+    const selectedIndex = visible.findIndex((episode) => episode.id === selectedId);
+    if (selectedIndex !== -1) return selectedIndex;
+    return Math.min(activeIndex, Math.max(visible.length - 1, 0));
+  }, [activeIndex, selectedId, visible]);
+
+  const focusRow = (index: number) => {
+    if (visible.length === 0) return;
+    const next = Math.min(Math.max(index, 0), visible.length - 1);
+    setActiveIndex(next);
+    const rows = listRef.current?.querySelectorAll<HTMLElement>("[data-stream-episode]");
+    rows?.[next]?.focus();
+  };
+
+  useResolvedHotkeys<RowKeyAction>(ROW_KEYBINDS, {
+    // The season filter lives inside this panel: typing "j" there must not
+    // move the ring.
+    ignore: (event) =>
+      isTextEntryTarget(event.target) ||
+      !(event.target instanceof HTMLElement) ||
+      !listRef.current?.contains(event.target),
+    onAction: (action) => focusRow(activeRow + (action === "row-up" ? -1 : 1)),
+  });
+
+  useEffect(() => {
+    if (activeIndex >= visible.length) setActiveIndex(0);
+  }, [activeIndex, visible.length]);
+
   return (
-    <section className="windows95-border flex h-100 min-h-0 min-w-0 flex-col overflow-y-auto">
-      <header className="bg-secondary text-title-text windows95-text flex shrink-0 items-center gap-1 px-1 py-0.5 font-bold">
+    <section
+      ref={listRef}
+      className="windows95-border flex h-100 min-h-0 min-w-0 flex-col overflow-hidden"
+    >
+      {/* The header stays put while the season scrolls; the count is a second
+          line of the same title bar, so it uses the title text tone instead of
+          the hint tone that is unreadable on navy. */}
+      <header className="bg-secondary text-title-text windows95-text sticky top-0 z-10 flex shrink-0 items-center gap-1 px-1 py-0.5 font-bold">
         <span>{t("stream.episodes")}</span>
-        <span className="text-hint font-normal">
+        <span className="text-title-text/75 font-normal">
           {t("stream.episodes.count", { count: episodes.length })}
         </span>
         {episodes.length > FILTER_THRESHOLD ? (
           <div className="ml-auto flex items-center gap-1">
-            <Search className="text-hint size-3 shrink-0" aria-hidden />
             <Input
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
@@ -152,7 +207,7 @@ export default function StreamEpisodes({
             {t("stream.episode.none")}
           </span>
         ) : (
-          visible.map((episode) => {
+          visible.map((episode, index) => {
             const selected = episode.id === selectedId;
             const date = airDateLabel(episode.airDate);
             const preview = previews?.get(episode.number);
@@ -160,8 +215,10 @@ export default function StreamEpisodes({
               <div
                 key={episode.id}
                 role="button"
-                tabIndex={0}
+                tabIndex={index === activeRow ? 0 : -1}
+                data-stream-episode
                 aria-current={selected ? "true" : undefined}
+                onFocus={() => setActiveIndex(index)}
                 onClick={() => onPick(episode)}
                 onKeyDown={enterOrSpace(() => onPick(episode))}
                 onMouseEnter={(event) => {
@@ -191,7 +248,13 @@ export default function StreamEpisodes({
                   {episode.title ?? t("stream.episodeUntitled")}
                 </span>
                 {date ? (
-                  <span className="text-hint shrink-0 text-xs tabular-nums">{date}</span>
+                  <span
+                    className={`shrink-0 text-xs tabular-nums ${
+                      selected ? "text-title-text/75" : "text-hint"
+                    }`}
+                  >
+                    {date}
+                  </span>
                 ) : null}
               </div>
             );

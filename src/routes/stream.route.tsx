@@ -4,10 +4,13 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useStreamSearch } from "@/hooks/stream/catalog.hook";
 import { focusMainSearch } from "@/lib/hotkeys/focus.hotkeys";
+import { ignoreTabCycle, stepTabId } from "@/lib/hotkeys/tabs.hotkeys";
 import { useCell } from "@/lib/state/signal.hook";
+import { consumeStreamDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { settingsAtoms } from "@/store/settings.store";
 import {
   applyStreamFilters,
+  setStreamSort,
   streamFilters,
   streamPage,
   streamQuery,
@@ -18,6 +21,10 @@ import {
 import StreamDetail from "./components/stream/detail.stream";
 import StreamFiltersModal from "./components/stream/filters.stream";
 import StreamResults from "./components/stream/results.stream";
+import StreamSortBar, {
+  STREAM_SORT_CYCLE,
+  STREAM_SORT_DEFAULT_DIR,
+} from "./components/stream/sort.stream";
 import { StreamDisabled, StreamOffline } from "./components/stream/states.stream";
 import StreamToolbar from "./components/stream/toolbar.stream";
 
@@ -36,6 +43,32 @@ export default function StreamRoute() {
   const filters = useCell(streamFilters);
   const results = useStreamSearch(query, page, filters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const streamTarget = useCell(deeplinkAtoms.streamTarget);
+
+  // A pasted or opened `iluhaanime://stream/animelib/<slug>` link lands here:
+  // the tab opens the title straight from its slug, with the browse list as it
+  // was. The app hook has already switched the tab and checked the setting.
+  useEffect(() => {
+    if (!streamTarget) return;
+    streamStore.selectedSlug.set(streamTarget.slug);
+    consumeStreamDeepLink();
+  }, [streamTarget]);
+
+  // The catalog is one list with one active sort, so the pair of keys cycles
+  // like the internal lists of the other tabs instead of doing nothing.
+  useResolvedHotkeys<"sort-prev" | "sort-next">(
+    [
+      { id: "sort-prev", chord: "Shift+BracketLeft", repeat: "once", keybindId: "tab.prev" },
+      { id: "sort-next", chord: "Shift+BracketRight", repeat: "once", keybindId: "tab.next" },
+    ],
+    {
+      ignore: (event) => ignoreTabCycle(event),
+      onAction: (id) => {
+        const next = stepTabId(STREAM_SORT_CYCLE, filters.sortBy, id === "sort-next" ? 1 : -1);
+        if (next) setStreamSort(next, STREAM_SORT_DEFAULT_DIR[next]);
+      },
+    }
+  );
   const lastPage = results.data?.lastPage;
 
   useEffect(() => {
@@ -53,6 +86,7 @@ export default function StreamRoute() {
         onRefetch={() => results.refetch()}
         onFiltersOpen={() => setFiltersOpen(true)}
       />
+      <StreamSortBar />
       {online ? (
         <StreamResults
           data={results.data}

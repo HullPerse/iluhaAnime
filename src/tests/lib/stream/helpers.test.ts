@@ -100,6 +100,23 @@ describe("stream normalization", () => {
     expect(anime.slugUrl).toBe("11--naruto-anime");
   });
 
+  it("keeps the rating and the media type from the list answer", () => {
+    const anime = normalizeAnime({
+      id: "1",
+      title: "Sousou no Frieren",
+      rating: 9.36,
+      ratingVotes: 9753,
+      mediaType: "TV Сериал",
+      ageRating: "PG-13",
+      views: 489421,
+    });
+    expect(anime.rating).toBe(9.36);
+    expect(anime.ratingVotes).toBe(9753);
+    expect(anime.mediaType).toBe("TV Сериал");
+    expect(anime.ageRating).toBe("PG-13");
+    expect(anime.views).toBe(489421);
+  });
+
   it("normalizes an episode without a name", () => {
     const episode = normalizeEpisode({ id: "455", number: 1 });
     expect(episode.number).toBe(1);
@@ -137,7 +154,10 @@ describe("stream quality selection", () => {
   });
 
   it("falls back down to the nearest lower quality", () => {
-    const sources = [source("https://cdn/360.m3u8", "360p"), source("https://cdn/720.m3u8", "720p")];
+    const sources = [
+      source("https://cdn/360.m3u8", "360p"),
+      source("https://cdn/720.m3u8", "720p"),
+    ];
     expect(pickSource(sources, "1080p")?.url).toBe("https://cdn/720.m3u8");
     expect(pickSource(sources, "360p")?.url).toBe("https://cdn/360.m3u8");
     expect(pickSource([], "720p")).toBeNull();
@@ -153,12 +173,18 @@ describe("stream quality selection", () => {
   });
 
   it("takes the lowest source when nothing is lower than the request", () => {
-    const sources = [source("https://cdn/2160.m3u8", "2160p"), source("https://cdn/720.m3u8", "720p")];
+    const sources = [
+      source("https://cdn/2160.m3u8", "2160p"),
+      source("https://cdn/720.m3u8", "720p"),
+    ];
     expect(pickSource(sources, "480p")?.label).toBe("720p");
   });
 
   it("plays the best source without a preference or with an unreadable one", () => {
-    const sources = [source("https://cdn/2160.m3u8", "2160p"), source("https://cdn/720.m3u8", "720p")];
+    const sources = [
+      source("https://cdn/2160.m3u8", "2160p"),
+      source("https://cdn/720.m3u8", "720p"),
+    ];
     expect(pickSource(sources)?.label).toBe("2160p");
     expect(pickSource(sources, "best")?.label).toBe("2160p");
   });

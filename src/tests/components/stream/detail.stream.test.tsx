@@ -10,6 +10,9 @@ vi.mock("@/hooks/remoteImage.hook", () => ({
   resetRemoteImageCache: () => undefined,
 }));
 
+const clipboard = vi.hoisted(() => ({ writeText: vi.fn(async () => undefined) }));
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => clipboard);
+
 const ANIME: StreamingAnime = {
   id: "21371",
   title: "Sousou no Frieren",
@@ -147,6 +150,28 @@ describe("StreamDetail AniList button", () => {
     expect(playback.prewarmPlayer).toHaveBeenCalledTimes(1);
   });
 
+  it("copies the sharing link of this title from the modal header", async () => {
+    render(<StreamDetail slug={ANIME.slugUrl} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+
+    await waitFor(() =>
+      expect(clipboard.writeText).toHaveBeenCalledWith(
+        `iluhaanime://stream/animelib/${ANIME.slugUrl}`
+      )
+    );
+  });
+
+  it("keeps the AniList action in the modal header next to the close button", () => {
+    render(<StreamDetail slug={ANIME.slugUrl} />);
+
+    const anilist = screen.getByRole("button", { name: "AniList details" });
+    const close = screen.getByRole("button", { name: "Close" });
+
+    expect(anilist.parentElement).toBe(close.parentElement);
+    expect(anilist.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("opens the AniList details in the app instead of the browser", () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
@@ -169,7 +194,8 @@ describe("StreamDetail AniList button", () => {
   it("plays the remembered voice-over without asking for another one", async () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    // The episode row is the play action: the modal has no Play button.
+    fireEvent.click(await screen.findByText("The Journey's End"));
 
     await waitFor(() => expect(playback.openStream).toHaveBeenCalledTimes(1));
     expect(new Set(api.streamSources.mock.calls.map(([input]) => input.variantId))).toEqual(
@@ -203,7 +229,7 @@ describe("StreamDetail AniList button", () => {
     ]);
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(await screen.findByText("The Journey's End"));
 
     await waitFor(() => expect(playback.openStream).toHaveBeenCalledTimes(1));
     // The warm-up asks for the stale row too; the click ends on the row that

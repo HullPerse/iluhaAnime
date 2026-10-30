@@ -40,7 +40,7 @@ export interface SearchQueryStat {
   lastReason?: CorrectionReason;
 }
 
-export type SearchSuggestionScope = "anilist" | "torrent" | "player" | "filter";
+export type SearchSuggestionScope = "anilist" | "torrent" | "player" | "filter" | "stream";
 export type AutocompleteMode = "inline" | "dropdown" | "both" | "off";
 export type SearchSuggestionKind = "anime" | "history" | "local" | "torrent" | "spell";
 export type AnilistSuggestionBoost = "off" | "subtle" | "strong";

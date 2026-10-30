@@ -1,6 +1,6 @@
 import { DEFAULT_STREAM_FILTERS } from "@/config/stream/filters.config";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import type { StreamCatalogFilters } from "@/types/stream";
+import type { StreamCatalogFilters, StreamSortBy } from "@/types/stream";
 
 // Client state only. Results, episodes, players and sources are server state
 // and belong to the query cache (`hooks/stream/catalog.hook.ts`); duplicating
@@ -44,6 +44,14 @@ export function submitStreamSearch(query: string): void {
   streamSlug.set(null);
   streamPage.set(1);
   streamQuery.set(query.trim());
+}
+
+/** Applies a browse sort; the query and the filters stay, the page starts over. */
+export function setStreamSort(sortBy: StreamSortBy, sortType: "asc" | "desc"): void {
+  const current = streamFilters.get();
+  if (current.sortBy === sortBy && current.sortType === sortType) return;
+  streamPage.set(1);
+  streamFilters.set({ ...current, sortBy, sortType });
 }
 
 /** Applies catalog filters; the current query stays, the page starts over. */

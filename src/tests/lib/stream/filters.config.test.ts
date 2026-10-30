@@ -26,10 +26,11 @@ describe("stream catalog filters", () => {
         statuses: [2, 3],
         yearMin: 2020,
         episodesMax: 24,
+        // Sort is not a filter: it has its own bar, so it never counts here.
         sortBy: "views",
         sortType: "asc",
       })
-    ).toBe(6);
+    ).toBe(5);
   });
 
   it("keys the same selection the same way regardless of pick order", () => {

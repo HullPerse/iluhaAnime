@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StreamHero from "@/routes/components/stream/hero.stream";
@@ -13,25 +13,18 @@ vi.mock("@/hooks/remoteImage.hook", () => ({
 const ANIME: StreamingAnime = {
   id: "21371",
   title: "Sousou no Frieren",
-  synonyms: [],
-  genres: [],
+  synonyms: ["Frieren: Beyond Journey's End"],
+  genres: ["Adventure"],
+  description: "An elf and a party of heroes.",
+  year: 2023,
+  status: "Завершён",
+  episodeCount: 28,
   anilistId: 154587,
   slugUrl: "21371--sousou-no-frieren-anime",
 };
 
-function renderHero(overrides: Partial<React.ComponentProps<typeof StreamHero>> = {}) {
-  return render(
-    <StreamHero
-      anime={ANIME}
-      episodeNumber={1}
-      canPlay
-      playing={false}
-      canOpenAnilist
-      onPlay={vi.fn()}
-      onOpenAnilist={vi.fn()}
-      {...overrides}
-    />
-  );
+function renderHero(anime: StreamingAnime = ANIME) {
+  return render(<StreamHero anime={anime} />);
 }
 
 beforeEach(() => {
@@ -43,24 +36,25 @@ afterEach(() => {
 });
 
 describe("StreamHero", () => {
-  it("opens the AniList details from the title header", () => {
-    const onOpenAnilist = vi.fn();
-    renderHero({ onOpenAnilist });
+  it("names the title, its synonyms and its badges", () => {
+    renderHero();
 
-    fireEvent.click(screen.getByRole("button", { name: "AniList details" }));
-
-    expect(onOpenAnilist).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Sousou no Frieren")).toBeDefined();
+    expect(screen.getByText("Frieren: Beyond Journey's End")).toBeDefined();
+    expect(screen.getByText("2023")).toBeDefined();
+    expect(screen.getByText("28 episodes")).toBeDefined();
+    expect(screen.getByText("Adventure")).toBeDefined();
   });
 
-  it("hides the AniList button without a session", () => {
-    renderHero({ canOpenAnilist: false });
+  it("carries no action of its own: the season and the modal header own them", () => {
+    renderHero();
 
-    expect(screen.queryByRole("button", { name: "AniList details" })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("hides the AniList button when the source matched no title", () => {
-    renderHero({ anime: { ...ANIME, anilistId: undefined } });
+  it("hides the synonym line when the source sends none", () => {
+    renderHero({ ...ANIME, synonyms: [] });
 
-    expect(screen.queryByRole("button", { name: "AniList details" })).toBeNull();
+    expect(screen.queryByText("Frieren: Beyond Journey's End")).toBeNull();
   });
 });

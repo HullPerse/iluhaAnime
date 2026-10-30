@@ -31,6 +31,12 @@ export interface ShareImportPlan {
   readonly rows: ShareImportPlanRow[];
 }
 
+/** A streaming title, by its catalog slug. */
+export interface StreamDeepLink {
+  readonly source: "animelib";
+  readonly slug: string;
+}
+
 export interface TorrentDeepLink {
   readonly infoHash: string;
 }
@@ -46,6 +52,9 @@ export interface DeepLinkStore {
   torrentTarget: TorrentDeepLink | null;
   openTorrent: (link: TorrentDeepLink) => void;
   consumeTorrent: () => void;
+  streamTarget: StreamDeepLink | null;
+  openStream: (link: StreamDeepLink) => void;
+  consumeStream: () => void;
   magnetTarget: string | null;
   openMagnet: (magnet: string) => void;
   consumeMagnet: () => void;

@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
 import { DualSlider } from "@/components/ui/dualSlider.component";
-import Select from "@/components/ui/select.component";
 import {
   DEFAULT_STREAM_FILTERS,
   STREAM_EPISODES_MAX,
-  STREAM_SORT_OPTIONS,
   STREAM_YEAR_MIN,
   isAdultAgeRating,
   streamYearMax,
@@ -18,11 +16,7 @@ import {
 } from "@/config/stream/filters.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamConstants } from "@/hooks/stream/catalog.hook";
-import type {
-  StreamCatalogFilters,
-  StreamConstants,
-  StreamFilterOption,
-} from "@/types/stream";
+import type { StreamCatalogFilters, StreamConstants, StreamFilterOption } from "@/types/stream";
 
 function ToggleChip({
   active,
@@ -216,9 +210,7 @@ function FiltersContent({
         </div>
       ) : null}
 
-      <p className="windows95-text text-text mt-1 text-xs font-bold">
-        {t("stream.filters.year")}
-      </p>
+      <p className="windows95-text text-text mt-1 text-xs font-bold">{t("stream.filters.year")}</p>
       <DualSlider
         wheel
         min={STREAM_YEAR_MIN}
@@ -250,37 +242,14 @@ function FiltersContent({
         }
       />
 
-      <p className="windows95-text text-text mt-1 text-xs font-bold">{t("stream.filters.sort")}</p>
-      <div className="flex items-center gap-1">
-        <Select
-          className="min-w-0 flex-1"
-          value={local.sortBy}
-          onChange={(value) => patch({ sortBy: value as StreamCatalogFilters["sortBy"] })}
-          options={STREAM_SORT_OPTIONS.map((option) => ({
-            value: option.value,
-            label: t(option.labelKey),
-          }))}
-        />
-        <Select
-          className="w-24"
-          value={local.sortType}
-          onChange={(value) => patch({ sortType: value as StreamCatalogFilters["sortType"] })}
-          options={[
-            { value: "desc", label: t("stream.filters.sort.desc") },
-            { value: "asc", label: t("stream.filters.sort.asc") },
-          ]}
-          label={t("stream.filters.sort.direction")}
-        />
-      </div>
-
+      {/* Sorting is not a filter: it lives on the always-visible sort bar, so
+          this modal never hides the order the results are in. */}
       <label className="windows95-text mt-1 flex cursor-pointer items-center gap-2 text-xs select-none">
         <Checkbox
           checked={local.adult}
           onChange={(checked) =>
             setLocal(
-              checked
-                ? { ...local, adult: true }
-                : withoutAdultFilters(local, data?.genres ?? [])
+              checked ? { ...local, adult: true } : withoutAdultFilters(local, data?.genres ?? [])
             )
           }
         />

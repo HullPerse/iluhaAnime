@@ -1,23 +1,21 @@
 import { Filter, RotateCw, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
-import { Input } from "@/components/ui/input.component";
-import Select from "@/components/ui/select.component";
 import { countActiveStreamFilters } from "@/config/stream/filters.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useSearchField } from "@/hooks/search/field.hook";
 import { useCell } from "@/lib/state/signal.hook";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { submitStreamSearch, streamPage, streamQuery } from "@/store/stream.store";
 import type { StreamCatalogFilters } from "@/types/stream";
 
-const SOURCE_ID = "animelib";
-const SOURCE_NAME = "AnimeLib";
-
 /**
- * One toolbar row, the same shape the AniList and collection tabs use: source,
- * query, search, clear, refresh. The submitted query lives in the store, so
- * the field follows a clear that comes from the results surface.
+ * One toolbar row, the same shape the AniList tab uses: the shared smart input
+ * (history, suggestions, inline completion), a separator, the filter button and
+ * the refresh action. The field keeps its own draft, because the submitted
+ * query is what the catalog request keys on: typing must not issue a request
+ * per keystroke.
  */
 export default function StreamToolbar({
   isFetching,
@@ -35,15 +33,20 @@ export default function StreamToolbar({
   const page = useCell(streamPage);
   const [text, setText] = useState(query);
 
+  // A clear from another surface (the empty results panel) has to reach the
+  // field, and a submitted search has to leave the field holding what was
+  // submitted, so the draft follows the store whenever the store moves.
   useEffect(() => {
     setText(query);
   }, [query]);
 
-  const submit = () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    submitStreamSearch(trimmed);
-  };
+  const field = useSearchField({
+    scope: "stream",
+    query: text,
+    setQuery: setText,
+    onSubmit: submitStreamSearch,
+    submitOnSelect: true,
+  });
 
   const clear = () => {
     setText("");
@@ -53,30 +56,19 @@ export default function StreamToolbar({
 
   return (
     <div className="ui-toolbar ui-panel w-full flex-row">
-      <Select
-        className="w-28"
-        label={t("stream.source")}
-        value={SOURCE_ID}
-        onChange={() => undefined}
-        options={[{ value: SOURCE_ID, label: SOURCE_NAME }]}
-      />
-      <span className="ui-toolbar-separator" aria-hidden />
-
-      <Input
+      <InlineAutocompleteInput
         data-main-search
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={enterSubmit(submit)}
         placeholder={t("stream.searchPlaceholder")}
         aria-label={t("stream.searchPlaceholder")}
-        className="h-9 flex-1 font-bold"
-        spellCheck={false}
+        className="h-9 font-bold"
+        {...field.inputProps}
       />
+
       <Button
         size="icon"
         title={t("stream.search")}
         aria-label={t("stream.search")}
-        onClick={submit}
+        onClick={field.handleSubmit}
         disabled={text.trim().length === 0}
       >
         <Search className="size-4" />
@@ -86,10 +78,12 @@ export default function StreamToolbar({
         title={t("stream.clear")}
         aria-label={t("stream.clear")}
         onClick={clear}
-        disabled={query.length === 0 && page === 1}
+        disabled={text.length === 0 && query.length === 0 && page === 1}
       >
         <X className="size-4" />
       </Button>
+
+      <span className="ui-toolbar-separator" aria-hidden />
       <Button
         size="icon"
         className="relative"

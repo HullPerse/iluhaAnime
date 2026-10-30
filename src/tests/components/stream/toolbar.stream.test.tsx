@@ -94,14 +94,7 @@ describe("StreamToolbar", () => {
   });
 
   it("shows progress and blocks the refresh while fetching", () => {
-    render(
-      <StreamToolbar
-        isFetching
-        filters={filters}
-        onRefetch={vi.fn()}
-        onFiltersOpen={noop}
-      />
-    );
+    render(<StreamToolbar isFetching filters={filters} onRefetch={vi.fn()} onFiltersOpen={noop} />);
     const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
     expect(refresh.disabled).toBe(true);
     expect(refresh.getAttribute("aria-busy")).toBe("true");
@@ -132,6 +125,7 @@ describe("StreamToolbar", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Filters" }).textContent).toContain("4");
+    // Adult plus two genres. The sort does not count: it lives on its own bar.
+    expect(screen.getByRole("button", { name: "Filters" }).textContent).toContain("3");
   });
 });

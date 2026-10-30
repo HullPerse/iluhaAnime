@@ -7,25 +7,37 @@ import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { StreamingAnime } from "@/types/stream";
 
 /**
- * One catalog tile. The shape follows the collection card: a poster filling the
- * top of the tile, then a dense caption bar with the title and one metadata
- * line. Streaming has no collection status, so there is no status strip.
+ * One catalog tile, shaped like the collection card: poster on top, a dense
+ * two-line caption under it. The rating is the site's own average, which
+ * arrives in the same list answer as the card itself. There is no AniList
+ * badge: a site match is not a state of this title, and the modal already
+ * carries the AniList action.
  */
-function StreamCardView({ anime, onOpen }: { anime: StreamingAnime; onOpen: () => void }) {
+function StreamCardView({
+  anime,
+  onOpen,
+  tabIndex = 0,
+  onFocus,
+}: {
+  anime: StreamingAnime;
+  onOpen: () => void;
+  /** Roving tabindex: only the active tile is a Tab stop. */
+  tabIndex?: number;
+  onFocus?: () => void;
+}) {
   const { t } = useI18n();
   const cover = useStreamCover(anime.cover);
-  const meta = [
-    anime.year != null ? String(anime.year) : null,
-    anime.episodeCount != null && anime.episodeCount > 0
-      ? t("stream.episodes.count", { count: anime.episodeCount })
-      : null,
-  ].filter(Boolean);
+  const meta = [anime.year != null ? String(anime.year) : null, anime.mediaType ?? null].filter(
+    Boolean
+  );
 
   return (
-    <div className="windows95-active-border bg-field flex w-full flex-col overflow-hidden select-none">
+    <div className="windows95-active-border bg-field flex w-full flex-col overflow-hidden select-none [contain-intrinsic-size:auto] [content-visibility:auto]">
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={tabIndex}
+        data-stream-card
+        onFocus={onFocus}
         onClick={onOpen}
         onKeyDown={enterOrSpace(onOpen)}
         aria-label={anime.title}
@@ -45,26 +57,26 @@ function StreamCardView({ anime, onOpen }: { anime: StreamingAnime; onOpen: () =
             {t("stream.noCover")}
           </div>
         )}
-        {anime.anilistId ? (
-          <span className="bg-secondary text-title-text windows95-small-border windows95-text absolute top-1 right-1 px-1 text-xs leading-tight font-bold">
-            {t("stream.anilistMatch")}
+        {anime.rating != null && anime.rating > 0 ? (
+          <span className="bg-secondary text-title-text absolute bottom-1 left-1 px-1 py-0.5 text-xs leading-none font-bold">
+            {`${anime.rating.toFixed(1)}/10`}
           </span>
         ) : null}
         {anime.status ? (
-          <span className="bg-secondary text-title-text windows95-text absolute bottom-0 left-0 px-1 py-0.5 text-xs leading-none font-bold">
+          <span className="bg-secondary text-title-text windows95-text absolute right-0 bottom-0 px-1 py-0.5 text-xs leading-none font-bold">
             {anime.status}
           </span>
         ) : null}
       </div>
 
-      <div className="bg-primary flex h-9 shrink-0 flex-col justify-center px-1">
+      <div className="bg-primary flex h-10 shrink-0 flex-col justify-center gap-0 px-1 py-1">
         <h3
           className="windows95-text min-w-0 truncate text-xs leading-tight font-bold"
           title={anime.title}
         >
           {anime.title}
         </h3>
-        <span className="text-hint windows95-text truncate text-xs leading-tight">
+        <span className="text-hint windows95-text min-w-0 truncate text-xs leading-tight">
           {meta.join(", ")}
         </span>
       </div>
@@ -80,8 +92,10 @@ export const StreamCard = memo(
     previous.anime.cover === next.anime.cover &&
     previous.anime.year === next.anime.year &&
     previous.anime.status === next.anime.status &&
-    previous.anime.episodeCount === next.anime.episodeCount &&
-    previous.anime.anilistId === next.anime.anilistId
+    previous.anime.mediaType === next.anime.mediaType &&
+    previous.anime.rating === next.anime.rating &&
+    previous.tabIndex === next.tabIndex &&
+    previous.onFocus === next.onFocus
 );
 
 export default StreamCard;

@@ -47,6 +47,10 @@ pub struct StreamOpen {
     pub source_name: String,
     pub media_id: String,
     pub media_title: String,
+    /// The catalog slug, so the history row can reopen the title without a
+    /// search. Older callers omit it and the row simply carries no link.
+    #[serde(default)]
+    pub slug: String,
     pub episode_id: String,
     pub episode_number: i32,
     pub episode_title: String,
@@ -198,12 +202,28 @@ pub struct PlayerHost {
     /// Watch key of the stream session, when one is playing. `current_path`
     /// carries the media URL for a stream, which must never become a watch key.
     stream_watch_key: Mutex<Option<String>>,
+    /// What the active stream is, for the history row the watch save writes.
+    stream_identity: Mutex<Option<StreamIdentity>>,
     dirty: AtomicBool,
     active: AtomicBool,
     metrics: Mutex<Metrics>,
     watchdog: Mutex<WatchdogState>,
     last_snapshot: Mutex<Option<PlaybackSnapshot>>,
     zero_streak: Mutex<u32>,
+}
+
+/// The catalog identity of the stream that is playing. The watch save runs on
+/// the ticker with nothing but a position, so the row it writes needs these.
+#[derive(Debug, Clone)]
+pub struct StreamIdentity {
+    pub anime_id: String,
+    pub slug: String,
+    pub title: String,
+    pub cover: Option<String>,
+    pub anilist_id: Option<i64>,
+    pub episode_id: String,
+    pub episode_number: i32,
+    pub episode_title: Option<String>,
 }
 
 #[derive(Default, Clone)]
@@ -256,14 +276,34 @@ impl PlayerHost {
     }
 
     pub fn set_stream_watch_key(&self, key: Option<String>) {
+        // Every place that drops the stream session drops its identity too, so
+        // a local file can never write into the stream's history row.
+        let clearing = key.is_none();
         *self
             .stream_watch_key
             .lock()
             .unwrap_or_else(|e| e.into_inner()) = key;
+        if clearing {
+            self.set_stream_identity(None);
+        }
     }
 
     pub fn stream_watch_key(&self) -> Option<String> {
         self.stream_watch_key
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    pub fn set_stream_identity(&self, identity: Option<StreamIdentity>) {
+        *self
+            .stream_identity
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = identity;
+    }
+
+    pub fn stream_identity(&self) -> Option<StreamIdentity> {
+        self.stream_identity
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clone()
@@ -668,6 +708,28 @@ pub fn save_current_watch(app: &AppHandle) {
     };
     if let Err(error) = watch::save(app, &path, &state) {
         tracing::debug!("watch position not saved: {error}");
+    }
+    // The same tick keeps the history row current. A local file has no
+    // identity, so this is a stream-only write and a no-op everywhere else.
+    let Some(identity) = app.state::<PlayerHost>().stream_identity() else {
+        return;
+    };
+    let entry = crate::app_db::stream_history::StreamHistoryEntry {
+        anime_id: identity.anime_id,
+        episode_id: identity.episode_id,
+        slug: identity.slug,
+        title: identity.title,
+        cover: identity.cover,
+        anilist_id: identity.anilist_id,
+        episode_number: identity.episode_number,
+        episode_title: identity.episode_title,
+        episode_cover: None,
+        position: state.position,
+        duration: state.duration,
+        updated_at: state.updated_at,
+    };
+    if let Err(error) = crate::app_db::stream_history::record(app, entry) {
+        tracing::debug!("stream history not saved: {error}");
     }
 }
 

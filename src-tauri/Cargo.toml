@@ -121,6 +121,10 @@ name = "file_query"
 harness = false
 
 [[bench]]
+name = "stream_history"
+harness = false
+
+[[bench]]
 name = "unified_index"
 harness = false
 

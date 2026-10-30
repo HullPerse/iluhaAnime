@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { streamApi } from "@/api/stream.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useStreamSearch } from "@/hooks/stream/catalog.hook";
@@ -20,6 +21,7 @@ import {
 
 import StreamDetail from "./components/stream/detail.stream";
 import StreamFiltersModal from "./components/stream/filters.stream";
+import StreamHistoryModal from "./components/stream/history.stream";
 import StreamResults from "./components/stream/results.stream";
 import StreamSortBar, {
   STREAM_SORT_CYCLE,
@@ -43,6 +45,7 @@ export default function StreamRoute() {
   const filters = useCell(streamFilters);
   const results = useStreamSearch(query, page, filters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const streamTarget = useCell(deeplinkAtoms.streamTarget);
 
   // A pasted or opened `iluhaanime://stream/animelib/<slug>` link lands here:
@@ -69,6 +72,19 @@ export default function StreamRoute() {
       },
     }
   );
+  // The site draws the random title itself: `sort_by=random` answers a freshly
+  // shuffled page, so the pick is uniform across the whole catalog rather than
+  // a page guessed by the client. The current filters still apply.
+  const openRandom = () => {
+    streamApi
+      .random(filters)
+      .then((pick) => {
+        if (pick?.slugUrl) streamStore.selectedSlug.set(pick.slugUrl);
+        return null;
+      })
+      .catch(() => undefined);
+  };
+
   const lastPage = results.data?.lastPage;
 
   useEffect(() => {
@@ -86,7 +102,7 @@ export default function StreamRoute() {
         onRefetch={() => results.refetch()}
         onFiltersOpen={() => setFiltersOpen(true)}
       />
-      <StreamSortBar />
+      <StreamSortBar onHistoryOpen={() => setHistoryOpen(true)} onRandom={openRandom} />
       {online ? (
         <StreamResults
           data={results.data}
@@ -104,6 +120,14 @@ export default function StreamRoute() {
         filters={filters}
         onApply={applyStreamFilters}
         onClose={() => setFiltersOpen(false)}
+      />
+      <StreamHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onOpen={(nextSlug) => {
+          streamStore.selectedSlug.set(nextSlug);
+          setHistoryOpen(false);
+        }}
       />
     </div>
   );

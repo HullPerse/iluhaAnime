@@ -1,6 +1,10 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/hooks/stream/catalog.hook", () => ({
+  useStreamHistoryProgress: () => ({ data: null }),
+}));
+
 import StreamResults from "@/routes/components/stream/results.stream";
 import { patchSettings } from "@/store/settings.store";
 import { streamQuery, submitStreamSearch } from "@/store/stream.store";

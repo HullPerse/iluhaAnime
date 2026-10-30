@@ -1,15 +1,20 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Copy, Info } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { streamApi } from "@/api/stream.api";
 import Modal from "@/components/shared/modal.component";
 import { useAnilistSignedIn } from "@/hooks/anilist/session.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useAnilistEpisodePreviews, useStreamTitle } from "@/hooks/stream/catalog.hook";
+import {
+  useAnilistEpisodePreviews,
+  useStreamHistoryForAnime,
+  useStreamTitle,
+} from "@/hooks/stream/catalog.hook";
 import { loadWatch, openStream, prewarmPlayer } from "@/lib/player/playback.utils";
 import { RESUME_END_MARGIN, RESUME_MIN } from "@/lib/player/resume.utils";
 import { buildWatchKey } from "@/lib/stream/helpers";
+import { historyByEpisode, isEpisodeWatched } from "@/lib/stream/history.utils";
 import { emptyPrefs, pickVariant, withQuality, withVariant } from "@/lib/stream/prefs.utils";
 import { pickSource, toVariantSources } from "@/lib/stream/sources.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -20,7 +25,13 @@ import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { streamStore } from "@/store/stream.store";
 import type { TFunc } from "@/types/i18n";
-import type { StreamPrefs, StreamVariant, StreamingAnime, StreamingEpisode } from "@/types/stream";
+import type {
+  StreamHistoryEntry,
+  StreamPrefs,
+  StreamVariant,
+  StreamingAnime,
+  StreamingEpisode,
+} from "@/types/stream";
 import type { AnimeLibAnime, StreamSource } from "@/types/videoPlayer";
 
 import AniListDetailModal from "../anilist/detail/modal.detail";
@@ -57,6 +68,11 @@ function loadSources(episodeId: string, variantId: string): Promise<StreamSource
   );
 }
 
+/** A watched episode restarts; anything else resumes where it stopped. */
+function startPosition(watchKey: string, restart: boolean): Promise<number | undefined> {
+  return restart ? Promise.resolve(undefined) : resumePosition(watchKey);
+}
+
 /**
  * Turn the remembered voice-over and quality into a concrete media URL. The
  * preference read, the player rows and the resume position do not depend on
@@ -66,14 +82,17 @@ function loadSources(episodeId: string, variantId: string): Promise<StreamSource
 async function resolvePlayable(
   mediaId: string,
   episodeId: string,
-  watchKey: string
+  watchKey: string,
+  restart: boolean
 ): Promise<
   | { playable: Playable; prefs: StreamPrefs | null; resume: number | undefined }
   | { failure: string }
 > {
   const [prefsResult, resume] = await Promise.all([
     attempt(streamApi.prefsGet(SOURCE_ID, mediaId)),
-    resumePosition(watchKey),
+    // A watched episode starts over: the cached position is at the end, and
+    // resuming it would replay the last seconds.
+    startPosition(watchKey, restart),
   ]);
   const prefs = prefsResult[0] ?? null;
   // The remembered voice-over is what will play, and asking for its sources
@@ -134,14 +153,15 @@ async function playEpisode(
   target: StreamingEpisode,
   playingId: string | null,
   setPlayingId: (id: string | null) => void,
-  t: TFunc
+  t: TFunc,
+  entry?: StreamHistoryEntry
 ): Promise<void> {
   if (!anime || playingId) return;
   setPlayingId(target.id);
   // Resume from the stream watch key, not from the URL, so a rotated CDN link
   // does not lose the position. A position at the very end starts over.
   const watchKey = buildWatchKey(SOURCE_ID, anime.id, target.id);
-  const resolved = await resolvePlayable(anime.id, target.id, watchKey);
+  const resolved = await resolvePlayable(anime.id, target.id, watchKey, isEpisodeWatched(entry));
   if (!("playable" in resolved)) {
     addNotification(
       t("stream.playFailed"),
@@ -169,6 +189,7 @@ async function playEpisode(
       sourceName: SOURCE_NAME,
       mediaId: anime.id,
       mediaTitle: anime.title,
+      slug: anime.slugUrl,
       episodeId: target.id,
       episodeNumber: target.number,
       episodeTitle: target.title ?? "",
@@ -192,13 +213,23 @@ async function playEpisode(
   setPlayingId(null);
 }
 
-function useStreamEpisodeSelection(episodes: StreamingEpisode[] | undefined) {
+function useStreamEpisodeSelection(
+  episodes: StreamingEpisode[] | undefined,
+  preferredId: string | null
+) {
   const [episode, setEpisode] = useState<StreamingEpisode | null>(null);
   useEffect(() => {
     if (episode) return;
-    const first = episodes?.[0];
+    // The remembered episode wins over the first one, but the history query
+    // can answer after the season: the hook waits for it instead of locking
+    // onto episode one.
+    const preferred =
+      preferredId === null
+        ? undefined
+        : episodes?.find((candidate) => candidate.id === preferredId);
+    const first = preferred ?? episodes?.[0];
     if (first) setEpisode(first);
-  }, [episode, episodes]);
+  }, [episode, episodes, preferredId]);
   return [episode, setEpisode] as const;
 }
 
@@ -234,6 +265,7 @@ function StreamDetailView({
   onPick,
   playingId,
   previews,
+  history,
   slug,
   signedIn,
   title,
@@ -246,20 +278,19 @@ function StreamDetailView({
   onPick: (episode: StreamingEpisode) => void;
   playingId: string | null;
   previews: Map<number, string>;
+  history: ReadonlyMap<string, StreamHistoryEntry>;
   /** The catalog slug the modal is open for, so the shared link is stable. */
   slug: string;
   signedIn: boolean;
   title: ReturnType<typeof useStreamTitle>;
 }) {
   const { t } = useI18n();
+  // A copy is its own confirmation: the button is the feedback, so it raises
+  // no notification either on success or on failure.
   const copyLink = () => {
-    const link = buildStreamLink(anime?.slugUrl ?? slug);
-    writeText(link)
-      .then(() => {
-        addNotification(t("stream.link.copied"), "info", link);
-        return null;
-      })
-      .catch((error: unknown) => reportBackgroundError("stream.copy-link", error));
+    writeText(buildStreamLink(anime?.slugUrl ?? slug)).catch((error: unknown) =>
+      reportBackgroundError("stream.copy-link", error)
+    );
   };
   return (
     <Modal
@@ -303,6 +334,7 @@ function StreamDetailView({
             error={title.error}
             selectedId={playingId ?? episode?.id ?? null}
             previews={previews}
+            history={history}
             onPick={onPick}
             onRetry={() => title.refetch()}
           />
@@ -327,8 +359,19 @@ export default function StreamDetail({ slug }: { slug: string }) {
   // matched; a missing map simply means the rows show no popup.
   const previews = useAnilistEpisodePreviews(anime?.anilistId);
   const signedIn = useAnilistSignedIn();
+  const historyQuery = useStreamHistoryForAnime(anime?.id ?? null);
+  const history = useMemo(() => historyByEpisode(historyQuery.data ?? []), [historyQuery.data]);
+  // The newest remembered row is where "continue" points: the modal opens on
+  // that episode instead of episode one.
+  const latestEpisodeId = useMemo(() => {
+    let latest: StreamHistoryEntry | null = null;
+    for (const row of historyQuery.data ?? []) {
+      if (!latest || row.updatedAt > latest.updatedAt) latest = row;
+    }
+    return latest?.episodeId ?? null;
+  }, [historyQuery.data]);
   const [anilistOpen, setAnilistOpen] = useState(false);
-  const [episode, setEpisode] = useStreamEpisodeSelection(episodes);
+  const [episode, setEpisode] = useStreamEpisodeSelection(episodes, latestEpisodeId);
   const [playingId, setPlayingId] = useState<string | null>(null);
 
   const close = () => streamStore.selectedSlug.set(null);
@@ -341,17 +384,28 @@ export default function StreamDetail({ slug }: { slug: string }) {
     ignore(attempt(prewarmPlayer()).then(() => undefined));
   }, []);
 
-  // The first episode is the one the Play button and the highlighted row point
-  // at, so its rows are warmed as soon as the title answers, not on the click.
+  // The neighbours of the current episode are warmed, not just the first one:
+  // the player's "after this episode" setting and the Next button both jump to
+  // the next row, and that jump should not wait for two network legs.
   const animeId = anime?.id ?? null;
-  const firstEpisodeId = episodes?.[0]?.id ?? null;
+  const episodeIndex = useMemo(() => {
+    if (!episodes || episodes.length === 0) return -1;
+    const index = episode ? episodes.findIndex((candidate) => candidate.id === episode.id) : 0;
+    return index === -1 ? 0 : index;
+  }, [episode, episodes]);
+  const neighbourIds = useMemo(() => {
+    if (!episodes) return [];
+    return [episodes[episodeIndex - 1], episodes[episodeIndex + 1]]
+      .filter((candidate): candidate is StreamingEpisode => candidate !== undefined)
+      .map((candidate) => candidate.id);
+  }, [episodeIndex, episodes]);
   useEffect(() => {
-    if (!animeId || !firstEpisodeId) return;
-    ignore(prefetchEpisode(animeId, firstEpisodeId));
-  }, [animeId, firstEpisodeId]);
+    if (!animeId) return;
+    for (const neighbourId of neighbourIds) ignore(prefetchEpisode(animeId, neighbourId));
+  }, [animeId, neighbourIds]);
 
   const play = (target: StreamingEpisode): Promise<void> =>
-    playEpisode(anime, target, playingId, setPlayingId, t);
+    playEpisode(anime, target, playingId, setPlayingId, t, history.get(target.id));
 
   // The AniList details replace this modal instead of stacking on top of it:
   // one dialog at a time, and Back returns to the episode list.
@@ -381,6 +435,7 @@ export default function StreamDetail({ slug }: { slug: string }) {
       }}
       playingId={playingId}
       previews={previews}
+      history={history}
       slug={slug}
       signedIn={signedIn}
       title={title}

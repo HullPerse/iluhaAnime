@@ -55,6 +55,37 @@ export function useAnilistEpisodePreviews(anilistId: number | null | undefined) 
   return query.data ?? new Map<number, string>();
 }
 
+/**
+ * The locally remembered episodes of one title. The player writes these rows,
+ * so the modal can mark watched episodes and preselect the last one without a
+ * network round trip.
+ */
+export function useStreamHistoryForAnime(animeId: string | null) {
+  return useAppQuery("slow", {
+    queryKey: queryKeys.streamHistoryForAnime(animeId ?? ""),
+    queryFn: () => streamApi.historyForAnime(animeId ?? ""),
+    enabled: animeId !== null && animeId.length > 0,
+  });
+}
+
+/** The newest remembered episodes across titles, for the history modal. */
+export function useStreamHistoryRecent(open: boolean) {
+  return useAppQuery("slow", {
+    queryKey: queryKeys.streamHistoryRecent(),
+    queryFn: () => streamApi.historyRecent(50),
+    enabled: open,
+  });
+}
+
+/** Watched count and the newest episode of one title, for a hover badge. */
+export function useStreamHistoryProgress(animeId: string, enabled: boolean) {
+  return useAppQuery("slow", {
+    queryKey: queryKeys.streamHistoryProgress(animeId),
+    queryFn: () => streamApi.historyProgress(animeId),
+    enabled: enabled && animeId.length > 0,
+  });
+}
+
 /** The voice-overs an episode offers. */
 export function useStreamPlayers(episodeId: string | null) {
   return useAppQuery("slow", {

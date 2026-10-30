@@ -13,6 +13,8 @@ export interface StreamOpen {
   sourceName: string;
   mediaId: string;
   mediaTitle: string;
+  /** The catalog slug, so a history row can reopen the title without a search. */
+  slug?: string;
   episodeId: string;
   episodeNumber: number;
   episodeTitle: string;

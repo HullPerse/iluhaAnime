@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, SortAsc, SortDesc } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dices, History, SortAsc, SortDesc } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -32,7 +32,13 @@ export const STREAM_SORT_DEFAULT_DIR: Record<StreamSortBy, "asc" | "desc"> = {
 /** Order the Shift+[ / Shift+] cycle walks, feeds first. */
 export const STREAM_SORT_CYCLE: readonly StreamSortBy[] = SORT_KEYS.map(({ key }) => key);
 
-export default function StreamSortBar() {
+export default function StreamSortBar({
+  onHistoryOpen,
+  onRandom,
+}: {
+  onHistoryOpen: () => void;
+  onRandom?: () => void;
+}) {
   const { t } = useI18n();
   const filters = useCell(streamFilters);
   const { sortBy, sortType } = filters;
@@ -90,6 +96,27 @@ export default function StreamSortBar() {
           <ChevronRight className="size-3.5" />
         </Button>
       </div>
+      <span className="ui-toolbar-separator" aria-hidden />
+      {onRandom ? (
+        <Button
+          size="icon"
+          className="h-6 w-6 shrink-0"
+          title={t("stream.random.button")}
+          aria-label={t("stream.random.button")}
+          onClick={onRandom}
+        >
+          <Dices className="size-3.5" />
+        </Button>
+      ) : null}
+      <Button
+        size="icon"
+        className="h-6 w-6 shrink-0"
+        title={t("stream.history.button")}
+        aria-label={t("stream.history.button")}
+        onClick={onHistoryOpen}
+      >
+        <History className="size-3.5" />
+      </Button>
     </section>
   );
 }

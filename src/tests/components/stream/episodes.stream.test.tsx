@@ -78,6 +78,44 @@ describe("StreamEpisodes", () => {
     expect(screen.queryByText("Episode 1")).toBeNull();
   });
 
+  it("mutes a watched row and shows where an unfinished one stopped", () => {
+    const history = new Map([
+      [
+        "400",
+        {
+          animeId: "1",
+          episodeId: "400",
+          slug: "1--anime",
+          title: "Anime",
+          episodeNumber: 1,
+          position: 1440,
+          duration: 1440,
+          updatedAt: 2,
+        },
+      ],
+      [
+        "401",
+        {
+          animeId: "1",
+          episodeId: "401",
+          slug: "1--anime",
+          title: "Anime",
+          episodeNumber: 2,
+          position: 600,
+          duration: 1440,
+          updatedAt: 1,
+        },
+      ],
+    ]);
+    renderEpisodes({ episodes: EPISODES.slice(0, 3), history });
+
+    expect(screen.getByLabelText("Watched")).toBeDefined();
+    expect(screen.getByText("10:00")).toBeDefined();
+    expect(screen.getByText("Episode 1").closest("[role='button']")?.className).toContain(
+      "text-hint"
+    );
+  });
+
   it("marks the chosen episode", () => {
     renderEpisodes({ selectedId: "400" });
     const row = screen.getByText("Episode 1").closest("[aria-current]");

@@ -36,6 +36,7 @@ vi.mock("@/hooks/stream/catalog.hook", () => ({
     refetch: vi.fn(),
   }),
   useAnilistEpisodePreviews: () => new Map<number, string>(),
+  useStreamHistoryForAnime: () => ({ data: [], isPending: false }),
 }));
 
 vi.mock("@/hooks/anilist/session.hook", () => ({
@@ -181,12 +182,13 @@ describe("StreamDetail AniList button", () => {
     expect(screen.queryByText("The Journey's End")).toBeNull();
   });
 
-  it("warms the first episode's rows and sources as soon as the title opens", async () => {
+  it("warms the next episode's rows and sources as soon as the title opens", async () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    await waitFor(() => expect(api.players).toHaveBeenCalledWith("1"));
+    // The selection starts at episode one, so its neighbour is episode two.
+    await waitFor(() => expect(api.players).toHaveBeenCalledWith("2"));
     await waitFor(() =>
-      expect(api.streamSources).toHaveBeenCalledWith({ episodeId: "1", variantId: "Kodik:7" })
+      expect(api.streamSources).toHaveBeenCalledWith({ episodeId: "2", variantId: "Kodik:7" })
     );
     expect(playback.openStream).not.toHaveBeenCalled();
   });

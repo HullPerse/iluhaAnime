@@ -13,7 +13,7 @@ pub const DATABASE_FILE: &str = "app_data.sqlite3";
 /// beats hanging the UI forever.
 pub const APP_DATA_WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 pub const MAX_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
-pub const CURRENT_SCHEMA_VERSION: i64 = 23;
+pub const CURRENT_SCHEMA_VERSION: i64 = 24;
 pub fn now_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

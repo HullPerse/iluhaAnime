@@ -1,4 +1,4 @@
-import { RotateCw } from "lucide-react";
+import { Check, RotateCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -9,8 +9,9 @@ import type { ResolvedHotkeyDef } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
 import { isTextEntryTarget } from "@/lib/hotkeys/filter.hotkeys";
+import { formatResume, isEpisodeWatched } from "@/lib/stream/history.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import type { StreamingEpisode } from "@/types/stream";
+import type { StreamHistoryEntry, StreamingEpisode } from "@/types/stream";
 
 import { StreamInlineLoading } from "./states.stream";
 
@@ -99,6 +100,7 @@ export default function StreamEpisodes({
   error,
   selectedId,
   previews,
+  history,
   onPick,
   onRetry,
 }: {
@@ -108,6 +110,8 @@ export default function StreamEpisodes({
   selectedId: string | null;
   /** AniList preview art keyed by episode number; absent when the title has none. */
   previews?: ReadonlyMap<number, string>;
+  /** Locally remembered rows keyed by episode id: watched marks and resume. */
+  history?: ReadonlyMap<string, StreamHistoryEntry>;
   onPick: (episode: StreamingEpisode) => void;
   onRetry: () => void;
 }) {
@@ -211,6 +215,9 @@ export default function StreamEpisodes({
             const selected = episode.id === selectedId;
             const date = airDateLabel(episode.airDate);
             const preview = previews?.get(episode.number);
+            const entry = history?.get(episode.id);
+            const watched = isEpisodeWatched(entry);
+            const resume = entry && !watched && entry.position > 0 ? entry.position : 0;
             return (
               <div
                 key={episode.id}
@@ -240,13 +247,32 @@ export default function StreamEpisodes({
                 onMouseLeave={() => setHover(null)}
                 title={episode.title ?? t("stream.episodeUntitled")}
                 className={`windows95-text flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 text-left select-none ${
-                  selected ? "bg-secondary text-title-text font-bold" : "text-text hover:bg-surface"
+                  selected
+                    ? "bg-secondary text-title-text font-bold"
+                    : watched
+                      ? "text-hint hover:bg-surface"
+                      : "text-text hover:bg-surface"
                 }`}
               >
                 <span className="w-7 shrink-0 text-right tabular-nums">{episode.number}</span>
                 <span className="min-w-0 flex-1 truncate">
                   {episode.title ?? t("stream.episodeUntitled")}
                 </span>
+                {watched ? (
+                  <Check
+                    className={`size-3 shrink-0 ${selected ? "text-title-text" : "text-hint"}`}
+                    aria-label={t("stream.history.watched")}
+                  />
+                ) : null}
+                {resume > 0 ? (
+                  <span
+                    className={`shrink-0 text-xs tabular-nums ${
+                      selected ? "text-title-text/75" : "text-hint"
+                    }`}
+                  >
+                    {formatResume(resume)}
+                  </span>
+                ) : null}
                 {date ? (
                   <span
                     className={`shrink-0 text-xs tabular-nums ${

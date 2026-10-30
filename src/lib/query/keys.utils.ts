@@ -12,6 +12,9 @@ export const queryKeys = {
     ["stream_search", query, page, filtersKey] as const,
   streamConstants: () => ["stream_constants"] as const,
   streamTitle: (slug: string) => ["stream_title", slug] as const,
+  streamHistoryRecent: () => ["stream_history_recent"] as const,
+  streamHistoryForAnime: (animeId: string) => ["stream_history_anime", animeId] as const,
+  streamHistoryProgress: (animeId: string) => ["stream_history_progress", animeId] as const,
   streamPlayers: (episodeId: string) => ["stream_players", episodeId] as const,
   streamSources: (episodeId: string, variantId: string) =>
     ["stream_sources", episodeId, variantId] as const,

@@ -149,6 +149,23 @@ pub async fn anime_lib_search(
         .map_err(|error| error.to_string())
 }
 
+/// One random title for the catalog, drawn by the site itself.
+///
+/// The filters travel with the request, so a random pick still respects the
+/// types, genres, years and the 18+ permission the caller chose.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn anime_lib_random(
+    filters: AnimeLibSearchFilters,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Option<crate::stream::anime_lib_models::AnimeLibAnime>, String> {
+    client_for(proxy_url, proxyUrl)?
+        .random(&filters)
+        .await
+        .map_err(|error| error.to_string())
+}
+
 /// The type, status, age and genre choices the catalog filters offer. The list
 /// is filtered to the AnimeLib site and cached for twenty minutes.
 #[tauri::command]

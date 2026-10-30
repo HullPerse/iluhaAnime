@@ -139,6 +139,36 @@ export interface StreamCatalogFilters {
 
 export type StreamSortBy = "rating_score" | "views" | "name" | "created_at";
 
+/** One remembered episode of the streaming catalog, written by the player. */
+export interface StreamHistoryEntry {
+  animeId: string;
+  episodeId: string;
+  slug: string;
+  title: string;
+  cover?: string;
+  anilistId?: number;
+  episodeNumber: number;
+  episodeTitle?: string;
+  episodeCover?: string;
+  position: number;
+  duration: number;
+  updatedAt: number;
+}
+
+/** The watched count and newest episode of one title, for a hover badge. */
+export interface StreamHistoryProgress {
+  animeId: string;
+  slug: string;
+  title: string;
+  cover?: string;
+  anilistId?: number;
+  watched: number;
+  lastEpisode: number;
+  lastPosition: number;
+  lastDuration: number;
+  updatedAt: number;
+}
+
 /** The catalog filter options, already narrowed to the AnimeLib site. */
 export interface StreamConstants {
   types: StreamFilterOption[];

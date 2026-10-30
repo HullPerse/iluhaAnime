@@ -113,6 +113,31 @@ impl AnimeLibClient {
         })
     }
 
+    /// One title from the site's own random ordering.
+    ///
+    /// `sort_by=random` makes the API answer a freshly shuffled page: its
+    /// `meta.seed` changes on every request, so one page is sixty distinct
+    /// random titles. Filters still apply, which keeps 18+ content out unless
+    /// the viewer opted in.
+    pub async fn random(
+        &self,
+        filters: &AnimeLibSearchFilters,
+    ) -> Result<Option<AnimeLibAnime>, StreamResolutionError> {
+        let mut shuffled = filters.clone();
+        shuffled.sort_by = Some("random".to_string());
+        shuffled.sort_type = Some("desc".to_string());
+        let page = self.search("", Some(1), &shuffled).await?;
+        if page.items.is_empty() {
+            return Ok(None);
+        }
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|elapsed| elapsed.subsec_nanos())
+            .unwrap_or(0) as usize;
+        let index = nanos % page.items.len();
+        Ok(page.items.into_iter().nth(index))
+    }
+
     /// The title behind a query when the search index does not know it.
     ///
     /// The site derives an anime slug from the original title: punctuation and
@@ -407,7 +432,7 @@ impl AnimeLibClient {
 
 /// The sorts the catalog accepts. Anything else is ignored instead of being
 /// forwarded to the API, whose sort column is not documented.
-const SEARCH_SORTS: &[&str] = &["rating_score", "views", "name", "created_at"];
+const SEARCH_SORTS: &[&str] = &["rating_score", "views", "name", "created_at", "random"];
 
 /// The age ratings the site serves (1 PG … 5 RX 18+). A request without an
 /// explicit age filter still excludes 18+ content unless the viewer opted in.
@@ -1319,6 +1344,18 @@ mod tests {
             assert!(url.contains(&format!("caution%5B%5D={age}")));
         }
         assert!(!url.contains("sort_by"));
+    }
+
+    #[test]
+    fn search_url_keeps_the_random_sort() {
+        let filters = AnimeLibSearchFilters {
+            sort_by: Some("random".to_string()),
+            sort_type: Some("desc".to_string()),
+            ..AnimeLibSearchFilters::default()
+        };
+        let url = search_url("", 1, &filters);
+        assert!(url.contains("sort_by=random"));
+        assert!(url.contains("sort_type=desc"));
     }
 
     #[test]

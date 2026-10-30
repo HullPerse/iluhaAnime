@@ -1,10 +1,12 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_STREAM_FILTERS } from "@/config/stream/filters.config";
 import StreamSortBar from "@/routes/components/stream/sort.stream";
 import { patchSettings } from "@/store/settings.store";
 import { applyStreamFilters, streamFilters, streamPage } from "@/store/stream.store";
+
+const noop = () => undefined;
 
 // jsdom measures every element as zero wide, which pages the bar down to one
 // key. A real window fits all four, so the tests set the measured width.
@@ -28,7 +30,7 @@ afterEach(() => {
 
 describe("StreamSortBar", () => {
   it("starts a picked key in its own direction", () => {
-    render(<StreamSortBar />);
+    render(<StreamSortBar onHistoryOpen={noop} />);
 
     expect(screen.getByRole("button", { name: "Rating" }).getAttribute("aria-current")).toBe(
       "true"
@@ -46,7 +48,7 @@ describe("StreamSortBar", () => {
   });
 
   it("flips the direction when the active key is picked again", () => {
-    render(<StreamSortBar />);
+    render(<StreamSortBar onHistoryOpen={noop} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Rating" }));
     expect(streamFilters.get().sortBy).toBe("rating_score");
@@ -58,7 +60,7 @@ describe("StreamSortBar", () => {
 
   it("returns to the first page on any sort change", () => {
     streamPage.set(4);
-    render(<StreamSortBar />);
+    render(<StreamSortBar onHistoryOpen={noop} />);
 
     fireEvent.click(screen.getByRole("button", { name: "New" }));
 
@@ -66,9 +68,18 @@ describe("StreamSortBar", () => {
     expect(streamFilters.get().sortBy).toBe("created_at");
   });
 
+  it("opens the watch history from its own button", () => {
+    const onHistoryOpen = vi.fn();
+    render(<StreamSortBar onHistoryOpen={onHistoryOpen} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+
+    expect(onHistoryOpen).toHaveBeenCalledTimes(1);
+  });
+
   it("pages the keys when the bar is too narrow to hold them", () => {
     setMeasuredWidth(100);
-    render(<StreamSortBar />);
+    render(<StreamSortBar onHistoryOpen={noop} />);
 
     // The active key owns the visible page, so only Rating is on screen.
     expect(screen.queryByRole("button", { name: "Title" })).toBe(null);

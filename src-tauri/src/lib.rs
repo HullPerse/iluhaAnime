@@ -39,6 +39,64 @@ pub mod benchmark_api {
     pub use crate::user_assets::{compare_cover_bytes, CoverDiff};
     pub use crate::watcher::FolderWatcher;
 
+    /// Offline fixture hooks for `benches/stream_history.rs`. The real
+    /// commands are AppHandle-bound; these wrappers take a plain connection so
+    /// the history reads can be measured without a Tauri runtime, against the
+    /// exact SQL the commands run.
+    pub mod stream_history {
+        use rusqlite::{params, Connection};
+
+        pub use crate::app_db::{
+            for_anime_in, last_for_anime_in, progress_in, recent_in, StreamHistoryEntry,
+            StreamHistoryProgress,
+        };
+
+        pub fn open_fixture() -> Result<Connection, String> {
+            let connection = Connection::open_in_memory()
+                .map_err(|error| format!("bench stream history connection: {error}"))?;
+            crate::app_db::schema::initialize_schema(&connection)?;
+            Ok(connection)
+        }
+
+        /// Writes `rows` episodes spread over `anime` titles, newest last, so
+        /// the updated_at index is dense rather than all-equal.
+        pub fn seed(connection: &Connection, rows: usize, anime: usize) -> Result<(), String> {
+            let transaction = connection
+                .unchecked_transaction()
+                .map_err(|error| format!("bench stream history transaction: {error}"))?;
+            {
+                let mut statement = transaction
+                    .prepare(
+                        "INSERT INTO stream_history (
+                            anime_id, episode_id, slug, title, cover, anilist_id,
+                            episode_number, episode_title, episode_cover,
+                            position, duration, updated_at
+                         ) VALUES (?1, ?2, ?3, ?4, NULL, NULL, ?5, NULL, NULL, ?6, ?7, ?8)",
+                    )
+                    .map_err(|error| format!("bench stream history prepare: {error}"))?;
+                for index in 0..rows {
+                    let anime_id = format!("{}", index % anime);
+                    let episode = (index / anime) as i64 + 1;
+                    statement
+                        .execute(params![
+                            anime_id,
+                            format!("ep-{index}"),
+                            format!("{anime_id}--title-anime"),
+                            format!("Title {anime_id}"),
+                            episode,
+                            600.0,
+                            1440.0,
+                            index as i64
+                        ])
+                        .map_err(|error| format!("bench stream history insert: {error}"))?;
+                }
+            }
+            transaction
+                .commit()
+                .map_err(|error| format!("bench stream history commit: {error}"))
+        }
+    }
+
     /// Offline fixture hooks for `benches/unified_index.rs`. The real commands
     /// are AppHandle-bound; these wrappers take a plain connection so the
     /// recall queries can be measured without a Tauri runtime.
@@ -2031,6 +2089,7 @@ pub fn run() {
             discord::commands::discord_presence_set,
             discord::commands::discord_presence_clear,
             stream::anime_lib_search,
+            stream::anime_lib_random,
             stream::anime_lib_constants,
             stream::anime_lib_episodes,
             stream::anime_lib_title,
@@ -2045,6 +2104,11 @@ pub fn run() {
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,
+            app_db::stream_history_record,
+            app_db::stream_history_recent,
+            app_db::stream_history_for_anime,
+            app_db::stream_history_progress,
+            app_db::stream_history_clear,
             app_db::get_database_status,
             app_db::upsert_unified_index,
             app_db::clear_unified_index_scope,

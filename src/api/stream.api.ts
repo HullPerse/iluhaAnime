@@ -7,10 +7,13 @@ import type {
   StreamCatalogFilters,
   StreamConstants,
   StreamingEpisode,
+  StreamHistoryEntry,
+  StreamHistoryProgress,
   StreamPrefs,
   StreamSearchPage,
   StreamTitle,
   StreamVariant,
+  StreamingAnime,
 } from "@/types/stream";
 import type {
   AnimeLibAnime as RawAnime,
@@ -72,6 +75,15 @@ export class StreamApi {
       lastPage: raw.lastPage,
       total: raw.total,
     };
+  }
+
+  /**
+   * One random title from the catalog, drawn by the site itself. The current
+   * filters travel with the request, so a pick never ignores the 18+ switch.
+   */
+  async random(filters: StreamCatalogFilters): Promise<StreamingAnime | null> {
+    const raw = await this.call<RawAnime | null>("anime_lib_random", { filters });
+    return raw ? normalizeAnime(raw) : null;
   }
 
   /** The type, status, age and genre choices of the catalog filters. */
@@ -143,6 +155,30 @@ export class StreamApi {
   /** Remember the choice for the next episode and the next launch. */
   async prefsSave(prefs: StreamPrefs): Promise<void> {
     await this.transport.call<null>("stream_prefs_save", { prefs });
+  }
+
+  /**
+   * The locally remembered episodes, newest first. The player writes these
+   * rows while it plays, so a read never touches the network.
+   */
+  async historyRecent(limit = 50): Promise<StreamHistoryEntry[]> {
+    return this.transport.call<StreamHistoryEntry[]>("stream_history_recent", { limit });
+  }
+
+  /** Every remembered episode of one title, by episode number. */
+  async historyForAnime(animeId: string): Promise<StreamHistoryEntry[]> {
+    return this.transport.call<StreamHistoryEntry[]>("stream_history_for_anime", { animeId });
+  }
+
+  /** Watched count and newest episode of one title, or null when unknown. */
+  async historyProgress(animeId: string): Promise<StreamHistoryProgress | null> {
+    return this.transport.call<StreamHistoryProgress | null>("stream_history_progress", {
+      animeId,
+    });
+  }
+
+  async historyClear(): Promise<void> {
+    await this.transport.call<null>("stream_history_clear");
   }
 }
 

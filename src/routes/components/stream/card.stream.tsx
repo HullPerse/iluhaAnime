@@ -1,8 +1,10 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
+import { useStreamHistoryProgress } from "@/hooks/stream/catalog.hook";
+import { formatResume } from "@/lib/stream/history.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { StreamingAnime } from "@/types/stream";
 
@@ -27,6 +29,19 @@ function StreamCardView({
 }) {
   const { t } = useI18n();
   const cover = useStreamCover(anime.cover);
+  // The progress badge is asked for on hover only: a page of sixty tiles must
+  // not fire sixty local queries to draw something most of them never show.
+  const [hovered, setHovered] = useState(false);
+  const progress = useStreamHistoryProgress(anime.id, hovered);
+  const watched = progress.data?.watched ?? 0;
+  const lastPosition = progress.data?.lastPosition ?? 0;
+  const watchLabel = !progress.data
+    ? null
+    : watched > 0
+      ? `${watched} ${t("stream.history.watched")}`
+      : lastPosition > 0
+        ? formatResume(lastPosition)
+        : null;
   const meta = [anime.year != null ? String(anime.year) : null, anime.mediaType ?? null].filter(
     Boolean
   );
@@ -38,6 +53,8 @@ function StreamCardView({
         tabIndex={tabIndex}
         data-stream-card
         onFocus={onFocus}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         onClick={onOpen}
         onKeyDown={enterOrSpace(onOpen)}
         aria-label={anime.title}
@@ -57,6 +74,14 @@ function StreamCardView({
             {t("stream.noCover")}
           </div>
         )}
+        {watchLabel ? (
+          <span
+            className="bg-primary text-text windows95-small-border absolute top-1 left-1 px-1 py-0.5 text-xs leading-none font-bold"
+            title={progress.data?.title}
+          >
+            {watchLabel}
+          </span>
+        ) : null}
         {anime.rating != null && anime.rating > 0 ? (
           <span className="bg-secondary text-title-text absolute bottom-1 left-1 px-1 py-0.5 text-xs leading-none font-bold">
             {`${anime.rating.toFixed(1)}/10`}

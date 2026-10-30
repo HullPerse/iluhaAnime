@@ -679,6 +679,46 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database streaming support commit: {error}"))?;
     }
 
+    if version < 24 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database stream history transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                -- v24 has never shipped, so a half-created table from an
+                -- interrupted dev run is the only thing this can find. It
+                -- would make the indexes below fail on a missing column;
+                -- recreating it is safe because no released build wrote rows.
+                DROP TABLE IF EXISTS stream_history;
+                CREATE TABLE IF NOT EXISTS stream_history (
+                    anime_id TEXT NOT NULL,
+                    episode_id TEXT NOT NULL,
+                    slug TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    cover TEXT,
+                    anilist_id INTEGER,
+                    episode_number INTEGER NOT NULL DEFAULT 0,
+                    episode_title TEXT,
+                    episode_cover TEXT,
+                    position REAL NOT NULL DEFAULT 0,
+                    duration REAL NOT NULL DEFAULT 0,
+                    updated_at INTEGER NOT NULL,
+                    PRIMARY KEY (anime_id, episode_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_stream_history_updated
+                    ON stream_history (updated_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_stream_history_anime
+                    ON stream_history (anime_id, episode_number);
+                PRAGMA user_version = 24;
+                ",
+            )
+            .map_err(|error| format!("app database stream history schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database stream history commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -881,6 +921,37 @@ mod tests {
             })
             .expect("read rom bytes");
         assert_eq!(data, vec![0x00, 0xE0]);
+    }
+
+    #[test]
+    fn migration_v24_rebuilds_a_half_created_stream_history_table() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        // An interrupted v24 run left a table without `updated_at`; the
+        // indexes below it would fail on that column and the app would not
+        // start. No released build wrote rows, so the migration drops it.
+        connection
+            .execute_batch(
+                "DROP TABLE IF EXISTS stream_history;
+                 CREATE TABLE stream_history (anime_id TEXT NOT NULL, episode_id TEXT NOT NULL);",
+            )
+            .expect("create half-built table");
+        connection
+            .pragma_update(None, "user_version", 23)
+            .expect("rewind user version");
+        initialize_schema(&connection).expect("rerun migrations");
+        let columns: Vec<String> = connection
+            .prepare("PRAGMA table_info(stream_history)")
+            .expect("read table info")
+            .query_map([], |row| row.get(1))
+            .expect("map table info")
+            .collect::<Result<_, _>>()
+            .expect("collect table info");
+        assert!(columns.iter().any(|name| name == "updated_at"));
+        let version: i64 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("read user version");
+        assert_eq!(version, 24);
     }
 
     #[test]

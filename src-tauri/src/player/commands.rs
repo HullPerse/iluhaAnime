@@ -514,6 +514,40 @@ fn load_stream_queue(
         if let Some(stream) = &request.stream {
             host.set_current_path(stream.media_url.clone());
             host.set_stream_watch_key(Some(stream.watch_key.clone()));
+            // The opening request is the only place that knows the catalog
+            // identity, so it also writes the first history row; the ticking
+            // watch save only updates the position afterwards.
+            if !stream.slug.is_empty() {
+                host.set_stream_identity(Some(crate::player::state::StreamIdentity {
+                    anime_id: stream.media_id.clone(),
+                    slug: stream.slug.clone(),
+                    title: stream.media_title.clone(),
+                    cover: stream.cover.clone(),
+                    anilist_id: stream.anilist_id,
+                    episode_id: stream.episode_id.clone(),
+                    episode_number: stream.episode_number,
+                    episode_title: Some(stream.episode_title.clone())
+                        .filter(|title| !title.is_empty()),
+                }));
+                let entry = crate::app_db::stream_history::StreamHistoryEntry {
+                    anime_id: stream.media_id.clone(),
+                    episode_id: stream.episode_id.clone(),
+                    slug: stream.slug.clone(),
+                    title: stream.media_title.clone(),
+                    cover: stream.cover.clone(),
+                    anilist_id: stream.anilist_id,
+                    episode_number: stream.episode_number,
+                    episode_title: Some(stream.episode_title.clone())
+                        .filter(|title| !title.is_empty()),
+                    episode_cover: None,
+                    position: request.resume.unwrap_or_default().max(0.0),
+                    duration: 0.0,
+                    updated_at: crate::app_db::now_seconds(),
+                };
+                if let Err(error) = crate::app_db::stream_history::record(app, entry) {
+                    tracing::debug!("stream history not opened: {error}");
+                }
+            }
         }
         host.clear_pending_open();
         host.mark_dirty();

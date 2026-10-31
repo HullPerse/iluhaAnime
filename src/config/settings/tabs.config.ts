@@ -14,14 +14,18 @@ export const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
   { id: "settings", key: "app.settings" },
 ] as const;
 
+const TAB_FLAGS: Partial<Record<TabId, keyof TabSettings>> = {
+  anilist: "anilistTabEnabled",
+  collection: "collectionTabEnabled",
+  player: "playerTabEnabled",
+  search: "searchTabEnabled",
+  stream: "streamTabEnabled",
+  torrent: "torrentTabEnabled",
+};
+
 function isEnabled(id: TabId, s: TabSettings): boolean {
-  if (id === "collection") return s.collectionTabEnabled;
-  if (id === "anilist") return s.anilistTabEnabled;
-  if (id === "search") return s.searchTabEnabled;
-  if (id === "torrent") return s.torrentTabEnabled;
-  if (id === "player") return s.playerTabEnabled;
-  if (id === "stream") return s.streamTabEnabled;
-  return true;
+  const flag = TAB_FLAGS[id];
+  return flag ? s[flag] : true;
 }
 
 const GAME_TAB_KEY: { id: TabId; key: TranslationKey } = { id: "game", key: "app.game" };

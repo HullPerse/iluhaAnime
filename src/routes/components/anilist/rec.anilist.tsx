@@ -19,17 +19,18 @@ export default function AniListRecsModal({
   if (!open) return null;
 
   const visible = recommendations.filter((r) => !watchedIds.has(r.id));
+  const listEmpty = !loading && visible.length === 0;
+  const listReady = !loading && !listEmpty;
 
   return (
     <Modal header={t("anilist.recs.title")} onClose={onClose} className="w-3xl">
-      {loading ? (
-        <TabLoader className="flex-1" />
-      ) : visible.length === 0 ? (
+      {loading && <TabLoader className="flex-1" />}
+      {listEmpty && (
         <div className="flex flex-1 items-center justify-center">
-          <span className="windows95-text">{t("anilist.recs.empty")}</span>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1">
+          <span className="windows95-text">{t("anilist.recs.empty")}</span>          </div>
+        )}
+        {listReady && (
+          <div className="flex flex-col gap-1">
           {visible.map((r) => (
             <div
               key={r.id}

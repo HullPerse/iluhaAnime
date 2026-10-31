@@ -116,12 +116,12 @@ export function PlaylistCard({
           t={t}
         />
       </div>
-      {current ? <CurrentProgress /> : null}
-      {!current && resumeRatio > 0 ? (
+      {current && <CurrentProgress />}
+      {!current && resumeRatio > 0 && (
         <div className="bg-field h-0.5 w-full overflow-hidden" title={label}>
           <div className="bg-hint h-full" style={{ width: `${resumeRatio * 100}%` }} />
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

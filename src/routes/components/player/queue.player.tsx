@@ -120,18 +120,18 @@ export default function QueuePanel({
           </Button>
         </div>
       </div>
-      {open ? (
+      {open && (
         <>
           {paused && (
             <div className="windows95-text text-highlight mb-1 text-xs">
               {t("player.queue.paused")}
             </div>
           )}
-          {scan ? (
+          {scan && (
             <div className="mb-1">
               <FolderScanProgress scanProgress={scan} />
             </div>
-          ) : null}
+          )}
           <div data-no-wheel className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
             {items.map((item) => (
               <div
@@ -217,12 +217,12 @@ export default function QueuePanel({
                     </Button>
                   )}
                 </div>
-                {expandedId === item.id ? <QueueItemDepth item={item} /> : null}
+                {expandedId === item.id && <QueueItemDepth item={item} />}
               </div>
             ))}
           </div>
         </>
-      ) : null}
+      )}
     </section>
   );
 }

@@ -39,7 +39,7 @@ export function RowCell({
       title={rendered}
       onClick={() => openCell(row, column)}
     >
-      {showAssetImage && rowKeys ? (
+      {showAssetImage && rowKeys && (
         <AssetImageCell
           database={selectedDatabase}
           table={selectedTable}
@@ -47,16 +47,16 @@ export function RowCell({
           keys={rowKeys}
           alt={column}
         />
-      ) : showUrlImage ? (
+      )}
+      {!showAssetImage && showUrlImage && (
         <Image
           src={value as string}
           alt={column}
           type="contain"
           className="bg-field h-12 w-12 object-contain"
         />
-      ) : (
-        preview
       )}
+      {!showAssetImage && !showUrlImage && preview}
     </button>
   );
 }

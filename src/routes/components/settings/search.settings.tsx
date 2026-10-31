@@ -176,7 +176,7 @@ export default function SettingsSearch() {
                 "http://127.0.0.1:8080",
               ];
               const isPreset = presets.includes(current);
-              const selectValue = current === "" ? "" : isPreset ? current : "custom";
+              const selectValue = current === "" || isPreset ? current : "custom";
               return (
                 <div
                   key={info.value}
@@ -322,23 +322,25 @@ export default function SettingsSearch() {
                 <span className="text-destructive text-[12px]">
                   {t("settings.search.autocomplete.mode.off.hint")}
                 </span>
-              ) : autocompleteMode === "inline" || autocompleteMode === "both" ? (
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-hint text-[12px]">{t("settings.search.preview")}</span>
-                  <div className="windows95-border windows95-text bg-field flex min-h-7 items-center overflow-hidden px-1.5 whitespace-pre">
-                    <span className="relative z-10">{t("settings.search.preview.typed")}</span>
-                    <span
-                      className="ml-0.5"
-                      style={{
-                        color: "var(--color-autocomplete, var(--color-muted))",
-                        opacity: "var(--autocomplete-opacity, 0.6)",
-                      }}
-                    >
-                      {t("settings.search.preview.ghost")}
-                    </span>
+              ) : (
+                (autocompleteMode === "inline" || autocompleteMode === "both") && (
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-hint text-[12px]">{t("settings.search.preview")}</span>
+                    <div className="windows95-border windows95-text bg-field flex min-h-7 items-center overflow-hidden px-1.5 whitespace-pre">
+                      <span className="relative z-10">{t("settings.search.preview.typed")}</span>
+                      <span
+                        className="ml-0.5"
+                        style={{
+                          color: "var(--color-autocomplete, var(--color-muted))",
+                          opacity: "var(--autocomplete-opacity, 0.6)",
+                        }}
+                      >
+                        {t("settings.search.preview.ghost")}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                )
+              )}
             </div>
           </div>
 

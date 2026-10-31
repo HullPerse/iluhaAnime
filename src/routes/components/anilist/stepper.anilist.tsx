@@ -234,17 +234,17 @@ export function ProgressStepper({
       >
         <Plus className="size-2.5" />
       </Button>
-      {phase === "error" && failure !== null ? (
+      {phase === "error" && failure !== null && (
         <Button
           size="icon"
           className="h-3.5 w-3.5 shrink-0"
           title={failure.reason}
           aria-label={t("anilist.details.retry")}
           onClick={retry}
-        >
-          <RotateCcw className="size-2.5" />
+        >            <RotateCcw className="size-2.5" />
         </Button>
-      ) : phase === "saved" ? (
+      )}
+      {phase === "saved" && (
         <span
           className={statusClass}
           title={t("anilist.card.progress.saved")}
@@ -252,11 +252,12 @@ export function ProgressStepper({
         >
           <Check className="size-2.5" />
         </span>
-      ) : pending || phase === "syncing" ? (
+      )}
+      {phase !== "saved" && (pending || phase === "syncing") && (
         <span className={statusClass} aria-hidden="true">
           <SmallLoader size={2} />
         </span>
-      ) : null}
+      )}
     </span>
   );
 }

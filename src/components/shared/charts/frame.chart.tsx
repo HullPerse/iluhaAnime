@@ -73,11 +73,11 @@ export function ChartFrame({
           {children(plot, width)}
         </svg>
       )}
-      {description ? (
+      {description && (
         <p id={descriptionId} className="sr-only">
           {description}
         </p>
-      ) : null}
+      )}
       <p className="sr-only" aria-live="polite">
         {announcement ?? ""}
       </p>

@@ -87,6 +87,21 @@ function ActivityHistoryModal({
     );
   }
 
+  const tabViews = {
+    feed: <FeedTab userId={userId} friendIds={friendIds} lists={lists} onAnimeClick={openDetail} />,
+    mentions: (
+      <MentionsTab
+        userId={userId}
+        userName={userName}
+        friendIds={friendIds}
+        onAnimeClick={openDetail}
+      />
+    ),
+    airing: <AiringTab lists={lists} onAnimeClick={openDetail} />,
+    notifications: <NotificationsTab onAnimeClick={openDetail} />,
+    calendar: <CalendarTab lists={lists} onAnimeClick={openDetail} />,
+  };
+
   return (
     <Modal header={t("anilist.activity.title")} onClose={onClose} className="w-5xl">
       <div className="shrink-0">
@@ -104,22 +119,7 @@ function ActivityHistoryModal({
         />
       </div>
       <div className="bg-primary min-h-0 w-full flex-1 overflow-y-auto">
-        {tab === "feed" ? (
-          <FeedTab userId={userId} friendIds={friendIds} lists={lists} onAnimeClick={openDetail} />
-        ) : tab === "mentions" ? (
-          <MentionsTab
-            userId={userId}
-            userName={userName}
-            friendIds={friendIds}
-            onAnimeClick={openDetail}
-          />
-        ) : tab === "airing" ? (
-          <AiringTab lists={lists} onAnimeClick={openDetail} />
-        ) : tab === "notifications" ? (
-          <NotificationsTab onAnimeClick={openDetail} />
-        ) : (
-          <CalendarTab lists={lists} onAnimeClick={openDetail} />
-        )}
+        {tabViews[tab]}
       </div>
     </Modal>
   );

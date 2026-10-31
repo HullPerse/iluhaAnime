@@ -28,19 +28,14 @@ export function RowContent({
   const { t } = useI18n();
   const altTitle = row.titles.find((title) => title !== row.title);
   const absoluteDelta = row.signedDelta == null ? "-" : (Math.abs(row.signedDelta) / 10).toFixed(1);
-  const deltaTitle =
-    row.signedDelta == null
-      ? undefined
-      : row.signedDelta > 0
-        ? t("anilist.compare.diff.up", {
-            value: absoluteDelta,
-          })
-        : row.signedDelta < 0
-          ? t("anilist.compare.diff.down", {
-              name: friendName,
-              value: absoluteDelta,
-            })
-          : t("anilist.compare.diff.equal");
+  let deltaTitle: string | undefined;
+  if (row.signedDelta != null) {
+    if (row.signedDelta > 0)
+      deltaTitle = t("anilist.compare.diff.up", { value: absoluteDelta });
+    else if (row.signedDelta < 0)
+      deltaTitle = t("anilist.compare.diff.down", { name: friendName, value: absoluteDelta });
+    else deltaTitle = t("anilist.compare.diff.equal");
+  }
   return (
     <>
       {row.coverUrl ? (

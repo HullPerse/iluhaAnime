@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
+import { STREAM_ORDER_LABELS } from "@/config/player/streamFilters.config";
 import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
 import { useCell } from "@/lib/core/signal.hook";
+import { gridColumns } from "@/lib/stream/gridColumns.utils";
 import {
   streamFilters,
   streamPage,
@@ -30,6 +32,13 @@ const PAGE_SIZE = 60;
 
 type GridKeyAction = "grid-left" | "grid-right" | "grid-up" | "grid-down";
 
+const GRID_STEPS: Record<GridKeyAction, { column: number; row: number }> = {
+  "grid-left": { column: -1, row: 0 },
+  "grid-right": { column: 1, row: 0 },
+  "grid-up": { column: 0, row: -1 },
+  "grid-down": { column: 0, row: 1 },
+};
+
 /** The grid walks like the player's file tree: arrows plus j/k, one tile per step. */
 const GRID_KEYBINDS: ResolvedHotkeyDef<GridKeyAction>[] = [
   { id: "grid-left", chord: "ArrowLeft", repeat: "hold", keybindId: "tree.collapse" },
@@ -39,8 +48,6 @@ const GRID_KEYBINDS: ResolvedHotkeyDef<GridKeyAction>[] = [
   { id: "grid-up", chord: "KeyK", repeat: "hold", keybindId: "tree.move.up" },
   { id: "grid-down", chord: "KeyJ", repeat: "hold", keybindId: "tree.move.down" },
 ];
-
-import { gridColumns } from "@/lib/stream/gridColumns.utils";
 
 export default function StreamResults({
   data,
@@ -90,9 +97,8 @@ export default function StreamResults({
       !(event.target instanceof HTMLElement) ||
       !gridRef.current?.contains(event.target),
     onAction: (action) => {
-      const step = action === "grid-left" ? -1 : action === "grid-right" ? 1 : 0;
-      const rows = action === "grid-up" ? -1 : action === "grid-down" ? 1 : 0;
-      focusTile(activeIndex + (step || rows * gridColumns(gridRef.current)));
+      const step = GRID_STEPS[action];
+      focusTile(activeIndex + step.column + step.row * gridColumns(gridRef.current));
     },
   });
 
@@ -129,15 +135,7 @@ export default function StreamResults({
   const total = data?.total ?? 0;
   const from = (page - 1) * PAGE_SIZE + 1;
   const to = (page - 1) * PAGE_SIZE + items.length;
-  const orderLabel = query
-    ? t("stream.searchResults")
-    : sortBy === "views"
-      ? t("stream.sort.popular")
-      : sortBy === "created_at"
-        ? t("stream.sort.latest")
-        : sortBy === "name"
-          ? t("stream.filters.sort.name")
-          : t("stream.filters.sort.rating");
+  const orderLabel = query ? t("stream.searchResults") : t(STREAM_ORDER_LABELS[sortBy]);
   const statusText = `${orderLabel} - ${t("stream.page", { page })} - ${t("stream.page.size", {
     count: PAGE_SIZE,
   })}`;

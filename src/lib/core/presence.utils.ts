@@ -1,3 +1,4 @@
+import { attemptSync } from "@/lib/core/attempt.utils";
 import { fileNameFromPath, parseMediaPath } from "@/lib/search/parse.utils";
 import type { AniUser } from "@/types/anilist/anilist";
 import type { DiscordActivity, DiscordButton, DiscordPresenceDetail } from "@/types/core/discord";
@@ -192,13 +193,10 @@ function presenceButton(label: string, url: string): DiscordButton | null {
 function safeUrl(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed || trimmed.length > MAX_URL_CHARS) return null;
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
-    return parsed.toString();
-  } catch {
-    return null;
-  }
+  const [parsed, error] = attemptSync(() => new URL(trimmed));
+  if (error !== null) return null;
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
+  return parsed.toString();
 }
 
 function compactActivity(activity: DiscordActivity): DiscordActivity {

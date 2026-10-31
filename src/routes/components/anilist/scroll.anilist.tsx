@@ -90,11 +90,8 @@ export default function AniListScrollView({
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const row = grouped ? (rows?.[virtualRow.index] ?? null) : null;
           if (grouped && !row) return null;
-          const media = grouped
-            ? row?.kind === "item"
-              ? row.media
-              : null
-            : (items[virtualRow.index] ?? null);
+          let media: AniMedia | null = items[virtualRow.index] ?? null;
+          if (grouped) media = row?.kind === "item" ? row.media : null;
           return (
             <div
               key={virtualRow.key}
@@ -105,7 +102,7 @@ export default function AniListScrollView({
               className="absolute top-0 left-0 w-full pb-1"
               style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
-              {row?.kind === "header" ? (
+              {row?.kind === "header" && (
                 <GroupHeaderCollection
                   label={t(toLocaleKey(listStatusLabels[row.name.toUpperCase()] ?? row.name))}
                   color={getStatusColor(row.name.toUpperCase())}
@@ -115,7 +112,8 @@ export default function AniListScrollView({
                   toggleLabel={t("anilist.sort.group.toggle")}
                   onToggle={() => onToggleListCollapsed?.(row.name)}
                 />
-              ) : media ? (
+              )}
+              {row?.kind !== "header" && media && (
                 <AniListEntryCard
                   item={media}
                   entryLookup={entryLookup}
@@ -123,7 +121,7 @@ export default function AniListScrollView({
                   scoreFormat={scoreFormat}
                   onClick={onSelect}
                 />
-              ) : null}
+              )}
             </div>
           );
         })}

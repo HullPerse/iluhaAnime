@@ -79,7 +79,7 @@ export function BarChart({
               const isActive = cursor.active === index;
               return (
                 <g key={datum.key}>
-                  {isActive ? (
+                  {isActive && (
                     <rect
                       x={plot.left}
                       y={center - band / 2}
@@ -88,7 +88,7 @@ export function BarChart({
                       fill="var(--color-secondary)"
                       fillOpacity={0.12}
                     />
-                  ) : null}
+                  )}
                   <rect
                     x={plot.left}
                     y={center - barHeight / 2}
@@ -119,7 +119,7 @@ export function BarChart({
               side="left"
               maxChars={labelChars}
             />
-            {tooltipData && activeDatum ? (
+            {tooltipData && activeDatum && (
               <SvgChartTooltip
                 x={plot.left + activeLength + CHART_LAYOUT.tooltipOffset}
                 y={
@@ -129,7 +129,7 @@ export function BarChart({
                 plot={plot}
                 placement={cursor.active != null && cursor.active <= 1 ? "below" : "above"}
               />
-            ) : null}
+            )}
             <rect
               x={plot.left}
               y={plot.top}

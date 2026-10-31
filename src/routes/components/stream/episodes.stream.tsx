@@ -84,6 +84,12 @@ export default function StreamEpisodes({
     if (activeIndex >= visible.length) setActiveIndex(0);
   }, [activeIndex, visible.length]);
 
+  const loading = isPending;
+  const failed = !loading && error !== null;
+  const empty = !loading && !failed && episodes.length === 0;
+  const filtered = !loading && !failed && !empty && visible.length === 0;
+  const ready = !loading && !failed && !empty && !filtered;
+
   return (
     <section
       ref={listRef}
@@ -97,7 +103,7 @@ export default function StreamEpisodes({
         <span className="text-title-text/75 font-normal">
           {t("stream.episodes.count", { count: episodes.length })}
         </span>
-        {episodes.length > EPISODE_FILTER_THRESHOLD ? (
+        {episodes.length > EPISODE_FILTER_THRESHOLD && (
           <div className="ml-auto flex items-center gap-1">
             <Input
               value={filter}
@@ -108,13 +114,12 @@ export default function StreamEpisodes({
               spellCheck={false}
             />
           </div>
-        ) : null}
+        )}
       </header>
 
       <div className="bg-field min-h-0 flex-1 overflow-y-auto p-0.5">
-        {isPending ? (
-          <StreamInlineLoading />
-        ) : error ? (
+        {loading && <StreamInlineLoading />}
+        {failed && error !== null && (
           <div className="text-destructive windows95-text flex items-center gap-1 p-1" role="alert">
             <span className="min-w-0 flex-1 wrap-break-word">{error.message}</span>
             <Button
@@ -127,15 +132,18 @@ export default function StreamEpisodes({
               <RotateCw className="size-3" />
             </Button>
           </div>
-        ) : episodes.length === 0 ? (
+        )}
+        {empty && (
           <span className="text-hint windows95-text block p-2 text-center">
             {t("stream.episodes.empty")}
           </span>
-        ) : visible.length === 0 ? (
+        )}
+        {filtered && (
           <span className="text-hint windows95-text block p-2 text-center">
             {t("stream.episode.none")}
           </span>
-        ) : (
+        )}
+        {ready && (
           visible.map((episode, index) => {
             const selected = episode.id === selectedId;
             const date = episode.airDate?.slice(0, 10) ?? "";
@@ -143,6 +151,9 @@ export default function StreamEpisodes({
             const entry = history?.get(episode.id);
             const watched = isEpisodeWatched(entry);
             const resume = entry && !watched && entry.position > 0 ? entry.position : 0;
+            let rowTone = "text-text hover:bg-surface";
+            if (selected) rowTone = "bg-secondary text-title-text font-bold";
+            else if (watched) rowTone = "text-hint hover:bg-surface";
             return (
               <div
                 key={episode.id}
@@ -171,25 +182,19 @@ export default function StreamEpisodes({
                 }}
                 onMouseLeave={() => setHover(null)}
                 title={episode.title ?? t("stream.episodeUntitled")}
-                className={`windows95-text flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 text-left select-none ${
-                  selected
-                    ? "bg-secondary text-title-text font-bold"
-                    : watched
-                      ? "text-hint hover:bg-surface"
-                      : "text-text hover:bg-surface"
-                }`}
+                className={`windows95-text flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 text-left select-none ${rowTone}`}
               >
                 <span className="w-7 shrink-0 text-right tabular-nums">{episode.number}</span>
                 <span className="min-w-0 flex-1 truncate">
                   {episode.title ?? t("stream.episodeUntitled")}
                 </span>
-                {watched ? (
+                {watched && (
                   <Check
                     className={`size-3 shrink-0 ${selected ? "text-title-text" : "text-hint"}`}
                     aria-label={t("stream.history.watched")}
                   />
-                ) : null}
-                {resume > 0 ? (
+                )}
+                {resume > 0 && (
                   <span
                     className={`shrink-0 text-xs tabular-nums ${
                       selected ? "text-title-text/75" : "text-hint"
@@ -197,8 +202,8 @@ export default function StreamEpisodes({
                   >
                     {formatResume(resume)}
                   </span>
-                ) : null}
-                {date ? (
+                )}
+                {date && (
                   <span
                     className={`shrink-0 text-xs tabular-nums ${
                       selected ? "text-title-text/75" : "text-hint"
@@ -206,13 +211,13 @@ export default function StreamEpisodes({
                   >
                     {date}
                   </span>
-                ) : null}
+                )}
               </div>
             );
           })
         )}
       </div>
-      {hover ? <EpisodePreview anchor={hover} /> : null}
+      {hover && <EpisodePreview anchor={hover} />}
     </section>
   );
 }

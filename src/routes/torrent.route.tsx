@@ -91,6 +91,20 @@ import SpeedLimitForm from "@/routes/components/torrent/speed.torrent";
 
 const LIFECYCLE_TABS = ["all", "staging", "live", "paused", "seeding", "completed"] as const;
 
+type SortableTorrent = {
+  name: string;
+  total_bytes: number;
+  progress: number;
+  download_speed: number;
+};
+
+const TORRENT_SORTERS: Record<string, (a: SortableTorrent, b: SortableTorrent) => number> = {
+  name: (a, b) => a.name.localeCompare(b.name),
+  size: (a, b) => a.total_bytes - b.total_bytes,
+  progress: (a, b) => a.progress - b.progress,
+  speed: (a, b) => a.download_speed - b.download_speed,
+};
+
 function TorrentRoute() {
   const queryClient = useQueryClient();
   useResolvedHotkeys<"focus-main">(
@@ -209,11 +223,7 @@ function TorrentRoute() {
       });
     }
     return [...list].sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortBy === "size") cmp = a.total_bytes - b.total_bytes;
-      else if (sortBy === "progress") cmp = a.progress - b.progress;
-      else if (sortBy === "speed") cmp = a.download_speed - b.download_speed;
+      const cmp = TORRENT_SORTERS[sortBy]?.(a, b) ?? 0;
       return sortAsc ? cmp : -cmp;
     });
   }, [lifecycleTorrents, filterQuery, sortBy, sortAsc, torrentOrder]);

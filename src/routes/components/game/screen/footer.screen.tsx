@@ -35,15 +35,14 @@ export function ScreenFooter({
   const { t } = useI18n();
   const info = runtime.info;
   const running = runtime.status === "running";
+  let statusLabel = t("game.status.idle");
+  if (runtime.status === "starting") statusLabel = t("game.status.starting");
+  else if (info !== null) statusLabel = `${info.name} - ${t(GAME_PLATFORM_LABELS[info.platform])}`;
 
   return (
     <footer className="windows95-border bg-surface flex items-center gap-2 px-1 py-0.5">
       <span className="windows95-text min-w-0 flex-1 truncate text-xs">
-        {runtime.status === "starting"
-          ? t("game.status.starting")
-          : info !== null
-            ? `${info.name} - ${t(GAME_PLATFORM_LABELS[info.platform])}`
-            : t("game.status.idle")}
+        {statusLabel}
       </span>
       {running && telemetry.waitingKey && (
         <span className="text-highlight shrink-0 text-xs">{t("game.status.waiting")}</span>

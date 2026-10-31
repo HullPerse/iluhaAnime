@@ -71,7 +71,7 @@ export function WizardCoverPanel({
         <span className="text-xs font-bold">
           {t("collection.wizard.pick.cover")} <span className="text-destructive">*</span>
         </span>
-        {coverUrl ? (
+        {coverUrl && (
           <div className="h-16 w-12 shrink-0">
             {!previewFailed && previewSrc ? (
               <img
@@ -89,7 +89,7 @@ export function WizardCoverPanel({
               </div>
             )}
           </div>
-        ) : null}
+        )}
         {previewFailed && (
           <span className="text-destructive text-xs">
             {t("collection.wizard.cover.invalid.url")}

@@ -23,23 +23,27 @@ function isoWeekKey(date: Date): string {
   return `${anchor.getFullYear()}-W${pad2(week)}`;
 }
 
+const PERIOD_KEYS: Record<SpotlightKind, (now: Date) => string> = {
+  day: (now) => `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`,
+  week: (now) => isoWeekKey(now),
+  month: (now) => `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`,
+};
+
+const PERIOD_BOUNDARIES: Record<SpotlightKind, (now: Date) => number> = {
+  day: (now) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime(),
+  week: (now) => {
+    const day = (now.getDay() + 6) % 7;
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - day)).getTime();
+  },
+  month: (now) => new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime(),
+};
+
 export function spotlightPeriodKey(kind: SpotlightKind, now: Date): string {
-  if (kind === "day")
-    return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-  if (kind === "week") return isoWeekKey(now);
-  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+  return PERIOD_KEYS[kind](now);
 }
 
 export function spotlightBoundaryMs(kind: SpotlightKind, nowMs: number): number {
-  const now = new Date(nowMs);
-  if (kind === "day") {
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
-  }
-  if (kind === "week") {
-    const day = (now.getDay() + 6) % 7;
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - day)).getTime();
-  }
-  return new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+  return PERIOD_BOUNDARIES[kind](new Date(nowMs));
 }
 
 export function spotlightPageIndex(

@@ -274,6 +274,8 @@ export type WizardSearchResult = {
   description?: string;
 };
 
+export type WizardSource = "custom" | "anilist" | "tmdb";
+
 export type TmdbRateLimit = {
   remaining: number | null;
   resetAt: number | null;

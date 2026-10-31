@@ -102,12 +102,10 @@ function parseRetroismColors(c: Record<string, unknown>, base?: ThemeColors): Th
     ? c.autocomplete
     : (inheritedAutocomplete ?? muted);
   const inheritedOpacity = base?.autocompleteOpacity;
-  const autocompleteOpacity =
-    c.autocompleteOpacity !== undefined
-      ? normalizeAutocompleteOpacity(c.autocompleteOpacity)
-      : typeof inheritedOpacity === "number"
-        ? inheritedOpacity
-        : DEFAULT_THEME_COLORS.autocompleteOpacity;
+  let autocompleteOpacity = DEFAULT_THEME_COLORS.autocompleteOpacity;
+  if (c.autocompleteOpacity !== undefined)
+    autocompleteOpacity = normalizeAutocompleteOpacity(c.autocompleteOpacity);
+  else if (typeof inheritedOpacity === "number") autocompleteOpacity = inheritedOpacity;
   return {
     autocomplete,
     autocompleteOpacity,

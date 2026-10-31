@@ -44,7 +44,7 @@ export function GenrePicker({
         options={options}
         indexed
       />
-      {selected.length > 0 ? (
+      {selected.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {selected.map((genre) => (
             <button
@@ -64,7 +64,7 @@ export function GenrePicker({
             </button>
           ))}
         </div>
-      ) : null}
+      )}
     </>
   );
 }

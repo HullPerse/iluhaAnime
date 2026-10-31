@@ -62,21 +62,29 @@ function resolveList(
   return operatorTextLength(cleanQuery) >= 3 ? searchResults : items;
 }
 
+const NUMBER_COMPARATORS: Record<NumericCond["op"], (value: number, target: number) => boolean> = {
+  ">": (value, target) => value > target,
+  ">=": (value, target) => value >= target,
+  "<": (value, target) => value < target,
+  "<=": (value, target) => value <= target,
+  "!=": (value, target) => value !== target,
+};
+
+const DATE_COMPARATORS: Record<DateCond["op"], (value: string, target: string) => boolean> = {
+  "=": (value, target) => value === target,
+  "!=": (value, target) => value !== target,
+  ">": (value, target) => value > target,
+  ">=": (value, target) => value >= target,
+  "<": (value, target) => value < target,
+  "<=": (value, target) => value <= target,
+};
+
 function compareNumber(value: number, op: NumericCond["op"], target: number): boolean {
-  if (op === ">") return value > target;
-  if (op === ">=") return value >= target;
-  if (op === "<") return value < target;
-  if (op === "<=") return value <= target;
-  return value !== target;
+  return NUMBER_COMPARATORS[op](value, target);
 }
 
 function compareIsoDate(value: string, op: DateCond["op"], target: string): boolean {
-  if (op === "=") return value === target;
-  if (op === "!=") return value !== target;
-  if (op === ">") return value > target;
-  if (op === ">=") return value >= target;
-  if (op === "<") return value < target;
-  return value <= target;
+  return DATE_COMPARATORS[op](value, target);
 }
 
 function matchDateCond(item: CollectionItem, cond: DateCond): boolean {
@@ -169,33 +177,37 @@ function applyIntentFilters(list: CollectionItem[], intent: ParsedIntent): Colle
   return out;
 }
 
-function applyNegation(list: CollectionItem[], key: string, value: string): CollectionItem[] {
-  const needles = splitOr(value);
-  if (key === "type") return list.filter((item) => !needles.includes(item.type));
-  if (key === "status") return list.filter((item) => !needles.includes(item.status));
-  if (key === "priority")
-    return list.filter((item) => !needles.includes(item.priority.toLowerCase()));
-  if (key === "studio")
-    return list.filter(
+type NegationFilter = (list: CollectionItem[], needles: string[]) => CollectionItem[];
+
+const NEGATION_FILTERS: Record<string, NegationFilter> = {
+  type: (list, needles) => list.filter((item) => !needles.includes(item.type)),
+  status: (list, needles) => list.filter((item) => !needles.includes(item.status)),
+  priority: (list, needles) =>
+    list.filter((item) => !needles.includes(item.priority.toLowerCase())),
+  studio: (list, needles) =>
+    list.filter(
       (item) => !needles.some((needle) => item.studio?.toLowerCase().includes(needle) ?? false)
-    );
-  if (key === "genre")
-    return list.filter(
+    ),
+  genre: (list, needles) =>
+    list.filter(
       (item) => !item.genres.some((g) => needles.some((needle) => g.toLowerCase().includes(needle)))
-    );
-  if (key === "provider") {
-    return list.filter(
+    ),
+  provider: (list, needles) =>
+    list.filter(
       (item) =>
         !needles.some((needle) => {
           if (needle === "custom")
             return item.externalIds.anilist == null && item.externalIds.tmdb == null;
-          if (needle === "anilist" || needle === "tmdb")
-            return item.externalIds[needle as "anilist" | "tmdb"] != null;
+          if (needle === "anilist") return item.externalIds.anilist != null;
+          if (needle === "tmdb") return item.externalIds.tmdb != null;
           return false;
         })
-    );
-  }
-  return list;
+    ),
+};
+
+function applyNegation(list: CollectionItem[], key: string, value: string): CollectionItem[] {
+  const filter = NEGATION_FILTERS[key];
+  return filter ? filter(list, splitOr(value)) : list;
 }
 
 const shortQueryFieldsCache = new WeakMap<CollectionItem[], string[][]>();

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
 import { streamApi } from "@/api/stream.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
@@ -83,7 +84,7 @@ export default function StreamRoute() {
         if (pick?.slugUrl) streamStore.selectedSlug.set(pick.slugUrl);
         return null;
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => reportBackgroundError("srcroutesstream.route", error));
   };
 
   const lastPage = results.data?.lastPage;
@@ -115,7 +116,7 @@ export default function StreamRoute() {
       ) : (
         <StreamOffline />
       )}
-      {slug ? <StreamDetail key={slug} slug={slug} /> : null}
+      {slug && <StreamDetail key={slug} slug={slug} />}
       <StreamFiltersModal
         open={filtersOpen}
         filters={filters}

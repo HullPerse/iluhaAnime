@@ -56,11 +56,12 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
       onExpand={() => setExpanded((prev) => !prev)}
       files={rows.length > 0 ? rows.length : undefined}
     >
-      {query.isLoading ? (
+      {query.isLoading && (
         <div className="flex justify-center p-4">
           <SmallLoader />
         </div>
-      ) : query.isError ? (
+      )}
+      {!query.isLoading && query.isError && (
         <div className="flex flex-row items-center gap-1 p-1">
           <span className="windows95-text text-destructive min-w-0 flex-1 text-xs">
             {query.error instanceof Error ? query.error.message : String(query.error)}
@@ -69,7 +70,8 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
             {t("anilist.details.retry")}
           </Button>
         </div>
-      ) : (
+      )}
+      {!query.isLoading && !query.isError && (
         <div className="flex flex-col gap-0.5">
           {rows.map((row) => {
             const scored = row.score != null && row.score !== 0;

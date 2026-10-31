@@ -45,6 +45,9 @@ export function DetailCollection({
   );
   const [showDesc, setShowDesc] = useState<boolean>(true);
   const mediaOpen = mediaView && mediaView.itemId === item.id ? mediaView : null;
+  const mediaTitle = mediaOpen
+    ? t(mediaOpen.tab === "trailer" ? "collection.details.trailer" : "collection.details.stills")
+    : item.title;
   useOverlay(mediaOpen ? () => setMediaView(null) : onClose);
   const stored = readStoredMedia(item.detailsJson);
   const canOpenMedia =
@@ -54,7 +57,7 @@ export function DetailCollection({
       <div className="windows95-active-border bg-primary flex max-h-[85vh] w-full max-w-xl flex-col">
         <div className="ui-titlebar justify-between">
           <div className="flex min-w-0 flex-row items-center gap-1">
-            {mediaOpen ? (
+            {mediaOpen && (
               <Button
                 size="icon"
                 className="size-5"
@@ -64,13 +67,9 @@ export function DetailCollection({
               >
                 <ChevronLeft className="size-3" />
               </Button>
-            ) : null}
+            )}
             <span className="text-title-text truncate font-bold">
-              {mediaOpen
-                ? mediaOpen.tab === "trailer"
-                  ? t("collection.details.trailer")
-                  : t("collection.details.stills")
-                : item.title}
+              {mediaTitle}
             </span>
           </div>
           <div className="flex shrink-0 flex-row items-center gap-0.5">

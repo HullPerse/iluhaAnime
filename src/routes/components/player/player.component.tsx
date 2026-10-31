@@ -649,8 +649,6 @@ function PlayerComponent() {
         eofMode,
         playerMode: settings.playerMode,
         cabinet: settings.cabinet,
-        // A stream picks its voice-over, subtitles and quality from the source,
-        // so the menu carries those choices instead of the mpv track lists.
         stream:
           playerStreamSession === null
             ? null
@@ -734,7 +732,7 @@ function PlayerComponent() {
         onWheel={(direction) => onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)}
       />
 
-      {chrome.showHeader ? (
+      {chrome.showHeader && (
         <div className={barClass("top", immersive, barsHidden)}>
           <PlayerHeader
             title={title}
@@ -746,7 +744,7 @@ function PlayerComponent() {
             onClose={close}
           />
         </div>
-      ) : null}
+      )}
 
       <div className={videoSectionClass(immersive)}>
         <div className="flex h-full min-h-0 flex-row gap-1">
@@ -761,15 +759,15 @@ function PlayerComponent() {
               onMouseUp={onVideoMouseUp}
               onContextMenu={showModernMenu ? undefined : (event) => event.preventDefault()}
             >
-              {cabinet !== null ? <PlayerBezel variant={cabinet} /> : null}
+              {cabinet !== null && <PlayerBezel variant={cabinet} />}
 
               <OsdOverlay alwaysOnTop={alwaysOnTop} />
               <BufferingOverlay
                 visible={hasFile && !failed && !loadingFile && pausedForCache === true}
               />
-              {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
+              {diagnosticsOpen && <DiagnosticsOverlay />}
 
-              {dropAlert ? (
+              {dropAlert && (
                 <div className="windows95-border windows95-font bg-primary/95 absolute top-4 left-4 z-20 p-2 text-left text-sm">
                   <span className="font-bold">
                     {t("player.media.watchdog.dropped", {
@@ -778,19 +776,19 @@ function PlayerComponent() {
                     })}
                   </span>
                 </div>
-              ) : null}
+              )}
 
-              {shouldShowEmptyPlayer(hasFile, loadingFile, failed, hasShownFrame) ? (
+              {shouldShowEmptyPlayer(hasFile, loadingFile, failed, hasShownFrame) && (
                 <EmptyPlayer />
-              ) : null}
+              )}
 
-              {shouldShowLoadingSpinner(hasFile, loadingFile, failed, hasShownFrame) ? (
+              {shouldShowLoadingSpinner(hasFile, loadingFile, failed, hasShownFrame) && (
                 <div className="windows95-border bg-primary pointer-events-none absolute top-2 left-2 z-20 p-1">
                   <SmallLoader size={4} />
                 </div>
-              ) : null}
+              )}
 
-              {hasFile ? (
+              {hasFile && (
                 <SkipButton
                   duration={duration}
                   chapters={chapters}
@@ -799,11 +797,9 @@ function PlayerComponent() {
                   onSkip={onSkipChapter}
                   onFileNext={onFileNext}
                 />
-              ) : null}
+              )}
 
-              {jumpOpen ? (
-                <JumpToTime onCommit={onSeekTo} onClose={() => setJumpOpen(false)} />
-              ) : null}
+              {jumpOpen && <JumpToTime onCommit={onSeekTo} onClose={() => setJumpOpen(false)} />}
 
               <PlayerStatus
                 visible={hasFile}
@@ -819,14 +815,14 @@ function PlayerComponent() {
             </div>
           )}
 
-          {playlistOpen ? (
+          {playlistOpen && (
             <PlayerSidePanel
               onMove={(from, to) => movePlaylistIndex(from, to)}
               onPlay={onPlayIndex}
               onRemove={(index) => removePlaylistIndex(index)}
               focusedIndex={playlistFocus}
             />
-          ) : null}
+          )}
         </div>
       </div>
 

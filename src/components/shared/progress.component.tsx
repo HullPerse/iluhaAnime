@@ -50,8 +50,9 @@ function ProgressBar({
   if (slots && !solid && safeMax > 0) {
     const count = Math.max(1, Math.floor(slotsCap));
     const scaled = Math.floor((safeValue / safeMax) * count);
-    const filled =
-      safeValue <= 0 ? 0 : safeValue >= safeMax ? count : Math.min(count - 1, Math.max(1, scaled));
+    let filled = 0;
+    if (safeValue >= safeMax) filled = count;
+    else if (safeValue > 0) filled = Math.min(count - 1, Math.max(1, scaled));
     return (
       <div
         className={cn(

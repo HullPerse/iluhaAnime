@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash } from "lucide-react";
@@ -185,7 +186,9 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
         setPageLoading(false);
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) =>
+        reportBackgroundError("srcroutescomponentssearchmoderndithersettings.dither", error)
+      );
     return () => {
       cancelled = true;
     };

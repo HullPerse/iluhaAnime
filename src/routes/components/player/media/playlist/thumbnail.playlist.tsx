@@ -23,16 +23,16 @@ export function CardThumbnail({
       <span className="windows95-font bg-primary/90 text-text absolute top-0 left-0 px-1 text-xs tabular-nums">
         {position + 1}
       </span>
-      {duration > 0 ? (
+      {duration > 0 && (
         <span className="windows95-font absolute right-0 bottom-0 bg-black/70 px-1 text-xs text-white tabular-nums">
           {formatClock(duration)}
         </span>
-      ) : null}
-      {current ? (
+      )}
+      {current && (
         <span className="absolute inset-0 flex items-center justify-center bg-black/45">
           <Play className="size-6 text-white" fill="currentColor" />
         </span>
-      ) : null}
+      )}
     </div>
   );
 }

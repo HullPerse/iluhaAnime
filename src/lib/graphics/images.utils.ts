@@ -6,17 +6,15 @@
 // AniList proxy in a blocked region and reject a foreign referer, so the two
 // cases cannot share one request shape.
 
+import { attemptSync } from "@/lib/core/attempt.utils";
+
 const SOURCE_IMAGE_HOSTS = ["imglib.info", "cdnlibs.org", "animelib.org", "kodikplayer.com"];
 
 /** Whether an image URL belongs to the AnimeLib source rather than AniList. */
 export function isSourceImage(url: string): boolean {
   const trimmed = url?.trim();
   if (!trimmed) return false;
-  let host: string;
-  try {
-    host = new URL(trimmed).hostname.toLowerCase();
-  } catch {
-    return false;
-  }
+  const [host, error] = attemptSync(() => new URL(trimmed).hostname.toLowerCase());
+  if (error !== null) return false;
   return SOURCE_IMAGE_HOSTS.some((domain) => host === domain || host.endsWith(`.${domain}`));
 }

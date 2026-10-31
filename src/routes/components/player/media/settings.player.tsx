@@ -125,7 +125,7 @@ function SettingsPanel({
             onChange={(value) => onPatchSettings({ cabinet: value as PlayerCabinetId })}
           />
         </Row>
-        {modeDef.curvatureEditable ? (
+        {modeDef.curvatureEditable && (
           <Row label={t("player.media.settings.curvature")}>
             <Select
               className="flex-1"
@@ -135,7 +135,7 @@ function SettingsPanel({
               onChange={(value) => onPatchSettings({ crtCurvature: Number(value) as CrtCurvature })}
             />
           </Row>
-        ) : null}
+        )}
       </Section>
       <Section title={t("player.media.settings.playback")}>
         <Row label={t("player.media.settings.hwdec")}>
@@ -245,7 +245,7 @@ function SettingsPanel({
             onChange={(value) => onPatchSettings({ toneMap: value as PlayerSettings["toneMap"] })}
           />
         </Row>
-        {settings.toneMap === "manual" ? (
+        {settings.toneMap === "manual" && (
           <>
             <PlayerSlider
               label={t("player.media.settings.target.peak")}
@@ -264,7 +264,7 @@ function SettingsPanel({
               />
             </Row>
           </>
-        ) : null}
+        )}
       </Section>
       <Section title={t("player.media.settings.audio")}>
         <Row label={t("player.media.settings.loudnorm")}>

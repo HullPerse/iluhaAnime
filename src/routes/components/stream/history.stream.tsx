@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
 import { streamApi } from "@/api/stream.api";
 import Modal from "@/components/shared/modal.component";
@@ -27,11 +28,16 @@ export default function StreamHistoryModal({
   if (!open) return null;
 
   const rows = query.data ?? [];
+  const loading = query.isPending;
+  const empty = !loading && rows.length === 0;
+  const ready = !loading && !empty;
   const clear = () => {
     streamApi
       .historyClear()
       .then(() => query.refetch())
-      .catch(() => undefined);
+      .catch((error: unknown) =>
+        reportBackgroundError("srcroutescomponentsstreamhistory.stream", error)
+      );
   };
 
   return (
@@ -40,7 +46,7 @@ export default function StreamHistoryModal({
       onClose={onClose}
       className="w-180 max-w-[94%]"
       headerActions={
-        rows.length > 0 ? (
+        rows.length > 0 && (
           <Button
             size="icon"
             title={t("stream.history.clear")}
@@ -49,14 +55,14 @@ export default function StreamHistoryModal({
           >
             <Trash2 className="size-2.5" />
           </Button>
-        ) : null
+        )
       }
     >
-      {query.isPending ? (
-        <div className="windows95-border bg-field h-40" aria-busy="true" />
-      ) : rows.length === 0 ? (
+      {loading && <div className="windows95-border bg-field h-40" aria-busy="true" />}
+      {empty && (
         <p className="text-hint windows95-text p-3 text-center">{t("stream.history.empty")}</p>
-      ) : (
+      )}
+      {ready && (
         <div
           role="list"
           className="windows95-border bg-field flex max-h-100 min-h-0 flex-col overflow-y-auto p-0.5"

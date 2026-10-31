@@ -387,13 +387,16 @@ function scoreCoverText(
   return score;
 }
 
+const STATUS_BOOST: Record<string, number> = {
+  COMPLETED: 10,
+  CURRENT: 15,
+  PLANNING: 5,
+  REPEATING: 10,
+};
+
 function profileBoost(candidate: CoverCandidate): number | null {
   if (candidate.listStatus === "DROPPED") return null;
-  let boost = 0;
-  if (candidate.listStatus === "CURRENT") boost += 15;
-  else if (candidate.listStatus === "COMPLETED" || candidate.listStatus === "REPEATING")
-    boost += 10;
-  else if (candidate.listStatus === "PLANNING") boost += 5;
+  let boost = candidate.listStatus ? (STATUS_BOOST[candidate.listStatus] ?? 0) : 0;
   if (candidate.favourite) boost += 10;
   if (
     candidate.userScore !== null &&

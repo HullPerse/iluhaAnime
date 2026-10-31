@@ -1,3 +1,4 @@
+import { SPLASH_STAGE_MARKS } from "@/config/system/splash.config";
 import type { SplashVariantProps } from "@/types/core/shared.splash";
 import { splashProgress, splashStageLabel } from "@/lib/splash/stages.utils";
 
@@ -35,7 +36,7 @@ export function XpSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: Spla
           <ul className="mt-6 w-full text-base leading-relaxed opacity-70">
             {stages.map((stage) => (
               <li key={stage.id} className={stage.status === "pending" ? "opacity-50" : undefined}>
-                {stage.status === "done" ? "[x] " : stage.status === "degraded" ? "[!] " : "[ ] "}
+                {SPLASH_STAGE_MARKS[stage.status]}
                 {splashStageLabel(texts, stage.id)}
               </li>
             ))}

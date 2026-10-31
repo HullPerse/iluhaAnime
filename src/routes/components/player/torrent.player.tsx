@@ -67,6 +67,9 @@ export default function TorrentFilesPlayerSection({
   const hasFiles = playable.length > 0;
   const hasExtras = data.length > 0;
   const hasContent = hasFiles || hasExtras;
+  const filesLoading = torrentLoading && !files;
+  const contentReady = !filesLoading && hasContent;
+  const pendingState = !filesLoading && !hasContent && Boolean(files);
   const counts = [
     hasFiles ? t("player.files.count", { count: playable.length }) : "",
     hasExtras ? t("player.files.upscales", { count: data.length }) : "",
@@ -82,14 +85,15 @@ export default function TorrentFilesPlayerSection({
         </div>
       )}
 
-      {torrentLoading && !files ? (
+      {filesLoading && (
         <div className="windows95-text flex items-center gap-1 px-0.5 py-0.5">
           <SmallLoader size={3} />
           <span className="text-xs">
             {isCheckingFiles(item) ? t("torrent.checking.files") : t("player.files.loading")}
           </span>
         </div>
-      ) : hasContent ? (
+      )}
+      {contentReady && (
         <section className="flex flex-col gap-1">
           <div className="windows95-text flex w-full items-center gap-1 text-left select-none">
             <button
@@ -122,14 +126,15 @@ export default function TorrentFilesPlayerSection({
             />
           )}
         </section>
-      ) : files ? (
+      )}
+      {pendingState && (
         <TorrentPendingState
           item={item}
           actions={<SectionActions onRefresh={() => refetch()} saveDir={item.save_dir} />}
         />
-      ) : null}
+      )}
 
-      {isExpanded && hasContent ? (
+      {isExpanded && hasContent && (
         <div
           role="separator"
           aria-orientation="horizontal"
@@ -146,7 +151,7 @@ export default function TorrentFilesPlayerSection({
             adjust((event.key === "ArrowUp" ? -1 : 1) * TORRENT_RESIZE_STEP);
           }}
         />
-      ) : null}
+      )}
 
       {item.error && (
         <span className="text-destructive windows95-text flex w-full items-center gap-1">

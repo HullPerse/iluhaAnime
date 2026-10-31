@@ -120,7 +120,7 @@ function NeighborFileButton({
           <SkipForward className="size-4" />
         )}
       </Button>
-      {open && entry ? (
+      {open && entry && (
         <div
           aria-hidden="true"
           className="windows95-border bg-primary pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 w-32 -translate-x-1/2 p-1"
@@ -135,13 +135,13 @@ function NeighborFileButton({
           <div className="windows95-font truncate text-xs" title={label}>
             {label}
           </div>
-          {art && art.duration > 0 ? (
+          {art && art.duration > 0 && (
             <div className="windows95-font text-hint text-xs tabular-nums">
               {formatClock(art.duration)}
             </div>
-          ) : null}
+          )}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

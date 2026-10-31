@@ -62,7 +62,7 @@ export function StreamStats({
         </span>
       </div>
 
-      {pausedForCache === true && buffering !== undefined ? (
+      {pausedForCache === true && buffering !== undefined && (
         <div className="mb-1 flex flex-col gap-0.5">
           <div className="flex items-baseline justify-between">
             <span className="text-hint text-xs">{t("player.stream.buffering")}</span>
@@ -75,7 +75,7 @@ export function StreamStats({
             ariaLabel={t("player.stream.buffering")}
           />
         </div>
-      ) : null}
+      )}
 
       <div className="flex flex-col gap-0.5">
         <StatRow

@@ -75,8 +75,12 @@ export default function CompareAnilist({
     () => sharedFavourites(selfFavourites, friendFavourites),
     [selfFavourites, friendFavourites]
   );
-  const rows =
-    tab === "shared" ? summary.shared : tab === "mine" ? summary.onlyMine : summary.onlyFriend;
+  const rowsByTab = {
+    shared: summary.shared,
+    mine: summary.onlyMine,
+    friend: summary.onlyFriend,
+  };
+  const rows = rowsByTab[tab];
   const sortOptions = useMemo(
     () =>
       SORTS_BY_TAB[tab].map((value) => ({

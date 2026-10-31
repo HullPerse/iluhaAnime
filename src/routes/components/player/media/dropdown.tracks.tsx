@@ -91,7 +91,7 @@ function TrackDropdown({
           {label}: {current?.main ?? noneLabel ?? ""}
         </span>
       </button>
-      {onAdd ? (
+      {onAdd && (
         <button
           type="button"
           className="windows95-active-border bg-primary text-text flex size-4 shrink-0 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
@@ -101,13 +101,13 @@ function TrackDropdown({
         >
           <Plus className="size-2.5" />
         </button>
-      ) : null}
-      {open ? (
+      )}
+      {open && (
         <div
           className="windows95-border bg-primary absolute bottom-full left-0 z-50 mb-0.5 flex max-w-80 min-w-56 flex-col"
           role="listbox"
         >
-          {noneLabel && allowNone ? (
+          {noneLabel && allowNone && (
             <button
               type="button"
               role="option"
@@ -124,7 +124,7 @@ function TrackDropdown({
               <span className="size-3 shrink-0" />
               <span className="truncate">{noneLabel}</span>
             </button>
-          ) : null}
+          )}
           {options.map((option) => {
             const selected = option.value === value;
             return (
@@ -150,12 +150,12 @@ function TrackDropdown({
                   <span className="size-3 shrink-0" />
                 )}
                 <span className="min-w-0 flex-1 truncate">{option.main}</span>
-                {option.hint ? <span className="shrink-0 opacity-70">{option.hint}</span> : null}
+                {option.hint && <span className="shrink-0 opacity-70">{option.hint}</span>}
               </button>
             );
           })}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

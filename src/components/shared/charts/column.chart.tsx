@@ -102,7 +102,7 @@ export function ColumnChart({
               entries={ticks.map((tick) => ({ position: valueY(tick), label: axisFormat(tick) }))}
               side="left"
             />
-            {band && domainSpan > 0 ? (
+            {band && domainSpan > 0 && (
               <rect
                 x={plot.left + xFor(band.from) * plot.width}
                 y={plot.top}
@@ -111,7 +111,7 @@ export function ColumnChart({
                 fill="var(--color-secondary)"
                 fillOpacity={0.1}
               />
-            ) : null}
+            )}
             {data.map((datum, index) => {
               const barWidth = Math.max(1, bands.bandwidth);
               const barHeight = (plot.height * datum.value) / top;
@@ -130,7 +130,7 @@ export function ColumnChart({
                 />
               );
             })}
-            {reference && domainSpan > 0 ? (
+            {reference && domainSpan > 0 && (
               <g>
                 <line
                   x1={plot.left + xFor(reference.value) * plot.width}
@@ -141,7 +141,7 @@ export function ColumnChart({
                   strokeWidth={1}
                   strokeDasharray="3 2"
                 />
-                {reference.label ? (
+                {reference.label && (
                   <text
                     x={plot.left + xFor(reference.value) * plot.width + 3}
                     y={plot.top + 8}
@@ -150,11 +150,11 @@ export function ColumnChart({
                   >
                     {reference.label}
                   </text>
-                ) : null}
+                )}
               </g>
-            ) : null}
+            )}
             <BandAxisLabels plot={plot} entries={labelEntries} side="bottom" maxChars={6} />
-            {tooltipData && activeDatum ? (
+            {tooltipData && activeDatum && (
               <SvgChartTooltip
                 x={activeCenter}
                 y={activeTop < 44 ? activeTop + 12 : activeTop}
@@ -162,7 +162,7 @@ export function ColumnChart({
                 plot={plot}
                 placement={activeTop < 44 ? "below" : "above"}
               />
-            ) : null}
+            )}
             <rect
               x={plot.left}
               y={plot.top}

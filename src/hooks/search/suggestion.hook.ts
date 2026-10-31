@@ -9,11 +9,15 @@ import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/core/suggesti
 import { attempt } from "@/lib/core/attempt.utils";
 import type { SearchSuggestionScope } from "@/types/search/search";
 
+const SUGGESTION_KINDS: Record<string, SearchSuggestionKind> = {
+  anime: "anime",
+  anime_alias: "anime",
+  local_file: "local",
+  torrent: "torrent",
+};
+
 function suggestionKind(kind: string): SearchSuggestionKind {
-  if (kind === "anime" || kind === "anime_alias") return "anime";
-  if (kind === "torrent") return "torrent";
-  if (kind === "local_file") return "local";
-  return "history";
+  return SUGGESTION_KINDS[kind] ?? "history";
 }
 
 export function useSuggestions(

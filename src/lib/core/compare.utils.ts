@@ -489,29 +489,24 @@ function compareNullableAsc(a: number | null, b: number | null): number {
   return a - b;
 }
 
+const withTitleTiebreak =
+  (compare: (a: ComparedTitle, b: ComparedTitle) => number) => (a: ComparedTitle, b: ComparedTitle) => {
+    const primary = compare(a, b);
+    return primary !== 0 ? primary : a.title.localeCompare(b.title);
+  };
+
+const ROW_SORTERS: Record<string, (a: ComparedTitle, b: ComparedTitle) => number> = {
+  gap: withTitleTiebreak((a, b) => compareNullableDesc(a.delta, b.delta)),
+  close: withTitleTiebreak((a, b) => compareNullableAsc(a.delta, b.delta)),
+  mine: withTitleTiebreak((a, b) => compareNullableDesc(a.mine, b.mine)),
+  friend: withTitleTiebreak((a, b) => compareNullableDesc(a.friend, b.friend)),
+};
+
 export function sortCompareRows(
   rows: readonly ComparedTitle[],
   sort: CompareSort
 ): ComparedTitle[] {
-  return [...rows].sort((a, b) => {
-    if (sort === "gap") {
-      const byGap = compareNullableDesc(a.delta, b.delta);
-      return byGap !== 0 ? byGap : a.title.localeCompare(b.title);
-    }
-    if (sort === "close") {
-      const byGap = compareNullableAsc(a.delta, b.delta);
-      return byGap !== 0 ? byGap : a.title.localeCompare(b.title);
-    }
-    if (sort === "mine") {
-      const byScore = compareNullableDesc(a.mine, b.mine);
-      return byScore !== 0 ? byScore : a.title.localeCompare(b.title);
-    }
-    if (sort === "friend") {
-      const byScore = compareNullableDesc(a.friend, b.friend);
-      return byScore !== 0 ? byScore : a.title.localeCompare(b.title);
-    }
-    return a.title.localeCompare(b.title);
-  });
+  return [...rows].sort(ROW_SORTERS[sort] ?? ((a, b) => a.title.localeCompare(b.title)));
 }
 
 export function sharedFavourites(

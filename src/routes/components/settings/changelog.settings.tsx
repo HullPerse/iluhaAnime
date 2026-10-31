@@ -28,21 +28,21 @@ export function SettingsChangelog() {
               {expanded ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
               <span>{entry.version}</span>
             </button>
-            {expanded ? (
+            {expanded && (
               <div className="flex flex-col gap-1 pt-1">
                 <ChangelogCategory titleKey="settings.changelog.added" entries={entry.added} />
                 <ChangelogCategory titleKey="settings.changelog.changed" entries={entry.changed} />
                 <ChangelogCategory titleKey="settings.changelog.fixed" entries={entry.fixed} />
               </div>
-            ) : null}
+            )}
           </div>
         );
       })}
-      {CHANGELOG.length === 0 ? (
+      {CHANGELOG.length === 0 && (
         <span className="windows95-text text-hint px-1 text-xs">
           {t("settings.changelog.empty")}
         </span>
-      ) : null}
+      )}
     </div>
   );
 }

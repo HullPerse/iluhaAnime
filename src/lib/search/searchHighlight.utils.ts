@@ -2,11 +2,14 @@ import type { AutocompleteMode, SearchSuggestion } from "@/types/search/search";
 
 import { normalizeSearchText } from "@/lib/core/normalize.utils";
 
+const ARIA_MODES: Partial<Record<AutocompleteMode, "inline" | "both" | "list">> = {
+  inline: "inline",
+  both: "both",
+  dropdown: "list",
+};
+
 export function getAriaAutocomplete(mode: AutocompleteMode): "inline" | "both" | "list" | "none" {
-  if (mode === "inline") return "inline";
-  if (mode === "both") return "both";
-  if (mode === "dropdown") return "list";
-  return "none";
+  return ARIA_MODES[mode] ?? "none";
 }
 
 export function computeGhostValue({

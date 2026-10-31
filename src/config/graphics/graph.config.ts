@@ -4,6 +4,11 @@ export const NODE_W = 70;
 export const NODE_H = 95;
 export const IMG_H = 80;
 
+export const NODE_SCALE_TIERS: readonly { above: number; scale: number }[] = [
+  { above: 25, scale: 0.75 },
+  { above: 15, scale: 0.85 },
+];
+
 export const FRANCHISE_VIEWPORT = {
   initialScale: 0.4,
   maxScale: 5,

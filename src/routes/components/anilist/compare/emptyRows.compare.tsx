@@ -26,11 +26,11 @@ export function EmptyRows({
       </div>
     );
   }
-  const label =
-    tab === "shared"
-      ? t("anilist.compare.no.shared")
-      : tab === "mine"
-        ? t("anilist.compare.no.mine.titles")
-        : t("anilist.compare.no.friend.titles", { name: friendName });
+  const labelsByTab = {
+    shared: t("anilist.compare.no.shared"),
+    mine: t("anilist.compare.no.mine.titles"),
+    friend: t("anilist.compare.no.friend.titles", { name: friendName }),
+  };
+  const label = labelsByTab[tab];
   return <p className="windows95-text text-hint p-3 text-center text-xs">{label}</p>;
 }

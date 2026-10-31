@@ -37,7 +37,7 @@ export function CalendarDayCell({
       <span className={cn("px-1 text-xs leading-tight", calendarDayNumberTone(isToday, isWeekend))}>
         {day}
       </span>
-      {mainEntry ? (
+      {mainEntry && (
         <div
           className="flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-1"
           onClick={() => onEntryClick(mainEntry.id)}
@@ -83,7 +83,7 @@ export function CalendarDayCell({
             </button>
           )}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

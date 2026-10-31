@@ -12,7 +12,7 @@ import {
   onIndexReady,
   onSpellingReady,
 } from "@/lib/core/signals.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import type { DatabaseStatus } from "@/types/core/db";
 import type {
   DbCheckResult,
@@ -139,11 +139,8 @@ export function useSplashStages(
       if (!(await pace("theme", "done"))) return;
 
       setStages((current) => withStatus(current, "migrations", "active"));
-      try {
-        detectMigrations();
-      } catch (error) {
-        reportBackgroundError("splash.migrations", error);
-      }
+      const [, migrationError] = attemptSync(() => detectMigrations());
+      if (migrationError !== null) reportBackgroundError("splash.migrations", migrationError);
       if (!(await pace("migrations", "done"))) return;
 
       setStages((current) => withStatus(current, "cache", "active"));

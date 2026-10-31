@@ -29,7 +29,7 @@ export function DetailHeaderActions({
       >
         <RefreshCw className="size-3" />
       </Button>
-      {canOpenMedia ? (
+      {canOpenMedia && (
         <Button
           size="icon"
           className="size-5"
@@ -39,7 +39,7 @@ export function DetailHeaderActions({
         >
           <Images className="size-3" />
         </Button>
-      ) : null}
+      )}
     </>
   );
 }

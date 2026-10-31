@@ -227,8 +227,10 @@ function PlayerRoute() {
     },
     staleTime: 0,
   });
-  const ffmpegStatus: FFMPEGStatus =
-    ffmpegOverride ?? (ffprobeOk === undefined ? "checking" : ffprobeOk ? "ok" : "missing");
+  let probeStatus: FFMPEGStatus = "checking";
+  if (ffprobeOk === true) probeStatus = "ok";
+  else if (ffprobeOk === false) probeStatus = "missing";
+  const ffmpegStatus: FFMPEGStatus = ffmpegOverride ?? probeStatus;
 
   const allTorrentIds = useMemo(() => torrents.map((t) => t.id), [torrents]);
   const { files: torrentFilesMap, pendingIds: torrentPendingIds } = useTorrentFilesMap(

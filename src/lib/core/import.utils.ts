@@ -43,15 +43,20 @@ export function entryDiffers(
   );
 }
 
+const ANILIST_STATUS_MAP: Record<string, string> = {
+  COMPLETED: "completed",
+  CURRENT: "watching",
+  DROPPED: "dropped",
+  PAUSED: "paused",
+  PLANNED: "planned",
+  PLANNING: "planned",
+  REPEATING: "rewatching",
+  REWATCHING: "rewatching",
+  WATCHING: "watching",
+};
+
 export function anilistStatusToCollection(status: string): string {
-  const s = status.toUpperCase();
-  if (s === "CURRENT" || s === "WATCHING") return "watching";
-  if (s === "COMPLETED") return "completed";
-  if (s === "PAUSED") return "paused";
-  if (s === "DROPPED") return "dropped";
-  if (s === "PLANNING" || s === "PLANNED") return "planned";
-  if (s === "REPEATING" || s === "REWATCHING") return "rewatching";
-  return "planned";
+  return ANILIST_STATUS_MAP[status.toUpperCase()] ?? "planned";
 }
 
 function anilistFormatToCollection(format: string | null): "anime" | "movie" {

@@ -81,7 +81,7 @@ export function RatioChart({
                   />
                 );
               })}
-              {tooltipData && activeDatum && activeSegment ? (
+              {tooltipData && activeDatum && activeSegment && (
                 <SvgChartTooltip
                   x={plot.left + activeSegment.start + activeSegment.length / 2}
                   y={plot.top + plot.height - 2}
@@ -89,7 +89,7 @@ export function RatioChart({
                   plot={plot}
                   placement="below"
                 />
-              ) : null}
+              )}
               <rect
                 x={plot.left}
                 y={plot.top}

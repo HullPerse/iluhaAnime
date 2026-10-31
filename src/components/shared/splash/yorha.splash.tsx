@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { createInterval } from "@/lib/core/interval.utils";
 
+import { SPLASH_STAGE_MARKS } from "@/config/system/splash.config";
 import type { SplashVariantProps } from "@/types/core/shared.splash";
 import { splashStageLabel } from "@/lib/splash/stages.utils";
 
@@ -60,7 +61,7 @@ export function YorhaSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: S
         <ul className="yorha-glitch mt-8 space-y-2 text-xl leading-relaxed">
           {stages.map((stage) => (
             <li key={stage.id} className={stage.status === "pending" ? "opacity-50" : undefined}>
-              {stage.status === "done" ? "[x] " : stage.status === "degraded" ? "[!] " : "[ ] "}
+              {SPLASH_STAGE_MARKS[stage.status]}
               {splashStageLabel(texts, stage.id)}
               {stage.status === "active" ? <span className="yorha-cursor">_</span> : ""}
             </li>

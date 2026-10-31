@@ -40,6 +40,7 @@ export function CellModal({
   onSave: () => void;
 }) {
   const { t } = useI18n();
+  const cellReady = !cellLoading;
   return (
     <Modal
       header={`${t("settings.sqlite.cell.title")} - ${selectedCell.column}`}
@@ -62,11 +63,12 @@ export function CellModal({
             </Button>
           </div>
         </div>
-        {cellLoading ? (
+        {cellLoading && (
           <div className="flex min-h-20 items-center justify-center">
             <SmallLoader />
           </div>
-        ) : cellEditing ? (
+        )}
+        {cellReady && cellEditing && (
           <>
             <textarea
               value={cellEdit}
@@ -86,7 +88,8 @@ export function CellModal({
               </Button>
             </div>
           </>
-        ) : (
+        )}
+        {cellReady && !cellEditing && (
           <>
             {cellImageSrc && (
               <div className="windows95-border bg-primary flex h-64 items-center justify-center p-1">

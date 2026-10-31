@@ -84,11 +84,6 @@ describe("player re-render profile", () => {
     unsubStart();
     unsubEnd();
 
-    console.log(
-      "[player-render-profile]",
-      JSON.stringify({ ticks, timelineCommits: commits, notifications, boundaries })
-    );
-
     expect(notifications.timePos).toBe(ticks);
     // The first snapshot changes the duration once; later ticks must not.
     expect(notifications.duration ?? 0).toBe(1);

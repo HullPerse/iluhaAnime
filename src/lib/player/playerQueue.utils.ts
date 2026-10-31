@@ -2,11 +2,17 @@ import type { TFunc } from "@/types/core/i18n";
 import type { ConvertConfig, UpscaleConfig, UpscaleQueueItem } from "@/types/core/upscale";
 import type { QueueDepthStep } from "@/types/player/playerQueue";
 
+const STAGE_ORDER: Record<string, number> = {
+  encoding: 2,
+  interpolating: 1,
+  upscaling: 1,
+  extracting: 0,
+  initializing: 0,
+  started: 0,
+};
+
 function stageIndex(stage: string | undefined): number {
-  if (stage === "encoding") return 2;
-  if (stage === "interpolating" || stage === "upscaling") return 1;
-  if (stage === "extracting" || stage === "initializing" || stage === "started") return 0;
-  return -1;
+  return stage ? (STAGE_ORDER[stage] ?? -1) : -1;
 }
 
 export function queueDepthSteps(item: UpscaleQueueItem, t: TFunc): QueueDepthStep[] {
@@ -32,17 +38,19 @@ export function queueDepthSteps(item: UpscaleQueueItem, t: TFunc): QueueDepthSte
     { key: "upscale", label: t("player.queue.step.upscale"), detail: upscaleDetail },
     { key: "encode", label: t("player.queue.step.encode"), detail: cfg.videoCodec },
   ];
-  const current =
-    item.status === "done"
-      ? defs.length
-      : item.status === "processing"
-        ? Math.max(0, stageIndex(item.stage))
-        : -1;
-  return defs.map((step, index) => ({
-    ...step,
-    done: index < current || item.status === "done",
-    active: index === current && item.status === "processing",
-    percent:
-      index < current || item.status === "done" ? 100 : index === current ? item.progress : 0,
-  }));
+  let current = -1;
+  if (item.status === "done") current = defs.length;
+  else if (item.status === "processing") current = Math.max(0, stageIndex(item.stage));
+  return defs.map((step, index) => {
+    const settled = index < current || item.status === "done";
+    let percent = 0;
+    if (settled) percent = 100;
+    else if (index === current) percent = item.progress;
+    return {
+      ...step,
+      done: settled,
+      active: index === current && item.status === "processing",
+      percent,
+    };
+  });
 }

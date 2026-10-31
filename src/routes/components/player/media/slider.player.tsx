@@ -68,7 +68,7 @@ function PlayerSlider({
 
   return (
     <div className="flex items-center gap-1 select-none">
-      {label ? <span className="w-24 shrink-0 text-xs">{label}</span> : null}
+      {label && <span className="w-24 shrink-0 text-xs">{label}</span>}
       <div
         ref={ref}
         role="slider"

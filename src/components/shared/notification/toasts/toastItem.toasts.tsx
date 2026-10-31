@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
@@ -56,7 +57,11 @@ export function ToastItem({
       duration: 150,
       easing: "ease-out",
     });
-    animation.finished.then(() => onHidden(item.id)).catch(() => undefined);
+    animation.finished
+      .then(() => onHidden(item.id))
+      .catch((error: unknown) =>
+        reportBackgroundError("srccomponentssharednotificationtoaststoastItem.toasts", error)
+      );
   }, [animateToasts, item.id, onHide, onHidden]);
 
   useEffect(() => {

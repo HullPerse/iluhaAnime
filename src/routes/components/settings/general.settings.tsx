@@ -562,9 +562,9 @@ export default function SettingsGeneral() {
                   className="w-52"
                   label={t("settings.torrent.covers")}
                 />
-                {!anilistUser ? (
+                {!anilistUser && (
                   <span className="text-hint text-xs">{t("settings.torrent.covers.login")}</span>
-                ) : null}
+                )}
               </div>
             </div>
           </div>

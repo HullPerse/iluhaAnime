@@ -97,7 +97,7 @@ export default function StreamSortBar({
         </Button>
       </div>
       <span className="ui-toolbar-separator" aria-hidden />
-      {onRandom ? (
+      {onRandom && (
         <Button
           size="icon"
           className="h-6 w-6 shrink-0"
@@ -107,7 +107,7 @@ export default function StreamSortBar({
         >
           <Dices className="size-3.5" />
         </Button>
-      ) : null}
+      )}
       <Button
         size="icon"
         className="h-6 w-6 shrink-0"

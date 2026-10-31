@@ -1,4 +1,5 @@
 import Pagination from "@/components/shared/pagination.component";
+import { SEARCH_MODE_LABELS } from "@/config/anilist/searchModes.config";
 import { listStatusLabels } from "@/config/system/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { ALL_LISTS_ID } from "@/lib/anilist/anilistGroup.utils";
@@ -45,13 +46,16 @@ export default function AniListResultsPagination({
     currentList === ALL_LISTS_ID
       ? t("anilist.lists.all")
       : t(toLocaleKey(listStatusLabels[currentList.toUpperCase()] ?? currentList));
-  const statusText = global
-    ? `${t("anilist.route.search.results", { count: searchResultsCount })}${searchTag ? ` - ${searchMode === "studio" ? t("anilist.route.studio") : searchMode === "season" ? t("anilist.route.season") : t("anilist.route.tag")}: ${searchTag}` : ""}`
-    : isLocal
-      ? `${listLabel}: ${filteredCount} / ${activeCount}`
-      : hasUser
-        ? `${listLabel}: ${activeCount}`
-        : undefined;
+  let statusText: string | undefined;
+  if (global) {
+    const modeKey = searchMode ? SEARCH_MODE_LABELS[searchMode] : undefined;
+    const tagSuffix = searchTag && modeKey ? ` - ${t(modeKey)}: ${searchTag}` : "";
+    statusText = `${t("anilist.route.search.results", { count: searchResultsCount })}${tagSuffix}`;
+  } else if (isLocal) {
+    statusText = `${listLabel}: ${filteredCount} / ${activeCount}`;
+  } else if (hasUser) {
+    statusText = `${listLabel}: ${activeCount}`;
+  }
   return (
     <Pagination
       total={total}

@@ -26,9 +26,9 @@ export function ShellHeaderActions({
   return (
     <>
       <CopyLinkButton animeId={animeId} />
-      {isLoggedIn && hasAnime ? (
+      {isLoggedIn && hasAnime && (
         <FavHeartButton isFavorite={isFavorite} loading={favoriteLoading} onToggle={onToggle} />
-      ) : null}
+      )}
       <button
         type="button"
         onClick={(e) => {

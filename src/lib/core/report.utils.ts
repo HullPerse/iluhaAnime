@@ -51,11 +51,8 @@ function normalize(info: FatalInfo): FatalInfo {
 
 function emit(info: FatalInfo | null): void {
   for (const listener of listeners) {
-    try {
-      listener(info);
-    } catch (error) {
-      reportBackgroundError("fatal.emit", error);
-    }
+    const [, error] = attemptSync(() => listener(info));
+    if (error !== null) reportBackgroundError("fatal.emit", error);
   }
 }
 

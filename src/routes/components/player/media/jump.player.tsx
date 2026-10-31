@@ -63,9 +63,9 @@ function JumpToTime({
             <X />
           </Button>
         </div>
-        {invalid ? (
+        {invalid && (
           <span className="text-destructive text-xs">{t("player.media.jump.invalid")}</span>
-        ) : null}
+        )}
       </div>
     </div>
   );

@@ -24,6 +24,7 @@ import UpscaleConfigView from "@/routes/components/player/upscale/configView.ups
 import { UpscaleProgressPanel } from "@/routes/components/player/upscale/progress.upscale";
 import { UpscaleStatusPanels } from "@/routes/components/player/upscale/status.upscale";
 
+import { parseUpscaleFps } from "@/lib/player/upscaleFps.utils";
 import { zoomedFrameAt, framePager } from "@/lib/player/upscaleModal.utils";
 
 export default function UpscalePlayer({
@@ -166,7 +167,7 @@ export default function UpscalePlayer({
 
     const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
     const interpolate = fpsValue === "60i";
-    const fps = fpsValue === "60" || fpsValue === "60i" ? 60 : fpsValue ? Number(fpsValue) : null;
+    const fps = parseUpscaleFps(fpsValue);
     const config: UpscaleConfig = {
       width: w,
       height: h,
@@ -218,7 +219,7 @@ export default function UpscalePlayer({
     if (activeTab === "upscale") {
       const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
       const interpolate = fpsValue === "60i";
-      const fps = fpsValue === "60" || fpsValue === "60i" ? 60 : fpsValue ? Number(fpsValue) : null;
+      const fps = parseUpscaleFps(fpsValue);
       const config: UpscaleConfig = {
         width: w,
         height: h,

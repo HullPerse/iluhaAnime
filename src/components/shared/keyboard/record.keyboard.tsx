@@ -135,7 +135,7 @@ export function KeybindRecorder({
 
   return (
     <div className="flex flex-col gap-1">
-      {actionTitle ? (
+      {actionTitle && (
         <fieldset className="border-border border px-1 pt-1 pb-2">
           <legend className="px-1 text-xs">{t("settings.keybinds.record.action")}</legend>
           <div className="flex items-center gap-2 px-1">
@@ -144,11 +144,11 @@ export function KeybindRecorder({
             </span>
             <div className="min-w-0">
               <div className="truncate text-xs">{actionTitle}</div>
-              {actionId ? <div className="text-hint truncate text-xs">{actionId}</div> : null}
+              {actionId && <div className="text-hint truncate text-xs">{actionId}</div>}
             </div>
           </div>
         </fieldset>
-      ) : null}
+      )}
       <fieldset className="border-border border px-1 pt-1 pb-2">
         <legend className="px-1 text-xs">{t("settings.keybinds.record.currentChord")}</legend>
         <div className="flex items-center gap-1 px-1">
@@ -204,13 +204,13 @@ export function KeybindRecorder({
           ))}
           <span className="text-hint text-xs select-none">+</span>
           <div className="windows95-border bg-field flex min-h-[var(--ui-control-height)] min-w-12 flex-1 items-center justify-center px-1">
-            {draft ? <span className="truncate text-xs">{humanizeChord(draft)}</span> : null}
+            {draft && <span className="truncate text-xs">{humanizeChord(draft)}</span>}
           </div>
         </div>
         <span className="text-hint px-1 text-xs select-none">
           {t("settings.keybinds.record.hint")}
         </span>
-        {conflict ? (
+        {conflict && (
           <div className="flex gap-1 px-1 pt-1">
             <TriangleAlert className="text-destructive size-3.5 shrink-0" aria-hidden="true" />
             <div className="min-w-0">
@@ -222,13 +222,13 @@ export function KeybindRecorder({
               </div>
             </div>
           </div>
-        ) : null}
+        )}
       </fieldset>
-      {blocked ? (
+      {blocked && (
         <span className="text-destructive px-0.5 text-xs select-none">
           {t("settings.keybinds.record.reserved")}
         </span>
-      ) : null}
+      )}
       <div className="flex gap-1">
         <Button size="default" variant="secondary" disabled={!canReset} onClick={onReset}>
           {t("settings.keybinds.record.reset")}

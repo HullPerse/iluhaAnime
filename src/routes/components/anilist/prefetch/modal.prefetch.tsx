@@ -39,7 +39,9 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
         if (mountedRef.current && record?.payload) setStored(record.payload);
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) =>
+        reportBackgroundError("srcroutescomponentsanilistprefetchmodal.prefetch", error)
+      );
     return () => {
       mountedRef.current = false;
       unlistenRef.current?.();
@@ -95,7 +97,9 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
         else unlisten();
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) =>
+        reportBackgroundError("srcroutescomponentsanilistprefetchmodal.prefetch", error)
+      );
     let keepListening = false;
     const [result, prefetchError] = await attempt(anilistApi.prefetchRelations(seeds));
     if (prefetchError) {
@@ -132,20 +136,20 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
     <Modal header={t("anilist.prefetch.title")} onClose={onClose}>
       <div className="flex w-full max-w-full flex-col gap-2">
         <p className="windows95-text text-hint text-xs">{t("anilist.prefetch.background.hint")}</p>
-        {backgrounded && running ? (
+        {backgrounded && running && (
           <p className="windows95-text text-xs font-bold">{t("anilist.prefetch.background")}</p>
-        ) : null}
+        )}
         <CacheSummary progress={progress} finished={finished} t={t} />
         {!running && !finished && !error && (
           <Button onClick={() => start()} className="w-full">
             {t("anilist.prefetch.start")}
           </Button>
         )}
-        {!running && !finished && !error && stored ? (
+        {!running && !finished && !error && stored && (
           <Button onClick={() => start(stored.ids)} className="w-full" variant="outline">
             {t("anilist.prefetch.continue", { done: stored.done, total: stored.total })}
           </Button>
-        ) : null}
+        )}
         {running && progress && <RunningSummary progress={progress} t={t} />}
         {finished && (
           <div className="windows95-text flex flex-col gap-1 text-xs">

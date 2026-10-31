@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
@@ -52,7 +53,7 @@ export function useUpscaleToolStatus(tool: UpscaleTool) {
         if (alive) setStatus(ok && !err ? "ok" : "missing");
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) => reportBackgroundError("srchooksplayertoolStatus", error));
     return () => {
       alive = false;
     };

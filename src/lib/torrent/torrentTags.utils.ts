@@ -94,12 +94,17 @@ function validTag(key: string, op: string, value: string): TorrentTagKey | null 
 
 const KNOWN_TAG_KEYS = new Set(Object.keys(TAG_VALIDATORS));
 
+const TAG_NORMALIZERS: Record<TorrentTagKey, (value: string) => string> = {
+  quality: (value) => QUALITIES[value.toLowerCase()] ?? value,
+  codec: (value) => CODECS[value.toLowerCase()] ?? value,
+  lang: (value) => value.toLowerCase(),
+  source: (value) => value.toLowerCase(),
+  seeds: (value) => value,
+  size: (value) => value,
+};
+
 export function normalizeTagValue(tag: TorrentTag): string {
-  if (tag.key === "quality") return QUALITIES[tag.value.toLowerCase()] ?? tag.value;
-  if (tag.key === "codec") return CODECS[tag.value.toLowerCase()] ?? tag.value;
-  if (tag.key === "lang") return tag.value.toLowerCase();
-  if (tag.key === "source") return tag.value.toLowerCase();
-  return tag.value;
+  return TAG_NORMALIZERS[tag.key](tag.value);
 }
 
 export function torrentTagsToFilters(tags: TorrentTag[]): {

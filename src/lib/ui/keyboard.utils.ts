@@ -4,6 +4,11 @@ import type { ListNavigationOptions } from "@/types/ui/keyboard";
 
 export type { ListNavigationOptions };
 
+const KEY_BOUNDARIES: Partial<Record<string, (count: number) => number>> = {
+  Home: () => 0,
+  End: (count) => count - 1,
+};
+
 export function moveIndex(current: number, delta: number, length: number): number {
   if (length <= 0) return -1;
   return (current + delta + length) % length;
@@ -55,7 +60,7 @@ function handleListNavigationKey<T extends Element>(
     move(-1);
     return true;
   }
-  const boundary = key === "Home" ? 0 : key === "End" ? count - 1 : null;
+  const boundary = KEY_BOUNDARIES[key]?.(count) ?? null;
   if (boundary !== null) {
     event.preventDefault();
     setActiveIndex(boundary);

@@ -43,13 +43,13 @@ export function SummaryRow({
         >
           {value ?? ""}
         </span>
-        {hint ? (
+        {hint && (
           <span className="windows95-text text-hint min-w-0 truncate text-xs" title={hint}>
             {hint}
           </span>
-        ) : null}
+        )}
       </span>
-      {actionLabel && onAction ? (
+      {actionLabel && onAction && (
         <Button
           size={actionIcon ? "icon" : "default"}
           className={actionIcon ? "size-5 shrink-0" : "h-5 shrink-0 px-1 text-xs"}
@@ -61,7 +61,7 @@ export function SummaryRow({
         >
           {actionIcon ?? actionLabel}
         </Button>
-      ) : null}
+      )}
     </div>
   );
 }

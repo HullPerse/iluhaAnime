@@ -49,11 +49,11 @@ function PlayerStatus({
         <Button className="h-auto px-2 py-1 text-xs" onClick={onRestart}>
           {t("player.media.finished.replay")}
         </Button>
-        {hasNext ? (
+        {hasNext && (
           <Button className="h-auto px-2 py-1 text-xs" onClick={onNext}>
             {t("player.media.finished.next")}
           </Button>
-        ) : null}
+        )}
         <Button className="h-auto px-2 py-1 text-xs" onClick={onClose}>
           {t("player.media.panel.close")}
         </Button>

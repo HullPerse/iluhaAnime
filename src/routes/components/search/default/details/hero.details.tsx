@@ -141,7 +141,7 @@ export default function DetailsHero({
 
   return (
     <div className="windows95-border bg-surface flex flex-col gap-2 p-1.5 sm:flex-row">
-      {!hidePoster && poster ? (
+      {!hidePoster && poster && (
         <ContextMenu entries={posterMenuEntries}>
           <button
             type="button"
@@ -153,7 +153,8 @@ export default function DetailsHero({
             <ImageComponent src={poster} alt="" className="h-full w-full object-cover" />
           </button>
         </ContextMenu>
-      ) : hidePoster ? null : (
+      )}
+      {!hidePoster && !poster && (
         <div className="border-muted h-52 w-full shrink-0 border sm:w-36" aria-hidden>
           <ImageComponent
             src="/images/unknown_source.png"

@@ -53,7 +53,7 @@ export function useScreenshot(): ScreenshotSession {
         if (error) reportBackgroundError("screenshot.discard", error);
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) => reportBackgroundError("srchooksscreenshot", error));
   }, [setCapture]);
 
   return { capture: shot, close };

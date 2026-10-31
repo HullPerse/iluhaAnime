@@ -27,11 +27,11 @@ export function ImportStatusSection({
     <>
       {(importing || result) && (
         <div className="flex flex-col gap-1">
-          {importing && current ? (
+          {importing && current && (
             <span className="windows95-text truncate text-xs font-bold" title={current}>
               {t("collection.import.anilist.current", { title: current })}
             </span>
-          ) : null}
+          )}
           {groups.map((group, index) => (
             <div key={group.name} className="grid grid-cols-[90px_1fr_110px] items-center gap-2">
               <span className="windows95-text truncate text-xs font-bold" title={group.name}>

@@ -89,12 +89,13 @@ export function AnimeDetailShell({
     () => setTrailer(null),
     props.onBack
   );
-  const body = screenTop ? (
-    <OverlayScreens current={screenTop} context={screenContext} />
-  ) : trailerId != null ? (
-    <TrailerEmbed youtubeId={trailerId} title={t("anilist.details.trailer")} />
-  ) : (
-    <AniListDetailView
+  let body: ReactNode;
+  if (screenTop) body = <OverlayScreens current={screenTop} context={screenContext} />;
+  else if (trailerId != null)
+    body = <TrailerEmbed youtubeId={trailerId} title={t("anilist.details.trailer")} />;
+  else
+    body = (
+      <AniListDetailView
       {...props}
       anime={query.data?.media}
       initialCharacters={query.data?.characters}
@@ -106,7 +107,7 @@ export function AnimeDetailShell({
       onTrailer={(youtubeId) => setTrailer({ animeId: props.animeId, youtubeId })}
       onPushScreen={pushScreen}
     />
-  );
+    );
   return (
     <>
       {render({

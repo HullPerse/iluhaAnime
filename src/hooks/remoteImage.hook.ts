@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
 import { useCell } from "@/lib/core/signal.hook";
 import { isSourceImage } from "@/lib/graphics/images.utils";
@@ -157,7 +158,7 @@ export function useStreamCover(remoteUrl: string | null | undefined): string | n
         if (!cancelled) setSrc(url);
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) => reportBackgroundError("srchooksremoteImage", error));
     return () => {
       cancelled = true;
     };
@@ -198,7 +199,7 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
         if (!cancelled) setState({ src: url, failed: url === null });
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) => reportBackgroundError("srchooksremoteImage", error));
     return () => {
       cancelled = true;
     };

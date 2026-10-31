@@ -112,7 +112,9 @@ export class Throttler<TArgs extends unknown[]> {
 
   #sync(): void {
     const pending = this.#timer !== null;
-    const status = !this.isEnabled() ? "disabled" : pending ? "pending" : "idle";
+    let status: PacerState["status"] = "idle";
+    if (!this.isEnabled()) status = "disabled";
+    else if (pending) status = "pending";
     const current = this.status.get();
     if (current.isPending === pending && current.status === status) return;
     this.status.set({ ...current, isPending: pending, status });

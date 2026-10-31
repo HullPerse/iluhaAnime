@@ -256,17 +256,21 @@ export function searchFiltersToParams(
   };
 }
 
+const MEDIA_COMPARATORS: Record<string, (a: AniMedia, b: AniMedia) => number> = {
+  title: (a, b) => a.title.localeCompare(b.title),
+  score: (a, b) => (a.score ?? 0) - (b.score ?? 0),
+  year: (a, b) => (a.season_year ?? 0) - (b.season_year ?? 0),
+};
+
 export function sortAniMediaList(
   results: AniMedia[],
   key: string,
   dir: "asc" | "desc"
 ): AniMedia[] {
   if (key === "relevance") return results;
+  const compare = MEDIA_COMPARATORS[key];
   return [...results].sort((a, b) => {
-    let cmp = 0;
-    if (key === "title") cmp = a.title.localeCompare(b.title);
-    else if (key === "score") cmp = (a.score ?? 0) - (b.score ?? 0);
-    else if (key === "year") cmp = (a.season_year ?? 0) - (b.season_year ?? 0);
+    const cmp = compare ? compare(a, b) : 0;
     return dir === "asc" ? cmp : -cmp;
   });
 }

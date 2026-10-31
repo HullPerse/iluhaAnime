@@ -186,11 +186,11 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
           >
             <TriangleAlert className="size-3.5" />
           </Button>
-          {conflictCount > 0 ? (
+          {conflictCount > 0 && (
             <span className="bg-highlight px-1 text-xs text-white tabular-nums select-none">
               {conflictCount}
             </span>
-          ) : null}
+          )}
         </span>
         <Button
           size="default"
@@ -202,7 +202,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
           {t("settings.keybinds.reset.all")}
         </Button>
       </div>
-      {capturing ? (
+      {capturing && (
         <KeybindRecorder
           currentChord={null}
           reservedChords={RESERVED_KEYBIND_CHORDS}
@@ -215,8 +215,8 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
           onReset={() => undefined}
           onCancel={() => setCapturing(false)}
         />
-      ) : null}
-      {captured ? (
+      )}
+      {captured && (
         <div className="flex items-center gap-1">
           <ChordChips chord={captured} />
           <Button
@@ -228,7 +228,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
             <X className="size-3.5" />
           </Button>
         </div>
-      ) : null}
+      )}
       <div
         role="table"
         aria-label={t("settings.keybinds")}
@@ -307,14 +307,14 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
                         role="cell"
                         className="flex w-14 shrink-0 items-center justify-end gap-0.5"
                       >
-                        {row.shadowedBy ? (
+                        {row.shadowedBy && (
                           <TriangleAlert
                             className="text-destructive size-3.5 shrink-0"
                             aria-label={t("settings.keybinds.shadowed", {
                               name: descriptions.get(row.shadowedBy) ?? row.shadowedBy,
                             })}
                           />
-                        ) : null}
+                        )}
                         <Button
                           size="icon"
                           variant="ghost"
@@ -326,7 +326,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
                         >
                           <Pencil className="size-3" />
                         </Button>
-                        {row.overridden ? (
+                        {row.overridden && (
                           <Button
                             size="icon"
                             variant="ghost"
@@ -337,20 +337,20 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
                           >
                             <RotateCcw className="size-3" />
                           </Button>
-                        ) : null}
+                        )}
                       </span>
                     </div>
                   </div>
                 ))}
           </div>
         ))}
-        {visibleTotal === 0 ? (
+        {visibleTotal === 0 && (
           <span className="windows95-text text-hint px-1 py-0.5 text-xs">
             {t("settings.keybinds.empty")}
           </span>
-        ) : null}
+        )}
       </div>
-      {editingRow ? (
+      {editingRow && (
         <Modal
           header={t("settings.keybinds.record.title")}
           onClose={() => closeEditor(editingRow.entry.id)}
@@ -373,7 +373,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
             onCancel={() => closeEditor(editingRow.entry.id)}
           />
         </Modal>
-      ) : null}
+      )}
     </div>
   );
 }

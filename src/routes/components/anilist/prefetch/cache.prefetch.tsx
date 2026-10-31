@@ -56,7 +56,7 @@ export function CacheSummary({
           <span className="min-w-0 truncate font-bold">{progress.current}</span>
         </div>
       )}
-      {progress?.items.length ? (
+      {progress && progress.items.length > 0 && (
         <div className="flex flex-wrap gap-0.5">
           {progress.items.slice(-12).map((item) => (
             <span
@@ -71,7 +71,7 @@ export function CacheSummary({
             </span>
           ))}
         </div>
-      ) : null}
+      )}
     </section>
   ) : null;
 }

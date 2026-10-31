@@ -35,13 +35,11 @@ function StreamCardView({
   const progress = useStreamHistoryProgress(anime.id, hovered);
   const watched = progress.data?.watched ?? 0;
   const lastPosition = progress.data?.lastPosition ?? 0;
-  const watchLabel = !progress.data
-    ? null
-    : watched > 0
-      ? `${watched} ${t("stream.history.watched")}`
-      : lastPosition > 0
-        ? formatResume(lastPosition)
-        : null;
+  let watchLabel: string | null = null;
+  if (progress.data) {
+    if (watched > 0) watchLabel = `${watched} ${t("stream.history.watched")}`;
+    else if (lastPosition > 0) watchLabel = formatResume(lastPosition);
+  }
   const meta = [anime.year != null ? String(anime.year) : null, anime.mediaType ?? null].filter(
     Boolean
   );
@@ -74,24 +72,24 @@ function StreamCardView({
             {t("stream.noCover")}
           </div>
         )}
-        {watchLabel ? (
+        {watchLabel && (
           <span
             className="bg-primary text-text windows95-small-border absolute top-1 left-1 px-1 py-0.5 text-xs leading-none font-bold"
             title={progress.data?.title}
           >
             {watchLabel}
           </span>
-        ) : null}
-        {anime.rating != null && anime.rating > 0 ? (
+        )}
+        {anime.rating != null && anime.rating > 0 && (
           <span className="bg-secondary text-title-text absolute bottom-1 left-1 px-1 py-0.5 text-xs leading-none font-bold">
             {`${anime.rating.toFixed(1)}/10`}
           </span>
-        ) : null}
-        {anime.status ? (
+        )}
+        {anime.status && (
           <span className="bg-secondary text-title-text windows95-text absolute right-0 bottom-0 px-1 py-0.5 text-xs leading-none font-bold">
             {anime.status}
           </span>
-        ) : null}
+        )}
       </div>
 
       <div className="bg-primary flex h-10 shrink-0 flex-col justify-center gap-0 px-1 py-1">

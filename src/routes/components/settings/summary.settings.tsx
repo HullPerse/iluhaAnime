@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { confirm, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { Download, Check, ChevronRight, RefreshCw, ScrollText, X } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { sqliteApi } from "@/api/sqlite.api";
@@ -161,14 +161,26 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     collectRepro().catch((error) => reportBackgroundError("summary.repro.collect", error));
   };
 
+  let backupsValue: ReactNode = "...";
+  if (data !== undefined) {
+    backupsValue =
+      newestBackup === null ? (
+        t("settings.summary.none")
+      ) : (
+        <>
+          <AnimatedNumber value={data.backups.length} format={String} /> -{" "}
+          {formatBytes(backupSize(data.backups))}
+        </>
+      );
+  }
+
   const updateActionLabel = update ? t("updater.update") : t("updater.check");
   const updateActionTitle = update
     ? t("updater.check.available", { version: update.version })
     : t("updater.check");
-  const ffmpegValue =
-    ffmpeg.data === undefined ? (
-      "..."
-    ) : ffmpeg.data ? (
+  let ffmpegValue: ReactNode = "...";
+  if (ffmpeg.data !== undefined) {
+    ffmpegValue = ffmpeg.data ? (
       <span className="inline-flex items-center gap-1">
         <Check className="text-success size-3" aria-hidden />
         {t("settings.summary.ffmpeg.installed")}
@@ -179,6 +191,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         {t("settings.summary.ffmpeg.missing")}
       </span>
     );
+  }
 
   return (
     <div className="ui-panel flex w-72 shrink-0 flex-col gap-2 overflow-y-auto p-2">
@@ -219,9 +232,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
       <SummarySection title={t("settings.summary.storage")}>
         <SummaryRow
           label={t("settings.summary.database")}
-          value={
-            data === undefined ? "..." : data.database === null ? unknown : data.database.fileName
-          }
+          value={data === undefined ? "..." : (data.database?.fileName ?? unknown)}
           hint={data?.database ? formatBytes(data.database.sizeBytes) : undefined}
           busy={data === undefined}
           actionLabel={t("settings.summary.open")}
@@ -230,18 +241,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         />
         <SummaryRow
           label={t("settings.summary.backups")}
-          value={
-            data === undefined ? (
-              "..."
-            ) : newestBackup === null ? (
-              t("settings.summary.none")
-            ) : (
-              <>
-                <AnimatedNumber value={data.backups.length} format={String} /> -{" "}
-                {formatBytes(backupSize(data.backups))}
-              </>
-            )
-          }
+          value={backupsValue}
           hint={newestBackup === null ? undefined : formatBackupDate(newestBackup.modifiedMs)}
           busy={data === undefined}
           actionLabel={t("settings.summary.open")}

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button.component";
+import { WIZARD_BRAND_LABELS, WIZARD_SOURCES } from "@/config/collection/wizard.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { WizardSearchResult } from "@/types/anilist/collection";
+import type { WizardSearchResult, WizardSource } from "@/types/anilist/collection";
 
 import { WizardSourceSearch } from "@/routes/components/collection/wizard/search.wizard";
 import { TmdbBadge } from "@/routes/components/collection/wizard/tmdbBadge.wizard";
@@ -18,8 +19,8 @@ export function WizardSourcePanel({
   searchResults,
   onPickResult,
 }: {
-  source: "anilist" | "tmdb" | "custom";
-  setSource: (source: "anilist" | "tmdb" | "custom") => void;
+  source: WizardSource;
+  setSource: (source: WizardSource) => void;
   search: string;
   setSearch: (value: string) => void;
   onSearch: () => void;
@@ -34,18 +35,14 @@ export function WizardSourcePanel({
   return (
     <div className="mb-2 flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        {(["custom", "anilist", "tmdb"] as const).map((src) => (
+        {WIZARD_SOURCES.map((src) => (
           <Button
             key={src}
             variant={source === src ? "outline" : "default"}
             className="h-6 px-2 text-xs"
             onClick={() => setSource(src)}
           >
-            {src === "custom"
-              ? t("collection.type.custom")
-              : src === "anilist"
-                ? "AniList"
-                : "TMDB"}
+            {src === "custom" ? t("collection.type.custom") : WIZARD_BRAND_LABELS[src]}
           </Button>
         ))}
         {source === "tmdb" && <TmdbBadge />}

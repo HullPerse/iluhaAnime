@@ -43,14 +43,14 @@ export default function StreamHero({ anime }: { anime: StreamingAnime }) {
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <h2 className="windows95-text min-w-0 text-sm leading-tight font-bold">{anime.title}</h2>
 
-        {anime.synonyms.length > 0 ? (
+        {anime.synonyms.length > 0 && (
           <span
             className="text-hint windows95-text min-w-0 truncate text-xs"
             title={anime.synonyms.join(", ")}
           >
             {anime.synonyms.join(", ")}
           </span>
-        ) : null}
+        )}
 
         <div className="flex flex-wrap items-center gap-1">
           {meta.map((value) => (
@@ -63,7 +63,7 @@ export default function StreamHero({ anime }: { anime: StreamingAnime }) {
           ))}
         </div>
 
-        {anime.genres.length > 0 ? (
+        {anime.genres.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {anime.genres.slice(0, 8).map((genre) => (
               <span
@@ -74,7 +74,7 @@ export default function StreamHero({ anime }: { anime: StreamingAnime }) {
               </span>
             ))}
           </div>
-        ) : null}
+        )}
 
         {anime.description && (
           <Section

@@ -16,7 +16,11 @@ export function damerauLevenshtein(a: string, b: string): number {
   const sizeA = a.length;
   const sizeB = b.length;
   const dist: number[][] = Array.from({ length: sizeA + 2 }, (_, i) =>
-    Array.from({ length: sizeB + 2 }, (_, j) => (i === 0 ? j - 1 : j === 0 ? i - 1 : 0))
+    Array.from({ length: sizeB + 2 }, (_, j) => {
+      if (i === 0) return j - 1;
+      if (j === 0) return i - 1;
+      return 0;
+    })
   );
   let maxDist = sizeA + sizeB;
   for (let i = 1; i <= sizeA; i++) {

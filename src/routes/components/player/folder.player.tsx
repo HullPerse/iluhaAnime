@@ -384,7 +384,7 @@ function FolderView({
         </div>
       )}
 
-      {open.has(node.path) || depth === 0 ? (
+      {(open.has(node.path) || depth === 0) && (
         <div
           ref={scrollElementRef}
           data-no-wheel
@@ -626,7 +626,7 @@ function FolderView({
             })}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

@@ -51,7 +51,7 @@ export function useWizardPick({
   }
 
   function applyExternalId(resultId: number): void {
-    const key = source === "anilist" ? "anilist" : source === "tmdb" ? "tmdb" : null;
+    const key = source === "custom" ? null : source;
     if (!key) return;
     setExternalIds((prev) => ({ ...prev, [key]: resultId }));
   }

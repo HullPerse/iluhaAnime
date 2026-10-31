@@ -148,14 +148,14 @@ export default function AnimelibSettings() {
                   : t("settings.animelib.token.empty")}
               </span>
             </div>
-            {error ? (
+            {error && (
               <span className="text-destructive text-xs" role="alert">
                 {error}
               </span>
-            ) : null}
-            {saved ? (
+            )}
+            {saved && (
               <span className="text-hint text-xs">{t("settings.animelib.token.saved")}</span>
-            ) : null}
+            )}
           </div>
         </div>
       </div>

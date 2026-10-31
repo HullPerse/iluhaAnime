@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useMediaEntry } from "@/hooks/media.hook";
@@ -80,7 +81,11 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
         duration: OSD_FADE_MS,
         easing: "ease-out",
       });
-      animation.finished.then(() => setVisible(false)).catch(() => undefined);
+      animation.finished
+        .then(() => setVisible(false))
+        .catch((error: unknown) =>
+          reportBackgroundError("srcroutescomponentsplayermediaoffset.player", error)
+        );
     });
     return () => {
       timerRef.current?.cancel();
@@ -108,36 +113,36 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
       ref={setOsdElement}
       className={`windows95-border windows95-font bg-primary/95 absolute top-4 right-4 z-20 min-w-48 p-2 text-left text-sm ${animateOsd ? "transition-opacity duration-150" : ""}`}
     >
-      {audioTrack ? (
+      {audioTrack && (
         <div className="mb-0.5">
           <span className="text-muted text-xs">{t("player.media.osd.audio")}:</span>{" "}
           <span className="font-bold">{trackLabel(audioTrack)}</span>
         </div>
-      ) : null}
-      {subTrack ? (
+      )}
+      {subTrack && (
         <div className="mb-0.5">
           <span className="text-muted text-xs">{t("player.media.osd.subtitles")}:</span>{" "}
           <span className="font-bold">{trackLabel(subTrack)}</span>
         </div>
-      ) : null}
-      {audioOffset !== 0 ? (
+      )}
+      {audioOffset !== 0 && (
         <div className="mb-0.5">
           <span className="text-muted text-xs">{t("player.media.osd.audio.delay")}:</span>{" "}
           <span className="font-bold">{signed(audioOffset)}</span>
         </div>
-      ) : null}
-      {subOffset !== 0 ? (
+      )}
+      {subOffset !== 0 && (
         <div className="mb-0.5">
           <span className="text-muted text-xs">{t("player.media.osd.sub.delay")}:</span>{" "}
           <span className="font-bold">{signed(subOffset)}</span>
         </div>
-      ) : null}
-      {speed !== 1 ? (
+      )}
+      {speed !== 1 && (
         <div className="mb-0.5">
           <span className="text-muted text-xs">{t("player.media.osd.speed")}:</span>{" "}
           <span className="font-bold">{speed}x</span>
         </div>
-      ) : null}
+      )}
       <div>
         <span className="text-muted text-xs">{t("player.media.osd.volume")}:</span>{" "}
         <span className="font-bold">{muted ? "MUTE" : `${Math.round(volume * 100)}%`}</span>

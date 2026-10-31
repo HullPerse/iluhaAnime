@@ -31,10 +31,13 @@ export function FriendPreview({
 }: FriendPreviewProps) {
   const { t } = useI18n();
   const meanScore = formatMeanScore(profile?.mean_score, parseScoreFormat(profile?.score_format));
+  let relationshipLabel = t("anilist.friends.not.following");
+  if (profile?.is_following == null) relationshipLabel = t("anilist.friends.relationship.unavailable");
+  else if (profile.is_following) relationshipLabel = t("anilist.friends.following");
   if (!hasSelection || profile === undefined) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6">
-        {hasSelection && profileError ? (
+        {hasSelection && profileError && (
           <>
             <span className="windows95-text text-destructive text-xs">{profileError}</span>
             <Button
@@ -47,9 +50,9 @@ export function FriendPreview({
               <RefreshCw className="size-3" />
             </Button>
           </>
-        ) : hasSelection ? (
-          <SmallLoader size={5} />
-        ) : (
+        )}
+        {hasSelection && !profileError && <SmallLoader size={5} />}
+        {!hasSelection && (
           <span className="windows95-text text-hint text-center text-xs">
             {t("anilist.friends.help")}
           </span>
@@ -82,11 +85,7 @@ export function FriendPreview({
             {meanScore != null && ` - ${t("anilist.friends.score")}: ${meanScore}`}
           </p>
           <p className="windows95-text text-hint mt-1 text-xs">
-            {profile.is_following == null
-              ? t("anilist.friends.relationship.unavailable")
-              : profile.is_following
-                ? t("anilist.friends.following")
-                : t("anilist.friends.not.following")}
+            {relationshipLabel}
             {profile.is_follower === true ? ` - ${t("anilist.friends.follows.you")}` : ""}
           </p>
         </div>

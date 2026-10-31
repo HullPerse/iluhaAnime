@@ -124,7 +124,7 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
         if (keyError) reportBackgroundError("game.key", keyError);
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) => reportBackgroundError("srchooksgamesession", error));
   }, []);
 
   const release = useCallback((active: ActiveSession) => {
@@ -138,7 +138,7 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
         if (error) reportBackgroundError("game.stop", error);
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) => reportBackgroundError("srchooksgamesession", error));
   }, []);
 
   const fail = useCallback(
@@ -214,7 +214,7 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
           }
           return null;
         })
-        .catch(() => {});
+        .catch((error: unknown) => reportBackgroundError("srchooksgamesession", error));
     },
     [fail]
   );
@@ -236,7 +236,7 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
             if (stopError) reportBackgroundError("game.stop", stopError);
             return null;
           })
-          .catch(() => {});
+          .catch((error: unknown) => reportBackgroundError("srchooksgamesession", error));
         return;
       }
       const canvas = canvasTarget.current.current;

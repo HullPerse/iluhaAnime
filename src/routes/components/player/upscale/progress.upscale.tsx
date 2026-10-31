@@ -19,12 +19,11 @@ export function UpscaleProgressPanel({
   const { t } = useI18n();
   const hostStats = useHostStats(activeItem?.status === "processing");
   if (!activeItem) return null;
-  const stage =
-    activeItem.current != null && activeItem.total != null && activeItem.total > 0
-      ? "encoding"
-      : activeItem.status === "processing"
-        ? "initializing"
-        : null;
+  const hasFrameProgress =
+    activeItem.current != null && activeItem.total != null && activeItem.total > 0;
+  let stage: "encoding" | "initializing" | null = null;
+  if (hasFrameProgress) stage = "encoding";
+  else if (activeItem.status === "processing") stage = "initializing";
   const etaSecs =
     activeItem.speed &&
     activeItem.speed > 0 &&

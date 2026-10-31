@@ -1,7 +1,7 @@
 import { forceSimulation, forceX, forceCollide } from "d3-force";
 import type { Simulation } from "d3-force";
 
-import { IMG_H, NODE_H, NODE_W, RELATION_X } from "@/config/graphics/graph.config";
+import { IMG_H, NODE_H, NODE_SCALE_TIERS, NODE_W, RELATION_X } from "@/config/graphics/graph.config";
 import type {
   FilteredGraph,
   FranchiseNode,
@@ -10,7 +10,7 @@ import type {
 } from "@/types/anilist/anilist";
 
 export function computeNodeDimensions(nodeCount: number) {
-  const scale = nodeCount > 25 ? 0.75 : nodeCount > 15 ? 0.85 : 1;
+  const scale = NODE_SCALE_TIERS.find((tier) => nodeCount > tier.above)?.scale ?? 1;
   const imgH = Math.round(IMG_H * scale);
   const barH = Math.max(16, Math.round((NODE_H - IMG_H) * scale));
   return {

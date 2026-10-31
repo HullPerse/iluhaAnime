@@ -64,7 +64,7 @@ export function VideoPlayer({ youtubeId, webmUrl, title, className }: VideoPlaye
           />
           <VolumeBar />
           <CaptionsSelect />
-          {isYoutube ? <OpenInBrowserButton youtubeId={youtubeId ?? ""} /> : null}
+          {isYoutube && <OpenInBrowserButton youtubeId={youtubeId ?? ""} />}
           <FullscreenToggle iframeRef={iframeRef} />
         </div>
       </Container>

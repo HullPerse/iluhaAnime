@@ -41,12 +41,15 @@ export function FiltersContent({
     });
   };
   const patch = (next: Partial<StreamCatalogFilters>) => setLocal({ ...local, ...next });
+  const filtersLoading = constants.isPending;
+  const filtersFailed = !filtersLoading && constants.error !== null;
 
   return (
     <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto p-2">
-      {constants.isPending ? (
+      {filtersLoading && (
         <p className="text-hint windows95-text text-xs">{t("stream.filters.loading")}</p>
-      ) : constants.error ? (
+      )}
+      {filtersFailed && constants.error && (
         <div className="flex items-center gap-2">
           <p className="text-destructive windows95-text min-w-0 flex-1 text-xs">
             {constants.error.message}
@@ -55,9 +58,9 @@ export function FiltersContent({
             {t("stream.retry")}
           </Button>
         </div>
-      ) : null}
+      )}
 
-      {data ? (
+      {data && (
         <>
           <p className="windows95-text text-text text-xs font-bold">{t("stream.filters.types")}</p>
           <OptionChips
@@ -80,10 +83,10 @@ export function FiltersContent({
           </p>
           <GenrePicker constants={data} filters={local} onChange={setLocal} />
         </>
-      ) : null}
+      )}
 
       <p className="windows95-text text-text mt-1 text-xs font-bold">{t("stream.filters.age")}</p>
-      {data ? (
+      {data && (
         <div className="flex flex-wrap gap-1">
           {data.ageRatings
             .filter((option) => local.adult || !isAdultAgeRating(option.id))
@@ -97,7 +100,7 @@ export function FiltersContent({
               />
             ))}
         </div>
-      ) : null}
+      )}
 
       <p className="windows95-text text-text mt-1 text-xs font-bold">{t("stream.filters.year")}</p>
       <DualSlider

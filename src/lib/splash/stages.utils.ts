@@ -9,19 +9,24 @@ export const splashProgress = (stages: SplashStage[]): number => {
   return finished / stages.length;
 };
 
-export const stageMarker = (status: string): string => {
-  if (status === "done") return "[  OK  ]";
-  if (status === "degraded") return "[ FAIL ]";
-  if (status === "active") return "[  ..  ]";
-  return "[  --  ]";
+const STAGE_MARKERS: Partial<Record<string, string>> = {
+  active: "[  ..  ]",
+  degraded: "[ FAIL ]",
+  done: "[  OK  ]",
 };
 
+const STAGE_TEXT_KEYS: Record<string, keyof SplashTexts> = {
+  cache: "cache",
+  database: "database",
+  index: "index",
+  migrations: "migrations",
+  spelling: "spelling",
+  theme: "theme",
+};
+
+export const stageMarker = (status: string): string => STAGE_MARKERS[status] ?? "[  --  ]";
+
 export const splashStageLabel = (texts: SplashTexts, id: string): string => {
-  if (id === "theme") return texts.theme;
-  if (id === "migrations") return texts.migrations;
-  if (id === "cache") return texts.cache;
-  if (id === "database") return texts.database;
-  if (id === "spelling") return texts.spelling;
-  if (id === "index") return texts.index;
-  return texts.tabs;
+  const key = STAGE_TEXT_KEYS[id];
+  return key ? texts[key] : texts.tabs;
 };

@@ -1,3 +1,4 @@
+import { SPLASH_STAGE_MARKS } from "@/config/system/splash.config";
 import type { SplashVariantProps } from "@/types/core/shared.splash";
 import { splashProgress, splashStageLabel } from "@/lib/splash/stages.utils";
 
@@ -33,7 +34,7 @@ export function GenericSplash({
           <ul className="mt-4 text-sm leading-relaxed">
             {stages.map((stage) => (
               <li key={stage.id} className={stage.status === "pending" ? "text-muted" : undefined}>
-                {stage.status === "done" ? "[x] " : stage.status === "degraded" ? "[!] " : "[ ] "}
+                {SPLASH_STAGE_MARKS[stage.status]}
                 {splashStageLabel(texts, stage.id)}
               </li>
             ))}

@@ -22,11 +22,11 @@ export function SimilarRailCard({
         <span className="windows95-text bg-secondary text-title-text absolute top-0 left-0 px-0.5 text-xs leading-tight tabular-nums">
           #{rank}
         </span>
-        {item.score ? (
+        {item.score != null && item.score > 0 && (
           <span className="windows95-text bg-secondary text-title-text absolute right-0 bottom-0 px-0.5 text-xs leading-tight">
             ★ {item.score}
           </span>
-        ) : null}
+        )}
       </span>
       <span className="line-clamp-2 h-7 text-xs leading-tight font-bold">{item.title}</span>
       {meta !== "" && <span className="text-hint text-xs">{meta}</span>}

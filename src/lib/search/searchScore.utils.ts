@@ -195,23 +195,22 @@ export function parseOperatorTerms(query: string): OperatorTerm[] | null {
   return terms;
 }
 
+const TERM_MATCHERS: Partial<Record<string, (term: OperatorTerm, target: string) => number | null>> =
+  {
+    full: (term, target) => (target === term.text ? 1000 : null),
+    exact: (term, target) => {
+      const index = target.indexOf(term.text);
+      return index === -1 ? null : 650 - Math.min(100, index);
+    },
+    prefix: (term, target) =>
+      target.startsWith(term.text) ? 900 - Math.min(120, target.length - term.text.length) : null,
+    suffix: (term, target) =>
+      target.endsWith(term.text) ? 900 - Math.min(120, target.length - term.text.length) : null,
+  };
+
 export function matchOperatorTerm(term: OperatorTerm, target: string): number | null {
-  if (term.mode === "full") return target === term.text ? 1000 : null;
-  if (term.mode === "exact") {
-    const index = target.indexOf(term.text);
-    return index === -1 ? null : 650 - Math.min(100, index);
-  }
-  if (term.mode === "prefix") {
-    return target.startsWith(term.text)
-      ? 900 - Math.min(120, target.length - term.text.length)
-      : null;
-  }
-  if (term.mode === "suffix") {
-    return target.endsWith(term.text)
-      ? 900 - Math.min(120, target.length - term.text.length)
-      : null;
-  }
-  return normalizedMatchScore(term.text, target, term.text.split(" "));
+  const matcher = TERM_MATCHERS[term.mode];
+  return matcher ? matcher(term, target) : normalizedMatchScore(term.text, target, term.text.split(" "));
 }
 
 export function matchOperatorTerms(terms: OperatorTerm[], target: string): number | null {

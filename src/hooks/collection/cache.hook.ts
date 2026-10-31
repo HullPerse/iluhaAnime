@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 
 import { systemApi } from "@/api/system.api";
 import { useCell } from "@/lib/core/signal.hook";
@@ -91,7 +92,7 @@ export function useCoverCache(
             if (!cancelled && downloaded) setCoverUrl(downloaded);
             return null;
           })
-          .catch(() => {});
+          .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
         return;
       }
       resolveCachedImage(persistedId)
@@ -107,9 +108,9 @@ export function useCoverCache(
               if (!cancelled && downloaded) setCoverUrl(downloaded);
               return null;
             })
-            .catch(() => {});
+            .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
         })
-        .catch(() => {});
+        .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
     };
     if (blobId) {
       resolveCachedImage(blobId)
@@ -121,7 +122,7 @@ export function useCoverCache(
           }
           return fromRemote();
         })
-        .catch(() => {});
+        .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
     } else {
       fromRemote();
     }

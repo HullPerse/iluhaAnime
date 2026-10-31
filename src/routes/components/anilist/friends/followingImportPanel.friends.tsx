@@ -74,11 +74,12 @@ export function FollowingImportPanel({
         </Button>
       </div>
       <span className="windows95-text text-hint text-xs">{t("anilist.friends.import.hint")}</span>
-      {following.isLoading ? (
+      {following.isLoading && (
         <div className="flex items-center justify-center p-4">
           <SmallLoader size={5} />
         </div>
-      ) : following.error ? (
+      )}
+      {!following.isLoading && following.error && (
         <div className="windows95-border text-destructive bg-primary flex items-start gap-1 p-1 text-xs">
           <X className="mt-0.5 size-3 shrink-0" />
           <span className="windows95-text flex-1">
@@ -86,11 +87,13 @@ export function FollowingImportPanel({
           </span>
           <Button onClick={() => following.retry()}>{t("anilist.friends.import.retry")}</Button>
         </div>
-      ) : following.users.length === 0 ? (
+      )}
+      {!following.isLoading && !following.error && following.users.length === 0 && (
         <span className="windows95-text text-hint p-2 text-center text-xs">
           {t("anilist.friends.import.empty")}
         </span>
-      ) : (
+      )}
+      {!following.isLoading && !following.error && following.users.length > 0 && (
         <>
           <div className="flex items-center gap-1">
             <Checkbox

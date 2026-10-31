@@ -103,7 +103,7 @@ export default function ListCollection({
               className="absolute top-0 left-0 w-full pb-1"
               style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
-              {isHeader && row ? (
+              {isHeader && row && (
                 <GroupHeaderCollection
                   label={statusLabel([row.status], row.status.id, t, locale)}
                   color={row.status.color}
@@ -119,7 +119,8 @@ export default function ListCollection({
                     onAddToStatus,
                   })}
                 />
-              ) : item ? (
+              )}
+              {!isHeader && item && (
                 <CollectionRow
                   item={item}
                   statuses={statuses}
@@ -127,7 +128,7 @@ export default function ListCollection({
                   onOpen={onOpen}
                   onSetStatus={onSetStatus}
                 />
-              ) : null}
+              )}
             </div>
           );
         })}

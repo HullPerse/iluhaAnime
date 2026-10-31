@@ -1,3 +1,4 @@
+import { attemptSync } from "@/lib/core/attempt.utils";
 import type { PageFindCollection, PageFindMatch, PageFindOptions } from "@/types/core/pageFind";
 
 export const PAGE_FIND_NODE_CAP = 20000;
@@ -176,13 +177,11 @@ export function isPageFindHighlightSupported(): boolean {
 function toRange(match: PageFindMatch): Range | null {
   if (!match.node.isConnected) return null;
   const range = document.createRange();
-  try {
+  const [, error] = attemptSync(() => {
     range.setStart(match.node, match.start);
     range.setEnd(match.node, match.end);
-  } catch {
-    return null;
-  }
-  return range;
+  });
+  return error === null ? range : null;
 }
 
 export function applyPageFindHighlights(matches: readonly PageFindMatch[], current: number): void {

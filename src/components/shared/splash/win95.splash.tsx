@@ -1,3 +1,4 @@
+import { SPLASH_STAGE_MARKS } from "@/config/system/splash.config";
 import type { SplashVariantProps } from "@/types/core/shared.splash";
 import { splashProgress, splashStageLabel } from "@/lib/splash/stages.utils";
 
@@ -25,7 +26,7 @@ export function Win95Splash({ stages, texts, fastLaunch, onToggleFastLaunch }: S
         <ul className="mt-6 w-full text-left text-xl leading-relaxed">
           {stages.map((stage) => (
             <li key={stage.id} className={stage.status === "pending" ? "opacity-50" : undefined}>
-              {stage.status === "done" ? "[x] " : stage.status === "degraded" ? "[!] " : "[ ] "}
+              {SPLASH_STAGE_MARKS[stage.status]}
               {splashStageLabel(texts, stage.id)}
               {stage.status === "active" ? "..." : ""}
             </li>

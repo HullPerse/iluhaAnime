@@ -11,5 +11,5 @@ export function reportPresenceCommand(command: Promise<void>, scope: string): vo
       if (error) reportBackgroundError(scope, error);
       return null;
     })
-    .catch(() => undefined);
+    .catch((error: unknown) => reportBackgroundError("srclibcorepresenceCommand", error));
 }

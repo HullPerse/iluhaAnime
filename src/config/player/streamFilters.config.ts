@@ -23,6 +23,13 @@ export function streamYearMax(): number {
 }
 export const STREAM_EPISODES_MAX = 2000;
 
+export const STREAM_ORDER_LABELS: Record<StreamSortBy, TranslationKey> = {
+  rating_score: "stream.filters.sort.rating",
+  views: "stream.sort.popular",
+  name: "stream.filters.sort.name",
+  created_at: "stream.sort.latest",
+};
+
 export const STREAM_SORT_OPTIONS: readonly {
   value: StreamSortBy;
   labelKey: TranslationKey;

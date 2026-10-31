@@ -106,6 +106,9 @@ export default function BrowseAnimeModal({
     setPage(1);
   }, []);
   const paged = paginate(data, page, BROWSE_PAGE_SIZE);
+  const listLoading = isLoading;
+  const listEmpty = !listLoading && paged.length === 0;
+  const listReady = !listLoading && !listEmpty;
 
   if (detailId != null) {
     return (
@@ -134,13 +137,13 @@ export default function BrowseAnimeModal({
       </div>
 
       <div ref={scrollRef} className="flex flex-1 flex-col gap-1 overflow-y-auto p-1">
-        {isLoading ? (
-          <TabLoader className="flex-1" />
-        ) : paged.length === 0 ? (
+        {listLoading && <TabLoader className="flex-1" />}
+        {listEmpty && (
           <div className="flex flex-1 items-center justify-center">
             <span className="windows95-text">{t("common.no.results")}</span>
           </div>
-        ) : (
+        )}
+        {listReady &&
           paged.map((item) => {
             const entry = entries.get(item.id);
 
@@ -213,8 +216,7 @@ export default function BrowseAnimeModal({
                 </div>
               </button>
             );
-          })
-        )}
+          })}
       </div>
 
       {total > 0 && (

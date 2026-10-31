@@ -92,11 +92,11 @@ export default function StreamToolbar({
         onClick={onFiltersOpen}
       >
         <Filter className="size-4" />
-        {activeFilters > 0 ? (
+        {activeFilters > 0 && (
           <span className="bg-secondary text-title-text absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs">
             {activeFilters}
           </span>
-        ) : null}
+        )}
       </Button>
 
       <span className="ui-toolbar-separator" aria-hidden />

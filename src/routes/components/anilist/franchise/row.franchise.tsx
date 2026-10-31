@@ -50,7 +50,8 @@ export function FranchiseRow({
   const progress = entry?.progress ?? null;
   const aired = availableEpisodes(node, now);
   const notReleased = node.status === "NOT_YET_RELEASED";
-  const shownProgress = progress == null ? null : aired > 0 ? Math.min(progress, aired) : null;
+  let shownProgress: number | null = null;
+  if (progress != null && aired > 0) shownProgress = Math.min(progress, aired);
   const accessible = [
     node.title,
     notReleased ? t("anilist.franchise.not.released") : null,

@@ -82,7 +82,7 @@ export function FilmstripViewer({
             >
               {t("common.frames")}
             </Button>
-            {trailerYoutubeId ? (
+            {trailerYoutubeId && (
               <Button
                 className="h-5 px-1 text-xs"
                 aria-pressed={showTrailer}
@@ -96,20 +96,21 @@ export function FilmstripViewer({
               >
                 {trailerLabel}
               </Button>
-            ) : null}
+            )}
           </>
         )}
         <span className="windows95-text ml-auto text-xs">
           {showTrailer ? "▶" : `${hasFrames ? index + 1 : 0}/${total}`}
         </span>
       </div>
-      {showTrailer && trailerYoutubeId ? (
+      {showTrailer && trailerYoutubeId && (
         <VideoPlayer
           youtubeId={trailerYoutubeId}
           title={trailerLabel}
           className="aspect-video w-full"
         />
-      ) : hasFrames ? (
+      )}
+      {!showTrailer && hasFrames && (
         <div
           role="group"
           aria-label={t("common.frames")}
@@ -123,7 +124,8 @@ export function FilmstripViewer({
             className="aspect-video w-full bg-black"
           />
         </div>
-      ) : (
+      )}
+      {!showTrailer && !hasFrames && (
         <div className="windows95-border flex aspect-video w-full items-center justify-center bg-black">
           <span className="windows95-text text-hint text-xs">{t("common.no.results")}</span>
         </div>

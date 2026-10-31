@@ -67,7 +67,7 @@ const FranNode = memo(
         }}
       >
         {isRoot && <div className="bg-secondary h-0.5 w-full shrink-0" />}
-        {isAggregator ? (
+        {isAggregator && (
           <div
             className="windows95-font bg-primary flex items-center justify-center text-center text-xs break-all"
             style={{
@@ -79,7 +79,8 @@ const FranNode = memo(
           >
             {label}
           </div>
-        ) : node.cover_url ? (
+        )}
+        {!isAggregator && node.cover_url && (
           <img
             src={node.cover_url}
             alt=""
@@ -87,7 +88,8 @@ const FranNode = memo(
             style={{ height: dims.imgH }}
             loading="lazy"
           />
-        ) : (
+        )}
+        {!isAggregator && !node.cover_url && (
           <div
             className="bg-primary text-hint flex items-center justify-center text-xs"
             style={{ height: dims.imgH }}

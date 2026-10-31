@@ -231,13 +231,9 @@ export function createCategorySignalStore(
     },
     setCategoryCollapsed: (id, collapsed) => {
       const collapsedIds = atoms.collapsedIds.get();
-      atoms.collapsedIds.set(
-        collapsed
-          ? collapsedIds.includes(id)
-            ? collapsedIds
-            : [...collapsedIds, id]
-          : collapsedIds.filter((c) => c !== id)
-      );
+      let next = collapsedIds.filter((c) => c !== id);
+      if (collapsed) next = collapsedIds.includes(id) ? collapsedIds : [...collapsedIds, id];
+      atoms.collapsedIds.set(next);
     },
   };
 

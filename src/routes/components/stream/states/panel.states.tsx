@@ -20,11 +20,11 @@ export function StatePanel({
     >
       {icon}
       <span className="windows95-text text-sm font-bold">{title}</span>
-      {description ? (
+      {description && (
         <span className="text-hint windows95-text max-h-40 max-w-xl overflow-y-auto text-center break-words whitespace-pre-wrap">
           {description}
         </span>
-      ) : null}
+      )}
       {action}
     </section>
   );

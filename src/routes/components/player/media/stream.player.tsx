@@ -38,21 +38,22 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const voices = stream.variants.filter((variant) => !isSubtitleVariant(variant));
   const subtitles = stream.variants.filter(isSubtitleVariant);
   const busy = stream.switching || stream.variantsLoading || stream.variantsFailed;
-  const status = stream.switching
-    ? t("player.stream.switching")
-    : pausedForCache === true
-      ? `${t("player.stream.buffering")}${cacheBuffering === undefined ? "" : ` ${Math.round(cacheBuffering)}%`}`
-      : "";
+  let status = "";
+  if (stream.switching) status = t("player.stream.switching");
+  else if (pausedForCache === true) {
+    const percent = cacheBuffering === undefined ? "" : ` ${Math.round(cacheBuffering)}%`;
+    status = `${t("player.stream.buffering")}${percent}`;
+  }
 
   return (
     <section className="border-muted relative flex h-6 items-center gap-1 border-r-2 px-1">
-      {statsOpen ? (
+      {statsOpen && (
         <StreamStats
           session={session}
           variants={stream.variants}
           onClose={() => setStatsOpen(false)}
         />
-      ) : null}
+      )}
 
       <StreamVariantSelects
         session={session}
@@ -78,7 +79,7 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
         <Activity className="size-4" />
       </Button>
 
-      {stream.variantsFailed ? (
+      {stream.variantsFailed && (
         <Button
           size="icon"
           className="size-6"
@@ -88,7 +89,7 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
         >
           <RefreshCw className="size-3" />
         </Button>
-      ) : null}
+      )}
 
       <span
         data-testid="stream-status"

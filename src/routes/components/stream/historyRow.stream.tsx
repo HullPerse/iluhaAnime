@@ -15,6 +15,11 @@ export function HistoryRow({ entry, onOpen }: { entry: StreamHistoryEntry; onOpe
   const episodeLabel = `${t("stream.episode.short", { n: entry.episodeNumber })}${
     entry.episodeTitle ? `, ${entry.episodeTitle}` : ""
   }`;
+  const resumeLabel =
+    entry.position > 0
+      ? t("stream.episode.resume", { time: formatResume(entry.position) })
+      : "";
+  const statusLabel = watched ? t("stream.history.watched") : resumeLabel;
 
   return (
     <div
@@ -26,9 +31,9 @@ export function HistoryRow({ entry, onOpen }: { entry: StreamHistoryEntry; onOpe
       className="windows95-text hover:bg-surface flex w-full cursor-pointer items-center gap-2 px-1 py-0.5 text-left select-none"
     >
       <div className="windows95-border bg-field h-10 w-7 shrink-0 overflow-hidden">
-        {cover ? (
+        {cover && (
           <Image src={cover} alt="" className="h-full w-full" type="cover" loading="lazy" />
-        ) : null}
+        )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="min-w-0 truncate font-bold">{entry.title}</span>
@@ -38,11 +43,7 @@ export function HistoryRow({ entry, onOpen }: { entry: StreamHistoryEntry; onOpe
         </div>
       </div>
       <span className={`shrink-0 text-xs tabular-nums ${watched ? "text-hint" : "text-text"}`}>
-        {watched
-          ? t("stream.history.watched")
-          : entry.position > 0
-            ? t("stream.episode.resume", { time: formatResume(entry.position) })
-            : ""}
+        {statusLabel}
       </span>
       <ChevronRight className="text-hint size-3 shrink-0" aria-hidden />
     </div>

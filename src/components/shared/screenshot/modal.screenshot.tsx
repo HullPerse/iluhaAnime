@@ -27,6 +27,7 @@ import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { Debouncer } from "@/lib/core/debounce.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { canRedo, canUndo, commit, createHistory, redo, undo } from "@/lib/core/annotation.utils";
 import { fullCrop, isSquare, NO_PAN } from "@/lib/core/crop.utils";
 import { canSaveScreenshot, defaultScreenshotName } from "@/lib/core/screenshot.utils";
@@ -154,12 +155,12 @@ export default function ScreenshotModal({
       }
       const [, writeError] = await attempt(writeImage(path));
       if (path !== capture.path) {
-        attempt(systemApi.discardScreenshot(path))
-          .then(([, error]) => {
+        ignore(
+          attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
             if (error) reportBackgroundError("screenshot.discard-copy", error);
             return null;
           })
-          .catch(() => {});
+        );
       }
       if (writeError) {
         setCopied(false);

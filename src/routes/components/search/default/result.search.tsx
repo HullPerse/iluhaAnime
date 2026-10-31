@@ -59,33 +59,35 @@ export default function SearchResultItem({
             className="border-muted bg-surface h-40 w-28 shrink-0 animate-pulse border motion-reduce:animate-none"
             aria-hidden
           />
-        ) : visual.mode === "show" ? (
-          <button
-            type="button"
-            className="border-muted h-40 w-28 shrink-0 cursor-pointer border p-0 hover:brightness-110"
-            onClick={refreshCover}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              setCorrecting(true);
-            }}
-            data-vim-contextmenu="cover"
-            title={t("search.cover.refresh")}
-            aria-label={t("search.cover.refresh")}
-          >
-            <ImageComponent
-              src={visual.src}
-              alt=""
-              title={
-                cover.status === "override"
-                  ? t("search.cover.correct.manual")
-                  : cover.status === "page"
-                    ? t("search.cover.page.poster")
-                    : undefined
-              }
-              className="h-full w-full object-cover"
-            />
-          </button>
-        ) : null}
+        ) : (
+          visual.mode === "show" && (
+            <button
+              type="button"
+              className="border-muted h-40 w-28 shrink-0 cursor-pointer border p-0 hover:brightness-110"
+              onClick={refreshCover}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setCorrecting(true);
+              }}
+              data-vim-contextmenu="cover"
+              title={t("search.cover.refresh")}
+              aria-label={t("search.cover.refresh")}
+            >
+              <ImageComponent
+                src={visual.src}
+                alt=""
+                title={
+                  cover.status === "override"
+                    ? t("search.cover.correct.manual")
+                    : cover.status === "page"
+                      ? t("search.cover.page.poster")
+                      : undefined
+                }
+                className="h-full w-full object-cover"
+              />
+            </button>
+          )
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-1">
             <span className="windows95-font bg-secondary text-title-text px-1 text-xs">
@@ -128,11 +130,11 @@ export default function SearchResultItem({
               <span className="text-hint">L: </span>
               <span className="text-destructive">{item.leechers}</span>
             </span>
-            {releaseAge ? (
+            {releaseAge && (
               <span className="windows95-text text-hint text-xs" title={item.date}>
                 {releaseAge}
               </span>
-            ) : null}
+            )}
           </div>
           <div
             className="border-muted bg-surface mt-0.5 h-2 w-full border"
@@ -145,12 +147,13 @@ export default function SearchResultItem({
         </div>
       </div>
 
-      {busy ? (
+      {busy && (
         <div className="flex items-center gap-1">
           <SmallLoader size={3} />
           <span className="windows95-text">{t("search.loading.magnet")}</span>
         </div>
-      ) : hasMagnet ? (
+      )}
+      {!busy && hasMagnet && (
         <TorrentActions
           item={item}
           busy={busy}
@@ -159,24 +162,23 @@ export default function SearchResultItem({
           onDownload={onDownload}
           label={item.title}
         />
-      ) : (
-        item.link && (
-          <Button
-            onClick={() => onOpenLink(item)}
+      )}
+      {!busy && !hasMagnet && item.link && (
+        <Button
+          onClick={() => onOpenLink(item)}
             className="windows95-active-border bg-primary windows95-text text-text inline-flex cursor-pointer items-center gap-0.5 px-2 py-0.5 no-underline"
           >
             <ImageComponent src="/images/w2k_globe.ico" alt="" className="size-4" />
-            {t("search.open")}
-          </Button>
-        )
+          {t("search.open")}
+        </Button>
       )}
-      {correcting ? (
+      {correcting && (
         <CoverCorrectionModal
           torrentTitle={item.title}
           cover={cover}
           onClose={() => setCorrecting(false)}
         />
-      ) : null}
+      )}
     </article>
   );
 }

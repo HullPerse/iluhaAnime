@@ -60,8 +60,8 @@ export default function CoverCandidateThumb({
         {current && (
           <span className="font-bold underline">{t("search.cover.correct.current")}</span>
         )}
-        {candidate.seasonYear ? <span>{candidate.seasonYear}</span> : null}
-        {candidate.format ? <span>{candidate.format}</span> : null}
+        {candidate.seasonYear && <span>{candidate.seasonYear}</span>}
+        {candidate.format && <span>{candidate.format}</span>}
       </span>
     </button>
   );

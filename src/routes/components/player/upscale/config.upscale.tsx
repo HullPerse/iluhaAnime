@@ -17,6 +17,7 @@ import { queryKeys } from "@/lib/core/keys.utils";
 import { withFallback } from "@/lib/core/attempt.utils";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import { formatETA } from "@/lib/core/time.utils";
+import { parseUpscaleFps } from "@/lib/player/upscaleFps.utils";
 import type { PreviewFrame } from "@/types/core/upscale";
 
 import FFMPEG from "@/routes/components/player/ffmpeg.player";
@@ -90,8 +91,7 @@ export function UpscaleConfigPanel({
 }) {
   const { t } = useI18n();
   const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
-  const targetFps =
-    fpsValue === "60" || fpsValue === "60i" ? 60 : fpsValue ? Number(fpsValue) : null;
+  const targetFps = parseUpscaleFps(fpsValue);
   const { data: estimate } = useAppQuery("static", {
     queryKey: queryKeys.upscaleEstimate(filePath, [
       resolution,

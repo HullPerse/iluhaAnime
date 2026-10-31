@@ -148,6 +148,9 @@ export default function PlaylistBody({
     : -1;
   const activeIndex = matchedIndex >= 0 ? entries[matchedIndex].index : (entries[0]?.index ?? -1);
   const virtualized = entries.length > PLAYLIST_VIRTUALIZE_AFTER;
+  const emptyList = entries.length === 0;
+  const plainList = !emptyList && !virtualized;
+  const virtualList = !emptyList && virtualized;
   const focusPosition =
     focusedIndex == null ? -1 : entries.findIndex((entry) => entry.index === focusedIndex);
 
@@ -175,13 +178,13 @@ export default function PlaylistBody({
           <span className="windows95-font text-xs">{t("player.media.playlist.add")}</span>
         </Button>
       </div>
-      {entries.length > 0 ? (
+      {entries.length > 0 && (
         <div className="flex shrink-0 items-center justify-between gap-1 px-2 py-0.5">
           <span className="windows95-font text-hint text-xs tabular-nums">
             {t("player.media.playlist.count", { count: entries.length })}
           </span>
         </div>
-      ) : null}
+      )}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div
           ref={scrollRef}
@@ -190,12 +193,13 @@ export default function PlaylistBody({
           data-virtual-list={entries.length > PLAYLIST_VIRTUALIZE_AFTER ? "" : undefined}
           className="min-h-0 flex-1 overflow-y-auto p-1"
         >
-          {entries.length === 0 ? (
+          {emptyList && (
             <div className="flex flex-col items-center gap-1 px-1 py-4 text-center">
               <ListVideo className="text-hint size-6" aria-hidden="true" />
               <div className="windows95-font text-xs">{t("player.media.playlist.empty")}</div>
             </div>
-          ) : entries.length <= PLAYLIST_VIRTUALIZE_AFTER ? (
+          )}
+          {plainList && (
             entries.map((entry, position) => {
               const current = entry.index === activeIndex;
               return (
@@ -215,7 +219,8 @@ export default function PlaylistBody({
                 />
               );
             })
-          ) : (
+          )}
+          {virtualList && (
             <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
               {virtualizer.getVirtualItems().map((virtualItem) => {
                 const entry = entries[virtualItem.index];

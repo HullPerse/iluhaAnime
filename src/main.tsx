@@ -14,6 +14,7 @@ import {
 } from "@/lib/core/fatalClassify.utils";
 import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/core/report.utils";
 import { readThemeName } from "@/lib/core/fatalTheme.utils";
+import { attempt, attemptSync } from "@/lib/core/attempt.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { router } from "@/routes/__root";
 import { addNotification } from "@/store/notification.store";
@@ -59,27 +60,30 @@ const showStartupFallback = (message: string): void => {
   document.body.innerHTML = `<div style="background:#0000aa;color:#fff;font-family:monospace;padding:48px"><p>Startup error</p><p>${safe}</p><button onclick="location.reload()">Reload</button></div>`;
 };
 
-try {
-  const rootElement = document.querySelector("#root");
-  if (!rootElement) throw new Error("Root element not found");
+const [, mountError] = await attempt(
+  (async () => {
+    const rootElement = document.querySelector("#root");
+    if (!rootElement) throw new Error("Root element not found");
 
-  const { createRoot } = await import("react-dom/client");
-  createRoot(rootElement).render(
-    <StrictMode>
-      <ErrorBoundary onResetCache={() => queryClient.clear()}>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
-      </ErrorBoundary>
-    </StrictMode>
-  );
-} catch (error) {
-  console.error("Startup failed:", error);
+    const { createRoot } = await import("react-dom/client");
+    createRoot(rootElement).render(
+      <StrictMode>
+        <ErrorBoundary onResetCache={() => queryClient.clear()}>
+          <QueryClientProvider client={queryClient}>
+            <RouterProvider router={router} />
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </StrictMode>
+    );
+  })()
+);
+
+if (mountError !== null) {
+  console.error("Startup failed:", mountError);
   const info = {
-    ...toFatalInfo(error, { scope: "startup", route: "/", themeName: readThemeName() }),
+    ...toFatalInfo(mountError, { scope: "startup", route: "/", themeName: readThemeName() }),
   };
-  try {
-    reportFatal(info);
-  } catch {}
+  const [, reportError] = attemptSync(() => reportFatal(info));
+  if (reportError !== null) console.error("Startup fatal report failed:", reportError);
   showStartupFallback(info.message);
 }

@@ -3,8 +3,12 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
+import {
+  WIZARD_MEDIA_TYPE_LABELS,
+  WIZARD_SEARCH_PLACEHOLDERS,
+} from "@/config/collection/wizard.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { WizardSearchResult } from "@/types/anilist/collection";
+import type { WizardSearchResult, WizardSource } from "@/types/anilist/collection";
 
 import { SearchResultCover } from "@/routes/components/collection/wizard/searchResultCover.wizard";
 
@@ -20,7 +24,7 @@ export function WizardSourceSearch({
   searchResults,
   onPickResult,
 }: {
-  source: "anilist" | "tmdb" | "custom";
+  source: WizardSource;
   search: string;
   setSearch: (value: string) => void;
   onSearch: () => void;
@@ -87,13 +91,7 @@ export function WizardSourceSearch({
           aria-activedescendant={
             showList && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined
           }
-          placeholder={
-            source === "anilist"
-              ? t("collection.wizard.search.anilist")
-              : source === "tmdb"
-                ? t("collection.wizard.search.tmdb")
-                : ""
-          }
+          placeholder={source === "custom" ? "" : t(WIZARD_SEARCH_PLACEHOLDERS[source])}
           className="h-full flex-1"
         />
         <Button
@@ -123,12 +121,8 @@ export function WizardSourceSearch({
             {searchResults.map((r, index) => {
               const active = index === activeIndex;
               const alt = r.altTitles?.find((a) => a && a !== r.title);
-              const typeLabel =
-                r.mediaType === "movie"
-                  ? t("collection.type.movie")
-                  : r.mediaType === "tv"
-                    ? t("collection.type.series")
-                    : null;
+              const typeKey = r.mediaType ? WIZARD_MEDIA_TYPE_LABELS[r.mediaType] : undefined;
+              const typeLabel = typeKey ? t(typeKey) : null;
               return (
                 <button
                   key={`${r.mediaType ?? source}-${r.id}`}

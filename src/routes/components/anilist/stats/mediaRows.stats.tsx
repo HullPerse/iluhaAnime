@@ -44,13 +44,13 @@ export function MediaRows({
           onClick={() => onOpen(row.id)}
           onKeyDown={enterOrSpace(() => onOpen(row.id))}
         >
-          {row.coverUrl ? (
+          {row.coverUrl && (
             <ImageComponent
               src={row.coverUrl}
               alt=""
               className="windows95-border h-11 w-8 shrink-0"
             />
-          ) : null}
+          )}
           <span className="windows95-font flex-1 truncate text-xs">{row.title}</span>
           <span
             className="inline-block size-3 shrink-0"

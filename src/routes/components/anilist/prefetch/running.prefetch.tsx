@@ -23,12 +23,12 @@ export function RunningSummary({
       <div className="windows95-text text-hint text-xs">
         {t("anilist.prefetch.fetched")}: {progress.fetched} - {t("anilist.prefetch.skipped")}:{" "}
         {progress.skipped}
-        {progress.current ? (
+        {progress.current && (
           <>
             {" "}
             - {t("anilist.prefetch.current")}: <strong>{progress.current}</strong>
           </>
-        ) : null}
+        )}
       </div>
       <div className="windows95-text text-hint flex flex-row items-center justify-between text-xs">
         <span>

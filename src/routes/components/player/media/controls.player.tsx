@@ -151,11 +151,11 @@ function Controls({
 
   return (
     <main className="relative flex flex-row items-center gap-1 p-1">
-      {boundary ? (
+      {boundary && (
         <div className="windows95-border bg-primary windows95-text absolute right-0 bottom-full z-50 mb-1 px-1 py-0.5 whitespace-nowrap">
           {boundary}
         </div>
-      ) : null}
+      )}
       <section className="border-muted flex h-6 w-15 gap-1 border-r-2">
         <Button
           size="icon"
@@ -236,7 +236,7 @@ function Controls({
           >
             {`${speed}x`}
           </Button>
-          {speedOpen ? (
+          {speedOpen && (
             <div className="windows95-border bg-primary absolute bottom-full left-0 z-50 mb-0.5 w-20">
               {SPEEDS.map((rate) => (
                 <Button
@@ -254,7 +254,7 @@ function Controls({
                 </Button>
               ))}
             </div>
-          ) : null}
+          )}
         </div>
       </section>
 
@@ -272,7 +272,7 @@ function Controls({
         </Button>
       </section>
 
-      {hideTracks !== true && streaming === null && tracks.length > 0 ? (
+      {hideTracks !== true && streaming === null && tracks.length > 0 && (
         <Tracks
           tracks={tracks}
           onSelectAudio={onSelectAudio}
@@ -280,9 +280,9 @@ function Controls({
           onAddAudio={onAddAudio}
           onAddSubtitle={onAddSubtitle}
         />
-      ) : null}
+      )}
 
-      {immersive ? (
+      {immersive && (
         <section className="border-muted flex h-6 gap-1 border-l-2 px-1">
           <Button
             size="icon"
@@ -294,7 +294,7 @@ function Controls({
             <span className="text-xs font-bold">{autoHide ? <SquareX /> : <Square />}</span>
           </Button>
         </section>
-      ) : null}
+      )}
 
       <VolumeControl volume={volume} muted={muted} onVolume={onVolume} onMute={onMute} />
     </main>

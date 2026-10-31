@@ -10,6 +10,13 @@ import { sizeInKb } from "@/lib/core/gameFormat.utils";
 import { moveIndex } from "@/lib/ui/keyboard.utils";
 import type { GameLibraryProps } from "@/types/core/library.game";
 
+const ROW_DELTAS: Record<string, number> = { ArrowDown: 1, ArrowUp: -1 };
+
+const ROW_BOUNDARIES: Partial<Record<string, (length: number) => number>> = {
+  Home: () => 0,
+  End: (length) => length - 1,
+};
+
 export default function GameLibrary({
   roms,
   activeId,
@@ -49,8 +56,8 @@ export default function GameLibrary({
       return;
     }
 
-    const delta = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
-    const boundary = event.key === "Home" ? 0 : event.key === "End" ? rows.length - 1 : null;
+    const delta = ROW_DELTAS[event.key] ?? 0;
+    const boundary = ROW_BOUNDARIES[event.key]?.(rows.length) ?? null;
     if (delta === 0 && boundary === null) return;
     event.preventDefault();
     const next = boundary ?? moveIndex(current, delta, rows.length);

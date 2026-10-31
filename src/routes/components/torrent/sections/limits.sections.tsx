@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
@@ -20,7 +21,9 @@ export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: 
         if (limits.uploadBps !== null) setUploadInput(String(Math.round(limits.uploadBps / 1024)));
         return null;
       })
-      .catch(() => {});
+      .catch((error: unknown) =>
+        reportBackgroundError("srcroutescomponentstorrentsectionslimits.sections", error)
+      );
     return () => {
       cancelled = true;
     };

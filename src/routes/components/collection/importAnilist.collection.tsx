@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { collectionApi } from "@/api/collection.api";
@@ -55,12 +55,9 @@ export default function ImportAnilistCollection({
   const lists = useMemo(() => listsQuery.data ?? [], [listsQuery.data]);
   const authBusy = authQuery.isPending || authQuery.isFetching;
   const listsBusy = authUser !== null && (listsQuery.isPending || listsQuery.isFetching);
-  const listsErrorText =
-    listsQuery.error instanceof Error
-      ? listsQuery.error.message
-      : listsQuery.error
-        ? String(listsQuery.error)
-        : null;
+  let listsErrorText: string | null = null;
+  if (listsQuery.error instanceof Error) listsErrorText = listsQuery.error.message;
+  else if (listsQuery.error) listsErrorText = String(listsQuery.error);
   const [mode, setMode] = useState<ImportMode>("summary");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [importing, setImporting] = useState(false);
@@ -584,6 +581,44 @@ export default function ImportAnilistCollection({
     </>
   );
 
+  const modeViews = {
+    backfill: renderBackfill,
+    import: renderImport,
+    summary: renderSummary,
+    sync: renderSync,
+  };
+  let content: ReactNode;
+  if (authBusy) {
+    content = (
+      <div className="flex items-center justify-center py-4">
+        <SmallLoader />
+      </div>
+    );
+  } else if (!authUser) {
+    content = (
+      <div className="flex flex-col gap-2">
+        <span className="windows95-text text-xs">
+          {t("collection.import.anilist.login.required")}
+        </span>
+        <span className="text-hint text-xs">{t("collection.import.anilist.login.hint")}</span>
+      </div>
+    );
+  } else if (listsBusy) {
+    content = (
+      <div className="flex items-center justify-center py-4">
+        <SmallLoader />
+      </div>
+    );
+  } else if (listsErrorText) {
+    content = <span className="text-destructive windows95-text text-xs">{listsErrorText}</span>;
+  } else if (lists.length === 0) {
+    content = (
+      <span className="windows95-text text-xs">{t("collection.import.anilist.empty")}</span>
+    );
+  } else {
+    content = modeViews[mode]();
+  }
+
   return (
     <Modal
       header={t("collection.import.anilist.title")}
@@ -592,34 +627,7 @@ export default function ImportAnilistCollection({
       }}
     >
       <div className="flex flex-col gap-3 p-2">
-        {authBusy ? (
-          <div className="flex items-center justify-center py-4">
-            <SmallLoader />
-          </div>
-        ) : !authUser ? (
-          <div className="flex flex-col gap-2">
-            <span className="windows95-text text-xs">
-              {t("collection.import.anilist.login.required")}
-            </span>
-            <span className="text-hint text-xs">{t("collection.import.anilist.login.hint")}</span>
-          </div>
-        ) : listsBusy ? (
-          <div className="flex items-center justify-center py-4">
-            <SmallLoader />
-          </div>
-        ) : listsErrorText ? (
-          <span className="text-destructive windows95-text text-xs">{listsErrorText}</span>
-        ) : lists.length === 0 ? (
-          <span className="windows95-text text-xs">{t("collection.import.anilist.empty")}</span>
-        ) : mode === "summary" ? (
-          renderSummary()
-        ) : mode === "import" ? (
-          renderImport()
-        ) : mode === "sync" ? (
-          renderSync()
-        ) : (
-          renderBackfill()
-        )}
+        {content}
       </div>
     </Modal>
   );

@@ -70,7 +70,10 @@ export default function AddTorrentModal({
                 multiple: true,
                 filters: [{ name: "Torrent", extensions: ["torrent"] }],
               });
-              const files = Array.isArray(selection) ? selection : selection ? [selection] : [];
+              let files: string[] = [];
+              if (selection !== null) {
+                files = Array.isArray(selection) ? selection : [selection];
+              }
               if (files.length > 0) {
                 handleClose();
                 onAddFiles(files);

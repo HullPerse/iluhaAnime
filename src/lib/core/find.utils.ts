@@ -87,7 +87,9 @@ export function searchSettingsFind(query: string): SettingsFindHit[] {
     const kindDelta = KIND_ORDER[a.entry.kind] - KIND_ORDER[b.entry.kind];
     if (kindDelta !== 0) return kindDelta;
     if (a.score !== b.score) return a.score - b.score;
-    return a.entry.key < b.entry.key ? -1 : a.entry.key > b.entry.key ? 1 : 0;
+    if (a.entry.key < b.entry.key) return -1;
+    if (a.entry.key > b.entry.key) return 1;
+    return 0;
   });
   return hits;
 }

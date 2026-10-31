@@ -1,4 +1,5 @@
 import { attemptSync } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import type { GameAudio, GameAudioMode } from "@/types/player/audio";
 
 const BEEP_HZ = 440;
@@ -165,7 +166,9 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
         }
         if (created.context.state === "suspended") {
           attemptSync(() => {
-            created.context.resume().catch(() => undefined);
+            created.context
+              .resume()
+              .catch((error: unknown) => reportBackgroundError("srclibplayeraudio", error));
           });
         }
       } else {
@@ -196,7 +199,9 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
         current.gain.disconnect();
       });
       attemptSync(() => {
-        current.context.close().catch(() => undefined);
+        current.context
+          .close()
+          .catch((error: unknown) => reportBackgroundError("srclibplayeraudio", error));
       });
     },
   };

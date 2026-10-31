@@ -17,12 +17,12 @@ export function EntryLabel({
   return (
     <>
       <span className="flex size-3.5 shrink-0 items-center justify-center" aria-hidden="true">
-        {checked === true ? <span className="size-1.5 bg-current" /> : null}
+        {checked === true && <span className="size-1.5 bg-current" />}
       </span>
-      {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
+      {Icon && <Icon className="size-3.5 shrink-0" />}
       <span className="truncate">{text}</span>
-      {hint ? <span className="text-hint ml-auto pl-4 text-xs">{hint}</span> : null}
-      {chevron === true ? <ChevronRight className="ml-auto size-3.5 shrink-0" /> : null}
+      {hint && <span className="text-hint ml-auto pl-4 text-xs">{hint}</span>}
+      {chevron === true && <ChevronRight className="ml-auto size-3.5 shrink-0" />}
     </>
   );
 }

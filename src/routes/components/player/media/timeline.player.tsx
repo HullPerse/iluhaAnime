@@ -147,24 +147,24 @@ function Timeline({
         {timeLabel}
       </button>
       <div className="relative flex-1">
-        {hover ? (
+        {hover && (
           <div
             className="pointer-events-none absolute bottom-full z-50 mb-1 select-text"
             style={{ left: `${hover.x}px`, transform: "translateX(-50%)" }}
           >
             <div className="windows95-border bg-primary windows95-text text-text flex w-max max-w-56 min-w-32 flex-col items-center gap-px px-1.5 py-0.5">
-              {hover.chapter ? (
+              {hover.chapter && (
                 <span
                   className="text-text w-full truncate text-center text-xs font-bold whitespace-nowrap"
                   title={hover.chapter}
                 >
                   {hover.chapter}
                 </span>
-              ) : null}
+              )}
               <span className="tabular-nums">{formatClock(hover.time)}</span>
             </div>
           </div>
-        ) : null}
+        )}
         <div
           ref={barRef}
           className="windows95-border relative h-4 cursor-pointer bg-white"
@@ -172,31 +172,30 @@ function Timeline({
           onMouseMove={handleBarMove}
           onMouseLeave={() => setHover(null)}
         >
-          {showBuffered ? (
+          {showBuffered && (
             <div
               data-testid="timeline-buffered"
               className="bg-muted-trans pointer-events-none absolute inset-y-0"
               style={{ left: `${bufferedFrom}%`, width: `${bufferedTo - bufferedFrom}%` }}
             />
-          ) : null}
+          )}
           <div
             className="bg-secondary absolute inset-y-0 left-0"
             style={{ width: `${progress}%` }}
           />
-          {duration > 0
-            ? chapters.map((chapter, index) =>
-                index === 0 ? null : (
-                  <div
-                    key={`${chapter.time}-${index}`}
-                    className="bg-muted absolute top-0 bottom-0 w-0.5"
-                    style={{
-                      left: `${clamp01(chapter.time / duration) * 100}%`,
-                      transform: "translateX(-50%)",
-                    }}
-                  />
-                )
+          {duration > 0 &&
+            chapters.map((chapter, index) =>
+              index === 0 ? null : (
+                <div
+                  key={`${chapter.time}-${index}`}
+                  className="bg-muted absolute top-0 bottom-0 w-0.5"
+                  style={{
+                    left: `${clamp01(chapter.time / duration) * 100}%`,
+                    transform: "translateX(-50%)",
+                  }}
+                />
               )
-            : null}
+            )}
           <div
             className="windows95-active-border bg-primary pointer-events-none absolute top-0 bottom-0 w-2"
             style={{ left: `${progress}%`, transform: "translateX(-50%)" }}

@@ -496,13 +496,9 @@ function AnilistRoute() {
     });
   }, [setSearchTerms]);
 
-  const friendState: "loading" | "error" | null = viewedFriend
-    ? friendData.isLoading
-      ? "loading"
-      : friendData.isError
-        ? "error"
-        : null
-    : null;
+  let friendState: "loading" | "error" | null = null;
+  if (viewedFriend && friendData.isLoading) friendState = "loading";
+  else if (viewedFriend && friendData.isError) friendState = "error";
   const headerLoading = source.mode === "friend" ? friendState === "loading" : self.isLoading;
 
   const detailBundle: ActivityDetailBundle = {

@@ -153,11 +153,11 @@ function ModernControls({
         </div>
       </div>
       <main className="relative flex flex-row items-center gap-1 p-1">
-        {boundary ? (
+        {boundary && (
           <div className="windows95-border bg-primary windows95-text absolute right-0 bottom-full z-50 mb-1 px-1 py-0.5 whitespace-nowrap">
             {boundary}
           </div>
-        ) : null}
+        )}
         <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
           <NeighborFileButton
             direction="prev"
@@ -266,7 +266,7 @@ function ModernControls({
 
         <StreamControl stream={stream} />
 
-        {immersive ? (
+        {immersive && (
           <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
             <Button
               size="icon"
@@ -278,7 +278,7 @@ function ModernControls({
               <span className="text-xs font-bold">{autoHide ? <SquareX /> : <Square />}</span>
             </Button>
           </section>
-        ) : null}
+        )}
 
         <section className="border-muted ml-auto flex h-6 items-center border-l-2 px-1">
           <span className="windows95-text text-xs tabular-nums">

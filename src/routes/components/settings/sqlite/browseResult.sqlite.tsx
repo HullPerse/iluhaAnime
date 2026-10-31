@@ -52,6 +52,12 @@ export function SqliteBrowseResult({
   const showScroll = display === "scroll";
   const hasMore = accRows.length < total;
   const loadingMore = loadingRows && page > 1 && showScroll;
+  const initialLoading = loadingRows && (!showScroll || accRows.length === 0);
+  const noRows =
+    !initialLoading &&
+    (!rows || (showScroll ? accRows.length === 0 : rows.rows.length === 0));
+  const scrollReady = !initialLoading && !noRows && showScroll;
+  const tableReady = !initialLoading && !noRows && !showScroll;
   return (
     <>
       <section
@@ -59,15 +65,17 @@ export function SqliteBrowseResult({
         data-virtual-list
         className="ui-panel bg-field min-h-40 overflow-auto p-0"
       >
-        {loadingRows && (!showScroll || accRows.length === 0) ? (
+        {initialLoading && (
           <div className="flex min-h-40 items-center justify-center">
             <SmallLoader />
           </div>
-        ) : !rows || (showScroll ? accRows.length === 0 : rows.rows.length === 0) ? (
+        )}
+        {noRows && (
           <div className="text-hint flex min-h-40 items-center justify-center p-3 text-xs">
             {t("settings.sqlite.empty")}
           </div>
-        ) : showScroll ? (
+        )}
+        {scrollReady && (
           <>
             {renderVirtualRowsTable(rows?.columns ?? [], accRows, scrollRef, hasMore, loadingMore)}
             {loadingMore && (
@@ -76,9 +84,9 @@ export function SqliteBrowseResult({
               </div>
             )}
           </>
-        ) : (
-          renderRowsTable(rows.columns, rows.rows, true, hideId, (page - 1) * PAGE_SIZE)
         )}
+        {tableReady && rows &&
+          renderRowsTable(rows.columns, rows.rows, true, hideId, (page - 1) * PAGE_SIZE)}
       </section>
       {showScroll ? (
         <div className="text-hint windows95-text px-1 text-xs">

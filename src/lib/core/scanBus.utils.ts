@@ -1,3 +1,4 @@
+import { attempt } from "@/lib/core/attempt.utils";
 import { Debouncer } from "@/lib/core/debounce.utils";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import { isSameOrInside, normalizePath } from "@/lib/core/pathsWatcher.utils";
@@ -53,23 +54,24 @@ export function createScanBus(options: ScanBusOptions = {}): ScanBus {
 
   const runWalk = async (batch: PendingRequest[]): Promise<void> => {
     const settings = batch[0];
-    try {
-      const entries = await walk(
+    const [entries, error] = await attempt(
+      walk(
         batch.map((request) => request.root),
         settings ? settings.extensions : [],
         settings ? settings.threads : 0
-      );
-      for (const request of batch) {
-        const forRoot = entries.filter((entry) => isSameOrInside(request.root, entry.path));
-        for (const waiter of request.fullWaiters) waiter.resolve(forRoot);
-        for (const waiter of request.patchWaiters)
-          waiter.resolve({ kind: "full", entries: forRoot });
-      }
-    } catch (error) {
+      )
+    );
+    if (error !== null) {
       for (const request of batch) {
         for (const waiter of request.fullWaiters) waiter.reject(error);
         for (const waiter of request.patchWaiters) waiter.reject(error);
       }
+      return;
+    }
+    for (const request of batch) {
+      const forRoot = entries.filter((entry) => isSameOrInside(request.root, entry.path));
+      for (const waiter of request.fullWaiters) waiter.resolve(forRoot);
+      for (const waiter of request.patchWaiters) waiter.resolve({ kind: "full", entries: forRoot });
     }
   };
 
@@ -77,23 +79,20 @@ export function createScanBus(options: ScanBusOptions = {}): ScanBus {
     const settings = batch[0];
     const upserts = [...new Set(batch.flatMap((request) => [...request.upserts]))];
     const removals = [...new Set(batch.flatMap((request) => [...request.removals]))];
-    try {
-      const fresh = await patch(
-        upserts,
-        removals,
-        settings ? settings.extensions : [],
-        settings ? settings.threads : 0
-      );
-      for (const request of batch) {
-        const forRoot = fresh.filter((entry) => isSameOrInside(request.root, entry.path));
-        const removed = [...request.removals];
-        for (const waiter of request.patchWaiters)
-          waiter.resolve({ kind: "patch", fresh: forRoot, removed });
-      }
-    } catch (error) {
+    const [fresh, error] = await attempt(
+      patch(upserts, removals, settings ? settings.extensions : [], settings ? settings.threads : 0)
+    );
+    if (error !== null) {
       for (const request of batch) {
         for (const waiter of request.patchWaiters) waiter.reject(error);
       }
+      return;
+    }
+    for (const request of batch) {
+      const forRoot = fresh.filter((entry) => isSameOrInside(request.root, entry.path));
+      const removed = [...request.removals];
+      for (const waiter of request.patchWaiters)
+        waiter.resolve({ kind: "patch", fresh: forRoot, removed });
     }
   };
 

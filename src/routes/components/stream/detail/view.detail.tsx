@@ -42,6 +42,9 @@ export function StreamDetailView({
   title: ReturnType<typeof useStreamTitle>;
 }) {
   const { t } = useI18n();
+  const titleLoading = title.isPending;
+  const titleFailed = !titleLoading && (title.error !== null || anime === undefined);
+  const detailReady = !titleLoading && !titleFailed;
   const copyLink = () => {
     writeText(buildStreamLink(anime?.slugUrl ?? slug)).catch((error: unknown) =>
       reportBackgroundError("stream.copy-link", error)
@@ -54,13 +57,13 @@ export function StreamDetailView({
       className="w-208 max-w-[94%]"
       headerActions={
         <>
-          {anime?.anilistId && signedIn ? (
+          {anime?.anilistId && signedIn && (
             <HeaderAction
               title={t("stream.anilist.open")}
               onClick={onOpenAnilist}
               icon={<Info className="size-2.5" />}
             />
-          ) : null}
+          )}
           <HeaderAction
             title={t("stream.link.copy")}
             onClick={copyLink}
@@ -69,17 +72,19 @@ export function StreamDetailView({
         </>
       }
     >
-      {title.isPending ? (
+      {titleLoading && (
         <div className="windows95-border bg-primary flex h-40 items-center justify-center">
           <StreamInlineLoading />
         </div>
-      ) : title.error || !anime ? (
+      )}
+      {titleFailed && (
         <StreamError
           title={t("stream.error.details")}
           detail={title.error?.message}
           onRetry={() => title.refetch()}
         />
-      ) : (
+      )}
+      {detailReady && anime && (
         <div className="flex w-full min-w-0 flex-col gap-2">
           <StreamHero anime={anime} />
 

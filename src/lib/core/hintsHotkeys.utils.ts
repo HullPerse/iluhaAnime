@@ -5,6 +5,7 @@ import {
   VIM_LABEL_ALPHABET,
   VIM_MAX_LABEL_LENGTH,
 } from "@/config/settings/vim.config";
+import { attemptSync } from "@/lib/core/attempt.utils";
 import { resolveRowCollisions } from "@/lib/core/collisionResolve.utils";
 import type { TranslationKey } from "@/types/core/i18n";
 import type {
@@ -77,11 +78,10 @@ function isRendered(element: HTMLElement): boolean {
     }
   ).checkVisibility;
   if (typeof check !== "function") return true;
-  try {
-    return check.call(element, { checkOpacity: true, checkVisibilityCSS: true });
-  } catch {
-    return true;
-  }
+  const [visible, error] = attemptSync(() =>
+    check.call(element, { checkOpacity: true, checkVisibilityCSS: true })
+  );
+  return error === null ? visible : true;
 }
 
 function isInViewport(rect: DOMRect): boolean {

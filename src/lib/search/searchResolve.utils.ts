@@ -407,12 +407,9 @@ function spellingCorrection(
   if (!selection) return null;
   const { picked, source, layout, flipped } = selection;
   const reason = classifyWordFix(layout ? flipped : work, picked.text);
-  const margin =
-    source.length > 1
-      ? picked.score - (source[1]?.score ?? 0)
-      : picked.score >= EXACT_TITLE_SCORE
-        ? 120
-        : 0;
+  let margin = 0;
+  if (source.length > 1) margin = picked.score - (source[1]?.score ?? 0);
+  else if (picked.score >= EXACT_TITLE_SCORE) margin = 120;
   const queryDistance = damerauLevenshtein(normalizeSearchText(work), picked.normalized);
   const phrase = picked.animeId != null && margin >= PHRASE_CONFIDENCE;
   return {

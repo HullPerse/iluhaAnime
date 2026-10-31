@@ -1,5 +1,6 @@
-import type { SplashVariantProps } from "@/types/core/shared.splash";
+import { SPLASH_STAGE_SUFFIXES } from "@/config/system/splash.config";
 import { splashProgress, splashStageLabel } from "@/lib/splash/stages.utils";
+import type { SplashVariantProps } from "@/types/core/shared.splash";
 
 const FONT = '"Perfect DOS VGA 437", monospace';
 
@@ -24,7 +25,7 @@ export function RetroismSplash({
           {stages.map((stage) => (
             <li key={stage.id} className={stage.status === "pending" ? "opacity-50" : undefined}>
               Loading {splashStageLabel(texts, stage.id)}...
-              {stage.status === "done" ? " Done" : stage.status === "degraded" ? " Failed" : ""}
+              {SPLASH_STAGE_SUFFIXES[stage.status]}
               {stage.status === "active" ? <span className="yorha-cursor">_</span> : ""}
             </li>
           ))}

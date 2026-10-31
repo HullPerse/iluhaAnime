@@ -1,16 +1,16 @@
-import { TAG_EXAMPLE_BY_KEY, TAG_NUMERIC_SET } from "@/config/graphics/tags.config";
+import {
+  TAG_DEFAULT_VALUE_BY_KEY,
+  TAG_EXAMPLE_BY_KEY,
+  TAG_NUMERIC_SET,
+  TAG_OPS_BY_KEY,
+} from "@/config/graphics/tags.config";
 
 export function exampleFor(key: string): string {
-  if (TAG_NUMERIC_SET.has(key))
-    return `${key}>=${key === "rating" ? "8" : key === "year" ? "2000" : "12"}`;
-  if (key === "sort") return "sort=rating:desc";
-  if (key === "date") return 'date="31.01.2025"';
+  if (TAG_NUMERIC_SET.has(key)) return `${key}>=${TAG_DEFAULT_VALUE_BY_KEY[key] ?? "12"}`;
   return TAG_EXAMPLE_BY_KEY[key] ?? `${key}=action|drama`;
 }
 
 export function opsFor(key: string): string {
   if (TAG_NUMERIC_SET.has(key)) return "=, ~=, !=, >, <, >=, <=";
-  if (key === "sort") return "=";
-  if (key === "date") return "=, !=, >, <, >=, <=";
-  return "=, !=";
+  return TAG_OPS_BY_KEY[key] ?? "=, !=";
 }

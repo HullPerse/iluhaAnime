@@ -37,32 +37,38 @@ export default function StreamEpisodeList({
     enabled: episodes.length > VIRTUALIZE_AFTER,
   });
   const virtualized = episodes.length > VIRTUALIZE_AFTER;
+  const loadingEmpty = loading && episodes.length === 0;
+  const empty = !loadingEmpty && episodes.length === 0;
+  const virtualizedList = !loadingEmpty && !empty && virtualized;
+  const flatList = !loadingEmpty && !empty && !virtualized;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {episodes.length > 0 ? (
+      {episodes.length > 0 && (
         <div className="flex shrink-0 items-center justify-between gap-1 px-2 py-0.5">
           <span className="windows95-font text-hint text-xs tabular-nums">
             {t("player.stream.episodes.count", { count: episodes.length })}
           </span>
         </div>
-      ) : null}
+      )}
       <div
         ref={scrollRef}
         data-playlist-scroll
         data-no-wheel
         className="min-h-0 flex-1 overflow-y-auto p-1"
       >
-        {loading && episodes.length === 0 ? (
+        {loadingEmpty && (
           <span className="text-hint windows95-font block p-2 text-center text-xs">
             {t("player.stream.episodes.loading")}
           </span>
-        ) : episodes.length === 0 ? (
+        )}
+        {empty && (
           <div className="flex flex-col items-center gap-1 px-1 py-4 text-center">
             <ListVideo className="text-hint size-6" aria-hidden="true" />
             <div className="windows95-font text-xs">{t("player.stream.episodes.empty")}</div>
           </div>
-        ) : virtualized ? (
+        )}
+        {virtualizedList && (
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((item) => {
               const episode = episodes[item.index];
@@ -86,7 +92,8 @@ export default function StreamEpisodeList({
               );
             })}
           </div>
-        ) : (
+        )}
+        {flatList &&
           episodes.map((episode) => (
             <EpisodeRow
               key={episode.id}
@@ -96,8 +103,7 @@ export default function StreamEpisodeList({
               fallbackCover={fallbackCover}
               onPick={onPick}
             />
-          ))
-        )}
+          ))}
       </div>
     </div>
   );

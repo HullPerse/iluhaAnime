@@ -1,4 +1,3 @@
-
 import type { StreamPrefs, StreamVariant } from "@/types/player/stream";
 
 export function emptyPrefs(sourceId: string, mediaId: string): StreamPrefs {

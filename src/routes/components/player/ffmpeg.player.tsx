@@ -33,9 +33,7 @@ function FFMPEG({
   const handleDownload = useCallback(async () => {
     setStatus("downloading");
     setDlError(null);
-    const [, error] = await attempt(
-      systemApi.downloadFfmpeg(settingsAtoms.ffmpegSource.get())
-    );
+    const [, error] = await attempt(systemApi.downloadFfmpeg(settingsAtoms.ffmpegSource.get()));
     if (error) {
       setDlError(error.message);
       setStatus("missing");

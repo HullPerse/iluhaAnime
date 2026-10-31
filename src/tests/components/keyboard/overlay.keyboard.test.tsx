@@ -11,19 +11,18 @@ const nodes: HTMLElement[] = [];
 const node = (text = "", rect: Partial<DOMRect> = {}): HTMLElement => {
   const element = document.createElement("button");
   element.textContent = text;
-  element.getBoundingClientRect = () =>
-    ({
-      top: 10,
-      left: 10,
-      bottom: 30,
-      right: 60,
-      width: 50,
-      height: 20,
-      x: 10,
-      y: 10,
-      toJSON: () => ({}),
-      ...rect,
-    });
+  element.getBoundingClientRect = () => ({
+    top: 10,
+    left: 10,
+    bottom: 30,
+    right: 60,
+    width: 50,
+    height: 20,
+    x: 10,
+    y: 10,
+    toJSON: () => ({}),
+    ...rect,
+  });
   document.body.append(element);
   nodes.push(element);
   return element;

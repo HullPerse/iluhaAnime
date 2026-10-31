@@ -164,9 +164,9 @@ export default function SearchResultItem({
       {!busy && !hasMagnet && item.link && (
         <Button
           onClick={() => onOpenLink(item)}
-            className="windows95-active-border bg-primary windows95-text text-text inline-flex cursor-pointer items-center gap-0.5 px-2 py-0.5 no-underline"
-          >
-            <ImageComponent src="/images/w2k_globe.ico" alt="" className="size-4" />
+          className="windows95-active-border bg-primary windows95-text text-text inline-flex cursor-pointer items-center gap-0.5 px-2 py-0.5 no-underline"
+        >
+          <ImageComponent src="/images/w2k_globe.ico" alt="" className="size-4" />
           {t("search.open")}
         </Button>
       )}

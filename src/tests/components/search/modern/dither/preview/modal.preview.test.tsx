@@ -101,12 +101,8 @@ describe("DitherPreviewModal", () => {
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
     await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Classic" }));
-    expect((screen.getByRole<HTMLButtonElement>("button", { name: "Classic" })).disabled).toBe(
-      true
-    );
-    expect((screen.getByRole<HTMLButtonElement>("button", { name: "None" })).disabled).toBe(
-      false
-    );
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Classic" }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "None" }).disabled).toBe(false);
   });
 
   it("bakes the canvas into the database and goes back", async () => {
@@ -224,9 +220,7 @@ describe("DitherPreviewModal", () => {
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
     await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Original" }));
     expect(screen.queryAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(0);
-    expect((screen.getByRole<HTMLButtonElement>("button", { name: "Original" })).disabled).toBe(
-      true
-    );
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Original" }).disabled).toBe(true);
   });
 
   it("extracts the palette from the image on demand", async () => {

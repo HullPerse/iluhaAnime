@@ -45,9 +45,7 @@ export function translate(
       ? resolvePluralKey(safeLocale, key, variables.count)
       : key;
   const template = repairLegacyCyrillic(
-    dictionaries[safeLocale][resolvedKey] ??
-      dictionaries.ru[resolvedKey] ??
-      key
+    dictionaries[safeLocale][resolvedKey] ?? dictionaries.ru[resolvedKey] ?? key
   );
   return variables
     ? template.replaceAll(/\{\{(\w+)\}\}/gu, (_match: string, name: string) =>

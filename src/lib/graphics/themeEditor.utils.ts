@@ -3,11 +3,7 @@ import { mixHex } from "@/lib/graphics/palette.utils";
 import { diffTheme } from "@/lib/graphics/themeResolve.utils";
 import { addCustomTheme, clearThemePatch, setTheme, setThemePatch } from "@/store/theme.store";
 import type { TranslationKey } from "@/types/core/i18n";
-import type {
-  ThemeComponents,
-  ThemeDefinition,
-  ThemeOverrideKey,
-} from "@/types/graphics/theme";
+import type { ThemeComponents, ThemeDefinition, ThemeOverrideKey } from "@/types/graphics/theme";
 
 export const DEFAULT_COLORS: ThemeDefinition["colors"] = { ...DEFAULT_THEME_COLORS };
 
@@ -135,5 +131,3 @@ export function editorHeaderKey(patchMode: boolean, isEdit: boolean): Translatio
   if (isEdit) return "settings.theme.edit.title";
   return "settings.theme.create.title";
 }
-
-;

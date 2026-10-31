@@ -15,18 +15,17 @@ const nodes: HTMLElement[] = [];
 const hintableButton = (label: string): HTMLButtonElement => {
   const element = document.createElement("button");
   element.textContent = label;
-  element.getBoundingClientRect = () =>
-    ({
-      top: 10,
-      left: 10,
-      bottom: 30,
-      right: 60,
-      width: 50,
-      height: 20,
-      x: 10,
-      y: 10,
-      toJSON: () => ({}),
-    });
+  element.getBoundingClientRect = () => ({
+    top: 10,
+    left: 10,
+    bottom: 30,
+    right: 60,
+    width: 50,
+    height: 20,
+    x: 10,
+    y: 10,
+    toJSON: () => ({}),
+  });
   document.body.append(element);
   nodes.push(element);
   return element;

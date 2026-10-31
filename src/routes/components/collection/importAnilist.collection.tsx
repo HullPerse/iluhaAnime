@@ -626,9 +626,7 @@ export default function ImportAnilistCollection({
         if (!importing && !running) onClose();
       }}
     >
-      <div className="flex flex-col gap-3 p-2">
-        {content}
-      </div>
+      <div className="flex flex-col gap-3 p-2">{content}</div>
     </Modal>
   );
 }

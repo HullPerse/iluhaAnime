@@ -94,17 +94,17 @@ export function AnimeDetailShell({
   else
     body = (
       <AniListDetailView
-      {...props}
-      anime={query.data?.media}
-      initialCharacters={query.data?.characters}
-      initialRecommendations={query.data?.recommendations}
-      isLoading={query.isLoading}
-      isError={query.isError}
-      error={query.error}
-      refetch={query.refetch}
-      onTrailer={(youtubeId) => setTrailer({ animeId: props.animeId, youtubeId })}
-      onPushScreen={pushScreen}
-    />
+        {...props}
+        anime={query.data?.media}
+        initialCharacters={query.data?.characters}
+        initialRecommendations={query.data?.recommendations}
+        isLoading={query.isLoading}
+        isError={query.isError}
+        error={query.error}
+        refetch={query.refetch}
+        onTrailer={(youtubeId) => setTrailer({ animeId: props.animeId, youtubeId })}
+        onPushScreen={pushScreen}
+      />
     );
   return (
     <>

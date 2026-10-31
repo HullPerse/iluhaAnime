@@ -1,7 +1,13 @@
 import { forceSimulation, forceX, forceCollide } from "d3-force";
 import type { Simulation } from "d3-force";
 
-import { IMG_H, NODE_H, NODE_SCALE_TIERS, NODE_W, RELATION_X } from "@/config/graphics/graph.config";
+import {
+  IMG_H,
+  NODE_H,
+  NODE_SCALE_TIERS,
+  NODE_W,
+  RELATION_X,
+} from "@/config/graphics/graph.config";
 import type {
   FilteredGraph,
   FranchiseNode,

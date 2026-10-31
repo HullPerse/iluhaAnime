@@ -201,11 +201,11 @@ export default function BrowseAnimeModal({
                     {item.season !== null &&
                       typeof item.season_year === "number" &&
                       item.season_year > 0 && (
-                      <span>
-                        {t(toLocaleKey(seasonLabels[item.season] ?? item.season))}{" "}
-                        {item.season_year}
-                      </span>
-                    )}
+                        <span>
+                          {t(toLocaleKey(seasonLabels[item.season] ?? item.season))}{" "}
+                          {item.season_year}
+                        </span>
+                      )}
                   </div>
                   {item.genres.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">

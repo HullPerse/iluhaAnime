@@ -1,6 +1,10 @@
 import { DEFAULT_TAG_TOLERANCES } from "@/config/graphics/tolerance.config";
 import { DEFAULT_STREAM_QUALITY } from "@/config/player/quality.config";
-import type { SettingsDefaults, WallpaperDisplayFilters, WallpaperShadow } from "@/types/ui/settings";
+import type {
+  SettingsDefaults,
+  WallpaperDisplayFilters,
+  WallpaperShadow,
+} from "@/types/ui/settings";
 
 export const DEFAULT_WALLPAPER_FILTERS: WallpaperDisplayFilters = {
   brightness: 75,

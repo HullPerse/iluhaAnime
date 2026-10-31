@@ -1,4 +1,3 @@
-
 import { attemptSync } from "@/lib/core/attempt.utils";
 
 const SOURCE_IMAGE_HOSTS = ["imglib.info", "cdnlibs.org", "animelib.org", "kodikplayer.com"];

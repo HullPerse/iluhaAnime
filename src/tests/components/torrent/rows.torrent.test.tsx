@@ -205,7 +205,7 @@ describe("TorrentFileRow keyboard surface", () => {
     renderFileRow({ onToggleFile });
 
     const box = screen.getByRole("checkbox", { name: "Show.S01E01.1080p.mkv" });
-    expect((box).dataset.vimTarget).toBe("file-check");
+    expect(box.dataset.vimTarget).toBe("file-check");
 
     fireEvent.click(box);
     expect(onToggleFile).toHaveBeenCalledWith(true);

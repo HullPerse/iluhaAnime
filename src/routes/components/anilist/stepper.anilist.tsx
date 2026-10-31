@@ -241,7 +241,9 @@ export function ProgressStepper({
           title={failure.reason}
           aria-label={t("anilist.details.retry")}
           onClick={retry}
-        >            <RotateCcw className="size-2.5" />
+        >
+          {" "}
+          <RotateCcw className="size-2.5" />
         </Button>
       )}
       {phase === "saved" && (

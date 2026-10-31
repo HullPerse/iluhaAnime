@@ -28,10 +28,11 @@ export default function AniListRecsModal({
       {loading && <TabLoader className="flex-1" />}
       {listEmpty && (
         <div className="flex flex-1 items-center justify-center">
-          <span className="windows95-text">{t("anilist.recs.empty")}</span>          </div>
-        )}
-        {listReady && (
-          <div className="flex flex-col gap-1">
+          <span className="windows95-text">{t("anilist.recs.empty")}</span>{" "}
+        </div>
+      )}
+      {listReady && (
+        <div className="flex flex-col gap-1">
           {visible.map((r) => (
             <div
               key={r.id}

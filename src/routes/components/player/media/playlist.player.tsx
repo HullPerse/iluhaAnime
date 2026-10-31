@@ -200,7 +200,7 @@ export default function PlaylistBody({
               <div className="windows95-font text-xs">{t("player.media.playlist.empty")}</div>
             </div>
           )}
-          {plainList && (
+          {plainList &&
             entries.map((entry, position) => {
               const current = entry.index === activeIndex;
               return (
@@ -219,8 +219,7 @@ export default function PlaylistBody({
                   t={t}
                 />
               );
-            })
-          )}
+            })}
           {virtualList && (
             <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
               {virtualizer.getVirtualItems().map((virtualItem) => {
@@ -258,5 +257,3 @@ export default function PlaylistBody({
     </div>
   );
 }
-
-;

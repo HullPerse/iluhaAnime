@@ -68,9 +68,7 @@ export default function ThemeEditor({
   const [overrides, setOverrides] = useState<ThemeDefinition["overrides"]>(() => ({
     ...theme?.overrides,
   }));
-  const [titlebarArt, setTitlebarArt] = useState<boolean>(
-    theme?.components?.titlebarArt === true
-  );
+  const [titlebarArt, setTitlebarArt] = useState<boolean>(theme?.components?.titlebarArt === true);
   const [cardMeta, setCardMeta] = useState<NonNullable<ThemeComponents["cardMeta"]>>(
     theme?.components?.cardMeta ?? "full"
   );

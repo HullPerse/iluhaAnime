@@ -87,9 +87,7 @@ function normalizeObservation(obs: unknown): AniListObservation {
   };
 }
 
-function migrateObservationsV2(
-  state: Record<string, unknown>
-): Partial<AniListNotificationsStore> {
+function migrateObservationsV2(state: Record<string, unknown>): Partial<AniListNotificationsStore> {
   const rawObservations = isRecord(state.observations) ? state.observations : {};
   const migrated: Record<string, AniListObservation> = {};
   for (const [key, obs] of Object.entries(rawObservations)) {
@@ -134,9 +132,7 @@ export function migrateNotificationsData(
       siteMaxSeenId: 0,
     };
   }
-  const rawObservations = isRecord(persistedState.observations)
-    ? persistedState.observations
-    : {};
+  const rawObservations = isRecord(persistedState.observations) ? persistedState.observations : {};
   const observations: Record<string, AniListObservation> = {};
   for (const [id, obs] of Object.entries(rawObservations)) {
     observations[id] = normalizeObservation(obs);
@@ -157,9 +153,7 @@ export function migrateNotificationsData(
         )
       : [],
     knownListNames: Array.isArray(persistedState.knownListNames)
-      ? persistedState.knownListNames.filter(
-          (name): name is string => typeof name === "string"
-        )
+      ? persistedState.knownListNames.filter((name): name is string => typeof name === "string")
       : [],
     siteMaxSeenId:
       typeof persistedState.siteMaxSeenId === "number" && persistedState.siteMaxSeenId > 0

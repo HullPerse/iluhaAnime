@@ -103,8 +103,7 @@ export function sortEntries(
     if (aMissing && bMissing) return 0;
     if (aMissing) return 1;
     if (bMissing) return -1;
-    const compared =
-      typeof a === "string" ? a.localeCompare(b as string) : (a) - (b as number);
+    const compared = typeof a === "string" ? a.localeCompare(b as string) : a - (b as number);
     return direction === "desc" ? -compared : compared;
   });
   return copy;
@@ -208,7 +207,7 @@ export function entryListDate(
 }
 
 function emptyToNull<T>(value: T | null | undefined | ""): T | null {
-  return value ? (value) : null;
+  return value ? value : null;
 }
 
 function arrayToNull<T>(arr: T[]): T[] | null {

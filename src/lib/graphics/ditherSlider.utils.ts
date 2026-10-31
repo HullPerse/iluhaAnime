@@ -14,13 +14,14 @@ export const ditherSliderDef = (field: DitherSliderField): DitherSliderDef | und
   return SLIDER_BY_FIELD[field];
 };
 
-const SLIDER_ACTIVE: Partial<Record<DitherSliderField, (options: DitherEffectOptions) => boolean>> = {
-  paletteMix: (options) => options.mode === "ordered" && options.palette.length > 0,
-  levels: (options) => options.mode === "ordered" || options.palette.length === 0,
-  dotSize: (options) => options.halftone > 0,
-  dotSoftness: (options) => options.halftone > 0,
-  glyphSize: (options) => options.glyphs > 0,
-};
+const SLIDER_ACTIVE: Partial<Record<DitherSliderField, (options: DitherEffectOptions) => boolean>> =
+  {
+    paletteMix: (options) => options.mode === "ordered" && options.palette.length > 0,
+    levels: (options) => options.mode === "ordered" || options.palette.length === 0,
+    dotSize: (options) => options.halftone > 0,
+    dotSoftness: (options) => options.halftone > 0,
+    glyphSize: (options) => options.glyphs > 0,
+  };
 
 export const isSliderActive = (field: DitherSliderField, options: DitherEffectOptions): boolean => {
   return SLIDER_ACTIVE[field]?.(options) ?? true;

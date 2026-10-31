@@ -84,8 +84,7 @@ export function createPersistedStoreContext(options: PersistedStoreOptions): Per
           return migrated;
         }
       : undefined,
-    onError: (scope, error) =>
-      reportBackgroundError(`${options.short}.signal.${scope}`, error),
+    onError: (scope, error) => reportBackgroundError(`${options.short}.signal.${scope}`, error),
   });
 
   const finishAdopt = (

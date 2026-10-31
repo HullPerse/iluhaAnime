@@ -118,9 +118,7 @@ function ActivityHistoryModal({
           onChange={setTab}
         />
       </div>
-      <div className="bg-primary min-h-0 w-full flex-1 overflow-y-auto">
-        {tabViews[tab]}
-      </div>
+      <div className="bg-primary min-h-0 w-full flex-1 overflow-y-auto">{tabViews[tab]}</div>
     </Modal>
   );
 }

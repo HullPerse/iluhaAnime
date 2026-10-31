@@ -28,7 +28,8 @@ function isOneOf<T extends string>(value: unknown, options: readonly T[]): value
 }
 
 function toSet(value: unknown): Set<string> {
-  if (Array.isArray(value)) return new Set(value.filter((id): id is string => typeof id === "string"));
+  if (Array.isArray(value))
+    return new Set(value.filter((id): id is string => typeof id === "string"));
   if (value instanceof Set) {
     return new Set([...value].filter((id): id is string => typeof id === "string"));
   }
@@ -54,8 +55,8 @@ function readFilters(value: unknown): CollectionFilters {
   if (isOneOf(value.linked, YES_NO_ANY)) filters.linked = value.linked;
   if (isOneOf(value.hasNote, YES_NO_ANY)) filters.hasNote = value.hasNote;
   if (Array.isArray(value.mediaTypes)) {
-    filters.mediaTypes = value.mediaTypes.filter(
-      (type): type is CollectionType => isOneOf(type, MEDIA_TYPES)
+    filters.mediaTypes = value.mediaTypes.filter((type): type is CollectionType =>
+      isOneOf(type, MEDIA_TYPES)
     );
   }
   if (Array.isArray(value.genres)) {
@@ -80,9 +81,7 @@ function readWizardPrefill(value: unknown): WizardPrefill | null {
   if (typeof title !== "string" || typeof status !== "string") return null;
   if (coverUrl !== null && typeof coverUrl !== "string") return null;
   if (!(rating === undefined || rating === null || typeof rating === "number")) return null;
-  if (
-    !(scoreOrigin === undefined || scoreOrigin === null || typeof scoreOrigin === "string")
-  ) {
+  if (!(scoreOrigin === undefined || scoreOrigin === null || typeof scoreOrigin === "string")) {
     return null;
   }
   const prefill: WizardPrefill = { title, coverUrl, status };
@@ -129,7 +128,8 @@ function readCollectionData(raw: Record<string, unknown>, version: number): Coll
     groupByStatus: version < 4 ? false : Boolean(raw.groupByStatus),
     collapsedStatuses: toSet(raw.collapsedStatuses),
     viewMode: version < 4 ? "grid" : isOneOf(raw.viewMode, VIEW_MODES) ? raw.viewMode : "grid",
-    displayMode: version < 4 ? "pagination" : raw.displayMode === "scroll" ? "scroll" : "pagination",
+    displayMode:
+      version < 4 ? "pagination" : raw.displayMode === "scroll" ? "scroll" : "pagination",
     wizardPrefill: readWizardPrefill(raw.wizardPrefill),
   };
 }
@@ -178,9 +178,7 @@ interface CollectionSignalStore {
   consumeWizardPrefill: () => void;
 }
 
-function createCollectionSignalStore(
-  options: CollectionSignalOptions = {}
-): CollectionSignalStore {
+function createCollectionSignalStore(options: CollectionSignalOptions = {}): CollectionSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "collection-ui",
     short: "collection",

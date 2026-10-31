@@ -548,7 +548,10 @@ function TorrentRoute() {
   }, []);
 
   return (
-    <div data-scroll-root className="flex h-full w-full flex-col gap-1 overflow-y-auto scrollbar-gutter-stable">
+    <div
+      data-scroll-root
+      className="flex h-full w-full scrollbar-gutter-stable flex-col gap-1 overflow-y-auto"
+    >
       <SpeedLimitForm
         limits={limits}
         downloadInput={downloadInput}
@@ -670,7 +673,7 @@ function TorrentRoute() {
         <DndContext sensors={queueSensors} onDragEnd={handleQueueDragEnd}>
           <section
             ref={listRef}
-            className="windows95-border bg-primary flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-1 scrollbar-gutter-stable"
+            className="windows95-border bg-primary flex min-h-0 w-full flex-1 scrollbar-gutter-stable flex-col gap-1 overflow-y-auto p-1"
           >
             {pagedTorrents.map((item) => (
               <TorrentRow

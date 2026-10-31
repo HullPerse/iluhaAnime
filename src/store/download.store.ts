@@ -12,8 +12,6 @@ import { ignore } from "@/lib/core/promise.utils";
 import { cacheAtoms, setLastSaveDir } from "@/store/cache.store";
 import type { TorrentData, TorrentSignalStore } from "@/types/core/download";
 
-;
-
 function hasConflictingSelection(
   pending: { files: { index: number; name: string }[]; conflictingFiles: string[] },
   selectedIndices: number[]

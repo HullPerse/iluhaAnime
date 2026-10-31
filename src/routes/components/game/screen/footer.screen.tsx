@@ -41,9 +41,7 @@ export function ScreenFooter({
 
   return (
     <footer className="windows95-border bg-surface flex items-center gap-2 px-1 py-0.5">
-      <span className="windows95-text min-w-0 flex-1 truncate text-xs">
-        {statusLabel}
-      </span>
+      <span className="windows95-text min-w-0 flex-1 truncate text-xs">{statusLabel}</span>
       {running && telemetry.waitingKey && (
         <span className="text-highlight shrink-0 text-xs">{t("game.status.waiting")}</span>
       )}

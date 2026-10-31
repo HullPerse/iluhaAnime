@@ -110,4 +110,3 @@ export const StreamCard = memo(
     previous.tabIndex === next.tabIndex &&
     previous.onFocus === next.onFocus
 );
-

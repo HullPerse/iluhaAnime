@@ -102,9 +102,7 @@ export default function DetailsHero({
               return;
             }
             const bytes = new Uint8Array(await blob.arrayBuffer());
-            const [, saveError] = await attempt(
-              systemApi.savePosterBytes([...bytes], picked)
-            );
+            const [, saveError] = await attempt(systemApi.savePosterBytes([...bytes], picked));
             if (saveError) showError(t("common.error"), t("screenshot.save.error"));
           })()
         );

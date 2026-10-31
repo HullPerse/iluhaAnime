@@ -13,13 +13,7 @@ import { sortStatuses, statusColorOf, statusLabel } from "@/lib/core/status.util
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { CollectionRowProps } from "@/types/anilist/collection";
 
-function CollectionRowView({
-  item,
-  statuses,
-  selected,
-  onOpen,
-  onSetStatus,
-}: CollectionRowProps) {
+function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: CollectionRowProps) {
   const { t, locale } = useI18n();
   const { cardMeta } = useThemeComponents();
   const shortMeta = cardMeta === "short";

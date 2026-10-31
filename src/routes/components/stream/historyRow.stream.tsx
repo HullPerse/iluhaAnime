@@ -16,9 +16,7 @@ export function HistoryRow({ entry, onOpen }: { entry: StreamHistoryEntry; onOpe
     entry.episodeTitle ? `, ${entry.episodeTitle}` : ""
   }`;
   const resumeLabel =
-    entry.position > 0
-      ? t("stream.episode.resume", { time: formatResume(entry.position) })
-      : "";
+    entry.position > 0 ? t("stream.episode.resume", { time: formatResume(entry.position) }) : "";
   const statusLabel = watched ? t("stream.history.watched") : resumeLabel;
 
   return (

@@ -1,4 +1,3 @@
-
 import type { AniStreamingEpisode } from "@/types/anilist/anilist";
 
 const NUMBER_PATTERNS = [

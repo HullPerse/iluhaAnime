@@ -1,4 +1,3 @@
-
 import type { StreamHistoryEntry } from "@/types/player/stream";
 
 export const STREAM_WATCHED_RATIO = 0.9;

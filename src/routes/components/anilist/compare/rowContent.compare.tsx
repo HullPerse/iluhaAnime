@@ -30,8 +30,7 @@ export function RowContent({
   const absoluteDelta = row.signedDelta == null ? "-" : (Math.abs(row.signedDelta) / 10).toFixed(1);
   let deltaTitle: string | undefined;
   if (row.signedDelta != null) {
-    if (row.signedDelta > 0)
-      deltaTitle = t("anilist.compare.diff.up", { value: absoluteDelta });
+    if (row.signedDelta > 0) deltaTitle = t("anilist.compare.diff.up", { value: absoluteDelta });
     else if (row.signedDelta < 0)
       deltaTitle = t("anilist.compare.diff.down", { name: friendName, value: absoluteDelta });
     else deltaTitle = t("anilist.compare.diff.equal");

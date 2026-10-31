@@ -54,8 +54,7 @@ export function SqliteBrowseResult({
   const loadingMore = loadingRows && page > 1 && showScroll;
   const initialLoading = loadingRows && (!showScroll || accRows.length === 0);
   const noRows =
-    !initialLoading &&
-    (!rows || (showScroll ? accRows.length === 0 : rows.rows.length === 0));
+    !initialLoading && (!rows || (showScroll ? accRows.length === 0 : rows.rows.length === 0));
   const scrollReady = !initialLoading && !noRows && showScroll;
   const tableReady = !initialLoading && !noRows && !showScroll;
 

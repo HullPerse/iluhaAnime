@@ -13,7 +13,7 @@
 
 import { readFileSync } from "node:fs";
 
-const IPCS_PATH = "src/types/ipc.d.ts";
+const IPCS_PATH = "src/types/core/ipc.d.ts";
 const LIB_PATH = "src-tauri/src/lib.rs";
 
 function rustCommands(source: string): string[] {

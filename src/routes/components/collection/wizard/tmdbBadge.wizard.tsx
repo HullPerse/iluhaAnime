@@ -12,10 +12,7 @@ export function TmdbBadge() {
   else if (rate.remaining < 5) tone = "text-orange-500";
   return (
     <span
-      className={cn(
-        "ml-auto text-xs font-bold",
-        tone
-      )}
+      className={cn("ml-auto text-xs font-bold", tone)}
       title={rate.resetAt ? new Date(rate.resetAt).toLocaleTimeString() : undefined}
     >
       TMDB {rate.remaining}/{TMDB_LIMIT}

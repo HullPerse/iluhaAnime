@@ -26,7 +26,9 @@ pub enum PresenceSource {
 }
 
 enum Command {
-    Configure { enabled: bool },
+    Configure {
+        enabled: bool,
+    },
     Set {
         source: PresenceSource,
         activity: DiscordActivity,
@@ -182,11 +184,7 @@ impl Manager {
             self.flush_clear().await;
             return;
         }
-        let desired = desired_activity(
-            self.enabled,
-            self.main.clone(),
-            self.player.clone(),
-        );
+        let desired = desired_activity(self.enabled, self.main.clone(), self.player.clone());
         let Some(desired) = desired else {
             if self.last_sent.is_some() {
                 self.send_clear().await;

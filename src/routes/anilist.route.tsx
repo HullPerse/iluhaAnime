@@ -497,11 +497,7 @@ function AnilistRoute() {
     });
   }, [setSearchTerms]);
 
-  const friendState = resolveFriendState(
-    viewedFriend,
-    friendData.isLoading,
-    friendData.isError
-  );
+  const friendState = resolveFriendState(viewedFriend, friendData.isLoading, friendData.isError);
   const headerLoading = source.mode === "friend" ? friendState === "loading" : self.isLoading;
 
   const detailBundle: ActivityDetailBundle = {

@@ -1,4 +1,3 @@
-
 export interface StreamingAnime {
   id: string;
   title: string;

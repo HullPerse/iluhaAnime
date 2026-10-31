@@ -299,8 +299,7 @@ describe("scanHintTargets", () => {
     const scrim = el("div", { top: 0, left: 0, bottom: 70, right: 300, width: 300, height: 70 });
     scrim.className = "sticky";
     const original = document.elementFromPoint;
-    document.elementFromPoint = ((_x: number, y: number) =>
-      y < 70 ? scrim : visible);
+    document.elementFromPoint = (_x: number, y: number) => (y < 70 ? scrim : visible);
     try {
       const found = scanHintTargets(document.body).badges.map((badge) => badge.element);
       expect(found).not.toContain(covered);

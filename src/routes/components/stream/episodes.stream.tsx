@@ -130,7 +130,7 @@ export default function StreamEpisodes({
             {t("stream.episode.none")}
           </span>
         )}
-        {ready && (
+        {ready &&
           visible.map((episode, index) => {
             const selected = episode.id === selectedId;
             const date = episode.airDate?.slice(0, 10) ?? "";
@@ -201,8 +201,7 @@ export default function StreamEpisodes({
                 )}
               </div>
             );
-          })
-        )}
+          })}
       </div>
       {hover && <EpisodePreview anchor={hover} />}
     </section>

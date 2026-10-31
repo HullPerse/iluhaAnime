@@ -1,4 +1,3 @@
-
 import type { StreamSource, StreamVariantSource } from "@/types/player/videoPlayer";
 
 export function qualityRank(label: string): number {

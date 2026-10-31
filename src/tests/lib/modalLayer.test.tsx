@@ -9,18 +9,17 @@ import { isInsideLayer, topLayerElement } from "@/lib/core/layerHotkeys.utils";
 import { patchSettings } from "@/store/settings.store";
 
 const box = (node: HTMLElement): HTMLElement => {
-  node.getBoundingClientRect = () =>
-    ({
-      top: 10,
-      left: 10,
-      bottom: 30,
-      right: 60,
-      width: 50,
-      height: 20,
-      x: 10,
-      y: 10,
-      toJSON: () => ({}),
-    });
+  node.getBoundingClientRect = () => ({
+    top: 10,
+    left: 10,
+    bottom: 30,
+    right: 60,
+    width: 50,
+    height: 20,
+    x: 10,
+    y: 10,
+    toJSON: () => ({}),
+  });
   return node;
 };
 

@@ -165,8 +165,7 @@ function applyIntentFilters(list: CollectionItem[], intent: ParsedIntent): Colle
       needles.some((p) => {
         if (p === "custom")
           return item.externalIds.anilist == null && item.externalIds.tmdb == null;
-        if (p === "anilist" || p === "tmdb")
-          return item.externalIds[p] != null;
+        if (p === "anilist" || p === "tmdb") return item.externalIds[p] != null;
         return false;
       })
     );

@@ -32,7 +32,8 @@ export function FriendPreview({
   const { t } = useI18n();
   const meanScore = formatMeanScore(profile?.mean_score, parseScoreFormat(profile?.score_format));
   let relationshipLabel = t("anilist.friends.not.following");
-  if (profile?.is_following == null) relationshipLabel = t("anilist.friends.relationship.unavailable");
+  if (profile?.is_following == null)
+    relationshipLabel = t("anilist.friends.relationship.unavailable");
   else if (profile.is_following) relationshipLabel = t("anilist.friends.following");
   if (!hasSelection || profile === undefined) {
     return (

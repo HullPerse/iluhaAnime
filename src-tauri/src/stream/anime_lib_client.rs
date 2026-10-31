@@ -774,7 +774,10 @@ fn into_anime(item: WireAnimeInfo) -> AnimeLibAnime {
         synonyms,
         cover: Some(cover.default),
         banner: None,
-        description: summary.as_ref().map(summary_text).filter(|text| !text.is_empty()),
+        description: summary
+            .as_ref()
+            .map(summary_text)
+            .filter(|text| !text.is_empty()),
         year: release_date_string.as_deref().and_then(year_from_label),
         status: status.map(|label| label.label),
         genres: genres
@@ -807,7 +810,10 @@ fn summary_text(document: &serde_json::Value) -> String {
     fn walk(value: &serde_json::Value, out: &mut String) {
         match value {
             serde_json::Value::Object(map) => {
-                let kind = map.get("type").and_then(|kind| kind.as_str()).unwrap_or_default();
+                let kind = map
+                    .get("type")
+                    .and_then(|kind| kind.as_str())
+                    .unwrap_or_default();
                 if let Some(serde_json::Value::String(text)) = map.get("text") {
                     out.push_str(text);
                 }
@@ -1166,7 +1172,10 @@ mod tests {
         assert_eq!(anime.media_type.as_deref(), Some("TV Сериал"));
         assert_eq!(anime.age_rating.as_deref(), Some("PG-13"));
         assert_eq!(anime.views, Some(489_421));
-        assert_eq!(anime.genres, vec!["Драма".to_string(), "Приключения".to_string()]);
+        assert_eq!(
+            anime.genres,
+            vec!["Драма".to_string(), "Приключения".to_string()]
+        );
         assert_eq!(
             anime.description.as_deref(),
             Some("Фрирен, эльфийка-маг.\nВторой абзац.")

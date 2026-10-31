@@ -68,9 +68,7 @@ export function DetailCollection({
                 <ChevronLeft className="size-3" />
               </Button>
             )}
-            <span className="text-title-text truncate font-bold">
-              {mediaTitle}
-            </span>
+            <span className="text-title-text truncate font-bold">{mediaTitle}</span>
           </div>
           <div className="flex shrink-0 flex-row items-center gap-0.5">
             {!mediaOpen && (
@@ -86,7 +84,7 @@ export function DetailCollection({
             </Button>
           </div>
         </div>
-        <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2 scrollbar-gutter-stable">
+        <div className="flex flex-1 scrollbar-gutter-stable flex-col gap-1 overflow-y-auto p-2">
           {mediaOpen ? (
             <MediaViewerContent
               tmdbId={item.externalIds.tmdb ?? null}

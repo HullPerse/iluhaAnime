@@ -164,9 +164,7 @@ function Timeline({
                 </span>
               )}
               <span className="tabular-nums">{formatClock(hover.time)}</span>
-              {bufferedHint !== null && (
-                <span className="text-hint text-xs">{bufferedHint}</span>
-              )}
+              {bufferedHint !== null && <span className="text-hint text-xs">{bufferedHint}</span>}
             </div>
           </div>
         )}

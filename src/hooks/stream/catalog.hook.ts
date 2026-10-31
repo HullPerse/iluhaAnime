@@ -1,4 +1,3 @@
-
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -91,4 +90,3 @@ export function useStreamHistoryProgress(animeId: string, enabled: boolean) {
     enabled: enabled && animeId.length > 0,
   });
 }
-

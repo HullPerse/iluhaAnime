@@ -244,13 +244,11 @@ mod tests {
     #[test]
     fn empty_activity_has_no_payload() {
         assert!(activity().sanitize().is_empty());
-        assert!(
-            DiscordActivity {
-                activity_type: Some(3),
-                ..activity()
-            }
-            .sanitize()
-            .is_empty()
-        );
+        assert!(DiscordActivity {
+            activity_type: Some(3),
+            ..activity()
+        }
+        .sanitize()
+        .is_empty());
     }
 }

@@ -47,12 +47,18 @@ export function useDebouncedValue<T>(
   const { wait, leading, trailing, maxWait, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
     const committed = createSimpleCell<{ current: T } | null>(null);
-    const box = {
+    const box: {
+      dirty: boolean;
+      equal: (previous: T, next: T) => boolean;
+      initial: T | undefined;
+      latest: T | undefined;
+      options: DebounceOptions;
+    } = {
       dirty: false,
-      equal: Object.is as (previous: T, next: T) => boolean,
-      initial: undefined as T | undefined,
-      latest: undefined as T | undefined,
-      options: { wait: 0 } as DebounceOptions,
+      equal: Object.is,
+      initial: undefined,
+      latest: undefined,
+      options: { wait: 0 },
     };
     const engine = new Debouncer<[T]>((next) => {
       const prev = box.latest;
@@ -97,12 +103,18 @@ export function useThrottledValue<T>(
   const { wait, leading, trailing, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
     const committed = createSimpleCell<{ current: T } | null>(null);
-    const box = {
+    const box: {
+      dirty: boolean;
+      equal: (previous: T, next: T) => boolean;
+      initial: T | undefined;
+      latest: T | undefined;
+      options: ThrottleOptions;
+    } = {
       dirty: false,
-      equal: Object.is as (previous: T, next: T) => boolean,
-      initial: undefined as T | undefined,
-      latest: undefined as T | undefined,
-      options: { wait: 0 } as ThrottleOptions,
+      equal: Object.is,
+      initial: undefined,
+      latest: undefined,
+      options: { wait: 0 },
     };
     const engine = new Throttler<[T]>((next) => {
       const prev = box.latest;

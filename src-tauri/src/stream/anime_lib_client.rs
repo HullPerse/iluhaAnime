@@ -434,7 +434,7 @@ impl AnimeLibClient {
 /// forwarded to the API, whose sort column is not documented.
 const SEARCH_SORTS: &[&str] = &["rating_score", "views", "name", "created_at", "random"];
 
-/// The age ratings the site serves (1 PG … 5 RX 18+). A request without an
+/// The age ratings the site serves (1 PG ... 5 RX 18+). A request without an
 /// explicit age filter still excludes 18+ content unless the viewer opted in.
 const AGE_RATINGS_WITHOUT_ADULT: [i32; 4] = [1, 2, 3, 4];
 

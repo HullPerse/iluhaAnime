@@ -30,25 +30,7 @@ import type { FilterPage, SpotlightPage } from "@/types/core/ipc";
 
 import { tauriTransport } from "@/api/transport.api";
 import type { ApiTransport } from "@/types/core/transport";
-
-export interface AnilistApiConfig {
-  transport?: ApiTransport;
-  proxyUrl?: string | null | (() => string | null);
-}
-
-export interface SaveAnilistEntryInput {
-  mediaId: number;
-  status: string;
-  progress: number | null;
-  score: number | null;
-  notes: string | null;
-  customLists?: string[] | null;
-  repeat?: number | null;
-  private?: boolean | null;
-  hiddenFromStatusLists?: boolean | null;
-  startedAt?: string | null;
-  completedAt?: string | null;
-}
+import type { AnilistApiConfig, SaveAnilistEntryInput } from "@/types/api/anilist";
 
 export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParams>>;
 

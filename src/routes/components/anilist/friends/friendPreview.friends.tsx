@@ -5,20 +5,10 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
-import type { AniFriend, AniUserProfile } from "@/types/anilist/anilist";
+import type { FriendPreviewProps } from "@/types/anilist/friendPreview";
 
 import { FriendActivityFeed } from "@/routes/components/anilist/activity/friendActivity.activity";
 import { FriendPreviewEmpty } from "@/routes/components/anilist/friends/emptyPreview.friends";
-
-export interface FriendPreviewProps {
-  friend: AniFriend | undefined;
-  profile: AniUserProfile | undefined;
-  profileError: string | null;
-  refreshing: boolean;
-  hasSelection: boolean;
-  onViewLists: (friend: AniFriend) => void;
-  onRefresh: (force: boolean) => void;
-}
 
 export function FriendPreview({
   friend,

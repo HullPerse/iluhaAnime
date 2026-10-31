@@ -2,6 +2,7 @@ import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persis
 import { isRecord } from "@/lib/core/record.utils";
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
+import type { AnilistSignalOptions } from "@/types/store/options";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   AniListFriendsStore,
@@ -197,11 +198,6 @@ export type AnilistNotificationsData = Omit<AniListNotificationsStore, Notificat
 type AnilistNotificationsAtoms = {
   [K in keyof AnilistNotificationsData]: Cell<AnilistNotificationsData[K]>;
 };
-
-export interface AnilistSignalOptions {
-  getStorage?: () => Storage | undefined;
-  debounceMs?: number;
-}
 
 export interface FriendsSignalStore {
   atoms: FriendsAtoms;

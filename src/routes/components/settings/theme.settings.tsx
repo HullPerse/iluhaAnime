@@ -267,7 +267,7 @@ export default function SettingsTheme() {
             <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={retroStyle}
-                onChange={(value) => patchSettings({ retroStyle: value as typeof retroStyle })}
+                onChange={(value) => patchSettings({ retroStyle: value })}
                 options={[
                   { value: "classic", label: t("settings.theme.retro.classic") },
                   { value: "soft", label: t("settings.theme.retro.soft") },
@@ -286,7 +286,7 @@ export default function SettingsTheme() {
             <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={uiDensity}
-                onChange={(value) => patchSettings({ uiDensity: value as typeof uiDensity })}
+                onChange={(value) => patchSettings({ uiDensity: value })}
                 options={[
                   {
                     value: "comfortable",
@@ -318,7 +318,7 @@ export default function SettingsTheme() {
                 value={collectionGroupHeaderStyle}
                 onChange={(value) =>
                   patchSettings({
-                    collectionGroupHeaderStyle: value as typeof collectionGroupHeaderStyle,
+                    collectionGroupHeaderStyle: value,
                   })
                 }
                 options={[
@@ -351,9 +351,7 @@ export default function SettingsTheme() {
             <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={progressStyle}
-                onChange={(value) =>
-                  patchSettings({ progressStyle: value as typeof progressStyle })
-                }
+                onChange={(value) => patchSettings({ progressStyle: value })}
                 options={[
                   { value: "blocks", label: t("settings.progress.style.blocks") },
                   { value: "solid", label: t("settings.progress.style.solid") },
@@ -430,7 +428,7 @@ export default function SettingsTheme() {
             </span>
             <Combobox
               value={searchType}
-              onChange={(value) => patchSettings({ searchType: value as typeof searchType })}
+              onChange={(value) => patchSettings({ searchType: value })}
               options={[
                 { value: "default", label: t("settings.theme.search.default") },
                 { value: "modern", label: t("settings.theme.search.modern") },
@@ -457,7 +455,7 @@ export default function SettingsTheme() {
             </span>
             <Combobox
               value={playerType}
-              onChange={(value) => patchSettings({ playerType: value as typeof playerType })}
+              onChange={(value) => patchSettings({ playerType: value })}
               options={[
                 { value: "default", label: t("settings.theme.player.default") },
                 { value: "modern", label: t("settings.theme.player.modern") },
@@ -474,9 +472,7 @@ export default function SettingsTheme() {
             </span>
             <Combobox
               value={animeDetailWidth}
-              onChange={(value) =>
-                patchSettings({ animeDetailWidth: value as typeof animeDetailWidth })
-              }
+              onChange={(value) => patchSettings({ animeDetailWidth: value })}
               options={[
                 { value: "default", label: t("settings.theme.detail.width.default") },
                 { value: "wide", label: t("settings.theme.detail.width.wide") },
@@ -491,7 +487,7 @@ export default function SettingsTheme() {
             <div className="flex min-w-0 flex-col gap-0.5">
               <Combobox
                 value={windowEffect}
-                onChange={(value) => patchSettings({ windowEffect: value as typeof windowEffect })}
+                onChange={(value) => patchSettings({ windowEffect: value })}
                 label={t("settings.theme.experimental.effect")}
                 options={[
                   { value: "none", label: t("settings.theme.experimental.effect.none") },

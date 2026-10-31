@@ -12,6 +12,7 @@ import { createSignalStore } from "@/lib/core/signal.store";
 import type { Cell, Derived } from "@/types/core/signal";
 import { resolveWithDefaults } from "@/lib/core/migrate.utils";
 import { attemptSync } from "@/lib/core/attempt.utils";
+import type { PlayerSignalOptions } from "@/types/store/options";
 import type {
   MpvChapter,
   MpvTrack,
@@ -160,11 +161,6 @@ export interface PlayerSignalStore {
   setProfile: (profile: PlayerData["profile"]) => void;
   patchPlayerSettings: (patch: Partial<PlayerSettings>) => void;
   subscribeAll: (fn: () => void) => () => void;
-}
-
-export interface PlayerSignalOptions {
-  getStorage?: () => Storage | undefined;
-  debounceMs?: number;
 }
 
 export function createPlayerSignalStore(options: PlayerSignalOptions = {}): PlayerSignalStore {

@@ -3,10 +3,8 @@ import { Fragment, useState } from "react";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { DescriptionBlock } from "@/types/torrent/torrent";
 
-import {
-  renderDescriptionBlock,
-  type DescriptionRenderContext,
-} from "@/routes/components/search/default/details/descriptionBlocks.details";
+import type { DescriptionRenderContext } from "@/types/search/descriptionRender";
+import { renderDescriptionBlock } from "@/routes/components/search/default/details/descriptionBlocks.details";
 
 export default function DescriptionBlocks({
   blocks,

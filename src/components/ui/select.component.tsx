@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input.component";
 
 export const SelectPortalContainerContext = createContext<HTMLElement | null>(null);
 
-function Select({
+function Select<T extends string = string>({
   value,
   onChange,
   options,
@@ -23,7 +23,7 @@ function Select({
   searchable,
   indexed = false,
   label,
-}: SelectProps) {
+}: SelectProps<T>) {
   const { t } = useI18n();
   const [search, setSearch] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);

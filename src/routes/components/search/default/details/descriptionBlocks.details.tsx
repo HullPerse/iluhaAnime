@@ -1,17 +1,11 @@
 import type { ReactNode } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
+import type { DescriptionRenderContext } from "@/types/search/descriptionRender";
 import type { DescriptionBlock } from "@/types/torrent/torrent";
 
 import { DescriptionLink } from "@/routes/components/search/default/details/descriptionLink.details";
 import { DescriptionSpoiler } from "@/routes/components/search/default/details/descriptionSpoiler.details";
-
-export interface DescriptionRenderContext {
-  openImageLabel: string;
-  openSpoilers: ReadonlySet<number>;
-  handleToggleSpoiler: (index: number) => void;
-  onZoom: (url: string) => void;
-}
 
 type RenderBlock = (
   block: DescriptionBlock,

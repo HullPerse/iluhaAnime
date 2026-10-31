@@ -7,14 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useAnilistFollowing } from "@/hooks/anilist/following.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AniFriendMinimal } from "@/types/anilist/anilist";
-
-export interface FollowingImportProps {
-  selfId: number | null;
-  addedIds: Set<number>;
-  onAddMany: (friends: AniFriendMinimal[]) => void;
-  onClose: () => void;
-}
+import type { FollowingImportProps } from "@/types/anilist/followingImport";
 
 export function FollowingImportPanel({
   selfId,

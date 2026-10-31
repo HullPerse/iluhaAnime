@@ -437,7 +437,7 @@ const report = {
 if (jsonOnly) {
   console.log(JSON.stringify(report, null, 2));
 } else {
-  console.log("SIMULATED — self-labeled hard prefixes + rank-biased clicks, not real users.");
+  console.log("SIMULATED - self-labeled hard prefixes + rank-biased clicks, not real users.");
   console.log(
     `hard=${hardQueries.length} eval=${evalQueries.length} rounds=${rounds} learnedRows=${rows.size} selects=${totalSelects} ignores=${totalIgnores}`
   );

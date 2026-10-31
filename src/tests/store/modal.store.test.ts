@@ -9,8 +9,8 @@ import {
   pushModal,
   resetModalAtoms,
   topModal,
-  type ModalSignalStore,
 } from "@/store/modal.store";
+import type { ModalSignalStore } from "@/types/store/modal";
 import type { ModalEntry, ModalScope } from "@/types/ui/modal";
 
 function seed(

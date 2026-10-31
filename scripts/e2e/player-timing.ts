@@ -76,7 +76,7 @@ function now(): number {
 }
 
 function fmt(ms: number): string {
-  return ms < 0 ? "—" : ms.toFixed(1);
+  return ms < 0 ? "-" : ms.toFixed(1);
 }
 
 function percentile(values: number[], q: number): number {

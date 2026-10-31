@@ -17,8 +17,6 @@ import type {
   CrtCurvature,
   EndOfFileMode,
   HwdecMode,
-  PlayerCabinetId,
-  PlayerModeId,
   PlayerProfileId,
   PlayerSettings,
   SeekMode,
@@ -66,17 +64,17 @@ function SettingsPanel({
     { value: "d3d11va", label: t("player.media.settings.hwdec.d3d11va") },
     { value: "cuda", label: t("player.media.settings.hwdec.cuda") },
     { value: "no", label: t("player.media.settings.hwdec.no") },
-  ];
+  ] as const;
   const seekOptions = [
     { value: "keyframes", label: t("player.media.settings.seek.keyframes") },
     { value: "exact", label: t("player.media.settings.seek.exact") },
-  ];
+  ] as const;
   const eofOptions = [
     { value: "none", label: t("player.media.eof.none") },
     { value: "pause", label: t("player.media.eof.pause") },
     { value: "next", label: t("player.media.eof.next") },
     { value: "repeat", label: t("player.media.eof.repeat") },
-  ];
+  ] as const;
   const profileOptions = PLAYER_PROFILE_IDS.map((id) => ({
     value: id,
     label: t(`player.media.settings.profile.${id}` as const),
@@ -84,12 +82,11 @@ function SettingsPanel({
   const tonemapOptions = [
     { value: "auto", label: t("player.media.settings.tonemap.auto") },
     { value: "manual", label: t("player.media.settings.tonemap.manual") },
-  ];
-  const primOptions = ["auto", "bt.709", "bt.2020", "dci-p3", "display-p3"].map((value) => ({
-    value,
-    label: value,
-  }));
-  const trcOptions = ["auto", "bt.1886", "srgb", "linear", "gamma2.2", "pq", "hlg"].map(
+  ] as const;
+  const primOptions = (["auto", "bt.709", "bt.2020", "dci-p3", "display-p3"] as const).map(
+    (value) => ({ value, label: value })
+  );
+  const trcOptions = (["auto", "bt.1886", "srgb", "linear", "gamma2.2", "pq", "hlg"] as const).map(
     (value) => ({ value, label: value })
   );
   const modeOptions = PLAYER_MODE_IDS.map((id) => ({
@@ -115,7 +112,7 @@ function SettingsPanel({
             label={t("player.media.settings.mode")}
             value={settings.playerMode}
             options={modeOptions}
-            onChange={(value) => onPatchSettings({ playerMode: value as PlayerModeId })}
+            onChange={(value) => onPatchSettings({ playerMode: value })}
           />
         </Row>
         <Row label={t("player.media.settings.cabinet")}>
@@ -124,7 +121,7 @@ function SettingsPanel({
             label={t("player.media.settings.cabinet")}
             value={settings.cabinet}
             options={cabinetOptions}
-            onChange={(value) => onPatchSettings({ cabinet: value as PlayerCabinetId })}
+            onChange={(value) => onPatchSettings({ cabinet: value })}
           />
         </Row>
         {modeDef.curvatureEditable && (
@@ -145,7 +142,7 @@ function SettingsPanel({
             className="flex-1"
             value={hwdec}
             options={hwdecOptions}
-            onChange={(value) => onHwdec(value as HwdecMode)}
+            onChange={(value) => onHwdec(value)}
           />
         </Row>
         <Row label={t("player.media.settings.seek")}>
@@ -153,7 +150,7 @@ function SettingsPanel({
             className="flex-1"
             value={seekMode}
             options={seekOptions}
-            onChange={(value) => onSeekMode(value as SeekMode)}
+            onChange={(value) => onSeekMode(value)}
           />
         </Row>
         <Row label={t("player.media.settings.eof")}>
@@ -161,7 +158,7 @@ function SettingsPanel({
             className="flex-1"
             value={eofMode}
             options={eofOptions}
-            onChange={(value) => onEofMode(value as EndOfFileMode)}
+            onChange={(value) => onEofMode(value)}
           />
         </Row>
         <Row label={t("player.media.settings.autohide")}>
@@ -177,7 +174,7 @@ function SettingsPanel({
               className="flex-1"
               value={profile}
               options={profileOptions}
-              onChange={(value) => onProfile(value as PlayerProfileId)}
+              onChange={(value) => onProfile(value)}
             />
           </Row>
         )}
@@ -226,9 +223,7 @@ function SettingsPanel({
             className="flex-1"
             value={settings.targetPrim}
             options={primOptions}
-            onChange={(value) =>
-              onPatchSettings({ targetPrim: value as PlayerSettings["targetPrim"] })
-            }
+            onChange={(value) => onPatchSettings({ targetPrim: value })}
           />
         </Row>
         <Row label={t("player.media.settings.target.trc")}>
@@ -236,9 +231,7 @@ function SettingsPanel({
             className="flex-1"
             value={settings.targetTrc}
             options={trcOptions}
-            onChange={(value) =>
-              onPatchSettings({ targetTrc: value as PlayerSettings["targetTrc"] })
-            }
+            onChange={(value) => onPatchSettings({ targetTrc: value })}
           />
         </Row>
         <Row label={t("player.media.settings.tonemap")}>
@@ -246,7 +239,7 @@ function SettingsPanel({
             className="flex-1"
             value={settings.toneMap}
             options={tonemapOptions}
-            onChange={(value) => onPatchSettings({ toneMap: value as PlayerSettings["toneMap"] })}
+            onChange={(value) => onPatchSettings({ toneMap: value })}
           />
         </Row>
         {settings.toneMap === "manual" && (

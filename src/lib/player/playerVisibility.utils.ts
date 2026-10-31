@@ -1,4 +1,5 @@
-import { settingsAtoms, type SettingsAtoms } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
+import type { SettingsAtoms } from "@/types/store/settings";
 import { normalizePlayerPath } from "@/lib/core/visibility.utils";
 
 export class PlayerVisibilityService {

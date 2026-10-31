@@ -1,14 +1,14 @@
 import type { CSSProperties, ComponentProps, ImgHTMLAttributes, ReactNode } from "react";
 
-export interface SelectOption {
-  value: string;
+export interface SelectOption<T extends string = string> {
+  value: T;
   label: string;
 }
 
-export interface SelectProps {
-  value: string;
-  onChange: (value: string) => void;
-  options: readonly (SelectOption & { style?: CSSProperties })[];
+export interface SelectProps<T extends string = string> {
+  value: T;
+  onChange: (value: T) => void;
+  options: readonly (SelectOption<T> & { style?: CSSProperties })[];
   className?: string;
   placeholder?: string;
   arrow?: boolean;
@@ -18,7 +18,7 @@ export interface SelectProps {
   label?: string;
 }
 
-export type ComboboxProps = Omit<SelectProps, "searchable">;
+export type ComboboxProps<T extends string = string> = Omit<SelectProps<T>, "searchable">;
 
 export interface PasswordInputProps extends Omit<ComponentProps<"input">, "type"> {
   wrapperClassName?: string;

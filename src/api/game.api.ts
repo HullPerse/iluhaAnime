@@ -1,17 +1,8 @@
 import type { GamePlatform, GameRomInfo, GameStartInfo, GameStoreEntry } from "@/types/core/game";
 
 import type { ApiTransport } from "@/types/core/transport";
+import type { GameApiConfig, GameImportInput } from "@/types/api/game";
 import { tauriTransport } from "@/api/transport.api";
-
-export interface GameApiConfig {
-  transport?: ApiTransport;
-}
-
-export interface GameImportInput {
-  path: string;
-  platform?: GamePlatform;
-  name?: string;
-}
 
 export class GameApi {
   private readonly transport: ApiTransport;

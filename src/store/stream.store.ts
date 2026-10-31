@@ -1,14 +1,7 @@
 import { DEFAULT_STREAM_FILTERS } from "@/config/player/streamFilters.config";
 import { createSignalStore } from "@/lib/core/signal.store";
-import type { Cell } from "@/types/core/signal";
+import type { StreamSignalStore } from "@/types/store/stream";
 import type { StreamCatalogFilters, StreamSortBy } from "@/types/player/stream";
-
-export interface StreamSignalStore {
-  query: Cell<string>;
-  page: Cell<number>;
-  selectedSlug: Cell<string | null>;
-  filters: Cell<StreamCatalogFilters>;
-}
 
 function createStreamSignalStore(): StreamSignalStore {
   const store = createSignalStore();

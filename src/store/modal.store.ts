@@ -1,9 +1,6 @@
 import { createSignalStore } from "@/lib/core/signal.store";
-import type { Cell } from "@/types/core/signal";
-import type { ModalEntry, ModalScope, ModalStacks, ModalStore } from "@/types/ui/modal";
-
-type ModalData = Pick<ModalStore, "stacks">;
-type ModalAtoms = { [K in keyof ModalData]: Cell<ModalData[K]> };
+import type { ModalSignalStore } from "@/types/store/modal";
+import type { ModalEntry, ModalScope, ModalStacks } from "@/types/ui/modal";
 
 let nextModalId = 1;
 
@@ -17,16 +14,6 @@ function emptyStacks(): ModalStacks {
     torrent: [],
     settings: [],
   };
-}
-
-export interface ModalSignalStore {
-  atoms: ModalAtoms;
-  push: ModalStore["push"];
-  replace: ModalStore["replace"];
-  pop: ModalStore["pop"];
-  clearScope: ModalStore["clearScope"];
-  clearAll: ModalStore["clearAll"];
-  batch: ModalStore["batch"];
 }
 
 export function createModalSignalStore(): ModalSignalStore {

@@ -1,7 +1,7 @@
 import { bench, group } from "@pmndrs/labs";
 
 // Hill climbing (maximize relevance) vs gradient descent (minimize batch cost).
-// BASELINE ONLY — no implementation change yet. These benches measure the
+// BASELINE ONLY - no implementation change yet. These benches measure the
 // current behavior so a later hill-climbing / gradient-descent pass can be
 // accepted only on a real, measured improvement.
 //

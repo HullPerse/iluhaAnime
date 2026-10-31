@@ -13,7 +13,8 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: mockListen,
 }));
 
-import { createUpscaleSignalStore, type UpscaleSignalStore } from "@/store/upscale.store";
+import { createUpscaleSignalStore } from "@/store/upscale.store";
+import type { UpscaleSignalStore } from "@/types/store/upscale";
 import type { UpscaleConfig } from "@/types/core/upscale";
 
 const CONFIG: UpscaleConfig = {

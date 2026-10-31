@@ -1447,7 +1447,7 @@ mod tests {
     #[test]
     fn session_detection_requires_authenticated_markers_and_rejects_challenges() {
         assert!(session_is_logged_in("profile.php?mode=viewprofile"));
-        assert!(session_is_logged_in("Добро пожаловать на форум · Выход"));
+        assert!(session_is_logged_in("Добро пожаловать на форум - Выход"));
         assert!(!session_is_logged_in("login-form-full"));
         assert!(!session_is_logged_in("Just a moment... DDoS-Guard"));
     }

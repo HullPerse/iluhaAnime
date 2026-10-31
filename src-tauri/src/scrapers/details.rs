@@ -854,7 +854,7 @@ fn looks_like_mediainfo(text: &str) -> bool {
 fn truncate_mediainfo(text: String) -> String {
     if text.len() > MAX_MEDIAINFO_CHARS {
         let mut cut = text[..MAX_MEDIAINFO_CHARS].to_string();
-        cut.push_str("\n…");
+        cut.push_str("\n...");
         cut
     } else {
         text
@@ -1755,7 +1755,7 @@ fn is_relative_time_tip(tip: &str) -> bool {
         .any(|unit| tip.contains(unit) && tip.contains("ago"))
 }
 
-/// Stats live in `span.tooltip[data-tip="Seeders|Leechers|…"]`; the span
+/// Stats live in `span.tooltip[data-tip="Seeders|Leechers|..."]`; the span
 /// text after the icon svg is the value.
 fn parse_nekobt_meta(doc: &Html) -> NekobtMeta {
     let mut meta = NekobtMeta::default();
@@ -2926,13 +2926,13 @@ mod tests {
             <div class="panel-body markdown-text">
                 Video Info:<br>
                 udp://tracker.opentrackr.org:1337/announce<br>
-                S: 6292 · L: 312 · C: 19283
+                S: 6292 | L: 312 | C: 19283
             </div>
         "#;
         let details = parse_torrent_detail_html("nyaa", "https://nyaa.si/view/1", html);
         assert_eq!(
             details.description,
-            "Video Info:\nudp://tracker.opentrackr.org:1337/announce\nS: 6292 · L: 312 · C: 19283"
+            "Video Info:\nudp://tracker.opentrackr.org:1337/announce\nS: 6292 | L: 312 | C: 19283"
         );
     }
 

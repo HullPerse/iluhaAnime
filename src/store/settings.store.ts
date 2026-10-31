@@ -18,20 +18,14 @@ import {
   createPersistedStoreContext,
 } from "@/lib/core/persisted.utils";
 import { isRecord } from "@/lib/core/record.utils";
-import type { Cell } from "@/types/core/signal";
 import type { MigrationTransform } from "@/types/core/migrate";
 import { resolveWithDefaults, runTransforms } from "@/lib/core/migrate.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/graphics/font.utils";
 import { toValidator } from "@/lib/core/schema.utils";
-import type { SettingsStore } from "@/types/ui/settings";
+import type { SettingsAtoms, SettingsData } from "@/types/store/settings";
 
 export const SETTINGS_SCHEMA_VERSION = 59;
-
-type SettingsActionKeys = "patch";
-
-export type SettingsData = Omit<SettingsStore, SettingsActionKeys>;
-export type SettingsAtoms = { [K in keyof SettingsData]: Cell<SettingsData[K]> };
 
 const SETTINGS_TRANSFORMS: MigrationTransform[] = [
   {

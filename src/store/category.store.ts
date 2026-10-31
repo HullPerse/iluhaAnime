@@ -4,6 +4,7 @@ import { isUserImageIcon } from "@/lib/graphics/image.utils";
 import type { Category, CategoryEntry, CategoryStore } from "@/types/core/category";
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
+import type { CategorySignalOptions } from "@/types/store/options";
 
 export const CATEGORY_SCHEMA_VERSION = 1;
 
@@ -99,11 +100,6 @@ function readLegacyCategories(
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
   return { data: state, schemaVersion: CATEGORY_SCHEMA_VERSION };
-}
-
-export interface CategorySignalOptions {
-  getStorage?: () => Storage | undefined;
-  debounceMs?: number;
 }
 
 export interface CategorySignalStore {

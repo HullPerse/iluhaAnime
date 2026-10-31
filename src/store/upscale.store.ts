@@ -4,7 +4,7 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 import { tr } from "@/lib/locale/i18n.utils";
 import { buildOutputPath } from "@/lib/player/playerTree.utils";
 import { createSignalStore } from "@/lib/core/signal.store";
-import type { Cell } from "@/types/core/signal";
+import type { UpscaleSignalStore } from "@/types/store/upscale";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import { ignore } from "@/lib/core/promise.utils";
@@ -41,21 +41,6 @@ function findDuplicate(
       item.filePath === filePath &&
       sameJobConfig(item.config, config)
   );
-}
-
-export interface UpscaleSignalStore {
-  items: Cell<UpscaleQueueItem[]>;
-  processing: Cell<boolean>;
-  paused: Cell<boolean>;
-  addConvertItem: (filePath: string, name: string, config: ConvertConfig) => string;
-  addUpscaleItem: (filePath: string, name: string, config: UpscaleConfig) => string;
-  clearAll: () => void;
-  clearDone: () => void;
-  clearErrors: () => void;
-  processNext: () => Promise<void>;
-  removeItem: (id: string) => void;
-  restartItem: (id: string) => void;
-  setPaused: (paused: boolean) => void;
 }
 
 export function createUpscaleSignalStore(): UpscaleSignalStore {

@@ -26,10 +26,7 @@ import type {
   StreamSource,
 } from "@/types/player/videoPlayer";
 
-export interface StreamApiConfig {
-  transport?: ApiTransport;
-  proxyUrl?: string | null | (() => string | null);
-}
+import type { StreamApiConfig } from "@/types/api/stream";
 
 interface StreamSourcesInput {
   episodeId: string;

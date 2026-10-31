@@ -3,6 +3,7 @@ import type { Persistor } from "@/types/core/persist";
 import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { isRecord } from "@/lib/core/record.utils";
 import type { Cell } from "@/types/core/signal";
+import type { ThemeSignalOptions } from "@/types/store/options";
 import { applyTheme } from "@/lib/core/appearance.utils";
 import { deriveFieldColor, isHexColor } from "@/lib/graphics/palette.utils";
 import { findTheme } from "@/lib/graphics/themeResolve.utils";
@@ -376,11 +377,6 @@ function readLegacyTheme(
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
   return { data: state, schemaVersion: THEME_SCHEMA_VERSION };
-}
-
-export interface ThemeSignalOptions {
-  getStorage?: () => Storage | undefined;
-  debounceMs?: number;
 }
 
 export interface ThemeSignalStore {

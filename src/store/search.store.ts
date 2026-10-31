@@ -1,5 +1,5 @@
 import { collectionApi } from "@/api/collection.api";
-import type { UnifiedIndexEntryInput } from "@/api/collection.api";
+import type { UnifiedIndexEntryInput } from "@/types/api/collection";
 import {
   applyLearningAction,
   buildLearningMaps,

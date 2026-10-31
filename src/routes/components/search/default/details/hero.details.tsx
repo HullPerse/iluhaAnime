@@ -8,7 +8,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatSize } from "@/lib/search/searchFormat.utils";
 import { attempt } from "@/lib/core/attempt.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { systemApi } from "@/api/system.api";
 import { showError } from "@/lib/core/notification.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import { canCopyPosterUrl, posterPngBlob } from "@/lib/torrent/poster.utils";
@@ -103,7 +103,7 @@ export default function DetailsHero({
             }
             const bytes = new Uint8Array(await blob.arrayBuffer());
             const [, saveError] = await attempt(
-              invokeTyped("save_poster_bytes", { data: [...bytes], path: picked })
+              systemApi.savePosterBytes([...bytes], picked)
             );
             if (saveError) showError(t("common.error"), t("screenshot.save.error"));
           })()

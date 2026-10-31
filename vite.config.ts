@@ -75,10 +75,6 @@ export default defineConfig({
     projects: [
       {
         test: {
-          // Files with behavior-divergent `vi.mock("@/...")` for src
-          // modules. With a shared registry the first-evaluated factory
-          // would freeze its mock into every other file of the worker, so
-          // these keep per-file isolation.
           name: "isolated",
           include: [
             "src/tests/lib/utils/media.test.ts",
@@ -105,15 +101,11 @@ export default defineConfig({
       },
       {
         test: {
-          // Everything else shares one module registry per worker. Safe
-          // because all Tauri mocks funnel through `src/tests/mocks.ts` and
-          // the global `beforeEach` in `src/tests/setup.ts` restores
-          // fresh-mock semantics per test.
           name: "shared",
           isolate: false,
           include: ["src/tests/**/*.test.ts", "src/tests/**/*.test.tsx"],
           exclude: [
-            "src/tests/lib/utils/media.test.ts",
+            "src/tests/lib/media.test.ts",
             "src/tests/lib/anilist/notifications.test.ts",
             "src/tests/components/player/side.player.test.tsx",
             "src/tests/components/search/modern/dither/settings.dither.test.tsx",

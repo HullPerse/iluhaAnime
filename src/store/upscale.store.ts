@@ -273,3 +273,4 @@ export const clearUpscaleErrors = upscale.clearErrors;
 export const removeUpscaleItem = upscale.removeItem;
 export const restartUpscaleItem = upscale.restartItem;
 export const setUpscalePaused = upscale.setPaused;
+export const cancelUpscale = (): Promise<void> => invokeTyped("cancel_upscale");

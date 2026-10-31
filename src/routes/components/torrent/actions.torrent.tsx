@@ -5,7 +5,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { attempt } from "@/lib/core/attempt.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { torrentApi } from "@/api/torrent.api";
 import { joinMediaPath, openFileInPlayer } from "@/lib/player/media.utils";
 import { showError } from "@/lib/core/notification.utils";
 import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
@@ -61,7 +61,7 @@ export function PlayerFileActions({
               e.stopPropagation();
               const full = upscaledExtra?.fullPath;
               if (!full) return;
-              const [, error] = await attempt(invokeTyped("delete_extra_file", { path: full }));
+              const [, error] = await attempt(torrentApi.deleteExtraFile(full));
               if (error) showError(t("common.error"), error.message);
               else onDeleteExtraFile?.();
             }}

@@ -135,6 +135,18 @@ export class SystemApi {
     return this.call("clear_remote_image_cache");
   }
 
+  savePosterBytes(data: number[], path: string): Promise<string> {
+    return this.call("save_poster_bytes", { data, path });
+  }
+
+  downloadFfmpeg(source: string): Promise<string> {
+    return this.call("download_ffmpeg", { source });
+  }
+
+  removeFfmpeg(): Promise<void> {
+    return this.call("remove_ffmpeg");
+  }
+
   readFileBytes(path: string): Promise<number[]> {
     return this.call("read_file_bytes", { path });
   }

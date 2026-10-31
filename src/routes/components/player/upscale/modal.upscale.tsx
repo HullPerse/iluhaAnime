@@ -16,7 +16,7 @@ import { useCell } from "@/lib/core/signal.hook";
 import { withFallback } from "@/lib/core/attempt.utils";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import { addConvertItem, addUpscaleItem, upscaleItems } from "@/store/upscale.store";
+import { addConvertItem, addUpscaleItem, cancelUpscale, upscaleItems } from "@/store/upscale.store";
 import type { UpscaleConfig, ConvertConfig } from "@/types/core/upscale";
 
 import { PreviewZoom } from "@/routes/components/player/preview/zoom.preview";
@@ -212,7 +212,7 @@ export default function UpscalePlayer({
   }, [filePath, targetFormat, copyStreams, resetState]);
 
   const handleCancel = useCallback(async () => {
-    await invokeTyped("cancel_upscale");
+    await cancelUpscale();
   }, []);
 
   const handleAddToQueue = useCallback(() => {

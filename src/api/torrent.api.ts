@@ -380,6 +380,10 @@ export class TorrentApi {
   scanExtraFiles(path: string): Promise<ScannedExtraFile[]> {
     return this.call("scan_extra_files", { path });
   }
+
+  deleteExtraFile(path: string): Promise<void> {
+    return this.call("delete_extra_file", { path });
+  }
 }
 
 export const torrentApi = new TorrentApi({

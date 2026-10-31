@@ -8,7 +8,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useCell } from "@/lib/core/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { systemApi } from "@/api/system.api";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { FFMPEGStatus } from "@/types/ui/settings";
@@ -34,9 +34,7 @@ function FFMPEG({
     setStatus("downloading");
     setDlError(null);
     const [, error] = await attempt(
-      invokeTyped<string>("download_ffmpeg", {
-        source: settingsAtoms.ffmpegSource.get(),
-      })
+      systemApi.downloadFfmpeg(settingsAtoms.ffmpegSource.get())
     );
     if (error) {
       setDlError(error.message);
@@ -49,7 +47,7 @@ function FFMPEG({
   }, [setStatus, t]);
 
   const handleRemove = useCallback(async () => {
-    const [, error] = await attempt(invokeTyped("remove_ffmpeg"));
+    const [, error] = await attempt(systemApi.removeFfmpeg());
     if (error) reportBackgroundError("ffmpeg.remove", error);
     else setStatus("missing");
   }, [setStatus]);

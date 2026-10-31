@@ -27,8 +27,8 @@ export function FeedTab({
   onAnimeClick: (id: number) => void;
 }) {
   const { t, locale } = useI18n();
-  const [statusFilter, setStatusFilter] = useState("");
-  const [includeFriends, setIncludeFriends] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [includeFriends, setIncludeFriends] = useState<boolean>(false);
   const activityUserIds = useMemo(() => {
     const ids = includeFriends ? [userId, ...friendIds] : [userId];
     return [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))].sort((a, b) => a - b);

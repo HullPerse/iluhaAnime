@@ -26,7 +26,7 @@ export function AnimeDetailShell({
 }: DetailProps & { render: (slot: DetailShellSlot) => ReactNode }) {
   const { t } = useI18n();
   const [trailer, setTrailer] = useState<{ animeId: number; youtubeId: string } | null>(null);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState<boolean>(false);
   const trailerId =
     trailer !== null && trailer.animeId === props.animeId ? trailer.youtubeId : null;
   const isFavorite = props.favouriteIds?.has(props.animeId) ?? false;

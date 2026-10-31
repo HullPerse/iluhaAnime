@@ -37,7 +37,7 @@ function Modal({
   const animateModalContent = useCell(settingsAtoms.animateModalContent);
   const enable3dBorders = useCell(settingsAtoms.enable3dBorders);
   const backdropOpacity = useCell(settingsAtoms.modalBackdropOpacity);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const contentElement = useRef<HTMLDivElement>(null);
   const prevContentSignatureRef = useRef<string | undefined>(undefined);

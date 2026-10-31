@@ -25,7 +25,7 @@ function Select({
   label,
 }: SelectProps) {
   const { t } = useI18n();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const portalContainer = useContext(SelectPortalContainerContext);

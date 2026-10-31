@@ -25,8 +25,8 @@ import {
 export function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
   const { t } = useI18n();
   const options = useCell(findBarAtoms.bar);
-  const [query, setQuery] = useState("");
-  const [index, setIndex] = useState(0);
+  const [query, setQuery] = useState<string>("");
+  const [index, setIndex] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const collection = useMemo(

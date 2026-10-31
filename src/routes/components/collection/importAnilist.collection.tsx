@@ -60,17 +60,17 @@ export default function ImportAnilistCollection({
   else if (listsQuery.error) listsErrorText = String(listsQuery.error);
   const [mode, setMode] = useState<ImportMode>("summary");
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [importing, setImporting] = useState(false);
-  const [processed, setProcessed] = useState(0);
+  const [importing, setImporting] = useState<boolean>(false);
+  const [processed, setProcessed] = useState<number>(0);
   const [current, setCurrent] = useState<string | null>(null);
   const [importFailures, setImportFailures] = useState<Array<{ id: number; title: string }>>([]);
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
-  const [running, setRunning] = useState(false);
-  const [opProcessed, setOpProcessed] = useState(0);
+  const [running, setRunning] = useState<boolean>(false);
+  const [opProcessed, setOpProcessed] = useState<number>(0);
   const [opCurrent, setOpCurrent] = useState<string | null>(null);
   const [opFailures, setOpFailures] = useState<Array<{ id: string; title: string }>>([]);
   const [opDone, setOpDone] = useState<{ ok: number } | null>(null);
-  const abortRef = useRef(false);
+  const abortRef = useRef<boolean>(false);
 
   const labelById = useMemo<Record<string, string>>(
     () => Object.fromEntries(statuses.map((s) => [s.id, s.label])),

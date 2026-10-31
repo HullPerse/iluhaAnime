@@ -41,10 +41,10 @@ export default function StreamEpisodes({
   onRetry: () => void;
 }) {
   const { t } = useI18n();
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState<string>("");
   const [hover, setHover] = useState<PreviewAnchor | null>(null);
   const listRef = useRef<HTMLElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
 
   const visible = useMemo(() => {
     const needle = filter.trim().toLowerCase();

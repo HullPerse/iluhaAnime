@@ -52,22 +52,22 @@ export function useSearchQuery(): SearchQueryController {
 
   const initialSource = resolveInitialSource(visibleSources, defaultSource) as Source;
 
-  const [searchParams, setSearchParams] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const [searchRequest, setSearchRequest] = useState(0);
+  const [searchParams, setSearchParams] = useState<string>("");
+  const [submittedQuery, setSubmittedQuery] = useState<string>("");
+  const [searchRequest, setSearchRequest] = useState<number>(0);
   const [source, setSource] = useState<Source>(initialSource as Source);
   const resultSource = useCell(searchAtoms.resultSource);
   const fetchSourceRef = useRef<Source | null>(null);
-  const [lastDefaultSource, setLastDefaultSource] = useState(defaultSource);
+  const [lastDefaultSource, setLastDefaultSource] = useState<string>(defaultSource);
   const queryClient = useQueryClient();
-  const [showLogin, setShowLogin] = useState(false);
-  const [showEraiLogin, setShowEraiLogin] = useState(false);
-  const [showApiModal, setShowApiModal] = useState(false);
+  const [showLogin, setShowLogin] = useState<boolean>(false);
+  const [showEraiLogin, setShowEraiLogin] = useState<boolean>(false);
+  const [showApiModal, setShowApiModal] = useState<boolean>(false);
   const [magnets, setMagnets] = useState<Record<string, string>>({});
   const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>({});
-  const [nyaaPage, setNyaaPage] = useState(1);
-  const [maxPage, setMaxPage] = useState(Number.POSITIVE_INFINITY);
-  const [showFilters, setShowFilters] = useState(false);
+  const [nyaaPage, setNyaaPage] = useState<number>(1);
+  const [maxPage, setMaxPage] = useState<number>(Number.POSITIVE_INFINITY);
+  const [showFilters, setShowFilters] = useState<boolean>(false);
   const [selectedTorrent, setSelectedTorrent] = useState<SelectedSearchTorrent | null>(null);
   if (lastDefaultSource !== defaultSource) {
     setLastDefaultSource(defaultSource);

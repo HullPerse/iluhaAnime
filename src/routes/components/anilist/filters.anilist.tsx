@@ -44,9 +44,9 @@ function FiltersModal({
   const { t } = useI18n();
   const [local, setLocal] = useState<AniListFilters>(filters);
   const [detailId, setDetailId] = useState<number | null>(null);
-  const [genreSelect, setGenreSelect] = useState("");
-  const [tagSelect, setTagSelect] = useState("");
-  const [nsfwTagSelect, setNsfwTagSelect] = useState("");
+  const [genreSelect, setGenreSelect] = useState<string>("");
+  const [tagSelect, setTagSelect] = useState<string>("");
+  const [nsfwTagSelect, setNsfwTagSelect] = useState<string>("");
 
   if (!open) return null;
 

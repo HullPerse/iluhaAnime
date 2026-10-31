@@ -28,8 +28,8 @@ export function StatusManagerCollection({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const [newLabel, setNewLabel] = useState("");
-  const [newColor, setNewColor] = useState(DEFAULT_NEW_COLOR);
+  const [newLabel, setNewLabel] = useState<string>("");
+  const [newColor, setNewColor] = useState<string>(DEFAULT_NEW_COLOR);
   const [newKind, setNewKind] = useState<CollectionStatusKind>("private");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const newId = buildCustomStatusId(newLabel);

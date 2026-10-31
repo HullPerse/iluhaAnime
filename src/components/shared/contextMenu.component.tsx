@@ -19,10 +19,10 @@ export default function ContextMenu({
   onOpenChange,
 }: ContextMenuProps) {
   const { t } = useI18n();
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState<boolean>(defaultOpen);
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : uncontrolledOpen;
-  const changeRef = useRef(onOpenChange);
+  const changeRef = useRef<ContextMenuProps["onOpenChange"]>(onOpenChange);
 
   useEffect(() => {
     changeRef.current = onOpenChange;
@@ -36,7 +36,7 @@ export default function ContextMenu({
     [isControlled]
   );
 
-  const setOpenRef = useRef(setOpen);
+  const setOpenRef = useRef<(next: boolean) => void>(setOpen);
   useEffect(() => {
     setOpenRef.current = setOpen;
   }, [setOpen]);

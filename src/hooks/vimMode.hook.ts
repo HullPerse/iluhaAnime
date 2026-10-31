@@ -80,7 +80,11 @@ export function useVimMode(): void {
   const vimMode = useCell(settingsAtoms.vimMode);
   const overrides = useCell(settingsAtoms.keybindOverrides);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const stateRef = useRef({ vimMode, pathname, overrides });
+  const stateRef = useRef<{
+    vimMode: boolean;
+    pathname: string;
+    overrides: Record<string, string | null>;
+  }>({ vimMode, pathname, overrides });
   const closeLayerRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
@@ -92,7 +96,7 @@ export function useVimMode(): void {
     closeLayerRef.current();
   }, [vimMode, pathname]);
 
-  const prevPathnameRef = useRef(pathname);
+  const prevPathnameRef = useRef<string>(pathname);
   useEffect(() => {
     if (prevPathnameRef.current === pathname) return;
     prevPathnameRef.current = pathname;

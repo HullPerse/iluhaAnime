@@ -12,7 +12,7 @@ const VIRTUAL_LIST_SELECTOR = "[data-virtual-list]";
 export default function PageFindBar() {
   const bar = useCell(findBarAtoms.bar);
   const restoreRef = useRef<HTMLElement | null>(null);
-  const [virtualOnly, setVirtualOnly] = useState(false);
+  const [virtualOnly, setVirtualOnly] = useState<boolean>(false);
 
   useResolvedHotkeys<"open-find">(
     [{ id: "open-find", chord: "ctrl+KeyF", repeat: "once", keybindId: "page.find" }],

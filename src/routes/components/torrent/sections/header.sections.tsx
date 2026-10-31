@@ -67,8 +67,8 @@ export function TorrentHeader({
   const { t } = useI18n();
   const pauseTitle = useKeybindTitle(t("torrent.pause"), "torrent.pause.resume");
   const resumeTitle = useKeybindTitle(t("torrent.resume"), "torrent.pause.resume");
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(item.name);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [draft, setDraft] = useState<string>(item.name);
   const aliasMutation = useSetTorrentAlias();
 
   const commitAlias = (value: string | null) => {

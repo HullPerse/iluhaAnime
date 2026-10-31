@@ -70,7 +70,7 @@ export default function StreamResults({
   const gridRef = useRef<HTMLDivElement>(null);
   // Roving tabindex: one tile is the Tab stop and the arrows move it, so a
   // 60 tile page is one Tab away instead of sixty.
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const items = data?.items ?? [];
 
   useEffect(() => {

@@ -55,7 +55,7 @@ export function usePlayerMargins(immersive: boolean) {
     [measureMargins, sendMargins]
   );
 
-  const syncMarginsRef = useRef(syncMargins);
+  const syncMarginsRef = useRef<(force?: boolean) => void>(syncMargins);
   useEffect(() => {
     syncMarginsRef.current = syncMargins;
   }, [syncMargins]);

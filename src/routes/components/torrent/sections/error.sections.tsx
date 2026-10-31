@@ -18,7 +18,7 @@ export function TorrentProblem({
   onRecreate: () => void;
 }) {
   const { t } = useI18n();
-  const [pendingRecreate, setPendingRecreate] = useState(false);
+  const [pendingRecreate, setPendingRecreate] = useState<boolean>(false);
   const problem = describeTorrentProblem(error, missing);
   return (
     <div className="mt-1 flex items-start gap-1">

@@ -44,7 +44,7 @@ export function TorrentFiles({
   onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
 }) {
   const { t } = useI18n();
-  const [showQueue, setShowQueue] = useState(false);
+  const [showQueue, setShowQueue] = useState<boolean>(false);
   const completed = files.filter((file) => file.completed).length;
   const missing = files.filter((file) => file.completed && !file.exists).length;
   const sequentialFile = files.find((file) => file.index === item.sequential_file);

@@ -49,16 +49,16 @@ export default function DitherPreviewModal({
   const { t } = useI18n();
   const [presetId, setPresetId] = useState<DitherPresetId>("none");
   const [options, setOptions] = useState<DitherEffectOptions>(() => resolveDitherPreset("none"));
-  const [scale, setScale] = useState(DITHER_DEFAULTS.scale);
+  const [scale, setScale] = useState<number>(DITHER_DEFAULTS.scale);
   const [renderScale] = useDebouncedValue(scale, { wait: 200 });
   const [renderOptions] = useDebouncedValue(options, { wait: 200 });
   const renderStale = renderOptions !== options || renderScale !== scale;
   const bakeRef = useRef<HTMLCanvasElement | null>(null);
-  const bakeStartedRef = useRef(false);
+  const bakeStartedRef = useRef<boolean>(false);
   const bakeStageRef = useRef<"frame" | "database">("frame");
-  const [canSave, setCanSave] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [baking, setBaking] = useState(false);
+  const [canSave, setCanSave] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [baking, setBaking] = useState<boolean>(false);
   const [bakeProgress, setBakeProgress] = useState<{ done: number; total: number } | null>(null);
   const bakeTimerRef = useRef<ScheduledTask | null>(null);
   const src = image.originalUrl ?? image.url;
@@ -73,7 +73,7 @@ export default function DitherPreviewModal({
     setOptions((prev) => ({ ...prev, ...partial }));
     setCanSave(false);
   };
-  const [extracting, setExtracting] = useState(false);
+  const [extracting, setExtracting] = useState<boolean>(false);
   const extractFromImage = () => {
     if (extracting) return;
     setExtracting(true);

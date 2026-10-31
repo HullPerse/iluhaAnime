@@ -6,7 +6,7 @@ import type { CollectionItem } from "@/types/anilist/collection";
 
 export function CreditsCollection({ item }: { item: CollectionItem }) {
   const { t } = useI18n();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState<boolean>(false);
   const staff = item.detailsJson?.staff ?? [];
   const characters = item.detailsJson?.characters ?? [];
   if (staff.length === 0 && characters.length === 0) return null;

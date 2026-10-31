@@ -8,7 +8,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { flashTarget } from "@/lib/core/flash.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
+
 import { searchSettingsFind } from "@/lib/core/find.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/types/core/find";
 import { useCell } from "@/lib/core/signal.hook";
@@ -24,6 +24,7 @@ import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
 import { settingsAtoms } from "@/store/settings.store";
+import type { TranslationKey } from "@/types/core/i18n";
 import type { SettingsTab } from "@/types/ui/settings";
 
 const SettingsSqlite = lazy(() => import("@/routes/components/settings/sqlite/sqlite.settings"));
@@ -36,11 +37,11 @@ export default function SettingsRoute() {
   const animateTabSwitch = useCell(settingsAtoms.animateTabSwitch);
   const navigate = settingsRoute.useNavigate();
   const activeTab = settingsRoute.useSearch().tab;
-  const [findQuery, setFindQuery] = useState("");
-  const [findOpen, setFindOpen] = useState(false);
-  const [findActive, setFindActive] = useState(0);
+  const [findQuery, setFindQuery] = useState<string>("");
+  const [findOpen, setFindOpen] = useState<boolean>(false);
+  const [findActive, setFindActive] = useState<number>(0);
   const [flashSection, setFlashSection] = useState<string | null>(null);
-  const [flashNonce, setFlashNonce] = useState(0);
+  const [flashNonce, setFlashNonce] = useState<number>(0);
   const [expandedSectionIds, setExpandedSectionIds] = useState<Set<string>>(new Set());
   const contentRef = useRef<HTMLDivElement>(null);
   const findInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +57,10 @@ export default function SettingsRoute() {
     return counts;
   }, [findHits, trimmedQuery]);
   const navKeys = sqliteBrowserEnabled
-    ? [...SETTINGS_TAB_KEYS, { id: "sqlite" as const, key: "settings.sqlite" as TranslationKey }]
+    ? [
+        ...SETTINGS_TAB_KEYS,
+        { id: "sqlite", key: "settings.sqlite" } satisfies { id: SettingsTab; key: TranslationKey },
+      ]
     : SETTINGS_TAB_KEYS;
   const tabContentRef = useRef<HTMLDivElement>(null);
   const prevTabRef = useRef<SettingsTab | null>(null);

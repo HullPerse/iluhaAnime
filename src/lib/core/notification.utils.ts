@@ -2,12 +2,13 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openPath } from "@tauri-apps/plugin-opener";
 
 import { translate } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { formatDistanceToNowOwn } from "@/lib/core/distance.utils";
 import { openAnimeDeepLink } from "@/store/deeplink.store";
 import { addNotification, notificationAtoms, updateNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { Locale, TranslationKey } from "@/types/core/i18n";
+import type { Locale } from "@/types/core/i18n";
 import type {
   NotificationFilter,
   NotificationItem,
@@ -57,10 +58,10 @@ export function resolveNotificationText(
   locale: Locale
 ): { title: string; body: string } {
   const title = payload.titleKey
-    ? translate(locale, payload.titleKey as TranslationKey, payload.titleVars)
+    ? translate(locale, toLocaleKey(payload.titleKey), payload.titleVars)
     : (payload.title ?? "");
   const body = payload.bodyKey
-    ? translate(locale, payload.bodyKey as TranslationKey, payload.bodyVars)
+    ? translate(locale, toLocaleKey(payload.bodyKey), payload.bodyVars)
     : (payload.body ?? "");
   return { body, title };
 }

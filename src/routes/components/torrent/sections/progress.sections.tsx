@@ -24,7 +24,7 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
   const progress = item.progress * 100;
   const initializing = display === "initializing";
   const sinceSecs = lastActiveAt[item.id];
-  const [, setNowTick] = useState(0);
+  const [, setNowTick] = useState<number>(0);
   useEffect(() => {
     if (!initializing) return;
     const { cancel } = createInterval(() => setNowTick((x) => x + 1), 1000);

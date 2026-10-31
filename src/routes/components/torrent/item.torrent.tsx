@@ -41,8 +41,8 @@ function TorrentItem({
   onRecheckPaused,
   onUpdateRequest,
 }: Props) {
-  const [pendingDelete, setPendingDelete] = useState(false);
-  const [showPeers, setShowPeers] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<boolean>(false);
+  const [showPeers, setShowPeers] = useState<boolean>(false);
   const isPaused = item.state === "paused";
   const isLive = item.state === "live";
   const { t } = useI18n();

@@ -8,7 +8,7 @@ import { clamp } from "@/lib/core/math.utils";
 export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: number) => void }) {
   const { t } = useI18n();
   const trackRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
 
   const degrees = Math.round(hue);
 

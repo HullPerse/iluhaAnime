@@ -44,7 +44,7 @@ export function useUpscalePreview({
   const { t } = useI18n();
   const requestKey = requestKeyFor(filePath, resolution, selectedShaders, temporalDenoise);
   const [state, setState] = useState<PreviewState>(() => EMPTY_STATE(requestKey));
-  const latestKeyRef = useRef(requestKey);
+  const latestKeyRef = useRef<string>(requestKey);
 
   useEffect(() => {
     latestKeyRef.current = requestKey;

@@ -16,7 +16,7 @@ export function InputDialog({
   onClose,
 }: InputDialogProps) {
   const { t } = useI18n();
-  const [value, setValue] = useState(defaultValue);
+  const [value, setValue] = useState<string>(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

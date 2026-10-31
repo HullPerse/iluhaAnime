@@ -1,71 +1,94 @@
 import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { attemptSync } from "@/lib/core/attempt.utils";
-import type { Persistor } from "@/types/core/persist";
-import type { Cell } from "@/types/core/signal";
+import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import type {
   CollectionFilters,
   CollectionStatus,
   CollectionStore,
+  CollectionType,
   WizardPrefill,
 } from "@/types/anilist/collection";
+import type { Persistor } from "@/types/core/persist";
+import type { Cell } from "@/types/core/signal";
 
 export const COLLECTION_SCHEMA_VERSION = 9;
 
-function toSet(value: unknown): Set<string> {
-  if (Array.isArray(value)) return new Set(value as string[]);
-  if (value instanceof Set) return value;
-  return new Set<string>();
-}
+const SORT_KEYS = ["date", "name", "rating", "year"] as const;
+const VIEW_MODES = ["grid", "list"] as const;
+const MEDIA_TYPES = ["anime", "movie", "series", "custom"] as const;
+const PROVIDERS = ["any", "anilist", "tmdb", "custom"] as const;
+const YES_NO_ANY = ["any", "yes", "no"] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
-function resolveFilters(state: Partial<CollectionStore>, version: number): CollectionFilters {
-  let filters = (state.filters as CollectionFilters | undefined) ?? { ...DEFAULT_FILTERS };
-  if (version < 8) filters = { ...DEFAULT_FILTERS, ...filters } as CollectionFilters;
+function isOneOf<T extends string>(value: unknown, options: readonly T[]): value is T {
+  return options.some((option) => option === value);
+}
+
+function toSet(value: unknown): Set<string> {
+  if (Array.isArray(value)) return new Set(value.filter((id): id is string => typeof id === "string"));
+  if (value instanceof Set) {
+    return new Set([...value].filter((id): id is string => typeof id === "string"));
+  }
+  return new Set<string>();
+}
+
+function readFilters(value: unknown): CollectionFilters {
+  const filters: CollectionFilters = { ...DEFAULT_FILTERS };
+  if (!isRecord(value)) return filters;
+  if (value.ratingMin === null || typeof value.ratingMin === "number") {
+    filters.ratingMin = value.ratingMin;
+  }
+  if (value.ratingMax === null || typeof value.ratingMax === "number") {
+    filters.ratingMax = value.ratingMax;
+  }
+  if (value.yearFrom === null || typeof value.yearFrom === "number") {
+    filters.yearFrom = value.yearFrom;
+  }
+  if (value.yearTo === null || typeof value.yearTo === "number") {
+    filters.yearTo = value.yearTo;
+  }
+  if (isOneOf(value.provider, PROVIDERS)) filters.provider = value.provider;
+  if (isOneOf(value.linked, YES_NO_ANY)) filters.linked = value.linked;
+  if (isOneOf(value.hasNote, YES_NO_ANY)) filters.hasNote = value.hasNote;
+  if (Array.isArray(value.mediaTypes)) {
+    filters.mediaTypes = value.mediaTypes.filter(
+      (type): type is CollectionType => isOneOf(type, MEDIA_TYPES)
+    );
+  }
+  if (Array.isArray(value.genres)) {
+    filters.genres = value.genres.filter((genre): genre is string => typeof genre === "string");
+  }
+  if (Array.isArray(value.hiddenStatuses)) {
+    filters.hiddenStatuses = value.hiddenStatuses.filter(
+      (status): status is string => typeof status === "string"
+    );
+  }
+  if (typeof value.defaultStatus === "string") filters.defaultStatus = value.defaultStatus;
   return filters;
 }
 
-function migrateFromLegacy(
-  state: Partial<CollectionStore> & { collapsedStatuses?: unknown }
-): CollectionStore {
-  return {
-    selectedStatus: state.selectedStatus ?? "all",
-    searchQuery: state.searchQuery ?? "",
-    sortBy: state.sortBy ?? "date",
-    sortDir: state.sortDir ?? "desc",
-    filters: (state.filters as CollectionFilters | undefined) ?? { ...DEFAULT_FILTERS },
-    groupByStatus: false,
-    collapsedStatuses: toSet(state.collapsedStatuses),
-  } as CollectionStore;
-}
-
-function migrateCurrent(
-  state: Partial<CollectionStore> & { collapsedStatuses?: unknown },
-  version: number
-): CollectionStore {
-  return {
-    selectedStatus: state.selectedStatus ?? "all",
-    searchQuery: state.searchQuery ?? "",
-    sortBy: state.sortBy ?? "date",
-    sortDir: state.sortDir ?? "desc",
-    filters: resolveFilters(state, version),
-    groupByStatus: Boolean(state.groupByStatus),
-    collapsedStatuses: toSet(state.collapsedStatuses),
-    viewMode: (state.viewMode as CollectionStore["viewMode"]) ?? "grid",
-    displayMode: state.displayMode === "scroll" ? "scroll" : "pagination",
-  } as CollectionStore;
-}
-
-export function migrateCollectionData(persistedState: unknown, version: number): CollectionStore {
-  if (!isRecord(persistedState)) return {} as CollectionStore;
-  const state = persistedState as Partial<CollectionStore> & {
-    collapsedStatuses?: unknown;
-  };
-  if (version < 4) return migrateFromLegacy(state);
-  return migrateCurrent(state, version);
+function readWizardPrefill(value: unknown): WizardPrefill | null {
+  if (!isRecord(value)) return null;
+  const title = value.title;
+  const status = value.status;
+  const coverUrl = value.coverUrl;
+  const rating = value.rating;
+  const scoreOrigin = value.scoreOrigin;
+  if (typeof title !== "string" || typeof status !== "string") return null;
+  if (coverUrl !== null && typeof coverUrl !== "string") return null;
+  if (!(rating === undefined || rating === null || typeof rating === "number")) return null;
+  if (
+    !(scoreOrigin === undefined || scoreOrigin === null || typeof scoreOrigin === "string")
+  ) {
+    return null;
+  }
+  const prefill: WizardPrefill = { title, coverUrl, status };
+  if (rating !== undefined) prefill.rating = rating;
+  if (scoreOrigin !== undefined) prefill.scoreOrigin = scoreOrigin;
+  return prefill;
 }
 
 type CollectionActionKeys =
@@ -96,6 +119,28 @@ const DEFAULT_COLLECTION_DATA: CollectionData = {
   wizardPrefill: null,
 };
 
+function readCollectionData(raw: Record<string, unknown>, version: number): CollectionData {
+  return {
+    selectedStatus: typeof raw.selectedStatus === "string" ? raw.selectedStatus : "all",
+    searchQuery: typeof raw.searchQuery === "string" ? raw.searchQuery : "",
+    sortBy: isOneOf(raw.sortBy, SORT_KEYS) ? raw.sortBy : "date",
+    sortDir: raw.sortDir === "asc" ? "asc" : "desc",
+    filters: readFilters(raw.filters),
+    groupByStatus: version < 4 ? false : Boolean(raw.groupByStatus),
+    collapsedStatuses: toSet(raw.collapsedStatuses),
+    viewMode: version < 4 ? "grid" : isOneOf(raw.viewMode, VIEW_MODES) ? raw.viewMode : "grid",
+    displayMode: version < 4 ? "pagination" : raw.displayMode === "scroll" ? "scroll" : "pagination",
+    wizardPrefill: readWizardPrefill(raw.wizardPrefill),
+  };
+}
+
+export function migrateCollectionData(persistedState: unknown, version: number): CollectionData {
+  if (!isRecord(persistedState)) {
+    return { ...DEFAULT_COLLECTION_DATA, collapsedStatuses: new Set<string>() };
+  }
+  return readCollectionData(persistedState, version);
+}
+
 function readLegacyCollection(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
@@ -103,18 +148,13 @@ function readLegacyCollection(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("collection-ui"));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { state?: unknown; version?: unknown };
-  const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
-  const version = typeof envelope.version === "number" ? envelope.version : 0;
-  if (!state || typeof state !== "object") return null;
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+  if (parseError !== null || !isRecord(parsed)) return null;
+  const state = isRecord(parsed.state) ? parsed.state : parsed;
+  const version = typeof parsed.version === "number" ? parsed.version : 0;
   const [migrated, migrateError] = attemptSync(() => migrateCollectionData(state, version));
-  if (migrateError !== null || !migrated || typeof migrated !== "object") return null;
-  return {
-    data: migrated as unknown as Record<string, unknown>,
-    schemaVersion: COLLECTION_SCHEMA_VERSION,
-  };
+  if (migrateError !== null) return null;
+  return { data: { ...migrated }, schemaVersion: COLLECTION_SCHEMA_VERSION };
 }
 
 export interface CollectionSignalOptions {
@@ -151,38 +191,33 @@ export function createCollectionSignalStore(
   });
 
   const persisted = persistor.read();
-  const persistedData = (persisted?.data ?? {}) as Partial<CollectionData> & {
-    collapsedStatuses?: unknown;
-  };
+  const persistedData = persisted?.data ?? {};
   const data: CollectionData = {
     ...DEFAULT_COLLECTION_DATA,
-    ...persistedData,
-    collapsedStatuses: toSet(persistedData.collapsedStatuses),
+    ...readCollectionData(persistedData, COLLECTION_SCHEMA_VERSION),
   };
   const writeMirror: Record<string, unknown> = {};
-  const atoms = {} as CollectionAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    const cell = store.atom(key, source[key]);
-    const value = source[key];
+  for (const [key, value] of Object.entries(data)) {
     writeMirror[key] = value instanceof Set ? [...value] : value;
-    const handle: Cell<unknown> = {
-      id: cell.id,
-      get: cell.get,
-      set: (next) => {
-        writeMirror[key] = next instanceof Set ? [...next] : next;
-        cell.set(next);
-      },
-      update: (fn) => {
-        const next = (fn as (prev: unknown) => unknown)(cell.get());
-        writeMirror[key] = next instanceof Set ? [...next] : next;
-        cell.set(next);
-      },
-      subscribe: cell.subscribe,
-    };
-    sink[key] = handle;
   }
+  const atoms: CollectionAtoms = {
+    selectedStatus: bindMirroredAtom(store, "selectedStatus", data.selectedStatus, writeMirror),
+    searchQuery: bindMirroredAtom(store, "searchQuery", data.searchQuery, writeMirror),
+    sortBy: bindMirroredAtom(store, "sortBy", data.sortBy, writeMirror),
+    sortDir: bindMirroredAtom(store, "sortDir", data.sortDir, writeMirror),
+    filters: bindMirroredAtom(store, "filters", data.filters, writeMirror),
+    groupByStatus: bindMirroredAtom(store, "groupByStatus", data.groupByStatus, writeMirror),
+    collapsedStatuses: bindMirroredAtom(
+      store,
+      "collapsedStatuses",
+      data.collapsedStatuses,
+      writeMirror,
+      (value) => [...value]
+    ),
+    viewMode: bindMirroredAtom(store, "viewMode", data.viewMode, writeMirror),
+    displayMode: bindMirroredAtom(store, "displayMode", data.displayMode, writeMirror),
+    wizardPrefill: bindMirroredAtom(store, "wizardPrefill", data.wizardPrefill, writeMirror),
+  };
 
   store.subscribeAll(() => {
     persistor.write(persistedSnapshot());

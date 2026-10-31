@@ -49,11 +49,11 @@ export default function SettingsTheme() {
   const themeSchedule = useCell(settingsAtoms.themeSchedule);
   const customThemes = useCell(themeAtoms.customThemes);
   const themePatches = useCell(themeAtoms.themePatches);
-  const [showEditor, setShowEditor] = useState(false);
+  const [showEditor, setShowEditor] = useState<boolean>(false);
   const [editingTheme, setEditingTheme] = useState<ThemeDefinition | undefined>();
   const [editingBase, setEditingBase] = useState<ThemeDefinition | undefined>();
-  const [patchMode, setPatchMode] = useState(false);
-  const [importError, setImportError] = useState("");
+  const [patchMode, setPatchMode] = useState<boolean>(false);
+  const [importError, setImportError] = useState<string>("");
 
   const builtins = THEMES;
   const baseCurrent = [...builtins, ...customThemes].find((t) => t.name === currentTheme);

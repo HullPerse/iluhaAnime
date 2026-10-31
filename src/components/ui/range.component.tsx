@@ -28,7 +28,7 @@ function Slider({
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
   const interactive = disabled !== true;
   const clamped = clamp(value, min, max);
   const pct = (clamped - min) / (max - min);

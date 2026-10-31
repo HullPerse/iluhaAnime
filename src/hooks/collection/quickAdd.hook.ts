@@ -20,8 +20,8 @@ export function useQuickAddMedia(
   const { t } = useI18n();
   const { items } = useCollectionData();
   const { addItem } = useCollectionMutations();
-  const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState<boolean>(false);
+  const [added, setAdded] = useState<boolean>(false);
 
   const exists = added || items.some((item) => item.externalIds.anilist === anime.id);
 

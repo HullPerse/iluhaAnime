@@ -35,7 +35,7 @@ const initialCamera = (scale: number): FranchiseCamera => ({ scale, x: 0, y: 0 }
 export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}): FranchiseViewport {
   const { initialScale, maxScale, minScale, wheelStep } = { ...DEFAULT_OPTIONS, ...options };
   const [camera, setCamera] = useState<FranchiseCamera>(() => initialCamera(initialScale));
-  const cameraRef = useRef(camera);
+  const cameraRef = useRef<FranchiseCamera>(camera);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const panStartRef = useRef<{ clientX: number; clientY: number; camera: FranchiseCamera } | null>(
     null
@@ -165,7 +165,7 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     };
   }, []);
 
-  const [isPanning, setIsPanning] = useState(false);
+  const [isPanning, setIsPanning] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isPanning) return;

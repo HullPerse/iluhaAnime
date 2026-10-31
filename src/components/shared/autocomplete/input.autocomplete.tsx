@@ -52,9 +52,9 @@ export function InlineAutocompleteInput({
   value,
   ...props
 }: AutocompleteInputProps) {
-  const [dismissed, setDismissed] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [focused, setFocused] = useState(false);
+  const [dismissed, setDismissed] = useState<boolean>(false);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [focused, setFocused] = useState<boolean>(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);

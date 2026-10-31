@@ -126,16 +126,16 @@ function TorrentRoute() {
   const { data: listenPort } = useTorrentListenPort();
   const { data: dhtStats } = useDhtStats();
 
-  const [downloadInput, setDownloadInput] = useState(
+  const [downloadInput, setDownloadInput] = useState<string>(
     limits.download === null ? "" : String(limits.download)
   );
-  const [uploadInput, setUploadInput] = useState(
+  const [uploadInput, setUploadInput] = useState<string>(
     limits.upload === null ? "" : String(limits.upload)
   );
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showMagnetModal, setShowMagnetModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [showMagnetModal, setShowMagnetModal] = useState<boolean>(false);
   const [magnetPrefill, setMagnetPrefill] = useState<string | null>(null);
   const torrentTarget = useCell(deeplinkAtoms.torrentTarget);
   const magnetTarget = useCell(deeplinkAtoms.magnetTarget);
@@ -242,7 +242,7 @@ function TorrentRoute() {
     () => paginate(filteredTorrents, page, TORRENT_PAGE_SIZE),
     [filteredTorrents, page]
   );
-  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState<boolean>(false);
   const [recreateTargets, setRecreateTargets] = useState<TorrentInfo[]>([]);
   const problemTorrents = useMemo(
     () => filteredTorrents.filter((torrent) => torrent.error || torrent.missing_files),
@@ -260,8 +260,8 @@ function TorrentRoute() {
     });
   }, [filteredTorrents]);
   const [bulkRemoveTargets, setBulkRemoveTargets] = useState<TorrentInfo[] | null>(null);
-  const [showBulkTrackers, setShowBulkTrackers] = useState(false);
-  const [showBulkLimits, setShowBulkLimits] = useState(false);
+  const [showBulkTrackers, setShowBulkTrackers] = useState<boolean>(false);
+  const [showBulkLimits, setShowBulkLimits] = useState<boolean>(false);
   const recreateTorrents = (targets: TorrentInfo[]) =>
     applyBulkAction(targets, (torrent) =>
       removeMutation
@@ -430,7 +430,7 @@ function TorrentRoute() {
     setShowMagnetModal(true);
     consumeMagnetDeepLink();
   }, [magnetTarget]);
-  const filteredTorrentsRef = useRef(filteredTorrents);
+  const filteredTorrentsRef = useRef<TorrentInfo[]>(filteredTorrents);
   useEffect(() => {
     filteredTorrentsRef.current = filteredTorrents;
   }, [filteredTorrents]);

@@ -14,7 +14,7 @@ export function SaturationValueArea({
 }) {
   const { t } = useI18n();
   const areaRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
 
   const saturationPercent = Math.round(hsv.s);
   const valuePercent = Math.round(hsv.v);

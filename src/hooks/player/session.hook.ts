@@ -35,8 +35,8 @@ export function usePlayerSession({
   resumeRef: RefObject<number | undefined>;
 }) {
   const destroyTaskRef = useRef<ScheduledTask | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [loadingFile, setLoadingFile] = useState(false);
+  const [failed, setFailed] = useState<boolean>(false);
+  const [loadingFile, setLoadingFile] = useState<boolean>(false);
   const [liveWatch, setLiveWatch] = useState<PlaylistWatch | null>(null);
 
   useEffect(() => {

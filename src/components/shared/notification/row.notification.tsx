@@ -26,7 +26,7 @@ export default function NotificationRow({
   clear,
   onOpen,
 }: NotificationRowProps) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<boolean>(false);
   const copyHideRef = useRef<Debouncer<[]> | null>(null);
   const TypeIcon = NOTIFICATION_TYPE_ICONS[item.type];
   const openable = Boolean(item.target);

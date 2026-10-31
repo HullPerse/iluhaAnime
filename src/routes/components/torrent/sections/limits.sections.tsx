@@ -9,8 +9,8 @@ import { getTorrentLimits, setTorrentLimits } from "@/store/download.store";
 
 export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: string }) {
   const { t } = useI18n();
-  const [downloadInput, setDownloadInput] = useState("");
-  const [uploadInput, setUploadInput] = useState("");
+  const [downloadInput, setDownloadInput] = useState<string>("");
+  const [uploadInput, setUploadInput] = useState<string>("");
   useEffect(() => {
     let cancelled = false;
     getTorrentLimits(id)

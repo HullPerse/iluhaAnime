@@ -5,9 +5,9 @@ import { useRemoteImageStatus, toSizedThumbUrl } from "@/hooks/remoteImage.hook"
 
 export function SearchResultCover({ url, title }: { url: string; title: string }) {
   const { src, failed: fetchFailed } = useRemoteImageStatus(url ? toSizedThumbUrl(url) : null);
-  const [loaded, setLoaded] = useState(false);
-  const [imgFailed, setImgFailed] = useState(false);
-  const prevUrlRef = useRef(url);
+  const [loaded, setLoaded] = useState<boolean>(false);
+  const [imgFailed, setImgFailed] = useState<boolean>(false);
+  const prevUrlRef = useRef<string>(url);
   useEffect(() => {
     if (prevUrlRef.current !== url) {
       prevUrlRef.current = url;

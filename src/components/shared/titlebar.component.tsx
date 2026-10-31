@@ -14,7 +14,7 @@ import { startsOnControl, runPlayerHeaderAction as run } from "@/lib/player/play
 
 export default function TitleBar({ title, children }: { title: string; children?: ReactNode }) {
   const { t } = useI18n();
-  const [maximized, setMaximized] = useState(false);
+  const [maximized, setMaximized] = useState<boolean>(false);
 
   useEffect(() => {
     const appWindow = getCurrentWindow();

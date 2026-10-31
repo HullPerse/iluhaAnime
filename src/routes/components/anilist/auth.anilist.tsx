@@ -19,9 +19,9 @@ function AniListAuthModal({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const [token, setToken] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleSubmit = async () => {
     if (!token.trim()) return;

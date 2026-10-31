@@ -30,7 +30,7 @@ export function TitleRows({
   onAnimeClick?: (id: number) => void;
 }) {
   const { t } = useI18n();
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState<boolean>(false);
   if (rows.length === 0) {
     return (
       <div className="border-t border-black/20">

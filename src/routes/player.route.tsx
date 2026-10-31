@@ -83,8 +83,8 @@ function PlayerRoute() {
   const scannedFingerprint = useRef<string | null>(null);
 
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const [scanProgress, setScanProgress] = useState<ScanType>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const videoExtensions = useCell(settingsAtoms.videoExtensions);
@@ -98,8 +98,8 @@ function PlayerRoute() {
 
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
   const drag = usePlayerDrag();
-  const [showHiddenItems, setShowHiddenItems] = useState(false);
-  const [queueOpen, setQueueOpen] = useState(true);
+  const [showHiddenItems, setShowHiddenItems] = useState<boolean>(false);
+  const [queueOpen, setQueueOpen] = useState<boolean>(true);
   const [debouncedSearch] = useDebouncedValue(search.trim(), { wait: 300 });
 
   useResolvedHotkeys<"focus-main">(
@@ -266,7 +266,7 @@ function PlayerRoute() {
     },
     [t, videoExtensions, scanThreads]
   );
-  const rebuildFileIndexRef = useRef(rebuildFileIndex);
+  const rebuildFileIndexRef = useRef<(paths: string[]) => Promise<void>>(rebuildFileIndex);
   useEffect(() => {
     rebuildFileIndexRef.current = rebuildFileIndex;
   }, [rebuildFileIndex]);
@@ -385,7 +385,7 @@ function PlayerRoute() {
     };
   }, [watchedRoots, t, watcherDelay]);
 
-  const folderScanDisposedRef = useRef(false);
+  const folderScanDisposedRef = useRef<boolean>(false);
   useEffect(() => {
     folderScanDisposedRef.current = false;
     return () => {

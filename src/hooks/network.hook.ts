@@ -19,7 +19,7 @@ export function markOfflineTabs<T extends { id: TabId }>(
 }
 
 export function useOnlineStatus(): boolean {
-  const [online, setOnline] = useState(() =>
+  const [online, setOnline] = useState<boolean>(() =>
     typeof navigator === "undefined" ? true : navigator.onLine
   );
 

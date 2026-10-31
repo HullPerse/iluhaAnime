@@ -29,7 +29,7 @@ interface StreamControlProps {
 export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const { t } = useI18n();
   const pausedForCache = useCell(playbackAtoms.pausedForCache);
-  const [statsOpen, setStatsOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState<boolean>(false);
   const session = stream.session;
 
   if (hidden === true || !session) return null;

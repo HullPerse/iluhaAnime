@@ -36,7 +36,7 @@ export default function UpdateCheck({
   });
   const sourceData = sourceQuery.data;
   const origin = sourceData && UPDATE_SOURCES_WITH_FILES.has(sourceData.source) ? sourceData : null;
-  const [checking, setChecking] = useState(false);
+  const [checking, setChecking] = useState<boolean>(false);
   const [update, setUpdate] = useState<{
     added: TorrentDetailFile[];
     details: TorrentDetails;

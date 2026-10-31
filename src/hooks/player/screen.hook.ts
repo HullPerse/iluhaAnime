@@ -20,7 +20,7 @@ export function usePlayerScreen(
 ): PlayerBezelVariant | null {
   const activeShaderRef = useRef<ActivePlayerShader | null>(null);
   const shaderPathsRef = useRef<Map<string, string>>(new Map());
-  const epochRef = useRef(0);
+  const epochRef = useRef<number>(0);
   const mode = settings.playerMode;
 
   useEffect(() => {

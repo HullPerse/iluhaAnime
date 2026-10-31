@@ -1,6 +1,7 @@
 import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/graphics/themes.config";
 import type { Persistor } from "@/types/core/persist";
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { isRecord } from "@/lib/core/record.utils";
 import type { Cell } from "@/types/core/signal";
 import { applyTheme } from "@/lib/core/appearance.utils";
 import { deriveFieldColor, isHexColor } from "@/lib/graphics/palette.utils";
@@ -29,31 +30,34 @@ function parseOverlay(value: unknown): ThemeDefinition["overlay"] {
 }
 
 function parseComponents(value: unknown): ThemeDefinition["components"] {
-  if (typeof value !== "object" || value === null) return undefined;
-  const record = value as Record<string, unknown>;
+  if (!isRecord(value)) return undefined;
   const components: NonNullable<ThemeDefinition["components"]> = {};
-  if (record.titlebarArt === true) components.titlebarArt = true;
-  if (record.cardMeta === "full" || record.cardMeta === "short")
-    components.cardMeta = record.cardMeta;
+  if (value.titlebarArt === true) components.titlebarArt = true;
+  if (value.cardMeta === "full" || value.cardMeta === "short") {
+    components.cardMeta = value.cardMeta;
+  }
   return Object.keys(components).length > 0 ? components : undefined;
 }
 
 function parseTitlebarGradient(value: unknown): ThemeDefinition["titlebarGradient"] {
-  if (typeof value !== "object" || value === null) return undefined;
-  const record = value as Record<string, unknown>;
-  if (!/^#[\da-f]{6}$/i.test(String(record.from)) || !/^#[\da-f]{6}$/i.test(String(record.to))) {
-    return undefined;
-  }
-  return { from: String(record.from), to: String(record.to) };
+  if (!isRecord(value)) return undefined;
+  const from = value.from;
+  const to = value.to;
+  if (typeof from !== "string" || typeof to !== "string") return undefined;
+  if (!/^#[\da-f]{6}$/i.test(from) || !/^#[\da-f]{6}$/i.test(to)) return undefined;
+  return { from, to };
+}
+
+function isThemeOverrideKey(value: string): value is ThemeOverrideKey {
+  return value in THEME_OVERRIDE_VARS;
 }
 
 function parseOverrides(value: unknown): ThemeDefinition["overrides"] {
-  if (typeof value !== "object" || value === null) return undefined;
-  const record = value as Record<string, unknown>;
+  if (!isRecord(value)) return undefined;
   const overrides: Partial<Record<ThemeOverrideKey, string>> = {};
-  for (const key of Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]) {
-    const color = record[key];
-    if (isHexColor(color)) overrides[key] = color;
+  for (const key of Object.keys(THEME_OVERRIDE_VARS)) {
+    const color = value[key];
+    if (isThemeOverrideKey(key) && isHexColor(color)) overrides[key] = color;
   }
   return Object.keys(overrides).length > 0 ? overrides : undefined;
 }
@@ -186,24 +190,34 @@ function firstValue(...values: unknown[]): unknown {
   return undefined;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function setPatchColor<K extends Exclude<keyof ThemeColors, "autocompleteOpacity">>(
+  colors: NonNullable<ThemePatch["colors"]>,
+  key: K,
+  value: unknown
+): void {
+  if (isHexColor(value)) colors[key] = value;
 }
 
 function parsePatchColors(value: unknown): ThemePatch["colors"] | undefined {
   if (!isRecord(value)) return undefined;
-  const record = value;
   const colors: NonNullable<ThemePatch["colors"]> = {};
-  for (const key of Object.keys(DEFAULT_THEME_COLORS) as (keyof ThemeColors)[]) {
-    const item = record[key];
-    if (key === "autocompleteOpacity") {
-      if (typeof item === "number" && Number.isFinite(item)) {
-        colors.autocompleteOpacity = normalizeAutocompleteOpacity(item);
-      }
-      continue;
-    }
-    if (isHexColor(item)) (colors as Record<string, string>)[key] = item;
+  if (typeof value.autocompleteOpacity === "number" && Number.isFinite(value.autocompleteOpacity)) {
+    colors.autocompleteOpacity = normalizeAutocompleteOpacity(value.autocompleteOpacity);
   }
+  setPatchColor(colors, "autocomplete", value.autocomplete);
+  setPatchColor(colors, "background", value.background);
+  setPatchColor(colors, "destructive", value.destructive);
+  setPatchColor(colors, "field", value.field);
+  setPatchColor(colors, "highlight", value.highlight);
+  setPatchColor(colors, "linkHover", value.linkHover);
+  setPatchColor(colors, "muted", value.muted);
+  setPatchColor(colors, "primary", value.primary);
+  setPatchColor(colors, "secondary", value.secondary);
+  setPatchColor(colors, "success", value.success);
+  setPatchColor(colors, "surface", value.surface);
+  setPatchColor(colors, "text", value.text);
+  setPatchColor(colors, "winHighlight", value.winHighlight);
+  setPatchColor(colors, "winShadow", value.winShadow);
   return Object.keys(colors).length > 0 ? colors : undefined;
 }
 
@@ -273,7 +287,7 @@ export function parseRetroismTheme(
   json: string,
   resolveBase?: (name: string) => ThemeDefinition | undefined
 ): ThemeDefinition | null {
-  const [raw, error] = attemptSync(() => JSON.parse(json) as Record<string, unknown>);
+  const [raw, error] = attemptSync((): unknown => JSON.parse(json));
   if (error !== null || !isRecord(raw)) return null;
   return parseRawTheme(raw, resolveBase);
 }
@@ -282,7 +296,7 @@ export function parseThemeFile(
   json: string,
   resolveBase?: (name: string) => ThemeDefinition | undefined
 ): ParsedThemeFile | null {
-  const [raw, error] = attemptSync(() => JSON.parse(json) as Record<string, unknown>);
+  const [raw, error] = attemptSync((): unknown => JSON.parse(json));
   if (error !== null || !isRecord(raw)) return null;
   if (raw.format === "iluha-theme-patch") {
     if (raw.version !== 1) return null;
@@ -298,10 +312,11 @@ function buildParsedTheme(
   raw: Record<string, unknown>,
   base: ThemeDefinition | undefined
 ): ThemeDefinition | null {
-  const c = (raw.colors ?? raw) as Record<string, unknown>;
+  const c = isRecord(raw.colors) ? raw.colors : raw;
   const colors = parseRetroismColors(c, base?.colors);
   if (!colors) return null;
-  const fontFamily = (raw.fontFamily ?? c.font_family) as string | undefined;
+  const fontValue = raw.fontFamily ?? c.font_family;
+  const fontFamily = typeof fontValue === "string" ? fontValue : undefined;
   return {
     bevel: pickTrait(parseBevel(raw.bevel), base?.bevel),
     colors,
@@ -336,17 +351,16 @@ const DEFAULT_THEME_DATA: ThemeData = {
 };
 
 function readThemePatches(value: unknown): Record<string, ThemePatch> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  if (!isRecord(value)) return {};
   const patches: Record<string, ThemePatch> = {};
   for (const [name, patch] of Object.entries(value)) {
-    if (typeof patch === "object" && patch !== null && !Array.isArray(patch)) {
-      patches[name] = patch as ThemePatch;
-    }
+    const parsed = parseThemePatch(patch);
+    if (parsed) patches[name] = parsed;
   }
   return patches;
 }
 
-function migrateThemeData(data: Partial<ThemeData>, version: number): Partial<ThemeData> {
+function migrateThemeData(data: Record<string, unknown>, version: number): Record<string, unknown> {
   if (version >= THEME_SCHEMA_VERSION) return data;
   return { ...data, themePatches: {} };
 }
@@ -358,12 +372,10 @@ function readLegacyTheme(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("themeState"));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { state?: unknown };
-  const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
-  if (!state || typeof state !== "object") return null;
-  return { data: state as Record<string, unknown>, schemaVersion: THEME_SCHEMA_VERSION };
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+  if (parseError !== null || !isRecord(parsed)) return null;
+  const state = isRecord(parsed.state) ? parsed.state : parsed;
+  return { data: state, schemaVersion: THEME_SCHEMA_VERSION };
 }
 
 export interface ThemeSignalOptions {
@@ -393,11 +405,13 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
 
   const persisted = persistor.read();
   const persistedData = migrateThemeData(
-    (persisted?.data ?? {}) as Partial<ThemeData>,
+    persisted?.data ?? {},
     persisted?.schemaVersion ?? THEME_SCHEMA_VERSION
   );
   const storedThemes = Array.isArray(persistedData.customThemes)
-    ? (persistedData.customThemes as ThemeDefinition[])
+    ? persistedData.customThemes.filter(
+        (theme): theme is ThemeDefinition => isRecord(theme) && typeof theme.name === "string"
+      )
     : [];
   const storedPatches = readThemePatches(persistedData.themePatches);
   const storedCurrent =
@@ -410,28 +424,8 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
     customThemes: storedThemes,
     themePatches: storedPatches,
   };
-  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
-  const atoms = {} as ThemeAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    const cell = store.atom(key, source[key]);
-    const handle: Cell<unknown> = {
-      id: cell.id,
-      get: cell.get,
-      set: (value) => {
-        mirror[key] = value;
-        cell.set(value);
-      },
-      update: (fn) => {
-        const next = (fn as (prev: unknown) => unknown)(cell.get());
-        mirror[key] = next;
-        cell.set(next);
-      },
-      subscribe: cell.subscribe,
-    };
-    sink[key] = handle;
-  }
+  const mirror: Record<string, unknown> = { ...data };
+  const atoms = buildMirrorAtoms(store, data, mirror);
 
   store.subscribeAll(() => {
     persistor.write(mirror);

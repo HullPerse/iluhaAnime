@@ -37,9 +37,9 @@ export function WizardSourceSearch({
 }) {
   const { t } = useI18n();
   const listboxId = useId();
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
   const resultIds = searchResults.map((r) => `${r.mediaType ?? source}-${r.id}`).join(",");
-  const prevIdsRef = useRef(resultIds);
+  const prevIdsRef = useRef<string>(resultIds);
   useEffect(() => {
     if (prevIdsRef.current !== resultIds) {
       prevIdsRef.current = resultIds;

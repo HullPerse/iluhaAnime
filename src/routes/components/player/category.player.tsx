@@ -53,10 +53,10 @@ function CategoryView({
   const { setNodeRef, isOver } = useDroppable({ id: categoryId });
 
   const collapsedIds = useCell(categoryAtoms.collapsedIds);
-  const [open, setOpen] = useState(() => !collapsedIds.includes(categoryId));
-  const [editing, setEditing] = useState(false);
-  const [editIcon, setEditIcon] = useState(false);
-  const [editName, setEditName] = useState("");
+  const [open, setOpen] = useState<boolean>(() => !collapsedIds.includes(categoryId));
+  const [editing, setEditing] = useState<boolean>(false);
+  const [editIcon, setEditIcon] = useState<boolean>(false);
+  const [editName, setEditName] = useState<string>("");
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   const renameRef = useRef<HTMLInputElement>(null);
   const audioExtensions = useCell(settingsAtoms.audioExtensions);

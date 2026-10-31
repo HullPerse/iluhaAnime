@@ -24,7 +24,7 @@ function AniListMetadata({
   onSeason?: (season: string, seasonYear: number | null) => void;
 }) {
   const { t, locale } = useI18n();
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number>(() => Date.now());
   const bestRank =
     anime.rankings.length > 0 ? anime.rankings.reduce((a, b) => (a.rank < b.rank ? a : b)) : null;
   const coverSrc = useRemoteImage(anime.cover_url);

@@ -58,11 +58,11 @@ function DitherCanvas({
   vignette,
 }: DitherCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const onErrorRef = useRef(onError);
-  const onReadyRef = useRef(onReady);
-  const onProgressRef = useRef(onProgress);
+  const onErrorRef = useRef<DitherCanvasProps["onError"]>(onError);
+  const onReadyRef = useRef<DitherCanvasProps["onReady"]>(onReady);
+  const onProgressRef = useRef<DitherCanvasProps["onProgress"]>(onProgress);
   const [status, setStatus] = useState<DitherStatus>("loading");
-  const jobRef = useRef(0);
+  const jobRef = useRef<number>(0);
   const setCanvasRefs = useCallback(
     (node: HTMLCanvasElement | null) => {
       canvasRef.current = node;

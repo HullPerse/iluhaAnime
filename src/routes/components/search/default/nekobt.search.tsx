@@ -16,9 +16,9 @@ function NekoBtApiModal({
   setShowApiModal: (value: boolean) => void;
 }) {
   const { t } = useI18n();
-  const [apiKey, setApiKey] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [apiKey, setApiKey] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleSuccess = () => {
     setNekoBtAuth(true);

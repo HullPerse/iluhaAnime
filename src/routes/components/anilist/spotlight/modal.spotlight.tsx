@@ -39,14 +39,14 @@ export default function SpotlightModal({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number>(() => Date.now());
   const [detailId, setDetailId] = useState<number | null>(null);
   const [rows, setRows] = useState<Record<SpotlightKind, SpotlightRowState>>({
     day: { status: "loading" },
     week: { status: "loading" },
     month: { status: "loading" },
   });
-  const cancelled = useRef(false);
+  const cancelled = useRef<boolean>(false);
 
   useEffect(() => {
     cancelled.current = false;

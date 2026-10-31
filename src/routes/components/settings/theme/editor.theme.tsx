@@ -46,7 +46,7 @@ export default function ThemeEditor({
   const isEdit = !!theme && !patchMode;
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [name, setName] = useState(theme?.label ?? "");
+  const [name, setName] = useState<string>(theme?.label ?? "");
   const [radius, setRadius] = useState<NonNullable<ThemeDefinition["radius"]>>(
     theme?.radius ?? "none"
   );
@@ -58,7 +58,7 @@ export default function ThemeEditor({
   );
   const [selected, setSelected] = useState<ThemeColorKey>("primary");
   const [palette, setPalette] = useState<string[]>([]);
-  const [paletteFailed, setPaletteFailed] = useState(false);
+  const [paletteFailed, setPaletteFailed] = useState<boolean>(false);
   const [colors, setColors] = useState<ThemeDefinition["colors"]>(() => ({
     ...DEFAULT_COLORS,
     ...theme?.colors,
@@ -68,7 +68,9 @@ export default function ThemeEditor({
   const [overrides, setOverrides] = useState<ThemeDefinition["overrides"]>(() => ({
     ...theme?.overrides,
   }));
-  const [titlebarArt, setTitlebarArt] = useState(theme?.components?.titlebarArt === true);
+  const [titlebarArt, setTitlebarArt] = useState<boolean>(
+    theme?.components?.titlebarArt === true
+  );
   const [cardMeta, setCardMeta] = useState<NonNullable<ThemeComponents["cardMeta"]>>(
     theme?.components?.cardMeta ?? "full"
   );

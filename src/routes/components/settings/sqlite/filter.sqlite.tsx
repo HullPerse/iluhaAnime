@@ -21,9 +21,9 @@ export function SqliteFilterBuilder({
   filterInputRef: React.RefObject<HTMLInputElement | null>;
   applyFilter: () => void;
 }) {
-  const [col, setCol] = useState(columns[0]?.name ?? "");
-  const [op, setOp] = useState(isTextColumn(columns[0]?.name ?? "") ? "~" : "=");
-  const [val, setVal] = useState("");
+  const [col, setCol] = useState<string>(columns[0]?.name ?? "");
+  const [op, setOp] = useState<string>(isTextColumn(columns[0]?.name ?? "") ? "~" : "=");
+  const [val, setVal] = useState<string>("");
   useEffect(() => {
     if (columns.length > 0 && !columns.some((c) => c.name === col)) {
       const next = columns[0].name;

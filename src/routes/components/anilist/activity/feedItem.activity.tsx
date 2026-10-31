@@ -2,7 +2,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatActivityTime } from "@/lib/core/activity.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AniActivity } from "@/types/anilist/anilist";
 
@@ -64,7 +64,7 @@ export function FeedItem({
             </>
           )}
           {Icon && <Icon className="inline size-2.5" />}{" "}
-          {t((ACTIVITY_STATUS_LABELS[a.status ?? ""] ?? a.status ?? "") as TranslationKey)}{" "}
+          {t(toLocaleKey(ACTIVITY_STATUS_LABELS[a.status ?? ""] ?? a.status ?? ""))}{" "}
         </span>
         <span
           role="button"

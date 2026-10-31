@@ -58,8 +58,8 @@ export default function CompareAnilist({
   const [tab, setTab] = useState<CompareTab>("shared");
   const [metric, setMetric] = useState<CompareMetric>("iluha");
   const [sort, setSort] = useState<CompareSort>("gap");
-  const [query, setQuery] = useState("");
-  const [diffMode, setDiffMode] = useState(false);
+  const [query, setQuery] = useState<string>("");
+  const [diffMode, setDiffMode] = useState<boolean>(false);
 
   const myFormat = parseScoreFormat(selfUser?.score_format);
   const friendFormat = parseScoreFormat(friendProfile?.score_format);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 export function useWindowDrag(onMove: (clientX: number) => void) {
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
 
   useEffect(() => {
     if (!dragging) return;

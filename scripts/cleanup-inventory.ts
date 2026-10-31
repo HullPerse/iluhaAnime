@@ -187,3 +187,19 @@ if (hits.length > 100) console.log(`... and ${hits.length - 100} more`);
 console.log(`total: ${hits.length}`);
 
 if (process.argv.includes("--check") && hits.length > 0) process.exitCode = 1;
+
+if (process.argv.includes("--check-code")) {
+  const untypedHooks =
+    untypedState.reduce((sum, item) => sum + item.count, 0) +
+    untypedRef.reduce((sum, item) => sum + item.count, 0);
+  const multiComponentFiles = multiComponent.filter((item) => item.count > 1).length;
+  if (untypedHooks > 0) {
+    console.error(`untyped hooks: ${untypedHooks}`);
+    process.exitCode = 1;
+  }
+  if (multiComponentFiles > 0) {
+    console.error(`multi-component tsx files: ${multiComponentFiles}`);
+    process.exitCode = 1;
+  }
+  if (untypedHooks === 0 && multiComponentFiles === 0) console.log("code inventory: ok");
+}

@@ -1,6 +1,6 @@
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { isRecord } from "@/lib/core/record.utils";
 import type { Persistor } from "@/types/core/persist";
-import { createSignalStore } from "@/lib/core/signal.store";
 import type { Cell } from "@/types/core/signal";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
@@ -14,55 +14,44 @@ import type {
 export const ANILIST_FRIENDS_SCHEMA_VERSION = 1;
 export const ANILIST_NOTIFICATIONS_SCHEMA_VERSION = 6;
 
-function isValidFriend(friend: unknown): friend is {
-  id: number;
-  name: string;
-  avatar?: unknown;
-  profile?: { id: number };
-  added_at?: unknown;
-  profile_fetched_at?: unknown;
-} {
-  if (!friend || typeof friend !== "object") return false;
-  const f = friend as { id: unknown; name: unknown };
+function isValidFriend(
+  friend: unknown
+): friend is Record<string, unknown> & { id: number; name: string } {
+  if (!isRecord(friend)) return false;
   return (
-    typeof f.id === "number" &&
-    Number.isInteger(f.id) &&
-    f.id > 0 &&
-    typeof f.name === "string" &&
-    f.name.trim().length > 0
+    typeof friend.id === "number" &&
+    Number.isInteger(friend.id) &&
+    friend.id > 0 &&
+    typeof friend.name === "string" &&
+    friend.name.trim().length > 0
   );
 }
 
 function normalizeFriend(friend: unknown): AniListFriendsStore["friends"] {
   if (!isValidFriend(friend)) return [];
-  const typed = friend as {
-    id: number;
-    name: string;
-    avatar?: unknown;
-    profile?: { id: number };
-    added_at?: unknown;
-    profile_fetched_at?: unknown;
-  };
-  const profile = typed.profile?.id === typed.id ? typed.profile : undefined;
+  const profile =
+    isRecord(friend.profile) && friend.profile.id === friend.id ? friend.profile : undefined;
   const base: AniListFriendsStore["friends"][number] = {
-    id: typed.id,
-    name: typed.name.trim(),
-    avatar: typeof typed.avatar === "string" ? typed.avatar : null,
-    added_at: typeof typed.added_at === "number" && typed.added_at > 0 ? typed.added_at : 0,
+    id: friend.id,
+    name: friend.name.trim(),
+    avatar: typeof friend.avatar === "string" ? friend.avatar : null,
+    added_at: typeof friend.added_at === "number" && friend.added_at > 0 ? friend.added_at : 0,
     ...(profile
       ? { profile: profile as unknown as AniListFriendsStore["friends"][number]["profile"] }
       : {}),
-    ...(typeof typed.profile_fetched_at === "number"
-      ? { profile_fetched_at: typed.profile_fetched_at }
+    ...(typeof friend.profile_fetched_at === "number"
+      ? { profile_fetched_at: friend.profile_fetched_at }
       : {}),
-  } as AniListFriendsStore["friends"][number];
+  };
   return [base];
 }
 
-function normalizeRelease(release: Partial<AniListRelease>): AniListRelease | null {
-  if (typeof release.mediaId !== "number" || !(release.mediaId > 0)) return null;
+function normalizeRelease(release: unknown): AniListRelease | null {
+  if (!isRecord(release)) return null;
+  const mediaId = release.mediaId;
+  if (typeof mediaId !== "number" || !(mediaId > 0)) return null;
   return {
-    mediaId: release.mediaId,
+    mediaId,
     title: typeof release.title === "string" ? release.title : "",
     episode:
       typeof release.episode === "number" || typeof release.episode === "string"
@@ -75,54 +64,56 @@ function normalizeRelease(release: Partial<AniListRelease>): AniListRelease | nu
 
 const RELEASE_FEED_CAP = 100;
 
-function normalizeObservation(obs: Partial<AniListObservation>): AniListObservation {
+function normalizeObservation(obs: unknown): AniListObservation {
+  if (!isRecord(obs)) {
+    return {
+      signature: "",
+      status: "",
+      mediaStatus: "",
+      title: "",
+      updatedAt: 0,
+      nextEpisode: null,
+      nextAiringAt: null,
+    };
+  }
   return {
-    signature: obs.signature ?? "",
-    status: obs.status ?? "",
-    mediaStatus: obs.mediaStatus ?? "",
-    title: obs.title ?? "",
-    updatedAt: obs.updatedAt ?? 0,
-    nextEpisode: obs.nextEpisode ?? null,
-    nextAiringAt: obs.nextAiringAt ?? null,
+    signature: typeof obs.signature === "string" ? obs.signature : "",
+    status: typeof obs.status === "string" ? obs.status : "",
+    mediaStatus: typeof obs.mediaStatus === "string" ? obs.mediaStatus : "",
+    title: typeof obs.title === "string" ? obs.title : "",
+    updatedAt: typeof obs.updatedAt === "number" ? obs.updatedAt : 0,
+    nextEpisode: typeof obs.nextEpisode === "number" ? obs.nextEpisode : null,
+    nextAiringAt: typeof obs.nextAiringAt === "number" ? obs.nextAiringAt : null,
   };
 }
 
 function migrateObservationsV2(
-  state: Partial<AniListNotificationsStore> & {
-    observations?: Record<string, Partial<AniListObservation>>;
-  }
+  state: Record<string, unknown>
 ): Partial<AniListNotificationsStore> {
-  const migrated = { ...state.observations } as Record<string, AniListObservation>;
-  for (const key of Object.keys(migrated)) {
-    migrated[key] = normalizeObservation(migrated[key] as Partial<AniListObservation>);
+  const rawObservations = isRecord(state.observations) ? state.observations : {};
+  const migrated: Record<string, AniListObservation> = {};
+  for (const [key, obs] of Object.entries(rawObservations)) {
+    migrated[key] = normalizeObservation(obs);
   }
-  return { initialized: !!state.initialized, observations: migrated };
+  return { initialized: state.initialized === true, observations: migrated };
 }
 
 export function migrateFriendsData(persistedState: unknown): {
   friends: AniListFriendsStore["friends"];
 } {
-  if (!persistedState || typeof persistedState !== "object") {
-    return { friends: [] };
-  }
-  const state = persistedState as Partial<AniListFriendsStore>;
+  if (!isRecord(persistedState)) return { friends: [] };
   return {
-    friends: Array.isArray(state.friends) ? state.friends.flatMap(normalizeFriend) : [],
+    friends: Array.isArray(persistedState.friends)
+      ? persistedState.friends.flatMap(normalizeFriend)
+      : [],
   };
 }
 
 export function migrateNotificationsData(
   persistedState: unknown,
   version: number
-): {
-  initialized: boolean;
-  observations: Record<string, AniListObservation>;
-  releases: AniListRelease[];
-  readNotificationIds: number[];
-  knownListNames: string[];
-  siteMaxSeenId: number;
-} {
-  if (!persistedState || typeof persistedState !== "object")
+): AnilistNotificationsData {
+  if (!isRecord(persistedState)) {
     return {
       initialized: false,
       observations: {},
@@ -131,13 +122,9 @@ export function migrateNotificationsData(
       knownListNames: [],
       siteMaxSeenId: 0,
     };
-  const state = persistedState as Partial<AniListNotificationsStore> & {
-    observations?: Record<string, Partial<AniListObservation> & { signature?: string }>;
-    releases?: Partial<AniListRelease>[];
-    readNotificationIds?: unknown;
-  };
+  }
   if (version < 2) {
-    const base = migrateObservationsV2(state);
+    const base = migrateObservationsV2(persistedState);
     return {
       initialized: base.initialized ?? false,
       observations: base.observations ?? {},
@@ -147,28 +134,37 @@ export function migrateNotificationsData(
       siteMaxSeenId: 0,
     };
   }
-  const releases = Array.isArray(state.releases)
-    ? state.releases.flatMap((item) => {
+  const rawObservations = isRecord(persistedState.observations)
+    ? persistedState.observations
+    : {};
+  const observations: Record<string, AniListObservation> = {};
+  for (const [id, obs] of Object.entries(rawObservations)) {
+    observations[id] = normalizeObservation(obs);
+  }
+  const releases = Array.isArray(persistedState.releases)
+    ? persistedState.releases.flatMap((item) => {
         const normalized = normalizeRelease(item);
         return normalized ? [normalized] : [];
       })
     : [];
   return {
-    ...(state as AniListNotificationsStore),
-    observations: Object.fromEntries(
-      Object.entries((state.observations ?? {}) as Record<string, Partial<AniListObservation>>).map(
-        ([id, obs]) => [id, normalizeObservation(obs)]
-      )
-    ),
-    siteMaxSeenId:
-      typeof state.siteMaxSeenId === "number" && state.siteMaxSeenId > 0 ? state.siteMaxSeenId : 0,
+    initialized: persistedState.initialized === true,
+    observations,
     releases,
-    readNotificationIds: Array.isArray(state.readNotificationIds)
-      ? state.readNotificationIds.filter(
+    readNotificationIds: Array.isArray(persistedState.readNotificationIds)
+      ? persistedState.readNotificationIds.filter(
           (id): id is number => typeof id === "number" && Number.isInteger(id)
         )
       : [],
-    knownListNames: Array.isArray(state.knownListNames) ? state.knownListNames : [],
+    knownListNames: Array.isArray(persistedState.knownListNames)
+      ? persistedState.knownListNames.filter(
+          (name): name is string => typeof name === "string"
+        )
+      : [],
+    siteMaxSeenId:
+      typeof persistedState.siteMaxSeenId === "number" && persistedState.siteMaxSeenId > 0
+        ? persistedState.siteMaxSeenId
+        : 0,
   };
 }
 
@@ -180,12 +176,11 @@ function readLegacyEnvelope(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem(legacyKey));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { state?: unknown; version?: unknown };
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+  if (parseError !== null || !isRecord(parsed)) return null;
   return {
-    state: envelope.state && typeof envelope.state === "object" ? envelope.state : parsed,
-    version: typeof envelope.version === "number" ? envelope.version : 0,
+    state: isRecord(parsed.state) ? parsed.state : parsed,
+    version: typeof parsed.version === "number" ? parsed.version : 0,
   };
 }
 
@@ -214,35 +209,6 @@ export interface AnilistSignalOptions {
   debounceMs?: number;
 }
 
-function buildMirrorAtoms<T extends object>(
-  store: ReturnType<typeof createSignalStore>,
-  data: T,
-  mirror: Record<string, unknown>
-): { [K in keyof T]: Cell<T[K]> } {
-  const atoms = {} as { [K in keyof T]: Cell<T[K]> };
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    const cell = store.atom(key, source[key]);
-    const handle: Cell<unknown> = {
-      id: cell.id,
-      get: cell.get,
-      set: (value) => {
-        mirror[key] = value;
-        cell.set(value);
-      },
-      update: (fn) => {
-        const next = (fn as (prev: unknown) => unknown)(cell.get());
-        mirror[key] = next;
-        cell.set(next);
-      },
-      subscribe: cell.subscribe,
-    };
-    sink[key] = handle;
-  }
-  return atoms;
-}
-
 export interface FriendsSignalStore {
   atoms: FriendsAtoms;
   persistor: Persistor;
@@ -262,19 +228,15 @@ export function createFriendsSignalStore(options: AnilistSignalOptions = {}): Fr
       const legacy = readLegacyEnvelope(get, "anilistFriends");
       if (!legacy) return null;
       return {
-        data: migrateFriendsData(legacy.state) as Record<string, unknown>,
+        data: { ...migrateFriendsData(legacy.state) },
         schemaVersion: ANILIST_FRIENDS_SCHEMA_VERSION,
       };
     },
   });
 
   const persisted = persistor.read();
-  const persistedFriends: unknown = persisted
-    ? (persisted.data as { friends?: unknown }).friends
-    : undefined;
-  const friends = Array.isArray(persistedFriends)
-    ? (persistedFriends as AniListFriendsStore["friends"])
-    : [];
+  const persistedFriends = persisted?.data.friends;
+  const friends = Array.isArray(persistedFriends) ? persistedFriends.flatMap(normalizeFriend) : [];
   const data: FriendsData = { friends };
   const mirror: Record<string, unknown> = { friends };
   const atoms = buildMirrorAtoms(store, data, mirror);
@@ -355,25 +317,17 @@ export function createAnilistNotificationsSignalStore(
       const legacy = readLegacyEnvelope(get, "anilistReleaseObservations");
       if (!legacy) return null;
       return {
-        data: migrateNotificationsData(legacy.state, legacy.version) as unknown as Record<
-          string,
-          unknown
-        >,
+        data: { ...migrateNotificationsData(legacy.state, legacy.version) },
         schemaVersion: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,
       };
     },
   });
 
   const persisted = persistor.read();
-  const migrated =
-    persisted && typeof persisted.schemaVersion === "number" && persisted.schemaVersion >= 2
-      ? migrateNotificationsData(persisted.data, persisted.schemaVersion)
-      : null;
-  const data: AnilistNotificationsData = migrated ?? {
-    ...DEFAULT_NOTIFICATIONS_DATA,
-    ...((persisted?.data ?? {}) as Partial<AnilistNotificationsData>),
-  };
-  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
+  const data: AnilistNotificationsData = persisted
+    ? migrateNotificationsData(persisted.data, persisted.schemaVersion)
+    : { ...DEFAULT_NOTIFICATIONS_DATA };
+  const mirror: Record<string, unknown> = { ...data };
   const atoms = buildMirrorAtoms(store, data, mirror);
 
   store.subscribeAll(() => {

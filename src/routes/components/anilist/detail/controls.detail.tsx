@@ -78,8 +78,8 @@ function AniListActionControls({
     flagsTouched,
     setFlagsTouched,
   } = useListDraft(anime.id, listEntry);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string>("");
   const { data: customLists } = useAppQuery("slow", {
     queryKey: queryKeys.customLists(),
     queryFn: () => anilistApi.getCustomLists(),

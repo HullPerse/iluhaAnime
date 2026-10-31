@@ -23,7 +23,7 @@ export function MentionsTab({
   onAnimeClick: (id: number) => void;
 }) {
   const { t } = useI18n();
-  const [includeFriends, setIncludeFriends] = useState(false);
+  const [includeFriends, setIncludeFriends] = useState<boolean>(false);
   const activityUserIds = useMemo(() => {
     const ids = includeFriends ? [userId, ...friendIds] : [userId];
     return [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))].sort((a, b) => a - b);

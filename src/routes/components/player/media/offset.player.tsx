@@ -31,11 +31,20 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
   const audioTrack = tracks.find((track) => track.type === "audio" && track.selected);
   const subTrack = tracks.find((track) => track.type === "sub" && track.selected);
 
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
   const [osdElement, setOsdElement] = useState<HTMLDivElement | null>(null);
   const timerRef = useRef<ScheduledTask | null>(null);
-  const previousRef = useRef({
-    audio: undefined as number | undefined,
+  const previousRef = useRef<{
+    audio: number | undefined;
+    sub: number | undefined;
+    subOffset: number;
+    audioOffset: number;
+    speed: number;
+    volume: number;
+    muted: boolean;
+    alwaysOnTop: boolean;
+  }>({
+    audio: undefined,
     sub: undefined as number | undefined,
     subOffset: 0,
     audioOffset: 0,

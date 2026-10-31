@@ -34,19 +34,19 @@ export function ShareImportCollection({
 }) {
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
-  const [name, setName] = useState((plan.link.label ?? "").slice(0, 64));
+  const [name, setName] = useState<string>((plan.link.label ?? "").slice(0, 64));
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(plan.rows.map((_, index) => index).slice(0, PUBLIC_STATUS_MAX_ITEMS))
   );
-  const [importing, setImporting] = useState(false);
-  const [processed, setProcessed] = useState(0);
-  const [runTotal, setRunTotal] = useState(0);
+  const [importing, setImporting] = useState<boolean>(false);
+  const [processed, setProcessed] = useState<number>(0);
+  const [runTotal, setRunTotal] = useState<number>(0);
   const [current, setCurrent] = useState<string | null>(null);
   const [failures, setFailures] = useState<Array<{ id: string; title: string }>>([]);
   const [failedIndices, setFailedIndices] = useState<number[]>([]);
   const [imported, setImported] = useState<number | null>(null);
   const statusIdRef = useRef<string | null>(null);
-  const abortRef = useRef(false);
+  const abortRef = useRef<boolean>(false);
 
   const label = normalizeStatusLabel(name);
   const sharedLabel = resolveStatusLabel(plan.link.label ?? "", locale);

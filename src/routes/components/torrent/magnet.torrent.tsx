@@ -18,7 +18,7 @@ export default function AddTorrentModal({
   onAddMagnet,
   onAddFiles,
 }: Props) {
-  const [magnetInput, setMagnetInput] = useState("");
+  const [magnetInput, setMagnetInput] = useState<string>("");
   const { t } = useI18n();
 
   useEffect(() => {

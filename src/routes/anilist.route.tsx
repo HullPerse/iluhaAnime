@@ -474,7 +474,7 @@ function AnilistRoute() {
     global,
     filters: searchFilters,
   });
-  const [lastSourceKey, setLastSourceKey] = useState(sourceKey);
+  const [lastSourceKey, setLastSourceKey] = useState<string>(sourceKey);
   if (lastSourceKey !== sourceKey) {
     setLastSourceKey(sourceKey);
     setPage(1);

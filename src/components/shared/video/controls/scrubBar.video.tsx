@@ -11,7 +11,7 @@ export function ScrubBar() {
   const barRef = useRef<HTMLDivElement>(null);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
-  const [hoverX, setHoverX] = useState(0);
+  const [hoverX, setHoverX] = useState<number>(0);
   const duration = time?.duration ?? 0;
   const display = scrubTime ?? time?.currentTime ?? 0;
   const progress = duration > 0 ? (display / duration) * 100 : 0;

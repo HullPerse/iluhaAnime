@@ -37,8 +37,8 @@ export function useUpscaleToolStatus(tool: UpscaleTool) {
   const [status, setStatus] = useState<UpscaleToolStatus>("checking");
   const [percent, setPercent] = useState<number | null>(null);
   const [dlError, setDlError] = useState<string | null>(null);
-  const busyRef = useRef(false);
-  const aliveRef = useRef(true);
+  const busyRef = useRef<boolean>(false);
+  const aliveRef = useRef<boolean>(true);
   useEffect(
     () => () => {
       aliveRef.current = false;

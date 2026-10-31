@@ -25,9 +25,9 @@ async function showMainWindow(): Promise<void> {
 export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => void): void {
   const { t } = useI18n();
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
-  const minimizeToTrayRef = useRef(minimizeToTray);
-  const selectRef = useRef(onSelectTab);
-  const allowQuitRef = useRef(false);
+  const minimizeToTrayRef = useRef<boolean>(minimizeToTray);
+  const selectRef = useRef<(tab: TabId) => void>(onSelectTab);
+  const allowQuitRef = useRef<boolean>(false);
   const entries = useMemo(() => buildTrayMenuEntries(tabs, t("settings.tray.quit")), [tabs, t]);
 
   useEffect(() => {

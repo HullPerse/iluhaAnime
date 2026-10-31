@@ -159,7 +159,7 @@ export function useApp() {
     if (fallback !== activeTab) goToTab(fallback);
   }, [activeTab, tabs, goToTab]);
 
-  const isInitial = useRef(true);
+  const isInitial = useRef<boolean>(true);
   useEffect(() => {
     if (!rememberLastTab && isInitial.current) {
       isInitial.current = false;
@@ -471,9 +471,9 @@ export function useApp() {
   }, [isOnline, goToTab]);
 
   const releaseSignature = `${anilistReleaseNotifications}:${anilistPollIntervalMin}:${anilistTabEnabled}`;
-  const prevReleaseSignatureRef = useRef(releaseSignature);
-  const firstReleasePollRef = useRef(true);
-  const releaseCancelledRef = useRef(false);
+  const prevReleaseSignatureRef = useRef<string>(releaseSignature);
+  const firstReleasePollRef = useRef<boolean>(true);
+  const releaseCancelledRef = useRef<boolean>(false);
   useEffect(
     () => () => {
       releaseCancelledRef.current = true;

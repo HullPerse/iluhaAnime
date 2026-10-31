@@ -6,7 +6,7 @@ import type { PreviewFrame } from "@/types/core/upscale";
 
 export function PreviewZoom({ frame }: { frame: PreviewFrame }) {
   const { t } = useI18n();
-  const [showAfter, setShowAfter] = useState(true);
+  const [showAfter, setShowAfter] = useState<boolean>(true);
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <img src={showAfter ? frame.after : frame.before} alt="" className="max-h-[60vh] w-auto" />

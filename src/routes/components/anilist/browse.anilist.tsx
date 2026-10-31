@@ -48,7 +48,7 @@ export default function BrowseAnimeModal({
   const [activeTab, setActiveTab] = useState<BrowseTab>("popular");
   const [detailId, setDetailId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(1);
   const queryClient = useQueryClient();
   const prefetchedRef = useRef<BrowseTab[]>([]);
 

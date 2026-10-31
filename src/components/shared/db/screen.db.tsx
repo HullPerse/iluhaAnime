@@ -46,8 +46,8 @@ export function DbScreen({
   onReload,
   onOpenFolder,
 }: DbScreenProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
   const retryRef = useRef<HTMLButtonElement | null>(null);
   const texts = resolveDbTexts(resolveFatalLocale());
 

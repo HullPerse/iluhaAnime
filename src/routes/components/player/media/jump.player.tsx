@@ -13,8 +13,8 @@ function JumpToTime({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const [value, setValue] = useState("");
-  const [invalid, setInvalid] = useState(false);
+  const [value, setValue] = useState<string>("");
+  const [invalid, setInvalid] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

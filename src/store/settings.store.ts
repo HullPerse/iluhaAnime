@@ -12,9 +12,10 @@ import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { applyWindowChrome } from "@/lib/core/window.utils";
 import type { Persistor } from "@/types/core/persist";
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
-import type { Cell, SignalStore } from "@/types/core/signal";
-import type { MigrationState, MigrationTransform } from "@/types/core/migrate";
+import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { isRecord } from "@/lib/core/record.utils";
+import type { Cell } from "@/types/core/signal";
+import type { MigrationTransform } from "@/types/core/migrate";
 import { resolveWithDefaults, runTransforms } from "@/lib/core/migrate.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/graphics/font.utils";
@@ -86,11 +87,9 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
   {
     from: 20,
     migrate: (state) => {
-      const legacy = state.wallpaperShadow as
-        | { side?: unknown; intensity?: unknown; color?: unknown }
-        | undefined;
+      const legacy = isRecord(state.wallpaperShadow) ? state.wallpaperShadow : null;
       const sides = { top: false, right: false, bottom: false, left: false };
-      if (legacy && typeof legacy === "object") {
+      if (legacy) {
         if (legacy.side === "around") {
           sides.top = true;
           sides.right = true;
@@ -152,8 +151,8 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
   {
     from: 39,
     migrate: (state) => {
-      const schedule = state.themeSchedule as { enabled?: unknown } | undefined;
-      if (schedule && typeof schedule === "object") schedule.enabled = false;
+      const schedule = state.themeSchedule;
+      if (isRecord(schedule)) schedule.enabled = false;
     },
   },
   {
@@ -287,7 +286,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   watcherDelay: toValidator(z.enum(["fast", "calm"])),
   streamDefaultQuality: toValidator(z.enum(STREAM_QUALITIES)),
   scanThreads: (value) =>
-    Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 64,
+    typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 64,
   gameVolume: (value) => typeof value === "number" && value >= 0 && value <= 1,
   playerTorrentHeights: toValidator(z.record(z.string(), z.number())),
   keybindOverrides: toValidator(z.record(z.string(), z.union([z.string(), z.null()]))),
@@ -334,49 +333,20 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
     typeof value === "number" && Number.isInteger(value) && value > 0,
 };
 
-export function migrateSettingsData(persistedState: unknown, version: number): SettingsData {
-  if (!persistedState || typeof persistedState !== "object") return {} as SettingsData;
-  const state = persistedState as MigrationState & { language?: unknown };
-  const { language, ...rest } = state;
+export function migrateSettingsData(
+  persistedState: unknown,
+  version: number,
+  fallbackLanguage: "en" | "ru" = "ru"
+): SettingsData {
+  if (!isRecord(persistedState)) return {} as SettingsData;
+  const { language, ...rest } = persistedState;
   const transformed = runTransforms(rest, version, SETTINGS_TRANSFORMS);
-  const resolved = resolveWithDefaults(
-    transformed,
-    DEFAULT_SETTINGS as unknown as MigrationState,
-    SETTINGS_VALIDATORS
-  ) as unknown as SettingsData;
+  const resolved = resolveWithDefaults(transformed, { ...DEFAULT_SETTINGS }, SETTINGS_VALIDATORS);
   return {
+    ...DEFAULT_SETTINGS,
     ...resolved,
-    language: language === "en" ? "en" : "ru",
+    language: language === "en" ? "en" : fallbackLanguage,
   };
-}
-
-function buildAtoms(
-  store: SignalStore,
-  data: SettingsData,
-  mirror: Record<string, unknown>
-): SettingsAtoms {
-  const atoms = {} as SettingsAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    const cell = store.atom(key, source[key]);
-    const handle: Cell<unknown> = {
-      id: cell.id,
-      get: cell.get,
-      set: (value) => {
-        mirror[key] = value;
-        cell.set(value);
-      },
-      update: (fn) => {
-        const next = (fn as (prev: unknown) => unknown)(cell.get());
-        mirror[key] = next;
-        cell.set(next);
-      },
-      subscribe: cell.subscribe,
-    };
-    sink[key] = handle;
-  }
-  return atoms;
 }
 
 function applyUiPreferences(
@@ -440,8 +410,11 @@ function applyPatchSideEffects(atoms: SettingsAtoms, partial: Partial<SettingsDa
     else {
       const [, error] = attemptSync(() => {
         const raw = localStorage.getItem("themeVars");
-        const parsed = raw ? (JSON.parse(raw) as { fontFamily?: string | null }) : null;
-        const css = parsed?.fontFamily ?? DEFAULT_FONT_FAMILY;
+        const parsed: unknown = raw ? JSON.parse(raw) : null;
+        const css =
+          isRecord(parsed) && typeof parsed.fontFamily === "string"
+            ? parsed.fontFamily
+            : DEFAULT_FONT_FAMILY;
         if (typeof document !== "undefined" && document.documentElement)
           document.documentElement.style.setProperty("--font-family", css, "important");
         localStorage.removeItem("appFont");
@@ -458,15 +431,13 @@ function readLegacyMigrated(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("settings"));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { state?: unknown; version?: unknown };
-  const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
-  const version = typeof envelope.version === "number" ? envelope.version : 0;
-  if (!state || typeof state !== "object") return null;
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+  if (parseError !== null || !isRecord(parsed)) return null;
+  const state = isRecord(parsed.state) ? parsed.state : parsed;
+  const version = typeof parsed.version === "number" ? parsed.version : 0;
   const [migrated, migrateError] = attemptSync(() => migrateSettingsData(state, version));
-  if (migrateError !== null || !migrated || typeof migrated !== "object") return null;
-  return { data: migrated as Record<string, unknown>, schemaVersion: SETTINGS_SCHEMA_VERSION };
+  if (migrateError !== null) return null;
+  return { data: { ...migrated }, schemaVersion: SETTINGS_SCHEMA_VERSION };
 }
 
 export interface SettingsSignalStore {
@@ -495,14 +466,13 @@ export function createSettingsSignalStore(
     onFallback: (get) => readLegacyMigrated(get),
   });
 
-  const base: SettingsData = { ...DEFAULT_SETTINGS, language: detectSystemLocale() };
   const persisted = persistor.read();
   const data: SettingsData = persisted
-    ? { ...base, ...(persisted.data as Partial<SettingsData>) }
-    : base;
+    ? migrateSettingsData(persisted.data, SETTINGS_SCHEMA_VERSION, detectSystemLocale())
+    : { ...DEFAULT_SETTINGS, language: detectSystemLocale() };
   if (data.selectedDitherId === DITHER_PLACEHOLDER_ID) data.selectedDitherId = null;
-  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
-  const atoms = buildAtoms(store, data, mirror);
+  const mirror: Record<string, unknown> = { ...data };
+  const atoms = buildMirrorAtoms(store, data, mirror);
 
   store.subscribeAll(() => {
     persistor.write(mirror);

@@ -24,10 +24,10 @@ export default function GameRoute() {
   const roms = useGameRoms();
   const platforms = useGamePlatforms();
   const { importRom, deleteRom } = useGameRomMutations();
-  const [muted, setMuted] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [muted, setMuted] = useState<boolean>(false);
+  const [expanded, setExpanded] = useState<boolean>(false);
   const [draftPath, setDraftPath] = useState<string | null>(null);
-  const [storeOpen, setStoreOpen] = useState(false);
+  const [storeOpen, setStoreOpen] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [lastRom, setLastRom] = useState<GameRomInfo | null>(null);

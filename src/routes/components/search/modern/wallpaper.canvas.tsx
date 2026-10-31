@@ -10,10 +10,10 @@ export default function WallpaperCanvas({ src, alt, className, filter }: Wallpap
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const sourceRef = useRef(src);
-  const paintRef = useRef(() => {});
+  const sourceRef = useRef<string>(src);
+  const paintRef = useRef<() => void>(() => {});
   const [paintedSrc, setPaintedSrc] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<boolean>(false);
   const ready = paintedSrc !== null;
 
   useEffect(() => {

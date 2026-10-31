@@ -51,7 +51,7 @@ function Harness({ enabled }: { enabled: boolean }) {
 
 function DelayedHarness({ enabled }: { enabled: boolean }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState<boolean>(false);
   useModalResize(element, enabled);
   return (
     <div>

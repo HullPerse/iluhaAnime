@@ -56,7 +56,7 @@ export function useWizardPick({
     setExternalIds((prev) => ({ ...prev, [key]: resultId }));
   }
 
-  const tmdbPickRef = useRef(0);
+  const tmdbPickRef = useRef<number>(0);
   const mediaRef = useRef<WizardPickedMedia | null>(null);
   const handlePickResult = (r: WizardSearchResult) => {
     setTitle(r.title);

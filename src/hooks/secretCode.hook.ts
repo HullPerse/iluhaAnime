@@ -5,7 +5,7 @@ import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
 import { subscribeSequence } from "@/lib/core/sequenceHotkeys.utils";
 
 export function useSecretCode(onMatch: () => void): void {
-  const matchRef = useRef(onMatch);
+  const matchRef = useRef<() => void>(onMatch);
 
   useEffect(() => {
     matchRef.current = onMatch;

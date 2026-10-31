@@ -132,11 +132,11 @@ export function useLivePlaylistSync(
   const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
   const videoExtensions = useCell(settingsAtoms.videoExtensions);
   const scanThreads = useCell(settingsAtoms.scanThreads);
-  const [armed, setArmed] = useState(true);
-  const busyRef = useRef(false);
+  const [armed, setArmed] = useState<boolean>(true);
+  const busyRef = useRef<boolean>(false);
   const desiredRef = useRef<string[] | null>(null);
-  const failsRef = useRef(0);
-  const stableRef = useRef(false);
+  const failsRef = useRef<number>(0);
+  const stableRef = useRef<boolean>(false);
 
   useEffect(() => {
     desiredRef.current = null;

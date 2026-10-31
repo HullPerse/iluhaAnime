@@ -11,7 +11,7 @@ export function FullscreenToggle({
 }: {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
 }) {
-  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreen, setFullscreen] = useState<boolean>(false);
   const { t } = useI18n();
 
   useEffect(() => {

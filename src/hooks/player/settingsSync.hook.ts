@@ -26,7 +26,7 @@ export function usePlayerSettingsSync(): void {
   const volumeThrottlerRef = useRef<Throttler<[number]> | null>(null);
   const settingsDebouncerRef = useRef<Debouncer<[PlayerSettings]> | null>(null);
   const previousSettingsRef = useRef<PlayerSettings | null>(null);
-  const settingsSyncFailedRef = useRef(false);
+  const settingsSyncFailedRef = useRef<boolean>(false);
   const rejectedSettingsRef = useRef<Set<string>>(new Set());
 
   const sendVolumeNow = useCallback((value: number) => {

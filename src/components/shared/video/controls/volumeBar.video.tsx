@@ -8,7 +8,7 @@ import { useWindowDrag } from "@/hooks/windowDrag.hook";
 export function VolumeBar() {
   const volume = usePlayer(selectVolume);
   const barRef = useRef<HTMLDivElement>(null);
-  const [hovering, setHovering] = useState(false);
+  const [hovering, setHovering] = useState<boolean>(false);
   const level = volume?.muted ? 0 : (volume?.volume ?? 1);
   const percent = Math.round(level * 100);
 

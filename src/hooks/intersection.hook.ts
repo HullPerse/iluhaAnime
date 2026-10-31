@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 export function useOnScreen<T extends HTMLElement>() {
   const ref = useRef<T>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
 
   useEffect(() => {
     const element = ref.current;

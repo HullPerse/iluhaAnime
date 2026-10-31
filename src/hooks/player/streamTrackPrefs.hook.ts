@@ -10,7 +10,7 @@ import type { MpvTrack } from "@/types/player/videoPlayer";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
 export function useStreamTrackPrefs(stream: StreamOpen | null, tracks: MpvTrack[]): void {
-  const appliedRef = useRef("");
+  const appliedRef = useRef<string>("");
 
   useEffect(() => {
     if (!stream || tracks.length === 0) return;

@@ -42,7 +42,7 @@ function TrackDropdown({
   disabled?: boolean;
   className?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = options.find((option) => option.value === value);
   const currentTitle = current

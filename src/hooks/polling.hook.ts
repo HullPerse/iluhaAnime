@@ -13,7 +13,7 @@ const BACKOFF_EXPONENT_CAP = 4;
 export function usePolling<K>(options: PollingOptions<K>): void {
   const { intervalMs, enabled = true } = options;
 
-  const optionsRef = useRef(options);
+  const optionsRef = useRef<PollingOptions<K>>(options);
   const inFlightRef = useRef<Set<K>>(new Set());
   const attemptsRef = useRef<Map<K, number>>(new Map());
   const retryAtRef = useRef<Map<K, number>>(new Map());

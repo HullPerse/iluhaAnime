@@ -24,10 +24,10 @@ export default function AnimelibSettings() {
   const { t } = useI18n();
   const proxyUrl = useCell(settingsAtoms.animelibProxyUrl);
   const proxyInputRef = useRef<HTMLInputElement>(null);
-  const [input, setInput] = useState("");
-  const [hasToken, setHasToken] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [input, setInput] = useState<string>("");
+  const [hasToken, setHasToken] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [saved, setSaved] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

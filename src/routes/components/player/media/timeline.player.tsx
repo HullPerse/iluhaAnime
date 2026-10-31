@@ -41,10 +41,10 @@ function Timeline({
   const cacheDuration = useCell(playbackAtoms.cacheDuration);
   const { t } = useI18n();
   const barRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
-  const [showRemaining, setShowRemaining] = useState(false);
+  const [showRemaining, setShowRemaining] = useState<boolean>(false);
 
   const streaming = session !== null;
   const span = streaming

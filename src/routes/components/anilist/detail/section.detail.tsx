@@ -51,25 +51,25 @@ function FranchiseGraphSection({
     () => new Set(["SEQUEL", "PREQUEL", "SIDE_STORY"])
   );
   const [positions, setPositions] = useState<Map<number, FranchiseNodePosition>>(new Map());
-  const [containerWidth, setContainerWidth] = useState(800);
+  const [containerWidth, setContainerWidth] = useState<number>(800);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [refresh, setRefresh] = useState<{ id: number; key: number }>({ id: animeId, key: 0 });
   const refreshKey = refresh.id === animeId ? refresh.key : 0;
-  const [searchQuery, setSearchQuery] = useState("");
-  const [resetKey, setResetKey] = useState(0);
-  const [listView, setListView] = useState(true);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [resetKey, setResetKey] = useState<number>(0);
+  const [listView, setListView] = useState<boolean>(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<RelationFilter>>(new Set());
 
   const containerRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation<SimNode, undefined> | null>(null);
   const viewport = useFranchiseViewport();
   const { getScale, zoomToElement } = viewport;
-  const dragMovedRef = useRef(false);
+  const dragMovedRef = useRef<boolean>(false);
   const dragRafRef = useRef<ScheduledTask | null>(null);
   const dragPointRef = useRef<{ x: number; y: number } | null>(null);
   const zoomedAnimeIdRef = useRef<number | null>(null);
-  const focusAfterLayoutRef = useRef(false);
-  const positionsRef = useRef(positions);
+  const focusAfterLayoutRef = useRef<boolean>(false);
+  const positionsRef = useRef<Map<number, FranchiseNodePosition>>(positions);
   useEffect(() => {
     positionsRef.current = positions;
   }, [positions]);

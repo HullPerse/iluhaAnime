@@ -98,10 +98,10 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
   const [telemetry, setTelemetry] = useState<GameTelemetry>(IDLE_TELEMETRY);
   const [pressedKeys, setPressedKeys] = useState<ReadonlySet<number>>(NO_KEYS);
   const activeRef = useRef<ActiveSession | null>(null);
-  const mountedRef = useRef(true);
-  const canvasTarget = useRef(options.canvas);
-  const mutedRef = useRef(options.muted);
-  const volumeRef = useRef(options.volume);
+  const mountedRef = useRef<boolean>(true);
+  const canvasTarget = useRef<GameSessionOptions["canvas"]>(options.canvas);
+  const mutedRef = useRef<GameSessionOptions["muted"]>(options.muted);
+  const volumeRef = useRef<GameSessionOptions["volume"]>(options.volume);
 
   useEffect(() => {
     canvasTarget.current = options.canvas;

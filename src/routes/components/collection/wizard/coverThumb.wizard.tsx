@@ -14,7 +14,7 @@ function CoverThumbInner({
 }) {
   const { t } = useI18n();
   const src = useRemoteImage(url);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<boolean>(false);
   if (failed || !src) {
     return (
       <div

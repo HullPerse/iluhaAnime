@@ -40,7 +40,7 @@ function parseDroppedFrames(data: unknown): DroppedFramesData | undefined {
 }
 
 export function usePlayerEvents(handlers: PlayerEventHandlers): void {
-  const handlersRef = useRef(handlers);
+  const handlersRef = useRef<PlayerEventHandlers>(handlers);
 
   useEffect(() => {
     handlersRef.current = handlers;

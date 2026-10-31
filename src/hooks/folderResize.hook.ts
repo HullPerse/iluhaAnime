@@ -13,13 +13,13 @@ export function useBottomResize({
   getStartHeight?: () => number | undefined;
   onResizeEnd: (height: number) => void;
 }) {
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
   const [previewHeight, setPreviewHeight] = useState<number | null>(null);
-  const dragStart = useRef({ y: 0, startHeight: 0 });
-  const committedHeightRef = useRef(height ?? 0);
-  const onResizeEndRef = useRef(onResizeEnd);
-  const maxHeightRef = useRef(maxHeight);
-  const getStartHeightRef = useRef(getStartHeight);
+  const dragStart = useRef<{ y: number; startHeight: number }>({ y: 0, startHeight: 0 });
+  const committedHeightRef = useRef<number>(height ?? 0);
+  const onResizeEndRef = useRef<(height: number) => void>(onResizeEnd);
+  const maxHeightRef = useRef<number>(maxHeight);
+  const getStartHeightRef = useRef<(() => number | undefined) | undefined>(getStartHeight);
 
   useEffect(() => {
     committedHeightRef.current = height ?? 0;

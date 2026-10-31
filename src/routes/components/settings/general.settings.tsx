@@ -52,16 +52,16 @@ export default function SettingsGeneral() {
   const ffmpegSource = useCell(settingsAtoms.ffmpegSource);
   const { t } = useI18n();
   const isOnline = useOnlineStatus();
-  const [pendingClear, setPendingClear] = useState(false);
+  const [pendingClear, setPendingClear] = useState<boolean>(false);
   const [resetError, setResetError] = useState<string | null>(null);
-  const [tmdbTesting, setTmdbTesting] = useState(false);
+  const [tmdbTesting, setTmdbTesting] = useState<boolean>(false);
   const [tmdbTest, setTmdbTest] = useState<{ ok: boolean; msg: string } | null>(null);
   const tmdbProxyInputRef = useRef<HTMLInputElement>(null);
-  const [anilistTesting, setAnilistTesting] = useState(false);
+  const [anilistTesting, setAnilistTesting] = useState<boolean>(false);
   const [anilistTest, setAnilistTest] = useState<{ ok: boolean; msg: string } | null>(null);
   const anilistProxyInputRef = useRef<HTMLInputElement>(null);
-  const [tmdbInput, setTmdbInput] = useState("");
-  const [tmdbSaving, setTmdbSaving] = useState(false);
+  const [tmdbInput, setTmdbInput] = useState<string>("");
+  const [tmdbSaving, setTmdbSaving] = useState<boolean>(false);
   const handleTmdbSave = async () => {
     const key = tmdbInput.trim();
     if (!key || tmdbSaving) return;

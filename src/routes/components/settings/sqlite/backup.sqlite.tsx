@@ -24,12 +24,12 @@ export function BackupPanel({
 }) {
   const { t } = useI18n();
   const [backups, setBackups] = useState<SqliteBackupInfo[]>([]);
-  const [selected, setSelected] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [working, setWorking] = useState(false);
+  const [selected, setSelected] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [working, setWorking] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [pendingRestore, setPendingRestore] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState<boolean>(false);
 
   const refresh = useCallback(async () => {
     if (!database) {

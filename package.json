@@ -18,6 +18,7 @@
     "data:chip8": "bun scripts/build-chip8-store.ts",
     "lint": "oxlint --config oxlint.config.ts --type-aware",
     "lint:knip": "knip",
+    "check:cleanup": "bun scripts/cleanup-inventory.ts --check-code",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

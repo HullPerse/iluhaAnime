@@ -58,7 +58,7 @@ export function WizardModal({
 }) {
   const [tab, setTab] = useState<WizardTab>(initial ? "details" : "source");
   const [source, setSource] = useState<"anilist" | "tmdb" | "custom">("custom");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState<string>("");
 
   const coverBlobIdRef = useRef<string | null>(initial?.coverBlobId ?? null);
   const uploadedCoversRef = useRef<{ id: string; url: string }[]>([]);
@@ -106,7 +106,7 @@ export function WizardModal({
     setCustomFields,
     previewItem,
   } = form;
-  const prefillApplied = useRef(false);
+  const prefillApplied = useRef<boolean>(false);
   const ratingOrigin = prefillRatingOrigin(initial, prefill);
   useEffect(() => {
     if (initial || !prefill || prefillApplied.current) return;
@@ -116,7 +116,7 @@ export function WizardModal({
     setStatus(prefill.status);
     setRating(prefillRatingValue(prefill));
   }, [initial, prefill, setTitle, setCoverUrl, setStatus, setRating]);
-  const [coverBroken, setCoverBroken] = useState(false);
+  const [coverBroken, setCoverBroken] = useState<boolean>(false);
   const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
   const { t } = useI18n();
   const { items: collectionItems } = useCollectionData();
@@ -193,8 +193,8 @@ export function WizardModal({
     setCoverOptions,
   });
   const { handleSave } = useWizardSave({ form, coverBlobIdRef, mediaRef, onSave, onClose });
-  const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
+  const [saving, setSaving] = useState<boolean>(false);
+  const savingRef = useRef<boolean>(false);
   const handleSaveClick = async () => {
     if (savingRef.current) return;
     savingRef.current = true;

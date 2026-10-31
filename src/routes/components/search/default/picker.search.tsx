@@ -50,14 +50,14 @@ function TorrentFilePicker({
   const { t } = useI18n();
   const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
   const fileOrder = useCell(settingsAtoms.fileOrder);
-  const [saveDir, setSaveDir] = useState(defaultSaveDir);
-  const [browsing, setBrowsing] = useState(false);
-  const [sequential, setSequential] = useState(false);
+  const [saveDir, setSaveDir] = useState<string>(defaultSaveDir);
+  const [browsing, setBrowsing] = useState<boolean>(false);
+  const [sequential, setSequential] = useState<boolean>(false);
 
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(torrent?.files.filter((f) => f.selected).map((f) => f.index) ?? [])
   );
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsed, setElapsed] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const startRef = useRef<number | null>(null);
 

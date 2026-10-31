@@ -20,10 +20,10 @@ export function WizardCustomFields({
   onChange: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
 }) {
   const { t } = useI18n();
-  const [showBuilder, setShowBuilder] = useState(false);
-  const [fieldName, setFieldName] = useState("");
+  const [showBuilder, setShowBuilder] = useState<boolean>(false);
+  const [fieldName, setFieldName] = useState<string>("");
   const [fieldType, setFieldType] = useState<(typeof FIELD_TYPES)[number]>("text");
-  const [fieldOptions, setFieldOptions] = useState("");
+  const [fieldOptions, setFieldOptions] = useState<string>("");
   const { addCustomFieldDef } = useCollectionMutations();
 
   const addField = async () => {

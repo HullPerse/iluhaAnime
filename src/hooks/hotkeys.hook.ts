@@ -11,7 +11,10 @@ export function useHotkeys<TId extends string>(
   defs: readonly HotkeyDef<TId>[],
   options: UseHotkeysOptions<TId>
 ): void {
-  const stateRef = useRef({ defs, options });
+  const stateRef = useRef<{
+    defs: readonly HotkeyDef<TId>[];
+    options: UseHotkeysOptions<TId>;
+  }>({ defs, options });
   useEffect(() => {
     stateRef.current = { defs, options };
   });

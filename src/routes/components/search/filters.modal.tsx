@@ -37,7 +37,7 @@ export default function SearchFiltersModal({
 }: Props) {
   const { t } = useI18n();
   const [local, setLocal] = useState<SearchFilters>(filters);
-  const [presetName, setPresetName] = useState("");
+  const [presetName, setPresetName] = useState<string>("");
   const userPresets = useCell(searchAtoms.filterPresets);
 
   if (!open) return null;

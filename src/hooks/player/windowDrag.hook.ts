@@ -8,7 +8,7 @@ import type { WindowDragHandlers } from "@/types/player/playerWindowDrag";
 
 export function useWindowDrag(enabled: boolean): WindowDragHandlers {
   const originRef = useRef<{ x: number; y: number } | null>(null);
-  const draggedRef = useRef(false);
+  const draggedRef = useRef<boolean>(false);
 
   const onMouseDown = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {

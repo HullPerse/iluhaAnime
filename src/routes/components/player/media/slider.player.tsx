@@ -23,7 +23,7 @@ function PlayerSlider({
   onChange: (value: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
   const clamped = Math.max(min, Math.min(max, value));
   const pct = max === min ? 0 : (clamped - min) / (max - min);
 

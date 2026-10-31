@@ -9,7 +9,7 @@ import { addNotification } from "@/store/notification.store";
 
 export function useCollectionDataActions() {
   const { t } = useI18n();
-  const [importStrategyOpen, setImportStrategyOpen] = useState(false);
+  const [importStrategyOpen, setImportStrategyOpen] = useState<boolean>(false);
   const [importFile, setImportFile] = useState<File | null>(null);
 
   const notify = useCallback(

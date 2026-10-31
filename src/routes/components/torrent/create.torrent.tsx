@@ -17,8 +17,8 @@ import type { TorrentHash } from "@/types/core/types";
 
 export default function CreateTorrentModal({ open, onClose, onCreated }: CreateTorrentProps) {
   const { t } = useI18n();
-  const [folder, setFolder] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [folder, setFolder] = useState<string>("");
+  const [creating, setCreating] = useState<boolean>(false);
   const [created, setCreated] = useState<CreatedTorrent | null>(null);
 
   if (!open) return null;

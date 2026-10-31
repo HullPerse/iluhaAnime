@@ -117,7 +117,7 @@ export default function ScreenshotStage({
   const [draft, setDraft] = useState<AnnotationItem | null>(null);
   const [editor, setEditor] = useState<TextEditor | null>(null);
   const [maskUrl, setMaskUrl] = useState<string | null>(null);
-  const [hoverText, setHoverText] = useState(false);
+  const [hoverText, setHoverText] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const inkRef = useRef<HTMLCanvasElement>(null);

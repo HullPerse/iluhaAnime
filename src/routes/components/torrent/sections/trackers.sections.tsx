@@ -16,7 +16,7 @@ export function TorrentTrackersBlock({
   trackers: string[];
 }) {
   const { t } = useI18n();
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState<string>("");
   const addTracker = useAddTorrentTracker();
   const removeTracker = useRemoveTorrentTracker();
   const busy = addTracker.isPending || removeTracker.isPending;

@@ -21,7 +21,7 @@ export function useScreenshot(): ScreenshotSession {
   const { t } = useI18n();
   const [shot, setShot] = useState<ScreenshotCapture | null>(null);
   const captureRef = useRef<ScreenshotCapture | null>(null);
-  const inFlightRef = useRef(false);
+  const inFlightRef = useRef<boolean>(false);
 
   const setCapture = useCallback((next: ScreenshotCapture | null) => {
     captureRef.current = next;

@@ -1,4 +1,5 @@
 import { translate } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type { FatalInfo, FatalTexts } from "@/types/core/fatal";
 import type { Locale, TranslationKey } from "@/types/core/i18n";
@@ -20,7 +21,7 @@ export function resolveFatalLocale(): Locale {
 export function resolveFatalTexts(locale: Locale, kind: FatalInfo["kind"]): FatalTexts {
   const pick = (key: TranslationKey): string => translate(locale, key);
   return {
-    kindLabel: pick(`fatal.kind.${kind}` as TranslationKey),
+    kindLabel: pick(toLocaleKey(`fatal.kind.${kind}`)),
     yorhaBanner: pick("fatal.yorha.banner"),
     hint: pick("fatal.hint"),
     details: pick("fatal.details"),

@@ -33,7 +33,7 @@ export default function CoverCorrectionModal({
 }) {
   const { t } = useI18n();
   const [selectedId, setSelectedId] = useState<number | null>(cover.anilistId);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string>("");
   const [debouncedQuery] = useDebouncedValue(query.trim(), { wait: MANUAL_DEBOUNCE_MS });
   const manualQuery = useAppQuery("slow", {
     queryKey: queryKeys.coverManualSearch(debouncedQuery),

@@ -44,10 +44,10 @@ export function ProgressStepper({
   const [phase, setPhase] = useState<StepperPhase>("idle");
   const [failure, setFailure] = useState<StepperFailure | null>(null);
   const targetRef = useRef<number | null>(null);
-  const inflightRef = useRef(false);
-  const statusInvalidateRef = useRef(false);
-  const confirmedRef = useRef(entry.progress ?? 0);
-  const entryRef = useRef(entry);
+  const inflightRef = useRef<boolean>(false);
+  const statusInvalidateRef = useRef<boolean>(false);
+  const confirmedRef = useRef<number>(entry.progress ?? 0);
+  const entryRef = useRef<EntryListInfo>(entry);
   const savedTimer = useRef<ScheduledTask | null>(null);
   const taskBox = useMemo<{ current: (() => void) | undefined }>(
     () => ({ current: undefined }),

@@ -57,10 +57,10 @@ export function useWizardSearch(
 ) {
   const [searchResults, setSearchResults] = useState<WizardSearchResult[]>([]);
   const [coverOptions, setCoverOptions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [searched, setSearched] = useState(false);
-  const coverLookupRef = useRef(0);
+  const [searched, setSearched] = useState<boolean>(false);
+  const coverLookupRef = useRef<number>(0);
 
   const fillMissingCovers = useCallback((rows: WizardSearchResult[], from: "anilist" | "tmdb") => {
     const missing = rows.filter((row) => !row.cover_url);

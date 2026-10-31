@@ -21,13 +21,13 @@ import { BindingCell } from "@/routes/components/settings/keybinds/binding.keybi
 
 export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: Set<string> }) {
   const { t } = useI18n();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string>("");
   const [scope, setScope] = useState<ScopeFilter>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [capturing, setCapturing] = useState(false);
+  const [capturing, setCapturing] = useState<boolean>(false);
   const [captured, setCaptured] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ forId: string; chord: string } | null>(null);
-  const [showConflicts, setShowConflicts] = useState(false);
+  const [showConflicts, setShowConflicts] = useState<boolean>(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const shouldExpandAll = expandedSectionIds?.has("keybinds.list") === true;
   const [collapsed, setCollapsed] = useState<ReadonlySet<KeybindScope>>(

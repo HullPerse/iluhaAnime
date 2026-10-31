@@ -9,7 +9,7 @@ import type { AniListId } from "@/types/core/types";
 
 export function CopyLinkButton({ animeId }: { animeId: number }) {
   const { t } = useI18n();
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState<boolean>(false);
   const copyHideRef = useRef<Debouncer<[]> | null>(null);
   useEffect(() => () => copyHideRef.current?.cancel(), []);
   const copyLink = () => {

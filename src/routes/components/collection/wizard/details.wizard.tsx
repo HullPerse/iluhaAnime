@@ -58,7 +58,7 @@ export function WizardDetailsPanel(props: {
   onCustomFieldsChange: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
 }) {
   const { t, locale } = useI18n();
-  const [showMore, setShowMore] = useState(false);
+  const [showMore, setShowMore] = useState<boolean>(false);
   return (
     <div className="flex flex-col gap-1.5">
       <div className="grid grid-cols-[100px_1fr] gap-x-3 gap-y-1.5">

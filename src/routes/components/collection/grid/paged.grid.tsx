@@ -30,7 +30,7 @@ export function GridPagedView({
   onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
 }) {
   const pageSize = useCell(settingsAtoms.pageSize);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(1);
   const scrollRef = useRef<HTMLElement>(null);
   const { total, from, to, lastPage } = usePagination(items.length, pageSize, page, setPage);
   const visible = useMemo(() => paginate(items, page, pageSize), [items, page, pageSize]);

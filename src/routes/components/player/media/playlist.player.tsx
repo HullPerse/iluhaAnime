@@ -33,7 +33,7 @@ export default function PlaylistBody({
   const parseTitles = useCell(settingsAtoms.parseTitlesPlayer);
   const videoExtensions = useCell(settingsAtoms.videoExtensions);
   const [entries, setEntries] = useState<PlaylistEntry[]>([]);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<boolean>(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const entriesRef = useRef<PlaylistEntry[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);

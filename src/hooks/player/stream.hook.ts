@@ -61,13 +61,13 @@ async function rememberPrefs(session: StreamOpen, patch: Partial<StreamPrefs>): 
 export function usePlayerStream(): PlayerStream {
   const session = useCell(streamSession);
   const [variants, setVariants] = useState<StreamVariant[]>([]);
-  const [variantsLoading, setVariantsLoading] = useState(false);
-  const [variantsFailed, setVariantsFailed] = useState(false);
-  const [switching, setSwitching] = useState(false);
-  const [variantAttempt, setVariantAttempt] = useState(0);
+  const [variantsLoading, setVariantsLoading] = useState<boolean>(false);
+  const [variantsFailed, setVariantsFailed] = useState<boolean>(false);
+  const [switching, setSwitching] = useState<boolean>(false);
+  const [variantAttempt, setVariantAttempt] = useState<number>(0);
   // One switch at a time: a second click while the first resolve runs would
   // otherwise race two media loads into the same session.
-  const switchingRef = useRef(false);
+  const switchingRef = useRef<boolean>(false);
 
   const episodeId = session?.episodeId;
   // The catalog window already fetched this episode's rows before it opened
@@ -219,7 +219,7 @@ export function useStreamNext(): PlayerStreamNext {
   const mediaId = session?.mediaId;
   const episodeNumber = session?.episodeNumber ?? null;
   const [episodes, setEpisodes] = useState<StreamingEpisode[]>([]);
-  const [episodesLoading, setEpisodesLoading] = useState(false);
+  const [episodesLoading, setEpisodesLoading] = useState<boolean>(false);
 
   useEffect(() => {
     setEpisodes([]);

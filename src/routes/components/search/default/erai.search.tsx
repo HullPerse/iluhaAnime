@@ -15,8 +15,8 @@ export default function EraiLoginModal({
   setShowLogin: (value: boolean) => void;
 }) {
   const { t } = useI18n();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const close = () => setShowLogin(false);
 

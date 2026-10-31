@@ -42,26 +42,26 @@ export default function SqliteSettings() {
   const [object, setObject] = useState<"tables" | "backup">("tables");
   const [databases, setDatabases] = useState<SqliteDatabaseInfo[]>([]);
   const [tables, setTables] = useState<SqliteTableInfo[]>([]);
-  const [selectedDatabase, setSelectedDatabase] = useState("");
-  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedDatabase, setSelectedDatabase] = useState<string>("");
+  const [selectedTable, setSelectedTable] = useState<string>("");
   const [rows, setRows] = useState<SqliteRowsPage | null>(null);
-  const [filterInput, setFilterInput] = useState("");
-  const [filter, setFilter] = useState("");
+  const [filterInput, setFilterInput] = useState<string>("");
+  const [filter, setFilter] = useState<string>("");
   const filterInputRef = useRef<HTMLInputElement>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(1);
   const [display, setDisplay] = useState<"pagination" | "scroll">("pagination");
   const [accRows, setAccRows] = useState<Array<unknown>[]>([]);
-  const requestedForLength = useRef(-1);
-  const [hideId, setHideId] = useState(true);
+  const requestedForLength = useRef<number>(-1);
+  const [hideId, setHideId] = useState<boolean>(true);
   const [sort, setSort] = useState<SortState>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadingRows, setLoadingRows] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingRows, setLoadingRows] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
   const [selectedRows, setSelectedRows] = useState<Record<string, string[]>>({});
-  const [pendingBatchDelete, setPendingBatchDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const deletingRef = useRef(false);
+  const [pendingBatchDelete, setPendingBatchDelete] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const deletingRef = useRef<boolean>(false);
 
   const refreshDatabases = useCallback(async () => {
     setLoading(true);

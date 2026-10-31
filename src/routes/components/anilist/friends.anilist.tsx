@@ -36,16 +36,16 @@ export default function AniListFriendsModal({
   onClose,
 }: Props & { detail: ActivityDetailBundle }) {
   const { t } = useI18n();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string>("");
   const [profiles, setProfiles] = useState<Record<number, AniUserProfile>>({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [view, setView] = useState<FriendView>("profile");
   const [detailId, setDetailId] = useState<number | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState<boolean>(false);
   const addedIds = useMemo(() => new Set(friends.map((friend) => friend.id)), [friends]);
 
   useEffect(() => {

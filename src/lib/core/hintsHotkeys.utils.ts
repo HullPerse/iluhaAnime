@@ -7,6 +7,7 @@ import {
 } from "@/config/settings/vim.config";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import { resolveRowCollisions } from "@/lib/core/collisionResolve.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { TranslationKey } from "@/types/core/i18n";
 import type {
   HintBadge,
@@ -363,7 +364,7 @@ export function resolveHintDescription(
   translate: (key: TranslationKey) => string
 ): string {
   const key = element.getAttribute(VIM_HINT_ATTRIBUTES.label);
-  if (key) return translate(key as TranslationKey);
+  if (key) return translate(toLocaleKey(key));
   const aria = element.getAttribute("aria-label");
   if (aria && aria.trim().length > 0) return aria.trim();
   return element.textContent?.replace(/\s+/gu, " ").trim() ?? "";

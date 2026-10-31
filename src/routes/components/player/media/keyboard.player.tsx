@@ -13,8 +13,8 @@ function Keyboard({
   onAction: (action: KeybindAction) => void;
   onWheel?: (direction: number) => void;
 }) {
-  const actionRef = useRef(onAction);
-  const wheelRef = useRef(onWheel);
+  const actionRef = useRef<(action: KeybindAction) => void>(onAction);
+  const wheelRef = useRef<((direction: number) => void) | undefined>(onWheel);
 
   useEffect(() => {
     actionRef.current = onAction;

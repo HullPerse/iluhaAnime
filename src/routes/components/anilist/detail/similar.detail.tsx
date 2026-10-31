@@ -29,7 +29,7 @@ export function SimilarSection({
 }) {
   const { t } = useI18n();
   const view = useCell(settingsAtoms.similarView);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState<boolean>(false);
   const scroller = useRef<HTMLDivElement>(null);
   const recsQuery = useAppQuery("static", {
     queryKey: queryKeys.animeRecommendations(animeId),

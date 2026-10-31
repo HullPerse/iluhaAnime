@@ -34,7 +34,7 @@ export default function StreamDetail({ slug }: { slug: string }) {
     }
     return latest?.episodeId ?? null;
   }, [historyQuery.data]);
-  const [anilistOpen, setAnilistOpen] = useState(false);
+  const [anilistOpen, setAnilistOpen] = useState<boolean>(false);
   const [episode, setEpisode] = useStreamEpisodeSelection(episodes, latestEpisodeId);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const { play } = useStreamPlayer({ anime, playingId, setPlayingId });

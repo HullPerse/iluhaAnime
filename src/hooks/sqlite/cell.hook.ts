@@ -28,12 +28,12 @@ export function useSqliteCell(params: {
   } = params;
 
   const [selectedCell, setSelectedCell] = useState<SqliteSelectedCell | null>(null);
-  const [cellValue, setCellValue] = useState("");
-  const [cellLoading, setCellLoading] = useState(false);
-  const [cellEditing, setCellEditing] = useState(false);
-  const [cellEdit, setCellEdit] = useState("");
-  const [cellSaving, setCellSaving] = useState(false);
-  const [cellCopied, setCellCopied] = useState(false);
+  const [cellValue, setCellValue] = useState<string>("");
+  const [cellLoading, setCellLoading] = useState<boolean>(false);
+  const [cellEditing, setCellEditing] = useState<boolean>(false);
+  const [cellEdit, setCellEdit] = useState<string>("");
+  const [cellSaving, setCellSaving] = useState<boolean>(false);
+  const [cellCopied, setCellCopied] = useState<boolean>(false);
   const copiedHideRef = useRef<Debouncer<[]> | null>(null);
   const hideCopiedSoon = () => {
     if (copiedHideRef.current === null) {

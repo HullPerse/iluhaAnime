@@ -279,7 +279,7 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
     query,
     result: null,
   });
-  const armedRef = useRef(false);
+  const armedRef = useRef<boolean>(false);
   useEffect(() => {
     if (!settled) {
       armedRef.current = true;
@@ -322,7 +322,7 @@ export function useSpellCorrections(
   }, [settled, query, history, animeIndex, extraValues, symSpell, dictionary, limit]);
 
   const [carry, setCarry] = useState<string[]>([]);
-  const armedRef = useRef(false);
+  const armedRef = useRef<boolean>(false);
   useEffect(() => {
     if (!settled) {
       armedRef.current = true;

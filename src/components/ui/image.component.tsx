@@ -10,11 +10,11 @@ const RETRY_DELAYS = [500, 1500];
 
 const Image = ({ src, alt, className, width, height, type = "cover", ...props }: ImageProps) => {
   const { t } = useI18n();
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [finalSrc, setFinalSrc] = useState(src);
-  const [retryKey, setRetryKey] = useState(0);
-  const attemptRef = useRef(0);
-  const srcRef = useRef(src);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [finalSrc, setFinalSrc] = useState<string>(src);
+  const [retryKey, setRetryKey] = useState<number>(0);
+  const attemptRef = useRef<number>(0);
+  const srcRef = useRef<string>(src);
   const timerRef = useRef<ScheduledTask | null>(null);
 
   const imgRef = useRef<HTMLImageElement>(null);

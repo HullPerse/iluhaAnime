@@ -83,12 +83,12 @@ export default function SettingsTorrent() {
     },
     [t]
   );
-  const [portInput, setPortInput] = useState(String(listenPort));
-  const [connectInput, setConnectInput] = useState(String(peerConnectTimeout));
-  const [readWriteInput, setReadWriteInput] = useState(String(peerReadWriteTimeout));
-  const [proxyInput, setProxyInput] = useState(torrentProxyUrl ?? "");
-  const [networkInvalid, setNetworkInvalid] = useState(false);
-  const [proxyTesting, setProxyTesting] = useState(false);
+  const [portInput, setPortInput] = useState<string>(String(listenPort));
+  const [connectInput, setConnectInput] = useState<string>(String(peerConnectTimeout));
+  const [readWriteInput, setReadWriteInput] = useState<string>(String(peerReadWriteTimeout));
+  const [proxyInput, setProxyInput] = useState<string>(torrentProxyUrl ?? "");
+  const [networkInvalid, setNetworkInvalid] = useState<boolean>(false);
+  const [proxyTesting, setProxyTesting] = useState<boolean>(false);
   const [proxyTest, setProxyTest] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const testProxy = async () => {

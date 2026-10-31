@@ -36,10 +36,10 @@ function NeighborFileButton({
   const currentPath = useCell(playbackAtoms.path);
   const playlistIndex = useCell(playbackAtoms.playlistIndex);
   const parseTitles = useCell(settingsAtoms.parseTitlesPlayer);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   const [entry, setEntry] = useState<PlaylistEntry | null>(null);
   const [art, setArt] = useState<CardArt | null>(null);
-  const requestRef = useRef(0);
+  const requestRef = useRef<number>(0);
   const hintedTitle = useKeybindTitle(
     title,
     direction === "prev" ? "player.prevFile" : "player.nextFile"

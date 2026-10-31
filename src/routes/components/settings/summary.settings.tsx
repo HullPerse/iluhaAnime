@@ -82,7 +82,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const unknown = t("settings.summary.unknown");
   const data = storage.data;
   const newestBackup = data?.backups[0] ?? null;
-  const [collecting, setCollecting] = useState(false);
+  const [collecting, setCollecting] = useState<boolean>(false);
 
   const openSqlite = () => {
     if (!sqliteBrowserEnabled) patchSettings({ sqliteBrowserEnabled: true });

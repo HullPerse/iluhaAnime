@@ -12,7 +12,7 @@ export function ColorPickerTrigger({
   onChange: (hex: string) => void;
   label?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger

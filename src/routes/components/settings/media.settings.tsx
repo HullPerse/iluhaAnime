@@ -20,10 +20,10 @@ export default function SettingsMedia() {
   const watcherDelay = useCell(settingsAtoms.watcherDelay);
   const scanThreads = useCell(settingsAtoms.scanThreads);
   const { t } = useI18n();
-  const [video, setVideo] = useState(() => videoExtensions.join(", "));
-  const [audio, setAudio] = useState(() => audioExtensions.join(", "));
-  const [subtitles, setSubtitles] = useState(() => subtitleExtensions.join(", "));
-  const [emptyError, setEmptyError] = useState(false);
+  const [video, setVideo] = useState<string>(() => videoExtensions.join(", "));
+  const [audio, setAudio] = useState<string>(() => audioExtensions.join(", "));
+  const [subtitles, setSubtitles] = useState<string>(() => subtitleExtensions.join(", "));
+  const [emptyError, setEmptyError] = useState<boolean>(false);
 
   const commit = (raw: string, fallback: string[], apply: (list: string[]) => void) => {
     const parsed = parseExtensions(raw);

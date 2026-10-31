@@ -24,7 +24,7 @@ export function StatusRow({
   onDelete: (id: string) => void;
 }) {
   const { t } = useI18n();
-  const [draft, setDraft] = useState(status.label);
+  const [draft, setDraft] = useState<string>(status.label);
   const isPublic = status.kind === "public";
   const overCap = (count ?? 0) > PUBLIC_STATUS_MAX_ITEMS;
 

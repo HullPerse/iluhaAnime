@@ -12,8 +12,8 @@ export function usePagedRow(
   stepPage: (direction: 1 | -1) => void;
 } {
   const rowRef = useRef<HTMLDivElement | null>(null);
-  const [perPage, setPerPage] = useState(4);
-  const [page, setPage] = useState(0);
+  const [perPage, setPerPage] = useState<number>(4);
+  const [page, setPage] = useState<number>(0);
   const pageCount = Math.max(1, Math.ceil(count / perPage));
   const safePage = Math.min(page, pageCount - 1);
 

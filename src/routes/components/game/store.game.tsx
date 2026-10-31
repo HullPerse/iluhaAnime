@@ -26,7 +26,7 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
   const online = useOnlineStatus();
   const store = useGameStore();
   const install = useGameStoreInstall();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string>("");
   const [platform, setPlatform] = useState<PlatformFilter>(ALL_PLATFORMS);
   const [progress, setProgress] = useState<GameStoreProgress | null>(null);
 

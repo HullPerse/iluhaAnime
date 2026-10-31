@@ -33,7 +33,7 @@ export default function FilterCollection({
 }) {
   const { t } = useI18n();
   const [local, setLocal] = useState<CollectionFilters>(filters);
-  const [genreSelect, setGenreSelect] = useState("");
+  const [genreSelect, setGenreSelect] = useState<string>("");
 
   if (!open) return null;
 

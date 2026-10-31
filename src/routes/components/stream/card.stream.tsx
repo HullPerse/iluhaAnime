@@ -31,7 +31,7 @@ function StreamCardView({
   const cover = useStreamCover(anime.cover);
   // The progress badge is asked for on hover only: a page of sixty tiles must
   // not fire sixty local queries to draw something most of them never show.
-  const [hovered, setHovered] = useState(false);
+  const [hovered, setHovered] = useState<boolean>(false);
   const progress = useStreamHistoryProgress(anime.id, hovered);
   const watched = progress.data?.watched ?? 0;
   const lastPosition = progress.data?.lastPosition ?? 0;

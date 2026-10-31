@@ -5,7 +5,7 @@ import { DEFAULT_VOLUME } from "@/config/player/video.config";
 
 export function VolumeInitializer() {
   const media = useMedia();
-  const applied = useRef(false);
+  const applied = useRef<boolean>(false);
   useEffect(() => {
     if (!media || applied.current) return;
     applied.current = true;

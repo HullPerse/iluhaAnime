@@ -24,8 +24,8 @@ export function AiringTab({
   onAnimeClick: (id: number) => void;
 }) {
   const { t, locale } = useI18n();
-  const [statusFilter, setStatusFilter] = useState("");
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
   useEffect(() => {
     const { cancel } = createInterval(() => setNowMs(Date.now()), AIRING_TICK_MS);
     return cancel;

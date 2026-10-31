@@ -36,23 +36,23 @@ export default function UpscalePlayer({
   onDone?: () => void;
   exists?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"upscale" | "convert">("upscale");
-  const [resolution, setResolution] = useState("original");
-  const [fpsValue, setFpsValue] = useState("");
-  const [quality, setQuality] = useState("ultrafast");
-  const [videoCodec, setVideoCodec] = useState("h264");
-  const [gpuBackend, setGpuBackend] = useState("cpu");
+  const [resolution, setResolution] = useState<string>("original");
+  const [fpsValue, setFpsValue] = useState<string>("");
+  const [quality, setQuality] = useState<string>("ultrafast");
+  const [videoCodec, setVideoCodec] = useState<string>("h264");
+  const [gpuBackend, setGpuBackend] = useState<string>("cpu");
   const [availableGpu, setAvailableGpu] = useState<string[]>(["cpu"]);
-  const [upscaler, setUpscaler] = useState("ffmpeg");
+  const [upscaler, setUpscaler] = useState<string>("ffmpeg");
   const [ffmpegStatus, setFfmpegStatus] = useState<"checking" | "ok" | "missing" | "downloading">(
     "checking"
   );
-  const [anime4kPreset, setAnime4kPreset] = useState("lightning");
+  const [anime4kPreset, setAnime4kPreset] = useState<string>("lightning");
   const [selectedShaders, setSelectedShaders] = useState<string[]>([]);
-  const [temporalDenoise, setTemporalDenoise] = useState(false);
-  const [targetFormat, setTargetFormat] = useState("mp4");
-  const [copyStreams, setCopyStreams] = useState(true);
+  const [temporalDenoise, setTemporalDenoise] = useState<boolean>(false);
+  const [targetFormat, setTargetFormat] = useState<string>("mp4");
+  const [copyStreams, setCopyStreams] = useState<boolean>(true);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
@@ -96,7 +96,7 @@ export default function UpscalePlayer({
     enabled: open,
   });
 
-  const touchedPreset = useRef(false);
+  const touchedPreset = useRef<boolean>(false);
 
   const applyPresetData = useCallback(
     (data: (typeof ANIME4K_PRESETS)[number]) => {

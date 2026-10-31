@@ -56,7 +56,7 @@ export default function DataCollection({
   const displayMode = useCell(collectionAtoms.displayMode);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const [tagsOpen, setTagsOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState<boolean>(false);
 
   return (
     <>

@@ -35,8 +35,8 @@ export function FatalScreen({
   onSafeReload,
   onRetry,
 }: FatalScreenProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
   const reloadRef = useRef<HTMLButtonElement | null>(null);
   const canRetry = info.retryCount < 1;
   const variant = resolveFatalVariant(info.themeName, safe);

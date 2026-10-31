@@ -37,7 +37,7 @@ export default function SearchResultItem({
   const sourceLabel = sourceInfo?.label ?? source;
   const hasMagnet = Boolean(item.magnet) || source === "rutracker";
   const releaseAge = formatReleaseAge(item.date);
-  const [correcting, setCorrecting] = useState(false);
+  const [correcting, setCorrecting] = useState<boolean>(false);
   const coverMode = useCell(settingsAtoms.torrentCoverMode);
   const cover = useTorrentCover(item.title, { source, url: item.link, mode: coverMode });
   const visual = coverVisual(cover, coverMode);

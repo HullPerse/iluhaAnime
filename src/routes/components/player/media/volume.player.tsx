@@ -23,7 +23,7 @@ function VolumeControl({
 }) {
   const { t } = useI18n();
   const muteTitle = useKeybindTitle(t("player.media.controls.mute"), "player.toggleMute");
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
   const volumeRef = useRef<HTMLDivElement>(null);
 
   const handleVolume = useCallback(

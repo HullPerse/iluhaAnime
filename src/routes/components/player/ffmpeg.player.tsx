@@ -23,7 +23,7 @@ function FFMPEG({
   const ffmpegSource = useCell(settingsAtoms.ffmpegSource);
   const [dlError, setDlError] = useState<string | null>(null);
   const { t } = useI18n();
-  const aliveRef = useRef(true);
+  const aliveRef = useRef<boolean>(true);
   useEffect(
     () => () => {
       aliveRef.current = false;

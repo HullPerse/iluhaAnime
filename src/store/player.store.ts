@@ -1,11 +1,15 @@
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
 import { Debouncer } from "@/lib/core/debounce.utils";
 import type { Persistor } from "@/types/core/persist";
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import {
+  buildMirrorAtoms,
+  buildSignalAtoms,
+  createPersistedStoreContext,
+} from "@/lib/core/persisted.utils";
+import { isRecord } from "@/lib/core/record.utils";
 import { createSignalStore } from "@/lib/core/signal.store";
 import type { Cell, Derived } from "@/types/core/signal";
 import { resolveWithDefaults } from "@/lib/core/migrate.utils";
-import type { MigrationState } from "@/types/core/migrate";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   MpvChapter,
@@ -101,7 +105,7 @@ const INITIAL_PLAYBACK: PlaybackData = {
   hwdecCurrent: undefined,
   videoWidth: undefined,
   videoHeight: undefined,
-} as PlaybackData;
+};
 
 const SEEK_TARGET_TOLERANCE = 0.4;
 const SEEK_TARGET_CONFIRMATIONS = 2;
@@ -119,48 +123,6 @@ const DEFAULT_PLAYER_DATA: PlayerData = {
   settings: { ...DEFAULT_PLAYER_SETTINGS },
 };
 
-function buildAtoms(
-  store: ReturnType<typeof createSignalStore>,
-  data: PlayerData,
-  mirror: Record<string, unknown>
-): PlayerAtoms {
-  const atoms = {} as PlayerAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    const cell = store.atom(key, source[key]);
-    const handle: Cell<unknown> = {
-      id: cell.id,
-      get: cell.get,
-      set: (value) => {
-        mirror[key] = value;
-        cell.set(value);
-      },
-      update: (fn) => {
-        const next = (fn as (prev: unknown) => unknown)(cell.get());
-        mirror[key] = next;
-        cell.set(next);
-      },
-      subscribe: cell.subscribe,
-    };
-    sink[key] = handle;
-  }
-  return atoms;
-}
-
-function buildPlaybackAtoms(
-  store: ReturnType<typeof createSignalStore>,
-  data: PlaybackData
-): PlaybackAtoms {
-  const atoms = {} as PlaybackAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    sink[key] = store.atom(key, source[key]);
-  }
-  return atoms;
-}
-
 function readLegacyPlayer(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
@@ -168,30 +130,18 @@ function readLegacyPlayer(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("playerState"));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { state?: unknown };
-  const stored = (
-    envelope.state && typeof envelope.state === "object" ? envelope.state : parsed
-  ) as Partial<PlayerData>;
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+  if (parseError !== null || !isRecord(parsed)) return null;
+  const stored = isRecord(parsed.state) ? parsed.state : parsed;
   return {
-    data: {
-      ...DEFAULT_PLAYER_DATA,
-      ...stored,
-      settings: { ...DEFAULT_PLAYER_DATA.settings, ...stored.settings },
-    } as Record<string, unknown>,
+    data: { ...migratePlayerData(stored) },
     schemaVersion: PLAYER_SCHEMA_VERSION,
   };
 }
 
 export function migratePlayerData(persistedState: unknown): PlayerData {
-  if (!persistedState || typeof persistedState !== "object") return { ...DEFAULT_PLAYER_DATA };
-  // resolving against the defaults drops keys the shape no longer has, so a stored payload from an
-  // older schema cannot resurrect a removed control
-  const resolved = resolveWithDefaults(
-    persistedState as MigrationState,
-    DEFAULT_PLAYER_DATA as unknown as MigrationState
-  ) as unknown as PlayerData;
+  if (!isRecord(persistedState)) return { ...DEFAULT_PLAYER_DATA };
+  const resolved = resolveWithDefaults(persistedState, { ...DEFAULT_PLAYER_DATA });
   return { ...DEFAULT_PLAYER_DATA, ...resolved };
 }
 
@@ -230,8 +180,8 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
   const data: PlayerData = persisted
     ? migratePlayerData(persisted.data)
     : { ...DEFAULT_PLAYER_DATA };
-  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
-  const atoms = buildAtoms(store, data, mirror);
+  const mirror: Record<string, unknown> = { ...data };
+  const atoms = buildMirrorAtoms(store, data, mirror);
 
   store.subscribeAll(() => {
     persistor.write(mirror);
@@ -290,7 +240,7 @@ function setIfChanged<T>(atom: Cell<T>, value: T): void {
 
 export function createPlaybackSignalStore(): PlaybackSignalStore {
   const store = createSignalStore();
-  const atoms = buildPlaybackAtoms(store, { ...INITIAL_PLAYBACK });
+  const atoms = buildSignalAtoms(store, { ...INITIAL_PLAYBACK });
   // Boundary flags for controls that only need "disabled at start/end". A
   // derived cell notifies its subscribers only when the boolean flips, so
   // these do not re-render the control bar at 10 Hz.

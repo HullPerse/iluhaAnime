@@ -18,7 +18,7 @@ export default function GameImportModal({
 }: GameImportModalProps) {
   const { t } = useI18n();
   const [platform, setPlatform] = useState<GamePlatform>("chip8");
-  const [name, setName] = useState("");
+  const [name, setName] = useState<string>("");
   const fileName = filePath.split(/[\\/]/u).pop() ?? filePath;
   const options = platforms.map((value) => ({
     value,

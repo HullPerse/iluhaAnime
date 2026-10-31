@@ -10,7 +10,7 @@ export function useAnilistDetail(lists: AniListCollection[]) {
   const target = useCell(deeplinkAtoms.target);
   const [selectedAnime, setSelectedAnime] = useState<AniListAnime>(null);
   const [animeHistory, setAnimeHistory] = useState<AniListAnime[]>([]);
-  const [detailFromFilters, setDetailFromFilters] = useState(false);
+  const [detailFromFilters, setDetailFromFilters] = useState<boolean>(false);
   const entryLookup = useMemo(() => buildEntryLookup(lists), [lists]);
   const showDetail = useCallback((anime: AniListAnime, fromFilters: boolean) => {
     setDetailFromFilters(fromFilters);

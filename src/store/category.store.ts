@@ -1,9 +1,9 @@
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
-import type { Persistor } from "@/types/core/persist";
-import type { Cell } from "@/types/core/signal";
 import { attemptSync } from "@/lib/core/attempt.utils";
+import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { isUserImageIcon } from "@/lib/graphics/image.utils";
 import type { Category, CategoryEntry, CategoryStore } from "@/types/core/category";
+import type { Persistor } from "@/types/core/persist";
+import type { Cell } from "@/types/core/signal";
 
 export const CATEGORY_SCHEMA_VERSION = 1;
 
@@ -15,6 +15,54 @@ function genId(): string {
 }
 function genEntryId(): string {
   return `entry_${nextId++}_${Date.now()}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function isCategory(value: unknown): value is Category {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.icon === "string" &&
+    typeof value.name === "string" &&
+    typeof value.order === "number" &&
+    typeof value.createdAt === "number"
+  );
+}
+
+function isCategoryEntry(value: unknown): value is CategoryEntry {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    (value.type === "torrent" || value.type === "folder") &&
+    (value.torrentId === undefined || typeof value.torrentId === "number") &&
+    (value.infoHash === undefined || typeof value.infoHash === "string") &&
+    (value.saveDir === undefined || typeof value.saveDir === "string") &&
+    (value.totalBytes === undefined || typeof value.totalBytes === "number") &&
+    (value.folderPath === undefined || typeof value.folderPath === "string")
+  );
+}
+
+function readCategories(value: unknown): Category[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isCategory);
+}
+
+function readCollapsedIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((id): id is string => typeof id === "string");
+}
+
+function readEntries(value: unknown): Record<string, CategoryEntry[]> {
+  if (!isRecord(value)) return {};
+  const entries: Record<string, CategoryEntry[]> = {};
+  for (const [key, list] of Object.entries(value)) {
+    if (Array.isArray(list)) entries[key] = list.filter(isCategoryEntry);
+  }
+  return entries;
 }
 
 function getNextCategoryName(existing: string[], base: string): string {
@@ -47,12 +95,10 @@ function readLegacyCategories(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("categories"));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { state?: unknown };
-  const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
-  if (!state || typeof state !== "object") return null;
-  return { data: state as Record<string, unknown>, schemaVersion: CATEGORY_SCHEMA_VERSION };
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+  if (parseError !== null || !isRecord(parsed)) return null;
+  const state = isRecord(parsed.state) ? parsed.state : parsed;
+  return { data: state, schemaVersion: CATEGORY_SCHEMA_VERSION };
 }
 
 export interface CategorySignalOptions {
@@ -89,44 +135,20 @@ export function createCategorySignalStore(
   });
 
   const persisted = persistor.read();
-  const persistedData = (persisted?.data ?? {}) as Partial<CategoryData>;
-  const persistedCategories = Array.isArray(persistedData.categories)
-    ? (persistedData.categories as Category[])
-    : [];
+  const persistedData = persisted?.data ?? {};
   const data: CategoryData = {
-    categories: persistedCategories.map((category) =>
+    categories: readCategories(persistedData.categories).map((category) =>
       isUserImageIcon(category.icon) ? { ...category, icon: DEFAULT_CATEGORY_ICON } : category
     ),
-    collapsedIds: Array.isArray(persistedData.collapsedIds)
-      ? (persistedData.collapsedIds as string[])
-      : [],
-    entries:
-      persistedData.entries && typeof persistedData.entries === "object"
-        ? (persistedData.entries as Record<string, CategoryEntry[]>)
-        : {},
+    collapsedIds: readCollapsedIds(persistedData.collapsedIds),
+    entries: readEntries(persistedData.entries),
   };
-  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
-  const atoms = {} as CategoryAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    const cell = store.atom(key, source[key]);
-    const handle: Cell<unknown> = {
-      id: cell.id,
-      get: cell.get,
-      set: (value) => {
-        mirror[key] = value;
-        cell.set(value);
-      },
-      update: (fn) => {
-        const next = (fn as (prev: unknown) => unknown)(cell.get());
-        mirror[key] = next;
-        cell.set(next);
-      },
-      subscribe: cell.subscribe,
-    };
-    sink[key] = handle;
-  }
+  const mirror: Record<string, unknown> = { ...data };
+  const atoms: CategoryAtoms = {
+    categories: bindMirroredAtom(store, "categories", data.categories, mirror),
+    collapsedIds: bindMirroredAtom(store, "collapsedIds", data.collapsedIds, mirror),
+    entries: bindMirroredAtom(store, "entries", data.entries, mirror),
+  };
 
   store.subscribeAll(() => {
     persistor.write(mirror);
@@ -160,9 +182,10 @@ export function createCategorySignalStore(
       if (entry.type === "folder" && entry.folderPath) {
         if (list.some((e) => e.folderPath === entry.folderPath)) return;
       }
+      const created: CategoryEntry = { ...entry, id: genEntryId() };
       atoms.entries.set({
         ...entries,
-        [categoryId]: [...list, { ...entry, id: genEntryId() } as CategoryEntry],
+        [categoryId]: [...list, created],
       });
     },
     changeIcon: (id, icon) => {
@@ -197,6 +220,7 @@ export function createCategorySignalStore(
       if (index === -1 || target < 0 || target >= list.length) return;
       const next = [...list];
       const [moved] = next.splice(index, 1);
+      if (!moved) return;
       next.splice(target, 0, moved);
       atoms.entries.set({ ...entries, [categoryId]: next });
     },
@@ -220,14 +244,11 @@ export function createCategorySignalStore(
     },
     reorderCategories: (ids) => {
       const categories = atoms.categories.get();
-      atoms.categories.set(
-        ids
-          .map((id, i) => {
-            const cat = categories.find((c) => c.id === id);
-            return cat ? { ...cat, order: i } : cat;
-          })
-          .filter(Boolean) as Category[]
-      );
+      const next = ids.flatMap((id, index) => {
+        const category = categories.find((c) => c.id === id);
+        return category ? [{ ...category, order: index }] : [];
+      });
+      atoms.categories.set(next);
     },
     setCategoryCollapsed: (id, collapsed) => {
       const collapsedIds = atoms.collapsedIds.get();

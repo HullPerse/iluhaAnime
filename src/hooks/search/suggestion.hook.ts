@@ -26,7 +26,7 @@ export function useSuggestions(
   limit = 8
 ): SearchSuggestion[] {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const requestRef = useRef(0);
+  const requestRef = useRef<number>(0);
   const [debouncedQuery] = useDebouncedValue(query, { wait: 150 });
 
   useEffect(() => {

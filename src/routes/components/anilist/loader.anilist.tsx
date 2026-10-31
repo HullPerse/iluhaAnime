@@ -8,7 +8,7 @@ import { formatElapsed } from "@/lib/core/time.utils";
 
 export default function AniListLoader({ className }: { className?: string }) {
   const { t } = useI18n();
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsed, setElapsed] = useState<number>(0);
   useEffect(() => {
     const { cancel } = createInterval(() => setElapsed((prev) => prev + 1), ANILIST_LOADER_TICK_MS);
     return cancel;

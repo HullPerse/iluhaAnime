@@ -18,9 +18,9 @@ function PlayerModal({
 }) {
   const { t } = useI18n();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const onCloseRef = useRef(onClose);
-  const backdropPressRef = useRef(false);
-  const backdropReleaseRef = useRef(false);
+  const onCloseRef = useRef<() => void>(onClose);
+  const backdropPressRef = useRef<boolean>(false);
+  const backdropReleaseRef = useRef<boolean>(false);
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
   useEffect(() => {

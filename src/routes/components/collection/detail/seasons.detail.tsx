@@ -6,7 +6,7 @@ import type { CollectionItem } from "@/types/anilist/collection";
 
 export function SeasonsCollection({ item }: { item: CollectionItem }) {
   const { t } = useI18n();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState<boolean>(false);
   const seasons = item.detailsJson?.seasons ?? [];
   if (seasons.length === 0) return null;
   return (

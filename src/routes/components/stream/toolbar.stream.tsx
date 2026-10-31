@@ -31,7 +31,7 @@ export default function StreamToolbar({
   const { t } = useI18n();
   const query = useCell(streamQuery);
   const page = useCell(streamPage);
-  const [text, setText] = useState(query);
+  const [text, setText] = useState<string>(query);
 
   // A clear from another surface (the empty results panel) has to reach the
   // field, and a submitted search has to leave the field holding what was

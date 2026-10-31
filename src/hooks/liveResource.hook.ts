@@ -16,7 +16,7 @@ function isHidden(pauseOnHidden: boolean | undefined): boolean {
 export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
   const { intervalMs, enabled = true } = options;
 
-  const optionsRef = useRef(options);
+  const optionsRef = useRef<LiveResourceOptions<K>>(options);
   const inFlightRef = useRef<Set<K>>(new Set());
   const attemptsRef = useRef<Map<K, number>>(new Map());
   const retryAtRef = useRef<Map<K, number>>(new Map());

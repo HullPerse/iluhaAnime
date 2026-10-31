@@ -24,7 +24,7 @@ export function CalendarTab({
 }) {
   const { t, locale } = useI18n();
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
+  const [year, setYear] = useState<number>(now.getFullYear());
 
   const activity = useMemo(() => buildActivityMap(lists, t), [lists, t]);
   const grid = useMemo(() => buildYearGrid(year, activity), [year, activity]);

@@ -18,7 +18,7 @@ export function ChartFrame({
   children,
 }: ChartFrameProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [width, setWidth] = useState(0);
+  const [width, setWidth] = useState<number>(0);
   const descriptionId = useId();
 
   useEffect(() => {

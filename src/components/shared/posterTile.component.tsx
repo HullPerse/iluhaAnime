@@ -40,7 +40,7 @@ export function PosterTile({
   title?: string;
   preview?: PosterTilePreview;
 }) {
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState<boolean>(false);
   const hint = title ?? label;
   const tile = (
     <Button

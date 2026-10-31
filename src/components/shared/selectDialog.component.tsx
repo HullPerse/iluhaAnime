@@ -8,8 +8,8 @@ import Modal from "@/components/shared/modal.component";
 
 export function SelectDialog({ header, label, options, onSubmit, onClose }: SelectDialogProps) {
   const { t } = useI18n();
-  const [filter, setFilter] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [filter, setFilter] = useState<string>("");
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const listRef = useRef<HTMLDivElement>(null);
   const needle = filter.trim().toLowerCase();
   const visible = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;

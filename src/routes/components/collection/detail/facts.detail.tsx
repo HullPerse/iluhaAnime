@@ -1,6 +1,6 @@
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatDate, statusColorOf } from "@/lib/core/status.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { CollectionItem } from "@/types/anilist/collection";
 
 export function DetailFactsCollection({
@@ -23,7 +23,7 @@ export function DetailFactsCollection({
         {statusText} {item.isFavorite && `(${t("collection.wizard.favorite")})`}
       </div>
       <div>
-        {t("collection.details.type")}: {t(`collection.type.${item.type}` as TranslationKey)}
+        {t("collection.details.type")}: {t(toLocaleKey(`collection.type.${item.type}`))}
       </div>
       {item.studio && (
         <div>

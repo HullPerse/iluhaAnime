@@ -32,9 +32,9 @@ function BufferingOverlay({ visible }: { visible: boolean }) {
   const ahead = useCell(playbackAtoms.cacheDuration);
   const speed = useCell(playbackAtoms.cacheSpeed);
   const session = useCell(streamSession);
-  const [shown, setShown] = useState(false);
-  const shownAt = useRef(0);
-  const [stalled, setStalled] = useState(false);
+  const [shown, setShown] = useState<boolean>(false);
+  const shownAt = useRef<number>(0);
+  const [stalled, setStalled] = useState<boolean>(false);
 
   useEffect(() => {
     if (!visible) {

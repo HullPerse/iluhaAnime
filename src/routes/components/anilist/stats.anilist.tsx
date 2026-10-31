@@ -32,8 +32,8 @@ export default function StatsModal({
   const [tab, setTab] = useState<StatsTab>("overview");
   const [detailId, setDetailId] = useState<number | null>(null);
   const [drill, setDrill] = useState<StatsDrillData | null>(null);
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<number>(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<null | number>(null);
 
   useEffect(() => {

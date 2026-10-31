@@ -24,7 +24,7 @@ export function DeleteListEntryButton({
 }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
 
   const handleDelete = async () => {
     const userId = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData())?.user?.id;

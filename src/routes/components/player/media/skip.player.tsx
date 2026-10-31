@@ -43,8 +43,8 @@ function SkipButton({
   const label = active ? skipLabel(active.chapter.title) : null;
   const key = active && label ? `${active.index}:${active.chapter.time}` : null;
 
-  const [hidden, setHidden] = useState(false);
-  const prevTime = useRef(timePos);
+  const [hidden, setHidden] = useState<boolean>(false);
+  const prevTime = useRef<number>(timePos);
 
   useEffect(() => {
     if (key !== null) setHidden(false);

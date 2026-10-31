@@ -69,12 +69,12 @@ export function useSplashStages(
   const stepMs = options.stepMs ?? DEFAULT_STEP_MS;
   const checkDatabase = options.checkDatabase ?? defaultCheckDatabase;
   const [stages, setStages] = useState<SplashStage[]>(INITIAL_STAGES);
-  const [done, setDone] = useState(false);
-  const [dbFailed, setDbFailed] = useState(false);
+  const [done, setDone] = useState<boolean>(false);
+  const [dbFailed, setDbFailed] = useState<boolean>(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [dbStatus, setDbStatus] = useState<DatabaseStatus | null>(null);
-  const [dbNonce, setDbNonce] = useState(0);
-  const startedAt = useRef(0);
+  const [dbNonce, setDbNonce] = useState<number>(0);
+  const startedAt = useRef<number>(0);
   const settled = useRef<Record<GatingKey, boolean>>({
     theme: false,
     migrations: false,
@@ -84,10 +84,10 @@ export function useSplashStages(
     spelling: false,
     index: false,
   });
-  const finished = useRef(false);
+  const finished = useRef<boolean>(false);
   const timers = useRef<ScheduledTask[]>([]);
   const naps = useRef<SleepTask[]>([]);
-  const checkRef = useRef(checkDatabase);
+  const checkRef = useRef<() => Promise<DbCheckResult>>(checkDatabase);
 
   useEffect(() => {
     checkRef.current = checkDatabase;

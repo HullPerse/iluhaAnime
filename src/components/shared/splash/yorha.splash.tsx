@@ -7,8 +7,8 @@ import type { SplashVariantProps } from "@/types/core/shared.splash";
 import { splashStageLabel } from "@/lib/splash/stages.utils";
 
 export function YorhaSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: SplashVariantProps) {
-  const [dots, setDots] = useState(0);
-  const [band, setBand] = useState({ size: 8, location: 40 });
+  const [dots, setDots] = useState<number>(0);
+  const [band, setBand] = useState<{ size: number; location: number }>({ size: 8, location: 40 });
 
   useEffect(() => {
     const dotsTask = createInterval(() => {

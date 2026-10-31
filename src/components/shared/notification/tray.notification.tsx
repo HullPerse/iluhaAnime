@@ -28,7 +28,7 @@ function announcementText(item: NotificationItem | null | undefined): string {
 export default function NotificationTray() {
   const items = useCell(notificationAtoms.items);
   const unreadCount = useCell(notificationAtoms.unreadCount);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   const [filter, setFilter] = useState<NotificationFilter>("all");
   const ref = useRef<HTMLDivElement>(null);
 

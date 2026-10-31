@@ -33,9 +33,12 @@ export function WizardCoverPanel({
   onPreviewFailedChange?: (failed: boolean) => void;
 }) {
   const { t } = useI18n();
-  const [pastingUrl, setPastingUrl] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [previewState, setPreviewState] = useState({ url: "", failed: false });
+  const [pastingUrl, setPastingUrl] = useState<boolean>(false);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [previewState, setPreviewState] = useState<{ url: string; failed: boolean }>({
+    url: "",
+    failed: false,
+  });
   const previewFailed = previewState.url === coverUrl && previewState.failed;
   const previewSrc = useRemoteImage(coverUrl || null);
 

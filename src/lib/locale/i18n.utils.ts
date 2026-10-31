@@ -45,8 +45,8 @@ export function translate(
       ? resolvePluralKey(safeLocale, key, variables.count)
       : key;
   const template = repairLegacyCyrillic(
-    dictionaries[safeLocale][resolvedKey as TranslationKey] ??
-      dictionaries.ru[resolvedKey as TranslationKey] ??
+    dictionaries[safeLocale][resolvedKey] ??
+      dictionaries.ru[resolvedKey] ??
       key
   );
   return variables

@@ -61,11 +61,11 @@ async function fetchRandomMedia(
 export function useRandomDiscovery(): RandomDiscovery {
   const { t } = useI18n();
   const queue = useDiscoveryQueue<AniMedia>();
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
+  const [pending, setPending] = useState<boolean>(false);
   const filtersRef = useRef<AniListFilters | null>(null);
   const seenRef = useRef<Set<number>>(new Set());
-  const pendingRef = useRef(false);
+  const pendingRef = useRef<boolean>(false);
   const start = useCallback(
     (filters: AniListFilters) => {
       if (pendingRef.current) return;

@@ -159,22 +159,22 @@ function PlayerComponent() {
   const playerContextMenu = useCell(settingsAtoms.playerContextMenu);
   const showModernMenu = modernMenuEnabled(playerType, playerContextMenu);
 
-  const [cinema, setCinema] = useState(false);
+  const [cinema, setCinema] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<PlayerViewMode>("normal");
-  const [fullscreen, setFullscreen] = useState(false);
-  const [barsVisible, setBarsVisible] = useState(true);
+  const [fullscreen, setFullscreen] = useState<boolean>(false);
+  const [barsVisible, setBarsVisible] = useState<boolean>(true);
   const [panel, setPanel] = useState<null | "settings" | "cheatsheet">(null);
-  const [jumpOpen, setJumpOpen] = useState(false);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [playlistOpen, setPlaylistOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [jumpOpen, setJumpOpen] = useState<boolean>(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState<boolean>(false);
+  const [playlistOpen, setPlaylistOpen] = useState<boolean>(false);
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [playlistFocus, setPlaylistFocus] = useState<number | null>(null);
-  const [finished, setFinished] = useState(false);
-  const [hasShownFrame, setHasShownFrame] = useState(false);
+  const [finished, setFinished] = useState<boolean>(false);
+  const [hasShownFrame, setHasShownFrame] = useState<boolean>(false);
 
   const resumeRef = useRef<number | undefined>(undefined);
   const hwdecReloadRef = useRef<HwdecReload | null>(null);
-  const loadEpochRef = useRef(0);
+  const loadEpochRef = useRef<number>(0);
 
   const chrome = resolveViewChrome({
     mode: viewMode,

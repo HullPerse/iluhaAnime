@@ -24,10 +24,10 @@ function RutrackerLoginModal({
   const [mode, setMode] = useState<"login" | "browser">(
     rutrackerProxy.trim() ? "browser" : "login"
   );
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleSuccess = () => {
     setRutrackerAuth(true);

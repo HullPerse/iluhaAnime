@@ -25,9 +25,9 @@ export function ColorPicker({
   const { t } = useI18n();
   const [hsv, setHsv] = useState<HSV>(() => hexToHsv(value) ?? FALLBACK_HSV);
   const [format, setFormat] = useState<ColorFormat>("hex");
-  const [inputText, setInputText] = useState(value);
-  const [editing, setEditing] = useState(false);
-  const [prevValue, setPrevValue] = useState(value);
+  const [inputText, setInputText] = useState<string>(value);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [prevValue, setPrevValue] = useState<string>(value);
 
   if (value !== prevValue) {
     setPrevValue(value);

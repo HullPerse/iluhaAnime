@@ -21,16 +21,16 @@ import { RunningSummary } from "@/routes/components/anilist/prefetch/running.pre
 
 export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   const { t } = useI18n();
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState<boolean>(false);
   const [finished, setFinished] = useState<PrefetchSummary | null>(null);
   const [progress, setProgress] = useState<PrefetchProgressPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [stored, setStored] = useState<PrefetchSnapshot | null>(null);
-  const [backgrounded, setBackgrounded] = useState(false);
+  const [backgrounded, setBackgrounded] = useState<boolean>(false);
   const logRef = useRef<HTMLDivElement>(null);
-  const mountedRef = useRef(true);
-  const lastWriteRef = useRef(0);
+  const mountedRef = useRef<boolean>(true);
+  const lastWriteRef = useRef<number>(0);
   const unlistenRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     mountedRef.current = true;

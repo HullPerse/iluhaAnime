@@ -32,7 +32,7 @@ export function useCollectionFilterWorker(params: CollectionFilterWorkerParams):
   } = params;
   const deferredQuery = useDeferredValue(searchQuery);
   const [ids, setIds] = useState<string[] | null>(null);
-  const [stale, setStale] = useState(false);
+  const [stale, setStale] = useState<boolean>(false);
   const syncSnapshot = useRef<CollectionFilterSnapshot | null>(null);
   const runnerRef = useRef<JobRunner<CollectionFilterWorkerPayload> | null>(null);
 

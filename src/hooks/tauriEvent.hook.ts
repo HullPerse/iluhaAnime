@@ -11,7 +11,7 @@ export function useTauriEvent<T>(
     errorTag?: string;
   }
 ): void {
-  const handlerRef = useRef(handler);
+  const handlerRef = useRef<(event: Event<T>) => void>(handler);
 
   useEffect(() => {
     handlerRef.current = handler;

@@ -46,8 +46,8 @@ export default function StreamRoute() {
   const slug = useCell(streamSlug);
   const filters = useCell(streamFilters);
   const results = useStreamSearch(query, page, filters);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState<boolean>(false);
+  const [historyOpen, setHistoryOpen] = useState<boolean>(false);
   const streamTarget = useCell(deeplinkAtoms.streamTarget);
 
   // A pasted or opened `iluhaanime://stream/animelib/<slug>` link lands here:

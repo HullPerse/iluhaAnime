@@ -3,7 +3,7 @@ import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import Slider from "@/components/ui/range.component";
 import { WALLPAPER_SHADOW_SIDE_KEYS } from "@/config/graphics/wallpaper.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { TranslationKey } from "@/types/core/i18n";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { WallpaperShadow } from "@/types/ui/settings";
 
 export function ShadowControls({
@@ -29,7 +29,7 @@ export function ShadowControls({
               onChange={(checked) => onPatch({ sides: { ...value.sides, [side]: checked } })}
             />
             <span className="windows95-text text-xs">
-              {t(`search.dither.display.shadow.${side}` as TranslationKey)}
+              {t(toLocaleKey(`search.dither.display.shadow.${side}`))}
             </span>
           </label>
         ))}

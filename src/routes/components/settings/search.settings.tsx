@@ -37,7 +37,7 @@ export default function SettingsSearch() {
   const [proxyTests, setProxyTests] = useState<
     Record<string, { loading: boolean; ok?: boolean; msg?: string }>
   >({});
-  const [proxyTestingAll, setProxyTestingAll] = useState(false);
+  const [proxyTestingAll, setProxyTestingAll] = useState<boolean>(false);
   const proxyInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleTestAllProxies = async () => {

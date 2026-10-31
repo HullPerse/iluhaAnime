@@ -31,7 +31,7 @@ export function FilmstripViewer({
   hideTabs?: boolean;
 }) {
   const { t } = useI18n();
-  const [index, setIndex] = useState(initialIndex);
+  const [index, setIndex] = useState<number>(initialIndex);
   const [internalTab, setInternalTab] = useState<FilmstripTab>(
     showTrailerInitially ? "trailer" : "frames"
   );

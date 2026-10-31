@@ -15,7 +15,7 @@ export function GenrePicker({
   onChange: (filters: StreamCatalogFilters) => void;
 }) {
   const { t } = useI18n();
-  const [pick, setPick] = useState("");
+  const [pick, setPick] = useState<string>("");
   const visible = constants.genres.filter((genre) => filters.adult || !genre.adult);
   const selected = filters.genres
     .map((id) => visible.find((genre) => genre.id === id))

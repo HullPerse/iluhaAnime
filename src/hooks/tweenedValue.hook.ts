@@ -4,8 +4,8 @@ import { createAnimationLoop } from "@/lib/core/interval.utils";
 
 export function useTweenedValue(target: number, durationMs: number): number {
   const instant = durationMs <= 0 || !isFinite(target);
-  const [tweened, setTweened] = useState(target);
-  const fromRef = useRef(target);
+  const [tweened, setTweened] = useState<number>(target);
+  const fromRef = useRef<number>(target);
   useEffect(() => {
     if (instant) {
       fromRef.current = target;

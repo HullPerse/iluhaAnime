@@ -5,6 +5,7 @@ import {
   STATUS_SHRINK_MIN_AT,
 } from "@/config/anilist/statuses.config";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import type {
   CollectionStatus,
   CollectionStatusDef,
@@ -88,7 +89,7 @@ export function statusLabel(
   const def = statuses.find((s) => s.id === id);
   if (!def) return id;
   if (def.isCore && CORE_DEFAULT_LABELS[def.id] === def.label) {
-    return t(`collection.status.${def.id}` as TranslationKey);
+    return t(toLocaleKey(`collection.status.${def.id}`));
   }
   return resolveStatusLabel(def.label, locale);
 }

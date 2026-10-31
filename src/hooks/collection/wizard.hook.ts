@@ -45,30 +45,30 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
   const dates = useMemo(() => wizardDefaultsDates(initial), [initial]);
   const media = useMemo(() => wizardDefaultsMedia(initial), [initial]);
 
-  const [title, setTitle] = useState(identity.title);
-  const [altTitles, setAltTitles] = useState(identity.altTitles);
+  const [title, setTitle] = useState<string>(identity.title);
+  const [altTitles, setAltTitles] = useState<string>(identity.altTitles);
   const [type, setType] = useState<CollectionItem["type"]>(identity.type);
   const [status, setStatus] = useState<CollectionStatus>(identity.status);
-  const [progressValue, setProgressValue] = useState(progress.progressValue);
-  const [progressTotal, setProgressTotal] = useState(progress.progressTotal);
+  const [progressValue, setProgressValue] = useState<string>(progress.progressValue);
+  const [progressTotal, setProgressTotal] = useState<string>(progress.progressTotal);
   const [progressUnit, setProgressUnit] = useState<CollectionItem["progressUnit"]>(
     progress.progressUnit
   );
-  const [rating, setRating] = useState(progress.rating);
+  const [rating, setRating] = useState<string>(progress.rating);
   const [priority, setPriority] = useState<CollectionItem["priority"]>(progress.priority);
-  const [isFavorite, setIsFavorite] = useState(progress.isFavorite);
-  const [year, setYear] = useState(meta.year);
+  const [isFavorite, setIsFavorite] = useState<boolean>(progress.isFavorite);
+  const [year, setYear] = useState<string>(meta.year);
   const [releaseDate, setReleaseDate] = useState<string | null>(initial?.releaseDate ?? null);
-  const [description, setDescription] = useState(meta.description);
-  const [durationMinutes, setDurationMinutes] = useState(meta.durationMinutes);
-  const [genres, setGenres] = useState(meta.genres);
-  const [studio, setStudio] = useState(meta.studio);
-  const [startedAt, setStartedAt] = useState(dates.startedAt);
-  const [finishedAt, setFinishedAt] = useState(dates.finishedAt);
-  const [notes, setNotes] = useState(dates.notes);
-  const [coverUrl, setCoverUrl] = useState(media.coverUrl);
-  const [externalIds, setExternalIds] = useState(media.externalIds);
-  const [localPath, setLocalPath] = useState(media.localPath);
+  const [description, setDescription] = useState<string>(meta.description);
+  const [durationMinutes, setDurationMinutes] = useState<string>(meta.durationMinutes);
+  const [genres, setGenres] = useState<string>(meta.genres);
+  const [studio, setStudio] = useState<string>(meta.studio);
+  const [startedAt, setStartedAt] = useState<string>(dates.startedAt);
+  const [finishedAt, setFinishedAt] = useState<string>(dates.finishedAt);
+  const [notes, setNotes] = useState<string>(dates.notes);
+  const [coverUrl, setCoverUrl] = useState<string>(media.coverUrl);
+  const [externalIds, setExternalIds] = useState<CollectionItem["externalIds"]>(media.externalIds);
+  const [localPath, setLocalPath] = useState<string>(media.localPath);
   const [localKind, setLocalKind] = useState<"file" | "folder" | null>(media.localKind);
   const [customFields, setCustomFields] = useState<Record<string, unknown>>(media.customFields);
 

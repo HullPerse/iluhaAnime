@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input.component";
 
 function PasswordInput({ className, wrapperClassName, ...props }: PasswordInputProps) {
   const { t } = useI18n();
-  const [visible, setVisible] = React.useState(false);
+  const [visible, setVisible] = React.useState<boolean>(false);
 
   return (
     <div

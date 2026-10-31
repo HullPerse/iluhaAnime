@@ -112,7 +112,7 @@ function Controls({
   // A stream picks its voice-over and subtitles from the source, so the mpv
   // audio and subtitle lists would only duplicate that choice.
   const streaming = useCell(streamSession);
-  const [speedOpen, setSpeedOpen] = useState(false);
+  const [speedOpen, setSpeedOpen] = useState<boolean>(false);
   const [boundary, setBoundary] = useState<string | null>(null);
   const speedRef = useRef<HTMLDivElement>(null);
 

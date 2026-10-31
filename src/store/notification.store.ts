@@ -1,5 +1,6 @@
 import { systemApi } from "@/api/system.api";
 import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { isRecord } from "@/lib/core/record.utils";
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
 import { settingsAtoms } from "@/store/settings.store";
@@ -36,17 +37,26 @@ function notificationSignature(
   return `${type}\u0000${title}\u0000${message ?? ""}\u0000${targetKey(target)}`;
 }
 
+function isNotificationItem(value: unknown): value is NotificationItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === "number" &&
+    typeof value.type === "string" &&
+    typeof value.title === "string" &&
+    typeof value.timestamp === "number" &&
+    typeof value.read === "boolean"
+  );
+}
+
+function isDismissedEntry(value: unknown): value is DismissedEntry {
+  return isRecord(value) && typeof value.signature === "string" && typeof value.at === "number";
+}
+
 function pruneDismissed(dismissed: DismissedEntry[], now: number): DismissedEntry[] {
   return dismissed.filter((entry) => now - entry.at < DISMISS_TTL_MS).slice(0, MAX_DISMISSED);
 }
 
-export interface NotificationData {
-  items: NotificationItem[];
-  dismissed: DismissedEntry[];
-  unreadCount: number;
-}
-
-export interface NotificationAtoms {
+interface NotificationAtoms {
   items: Cell<NotificationItem[]>;
   dismissed: Cell<DismissedEntry[]>;
   unreadCount: Cell<number>;
@@ -57,13 +67,12 @@ export function resolveNotificationPersisted(
   storageExists: boolean
 ): { items: NotificationItem[]; dismissed: DismissedEntry[] } | null {
   if (!storageExists) return null;
-  if (!persistedState || typeof persistedState !== "object") return null;
-  const persisted = persistedState as { items?: unknown; dismissed?: unknown };
-  const items = Array.isArray(persisted.items)
-    ? (persisted.items as NotificationItem[]).filter((item) => !item.progress)
+  if (!isRecord(persistedState)) return null;
+  const items = Array.isArray(persistedState.items)
+    ? persistedState.items.filter(isNotificationItem).filter((item) => !item.progress)
     : [];
-  const dismissed = Array.isArray(persisted.dismissed)
-    ? pruneDismissed(persisted.dismissed as DismissedEntry[], Date.now())
+  const dismissed = Array.isArray(persistedState.dismissed)
+    ? pruneDismissed(persistedState.dismissed.filter(isDismissedEntry), Date.now())
     : [];
   return { items, dismissed };
 }
@@ -75,25 +84,21 @@ function readLegacyNotifications(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem(NOTIFICATION_STORAGE_KEY));
   if (readError !== null) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw ?? "null") as unknown);
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw ?? "null"));
   if (parseError !== null) return null;
-  const envelope = (
-    parsed && typeof parsed === "object" && "state" in parsed
-      ? (parsed as { state: unknown }).state
-      : parsed
-  ) as { items?: unknown; dismissed?: unknown } | null;
+  const envelope = isRecord(parsed) && "state" in parsed ? parsed.state : parsed;
   const resolved = resolveNotificationPersisted(envelope, raw !== null);
   if (!resolved) return null;
   const maxId = resolved.items.reduce((max, item) => Math.max(max, item.id), 0);
   return { data: { items: resolved.items, dismissed: resolved.dismissed }, maxId };
 }
 
-export interface NotificationSignalOptions {
+interface NotificationSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
 }
 
-export interface NotificationSignalStore {
+interface NotificationSignalStore {
   atoms: NotificationAtoms;
   persistor: Persistor;
   add: (
@@ -114,7 +119,7 @@ export interface NotificationSignalStore {
   markRead: (id: number) => void;
 }
 
-export function createNotificationSignalStore(
+function createNotificationSignalStore(
   options: NotificationSignalOptions = {}
 ): NotificationSignalStore {
   let restoredMaxId = 0;
@@ -133,14 +138,12 @@ export function createNotificationSignalStore(
   });
 
   const persisted = persistor.read();
-  const persistedData = (
-    persisted ? (persisted.data as { items?: unknown; dismissed?: unknown }) : {}
-  ) as { items?: unknown; dismissed?: unknown };
+  const persistedData = persisted ? persisted.data : {};
   const persistedItems = Array.isArray(persistedData.items)
-    ? (persistedData.items as NotificationItem[])
+    ? persistedData.items.filter(isNotificationItem)
     : [];
   const persistedDismissed = Array.isArray(persistedData.dismissed)
-    ? (persistedData.dismissed as DismissedEntry[])
+    ? persistedData.dismissed.filter(isDismissedEntry)
     : [];
   if (persisted) {
     restoredMaxId = persistedItems.reduce((max, item) => Math.max(max, item.id), 0);
@@ -342,7 +345,6 @@ export function createNotificationSignalStore(
 const notifications = createNotificationSignalStore();
 
 export const notificationAtoms = notifications.atoms;
-export const notificationPersistor = notifications.persistor;
 export const addNotification = notifications.add;
 export const updateNotification = notifications.update;
 export const clearNotification = notifications.clear;

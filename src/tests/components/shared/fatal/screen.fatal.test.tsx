@@ -45,7 +45,7 @@ describe("FatalScreen", () => {
     const { unmount } = render(
       <FatalScreen info={baseInfo({ themeName: "xp" })} {...handlers()} />
     );
-    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe(
+    expect((screen.getByRole("alert")).style.backgroundColor).toBe(
       "rgb(0, 51, 153)"
     );
     unmount();
@@ -56,7 +56,7 @@ describe("FatalScreen", () => {
 
   it("forces the win95 screen with a safe note in safe mode", () => {
     render(<FatalScreen info={baseInfo({ themeName: "xp" })} safe {...handlers()} />);
-    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe("rgb(0, 0, 170)");
+    expect((screen.getByRole("alert")).style.backgroundColor).toBe("rgb(0, 0, 170)");
     expect(
       screen.getByText((_content, el) => el?.textContent === "* Safe mode: default theme")
     ).toBeDefined();
@@ -121,7 +121,7 @@ describe("FatalScreen", () => {
     localStorage.clear();
     render(<FatalScreen info={baseInfo({ themeName: "yorha" })} {...handlers()} />);
     expect(screen.getByText("ERROR // SYSTEM FAILURE")).toBeDefined();
-    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe(
+    expect((screen.getByRole("alert")).style.backgroundColor).toBe(
       "rgb(31, 27, 24)"
     );
   });

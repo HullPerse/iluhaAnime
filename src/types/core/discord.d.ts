@@ -6,10 +6,8 @@ export interface DiscordButton {
 export interface DiscordActivity {
   details?: string;
   state?: string;
-  /** Unix time in milliseconds. */
   startTimestamp?: number;
   endTimestamp?: number;
-  /** 0 playing, 2 listening, 3 watching, 5 competing. */
   activityType?: number;
   buttons?: DiscordButton[];
 }

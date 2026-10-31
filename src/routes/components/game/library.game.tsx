@@ -33,11 +33,6 @@ export default function GameLibrary({
 }: GameLibraryProps) {
   const { t } = useI18n();
 
-  /**
-   * Rows take real DOM focus, so the current position comes straight from the
-   * focused row; no extra state. Arrow keys move between rows, Home/End jump,
-   * Enter on a row plays it, and Enter on its action buttons stays theirs.
-   */
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const rows = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-rom-row]"));
     if (rows.length === 0) return;

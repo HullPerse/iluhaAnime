@@ -478,10 +478,6 @@ export function getSearchSuggestions(
   options: SearchSuggestionOptions = {}
 ): SearchSuggestion[] {
   const fallback = suggestionFallbackQuery(query);
-  // A quality tag, episode token, or bracket group is strong evidence that the
-  // user pasted a release name; the cleaned query is then the better intent
-  // even if the raw one matched something. Generic tokens like "dual" or
-  // "web" can be part of a real title, so those keep the direct pass first.
   if (fallback && STRONG_NOISE_RE.test(query)) {
     const cleaned = collectSuggestions(fallback, options);
     if (cleaned.length > 0) return cleaned;
@@ -539,12 +535,6 @@ function isSequelTitle(longer: string, base: string): boolean {
   return baseTitle.length > 0 && longerTitle.startsWith(`${baseTitle} `);
 }
 
-/**
- * A six-character prefix such as "jujuts" can match a sequel or movie that
- * carries a bigger popularity boost, pushing the base title down. When one
- * candidate only extends another and is within 10% of its score, the base
- * title is the better autocomplete answer. Unrelated titles never reorder.
- */
 function promoteBaseTitles(items: SearchSuggestion[]): void {
   for (let index = 0; index < items.length - 1; index++) {
     const longer = items[index];

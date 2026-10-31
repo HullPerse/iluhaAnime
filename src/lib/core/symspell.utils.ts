@@ -4,7 +4,7 @@ import { isRomanNumeral } from "@/lib/core/roman.utils";
 
 const MAX_EDIT_DISTANCE = 2;
 
-export function maxEditDistanceFor(word: string): number {
+function maxEditDistanceFor(word: string): number {
   if (word.length < 3) return 0;
   if (word.length <= 4) return 1;
   return MAX_EDIT_DISTANCE;
@@ -87,7 +87,7 @@ function isCorrectableToken(word: string, words: Set<string>): boolean {
   return word.length >= 3 && !words.has(word) && !isRomanNumeral(word);
 }
 
-export function segmentToken(token: string, words: Set<string>): string[] | null {
+function segmentToken(token: string, words: Set<string>): string[] | null {
   const word = normalizeSearchText(token).split(" ")[0] ?? "";
   if (!word || words.has(word) || word.length < 6) return null;
   const maxPiece = Math.min(15, word.length);
@@ -335,7 +335,7 @@ export function normalizedSpellWords(titles: string[]): string[] {
   return words;
 }
 
-export function buildSymSpellFromWords(words: readonly string[]): SymSpell {
+function buildSymSpellFromWords(words: readonly string[]): SymSpell {
   const s = new SymSpell();
   for (const word of words) s.addNormalizedWord(word);
   return s;

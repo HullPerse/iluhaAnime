@@ -1,12 +1,6 @@
 import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
 import type { KeypadOptions } from "@/types/core/keypadHotkeys";
 
-/**
- * Captures the mapped keypad keys for the running game session: key state is
- * pressed/released (not a chord), repeats and modified presses are skipped,
- * text entry keeps its keys, and every held key is released on blur or when
- * the window is hidden so the VM never sticks.
- */
 export function subscribeKeypad(target: Window, options: KeypadOptions): () => void {
   const { keys, onKey } = options;
   const held = new Set<number>();

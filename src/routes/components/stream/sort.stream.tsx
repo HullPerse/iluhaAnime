@@ -8,12 +8,6 @@ import { useCell } from "@/lib/core/signal.hook";
 import { setStreamSort, streamFilters } from "@/store/stream.store";
 import type { StreamSortBy } from "@/types/player/stream";
 
-/**
- * One sort axis, the same shape the AniList list uses: a feed and a named
- * ordering are keys of the same axis, so the bar has one active key and one
- * direction. A feed always means "the most first"; a named ordering starts in
- * the direction that reads naturally.
- */
 const SORT_KEYS = [
   { key: "views", labelKey: "stream.sort.popular" },
   { key: "created_at", labelKey: "stream.sort.latest" },
@@ -21,7 +15,6 @@ const SORT_KEYS = [
   { key: "name", labelKey: "stream.filters.sort.name" },
 ] as const satisfies readonly { key: StreamSortBy; labelKey: TranslationKey }[];
 
-/** Direction a key starts with when the user picks it. */
 export const STREAM_SORT_DEFAULT_DIR: Record<StreamSortBy, "asc" | "desc"> = {
   views: "desc",
   created_at: "desc",
@@ -29,7 +22,6 @@ export const STREAM_SORT_DEFAULT_DIR: Record<StreamSortBy, "asc" | "desc"> = {
   name: "asc",
 };
 
-/** Order the Shift+[ / Shift+] cycle walks, feeds first. */
 export const STREAM_SORT_CYCLE: readonly StreamSortBy[] = SORT_KEYS.map(({ key }) => key);
 
 export default function StreamSortBar({

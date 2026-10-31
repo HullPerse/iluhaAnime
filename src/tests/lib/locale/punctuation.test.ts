@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-// .docs/DEVELOPMENT.md anti-slop: no em dashes, en dashes, guillemets,
-// ellipses, middle dots, or bullet separators in UI copy. Scrapers and
-// test fixtures handle these characters for external release names, so
-// they stay out of the scanned roots.
 const FORBIDDEN = ["\u2014", "\u2013", "\u00AB", "\u00BB", "\u2026", "\u00B7", "\u2022"];
 
 const localeFiles = import.meta.glob<string>("/src/lib/locale/**/*.{ts,tsx}", {

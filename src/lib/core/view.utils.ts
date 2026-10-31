@@ -19,7 +19,6 @@ export function resolveViewChrome(input: ViewChromeInput): ViewChrome {
       barsHidden: false,
     };
   }
-  // cinema is a temporary immersive toggle of the normal preset only
   const immersive = input.cinema || input.fullscreen;
   return {
     fullBleed: immersive,

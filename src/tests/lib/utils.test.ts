@@ -103,8 +103,6 @@ import type { CollectionItem } from "@/types/anilist/collection";
 import type { DitherEffectOptions, DitherRGB } from "@/types/graphics/dither";
 import type { AniListId, TorrentHash } from "@/types/core/types";
 
-// The factory resolves the shared mock itself: a top-level import would be
-// read before this hoisted call and the whole suite would fail to load.
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke } = await import("@/tests/mocks");
   return {

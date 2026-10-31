@@ -268,7 +268,6 @@ describe("createGameAudio wavetable mode", () => {
     const context = contexts.at(-1);
     expect(context).toBeDefined();
 
-    // 0.25 s at the 4000 Hz default advances 1000 bits: 1000 % 128.
     if (context) context.currentTime = 0.25;
     audio.setWavetable(4000, new Uint8Array(16).fill(0xff));
 

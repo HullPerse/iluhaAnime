@@ -11,10 +11,6 @@ import type { Locale, TranslationKey } from "@/types/core/i18n";
 import type { HighlightRange } from "@/types/search/search";
 import type { SettingsFindHit, SettingsFindKind, SettingsFindTab } from "@/types/core/find";
 
-export function findSectionAnchor(tab: SettingsFindTab, section: string): string {
-  return anchorId(tab, section);
-}
-
 export function findSectionTitleKey(sectionId: string): TranslationKey | null {
   return (
     FIND_GROUPS.find((group) => anchorId(group.tab, group.section) === sectionId)?.titleKey ?? null

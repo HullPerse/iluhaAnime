@@ -8,5 +8,7 @@
     "scripts/**/*.ts",
     "benches/**/*.ts"
   ],
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "benches/**/*.ts"]
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "benches/**/*.ts"],
+  "ignoreBinaries": ["ffmpeg"],
+  "ignoreDependencies": ["tailwindcss"]
 }

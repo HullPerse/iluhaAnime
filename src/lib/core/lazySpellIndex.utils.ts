@@ -29,7 +29,7 @@ export class LazySpellIndex {
     this.sym ??= new SymSpell();
     const end = Math.min(this.wordList.length, this.cursor + Math.max(1, budget));
     for (let index = this.cursor; index < end; index++) {
-      this.sym.addNormalizedWord(this.wordList[index]!);
+      this.sym.addNormalizedWord(this.wordList[index]);
     }
     this.cursor = end;
     return this.cursor >= this.wordList.length;

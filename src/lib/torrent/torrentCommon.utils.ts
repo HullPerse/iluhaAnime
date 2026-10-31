@@ -20,10 +20,6 @@ export function sameExternalChangedFiles(
   return prev.length === next.length && prev.every((name, i) => name === next[i]);
 }
 
-/**
- * Everything on a torrent row except the two arrays, which are rebuilt on
- * every event and compared field by field.
- */
 const TORRENT_FIELDS = [
   "id",
   "name",
@@ -71,7 +67,6 @@ export function shouldHealTorrentChannel(
   return shouldHealTorrentPoll(lastContact, nowMs);
 }
 
-/** The engine knows the torrent and is hashing the files it already has. */
 export function isCheckingFiles(item: TorrentInfo): boolean {
   return item.state === "initializing" && item.total_bytes > 0;
 }

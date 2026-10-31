@@ -26,7 +26,7 @@ const hintableButton = (label: string): HTMLButtonElement => {
       x: 10,
       y: 10,
       toJSON: () => ({}),
-    }) as DOMRect;
+    });
   document.body.append(element);
   nodes.push(element);
   return element;

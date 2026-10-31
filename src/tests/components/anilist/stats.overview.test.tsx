@@ -29,7 +29,7 @@ const rect = (width: number, height: number): DOMRect => {
     x: 0,
     y: 0,
     toJSON: () => ({}),
-  } as DOMRect;
+  };
 };
 
 const DETAIL: ActivityDetailBundle = {
@@ -67,7 +67,6 @@ const listsFixture = (): AniListCollection[] => {
       entries: [listEntry(6, "CURRENT", 70, 3)],
     },
     {
-      // Same title listed again in a custom list must not double count.
       name: "Best of Drama",
       entries: [listEntry(5, "COMPLETED", 80, 24)],
     },
@@ -167,7 +166,6 @@ describe("StatsModal overview", () => {
 
   it("does not double count titles that also sit in a custom list", async () => {
     renderModal("POINT_10");
-    // Completion by genre: 5 completed of 6 started titles; doubled would be 6/7.
     expect(await screen.findByText("83%")).toBeDefined();
   });
 

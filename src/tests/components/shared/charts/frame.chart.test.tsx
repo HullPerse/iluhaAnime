@@ -14,7 +14,7 @@ const rect = (width: number, height: number): DOMRect => {
     x: 0,
     y: 0,
     toJSON: () => ({}),
-  } as DOMRect;
+  };
 };
 
 beforeEach(() => {

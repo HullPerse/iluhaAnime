@@ -55,7 +55,7 @@ export function useSearchQuery(): SearchQueryController {
   const [searchParams, setSearchParams] = useState<string>("");
   const [submittedQuery, setSubmittedQuery] = useState<string>("");
   const [searchRequest, setSearchRequest] = useState<number>(0);
-  const [source, setSource] = useState<Source>(initialSource as Source);
+  const [source, setSource] = useState<Source>(initialSource);
   const resultSource = useCell(searchAtoms.resultSource);
   const fetchSourceRef = useRef<Source | null>(null);
   const [lastDefaultSource, setLastDefaultSource] = useState<string>(defaultSource);

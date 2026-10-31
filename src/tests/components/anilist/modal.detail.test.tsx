@@ -46,7 +46,7 @@ const OTHER_ANIME = {
   id: 31,
   title: "Anime X",
   titles: ["Anime X"],
-} as AniMedia;
+};
 
 const CHARACTER_EDGE: AniCharacterEdge = {
   role: "MAIN",
@@ -151,7 +151,7 @@ describe("AniListDetailModal width", () => {
 const openCharacter = async (user: ReturnType<typeof userEvent.setup>) => {
   await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "T" })).toBeDefined());
   const expanders = screen.getAllByRole("button", { name: "Expand section" });
-  await user.click(expanders[0] as HTMLElement);
+  await user.click(expanders[0]);
   await user.click(await screen.findByText("Char One"));
   await waitFor(() =>
     expect(screen.getByRole("heading", { level: 2, name: "Char One" })).toBeDefined()

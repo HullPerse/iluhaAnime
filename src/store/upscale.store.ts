@@ -264,14 +264,12 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
 const upscale = createUpscaleSignalStore();
 
 export const upscaleItems = upscale.items;
-export const upscaleProcessing = upscale.processing;
 export const upscalePaused = upscale.paused;
 export const addConvertItem = upscale.addConvertItem;
 export const addUpscaleItem = upscale.addUpscaleItem;
 export const clearUpscaleAll = upscale.clearAll;
 export const clearUpscaleDone = upscale.clearDone;
 export const clearUpscaleErrors = upscale.clearErrors;
-export const processUpscaleNext = upscale.processNext;
 export const removeUpscaleItem = upscale.removeItem;
 export const restartUpscaleItem = upscale.restartItem;
 export const setUpscalePaused = upscale.setPaused;

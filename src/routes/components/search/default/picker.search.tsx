@@ -212,7 +212,7 @@ function TorrentFilePicker({
                         </button>
                       )}
                       {group.files.map((item) => {
-                        const conflict = torrent!.conflictingFiles.includes(item.name);
+                        const conflict = torrent.conflictingFiles.includes(item.name);
                         const picked = selected.has(item.index);
                         return (
                           <label

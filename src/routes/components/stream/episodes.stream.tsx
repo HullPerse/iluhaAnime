@@ -15,10 +15,6 @@ import type { StreamHistoryEntry, StreamingEpisode } from "@/types/player/stream
 import { EpisodePreview } from "@/routes/components/stream/episodes/preview.episodes";
 import { StreamInlineLoading } from "@/routes/components/stream/states/inlineLoading.states";
 
-/**
- * Episodes as dense rows, not a grid of buttons: a 220 episode season has to
- * stay scannable, and the filter has to sit in the header where the count is.
- */
 export default function StreamEpisodes({
   episodes,
   isPending,
@@ -33,9 +29,7 @@ export default function StreamEpisodes({
   isPending: boolean;
   error: Error | null;
   selectedId: string | null;
-  /** AniList preview art keyed by episode number; absent when the title has none. */
   previews?: ReadonlyMap<number, string>;
-  /** Locally remembered rows keyed by episode id: watched marks and resume. */
   history?: ReadonlyMap<string, StreamHistoryEntry>;
   onPick: (episode: StreamingEpisode) => void;
   onRetry: () => void;
@@ -54,8 +48,6 @@ export default function StreamEpisodes({
     );
   }, [episodes, filter]);
 
-  // The highlighted row follows the playing selection, and a filter that hides
-  // it sends the ring back to the top instead of leaving it off screen.
   const activeRow = useMemo(() => {
     const selectedIndex = visible.findIndex((episode) => episode.id === selectedId);
     if (selectedIndex !== -1) return selectedIndex;
@@ -71,8 +63,6 @@ export default function StreamEpisodes({
   };
 
   useResolvedHotkeys<RowKeyAction>(EPISODE_ROW_KEYBINDS, {
-    // The season filter lives inside this panel: typing "j" there must not
-    // move the ring.
     ignore: (event) =>
       isTextEntryTarget(event.target) ||
       !(event.target instanceof HTMLElement) ||
@@ -95,9 +85,6 @@ export default function StreamEpisodes({
       ref={listRef}
       className="windows95-border flex h-100 min-h-0 min-w-0 flex-col overflow-hidden"
     >
-      {/* The header stays put while the season scrolls; the count is a second
-          line of the same title bar, so it uses the title text tone instead of
-          the hint tone that is unreadable on navy. */}
       <header className="bg-secondary text-title-text windows95-text sticky top-0 z-10 flex shrink-0 items-center gap-1 px-1 py-0.5 font-bold">
         <span>{t("stream.episodes")}</span>
         <span className="text-title-text/75 font-normal">

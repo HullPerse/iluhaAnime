@@ -1,4 +1,5 @@
 import { createSignalStore } from "@/lib/core/signal.store";
+import { buildSignalAtoms } from "@/lib/core/persisted.utils";
 import type { Cell } from "@/types/core/signal";
 import type {
   AnimeDeepLink,
@@ -23,8 +24,8 @@ type DeepLinkActionKeys =
   | "openAuth"
   | "consumeAuth";
 
-export type DeepLinkData = Omit<DeepLinkStore, DeepLinkActionKeys>;
-export type DeepLinkAtoms = { [K in keyof DeepLinkData]: Cell<DeepLinkData[K]> };
+type DeepLinkData = Omit<DeepLinkStore, DeepLinkActionKeys>;
+type DeepLinkAtoms = { [K in keyof DeepLinkData]: Cell<DeepLinkData[K]> };
 
 const DEFAULT_DEEPLINK_DATA: DeepLinkData = {
   target: null,
@@ -35,7 +36,7 @@ const DEFAULT_DEEPLINK_DATA: DeepLinkData = {
   authTarget: null,
 };
 
-export interface DeepLinkSignalStore {
+interface DeepLinkSignalStore {
   atoms: DeepLinkAtoms;
   subscribeAll: (fn: () => void) => () => void;
   openAnime: (link: AnimeDeepLink) => void;
@@ -52,14 +53,9 @@ export interface DeepLinkSignalStore {
   consumeAuth: () => void;
 }
 
-export function createDeepLinkSignalStore(): DeepLinkSignalStore {
+function createDeepLinkSignalStore(): DeepLinkSignalStore {
   const store = createSignalStore();
-  const atoms = {} as DeepLinkAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = DEFAULT_DEEPLINK_DATA as unknown as Record<string, unknown>;
-  for (const key of Object.keys(DEFAULT_DEEPLINK_DATA)) {
-    sink[key] = store.atom(key, source[key]);
-  }
+  const atoms = buildSignalAtoms(store, DEFAULT_DEEPLINK_DATA);
 
   return {
     atoms,

@@ -23,11 +23,6 @@ import { StreamEmpty } from "@/routes/components/stream/states/empty.states";
 import { StreamError } from "@/routes/components/stream/states/error.states";
 import { StreamLoadingGrid } from "@/routes/components/stream/states/loadingGrid.states";
 
-/**
- * The site answers 60 titles per page. When the API sends its own `meta` the
- * real last page is used; otherwise a short page is treated as the last one,
- * so the control never promises a page the source does not have.
- */
 const PAGE_SIZE = 60;
 
 type GridKeyAction = "grid-left" | "grid-right" | "grid-up" | "grid-down";
@@ -39,7 +34,6 @@ const GRID_STEPS: Record<GridKeyAction, { column: number; row: number }> = {
   "grid-down": { column: 0, row: 1 },
 };
 
-/** The grid walks like the player's file tree: arrows plus j/k, one tile per step. */
 const GRID_KEYBINDS: ResolvedHotkeyDef<GridKeyAction>[] = [
   { id: "grid-left", chord: "ArrowLeft", repeat: "hold", keybindId: "tree.collapse" },
   { id: "grid-right", chord: "ArrowRight", repeat: "hold", keybindId: "tree.expand" },
@@ -68,8 +62,6 @@ export default function StreamResults({
   const sortBy = useCell(streamFilters).sortBy;
   const scrollRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  // Roving tabindex: one tile is the Tab stop and the arrows move it, so a
-  // 60 tile page is one Tab away instead of sixty.
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const items = data?.items ?? [];
 
@@ -90,8 +82,6 @@ export default function StreamResults({
   );
 
   useResolvedHotkeys<GridKeyAction>(GRID_KEYBINDS, {
-    // Only inside this grid, and never while a field has the caret: the
-    // toolbar and the modal share the window with those keys.
     ignore: (event) =>
       isTextEntryTarget(event.target) ||
       !(event.target instanceof HTMLElement) ||
@@ -129,9 +119,6 @@ export default function StreamResults({
 
   const page = data?.page ?? requestPage;
   const lastPage = data?.lastPage ?? (items.length < PAGE_SIZE ? page : page + 1);
-  // The site sends no `last_page` and no `total`: the envelope carries
-  // `current_page`, `from`, `per_page` and `to`. A range line would be an
-  // invented number, so the footer names the page and the page size instead.
   const total = data?.total ?? 0;
   const from = (page - 1) * PAGE_SIZE + 1;
   const to = (page - 1) * PAGE_SIZE + items.length;

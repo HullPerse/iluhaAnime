@@ -7,7 +7,7 @@ import type { Cell } from "@/types/core/signal";
 
 export const CATEGORY_SCHEMA_VERSION = 1;
 
-export const DEFAULT_CATEGORY_ICON = "w98_directory_zipper.ico";
+const DEFAULT_CATEGORY_ICON = "w98_directory_zipper.ico";
 
 let nextId = 1;
 function genId(): string {
@@ -85,8 +85,8 @@ type CategoryActionKeys =
   | "reorderCategories"
   | "setCategoryCollapsed";
 
-export type CategoryData = Omit<CategoryStore, CategoryActionKeys>;
-export type CategoryAtoms = { [K in keyof CategoryData]: Cell<CategoryData[K]> };
+type CategoryData = Omit<CategoryStore, CategoryActionKeys>;
+type CategoryAtoms = { [K in keyof CategoryData]: Cell<CategoryData[K]> };
 
 function readLegacyCategories(
   getStorage: () => Storage | undefined
@@ -266,17 +266,14 @@ export function createCategorySignalStore(
 const categories = createCategorySignalStore();
 
 export const categoryAtoms = categories.atoms;
-export const categoryPersistor = categories.persistor;
 export const addCategory = categories.addCategory;
 export const addCategoryEntry = categories.addEntry;
 export const changeCategoryIcon = categories.changeIcon;
 export const removeCategory = categories.removeCategory;
 export const removeEntriesByFolderPath = categories.removeEntriesByFolderPath;
-export const removeEntriesByTorrentId = categories.removeEntriesByTorrentId;
 export const moveCategoryEntry = categories.moveEntry;
 export const removeCategoryEntry = categories.removeEntry;
 export const renameCategory = categories.renameCategory;
-export const reorderCategories = categories.reorderCategories;
 export const setCategoryCollapsed = categories.setCategoryCollapsed;
 
 if (

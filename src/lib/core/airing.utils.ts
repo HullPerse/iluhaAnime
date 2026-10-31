@@ -5,7 +5,7 @@ import type { AiringDay, AiringRow } from "@/types/core/airing";
 
 export const AIRING_TICK_MS = 30_000;
 
-export const AIRING_WEEK_DAYS = 7;
+const AIRING_WEEK_DAYS = 7;
 
 const SECS_PER_DAY = 86_400;
 

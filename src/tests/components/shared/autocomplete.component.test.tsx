@@ -801,7 +801,7 @@ describe("InlineAutocompleteInput per-word spell actions", () => {
         {...callbacks}
       />
     );
-    return screen.getByRole("textbox", { name: "Search spell words" }) as HTMLInputElement;
+    return screen.getByRole<HTMLInputElement>("textbox", { name: "Search spell words" });
   };
 
   it("underlines every misspelled word", async () => {
@@ -852,7 +852,7 @@ describe("InlineAutocompleteInput per-word spell actions", () => {
         onChange={() => {}}
       />
     );
-    const input = screen.getByRole("textbox", { name: "Search spell words" }) as HTMLInputElement;
+    const input = screen.getByRole<HTMLInputElement>("textbox", { name: "Search spell words" });
     await user.click(input);
     input.setSelectionRange(13, 13);
     await user.keyboard("{Tab}");

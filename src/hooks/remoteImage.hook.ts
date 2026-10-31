@@ -12,11 +12,6 @@ import type { UserImageFile } from "@/types/core/userimage";
 const resolvedUrls = createLruCache<string, string>(200);
 const inflight = new Map<string, Promise<string | null>>();
 
-/**
- * AnimeLib's cover CDN refuses requests that do not name the site as the
- * referer. The webview loads catalog covers through this cache so the Rust
- * side can send it.
- */
 export const STREAM_COVER_REFERER = "https://animelib.org/";
 
 const streamCovers = createLruCache<string, string>(300);
@@ -114,10 +109,6 @@ function fetchCachedImage(remoteUrl: string, proxyUrl: string | null): Promise<s
 function fetchStreamCover(remoteUrl: string): Promise<string | null> {
   const cached = streamCovers.get(remoteUrl);
   if (cached) return Promise.resolve(cached);
-  // Covers need the site's referer; AniList previews live on the streaming
-  // services' CDNs, which reject a foreign referer and need the AniList proxy
-  // in a blocked region. Rust writes either answer into the image cache, so a
-  // preview is downloaded once and read from disk on the next launch.
   const fromSource = isSourceImage(remoteUrl);
   const request = fromSource
     ? { url: remoteUrl, referer: STREAM_COVER_REFERER }
@@ -137,11 +128,6 @@ function fetchStreamCover(remoteUrl: string): Promise<string | null> {
   );
 }
 
-/**
- * A catalog poster, downloaded once and served from the local asset cache.
- * `null` while the cover is still being fetched, so callers can show a
- * placeholder instead of a broken image.
- */
 export function useStreamCover(remoteUrl: string | null | undefined): string | null {
   const [src, setSrc] = useState<string | null>(() =>
     remoteUrl ? (streamCovers.get(remoteUrl) ?? null) : null

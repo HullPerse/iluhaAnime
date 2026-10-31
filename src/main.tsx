@@ -38,8 +38,6 @@ const appError = () => tr("common.error");
 window.addEventListener("error", (event) => {
   event.preventDefault();
   const reason = event.error ?? event.message;
-  // Animating the content-sized modal makes Chrome emit its benign ResizeObserver loop warning.
-  // Counting it would trip the fatal loop after three resizes, so it stops here.
   if (isResizeObserverLoopError(reason)) return;
   if (escalate(reason)) return;
   console.error("Uncaught error:", event.error);

@@ -58,7 +58,7 @@ export function createCoverCorrectionsStore(
     aliases: store.atom("aliases", persistedData.aliases ?? {}),
     resolved: store.atom("resolved", resolvedInit),
     blobs: store.atom("blobs", persistedData.blobs ?? {}),
-  } as CoverCorrectionsAtoms;
+  };
   const write = (): void => {
     persistor.write({
       overrides: atoms.overrides.get(),

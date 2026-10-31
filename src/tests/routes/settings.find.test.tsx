@@ -133,7 +133,7 @@ describe("settings find results", () => {
     expect(options[1]?.getAttribute("aria-selected")).toBe("true");
     expect(options[1]?.className).toContain("bg-highlight");
     expect(options[0]?.getAttribute("tabindex")).toBe("-1");
-    await user.click(options[2] as Element);
+    await user.click(options[2]);
     expect(onJump).toHaveBeenCalledTimes(1);
     expect(onJump.mock.calls[0]?.[0]).toBe(hits[2]);
     expect(view.container.querySelector('[data-index="1"]')?.id).toBe("settings-find-test-1");

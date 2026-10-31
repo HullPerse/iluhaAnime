@@ -47,7 +47,6 @@ describe("subscribeKeypad", () => {
     press("keydown", "KeyP");
     expect(onKey).not.toHaveBeenCalled();
 
-    // A release without a tracked press is not forwarded either.
     press("keyup", "KeyX");
     expect(onKey).not.toHaveBeenCalled();
     release();

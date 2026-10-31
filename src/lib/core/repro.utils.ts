@@ -1,11 +1,10 @@
 import type { ReproFrontendInput } from "@/types/core/repro";
 
-export const REPRO_REDACTED = "[redacted]";
-export const REPRO_TRUNCATED = "[truncated]";
-export const REPRO_MAX_STRING = 500;
-export const REPRO_MAX_ARRAY = 200;
-export const REPRO_MAX_DEPTH = 8;
-export const REPRO_FRONTEND_MAX_BYTES = 256 * 1024;
+const REPRO_REDACTED = "[redacted]";
+const REPRO_TRUNCATED = "[truncated]";
+const REPRO_MAX_STRING = 500;
+const REPRO_MAX_ARRAY = 200;
+const REPRO_MAX_DEPTH = 8;
 
 const SECRET_KEY_PARTS = [
   "token",

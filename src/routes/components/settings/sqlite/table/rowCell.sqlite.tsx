@@ -50,7 +50,7 @@ export function RowCell({
       )}
       {!showAssetImage && showUrlImage && (
         <Image
-          src={value as string}
+          src={value}
           alt={column}
           type="contain"
           className="bg-field h-12 w-12 object-contain"

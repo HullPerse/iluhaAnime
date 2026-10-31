@@ -1,6 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FatalVariantProps } from "@/types/core/shared.fatal";
@@ -31,7 +30,7 @@ const props = (overrides: Partial<FatalVariantProps> = {}): FatalVariantProps =>
   safe: false,
   detailsOpen: false,
   copied: false,
-  reloadRef: { current: null } as RefObject<HTMLButtonElement | null>,
+  reloadRef: { current: null },
   onToggleDetails: vi.fn(),
   onReload: vi.fn(),
   onSafeReload: vi.fn(),

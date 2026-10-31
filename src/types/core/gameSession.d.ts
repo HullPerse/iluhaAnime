@@ -18,10 +18,8 @@ export interface GameSessionOptions {
 export interface GameSessionHandle {
   runtime: GameSessionRuntime;
   telemetry: GameTelemetry;
-  /** Emulator keys held right now, from physical presses and keypad clicks. */
   pressedKeys: ReadonlySet<number>;
   start: (rom: GameRomInfo) => Promise<void>;
   stop: () => void;
-  /** Emulator key path for UI keypad clicks; inert without a running session. */
   pressKey: (key: number, pressed: boolean) => void;
 }

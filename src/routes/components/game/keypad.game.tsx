@@ -4,11 +4,6 @@ import { GAME_KEYPAD_ROWS } from "@/config/settings/keypad.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { GameKeypadProps } from "@/types/core/keypad.game";
 
-/**
- * Classic 4x4 hex keypad. The caps mirror the live key state and act as a
- * pointer path into the shared key pipeline; keyboard users press the
- * physical mapped keys directly, so the caps are not tab stops.
- */
 export default function GameKeypad({ pressedKeys, enabled, onPress }: GameKeypadProps) {
   const { t } = useI18n();
 

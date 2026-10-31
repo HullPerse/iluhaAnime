@@ -17,13 +17,13 @@ export function useFavouritePeopleToggles() {
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     const wasFavourite = previous?.people.staff.some((p) => p.id === staffId) ?? false;
     if (wasFavourite) {
-      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
+      queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
         old
           ? {
-              ...(old as AnilistRouteData),
+              ...old,
               people: {
-                ...(old as AnilistRouteData).people,
-                staff: (old as AnilistRouteData).people.staff.filter((p) => p.id !== staffId),
+                ...old.people,
+                staff: old.people.staff.filter((p) => p.id !== staffId),
               },
             }
           : old
@@ -35,13 +35,8 @@ export function useFavouritePeopleToggles() {
       if (wasFavourite) queryClient.setQueryData(queryKeys.anilistData(), previous);
       addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
-      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
-        old
-          ? {
-              ...(old as AnilistRouteData),
-              people: { ...(old as AnilistRouteData).people, staff: updated },
-            }
-          : old
+      queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
+        old ? { ...old, people: { ...old.people, staff: updated } } : old
       );
     }
   };
@@ -52,15 +47,13 @@ export function useFavouritePeopleToggles() {
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     const wasFavourite = previous?.people.characters.some((p) => p.id === characterId) ?? false;
     if (wasFavourite) {
-      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
+      queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
         old
           ? {
-              ...(old as AnilistRouteData),
+              ...old,
               people: {
-                ...(old as AnilistRouteData).people,
-                characters: (old as AnilistRouteData).people.characters.filter(
-                  (p) => p.id !== characterId
-                ),
+                ...old.people,
+                characters: old.people.characters.filter((p) => p.id !== characterId),
               },
             }
           : old
@@ -72,13 +65,8 @@ export function useFavouritePeopleToggles() {
       if (wasFavourite) queryClient.setQueryData(queryKeys.anilistData(), previous);
       addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
-      queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
-        old
-          ? {
-              ...(old as AnilistRouteData),
-              people: { ...(old as AnilistRouteData).people, characters: updated },
-            }
-          : old
+      queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
+        old ? { ...old, people: { ...old.people, characters: updated } } : old
       );
     }
   };

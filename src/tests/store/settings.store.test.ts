@@ -2,9 +2,6 @@ import { describe, expect, it, vi, beforeAll } from "vitest";
 
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 
-// The factory below is hoisted above the imports, so its spy has to be
-// created by `vi.hoisted`; importing the shared mock here would run after the
-// settings store has already requested the module.
 const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }));
 
 vi.mock("@tauri-apps/api/core", () => ({

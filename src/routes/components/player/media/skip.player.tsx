@@ -26,11 +26,6 @@ function SkipButton({
   duration: number;
   chapters: MpvChapter[];
   hasNext: boolean;
-  /**
-   * The bar is drawn over the video, so the button has to clear it. Without
-   * this the bar covers the button in the compact and cinema layouts, where
-   * the video area runs to the bottom of the window.
-   */
   raised?: boolean;
   onSkip: (time: number) => void;
   onFileNext: () => void;

@@ -341,8 +341,8 @@ type ThemeActionKeys =
   | "setThemePatch"
   | "clearThemePatch";
 
-export type ThemeData = Omit<ThemeStore, ThemeActionKeys>;
-export type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
+type ThemeData = Omit<ThemeStore, ThemeActionKeys>;
+type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
 
 const DEFAULT_THEME_DATA: ThemeData = {
   currentTheme: "win95",
@@ -485,7 +485,6 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
 const theme = createThemeSignalStore();
 
 export const themeAtoms = theme.atoms;
-export const themePersistor = theme.persistor;
 export const addCustomTheme = theme.addCustomTheme;
 export const removeCustomTheme = theme.removeCustomTheme;
 export const setTheme = theme.setTheme;

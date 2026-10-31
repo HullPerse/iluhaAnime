@@ -1,7 +1,7 @@
 import { normalizeSearchText } from "@/lib/core/normalize.utils";
 import type { AnimeTitle, AnimeTitleKind, SearchAnimeSuggestion } from "@/types/search/search";
 
-export const TITLE_KIND_BONUS: Record<AnimeTitleKind, number> = {
+const TITLE_KIND_BONUS: Record<AnimeTitleKind, number> = {
   official: 60,
   romaji: 40,
   native: 40,

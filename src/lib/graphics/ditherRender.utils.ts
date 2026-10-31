@@ -74,20 +74,7 @@ export function linearChannelToSrgb(value: number): number {
   return (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055) * 255;
 }
 
-export function darkestPaletteColor(palette: readonly DitherRGB[]): DitherRGB {
-  let darkest: DitherRGB = [0, 0, 0];
-  let lowest = Infinity;
-  for (const color of palette) {
-    const level = luminance(color[0], color[1], color[2]);
-    if (level < lowest) {
-      lowest = level;
-      darkest = color;
-    }
-  }
-  return darkest;
-}
-
-export function lightestPaletteColor(palette: readonly DitherRGB[]): DitherRGB {
+function lightestPaletteColor(palette: readonly DitherRGB[]): DitherRGB {
   let lightest: DitherRGB = [255, 255, 255];
   let highest = -Infinity;
   for (const color of palette) {
@@ -355,8 +342,8 @@ function applyOrderedDither(
         srgbChannelToLinear(b),
       ])
     : [];
-  const shiftG = DITHER_CHANNEL_SHIFT[1] as readonly [number, number];
-  const shiftB = DITHER_CHANNEL_SHIFT[2] as readonly [number, number];
+  const shiftG = DITHER_CHANNEL_SHIFT[1];
+  const shiftB = DITHER_CHANNEL_SHIFT[2];
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -384,7 +371,7 @@ function applyOrderedDither(
 
       if (usePalette) {
         const pick = nearestPaletteIndexLinear(rd, gd, bd, linearPalette);
-        const target = palette[pick] as DitherRGB;
+        const target = palette[pick];
         image[i] = lerp(rq, target[0], paletteMix);
         image[i + 1] = lerp(gq, target[1], paletteMix);
         image[i + 2] = lerp(bq, target[2], paletteMix);
@@ -414,7 +401,7 @@ const ATKINSON_KERNEL: readonly (readonly [number, number, number])[] = [
   [-1, 2, 1 / 8],
 ];
 
-export function diffuseImageBuffer(
+function diffuseImageBuffer(
   image: Uint8ClampedArray,
   width: number,
   height: number,
@@ -456,7 +443,7 @@ function diffuseToPalette(
     for (let x = x0; mirrored ? x >= 0 : x < width; x += xStep) {
       const w = (y * width + x) * 3;
       const pick = nearestPaletteIndex(work[w], work[w + 1], work[w + 2], palette);
-      const target = palette[pick] as DitherRGB;
+      const target = palette[pick];
       const errorR = (work[w] - target[0]) * errorScale;
       const errorG = (work[w + 1] - target[1]) * errorScale;
       const errorB = (work[w + 2] - target[2]) * errorScale;
@@ -501,7 +488,7 @@ function diffuseLuminance(
       const index = y * width + x;
       const value = luma[index];
       const pick = nearestRampIndex(value, ramp);
-      const target = ramp[pick] as DitherRGB;
+      const target = ramp[pick];
       const error = (value - target[0]) * errorScale;
       const o = index * 4;
       image[o] = target[0];
@@ -522,7 +509,7 @@ function nearestRampIndex(value: number, ramp: readonly DitherRGB[]): number {
   let best = 0;
   let bestDistance = Infinity;
   for (let i = 0; i < ramp.length; i++) {
-    const entry = ramp[i] as DitherRGB;
+    const entry = ramp[i];
     const distance = Math.abs(value - entry[0]);
     if (distance < bestDistance) {
       bestDistance = distance;
@@ -541,7 +528,7 @@ function nearestPaletteIndex(
   let best = 0;
   let bestDistance = Infinity;
   for (let i = 0; i < palette.length; i++) {
-    const entry = palette[i] as DitherRGB;
+    const entry = palette[i];
     const dr = r - entry[0];
     const dg = g - entry[1];
     const db = b - entry[2];

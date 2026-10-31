@@ -31,7 +31,7 @@ interface PendingRequest {
   patchWaiters: Waiter<PatchScanOutcome>[];
 }
 
-export const scanExecutors: ScanExecutors = {
+const scanExecutors: ScanExecutors = {
   walk: (roots, extensions, threads) =>
     invokeTyped<VideoFileEntry[]>("refresh_file_index", {
       paths: roots,

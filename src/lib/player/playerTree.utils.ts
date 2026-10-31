@@ -64,10 +64,6 @@ export function folderFilePaths(folder: FolderNode): string[] {
   return folder.files.map((file) => file.path).sort((a, b) => PATH_COLLATOR.compare(a, b));
 }
 
-export function allFilePaths(node: FolderNode): string[] {
-  return [...node.files.map((file) => file.path), ...node.children.flatMap(allFilePaths)];
-}
-
 export function filterTreeByPaths(tree: FolderNode, matchingPaths: Set<string>): FolderNode | null {
   const filteredFiles = tree.files.filter((f) => matchingPaths.has(f.path));
   const filteredChildren = tree.children
@@ -96,7 +92,7 @@ function buildSubtree(name: string, path: string, rest: string[], file: TreeFile
   if (rest.length <= 1) {
     return { children: [], files: [file], name, path };
   }
-  const childName = rest[0] as string;
+  const childName = rest[0];
   const childPath = `${path}/${childName}`;
   return {
     children: [buildSubtree(childName, childPath, rest.slice(1), file)],
@@ -114,13 +110,13 @@ function withFile(node: FolderNode, relativeParts: string[], file: TreeFile): Fo
     ];
     return { ...node, files };
   }
-  const head = relativeParts[0] as string;
+  const head = relativeParts[0];
   const rest = relativeParts.slice(1);
   const childPath = `${node.path}/${head}`;
   const index = node.children.findIndex((child) => child.path === childPath);
   const updated =
     index !== -1
-      ? withFile(node.children[index] as FolderNode, rest, file)
+      ? withFile(node.children[index], rest, file)
       : buildSubtree(head, childPath, rest, file);
   const children =
     index !== -1
@@ -136,11 +132,11 @@ function withoutFile(node: FolderNode, relativeParts: string[], pathKey: string)
       files: node.files.filter((candidate) => slashPath(candidate.path) !== pathKey),
     };
   }
-  const head = relativeParts[0] as string;
+  const head = relativeParts[0];
   const childPath = `${node.path}/${head}`;
   const index = node.children.findIndex((child) => child.path === childPath);
   if (index === -1) return node;
-  const updated = withoutFile(node.children[index] as FolderNode, relativeParts.slice(1), pathKey);
+  const updated = withoutFile(node.children[index], relativeParts.slice(1), pathKey);
   return {
     ...node,
     children: node.children.map((child, position) => (position === index ? updated : child)),

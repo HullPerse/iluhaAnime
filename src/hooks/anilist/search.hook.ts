@@ -67,7 +67,7 @@ function buildGlobalParams(query: string, filters: AniListFilters): AnilistSearc
     query.trim() || null,
     settings.pageSize,
     settings.anilistMaxPages
-  ) as AnilistSearchParams;
+  );
 }
 
 export function useProfileRecs(user: AniUser | null, showRecs: boolean) {

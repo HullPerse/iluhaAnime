@@ -2,10 +2,6 @@ import { cn } from "cn";
 
 import type { PlayerBezelVariant } from "@/types/player/videoPlayer";
 
-/**
- * Cabinet drawn over the picture edges. It is a passive overlay: no layout
- * shift, no pointer capture, and the band width is the only overscan.
- */
 export default function PlayerBezel({
   variant,
   className,

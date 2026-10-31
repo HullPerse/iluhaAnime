@@ -1,6 +1,5 @@
 import type { GameKeypadKey } from "@/types/core/keypad";
 
-/** Classic 4x4 hex keypad mapped to the main keyboard block. */
 export const GAME_KEYPAD_ROWS: readonly (readonly GameKeypadKey[])[] = [
   [
     { key: 0x1, code: "Digit1", label: "1" },

@@ -1,7 +1,7 @@
 import { createSignalStore } from "@/lib/core/signal.store";
 import type { UpdateSignalStore } from "@/types/core/update";
 
-export function createUpdateSignalStore(): UpdateSignalStore {
+function createUpdateSignalStore(): UpdateSignalStore {
   const store = createSignalStore();
   const promptOpen = store.atom("promptOpen", false);
   return {

@@ -7,12 +7,6 @@ import { playerShaderPath, runPlayerCommand } from "@/lib/player/playback.utils"
 import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import type { PlayerBezelVariant, PlayerSettings } from "@/types/player/videoPlayer";
 
-/**
- * Applies the selected screen mode to mpv and returns the cabinet variant to
- * draw, or null when the cabinet is off. Both are picture settings, so they
- * stay in every view preset and in fullscreen. The shader path is resolved
- * once per bundled shader.
- */
 export function usePlayerScreen(
   ready: boolean,
   settings: PlayerSettings,

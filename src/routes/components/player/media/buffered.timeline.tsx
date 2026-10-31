@@ -1,14 +1,6 @@
 import { clamp01 } from "@/lib/player/timeline.utils";
 import type { BufferedSpan } from "@/lib/player/timeline.utils";
 
-/**
- * The buffered span of a stream.
- *
- * A thin strip stays visible at rest so the stream's health is readable
- * without the cursor; the full-height wash appears only on hover or drag,
- * where a second filled segment cannot be mistaken for a chapter. Nothing is
- * drawn for a local file: `span` is null there.
- */
 function BufferedTimeline({
   span,
   duration,

@@ -113,7 +113,7 @@ function diffWordSpan(
   return diffWordSpans(query, correction)[0] ?? null;
 }
 
-export function spellSpansOf(check: SpellCheck | null): SpellWordSpan[] {
+function spellSpansOf(check: SpellCheck | null): SpellWordSpan[] {
   if (!check) return [];
   if (check.spans && check.spans.length > 0) return check.spans;
   return [

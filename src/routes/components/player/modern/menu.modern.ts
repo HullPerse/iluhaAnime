@@ -144,11 +144,6 @@ function disabledEntry(id: string, label: TranslationKey): ContextMenuEntry {
   return { kind: "item", id, label, disabled: true, onSelect: () => {} };
 }
 
-/**
- * The rows of one kind. A streaming subtitle is a separate stream, not an
- * embedded track, so it is selected from the same list the bar offers and the
- * selected row is the one that is playing.
- */
 function streamVariantEntries(
   kind: "voice" | "sub",
   menu: ModernMenuStream,
@@ -188,7 +183,6 @@ function streamVariantEntries(
   });
 }
 
-/** Quality comes from the resolved source list, never a fixed table. */
 function streamQualityEntries(
   menu: ModernMenuStream,
   actions: ModernMenuActions
@@ -207,11 +201,6 @@ function streamQualityEntries(
   }));
 }
 
-/**
- * Voice-over, subtitle stream and quality replace the mpv track lists while a
- * stream plays: the embedded tracks of one URL are not the choice the session
- * offers, and showing both would put two "subtitles" entries in one menu.
- */
 function streamEntries(menu: ModernMenuStream, actions: ModernMenuActions): ContextMenuEntry[] {
   return [
     {

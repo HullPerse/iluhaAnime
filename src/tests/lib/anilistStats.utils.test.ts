@@ -234,7 +234,7 @@ describe("buildStatsOverview", () => {
       statistics: statistics({ count: 11 }),
       lists: [
         { name: "Watching", entries },
-        { name: "Custom", entries: [entries[0]!, entries[1]!] },
+        { name: "Custom", entries: [entries[0], entries[1]] },
       ],
       scoreFormat: "POINT_10",
     });
@@ -272,7 +272,7 @@ describe("buildMediaRows", () => {
       [1, 2, 1, 99],
       [
         { name: "Watching", entries },
-        { name: "Custom", entries: [entries[0]!] },
+        { name: "Custom", entries: [entries[0]] },
       ]
     );
 

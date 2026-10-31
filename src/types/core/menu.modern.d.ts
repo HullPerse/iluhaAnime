@@ -11,7 +11,6 @@ import type { StreamVariant } from "@/types/player/stream";
 
 export interface ModernMenuStream {
   session: StreamOpen;
-  /** Every row of the episode, voice-overs and subtitle translations alike. */
   variants: StreamVariant[];
   variantsLoading: boolean;
   variantsFailed: boolean;
@@ -31,7 +30,6 @@ export interface ModernMenuSnapshot {
   eofMode: EndOfFileMode;
   playerMode: PlayerModeId;
   cabinet: PlayerCabinetId;
-  /** Present only while a streaming session is playing. */
   stream: ModernMenuStream | null;
 }
 

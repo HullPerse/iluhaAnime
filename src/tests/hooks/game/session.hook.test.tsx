@@ -393,7 +393,6 @@ describe("useGameSession", () => {
     expect(audio.setActive).toHaveBeenLastCalledWith(true);
 
     const image = putImageData.mock.calls.at(-1)?.[0] as ImageData;
-    // First plane paints `fill`, second `fill2`, both `blend`, none `background`.
     expect(image.data[0]).toBe(0xff);
     expect(image.data[5]).toBe(0xff);
     expect(image.data[10]).toBe(0xff);

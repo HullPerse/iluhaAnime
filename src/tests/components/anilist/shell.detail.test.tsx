@@ -68,11 +68,7 @@ describe("AnimeDetailShell transport", () => {
 
     const commands = invokeMock.mock.calls.map(([command]) => String(command));
     expect(commands.filter((command) => command === "get_anime_full")).toHaveLength(1);
-    // The franchise prefetch runs in parallel with the bundle instead of
-    // waiting for it to resolve first.
     expect(commands.filter((command) => command === "get_anime_franchise")).toHaveLength(1);
-    // The slot render keeps child sections out; the prefetch is the only
-    // transport chatter the shell itself adds on mount.
     expect(commands).toHaveLength(2);
   });
 });

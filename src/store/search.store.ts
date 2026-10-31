@@ -10,7 +10,7 @@ import { RANKING } from "@/config/anilist/ranking.config";
 import { normalizeSearchText } from "@/lib/core/suggestions.utils";
 import { buildTypedTitles } from "@/lib/search/searchTitle.utils";
 import type { Persistor } from "@/types/core/persist";
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { buildSignalAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { createSignalStore } from "@/lib/core/signal.store";
 import type { Cell } from "@/types/core/signal";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
@@ -79,7 +79,7 @@ function animeIndexSyncKey(animeIndex: SearchAnimeSuggestion[], profileId: numbe
   return `${animeIndex.length}:${hash}`;
 }
 
-export function invalidateAnimeIndexSync(): void {
+function invalidateAnimeIndexSync(): void {
   writeStoredSyncKey(null);
 }
 
@@ -165,7 +165,7 @@ async function dropUnifiedScope(scope: string, label: string): Promise<void> {
   if (pruneError !== null) reportBackgroundError(label, pruneError);
 }
 
-export function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
+function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
   if (!persisted || typeof persisted !== "object") return persisted as SearchPersistedState;
   const rest = { ...(persisted as Record<string, unknown>) };
   if (version < 1) {
@@ -179,8 +179,6 @@ export function migrateSearchState(persisted: unknown, version: number): SearchP
     rest.filterPresets = [];
   }
   if (version < 4) {
-    // Learning counters now live in SQLite (`unified_index`); local copies are
-    // a projection rebuilt at startup and must not be persisted again.
     delete rest.queryStats;
     delete rest.suggestionStats;
   }
@@ -213,8 +211,8 @@ type SearchActionKeys =
   | "setSortDirection"
   | "resetFilters";
 
-export type SearchData = Omit<SearchStore, SearchActionKeys>;
-export type SearchAtoms = { [K in keyof SearchData]: Cell<SearchData[K]> };
+type SearchData = Omit<SearchStore, SearchActionKeys>;
+type SearchAtoms = { [K in keyof SearchData]: Cell<SearchData[K]> };
 
 const DEFAULT_SEARCH_DATA: SearchData = {
   history: [],
@@ -233,13 +231,7 @@ const DEFAULT_SEARCH_DATA: SearchData = {
 };
 
 function buildAtoms(store: ReturnType<typeof createSignalStore>, data: SearchData): SearchAtoms {
-  const atoms = {} as SearchAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    sink[key] = store.atom(key, source[key]);
-  }
-  return atoms;
+  return buildSignalAtoms(store, data);
 }
 
 function readLegacySearch(
@@ -257,15 +249,15 @@ function readLegacySearch(
   if (!state || typeof state !== "object") return null;
   const [migrated, migrateError] = attemptSync(() => migrateSearchState(state, version));
   if (migrateError !== null || !migrated || typeof migrated !== "object") return null;
-  return { data: migrated as Record<string, unknown>, schemaVersion: SEARCH_SCHEMA_VERSION };
+  return { data: migrated, schemaVersion: SEARCH_SCHEMA_VERSION };
 }
 
-export interface SearchSignalOptions {
+interface SearchSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
 }
 
-export interface SearchSignalStore {
+interface SearchSignalStore {
   atoms: SearchAtoms;
   persistor: Persistor;
   addQuery: (query: string, scope?: string) => void;
@@ -297,7 +289,7 @@ export interface SearchSignalStore {
   subscribeAll: (fn: () => void) => () => void;
 }
 
-export function createSearchSignalStore(options: SearchSignalOptions = {}): SearchSignalStore {
+function createSearchSignalStore(options: SearchSignalOptions = {}): SearchSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "search",
     short: "search",
@@ -417,8 +409,6 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
             metadata: { animeId: anime.id, profileId },
           })),
         ]);
-        // Only remember the fingerprint once the write actually landed, so a
-        // locked database retries on the next launch instead of staying stale.
         syncUnifiedIndex(entries)
           .then((written) => {
             if (written) writeStoredSyncKey(syncKey);
@@ -544,7 +534,6 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
 const search = createSearchSignalStore();
 
 export const searchAtoms = search.atoms;
-export const searchPersistor = search.persistor;
 export const addSearchQuery = search.addQuery;
 export const clearSearchAnimeIndex = search.clearAnimeIndex;
 export const resetAnimeSuggestions = search.resetAnimeSuggestions;

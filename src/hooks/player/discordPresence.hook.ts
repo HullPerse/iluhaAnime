@@ -25,10 +25,6 @@ export function usePlayerDiscordPresence(): void {
   const stream = useCell(streamSession);
   const { t } = useI18n();
 
-  // The card uses Discord timestamps, so during normal playback the activity
-  // identity stays constant and Discord renders the elapsed time itself. The
-  // debounce keeps position changes from hammering the pipe, while still
-  // reflecting pause, seek and a new file within the interval.
   const activity = useMemo(() => {
     if (!enabled) return null;
     return buildPlayerActivity(

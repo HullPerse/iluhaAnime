@@ -175,7 +175,7 @@ describe("DitherSettings database images", () => {
       if (cmd === "import_dither_image") return added;
       return serve(cmd, args);
     });
-    await user.click(screen.getByTitle("Add"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Add"));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("import_dither_image", {
         path: "C:\\fake\\new.png",
@@ -199,14 +199,14 @@ describe("DitherSettings database images", () => {
     });
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("second.jpg")).toBeTruthy());
-    await user.click(screen.getByTitle("Add"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Add"));
     await waitFor(() => expect(screen.getByText("slow.png")).toBeTruthy());
     expect(screen.getByLabelText("Uploading image...")).toBeTruthy();
-    expect((screen.getByTitle("Add") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTitle<HTMLButtonElement>("Add")).disabled).toBe(true);
     resolveImport(FIRST);
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     expect(screen.queryByText("slow.png")).toBeNull();
-    expect((screen.getByTitle("Add") as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByTitle<HTMLButtonElement>("Add")).disabled).toBe(false);
   });
 
   it("notifies when import fails and keeps the list", async () => {
@@ -219,7 +219,7 @@ describe("DitherSettings database images", () => {
     mockOpenDialog.mockResolvedValue("C:\\fake\\bad.png");
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("second.jpg")).toBeTruthy());
-    await user.click(screen.getByTitle("Add"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Add"));
     await waitFor(() => expect(errorMessages()).toContain("unsupported"));
     expect(screen.getByAltText("second.jpg")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
@@ -231,7 +231,7 @@ describe("DitherSettings database images", () => {
     mockOpenDialog.mockResolvedValue(null);
     renderPanel();
     await waitFor(() => expect(screen.queryByText("Loading images...")).toBeNull());
-    await user.click(screen.getByTitle("Add"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Add"));
     expect(mockInvoke).not.toHaveBeenCalledWith("import_dither_image", expect.anything());
     expect(errorMessages()).toHaveLength(0);
   });
@@ -241,16 +241,16 @@ describe("DitherSettings database images", () => {
     mockInvoke.mockImplementation(serveLibrary([FIRST, SECOND]));
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
-    expect((screen.getByTitle("Delete") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTitle<HTMLButtonElement>("Delete")).disabled).toBe(true);
     await user.click(screen.getByAltText("first.png"));
-    expect((screen.getByTitle("Delete") as HTMLButtonElement).disabled).toBe(false);
-    await user.click(screen.getByTitle("Delete"));
+    expect((screen.getByTitle<HTMLButtonElement>("Delete")).disabled).toBe(false);
+    await user.click(screen.getByTitle<HTMLButtonElement>("Delete"));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("delete_dither_image", { id: "aaa" })
     );
     expect(screen.queryByAltText("first.png")).toBeNull();
     expect(screen.getByAltText("second.jpg")).toBeTruthy();
-    expect((screen.getByTitle("Delete") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTitle<HTMLButtonElement>("Delete")).disabled).toBe(true);
   });
 
   it("notifies when delete fails and keeps the image", async () => {
@@ -263,7 +263,7 @@ describe("DitherSettings database images", () => {
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByAltText("first.png"));
-    await user.click(screen.getByTitle("Delete"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Delete"));
     await waitFor(() => expect(errorMessages()).toContain("db locked"));
     expect(screen.getByAltText("first.png")).toBeTruthy();
   });
@@ -274,8 +274,8 @@ describe("DitherSettings database images", () => {
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("Placeholder")).toBeTruthy());
     await user.click(screen.getByAltText("Placeholder"));
-    expect((screen.getByTitle("Delete") as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByTitle("Edit") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTitle<HTMLButtonElement>("Delete")).disabled).toBe(true);
+    expect((screen.getByTitle<HTMLButtonElement>("Edit")).disabled).toBe(true);
     expect(mockInvoke).not.toHaveBeenCalledWith("delete_dither_image", expect.anything());
   });
 
@@ -308,10 +308,10 @@ describe("DitherSettings database images", () => {
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByAltText("first.png"));
-    await user.click(screen.getByTitle("Delete"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Delete"));
     await waitFor(() => expect(screen.queryByAltText("first.png")).toBeNull());
-    expect((screen.getByTitle("Delete") as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByTitle("Edit") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTitle<HTMLButtonElement>("Delete")).disabled).toBe(true);
+    expect((screen.getByTitle<HTMLButtonElement>("Edit")).disabled).toBe(true);
   });
 
   it("opens the editor from the cached page row without a single fetch", async () => {
@@ -326,7 +326,7 @@ describe("DitherSettings database images", () => {
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByAltText("first.png"));
-    await user.click(screen.getByTitle("Edit"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Edit"));
     await waitFor(() => expect(screen.getByRole("button", { name: "Classic" })).toBeTruthy());
     expect(mockInvoke).not.toHaveBeenCalledWith("get_dither_image", expect.anything());
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -350,8 +350,8 @@ describe("DitherSettings database images", () => {
     });
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
-    expect((screen.getByTitle("Edit") as HTMLButtonElement).disabled).toBe(false);
-    await user.click(screen.getByTitle("Edit"));
+    expect((screen.getByTitle<HTMLButtonElement>("Edit")).disabled).toBe(false);
+    await user.click(screen.getByTitle<HTMLButtonElement>("Edit"));
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("get_dither_image", { id: "ddd" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Classic" })).toBeTruthy());
   });
@@ -366,7 +366,7 @@ describe("DitherSettings database images", () => {
     });
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
-    await user.click(screen.getByTitle("Edit"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Edit"));
     await waitFor(() => expect(errorMessages()).toContain("Could not load images."));
     expect(screen.queryByRole("button", { name: "Classic" })).toBeNull();
   });
@@ -387,7 +387,7 @@ describe("DitherSettings database images", () => {
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByAltText("first.png"));
-    await user.click(screen.getByTitle("Edit"));
+    await user.click(screen.getByTitle<HTMLButtonElement>("Edit"));
     await waitFor(() => expect(screen.getByRole("button", { name: "Classic" })).toBeTruthy());
     expect(screen.getAllByTestId("preview-canvas")).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "Save" }));

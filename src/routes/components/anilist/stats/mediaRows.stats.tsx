@@ -8,10 +8,6 @@ import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { StatsMediaRow } from "@/types/anilist/anilistStats";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 
-/**
- * Drill-down row list used by the statistics Overview: one row per title,
- * opening the anime detail on click or Enter.
- */
 export function MediaRows({
   rows,
   scoreFormat,

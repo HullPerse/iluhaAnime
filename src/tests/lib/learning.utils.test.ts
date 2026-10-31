@@ -68,7 +68,7 @@ describe("ranking/learning", () => {
       lastUsedAt: NOW + 2,
       lastIgnoredAt: NOW + 2,
     });
-    expect(countersOf(stats.frieren!)).toEqual({
+    expect(countersOf(stats.frieren)).toEqual({
       ignoredCount: 1,
       lastUsedAt: NOW + 2,
       selectedCount: 1,

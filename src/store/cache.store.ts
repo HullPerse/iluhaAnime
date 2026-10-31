@@ -1,4 +1,4 @@
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
 import { writeAppCache } from "@/lib/core/cache.utils";
@@ -19,8 +19,8 @@ type CacheActionKeys =
   | "setSeedPreference"
   | "removeSeedPreference";
 
-export type CacheData = Omit<CacheStore, CacheActionKeys>;
-export type CacheAtoms = { [K in keyof CacheData]: Cell<CacheData[K]> };
+type CacheData = Omit<CacheStore, CacheActionKeys>;
+type CacheAtoms = { [K in keyof CacheData]: Cell<CacheData[K]> };
 
 const DEFAULT_CACHE_DATA: CacheData = {
   episodeTracker: {},
@@ -45,12 +45,12 @@ function readLegacyCache(
   return { data: state as Record<string, unknown>, schemaVersion: CACHE_SCHEMA_VERSION };
 }
 
-export interface CacheSignalOptions {
+interface CacheSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
 }
 
-export interface CacheSignalStore {
+interface CacheSignalStore {
   atoms: CacheAtoms;
   persistor: Persistor;
   setEpisodeTracker: (tracker: CacheData["episodeTracker"]) => void;
@@ -63,7 +63,7 @@ export interface CacheSignalStore {
   removeSeedPreference: (id: number) => void;
 }
 
-export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheSignalStore {
+function createCacheSignalStore(options: CacheSignalOptions = {}): CacheSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "cache",
     short: "cache",
@@ -76,28 +76,8 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
   const persisted = persistor.read();
   const persistedData = (persisted?.data ?? {}) as Partial<CacheData>;
   const data: CacheData = { ...DEFAULT_CACHE_DATA, ...persistedData };
-  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
-  const atoms = {} as CacheAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
-  const source = data as unknown as Record<string, unknown>;
-  for (const key of Object.keys(data)) {
-    const cell = store.atom(key, source[key]);
-    const handle: Cell<unknown> = {
-      id: cell.id,
-      get: cell.get,
-      set: (value) => {
-        mirror[key] = value;
-        cell.set(value);
-      },
-      update: (fn) => {
-        const next = (fn as (prev: unknown) => unknown)(cell.get());
-        mirror[key] = next;
-        cell.set(next);
-      },
-      subscribe: cell.subscribe,
-    };
-    sink[key] = handle;
-  }
+  const mirror: Record<string, unknown> = { ...data };
+  const atoms = buildMirrorAtoms(store, data, mirror);
 
   store.subscribeAll(() => {
     persistor.write(mirror);
@@ -173,7 +153,6 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
 const cache = createCacheSignalStore();
 
 export const cacheAtoms = cache.atoms;
-export const cachePersistor = cache.persistor;
 export const setEpisodeTracker = cache.setEpisodeTracker;
 export const syncTorrentOrder = cache.syncTorrentOrder;
 export const moveTorrentOrder = cache.moveTorrentOrder;

@@ -2,6 +2,7 @@ import { DEFAULT_VOLUME } from "@/config/player/video.config";
 import { Debouncer } from "@/lib/core/debounce.utils";
 import type { Persistor } from "@/types/core/persist";
 import {
+  applyAtomValues,
   buildMirrorAtoms,
   buildSignalAtoms,
   createPersistedStoreContext,
@@ -55,8 +56,8 @@ type PlayerActionKeys =
   | "setProfile"
   | "patchSettings";
 
-export type PlayerData = Omit<PlayerStore, PlayerActionKeys>;
-export type PlayerAtoms = { [K in keyof PlayerData]: Cell<PlayerData[K]> };
+type PlayerData = Omit<PlayerStore, PlayerActionKeys>;
+type PlayerAtoms = { [K in keyof PlayerData]: Cell<PlayerData[K]> };
 
 type PlaybackActionKeys =
   | "setSnapshot"
@@ -70,8 +71,8 @@ type PlaybackActionKeys =
   | "setChapters"
   | "reset";
 
-export type PlaybackData = Omit<PlaybackStore, PlaybackActionKeys>;
-export type PlaybackAtoms = { [K in keyof PlaybackData]-?: Cell<PlaybackData[K]> };
+type PlaybackData = Omit<PlaybackStore, PlaybackActionKeys>;
+type PlaybackAtoms = { [K in keyof PlaybackData]-?: Cell<PlaybackData[K]> };
 
 const INITIAL_PLAYBACK: PlaybackData = {
   ready: false,
@@ -139,7 +140,7 @@ function readLegacyPlayer(
   };
 }
 
-export function migratePlayerData(persistedState: unknown): PlayerData {
+function migratePlayerData(persistedState: unknown): PlayerData {
   if (!isRecord(persistedState)) return { ...DEFAULT_PLAYER_DATA };
   const resolved = resolveWithDefaults(persistedState, { ...DEFAULT_PLAYER_DATA });
   return { ...DEFAULT_PLAYER_DATA, ...resolved };
@@ -210,16 +211,8 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
 
 export interface PlaybackSignalStore {
   atoms: PlaybackAtoms;
-  /** True only at the very start; flips instead of changing every tick. */
   atStart: Derived<boolean>;
-  /** True only at the end; flips instead of changing every tick. */
   atEnd: Derived<boolean>;
-  /**
-   * The stream the window is playing, or null for local playback.
-   *
-   * Deliberately outside `atoms`: `setSnapshot` runs at 10 Hz from mpv and
-   * must never be able to clear the session, and the session is not persisted.
-   */
   streamSession: Cell<StreamOpen | null>;
   subscribeAll: (fn: () => void) => () => void;
   setSnapshot: (snapshot: PlaybackSnapshot) => void;
@@ -241,9 +234,6 @@ function setIfChanged<T>(atom: Cell<T>, value: T): void {
 export function createPlaybackSignalStore(): PlaybackSignalStore {
   const store = createSignalStore();
   const atoms = buildSignalAtoms(store, { ...INITIAL_PLAYBACK });
-  // Boundary flags for controls that only need "disabled at start/end". A
-  // derived cell notifies its subscribers only when the boolean flips, so
-  // these do not re-render the control bar at 10 Hz.
   const atStart = store.derive([atoms.timePos], ([timePos]) => (timePos as number) === 0);
   const atEnd = store.derive(
     [atoms.timePos, atoms.duration],
@@ -363,15 +353,8 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     setTracks: (tracks) => atoms.tracks.set(tracks),
     setChapters: (chapters) => atoms.chapters.set(chapters),
     resetPlayback: () => {
-      const fresh = { ...INITIAL_PLAYBACK };
-      const target = atoms as unknown as Record<string, Cell<unknown>>;
-      const source = fresh as unknown as Record<string, unknown>;
       seekConfirm = 0;
-      store.batch(() => {
-        for (const key of Object.keys(source)) {
-          target[key].set(source[key]);
-        }
-      });
+      store.batch(() => applyAtomValues(atoms, INITIAL_PLAYBACK));
     },
     streamSession,
   };
@@ -392,13 +375,11 @@ if (
 }
 
 export const playerAtoms = player.atoms;
-export const playerPersistor = player.persistor;
 export const getPlayerSnapshot = player.snapshot;
 export function subscribePlayer(listener: () => void): () => void {
   return player.subscribeAll(listener);
 }
 export const setVolume = player.setVolume;
-export const setFolderPaths = player.setFolderPaths;
 export const setEofMode = player.setEofMode;
 export const setHwdec = player.setHwdec;
 export const setSeekMode = player.setSeekMode;

@@ -68,13 +68,13 @@ export function BarChart({
         const band = plot.height / rows;
         const barHeight = clamp(band - 4, CHART_LAYOUT.barMinHeight, CHART_LAYOUT.barMaxHeight);
         const centers = data.map((_, index) => plot.top + band * index + band / 2);
-        const activeCenter = cursor.active == null ? 0 : centers[cursor.active]!;
+        const activeCenter = cursor.active == null ? 0 : centers[cursor.active];
         const activeLength =
           activeDatum == null ? 0 : barLength(activeDatum.value, max, plot.width);
         return (
           <>
             {data.map((datum, index) => {
-              const center = centers[index]!;
+              const center = centers[index];
               const length = barLength(datum.value, max, plot.width);
               const isActive = cursor.active === index;
               return (
@@ -113,7 +113,7 @@ export function BarChart({
             <BandAxisLabels
               plot={plot}
               entries={data.map((datum, index) => ({
-                position: centers[index]!,
+                position: centers[index],
                 label: datum.label,
               }))}
               side="left"

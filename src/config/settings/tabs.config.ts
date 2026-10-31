@@ -35,11 +35,6 @@ export function visibleTabs(settings: TabSettings) {
   return settings.gameTabUnlocked ? [...tabs, GAME_TAB_KEY] : tabs;
 }
 
-export function tabForAltDigit(settings: TabSettings, digit: number): TabId | undefined {
-  if (!Number.isInteger(digit) || digit < 1) return undefined;
-  return visibleTabs(settings)[digit - 1]?.id;
-}
-
 export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey }[] = [
   { id: "general", key: "settings.general" },
   { id: "notifications", key: "settings.notifications" },
@@ -50,7 +45,7 @@ export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey 
   { id: "changelog", key: "settings.changelog" },
 ] as const;
 
-export const SETTINGS_TABS = new Set<SettingsTab>([
+const SETTINGS_TABS = new Set<SettingsTab>([
   "general",
   "notifications",
   "search",
@@ -64,5 +59,3 @@ export const SETTINGS_TABS = new Set<SettingsTab>([
 export const settingsSearchSchema = z.object({
   tab: withFallback(z.enum([...SETTINGS_TABS]), "general"),
 });
-
-export type SettingsSearch = z.infer<typeof settingsSearchSchema>;

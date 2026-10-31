@@ -85,7 +85,7 @@ export function WizardDetailsPanel(props: {
         </span>
         <Select
           value={props.status}
-          onChange={(v) => props.setStatus(v as CollectionStatus)}
+          onChange={(v) => props.setStatus(v)}
           options={sortStatuses(props.statuses).map((s) => ({
             value: s.id,
             label: statusLabel(props.statuses, s.id, t, locale),

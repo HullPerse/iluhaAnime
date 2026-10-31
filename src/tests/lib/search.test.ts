@@ -127,7 +127,7 @@ describe("search/intent", () => {
       const query = 'genre="sci fi" frieren';
       const tokens = tokenizeIntent(query);
       expect(tokens).toHaveLength(1);
-      expect(query.slice(tokens[0]!.start, tokens[0]!.end)).toBe('genre="sci fi"');
+      expect(query.slice(tokens[0].start, tokens[0].end)).toBe('genre="sci fi"');
     });
     it("ignores unknown keys and empty values", () => {
       expect(tokenizeIntent("foo:bar studio= year=2024")).toEqual([

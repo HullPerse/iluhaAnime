@@ -259,10 +259,10 @@ export function hasLabelPrefix(badges: readonly HintBadge[], buffer: string): bo
   return badges.some((badge) => badge.label.startsWith(buffer));
 }
 
-export const HINT_BADGE_OFFSET = 24;
+const HINT_BADGE_OFFSET = 24;
 
-export const BADGE_CHAR_PX = 7;
-export const PINNED_BADGE_MAX_PX = 256;
+const BADGE_CHAR_PX = 7;
+const PINNED_BADGE_MAX_PX = 256;
 const BADGE_PADDING_PX = 8;
 const BADGE_ICON_PX = 12;
 const BADGE_ROW_PX = 20;

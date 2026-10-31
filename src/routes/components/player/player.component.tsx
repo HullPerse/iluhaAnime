@@ -189,11 +189,7 @@ function PlayerComponent() {
   const stream = useCell(streamSession);
   usePlayerDiscordPresence();
   const streamNext = useStreamNext();
-  // The window owns the stream session for the bar and the context menu, so a
-  // switch started from either place is the same one, guarded once.
   const playerStream = usePlayerStream();
-  // A stream session has no mpv playlist: its next episode is a new source
-  // resolution, not playlist-next, and it has no previous item.
   const { hasNext, hasPrev } = navigationAvailability({
     stream: stream !== null,
     hasNextEpisode: streamNext.hasNext,
@@ -247,8 +243,6 @@ function PlayerComponent() {
     const loaded = await readPath();
     if (!loaded || !isCurrent()) return;
     if (streamSession.get() !== null) {
-      // A stream has no local media entry and no local watch state; its
-      // position is saved under the session's own watch key.
       syncMarginsRef.current(true);
       return;
     }
@@ -284,16 +278,12 @@ function PlayerComponent() {
       setFinished(false);
       setLoadingFile(true);
       if (request.stream) {
-        // Same rule as init: the Rust side owns the stream load, because only
-        // it can set `http-header-fields` before the file is opened.
         streamSession.set(request.stream);
         return;
       }
       streamSession.set(null);
       resumeRef.current = request.resume;
       setLiveWatch(request.watch ?? null);
-      // The window owns the load for a local queue: the backend only raises it
-      // and emits this request, so this is the one `loadfile` for the file.
       ignore(loadQueue(request.files, request.resume, request.startIndex));
     },
     onFileLoaded: () => {
@@ -301,8 +291,6 @@ function PlayerComponent() {
     },
     onEndFile: () => {
       setFinished(false);
-      // A stream has no playlist to advance; the next episode is resolved when
-      // the end-of-file mode asks for it.
       if (streamSession.get() !== null && eofMode === "next" && streamNext.hasNext) {
         setLoadingFile(true);
         ignore(streamNext.goNext());
@@ -620,8 +608,6 @@ function PlayerComponent() {
     ignore(seekTo(0, "exact").then(() => setPaused(false)));
   }, []);
 
-  // The menu memo needs stable values, and the hook returns a fresh object on
-  // every render, so its fields are pulled out once.
   const {
     session: playerStreamSession,
     variants: playerStreamVariants,

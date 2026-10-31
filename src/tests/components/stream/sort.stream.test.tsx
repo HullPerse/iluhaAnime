@@ -8,8 +8,6 @@ import { applyStreamFilters, streamFilters, streamPage } from "@/store/stream.st
 
 const noop = () => undefined;
 
-// jsdom measures every element as zero wide, which pages the bar down to one
-// key. A real window fits all four, so the tests set the measured width.
 const setMeasuredWidth = (width: number) => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", {
     configurable: true,
@@ -81,7 +79,6 @@ describe("StreamSortBar", () => {
     setMeasuredWidth(100);
     render(<StreamSortBar onHistoryOpen={noop} />);
 
-    // The active key owns the visible page, so only Rating is on screen.
     expect(screen.queryByRole("button", { name: "Title" })).toBe(null);
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));

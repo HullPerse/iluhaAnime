@@ -4,12 +4,6 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
 import type { StreamingAnime } from "@/types/player/stream";
 
-/**
- * The title header of the detail modal: poster, identity, badges, genres and
- * synopsis. It carries no action: playback is the episode rows, and the
- * AniList and copy-link buttons sit in the modal header beside the close
- * button, where every dialog in the app keeps its window actions.
- */
 export default function StreamHero({ anime }: { anime: StreamingAnime }) {
   const { t } = useI18n();
   const cover = useStreamCover(anime.cover);

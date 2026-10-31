@@ -52,9 +52,6 @@ function PlayerModal({
         aria-label={header}
         className="player-modal fixed inset-0 z-40 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center bg-black/50 p-0"
         onClick={(event) => {
-          // The click target is the nearest common ancestor of the press and the release, so a
-          // drag that starts inside the panel and ends on the backdrop arrives here as a
-          // backdrop click. Only a press and a release that both happened on the backdrop close.
           if (event.target !== event.currentTarget) return;
           if (!backdropPressRef.current || !backdropReleaseRef.current) return;
           onClose();

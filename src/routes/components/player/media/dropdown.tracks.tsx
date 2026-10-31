@@ -10,11 +10,6 @@ const CLOSE_DEFS: ResolvedHotkeyDef<"close">[] = [
   { id: "close", chord: "Escape", repeat: "once", keybindId: "menu.close" },
 ];
 
-/**
- * One player control that opens a list above itself. Audio, subtitle, streaming
- * voice-over and streaming quality all render through it, which is why the
- * values are opaque strings: the caller owns their meaning.
- */
 function TrackDropdown({
   label,
   options,
@@ -31,13 +26,11 @@ function TrackDropdown({
   label: string;
   options: DropdownOption[];
   value: string | null;
-  /** Shown for the empty value, and as a selectable row when `allowNone`. */
   noneLabel?: string;
   allowNone?: boolean;
   addLabel?: string;
   onSelect: (value: string | "no") => void;
   onAdd?: () => void;
-  /** Starts loading an option before it is clicked. */
   onOptionHover?: (value: string) => void;
   disabled?: boolean;
   className?: string;

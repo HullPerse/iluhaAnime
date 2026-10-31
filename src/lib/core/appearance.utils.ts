@@ -7,7 +7,7 @@ import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/gr
 import type { ThemeDefinition, ThemePatch } from "@/types/graphics/theme";
 import type { ThemePrePaintPayload } from "@/types/core/appearance";
 
-export const THEME_VARS_SCHEMA = 2;
+const THEME_VARS_SCHEMA = 2;
 
 const THEME_VARS_STORAGE_KEY = "themeVars";
 

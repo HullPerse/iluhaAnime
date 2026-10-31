@@ -1,8 +1,3 @@
-// Stream identity and normalization.
-//
-// The Rust side serializes its own shapes; these functions turn them into the
-// domain types the UI uses and build the one identity the player persists
-// against. Every export here has a caller.
 
 import type { StreamingAnime, StreamingEpisode, StreamVariant } from "@/types/player/stream";
 
@@ -90,21 +85,10 @@ export function normalizeVariant(raw: RawAnimeLibVariant): StreamVariant {
   };
 }
 
-/**
- * The identity of one voice-over row: `<player>:<teamId>`.
- *
- * The team id alone is not unique across hosters, which is why the hoster is
- * part of the key the player switches on.
- */
 export function buildVariantId(variant: StreamVariant): string {
   return `${variant.player}:${variant.id}`;
 }
 
-/**
- * The row behind a `<player>:<teamId>` id, or the same team under another
- * hoster when the exact row is gone. The session keeps the hoster that
- * resolved it, while the list may only carry the row under a fallback hoster.
- */
 export function variantOf(
   variants: readonly StreamVariant[],
   variantId: string
@@ -115,24 +99,11 @@ export function variantOf(
   return variants.find((variant) => variant.id === teamId) ?? null;
 }
 
-/**
- * Whether a row is a subtitle translation rather than a voice-over.
- *
- * Kodik spells the kind in the translation label (`Субтитры`) and, for some
- * teams, only in the name (`Crunchyroll.Subtitles`). A subtitle row is still
- * a separate stream, so the player shows it as its own choice.
- */
 export function isSubtitleVariant(variant: StreamVariant): boolean {
   const label = `${variant.language ?? ""} ${variant.name}`.toLowerCase();
   return label.includes("субтит") || label.includes("subtitle");
 }
 
-/**
- * The synthetic watch key for a stream session.
- *
- * Format: `stream:<sourceId>:<mediaId>:<episodeId>`. A media URL is never a
- * key, so a rotated CDN URL cannot lose the resume position.
- */
 export function buildWatchKey(sourceId: string, mediaId: string, episodeId: string): string {
   return `stream:${sourceId}:${mediaId}:${episodeId}`;
 }

@@ -51,7 +51,6 @@ function SettingsPanel({
   eofMode: EndOfFileMode;
   autoHide: boolean;
   profile: PlayerProfileId;
-  /** A stream ignores the local cache profile, so the control is hidden. */
   streaming: boolean;
   onPatchSettings: (patch: Partial<PlayerSettings>) => void;
   onHwdec: (mode: HwdecMode) => void;

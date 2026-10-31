@@ -125,7 +125,6 @@ describe("StreamToolbar", () => {
       />
     );
 
-    // Adult plus two genres. The sort does not count: it lives on its own bar.
     expect(screen.getByRole("button", { name: "Filters" }).textContent).toContain("3");
   });
 });

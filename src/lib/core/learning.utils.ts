@@ -36,10 +36,6 @@ function mergeStat(
   };
 }
 
-/**
- * Rows come from SQLite in seconds; every consumer uses milliseconds, so the
- * conversion happens once here. Stale rows are filtered at the same time.
- */
 export function buildLearningMaps(
   rows: readonly LearningStatRow[],
   now = Date.now()

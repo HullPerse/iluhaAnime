@@ -1,13 +1,13 @@
 import { createSignalStore } from "@/lib/core/signal.store";
 import type { FindBarSignalStore, FindBarState } from "@/types/core/findBar";
 
-export const EMPTY_FIND_BAR: FindBarState = {
+const EMPTY_FIND_BAR: FindBarState = {
   open: false,
   caseSensitive: false,
   wholeWords: false,
 };
 
-export function createFindBarSignalStore(): FindBarSignalStore {
+function createFindBarSignalStore(): FindBarSignalStore {
   const store = createSignalStore();
   const bar = store.atom<FindBarState>("bar", EMPTY_FIND_BAR);
   const patch = (partial: Partial<FindBarState>): void => {

@@ -84,7 +84,6 @@ function TorrentFilesSection({
   files: TorrentFileInfo[];
   type: "torrent" | "player";
   path?: string;
-  /** Fixed list height for the resizable player cards; undefined keeps the default cap. */
   listHeight?: number;
   sequentialFile?: number | null;
   queuePositions?: Map<number, number>;

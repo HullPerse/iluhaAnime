@@ -43,7 +43,7 @@ export function VirtualRowsTable({
     estimateSize: () => 30,
     overscan: 8,
     getItemKey: (index) => {
-      const row = rowsArray[index] as unknown[];
+      const row = rowsArray[index];
       return `${makeRowId(row, index, interactive, primaryKeyValues)}-${index}`;
     },
   });
@@ -80,7 +80,7 @@ export function VirtualRowsTable({
           </tr>
         )}
         {virtualItems.map((virtualRow) => {
-          const row = rowsArray[virtualRow.index] as unknown[];
+          const row = rowsArray[virtualRow.index];
           return (
             <DataRow
               key={`${makeRowId(row, virtualRow.index, interactive, primaryKeyValues)}-${virtualRow.index}`}

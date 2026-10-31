@@ -5,8 +5,8 @@ import type { OverlayEntry, OverlayStore } from "@/types/ui/overlay";
 
 type OverlayActionKeys = "register" | "dismissTop";
 
-export type OverlayData = Omit<OverlayStore, OverlayActionKeys>;
-export type OverlayAtoms = { [K in keyof OverlayData]: Cell<OverlayData[K]> };
+type OverlayData = Omit<OverlayStore, OverlayActionKeys>;
+type OverlayAtoms = { [K in keyof OverlayData]: Cell<OverlayData[K]> };
 
 let nextOverlayId = 1;
 
@@ -14,13 +14,13 @@ function topOverlay(entries: readonly OverlayEntry[]): OverlayEntry | null {
   return entries.at(-1) ?? null;
 }
 
-export interface OverlaySignalStore {
+interface OverlaySignalStore {
   atoms: OverlayAtoms;
   register: (dismiss: OverlayEntry["dismiss"]) => () => void;
   dismissTop: () => boolean;
 }
 
-export function createOverlaySignalStore(): OverlaySignalStore {
+function createOverlaySignalStore(): OverlaySignalStore {
   const store = createSignalStore();
   const entries = store.atom<OverlayEntry[]>("entries", []);
 
@@ -36,7 +36,7 @@ export function createOverlaySignalStore(): OverlaySignalStore {
   let unsubscribeEscape: (() => void) | null = null;
 
   return {
-    atoms: { entries } as OverlayAtoms,
+    atoms: { entries },
     register: (dismiss) => {
       const entry: OverlayEntry = { id: nextOverlayId++, dismiss };
       entries.set([...entries.get(), entry]);

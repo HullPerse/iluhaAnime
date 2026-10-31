@@ -20,7 +20,7 @@ function shuffled<T>(items: readonly T[], seed: number): T[] {
   const out = [...items];
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(draw() * (i + 1));
-    const swap = out[j]!;
+    const swap = out[j];
     out[j] = out[i]!;
     out[i] = swap;
   }

@@ -87,7 +87,7 @@ export function searchCollectionIndex(
     }
   }
   return [...candidates]
-    .map((itemIndex) => ({ item: index.items[itemIndex]!, fields: index.normalized[itemIndex]! }))
+    .map((itemIndex) => ({ item: index.items[itemIndex], fields: index.normalized[itemIndex] }))
     .filter(({ fields }) => {
       const all = fieldsOf(fields);
       if (positives.length === 0) return matchesNegatedOnly(all, terms);
@@ -102,7 +102,7 @@ function filterByWholeQuery(
   normalizedQuery: string
 ): CollectionItem[] {
   return [...candidates]
-    .map((itemIndex) => ({ item: index.items[itemIndex]!, fields: index.normalized[itemIndex]! }))
+    .map((itemIndex) => ({ item: index.items[itemIndex], fields: index.normalized[itemIndex] }))
     .filter(({ fields }) => fieldsOf(fields).some((field) => field.includes(normalizedQuery)))
     .map(({ item }) => item);
 }

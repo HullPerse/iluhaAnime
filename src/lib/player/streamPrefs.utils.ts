@@ -1,8 +1,3 @@
-// Per-title stream preferences.
-//
-// A voice-over, a quality and the chosen audio/subtitle language belong to the
-// title, not to the episode: they are remembered once and reused for the next
-// episode and the next launch. The position stays per episode in `player/watch`.
 
 import type { StreamPrefs, StreamVariant } from "@/types/player/stream";
 
@@ -18,16 +13,10 @@ export function emptyPrefs(sourceId: string, mediaId: string): StreamPrefs {
   };
 }
 
-/** Whether the site serves this voice-over itself (and carries 1080p/4K). */
 export function isNativeVariant(variant: StreamVariant): boolean {
   return variant.player === "Animelib";
 }
 
-/**
- * One row per voice-over. A team the site serves itself has both a native row
- * and a Kodik mirror; only the native row carries 1080p/4K, so it replaces the
- * mirror at the mirror's position. Teams without a native row keep Kodik.
- */
 export function preferNativeVariants(variants: StreamVariant[]): StreamVariant[] {
   const keyOf = (variant: StreamVariant) => `${variant.id}:${variant.language ?? ""}`;
   const nativeByTeam = new Map(
@@ -50,12 +39,6 @@ export function preferNativeVariants(variants: StreamVariant[]): StreamVariant[]
   return preferred;
 }
 
-/**
- * The voice-over to play: the remembered one, the same team under another
- * player (a native row replaces Kodik for the same voice-over), any row of the
- * remembered player, then the first row. Returns null only when the episode has
- * no rows at all.
- */
 export function pickVariant(
   variants: StreamVariant[],
   prefs: Pick<StreamPrefs, "variantId"> | null

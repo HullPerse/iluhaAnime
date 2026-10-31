@@ -8,25 +8,10 @@ import { scheduleTask } from "@/lib/core/shared.utils";
 import { formatClock } from "@/lib/core/time.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 
-/**
- * A stall shorter than this is not worth a full-screen wash: the frozen frame
- * for one or two ticks reads as a glitch, not as a wait.
- */
 const SHOW_DELAY_MS = 400;
-/** Once shown, the overlay stays at least this long so it cannot flicker. */
 const MIN_VISIBLE_MS = 400;
-/** After this long with no data the wait is a stall, not a hiccup. */
 const STALL_AFTER_MS = 12_000;
 
-/**
- * Shown while mpv's cache runs dry and playback is parked. A stream gets the
- * honest numbers - how much is loaded ahead and how fast it arrives - while a
- * slow local file (a network share, a spinning disk) just says it is reading.
- *
- * `cache-buffering-state` is deliberately not shown: it is the fill level
- * until mpv unpauses, not how much of the episode has arrived, so a percentage
- * here promised progress that did not exist. It lives in the stats popover.
- */
 function BufferingOverlay({ visible }: { visible: boolean }) {
   const { t } = useI18n();
   const ahead = useCell(playbackAtoms.cacheDuration);
@@ -71,8 +56,6 @@ function BufferingOverlay({ visible }: { visible: boolean }) {
       ? t("player.stream.buffering.stalled", { seconds: STALL_AFTER_MS / 1000 })
       : t("player.stream.buffering")
     : t("player.stream.buffering.local");
-  // The live region hears one stable sentence; the changing numbers stay out of
-  // it so a screen reader does not read a new percentage every tick.
   const detail: string[] = [];
   if (streaming && !stalled) {
     if (ahead !== undefined && ahead > 0) {

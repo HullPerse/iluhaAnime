@@ -13,29 +13,21 @@ export interface StreamOpen {
   sourceName: string;
   mediaId: string;
   mediaTitle: string;
-  /** The catalog slug, so a history row can reopen the title without a search. */
   slug?: string;
   episodeId: string;
   episodeNumber: number;
   episodeTitle: string;
   cover?: string;
-  /** The AniList id the catalog matched, used for episode previews. */
   anilistId?: number | null;
   watchKey: string;
   resume?: number;
   headers: Record<string, string>;
-  /** Proxy for the media request as well as the catalog calls. */
   proxyUrl?: string | null;
   quality: string;
   variantId: string;
   sources: StreamVariantSource[];
-  /**
-   * The episode's voice-over and subtitle rows, carried by the window that
-   * already fetched them so the player does not repeat the request.
-   */
   variants?: StreamVariant[];
   mediaUrl: string;
-  /** Whether playback was paused when a switch replaced the media. */
   paused?: boolean;
 }
 
@@ -45,8 +37,6 @@ export interface StreamVariantSource {
   quality: string;
   label: string;
 }
-
-// AnimeLib wire types (serialized from Rust via Tauri commands)
 
 export interface AnimeLibAnime {
   id: string;
@@ -78,13 +68,10 @@ export interface AnimeLibVariant {
   name: string;
   language?: string;
   separateStream: boolean;
-  /** The hoster name, for example `Kodik`. */
   player: string;
-  /** The hoster's own player URL; empty when the site serves the row itself. */
   sourceUrl: string;
 }
 
-/** A resolved playable source for one voice-over of one episode. */
 export interface StreamSource {
   variantId: string;
   quality: string;
@@ -310,7 +297,6 @@ export interface PlaybackStore {
   tracks: MpvTrack[];
   chapters: MpvChapter[];
   seekTarget: number | null;
-  /** Position pinned while a replacement stream loads, so the timeline does not jump to 0. */
   streamResume: number | null;
   seekSettle: boolean;
   fpsRender?: number;

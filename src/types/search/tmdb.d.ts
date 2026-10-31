@@ -1,4 +1,4 @@
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/api/transport.api";
 
 export interface TmdbApiConfig {
   transport?: ApiTransport;

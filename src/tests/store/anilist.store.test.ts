@@ -23,7 +23,7 @@ function memoryStorage(backing = new Map<string, string>()): Storage {
     get length() {
       return backing.size;
     },
-  } as Storage;
+  };
 }
 
 function setupNotifications(backing = new Map<string, string>()): AnilistNotificationsSignalStore {

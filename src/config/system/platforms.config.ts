@@ -10,7 +10,6 @@ export const GAME_PLATFORM_LABELS: Record<GamePlatform, TranslationKey> = {
   xochip: "game.platform.xochip",
 };
 
-/** Store filter order. */
 export const GAME_STORE_PLATFORMS: readonly GameStorePlatform[] = ["chip8", "schip", "xochip"];
 
 export const GAME_STORE_PLATFORM_LABELS: Record<GameStorePlatform, TranslationKey> = {

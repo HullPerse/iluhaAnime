@@ -50,7 +50,6 @@ export function useUpscalePreview({
     latestKeyRef.current = requestKey;
   }, [requestKey]);
 
-  // Settings changes invalidate the loaded frames; the previous key's frames must not resurface.
   useEffect(() => {
     setState((prev) => (prev.key === requestKey ? prev : EMPTY_STATE(requestKey)));
   }, [requestKey]);

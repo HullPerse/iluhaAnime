@@ -105,12 +105,8 @@ function Controls({
     t("player.media.key.autohide.toggle"),
     "player.toggleAutoHide"
   );
-  // Do not subscribe to timePos: it changes every tick. The boundary flags
-  // only flip at the start/end, and the jump handler reads the live position.
   const atStart = useDerived(playbackAtStart);
   const atEnd = useDerived(playbackAtEnd);
-  // A stream picks its voice-over and subtitles from the source, so the mpv
-  // audio and subtitle lists would only duplicate that choice.
   const streaming = useCell(streamSession);
   const [speedOpen, setSpeedOpen] = useState<boolean>(false);
   const [boundary, setBoundary] = useState<string | null>(null);
@@ -213,8 +209,6 @@ function Controls({
 
       {streaming !== null ? (
         <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
-          {/* A stream session has no previous file and its next item is an
-              episode, not a playlist entry, so the file navigation is hidden. */}
           <Button
             size="icon"
             className="size-6"

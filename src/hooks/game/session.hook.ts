@@ -23,13 +23,11 @@ const PALETTE = {
   off: tryParseHexColor(GAME_DISPLAY.background, [0, 0, 0, 255]),
 } as const;
 
-/** One-bit frames keep the theme; XO frames index four colours (0-3). */
 const THEME_COLORS: readonly Rgba[] = [PALETTE.off, PALETTE.on];
 
 const XO_FILL2_FALLBACK: Rgba = [255, 102, 0, 255];
 const XO_BLEND_FALLBACK: Rgba = [102, 34, 0, 255];
 
-/** Background, first plane, second plane and overlap for a session. */
 function sessionColors(palette: GamePalette | null): readonly Rgba[] {
   if (palette === null) return THEME_COLORS;
   return [
@@ -48,28 +46,20 @@ interface ActiveSession {
   session: number;
   cyclesPerSecond: number;
   audio: GameAudio;
-  /** Palette of the packed frames: two theme colours or the four XO ones. */
   colors: readonly Rgba[];
   loop: AnimationLoopTask;
   releaseKeypad: () => void;
-  /** First raf frame only stamps the clock; cycles start on the next one. */
   primed: boolean;
   lastStamp: number;
   telemetryStamp: number;
   inFlight: boolean;
   frames: number;
-  /** Fractional cycles not yet delivered; keeps CPS exact on short raf frames. */
   cycleCarry: number;
-  /** Fractional timer budget in ms; emits one tick once it reaches `frameTickMs`. */
   timerCarryMs: number;
   image: ImageData | null;
   context: CanvasRenderingContext2D | null;
 }
 
-/**
- * Keeps the canvas at the native framebuffer grid. SUPER-CHIP programs can
- * switch resolution mid-session, so the canvas follows the frame size.
- */
 function paintFrame(
   active: ActiveSession,
   frame: GameFrame,
@@ -110,7 +100,6 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     activeRef.current?.audio.setVolume(options.volume);
   }, [options.canvas, options.muted, options.volume]);
 
-  /** Single key path: physical presses and keypad clicks both land here. */
   const sendKey = useCallback((active: ActiveSession, key: number, pressed: boolean) => {
     setPressedKeys((current) => {
       if (pressed === current.has(key)) return current;
@@ -162,8 +151,6 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       }
       const elapsed = Math.min(now - active.lastStamp, GAME_DISPLAY.maxElapsedMs);
       active.lastStamp = now;
-      // Displays above 60 Hz hand out raf frames shorter than one timer tick;
-      // carry the fractions instead of flooring them away every frame.
       active.cycleCarry += (elapsed * active.cyclesPerSecond) / 1000;
       const cycles = Math.floor(active.cycleCarry);
       active.cycleCarry -= cycles;

@@ -5,7 +5,6 @@ import { useDiscordPresence } from "@/hooks/discordPresence.hook";
 import { discordApi } from "@/api/discord.api";
 import { settingsAtoms } from "@/store/settings.store";
 import { presenceAtoms } from "@/store/presence.store";
-import type { TabId } from "@/types/ui/settings";
 
 vi.mock("@/api/discord.api", () => ({
   discordApi: {
@@ -45,7 +44,7 @@ afterEach(() => {
 
 describe("useDiscordPresence", () => {
   it("keeps the card off while the setting is disabled", () => {
-    renderHook(() => useDiscordPresence("collection" as TabId));
+    renderHook(() => useDiscordPresence("collection"));
     act(() => {
       vi.advanceTimersByTime(1000);
     });
@@ -56,7 +55,7 @@ describe("useDiscordPresence", () => {
 
   it("publishes the idle card once enabled", () => {
     settingsAtoms.discordRpcEnabled.set(true);
-    renderHook(() => useDiscordPresence("collection" as TabId));
+    renderHook(() => useDiscordPresence("collection"));
     act(() => {
       vi.advanceTimersByTime(1000);
     });
@@ -69,7 +68,7 @@ describe("useDiscordPresence", () => {
   it("publishes the open AniList detail instead of idle", () => {
     settingsAtoms.discordRpcEnabled.set(true);
     presenceAtoms.detail.set({ id: 52991, title: "Sousou no Frieren" });
-    renderHook(() => useDiscordPresence("collection" as TabId));
+    renderHook(() => useDiscordPresence("collection"));
     act(() => {
       vi.advanceTimersByTime(1000);
     });
@@ -83,7 +82,7 @@ describe("useDiscordPresence", () => {
   it("falls back to idle when the detail closes", () => {
     settingsAtoms.discordRpcEnabled.set(true);
     presenceAtoms.detail.set({ id: 1, title: "Sousou no Frieren" });
-    renderHook(() => useDiscordPresence("collection" as TabId));
+    renderHook(() => useDiscordPresence("collection"));
     act(() => {
       vi.advanceTimersByTime(1000);
     });
@@ -106,7 +105,7 @@ describe("useDiscordPresence", () => {
   it("publishes the search card on the Search tab", () => {
     settingsAtoms.discordRpcEnabled.set(true);
     presenceAtoms.search.set(true);
-    renderHook(() => useDiscordPresence("search" as TabId));
+    renderHook(() => useDiscordPresence("search"));
     act(() => {
       vi.advanceTimersByTime(1000);
     });

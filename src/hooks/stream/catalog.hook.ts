@@ -1,8 +1,3 @@
-// Streaming catalog queries.
-//
-// Everything the AnimeLib source returns is server state, so it lives in the
-// query cache and not in a signal store: pagination, cancellation and stale
-// results come for free, and a slow episode never overwrites a newer one.
 
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -20,7 +15,6 @@ import { ignore } from "@/lib/core/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { StreamCatalogFilters } from "@/types/player/stream";
 
-/** Search results, or the site's browse list when the query is empty. */
 export function useStreamSearch(query: string, page: number, filters: StreamCatalogFilters) {
   return useAppQuery("slow", {
     queryKey: queryKeys.streamSearch(query, page, streamFiltersKey(filters)),
@@ -29,12 +23,7 @@ export function useStreamSearch(query: string, page: number, filters: StreamCata
   });
 }
 
-/**
- * The catalog filter options; the Rust side keeps them for twenty minutes. The
- * tab's own query and the prefetch below share these options, so the modal
- * reads whichever arrived first instead of asking again.
- */
-export const streamConstantsOptions = {
+const streamConstantsOptions = {
   queryKey: queryKeys.streamConstants(),
   queryFn: () => streamApi.constants(),
 };
@@ -43,18 +32,12 @@ export function useStreamConstants(enabled: boolean) {
   return useAppQuery("static", { ...streamConstantsOptions, enabled });
 }
 
-/**
- * Fetch the filter lists while the tab's chunk is being prefetched (hover or
- * focus on its tab button), so the first "Filters" click opens with the lists
- * instead of a spinner. Nothing calls this at app start.
- */
 export function prefetchStreamConstants(queryClient: QueryClient): Promise<void> {
   return queryClient
     .prefetchQuery({ ...QUERY_PRESETS.static, ...streamConstantsOptions })
     .then(() => undefined);
 }
 
-/** A title and its episode list: one query, one IPC round trip. */
 export function useStreamTitle(slug: string | null) {
   return useAppQuery("static", {
     queryKey: queryKeys.streamTitle(slug ?? ""),
@@ -63,10 +46,6 @@ export function useStreamTitle(slug: string | null) {
   });
 }
 
-/**
- * Episode previews of the title AniList matched, keyed by episode number. A
- * title without an AniList id simply has no previews, which is not an error.
- */
 export function useAnilistEpisodePreviews(anilistId: number | null | undefined) {
   const query = useAppQuery("static", {
     queryKey: queryKeys.anilistEpisodePreviews(anilistId ?? 0),
@@ -79,11 +58,6 @@ export function useAnilistEpisodePreviews(anilistId: number | null | undefined) 
   return query.data ?? new Map<number, string>();
 }
 
-/**
- * The locally remembered episodes of one title. The player writes these rows,
- * so the modal can mark watched episodes and preselect the last one without a
- * network round trip.
- */
 export function useStreamHistoryForAnime(animeId: string | null) {
   return useAppQuery("slow", {
     queryKey: queryKeys.streamHistoryForAnime(animeId ?? ""),
@@ -92,23 +66,15 @@ export function useStreamHistoryForAnime(animeId: string | null) {
   });
 }
 
-/** The newest remembered episodes across titles; the modal and the warm-up share it. */
-export const streamHistoryRecentOptions = {
+const streamHistoryRecentOptions = {
   queryKey: queryKeys.streamHistoryRecent(),
   queryFn: () => streamApi.historyRecent(50),
 };
 
-/** The newest remembered episodes across titles, for the history modal. */
 export function useStreamHistoryRecent(open: boolean) {
   return useAppQuery("slow", { ...streamHistoryRecentOptions, enabled: open });
 }
 
-/**
- * Warm the history strip once the app is usable. The rows are local SQLite
- * behind `idx_stream_history_updated`, so the cost is one IPC round trip and
- * the history modal then opens without a query. A disabled streaming tab has
- * nothing to warm.
- */
 export function usePrewarmStreamHistory(ready: boolean): void {
   const queryClient = useQueryClient();
   const enabled = useCell(settingsAtoms.streamTabEnabled);
@@ -118,7 +84,6 @@ export function usePrewarmStreamHistory(ready: boolean): void {
   }, [enabled, queryClient, ready]);
 }
 
-/** Watched count and the newest episode of one title, for a hover badge. */
 export function useStreamHistoryProgress(animeId: string, enabled: boolean) {
   return useAppQuery("slow", {
     queryKey: queryKeys.streamHistoryProgress(animeId),
@@ -127,25 +92,3 @@ export function useStreamHistoryProgress(animeId: string, enabled: boolean) {
   });
 }
 
-/** The voice-overs an episode offers. */
-export function useStreamPlayers(episodeId: string | null) {
-  return useAppQuery("slow", {
-    queryKey: queryKeys.streamPlayers(episodeId ?? ""),
-    queryFn: () => streamApi.players(episodeId ?? ""),
-    enabled: episodeId !== null && episodeId.length > 0,
-  });
-}
-
-/** The playable sources of one voice-over, best quality first. */
-export function useStreamSources(episodeId: string | null, variantId: string | null) {
-  return useAppQuery("slow", {
-    queryKey: queryKeys.streamSources(episodeId ?? "", variantId ?? ""),
-    queryFn: () =>
-      streamApi.streamSources({
-        episodeId: episodeId ?? "",
-        variantId: variantId ?? "",
-      }),
-    enabled:
-      episodeId !== null && episodeId.length > 0 && variantId !== null && variantId.length > 0,
-  });
-}

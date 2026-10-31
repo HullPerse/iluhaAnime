@@ -129,7 +129,7 @@ const renderModal = (onClose = vi.fn(), capture: ScreenshotCapture = CAPTURE) =>
 };
 
 const folderValue = (): string => {
-  return (screen.getByLabelText("Folder") as HTMLInputElement).value;
+  return screen.getByLabelText<HTMLInputElement>("Folder").value;
 };
 
 const isDisabled = (element: HTMLElement): boolean => {
@@ -168,7 +168,7 @@ const stubStageBox = (width: number, height: number) => {
     y: 0,
     toJSON: () => ({}),
   };
-  vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect as DOMRect);
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect);
 };
 
 const picture = (): HTMLElement => {
@@ -811,7 +811,7 @@ describe("ScreenshotModal annotations", () => {
     await user.click(tool("Text"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
 
-    const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
+    const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
     expect(editor.style.color).toBe("rgb(229, 52, 47)");
     expect(editor.style.fontSize).toBe("28px");
     await user.type(editor, "look here{Enter}");
@@ -846,7 +846,7 @@ describe("ScreenshotModal annotations", () => {
     await user.click(screen.getByRole("button", { name: "OK" }));
     await user.click(tool("42 px"));
     fireEvent.pointerDown(overlay(), { clientX: 60, clientY: 40 });
-    const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
+    const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
     expect(editor.style.color).toBe("rgb(46, 158, 79)");
     expect(editor.style.fontSize).toBe("42px");
   });
@@ -889,7 +889,7 @@ describe("ScreenshotModal annotations", () => {
     expect(readout()).toBe("350 x 250 px");
 
     fireEvent.doubleClick(overlay(), { clientX: 225, clientY: 195 });
-    const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
+    const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
     expect(editor.value).toBe("hi");
     expect(editor.style.left).toBe("220px");
     expect(editor.style.top).toBe("190px");
@@ -956,7 +956,7 @@ describe("ScreenshotModal annotations", () => {
 
     await user.click(tool("Select an area"));
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
-    const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
+    const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
     expect(editor.style.fontSize).toBe("28px");
   });
 
@@ -967,7 +967,7 @@ describe("ScreenshotModal annotations", () => {
     await user.click(tool("Text"));
     fireEvent.pointerDown(overlay(), { clientX: 50, clientY: 50 });
 
-    const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
+    const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
     expect(space().style.transform).toBe("scale(0.5)");
     expect(editor.style.left).toBe("100px");
     expect(editor.style.top).toBe("100px");
@@ -994,7 +994,7 @@ describe("ScreenshotModal annotations", () => {
     expect(screen.queryByRole("button", { name: /^Selection/ })).toBeNull();
 
     fireEvent.doubleClick(overlay(), { clientX: 225, clientY: 195 });
-    const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
+    const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
     expect(editor.value).toBe("hi");
     expect(editor.style.left).toBe("220px");
     expect(editor.style.top).toBe("190px");

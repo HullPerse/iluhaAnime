@@ -44,7 +44,6 @@ describe("player re-render profile", () => {
         notifications[name] = (notifications[name] ?? 0) + 1;
       })
     );
-    // Seed the derived cells so their first evaluation is not counted as a flip.
     playbackAtStart.get();
     playbackAtEnd.get();
     const boundaries = { atStart: 0, atEnd: 0 };
@@ -75,7 +74,6 @@ describe("player re-render profile", () => {
 
     for (let tick = 0; tick < ticks; tick += 1) {
       setPlaybackSnapshot({ ...SNAPSHOT, timePos: (tick + 1) * 0.1 });
-      // A real tick arrives 100 ms apart; yielding lets React flush each one.
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
@@ -85,9 +83,7 @@ describe("player re-render profile", () => {
     unsubEnd();
 
     expect(notifications.timePos).toBe(ticks);
-    // The first snapshot changes the duration once; later ticks must not.
     expect(notifications.duration ?? 0).toBe(1);
-    // A boundary flag flips once when playback leaves 0, not on every tick.
     expect(boundaries.atStart).toBe(1);
     expect(boundaries.atEnd).toBe(0);
     expect(commits).toBeGreaterThan(0);

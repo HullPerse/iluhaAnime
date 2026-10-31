@@ -44,7 +44,7 @@ function hueFromRgb(r: number, g: number, b: number, max: number, delta: number)
 }
 
 function chromaToRgb(c: number, second: number, m: number, hue: number): RGB {
-  const segment = HUE_SEGMENTS[Math.min(5, Math.floor(normalizeHue(hue) / 60))] ?? HUE_SEGMENTS[0]!;
+  const segment = HUE_SEGMENTS[Math.min(5, Math.floor(normalizeHue(hue) / 60))] ?? HUE_SEGMENTS[0];
   const values = [c, second, 0];
   const [r, g, b] = segment.map((index) => values[index] ?? 0) as [number, number, number];
   return {

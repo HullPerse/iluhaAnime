@@ -257,7 +257,7 @@ describe("search/didyoumean popularity", () => {
   it("prefers personal history over a popular partial", () => {
     expect(
       suggestSpellingWithReason("friren", {
-        animeIndex: [INDEX[15]!],
+        animeIndex: [INDEX[15]],
         history: ["frisen"],
       })?.correction
     ).toBe("frisen");

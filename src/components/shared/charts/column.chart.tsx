@@ -86,9 +86,9 @@ export function ColumnChart({
           Math.ceil(data.length / Math.max(1, Math.floor(plot.width / 40)))
         );
         const labelEntries = data
-          .map((datum, index) => ({ position: centers[index]!, label: datum.label, index }))
+          .map((datum, index) => ({ position: centers[index], label: datum.label, index }))
           .filter((entry) => entry.index % tickStep === 0 || entry.index === data.length - 1);
-        const activeCenter = cursor.active == null ? 0 : centers[cursor.active]!;
+        const activeCenter = cursor.active == null ? 0 : centers[cursor.active];
         const activeTop = activeDatum == null ? 0 : valueY(activeDatum.value);
         return (
           <>

@@ -5,7 +5,7 @@ import { createSignalStore } from "@/lib/core/signal.store";
 import type { PersistedStoreContext, PersistedStoreOptions } from "@/types/core/persisted";
 import type { Cell, SignalStore } from "@/types/core/signal";
 
-export function defaultGetStorage(): Storage | undefined {
+function defaultGetStorage(): Storage | undefined {
   if (typeof localStorage === "undefined") return undefined;
   return localStorage;
 }
@@ -58,6 +58,16 @@ export function buildSignalAtoms<T extends object>(
   return atoms as { [K in keyof T]-?: Cell<T[K]> };
 }
 
+export function applyAtomValues<T extends object>(
+  atoms: { [K in keyof T]-?: Cell<T[K]> },
+  values: Partial<T>
+): void {
+  const target = atoms as Record<string, Cell<unknown>>;
+  for (const [key, value] of Object.entries(values)) {
+    target[key]?.set(value);
+  }
+}
+
 export function createPersistedStoreContext(options: PersistedStoreOptions): PersistedStoreContext {
   const getStorage = options.getStorage ?? defaultGetStorage;
   const store = createSignalStore();
@@ -75,7 +85,7 @@ export function createPersistedStoreContext(options: PersistedStoreOptions): Per
         }
       : undefined,
     onError: (scope, error) =>
-      reportBackgroundError(`${options.short}.signal.${scope}`, error as Error),
+      reportBackgroundError(`${options.short}.signal.${scope}`, error),
   });
 
   const finishAdopt = (

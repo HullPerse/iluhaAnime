@@ -5,7 +5,6 @@ import type { RefObject } from "react";
 export interface GameScreenProps {
   runtime: GameSessionRuntime;
   telemetry: GameTelemetry;
-  /** Keys held right now, from physical presses and keypad clicks. */
   pressedKeys: ReadonlySet<number>;
   muted: boolean;
   volume: number;

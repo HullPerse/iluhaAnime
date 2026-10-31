@@ -100,11 +100,11 @@ describe("DitherPreviewModal", () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: "Classic" }));
-    expect((screen.getByRole("button", { name: "Classic" }) as HTMLButtonElement).disabled).toBe(
+    await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Classic" }));
+    expect((screen.getByRole<HTMLButtonElement>("button", { name: "Classic" })).disabled).toBe(
       true
     );
-    expect((screen.getByRole("button", { name: "None" }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole<HTMLButtonElement>("button", { name: "None" })).disabled).toBe(
       false
     );
   });
@@ -222,9 +222,9 @@ describe("DitherPreviewModal", () => {
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
     await user.click(screen.getByRole("button", { name: "Game Boy" }));
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
-    await user.click(screen.getByRole("button", { name: "Original" }));
+    await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Original" }));
     expect(screen.queryAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(0);
-    expect((screen.getByRole("button", { name: "Original" }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole<HTMLButtonElement>("button", { name: "Original" })).disabled).toBe(
       true
     );
   });

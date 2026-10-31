@@ -50,12 +50,12 @@ export function useSqliteCell(params: {
   }
 
   async function loadImageCell(column: string, keys: string[]): Promise<void> {
-    const path = await sqliteApi.getCellImage(selectedDatabase!, selectedTable!, column, keys);
+    const path = await sqliteApi.getCellImage(selectedDatabase, selectedTable, column, keys);
     if (path) setCellImageSrc(assetUrl(path));
   }
 
   async function loadTextCell(column: string, keys: string[]): Promise<void> {
-    const value = await sqliteApi.getCell(selectedDatabase!, selectedTable!, column, keys);
+    const value = await sqliteApi.getCell(selectedDatabase, selectedTable, column, keys);
     const resolved = value ?? "NULL";
     setCellValue(resolved);
     setCellEdit(resolved);
@@ -64,7 +64,7 @@ export function useSqliteCell(params: {
 
   const openCell = async (row: unknown[], column: string) => {
     const keys = primaryKeyValues(row);
-    const display = displayCell(row[rows?.columns.indexOf(column) ?? -1] as unknown);
+    const display = displayCell(row[rows?.columns.indexOf(column) ?? -1]);
     setSelectedCell({ column, keys, display });
     setCellValue(display);
     setCellEdit(display);

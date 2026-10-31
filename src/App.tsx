@@ -58,13 +58,6 @@ const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   torrent: () => import("@/routes/torrent.route"),
 };
 
-/**
- * Data a tab can warm once its chunk is prefetched. Only the streaming tab has
- * any: its filter lists come from one request the Rust client caches for
- * twenty minutes, so a hover hides the network from the first "Filters" click.
- * The app start stays out of this: the request happens only when someone shows
- * interest in the tab.
- */
 const TAB_WARM: Partial<Record<TabId, (client: QueryClient) => Promise<unknown>>> = {
   stream: (client) => prefetchStreamConstants(client),
 };
@@ -104,9 +97,6 @@ export default function App() {
         reportBackgroundError("tab.prefetch", error);
         return;
       }
-      // A failed data warm is not a failed chunk prefetch: the tab still opens
-      // and its own query retries, so the warm reports nothing and stays
-      // best-effort.
       const warm = TAB_WARM[id];
       if (warm) ignore(attempt(warm(queryClient)).then(() => undefined));
     })();
@@ -143,9 +133,6 @@ export default function App() {
   };
 
   const splash = useSplashStages(tabs.length > 0);
-  // The history strip is read after the splash, not during it: the rows are
-  // local and cheap, and warming them here keeps the first "History" click
-  // from paying for the database read.
   usePrewarmStreamHistory(splash.done);
   if (!fastLaunch && !splash.done && !splash.dbFailed) {
     return (

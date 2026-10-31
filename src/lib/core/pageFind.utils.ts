@@ -1,8 +1,8 @@
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type { PageFindCollection, PageFindMatch, PageFindOptions } from "@/types/core/pageFind";
 
-export const PAGE_FIND_NODE_CAP = 20000;
-export const PAGE_FIND_MATCH_CAP = 2000;
+const PAGE_FIND_NODE_CAP = 20000;
+const PAGE_FIND_MATCH_CAP = 2000;
 
 export const FIND_MATCH_HIGHLIGHT = "find-match";
 export const FIND_CURRENT_HIGHLIGHT = "find-current";

@@ -91,7 +91,6 @@ export interface UnifiedIndexRow {
   lastUsedAt: number;
 }
 
-/** Raw feedback row returned by the SQLite index; `lastUsedAt` is in seconds. */
 export interface LearningStatRow {
   id: string;
   kind: string;

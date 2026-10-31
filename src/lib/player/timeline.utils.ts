@@ -4,24 +4,15 @@ import type { MpvChapter } from "@/types/player/videoPlayer";
 
 export const TOOLTIP_WIDTH = 128;
 export const LIVE_SCRUB_INTERVAL = 80;
-export const CHAPTER_SNAP_SECONDS = 20;
+const CHAPTER_SNAP_SECONDS = 20;
 
 export type HoverInfo = { time: number; x: number; chapter?: string };
 
-/** A span of media mpv can reach without a new network request. */
 export type BufferedSpan = { start: number; end: number };
 
 const SPAN_EPSILON = 0.05;
 const SPAN_TOLERANCE = 0.5;
 
-/**
- * The buffered span around the playhead.
- *
- * mpv reports the start and the end of the demuxer cache separately, and the
- * start sits behind the playhead once the back buffer holds data. When mpv does
- * not report the timestamps, the observed cache duration is used ahead of the
- * playhead. Anything that would paint nothing is dropped.
- */
 export function bufferedSpan(
   timePos: number,
   duration: number,
@@ -36,11 +27,6 @@ export function bufferedSpan(
   return { start, end };
 }
 
-/**
- * The tooltip line for a stream: where the loaded span ends, or a warning that
- * the seek under the cursor has to fetch first. `null` for a local file, where
- * there is nothing to say.
- */
 export function bufferedHintText(
   translate: TFunc,
   span: BufferedSpan | null,
@@ -54,7 +40,6 @@ export function bufferedHintText(
   return translate("player.media.timeline.buffered.pending");
 }
 
-/** Whether a seek to `time` stays inside the loaded span. */
 export function isBuffered(span: BufferedSpan | null, time: number): boolean {
   if (span === null) return false;
   return time >= span.start - SPAN_TOLERANCE && time <= span.end + SPAN_TOLERANCE;

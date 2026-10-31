@@ -11,9 +11,9 @@ import { rowMetaParts, sameRowVisual } from "@/lib/core/list.utils";
 import { generatePlaceholder } from "@/lib/core/placeholder.utils";
 import { sortStatuses, statusColorOf, statusLabel } from "@/lib/core/status.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
-import type { CollectionRowProps, CollectionStatus } from "@/types/anilist/collection";
+import type { CollectionRowProps } from "@/types/anilist/collection";
 
-export function CollectionRowView({
+function CollectionRowView({
   item,
   statuses,
   selected,
@@ -74,7 +74,7 @@ export function CollectionRowView({
             {onSetStatus ? (
               <Select
                 value={item.status}
-                onChange={(v) => onSetStatus(item, v as CollectionStatus)}
+                onChange={(v) => onSetStatus(item, v)}
                 options={sortStatuses(statuses).map((s) => ({
                   value: s.id,
                   label: statusLabel(statuses, s.id, t, locale),
@@ -126,5 +126,4 @@ export function CollectionRowView({
 
 const CollectionRow = memo(CollectionRowView, sameRowVisual);
 
-export default CollectionRow;
 export { CollectionRow };

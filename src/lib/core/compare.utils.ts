@@ -44,8 +44,8 @@ export function pearsonCorrelation(xs: readonly number[], ys: readonly number[])
   let sumX = 0;
   let sumY = 0;
   for (let i = 0; i < n; i += 1) {
-    sumX += xs[i] as number;
-    sumY += ys[i] as number;
+    sumX += xs[i];
+    sumY += ys[i];
   }
   const meanX = sumX / n;
   const meanY = sumY / n;
@@ -53,8 +53,8 @@ export function pearsonCorrelation(xs: readonly number[], ys: readonly number[])
   let dx = 0;
   let dy = 0;
   for (let i = 0; i < n; i += 1) {
-    const x = (xs[i] as number) - meanX;
-    const y = (ys[i] as number) - meanY;
+    const x = (xs[i]) - meanX;
+    const y = (ys[i]) - meanY;
     num += x * y;
     dx += x * x;
     dy += y * y;
@@ -105,12 +105,12 @@ export function meanAbsoluteGap(xs: readonly number[], ys: readonly number[]): n
   if (xs.length !== ys.length || xs.length === 0) return null;
   let total = 0;
   for (let index = 0; index < xs.length; index += 1) {
-    total += Math.abs((xs[index] as number) - (ys[index] as number));
+    total += Math.abs((xs[index]) - (ys[index]));
   }
   return round1(total / xs.length);
 }
 
-export function compareConfidence(count: number): CompareConfidence {
+function compareConfidence(count: number): CompareConfidence {
   if (count <= 0) return "none";
   if (count < COMPARE_LOW_CONFIDENCE_SCORED) return "low";
   if (count < COMPARE_HIGH_CONFIDENCE_SCORED) return "medium";
@@ -134,8 +134,8 @@ function directionAgreement(
   const mineMean = mean(mine);
   const friendMean = mean(friend);
   for (let index = 0; index < mine.length; index += 1) {
-    const mineSide = (mine[index] as number) - mineMean;
-    const friendSide = (friend[index] as number) - friendMean;
+    const mineSide = (mine[index]) - mineMean;
+    const friendSide = (friend[index]) - friendMean;
     if (Math.abs(mineSide) < 0.05 || Math.abs(friendSide) < 0.05) {
       neutral += 1;
     } else if (mineSide > 0 === friendSide > 0) {

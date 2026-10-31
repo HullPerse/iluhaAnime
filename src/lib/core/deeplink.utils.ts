@@ -48,13 +48,9 @@ export function parseTorrentLink(raw: string): TorrentDeepLink | null {
   const parts = rest.split("/");
   if (parts.length !== 2 || parts[0] !== "torrent") return null;
   if (!/^[0-9a-fA-F]{40}$/.test(parts[1])) return null;
-  return { infoHash: parts[1].toLowerCase() as TorrentHash };
+  return { infoHash: parts[1].toLowerCase() };
 }
 
-/**
- * A streaming title link. The source is part of the path so a second catalog
- * can add its own segment without changing the existing links.
- */
 export function parseStreamLink(raw: string): StreamDeepLink | null {
   const trimmed = raw.trim();
   if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) !== 0) return null;

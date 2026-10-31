@@ -9,11 +9,6 @@ import { useStreamHistoryRecent } from "@/hooks/stream/catalog.hook";
 
 import { HistoryRow } from "@/routes/components/stream/historyRow.stream";
 
-/**
- * The history modal: the last remembered episodes, newest first, read from the
- * local database. It opens a title through its slug, the same path a deep link
- * takes, so a row is one click away from the episode list.
- */
 export default function StreamHistoryModal({
   open,
   onClose,

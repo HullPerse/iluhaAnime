@@ -31,7 +31,7 @@ export default function TorrentFilesPlayerSection({
     queryKey: queryKeys.extraFiles(item.save_dir),
     queryFn: () =>
       invokeTyped<{ path: string; name: string; size: number }[]>("scan_extra_files", {
-        path: item.save_dir!,
+        path: item.save_dir,
       }).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
     enabled: !!item.save_dir,
   });

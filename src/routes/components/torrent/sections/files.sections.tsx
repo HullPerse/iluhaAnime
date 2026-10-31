@@ -50,9 +50,6 @@ export function TorrentFiles({
   const sequentialFile = files.find((file) => file.index === item.sequential_file);
   const remaining = files.filter((file) => !file.completed).length;
   const orderable = remaining > 1;
-  // What the selected payloads already occupy on the volume, next to what
-  // they will occupy once finished. Sparse files keep the first number near
-  // the downloaded bytes while the second one is the full payload.
   const selection = files.filter((file) => file.selected);
   const selectionBytes = selection.reduce((sum, file) => sum + file.size, 0);
   const selectionOnDisk = selection.reduce((sum, file) => sum + (file.on_disk_bytes ?? 0), 0);

@@ -14,7 +14,7 @@ import type {
   ResolveCoverOptions,
 } from "@/types/core/cover";
 
-export function withProfile(
+function withProfile(
   candidates: CoverCandidate[],
   profileById: ReadonlyMap<number, CoverProfile>
 ): CoverCandidate[] {
@@ -48,8 +48,8 @@ export function findLocalMatch(
   return null;
 }
 
-export const COVER_SCORE_THRESHOLD = 45;
-export const COVER_MAX_CANDIDATES = 5;
+const COVER_SCORE_THRESHOLD = 45;
+const COVER_MAX_CANDIDATES = 5;
 
 const UNMARKED_SEASON_PENALTY = 4;
 
@@ -222,7 +222,7 @@ function franchiseScore(parsed: CoverParsed, candidate: CoverCandidate): number 
   return 40;
 }
 
-export function normCoverText(value: string): string {
+function normCoverText(value: string): string {
   return value
     .toLowerCase()
     .replaceAll(/[^a-z0-9]+/g, " ")

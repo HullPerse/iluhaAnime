@@ -8,11 +8,7 @@ import {
   wizardDefaultsMeta,
   wizardDefaultsProgress,
 } from "@/lib/core/wizard.utils";
-import type {
-  CollectionItem,
-  CollectionStatus,
-  WizardSaveValues,
-} from "@/types/anilist/collection";
+import type { CollectionItem, CollectionStatus } from "@/types/anilist/collection";
 
 function toPreviewNumber(value: string): number {
   return Number(value) || 0;
@@ -100,7 +96,7 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
           localKind,
           startedAt,
           finishedAt,
-        } as WizardSaveValues,
+        },
         coverBlobId,
         initial
       ),

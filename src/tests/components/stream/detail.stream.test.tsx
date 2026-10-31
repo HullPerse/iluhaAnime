@@ -185,7 +185,6 @@ describe("StreamDetail AniList button", () => {
   it("warms the next episode's rows and sources as soon as the title opens", async () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    // The selection starts at episode one, so its neighbour is episode two.
     await waitFor(() => expect(api.players).toHaveBeenCalledWith("2"));
     await waitFor(() =>
       expect(api.streamSources).toHaveBeenCalledWith({ episodeId: "2", variantId: "Kodik:7" })
@@ -196,7 +195,6 @@ describe("StreamDetail AniList button", () => {
   it("plays the remembered voice-over without asking for another one", async () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    // The episode row is the play action: the modal has no Play button.
     fireEvent.click(await screen.findByText("The Journey's End"));
 
     await waitFor(() => expect(playback.openStream).toHaveBeenCalledTimes(1));
@@ -209,8 +207,6 @@ describe("StreamDetail AniList button", () => {
   });
 
   it("falls back to the picked row when the remembered voice-over is gone", async () => {
-    // Every read answers the same stale row, warm-up included: only a click
-    // that sees it can prove the fallback.
     api.prefsGet.mockResolvedValue({
       sourceId: "animelib",
       mediaId: "21371",
@@ -234,8 +230,6 @@ describe("StreamDetail AniList button", () => {
     fireEvent.click(await screen.findByText("The Journey's End"));
 
     await waitFor(() => expect(playback.openStream).toHaveBeenCalledTimes(1));
-    // The warm-up asks for the stale row too; the click ends on the row that
-    // actually exists.
     expect(api.streamSources.mock.calls.at(-1)?.[0].variantId).toBe("Kodik:7");
     expect(playback.openStream).toHaveBeenCalledWith(
       expect.objectContaining({ mediaUrl: "https://cdn/Kodik-7.mp4" })

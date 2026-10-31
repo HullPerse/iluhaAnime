@@ -1,7 +1,3 @@
-/**
- * Single source of truth for ranking weights. The backend no longer scores
- * candidates, so these numbers never need a Rust twin.
- */
 export const RANKING = {
   MAX_QUERY_LENGTH: 200,
   MAX_LEARNING_ITEMS: 2000,
@@ -15,7 +11,6 @@ export const RANKING = {
   FEEDBACK_SELECTED_CAP: 80,
   FEEDBACK_IGNORED_WEIGHT: 8,
   FEEDBACK_IGNORED_CAP: 60,
-  /** Ten days keeps "yesterday" clearly ahead without erasing month-old habits. */
   FEEDBACK_HALFLIFE_HOURS: 240,
 
   POOL_FACTOR: 6,

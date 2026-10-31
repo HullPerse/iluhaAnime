@@ -2,8 +2,8 @@ import { createSignalStore } from "@/lib/core/signal.store";
 import type { Cell } from "@/types/core/signal";
 import type { ModalEntry, ModalScope, ModalStacks, ModalStore } from "@/types/ui/modal";
 
-export type ModalData = Pick<ModalStore, "stacks">;
-export type ModalAtoms = { [K in keyof ModalData]: Cell<ModalData[K]> };
+type ModalData = Pick<ModalStore, "stacks">;
+type ModalAtoms = { [K in keyof ModalData]: Cell<ModalData[K]> };
 
 let nextModalId = 1;
 
@@ -76,11 +76,9 @@ const modals = createModalSignalStore();
 
 export const modalAtoms = modals.atoms;
 export const pushModal = modals.push;
-export const replaceModal = modals.replace;
 export const popModal = modals.pop;
 export const clearModalScope = modals.clearScope;
 export const clearAllModals = modals.clearAll;
-export const batchModal = modals.batch;
 
 export function topModal(scope: ModalScope): ModalEntry | null {
   return modalAtoms.stacks.get()[scope].at(-1) ?? null;

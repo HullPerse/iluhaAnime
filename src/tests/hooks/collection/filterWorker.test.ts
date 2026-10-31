@@ -73,7 +73,7 @@ describe("useCollectionFilterWorker", () => {
   it("re-resolves when the item list changes", () => {
     const { result, rerender } = setup("bleach");
     expect(result.current.filtered.map((entry) => entry.id)).toEqual(["b"]);
-    rerender({ q: "bleach", list: [ITEMS[0]!, ITEMS[2]!] });
+    rerender({ q: "bleach", list: [ITEMS[0], ITEMS[2]] });
     expect(result.current.filtered.map((entry) => entry.id)).toEqual([]);
   });
 });

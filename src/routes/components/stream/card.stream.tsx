@@ -8,13 +8,6 @@ import { formatResume } from "@/lib/core/history.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { StreamingAnime } from "@/types/player/stream";
 
-/**
- * One catalog tile, shaped like the collection card: poster on top, a dense
- * two-line caption under it. The rating is the site's own average, which
- * arrives in the same list answer as the card itself. There is no AniList
- * badge: a site match is not a state of this title, and the modal already
- * carries the AniList action.
- */
 function StreamCardView({
   anime,
   onOpen,
@@ -23,14 +16,11 @@ function StreamCardView({
 }: {
   anime: StreamingAnime;
   onOpen: () => void;
-  /** Roving tabindex: only the active tile is a Tab stop. */
   tabIndex?: number;
   onFocus?: () => void;
 }) {
   const { t } = useI18n();
   const cover = useStreamCover(anime.cover);
-  // The progress badge is asked for on hover only: a page of sixty tiles must
-  // not fire sixty local queries to draw something most of them never show.
   const [hovered, setHovered] = useState<boolean>(false);
   const progress = useStreamHistoryProgress(anime.id, hovered);
   const watched = progress.data?.watched ?? 0;
@@ -121,4 +111,3 @@ export const StreamCard = memo(
     previous.onFocus === next.onFocus
 );
 
-export default StreamCard;

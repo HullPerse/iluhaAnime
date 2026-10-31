@@ -28,7 +28,6 @@ export function nowMinutesOf(date = new Date()): number {
   return date.getHours() * 60 + date.getMinutes();
 }
 
-/** The theme the schedule selects right now, or null when it is disabled. */
 export function scheduledThemeName(
   schedule: ThemeSchedule,
   nowMinutes: number

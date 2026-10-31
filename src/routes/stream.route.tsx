@@ -50,17 +50,12 @@ export default function StreamRoute() {
   const [historyOpen, setHistoryOpen] = useState<boolean>(false);
   const streamTarget = useCell(deeplinkAtoms.streamTarget);
 
-  // A pasted or opened `iluhaanime://stream/animelib/<slug>` link lands here:
-  // the tab opens the title straight from its slug, with the browse list as it
-  // was. The app hook has already switched the tab and checked the setting.
   useEffect(() => {
     if (!streamTarget) return;
     streamStore.selectedSlug.set(streamTarget.slug);
     consumeStreamDeepLink();
   }, [streamTarget]);
 
-  // The catalog is one list with one active sort, so the pair of keys cycles
-  // like the internal lists of the other tabs instead of doing nothing.
   useResolvedHotkeys<"sort-prev" | "sort-next">(
     [
       { id: "sort-prev", chord: "Shift+BracketLeft", repeat: "once", keybindId: "tab.prev" },
@@ -74,9 +69,6 @@ export default function StreamRoute() {
       },
     }
   );
-  // The site draws the random title itself: `sort_by=random` answers a freshly
-  // shuffled page, so the pick is uniform across the whole catalog rather than
-  // a page guessed by the client. The current filters still apply.
   const openRandom = () => {
     streamApi
       .random(filters)

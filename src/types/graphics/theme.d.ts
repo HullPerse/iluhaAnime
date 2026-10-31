@@ -60,7 +60,6 @@ export interface ThemePatch {
   radius?: ThemeDefinition["radius"];
   bevel?: ThemeDefinition["bevel"];
   overlay?: ThemeDefinition["overlay"];
-  // Components and overrides replace the base maps, so {} clears them.
   components?: ThemeComponents;
   titlebarGradient?: ThemeDefinition["titlebarGradient"];
   overrides?: ThemeOverrides;

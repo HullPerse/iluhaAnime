@@ -158,7 +158,9 @@ export default function CollectionRoute() {
 
   const statusCounts = useMemo(() => {
     const stats = calculateCollectionStats(items, statuses);
-    return { ...stats.byStatus, all: stats.total } as Record<string, number>;
+    const counts: Record<string, number> = { ...stats.byStatus };
+    counts.all = stats.total;
+    return counts;
   }, [items, statuses]);
   const addDisabled = isPublicStatusFull(
     statuses,

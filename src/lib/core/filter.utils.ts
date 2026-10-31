@@ -166,7 +166,7 @@ function applyIntentFilters(list: CollectionItem[], intent: ParsedIntent): Colle
         if (p === "custom")
           return item.externalIds.anilist == null && item.externalIds.tmdb == null;
         if (p === "anilist" || p === "tmdb")
-          return item.externalIds[p as "anilist" | "tmdb"] != null;
+          return item.externalIds[p] != null;
         return false;
       })
     );
@@ -328,7 +328,7 @@ function filterByProvider(
   if (provider === "custom") {
     return list.filter((item) => item.externalIds.anilist == null && item.externalIds.tmdb == null);
   }
-  const key = provider as "anilist" | "tmdb";
+  const key = provider;
   return list.filter((item) => item.externalIds[key] != null);
 }
 

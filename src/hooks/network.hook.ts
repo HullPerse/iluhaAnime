@@ -5,7 +5,7 @@ import type { TabId } from "@/types/ui/settings";
 const OFFLINE_DISABLED_TABS: readonly TabId[] = ["anilist", "search", "stream"];
 
 export function isOfflineDisabledTab(id: TabId): boolean {
-  return (OFFLINE_DISABLED_TABS as readonly TabId[]).includes(id);
+  return (OFFLINE_DISABLED_TABS).includes(id);
 }
 
 export function markOfflineTabs<T extends { id: TabId }>(

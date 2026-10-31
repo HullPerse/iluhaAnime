@@ -14,18 +14,10 @@ import { StreamQualitySelect } from "@/routes/components/player/media/streamQual
 import { StreamStats } from "@/routes/components/player/media/streamStats.player";
 
 interface StreamControlProps {
-  /** Hides the control while the player chrome is in a compact mode. */
   hidden?: boolean;
-  /** The window owns the session so the context menu can switch the same one. */
   stream: PlayerStream;
 }
 
-/**
- * The streaming choices live in the same select row as the player tracks: a
- * voice-over, a subtitle stream and a quality, with the buffer numbers behind a
- * separate stats button instead of an open panel. The session comes from the
- * window, which also offers these choices in the video context menu.
- */
 export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const { t } = useI18n();
   const pausedForCache = useCell(playbackAtoms.pausedForCache);
@@ -39,8 +31,6 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const busy = stream.switching || stream.variantsLoading || stream.variantsFailed;
   let status = "";
   if (stream.switching) status = t("player.stream.switching");
-  // The percentage is the fill level until mpv unpauses, not download progress;
-  // the stats popover carries it, the bar only says what is happening.
   else if (pausedForCache === true) status = t("player.stream.buffering");
 
   return (

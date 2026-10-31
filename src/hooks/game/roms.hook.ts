@@ -5,7 +5,7 @@ import type { GameImportInput } from "@/api/game.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
 
-export const GAME_ROMS_QUERY_KEY = queryKeys.gameRoms();
+const GAME_ROMS_QUERY_KEY = queryKeys.gameRoms();
 
 export function useGameRoms() {
   return useAppQuery("static", {

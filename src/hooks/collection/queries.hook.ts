@@ -1,18 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import type { CollectionStatusRow } from "@/api/collection.api";
 import { DEFAULT_COLLECTION_STATUSES } from "@/config/anilist/statuses.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import {
-  buildCollectionSearchIndex,
-  searchCollectionIndex,
-} from "@/lib/anilist/collectionSearch.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { parseIntent } from "@/lib/core/intent.utils";
-import { resolveTitleQuery } from "@/lib/search/searchHypothesis.utils";
-import { operatorTextLength } from "@/lib/search/searchScore.utils";
 import type {
   CollectionDataResult,
   CollectionDataState,
@@ -67,14 +59,6 @@ async function fetchCollectionData(): Promise<CollectionDataState> {
     customFieldDefs,
     statuses: statuses.length > 0 ? statuses : DEFAULT_COLLECTION_STATUSES,
   };
-}
-
-export function useCollectionSearch(query: string, allItems: CollectionItem[]): CollectionItem[] {
-  const resolved = resolveTitleQuery(query)[0]?.remainder ?? query;
-  const intent = parseIntent(resolved);
-  const trimmed = intent.cleanQuery.trim();
-  const index = useMemo(() => buildCollectionSearchIndex(allItems), [allItems]);
-  return operatorTextLength(trimmed) < 3 ? allItems : searchCollectionIndex(index, trimmed);
 }
 
 export function useCollectionData(): CollectionDataResult {

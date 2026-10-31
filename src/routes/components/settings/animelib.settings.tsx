@@ -14,12 +14,6 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
-/**
- * AnimeLib session token. Kodik works anonymously, but the site's own
- * 1080p/4K rows are only returned to a logged-in session, and the site
- * expects the token on every API request. It lives in the OS keyring, not in
- * the settings store, so it is never written to disk with the preferences.
- */
 export default function AnimelibSettings() {
   const { t } = useI18n();
   const proxyUrl = useCell(settingsAtoms.animelibProxyUrl);

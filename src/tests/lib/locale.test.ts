@@ -5,7 +5,6 @@ import en from "@/lib/locale/en";
 import { translate } from "@/lib/locale/i18n.utils";
 import ru from "@/lib/locale/ru";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
-import type { TranslationKey } from "@/types/core/i18n";
 
 describe("locale/dictionaries", () => {
   const PLURAL_SUFFIX = /\.(zero|one|two|few|many|other|past|future)$/;
@@ -68,7 +67,7 @@ describe("locale/dictionaries", () => {
 
     it("translates every entry instead of echoing the key", () => {
       const untranslated = entries.flatMap(({ key }) => {
-        const localized = key as TranslationKey;
+        const localized = key;
         const gaps: string[] = [];
         if (translate("en", localized) === key) gaps.push(`en:${key}`);
         if (translate("ru", localized) === key) gaps.push(`ru:${key}`);

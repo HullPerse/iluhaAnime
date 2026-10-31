@@ -5,7 +5,6 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-/** Bytes per second, or an empty string when the rate is not known. */
 export function formatRate(bytesPerSecond: number): string {
   if (!bytesPerSecond || bytesPerSecond <= 0 || !Number.isFinite(bytesPerSecond)) return "";
   if (bytesPerSecond < 1024) return `${bytesPerSecond.toFixed(0)} B/s`;

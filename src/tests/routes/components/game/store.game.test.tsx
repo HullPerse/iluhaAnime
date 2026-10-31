@@ -96,7 +96,6 @@ describe("GameStoreModal", () => {
     expect(screen.getByText("3 of 3")).toBeTruthy();
     expect(screen.getByText("Controls: Keys 4 and 6 move the paddles.")).toBeTruthy();
     expect(screen.getByText("Installed")).toBeTruthy();
-    // Both not-installed entries, XO-CHIP included, get a download button.
     expect(screen.getAllByRole("button", { name: "Download" })).toHaveLength(2);
   });
 
@@ -143,7 +142,6 @@ describe("GameStoreModal", () => {
 
     const bar = await screen.findByRole("progressbar");
     expect(bar.getAttribute("aria-label")).toBe("Downloading");
-    // No bytes yet: the bar sweeps instead of claiming a value.
     expect(bar.getAttribute("aria-valuenow")).toBeNull();
 
     act(() => {

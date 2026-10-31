@@ -374,7 +374,7 @@ describe("torrent/common", () => {
 
     it("drops stamps of removed torrents", () => {
       const state = { torrents: [makeInfo(1)], lastActiveAt: { 1: TICK, 9: TICK } };
-      const result = TorrentListen(state as TorrentListState, makeEvent([makeInfo(1)]), NOW);
+      const result = TorrentListen(state, makeEvent([makeInfo(1)]), NOW);
       expect(result).toEqual({ lastActiveAt: { 1: TICK } });
     });
 

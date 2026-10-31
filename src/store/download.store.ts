@@ -1,6 +1,6 @@
 import { open, confirm } from "@tauri-apps/plugin-dialog";
 import { createSignalStore } from "@/lib/core/signal.store";
-import type { Cell } from "@/types/core/signal";
+import { buildSignalAtoms } from "@/lib/core/persisted.utils";
 
 import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
@@ -10,9 +10,9 @@ import { attempt, reportBackgroundError, withFallback } from "@/lib/core/attempt
 import { showError } from "@/lib/core/notification.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import { cacheAtoms, setLastSaveDir } from "@/store/cache.store";
-import type { TorrentAtoms, TorrentData, TorrentSignalStore } from "@/types/core/download";
+import type { TorrentData, TorrentSignalStore } from "@/types/core/download";
 
-export { tr };
+;
 
 function hasConflictingSelection(
   pending: { files: { index: number; name: string }[]; conflictingFiles: string[] },
@@ -24,12 +24,6 @@ function hasConflictingSelection(
   });
 }
 
-/**
- * The free space the start command asks the backend to reserve. A fresh add
- * writes the payload into `<name>.part`, so a file that already exists at the
- * final name stays on disk until the finished `.part` replaces it. Selected
- * conflicting files therefore need room for both copies.
- */
 export function requiredBytesForSelection(
   pending: {
     files: { index: number; name: string; size: number }[];
@@ -84,10 +78,8 @@ async function clearPreviousTorrentIfNeeded(id: number | undefined): Promise<voi
   if (error) showError(tr("download.error.clear"), error.message);
 }
 
-export function createTorrentSignalStore(): TorrentSignalStore {
+function createTorrentSignalStore(): TorrentSignalStore {
   const store = createSignalStore();
-  const atoms = {} as TorrentAtoms;
-  const sink = atoms as unknown as Record<string, Cell<unknown>>;
   const initial: TorrentData = {
     limits: { download: null, upload: null },
     metadataCache: new Map(),
@@ -97,10 +89,7 @@ export function createTorrentSignalStore(): TorrentSignalStore {
     opInFlight: {},
     lastActiveAt: {},
   };
-  const source = initial as unknown as Record<string, unknown>;
-  for (const key of Object.keys(initial)) {
-    sink[key] = store.atom(key, source[key]);
-  }
+  const atoms = buildSignalAtoms(store, initial);
 
   const handle: TorrentSignalStore = {
     atoms,
@@ -371,9 +360,7 @@ export const cancelTorrentDownload = torrents.cancelDownload;
 export const confirmTorrentDownload = torrents.confirmDownload;
 export const getTorrentLimits = torrents.getTorrentLimits;
 export const queueTorrentFiles = torrents.queueTorrentFiles;
-export const prepareNextTorrentInQueue = torrents.prepareNextInQueue;
 export const prepareTorrentDownload = torrents.prepareTorrentDownload;
-export const prepareTorrentDownloadFromFile = torrents.prepareTorrentDownloadFromFile;
 export const prepareTorrentDownloadFromBytes = torrents.prepareTorrentDownloadFromBytes;
 export const setTorrentSpeedLimits = torrents.setSpeedLimits;
 export const setTorrentLimits = torrents.setTorrentLimits;

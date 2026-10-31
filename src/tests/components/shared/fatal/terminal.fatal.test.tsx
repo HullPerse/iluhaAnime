@@ -1,6 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FatalVariantProps } from "@/types/core/shared.fatal";
@@ -31,7 +30,7 @@ const props = (overrides: Partial<FatalVariantProps> = {}): FatalVariantProps =>
   safe: false,
   detailsOpen: false,
   copied: false,
-  reloadRef: { current: null } as RefObject<HTMLButtonElement | null>,
+  reloadRef: { current: null },
   onToggleDetails: vi.fn(),
   onReload: vi.fn(),
   onSafeReload: vi.fn(),
@@ -52,7 +51,7 @@ describe("TerminalBsod", () => {
 
   it("uses the black and green terminal backdrop", () => {
     render(<TerminalBsod {...props()} />);
-    const alert = screen.getByRole("alert") as HTMLElement;
+    const alert = screen.getByRole("alert");
     expect(alert.style.backgroundColor).toBe("rgb(12, 12, 12)");
     expect(alert.style.color).toBe("rgb(0, 255, 65)");
   });

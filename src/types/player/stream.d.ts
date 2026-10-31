@@ -1,6 +1,3 @@
-// Streaming domain types for AnimeLib integration.
-// These are normalized, source-agnostic types used by the streaming UI and
-// playback layer. Provider-specific shapes live in the Rust layer.
 
 export interface StreamingAnime {
   id: string;
@@ -13,15 +10,10 @@ export interface StreamingAnime {
   status?: string;
   genres: string[];
   episodeCount?: number;
-  /** The site's average score, 0..10, from the list answer itself. */
   rating?: number;
-  /** How many viewers scored the title. */
   ratingVotes?: number;
-  /** The site's media type label, for example `TV Сериал` or `Фильм`. */
   mediaType?: string;
-  /** The site's age rating label, for example `PG-13`. */
   ageRating?: string;
-  /** Total views; only the details answer serves it. */
   views?: number;
   anilistId?: number;
   subOrDub?: string;
@@ -37,13 +29,11 @@ export interface StreamingEpisode {
   cover?: string;
 }
 
-/** A title and its episode list, answered by one catalog command. */
 export interface StreamTitle {
   anime: StreamingAnime;
   episodes: StreamingEpisode[];
 }
 
-/** The quality rows the stream settings select offers. */
 export type StreamQuality = "360p" | "480p" | "720p" | "1080p" | "1440p" | "2160p";
 
 export interface StreamVariant {
@@ -51,9 +41,7 @@ export interface StreamVariant {
   name: string;
   language?: string;
   separateStream: boolean;
-  /** The hoster name, for example `Kodik`. */
   player: string;
-  /** The hoster's own player URL; empty when the site serves the row itself. */
   sourceUrl: string;
 }
 
@@ -86,13 +74,9 @@ export interface AudioTrack {
 export interface StreamPrefs {
   sourceId: string;
   mediaId: string;
-  /** `<player>:<teamId>`, stable between episodes. */
   variantId: string;
-  /** Quality label; an empty string means "best available". */
   quality: string;
-  /** Language code or track title of the chosen audio track. */
   audioLang: string;
-  /** Language code or track title of the chosen subtitle track. */
   subLang: string;
   subEnabled: boolean;
   updatedAt?: number;
@@ -100,9 +84,7 @@ export interface StreamPrefs {
 
 export interface StreamSearchPage {
   items: StreamingAnime[];
-  /** The page the API actually answered with. */
   page: number;
-  /** Present when the API sends its pagination envelope. */
   lastPage?: number;
   total?: number;
 }
@@ -118,11 +100,6 @@ export interface StreamGenreOption {
   adult: boolean;
 }
 
-/**
- * The AnimeLib catalog filters, mirroring the site's own `mediaFilter` model.
- * `adult` is a permission, not a filter: it reveals the 18+ age rating and the
- * adult genres whose ids the shopping list hides otherwise.
- */
 export interface StreamCatalogFilters {
   types: number[];
   genres: number[];
@@ -139,7 +116,6 @@ export interface StreamCatalogFilters {
 
 export type StreamSortBy = "rating_score" | "views" | "name" | "created_at";
 
-/** One remembered episode of the streaming catalog, written by the player. */
 export interface StreamHistoryEntry {
   animeId: string;
   episodeId: string;
@@ -155,7 +131,6 @@ export interface StreamHistoryEntry {
   updatedAt: number;
 }
 
-/** The watched count and newest episode of one title, for a hover badge. */
 export interface StreamHistoryProgress {
   animeId: string;
   slug: string;
@@ -169,7 +144,6 @@ export interface StreamHistoryProgress {
   updatedAt: number;
 }
 
-/** The catalog filter options, already narrowed to the AnimeLib site. */
 export interface StreamConstants {
   types: StreamFilterOption[];
   statuses: StreamFilterOption[];

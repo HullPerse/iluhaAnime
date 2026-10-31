@@ -29,7 +29,7 @@ export function rgbToHex({ r, g, b }: RGB): string {
   return `#${channel(r)}${channel(g)}${channel(b)}`;
 }
 
-export function relativeLuminance({ r, g, b }: RGB): number {
+function relativeLuminance({ r, g, b }: RGB): number {
   const linear = (value: number) => {
     const channel = value / 255;
     return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
@@ -106,7 +106,7 @@ export function mixHex(a: string, b: string, amount: number): string {
   });
 }
 
-export function shade(hex: string, amount: number): string {
+function shade(hex: string, amount: number): string {
   return mixHex(hex, amount >= 0 ? "#ffffff" : "#000000", Math.abs(amount));
 }
 

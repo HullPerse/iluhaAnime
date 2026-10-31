@@ -211,8 +211,6 @@ describe("player settings rejections reach the user", () => {
     expect(notificationAtoms.items.get()[0].message).toContain("brightness");
     const firstTimestamp = notificationAtoms.items.get()[0].timestamp;
 
-    // a repeat of the same rejected value stays quiet, which the store would otherwise fold in
-    // by bumping the notice timestamp
     vi.setSystemTime(firstTimestamp + 5_000);
     act(() => {
       patchPlayerSettings({ brightness: 130 });

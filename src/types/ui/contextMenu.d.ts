@@ -5,14 +5,10 @@ export interface ContextMenuItem {
   kind: "item";
   id: string;
   label: TranslationKey;
-  /** Interpolation for label, e.g. chapter numbers. */
   labelVars?: TranslationVariables;
-  /** Dynamic data text (track names, chapter titles). Static UI copy stays in label. */
   rawText?: string;
   icon?: ComponentType<{ className?: string }>;
-  /** Right-aligned hotkey hint, e.g. "Space". */
   hint?: string;
-  /** Selected-state dot, e.g. the active track. Never the only state signal alone. */
   checked?: boolean;
   onSelect: () => void;
   disabled?: boolean;

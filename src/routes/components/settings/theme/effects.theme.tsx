@@ -21,7 +21,7 @@ export function EffectsCheckbox({
       <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
         <Checkbox
           checked={value}
-          onChange={(v) => patchSettings({ [field]: v } as unknown as Partial<SettingsData>)}
+          onChange={(v) => patchSettings({ [field]: v })}
         />
         <span className="text-xs">{value ? t("common.on") : t("common.off")}</span>
       </label>

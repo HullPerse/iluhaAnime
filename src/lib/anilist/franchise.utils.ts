@@ -67,11 +67,6 @@ function drainMainline(
   return ordered;
 }
 
-/**
- * Watch order of the main line: sequel and prequel edges decide direction, year
- * and title only break ties. Nodes left in a cycle fall back to the same order
- * instead of being dropped.
- */
 export function orderMainline(
   nodes: FranchiseNode[],
   edges: FranchiseEdge[],
@@ -129,14 +124,6 @@ export function countFranchiseGroups(
   return counts;
 }
 
-/**
- * Episodes that have actually been released. Airing titles count only the
- * episodes behind the next one, so a caught-up season reads as complete instead
- * of dragging the franchise down with episodes nobody can watch yet. When the
- * next episode time already passed, that episode counts too, because the cache
- * can be a few hours old. An unknown status falls back to the planned count so
- * old payloads keep their previous behavior.
- */
 export function availableEpisodes(node: FranchiseNode, nowSeconds: number): number {
   const planned = node.episodes != null && node.episodes > 0 ? node.episodes : null;
   if (node.status === "NOT_YET_RELEASED") return 0;
@@ -149,13 +136,6 @@ export function availableEpisodes(node: FranchiseNode, nowSeconds: number): numb
   return planned ?? 0;
 }
 
-/**
- * The first title in watch order that has something to watch. Announced titles
- * are skipped, and so is an airing season the user already caught up with, so
- * the marker never points at an episode that has not aired. A title whose
- * progress reached its released episode count is treated as finished even when
- * it still sits in CURRENT.
- */
 export function pickNextToWatch(
   mainline: FranchiseNode[],
   entryLookup: EntryLookup | undefined,
@@ -177,11 +157,6 @@ export function pickNextToWatch(
   return null;
 }
 
-/**
- * Watched share of the released episodes. Not-yet-released titles and the
- * unaired tail of an airing season stay out of both sides of the fraction, so a
- * user who watched everything that exists reads as complete.
- */
 export function franchiseSummary(
   nodes: FranchiseNode[],
   entryLookup: EntryLookup | undefined,

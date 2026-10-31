@@ -89,25 +89,25 @@ describe("focusTreeSibling", () => {
 
   it("focuses the Nth sibling of the row folder", () => {
     const { rows } = tree(["d/a", "d/b", "d/c"]);
-    expect(focusTreeSibling(rows[0]!, 2)).toBe(true);
+    expect(focusTreeSibling(rows[0], 2)).toBe(true);
     expect(document.activeElement).toBe(rows[1]);
   });
 
   it("counts a negative index from the end", () => {
     const { rows } = tree(["d/a", "d/b"]);
-    expect(focusTreeSibling(rows[0]!, -1)).toBe(true);
+    expect(focusTreeSibling(rows[0], -1)).toBe(true);
     expect(document.activeElement).toBe(rows[1]);
   });
 
   it("clamps out-of-range indices", () => {
     const { rows } = tree(["d/a", "d/b"]);
-    expect(focusTreeSibling(rows[0]!, 99)).toBe(true);
+    expect(focusTreeSibling(rows[0], 99)).toBe(true);
     expect(document.activeElement).toBe(rows[1]);
   });
 
   it("stays inside one folder", () => {
     const { rows } = tree(["d/a", "d/b", "other/c"]);
-    expect(focusTreeSibling(rows[0]!, 5)).toBe(true);
+    expect(focusTreeSibling(rows[0], 5)).toBe(true);
     expect(document.activeElement).toBe(rows[1]);
   });
 

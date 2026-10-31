@@ -27,7 +27,7 @@ export function CardStatusBar({
       {onSetStatus ? (
         <Select
           value={item.status}
-          onChange={(v) => onSetStatus(item, v as CollectionStatus)}
+          onChange={(v) => onSetStatus(item, v)}
           options={sortStatuses(statuses).map((s) => ({
             value: s.id,
             label: statusLabel(statuses, s.id, t, locale),

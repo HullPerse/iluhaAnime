@@ -44,8 +44,6 @@ export function AnimeDetailShell({
     queryFn: () => anilistApi.getAnimeFull(props.animeId),
     retry: 1,
   });
-  // The franchise section and SimilarSection share this key; starting the
-  // request here drops the full-bundle round trip from the graph's wait time.
   useEffect(() => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.animeFranchiseRefresh(props.animeId, 0),

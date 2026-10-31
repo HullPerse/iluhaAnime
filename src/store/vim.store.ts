@@ -1,7 +1,7 @@
 import { createSignalStore } from "@/lib/core/signal.store";
 import type { VimHintsState, VimSignalStore } from "@/types/ui/vim";
 
-export const EMPTY_VIM_HINTS: VimHintsState = {
+const EMPTY_VIM_HINTS: VimHintsState = {
   open: false,
   badges: [],
   buffer: "",
@@ -9,7 +9,7 @@ export const EMPTY_VIM_HINTS: VimHintsState = {
   overflow: 0,
 };
 
-export function createVimSignalStore(): VimSignalStore {
+function createVimSignalStore(): VimSignalStore {
   const store = createSignalStore();
   const hints = store.atom<VimHintsState>("hints", EMPTY_VIM_HINTS);
   const count = store.atom<string>("count", "");

@@ -26,7 +26,7 @@ function memoryStorage(seed: Record<string, string> = {}): Storage {
     get length() {
       return data.size;
     },
-  } as Storage;
+  };
 }
 
 function themeEnvelope(data: Record<string, unknown>, schemaVersion = 0): string {

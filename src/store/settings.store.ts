@@ -12,7 +12,11 @@ import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { applyWindowChrome } from "@/lib/core/window.utils";
 import type { Persistor } from "@/types/core/persist";
-import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import {
+  applyAtomValues,
+  buildMirrorAtoms,
+  createPersistedStoreContext,
+} from "@/lib/core/persisted.utils";
 import { isRecord } from "@/lib/core/record.utils";
 import type { Cell } from "@/types/core/signal";
 import type { MigrationTransform } from "@/types/core/migrate";
@@ -518,13 +522,7 @@ export function createSettingsSignalStore(
     },
     patch: (partial) => {
       applyPatchSideEffects(atoms, partial);
-      const source = partial as unknown as Record<string, unknown>;
-      const target = atoms as unknown as Record<string, Cell<unknown>>;
-      store.batch(() => {
-        for (const key of Object.keys(source)) {
-          target[key].set(source[key]);
-        }
-      });
+      store.batch(() => applyAtomValues(atoms, partial));
     },
   };
 
@@ -551,11 +549,7 @@ export function subscribeSettings(listener: () => void): () => void {
 const INITIAL_SETTINGS_SNAPSHOT: SettingsData = getSettingsSnapshot();
 
 export function resetSettingsAtoms(): void {
-  const atoms = settingsAtoms as unknown as Record<string, Cell<unknown>>;
-  const source = INITIAL_SETTINGS_SNAPSHOT as unknown as Record<string, unknown>;
-  for (const key of Object.keys(source)) {
-    atoms[key].set(source[key]);
-  }
+  applyAtomValues(settingsAtoms, INITIAL_SETTINGS_SNAPSHOT);
 }
 
 if (typeof window !== "undefined" && typeof window.addEventListener === "function") {

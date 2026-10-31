@@ -7,10 +7,6 @@ import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
-/**
- * Drag-to-resize for one torrent card in the player route. The height is saved
- * per info hash, the same way saved folders store theirs per path.
- */
 export function useTorrentCardResize(infoHash: string, rootRef: RefObject<HTMLElement | null>) {
   const savedHeight = useCell(settingsAtoms.playerTorrentHeights)[infoHash];
   const viewportMax = maxFolderHeight();

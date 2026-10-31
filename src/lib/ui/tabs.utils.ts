@@ -17,10 +17,6 @@ function tabSettingsSnapshot(): TabSettings {
   };
 }
 
-/**
- * The tab label with the note an English UI needs: the streaming catalog is
- * Russian only, so the tab says it rather than letting the catalog look broken.
- */
 export function tabLabel(
   id: TabId,
   label: string,

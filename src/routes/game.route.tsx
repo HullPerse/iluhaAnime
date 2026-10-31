@@ -56,7 +56,6 @@ export default function GameRoute() {
   useEffect(() => {
     if (!expanded) return;
     const onKeyDown = (event: KeyboardEvent): void => {
-      // An open modal owns Escape; collapsing waits for the next press.
       if (event.key === "Escape" && !storeOpen && draftPath === null) setExpanded(false);
     };
     window.addEventListener("keydown", onKeyDown);

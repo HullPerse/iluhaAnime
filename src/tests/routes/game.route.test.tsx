@@ -78,7 +78,6 @@ describe("game route", () => {
 
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
     expect(screen.getByText("Imported")).toBeTruthy();
-    // Only user ROMs expose a delete action.
     expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(1);
   });
 

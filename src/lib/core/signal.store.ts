@@ -171,7 +171,7 @@ export function createSignalStore(): SignalStore {
       queued: false,
       rev: new Set(),
       deps: depRecs,
-      compute: fn as (args: unknown[]) => unknown,
+      compute: fn,
       cached: undefined,
       hasValue: false,
       depVersions: depRecs.map(() => -1),

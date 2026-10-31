@@ -1,9 +1,5 @@
 import type { ReactNode } from "react";
 
-/**
- * One card of the statistics Overview: a title line, an optional hint slot
- * (for example the "Updated" time) and the chart content.
- */
 export function StatsCard({
   title,
   hint,

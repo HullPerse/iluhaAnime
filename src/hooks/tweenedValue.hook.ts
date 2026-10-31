@@ -13,7 +13,6 @@ export function useTweenedValue(target: number, durationMs: number): number {
     }
     const from = fromRef.current;
     if (from === target) {
-      // Re-entering the animated mode after a jump: the last frame may lag.
       setTweened(from);
       return;
     }

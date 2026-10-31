@@ -5,10 +5,6 @@ function capped(value: number, weight: number, cap: number): number {
   return Math.min(cap, Math.max(0, value) * weight);
 }
 
-/**
- * One feedback model for every suggestion source. Counters are capped before
- * the decay so a burst of clicks cannot dominate a query forever.
- */
 export function feedbackScore(
   counters: RankingCounters | null | undefined,
   now = Date.now()

@@ -56,7 +56,6 @@ describe("BufferingOverlay", () => {
     const detail = screen.getByRole("status").textContent ?? "";
     expect(detail).toContain("0:12 ahead");
     expect(detail).toContain("2.0 MB/s");
-    // `cache-buffering-state` is the fill level until mpv unpauses, not progress.
     expect(screen.queryByText(/%$/)).toBeNull();
   });
 
@@ -85,7 +84,6 @@ describe("BufferingOverlay", () => {
     rerender(<BufferingOverlay visible={false} />);
     expect(screen.getByRole("status")).toBeTruthy();
 
-    // The stall had already been on screen longer than the minimum here.
     advance(SHOW_DELAY_MS);
     expect(screen.queryByRole("status")).toBeNull();
   });

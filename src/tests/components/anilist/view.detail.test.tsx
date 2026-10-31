@@ -127,7 +127,7 @@ describe("AniListDetailView character navigation", () => {
     const onPushScreen = vi.fn();
     renderView(false, onPushScreen);
     const expanders = screen.getAllByRole("button", { name: "Expand section" });
-    await user.click(expanders[0] as HTMLElement);
+    await user.click(expanders[0]);
     await user.click(await screen.findByText("Char One"));
     expect(onPushScreen).toHaveBeenCalledWith({
       kind: "character",

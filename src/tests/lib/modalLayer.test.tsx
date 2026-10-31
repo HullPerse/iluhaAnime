@@ -20,7 +20,7 @@ const box = (node: HTMLElement): HTMLElement => {
       x: 10,
       y: 10,
       toJSON: () => ({}),
-    }) as DOMRect;
+    });
   return node;
 };
 

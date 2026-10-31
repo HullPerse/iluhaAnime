@@ -10,20 +10,20 @@ export const scoreErrorKey = (error: TranslationKey | null): TranslationKey => {
   return error ?? "anilist.controls.score.invalid";
 };
 
-export const parseRepeatInput = (value: string): number | null => {
+const parseRepeatInput = (value: string): number | null => {
   if (value.trim() === "") return null;
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed)) return null;
   return Math.min(999, Math.max(0, parsed));
 };
 
-export const dateArg = (input: string, previous: string | null | undefined): string | undefined => {
+const dateArg = (input: string, previous: string | null | undefined): string | undefined => {
   if (input.trim() !== "") return input.trim();
   if (previous) return "";
   return undefined;
 };
 
-export const parseProgressInput = (value: string, max: number): number | null => {
+const parseProgressInput = (value: string, max: number): number | null => {
   if (value.trim() === "") return null;
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed)) return null;

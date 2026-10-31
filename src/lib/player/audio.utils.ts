@@ -6,24 +6,15 @@ const BEEP_HZ = 440;
 const BEEP_GAIN = 0.05;
 const GAIN_RAMP_SECONDS = 0.005;
 
-/** XO-CHIP pattern buffer: sixteen bytes of one-bit samples. */
 const PATTERN_BITS = 128;
-/** The pitch register default, matching the interpreter's 4000 Hz. */
 const DEFAULT_PITCH_HZ = 4000;
 
 interface WavetableBuzzer {
   set: (pitchHz: number, pattern: Uint8Array) => void;
-  /** The buzzer reached zero: playback restarts from the first sample. */
   reset: () => void;
   dispose: () => void;
 }
 
-/**
- * Holds the pattern buffer as a looping source: one buffer sample per pattern
- * bit, so `playbackRate = pitch / sampleRate` plays the bits at the requested
- * hertz. The phase keeps running across pattern and pitch changes and only
- * resets when the buzzer turns off, as the XO-CHIP specification asks.
- */
 function createWavetableBuzzer(context: AudioContext, gain: GainNode): WavetableBuzzer {
   let source: AudioBufferSourceNode | null = null;
   let buffer: AudioBuffer | null = null;
@@ -99,11 +90,6 @@ function createWavetableBuzzer(context: AudioContext, gain: GainNode): Wavetable
   };
 }
 
-/**
- * Buzzer gate for a game session. Beep mode keeps the square oscillator of
- * plain CHIP-8 sessions; wavetable mode renders the XO-CHIP pattern buffer.
- * Nodes are created on the first active flag, so beeps never allocate mid-run.
- */
 export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
   let nodes: {
     context: AudioContext;

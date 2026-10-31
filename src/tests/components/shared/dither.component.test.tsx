@@ -55,7 +55,7 @@ const installImageHarness = (naturalWidth: number, naturalHeight: number): MockI
       });
     }
   }
-  vi.stubGlobal("Image", MockImage as unknown as typeof Image);
+  vi.stubGlobal("Image", MockImage as unknown);
   return instances;
 };
 
@@ -73,7 +73,7 @@ const installCanvasHarness = (source: Uint8ClampedArray) => {
   function FakeImageData(data: Uint8ClampedArray, width: number, height: number) {
     return { data, width, height };
   }
-  vi.stubGlobal("ImageData", FakeImageData as unknown as typeof ImageData);
+  vi.stubGlobal("ImageData", FakeImageData as unknown);
   return { putImageData };
 };
 
@@ -135,7 +135,7 @@ const installWorkerHarness = (): MockWorkerHandle => {
       terminate: () => {},
     };
   }
-  vi.stubGlobal("Worker", MockWorker as unknown as typeof Worker);
+  vi.stubGlobal("Worker", MockWorker as unknown);
   return {
     posted,
     respond: (response: DitherWorkerResponse | DitherWorkerProgress) => {
@@ -254,7 +254,7 @@ const installSplitCanvasHarness = (source: Uint8ClampedArray) => {
   function FakeImageData(data: Uint8ClampedArray, width: number, height: number) {
     return { data, width, height };
   }
-  vi.stubGlobal("ImageData", FakeImageData as unknown as typeof ImageData);
+  vi.stubGlobal("ImageData", FakeImageData as unknown);
   return { visibleDraw, visiblePut, workDraw };
 };
 

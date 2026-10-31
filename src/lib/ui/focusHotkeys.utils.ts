@@ -1,4 +1,4 @@
-export const MAIN_SEARCH_SELECTOR = "[data-main-search]";
+const MAIN_SEARCH_SELECTOR = "[data-main-search]";
 
 export function focusMainSearch(root: ParentNode = document): boolean {
   const target =

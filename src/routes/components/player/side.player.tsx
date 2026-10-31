@@ -9,11 +9,6 @@ import type { PlayerSidePanelProps } from "@/types/player/player";
 import StreamEpisodeList from "@/routes/components/player/media/episodes.player";
 import PlaylistBody from "@/routes/components/player/media/playlist.player";
 
-/**
- * The side panel is a local playlist for files and the title's season for a
- * stream. A stream has no mpv playlist behind it, so reordering and removing
- * would have nothing to act on; the episodes are a source resolution instead.
- */
 export default function PlayerSidePanel({
   onPlay,
   onRemove,

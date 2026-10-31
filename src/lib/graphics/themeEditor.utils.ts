@@ -4,7 +4,6 @@ import { diffTheme } from "@/lib/graphics/themeResolve.utils";
 import { addCustomTheme, clearThemePatch, setTheme, setThemePatch } from "@/store/theme.store";
 import type { TranslationKey } from "@/types/core/i18n";
 import type {
-  ThemeColorKey,
   ThemeComponents,
   ThemeDefinition,
   ThemeOverrideKey,
@@ -137,4 +136,4 @@ export function editorHeaderKey(patchMode: boolean, isEdit: boolean): Translatio
   return "settings.theme.create.title";
 }
 
-export type { ThemeColorKey };
+;

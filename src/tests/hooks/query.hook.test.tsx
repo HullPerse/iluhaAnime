@@ -66,7 +66,7 @@ beforeEach(() => {
 describe("useSearchQuery result source", () => {
   it("keeps the fetched source on rows after switching sources without searching", async () => {
     const { result } = renderSearch();
-    const firstSource = result.current.source as Source;
+    const firstSource = result.current.source;
     const other: Source = firstSource === "rutracker" ? "erai-raws" : "rutracker";
     act(() => {
       setCrossSearchQuery("naruto");
@@ -82,7 +82,7 @@ describe("useSearchQuery result source", () => {
 
   it("moves the result source to the searched source after a real search", async () => {
     const { result } = renderSearch();
-    const firstSource = result.current.source as Source;
+    const firstSource = result.current.source;
     const other: Source = firstSource === "rutracker" ? "erai-raws" : "rutracker";
     act(() => {
       setCrossSearchQuery("naruto");
@@ -97,7 +97,7 @@ describe("useSearchQuery result source", () => {
 
   it("reports fetching while a background search replaces stale rows", async () => {
     const { result } = renderSearch();
-    const firstSource = result.current.source as Source;
+    const firstSource = result.current.source;
     const other: Source = firstSource === "rutracker" ? "erai-raws" : "rutracker";
     let resolveSecond!: (value: Anime[]) => void;
     mockInvoke.mockImplementation(async (command: unknown) => {
@@ -128,7 +128,7 @@ describe("useSearchQuery result source", () => {
 
   it("keeps the fetched source on stale rows until the next search settles", async () => {
     const { result } = renderSearch();
-    const firstSource = result.current.source as Source;
+    const firstSource = result.current.source;
     const other: Source = firstSource === "rutracker" ? "erai-raws" : "rutracker";
     const resolvers: Array<(value: Anime[]) => void> = [];
     mockInvoke.mockImplementation(async (command: unknown) => {

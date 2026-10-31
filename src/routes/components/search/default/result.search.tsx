@@ -97,7 +97,7 @@ export default function SearchResultItem({
                 key={l.code}
                 className={cn(
                   "windows95-font px-1 text-xs",
-                  colors[l.code as keyof typeof colors] || "bg-muted text-white"
+                  colors[l.code] || "bg-muted text-white"
                 )}
               >
                 {l.label}

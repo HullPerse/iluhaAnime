@@ -5,8 +5,8 @@ export const tooltipAnnouncement = (data: ChartTooltipData): string => {
   return values ? `${data.title}: ${values}` : data.title;
 };
 
-export const LINE_HEIGHT = 14;
-export const VERTICAL_PADDING = 10;
+const LINE_HEIGHT = 14;
+const VERTICAL_PADDING = 10;
 
 export const tooltipHeight = (data: ChartTooltipData): number => {
   return VERTICAL_PADDING + LINE_HEIGHT * (data.rows.length + 1);

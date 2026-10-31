@@ -35,7 +35,6 @@ export interface ShareImportPlan {
   readonly rows: ShareImportPlanRow[];
 }
 
-/** A streaming title, by its catalog slug. */
 export interface StreamDeepLink {
   readonly source: "animelib";
   readonly slug: string;

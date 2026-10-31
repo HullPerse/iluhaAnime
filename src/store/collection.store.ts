@@ -103,8 +103,8 @@ type CollectionActionKeys =
   | "requestWizardPrefill"
   | "consumeWizardPrefill";
 
-export type CollectionData = Omit<CollectionStore, CollectionActionKeys>;
-export type CollectionAtoms = { [K in keyof CollectionData]: Cell<CollectionData[K]> };
+type CollectionData = Omit<CollectionStore, CollectionActionKeys>;
+type CollectionAtoms = { [K in keyof CollectionData]: Cell<CollectionData[K]> };
 
 const DEFAULT_COLLECTION_DATA: CollectionData = {
   selectedStatus: "all",
@@ -134,7 +134,7 @@ function readCollectionData(raw: Record<string, unknown>, version: number): Coll
   };
 }
 
-export function migrateCollectionData(persistedState: unknown, version: number): CollectionData {
+function migrateCollectionData(persistedState: unknown, version: number): CollectionData {
   if (!isRecord(persistedState)) {
     return { ...DEFAULT_COLLECTION_DATA, collapsedStatuses: new Set<string>() };
   }
@@ -157,12 +157,12 @@ function readLegacyCollection(
   return { data: { ...migrated }, schemaVersion: COLLECTION_SCHEMA_VERSION };
 }
 
-export interface CollectionSignalOptions {
+interface CollectionSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
 }
 
-export interface CollectionSignalStore {
+interface CollectionSignalStore {
   atoms: CollectionAtoms;
   persistor: Persistor;
   subscribeAll: (fn: () => void) => () => void;
@@ -178,7 +178,7 @@ export interface CollectionSignalStore {
   consumeWizardPrefill: () => void;
 }
 
-export function createCollectionSignalStore(
+function createCollectionSignalStore(
   options: CollectionSignalOptions = {}
 ): CollectionSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
@@ -262,7 +262,6 @@ export function createCollectionSignalStore(
 const collection = createCollectionSignalStore();
 
 export const collectionAtoms = collection.atoms;
-export const collectionPersistor = collection.persistor;
 export function subscribeCollection(listener: () => void): () => void {
   return collection.subscribeAll(listener);
 }

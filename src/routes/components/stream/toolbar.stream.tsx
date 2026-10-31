@@ -10,13 +10,6 @@ import { useCell } from "@/lib/core/signal.hook";
 import { submitStreamSearch, streamPage, streamQuery } from "@/store/stream.store";
 import type { StreamCatalogFilters } from "@/types/player/stream";
 
-/**
- * One toolbar row, the same shape the AniList tab uses: the shared smart input
- * (history, suggestions, inline completion), a separator, the filter button and
- * the refresh action. The field keeps its own draft, because the submitted
- * query is what the catalog request keys on: typing must not issue a request
- * per keystroke.
- */
 export default function StreamToolbar({
   isFetching,
   filters,
@@ -33,9 +26,6 @@ export default function StreamToolbar({
   const page = useCell(streamPage);
   const [text, setText] = useState<string>(query);
 
-  // A clear from another surface (the empty results panel) has to reach the
-  // field, and a submitted search has to leave the field holding what was
-  // submitted, so the draft follows the store whenever the store moves.
   useEffect(() => {
     setText(query);
   }, [query]);

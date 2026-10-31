@@ -112,8 +112,6 @@ export const EDITION_TAGS: readonly string[] = ["Unrated", "DC"];
 
 export const DUB_MARKERS: readonly string[] = ["DUB", "MVO", "VO"];
 
-export const SPECIAL_MARKERS: readonly string[] = ["OP", "ED", "NCOP", "NCED", "OVA", "ONA", "SP"];
-
 export const TYPE_MARKERS: readonly string[] = ["TV", "Movie", "Gekijouban"];
 
 export const IGNORE_SUFFIXES: readonly string[] = ["upscaled"];
@@ -148,8 +146,6 @@ export const KNOWN_ARC_MAP: ReadonlyMap<string, string> = (() => {
 })();
 
 export const SEASON_EPISODE_RX = /S(\d{1,2})E(\d{1,3})/i;
-
-export const COMPACT_SPE_RX = /S(\d{1,2})\s*-\s*P(\d{1,2})\s*-\s*E(\d{1,3})/i;
 
 export const OF_TOTAL_RX = /(\d{1,3})_of_(\d{1,3})/i;
 

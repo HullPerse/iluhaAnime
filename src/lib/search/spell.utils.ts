@@ -40,7 +40,7 @@ export const spellRectsOf = (backdrop: HTMLDivElement | null): DOMRect[] => {
     .map((span) => span.getBoundingClientRect());
 };
 
-export const spellHit = (rect: DOMRect | null, clientX: number, clientY: number): boolean => {
+const spellHit = (rect: DOMRect | null, clientX: number, clientY: number): boolean => {
   if (!rect) return false;
   return (
     clientX >= rect.left &&
@@ -54,7 +54,7 @@ export const spellHitIndex = (rects: DOMRect[], clientX: number, clientY: number
   return rects.findIndex((rect) => spellHit(rect, clientX, clientY));
 };
 
-export const caretSpanIndex = (spans: SpellWordSpan[], selectionStart: number | null): number => {
+const caretSpanIndex = (spans: SpellWordSpan[], selectionStart: number | null): number => {
   if (selectionStart == null) return -1;
   return spans.findIndex((span) => selectionStart >= span.start && selectionStart <= span.end);
 };

@@ -2,11 +2,6 @@ import { scheduleTask } from "@/lib/core/shared.utils";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { SequenceOptions } from "@/types/core/sequenceHotkeys";
 
-/**
- * Observes a key sequence (e.g. the Konami code) without claiming the keys:
- * no preventDefault, no stopPropagation, modified keys are skipped instead of
- * resetting progress, and the buffer resets on timeout or target blur.
- */
 export function subscribeSequence(
   target: Window | HTMLElement,
   options: SequenceOptions

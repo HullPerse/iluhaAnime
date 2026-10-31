@@ -17,7 +17,6 @@ const TORRENT_LIFECYCLES = [
 ] as const satisfies readonly (TorrentLifecycle | "all")[];
 
 export type TorrentSort = (typeof TORRENT_SORTS)[number];
-export type TorrentDir = (typeof TORRENT_DIRS)[number];
 export type TorrentLifecycleFilter = (typeof TORRENT_LIFECYCLES)[number];
 
 export const torrentSearchSchema = z.object({
@@ -27,5 +26,3 @@ export const torrentSearchSchema = z.object({
   page: withFallback(z.number(), 1),
   lifecycle: withFallback(z.enum(TORRENT_LIFECYCLES), "all"),
 });
-
-export type TorrentSearch = z.infer<typeof torrentSearchSchema>;

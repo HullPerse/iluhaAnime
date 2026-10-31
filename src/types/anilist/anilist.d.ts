@@ -148,7 +148,6 @@ export interface AniListEntry {
   custom_lists: string[];
 }
 
-/** One streaming episode row of an AniList title; only the preview is used. */
 export interface AniStreamingEpisode {
   title: string;
   thumbnail?: string;

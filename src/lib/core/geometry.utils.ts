@@ -31,9 +31,9 @@ export function ratioSegments(values: readonly number[], length: number): RatioS
 
 function linearNearest(sorted: readonly number[], target: number): number {
   let best = 0;
-  let bestDistance = Math.abs(sorted[0]! - target);
+  let bestDistance = Math.abs(sorted[0] - target);
   for (let index = 1; index < sorted.length; index++) {
-    const distance = Math.abs(sorted[index]! - target);
+    const distance = Math.abs(sorted[index] - target);
     if (distance < bestDistance) {
       best = index;
       bestDistance = distance;
@@ -42,9 +42,6 @@ function linearNearest(sorted: readonly number[], target: number): number {
   return best;
 }
 
-/**
- * Expects ascending values, such as mark centers or band boundaries.
- */
 export function nearestIndex(sorted: readonly number[], target: number): number {
   if (sorted.length === 0) return -1;
   if (!Number.isFinite(target)) return 0;
@@ -54,10 +51,10 @@ export function nearestIndex(sorted: readonly number[], target: number): number 
   let high = sorted.length - 1;
   while (low < high) {
     const middle = (low + high) >> 1;
-    if (sorted[middle]! < target) low = middle + 1;
+    if (sorted[middle] < target) low = middle + 1;
     else high = middle;
   }
   const previous = low - 1;
   if (previous < 0) return low;
-  return Math.abs(sorted[previous]! - target) <= Math.abs(sorted[low]! - target) ? previous : low;
+  return Math.abs(sorted[previous] - target) <= Math.abs(sorted[low] - target) ? previous : low;
 }

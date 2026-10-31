@@ -154,14 +154,12 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
 const media = createMediaSignalStore();
 
 export const mediaEntries = media.entries;
-export const mediaPersistor = media.persistor;
 export const getMediaEntry = media.getEntry;
 export const setMediaPosition = media.setPosition;
 export const setMediaTrack = media.setTrack;
 export const setMediaSubOffset = media.setSubOffset;
 export const setMediaAudioOffset = media.setAudioOffset;
 export const hydrateMediaEntry = media.hydrate;
-export const clearMediaEntries = media.clearEntries;
 
 if (
   typeof window !== "undefined" &&

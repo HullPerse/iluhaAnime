@@ -20,8 +20,6 @@ function DiagnosticsOverlay() {
     { label: t("player.media.diagnostics.fps.render"), value: formatFps(fpsRender) },
     { label: t("player.media.diagnostics.fps.video"), value: formatFps(fpsVideo) },
     { label: t("player.media.diagnostics.drops"), value: formatCount(dropCount) },
-    // A local file's demuxer cache is disk readahead, not a buffer the user can
-    // run out of; the row only means something for a stream.
     ...(streaming
       ? [{ label: t("player.media.diagnostics.cache"), value: formatCache(cacheDuration) }]
       : []),

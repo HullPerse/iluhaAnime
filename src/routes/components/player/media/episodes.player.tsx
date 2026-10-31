@@ -19,9 +19,7 @@ export default function StreamEpisodeList({
 }: {
   episodes: StreamingEpisode[];
   currentId: string | null;
-  /** AniList preview art keyed by episode number, when the title has one. */
   previews: ReadonlyMap<number, string>;
-  /** The title's cover, used when neither the episode nor AniList has art. */
   fallbackCover: string | null;
   loading: boolean;
   onPick: (episode: StreamingEpisode) => void;

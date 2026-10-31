@@ -15,17 +15,17 @@ export const SOURCE_NAME = "AnimeLib";
 const playersInflight = new Map<string, Promise<StreamVariant[]>>();
 const sourcesInflight = new Map<string, Promise<StreamSource[]>>();
 
-export function loadPlayers(episodeId: string): Promise<StreamVariant[]> {
+function loadPlayers(episodeId: string): Promise<StreamVariant[]> {
   return inflightFetch(playersInflight, episodeId, () => streamApi.players(episodeId));
 }
 
-export function loadSources(episodeId: string, variantId: string): Promise<StreamSource[]> {
+function loadSources(episodeId: string, variantId: string): Promise<StreamSource[]> {
   return inflightFetch(sourcesInflight, `${episodeId}:${variantId}`, () =>
     streamApi.streamSources({ episodeId, variantId })
   );
 }
 
-export function startPosition(watchKey: string, restart: boolean): Promise<number | undefined> {
+function startPosition(watchKey: string, restart: boolean): Promise<number | undefined> {
   return restart ? Promise.resolve(undefined) : resumePosition(watchKey);
 }
 
@@ -73,7 +73,7 @@ export async function prefetchEpisode(mediaId: string, episodeId: string): Promi
   ]);
 }
 
-export async function resumePosition(watchKey: string): Promise<number | undefined> {
+async function resumePosition(watchKey: string): Promise<number | undefined> {
   const [watch] = await attempt(loadWatch(watchKey));
   if (!watch || watch.position < RESUME_MIN) return undefined;
   const finished = watch.duration > 0 && watch.position >= watch.duration - RESUME_END_MARGIN;

@@ -45,7 +45,6 @@ export interface SettingsStore {
   showTrackFiles: "hide" | "torrent" | "folders";
   watcherDelay: WatcherDelay;
   scanThreads: number;
-  /** Quality a stream starts at when the title has no remembered one. */
   streamDefaultQuality: StreamQuality;
   modalAnimation: boolean;
   enable3dBorders: boolean;
@@ -78,7 +77,6 @@ export interface SettingsStore {
   collectionGroupHeaderStyle: "torrent" | "folder";
   savedFolderPaths: string[];
   playerFolderHeights: Record<string, number>;
-  /** Per-info-hash height of the torrent file list in the player route. */
   playerTorrentHeights: Record<string, number>;
   hiddenPlayerFolders: string[];
   hiddenPlayerTorrents: string[];
@@ -94,7 +92,6 @@ export interface SettingsStore {
   fileOrder: FileOrder;
   fastresumeEnabled: boolean;
   disablePersistence: boolean;
-  /** Publish what is playing to the Discord client. Off until the user asks. */
   discordRpcEnabled: boolean;
   parseTitlesPlayer: boolean;
   parseTitlesTorrent: boolean;
@@ -134,7 +131,6 @@ export interface SettingsStore {
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
   anilistProxyUrl: string | null;
-  /** SOCKS/HTTP proxy for the AnimeLib API and its Kodik resolver. */
   animelibProxyUrl: string | null;
   anilistTitleLanguage: AniTitlePreference;
   anilistAdultContent: boolean;

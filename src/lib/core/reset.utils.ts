@@ -3,7 +3,7 @@ import { patchSettings } from "@/store/settings.store";
 import type { SettingsDefaults, SettingsStore } from "@/types/ui/settings";
 import type { ResetSectionId } from "@/types/core/reset";
 
-export const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
+const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
   "general.tabs": ["collectionTabEnabled", "anilistTabEnabled", "sqliteBrowserEnabled"],
   "general.startup": ["fastLaunch", "rememberLastTab"],
   "general.keyboard": ["vimMode"],

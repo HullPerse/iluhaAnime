@@ -41,8 +41,6 @@ export function useSuggestions(
     const nq = normalizeSearchText(normalized);
     const queryWords = terms ? [] : nq.split(" ");
     (async () => {
-      // Recall pool: the backend only narrows candidates by FTS, the final
-      // order is decided below with the shared ranking model.
       const [rows, error] = await attempt(
         collectionApi.searchUnifiedIndex(normalized, scope, suggestionPoolSize(limit))
       );

@@ -23,7 +23,7 @@ const node = (text = "", rect: Partial<DOMRect> = {}): HTMLElement => {
       y: 10,
       toJSON: () => ({}),
       ...rect,
-    }) as DOMRect;
+    });
   document.body.append(element);
   nodes.push(element);
   return element;

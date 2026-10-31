@@ -3,11 +3,6 @@ import type { RefObject } from "react";
 
 import { GAME_DISPLAY } from "@/config/player/display.config";
 
-/**
- * Fits the stage with whole-pixel canvas scale so the framebuffer is never
- * resampled. Recomputed only on size changes; jsdom without ResizeObserver
- * keeps the minimum scale.
- */
 export function useIntegerScale(
   stage: RefObject<HTMLElement | null>,
   cols: number,

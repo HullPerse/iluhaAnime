@@ -13,16 +13,11 @@ import type {
   NotificationFilter,
   NotificationItem,
   NotificationTarget,
-  NotificationType,
   ShowNotificationPayload,
 } from "@/types/core/notification";
 
-function show(title: string, type: NotificationType, body?: string): void {
-  addNotification(title, type, body);
-}
-
 export function showError(title: string, body: string): void {
-  show(title, "error", body);
+  addNotification(title, "error", body);
 }
 
 export function showErrorOnce(eventKey: string, title: string, body: string): void {
@@ -35,11 +30,11 @@ export function showErrorOnce(eventKey: string, title: string, body: string): vo
 }
 
 export function showInfo(title: string, body?: string): void {
-  show(title, "info", body);
+  addNotification(title, "info", body);
 }
 
 export function showWarning(title: string, body?: string): void {
-  show(title, "warning", body);
+  addNotification(title, "warning", body);
 }
 
 export function copyNotification(item: NotificationItem): Promise<void> {

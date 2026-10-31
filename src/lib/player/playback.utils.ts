@@ -160,9 +160,6 @@ export async function applyProperties(options: Record<string, unknown>): Promise
 }
 
 export async function applyPlayerProfile(profile: PlayerProfileId): Promise<void> {
-  // The profile is a local-file setting: a stream is bounded by `cache-secs`.
-  // Rust remembers the value and re-applies it on the next local load, because
-  // mpv keeps the stream's cache profile on the instance across files.
   const readahead = profileOptions(profile)["demuxer-readahead-secs"];
   await invokeTyped("player_set_readahead", {
     seconds: typeof readahead === "number" ? readahead : 1,
@@ -184,10 +181,6 @@ export function hdrOptions(settings: PlayerSettings): Record<string, unknown> {
   };
 }
 
-export async function applyHdrOptions(settings: PlayerSettings): Promise<void> {
-  await applyProperties(hdrOptions(settings));
-}
-
 export function colorOptions(settings: PlayerSettings): Record<string, unknown> {
   return {
     "target-prim": settings.targetPrim,
@@ -195,16 +188,8 @@ export function colorOptions(settings: PlayerSettings): Record<string, unknown> 
   };
 }
 
-export async function applyColorOptions(settings: PlayerSettings): Promise<void> {
-  await applyProperties(colorOptions(settings));
-}
-
 export function audioOptions(settings: PlayerSettings): Record<string, unknown> {
   return { af: settings.loudnorm ? "loudnorm" : "" };
-}
-
-export async function applyAudioOptions(settings: PlayerSettings): Promise<void> {
-  await applyProperties(audioOptions(settings));
 }
 
 export async function applyBatchProperties(properties: Record<string, unknown>): Promise<void> {
@@ -232,11 +217,6 @@ export async function openStream(stream: StreamOpen): Promise<void> {
   await invokeTyped("player_open_stream", { stream });
 }
 
-/**
- * Build the hidden player window before it is needed. The window survives
- * between streams but not a close, so opening a title modal asks for it again;
- * when it already exists the call does nothing.
- */
 export async function prewarmPlayer(): Promise<void> {
   await invokeTyped("player_prewarm");
 }

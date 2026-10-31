@@ -177,7 +177,7 @@ test(
       for (let i = 0; i < 50000; i++) {
         const next: Record<string, number> = {};
         for (let k = 0; k < 50; k++) next[`f${k}`] = k;
-        store.setState(next as Partial<BaselineState>);
+        store.setState(next);
         snapshot.length = 0;
       }
     });

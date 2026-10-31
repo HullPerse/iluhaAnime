@@ -1,9 +1,3 @@
-// Next episode resolution for a stream session.
-//
-// The player window owns the session, so the next episode is resolved from the
-// session alone: the season comes from the media id, the voice-over is matched
-// by its hoster plus team id, and the quality is the one already in use when it
-// still exists. Nothing here touches local files.
 
 import { buildVariantId, buildWatchKey } from "@/lib/player/streamHelpers.utils";
 import { pickVariant } from "@/lib/player/streamPrefs.utils";
@@ -13,12 +7,6 @@ import { attempt } from "@/lib/core/attempt.utils";
 import type { StreamingEpisode } from "@/types/player/stream";
 import type { StreamOpen, StreamSource } from "@/types/player/videoPlayer";
 
-/**
- * The sources of another episode under the same voice-over. The remembered row
- * is tried first: when the title keeps the voice-over across episodes this is
- * one resolve, and only a missing row asks for the player list. The same-quality
- * preference degrades to the nearest lower quality.
- */
 async function episodeSources(
   episodeId: string,
   session: StreamOpen
@@ -35,10 +23,6 @@ async function episodeSources(
   return sources && sources.length > 0 ? { sources, variantId } : null;
 }
 
-/**
- * The session of one chosen episode as the same voice-over and quality, or
- * null when that episode has no row for the voice-over any more.
- */
 export async function resolveEpisodeStream(
   session: StreamOpen,
   episode: StreamingEpisode
@@ -58,19 +42,13 @@ export async function resolveEpisodeStream(
     mediaUrl: source.url,
     headers: source.headers,
     sources: toVariantSources(resolved.sources),
-    // Rows belong to the episode, so the next one starts without stale choices.
     variants: [],
     watchKey: buildWatchKey(session.sourceId, session.mediaId, episode.id),
     resume: 0,
-    // Another episode also opens paused; playback is the user's call.
     paused: true,
   };
 }
 
-/**
- * The session of the next episode as the same voice-over and quality, or null
- * when the season has no further episode or the row disappeared.
- */
 export async function resolveNextStream(session: StreamOpen): Promise<StreamOpen | null> {
   const episodes = await loadEpisodes(session.mediaId);
   const next = episodes

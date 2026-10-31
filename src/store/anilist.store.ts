@@ -186,8 +186,8 @@ function readLegacyEnvelope(
 
 type FriendsActionKeys = "addFriend" | "cacheProfile" | "removeFriend";
 
-export type FriendsData = Omit<AniListFriendsStore, FriendsActionKeys>;
-export type FriendsAtoms = { [K in keyof FriendsData]: Cell<FriendsData[K]> };
+type FriendsData = Omit<AniListFriendsStore, FriendsActionKeys>;
+type FriendsAtoms = { [K in keyof FriendsData]: Cell<FriendsData[K]> };
 
 type NotificationsActionKeys =
   | "saveObservation"
@@ -200,7 +200,7 @@ type NotificationsActionKeys =
   | "setSiteMaxSeenId";
 
 export type AnilistNotificationsData = Omit<AniListNotificationsStore, NotificationsActionKeys>;
-export type AnilistNotificationsAtoms = {
+type AnilistNotificationsAtoms = {
   [K in keyof AnilistNotificationsData]: Cell<AnilistNotificationsData[K]>;
 };
 
@@ -391,13 +391,11 @@ const friends = createFriendsSignalStore();
 const anilistNotifications = createAnilistNotificationsSignalStore();
 
 export const anilistFriendsAtoms = friends.atoms;
-export const anilistFriendsPersistor = friends.persistor;
 export const addAnilistFriend = friends.addFriend;
 export const cacheAnilistProfile = friends.cacheProfile;
 export const removeAnilistFriend = friends.removeFriend;
 
 export const anilistNotificationsAtoms = anilistNotifications.atoms;
-export const anilistNotificationsPersistor = anilistNotifications.persistor;
 export const saveAnilistObservation = anilistNotifications.saveObservation;
 export const markOwnAnilistListStatus = anilistNotifications.markOwnListStatus;
 export const addAnilistRelease = anilistNotifications.addRelease;

@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import themeInitSource from "../../../public/theme-init.js?raw";
 
 function runInit(): void {
-  // The script is a static local asset, not user input; executing it is the only way to prove
-  // the pre-paint payload is applied before React exists.
   // oxlint-disable-next-line no-new-func, typescript/no-implied-eval
   new Function(themeInitSource)();
 }

@@ -53,7 +53,7 @@ function inRange(value: number | null, range: [number, number]): boolean {
   return value >= range[0] && value <= range[1];
 }
 
-export function matchesLocalFilters(entry: AniListEntry, filters: AniListFilters): boolean {
+function matchesLocalFilters(entry: AniListEntry, filters: AniListFilters): boolean {
   const media = entry.media;
   if (filters.genres.length > 0 && !filters.genres.every((g) => media.genres.includes(g))) {
     return false;
@@ -104,7 +104,7 @@ export function sortEntries(
     if (aMissing) return 1;
     if (bMissing) return -1;
     const compared =
-      typeof a === "string" ? a.localeCompare(b as string) : (a as number) - (b as number);
+      typeof a === "string" ? a.localeCompare(b as string) : (a) - (b as number);
     return direction === "desc" ? -compared : compared;
   });
   return copy;
@@ -208,7 +208,7 @@ export function entryListDate(
 }
 
 function emptyToNull<T>(value: T | null | undefined | ""): T | null {
-  return value ? (value as T) : null;
+  return value ? (value) : null;
 }
 
 function arrayToNull<T>(arr: T[]): T[] | null {

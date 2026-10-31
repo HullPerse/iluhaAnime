@@ -46,7 +46,7 @@ describe("resolveRowCollisions", () => {
     expect(once.left).toEqual([10, 70, 90]);
     const twice = resolveRowCollisions(
       once.left.map((left, index) => {
-        const source = boxes[index]!;
+        const source = boxes[index];
         return { ...source, minX: left, maxX: left + (source.maxX - source.minX) };
       }),
       { rowGap: ROW_GAP }

@@ -10,7 +10,7 @@ import type {
   Persistor,
 } from "@/types/core/persist";
 
-export const PERSIST_FORMAT_VERSION = 1;
+const PERSIST_FORMAT_VERSION = 1;
 
 export function persistKey(storeName: string): string {
   return `iluha.v1.${storeName}`;

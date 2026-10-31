@@ -1,4 +1,4 @@
-import type { ApiTransport } from "./transport.api";
+import type { ApiTransport } from "@/api/transport.api";
 import type { CropRect, ScreenshotFormat, ScreenshotLayersPayload } from "@/types/core/screenshot";
 
 export interface SystemApiConfig {

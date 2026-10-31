@@ -70,7 +70,7 @@ describe("nearestIndex", () => {
     for (const target of [0, 1, 42.5, 599, 1_000, 1_198]) {
       const best = values.reduce(
         (winner, value, index) =>
-          Math.abs(value - target) < Math.abs(values[winner]! - target) ? index : winner,
+          Math.abs(value - target) < Math.abs(values[winner] - target) ? index : winner,
         0
       );
       expect(nearestIndex(values, target)).toBe(best);

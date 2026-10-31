@@ -111,8 +111,8 @@ export function wizardDefaultsIdentity(initial?: CollectionItem | null) {
   return {
     title: initial?.title ?? "",
     altTitles: initial?.altTitles.join(", ") ?? "",
-    type: (initial?.type ?? "anime") as CollectionItem["type"],
-    status: (initial?.status ?? "planned") as CollectionStatus,
+    type: (initial?.type ?? "anime"),
+    status: (initial?.status ?? "planned"),
   };
 }
 
@@ -120,9 +120,9 @@ export function wizardDefaultsProgress(initial?: CollectionItem | null) {
   return {
     progressValue: String(initial?.progressValue ?? 0),
     progressTotal: String(initial?.progressTotal ?? ""),
-    progressUnit: (initial?.progressUnit ?? "episodes") as CollectionItem["progressUnit"],
+    progressUnit: (initial?.progressUnit ?? "episodes"),
     rating: String(initial?.rating ?? ""),
-    priority: (initial?.priority ?? "normal") as CollectionItem["priority"],
+    priority: (initial?.priority ?? "normal"),
     isFavorite: initial?.isFavorite ?? false,
   };
 }
@@ -148,9 +148,9 @@ export function wizardDefaultsDates(initial?: CollectionItem | null) {
 export function wizardDefaultsMedia(initial?: CollectionItem | null) {
   return {
     coverUrl: initial?.coverUrl ?? "",
-    externalIds: initial?.externalIds ?? ({} as CollectionItem["externalIds"]),
+    externalIds: initial?.externalIds ?? ({}),
     localPath: initial?.localPath ?? "",
     localKind: initial?.localKind ?? null,
-    customFields: (initial?.customFields ?? {}) as Record<string, unknown>,
+    customFields: (initial?.customFields ?? {}),
   };
 }

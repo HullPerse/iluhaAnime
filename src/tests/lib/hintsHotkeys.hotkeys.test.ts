@@ -300,7 +300,7 @@ describe("scanHintTargets", () => {
     scrim.className = "sticky";
     const original = document.elementFromPoint;
     document.elementFromPoint = ((_x: number, y: number) =>
-      y < 70 ? scrim : visible) as typeof document.elementFromPoint;
+      y < 70 ? scrim : visible);
     try {
       const found = scanHintTargets(document.body).badges.map((badge) => badge.element);
       expect(found).not.toContain(covered);
@@ -507,7 +507,7 @@ describe("resolveBadgeCollisions", () => {
     const layouts = [pin, layout("j", 40), layout("k", 55)];
     const once = resolveBadgeCollisions(layouts);
     expect(once[1]?.left).toBe(right);
-    expect(once[2]?.left).toBe(right + badgeWidth(once[1]!));
+    expect(once[2]?.left).toBe(right + badgeWidth(once[1]));
     expect(resolveBadgeCollisions(once)).toEqual(once);
   });
 

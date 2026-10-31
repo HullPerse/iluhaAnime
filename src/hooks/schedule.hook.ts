@@ -22,9 +22,6 @@ export function useDayNightScheduler(): void {
     theme: null,
   });
 
-  // The periodic sweep below runs in useEffect, after the first paint. Apply
-  // the scheduled theme once in a layout effect so the restored theme never
-  // flashes before the schedule takes over.
   useLayoutEffect(() => {
     const scheduled = scheduledThemeName(getSettingsSnapshot().themeSchedule, nowMinutesOf());
     if (!scheduled || applied.current.theme === scheduled.frame) return;

@@ -383,7 +383,7 @@ const TECH_RULES: TechRule[] = [
   },
 ];
 
-export function emptyFieldBag(): FieldBag {
+function emptyFieldBag(): FieldBag {
   return { groups: [], langs: [], dub: false, subs: [], tags: [] };
 }
 

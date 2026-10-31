@@ -1,6 +1,6 @@
 import type { AniSiteNotification } from "@/types/anilist/anilist";
 
-export function notificationText(item: AniSiteNotification): string {
+function notificationText(item: AniSiteNotification): string {
   if (item.context) return item.context;
   if (item.contexts.length > 0) return item.contexts.join(" ");
   if (item.text) return item.text;

@@ -18,7 +18,7 @@ export function TorrentCategoryEntry({
     queryKey: queryKeys.extraFiles(tor.save_dir),
     queryFn: () =>
       invokeTyped<{ path: string; name: string; size: number }[]>("scan_extra_files", {
-        path: tor.save_dir!,
+        path: tor.save_dir,
       }).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
     enabled: !!tor.save_dir,
   });

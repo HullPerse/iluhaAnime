@@ -274,7 +274,7 @@ export function useTorrentFilesMap(
             key,
             cached &&
               cached.length === files.length &&
-              cached.every((file, index) => sameFileInfo(file, files[index]!))
+              cached.every((file, index) => sameFileInfo(file, files[index]))
               ? cached
               : files
           );

@@ -17,7 +17,7 @@ import { titleKindBonus, typedTitlesOf } from "@/lib/search/searchTitle.utils";
 import { findInvalidTorrentTag } from "@/lib/torrent/torrentTags.utils";
 import type { SpellingWithReason } from "@/types/search/searchResolve";
 
-export const PHRASE_CONFIDENCE = 60;
+const PHRASE_CONFIDENCE = 60;
 const LAYOUT_PENALTY = 60;
 const EXACT_TITLE_SCORE = 900;
 
@@ -27,7 +27,7 @@ function popularityBoost(anime: SearchAnimeSuggestion): number {
   return Math.min(40, favourite + score);
 }
 
-export function foldTransliterationVariants(word: string): string {
+function foldTransliterationVariants(word: string): string {
   return word
     .replaceAll("ou", "o")
     .replaceAll("oo", "o")

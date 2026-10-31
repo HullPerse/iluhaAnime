@@ -62,7 +62,7 @@ function buildScoreBlock(
   for (const entry of statistics.scores) {
     if (entry.score <= 0) continue;
     const index = clamp(Math.ceil(entry.score / width) - 1, 0, count - 1);
-    buckets[index]!.count += entry.count;
+    buckets[index].count += entry.count;
   }
   return {
     buckets,

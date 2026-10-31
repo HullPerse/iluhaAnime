@@ -47,7 +47,7 @@ const installCanvasHarness = (source: Uint8ClampedArray) => {
   function FakeImageData(data: Uint8ClampedArray, width: number, height: number) {
     return { data, width, height };
   }
-  vi.stubGlobal("ImageData", FakeImageData as unknown as typeof ImageData);
+  vi.stubGlobal("ImageData", FakeImageData as unknown);
 };
 
 const installImageHarness = (naturalWidth: number, naturalHeight: number) => {
@@ -70,7 +70,7 @@ const installImageHarness = (naturalWidth: number, naturalHeight: number) => {
       });
     }
   }
-  vi.stubGlobal("Image", MockImage as unknown as typeof Image);
+  vi.stubGlobal("Image", MockImage as unknown);
   return instances;
 };
 

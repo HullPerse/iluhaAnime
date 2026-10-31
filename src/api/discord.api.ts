@@ -2,15 +2,11 @@ import { tauriTransport } from "@/api/transport.api";
 import type { ApiTransport } from "@/types/core/transport";
 import type { DiscordActivity, DiscordPresenceSource } from "@/types/core/discord";
 
-export interface DiscordApiConfig {
+interface DiscordApiConfig {
   transport?: ApiTransport;
 }
 
-/**
- * Talks to the Rust presence manager. The manager owns the Discord pipe, so a
- * missing Discord client never turns into a failed command here.
- */
-export class DiscordApi {
+class DiscordApi {
   private readonly transport: ApiTransport;
 
   constructor(config: DiscordApiConfig = {}) {

@@ -769,7 +769,7 @@ describe("anilist/entries", () => {
     });
 
     it("falls back to gray for unknown statuses", () => {
-      expect(getStatusColor("WEIRD" as AniListEntry["list_status"])).toBe("#888");
+      expect(getStatusColor("WEIRD")).toBe("#888");
     });
   });
 

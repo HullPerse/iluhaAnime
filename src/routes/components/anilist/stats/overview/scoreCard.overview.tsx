@@ -26,7 +26,7 @@ export function ScoreCard({
       </StatsCard>
     );
   }
-  const width = buckets[0]!.to - buckets[0]!.from;
+  const width = buckets[0].to - buckets[0].from;
   const count = buckets.length;
   const mean = formatMeanScore(model.scores.mean, scoreFormat) ?? "-";
   return (

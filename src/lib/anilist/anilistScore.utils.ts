@@ -90,6 +90,10 @@ const SMILEYS: Record<number, string> = {
   3: ":)",
 };
 
+export function hasRating(score: number | null | undefined): boolean {
+  return typeof score === "number" && score > 0;
+}
+
 export function smileyForScore(score: number | null | undefined): string | null {
   if (score == null || score === 0) return null;
   return SMILEYS[score] ?? null;

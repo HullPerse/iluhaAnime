@@ -1,7 +1,6 @@
 import { cn } from "cn";
 import { List, RefreshCw } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -9,6 +8,7 @@ import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/anilistScore.ut
 import type { AniFriend, AniUserProfile } from "@/types/anilist/anilist";
 
 import { FriendActivityFeed } from "@/routes/components/anilist/activity/friendActivity.activity";
+import { FriendPreviewEmpty } from "@/routes/components/anilist/friends/emptyPreview.friends";
 
 export interface FriendPreviewProps {
   friend: AniFriend | undefined;
@@ -36,28 +36,13 @@ export function FriendPreview({
   else if (profile.is_following) relationshipLabel = t("anilist.friends.following");
   if (!hasSelection || profile === undefined) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6">
-        {hasSelection && profileError && (
-          <>
-            <span className="windows95-text text-destructive text-xs">{profileError}</span>
-            <Button
-              size="icon"
-              className="size-5"
-              title={t("anilist.friends.refresh")}
-              disabled={friend === undefined || refreshing}
-              onClick={() => onRefresh(true)}
-            >
-              <RefreshCw className="size-3" />
-            </Button>
-          </>
-        )}
-        {hasSelection && !profileError && <SmallLoader size={5} />}
-        {!hasSelection && (
-          <span className="windows95-text text-hint text-center text-xs">
-            {t("anilist.friends.help")}
-          </span>
-        )}
-      </div>
+      <FriendPreviewEmpty
+        hasSelection={hasSelection}
+        profileError={profileError}
+        friendMissing={friend === undefined}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
     );
   }
   return (

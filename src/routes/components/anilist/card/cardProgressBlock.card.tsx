@@ -13,7 +13,7 @@ export function CardProgressBlock({
   progress: number | null;
 }) {
   if (entry?.progress == null || progress == null) return null;
-  if (item.episodes) {
+  if (typeof item.episodes === "number" && item.episodes > 0) {
     return (
       <div className="flex items-center gap-1">
         <ProgressStepper media={item} entry={entry} progress={progress} />

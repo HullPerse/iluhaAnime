@@ -46,16 +46,17 @@ export default function AniListResultsPagination({
     currentList === ALL_LISTS_ID
       ? t("anilist.lists.all")
       : t(toLocaleKey(listStatusLabels[currentList.toUpperCase()] ?? currentList));
-  let statusText: string | undefined;
-  if (global) {
-    const modeKey = searchMode ? SEARCH_MODE_LABELS[searchMode] : undefined;
-    const tagSuffix = searchTag && modeKey ? ` - ${t(modeKey)}: ${searchTag}` : "";
-    statusText = `${t("anilist.route.search.results", { count: searchResultsCount })}${tagSuffix}`;
-  } else if (isLocal) {
-    statusText = `${listLabel}: ${filteredCount} / ${activeCount}`;
-  } else if (hasUser) {
-    statusText = `${listLabel}: ${activeCount}`;
-  }
+  const modeKey = searchMode ? SEARCH_MODE_LABELS[searchMode] : undefined;
+  const tagSuffix = searchTag && modeKey ? ` - ${t(modeKey)}: ${searchTag}` : "";
+  const statusRows: { when: boolean; text: string }[] = [
+    {
+      when: global,
+      text: `${t("anilist.route.search.results", { count: searchResultsCount })}${tagSuffix}`,
+    },
+    { when: isLocal, text: `${listLabel}: ${filteredCount} / ${activeCount}` },
+    { when: hasUser, text: `${listLabel}: ${activeCount}` },
+  ];
+  const statusText = statusRows.find((row) => row.when)?.text;
   return (
     <Pagination
       total={total}

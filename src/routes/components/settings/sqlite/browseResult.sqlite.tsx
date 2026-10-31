@@ -1,10 +1,11 @@
 import { useRef, type ReactNode, type RefObject } from "react";
 
 import { SmallLoader } from "@/components/shared/loader/small.loader";
-import Pagination from "@/components/shared/pagination.component";
 import { PAGE_SIZE } from "@/config/system/sqlite.config";
-import { useI18n } from "@/hooks/i18n.hook";
 import type { SqliteRowsPage } from "@/types/core/sqlite";
+
+import { SqliteBrowseFooter } from "@/routes/components/settings/sqlite/browseFooter.sqlite";
+import { SqliteBrowseStatus } from "@/routes/components/settings/sqlite/browseStatus.sqlite";
 
 export function SqliteBrowseResult({
   loadingRows,
@@ -47,7 +48,6 @@ export function SqliteBrowseResult({
     loadingMore: boolean
   ) => ReactNode;
 }) {
-  const { t } = useI18n();
   const scrollRef = useRef<HTMLElement | null>(null);
   const showScroll = display === "scroll";
   const hasMore = accRows.length < total;
@@ -58,6 +58,7 @@ export function SqliteBrowseResult({
     (!rows || (showScroll ? accRows.length === 0 : rows.rows.length === 0));
   const scrollReady = !initialLoading && !noRows && showScroll;
   const tableReady = !initialLoading && !noRows && !showScroll;
+
   return (
     <>
       <section
@@ -65,16 +66,7 @@ export function SqliteBrowseResult({
         data-virtual-list
         className="ui-panel bg-field min-h-40 overflow-auto p-0"
       >
-        {initialLoading && (
-          <div className="flex min-h-40 items-center justify-center">
-            <SmallLoader />
-          </div>
-        )}
-        {noRows && (
-          <div className="text-hint flex min-h-40 items-center justify-center p-3 text-xs">
-            {t("settings.sqlite.empty")}
-          </div>
-        )}
+        <SqliteBrowseStatus loading={initialLoading} empty={noRows} />
         {scrollReady && (
           <>
             {renderVirtualRowsTable(rows?.columns ?? [], accRows, scrollRef, hasMore, loadingMore)}
@@ -85,28 +77,21 @@ export function SqliteBrowseResult({
             )}
           </>
         )}
-        {tableReady && rows &&
+        {tableReady &&
+          rows &&
           renderRowsTable(rows.columns, rows.rows, true, hideId, (page - 1) * PAGE_SIZE)}
       </section>
-      {showScroll ? (
-        <div className="text-hint windows95-text px-1 text-xs">
-          {t("common.pagination.shown", {
-            from: accRows.length === 0 ? 0 : 1,
-            to: accRows.length,
-            total: rows?.total ?? 0,
-          })}
-        </div>
-      ) : (
-        <Pagination
-          total={total}
-          page={page}
-          lastPage={lastPage}
-          from={from}
-          to={to}
-          onPageChange={onPageChange}
-          statusText={t("settings.sqlite.page", { page, total: lastPage })}
-        />
-      )}
+      <SqliteBrowseFooter
+        scroll={showScroll}
+        accCount={accRows.length}
+        rows={rows}
+        total={total}
+        page={page}
+        lastPage={lastPage}
+        from={from}
+        to={to}
+        onPageChange={onPageChange}
+      />
     </>
   );
 }

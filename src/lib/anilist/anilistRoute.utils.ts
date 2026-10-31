@@ -2,6 +2,7 @@ import { NO_PEOPLE } from "@/config/anilist/anilistDefaults.config";
 import { sortAniMediaList, type sortEntries } from "@/lib/anilist/entries.utils";
 import { localFilterSignature } from "@/lib/anilist/anilistFilters.utils";
 import type {
+  AniFriend,
   AniListAnime,
   AniListFilters,
   AniListSort,
@@ -12,6 +13,17 @@ import type {
   FavouritePeople,
   GlobalSort,
 } from "@/types/anilist/anilist";
+
+export function resolveFriendState(
+  friend: AniFriend | null,
+  isLoading: boolean,
+  isError: boolean
+): "loading" | "error" | null {
+  if (!friend) return null;
+  if (isLoading) return "loading";
+  if (isError) return "error";
+  return null;
+}
 
 export function routePeople(data: AnilistRouteData | undefined): FavouritePeople {
   return data?.people ?? NO_PEOPLE;

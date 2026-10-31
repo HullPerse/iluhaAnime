@@ -22,6 +22,7 @@ import {
   hasAnyFavourites,
   isLocalSearch,
   resolveAniListView,
+  resolveFriendState,
   routePeople,
 } from "@/lib/anilist/anilistRoute.utils";
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/anilistScore.utils";
@@ -496,9 +497,11 @@ function AnilistRoute() {
     });
   }, [setSearchTerms]);
 
-  let friendState: "loading" | "error" | null = null;
-  if (viewedFriend && friendData.isLoading) friendState = "loading";
-  else if (viewedFriend && friendData.isError) friendState = "error";
+  const friendState = resolveFriendState(
+    viewedFriend,
+    friendData.isLoading,
+    friendData.isError
+  );
   const headerLoading = source.mode === "friend" ? friendState === "loading" : self.isLoading;
 
   const detailBundle: ActivityDetailBundle = {

@@ -1,15 +1,13 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { VideoPlayer } from "@/components/shared/video/player.video";
-import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { FilmstripTab } from "@/types/player/media";
 
-import { FilmstripThumb } from "@/components/shared/filmstrip/thumb.filmstrip";
+import { FilmstripStrip } from "@/components/shared/filmstrip/strip.filmstrip";
+import { FilmstripTabs } from "@/components/shared/filmstrip/tabs.filmstrip";
 
 export function FilmstripViewer({
   stills,
@@ -39,6 +37,8 @@ export function FilmstripViewer({
   );
   const tab = activeTab ?? internalTab;
   const showTrailer = tab === "trailer";
+  const total = stills.length;
+
   const setTab = useCallback(
     (next: FilmstripTab) => {
       if (onTabChange) onTabChange(next);
@@ -46,7 +46,6 @@ export function FilmstripViewer({
     },
     [onTabChange]
   );
-  const total = stills.length;
   const openStill = useCallback(
     (next: number) => {
       setIndex(((next % total) + total) % total);
@@ -54,7 +53,8 @@ export function FilmstripViewer({
     },
     [total, setTab]
   );
-  const current = total > 0 ? (stills[index] ?? stills[0] ?? "") : "";
+
+  const current = total > 0 ? (stills.at(index) ?? stills.at(0) ?? "") : "";
   const resolvedCurrent = useRemoteImage(current || null);
   const hasFrames = total > 0;
 
@@ -62,47 +62,26 @@ export function FilmstripViewer({
     setIndex((prev) => ((prev % total) + total) % total);
   }, [total]);
 
-  const onStripKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget) return;
-    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-      event.preventDefault();
-      openStill(index + (event.key === "ArrowRight" ? 1 : -1));
+  const openTrailer = () => {
+    if (onTrailerClick) {
+      onTrailerClick();
+      return;
     }
+    setTab("trailer");
   };
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex flex-row items-center gap-1">
-        {!hideTabs && (
-          <>
-            <Button
-              className="h-5 px-1 text-xs"
-              aria-pressed={!showTrailer}
-              onClick={() => setTab("frames")}
-            >
-              {t("common.frames")}
-            </Button>
-            {trailerYoutubeId && (
-              <Button
-                className="h-5 px-1 text-xs"
-                aria-pressed={showTrailer}
-                onClick={() => {
-                  if (onTrailerClick) {
-                    onTrailerClick();
-                  } else {
-                    setTab("trailer");
-                  }
-                }}
-              >
-                {trailerLabel}
-              </Button>
-            )}
-          </>
-        )}
-        <span className="windows95-text ml-auto text-xs">
-          {showTrailer ? "▶" : `${hasFrames ? index + 1 : 0}/${total}`}
-        </span>
-      </div>
+      <FilmstripTabs
+        hideTabs={hideTabs}
+        showTrailer={showTrailer}
+        trailerYoutubeId={trailerYoutubeId}
+        trailerLabel={trailerLabel}
+        index={index}
+        total={total}
+        onFrames={() => setTab("frames")}
+        onTrailer={openTrailer}
+      />
       {showTrailer && trailerYoutubeId && (
         <VideoPlayer
           youtubeId={trailerYoutubeId}
@@ -130,55 +109,14 @@ export function FilmstripViewer({
           <span className="windows95-text text-hint text-xs">{t("common.no.results")}</span>
         </div>
       )}
-      <div className="flex flex-row items-center gap-1">
-        <Button
-          size="icon"
-          className="size-5"
-          aria-label={t("common.previous")}
-          disabled={!hasFrames || total < 2}
-          onClick={() => openStill(index - 1)}
-        >
-          <ChevronLeft className="size-3" />
-        </Button>
-        <div
-          role="listbox"
-          aria-label={t("common.frames")}
-          tabIndex={0}
-          onKeyDown={onStripKeyDown}
-          className="flex min-w-0 flex-1 flex-row gap-1 overflow-x-auto p-0.5"
-        >
-          {stills.map((src, i) => {
-            const active = i === index && !showTrailer;
-            return (
-              <button
-                key={src}
-                type="button"
-                role="option"
-                aria-selected={active}
-                aria-label={`${t("common.frame")} ${i + 1}`}
-                onClick={() => openStill(i)}
-                onKeyDown={enterOrSpace(() => openStill(i))}
-                className={
-                  active
-                    ? "windows95-active-border shrink-0 cursor-pointer p-0"
-                    : "windows95-border shrink-0 cursor-pointer p-0"
-                }
-              >
-                <FilmstripThumb src={src} />
-              </button>
-            );
-          })}
-        </div>
-        <Button
-          size="icon"
-          className="size-5"
-          aria-label={t("common.next")}
-          disabled={!hasFrames || total < 2}
-          onClick={() => openStill(index + 1)}
-        >
-          <ChevronRight className="size-3" />
-        </Button>
-      </div>
+      <FilmstripStrip
+        stills={stills}
+        index={index}
+        showTrailer={showTrailer}
+        onSelect={openStill}
+        onPrev={() => openStill(index - 1)}
+        onNext={() => openStill(index + 1)}
+      />
     </div>
   );
 }

@@ -46,10 +46,11 @@ export default function StreamSortBar({
   const { rowRef, start, end, stepPage } = usePagedRow(SORT_KEYS.length, activeIndex);
 
   const pick = (key: StreamSortBy) => {
-    setStreamSort(
-      key,
-      key === sortBy ? (sortType === "asc" ? "desc" : "asc") : STREAM_SORT_DEFAULT_DIR[key]
-    );
+    if (key !== sortBy) {
+      setStreamSort(key, STREAM_SORT_DEFAULT_DIR[key]);
+      return;
+    }
+    setStreamSort(key, sortType === "asc" ? "desc" : "asc");
   };
 
   return (

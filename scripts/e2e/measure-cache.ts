@@ -51,13 +51,13 @@ async function main() {
     // wait 5s for cache to grow
     await sleep(5000);
 
-    async function prop(name: string, format: string) {
+    const prop = async (name: string, format: string) => {
       try {
         return await invoke(player, "player_get_property", { name, format });
       } catch (e) {
         return `ERR: ${String(e)}`;
       }
-    }
+    };
 
     const readerPts = await prop("demuxer-cache-state/reader-pts", "double");
     const cacheEnd = await prop("demuxer-cache-state/cache-end", "double");
@@ -75,7 +75,7 @@ async function main() {
 
     // working set of app process
     const { execSync } = await import("node:child_process");
-    const ws = execSync('powershell -Command "(Get-Process iluhaAnime).WorkingSet64"', { encoding: "utf8" }).trim();
+    const ws = execSync('powershell -Command "(Get-Process iluhaAnime).WorkingSet64"', { encoding: "utf-8" }).trim();
     console.log("workingSetBytes", ws);
   } finally {
     await browser.close();

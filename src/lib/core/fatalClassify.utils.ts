@@ -3,6 +3,11 @@ import type { FatalInfo, FatalKind } from "@/types/core/fatal";
 export const GLOBAL_ESCALATE_COUNT = 3;
 export const GLOBAL_ESCALATE_WINDOW_MS = 10_000;
 
+const SCOPE_FATAL_KINDS: Record<string, FatalKind> = {
+  startup: "startup",
+  "global-loop": "global-loop",
+};
+
 const CHUNK_PATTERNS = [
   /loading chunk/i,
   /failed to fetch dynamically imported module/i,
@@ -64,10 +69,7 @@ export function toFatalInfo(
   context?: { scope: string; route?: string; themeName?: string; timestamp?: number }
 ): FatalInfo {
   const scope = context?.scope ?? "render";
-  let kind: FatalKind = "render";
-  if (scope === "startup") kind = "startup";
-  else if (scope === "global-loop") kind = "global-loop";
-  else if (isChunkError(value)) kind = "chunk";
+  const kind: FatalKind = SCOPE_FATAL_KINDS[scope] ?? (isChunkError(value) ? "chunk" : "render");
   return {
     kind,
     message: readMessage(value),

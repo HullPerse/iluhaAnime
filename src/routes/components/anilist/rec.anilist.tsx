@@ -4,6 +4,7 @@ import { TabLoader } from "@/components/shared/loader/tab.loader";
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { hasRating } from "@/lib/anilist/anilistScore.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AniRecProps as Props } from "@/types/anilist/anilist";
 
@@ -59,13 +60,13 @@ export default function AniListRecsModal({
                   {r.title}
                 </span>
                 <div className="windows95-text flex flex-row gap-2 text-xs">
-                  {r.score && (
+                  {hasRating(r.score) && (
                     <span>
                       <Star className="inline size-2.5" /> {r.score}
                     </span>
                   )}
                   {r.format && <span>{r.format}</span>}
-                  {r.episodes && (
+                  {typeof r.episodes === "number" && r.episodes > 0 && (
                     <span>
                       {r.episodes} {t("anilist.details.eps.short")}
                     </span>

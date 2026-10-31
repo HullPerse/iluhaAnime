@@ -32,12 +32,14 @@ export default function AniListGlobalSortBar({
             size="default"
             className="px-2 py-0.5"
             onClick={() => {
-              if (isRelevance) onSortChange({ key: "relevance", dir: "desc" });
-              else
-                onSortChange((prev) => ({
-                  key: s,
-                  dir: isActive ? (prev.dir === "asc" ? "desc" : "asc") : prev.dir,
-                }));
+              if (isRelevance) {
+                onSortChange({ key: "relevance", dir: "desc" });
+                return;
+              }
+              onSortChange((prev) => {
+                if (!isActive) return { key: s, dir: prev.dir };
+                return { key: s, dir: prev.dir === "asc" ? "desc" : "asc" };
+              });
             }}
           >
             {t(labels[s])}

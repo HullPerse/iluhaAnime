@@ -158,7 +158,7 @@ export function WizardSourceSearch({
                   </span>
                   <span className="flex shrink-0 flex-col items-end">
                     {typeLabel && <span className="font-bold">{typeLabel}</span>}
-                    {r.year && (
+                    {typeof r.year === "number" && r.year > 0 && (
                       <span className={active ? "text-white/80" : "text-hint"}>{r.year}</span>
                     )}
                   </span>

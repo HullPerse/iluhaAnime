@@ -9,8 +9,8 @@ export function stepTabId<T extends string>(
 ): T | null {
   if (ids.length === 0) return null;
   const active = ids.indexOf(activeId as T);
-  const from = active === -1 ? (delta > 0 ? -1 : 0) : active;
-  return ids[(from + delta + ids.length) % ids.length] ?? null;
+  if (active === -1) return delta > 0 ? (ids.at(0) ?? null) : (ids.at(-1) ?? null);
+  return ids[(active + delta + ids.length) % ids.length] ?? null;
 }
 
 export function ignoreTabCycle(event: KeyboardEvent): boolean {

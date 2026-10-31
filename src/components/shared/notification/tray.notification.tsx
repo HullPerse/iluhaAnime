@@ -19,6 +19,12 @@ import type { NotificationFilter, NotificationItem } from "@/types/core/notifica
 
 import NotificationPanel from "@/components/shared/notification/panel.notification";
 
+function announcementText(item: NotificationItem | null | undefined): string {
+  if (!item) return "";
+  if (!item.message) return item.title;
+  return `${item.title}. ${item.message}`;
+}
+
 export default function NotificationTray() {
   const items = useCell(notificationAtoms.items);
   const unreadCount = useCell(notificationAtoms.unreadCount);
@@ -61,7 +67,7 @@ export default function NotificationTray() {
         role={latest?.type === "error" ? "alert" : "status"}
         aria-live={latest?.type === "error" ? "assertive" : "polite"}
       >
-        {latest ? `${latest.title}${latest.message ? `. ${latest.message}` : ""}` : ""}
+        {announcementText(latest)}
       </div>
       <Button
         size="icon"

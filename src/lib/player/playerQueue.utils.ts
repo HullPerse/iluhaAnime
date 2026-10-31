@@ -38,9 +38,11 @@ export function queueDepthSteps(item: UpscaleQueueItem, t: TFunc): QueueDepthSte
     { key: "upscale", label: t("player.queue.step.upscale"), detail: upscaleDetail },
     { key: "encode", label: t("player.queue.step.encode"), detail: cfg.videoCodec },
   ];
-  let current = -1;
-  if (item.status === "done") current = defs.length;
-  else if (item.status === "processing") current = Math.max(0, stageIndex(item.stage));
+  const currentStage: Record<string, () => number> = {
+    done: () => defs.length,
+    processing: () => Math.max(0, stageIndex(item.stage)),
+  };
+  const current = currentStage[item.status]?.() ?? -1;
   return defs.map((step, index) => {
     const settled = index < current || item.status === "done";
     let percent = 0;

@@ -41,6 +41,10 @@ export default function SearchResultItem({
   const coverMode = useCell(settingsAtoms.torrentCoverMode);
   const cover = useTorrentCover(item.title, { source, url: item.link, mode: coverMode });
   const visual = coverVisual(cover, coverMode);
+  const coverTitle: Record<string, string> = {
+    override: t("search.cover.correct.manual"),
+    page: t("search.cover.page.poster"),
+  };
   const queryClient = useQueryClient();
   const refreshCover = () => {
     removeResolvedCover(cover.coverKey);
@@ -76,13 +80,7 @@ export default function SearchResultItem({
               <ImageComponent
                 src={visual.src}
                 alt=""
-                title={
-                  cover.status === "override"
-                    ? t("search.cover.correct.manual")
-                    : cover.status === "page"
-                      ? t("search.cover.page.poster")
-                      : undefined
-                }
+                title={coverTitle[cover.status]}
                 className="h-full w-full object-cover"
               />
             </button>

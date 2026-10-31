@@ -17,6 +17,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { hasRating } from "@/lib/anilist/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import type { ScheduledTask } from "@/types/core/shared";
@@ -181,7 +182,7 @@ export default function BrowseAnimeModal({
                     {item.title}
                   </span>
                   <div className="windows95-text mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
-                    {item.score && (
+                    {hasRating(item.score) && (
                       <span className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 font-bold">
                         <Star className="size-3 fill-white" /> {item.score}
                       </span>
@@ -189,7 +190,7 @@ export default function BrowseAnimeModal({
                     {item.format && (
                       <span className="windows95-border bg-field px-1">{item.format}</span>
                     )}
-                    {item.episodes && (
+                    {typeof item.episodes === "number" && item.episodes > 0 && (
                       <span>
                         {item.episodes} {t("anilist.details.eps.short")}
                       </span>
@@ -197,7 +198,9 @@ export default function BrowseAnimeModal({
                     <span>
                       {t(toLocaleKey(statusLabels[item.status.toUpperCase()] ?? item.status))}
                     </span>
-                    {item.season && item.season_year && (
+                    {item.season !== null &&
+                      typeof item.season_year === "number" &&
+                      item.season_year > 0 && (
                       <span>
                         {t(toLocaleKey(seasonLabels[item.season] ?? item.season))}{" "}
                         {item.season_year}

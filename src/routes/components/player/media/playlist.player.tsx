@@ -131,7 +131,8 @@ export default function PlaylistBody({
             }),
             null
           );
-          const files = selection ? (Array.isArray(selection) ? selection : [selection]) : [];
+          if (!selection) return;
+          const files = Array.isArray(selection) ? selection : [selection];
           if (files.length > 0) await mutate(appendFilesQuiet(files), undefined, false);
         },
       ],

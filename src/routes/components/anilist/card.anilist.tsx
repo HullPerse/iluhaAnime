@@ -7,7 +7,7 @@ import { useProgressOverride } from "@/hooks/anilist/progressOverride.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
 import { cardListEntry } from "@/lib/anilist/card.utils";
-import { formatEntryScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
+import { formatEntryScore, hasRating, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AniCardProps as Props } from "@/types/anilist/anilist";
@@ -54,7 +54,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
           </div>
 
           <div className="windows95-text mt-auto flex flex-row items-center gap-2 font-bold">
-            {item.score && (
+            {hasRating(item.score) && (
               <span className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 text-xs">
                 <Star className="size-3 fill-white" /> {item.score}
               </span>

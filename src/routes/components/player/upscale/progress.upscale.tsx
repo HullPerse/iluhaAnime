@@ -9,6 +9,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { formatETA } from "@/lib/core/time.utils";
 import type { UpscaleQueueItem } from "@/types/core/upscale";
 
+const STAGE_BY_STATUS: Record<string, "initializing" | null> = { processing: "initializing" };
+
 export function UpscaleProgressPanel({
   activeItem,
   onCancel,
@@ -21,9 +23,7 @@ export function UpscaleProgressPanel({
   if (!activeItem) return null;
   const hasFrameProgress =
     activeItem.current != null && activeItem.total != null && activeItem.total > 0;
-  let stage: "encoding" | "initializing" | null = null;
-  if (hasFrameProgress) stage = "encoding";
-  else if (activeItem.status === "processing") stage = "initializing";
+  const stage = hasFrameProgress ? "encoding" : (STAGE_BY_STATUS[activeItem.status] ?? null);
   const etaSecs =
     activeItem.speed &&
     activeItem.speed > 0 &&

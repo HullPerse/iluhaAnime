@@ -208,9 +208,12 @@ export function useVimMode(): void {
     const focusTreeIndex = (row: HTMLElement, command: "first" | "last"): void => {
       const count = vimAtoms.count.get();
       setVimCount("");
-      const parsed = count === "" ? Number.NaN : Number.parseInt(count, 10);
-      const index = Number.isNaN(parsed) ? (command === "first" ? 1 : -1) : parsed;
-      focusTreeSibling(row, index);
+      const parsed = Number.parseInt(count, 10);
+      if (Number.isNaN(parsed)) {
+        focusTreeSibling(row, command === "first" ? 1 : -1);
+        return;
+      }
+      focusTreeSibling(row, parsed);
     };
 
     engine = createVimEngine({

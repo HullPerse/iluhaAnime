@@ -2,8 +2,10 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rusqlite::{params, Connection};
 use serde::Serialize;
 use sha1::{Digest, Sha1};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 
@@ -19,6 +21,9 @@ const REMOTE_IMAGE_CACHE_CAP: i64 = 500;
 const SOURCE_UPLOAD: &str = "upload";
 const SOURCE_REMOTE: &str = "remote";
 const REMOTE_SOURCE_NAMES: [&str; 3] = ["collection-cover", "remote-cover", "remote-image"];
+
+static THUMB_GENERATION: LazyLock<Mutex<HashMap<String, tokio_util::sync::CancellationToken>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -373,9 +378,22 @@ fn thumb_id(id: &str) -> String {
     }
 }
 
-fn make_thumb336(bytes: &[u8]) -> Option<Vec<u8>> {
+pub fn make_thumb336(bytes: &[u8]) -> Option<Vec<u8>> {
+    make_thumb336_with_cancel(bytes, &tokio_util::sync::CancellationToken::new())
+}
+
+pub fn make_thumb336_with_cancel(
+    bytes: &[u8],
+    cancel: &tokio_util::sync::CancellationToken,
+) -> Option<Vec<u8>> {
+    if cancel.is_cancelled() {
+        return None;
+    }
     let mime_type = image_mime(bytes, None)?;
     if mime_type != "image/png" && mime_type != "image/jpeg" {
+        return None;
+    }
+    if cancel.is_cancelled() {
         return None;
     }
     let image = image::load_from_memory(bytes).ok()?;
@@ -386,12 +404,25 @@ fn make_thumb336(bytes: &[u8]) -> Option<Vec<u8>> {
     } else {
         image
     };
-    let rgb = image::DynamicImage::ImageRgb8(resized.to_rgb8());
-    let mut out = Vec::new();
+    if cancel.is_cancelled() {
+        return None;
+    }
+    let owned_rgb;
+    let rgb: &image::RgbImage = match &resized {
+        image::DynamicImage::ImageRgb8(image) => image,
+        _ => {
+            owned_rgb = resized.to_rgb8();
+            &owned_rgb
+        }
+    };
+    if cancel.is_cancelled() {
+        return None;
+    }
+    let mut out = Vec::with_capacity(bytes.len() / 4 + 1024);
     image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 80)
-        .encode_image(&rgb)
+        .encode_image(rgb)
         .ok()?;
-    if out.is_empty() {
+    if cancel.is_cancelled() || out.is_empty() {
         return None;
     }
     Some(out)
@@ -408,10 +439,43 @@ fn ensure_thumb(
     if id.starts_with(THUMB_PREFIX) {
         return;
     }
-    let Some(thumb) = make_thumb336(orig_bytes) else {
+    let tid = thumb_id(id);
+    if dir.join(format!("{tid}.jpg")).is_file() {
+        return;
+    }
+    // Cancel any in-flight generation for the same source, then register this
+    // one so a newer request can cancel it before it writes stale bytes.
+    let generation_key = format!("{}::{}", dir.display(), id);
+    let token = tokio_util::sync::CancellationToken::new();
+    {
+        let mut guard = THUMB_GENERATION
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(existing) = guard.get(&generation_key) {
+            existing.cancel();
+        }
+        guard.insert(generation_key.clone(), token.clone());
+    }
+    let Some(thumb) = make_thumb336_with_cancel(orig_bytes, &token) else {
+        let mut guard = THUMB_GENERATION
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if guard.get(&generation_key) == Some(&token) {
+            guard.remove(&generation_key);
+        }
         return;
     };
-    let tid = thumb_id(id);
+    {
+        let mut guard = THUMB_GENERATION
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if guard.get(&generation_key) == Some(&token) {
+            guard.remove(&generation_key);
+        }
+    }
+    if dir.join(format!("{tid}.jpg")).is_file() {
+        return;
+    }
     let _ = write_image_file(dir, &format!("{tid}.jpg"), &thumb);
     let fresh = !user_image_row_exists(conn, &tid).unwrap_or(false);
     let _ = conn.execute(
@@ -1719,7 +1783,7 @@ mod tests {
         let root = temp_root("remote_evict");
         let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
         let dir = root.join("images").join(REMOTE_IMAGES_TABLE);
-        let mut ids = Vec::new();
+        let mut ids = Vec::with_capacity(64);
         for n in 0..4u8 {
             ids.push(insert_remote_row(&db, &dir, n, i64::from(n)));
         }
@@ -1771,7 +1835,7 @@ mod tests {
         let root = temp_root("remote_clear");
         let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
         let dir = root.join("images").join(REMOTE_IMAGES_TABLE);
-        let mut ids = Vec::new();
+        let mut ids = Vec::with_capacity(64);
         for n in 0..3u8 {
             ids.push(insert_remote_row(&db, &dir, n, i64::from(n)));
         }
@@ -1840,6 +1904,18 @@ mod tests {
     fn make_thumb336_rejects_gif_and_garbage() {
         assert!(make_thumb336(b"GIF89a\x01\x00\x01\x00\x80\x00\x00").is_none());
         assert!(make_thumb336(b"definitely not image bytes").is_none());
+    }
+
+    #[test]
+    fn make_thumb336_with_cancel_returns_none_when_cancelled() {
+        let bytes = real_png_bytes(100, 60);
+        let cancelled = tokio_util::sync::CancellationToken::new();
+        cancelled.cancel();
+        assert!(make_thumb336_with_cancel(&bytes, &cancelled).is_none());
+
+        let live = tokio_util::sync::CancellationToken::new();
+        let thumb = make_thumb336_with_cancel(&bytes, &live).expect("thumb");
+        assert_eq!(&thumb[0..3], &[0xFF, 0xD8, 0xFF]);
     }
 
     #[test]

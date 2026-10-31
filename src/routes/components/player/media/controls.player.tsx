@@ -11,8 +11,8 @@ import { resolveChapterJump } from "@/lib/core/chapter.utils";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import { PLAYER_SPEEDS as SPEEDS } from "@/lib/core/speed.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { playbackAtoms, streamSession } from "@/store/player.store";
+import { useCell, useDerived } from "@/lib/core/signal.hook";
+import { playbackAtEnd, playbackAtStart, playbackAtoms, streamSession } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/player/videoPlayer";
 
 import NeighborFileButton from "@/routes/components/player/media/neighbor.player";
@@ -96,7 +96,10 @@ function Controls({
     t("player.media.key.autohide.toggle"),
     "player.toggleAutoHide"
   );
-  const timePos = useCell(playbackAtoms.timePos);
+  // Do not subscribe to timePos: it changes every tick. The boundary flags
+  // only flip at the start/end, and the jump handler reads the live position.
+  const atStart = useDerived(playbackAtStart);
+  const atEnd = useDerived(playbackAtEnd);
   // A stream picks its voice-over and subtitles from the source, so the mpv
   // audio and subtitle lists would only duplicate that choice.
   const streaming = useCell(streamSession);
@@ -128,7 +131,7 @@ function Controls({
   const runChapterJump = (direction: ChapterJumpDirection) => {
     const jump = resolveChapterJump({
       chapters,
-      timePos,
+      timePos: playbackAtoms.timePos.get(),
       duration,
       hasPrev,
       hasNext,
@@ -183,7 +186,7 @@ function Controls({
           title={prevChapterTitle}
           aria-label={t("player.media.controls.backward")}
           onClick={handleBackward}
-          disabled={timePos === 0}
+          disabled={atStart}
         >
           <ChevronsLeft />
         </Button>
@@ -193,7 +196,7 @@ function Controls({
           title={nextChapterTitle}
           aria-label={t("player.media.controls.forward")}
           onClick={handleForward}
-          disabled={timePos === duration}
+          disabled={atEnd}
         >
           <ChevronsRight />
         </Button>

@@ -68,6 +68,36 @@ struct RepairRequest {
     was_live: bool,
 }
 
+/// Cheap payload existence check backed by one directory listing per parent.
+/// The listing is kept for the duration of a reconcile pass, so a folder with
+/// many unfinished files costs one `read_dir` instead of one `metadata` per
+/// file. Nested payloads are looked up in their own directory; `metadata`
+/// still runs before touching a file, because a directory entry can be stale.
+fn dir_has_entry(cache: &mut HashMap<PathBuf, HashSet<std::ffi::OsString>>, path: &Path) -> bool {
+    let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    else {
+        return false;
+    };
+    let Some(name) = path.file_name() else {
+        return false;
+    };
+    cache
+        .entry(parent.to_path_buf())
+        .or_insert_with(|| {
+            std::fs::read_dir(parent)
+                .map(|entries| {
+                    entries
+                        .filter_map(|entry| entry.ok())
+                        .map(|entry| entry.file_name())
+                        .collect()
+                })
+                .unwrap_or_default()
+        })
+        .contains(name)
+}
+
 #[derive(Serialize, Deserialize, Default)]
 struct TorrentPreferences {
     sequential_torrents: HashSet<String>,
@@ -774,13 +804,12 @@ impl TorrentManager {
                     .get(&id)
                     .map(|r| r.clone())
                     .unwrap_or_default();
-                let sequential_download = self
-                    .sequential_torrents
-                    .contains(&handle.info_hash().as_string());
+                let info_hash = handle.info_hash().as_string();
+                let sequential_download = self.sequential_torrents.contains(&info_hash);
                 let sequential_file = self.sequential_streams.get(&id).map(|holder| holder.0);
                 let download_order = self
                     .download_order
-                    .get(&handle.info_hash().as_string())
+                    .get(&info_hash)
                     .map(|entry| entry.clone())
                     .unwrap_or_default();
 
@@ -817,10 +846,10 @@ impl TorrentManager {
                     id,
                     name: self
                         .aliases
-                        .get(&handle.info_hash().as_string())
+                        .get(&info_hash)
                         .map(|alias| alias.clone())
                         .unwrap_or_else(|| handle.name().unwrap_or_default()),
-                    info_hash: handle.info_hash().as_string(),
+                    info_hash,
                     total_bytes: stats.total_bytes,
                     progress_bytes: stats.progress_bytes,
                     uploaded_bytes: stats.uploaded_bytes,
@@ -2397,6 +2426,10 @@ impl TorrentManager {
             // pass learns the twins once, hides each one, and then stops
             // asking the filesystem about them.
             let mut twins = self.part_twins.entry(id).or_default();
+            // One `read_dir` per parent directory instead of one `metadata`
+            // per payload. Payloads can live in subfolders, so the names have
+            // to be looked up in their own directory, not only in save_dir.
+            let mut dir_entries: HashMap<PathBuf, HashSet<std::ffi::OsString>> = HashMap::new();
             let _ = handle.with_metadata(|metadata| {
                 for (index, file) in metadata.file_infos.iter().enumerate() {
                     if file.attrs.padding {
@@ -2440,7 +2473,9 @@ impl TorrentManager {
                         // The registry outlives the process, not the file.
                         // Forget a missing path instead of treating a later
                         // file with the same name as hidden forever.
-                        if !std::fs::metadata(&path).is_ok_and(|meta| meta.is_file()) {
+                        if !dir_has_entry(&mut dir_entries, &path)
+                            || !std::fs::metadata(&path).is_ok_and(|meta| meta.is_file())
+                        {
                             hidden.remove(&index);
                             changed |= self.forget_hidden_path(&key, &path_key);
                             continue;
@@ -2469,7 +2504,9 @@ impl TorrentManager {
                         changed |= self.remember_hidden_path(&key, &part_key);
                         continue;
                     }
-                    if !std::fs::metadata(&path).is_ok_and(|meta| meta.is_file()) {
+                    if !dir_has_entry(&mut dir_entries, &path)
+                        || !std::fs::metadata(&path).is_ok_and(|meta| meta.is_file())
+                    {
                         continue;
                     }
                     disk::hide_file(&path);
@@ -2809,8 +2846,8 @@ impl TorrentManager {
     /// pass. A paused torrent writes nothing, so its folder stays watched.
     pub fn active_download_paths(&self) -> (Vec<String>, Vec<String>) {
         self.session.with_torrents(|iter| {
-            let mut roots = Vec::new();
-            let mut files = Vec::new();
+            let mut roots = Vec::with_capacity(8);
+            let mut files = Vec::with_capacity(64);
             for (id, handle) in iter {
                 let stats = handle.stats();
                 if stats.finished || handle.is_paused() {
@@ -3644,6 +3681,29 @@ mod tests {
     #[test]
     fn is_safe_relative_path_accepts_normal_nested_paths() {
         assert!(is_safe_relative_path("Season 1/video.mkv"));
+    }
+
+    #[test]
+    fn dir_has_entry_finds_nested_payloads() {
+        let root = std::env::temp_dir().join(format!(
+            "iluha_dir_has_entry_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let nested = root.join("Season 02");
+        std::fs::create_dir_all(&nested).expect("create nested dir");
+        let present = nested.join("Episode 01.mkv");
+        std::fs::write(&present, b"x").expect("write payload");
+        let missing = nested.join("Episode 02.mkv");
+
+        let mut cache = HashMap::new();
+        assert!(dir_has_entry(&mut cache, &present));
+        assert!(!dir_has_entry(&mut cache, &missing));
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

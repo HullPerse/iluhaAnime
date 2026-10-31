@@ -1,8 +1,8 @@
 import { Keyboard, Pencil, RotateCcw, TriangleAlert, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { ChordChips } from "@/components/shared/keyboard/chord.keyboard.component";
-import { KeybindRecorder } from "@/components/shared/keyboard/record.keyboard.component";
+import { ChordChips } from "@/components/shared/keyboard/chord.keyboard";
+import { KeybindRecorder } from "@/components/shared/keyboard/record.keyboard";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";

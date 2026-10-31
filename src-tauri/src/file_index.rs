@@ -245,7 +245,7 @@ impl FileIndexer {
         ext_list: &[String],
         threads: usize,
     ) -> Result<Vec<FileEntry>, String> {
-        let mut entries = Vec::new();
+        let mut entries = Vec::with_capacity(1024);
         let mut skipped: u64 = 0;
         for entry in jwalk::WalkDir::new(root)
             .follow_links(false)
@@ -317,7 +317,7 @@ impl FileIndexer {
             .map(|extension| extension.trim_start_matches('.').to_string())
             .filter(|extension| !extension.is_empty())
             .collect();
-        let mut entries = Vec::new();
+        let mut entries = Vec::with_capacity(1024);
 
         for root in paths {
             match Self::retry_scan_blocking(|| {

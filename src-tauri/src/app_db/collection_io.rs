@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use super::collection::{
     insert_collection_item_connection, list_collection_items, list_custom_field_defs,
-    upsert_custom_field_def, CollectionItemInput, CollectionItemRow, CustomFieldDefRow,
+    CollectionItemInput, CollectionItemRow, CustomFieldDefRow,
 };
 use super::db::{
     database_path, lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -38,13 +38,21 @@ pub fn import_collection_data(
     data: CollectionExport,
     strategy: String,
 ) -> Result<ImportSummary, String> {
-    let strategy = match strategy.as_str() {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let connection = open_database(&app)?;
+    import_collection_data_with_connection(&connection, data, &strategy)
+}
+
+pub(crate) fn import_collection_data_with_connection(
+    connection: &rusqlite::Connection,
+    data: CollectionExport,
+    strategy: &str,
+) -> Result<ImportSummary, String> {
+    let strategy = match strategy {
         "skip" => ImportStrategy::Skip,
         "overwrite" => ImportStrategy::Overwrite,
         _ => ImportStrategy::CreateNew,
     };
-    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
-    let connection = open_database(&app)?;
     let mut summary = ImportSummary {
         imported: 0,
         skipped: 0,
@@ -52,17 +60,15 @@ pub fn import_collection_data(
         created: 0,
     };
     for (index, item) in data.items.iter().enumerate() {
-        let external_ids = serde_json::from_str::<serde_json::Value>(
-            &serde_json::to_string(&item.external_ids)
-                .unwrap_or_default()
-                .clone(),
-        )
-        .unwrap_or_default();
+        let anilist = item
+            .external_ids
+            .get("anilist")
+            .and_then(serde_json::Value::as_i64);
+        let tmdb = item
+            .external_ids
+            .get("tmdb")
+            .and_then(serde_json::Value::as_i64);
         let existing: Option<String> = {
-            let anilist = external_ids
-                .get("anilist")
-                .and_then(serde_json::Value::as_i64);
-            let tmdb = external_ids.get("tmdb").and_then(serde_json::Value::as_i64);
             let mut query = String::from("SELECT id FROM collection_items WHERE ");
             let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = vec![];
             if let Some(al) = anilist {
@@ -91,43 +97,7 @@ pub fn import_collection_data(
             (Some(existing_id), ImportStrategy::Overwrite) => {
                 insert_collection_item_connection(
                     &connection,
-                    CollectionItemInput {
-                        id: existing_id.to_string(),
-                        title: item.title.clone(),
-                        alt_titles: item.alt_titles.clone(),
-                        r#type: item.r#type.clone(),
-                        status: item.status.clone(),
-                        progress_value: item.progress_value,
-                        progress_total: item.progress_total,
-                        progress_unit: item.progress_unit.clone(),
-                        duration_minutes: item.duration_minutes,
-                        rating: item.rating,
-                        priority: item.priority.clone(),
-                        is_favorite: item.is_favorite,
-                        year: item.year,
-                        release_date: item.release_date.clone(),
-                        genres: item.genres.clone(),
-                        studio: item.studio.clone(),
-                        description: item.description.clone(),
-                        notes: item.notes.clone(),
-                        cover_url: item.cover_url.clone(),
-                        cover_blob_id: item.cover_blob_id.clone(),
-                        thumb_blob_id: item.thumb_blob_id.clone(),
-                        external_ids: item.external_ids.clone(),
-                        custom_fields: item.custom_fields.clone(),
-                        local_path: item.local_path.clone(),
-                        local_kind: item.local_kind.clone(),
-                        started_at: item.started_at,
-                        finished_at: item.finished_at,
-                        last_watched_at: item.last_watched_at,
-                        rewatch_count: item.rewatch_count,
-                        added_at: item.added_at,
-                        updated_at: item.updated_at,
-                        sites_to_view: Some(item.sites_to_view.clone()),
-                        tv_current_season: item.tv_current_season,
-                        tv_current_episode: item.tv_current_episode,
-                        details_json: item.details_json.clone(),
-                    },
+                    collection_item_input_from(item, existing_id.to_string()),
                 )?;
                 summary.overwritten += 1;
                 summary.imported += 1;
@@ -136,53 +106,57 @@ pub fn import_collection_data(
                 let new_id = unique_import_id(&item.id, index);
                 insert_collection_item_connection(
                     &connection,
-                    CollectionItemInput {
-                        id: new_id.clone(),
-                        title: item.title.clone(),
-                        alt_titles: item.alt_titles.clone(),
-                        r#type: item.r#type.clone(),
-                        status: item.status.clone(),
-                        progress_value: item.progress_value,
-                        progress_total: item.progress_total,
-                        progress_unit: item.progress_unit.clone(),
-                        duration_minutes: item.duration_minutes,
-                        rating: item.rating,
-                        priority: item.priority.clone(),
-                        is_favorite: item.is_favorite,
-                        year: item.year,
-                        release_date: item.release_date.clone(),
-                        genres: item.genres.clone(),
-                        studio: item.studio.clone(),
-                        description: item.description.clone(),
-                        notes: item.notes.clone(),
-                        cover_url: item.cover_url.clone(),
-                        cover_blob_id: item.cover_blob_id.clone(),
-                        thumb_blob_id: item.thumb_blob_id.clone(),
-                        external_ids: item.external_ids.clone(),
-                        custom_fields: item.custom_fields.clone(),
-                        local_path: item.local_path.clone(),
-                        local_kind: item.local_kind.clone(),
-                        started_at: item.started_at,
-                        finished_at: item.finished_at,
-                        last_watched_at: item.last_watched_at,
-                        rewatch_count: item.rewatch_count,
-                        added_at: item.added_at,
-                        updated_at: item.updated_at,
-                        sites_to_view: Some(item.sites_to_view.clone()),
-                        tv_current_season: item.tv_current_season,
-                        tv_current_episode: item.tv_current_episode,
-                        details_json: item.details_json.clone(),
-                    },
+                    collection_item_input_from(item, new_id.clone()),
                 )?;
                 summary.created += 1;
                 summary.imported += 1;
             }
         }
     }
-    for def in &data.custom_field_defs {
-        upsert_custom_field_def(app.clone(), def.clone())?;
+    for def in data.custom_field_defs {
+        crate::app_db::collection::upsert_custom_field_def_connection(connection, def)?;
     }
     Ok(summary)
+}
+
+fn collection_item_input_from(item: &CollectionItemRow, id: String) -> CollectionItemInput {
+    CollectionItemInput {
+        id,
+        title: item.title.clone(),
+        alt_titles: item.alt_titles.clone(),
+        r#type: item.r#type.clone(),
+        status: item.status.clone(),
+        progress_value: item.progress_value,
+        progress_total: item.progress_total,
+        progress_unit: item.progress_unit.clone(),
+        duration_minutes: item.duration_minutes,
+        rating: item.rating,
+        priority: item.priority.clone(),
+        is_favorite: item.is_favorite,
+        year: item.year,
+        release_date: item.release_date.clone(),
+        genres: item.genres.clone(),
+        studio: item.studio.clone(),
+        description: item.description.clone(),
+        notes: item.notes.clone(),
+        cover_url: item.cover_url.clone(),
+        cover_blob_id: item.cover_blob_id.clone(),
+        thumb_blob_id: item.thumb_blob_id.clone(),
+        external_ids: item.external_ids.clone(),
+        custom_fields: item.custom_fields.clone(),
+        local_path: item.local_path.clone(),
+        local_kind: item.local_kind.clone(),
+        started_at: item.started_at,
+        finished_at: item.finished_at,
+        last_watched_at: item.last_watched_at,
+        rewatch_count: item.rewatch_count,
+        added_at: item.added_at,
+        updated_at: item.updated_at,
+        sites_to_view: Some(item.sites_to_view.clone()),
+        tv_current_season: item.tv_current_season,
+        tv_current_episode: item.tv_current_episode,
+        details_json: item.details_json.clone(),
+    }
 }
 
 fn unique_import_id(source: &str, index: usize) -> String {

@@ -94,7 +94,7 @@ pub struct PayloadFile<'a> {
 /// so piece writes never trigger a folder rescan.
 #[must_use]
 pub fn ignored_payload_paths(save_dir: &str, payloads: &[PayloadFile<'_>]) -> Vec<String> {
-    let mut files = Vec::new();
+    let mut files = Vec::with_capacity(payloads.len().saturating_mul(2));
     for payload in payloads {
         if payload.progress >= payload.len {
             continue;

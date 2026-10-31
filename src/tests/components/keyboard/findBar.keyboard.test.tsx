@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import PageFindBar from "@/components/shared/keyboard/findBar.keyboard.component";
+import PageFindBar from "@/components/shared/keyboard/findBar.keyboard";
 import {
   closeFindBar,
   openFindBar,

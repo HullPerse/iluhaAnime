@@ -83,7 +83,7 @@ mod tests {
 
     fn tiny_png() -> Vec<u8> {
         let image = image::DynamicImage::new_rgba8(2, 2);
-        let mut bytes = Vec::new();
+        let mut bytes = Vec::with_capacity(4096);
         image
             .write_with_encoder(image::codecs::png::PngEncoder::new(&mut bytes))
             .expect("encode test png");

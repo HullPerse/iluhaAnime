@@ -220,7 +220,7 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
     let a_sel = &*ANCHOR_SEL;
     let span_sel = &*SPAN_TITLE_SEL;
 
-    let mut items = Vec::new();
+    let mut items = Vec::with_capacity(64);
 
     for entry in doc.select(entry_sel) {
         let title = entry
@@ -308,7 +308,7 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
     let td_sel = &*CELL_SEL;
     let a_sel = &*ANCHOR_SEL;
 
-    let mut items = Vec::new();
+    let mut items = Vec::with_capacity(64);
 
     for row in doc.select(row_sel) {
         let tds: Vec<_> = row.select(td_sel).collect();
@@ -436,7 +436,7 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
     let seed_sel = &*RUTRACKER_SEED_SEL;
     let leech_sel = &*RUTRACKER_LEECH_SEL;
 
-    let mut items = Vec::new();
+    let mut items = Vec::with_capacity(64);
 
     for row in doc.select(row_sel) {
         let tds: Vec<_> = row.select(td_sel).collect();
@@ -659,7 +659,7 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
     let td_sel = &*CELL_SEL;
     let a_sel = &*ANCHOR_SEL;
 
-    let mut items = Vec::new();
+    let mut items = Vec::with_capacity(64);
 
     for row in doc.select(row_sel) {
         let tds: Vec<_> = row.select(td_sel).collect();

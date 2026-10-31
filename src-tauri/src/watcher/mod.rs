@@ -175,9 +175,9 @@ impl FolderWatcher {
                     .read()
                     .unwrap_or_else(std::sync::PoisonError::into_inner)
                     .clone();
-                let mut seen_roots = HashSet::new();
-                let mut roots_hit = Vec::new();
-                let mut changes = Vec::new();
+                let mut seen_roots = HashSet::with_capacity(8);
+                let mut roots_hit = Vec::with_capacity(8);
+                let mut changes = Vec::with_capacity(16);
                 for (path, kind) in drained {
                     if is_ignored(&path, &ignored) {
                         continue;

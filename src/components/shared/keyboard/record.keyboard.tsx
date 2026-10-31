@@ -21,7 +21,7 @@ import { humanizeChord, parseChord } from "@/lib/core/chordHotkeys.utils";
 import { chordFromKeyboardEvent } from "@/lib/ui/keyboardChord.utils";
 import type { LiveModifiers } from "@/types/ui/keyboardChord";
 
-import { ChordChips } from "@/components/shared/keyboard/chord.keyboard.component";
+import { ChordChips } from "@/components/shared/keyboard/chord.keyboard";
 
 const NO_MODIFIERS: LiveModifiers = { ctrl: false, alt: false, shift: false, meta: false };
 

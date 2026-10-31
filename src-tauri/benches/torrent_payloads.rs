@@ -1,4 +1,6 @@
-use iluhaanime_lib::benchmark_api::{ignored_payload_paths, FolderWatcher, PayloadFile};
+use iluhaanime_lib::benchmark_api::{
+    ignored_payload_paths, part_file_path, FolderWatcher, PayloadFile,
+};
 use std::hint::black_box;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -95,6 +97,30 @@ fn hidden_pass_stat(dir: &Path, names: &[PathBuf]) -> usize {
     hits
 }
 
+/// Optimized variant: read each unique parent directory once into a HashSet,
+/// then test membership instead of issuing one stat per unfinished payload.
+fn hidden_pass_stat_fast(dir: &Path, names: &[PathBuf]) -> usize {
+    use std::collections::{HashMap, HashSet};
+    let mut dirs: HashMap<PathBuf, HashSet<std::ffi::OsString>> = HashMap::new();
+    let mut hits = 0;
+    for name in names.iter().take(UNFINISHED) {
+        let full = dir.join(name);
+        let parent = full.parent().unwrap_or(dir);
+        let set = dirs.entry(parent.to_path_buf()).or_insert_with(|| {
+            std::fs::read_dir(parent)
+                .map(|rd| rd.filter_map(Result::ok).map(|e| e.file_name()).collect())
+                .unwrap_or_default()
+        });
+        let file_name = name.file_name().unwrap_or_default();
+        if set.contains(file_name) {
+            if std::fs::metadata(&full).is_ok_and(|m| m.is_file()) {
+                hits += 1;
+            }
+        }
+    }
+    hits
+}
+
 fn bench_paths(name: &str, budget_ms: f64, run: impl Fn() -> Vec<String>) {
     let mut samples = Vec::with_capacity(RUNS);
     let mut checksum = 0u64;
@@ -153,9 +179,15 @@ fn main() {
     let dir = std::env::temp_dir().join(format!("iluha_payload_bench_{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("Show S01")).expect("bench fixture dir");
+    // Realistic: unfinished payloads live in their `.part` twins, so the
+    // final names do NOT exist on disk (this is what the pass is probing).
     for name in names.iter().take(UNFINISHED) {
-        std::fs::write(dir.join(name), b"").expect("bench fixture file");
+        let part = part_file_path(&dir.join(name));
+        std::fs::write(part, b"").expect("bench fixture part");
     }
     bench_stat("hidden pass stat", 20.0, || hidden_pass_stat(&dir, &names));
+    bench_stat("hidden pass stat (fast)", 20.0, || {
+        hidden_pass_stat_fast(&dir, &names)
+    });
     let _ = std::fs::remove_dir_all(&dir);
 }

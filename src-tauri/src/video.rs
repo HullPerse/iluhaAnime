@@ -197,18 +197,78 @@ fn parse_ffmpeg_time(s: &str) -> Option<f64> {
     Some(m.mul_add(60.0, h * 3600.0) + sec)
 }
 
-static VIDEO_DURATION_CACHE: OnceLock<Mutex<HashMap<String, f64>>> = OnceLock::new();
+type FileStamp = (u128, u64);
+
+static VIDEO_DURATION_CACHE: OnceLock<Mutex<HashMap<String, (FileStamp, f64)>>> = OnceLock::new();
+static VIDEO_DIMENSIONS_CACHE: OnceLock<Mutex<HashMap<String, (FileStamp, (u32, u32))>>> =
+    OnceLock::new();
+
+/// The cheap identity of a file: modification time plus size. A cached
+/// ffprobe result is reused only while it matches, so a file replaced at the
+/// same path is re-probed instead of serving the old duration or dimensions.
+fn file_stamp(path: &str) -> Option<FileStamp> {
+    let metadata = std::fs::metadata(path).ok()?;
+    let modified = metadata
+        .modified()
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?;
+    Some((modified.as_nanos(), metadata.len()))
+}
+
+fn cache_get<V: Copy>(
+    cache: &OnceLock<Mutex<HashMap<String, (FileStamp, V)>>>,
+    path: &str,
+) -> Option<V> {
+    let stamp = file_stamp(path)?;
+    let map = cache.get()?.lock().ok()?;
+    let (cached, value) = map.get(path)?;
+    (*cached == stamp).then_some(*value)
+}
+
+fn cache_put<V>(cache: &OnceLock<Mutex<HashMap<String, (FileStamp, V)>>>, path: &str, value: V) {
+    let Some(stamp) = file_stamp(path) else {
+        return;
+    };
+    if let Ok(mut map) = cache.get_or_init(|| Mutex::new(HashMap::new())).lock() {
+        map.insert(path.to_string(), (stamp, value));
+    }
+}
+
+#[cfg(test)]
+mod cache_tests {
+    use super::*;
+
+    #[test]
+    fn cache_is_dropped_when_the_file_changes() {
+        let path = std::env::temp_dir().join(format!(
+            "iluha_video_cache_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        std::fs::write(&path, b"one").expect("write fixture");
+        let path = path.to_string_lossy().into_owned();
+
+        let cache: OnceLock<Mutex<HashMap<String, (FileStamp, f64)>>> = OnceLock::new();
+        cache_put(&cache, &path, 42.0);
+        assert_eq!(cache_get(&cache, &path), Some(42.0));
+
+        std::fs::write(&path, b"changed-size").expect("rewrite fixture");
+        assert_eq!(cache_get(&cache, &path), None);
+
+        let _ = std::fs::remove_file(&path);
+    }
+}
 
 pub(crate) async fn get_video_duration(
     app_handle: &tauri::AppHandle,
     path: &str,
 ) -> Result<f64, String> {
-    if let Some(cache) = VIDEO_DURATION_CACHE.get() {
-        if let Ok(map) = cache.lock() {
-            if let Some(&d) = map.get(path) {
-                return Ok(d);
-            }
-        }
+    if let Some(duration) = cache_get(&VIDEO_DURATION_CACHE, path) {
+        return Ok(duration);
     }
     let output = {
         let mut c = Command::new(ffprobe_exe(app_handle));
@@ -238,12 +298,7 @@ pub(crate) async fn get_video_duration(
         .parse::<f64>()
         .map_err(|_| "parse duration failed".to_string())?;
 
-    if let Ok(mut map) = VIDEO_DURATION_CACHE
-        .get_or_init(|| Mutex::new(HashMap::new()))
-        .lock()
-    {
-        map.insert(path.to_string(), duration);
-    }
+    cache_put(&VIDEO_DURATION_CACHE, path, duration);
     Ok(duration)
 }
 
@@ -364,6 +419,9 @@ async fn get_video_dimensions(
     app_handle: &tauri::AppHandle,
     path: &str,
 ) -> Result<(u32, u32), String> {
+    if let Some(dims) = cache_get(&VIDEO_DIMENSIONS_CACHE, path) {
+        return Ok(dims);
+    }
     let output = {
         let mut c = Command::new(ffprobe_exe(app_handle));
         c.args([
@@ -402,6 +460,7 @@ async fn get_video_dimensions(
         .trim()
         .parse()
         .map_err(|_| format!("parse height failed: {:?}", parts[1]))?;
+    cache_put(&VIDEO_DIMENSIONS_CACHE, path, (w, h));
     Ok((w, h))
 }
 
@@ -683,7 +742,7 @@ pub async fn preview_upscale_frames(
         cleanup_dir();
         return Err(format!("preview failed: {tail}"));
     }
-    let mut frames = Vec::new();
+    let mut frames = Vec::with_capacity(16);
     for (idx, stamp) in stamps.iter().enumerate() {
         let before_path = dir.join(format!("before_{}.png", idx + 1));
         let after_path = dir.join(format!("after_{}.png", idx + 1));

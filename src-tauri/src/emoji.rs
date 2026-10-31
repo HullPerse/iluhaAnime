@@ -29,7 +29,7 @@ pub fn emoji_list(app: tauri::AppHandle) -> Result<Vec<EmojiFile>, String> {
         .app_data_dir()
         .map_err(|e| format!("app data dir: {e}"))?
         .join("emoji");
-    let mut files = Vec::new();
+    let mut files = Vec::with_capacity(32);
     let Ok(entries) = fs::read_dir(&dir) else {
         return Ok(files);
     };

@@ -1,4 +1,5 @@
 import type { DayNightFrame } from "@/types/core/daynight";
+import type { ThemeSchedule } from "@/types/ui/settings";
 
 export function parseDayTime(value: string): number | null {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
@@ -25,4 +26,17 @@ export function dayNightFrame(
 
 export function nowMinutesOf(date = new Date()): number {
   return date.getHours() * 60 + date.getMinutes();
+}
+
+/** The theme the schedule selects right now, or null when it is disabled. */
+export function scheduledThemeName(
+  schedule: ThemeSchedule,
+  nowMinutes: number
+): { frame: DayNightFrame; name: string } | null {
+  if (!schedule.enabled) return null;
+  const frame = dayNightFrame(schedule.dayStart, schedule.nightStart, nowMinutes);
+  return {
+    frame,
+    name: frame === "day" ? schedule.dayTheme : schedule.nightTheme,
+  };
 }

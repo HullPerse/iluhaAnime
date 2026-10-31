@@ -18,10 +18,14 @@ function resetRoot(): void {
   delete root.dataset.themeOverlay;
   delete root.dataset.themeTitlebarArt;
   delete root.dataset.windowEffect;
+  delete root.dataset.retroStyle;
+  delete root.dataset.uiDensity;
+  delete root.dataset.yorhaScanlines;
 }
 
 beforeEach(() => {
   resetRoot();
+  localStorage.clear();
 });
 
 describe("theme-init v2 payload", () => {
@@ -109,7 +113,7 @@ describe("theme-init v1 payload", () => {
 });
 
 describe("theme-init window style", () => {
-  it("applies the stored window effect before the theme payload", () => {
+  it("applies the former flat settings payload", () => {
     localStorage.setItem(
       "settings",
       JSON.stringify({ state: { windowEffect: "acrylic", windowTintOpacity: 0.8 } })
@@ -121,8 +125,73 @@ describe("theme-init window style", () => {
     expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("80%");
   });
 
-  it("survives a malformed payload without throwing", () => {
+  it("reads the current persistence envelope and restores every visual setting", () => {
+    localStorage.setItem(
+      "iluha.v1.settings",
+      JSON.stringify({
+        data: {
+          appFont: "Tahoma",
+          retroStyle: "soft",
+          uiDensity: "compact",
+          windowEffect: "mica",
+          windowTintOpacity: 0.55,
+          yorhaScanlinesEnabled: false,
+        },
+        f: 1,
+        store: "settings",
+        sv: 59,
+        ts: 1,
+      })
+    );
+
+    runInit();
+
+    const root = document.documentElement;
+    expect(root.dataset.windowEffect).toBe("mica");
+    expect(root.style.getPropertyValue("--ui-window-opacity")).toBe("55%");
+    expect(root.dataset.retroStyle).toBe("soft");
+    expect(root.dataset.uiDensity).toBe("compact");
+    expect(root.dataset.yorhaScanlines).toBe("off");
+    expect(root.style.getPropertyValue("--font-family")).toContain('"Tahoma"');
+  });
+
+  it("prefers the current envelope over the legacy settings key", () => {
+    localStorage.setItem("settings", JSON.stringify({ state: { windowEffect: "acrylic" } }));
+    localStorage.setItem("iluha.v1.settings", JSON.stringify({ data: { windowEffect: "tabbed" } }));
+
+    runInit();
+
+    expect(document.documentElement.dataset.windowEffect).toBe("tabbed");
+  });
+
+  it("ignores unknown values and clamps the tint override", () => {
+    localStorage.setItem(
+      "iluha.v1.settings",
+      JSON.stringify({
+        data: {
+          retroStyle: "neon",
+          uiDensity: "tiny",
+          windowEffect: "blur",
+          windowTintOpacity: 4,
+          yorhaScanlinesEnabled: "yes",
+        },
+      })
+    );
+
+    runInit();
+
+    const root = document.documentElement;
+    expect(root.dataset.windowEffect).toBeUndefined();
+    expect(root.dataset.retroStyle).toBeUndefined();
+    expect(root.dataset.uiDensity).toBeUndefined();
+    expect(root.dataset.yorhaScanlines).toBeUndefined();
+    expect(root.style.getPropertyValue("--ui-window-opacity")).toBe("100%");
+  });
+
+  it("survives malformed payloads without throwing", () => {
     localStorage.setItem("themeVars", "{");
+    localStorage.setItem("iluha.v1.settings", "not json");
+    localStorage.setItem("settings", "[1,2,3]");
     expect(() => runInit()).not.toThrow();
   });
 });

@@ -22,13 +22,14 @@ mod discord;
 pub mod benchmark_api {
     pub use crate::anilist::library::anime_full_query;
     pub use crate::anilist::media::{
-        anime_by_id_query, anime_by_ids_query, anime_trailer_query, parse_animedia,
+        anime_by_id_query, anime_by_ids_query, anime_trailer_query, collect_titles, parse_animedia,
         MEDIA_CORE_SELECTION, MEDIA_DETAIL_EXTRA_SELECTION, MEDIA_LIST_EXTRA_SELECTION,
         MEDIA_RELATIONS_SELECTION, MEDIA_TRAILER_SELECTION,
     };
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
     pub use crate::file_index::{parse_file_query, FileIndexer};
     pub use crate::game::chip8::{Chip8, Quirks, MAX_PROGRAM_BYTES};
+    pub use crate::player::state::{apply_observed_property, PlaybackSnapshot};
     pub use crate::scrapers::clients::{
         acquire_scraper_slot, build_client, build_client_inner, build_nekobt_client,
         build_rutracker_client_with_ua, decode_rutracker_page, is_rutracker_challenge,
@@ -36,8 +37,79 @@ pub mod benchmark_api {
     };
     pub use crate::scrapers::details::{parse_torrent_detail_html, TorrentDetails};
     pub use crate::torrent::helpers::{ignored_payload_paths, part_file_path, PayloadFile};
-    pub use crate::user_assets::{compare_cover_bytes, CoverDiff};
+    pub use crate::user_assets::{compare_cover_bytes, make_thumb336, CoverDiff};
     pub use crate::watcher::FolderWatcher;
+
+    pub mod collection {
+        use rusqlite::Connection;
+        use serde_json::json;
+
+        pub use crate::app_db::{
+            CollectionExport, CollectionItemRow, CustomFieldDefRow, ImportSummary,
+        };
+
+        pub fn open_fixture() -> Result<Connection, String> {
+            let connection = Connection::open_in_memory()
+                .map_err(|error| format!("bench collection connection: {error}"))?;
+            crate::app_db::schema::initialize_schema(&connection)?;
+            Ok(connection)
+        }
+
+        pub fn sample_export() -> CollectionExport {
+            CollectionExport {
+                version: 1,
+                exported_at: 1,
+                items: vec![CollectionItemRow {
+                    id: "item-1".to_string(),
+                    title: "Title".to_string(),
+                    alt_titles: json!([]),
+                    r#type: "anime".to_string(),
+                    status: "planned".to_string(),
+                    progress_value: 0,
+                    progress_total: None,
+                    progress_unit: "episodes".to_string(),
+                    duration_minutes: None,
+                    rating: None,
+                    priority: "normal".to_string(),
+                    is_favorite: false,
+                    year: Some(2024),
+                    release_date: None,
+                    genres: json!([]),
+                    studio: None,
+                    description: None,
+                    notes: None,
+                    cover_url: None,
+                    cover_blob_id: None,
+                    thumb_blob_id: None,
+                    external_ids: json!({"anilist": 1}),
+                    custom_fields: json!({}),
+                    local_path: None,
+                    local_kind: None,
+                    started_at: None,
+                    finished_at: None,
+                    last_watched_at: None,
+                    rewatch_count: 0,
+                    added_at: 1,
+                    updated_at: 1,
+                    sites_to_view: json!([]),
+                    tv_current_season: None,
+                    tv_current_episode: None,
+                    details_json: None,
+                }],
+                custom_field_defs: Vec::new(),
+            }
+        }
+
+        pub fn import(
+            connection: &Connection,
+            data: CollectionExport,
+            strategy: &str,
+        ) -> Result<ImportSummary, String> {
+            crate::app_db::collection_io::import_collection_data_with_connection(
+                connection, data, strategy,
+            )
+        }
+    }
 
     /// Offline fixture hooks for `benches/stream_history.rs`. The real
     /// commands are AppHandle-bound; these wrappers take a plain connection so
@@ -333,8 +405,8 @@ async fn run_torrent_update_tick(
         }
         state.first_run = false;
     } else {
-        let mut reveal = Vec::new();
-        let mut pause_on_disk_full = Vec::new();
+        let mut reveal = Vec::with_capacity(16);
+        let mut pause_on_disk_full = Vec::with_capacity(16);
         {
             let cfg_state = app.state::<std::sync::Mutex<NotificationConfig>>();
             let cfg = cfg_state
@@ -1085,7 +1157,7 @@ async fn delete_extra_file(path: String) -> Result<(), String> {
 async fn scan_extra_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
     let entries = tokio::task::spawn_blocking(move || {
         file_index::FileIndexer::retry_scan_blocking(|| {
-            let mut entries = Vec::new();
+            let mut entries = Vec::with_capacity(64);
             let mut skipped: u64 = 0;
             for entry in jwalk::WalkDir::new(&path)
                 .follow_links(false)

@@ -45,13 +45,12 @@ static STATE: LazyLock<Mutex<HostStatsState>> = LazyLock::new(|| {
 });
 
 fn interface_totals(networks: &Networks) -> (u64, u64) {
-    let mut rx = 0u64;
-    let mut tx = 0u64;
-    for data in networks.values() {
-        rx = rx.saturating_add(data.received());
-        tx = tx.saturating_add(data.transmitted());
-    }
-    (rx, tx)
+    networks.values().fold((0u64, 0u64), |(rx, tx), data| {
+        (
+            rx.saturating_add(data.received()),
+            tx.saturating_add(data.transmitted()),
+        )
+    })
 }
 
 fn rate_per_second(now: Instant, at: Instant, current: u64, previous: u64) -> u64 {

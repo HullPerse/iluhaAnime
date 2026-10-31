@@ -284,7 +284,7 @@ pub async fn list_sqlite_databases(
 ) -> Result<Vec<SqliteDatabaseInfo>, String> {
     let app_handle = app_handle.clone();
     tokio::task::spawn_blocking(move || {
-        let mut result = Vec::new();
+        let mut result = Vec::with_capacity(32);
         for id in ["franchise", "user_assets", "app_data"] {
             let (label, file_name) =
                 sqlite_database_spec(id).ok_or_else(|| "Unknown SQLite database".to_string())?;

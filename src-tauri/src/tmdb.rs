@@ -127,7 +127,7 @@ pub struct TmdbMedia {
 }
 
 fn parse_tmdb_media(json: &serde_json::Value) -> TmdbMedia {
-    let mut backdrops = Vec::new();
+    let mut backdrops = Vec::with_capacity(16);
     if let Some(imgs) = json["images"]["backdrops"].as_array() {
         for img in imgs.iter().take(8) {
             if let Some(path) = img["file_path"].as_str().filter(|p| !p.is_empty()) {

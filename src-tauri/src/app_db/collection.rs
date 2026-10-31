@@ -827,6 +827,15 @@ pub fn upsert_custom_field_def(
     app: tauri::AppHandle,
     def: CustomFieldDefRow,
 ) -> Result<(), String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let connection = open_database(&app)?;
+    upsert_custom_field_def_connection(&connection, def)
+}
+
+pub(crate) fn upsert_custom_field_def_connection(
+    connection: &rusqlite::Connection,
+    def: CustomFieldDefRow,
+) -> Result<(), String> {
     validate_collection_text(&def.id, 128, "id")?;
     validate_collection_text(&def.name, 128, "name")?;
     if !matches!(
@@ -841,8 +850,6 @@ pub fn upsert_custom_field_def(
         }
         None => None,
     };
-    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
-    let connection = open_database(&app)?;
     connection
         .execute(
             "INSERT INTO custom_field_defs (id, name, field_type, options_json)

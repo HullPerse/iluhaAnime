@@ -728,7 +728,7 @@ mod tests {
     }
 
     fn layer_png(layer: &image::RgbaImage) -> String {
-        let mut bytes = Vec::new();
+        let mut bytes = Vec::with_capacity(4096);
         layer
             .write_with_encoder(image::codecs::png::PngEncoder::new(&mut bytes))
             .expect("encode layer");

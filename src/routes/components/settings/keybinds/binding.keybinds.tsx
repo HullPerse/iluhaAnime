@@ -1,4 +1,4 @@
-import { ChordChips } from "@/components/shared/keyboard/chord.keyboard.component";
+import { ChordChips } from "@/components/shared/keyboard/chord.keyboard";
 import { KEYBIND_MANIFEST } from "@/config/system/manifest.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { humanizeChord } from "@/lib/core/chordHotkeys.utils";

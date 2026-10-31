@@ -12,7 +12,7 @@ pub struct BatchMetrics {
 
 #[must_use]
 pub fn dedup_ids(ids: &[u64]) -> Vec<u64> {
-    let mut seen = HashSet::new();
+    let mut seen = HashSet::with_capacity(64);
     ids.iter().filter(|id| seen.insert(**id)).copied().collect()
 }
 

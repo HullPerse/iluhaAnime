@@ -16,6 +16,70 @@ const STATE_INTERVAL: Duration = Duration::from_millis(100);
 const WATCH_SAVE_TICKS: u32 = 100;
 const METRICS_TICKS: u32 = 10;
 
+// Bitmask of PlaybackSnapshot fields mpv pushes through property-change
+// events. Once all of them have been observed at least once, read_snapshot
+// can use the cached values instead of issuing one get_property round-trip
+// per field per tick.
+const OBS_TIME_POS: u64 = 1 << 0;
+const OBS_DURATION: u64 = 1 << 1;
+const OBS_PAUSE: u64 = 1 << 2;
+const OBS_EOF_REACHED: u64 = 1 << 3;
+const OBS_SPEED: u64 = 1 << 4;
+const OBS_VOLUME: u64 = 1 << 5;
+const OBS_MUTED: u64 = 1 << 6;
+const OBS_PLAYLIST_INDEX: u64 = 1 << 7;
+const OBS_PLAYLIST_COUNT: u64 = 1 << 8;
+const OBS_PATH: u64 = 1 << 9;
+const OBS_CACHE_BUFFERING_STATE: u64 = 1 << 10;
+const OBS_CACHE_SPEED: u64 = 1 << 11;
+const OBS_CACHE_DURATION: u64 = 1 << 12;
+const OBS_PAUSED_FOR_CACHE: u64 = 1 << 13;
+const ALL_CORE_OBSERVED: u64 = OBS_TIME_POS
+    | OBS_DURATION
+    | OBS_PAUSE
+    | OBS_EOF_REACHED
+    | OBS_SPEED
+    | OBS_VOLUME
+    | OBS_MUTED
+    | OBS_PLAYLIST_INDEX
+    | OBS_PLAYLIST_COUNT
+    | OBS_PATH
+    | OBS_CACHE_BUFFERING_STATE
+    | OBS_CACHE_SPEED
+    | OBS_CACHE_DURATION
+    | OBS_PAUSED_FOR_CACHE;
+
+/// Cache counters are still polled, but only on the slower metrics tick (or
+/// delivered by their own events), never on every playback tick.
+const CACHE_FIELDS: u64 =
+    OBS_CACHE_BUFFERING_STATE | OBS_CACHE_SPEED | OBS_CACHE_DURATION | OBS_PAUSED_FOR_CACHE;
+const CORE_POLLED: u64 = ALL_CORE_OBSERVED & !CACHE_FIELDS;
+
+/// Counters for the real-playback bench (`ILUHA_BENCH`). They cover every
+/// `get_property` the player ticker issues and every snapshot it emits.
+static PROPERTY_READS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static SNAPSHOTS_EMITTED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static PROPERTY_EVENTS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static TIME_POS_EVENTS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static DIRTY_TICKS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+pub fn poll_stats() -> (u64, u64, u64, u64, u64) {
+    (
+        PROPERTY_READS.load(Ordering::Relaxed),
+        SNAPSHOTS_EMITTED.load(Ordering::Relaxed),
+        PROPERTY_EVENTS.load(Ordering::Relaxed),
+        TIME_POS_EVENTS.load(Ordering::Relaxed),
+        DIRTY_TICKS.load(Ordering::Relaxed),
+    )
+}
+
+/// Debug hook for A/B measurement: force the old full poll on every tick.
+#[cfg(debug_assertions)]
+fn poll_every_field() -> bool {
+    static POLL_ALL: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *POLL_ALL.get_or_init(|| std::env::var_os("ILUHA_PLAYER_POLL_ALL").is_some())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TorrentWatch {
@@ -209,6 +273,7 @@ pub struct PlayerHost {
     metrics: Mutex<Metrics>,
     watchdog: Mutex<WatchdogState>,
     last_snapshot: Mutex<Option<PlaybackSnapshot>>,
+    latest: Mutex<(PlaybackSnapshot, u64)>,
     zero_streak: Mutex<u32>,
 }
 
@@ -237,12 +302,13 @@ const WATCHDOG_TICKS: u32 = 50;
 const WATCHDOG_WINDOW_SECS: f64 = 5.0;
 const WATCHDOG_MIN_DROPS: i64 = 3;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq)]
 pub(crate) struct Metrics {
     fps_render: Option<f64>,
     fps_video: Option<f64>,
     drop_count: Option<i64>,
     cache_duration: Option<f64>,
+    cache_bytes: Option<i64>,
     hwdec_current: Option<String>,
     video_width: Option<i64>,
     video_height: Option<i64>,
@@ -322,7 +388,14 @@ impl PlayerHost {
     }
 
     pub fn set_metrics(&self, metrics: Metrics) {
-        *self.metrics.lock().unwrap_or_else(|e| e.into_inner()) = metrics;
+        let mut current = self.metrics.lock().unwrap_or_else(|e| e.into_inner());
+        if *current != metrics {
+            *current = metrics;
+            drop(current);
+            // Counters such as cache bytes can change while no other mpv
+            // property does, so the snapshot has to follow the metrics tick.
+            self.mark_dirty();
+        }
     }
 
     pub fn metrics(&self) -> Metrics {
@@ -404,8 +477,10 @@ pub fn attach(app: &AppHandle) {
                 watchdog_tick(&ticker);
             }
             if host.dirty.swap(false, Ordering::Relaxed) {
+                DIRTY_TICKS.fetch_add(1, Ordering::Relaxed);
                 let snapshot = read_snapshot(&ticker);
                 let snapshot = smooth_snapshot(&ticker, snapshot);
+                SNAPSHOTS_EMITTED.fetch_add(1, Ordering::Relaxed);
                 let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
             }
             ticks = ticks.wrapping_add(1);
@@ -426,30 +501,49 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
 
     match name.as_str() {
         "property-change" => {
-            host.mark_dirty();
-            match event.get("name").and_then(Value::as_str) {
-                Some("track-list") => {
-                    if let Some(tracks) = event.get("data") {
-                        let _ = app.emit_to(PLAYER_WINDOW_LABEL, EVENT_TRACKS, tracks);
-                    }
-                }
-                Some("chapter-list") => {
-                    if let Some(chapters) = event.get("data") {
-                        tracing::debug!(
-                            "player: chapter-list updated ({} entries)",
-                            chapters.as_array().map_or(0, Vec::len)
-                        );
-                        let _ = app.emit_to(PLAYER_WINDOW_LABEL, EVENT_CHAPTERS, chapters);
-                    }
-                }
-                _ => {}
+            PROPERTY_EVENTS.fetch_add(1, Ordering::Relaxed);
+            if event.get("name").and_then(Value::as_str) == Some("time-pos") {
+                TIME_POS_EVENTS.fetch_add(1, Ordering::Relaxed);
             }
+            if let Some(name) = event.get("name").and_then(Value::as_str) {
+                tracing::trace!("player: property-change {name}");
+                if let Some(data) = event.get("data") {
+                    let mut guard = host
+                        .latest
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner());
+                    let (snapshot, mask) = &mut *guard;
+                    apply_observed_property(snapshot, mask, name, data);
+                }
+                match name {
+                    "track-list" => {
+                        if let Some(tracks) = event.get("data") {
+                            let _ = app.emit_to(PLAYER_WINDOW_LABEL, EVENT_TRACKS, tracks);
+                        }
+                    }
+                    "chapter-list" => {
+                        if let Some(chapters) = event.get("data") {
+                            tracing::debug!(
+                                "player: chapter-list updated ({} entries)",
+                                chapters.as_array().map_or(0, Vec::len)
+                            );
+                            let _ = app.emit_to(PLAYER_WINDOW_LABEL, EVENT_CHAPTERS, chapters);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            host.mark_dirty();
         }
         "file-loaded" => {
             if let Some(path) = string_property(app, "path") {
                 host.set_current_path(path);
             }
             host.reset_file_state();
+            *host
+                .latest
+                .lock()
+                .unwrap_or_else(|error| error.into_inner()) = (PlaybackSnapshot::default(), 0);
             host.mark_dirty();
             emit_typed(app, "file-loaded", None, None);
         }
@@ -486,6 +580,7 @@ fn emit_typed(app: &AppHandle, kind: &str, reason: Option<String>, data: Option<
 }
 
 fn number_property(app: &AppHandle, name: &str) -> Option<f64> {
+    PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "double", PLAYER_WINDOW_LABEL)
         .ok()
@@ -493,6 +588,7 @@ fn number_property(app: &AppHandle, name: &str) -> Option<f64> {
 }
 
 fn int_property(app: &AppHandle, name: &str) -> Option<i64> {
+    PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "int64", PLAYER_WINDOW_LABEL)
         .ok()
@@ -500,6 +596,7 @@ fn int_property(app: &AppHandle, name: &str) -> Option<i64> {
 }
 
 fn flag_property(app: &AppHandle, name: &str) -> Option<bool> {
+    PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "flag", PLAYER_WINDOW_LABEL)
         .ok()
@@ -507,6 +604,7 @@ fn flag_property(app: &AppHandle, name: &str) -> Option<bool> {
 }
 
 fn string_property(app: &AppHandle, name: &str) -> Option<String> {
+    PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "string", PLAYER_WINDOW_LABEL)
         .ok()
@@ -589,32 +687,224 @@ fn smooth_snapshot(app: &AppHandle, next: PlaybackSnapshot) -> PlaybackSnapshot 
     emitted
 }
 
-fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
-    let metrics = app.state::<PlayerHost>().metrics();
-    PlaybackSnapshot {
-        time_pos: number_property(app, "time-pos").unwrap_or_default(),
-        duration: number_property(app, "duration").unwrap_or_default(),
-        pause: flag_property(app, "pause").unwrap_or(true),
-        eof_reached: flag_property(app, "eof-reached").unwrap_or(false),
-        speed: number_property(app, "speed").unwrap_or(1.0),
-        volume: number_property(app, "volume").unwrap_or_default(),
-        muted: flag_property(app, "mute").unwrap_or(false),
-        playlist_index: int_property(app, "playlist-pos").unwrap_or(-1),
-        playlist_count: int_property(app, "playlist-count").unwrap_or_default(),
-        path: string_property(app, "path").unwrap_or_default(),
-        fps_render: metrics.fps_render,
-        fps_video: metrics.fps_video,
-        drop_count: metrics.drop_count,
-        cache_duration: metrics.cache_duration,
-        cache_buffering_state: number_property(app, "cache-buffering-state")
-            .map(|value| value.clamp(0.0, 100.0)),
-        cache_speed: number_property(app, "cache-speed").filter(|value| *value > 0.0),
-        cache_bytes: int_property(app, "demuxer-cache-state/fw-bytes").filter(|value| *value > 0),
-        paused_for_cache: flag_property(app, "paused-for-cache"),
-        hwdec_current: metrics.hwdec_current,
-        video_width: metrics.video_width,
-        video_height: metrics.video_height,
+/// Applies one mpv property-change payload to the cached snapshot and returns
+/// whether the field was updated. Exposed for benches and tests.
+pub fn apply_observed_property(
+    snapshot: &mut PlaybackSnapshot,
+    mask: &mut u64,
+    name: &str,
+    data: &Value,
+) -> bool {
+    match name {
+        "time-pos" => {
+            if let Some(value) = data.as_f64() {
+                snapshot.time_pos = value;
+                *mask |= OBS_TIME_POS;
+                return true;
+            }
+        }
+        "duration" => {
+            if let Some(value) = data.as_f64() {
+                snapshot.duration = value;
+                *mask |= OBS_DURATION;
+                return true;
+            }
+        }
+        "pause" => {
+            if let Some(value) = data.as_bool() {
+                snapshot.pause = value;
+                *mask |= OBS_PAUSE;
+                return true;
+            }
+        }
+        "eof-reached" => {
+            if let Some(value) = data.as_bool() {
+                snapshot.eof_reached = value;
+                *mask |= OBS_EOF_REACHED;
+                return true;
+            }
+        }
+        "speed" => {
+            if let Some(value) = data.as_f64() {
+                snapshot.speed = value;
+                *mask |= OBS_SPEED;
+                return true;
+            }
+        }
+        "volume" => {
+            if let Some(value) = data.as_f64() {
+                snapshot.volume = value;
+                *mask |= OBS_VOLUME;
+                return true;
+            }
+        }
+        "mute" => {
+            if let Some(value) = data.as_bool() {
+                snapshot.muted = value;
+                *mask |= OBS_MUTED;
+                return true;
+            }
+        }
+        "playlist-pos" => {
+            if let Some(value) = data.as_i64() {
+                snapshot.playlist_index = value;
+                *mask |= OBS_PLAYLIST_INDEX;
+                return true;
+            }
+        }
+        "playlist-count" => {
+            if let Some(value) = data.as_i64() {
+                snapshot.playlist_count = value;
+                *mask |= OBS_PLAYLIST_COUNT;
+                return true;
+            }
+        }
+        "path" => {
+            if let Some(value) = data.as_str() {
+                snapshot.path = value.to_string();
+                *mask |= OBS_PATH;
+                return true;
+            }
+        }
+        "paused-for-cache" => {
+            if let Some(value) = data.as_bool() {
+                snapshot.paused_for_cache = Some(value);
+                *mask |= OBS_PAUSED_FOR_CACHE;
+                return true;
+            }
+        }
+        "cache-buffering-state" => {
+            if let Some(value) = data.as_f64() {
+                snapshot.cache_buffering_state = Some(value.clamp(0.0, 100.0));
+                *mask |= OBS_CACHE_BUFFERING_STATE;
+                return true;
+            }
+        }
+        "cache-speed" => {
+            if let Some(value) = data.as_f64() {
+                // Zero means the stream is not downloading: clear the stale
+                // value instead of keeping the last positive speed forever.
+                snapshot.cache_speed = (value > 0.0).then_some(value);
+                *mask |= OBS_CACHE_SPEED;
+                return true;
+            }
+        }
+        "demuxer-cache-duration" => {
+            if let Some(value) = data.as_f64() {
+                snapshot.cache_duration = Some(value);
+                *mask |= OBS_CACHE_DURATION;
+                return true;
+            }
+        }
+        _ => {}
     }
+    false
+}
+
+fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
+    let host = app.state::<PlayerHost>();
+    let metrics = host.metrics();
+    let (mut snapshot, mask) = {
+        let guard = host
+            .latest
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        (guard.0.clone(), guard.1)
+    };
+
+    // mpv pushes these fields through property-change events. Poll only the
+    // ones it has not delivered yet, so a missed initial event does not freeze
+    // a field and a healthy tick costs no IPC at all. A failed read leaves its
+    // bit unset, so the next tick tries again instead of caching a default.
+    let mut observed = mask;
+    let missing = CORE_POLLED & !mask;
+    // Debug hook for A/B runs: measure the old full-poll cost.
+    #[cfg(debug_assertions)]
+    let missing = if poll_every_field() {
+        CORE_POLLED
+    } else {
+        missing
+    };
+    if missing != 0 {
+        if missing & OBS_TIME_POS != 0 {
+            if let Some(value) = number_property(app, "time-pos") {
+                snapshot.time_pos = value;
+                observed |= OBS_TIME_POS;
+            }
+        }
+        if missing & OBS_DURATION != 0 {
+            if let Some(value) = number_property(app, "duration") {
+                snapshot.duration = value;
+                observed |= OBS_DURATION;
+            }
+        }
+        if missing & OBS_PAUSE != 0 {
+            if let Some(value) = flag_property(app, "pause") {
+                snapshot.pause = value;
+                observed |= OBS_PAUSE;
+            }
+        }
+        if missing & OBS_EOF_REACHED != 0 {
+            if let Some(value) = flag_property(app, "eof-reached") {
+                snapshot.eof_reached = value;
+                observed |= OBS_EOF_REACHED;
+            }
+        }
+        if missing & OBS_SPEED != 0 {
+            if let Some(value) = number_property(app, "speed") {
+                snapshot.speed = value;
+                observed |= OBS_SPEED;
+            }
+        }
+        if missing & OBS_VOLUME != 0 {
+            if let Some(value) = number_property(app, "volume") {
+                snapshot.volume = value;
+                observed |= OBS_VOLUME;
+            }
+        }
+        if missing & OBS_MUTED != 0 {
+            if let Some(value) = flag_property(app, "mute") {
+                snapshot.muted = value;
+                observed |= OBS_MUTED;
+            }
+        }
+        if missing & OBS_PLAYLIST_INDEX != 0 {
+            if let Some(value) = int_property(app, "playlist-pos") {
+                snapshot.playlist_index = value;
+                observed |= OBS_PLAYLIST_INDEX;
+            }
+        }
+        if missing & OBS_PLAYLIST_COUNT != 0 {
+            if let Some(value) = int_property(app, "playlist-count") {
+                snapshot.playlist_count = value;
+                observed |= OBS_PLAYLIST_COUNT;
+            }
+        }
+        if missing & OBS_PATH != 0 {
+            if let Some(value) = string_property(app, "path") {
+                snapshot.path = value;
+                observed |= OBS_PATH;
+            }
+        }
+        if observed != mask {
+            *host
+                .latest
+                .lock()
+                .unwrap_or_else(|error| error.into_inner()) = (snapshot.clone(), observed);
+        }
+    }
+
+    // Metrics ride a slower tick; cache counters come from there too.
+    snapshot.fps_render = metrics.fps_render;
+    snapshot.fps_video = metrics.fps_video;
+    snapshot.drop_count = metrics.drop_count;
+    snapshot.cache_duration = metrics.cache_duration.or(snapshot.cache_duration);
+    snapshot.cache_bytes = metrics.cache_bytes.or(snapshot.cache_bytes);
+    snapshot.hwdec_current = metrics.hwdec_current;
+    snapshot.video_width = metrics.video_width.or(snapshot.video_width);
+    snapshot.video_height = metrics.video_height.or(snapshot.video_height);
+
+    snapshot
 }
 
 const DROP_KEYS: &[&str] = &[
@@ -630,6 +920,7 @@ fn read_metrics(app: &AppHandle) -> Metrics {
         fps_video: number_property(app, "fps").filter(|value| *value > 0.0),
         drop_count,
         cache_duration: number_property(app, "demuxer-cache-duration"),
+        cache_bytes: int_property(app, "demuxer-cache-state/fw-bytes").filter(|value| *value > 0),
         hwdec_current: string_property(app, "hwdec-current"),
         video_width: int_property(app, "width").filter(|value| *value > 0),
         video_height: int_property(app, "height").filter(|value| *value > 0),
@@ -752,6 +1043,66 @@ mod tests {
             playlist_count,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn cache_speed_event_with_zero_clears_the_stale_value() {
+        let mut snapshot = PlaybackSnapshot {
+            cache_speed: Some(1024.0),
+            ..PlaybackSnapshot::default()
+        };
+        let mut mask = 0;
+        assert!(apply_observed_property(
+            &mut snapshot,
+            &mut mask,
+            "cache-speed",
+            &serde_json::json!(0.0)
+        ));
+        assert_eq!(snapshot.cache_speed, None);
+        assert_eq!(mask, OBS_CACHE_SPEED);
+    }
+
+    #[test]
+    fn null_property_does_not_mark_the_field_observed() {
+        let mut snapshot = PlaybackSnapshot::default();
+        let mut mask = 0;
+        assert!(!apply_observed_property(
+            &mut snapshot,
+            &mut mask,
+            "time-pos",
+            &serde_json::Value::Null
+        ));
+        assert_eq!(mask, 0);
+    }
+
+    #[test]
+    fn all_observed_bits_cover_every_event_field() {
+        let mut snapshot = PlaybackSnapshot::default();
+        let mut mask = 0;
+        for (name, value) in [
+            ("time-pos", serde_json::json!(1.0)),
+            ("duration", serde_json::json!(2.0)),
+            ("pause", serde_json::json!(false)),
+            ("eof-reached", serde_json::json!(false)),
+            ("speed", serde_json::json!(1.0)),
+            ("volume", serde_json::json!(50.0)),
+            ("mute", serde_json::json!(false)),
+            ("playlist-pos", serde_json::json!(0)),
+            ("playlist-count", serde_json::json!(1)),
+            ("path", serde_json::json!("/a.mkv")),
+            ("paused-for-cache", serde_json::json!(false)),
+            ("cache-buffering-state", serde_json::json!(100.0)),
+            ("cache-speed", serde_json::json!(1.0)),
+            ("demuxer-cache-duration", serde_json::json!(3.0)),
+        ] {
+            assert!(apply_observed_property(
+                &mut snapshot,
+                &mut mask,
+                name,
+                &value
+            ));
+        }
+        assert_eq!(mask, ALL_CORE_OBSERVED);
     }
 
     #[test]

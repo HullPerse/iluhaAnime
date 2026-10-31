@@ -3,7 +3,7 @@ import { Debouncer } from "@/lib/core/debounce.utils";
 import type { Persistor } from "@/types/core/persist";
 import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { createSignalStore } from "@/lib/core/signal.store";
-import type { Cell } from "@/types/core/signal";
+import type { Cell, Derived } from "@/types/core/signal";
 import { resolveWithDefaults } from "@/lib/core/migrate.utils";
 import type { MigrationState } from "@/types/core/migrate";
 import { attemptSync } from "@/lib/core/attempt.utils";
@@ -256,6 +256,10 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
 
 export interface PlaybackSignalStore {
   atoms: PlaybackAtoms;
+  /** True only at the very start; flips instead of changing every tick. */
+  atStart: Derived<boolean>;
+  /** True only at the end; flips instead of changing every tick. */
+  atEnd: Derived<boolean>;
   /**
    * The stream the window is playing, or null for local playback.
    *
@@ -276,9 +280,21 @@ export interface PlaybackSignalStore {
   resetPlayback: () => void;
 }
 
+function setIfChanged<T>(atom: Cell<T>, value: T): void {
+  if (!Object.is(atom.get(), value)) atom.set(value);
+}
+
 export function createPlaybackSignalStore(): PlaybackSignalStore {
   const store = createSignalStore();
   const atoms = buildPlaybackAtoms(store, { ...INITIAL_PLAYBACK });
+  // Boundary flags for controls that only need "disabled at start/end". A
+  // derived cell notifies its subscribers only when the boolean flips, so
+  // these do not re-render the control bar at 10 Hz.
+  const atStart = store.derive([atoms.timePos], ([timePos]) => (timePos as number) === 0);
+  const atEnd = store.derive(
+    [atoms.timePos, atoms.duration],
+    ([timePos, duration]) => (duration as number) > 0 && timePos === duration
+  );
 
   const streamSession = store.atom<StreamOpen | null>("playback.streamSession", null);
 
@@ -323,40 +339,41 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
 
   return {
     atoms,
+    atStart,
+    atEnd,
     subscribeAll: (fn) => store.subscribeAll(fn),
     setSnapshot: (snapshot) => {
       const seekTarget = nextSeekTarget(snapshot);
-      // A replacement stream reports no duration while it opens. Keep the last
-      // known one until the pin is released, otherwise the bar collapses on
-      // the switch and grows back a moment later.
+
       const pinned = atoms.streamResume.get() !== null;
+      const nextDuration =
+        pinned && snapshot.duration <= 0 ? atoms.duration.get() : snapshot.duration;
+      const nextSeekSettle = seekTarget === null ? false : atoms.seekSettle.get();
       store.batch(() => {
-        atoms.ready.set(true);
-        atoms.hasFile.set(snapshot.path !== "");
-        atoms.timePos.set(snapshot.timePos);
-        atoms.duration.set(
-          pinned && snapshot.duration <= 0 ? atoms.duration.get() : snapshot.duration
-        );
-        atoms.paused.set(snapshot.pause);
-        atoms.eofReached.set(snapshot.eofReached);
-        atoms.speed.set(snapshot.speed);
-        atoms.muted.set(snapshot.muted);
-        atoms.playlistIndex.set(snapshot.playlistIndex);
-        atoms.playlistCount.set(snapshot.playlistCount);
-        atoms.path.set(snapshot.path);
-        atoms.fpsRender.set(snapshot.fpsRender);
-        atoms.fpsVideo.set(snapshot.fpsVideo);
-        atoms.dropCount.set(snapshot.dropCount);
-        atoms.cacheDuration.set(snapshot.cacheDuration);
-        atoms.cacheBufferingState.set(snapshot.cacheBufferingState);
-        atoms.cacheSpeed.set(snapshot.cacheSpeed);
-        atoms.cacheBytes.set(snapshot.cacheBytes);
-        atoms.pausedForCache.set(snapshot.pausedForCache);
-        atoms.hwdecCurrent.set(snapshot.hwdecCurrent);
-        atoms.videoWidth.set(snapshot.videoWidth);
-        atoms.videoHeight.set(snapshot.videoHeight);
-        atoms.seekTarget.set(seekTarget);
-        atoms.seekSettle.set(seekTarget === null ? false : atoms.seekSettle.get());
+        if (!atoms.ready.get()) atoms.ready.set(true);
+        setIfChanged(atoms.hasFile, snapshot.path !== "");
+        setIfChanged(atoms.timePos, snapshot.timePos);
+        setIfChanged(atoms.duration, nextDuration);
+        setIfChanged(atoms.paused, snapshot.pause);
+        setIfChanged(atoms.eofReached, snapshot.eofReached);
+        setIfChanged(atoms.speed, snapshot.speed);
+        setIfChanged(atoms.muted, snapshot.muted);
+        setIfChanged(atoms.playlistIndex, snapshot.playlistIndex);
+        setIfChanged(atoms.playlistCount, snapshot.playlistCount);
+        setIfChanged(atoms.path, snapshot.path);
+        setIfChanged(atoms.fpsRender, snapshot.fpsRender);
+        setIfChanged(atoms.fpsVideo, snapshot.fpsVideo);
+        setIfChanged(atoms.dropCount, snapshot.dropCount);
+        setIfChanged(atoms.cacheDuration, snapshot.cacheDuration);
+        setIfChanged(atoms.cacheBufferingState, snapshot.cacheBufferingState);
+        setIfChanged(atoms.cacheSpeed, snapshot.cacheSpeed);
+        setIfChanged(atoms.cacheBytes, snapshot.cacheBytes);
+        setIfChanged(atoms.pausedForCache, snapshot.pausedForCache);
+        setIfChanged(atoms.hwdecCurrent, snapshot.hwdecCurrent);
+        setIfChanged(atoms.videoWidth, snapshot.videoWidth);
+        setIfChanged(atoms.videoHeight, snapshot.videoHeight);
+        setIfChanged(atoms.seekTarget, seekTarget);
+        setIfChanged(atoms.seekSettle, nextSeekSettle);
       });
     },
     setSeekTarget: (time) => {
@@ -433,6 +450,8 @@ export const setProfile = player.setProfile;
 export const patchPlayerSettings = player.patchPlayerSettings;
 
 export const playbackAtoms = playback.atoms;
+export const playbackAtStart = playback.atStart;
+export const playbackAtEnd = playback.atEnd;
 export function subscribePlayback(listener: () => void): () => void {
   return playback.subscribeAll(listener);
 }

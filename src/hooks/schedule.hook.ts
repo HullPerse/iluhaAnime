@@ -1,19 +1,36 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import { THEMES } from "@/config/graphics/themes.config";
 import { useLiveResource } from "@/hooks/liveResource.hook";
-import { dayNightFrame, nowMinutesOf } from "@/lib/core/daynight.utils";
+import { dayNightFrame, nowMinutesOf, scheduledThemeName } from "@/lib/core/daynight.utils";
 import type { DayNightFrame } from "@/types/core/daynight";
 import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { setTorrentSpeedLimits } from "@/store/download.store";
 import { getSettingsSnapshot, patchSettings } from "@/store/settings.store";
 import { setTheme, themeAtoms } from "@/store/theme.store";
 
+function isKnownTheme(name: string): boolean {
+  return (
+    THEMES.some((theme) => theme.name === name) ||
+    themeAtoms.customThemes.get().some((theme) => theme.name === name)
+  );
+}
+
 export function useDayNightScheduler(): void {
   const applied = useRef<{ speed: DayNightFrame | null; theme: DayNightFrame | null }>({
     speed: null,
     theme: null,
   });
+
+  // The periodic sweep below runs in useEffect, after the first paint. Apply
+  // the scheduled theme once in a layout effect so the restored theme never
+  // flashes before the schedule takes over.
+  useLayoutEffect(() => {
+    const scheduled = scheduledThemeName(getSettingsSnapshot().themeSchedule, nowMinutesOf());
+    if (!scheduled || applied.current.theme === scheduled.frame) return;
+    applied.current.theme = scheduled.frame;
+    if (isKnownTheme(scheduled.name)) setTheme(scheduled.name);
+  }, []);
 
   useLiveResource({
     intervalMs: 60_000,
@@ -52,21 +69,11 @@ export function useDayNightScheduler(): void {
       } else {
         applied.current.speed = null;
       }
-      if (settings.themeSchedule.enabled) {
-        const frame = dayNightFrame(
-          settings.themeSchedule.dayStart,
-          settings.themeSchedule.nightStart,
-          now
-        );
-        if (applied.current.theme !== frame) {
-          applied.current.theme = frame;
-          const name =
-            frame === "day" ? settings.themeSchedule.dayTheme : settings.themeSchedule.nightTheme;
-          const known = new Set([
-            ...THEMES.map((theme) => theme.name),
-            ...themeAtoms.customThemes.get().map((theme) => theme.name),
-          ]);
-          if (known.has(name)) setTheme(name);
+      const scheduled = scheduledThemeName(settings.themeSchedule, now);
+      if (scheduled) {
+        if (applied.current.theme !== scheduled.frame) {
+          applied.current.theme = scheduled.frame;
+          if (isKnownTheme(scheduled.name)) setTheme(scheduled.name);
         }
       } else {
         applied.current.theme = null;

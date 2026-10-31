@@ -192,21 +192,23 @@ fn fmt_desc(s: &str) -> String {
 }
 
 pub fn collect_titles(m: &serde_json::Value, main_title: &str) -> Vec<String> {
-    let mut titles = Vec::new();
+    use std::collections::HashSet;
+    let mut titles = Vec::with_capacity(32);
+    let mut seen: HashSet<&str> = HashSet::with_capacity(16);
     if let Some(et) = m["title"]["english"].as_str() {
-        if et != main_title {
+        if et != main_title && seen.insert(et) {
             titles.push(et.to_string());
         }
     }
     if let Some(nt) = m["title"]["native"].as_str() {
-        if nt != main_title {
+        if nt != main_title && seen.insert(nt) {
             titles.push(nt.to_string());
         }
     }
     if let Some(syns) = m["synonyms"].as_array() {
         for s in syns {
             if let Some(syn) = s.as_str() {
-                if syn != main_title && !titles.contains(&syn.to_string()) {
+                if syn != main_title && seen.insert(syn) {
                     titles.push(syn.to_string());
                 }
             }

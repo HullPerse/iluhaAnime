@@ -37,8 +37,8 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { TabId } from "@/types/ui/settings";
 
-import PageFindBar from "@/components/shared/keyboard/findBar.keyboard.component";
-import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard.component";
+import PageFindBar from "@/components/shared/keyboard/findBar.keyboard";
+import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard";
 import NotificationToasts from "@/components/shared/notification/toasts.notification";
 import NotificationTray from "@/components/shared/notification/tray.notification";
 import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";

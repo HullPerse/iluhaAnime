@@ -145,6 +145,30 @@ name = "chip8"
 harness = false
 
 [[bench]]
+name = "concurrency"
+harness = false
+
+[[bench]]
+name = "thumbnail_make"
+harness = false
+
+[[bench]]
+name = "player_property_cache"
+harness = false
+
+[[bench]]
+name = "details_parse"
+harness = false
+
+[[bench]]
+name = "collect_titles"
+harness = false
+
+[[bench]]
+name = "collection_import"
+harness = false
+
+[[bench]]
 name = "torrent_payloads"
 harness = false
 

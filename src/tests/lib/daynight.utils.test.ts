@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { dayNightFrame, nowMinutesOf, parseDayTime } from "@/lib/core/daynight.utils";
+import {
+  dayNightFrame,
+  nowMinutesOf,
+  parseDayTime,
+  scheduledThemeName,
+} from "@/lib/core/daynight.utils";
 
 describe("daynight", () => {
   it("parses HH:MM to minutes", () => {
@@ -35,5 +40,33 @@ describe("daynight", () => {
   it("reads local minutes", () => {
     const date = new Date(2026, 0, 2, 3, 4);
     expect(nowMinutesOf(date)).toBe(184);
+  });
+});
+
+describe("scheduledThemeName", () => {
+  const schedule = {
+    dayStart: "08:00",
+    dayTheme: "win95",
+    enabled: true,
+    nightStart: "22:00",
+    nightTheme: "yorha",
+  };
+
+  it("selects the day theme inside the day frame", () => {
+    expect(scheduledThemeName(schedule, 600)).toEqual({ frame: "day", name: "win95" });
+  });
+
+  it("selects the night theme outside the day frame", () => {
+    expect(scheduledThemeName(schedule, 1380)).toEqual({ frame: "night", name: "yorha" });
+  });
+
+  it("uses the configured theme for wrapped overnight bounds", () => {
+    const wrapped = { ...schedule, dayStart: "22:00", nightStart: "06:00" };
+    expect(scheduledThemeName(wrapped, 300)).toEqual({ frame: "day", name: "win95" });
+    expect(scheduledThemeName(wrapped, 720)).toEqual({ frame: "night", name: "yorha" });
+  });
+
+  it("returns null when the schedule is disabled", () => {
+    expect(scheduledThemeName({ ...schedule, enabled: false }, 600)).toBeNull();
   });
 });

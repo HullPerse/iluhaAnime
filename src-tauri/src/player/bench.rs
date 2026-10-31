@@ -384,16 +384,47 @@ async fn run_one(
     }
     let open_ms = loaded.then(|| round1(load_start.elapsed().as_secs_f64() * 1000.0));
     let _ = core(app).set_property("pause", &json!(false), PLAYER_WINDOW_LABEL);
+    // The frontend can restore a watch position and re-apply pause after the
+    // file loads, so wait until the position actually moves before timing.
+    let settle = Instant::now();
+    let mut last_pos = num(app, "time-pos").unwrap_or_default();
+    let mut advancing = false;
+    while settle.elapsed() < Duration::from_secs(6) {
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        let now = num(app, "time-pos").unwrap_or_default();
+        if now > last_pos + 0.1 {
+            advancing = true;
+            break;
+        }
+        last_pos = now;
+        let _ = core(app).set_property("pause", &json!(false), PLAYER_WINDOW_LABEL);
+    }
+    if !advancing {
+        tracing::warn!("bench: playback did not advance before the decode window");
+    }
 
     tracing::debug!(
         "bench: run_one decode window start secs={}",
         config.decode_secs
     );
+    let (reads_before, snapshots_before, events_before, time_pos_before, dirty_before) =
+        super::state::poll_stats();
+    let time_pos_start = num(app, "time-pos");
     let mut render_fps: Vec<f64> = Vec::new();
     let mut cache_min = f64::MAX;
+    let mut stalled_ticks = 0u32;
+    let mut last_tick_pos = num(app, "time-pos").unwrap_or_default();
     let ticks = config.decode_secs * 4;
     for _ in 0..ticks {
         tokio::time::sleep(Duration::from_millis(250)).await;
+        let now_pos = num(app, "time-pos").unwrap_or_default();
+        if now_pos <= last_tick_pos + 0.01 {
+            // The frontend may pause after restoring a watch position; keep
+            // the measured window on real playback.
+            stalled_ticks += 1;
+            let _ = core(app).set_property("pause", &json!(false), PLAYER_WINDOW_LABEL);
+        }
+        last_tick_pos = now_pos;
         if let Some(value) = num(app, "estimated-vf-fps").filter(|value| *value > 0.0) {
             render_fps.push(value);
         }
@@ -402,6 +433,17 @@ async fn run_one(
         }
     }
     tracing::debug!("bench: run_one decode window done, reading drop counters");
+    let time_pos_end = num(app, "time-pos");
+    let paused_end = flag(app, "pause");
+    let (reads_after, snapshots_after, events_after, time_pos_after, dirty_after) =
+        super::state::poll_stats();
+    let property_reads = reads_after.saturating_sub(reads_before);
+    let player_snapshots = snapshots_after.saturating_sub(snapshots_before);
+    let property_events = events_after.saturating_sub(events_before);
+    let time_pos_events = time_pos_after.saturating_sub(time_pos_before);
+    let dirty_ticks = dirty_after.saturating_sub(dirty_before);
+    let reads_per_snapshot =
+        (player_snapshots > 0).then(|| round1(property_reads as f64 / player_snapshots as f64));
     let drop_before = drop_counter(app);
     let cache_min = (cache_min != f64::MAX).then(|| round1(cache_min));
 
@@ -426,6 +468,17 @@ async fn run_one(
         "fpsRender": average(&render_fps).map(round1),
         "fpsVideo": num(app, "fps").map(round1),
         "fpsSamples": render_fps.len(),
+        "playerPropertyReads": property_reads,
+        "playerSnapshots": player_snapshots,
+        "playerReadsPerSnapshot": reads_per_snapshot,
+        "playerPropertyEvents": property_events,
+        "playerTimePosEvents": time_pos_events,
+        "playerDirtyTicks": dirty_ticks,
+        "timePosStart": time_pos_start.map(round1),
+        "timePosEnd": time_pos_end.map(round1),
+        "pausedEnd": paused_end,
+        "advancing": advancing,
+        "stalledTicks": stalled_ticks,
         "cacheMin": cache_min,
         "dropKey": drop_before.map(|(key, _)| key),
         "dropBefore": drop_before.map(|(_, value)| value),

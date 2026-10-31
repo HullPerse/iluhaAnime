@@ -347,12 +347,12 @@ fn detail_field(fields: &[TorrentDetailField], names: &[&str]) -> String {
 }
 
 fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
-    let row_sel = TABLE_ROW_SEL.clone();
-    let cell_sel = TABLE_CELL_SEL.clone();
+    let row_sel = &*TABLE_ROW_SEL;
+    let cell_sel = &*TABLE_CELL_SEL;
     let mut fields = Vec::new();
 
-    for row in doc.select(&row_sel) {
-        let cells: Vec<String> = row.select(&cell_sel).map(element_text_multiline).collect();
+    for row in doc.select(row_sel) {
+        let cells: Vec<String> = row.select(cell_sel).map(element_text_multiline).collect();
         if cells.len() < 2 {
             continue;
         }
@@ -366,11 +366,11 @@ fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
         }
     }
 
-    let dl_sel = DESC_LIST_SEL.clone();
-    let term_sel = DESC_TERM_SEL.clone();
-    for definition_list in doc.select(&dl_sel) {
+    let dl_sel = &*DESC_LIST_SEL;
+    let term_sel = &*DESC_TERM_SEL;
+    for definition_list in doc.select(dl_sel) {
         let terms: Vec<String> = definition_list
-            .select(&term_sel)
+            .select(term_sel)
             .map(element_text_multiline)
             .filter(|value| !value.is_empty())
             .collect();
@@ -402,12 +402,12 @@ fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
 }
 
 fn parse_bootstrap_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
-    let row_sel = PANEL_ROW_SEL.clone();
-    let cell_sel = PANEL_CELL_SEL.clone();
+    let row_sel = &*PANEL_ROW_SEL;
+    let cell_sel = &*PANEL_CELL_SEL;
     let mut fields = Vec::new();
-    for row in doc.select(&row_sel) {
+    for row in doc.select(row_sel) {
         let cells: Vec<String> = row
-            .select(&cell_sel)
+            .select(cell_sel)
             .map(element_text_multiline)
             .filter(|value| !value.is_empty())
             .collect();
@@ -450,7 +450,7 @@ fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
         "table.files tr",
         "table.filelist tr",
     ];
-    let mut files = Vec::new();
+    let mut files = Vec::with_capacity(32);
     for raw in selectors {
         let Ok(selector) = Selector::parse(raw) else {
             continue;
@@ -460,14 +460,14 @@ fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
             if text.is_empty() || text.len() > 500 {
                 continue;
             }
-            let cells = DATA_CELL_SEL.clone();
+            let cells = &*DATA_CELL_SEL;
             let parts: Vec<String> = element
-                .select(&cells)
+                .select(cells)
                 .map(element_text)
                 .filter(|s| !s.is_empty())
                 .collect();
-            let nested_sel = NESTED_LIST_SEL.clone();
-            let has_nested = element.select(&nested_sel).next().is_some();
+            let nested_sel = &*NESTED_LIST_SEL;
+            let has_nested = element.select(nested_sel).next().is_some();
             let (name, size) = if has_nested {
                 continue;
             } else if parts.len() >= 2 {
@@ -511,13 +511,13 @@ fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
     }
 
     if files.is_empty() {
-        let row_sel = TABLE_ROW_SEL.clone();
-        let cell_sel = TABLE_CELL_SEL.clone();
+        let row_sel = &*TABLE_ROW_SEL;
+        let cell_sel = &*TABLE_CELL_SEL;
         let file_name_re =
             regex_lite::Regex::new(r"(?i)(?:\.[a-z0-9]{1,8})(?:$|[\s)])").expect("hardcoded regex");
-        for row in doc.select(&row_sel) {
+        for row in doc.select(row_sel) {
             let cells: Vec<String> = row
-                .select(&cell_sel)
+                .select(cell_sel)
                 .map(element_text)
                 .filter(|value| !value.is_empty())
                 .collect();
@@ -610,8 +610,8 @@ fn collect_imgs(
     images: &mut Vec<String>,
     limit: usize,
 ) {
-    let image_sel = IMAGE_SEL.clone();
-    for image in element.select(&image_sel) {
+    let image_sel = &*IMAGE_SEL;
+    for image in element.select(image_sel) {
         let value = image.value();
         let src = value
             .attr("data-original")
@@ -642,8 +642,8 @@ fn collect_var_postimgs(
     images: &mut Vec<String>,
     limit: usize,
 ) {
-    let var_sel = VAR_POSTIMG_SEL.clone();
-    for var in element.select(&var_sel) {
+    let var_sel = &*VAR_POSTIMG_SEL;
+    for var in element.select(var_sel) {
         let title = var.value().attr("title").unwrap_or_default();
         if title.trim().is_empty() {
             continue;
@@ -711,7 +711,7 @@ fn image_src<'a>(value: &'a scraper::ElementRef<'a>) -> &'a str {
 
 fn spoiler_is_screenshots(spoiler: &scraper::ElementRef<'_>) -> bool {
     let heading = spoiler
-        .select(&SPOILER_HEAD_SEL.clone())
+        .select(&*SPOILER_HEAD_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
@@ -727,22 +727,22 @@ fn spoiler_is_screenshots(spoiler: &scraper::ElementRef<'_>) -> bool {
 fn spoiler_src_sets(post: &scraper::ElementRef<'_>) -> (HashSet<String>, HashSet<String>) {
     let mut screenshots = HashSet::new();
     let mut others = HashSet::new();
-    let spoiler_sel = SPOILER_SEL.clone();
-    let image_sel = IMAGE_SEL.clone();
-    let anchor_sel = ANCHOR_SEL.clone();
-    for spoiler in post.select(&spoiler_sel) {
+    let spoiler_sel = &*SPOILER_SEL;
+    let image_sel = &*IMAGE_SEL;
+    let anchor_sel = &*ANCHOR_SEL;
+    for spoiler in post.select(spoiler_sel) {
         let target = if spoiler_is_screenshots(&spoiler) {
             &mut screenshots
         } else {
             &mut others
         };
-        for image in spoiler.select(&image_sel) {
+        for image in spoiler.select(image_sel) {
             target.insert(image_src(&image).to_string());
         }
-        for var in spoiler.select(&VAR_POSTIMG_SEL.clone()) {
+        for var in spoiler.select(&*VAR_POSTIMG_SEL) {
             target.insert(var.value().attr("title").unwrap_or_default().to_string());
         }
-        for link in spoiler.select(&anchor_sel) {
+        for link in spoiler.select(anchor_sel) {
             target.insert(link.value().attr("href").unwrap_or_default().to_string());
         }
     }
@@ -758,7 +758,7 @@ fn element_class(value: &scraper::ElementRef<'_>) -> String {
 }
 
 fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
-    let post = doc.select(&POST_BODY_SEL.clone()).next()?;
+    let post = doc.select(&*POST_BODY_SEL).next()?;
     let (screenshot_srcs, other_spoiler_srcs) = spoiler_src_sets(&post);
     let outside_spoilers =
         |src: &str| !screenshot_srcs.contains(src) && !other_spoiler_srcs.contains(src);
@@ -770,7 +770,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
         }
         pick_poster_src(image_src(image), &class, origin)
     };
-    for image in post.select(&POSTER_IMG_SEL.clone()) {
+    for image in post.select(&*POSTER_IMG_SEL) {
         let class = element_class(&image);
         if !is_aligned_poster(&class) {
             continue;
@@ -783,7 +783,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for image in post.select(&POSTER_IMG_SEL.clone()) {
+    for image in post.select(&*POSTER_IMG_SEL) {
         let src = image_src(&image);
         if !outside_spoilers(src) {
             continue;
@@ -793,7 +793,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
         }
     }
     // Poster can also be a `<var class="postImg" title="URL">` outside spoilers.
-    for var in post.select(&VAR_POSTIMG_SEL.clone()) {
+    for var in post.select(&*VAR_POSTIMG_SEL) {
         let title = var.value().attr("title").unwrap_or_default();
         if !outside_spoilers(title) {
             continue;
@@ -802,7 +802,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for image in post.select(&POSTER_IMG_SEL.clone()) {
+    for image in post.select(&*POSTER_IMG_SEL) {
         let src = image_src(&image);
         if !not_screenshot(src) {
             continue;
@@ -811,7 +811,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for image in post.select(&IMAGE_SEL.clone()) {
+    for image in post.select(&*IMAGE_SEL) {
         let src = image_src(&image);
         if !outside_spoilers(src) {
             continue;
@@ -820,7 +820,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for link in post.select(&ANCHOR_SEL.clone()) {
+    for link in post.select(&*ANCHOR_SEL) {
         let href = link.value().attr("href").unwrap_or_default();
         let Some(target) = poster_link_target(href) else {
             continue;
@@ -837,7 +837,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
 
 fn spoiler_is_mediainfo(spoiler: &scraper::ElementRef<'_>) -> bool {
     spoiler
-        .select(&SPOILER_HEAD_SEL.clone())
+        .select(&*SPOILER_HEAD_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
@@ -863,13 +863,13 @@ fn truncate_mediainfo(text: String) -> String {
 
 /// Raw `MediaInfo` dump from the `MediaInfo` spoiler, if the topic has one.
 fn parse_rutracker_mediainfo(doc: &Html) -> Option<String> {
-    let post = doc.select(&POST_BODY_SEL.clone()).next()?;
-    let body_sel = SPOILER_BODY_SEL.clone();
-    for spoiler in post.select(&SPOILER_SEL.clone()) {
+    let post = doc.select(&*POST_BODY_SEL).next()?;
+    let body_sel = &*SPOILER_BODY_SEL;
+    for spoiler in post.select(&*SPOILER_SEL) {
         if !spoiler_is_mediainfo(&spoiler) {
             continue;
         }
-        let area = spoiler.select(&body_sel).next().unwrap_or(spoiler);
+        let area = spoiler.select(body_sel).next().unwrap_or(spoiler);
         let text = element_text_multiline(area);
         let text = text.trim().to_string();
         if text.is_empty() {
@@ -879,7 +879,7 @@ fn parse_rutracker_mediainfo(doc: &Html) -> Option<String> {
     }
     // Fallback: MediaInfo is often pasted as `<pre class="post-pre">` under
     // a differently-titled spoiler (or none at all).
-    for pre in post.select(&PRE_SEL.clone()) {
+    for pre in post.select(&*PRE_SEL) {
         let text = element_text_multiline(pre);
         let text = text.trim().to_string();
         if looks_like_mediainfo(&text) {
@@ -892,7 +892,7 @@ fn parse_rutracker_mediainfo(doc: &Html) -> Option<String> {
 /// Show poster from an erai-raws.info anime page: the first content
 /// upload image, skipping plugin emoticons and theme chrome.
 fn parse_erai_poster(doc: &Html, origin: &str) -> Option<String> {
-    doc.select(&IMAGE_SEL.clone()).find_map(|image| {
+    doc.select(&*IMAGE_SEL).find_map(|image| {
         let src = image_src(&image);
         let lower = src.to_lowercase();
         if !lower.contains("/wp-content/uploads/") {
@@ -904,7 +904,7 @@ fn parse_erai_poster(doc: &Html, origin: &str) -> Option<String> {
 
 /// Uploader nick from the first post (`.poster_info .nick`).
 fn parse_rutracker_author(doc: &Html) -> String {
-    doc.select(&NICK_SEL.clone())
+    doc.select(&*NICK_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
@@ -912,7 +912,7 @@ fn parse_rutracker_author(doc: &Html) -> String {
 
 /// Forum breadcrumb, e.g. "Аниме / Японская анимация".
 fn parse_rutracker_category(doc: &Html) -> String {
-    doc.select(&BREADCRUMB_SEL.clone())
+    doc.select(&*BREADCRUMB_SEL)
         .map(element_text)
         .filter(|part| !part.is_empty())
         .collect::<Vec<_>>()
@@ -1079,12 +1079,12 @@ fn visit_description_child(
             builder.flush_paragraph();
             if !spoiler_is_screenshots(&element) {
                 let title = element
-                    .select(&SPOILER_HEAD_SEL.clone())
+                    .select(&*SPOILER_HEAD_SEL)
                     .next()
                     .map(element_text)
                     .unwrap_or_default();
                 let body = element
-                    .select(&SPOILER_BODY_SEL.clone())
+                    .select(&*SPOILER_BODY_SEL)
                     .next()
                     .map(element_text_multiline)
                     .unwrap_or_default();
@@ -1183,16 +1183,16 @@ fn visit_description_link(
     if href.starts_with("magnet:") {
         return index + 1;
     }
-    let image_sel = IMAGE_SEL.clone();
-    let var_sel = VAR_POSTIMG_SEL.clone();
+    let image_sel = &*IMAGE_SEL;
+    let var_sel = &*VAR_POSTIMG_SEL;
     let shot = element
-        .select(&image_sel)
+        .select(image_sel)
         .next()
         .map(|image| image_src(&image).to_string())
         .filter(|src| !src.trim().is_empty())
         .or_else(|| {
             element
-                .select(&var_sel)
+                .select(var_sel)
                 .next()
                 .map(|var| var.value().attr("title").unwrap_or_default().to_string())
                 .filter(|title| !title.trim().is_empty())
@@ -1221,7 +1221,7 @@ fn visit_description_link(
 
 /// Rich release-description blocks from the first post, in document order.
 fn parse_rutracker_description_blocks(doc: &Html, origin: &str) -> Vec<DescriptionBlock> {
-    let Some(post) = doc.select(&POST_BODY_SEL.clone()).next() else {
+    let Some(post) = doc.select(&*POST_BODY_SEL).next() else {
         return Vec::new();
     };
     let mut builder = DescriptionBuilder {
@@ -1267,21 +1267,21 @@ fn description_container<'a>(doc: &'a Html, source: &str) -> Option<scraper::Ele
 }
 
 fn collect_rutracker_screenshots(doc: &Html, origin: &str) -> Vec<String> {
-    let post_sel = POST_BODY_SEL.clone();
-    let Some(post) = doc.select(&post_sel).next() else {
+    let post_sel = &*POST_BODY_SEL;
+    let Some(post) = doc.select(post_sel).next() else {
         return Vec::new();
     };
 
-    let spoiler_sel = SPOILER_SEL.clone();
-    let body_sel = SPOILER_BODY_SEL.clone();
+    let spoiler_sel = &*SPOILER_SEL;
+    let body_sel = &*SPOILER_BODY_SEL;
     let mut images = Vec::new();
 
-    for spoiler in post.select(&spoiler_sel) {
+    for spoiler in post.select(spoiler_sel) {
         if !spoiler_is_screenshots(&spoiler) {
             continue;
         }
 
-        let image_area = spoiler.select(&body_sel).next().unwrap_or(spoiler);
+        let image_area = spoiler.select(body_sel).next().unwrap_or(spoiler);
         collect_imgs(image_area, origin, &mut images, 24);
         if images.len() >= 24 {
             break;
@@ -1330,8 +1330,8 @@ fn parse_detail_screenshots(doc: &Html, origin: &str, source: &str) -> Vec<Strin
     }
 
     if images.is_empty() {
-        let image_sel = IMAGE_SEL.clone();
-        for image in doc.select(&image_sel) {
+        let image_sel = &*IMAGE_SEL;
+        for image in doc.select(image_sel) {
             let value = image.value();
             let src = value
                 .attr("data-original")
@@ -1352,16 +1352,16 @@ fn parse_detail_screenshots(doc: &Html, origin: &str, source: &str) -> Vec<Strin
 }
 
 fn parse_detail_comments(doc: &Html, source: &str) -> Vec<TorrentDetailComment> {
-    let block_sel = COMMENT_SEL.clone();
-    let author_sel = COMMENT_AUTHOR_SEL.clone();
-    let date_sel = COMMENT_DATE_SEL.clone();
-    let body_sel = COMMENT_BODY_SEL.clone();
+    let block_sel = &*COMMENT_SEL;
+    let author_sel = &*COMMENT_AUTHOR_SEL;
+    let date_sel = &*COMMENT_DATE_SEL;
+    let body_sel = &*COMMENT_BODY_SEL;
     let mut comments = Vec::new();
     let mut skipped_primary_description = false;
 
-    for block in doc.select(&block_sel) {
+    for block in doc.select(block_sel) {
         let is_primary_description = match source {
-            "rutracker" => block.select(&body_sel).next().is_some(),
+            "rutracker" => block.select(body_sel).next().is_some(),
             "erai-raws" => block.select(&COMMENT_MSG_SEL).next().is_some(),
             _ => false,
         };
@@ -1375,17 +1375,17 @@ fn parse_detail_comments(doc: &Html, source: &str) -> Vec<TorrentDetailComment> 
             continue;
         }
         let author = block
-            .select(&author_sel)
+            .select(author_sel)
             .next()
             .map(element_text)
             .unwrap_or_default();
         let date = block
-            .select(&date_sel)
+            .select(date_sel)
             .next()
             .map(element_text)
             .unwrap_or_default();
         let body = block
-            .select(&body_sel)
+            .select(body_sel)
             .next()
             .map_or_else(|| element_text_multiline(block), element_text_multiline);
         if !comments
@@ -1426,9 +1426,9 @@ fn text_stat_value(text: &str, labels: &[&str]) -> String {
 }
 
 fn parse_rutracker_topic_stats(doc: &Html) -> (String, String, u32, u32, u32) {
-    let body_sel = BODY_SEL.clone();
+    let body_sel = &*BODY_SEL;
     let text = doc
-        .select(&body_sel)
+        .select(body_sel)
         .next()
         .map(element_text_multiline)
         .unwrap_or_default();
@@ -1459,7 +1459,7 @@ fn rutracker_topic_id(url: &str) -> Option<String> {
 }
 
 fn looks_like_file_name(value: &str) -> bool {
-    regex_lite::Regex::new(r"(?i)\.[a-z0-9]{1,8}(?:$|[\s)])")
+    regex_lite::Regex::new(r"(?i).[a-z0-9]{1,8}(?:$|[\s)])")
         .expect("hardcoded regex")
         .is_match(value)
 }
@@ -1490,13 +1490,13 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
     if !exact.is_empty() {
         return exact;
     }
-    let row_sel = FILE_ROW_SEL.clone();
-    let cell_sel = FILE_CELL_SEL.clone();
-    let nested_sel = FILE_NESTED_SEL.clone();
-    let mut files = Vec::new();
+    let row_sel = &*FILE_ROW_SEL;
+    let cell_sel = &*FILE_CELL_SEL;
+    let nested_sel = &*FILE_NESTED_SEL;
+    let mut files = Vec::with_capacity(32);
 
-    for row in doc.select(&row_sel) {
-        if row.select(&nested_sel).next().is_some() {
+    for row in doc.select(row_sel) {
+        if row.select(nested_sel).next().is_some() {
             continue;
         }
         let text = element_text(row);
@@ -1504,7 +1504,7 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
             continue;
         }
         let parts: Vec<String> = row
-            .select(&cell_sel)
+            .select(cell_sel)
             .map(element_text)
             .filter(|part| !part.is_empty())
             .collect();
@@ -1538,10 +1538,10 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
 
 fn parse_rutracker_ftree_files(doc: &Html) -> Vec<TorrentDetailFile> {
     const MAX_FTREE_FILES: usize = 500;
-    let mut files = Vec::new();
-    for row in doc.select(&FTREE_FILE_SEL.clone()) {
+    let mut files = Vec::with_capacity(32);
+    for row in doc.select(&*FTREE_FILE_SEL) {
         let name = row
-            .select(&FTREE_NAME_SEL.clone())
+            .select(&*FTREE_NAME_SEL)
             .next()
             .map(element_text)
             .unwrap_or_default();
@@ -1549,7 +1549,7 @@ fn parse_rutracker_ftree_files(doc: &Html) -> Vec<TorrentDetailFile> {
             continue;
         }
         let size = row
-            .select(&FTREE_SIZE_SEL.clone())
+            .select(&*FTREE_SIZE_SEL)
             .next()
             .map(element_text)
             .filter(|size| looks_like_file_size(size))
@@ -1658,9 +1658,9 @@ fn max_labeled_number(text: &str, label: &str) -> u32 {
 }
 
 fn parse_animetosho_stats(doc: &Html) -> (String, String, u32, u32, u32) {
-    let body_sel = BODY_SEL.clone();
+    let body_sel = &*BODY_SEL;
     let text = doc
-        .select(&body_sel)
+        .select(body_sel)
         .next()
         .map(element_text_multiline)
         .unwrap_or_default();
@@ -1694,11 +1694,11 @@ fn animetosho_size(text: &str) -> String {
 }
 
 fn parse_animetosho_comment(doc: &Html) -> String {
-    let row_sel = TABLE_ROW_BARE_SEL.clone();
-    let cell_sel = TABLE_CELL_SEL.clone();
-    for row in doc.select(&row_sel) {
+    let row_sel = &*TABLE_ROW_BARE_SEL;
+    let cell_sel = &*TABLE_CELL_SEL;
+    for row in doc.select(row_sel) {
         let cells: Vec<String> = row
-            .select(&cell_sel)
+            .select(cell_sel)
             .map(element_text_multiline)
             .filter(|value| !value.is_empty())
             .collect();
@@ -1710,11 +1710,11 @@ fn parse_animetosho_comment(doc: &Html) -> String {
 }
 
 fn parse_animetosho_file(doc: &Html) -> Vec<TorrentDetailFile> {
-    let row_sel = TABLE_ROW_BARE_SEL.clone();
-    let cell_sel = TABLE_CELL_SEL.clone();
-    for row in doc.select(&row_sel) {
+    let row_sel = &*TABLE_ROW_BARE_SEL;
+    let cell_sel = &*TABLE_CELL_SEL;
+    for row in doc.select(row_sel) {
         let cells: Vec<String> = row
-            .select(&cell_sel)
+            .select(cell_sel)
             .map(element_text)
             .filter(|value| !value.is_empty())
             .collect();
@@ -1759,7 +1759,7 @@ fn is_relative_time_tip(tip: &str) -> bool {
 /// text after the icon svg is the value.
 fn parse_nekobt_meta(doc: &Html) -> NekobtMeta {
     let mut meta = NekobtMeta::default();
-    for span in doc.select(&NEKO_TOOLTIP_SEL.clone()) {
+    for span in doc.select(&*NEKO_TOOLTIP_SEL) {
         let tip = span
             .value()
             .attr("data-tip")
@@ -1786,7 +1786,7 @@ fn parse_nekobt_meta(doc: &Html) -> NekobtMeta {
 
 /// Sidebar cover: `a[href^="/media/"] img` (AniList CDN).
 fn parse_nekobt_cover(doc: &Html, origin: &str) -> Option<String> {
-    doc.select(&NEKO_COVER_SEL.clone())
+    doc.select(&*NEKO_COVER_SEL)
         .next()
         .and_then(|image| image.value().attr("src"))
         .and_then(|src| {
@@ -1800,11 +1800,11 @@ fn parse_nekobt_cover(doc: &Html, origin: &str) -> Option<String> {
 /// aggregate the whole row text and must be skipped).
 fn parse_nekobt_files(doc: &Html) -> Vec<TorrentDetailFile> {
     const MAX_NEKO_FILES: usize = 500;
-    let mut files = Vec::new();
-    for row in doc.select(&NEKO_FILE_ROW_SEL.clone()) {
+    let mut files = Vec::with_capacity(32);
+    for row in doc.select(&*NEKO_FILE_ROW_SEL) {
         let spans: Vec<String> = row
-            .select(&SPAN_SEL.clone())
-            .filter(|span| span.select(&SPAN_SEL.clone()).next().is_none())
+            .select(&*SPAN_SEL)
+            .filter(|span| span.select(&*SPAN_SEL).next().is_none())
             .map(element_text)
             .filter(|part| !part.is_empty())
             .collect();
@@ -1831,8 +1831,8 @@ fn parse_nekobt_files(doc: &Html) -> Vec<TorrentDetailFile> {
 
 /// Direct `.torrent` download served by the JSON API endpoint.
 fn parse_nekobt_torrent_url(doc: &Html, origin: &str) -> String {
-    let link_sel = ANCHOR_SEL.clone();
-    for link in doc.select(&link_sel) {
+    let link_sel = &*ANCHOR_SEL;
+    for link in doc.select(link_sel) {
         let href = link.value().attr("href").unwrap_or_default();
         if href.contains("/api/v1/torrents/") && href.contains("download") {
             return absolute_detail_url(origin, href);
@@ -1843,7 +1843,7 @@ fn parse_nekobt_torrent_url(doc: &Html, origin: &str) -> String {
 
 /// Series title from the sidebar card (`h2`).
 fn parse_nekobt_series(doc: &Html) -> String {
-    doc.select(&NEKO_SERIES_SEL.clone())
+    doc.select(&*NEKO_SERIES_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
@@ -1930,8 +1930,8 @@ pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> Torrent
     }
     let mut magnet = String::new();
     let mut torrent_url = String::new();
-    let link_sel = ANCHOR_SEL.clone();
-    for link in doc.select(&link_sel) {
+    let link_sel = &*ANCHOR_SEL;
+    for link in doc.select(link_sel) {
         let href = link.value().attr("href").unwrap_or_default();
         if href.starts_with("magnet:") && magnet.is_empty() {
             magnet = href.to_string();

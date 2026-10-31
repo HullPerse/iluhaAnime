@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard.component";
+import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard";
 import type { HintBadge } from "@/types/core/hintsHotkeys";
 import { patchSettings } from "@/store/settings.store";
 import { openHints, resetVimHints, setVimPinned } from "@/store/vim.store";

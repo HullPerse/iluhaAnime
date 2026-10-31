@@ -29,7 +29,7 @@ export default function DescriptionBlocks({
   };
   if (blocks.length === 0) {
     return (
-      <p className="windows95-text max-h-64 overflow-y-auto text-xs wrap-break-word whitespace-pre-wrap">
+      <p className="windows95-text max-h-64 overflow-y-auto text-xs wrap-break-word whitespace-pre-wrap scrollbar-gutter-stable">
         {fallback || t("search.details.no.description")}
       </p>
     );

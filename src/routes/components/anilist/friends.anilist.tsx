@@ -146,7 +146,7 @@ export default function AniListFriendsModal({
             <Users className="size-3" />
             <span className="windows95-font text-xs">{t("anilist.friends.list")}</span>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto scrollbar-gutter-stable">
             {friends.length === 0 ? (
               <span className="windows95-text text-hint p-2 text-center text-xs">
                 {t("anilist.friends.empty")}

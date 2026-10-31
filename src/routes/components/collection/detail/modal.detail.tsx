@@ -86,7 +86,7 @@ export function DetailCollection({
             </Button>
           </div>
         </div>
-        <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+        <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2 scrollbar-gutter-stable">
           {mediaOpen ? (
             <MediaViewerContent
               tmdbId={item.externalIds.tmdb ?? null}

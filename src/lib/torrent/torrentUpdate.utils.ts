@@ -1,7 +1,7 @@
 import { torrentApi } from "@/api/torrent.api";
 import { fileNameFromPath } from "@/lib/search/parse.utils";
 import { attempt } from "@/lib/core/attempt.utils";
-import { showError, showInfo } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/notification.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import type {
   TorrentDetailFile,
@@ -118,6 +118,5 @@ export async function applyTorrentUpdate(
     showError(tr("torrent.files.update.error"), removeError.message);
     return false;
   }
-  showInfo(tr("torrent.files.update.done"), item.name);
   return true;
 }

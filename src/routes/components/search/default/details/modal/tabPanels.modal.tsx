@@ -25,7 +25,7 @@ export function DetailsTabPanels({
           icon={<Rss className="size-3" />}
           title={t("search.details.description")}
           className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
+          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5 scrollbar-gutter-stable"
         >
           <DescriptionBlocks
             blocks={view.descriptionBlocks}
@@ -63,7 +63,7 @@ export function DetailsTabPanels({
           title={t("search.details.screenshots")}
           count={view.screenshots.length}
           className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
+          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5 scrollbar-gutter-stable"
         >
           <ScreenshotsPanel screenshots={view.screenshots} onZoom={onZoomScreenshot} />
         </DetailSection>
@@ -75,7 +75,7 @@ export function DetailsTabPanels({
           title={t("search.details.files")}
           count={view.files.length}
           className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
+          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5 scrollbar-gutter-stable"
         >
           <FilesPanel view={view} />
         </DetailSection>
@@ -86,7 +86,7 @@ export function DetailsTabPanels({
           icon={<Info className="size-3" />}
           title={t("search.details.mediainfo")}
           className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
+          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5 scrollbar-gutter-stable"
         >
           <MediainfoPanel mediainfo={view.mediainfo} />
         </DetailSection>
@@ -98,7 +98,7 @@ export function DetailsTabPanels({
           title={t("search.details.comments")}
           count={view.comments.length}
           className="flex min-h-0 flex-1 flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5"
+          bodyClassName="min-h-0 flex-1 overflow-y-auto p-1.5 scrollbar-gutter-stable"
         >
           <CommentsPanel view={view} />
         </DetailSection>

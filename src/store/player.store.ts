@@ -93,6 +93,10 @@ const INITIAL_PLAYBACK: PlaybackData = {
   cacheBufferingState: undefined,
   cacheSpeed: undefined,
   cacheBytes: undefined,
+  cacheStart: undefined,
+  cacheEnd: undefined,
+  cacheIdle: undefined,
+  seekableRanges: undefined,
   pausedForCache: undefined,
   hwdecCurrent: undefined,
   videoWidth: undefined,
@@ -368,6 +372,10 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
         setIfChanged(atoms.cacheBufferingState, snapshot.cacheBufferingState);
         setIfChanged(atoms.cacheSpeed, snapshot.cacheSpeed);
         setIfChanged(atoms.cacheBytes, snapshot.cacheBytes);
+        setIfChanged(atoms.cacheStart, snapshot.cacheStart);
+        setIfChanged(atoms.cacheEnd, snapshot.cacheEnd);
+        setIfChanged(atoms.cacheIdle, snapshot.cacheIdle);
+        setIfChanged(atoms.seekableRanges, snapshot.seekableRanges);
         setIfChanged(atoms.pausedForCache, snapshot.pausedForCache);
         setIfChanged(atoms.hwdecCurrent, snapshot.hwdecCurrent);
         setIfChanged(atoms.videoWidth, snapshot.videoWidth);

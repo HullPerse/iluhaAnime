@@ -140,6 +140,15 @@ fn load_queue(
         return Err("no file to play".to_string());
     }
     let backend = core(app);
+    // A stream leaves its cache profile on the instance, so a local file has
+    // to put its own readahead and packet caps back before it loads.
+    let readahead = app.state::<PlayerHost>().readahead();
+    apply_options(
+        &backend,
+        &local_cache_options(readahead),
+        window,
+        "local file",
+    )?;
     // Playback starts at `start_index`, but the mpv playlist is still built
     // in the given (sorted) order: the start file loads first so the resume
     // `start=` applies to it, then the files before it are inserted at the
@@ -405,17 +414,59 @@ fn mpv_proxy(url: &str) -> String {
 
 /// mpv's cache settings for a stream source.
 ///
-/// The player's profiles are tuned for local files, where one second of
-/// readahead is enough; a stream is read over the network and the same setting
-/// stalls on every hiccup. Twenty seconds covers a slow CDN, the byte cap keeps
-/// a long 4K title from eating the RAM, and the back buffer makes a small jump
-/// backwards come from memory instead of a new request.
+/// `--cache-secs` is the real readahead bound for a network stream: when the
+/// cache is active it overrides `--demuxer-readahead-secs`, so setting only the
+/// latter left `--demuxer-max-bytes` as the sole limit and let a low-bitrate
+/// episode fill most of that budget with the whole file. The byte caps still
+/// guard 4K, the hysteresis keeps mpv from restarting the download on every
+/// tick, and `cache-pause-initial` turns a stuttering first second into one
+/// honest buffering screen.
 fn stream_cache_options() -> Value {
     json!({
-        "demuxer-readahead-secs": 20.0,
-        "demuxer-max-bytes": "256MiB",
-        "demuxer-max-back-bytes": "96MiB",
+        "cache": "yes",
+        "cache-secs": 30.0,
+        "demuxer-max-bytes": "192MiB",
+        "demuxer-max-back-bytes": "64MiB",
+        "demuxer-hysteresis-secs": 10.0,
+        "cache-pause-initial": "yes",
+        "cache-pause-wait": 2.0,
+        "network-timeout": 20.0,
     })
+}
+
+/// Cache settings for a local file.
+///
+/// mpv keeps the stream profile on the instance across files, so every local
+/// load has to write its own policy back: `cache=auto` hands the on/off
+/// decision back to mpv (it stays off for a normal disk), and the readahead and
+/// packet caps return to the local shape. Without this a local 4K file played
+/// with the stream's 192 MiB queue and the timeline reported a network-sized
+/// cache for a file on disk.
+fn local_cache_options(readahead_secs: f64) -> Value {
+    json!({
+        "cache": "auto",
+        "cache-secs": 30.0,
+        "demuxer-readahead-secs": readahead_secs.clamp(0.1, 30.0),
+        "demuxer-max-bytes": "64MiB",
+        "demuxer-max-back-bytes": "16MiB",
+    })
+}
+
+fn apply_options(
+    backend: &LibmpvCore,
+    options: &Value,
+    window: &str,
+    scope: &str,
+) -> Result<(), String> {
+    let Some(map) = options.as_object() else {
+        return Ok(());
+    };
+    for (name, value) in map {
+        backend
+            .set_property(name, value, window)
+            .map_err(|error| format!("set {name} for {scope}: {error}"))?;
+    }
+    Ok(())
 }
 
 /// Load a stream URL into mpv: set the proxy, `http-header-fields` and the
@@ -460,15 +511,12 @@ fn load_stream_media(
                 .set_property("http-header-fields", &json!(header_string), window)
                 .map_err(|error| format!("set http-header-fields: {error}"))?;
         }
-        // A deeper cache than the profile sets: the stream is not on disk.
-        if writes.cache {
-            if let Some(options) = stream_cache_options().as_object() {
-                for (name, value) in options {
-                    backend
-                        .set_property(name, value, window)
-                        .map_err(|error| format!("set {name} for stream: {error}"))?;
-                }
-            }
+        // The cache profile is written on every load. Seven set_property calls
+        // cost nothing next to loadfile, and skipping them on an unchanged
+        // request is what let a local file inherit the stream's budget.
+        if let Err(error) = apply_options(&backend, &stream_cache_options(), window, "stream") {
+            host.reset_stream_options();
+            return Err(error);
         }
         // `pause` is set before the file loads: mpv keeps the player paused
         // while it opens, which is what a switch from a paused stream needs.
@@ -775,6 +823,28 @@ pub async fn player_set_property(
     core(&app).set_property(&name, &value, &label)
 }
 
+/// Apply the playback profile's local readahead.
+///
+/// The profile is a local-file setting: a stream ignores `demuxer-readahead-secs`
+/// because `cache-secs` wins while the network cache is on. Storing the value on
+/// the host lets every local load write it back after a stream left its cache
+/// profile on the instance.
+#[tauri::command]
+pub async fn player_set_readahead(
+    app: AppHandle,
+    window: WebviewWindow,
+    seconds: f64,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    let seconds = seconds.clamp(0.1, 30.0);
+    let backend = core(&app);
+    backend.set_property("demuxer-readahead-secs", &json!(seconds), &label)?;
+    if label == PLAYER_WINDOW_LABEL {
+        app.state::<PlayerHost>().set_readahead(seconds);
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn player_get_property(
     app: AppHandle,
@@ -1033,8 +1103,8 @@ pub async fn player_apply_batch(
 #[cfg(test)]
 mod tests {
     use super::{
-        eof_properties, header_fields, mpv_proxy, observed_properties, stream_cache_options,
-        PlayerOpenRequest, PlaylistWatch,
+        eof_properties, header_fields, local_cache_options, mpv_proxy, observed_properties,
+        stream_cache_options, PlayerOpenRequest, PlaylistWatch,
     };
     use std::collections::BTreeMap;
 
@@ -1065,16 +1135,35 @@ mod tests {
     }
 
     #[test]
-    fn streams_get_a_deeper_cache_than_local_files() {
+    fn streams_get_a_time_bounded_cache() {
         let options = stream_cache_options();
-        let readahead = options["demuxer-readahead-secs"]
+        // `cache-secs` is the option mpv actually honours while the network
+        // cache is on; `demuxer-readahead-secs` would be overridden by its
+        // "very high" default and leave the byte cap as the only bound.
+        assert_eq!(options["cache"], "yes");
+        let cache_secs = options["cache-secs"]
             .as_f64()
-            .expect("readahead is a number");
-        // The profiles give a local file one second; a stream needs more than a
-        // hiccup's worth.
-        assert!(readahead >= 10.0);
-        assert_eq!(options["demuxer-max-bytes"], "256MiB");
-        assert_eq!(options["demuxer-max-back-bytes"], "96MiB");
+            .expect("cache-secs is a number");
+        assert!(cache_secs >= 10.0 && cache_secs <= 60.0);
+        assert_eq!(options["demuxer-max-bytes"], "192MiB");
+        assert_eq!(options["demuxer-max-back-bytes"], "64MiB");
+        assert!(options.get("demuxer-readahead-secs").is_none());
+        assert_eq!(options["cache-pause-initial"], "yes");
+        assert_eq!(options["network-timeout"], 20.0);
+    }
+
+    #[test]
+    fn local_loads_restore_a_small_cache_after_a_stream() {
+        let options = local_cache_options(1.0);
+        // The stream turned the cache on explicitly and kept a 30 s bound on
+        // the instance; a local file hands that decision back to mpv.
+        assert_eq!(options["cache"], "auto");
+        assert_eq!(options["demuxer-readahead-secs"], 1.0);
+        assert_eq!(options["demuxer-max-bytes"], "64MiB");
+        assert_eq!(options["demuxer-max-back-bytes"], "16MiB");
+        // A bad profile value must not become an mpv option mpv rejects later.
+        assert_eq!(local_cache_options(0.0)["demuxer-readahead-secs"], 0.1);
+        assert_eq!(local_cache_options(120.0)["demuxer-readahead-secs"], 30.0);
     }
 
     #[test]

@@ -5,6 +5,7 @@ import { translate } from "@/lib/locale/i18n.utils";
 import {
   appendFiles,
   appendFilesQuiet,
+  applyPlayerProfile,
   audioOptions,
   colorOptions,
   diffOptions,
@@ -536,6 +537,16 @@ describe("player/playback options", () => {
       name: "sid",
       value: "no",
     });
+  });
+
+  it("applies the profile through the readahead command Rust remembers", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    await applyPlayerProfile("quality");
+    // The profile is local-only; Rust stores the value and writes it back on
+    // every local load so a stream's cache profile cannot leak into a file.
+    expect(vi.mocked(invoke)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_set_readahead", { seconds: 10 });
   });
 });
 

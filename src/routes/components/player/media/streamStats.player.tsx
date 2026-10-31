@@ -26,6 +26,7 @@ export function StreamStats({
   const cached = useCell(playbackAtoms.cacheBytes);
   const speed = useCell(playbackAtoms.cacheSpeed);
   const buffering = useCell(playbackAtoms.cacheBufferingState);
+  const cacheIdle = useCell(playbackAtoms.cacheIdle);
   const pausedForCache = useCell(playbackAtoms.pausedForCache);
   const width = useCell(playbackAtoms.videoWidth);
   const height = useCell(playbackAtoms.videoHeight);
@@ -65,14 +66,14 @@ export function StreamStats({
       {pausedForCache === true && buffering !== undefined && (
         <div className="mb-1 flex flex-col gap-0.5">
           <div className="flex items-baseline justify-between">
-            <span className="text-hint text-xs">{t("player.stream.buffering")}</span>
+            <span className="text-hint text-xs">{t("player.stream.buffer.fill")}</span>
             <span className="text-text text-xs tabular-nums">{Math.round(buffering)}%</span>
           </div>
           <ProgressBar
             value={buffering}
             max={100}
             className="h-2"
-            ariaLabel={t("player.stream.buffering")}
+            ariaLabel={t("player.stream.buffer.fill")}
           />
         </div>
       )}
@@ -94,6 +95,9 @@ export function StreamStats({
           value={cached === undefined ? "-" : formatBytes(cached)}
         />
         <StatRow label={t("player.stream.buffer.speed")} value={fillRate || "-"} />
+        {cacheIdle === true && (
+          <span className="text-hint text-xs">{t("player.stream.buffer.idle")}</span>
+        )}
       </div>
 
       <div className="border-muted mt-1 flex flex-col gap-0.5 border-t-2 pt-1">

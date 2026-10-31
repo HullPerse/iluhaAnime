@@ -876,6 +876,7 @@ function PlayerComponent() {
         eofMode={eofMode}
         autoHide={autoHide}
         profile={profile}
+        streaming={stream !== null}
         onClose={() => setPanel(null)}
         onPatchSettings={handlePatchSettings}
         onHwdec={handleHwdec}

@@ -138,6 +138,10 @@ export interface PlaybackSnapshot {
   cacheBufferingState?: number;
   cacheSpeed?: number;
   cacheBytes?: number;
+  cacheStart?: number;
+  cacheEnd?: number;
+  cacheIdle?: boolean;
+  seekableRanges?: { start: number; end: number }[];
   pausedForCache?: boolean;
   hwdecCurrent?: string;
   videoWidth?: number;
@@ -316,6 +320,10 @@ export interface PlaybackStore {
   cacheBufferingState?: number;
   cacheSpeed?: number;
   cacheBytes?: number;
+  cacheStart?: number;
+  cacheEnd?: number;
+  cacheIdle?: boolean;
+  seekableRanges?: { start: number; end: number }[];
   pausedForCache?: boolean;
   hwdecCurrent?: string;
   videoWidth?: number;

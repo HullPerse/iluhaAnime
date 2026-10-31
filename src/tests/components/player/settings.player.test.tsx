@@ -24,7 +24,7 @@ const callbacks = () => {
 
 const PANEL_DEFAULTS: PlayerSettings = { ...DEFAULT_PLAYER_SETTINGS };
 
-const renderPanel = (settings: PlayerSettings = PANEL_DEFAULTS) => {
+const renderPanel = (settings: PlayerSettings = PANEL_DEFAULTS, streaming = false) => {
   const spies = callbacks();
   render(
     <SettingsPanel
@@ -34,6 +34,7 @@ const renderPanel = (settings: PlayerSettings = PANEL_DEFAULTS) => {
       eofMode="none"
       autoHide={false}
       profile="basic"
+      streaming={streaming}
       {...spies}
     />
   );
@@ -64,6 +65,11 @@ afterEach(() => {
 });
 
 describe("SettingsPanel selects", () => {
+  it("hides the local playback profile for a stream", () => {
+    renderPanel(PANEL_DEFAULTS, true);
+    expect(screen.queryByText("Playback profile (local files)")).toBeNull();
+  });
+
   it.each([
     { control: 2, option: 1, payload: ["d3d11va"], spy: "onHwdec" },
     { control: 3, option: 1, payload: ["exact"], spy: "onSeekMode" },

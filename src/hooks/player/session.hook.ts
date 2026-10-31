@@ -9,6 +9,7 @@ import { scheduleTask } from "@/lib/core/shared.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import {
   applyBatchProperties,
+  applyPlayerProfile,
   audioOptions,
   buildInitialOptions,
   colorOptions,
@@ -16,7 +17,6 @@ import {
   hdrOptions,
   initPlayer,
   loadQueue,
-  profileOptions,
   takePendingOpen,
 } from "@/lib/player/playback.utils";
 import { getPlayerSnapshot, streamSession } from "@/store/player.store";
@@ -63,7 +63,6 @@ export function usePlayerSession({
         ...marginOptions(seedMargins),
       });
       const batchProps: Record<string, unknown> = {
-        ...profileOptions(store.profile),
         ...hdrOptions(store.settings),
         ...colorOptions(store.settings),
         ...audioOptions(store.settings),
@@ -74,6 +73,9 @@ export function usePlayerSession({
       batchProps["loop-playlist"] = eofProps.loopPlaylist;
       await applyBatchProperties(batchProps).catch((error: unknown) =>
         reportBackgroundError("player.init.batch", error)
+      );
+      await applyPlayerProfile(store.profile).catch((error: unknown) =>
+        reportBackgroundError("player.init.profile", error)
       );
       if (disposed) return;
       syncMarginsRef.current();

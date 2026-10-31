@@ -160,7 +160,13 @@ export async function applyProperties(options: Record<string, unknown>): Promise
 }
 
 export async function applyPlayerProfile(profile: PlayerProfileId): Promise<void> {
-  await applyProperties(profileOptions(profile));
+  // The profile is a local-file setting: a stream is bounded by `cache-secs`.
+  // Rust remembers the value and re-applies it on the next local load, because
+  // mpv keeps the stream's cache profile on the instance across files.
+  const readahead = profileOptions(profile)["demuxer-readahead-secs"];
+  await invokeTyped("player_set_readahead", {
+    seconds: typeof readahead === "number" ? readahead : 1,
+  });
 }
 
 export function hdrOptions(settings: PlayerSettings): Record<string, unknown> {

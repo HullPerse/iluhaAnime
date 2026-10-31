@@ -395,6 +395,8 @@ const changelog500 = {
     "MPC-HC style view presets on 1, 2 and 3: compact and minimal hide the header and leave one bottom bar with play and pause plus the timeline (minimal hides it after three seconds and returns it on mouse move, compact keeps it visible), 3 is the usual windowed layout, and Ctrl+A pins the player window above all others and remembers the choice between launches",
   "changelog.5_0_0.changed.player.seek_keys":
     "Percent seek keys moved to Shift+1, Shift+2 and Shift+3, because bare 1, 2 and 3 now switch the view preset; 4 to 9 and 0 still jump to their tenths of the file",
+  "changelog.5_0_0.changed.player.buffer":
+    "The buffer display tells the truth: a local file shows no cache span on the timeline, a stream shows the loaded span and the fill rate, and the playback profile now applies to local files only",
   "changelog.5_0_0.changed.anilist.friend_compare":
     "Friend comparison rebuilt: the friend's nickname instead of a generic label, shared and per-user tabs, search, sorting, status and progress in the rows, average scores by genre, shared favourites, a three-metric difference selector (mean delta, iluha affinity, MAL affinity), a taste-match summary with confidence, and an optional diff highlight",
   "changelog.5_0_0.changed.settings.summary":

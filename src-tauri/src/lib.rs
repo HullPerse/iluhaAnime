@@ -2148,6 +2148,7 @@ pub fn run() {
             player::player_save_frame,
             player::player_command,
             player::player_set_property,
+            player::player_set_readahead,
             player::player_get_property,
             player::player_playlist_entries,
             player::player_set_video_margin_ratio,

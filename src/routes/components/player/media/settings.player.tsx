@@ -37,6 +37,7 @@ function SettingsPanel({
   eofMode,
   autoHide,
   profile,
+  streaming,
   onPatchSettings,
   onHwdec,
   onSeekMode,
@@ -50,6 +51,8 @@ function SettingsPanel({
   eofMode: EndOfFileMode;
   autoHide: boolean;
   profile: PlayerProfileId;
+  /** A stream ignores the local cache profile, so the control is hidden. */
+  streaming: boolean;
   onPatchSettings: (patch: Partial<PlayerSettings>) => void;
   onHwdec: (mode: HwdecMode) => void;
   onSeekMode: (mode: SeekMode) => void;
@@ -169,14 +172,16 @@ function SettingsPanel({
             aria-label={t("player.media.settings.autohide")}
           />
         </Row>
-        <Row label={t("player.media.settings.profile")}>
-          <Select
-            className="flex-1"
-            value={profile}
-            options={profileOptions}
-            onChange={(value) => onProfile(value as PlayerProfileId)}
-          />
-        </Row>
+        {!streaming && (
+          <Row label={t("player.media.settings.profile")}>
+            <Select
+              className="flex-1"
+              value={profile}
+              options={profileOptions}
+              onChange={(value) => onProfile(value as PlayerProfileId)}
+            />
+          </Row>
+        )}
       </Section>
       <Section title={t("player.media.settings.filters")}>
         <PlayerSlider

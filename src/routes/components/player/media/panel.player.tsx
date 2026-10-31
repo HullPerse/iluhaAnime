@@ -19,6 +19,7 @@ export function PlayerPanel({
   eofMode,
   autoHide,
   profile,
+  streaming,
   onClose,
   onPatchSettings,
   onHwdec,
@@ -34,6 +35,7 @@ export function PlayerPanel({
   eofMode: EndOfFileMode;
   autoHide: boolean;
   profile: PlayerProfileId;
+  streaming: boolean;
   onClose: () => void;
   onPatchSettings: (patch: Partial<PlayerSettings>) => void;
   onHwdec: (mode: HwdecMode) => void;
@@ -60,6 +62,7 @@ export function PlayerPanel({
           eofMode={eofMode}
           autoHide={autoHide}
           profile={profile}
+          streaming={streaming}
           onPatchSettings={onPatchSettings}
           onHwdec={onHwdec}
           onSeekMode={onSeekMode}

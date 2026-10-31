@@ -1,7 +1,7 @@
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/core/signal.hook";
 import { formatFps, formatCount, formatCache } from "@/lib/player/diagnostics.utils";
-import { playbackAtoms } from "@/store/player.store";
+import { playbackAtoms, streamSession } from "@/store/player.store";
 
 function DiagnosticsOverlay() {
   const { t } = useI18n();
@@ -11,6 +11,7 @@ function DiagnosticsOverlay() {
   const fpsVideo = useCell(playbackAtoms.fpsVideo);
   const dropCount = useCell(playbackAtoms.dropCount);
   const cacheDuration = useCell(playbackAtoms.cacheDuration);
+  const streaming = useCell(streamSession) !== null;
   const hwdecCurrent = useCell(playbackAtoms.hwdecCurrent);
   const videoWidth = useCell(playbackAtoms.videoWidth);
   const videoHeight = useCell(playbackAtoms.videoHeight);
@@ -19,7 +20,11 @@ function DiagnosticsOverlay() {
     { label: t("player.media.diagnostics.fps.render"), value: formatFps(fpsRender) },
     { label: t("player.media.diagnostics.fps.video"), value: formatFps(fpsVideo) },
     { label: t("player.media.diagnostics.drops"), value: formatCount(dropCount) },
-    { label: t("player.media.diagnostics.cache"), value: formatCache(cacheDuration) },
+    // A local file's demuxer cache is disk readahead, not a buffer the user can
+    // run out of; the row only means something for a stream.
+    ...(streaming
+      ? [{ label: t("player.media.diagnostics.cache"), value: formatCache(cacheDuration) }]
+      : []),
     { label: t("player.media.diagnostics.hwdec"), value: hwdecCurrent ?? "-" },
     {
       label: t("player.media.diagnostics.resolution"),

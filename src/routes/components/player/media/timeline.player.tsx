@@ -7,12 +7,16 @@ import {
   TOOLTIP_WIDTH,
   LIVE_SCRUB_INTERVAL,
   type HoverInfo,
+  bufferedHintText,
+  bufferedSpan,
   clamp01,
   chapterTitleAt,
   nearestChapterEdge,
 } from "@/lib/player/timeline.utils";
-import { playbackAtoms } from "@/store/player.store";
+import { playbackAtoms, streamSession } from "@/store/player.store";
 import type { MpvChapter } from "@/types/player/videoPlayer";
+
+import BufferedTimeline from "@/routes/components/player/media/buffered.timeline";
 
 function Timeline({
   duration,
@@ -28,9 +32,12 @@ function Timeline({
   onCommitSeek: (time: number) => void;
 }) {
   const timePos = useCell(playbackAtoms.timePos);
-  // Seconds mpv already holds ahead of the playhead. A seek inside that span
-  // does not touch the network, so it is drawn as its own segment: the bar
-  // answers "how far can I jump without buffering" before the click.
+  // The buffered span answers "how far can I jump without touching the
+  // network". A local file has no such limit, so the bar shows nothing there:
+  // mpv's cache numbers for a file on disk are noise next to the chapter ticks.
+  const session = useCell(streamSession);
+  const cacheStart = useCell(playbackAtoms.cacheStart);
+  const cacheEnd = useCell(playbackAtoms.cacheEnd);
   const cacheDuration = useCell(playbackAtoms.cacheDuration);
   const { t } = useI18n();
   const barRef = useRef<HTMLDivElement>(null);
@@ -39,16 +46,18 @@ function Timeline({
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [showRemaining, setShowRemaining] = useState(false);
 
+  const streaming = session !== null;
+  const span = streaming
+    ? bufferedSpan(timePos, duration, cacheStart, cacheEnd, cacheDuration)
+    : null;
+  const bufferedHint = bufferedHintText(t, span, hover?.time, streaming);
+
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
-  const bufferedFrom = duration > 0 ? clamp01(timePos / duration) * 100 : 0;
-  const bufferedTo =
-    duration > 0 && cacheDuration !== undefined && cacheDuration > 0
-      ? clamp01((timePos + cacheDuration) / duration) * 100
-      : bufferedFrom;
-  // The buffered span is drawn only while the bar is being pointed at: a bar
+  // The full-height span is drawn only while the bar is being pointed at: a bar
   // at rest already carries the chapter ticks, and a second filled segment
-  // underneath them reads as one more chapter rather than as the cache.
+  // underneath them reads as one more chapter rather than as the cache. A thin
+  // strip stays visible so a stream still shows its health without the cursor.
   const showBuffered = hover !== null || dragging;
   const showRemainingTime = showRemaining && duration > 0;
   const timeWidth = `${formatClock(duration).length * 2 + 4}ch`;
@@ -162,6 +171,9 @@ function Timeline({
                 </span>
               )}
               <span className="tabular-nums">{formatClock(hover.time)}</span>
+              {bufferedHint !== null && (
+                <span className="text-hint text-xs">{bufferedHint}</span>
+              )}
             </div>
           </div>
         )}
@@ -172,13 +184,7 @@ function Timeline({
           onMouseMove={handleBarMove}
           onMouseLeave={() => setHover(null)}
         >
-          {showBuffered && (
-            <div
-              data-testid="timeline-buffered"
-              className="bg-muted-trans pointer-events-none absolute inset-y-0"
-              style={{ left: `${bufferedFrom}%`, width: `${bufferedTo - bufferedFrom}%` }}
-            />
-          )}
+          <BufferedTimeline span={span} duration={duration} expanded={showBuffered} />
           <div
             className="bg-secondary absolute inset-y-0 left-0"
             style={{ width: `${progress}%` }}

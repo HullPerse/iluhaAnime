@@ -188,6 +188,27 @@ pub struct PlayerOpenRequest {
     pub stream: Option<StreamOpen>,
 }
 
+/// One contiguous range mpv can seek within without a network request.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SeekableRange {
+    pub start: f64,
+    pub end: f64,
+}
+
+/// Parsed view of mpv's `demuxer-cache-state` node.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CacheState {
+    pub seekable_ranges: Vec<SeekableRange>,
+    pub cache_start: Option<f64>,
+    pub cache_end: Option<f64>,
+    pub cache_duration: Option<f64>,
+    pub cache_idle: Option<bool>,
+    pub bof_cached: Option<bool>,
+    pub eof_cached: Option<bool>,
+    pub fw_bytes: Option<i64>,
+}
+
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackSnapshot {
@@ -209,6 +230,22 @@ pub struct PlaybackSnapshot {
     pub drop_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_duration: Option<f64>,
+    /// Start of the buffered range (`demuxer-cache-state/reader-pts`). With the
+    /// back buffer enabled this sits behind the playhead, so the timeline can
+    /// show a jump backwards that costs no request.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_start: Option<f64>,
+    /// Last timestamp the demuxer has buffered, when mpv reports one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_end: Option<f64>,
+    /// Contiguous ranges mpv can seek in without a new request. Empty when the
+    /// node could not be parsed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub seekable_ranges: Vec<SeekableRange>,
+    /// Whether the cache is filled to the requested amount and mpv stopped
+    /// reading; a stalled stream is never idle.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_idle: Option<bool>,
     /// mpv's cache fill status in percent; present only while it buffers.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_buffering_state: Option<f64>,
@@ -246,7 +283,6 @@ pub struct TypedEvent {
 pub(crate) struct StreamOptions {
     proxy: Option<String>,
     headers: Option<String>,
-    cache: bool,
     paused: Option<bool>,
 }
 
@@ -254,7 +290,6 @@ pub(crate) struct StreamOptions {
 pub(crate) struct StreamWrites {
     pub proxy: bool,
     pub headers: bool,
-    pub cache: bool,
     pub pause: bool,
 }
 
@@ -275,6 +310,10 @@ pub struct PlayerHost {
     last_snapshot: Mutex<Option<PlaybackSnapshot>>,
     latest: Mutex<(PlaybackSnapshot, u64)>,
     zero_streak: Mutex<u32>,
+    /// Local readahead from the playback profile. The frontend owns the profile
+    /// values, mpv keeps the option on the instance, and a local load has to
+    /// reapply it because a stream overwrites the cache policy.
+    readahead: Mutex<Option<f64>>,
 }
 
 /// The catalog identity of the stream that is playing. The watch save runs on
@@ -309,6 +348,10 @@ pub(crate) struct Metrics {
     drop_count: Option<i64>,
     cache_duration: Option<f64>,
     cache_bytes: Option<i64>,
+    cache_start: Option<f64>,
+    cache_end: Option<f64>,
+    cache_idle: Option<bool>,
+    seekable_ranges: Vec<SeekableRange>,
     hwdec_current: Option<String>,
     video_width: Option<i64>,
     video_height: Option<i64>,
@@ -420,14 +463,29 @@ impl PlayerHost {
         let writes = StreamWrites {
             proxy: state.proxy.as_deref() != Some(proxy),
             headers: state.headers.as_deref() != Some(headers),
-            cache: !state.cache,
             pause: state.paused != Some(paused),
         };
         state.proxy = Some(proxy.to_string());
         state.headers = Some(headers.to_string());
-        state.cache = true;
         state.paused = Some(paused);
         writes
+    }
+
+    /// The local readahead the playback profile asked for. mpv cannot tell the
+    /// stream profile apart from the local one, so this is remembered here and
+    /// written back on every local load.
+    pub fn set_readahead(&self, seconds: f64) {
+        *self
+            .readahead
+            .lock()
+            .unwrap_or_else(|error| error.into_inner()) = Some(seconds);
+    }
+
+    pub fn readahead(&self) -> f64 {
+        self.readahead
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .unwrap_or(1.0)
     }
 
     /// Forget what mpv was told, so the next stream writes every option again.
@@ -898,8 +956,14 @@ fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
     snapshot.fps_render = metrics.fps_render;
     snapshot.fps_video = metrics.fps_video;
     snapshot.drop_count = metrics.drop_count;
-    snapshot.cache_duration = metrics.cache_duration.or(snapshot.cache_duration);
+    // The observed property is fresher than the one-second poll, so it wins;
+    // the poll only fills in when mpv never delivered an event.
+    snapshot.cache_duration = snapshot.cache_duration.or(metrics.cache_duration);
     snapshot.cache_bytes = metrics.cache_bytes.or(snapshot.cache_bytes);
+    snapshot.cache_start = metrics.cache_start;
+    snapshot.cache_end = metrics.cache_end;
+    snapshot.cache_idle = metrics.cache_idle;
+    snapshot.seekable_ranges = metrics.seekable_ranges.clone();
     snapshot.hwdec_current = metrics.hwdec_current;
     snapshot.video_width = metrics.video_width.or(snapshot.video_width);
     snapshot.video_height = metrics.video_height.or(snapshot.video_height);
@@ -913,14 +977,88 @@ const DROP_KEYS: &[&str] = &[
     "decoder-frame-drop-count",
 ];
 
+pub(crate) fn parse_cache_state(value: &Value) -> Option<CacheState> {
+    let obj = if let Some(text) = value.as_str() {
+        serde_json::from_str::<Value>(text).ok()?
+    } else {
+        value.clone()
+    };
+    let map = obj.as_object()?;
+
+    let mut ranges: Vec<SeekableRange> = map
+        .get("seekable-ranges")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    let object = item.as_object()?;
+                    let start = object.get("start")?.as_f64()?;
+                    let end = object.get("end")?.as_f64()?;
+                    if !(end > start) {
+                        return None;
+                    }
+                    Some(SeekableRange { start, end })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    ranges.sort_by(|left, right| {
+        left.start
+            .partial_cmp(&right.start)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let mut merged: Vec<SeekableRange> = Vec::new();
+    for range in ranges {
+        if let Some(last) = merged.last_mut() {
+            if range.start <= last.end + 0.5 {
+                if range.end > last.end {
+                    last.end = range.end;
+                }
+                continue;
+            }
+        }
+        merged.push(range);
+        if merged.len() >= 64 {
+            break;
+        }
+    }
+    merged.truncate(64);
+
+    Some(CacheState {
+        seekable_ranges: merged,
+        cache_start: map.get("reader-pts").and_then(|value| value.as_f64()),
+        cache_end: map.get("cache-end").and_then(|value| value.as_f64()),
+        cache_duration: map.get("cache-duration").and_then(|value| value.as_f64()),
+        cache_idle: map.get("idle").and_then(|value| value.as_bool()),
+        bof_cached: map.get("bof-cached").and_then(|value| value.as_bool()),
+        eof_cached: map.get("eof-cached").and_then(|value| value.as_bool()),
+        fw_bytes: map.get("fw-bytes").and_then(|value| value.as_i64()),
+    })
+}
+
 fn read_metrics(app: &AppHandle) -> Metrics {
     let drop_count = DROP_KEYS.iter().find_map(|key| int_property(app, key));
+    let cache_state = LibmpvCore::new(app.clone())
+        .get_property("demuxer-cache-state", "json", PLAYER_WINDOW_LABEL)
+        .ok()
+        .and_then(|value| parse_cache_state(&value));
     Metrics {
         fps_render: number_property(app, "estimated-vf-fps").filter(|value| *value > 0.0),
         fps_video: number_property(app, "fps").filter(|value| *value > 0.0),
         drop_count,
-        cache_duration: number_property(app, "demuxer-cache-duration"),
-        cache_bytes: int_property(app, "demuxer-cache-state/fw-bytes").filter(|value| *value > 0),
+        cache_duration: cache_state.as_ref().and_then(|state| state.cache_duration),
+        cache_bytes: cache_state
+            .as_ref()
+            .and_then(|state| state.fw_bytes)
+            .filter(|value| *value > 0),
+        cache_start: cache_state.as_ref().and_then(|state| state.cache_start),
+        cache_end: cache_state.as_ref().and_then(|state| state.cache_end),
+        cache_idle: cache_state.as_ref().and_then(|state| state.cache_idle),
+        seekable_ranges: cache_state
+            .map(|state| state.seekable_ranges)
+            .unwrap_or_default(),
         hwdec_current: string_property(app, "hwdec-current"),
         video_width: int_property(app, "width").filter(|value| *value > 0),
         video_height: int_property(app, "height").filter(|value| *value > 0),

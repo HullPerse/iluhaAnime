@@ -17,7 +17,7 @@ import {
   setMpvProperty,
   transformOptions,
 } from "@/lib/player/playback.utils";
-import { getPlayerSnapshot, subscribePlayer } from "@/store/player.store";
+import { getPlayerSnapshot, streamSession, subscribePlayer } from "@/store/player.store";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { PlayerSettings } from "@/types/player/videoPlayer";
@@ -59,7 +59,7 @@ export function usePlayerSettingsSync(): void {
       if (state.volume !== previous.volume) {
         sendVolumeThrottled(state.volume);
       }
-      if (state.profile !== previous.profile) {
+      if (state.profile !== previous.profile && streamSession.get() === null) {
         applyPlayerProfile(state.profile).catch((error: unknown) =>
           reportBackgroundError("player.settings.profile", error)
         );

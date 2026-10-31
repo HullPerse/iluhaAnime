@@ -29,7 +29,6 @@ interface StreamControlProps {
 export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const { t } = useI18n();
   const pausedForCache = useCell(playbackAtoms.pausedForCache);
-  const cacheBuffering = useCell(playbackAtoms.cacheBufferingState);
   const [statsOpen, setStatsOpen] = useState(false);
   const session = stream.session;
 
@@ -40,10 +39,9 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const busy = stream.switching || stream.variantsLoading || stream.variantsFailed;
   let status = "";
   if (stream.switching) status = t("player.stream.switching");
-  else if (pausedForCache === true) {
-    const percent = cacheBuffering === undefined ? "" : ` ${Math.round(cacheBuffering)}%`;
-    status = `${t("player.stream.buffering")}${percent}`;
-  }
+  // The percentage is the fill level until mpv unpauses, not download progress;
+  // the stats popover carries it, the bar only says what is happening.
+  else if (pausedForCache === true) status = t("player.stream.buffering");
 
   return (
     <section className="border-muted relative flex h-6 items-center gap-1 border-r-2 px-1">

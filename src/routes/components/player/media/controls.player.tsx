@@ -1,5 +1,14 @@
 import { cn } from "cn";
-import { ChevronsLeft, ChevronsRight, ListVideo, Pause, Play, Square, SquareX } from "lucide-react";
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  ListVideo,
+  Pause,
+  Play,
+  SkipForward,
+  Square,
+  SquareX,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
@@ -202,28 +211,48 @@ function Controls({
         </Button>
       </section>
 
-      <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
-        <NeighborFileButton
-          direction="prev"
-          hasTarget={hasPrev}
-          title={t("player.media.controls.previous.file")}
-          ariaLabel={t("player.media.controls.previous.file")}
-          onActivate={() => {
-            if (!hasPrev) showBoundaryMsg(t("player.media.boundary.first"));
-            else onFilePrev();
-          }}
-        />
-        <NeighborFileButton
-          direction="next"
-          hasTarget={hasNext}
-          title={t("player.media.controls.next.file")}
-          ariaLabel={t("player.media.controls.next.file")}
-          onActivate={() => {
-            if (!hasNext) showBoundaryMsg(t("player.media.boundary.last"));
-            else onFileNext();
-          }}
-        />
-      </section>
+      {streaming !== null ? (
+        <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
+          {/* A stream session has no previous file and its next item is an
+              episode, not a playlist entry, so the file navigation is hidden. */}
+          <Button
+            size="icon"
+            className="size-6"
+            title={t("player.media.skip.next.episode")}
+            aria-label={t("player.media.skip.next.episode")}
+            onClick={() => {
+              if (!hasNext) showBoundaryMsg(t("stream.noNextEpisode"));
+              else onFileNext();
+            }}
+            disabled={!hasNext}
+          >
+            <SkipForward className="size-4" />
+          </Button>
+        </section>
+      ) : (
+        <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
+          <NeighborFileButton
+            direction="prev"
+            hasTarget={hasPrev}
+            title={t("player.media.controls.previous.file")}
+            ariaLabel={t("player.media.controls.previous.file")}
+            onActivate={() => {
+              if (!hasPrev) showBoundaryMsg(t("player.media.boundary.first"));
+              else onFilePrev();
+            }}
+          />
+          <NeighborFileButton
+            direction="next"
+            hasTarget={hasNext}
+            title={t("player.media.controls.next.file")}
+            ariaLabel={t("player.media.controls.next.file")}
+            onActivate={() => {
+              if (!hasNext) showBoundaryMsg(t("player.media.boundary.last"));
+              else onFileNext();
+            }}
+          />
+        </section>
+      )}
 
       <section className="border-muted flex h-6 items-center gap-0.5 border-r-2 px-1">
         <div ref={speedRef} className="relative flex w-full items-center">

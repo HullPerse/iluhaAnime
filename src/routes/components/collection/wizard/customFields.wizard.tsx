@@ -67,7 +67,7 @@ export function WizardCustomFields({
           />
           <Select
             value={fieldType}
-            onChange={(v) => setFieldType(v as typeof fieldType)}
+            onChange={(v) => setFieldType(v)}
             options={FIELD_TYPES.map((type) => ({ value: type, label: type }))}
             label={t("collection.wizard.custom.fields")}
             className="mb-1 text-xs"

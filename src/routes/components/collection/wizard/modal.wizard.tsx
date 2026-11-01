@@ -35,7 +35,7 @@ import { WizardLocalPanel } from "@/routes/components/collection/wizard/local.wi
 import { WizardPreview } from "@/routes/components/collection/wizard/preview.wizard";
 import { WizardSourcePanel } from "@/routes/components/collection/wizard/source.wizard";
 
-import { prefillRatingValue, prefillRatingOrigin } from "@/lib/collectionWizard.utils";
+import { prefillRatingValue, prefillRatingOrigin } from "@/lib/anilist/collectionWizard.utils";
 
 export function WizardModal({
   open,

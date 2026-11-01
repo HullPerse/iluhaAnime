@@ -1,5 +1,4 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { EyeOff, Search, X } from "lucide-react";
@@ -17,33 +16,23 @@ import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
+import { usePlayerFolderSync } from "@/hooks/player/folderSync.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
-import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
 import { shouldIgnoreHotkeys } from "@/lib/core/filterHotkeys.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
-import { folderTreesFromScan, fingerprint } from "@/lib/core/scan.utils";
-import { folderScanBus } from "@/lib/core/scanBus.utils";
-import {
-  buildTree,
-  filterTreeByPaths,
-  patchTreeFile,
-  removeTreeFile,
-} from "@/lib/player/playerTree.utils";
+import { folderTreesFromScan, fingerprint } from "@/lib/core/scan.utils";import { buildTree, filterTreeByPaths } from "@/lib/player/playerTree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/core/visibility.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 import { useCell } from "@/lib/core/signal.hook";
-import { isExtraFile } from "@/lib/core/extra.utils";
 import { attempt, attemptRetry, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import { showError, showErrorOnce } from "@/lib/core/notification.utils";
 import { createCoalescedRunner } from "@/lib/core/promise.utils";
 import { unwrapOr } from "@/lib/core/result.utils";
 import { parseValue } from "@/lib/core/schema.utils";
-import { patchableVideoChanges, touchesExtensions } from "@/lib/core/changesWatcher.utils";
 import { WATCHER_DEBOUNCE_MS } from "@/lib/core/delayWatcher.utils";
-import { normalizePath } from "@/lib/core/pathsWatcher.utils";
 import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import {
   addCategory,
@@ -56,7 +45,6 @@ import type { FolderScanResult, VideoFileEntry } from "@/types/core/fs";
 import type { ScanType, FileSearchResult } from "@/types/player/player";
 import type { FFMPEGStatus } from "@/types/ui/settings";
 import type { FolderNode } from "@/types/torrent/torrent";
-import type { FolderChange } from "@/types/core/watcher";
 
 import CategoryView from "@/routes/components/player/category.player";
 import { DraggableFolder } from "@/routes/components/player/draggable/folder.draggable";
@@ -77,7 +65,6 @@ const ROUTE_KEYBINDS: ResolvedHotkeyDef<PlayerRouteAction>[] = [
 
 function PlayerRoute() {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
   const { data } = useTorrents();
   const torrents = data ?? NO_TORRENTS;
   const scannedFingerprint = useRef<string | null>(null);
@@ -385,129 +372,7 @@ function PlayerRoute() {
     };
   }, [watchedRoots, t, watcherDelay]);
 
-  const folderScanDisposedRef = useRef<boolean>(false);
-  useEffect(() => {
-    folderScanDisposedRef.current = false;
-    return () => {
-      folderScanDisposedRef.current = true;
-    };
-  }, []);
-
-  useFolderContentChanged(
-    (payload) => {
-      if (payload.changes.some((change) => isExtraFile(change.path)))
-        queryClient.invalidateQueries({ queryKey: queryKeys.extraFilesScope() });
-      if (!touchesExtensions(payload.changes, videoExtensions)) return;
-      const libraryRoots = new Set(savedFolderPaths.map(normalizePath));
-      const byRoot = new Map<string, FolderChange[]>();
-      for (const change of payload.changes) {
-        if (!libraryRoots.has(normalizePath(change.root))) continue;
-        const bucket = byRoot.get(change.root);
-        if (bucket) bucket.push(change);
-        else byRoot.set(change.root, [change]);
-      }
-      if (byRoot.size === 0) return;
-      const applyFullScan = (path: string, entries: VideoFileEntry[]) => {
-        setFolderTrees((prev) => {
-          const next = prev.filter((tree) => tree.path !== path);
-          if (entries.length) next.push(buildTree(entries, path));
-          setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
-          return next;
-        });
-      };
-      const rescanPath = async (path: string) => {
-        const [entries, scanError] = await attempt(
-          folderScanBus().fullScan({
-            root: path,
-            extensions: videoExtensions,
-            threads: scanThreads,
-          })
-        );
-        if (scanError || folderScanDisposedRef.current) {
-          if (scanError) {
-            reportBackgroundError("folders.rescan", scanError);
-            if (settingsAtoms.notifyScanErrors.get())
-              showErrorOnce("folders-scan", t("notification.scan.failed"), scanError.message);
-          }
-          return;
-        }
-        applyFullScan(path, entries ?? []);
-      };
-      const patchRoot = async (root: string, changes: FolderChange[]) => {
-        const key = normalizePath(root);
-        const upserts = changes.filter((change) => change.kind !== "removed").map((c) => c.path);
-        const removals = changes.filter((change) => change.kind === "removed").map((c) => c.path);
-        const target = folderTrees.find((tree) => normalizePath(tree.path) === key);
-        if (!target) {
-          await rescanPath(root);
-          return;
-        }
-        const [outcome, patchError] = await attempt(
-          folderScanBus().patchScan({
-            root,
-            upserts,
-            removals,
-            extensions: videoExtensions,
-            threads: scanThreads,
-          })
-        );
-        if (folderScanDisposedRef.current) return;
-        if (patchError || !outcome) {
-          if (patchError) {
-            reportBackgroundError("folders.patch", patchError);
-            if (settingsAtoms.notifyScanErrors.get())
-              showErrorOnce("folders-scan", t("notification.scan.failed"), patchError.message);
-          }
-          await rescanPath(root);
-          return;
-        }
-        if (outcome.kind === "full") {
-          applyFullScan(root, outcome.entries);
-          return;
-        }
-        let patched = target;
-        for (const path of outcome.removed) {
-          const next = removeTreeFile(patched, path);
-          if (!next) {
-            await rescanPath(root);
-            return;
-          }
-          patched = next;
-        }
-        for (const entry of outcome.fresh) {
-          const next = patchTreeFile(patched, entry);
-          if (!next) {
-            await rescanPath(root);
-            return;
-          }
-          patched = next;
-        }
-        if (patched.files.length === 0 && patched.children.length === 0) {
-          setFolderTrees((prev) => {
-            const next = prev.filter((tree) => normalizePath(tree.path) !== key);
-            setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
-            return next;
-          });
-          return;
-        }
-        setFolderTrees((prev) => {
-          const next = prev.map((tree) => (normalizePath(tree.path) === key ? patched : tree));
-          setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
-          return next;
-        });
-      };
-      (async () => {
-        await Promise.all(
-          [...byRoot.entries()].map(([root, changes]) =>
-            patchableVideoChanges(changes, videoExtensions)
-              ? patchRoot(root, changes)
-              : rescanPath(root)
-          )
-        );
-      })();
-    },
-    { errorTag: "folderscan" }
-  );
+  usePlayerFolderSync({ folderTrees, setFolderTrees, savedFolderPaths, videoExtensions, scanThreads });
 
   const handleOpenFolder = useCallback(async () => {
     const folder = await open({ multiple: false, directory: true });

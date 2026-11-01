@@ -1,3 +1,4 @@
+import { keysOf } from "@/lib/core/keysOf.utils";
 import type { PlayerProfile, PlayerProfileId } from "@/types/player/videoPlayer";
 
 export const PLAYER_PROFILES: Record<PlayerProfileId, PlayerProfile> = {
@@ -24,4 +25,4 @@ export const PLAYER_PROFILES: Record<PlayerProfileId, PlayerProfile> = {
   },
 };
 
-export const PLAYER_PROFILE_IDS = Object.keys(PLAYER_PROFILES) as PlayerProfileId[];
+export const PLAYER_PROFILE_IDS = keysOf(PLAYER_PROFILES);

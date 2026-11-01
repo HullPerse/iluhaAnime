@@ -1,5 +1,5 @@
 import { clamp01 } from "@/lib/player/timeline.utils";
-import type { BufferedSpan } from "@/lib/player/timeline.utils";
+import type { BufferedSpan } from "@/types/player/timeline";
 
 function BufferedTimeline({
   span,

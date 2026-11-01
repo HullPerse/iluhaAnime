@@ -93,7 +93,7 @@ export function readLastFatal(): FatalInfo | null {
   if (!storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem(FATAL_STORAGE_KEY));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
   if (parseError !== null || !isFatalInfo(parsed)) return null;
   return normalize(parsed);
 }

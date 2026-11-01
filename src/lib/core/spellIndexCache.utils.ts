@@ -31,7 +31,7 @@ function isEntry(value: unknown): value is SpellWordsEntry {
 
 function parseEnvelope(raw: string | null): SpellWordsEnvelope | null {
   if (!raw) return null;
-  const [parsed, error] = attemptSync(() => JSON.parse(raw) as unknown);
+  const [parsed, error] = attemptSync((): unknown => JSON.parse(raw));
   if (error !== null || !parsed || typeof parsed !== "object") return null;
   const envelope = parsed as { f?: unknown; entries?: unknown };
   if (envelope.f !== 1 || !Array.isArray(envelope.entries)) return null;

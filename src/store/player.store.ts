@@ -1,6 +1,5 @@
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
 import { Debouncer } from "@/lib/core/debounce.utils";
-import type { Persistor } from "@/types/core/persist";
 import {
   applyAtomValues,
   buildMirrorAtoms,
@@ -9,19 +8,17 @@ import {
 } from "@/lib/core/persisted.utils";
 import { isRecord } from "@/lib/core/record.utils";
 import { createSignalStore } from "@/lib/core/signal.store";
-import type { Cell, Derived } from "@/types/core/signal";
+import type { Cell } from "@/types/core/signal";
 import { resolveWithDefaults } from "@/lib/core/migrate.utils";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type { PlayerSignalOptions } from "@/types/store/options";
 import type {
-  MpvChapter,
-  MpvTrack,
-  PlaybackSnapshot,
-  PlaybackStore,
-  PlayerSettings,
-  PlayerStore,
-  StreamOpen,
-} from "@/types/player/videoPlayer";
+  PlaybackData,
+  PlaybackSignalStore,
+  PlayerData,
+  PlayerSignalStore,
+} from "@/types/store/player";
+import type { PlaybackSnapshot, PlayerSettings, StreamOpen } from "@/types/player/videoPlayer";
 
 export const PLAYER_SCHEMA_VERSION = 3;
 
@@ -45,35 +42,6 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   targetTrc: "auto",
   loudnorm: false,
 };
-
-type PlayerActionKeys =
-  | "setVolume"
-  | "setFolderPaths"
-  | "setEofMode"
-  | "setHwdec"
-  | "setSeekMode"
-  | "setAutoHide"
-  | "setAlwaysOnTop"
-  | "setProfile"
-  | "patchSettings";
-
-type PlayerData = Omit<PlayerStore, PlayerActionKeys>;
-type PlayerAtoms = { [K in keyof PlayerData]: Cell<PlayerData[K]> };
-
-type PlaybackActionKeys =
-  | "setSnapshot"
-  | "setSeekTarget"
-  | "settleSeek"
-  | "setPaused"
-  | "setMuted"
-  | "setPlaybackSpeed"
-  | "markTrackSelected"
-  | "setTracks"
-  | "setChapters"
-  | "reset";
-
-type PlaybackData = Omit<PlaybackStore, PlaybackActionKeys>;
-type PlaybackAtoms = { [K in keyof PlaybackData]-?: Cell<PlaybackData[K]> };
 
 const INITIAL_PLAYBACK: PlaybackData = {
   ready: false,
@@ -147,22 +115,6 @@ function migratePlayerData(persistedState: unknown): PlayerData {
   return { ...DEFAULT_PLAYER_DATA, ...resolved };
 }
 
-export interface PlayerSignalStore {
-  atoms: PlayerAtoms;
-  persistor: Persistor;
-  snapshot: () => PlayerData;
-  setVolume: (volume: number) => void;
-  setFolderPaths: (paths: string[]) => void;
-  setEofMode: (mode: PlayerData["eofMode"]) => void;
-  setHwdec: (mode: PlayerData["hwdec"]) => void;
-  setSeekMode: (mode: PlayerData["seekMode"]) => void;
-  setAutoHide: (autoHide: boolean) => void;
-  setAlwaysOnTop: (alwaysOnTop: boolean) => void;
-  setProfile: (profile: PlayerData["profile"]) => void;
-  patchPlayerSettings: (patch: Partial<PlayerSettings>) => void;
-  subscribeAll: (fn: () => void) => () => void;
-}
-
 export function createPlayerSignalStore(options: PlayerSignalOptions = {}): PlayerSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "player",
@@ -203,24 +155,6 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
   finishAdopt(() => ({ ...mirror }), { remove: "playerState" });
 
   return handle;
-}
-
-export interface PlaybackSignalStore {
-  atoms: PlaybackAtoms;
-  atStart: Derived<boolean>;
-  atEnd: Derived<boolean>;
-  streamSession: Cell<StreamOpen | null>;
-  subscribeAll: (fn: () => void) => () => void;
-  setSnapshot: (snapshot: PlaybackSnapshot) => void;
-  setSeekTarget: (time: number) => void;
-  settleSeek: () => void;
-  setPaused: (paused: boolean) => void;
-  setMuted: (muted: boolean) => void;
-  setPlaybackSpeed: (speed: number) => void;
-  markTrackSelected: (kind: "audio" | "sub", id: number | "no") => void;
-  setTracks: (tracks: MpvTrack[]) => void;
-  setChapters: (chapters: MpvChapter[]) => void;
-  resetPlayback: () => void;
 }
 
 function setIfChanged<T>(atom: Cell<T>, value: T): void {

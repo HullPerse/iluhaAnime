@@ -23,7 +23,7 @@ import { BilingualPreview } from "@/routes/components/collection/bilingualPrevie
 import { OperationStatus } from "@/routes/components/collection/import/operationStatus.import";
 import { ShareImportRow } from "@/routes/components/collection/shareImportRow.collection";
 
-import { shareRowToExportRow } from "@/lib/shareImport.utils";
+import { shareRowToExportRow } from "@/lib/collection/shareImport.utils";
 
 export function ShareImportCollection({
   plan,

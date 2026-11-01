@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import Select from "@/components/ui/select.component";
 import { patchSettings } from "@/store/settings.store";
 
-const OPTIONS = [
+const OPTIONS: readonly { value: "a" | "b" | "c"; label: string }[] = [
   { value: "a", label: "Alpha" },
   { value: "b", label: "Beta" },
   { value: "c", label: "Gamma" },
@@ -12,7 +12,7 @@ const OPTIONS = [
 
 const openSearchable = (onChange: (value: string) => void = () => undefined) => {
   patchSettings({ language: "en" });
-  render(<Select value="a" onChange={onChange} options={OPTIONS} searchable />);
+  render(<Select<"a" | "b" | "c"> value="a" onChange={onChange} options={OPTIONS} searchable />);
   fireEvent.mouseDown(screen.getByRole("combobox"));
   return onChange;
 };

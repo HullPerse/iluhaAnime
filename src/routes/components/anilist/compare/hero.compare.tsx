@@ -63,7 +63,7 @@ export function CompareHero({
         <span className="windows95-text text-hint text-xs">{t("anilist.compare.metric")}</span>
         <Select
           value={metric}
-          onChange={(value) => onMetric(value as CompareMetric)}
+          onChange={(value) => onMetric(value)}
           options={metricOptions}
           label={t("anilist.compare.metric")}
           className="min-w-0 flex-1"

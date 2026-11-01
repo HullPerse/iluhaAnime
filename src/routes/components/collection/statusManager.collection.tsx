@@ -126,7 +126,7 @@ export function StatusManagerCollection({
               className="w-24"
               value={newKind}
               label={t("collection.status.manager.kind")}
-              onChange={(value) => setNewKind(value as CollectionStatusKind)}
+              onChange={(value) => setNewKind(value)}
               options={[
                 { value: "private", label: t("collection.status.manager.kind.private") },
                 { value: "public", label: t("collection.status.manager.kind.public") },

@@ -6,8 +6,7 @@ import type {
   CompareVerdict,
 } from "@/types/core/compare";
 import { COMPARE_SORTS } from "@/lib/core/compare.utils";
-
-export type CompareTab = "shared" | "mine" | "friend";
+import type { CompareTab } from "@/types/anilist/compare";
 
 export const TAB_KEYS: Record<"shared" | "mine", TranslationKey> = {
   shared: "anilist.compare.shared",

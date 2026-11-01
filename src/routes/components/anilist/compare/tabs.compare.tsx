@@ -2,7 +2,7 @@ import Tabs from "@/components/shared/tabs.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { CompareSummary } from "@/types/core/compare";
 import { TAB_KEYS } from "@/routes/components/anilist/compare/constants.compare";
-import type { CompareTab } from "@/routes/components/anilist/compare/constants.compare";
+import type { CompareTab } from "@/types/anilist/compare";
 
 export function CompareTabs({
   tab,

@@ -386,7 +386,7 @@ export interface SelectedSearchTorrent {
 export interface SearchQueryController {
   source: Source;
   resultSource: Source | null;
-  sourceOptions: { value: string; label: string }[];
+  sourceOptions: { value: Source; label: string }[];
   isLoading: boolean;
   isFetching: boolean;
   searchParams: string;

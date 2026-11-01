@@ -20,7 +20,7 @@ import type {
 } from "@/types/anilist/anilist";
 
 import { SORT_KEYS, SORTS_BY_TAB } from "@/routes/components/anilist/compare/constants.compare";
-import type { CompareTab } from "@/routes/components/anilist/compare/constants.compare";
+import type { CompareTab } from "@/types/anilist/compare";
 
 import { CompareHero } from "@/routes/components/anilist/compare/hero.compare";
 import { CompareTabs } from "@/routes/components/anilist/compare/tabs.compare";

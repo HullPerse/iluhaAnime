@@ -5,9 +5,8 @@ import {
   createFriendsSignalStore,
   migrateFriendsData,
   migrateNotificationsData,
-  type AnilistNotificationsSignalStore,
-  type FriendsSignalStore,
 } from "@/store/anilist.store";
+import type { AnilistNotificationsSignalStore, FriendsSignalStore } from "@/types/store/anilist";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {
   return {

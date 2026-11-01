@@ -15,6 +15,9 @@ import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { usePlayerFileDrop } from "@/hooks/player/fileDrop.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { usePlayerKeyboardActions } from "@/hooks/player/keyboard.hook";
+import { usePlayerOverlayState } from "@/hooks/player/overlayState.hook";
+import { usePlayerPlaylistFocus } from "@/hooks/player/playlistFocus.hook";
+import { usePlayerTransport } from "@/hooks/player/transport.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
 import { useSeekHandlers } from "@/hooks/player/seek.hook";
@@ -30,7 +33,6 @@ import { useStreamPin } from "@/hooks/player/streamPin.hook";
 import { useStreamTrackPrefs } from "@/hooks/player/streamTrackPrefs.hook";
 import { usePlayerTracks } from "@/hooks/player/tracks.hook";
 import { usePlayerWatchProgress } from "@/hooks/player/watchProgress.hook";
-import { translate } from "@/lib/locale/i18n.utils";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import { startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
 import {
@@ -40,22 +42,16 @@ import {
 } from "@/lib/core/loading.utils";
 import {
   applyFileState,
-  closePlayerWindow,
   loadQueue,
   movePlaylistIndex,
-  nextFile,
   playPlaylistIndex,
-  previousFile,
   readPath,
   readDuration,
   removePlaylistIndex,
   seekTo,
-  setMpvProperty,
   setPaused,
-  setSpeed,
   startFrameStep,
 } from "@/lib/player/playback.utils";
-import { movePlaylistFocus } from "@/lib/core/playlistFocus.utils";
 import {
   RESUME_END_MARGIN,
   RESUME_MIN,
@@ -64,7 +60,6 @@ import {
   shouldSkipFrontendSeek,
 } from "@/lib/player/resume.utils";
 import type { HwdecReload } from "@/types/player/resume";
-import { stepSpeed } from "@/lib/core/speed.utils";
 import {
   barClass,
   fileStatePatch,
@@ -83,7 +78,6 @@ import { useCell } from "@/lib/core/signal.hook";
 import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import { hydrateMediaEntry } from "@/store/media.store";
-import { addNotification } from "@/store/notification.store";
 import {
   patchPlayerSettings,
   playbackAtoms,
@@ -91,26 +85,13 @@ import {
   resetPlayback,
   setAutoHide,
   setEofMode,
-  setHwdec,
-  setPlaybackMuted,
-  streamSession,
-  setPlaybackPaused,
-  setPlaybackSpeed,
   setProfile,
   setSeekMode,
-  setSeekTarget,
-  setVolume,
+  streamSession,
   settleSeek,
 } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type {
-  EndOfFileMode,
-  HwdecMode,
-  PlayerProfileId,
-  PlayerSettings,
-  PlayerViewMode,
-  SeekMode,
-} from "@/types/player/videoPlayer";
+import type { PlayerSettings, PlayerViewMode } from "@/types/player/videoPlayer";
 
 import PlayerBezel from "@/routes/components/player/bezel.player";
 import BufferingOverlay from "@/routes/components/player/media/buffering.player";
@@ -163,12 +144,24 @@ function PlayerComponent() {
   const [viewMode, setViewMode] = useState<PlayerViewMode>("normal");
   const [fullscreen, setFullscreen] = useState<boolean>(false);
   const [barsVisible, setBarsVisible] = useState<boolean>(true);
-  const [panel, setPanel] = useState<null | "settings" | "cheatsheet">(null);
-  const [jumpOpen, setJumpOpen] = useState<boolean>(false);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState<boolean>(false);
-  const [playlistOpen, setPlaylistOpen] = useState<boolean>(false);
-  const [menuOpen, setMenuOpen] = useState<boolean>(false);
-  const [playlistFocus, setPlaylistFocus] = useState<number | null>(null);
+  const {
+    panel,
+    setPanel,
+    jumpOpen,
+    setJumpOpen,
+    diagnosticsOpen,
+    playlistOpen,
+    setPlaylistOpen,
+    menuOpen,
+    setMenuOpen,
+    playlistFocus,
+    setPlaylistFocus,
+    closeOverlay,
+    onToggleDiagnostics,
+    onToggleCheatsheet,
+    onTogglePlaylist,
+    onOpenJump,
+  } = usePlayerOverlayState();
   const [finished, setFinished] = useState<boolean>(false);
   const [hasShownFrame, setHasShownFrame] = useState<boolean>(false);
 
@@ -213,6 +206,32 @@ function PlayerComponent() {
 
   const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch } =
     usePlayerSession({ videoRef, syncMarginsRef, resumeRef });
+  const { onSelectTrack, onCycleTrack, onAddExternalSubtitle, onAddExternalAudio } =
+    usePlayerTracks();
+  const {
+    onPlay,
+    onPause,
+    onPlayPause,
+    onFileNext,
+    onFilePrev,
+    onPlayIndex,
+    onVolume,
+    onMute,
+    onSpeed,
+    handleHwdec,
+    onSpeedStep,
+    onFrameStep,
+    onCycleSub,
+    restart,
+    close,
+  } = usePlayerTransport({
+    setFinished,
+    setLoadingFile,
+    streamNext,
+    streaming: stream !== null,
+    onCycleTrack,
+    hwdecReloadRef,
+  });
 
   const reloadPlayingFile = useCallback(() => {
     const playlistIndex = playbackAtoms.playlistIndex.get();
@@ -334,26 +353,6 @@ function PlayerComponent() {
     consumeDrag: consumeVideoDrag,
   } = useWindowDrag(!chrome.showHeader);
 
-  const closeOverlay = useCallback(() => {
-    if (diagnosticsOpen) {
-      setDiagnosticsOpen(false);
-      return true;
-    }
-    if (playlistOpen) {
-      setPlaylistOpen(false);
-      return true;
-    }
-    if (panel !== null) {
-      setPanel(null);
-      return true;
-    }
-    if (jumpOpen) {
-      setJumpOpen(false);
-      return true;
-    }
-    return false;
-  }, [diagnosticsOpen, jumpOpen, panel, playlistOpen]);
-
   const { toggleFullscreen, applyViewMode, toggleCinema, applyAlwaysOnTop, exitCinemaMode } =
     useWindowControls({
       cinema,
@@ -364,36 +363,6 @@ function PlayerComponent() {
       setViewMode,
       viewMode,
     });
-
-  const onPlay = useCallback(() => {
-    if (!playbackAtoms.hasFile.get()) return;
-    if (playbackAtoms.eofReached.get()) {
-      setFinished(false);
-      setSeekTarget(0);
-      setPlaybackPaused(false);
-      seekTo(0, "exact")
-        .then(() => setPaused(false))
-        .catch(() => {
-          setPlaybackPaused(true);
-        });
-      return;
-    }
-    setPlaybackPaused(false);
-    setPaused(false).catch(() => setPlaybackPaused(true));
-  }, []);
-
-  const onPause = useCallback(() => {
-    setPlaybackPaused(true);
-    setPaused(true).catch(() => setPlaybackPaused(false));
-  }, []);
-
-  const onPlayPause = useCallback(() => {
-    if (playbackAtoms.paused.get()) {
-      onPlay();
-      return;
-    }
-    onPause();
-  }, [onPause, onPlay]);
 
   const onVideoClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -406,16 +375,6 @@ function PlayerComponent() {
     [consumeVideoDrag, loadingFile, onPlayPause]
   );
 
-  const onFileNext = useCallback(() => {
-    setFinished(false);
-    setLoadingFile(true);
-    if (streamSession.get() !== null) {
-      ignore(streamNext.goNext());
-      return;
-    }
-    ignore(nextFile());
-  }, [setLoadingFile, streamNext]);
-
   const {
     onScrub,
     onCommitSeek,
@@ -427,148 +386,18 @@ function PlayerComponent() {
     onChapterJump,
   } = useSeekHandlers({ hasPrev, hasNext, onFileNext });
 
-  const onFilePrev = useCallback(() => {
-    setFinished(false);
-    setLoadingFile(true);
-    ignore(previousFile());
-  }, [setLoadingFile]);
-
-  const onPlayIndex = useCallback(
-    (index: number) => {
-      setLoadingFile(true);
-      return playPlaylistIndex(index);
-    },
-    [setLoadingFile]
-  );
-
-  const onVolume = useCallback((value: number) => {
-    const clamped = Math.min(1, Math.max(0, value));
-    setVolume(clamped);
-    if (playbackAtoms.muted.get()) {
-      setPlaybackMuted(false);
-      setMpvProperty("mute", false).catch(() => setPlaybackMuted(true));
-    }
-  }, []);
-
-  const onMute = useCallback(() => {
-    const next = !playbackAtoms.muted.get();
-    setPlaybackMuted(next);
-    setMpvProperty("mute", next).catch(() => setPlaybackMuted(!next));
-  }, []);
-
-  const onSpeed = useCallback((value: number) => {
-    const previous = playbackAtoms.speed.get();
-    setPlaybackSpeed(value);
-    setSpeed(value).catch(() => setPlaybackSpeed(previous));
-  }, []);
-
   const handlePatchSettings = useCallback((patch: Partial<PlayerSettings>) => {
     patchPlayerSettings(patch);
   }, []);
 
-  const handleHwdec = useCallback(
-    (mode: HwdecMode) => {
-      const hasFile = playbackAtoms.hasFile.get();
-      const playlistIndex = playbackAtoms.playlistIndex.get();
-      const timePos = playbackAtoms.timePos.get();
-      const paused = playbackAtoms.paused.get();
-      setHwdec(mode);
-      if (!hasFile || playlistIndex < 0) return;
-      hwdecReloadRef.current = { position: timePos, paused };
-      setLoadingFile(true);
-      setMpvProperty("hwdec", mode)
-        .then(() => playPlaylistIndex(playlistIndex))
-        .catch((error: unknown) => {
-          hwdecReloadRef.current = null;
-          setLoadingFile(false);
-          reportBackgroundError("player.hwdec.reload", error);
-          addNotification(
-            translate(settingsAtoms.language.get(), "player.media.error.title"),
-            "error",
-            String(error)
-          );
-        });
-    },
-    [setLoadingFile]
-  );
-
-  const handleProfile = useCallback((next: PlayerProfileId) => {
-    setProfile(next);
-  }, []);
-
-  const handleSeekMode = useCallback((mode: SeekMode) => {
-    setSeekMode(mode);
-  }, []);
-
-  const handleEofMode = useCallback((mode: EndOfFileMode) => {
-    setEofMode(mode);
-  }, []);
-
-  const handleSetAutoHide = useCallback((value: boolean) => {
-    setAutoHide(value);
-  }, []);
-
-  const { onSelectTrack, onCycleTrack, onAddExternalSubtitle, onAddExternalAudio } =
-    usePlayerTracks();
   const { nudgeOffset, onResetDelays } = usePlayerOffsets();
 
-  const onSpeedStep = useCallback(
-    (direction: number) => {
-      onSpeed(stepSpeed(playbackAtoms.speed.get(), direction));
-    },
-    [onSpeed]
-  );
-
-  const onFrameStep = useCallback((forward: boolean) => {
-    ignore(startFrameStep(forward));
-  }, []);
-
-  const onCycleSub = useCallback(() => {
-    onCycleTrack("sub");
-  }, [onCycleTrack]);
-
-  const onPlaylistFocus = useCallback(
-    (delta: number) => {
-      if (!playlistOpen) return;
-      setPlaylistFocus((previous) =>
-        movePlaylistFocus(
-          previous,
-          playbackAtoms.playlistIndex.get(),
-          playbackAtoms.playlistCount.get(),
-          delta
-        )
-      );
-    },
-    [playlistOpen]
-  );
-
-  const onPlaylistActivate = useCallback(() => {
-    if (!playlistOpen) return;
-    const count = playbackAtoms.playlistCount.get();
-    const index = playlistFocus ?? playbackAtoms.playlistIndex.get();
-    if (index < 0 || index >= count) return;
-    ignore(onPlayIndex(index));
-  }, [onPlayIndex, playlistFocus, playlistOpen]);
-
-  const onToggleAutoHide = useCallback(() => {
-    handleSetAutoHide(!playerAtoms.autoHide.get());
-  }, [handleSetAutoHide]);
-
-  const onToggleDiagnostics = useCallback(() => {
-    setDiagnosticsOpen((value) => !value);
-  }, []);
-
-  const onToggleCheatsheet = useCallback(() => {
-    setPanel((prev) => (prev === "cheatsheet" ? null : "cheatsheet"));
-  }, []);
-
-  const onTogglePlaylist = useCallback(() => {
-    setPlaylistOpen((previous) => !previous);
-  }, []);
-
-  const onOpenJump = useCallback(() => {
-    setJumpOpen(true);
-  }, []);
+  const { onPlaylistFocus, onPlaylistActivate } = usePlayerPlaylistFocus({
+    playlistOpen,
+    playlistFocus,
+    setPlaylistFocus,
+    onPlayIndex,
+  });
 
   const onKeyboardAction = usePlayerKeyboardActions({
     onPlayPause,
@@ -579,7 +408,7 @@ function PlayerComponent() {
     onFrameStep,
     nudgeOffset,
     onResetDelays,
-    onToggleAutoHide,
+    onToggleAutoHide: () => setAutoHide(!playerAtoms.autoHide.get()),
     onToggleDiagnostics,
     onToggleCheatsheet,
     onToggleFullscreen: toggleFullscreen,
@@ -598,15 +427,6 @@ function PlayerComponent() {
     onPlaylistFocus,
     onPlaylistActivate,
   });
-
-  const close = useCallback(() => {
-    ignore(closePlayerWindow());
-  }, []);
-
-  const restart = useCallback(() => {
-    setFinished(false);
-    ignore(seekTo(0, "exact").then(() => setPaused(false)));
-  }, []);
 
   const {
     session: playerStreamSession,
@@ -659,7 +479,7 @@ function PlayerComponent() {
         onToggleFullscreen: () => ignore(toggleFullscreen()),
         onViewMode: applyViewMode,
         onToggleAlwaysOnTop: () => applyAlwaysOnTop(!alwaysOnTop),
-        onEofMode: handleEofMode,
+        onEofMode: setEofMode,
         onPlayerMode: (mode) => handlePatchSettings({ playerMode: mode }),
         onCabinet: (cabinet) => handlePatchSettings({ cabinet }),
         onOpenSettings: () => setPanel("settings"),
@@ -688,7 +508,6 @@ function PlayerComponent() {
     toggleFullscreen,
     applyViewMode,
     applyAlwaysOnTop,
-    handleEofMode,
     eofMode,
     settings.playerMode,
     settings.cabinet,
@@ -702,6 +521,8 @@ function PlayerComponent() {
     switchStreamVariant,
     switchStreamQuality,
     reloadStreamVariants,
+    setPanel,
+    setPlaylistOpen,
   ]);
 
   const eofPaused = eofReached && (eofMode === "pause" || eofMode === "none");
@@ -843,7 +664,7 @@ function PlayerComponent() {
           onSpeed={onSpeed}
           onVolume={onVolume}
           onMute={onMute}
-          onToggleAutoHide={() => handleSetAutoHide(!autoHide)}
+          onToggleAutoHide={() => setAutoHide(!autoHide)}
           onTogglePlaylist={() => setPlaylistOpen((previous) => !previous)}
           hideTracks={hideDefaultTracks(playerType, playerContextMenu)}
           onSelectAudio={onSelectTrack("audio")}
@@ -866,10 +687,10 @@ function PlayerComponent() {
         onClose={() => setPanel(null)}
         onPatchSettings={handlePatchSettings}
         onHwdec={handleHwdec}
-        onSeekMode={handleSeekMode}
-        onEofMode={handleEofMode}
-        onAutoHide={handleSetAutoHide}
-        onProfile={handleProfile}
+        onSeekMode={setSeekMode}
+        onEofMode={setEofMode}
+        onAutoHide={setAutoHide}
+        onProfile={setProfile}
       />
     </div>
   );

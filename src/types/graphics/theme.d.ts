@@ -78,3 +78,7 @@ export interface ThemeStore {
 }
 
 export type ThemeColorKey = Exclude<keyof ThemeDefinition["colors"], "autocompleteOpacity">;
+
+export type ParsedThemeFile =
+  | { kind: "theme"; theme: ThemeDefinition }
+  | { kind: "patch"; base: string; patch: ThemePatch };

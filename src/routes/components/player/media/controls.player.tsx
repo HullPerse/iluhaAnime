@@ -115,7 +115,7 @@ function Controls({
   useEffect(() => {
     if (!speedOpen) return;
     const onDown = (event: MouseEvent) => {
-      if (speedRef.current && !speedRef.current.contains(event.target as Node)) {
+      if (speedRef.current && event.target instanceof Node && !speedRef.current.contains(event.target)) {
         setSpeedOpen(false);
       }
     };

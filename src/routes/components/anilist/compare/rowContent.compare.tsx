@@ -7,7 +7,7 @@ import type { CompareDiffKind } from "@/types/core/compare";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import type { ComparedTitle } from "@/types/core/compare";
 import { DIFF_CLASS, DIFF_SYMBOL } from "@/routes/components/anilist/compare/constants.compare";
-import type { CompareTab } from "@/routes/components/anilist/compare/constants.compare";
+import type { CompareTab } from "@/types/anilist/compare";
 import { ScoreCell } from "@/routes/components/anilist/compare/scoreCell.compare";
 
 export function RowContent({

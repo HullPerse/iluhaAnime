@@ -100,7 +100,7 @@ export function WizardDetailsPanel(props: {
         </span>
         <Select
           value={props.type}
-          onChange={(v) => props.setType(v as CollectionItem["type"])}
+          onChange={(v) => props.setType(v)}
           options={[
             { value: "anime", label: t("collection.type.anime") },
             { value: "movie", label: t("collection.type.movie") },
@@ -132,7 +132,7 @@ export function WizardDetailsPanel(props: {
           />
           <Select
             value={props.progressUnit}
-            onChange={(v) => props.setProgressUnit(v as CollectionItem["progressUnit"])}
+            onChange={(v) => props.setProgressUnit(v)}
             options={[
               { value: "episodes", label: t("collection.wizard.unit.episodes") },
               { value: "seasons", label: t("collection.wizard.unit.seasons") },

@@ -83,7 +83,7 @@ export default function DataCollection({
           <DropdownMenuGroup>
             <DropdownMenuRadioGroup
               value={viewMode}
-              onValueChange={(v) => setCollectionViewMode(v as typeof viewMode)}
+              onValueChange={(v) => setCollectionViewMode(v)}
             >
               <DropdownMenuRadioItem value="grid" title={t("collection.view.mode")}>
                 <Grid3x3 className="size-4" /> {t("collection.view.mode.grid")}
@@ -95,7 +95,7 @@ export default function DataCollection({
             {viewMode === "grid" && (
               <DropdownMenuRadioGroup
                 value={displayMode}
-                onValueChange={(v) => setCollectionDisplayMode(v as typeof displayMode)}
+                onValueChange={(v) => setCollectionDisplayMode(v)}
               >
                 <DropdownMenuRadioItem value="scroll" title={t("collection.display.mode")}>
                   <InfinityIcon className="size-4" /> {t("collection.display.mode.scroll")}

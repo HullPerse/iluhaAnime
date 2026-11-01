@@ -1,8 +1,6 @@
 import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/graphics/themes.config";
-import type { Persistor } from "@/types/core/persist";
 import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { isRecord } from "@/lib/core/record.utils";
-import type { Cell } from "@/types/core/signal";
 import type { ThemeSignalOptions } from "@/types/store/options";
 import { applyTheme } from "@/lib/core/appearance.utils";
 import { deriveFieldColor, isHexColor } from "@/lib/graphics/palette.utils";
@@ -10,11 +8,12 @@ import { findTheme } from "@/lib/graphics/themeResolve.utils";
 import { normalizeAutocompleteOpacity } from "@/lib/graphics/tokens.utils";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
+  ParsedThemeFile,
   ThemeDefinition,
   ThemeOverrideKey,
   ThemePatch,
-  ThemeStore,
 } from "@/types/graphics/theme";
+import type { ThemeData, ThemeSignalStore } from "@/types/store/theme";
 
 export const THEME_SCHEMA_VERSION = 1;
 
@@ -268,10 +267,6 @@ export function themePatchToJson(base: string, patch: ThemePatch): string {
   return JSON.stringify({ format: "iluha-theme-patch", version: 1, base, patch }, null, 2);
 }
 
-export type ParsedThemeFile =
-  | { kind: "theme"; theme: ThemeDefinition }
-  | { kind: "patch"; base: string; patch: ThemePatch };
-
 function parseRawTheme(
   raw: Record<string, unknown>,
   resolveBase?: (name: string) => ThemeDefinition | undefined
@@ -335,16 +330,6 @@ function buildParsedTheme(
   };
 }
 
-type ThemeActionKeys =
-  | "addCustomTheme"
-  | "removeCustomTheme"
-  | "setTheme"
-  | "setThemePatch"
-  | "clearThemePatch";
-
-type ThemeData = Omit<ThemeStore, ThemeActionKeys>;
-type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
-
 const DEFAULT_THEME_DATA: ThemeData = {
   currentTheme: "win95",
   customThemes: [],
@@ -377,16 +362,6 @@ function readLegacyTheme(
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
   return { data: state, schemaVersion: THEME_SCHEMA_VERSION };
-}
-
-export interface ThemeSignalStore {
-  atoms: ThemeAtoms;
-  persistor: Persistor;
-  addCustomTheme: (theme: ThemeDefinition) => void;
-  removeCustomTheme: (name: string) => void;
-  setTheme: (name: string) => void;
-  setThemePatch: (name: string, patch: ThemePatch) => void;
-  clearThemePatch: (name: string) => void;
 }
 
 export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeSignalStore {

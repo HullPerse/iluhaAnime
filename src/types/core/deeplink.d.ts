@@ -68,3 +68,10 @@ export interface DeepLinkStore {
   openAuth: (link: AnilistAuthDeepLink) => void;
   consumeAuth: () => void;
 }
+
+export type PastedLink =
+  | { kind: "anime"; link: AnimeDeepLink }
+  | { kind: "stream"; link: StreamDeepLink }
+  | { kind: "torrent"; link: TorrentDeepLink }
+  | { kind: "magnet"; magnet: string }
+  | { kind: "collectionShare" };

@@ -1,10 +1,9 @@
 import { attemptSync } from "@/lib/core/attempt.utils";
 import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { isUserImageIcon } from "@/lib/graphics/image.utils";
-import type { Category, CategoryEntry, CategoryStore } from "@/types/core/category";
-import type { Persistor } from "@/types/core/persist";
-import type { Cell } from "@/types/core/signal";
+import type { Category, CategoryEntry } from "@/types/core/category";
 import type { CategorySignalOptions } from "@/types/store/options";
+import type { CategoryAtoms, CategoryData, CategorySignalStore } from "@/types/store/category";
 
 export const CATEGORY_SCHEMA_VERSION = 1;
 
@@ -73,22 +72,6 @@ function getNextCategoryName(existing: string[], base: string): string {
   return `${base} (${i})`;
 }
 
-type CategoryActionKeys =
-  | "addCategory"
-  | "addEntry"
-  | "changeIcon"
-  | "removeCategory"
-  | "removeEntriesByFolderPath"
-  | "removeEntriesByTorrentId"
-  | "moveEntry"
-  | "removeEntry"
-  | "renameCategory"
-  | "reorderCategories"
-  | "setCategoryCollapsed";
-
-type CategoryData = Omit<CategoryStore, CategoryActionKeys>;
-type CategoryAtoms = { [K in keyof CategoryData]: Cell<CategoryData[K]> };
-
 function readLegacyCategories(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
@@ -100,22 +83,6 @@ function readLegacyCategories(
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
   return { data: state, schemaVersion: CATEGORY_SCHEMA_VERSION };
-}
-
-export interface CategorySignalStore {
-  atoms: CategoryAtoms;
-  persistor: Persistor;
-  addCategory: (name: string) => string;
-  addEntry: (categoryId: string, entry: Omit<CategoryEntry, "id">) => void;
-  changeIcon: (id: string, icon: string) => void;
-  removeCategory: (id: string) => void;
-  removeEntriesByFolderPath: (path: string) => void;
-  removeEntriesByTorrentId: (id: number) => void;
-  moveEntry: (categoryId: string, entryId: string, delta: number) => void;
-  removeEntry: (categoryId: string, entryId: string) => void;
-  renameCategory: (id: string, name: string) => void;
-  reorderCategories: (ids: string[]) => void;
-  setCategoryCollapsed: (id: string, collapsed: boolean) => void;
 }
 
 export function createCategorySignalStore(

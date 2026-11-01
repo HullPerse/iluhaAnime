@@ -11,17 +11,7 @@ import type { StreamOpen } from "@/types/player/videoPlayer";
 import { fileNameFromPath } from "@/lib/search/parse.utils";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { setPaused } from "@/lib/player/playback.utils";
-import type { DroppedFramesData } from "@/types/player/videoPlayer";
-
-export interface CursorHiddenState {
-  barsHidden: boolean;
-  panelOpen: boolean;
-  jumpOpen: boolean;
-  diagnosticsOpen: boolean;
-  playlistOpen: boolean;
-  menuOpen: boolean;
-  dropAlert: DroppedFramesData | null;
-}
+import type { CursorHiddenState } from "@/types/player/playerChrome";
 
 export const barClass = (
   position: "top" | "bottom",

@@ -1,7 +1,7 @@
 import { DITHER_SLIDER_DEFS } from "@/config/graphics/dither.config";
-import type { DitherEffectOptions, DitherSliderField } from "@/types/graphics/dither";
+import type { DitherEffectOptions, DitherSliderDef, DitherSliderField } from "@/types/graphics/dither";
 
-export type DitherSliderDef = (typeof DITHER_SLIDER_DEFS)[number];
+export type { DitherSliderDef } from "@/types/graphics/dither";
 
 const SLIDER_BY_FIELD = DITHER_SLIDER_DEFS.reduce<
   Partial<Record<DitherSliderField, DitherSliderDef>>

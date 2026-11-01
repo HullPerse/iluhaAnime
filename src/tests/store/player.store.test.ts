@@ -4,8 +4,8 @@ import {
   DEFAULT_PLAYER_SETTINGS,
   createPlaybackSignalStore,
   createPlayerSignalStore,
-  type PlaybackSignalStore,
 } from "@/store/player.store";
+import type { PlaybackSignalStore } from "@/types/store/player";
 import type { PlaybackSnapshot } from "@/types/player/videoPlayer";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {

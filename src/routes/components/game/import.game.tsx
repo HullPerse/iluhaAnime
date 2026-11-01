@@ -41,7 +41,7 @@ export default function GameImportModal({
           <span className="windows95-text text-xs font-bold">{t("game.import.platform")}</span>
           <Select
             value={platform}
-            onChange={(value) => setPlatform(value as GamePlatform)}
+            onChange={(value) => setPlatform(value)}
             options={options}
             label={t("game.import.platform")}
           />

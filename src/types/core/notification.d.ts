@@ -82,3 +82,5 @@ export interface NotificationRowProps {
   clear: (id: number) => void;
   onOpen: (item: NotificationItem) => void;
 }
+
+export type NotificationTargetResult = "opened" | "tab-disabled" | "failed";

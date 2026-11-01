@@ -1,5 +1,7 @@
 import type { Ref } from "react";
 
+import type { TranslationKey } from "@/types/core/i18n";
+
 export type DitherRGB = [number, number, number];
 
 export type DitherMode = "ordered" | "floyd" | "atkinson";
@@ -111,3 +113,15 @@ export type DitherSliderField = Exclude<
 >;
 
 export type DitherStatus = "loading" | "ready" | "error";
+
+export interface DitherSliderDef {
+  field: DitherSliderField;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface DitherSliderGroup {
+  title: TranslationKey;
+  fields: readonly DitherSliderField[];
+}

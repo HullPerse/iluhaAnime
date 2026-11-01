@@ -296,7 +296,7 @@ export default function SettingsSearch() {
               <Select
                 value={autocompleteMode}
                 onChange={(value) =>
-                  patchSettings({ autocompleteMode: value as typeof autocompleteMode })
+                  patchSettings({ autocompleteMode: value })
                 }
                 options={[
                   {
@@ -432,7 +432,7 @@ export default function SettingsSearch() {
                 value={anilistSuggestionBoost}
                 onChange={(value) =>
                   patchSettings({
-                    anilistSuggestionBoost: value as typeof anilistSuggestionBoost,
+                    anilistSuggestionBoost: value,
                   })
                 }
                 options={[

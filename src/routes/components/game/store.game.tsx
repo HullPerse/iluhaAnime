@@ -45,7 +45,7 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
     );
   });
   const installingKey = install.isPending ? (install.variables ?? null) : null;
-  const options = [
+  const options: { value: PlatformFilter; label: string }[] = [
     { value: ALL_PLATFORMS, label: t("game.store.all") },
     ...GAME_STORE_PLATFORMS.map((value) => ({
       value,
@@ -72,7 +72,7 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
         <div className="w-40 shrink-0">
           <Select
             value={platform}
-            onChange={(value) => setPlatform(value as PlatformFilter)}
+            onChange={(value) => setPlatform(value)}
             options={options}
             label={t("game.store.filter")}
           />

@@ -6,7 +6,7 @@ export function readThemeName(): string {
   if (typeof localStorage === "undefined") return "win95";
   const [raw, readError] = attemptSync(() => localStorage.getItem("themeVars"));
   if (readError !== null || !raw) return "win95";
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
   if (parseError !== null || typeof parsed !== "object" || parsed === null) return "win95";
   const name = (parsed as { themeName?: unknown }).themeName;
   return typeof name === "string" ? name : "win95";

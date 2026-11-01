@@ -73,3 +73,9 @@ export interface PlaylistBodyProps {
 }
 
 export type PlayerSidePanelProps = PlaylistBodyProps;
+
+export interface EofModeMpvProps {
+  keepOpen: string;
+  loopFile: string;
+  loopPlaylist: string;
+}

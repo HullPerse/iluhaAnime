@@ -1,10 +1,5 @@
 import type { EndOfFileMode } from "@/types/player/videoPlayer";
-
-export interface EofModeMpvProps {
-  keepOpen: string;
-  loopFile: string;
-  loopPlaylist: string;
-}
+import type { EofModeMpvProps } from "@/types/player/player";
 
 export const EOF_MODE_MPV_PROPS: Record<EndOfFileMode, EofModeMpvProps> = {
   none: { keepOpen: "always", loopFile: "no", loopPlaylist: "no" },

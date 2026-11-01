@@ -19,8 +19,6 @@ import { useCell } from "@/lib/core/signal.hook";
 import { attempt, attemptSync } from "@/lib/core/attempt.utils";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { Locale } from "@/types/core/i18n";
-import type { SettingsStore } from "@/types/ui/settings";
 
 import AnimelibSettings from "@/routes/components/settings/animelib.settings";
 import SettingsMedia from "@/routes/components/settings/media.settings";
@@ -220,7 +218,7 @@ export default function SettingsGeneral() {
             <div className="flex min-w-0 flex-col gap-0.5">
               <Select
                 value={language}
-                onChange={(value) => patchSettings({ language: value as Locale })}
+                onChange={(value) => patchSettings({ language: value })}
                 options={[
                   { value: "ru", label: t("settings.language.ru") },
                   { value: "en", label: t("settings.language.en") },
@@ -236,7 +234,7 @@ export default function SettingsGeneral() {
               <Select
                 value={ffmpegSource}
                 onChange={(value) =>
-                  patchSettings({ ffmpegSource: value as SettingsStore["ffmpegSource"] })
+                  patchSettings({ ffmpegSource: value })
                 }
                 options={[
                   {
@@ -474,7 +472,7 @@ export default function SettingsGeneral() {
                 value={anilistTitleLanguage}
                 onChange={(value) =>
                   patchSettings({
-                    anilistTitleLanguage: value as SettingsStore["anilistTitleLanguage"],
+                    anilistTitleLanguage: value,
                   })
                 }
                 options={[
@@ -550,7 +548,7 @@ export default function SettingsGeneral() {
                   value={coverMode}
                   onChange={(value) =>
                     patchSettings({
-                      torrentCoverMode: value as SettingsStore["torrentCoverMode"],
+                      torrentCoverMode: value,
                       torrentCoverModeManual: true,
                     })
                   }

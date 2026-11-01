@@ -26,7 +26,7 @@ export function StatusCollection({
 
   const tabs = [
     {
-      id: "all" as CollectionStatus | "all",
+      id: "all" satisfies CollectionStatus | "all",
       label: t("collection.library.all"),
       color: null,
       isPublic: false,

@@ -25,7 +25,7 @@ import {
   STEPPER_SYNC_MAX_WAIT_MS,
   STEPPER_SAVED_MS,
 } from "@/lib/anilist/progressStepper.utils";
-import type { StepperFailure, StepperPhase } from "@/lib/anilist/progressStepper.utils";
+import type { StepperFailure, StepperPhase } from "@/types/anilist/progressStepper";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import { anilistProgressOverride } from "@/store/anilistProgress.store";
 import { addNotification } from "@/store/notification.store";

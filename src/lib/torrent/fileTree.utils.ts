@@ -1,9 +1,5 @@
 import type { TorrentDetailFile } from "@/types/torrent/torrent";
-
-export interface TorrentFileNode {
-  folders: Map<string, TorrentFileNode>;
-  files: TorrentDetailFile[];
-}
+import type { TorrentFileNode } from "@/types/torrent/fileTree";
 
 export function buildTree(files: TorrentDetailFile[]): TorrentFileNode {
   const root: TorrentFileNode = { folders: new Map(), files: [] };

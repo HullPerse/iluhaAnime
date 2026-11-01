@@ -7,7 +7,9 @@ import type {
   DitherPreset,
   DitherPresetId,
   DitherRGB,
+  DitherSliderDef,
   DitherSliderField,
+  DitherSliderGroup,
 } from "@/types/graphics/dither";
 import type { TranslationKey } from "@/types/core/i18n";
 
@@ -330,13 +332,6 @@ export function resolveDitherPreset(id: DitherPresetId): DitherEffectOptions {
   return found ? { ...found.options } : { ...DITHER_NEUTRAL_OPTIONS };
 }
 
-export interface DitherSliderDef {
-  field: DitherSliderField;
-  min: number;
-  max: number;
-  step: number;
-}
-
 export const DITHER_SLIDER_DEFS: readonly DitherSliderDef[] = [
   { field: "strength", min: 0, max: 2, step: 0.05 },
   { field: "levels", min: 2, max: 16, step: 1 },
@@ -353,11 +348,6 @@ export const DITHER_SLIDER_DEFS: readonly DitherSliderDef[] = [
   { field: "barrel", min: 0, max: 0.5, step: 0.05 },
   { field: "vignette", min: 0, max: 1, step: 0.05 },
 ];
-
-export interface DitherSliderGroup {
-  title: TranslationKey;
-  fields: readonly DitherSliderField[];
-}
 
 export const DITHER_SLIDER_GROUPS: readonly DitherSliderGroup[] = [
   {

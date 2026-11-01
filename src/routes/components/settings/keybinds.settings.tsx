@@ -48,7 +48,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
     [t]
   );
 
-  const options = useMemo(
+  const options = useMemo<{ value: ScopeFilter; label: string }[]>(
     () => [
       { value: "all", label: t("settings.keybinds.scope.all") },
       ...KEYBIND_SCOPES.map((entry) => ({ value: entry, label: scopeLabels[entry] })),
@@ -170,7 +170,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
         </Button>
         <Select
           value={scope}
-          onChange={(value) => setScope(value as ScopeFilter)}
+          onChange={(value) => setScope(value)}
           options={options}
           aria-label={t("settings.keybinds.scope")}
           className="w-32 shrink-0"

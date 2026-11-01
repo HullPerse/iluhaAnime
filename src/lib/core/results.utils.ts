@@ -8,10 +8,10 @@ import {
   detectLanguages,
 } from "@/lib/search/searchFormat.utils";
 
-export function getVisibleSources(
+export function getVisibleSources<T extends string>(
   visibleSources: string[],
-  sourceInfos: { value: string; label: string; nsfw?: boolean }[]
-): { value: string; label: string }[] {
+  sourceInfos: { value: T; label: string; nsfw?: boolean }[]
+): { value: T; label: string }[] {
   return sourceInfos
     .filter((s) => visibleSources.includes(s.value))
     .map((s) => ({

@@ -9,11 +9,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
 import { PlayerVisibilityService } from "@/lib/player/playerVisibility.utils";
-import {
-  createSettingsSignalStore,
-  SETTINGS_SCHEMA_VERSION,
-  type SettingsSignalStore,
-} from "@/store/settings.store";
+import { createSettingsSignalStore, SETTINGS_SCHEMA_VERSION } from "@/store/settings.store";
+import type { SettingsSignalStore } from "@/types/store/settings";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {
   return {

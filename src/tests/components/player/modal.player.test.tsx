@@ -106,7 +106,7 @@ describe("PlayerModal", () => {
   it("renders select popups inside the dialog so they stay interactive", async () => {
     render(
       <PlayerModal header="Settings" onClose={() => undefined}>
-        <Select
+        <Select<"a" | "b">
           value="a"
           onChange={() => undefined}
           options={[
@@ -126,7 +126,7 @@ describe("PlayerModal", () => {
     const onClose = vi.fn();
     render(
       <PlayerModal header="Settings" onClose={onClose}>
-        <Select
+        <Select<"a" | "b">
           value="a"
           onChange={() => undefined}
           options={[
@@ -148,7 +148,7 @@ describe("PlayerModal", () => {
     const onClose = vi.fn();
     render(
       <PlayerModal header="Settings" onClose={onClose}>
-        <Select
+        <Select<"a" | "b">
           value="a"
           onChange={() => undefined}
           options={[

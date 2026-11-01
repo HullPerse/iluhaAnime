@@ -8,7 +8,7 @@ import Select from "@/components/ui/select.component";
 import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/anilist/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { normalizeStatusLabel } from "@/lib/core/status.utils";
-import type { CollectionStatusDef, CollectionStatusKind } from "@/types/anilist/collection";
+import type { CollectionStatusDef } from "@/types/anilist/collection";
 
 import { BilingualPreview } from "@/routes/components/collection/bilingualPreview.collection";
 
@@ -66,7 +66,7 @@ export function StatusRow({
             className="w-24"
             value={status.kind}
             label={t("collection.status.manager.kind")}
-            onChange={(value) => onUpsert({ ...status, kind: value as CollectionStatusKind })}
+            onChange={(value) => onUpsert({ ...status, kind: value })}
             options={[
               { value: "private", label: t("collection.status.manager.kind.private") },
               { value: "public", label: t("collection.status.manager.kind.public") },

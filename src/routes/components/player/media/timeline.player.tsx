@@ -6,13 +6,13 @@ import { formatClock } from "@/lib/core/time.utils";
 import {
   TOOLTIP_WIDTH,
   LIVE_SCRUB_INTERVAL,
-  type HoverInfo,
   bufferedHintText,
   bufferedSpan,
   clamp01,
   chapterTitleAt,
   nearestChapterEdge,
 } from "@/lib/player/timeline.utils";
+import type { HoverInfo } from "@/types/player/timeline";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import type { MpvChapter } from "@/types/player/videoPlayer";
 

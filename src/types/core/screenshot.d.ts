@@ -108,3 +108,8 @@ export interface ScreenshotLayersPayload {
   drawing?: string;
   blur?: BlurLayerPayload;
 }
+
+export interface ScreenshotSession {
+  capture: ScreenshotCapture | null;
+  close: () => void;
+}

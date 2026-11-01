@@ -39,7 +39,7 @@ function readLegacyMedia(
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("mediaState"));
   if (readError !== null || !raw) return null;
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
   if (parseError !== null || !parsed || typeof parsed !== "object") return null;
   const envelope = parsed as { state?: unknown };
   const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;

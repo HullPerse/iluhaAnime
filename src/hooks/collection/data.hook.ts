@@ -56,7 +56,7 @@ export function useCollectionDataActions() {
         addNotification(t("app.collection"), "error", textError.message);
         return;
       }
-      const [data, parseError] = attemptSync(() => JSON.parse(text) as unknown);
+      const [data, parseError] = attemptSync((): unknown => JSON.parse(text));
       if (parseError) {
         addNotification(t("app.collection"), "error", parseError.message);
         return;

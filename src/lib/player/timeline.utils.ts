@@ -1,14 +1,11 @@
 import { formatClock } from "@/lib/core/time.utils";
 import type { TFunc } from "@/types/core/i18n";
 import type { MpvChapter } from "@/types/player/videoPlayer";
+import type { BufferedSpan } from "@/types/player/timeline";
 
 export const TOOLTIP_WIDTH = 128;
 export const LIVE_SCRUB_INTERVAL = 80;
 const CHAPTER_SNAP_SECONDS = 20;
-
-export type HoverInfo = { time: number; x: number; chapter?: string };
-
-export type BufferedSpan = { start: number; end: number };
 
 const SPAN_EPSILON = 0.05;
 const SPAN_TOLERANCE = 0.5;

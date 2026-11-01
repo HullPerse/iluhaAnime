@@ -58,8 +58,8 @@ export function useWizardSave({
       return;
     }
     const [characters, staff] = await Promise.all([
-      withFallback(anilistApi.getAnimeCharacters(anilistId, 1), [] as AniCharacterEdge[]),
-      withFallback(anilistApi.getAnimeStaff(anilistId), [] as AniAnimeStaffEdge[]),
+      withFallback<AniCharacterEdge[]>(anilistApi.getAnimeCharacters(anilistId, 1), []),
+      withFallback<AniAnimeStaffEdge[]>(anilistApi.getAnimeStaff(anilistId), []),
     ]);
     onSave({
       ...base,

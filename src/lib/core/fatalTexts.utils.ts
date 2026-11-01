@@ -9,7 +9,7 @@ export function resolveFatalLocale(): Locale {
   if (typeof localStorage === "undefined") return "en";
   const [raw, readError] = attemptSync(() => localStorage.getItem("iluha.v1.settings"));
   if (readError !== null || !raw) return "en";
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
   if (parseError !== null || typeof parsed !== "object" || parsed === null) return "en";
   const envelope = parsed as { data?: unknown };
   const data = envelope.data;

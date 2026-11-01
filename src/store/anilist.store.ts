@@ -1,15 +1,18 @@
 import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { isRecord } from "@/lib/core/record.utils";
-import type { Persistor } from "@/types/core/persist";
-import type { Cell } from "@/types/core/signal";
 import type { AnilistSignalOptions } from "@/types/store/options";
+import type {
+  AnilistNotificationsData,
+  AnilistNotificationsSignalStore,
+  FriendsData,
+  FriendsSignalStore,
+} from "@/types/store/anilist";
 import { attemptSync } from "@/lib/core/attempt.utils";
 import type {
   AniListFriendsStore,
   AniListNotificationsStore,
   AniListObservation,
   AniListRelease,
-  AniUserProfile,
 } from "@/types/anilist/anilist";
 
 export const ANILIST_FRIENDS_SCHEMA_VERSION = 1;
@@ -179,34 +182,6 @@ function readLegacyEnvelope(
   };
 }
 
-type FriendsActionKeys = "addFriend" | "cacheProfile" | "removeFriend";
-
-type FriendsData = Omit<AniListFriendsStore, FriendsActionKeys>;
-type FriendsAtoms = { [K in keyof FriendsData]: Cell<FriendsData[K]> };
-
-type NotificationsActionKeys =
-  | "saveObservation"
-  | "markOwnListStatus"
-  | "addRelease"
-  | "markReleasesRead"
-  | "markSiteNotificationsRead"
-  | "setInitialized"
-  | "setKnownListNames"
-  | "setSiteMaxSeenId";
-
-export type AnilistNotificationsData = Omit<AniListNotificationsStore, NotificationsActionKeys>;
-type AnilistNotificationsAtoms = {
-  [K in keyof AnilistNotificationsData]: Cell<AnilistNotificationsData[K]>;
-};
-
-export interface FriendsSignalStore {
-  atoms: FriendsAtoms;
-  persistor: Persistor;
-  addFriend: (friend: AniListFriendsStore["friends"][number]) => void;
-  cacheProfile: (profile: AniUserProfile) => void;
-  removeFriend: (id: number) => void;
-}
-
 export function createFriendsSignalStore(options: AnilistSignalOptions = {}): FriendsSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "anilistFriends",
@@ -280,19 +255,6 @@ const DEFAULT_NOTIFICATIONS_DATA: AnilistNotificationsData = {
   knownListNames: [],
   siteMaxSeenId: 0,
 };
-
-export interface AnilistNotificationsSignalStore {
-  atoms: AnilistNotificationsAtoms;
-  persistor: Persistor;
-  saveObservation: (id: string, observation: AniListObservation) => void;
-  markOwnListStatus: (mediaId: number, status: string) => void;
-  addRelease: (release: Omit<AniListRelease, "read">) => void;
-  markReleasesRead: () => void;
-  markSiteNotificationsRead: (ids: number[]) => void;
-  setInitialized: (initialized: boolean) => void;
-  setKnownListNames: (knownListNames: string[]) => void;
-  setSiteMaxSeenId: (id: number) => void;
-}
 
 export function createAnilistNotificationsSignalStore(
   options: AnilistSignalOptions = {}

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CompareTab } from "@/routes/components/anilist/compare/constants.compare";
+import type { CompareTab } from "@/types/anilist/compare";
 
 export function EmptyRows({
   tab,

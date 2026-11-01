@@ -1,30 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 
 import type { AnilistRouteData } from "@/types/anilist/anilist";
+import type { EntryPatch, LiveEntryFields } from "@/types/anilist/progressStepper";
 import { queryKeys } from "@/lib/core/keys.utils";
-
-export interface EntryPatch {
-  progress?: number;
-  list_status?: string;
-  custom_lists?: string[];
-}
-
-export interface LiveEntryFields {
-  status: string;
-  score: number | null;
-  notes: string | null;
-}
-
-export interface StepperFailure {
-  target: number;
-  reason: string;
-}
 
 export const STEPPER_SYNC_WAIT_MS = 600;
 export const STEPPER_SYNC_MAX_WAIT_MS = 4000;
 export const STEPPER_SAVED_MS = 1500;
-
-export type StepperPhase = "idle" | "syncing" | "saved" | "error";
 
 export function patchEntry(
   queryClient: ReturnType<typeof useQueryClient>,

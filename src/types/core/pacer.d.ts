@@ -43,3 +43,8 @@ export interface PacedControls {
   isPending: boolean;
   status: PacerStatus;
 }
+
+export type PacedCallback<TArgs extends unknown[]> = ((...args: TArgs) => void) & {
+  cancel: () => void;
+  flush: () => void;
+};

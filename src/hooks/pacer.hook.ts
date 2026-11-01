@@ -7,15 +7,11 @@ import { useCell } from "@/lib/core/signal.hook";
 import type {
   DebounceOptions,
   DebouncedValueOptions,
+  PacedCallback,
   PacedControls,
   ThrottledValueOptions,
   ThrottleOptions,
 } from "@/types/core/pacer";
-
-export type PacedCallback<TArgs extends unknown[]> = ((...args: TArgs) => void) & {
-  cancel: () => void;
-  flush: () => void;
-};
 
 interface PacerSnapshot {
   executionCount: number;

@@ -4,6 +4,7 @@ import { Heart } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import type { PosterTileSize } from "@/types/ui/poster";
 import type { PosterTilePreview } from "@/types/core/posterTile";
 import ImageComponent from "@/components/ui/image.component";
 
@@ -14,8 +15,6 @@ const TILE_WIDTHS = {
 
 const PREVIEW_DELAY = 250;
 const PREVIEW_CLOSE_DELAY = 100;
-
-export type PosterTileSize = keyof typeof TILE_WIDTHS;
 
 export function PosterTile({
   src,

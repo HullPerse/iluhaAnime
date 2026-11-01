@@ -1,3 +1,4 @@
+import { keysOf } from "@/lib/core/keysOf.utils";
 import type { TabId } from "@/types/ui/settings";
 import type { TabPath } from "@/types/ui/tabPaths";
 
@@ -17,5 +18,5 @@ export function tabPathFromId(tab: TabId): TabPath {
 }
 
 export function tabIdFromPath(pathname: string): TabId | undefined {
-  return (Object.keys(TAB_PATHS) as TabId[]).find((tab) => TAB_PATHS[tab] === pathname);
+  return keysOf(TAB_PATHS).find((tab) => TAB_PATHS[tab] === pathname);
 }

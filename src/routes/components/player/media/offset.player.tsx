@@ -45,7 +45,7 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
     alwaysOnTop: boolean;
   }>({
     audio: undefined,
-    sub: undefined as number | undefined,
+    sub: undefined,
     subOffset: 0,
     audioOffset: 0,
     speed: 1,

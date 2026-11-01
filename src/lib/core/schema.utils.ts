@@ -20,7 +20,7 @@ export function parseValue<T>(value: unknown, schema: z.ZodMiniType<T>): Result<
 }
 
 export function parseJson<T>(raw: string, schema: z.ZodMiniType<T>): Result<T> {
-  const [value, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  const [value, parseError] = attemptSync((): unknown => JSON.parse(raw));
   return parseError === null ? parseValue(value, schema) : err(parseError);
 }
 

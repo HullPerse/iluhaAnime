@@ -81,7 +81,7 @@ export default function SettingsMedia() {
           <span className="w-36 shrink-0 font-bold">{t("settings.media.tracks")}</span>
           <Select
             value={showTrackFiles}
-            onChange={(value) => patchSettings({ showTrackFiles: value as typeof showTrackFiles })}
+            onChange={(value) => patchSettings({ showTrackFiles: value })}
             options={[
               { value: "hide", label: t("settings.media.tracks.hide") },
               { value: "folders", label: t("settings.media.tracks.folders") },
@@ -96,7 +96,7 @@ export default function SettingsMedia() {
             <Select
               value={streamDefaultQuality}
               onChange={(value) =>
-                patchSettings({ streamDefaultQuality: value as typeof streamDefaultQuality })
+                patchSettings({ streamDefaultQuality: value })
               }
               options={STREAM_QUALITIES.map((quality) => ({
                 value: quality,
@@ -112,7 +112,7 @@ export default function SettingsMedia() {
           <span className="w-36 shrink-0 font-bold">{t("settings.media.watcher")}</span>
           <Select
             value={watcherDelay}
-            onChange={(value) => patchSettings({ watcherDelay: value as typeof watcherDelay })}
+            onChange={(value) => patchSettings({ watcherDelay: value })}
             options={[
               { value: "fast", label: t("settings.media.watcher.fast") },
               { value: "calm", label: t("settings.media.watcher.calm") },

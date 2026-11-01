@@ -1,3 +1,4 @@
+import { keysOf } from "@/lib/core/keysOf.utils";
 import { THEME_OVERRIDE_VARS } from "@/config/graphics/themes.config";
 import {
   deriveFieldColor,
@@ -5,7 +6,7 @@ import {
   isHexColor,
   windowTintAlpha,
 } from "@/lib/graphics/palette.utils";
-import type { ThemeDefinition, ThemeOverrideKey } from "@/types/graphics/theme";
+import type { ThemeDefinition } from "@/types/graphics/theme";
 import type { ThemeOverrideBinding, ThemeState, ThemeVarBinding } from "@/types/graphics/tokens";
 
 export function normalizeAutocompleteOpacity(value: unknown): number {
@@ -56,7 +57,7 @@ export const THEME_VAR_BINDINGS: readonly ThemeVarBinding[] = [
 ];
 
 export const THEME_OVERRIDE_BINDINGS: readonly ThemeOverrideBinding[] = (
-  Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]
+  keysOf(THEME_OVERRIDE_VARS)
 ).map((key) => ({ key, varName: THEME_OVERRIDE_VARS[key] as `--${string}` }));
 
 export function buildThemeState(theme: ThemeDefinition): ThemeState {

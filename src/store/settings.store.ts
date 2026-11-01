@@ -2,6 +2,8 @@ import * as z from "zod/mini";
 
 import { tauriTransport } from "@/api/transport.api";
 import { listSortKeys } from "@/config/anilist/list.config";
+
+const LIST_SORT_KEY_SET: ReadonlySet<string> = new Set(listSortKeys);
 import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import {
   DEFAULT_SETTINGS,
@@ -11,7 +13,6 @@ import { STREAM_QUALITIES } from "@/config/player/quality.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { applyWindowChrome } from "@/lib/core/window.utils";
-import type { Persistor } from "@/types/core/persist";
 import {
   applyAtomValues,
   buildMirrorAtoms,
@@ -23,7 +24,8 @@ import { resolveWithDefaults, runTransforms } from "@/lib/core/migrate.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/graphics/font.utils";
 import { toValidator } from "@/lib/core/schema.utils";
-import type { SettingsAtoms, SettingsData } from "@/types/store/settings";
+import type { SettingsAtoms, SettingsData, SettingsSignalStore } from "@/types/store/settings";
+import type { SettingsSignalOptions } from "@/types/store/options";
 
 export const SETTINGS_SCHEMA_VERSION = 59;
 
@@ -290,7 +292,7 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   keybindOverrides: toValidator(z.record(z.string(), z.union([z.string(), z.null()]))),
   anilistListSort: toValidator(
     z.object({
-      key: z.string().check(z.refine((value) => (listSortKeys as string[]).includes(value))),
+      key: z.string().check(z.refine((value) => LIST_SORT_KEY_SET.has(value))),
       dir: z.enum(["asc", "desc"]),
     })
   ),
@@ -436,20 +438,6 @@ function readLegacyMigrated(
   const [migrated, migrateError] = attemptSync(() => migrateSettingsData(state, version));
   if (migrateError !== null) return null;
   return { data: { ...migrated }, schemaVersion: SETTINGS_SCHEMA_VERSION };
-}
-
-export interface SettingsSignalStore {
-  atoms: SettingsAtoms;
-  persistor: Persistor;
-  snapshot: () => SettingsData;
-  rehydrate: () => void;
-  patch: (partial: Partial<SettingsData>) => void;
-  subscribeAll: (fn: () => void) => () => void;
-}
-
-export interface SettingsSignalOptions {
-  getStorage?: () => Storage | undefined;
-  debounceMs?: number;
 }
 
 export function createSettingsSignalStore(

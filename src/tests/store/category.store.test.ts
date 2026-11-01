@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createCategorySignalStore, type CategorySignalStore } from "@/store/category.store";
+import { createCategorySignalStore } from "@/store/category.store";
+import type { CategorySignalStore } from "@/types/store/category";
 
 function memoryStorage(backing = new Map<string, string>()): Storage {
   return {

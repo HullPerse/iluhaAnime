@@ -86,7 +86,7 @@ export default function ToolbarCollection({
       <Select
         className="w-28"
         value={sortBy}
-        onChange={(v) => onSortChange(v as CollectionStore["sortBy"], sortDir)}
+        onChange={(v) => onSortChange(v, sortDir)}
         options={[
           { value: "date", label: t("collection.sort.date") },
           { value: "name", label: t("collection.sort.name") },

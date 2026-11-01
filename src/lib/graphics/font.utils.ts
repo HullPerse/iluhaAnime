@@ -34,7 +34,7 @@ export function getStoredAppFont(): string | null {
     if (direct && direct.trim().length > 0) return direct;
     const raw = localStorage.getItem("settings");
     if (raw) {
-      const parsed = JSON.parse(raw) as unknown;
+      const parsed: unknown = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
         const obj = parsed as Record<string, unknown>;
         const state = (obj.state as Record<string, unknown> | undefined) ?? obj;

@@ -19,7 +19,7 @@ import { formatBackupDate } from "@/lib/core/backup.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { attempt, attemptAll, reportBackgroundError, withFallback } from "@/lib/core/attempt.utils";
 import { formatBytes } from "@/lib/core/bytes.utils";
-import { pickDatabase, backupSize } from "@/lib/summarySettings.utils";
+import { pickDatabase, backupSize } from "@/lib/ui/summarySettings.utils";
 import { showError, showInfo, showWarning } from "@/lib/core/notification.utils";
 import { buildReproFrontend } from "@/lib/core/repro.utils";
 import { searchAtoms } from "@/store/search.store";

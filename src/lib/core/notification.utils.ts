@@ -9,6 +9,7 @@ import { openAnimeDeepLink } from "@/store/deeplink.store";
 import { addNotification, notificationAtoms, updateNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { Locale } from "@/types/core/i18n";
+import type { NotificationTargetResult } from "@/types/core/notification";
 import type {
   NotificationFilter,
   NotificationItem,
@@ -60,8 +61,6 @@ export function resolveNotificationText(
     : (payload.body ?? "");
   return { body, title };
 }
-
-export type NotificationTargetResult = "opened" | "tab-disabled" | "failed";
 
 export async function openNotificationTarget(
   target: NotificationTarget

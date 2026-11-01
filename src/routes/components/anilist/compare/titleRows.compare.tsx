@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import type { ComparedTitle } from "@/types/core/compare";
-import type { CompareTab } from "@/routes/components/anilist/compare/constants.compare";
+import type { CompareTab } from "@/types/anilist/compare";
 import { EmptyRows } from "@/routes/components/anilist/compare/emptyRows.compare";
 import { TitleRow } from "@/routes/components/anilist/compare/titleRow.compare";
 

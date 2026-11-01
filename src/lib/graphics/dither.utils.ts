@@ -1,3 +1,4 @@
+import { keysOf } from "@/lib/core/keysOf.utils";
 import {
   DITHER_DECODE_CACHE_CAPACITY,
   DITHER_DEFAULTS,
@@ -86,7 +87,7 @@ export function resetDitherWorker(): void {
 export function withDitherDefaults(overrides: Partial<DitherEffectOptions>): DitherEffectOptions {
   const merged: DitherEffectOptions = { ...DITHER_DEFAULTS };
 
-  for (const key of Object.keys(overrides) as (keyof DitherEffectOptions)[]) {
+  for (const key of keysOf(overrides)) {
     const value = overrides[key];
     if (value !== undefined) {
       Object.assign(merged, { [key]: value });

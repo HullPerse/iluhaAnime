@@ -6,12 +6,7 @@ import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { showError } from "@/lib/core/notification.utils";
-import type { ScreenshotCapture } from "@/types/core/screenshot";
-
-export interface ScreenshotSession {
-  capture: ScreenshotCapture | null;
-  close: () => void;
-}
+import type { ScreenshotCapture, ScreenshotSession } from "@/types/core/screenshot";
 
 const SCREENSHOT_DEFS: ResolvedHotkeyDef<"capture">[] = [
   { id: "capture", chord: "ctrl+Shift+KeyP", repeat: "once", keybindId: "screenshot.capture" },

@@ -33,7 +33,7 @@ export function CompareToolbar({
       <div className="mt-1 flex items-center gap-1">
         <Select
           value={sort}
-          onChange={(value) => onSort(value as CompareSort)}
+          onChange={(value) => onSort(value)}
           options={sortOptions}
           label={t("anilist.compare.sort")}
           className="min-w-0 flex-1"

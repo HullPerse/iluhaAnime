@@ -1,3 +1,4 @@
+import { keysOf } from "@/lib/core/keysOf.utils";
 import type { TranslationKey } from "@/types/core/i18n";
 import type { CrtCurvature, PlayerCabinetId, PlayerModeId } from "@/types/player/videoPlayer";
 import type { PlayerModeDef } from "@/types/core/modes";
@@ -40,7 +41,7 @@ export const PLAYER_MODES: Record<PlayerModeId, PlayerModeDef> = {
   },
 };
 
-export const PLAYER_MODE_IDS = Object.keys(PLAYER_MODES) as PlayerModeId[];
+export const PLAYER_MODE_IDS = keysOf(PLAYER_MODES);
 
 export const PLAYER_CABINETS: Record<PlayerCabinetId, TranslationKey> = {
   none: "player.media.settings.cabinet.none",
@@ -48,7 +49,7 @@ export const PLAYER_CABINETS: Record<PlayerCabinetId, TranslationKey> = {
   wood: "player.media.settings.cabinet.wood",
 };
 
-export const PLAYER_CABINET_IDS = Object.keys(PLAYER_CABINETS) as PlayerCabinetId[];
+export const PLAYER_CABINET_IDS = keysOf(PLAYER_CABINETS);
 
 export const CRT_CURVATURES = [0.02, 0.04, 0.07] as const satisfies readonly CrtCurvature[];
 

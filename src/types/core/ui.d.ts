@@ -8,7 +8,7 @@ export interface SelectOption<T extends string = string> {
 export interface SelectProps<T extends string = string> {
   value: T;
   onChange: (value: T) => void;
-  options: readonly (SelectOption<T> & { style?: CSSProperties })[];
+  options: readonly (SelectOption<NoInfer<T>> & { style?: CSSProperties })[];
   className?: string;
   placeholder?: string;
   arrow?: boolean;

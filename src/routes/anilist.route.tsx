@@ -13,6 +13,8 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
+import { useAnilistAuth } from "@/hooks/anilist/auth.hook";
+import { useAnilistFavouriteToggle } from "@/hooks/anilist/favourite.hook";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/anilistGroup.utils";
@@ -28,10 +30,9 @@ import {
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
-import { tr } from "@/lib/locale/i18n.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { useCell } from "@/lib/core/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { showErrorOnce } from "@/lib/core/notification.utils";
 import { paginate } from "@/lib/core/pagination.utils";
 import {
@@ -40,8 +41,6 @@ import {
   cacheAnilistProfile,
   removeAnilistFriend,
 } from "@/store/anilist.store";
-import { consumeAuthDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
-import { addNotification } from "@/store/notification.store";
 import { searchAtoms, setAnilistSearchQuery, subscribeSearch } from "@/store/search.store";
 import { patchSettings, settingsAtoms, syncCoverModeWithAnilistAuth } from "@/store/settings.store";
 import type {
@@ -50,9 +49,7 @@ import type {
   AniFriendMinimal,
   AniListAnime,
   AniListSort,
-  AniUser,
   AniUserProfile,
-  AnilistRouteData,
   GlobalSort,
 } from "@/types/anilist/anilist";
 
@@ -291,38 +288,7 @@ function AnilistRoute() {
     handleDetailsClose();
     handleCloseModal("filters");
   }, [discovery, handleDetailsClose, handleCloseModal]);
-  const favPendingRef = useRef<Set<number>>(new Set());
-  const toggleFavourite = useCallback(
-    async (animeId: number) => {
-      if (favPendingRef.current.has(animeId)) return;
-      favPendingRef.current.add(animeId);
-      const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-      const wasFavourite = previous?.favourites.some((f) => f.id === animeId) ?? false;
-      if (wasFavourite) {
-        queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
-          old
-            ? {
-                ...(old as AnilistRouteData),
-                favourites: (old as AnilistRouteData).favourites.filter((f) => f.id !== animeId),
-              }
-            : old
-        );
-      }
-      const [updated, error] = await attempt(anilistApi.toggleFavourite(animeId));
-      favPendingRef.current.delete(animeId);
-      if (error) {
-        if (wasFavourite) {
-          queryClient.setQueryData(queryKeys.anilistData(), previous);
-        }
-        addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
-      } else {
-        queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) =>
-          old ? { ...(old as AnilistRouteData), favourites: updated } : old
-        );
-      }
-    },
-    [queryClient]
-  );
+  const toggleFavourite = useAnilistFavouriteToggle();
   const { toggleStaff: toggleFavouriteStaff, toggleCharacter: toggleFavouriteCharacter } =
     useFavouritePeopleToggles();
 
@@ -330,34 +296,7 @@ function AnilistRoute() {
     queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() });
   }, [queryClient]);
 
-  const handleAuthSuccess = useCallback(
-    (authUser: AniUser) => {
-      handleCloseModal("auth");
-      syncCoverModeWithAnilistAuth(true);
-      queryClient.setQueryData(queryKeys.anilistData(), {
-        user: authUser,
-        lists: [],
-        favourites: [],
-        people: { staff: [], characters: [] },
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() });
-    },
-    [queryClient, handleCloseModal]
-  );
-
-  const authTarget = useCell(deeplinkAtoms.authTarget);
-  useEffect(() => {
-    if (!authTarget) return;
-    consumeAuthDeepLink();
-    (async () => {
-      const [authUser, error] = await attempt(anilistApi.login(authTarget.accessToken));
-      if (error) {
-        addNotification(tr("anilist.auth.failed"), "error", error.message);
-        return;
-      }
-      handleAuthSuccess(authUser);
-    })();
-  }, [authTarget, handleAuthSuccess]);
+  const handleAuthSuccess = useAnilistAuth(() => handleCloseModal("auth"));
 
   const handleAddFriend = useCallback((profile: AniUserProfile) => {
     addAnilistFriend({

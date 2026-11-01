@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { countFiles } from "@/lib/torrent/fileTree.utils";
-import type { TorrentFileNode } from "@/lib/torrent/fileTree.utils";
+import type { TorrentFileNode } from "@/types/torrent/fileTree";
 import { TorrentFileLeaf } from "@/routes/components/search/default/details/torrentFileLeaf.details";
 
 export function TorrentFolderNode({

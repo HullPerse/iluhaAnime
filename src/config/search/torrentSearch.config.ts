@@ -16,8 +16,7 @@ const TORRENT_LIFECYCLES = [
   "completed",
 ] as const satisfies readonly (TorrentLifecycle | "all")[];
 
-export type TorrentSort = (typeof TORRENT_SORTS)[number];
-export type TorrentLifecycleFilter = (typeof TORRENT_LIFECYCLES)[number];
+export type { TorrentSort, TorrentLifecycleFilter } from "@/types/search/torrentSearch";
 
 export const torrentSearchSchema = z.object({
   q: withFallback(z.string(), ""),

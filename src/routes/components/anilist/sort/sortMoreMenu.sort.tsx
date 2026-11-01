@@ -72,7 +72,7 @@ export function SortMoreMenu({
           </DropdownMenuCheckboxItem>
           <DropdownMenuRadioGroup
             value={displayMode}
-            onValueChange={(v) => onDisplayChange(v as typeof displayMode)}
+            onValueChange={(v) => onDisplayChange(v)}
           >
             <DropdownMenuRadioItem value="scroll" title={t("anilist.sort.display.scroll")}>
               <InfinityIcon className="size-4" />

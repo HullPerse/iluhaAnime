@@ -9,6 +9,7 @@ import type {
   AnilistAuthDeepLink,
   CollectionShareDeepLink,
   CollectionShareItem,
+  PastedLink,
   StreamDeepLink,
   TorrentDeepLink,
 } from "@/types/core/deeplink";
@@ -18,6 +19,7 @@ export type {
   AnimeDeepLink,
   AnilistAuthDeepLink,
   CollectionShareDeepLink,
+  PastedLink,
   StreamDeepLink,
   TorrentDeepLink,
 };
@@ -136,12 +138,6 @@ export function ingestDeepLinks(
   if (bad) onInvalid();
 }
 
-export type PastedLink =
-  | { kind: "anime"; link: AnimeDeepLink }
-  | { kind: "stream"; link: StreamDeepLink }
-  | { kind: "torrent"; link: TorrentDeepLink }
-  | { kind: "magnet"; magnet: string }
-  | { kind: "collectionShare" };
 
 export function parseAnilistPageUrl(raw: string): AnimeDeepLink | null {
   const match = /^https:\/\/anilist\.co\/anime\/(\d{1,10})(?:\/[^\s?#]*)?\/?$/i.exec(raw.trim());
@@ -402,7 +398,7 @@ export async function parseCollectionShareLink(
   );
   if (!decompressed) return null;
   const decoded = attemptResultSync(
-    () => JSON.parse(new TextDecoder().decode(decompressed)) as unknown
+    (): unknown => JSON.parse(new TextDecoder().decode(decompressed))
   );
   return decoded.ok ? readSharePayload(decoded.value) : null;
 }

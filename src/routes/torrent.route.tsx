@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
-import { torrentApi } from "@/api/torrent.api";
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { HostStatsBars } from "@/components/shared/hostStats/bars.hostStats";
@@ -14,6 +13,7 @@ import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/system/common.config";
 import type { TorrentLifecycleFilter, TorrentSort } from "@/config/search/torrentSearch.config";
+import { LIFECYCLE_TABS } from "@/config/torrent/sort.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -21,13 +21,9 @@ import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
+import { useTorrentBulk } from "@/hooks/torrent/bulk.hook";
 import {
   TORRENTS_QUERY_KEY,
-  useAddTorrentTracker,
-  usePauseTorrent,
-  useRecheckTorrent,
-  useRemoveTorrent,
-  useResumeTorrent,
   useTorrentFilesMap,
   useTorrentListenPort,
   useDhtStats,
@@ -38,12 +34,7 @@ import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { isSameOrInside } from "@/lib/core/pathsWatcher.utils";
-import {
-  BULK_CONCURRENCY,
-  applyBulkAction,
-  pruneSelection,
-  splitRecheckOutcome,
-} from "@/lib/core/bulk.utils";
+import { pruneSelection } from "@/lib/core/bulk.utils";
 import {
   countLiveTorrents,
   formatSpeed,
@@ -51,10 +42,10 @@ import {
   getLifecycleLabel,
   getTorrentLifecycle,
 } from "@/lib/torrent/torrentCommon.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import { paginate } from "@/lib/core/pagination.utils";
+import { sortTorrents } from "@/lib/torrent/sort.utils";
 import { ignore } from "@/lib/core/promise.utils";
-import { attemptAllLimit } from "@/lib/core/result.utils";
 import { torrentRoute } from "@/routes/__root";
 import {
   cacheAtoms,
@@ -74,7 +65,6 @@ import {
   setTorrentSpeedLimits as setSpeedLimits,
   torrentAtoms,
 } from "@/store/download.store";
-import { addNotification } from "@/store/notification.store";
 import { getSettingsSnapshot } from "@/store/settings.store";
 import type { TorrentInfo } from "@/types/torrent/torrent";
 
@@ -89,22 +79,6 @@ import { DeleteTorrentDialog } from "@/routes/components/torrent/sections/delete
 import { TorrentSelectionBar } from "@/routes/components/torrent/sections/selection.sections";
 import SpeedLimitForm from "@/routes/components/torrent/speed.torrent";
 
-const LIFECYCLE_TABS = ["all", "staging", "live", "paused", "seeding", "completed"] as const;
-
-type SortableTorrent = {
-  name: string;
-  total_bytes: number;
-  progress: number;
-  download_speed: number;
-};
-
-const TORRENT_SORTERS: Record<string, (a: SortableTorrent, b: SortableTorrent) => number> = {
-  name: (a, b) => a.name.localeCompare(b.name),
-  size: (a, b) => a.total_bytes - b.total_bytes,
-  progress: (a, b) => a.progress - b.progress,
-  speed: (a, b) => a.download_speed - b.download_speed,
-};
-
 function TorrentRoute() {
   const queryClient = useQueryClient();
   useResolvedHotkeys<"focus-main">(
@@ -116,13 +90,10 @@ function TorrentRoute() {
   const { data, isLoading: torrentsLoading } = useTorrents();
   const torrents = data ?? NO_TORRENTS;
   const limits = useCell(torrentAtoms.limits);
-  const pauseMutation = usePauseTorrent();
-  const resumeMutation = useResumeTorrent();
-  const removeMutation = useRemoveTorrent();
   const torrentOrder = useCell(cacheAtoms.torrentOrder);
-  const recheckMutation = useRecheckTorrent();
-  const addTrackerMutation = useAddTorrentTracker();
   const opInFlight = useCell(torrentAtoms.opInFlight);
+  const { bulkBusy, recreateTargets, setRecreateTargets, recreateTorrents, runBulk } =
+    useTorrentBulk();
   const { data: listenPort } = useTorrentListenPort();
   const { data: dhtStats } = useDhtStats();
 
@@ -214,18 +185,7 @@ function TorrentRoute() {
     const list = filterQuery.trim()
       ? lifecycleTorrents.filter((t) => t.name.toLowerCase().includes(filterQuery.toLowerCase()))
       : lifecycleTorrents;
-    if (sortBy === "custom") {
-      const rank = new Map(torrentOrder.map((id, index) => [id, index]));
-      return [...list].sort((a, b) => {
-        const ra = rank.get(a.id) ?? Number.MAX_SAFE_INTEGER;
-        const rb = rank.get(b.id) ?? Number.MAX_SAFE_INTEGER;
-        return ra === rb ? a.id - b.id : ra - rb;
-      });
-    }
-    return [...list].sort((a, b) => {
-      const cmp = TORRENT_SORTERS[sortBy]?.(a, b) ?? 0;
-      return sortAsc ? cmp : -cmp;
-    });
+    return sortTorrents(list, sortBy, sortAsc, torrentOrder);
   }, [lifecycleTorrents, filterQuery, sortBy, sortAsc, torrentOrder]);
 
   const { total, from, to, lastPage } = usePagination(
@@ -242,8 +202,6 @@ function TorrentRoute() {
     () => paginate(filteredTorrents, page, TORRENT_PAGE_SIZE),
     [filteredTorrents, page]
   );
-  const [bulkBusy, setBulkBusy] = useState<boolean>(false);
-  const [recreateTargets, setRecreateTargets] = useState<TorrentInfo[]>([]);
   const problemTorrents = useMemo(
     () => filteredTorrents.filter((torrent) => torrent.error || torrent.missing_files),
     [filteredTorrents]
@@ -262,132 +220,6 @@ function TorrentRoute() {
   const [bulkRemoveTargets, setBulkRemoveTargets] = useState<TorrentInfo[] | null>(null);
   const [showBulkTrackers, setShowBulkTrackers] = useState<boolean>(false);
   const [showBulkLimits, setShowBulkLimits] = useState<boolean>(false);
-  const recreateTorrents = (targets: TorrentInfo[]) =>
-    applyBulkAction(targets, (torrent) =>
-      removeMutation
-        .mutateAsync({
-          id: torrent.id,
-          deleteFiles: false,
-          infoHash: torrent.info_hash,
-        })
-        .then((removed) => {
-          if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
-          return null;
-        })
-    );
-  const runBulk = async (
-    kind: "pause" | "resume" | "recheck" | "remove" | "trackers" | "limits",
-    targets: TorrentInfo[],
-    deleteFiles = false,
-    payload?: { tracker?: string; downloadBps?: number | null; uploadBps?: number | null }
-  ) => {
-    if (targets.length === 0 || bulkBusy) return;
-    setBulkBusy(true);
-    const total = targets.length;
-    const reportFailures = (done: number) => {
-      if (done >= total) return;
-      addNotification(
-        t("torrent.bulk.title"),
-        "error",
-        t("torrent.bulk.done", { done, failed: total - done })
-      );
-    };
-    await attempt(
-      (async () => {
-        if (kind === "remove") {
-          const outcomes = await attemptAllLimit(targets, BULK_CONCURRENCY, (torrent) =>
-            removeMutation.mutateAsync({
-              id: torrent.id,
-              deleteFiles,
-              infoHash: torrent.info_hash,
-              silent: true,
-            })
-          );
-          const done = outcomes.filter((outcome) => outcome.ok && Boolean(outcome.value)).length;
-          reportFailures(done);
-          return;
-        }
-        if (kind === "recheck") {
-          const results = await Promise.all(
-            targets.map((torrent) =>
-              recheckMutation.mutateAsync({
-                id: torrent.id,
-                infoHash: torrent.info_hash,
-                silent: true,
-              })
-            )
-          );
-          const { lost, failed } = splitRecheckOutcome(targets, results);
-          if (failed > 0) {
-            addNotification(
-              t("torrent.bulk.title"),
-              "error",
-              t("torrent.bulk.recheck.done", {
-                done: targets.length - failed,
-                failed,
-              })
-            );
-          }
-          if (lost.length > 0) setRecreateTargets(lost);
-          return;
-        }
-        if (kind === "trackers" && payload?.tracker) {
-          const tracker = payload.tracker;
-          const { done, failed } = await applyBulkAction(targets, (torrent) =>
-            addTrackerMutation.mutateAsync({
-              id: torrent.id,
-              tracker,
-              infoHash: torrent.info_hash,
-              silent: true,
-            })
-          );
-          if (failed > 0)
-            addNotification(
-              t("torrent.bulk.title"),
-              "error",
-              t("torrent.bulk.done", { done, failed })
-            );
-          return;
-        }
-        if (kind === "limits") {
-          const downloadBps =
-            payload?.downloadBps != null ? Math.round(payload.downloadBps * 1024) : null;
-          const uploadBps =
-            payload?.uploadBps != null ? Math.round(payload.uploadBps * 1024) : null;
-          const { done, failed } = await applyBulkAction(targets, (torrent) =>
-            torrentApi.setTorrentLimits(torrent.id, { downloadBps, uploadBps }, torrent.info_hash)
-          );
-          if (failed > 0)
-            addNotification(
-              t("torrent.bulk.title"),
-              "error",
-              t("torrent.bulk.done", { done, failed })
-            );
-          return;
-        }
-        const { done, failed } = await applyBulkAction(targets, (torrent) =>
-          kind === "pause"
-            ? pauseMutation.mutateAsync({
-                id: torrent.id,
-                infoHash: torrent.info_hash,
-                silent: true,
-              })
-            : resumeMutation.mutateAsync({
-                id: torrent.id,
-                infoHash: torrent.info_hash,
-                silent: true,
-              })
-        );
-        if (failed > 0)
-          addNotification(
-            t("torrent.bulk.title"),
-            "error",
-            t("torrent.bulk.done", { done, failed })
-          );
-      })()
-    );
-    setBulkBusy(false);
-  };
   useResolvedHotkeys<"torrent-pause-resume" | "torrent-recheck-errors">(
     [
       {

@@ -22,7 +22,7 @@ export function detectMigrations(): StoreMigration[] {
   for (const tracked of TRACKED_STORES) {
     const [raw, readError] = attemptSync(() => localStorage.getItem(`iluha.v1.${tracked.store}`));
     if (readError !== null || !raw) continue;
-    const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+    const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
     if (parseError !== null || typeof parsed !== "object" || parsed === null) continue;
     const stored = (parsed as { sv?: unknown }).sv;
     if (typeof stored === "number" && stored < tracked.current) {

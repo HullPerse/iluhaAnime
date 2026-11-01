@@ -5,7 +5,6 @@ import { SCREENSHOT_FORMATS, SCREENSHOT_FORMAT_LABELS } from "@/config/graphics/
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/core/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { ScreenshotFormat } from "@/types/core/screenshot";
 
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
@@ -35,7 +34,7 @@ export default function ScreenshotSettings() {
           <span className="w-40 shrink-0 font-bold">{t("settings.screenshot.format")}</span>
           <Select
             value={screenshotFormat}
-            onChange={(value) => patchSettings({ screenshotFormat: value as ScreenshotFormat })}
+            onChange={(value) => patchSettings({ screenshotFormat: value })}
             options={SCREENSHOT_FORMATS.map((f) => ({
               value: f,
               label: t(SCREENSHOT_FORMAT_LABELS[f]),

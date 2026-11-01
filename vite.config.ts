@@ -9,6 +9,7 @@ const ISOLATED_TESTS = [
   "src/tests/lib/media.test.ts",
   "src/tests/lib/anilistNotifications.test.ts",
   "src/tests/components/player/side.player.test.tsx",
+  "src/tests/components/player/modal.player.test.tsx",
   "src/tests/components/search/modern/dither/settings.dither.test.tsx",
   "src/tests/components/search/modern/dither/preview/modal.preview.test.tsx",
   "src/tests/components/collection/importAnilist.collection.test.tsx",

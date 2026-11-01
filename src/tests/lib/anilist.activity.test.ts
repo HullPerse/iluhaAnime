@@ -1,0 +1,242 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  buildActivityMap,
+  buildYearGrid,
+  dayKey,
+  formatActivityTime,
+  groupLabel,
+  monthLabel,
+  selectInitialDayKey,
+} from "@/lib/core/activity.utils";
+import type {
+  ActivityTranslate,
+  AniListCollection,
+  AniListEntry,
+  AniMedia,
+  DayActivity,
+} from "@/types/anilist/anilist";
+
+describe("anilist/activity", () => {
+  function makeT(): ActivityTranslate {
+    return (key) => {
+      if (key === "anilist.activity.event.added") return "Added";
+      if (key === "anilist.activity.event.progress") return "Progress";
+      if (key === "anilist.activity.event.completed") return "Completed";
+      return key;
+    };
+  }
+
+  function makeMedia(overrides: Partial<AniMedia> = {}): AniMedia {
+    return {
+      cover_url: null,
+      description: null,
+      duration: 23,
+      end_date: "2007-02-08",
+      episodes: 220,
+      favourites: 500,
+      format: "TV",
+      genres: ["Action"],
+      id: 1,
+      next_airing_at: null,
+      next_episode: null,
+      popularity: 1000,
+      rankings: [],
+      relations: [],
+      score: 8,
+      season: "WINTER",
+      season_year: 2002,
+      start_date: "2002-10-03",
+      status: "FINISHED",
+      studios: [{ id: 1, name: "Studio" }],
+      tags: ["Ninja"],
+      title: "Naruto",
+      titles: ["Naruto", "Наруто"],
+      ...overrides,
+    };
+  }
+
+  function makeEntry(overrides: Partial<AniListEntry> = {}): AniListEntry {
+    return {
+      completed_at: null,
+      started_at: null,
+      created_at: 0,
+      list_status: "CURRENT",
+      media: makeMedia(),
+      progress: 1,
+      score: 8,
+      updated_at: 0,
+      notes: null,
+      repeat: null,
+      private: null,
+      hidden_from_status_lists: null,
+      custom_lists: [],
+      ...overrides,
+    };
+  }
+
+  function makeCollection(overrides: Partial<AniListCollection> = {}): AniListCollection {
+    return {
+      name: "Watching",
+      entries: [],
+      ...overrides,
+    };
+  }
+
+  function makeDay(count: number): DayActivity {
+    return { added: 0, progress: 0, completed: 0, count, items: [] };
+  }
+
+  describe("dayKey", () => {
+    it("formats local date as zero-padded key", () => {
+      expect(dayKey(new Date(2024, 0, 5))).toBe("2024-01-05");
+      expect(dayKey(new Date(2024, 11, 31))).toBe("2024-12-31");
+    });
+  });
+
+  describe("monthLabel", () => {
+    it("returns short month name for locale", () => {
+      expect(monthLabel(0, "en")).toBe("Jan");
+      expect(monthLabel(11, "en")).toBe("Dec");
+    });
+  });
+
+  describe("formatActivityTime", () => {
+    it("formats past unix timestamps with a suffix in both locales", () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
+        const twoHoursAgo = Math.floor(Date.now() / 1000) - 7200;
+        expect(formatActivityTime(twoHoursAgo, "en")).toBe("about 2 hours ago");
+        expect(formatActivityTime(twoHoursAgo, "ru")).toBe("около 2 часов назад");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe("groupLabel", () => {
+    const now = Date.now() / 1000;
+    const t = makeT();
+    it("returns today for the same day", () => {
+      expect(groupLabel(now, t, "en")).toBe("anilist.activity.today");
+    });
+    it("returns yesterday for the previous day", () => {
+      expect(groupLabel(now - 86_400, t, "en")).toBe("anilist.activity.yesterday");
+    });
+    it("returns absolute date for older", () => {
+      const result = groupLabel(now - 3 * 86_400, t, "en");
+      expect(result).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+    });
+  });
+
+  describe("buildActivityMap", () => {
+    const t = makeT();
+    it("counts added/progress/completed events per day", () => {
+      const created = new Date(2024, 4, 10, 12, 0, 0).getTime() / 1000;
+      const updated = new Date(2024, 4, 11, 12, 0, 0).getTime() / 1000;
+      const collections: AniListCollection[] = [
+        makeCollection({
+          entries: [
+            makeEntry({
+              media: makeMedia({ id: 1, title: "A" }),
+              created_at: created,
+            }),
+            makeEntry({
+              media: makeMedia({ id: 1, title: "A" }),
+              created_at: created,
+              updated_at: updated,
+            }),
+            makeEntry({
+              media: makeMedia({ id: 2, title: "B" }),
+              created_at: created,
+              completed_at: "2024-05-10",
+            }),
+          ],
+        }),
+      ];
+      const map = buildActivityMap(collections, t);
+      const day10 = map.get("2024-05-10");
+      const day11 = map.get("2024-05-11");
+      expect(day10?.added).toBe(3);
+      expect(day10?.completed).toBe(1);
+      expect(day10?.count).toBe(4);
+      expect(day10?.items).toHaveLength(2);
+      expect(day11?.progress).toBe(1);
+    });
+
+    it("merges multiple events of the same media into one item", () => {
+      const created = new Date(2024, 4, 10, 12, 0, 0).getTime() / 1000;
+      const collections: AniListCollection[] = [
+        makeCollection({
+          entries: [
+            makeEntry({
+              media: makeMedia({ id: 1, title: "A" }),
+              created_at: created,
+              updated_at: created + 3600,
+            }),
+          ],
+        }),
+      ];
+      const map = buildActivityMap(collections, t);
+      const day = map.get("2024-05-10");
+      expect(day?.items).toHaveLength(1);
+      expect(day?.items[0].events).toBe("Added - Progress");
+    });
+  });
+
+  describe("buildYearGrid", () => {
+    it("builds columns covering the whole year", () => {
+      const activity = new Map<string, DayActivity>();
+      activity.set("2024-05-10", makeDay(2));
+      const { columns, totalCount } = buildYearGrid(2024, activity);
+      expect(totalCount).toBe(2);
+      expect(columns.length).toBeGreaterThan(0);
+      const allCells = columns.flatMap((c) => c.cells);
+      expect(allCells.some((cell) => cell.count === 2)).toBe(true);
+      expect(allCells.filter((cell) => cell.date.getFullYear() === 2024).length).toBeGreaterThan(0);
+    });
+
+    it("assigns level 4 to the busiest day", () => {
+      const activity = new Map<string, DayActivity>();
+      activity.set("2024-05-10", makeDay(4));
+      const { columns } = buildYearGrid(2024, activity);
+      const cells = columns.flatMap((c) => c.cells);
+      const cell = cells.find((c) => c.count === 4);
+      expect(cell?.level).toBe(4);
+    });
+  });
+
+  describe("selectInitialDayKey", () => {
+    function activeMap(keys: string[]): Map<string, DayActivity> {
+      const map = new Map<string, DayActivity>();
+      for (const key of keys) map.set(key, makeDay(1));
+      return map;
+    }
+
+    it("returns null for empty activity", () => {
+      expect(selectInitialDayKey(new Map(), 2024, new Date(2024, 5, 1))).toBeNull();
+    });
+
+    it("returns the latest active day of the year", () => {
+      const map = activeMap(["2024-03-01", "2024-05-10", "2024-01-20"]);
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 11, 31))).toBe("2024-05-10");
+    });
+
+    it("ignores other years", () => {
+      const map = activeMap(["2023-12-31", "2025-01-01", "2024-02-02"]);
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 11, 31))).toBe("2024-02-02");
+    });
+
+    it("ignores future days in the current year", () => {
+      const map = activeMap(["2024-06-10", "2024-09-30"]);
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 5, 15))).toBe("2024-06-10");
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 5, 1))).toBeNull();
+    });
+
+    it("ignores zero-count days", () => {
+      const map = activeMap(["2024-04-01"]);
+      map.set("2024-07-07", makeDay(0));
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 11, 31))).toBe("2024-04-01");
+    });
+  });
+});

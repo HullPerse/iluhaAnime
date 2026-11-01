@@ -80,9 +80,7 @@ describe("types/utils", () => {
     expectTypeOf(hash).not.toEqualTypeOf<string>();
     expectTypeOf(hash).not.toEqualTypeOf<MagnetLink>();
     expectTypeOf(magnet).not.toEqualTypeOf<FilePath>();
-    expect(anime).toBe(21);
-    expect(hash).toBe("abc");
-    expect(file).toBe("/tmp/x");
+    expectTypeOf(file).not.toEqualTypeOf<string>();
     expectTypeOf<number>().not.toMatchTypeOf<AniListId>();
     expectTypeOf<string>().not.toMatchTypeOf<TorrentHash>();
   });
@@ -92,22 +90,26 @@ describe("types/utils", () => {
   });
 
   it("flattens intersections for display", () => {
-    const flat: Prettify<{ a: string } & { b: number }> = { a: "x", b: 1 };
-    expect(flat.a).toBe("x");
+    expectTypeOf<Prettify<{ a: string } & { b: number }>>().toEqualTypeOf<{
+      a: string;
+      b: number;
+    }>();
   });
 
   it("allows deep partial updates and keeps functions intact", () => {
     const partial: DeepPartial<NestedShape> = { a: {} };
-    expect(partial.a).toEqual({});
+    expectTypeOf(partial.a).toEqualTypeOf<{ b?: string } | undefined>();
     expectTypeOf<DeepPartial<() => void>>().toEqualTypeOf<() => void>();
   });
 
   it("freezes nested graphs and thaws readonly inputs", () => {
-    const frozen: DeepReadonly<NestedShape> = { a: { b: "x" }, list: [1], fn: () => {} };
-    expect(frozen.a.b).toBe("x");
+    expectTypeOf<DeepReadonly<NestedShape>>().toMatchTypeOf<{
+      readonly a: { readonly b: string };
+      readonly list: readonly number[];
+    }>();
     const thawed: Mutable<readonly [1, 2]> = [1, 2];
     thawed.push(1);
-    expect(thawed).toEqual([1, 2, 1]);
+    expectTypeOf(thawed).toMatchTypeOf<number[]>();
   });
 
   it("accepts exact shapes and rejects excess keys", () => {

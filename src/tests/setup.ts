@@ -61,6 +61,9 @@ afterEach(() => {
 
 beforeEach(async () => {
   const { resetTransportInflight, resetTransportStats } = await import("@/api/transport.api");
+  const { DEFAULT_STREAM_FILTERS } = await import("@/config/player/streamFilters.config");
+  const { streamFilters, streamPage, streamQuery, streamSlug } =
+    await import("@/store/stream.store");
   const { resetCoverCache } = await import("@/hooks/collection/cache.hook");
   const { resetRemoteImageCache } = await import("@/hooks/remoteImage.hook");
   const { resetCardCache } = await import("@/lib/core/cardCache.utils");
@@ -80,6 +83,11 @@ beforeEach(async () => {
   resetSettingsAtoms();
   resetModalAtoms();
   resetUpdateAtoms();
+  streamSlug.set(null);
+  streamPage.set(1);
+  streamQuery.set("");
+  streamFilters.set({ ...DEFAULT_STREAM_FILTERS });
+  Object.defineProperty(window.navigator, "onLine", { configurable: true, value: true });
   localStorage.clear();
   sessionStorage.clear();
 });

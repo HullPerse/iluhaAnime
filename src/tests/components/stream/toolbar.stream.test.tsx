@@ -6,6 +6,8 @@ import StreamToolbar from "@/routes/components/stream/toolbar.stream";
 import { patchSettings } from "@/store/settings.store";
 import { streamPage, streamQuery, submitStreamSearch } from "@/store/stream.store";
 
+import { mockInvoke } from "@/tests/mocks";
+
 const filters = DEFAULT_STREAM_FILTERS;
 const noop = () => undefined;
 
@@ -113,6 +115,71 @@ describe("StreamToolbar", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     expect(onFiltersOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes the catalog after signing in", async () => {
+    let signedIn = false;
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === "animelib_account") {
+        return Promise.resolve(
+          signedIn ? { tokenSaved: true, login: "milky" } : { tokenSaved: false, login: null }
+        );
+      }
+      if (command === "animelib_webview_login") return Promise.resolve("ok");
+      if (command === "animelib_finish_webview_login") {
+        signedIn = true;
+        return Promise.resolve("ok");
+      }
+      return Promise.resolve(null);
+    });
+
+    const onRefetch = vi.fn();
+    render(
+      <StreamToolbar
+        isFetching={false}
+        filters={filters}
+        onRefetch={onRefetch}
+        onFiltersOpen={noop}
+      />
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
+    await screen.findByRole("button", { name: "Sign out: milky" });
+    expect(onRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("signs out from the account name after confirmation", async () => {
+    let signedIn = true;
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === "animelib_account") {
+        return Promise.resolve(
+          signedIn ? { tokenSaved: true, login: "milky" } : { tokenSaved: false, login: null }
+        );
+      }
+      if (command === "animelib_token_clear") {
+        signedIn = false;
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(null);
+    });
+
+    const onRefetch = vi.fn();
+    render(
+      <StreamToolbar
+        isFetching={false}
+        filters={filters}
+        onRefetch={onRefetch}
+        onFiltersOpen={noop}
+      />
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sign out: milky" }));
+    await screen.findByText("Sign out of AnimeLib?");
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+
+    await screen.findByRole("button", { name: "Sign in" });
+    expect(mockInvoke).toHaveBeenCalledWith("animelib_token_clear", undefined);
+    expect(onRefetch).toHaveBeenCalledTimes(1);
   });
 
   it("counts changed filters on the button", () => {

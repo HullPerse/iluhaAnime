@@ -54,6 +54,20 @@ pub struct AnimeLibClient {
     proxy: Option<String>,
 }
 
+fn profile_login(value: &serde_json::Value) -> Option<String> {
+    for source in [value.get("data"), Some(value)].into_iter().flatten() {
+        for key in ["login", "username", "name"] {
+            if let Some(login) = source.get(key).and_then(serde_json::Value::as_str) {
+                let trimmed = login.trim();
+                if !trimmed.is_empty() {
+                    return Some(trimmed.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 impl AnimeLibClient {
     #[cfg(test)]
     pub fn new() -> Result<Self, String> {
@@ -192,9 +206,16 @@ impl AnimeLibClient {
     /// envelope for a valid one, which is the only endpoint used here whose
     /// answer depends on the credential.
     pub async fn auth_me(&self) -> Result<(), StreamResolutionError> {
+        self.auth_me_login().await.map(|_| ())
+    }
+
+    /// The display name behind the stored session. The API family has used
+    /// `login`, `username` and `name` across versions, so the first non-empty
+    /// field wins; a session without a name still counts as valid.
+    pub async fn auth_me_login(&self) -> Result<Option<String>, StreamResolutionError> {
         let url = format!("{ANIMELIB_API_BASE}/auth/me");
-        let _: serde_json::Value = self.get_json(&url).await?;
-        Ok(())
+        let value: serde_json::Value = self.get_json(&url).await?;
+        Ok(profile_login(&value))
     }
 
     /// Fetch episodes for a title. `anime_id` accepts the numeric id or the
@@ -1642,6 +1663,19 @@ mod tests {
         assert_eq!(response.meta.current_page, Some(2));
         assert_eq!(response.meta.last_page, Some(7));
         assert_eq!(response.meta.total, Some(380));
+    }
+
+    #[test]
+    fn profile_login_reads_the_usual_envelopes() {
+        assert_eq!(
+            profile_login(&serde_json::json!({ "data": { "login": "milky" } })),
+            Some("milky".to_string())
+        );
+        assert_eq!(
+            profile_login(&serde_json::json!({ "username": "milky" })),
+            Some("milky".to_string())
+        );
+        assert_eq!(profile_login(&serde_json::json!({ "data": {} })), None);
     }
 
     #[test]

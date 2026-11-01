@@ -26,7 +26,7 @@ import type {
   StreamSource,
 } from "@/types/player/videoPlayer";
 
-import type { StreamApiConfig } from "@/types/api/stream";
+import type { AnimeLibAccount, StreamApiConfig } from "@/types/api/stream";
 
 interface StreamSourcesInput {
   episodeId: string;
@@ -109,8 +109,16 @@ export class StreamApi {
     return this.call<StreamSource[]>("anime_lib_stream_sources", { input });
   }
 
-  async tokenStatus(): Promise<boolean> {
-    return this.transport.call<boolean>("animelib_token_status");
+  async webviewLogin(): Promise<string> {
+    return this.call<string>("animelib_webview_login");
+  }
+
+  async finishWebviewLogin(): Promise<string> {
+    return this.call<string>("animelib_finish_webview_login");
+  }
+
+  async account(): Promise<AnimeLibAccount> {
+    return this.call<AnimeLibAccount>("animelib_account");
   }
 
   async tokenSave(token: string): Promise<void> {

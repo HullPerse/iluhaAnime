@@ -16,6 +16,7 @@ export function SectionResetButton({ sectionId }: SectionResetButtonProps) {
 
   return (
     <Button
+      size="icon"
       title={t("settings.reset.section")}
       aria-label={t("settings.reset.section")}
       onClick={() => resetSection(sectionId)}

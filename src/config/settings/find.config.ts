@@ -101,9 +101,14 @@ export const FIND_GROUPS: readonly FindGroup[] = [
       "settings.animelib.token.placeholder",
       "settings.animelib.token.save",
       "settings.animelib.token.clear",
-      "settings.animelib.token.stored",
-      "settings.animelib.token.empty",
+      "settings.animelib.account.loading",
+      "settings.animelib.account.login",
+      "settings.animelib.account.invalid",
+      "settings.animelib.account.none",
       "settings.animelib.token.saved",
+      "settings.animelib.login",
+      "settings.animelib.login.waiting",
+      "settings.animelib.login.hint",
       "settings.animelib.proxy.url",
       "settings.animelib.proxy.no",
       "settings.animelib.proxy.custom",
@@ -657,6 +662,8 @@ export const SETTINGS_FIND_SKIP_KEYS: readonly TranslationKey[] = [
   "settings.animelib.proxy.testing",
   "settings.animelib.proxy.test.ok",
   "settings.animelib.proxy.test.fail",
+  "settings.animelib.login.closed",
+  "settings.animelib.login.timeout",
 ];
 
 export function anchorId(tab: SettingsFindTab, section: string): string {

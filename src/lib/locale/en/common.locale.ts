@@ -186,6 +186,13 @@ const common = {
   "picker.sequential": "Sequential",
   "stream.tabDisabled": "Streaming tab is disabled in settings.",
   "stream.source": "Source",
+  "stream.login": "Sign in",
+  "stream.login.hint": "Sign in to AnimeLib in the site window",
+  "stream.account.title": "AnimeLib account",
+  "stream.account.logout": "Sign out",
+  "stream.account.logout.title": "Sign out of AnimeLib?",
+  "stream.account.logout.message":
+    "The token is removed from the OS keyring. The catalog keeps working without an account.",
   "stream.popular": "Popular on AnimeLib",
   "stream.searchPlaceholder": "Search AnimeLib...",
   "stream.search": "Search",

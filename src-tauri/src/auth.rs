@@ -45,6 +45,7 @@ const NEKOBT_CREDENTIAL: &str = "nekobt.api_key";
 const RUTRACKER_WEBVIEW_LABEL: &str = "rutracker-login";
 const ERAI_CREDENTIAL: &str = "erai-raws.cookies";
 const ERAI_WEBVIEW_LABEL: &str = "erai-raws-login";
+const ANIMELIB_WEBVIEW_LABEL: &str = "animelib-login";
 
 #[cfg(target_os = "windows")]
 static RUTRACKER_BROWSER_REQUEST_ID: AtomicU64 = AtomicU64::new(1);
@@ -60,6 +61,12 @@ static ERAI_WEBVIEW_PROXY: Mutex<Option<String>> = Mutex::new(None);
 
 #[cfg(target_os = "windows")]
 static ERAI_PROXY_AUTH_TOKEN: Mutex<Option<i64>> = Mutex::new(None);
+
+#[cfg(target_os = "windows")]
+static ANIMELIB_WEBVIEW_PROXY: Mutex<Option<String>> = Mutex::new(None);
+
+#[cfg(target_os = "windows")]
+static ANIMELIB_PROXY_AUTH_TOKEN: Mutex<Option<i64>> = Mutex::new(None);
 
 #[derive(Debug)]
 pub struct RutrackerBrowserResponse {
@@ -503,6 +510,24 @@ struct WebviewProxy {
     marker: String,
 }
 
+/// Login windows use their own WebView2 user data folder. A second webview
+/// with different environment options (a proxy) cannot join the default
+/// folder the main window already owns; WebView2 answers ERROR_INVALID_STATE
+/// (0x8007139F). One folder per login label keeps every flow independent.
+#[cfg(target_os = "windows")]
+fn login_webview_data_dir(
+    app_handle: &tauri::AppHandle,
+    label: &str,
+) -> Result<PathBuf, String> {
+    let base = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("app data dir: {error}"))?;
+    let dir = base.join("webview-login").join(label);
+    fs::create_dir_all(&dir).map_err(|error| format!("login webview dir: {error}"))?;
+    Ok(dir)
+}
+
 #[cfg(target_os = "windows")]
 fn webview_proxy(proxy: Option<String>, source: &str) -> Result<Option<WebviewProxy>, String> {
     let Some(raw) = proxy else {
@@ -679,7 +704,10 @@ pub async fn rutracker_webview_login(
     if let Some(proxy) = webview_proxy.as_ref() {
         builder = builder.proxy_url(proxy.builder_url.clone());
     }
-    let window = builder.build().map_err(|e| format!("webview_open: {e}"))?;
+    let window = builder
+        .data_directory(login_webview_data_dir(&app_handle, RUTRACKER_WEBVIEW_LABEL)?)
+        .build()
+        .map_err(|e| format!("webview_open: {e}"))?;
 
     if let Some(proxy) = webview_proxy {
         if proxy.username.is_some() {
@@ -1086,6 +1114,7 @@ pub async fn erai_webview_login(
         builder = builder.proxy_url(proxy.builder_url.clone());
     }
     let window = builder
+        .data_directory(login_webview_data_dir(&app_handle, ERAI_WEBVIEW_LABEL)?)
         .build()
         .map_err(|error| format!("webview_open: {error}"))?;
 
@@ -1144,6 +1173,198 @@ pub async fn erai_finish_webview_login(app_handle: tauri::AppHandle) -> Result<S
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
 pub async fn erai_finish_webview_login(_app_handle: tauri::AppHandle) -> Result<String, String> {
+    Err("In-app browser login is only available on Windows".to_string())
+}
+
+/// Reads the session the site writes after a successful login. Only the
+/// animelib.org origin is inspected, and only a JWT-shaped access token is
+/// returned. The token travels from the page to Rust, never to the frontend.
+#[cfg(target_os = "windows")]
+const ANIMELIB_LOGIN_SCRIPT: &str = r#"(() => {
+  const readAuth = (store) => {
+    if (!store) return null;
+    try {
+      const raw = store.getItem("auth");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const token =
+        (parsed && parsed.token && parsed.token.access_token) ||
+        (parsed && parsed.state && parsed.state.token && parsed.state.token.access_token);
+      return typeof token === "string" ? token : null;
+    } catch (error) {
+      return null;
+    }
+  };
+  try {
+    if (!location.hostname.endsWith("animelib.org")) return { ready: false };
+    let token = readAuth(localStorage) || readAuth(sessionStorage);
+    if (!token) {
+      for (const store of [localStorage, sessionStorage]) {
+        if (!store) continue;
+        for (let index = 0; index < store.length; index += 1) {
+          const raw = store.getItem(store.key(index));
+          if (!raw || raw.length > 200000) continue;
+          const match = raw.match(/"access_token"\s*:\s*"([^\"]{20,})"/);
+          if (match) {
+            token = match[1];
+            break;
+          }
+        }
+        if (token) break;
+      }
+    }
+    if (!token || token.split(".").length !== 3) return { ready: false };
+    return { ready: true, token: token };
+  } catch (error) {
+    return { ready: false, error: String(error) };
+  }
+})()"#;
+
+/// Open the site's own login page in a dedicated window. The proxy covers the
+/// whole WebView2 session, including the authorization hop and the redirect
+/// back to animelib.org.
+#[cfg(target_os = "windows")]
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn animelib_webview_login(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<String, String> {
+    use tauri::Manager;
+
+    let webview_proxy = webview_proxy(resolve_proxy(proxy_url, proxyUrl), "animelib")?;
+    let wanted = webview_proxy.as_ref().map(|proxy| proxy.marker.clone());
+
+    if let Some(window) = app_handle.get_webview_window(ANIMELIB_WEBVIEW_LABEL) {
+        let current: Option<String> = ANIMELIB_WEBVIEW_PROXY
+            .lock()
+            .ok()
+            .and_then(|stored| stored.clone());
+        if current == wanted {
+            let _ = window.show();
+            let _ = window.set_focus();
+            return Ok("ok".to_string());
+        }
+        let _ = window.close();
+    }
+
+    let url: url::Url = "https://animelib.org/"
+        .parse()
+        .map_err(|error| format!("url: {error}"))?;
+    let mut builder = tauri::WebviewWindowBuilder::new(
+        &app_handle,
+        ANIMELIB_WEBVIEW_LABEL,
+        tauri::WebviewUrl::External(url),
+    )
+    .title("AnimeLib - sign in")
+    .inner_size(520.0, 800.0)
+    .min_inner_size(380.0, 560.0);
+    if let Some(proxy) = webview_proxy.as_ref() {
+        builder = builder.proxy_url(proxy.builder_url.clone());
+    }
+    let window = builder
+        .data_directory(login_webview_data_dir(&app_handle, ANIMELIB_WEBVIEW_LABEL)?)
+        .build()
+        .map_err(|error| format!("webview_open: {error}"))?;
+
+    if let Some(proxy) = webview_proxy {
+        if proxy.username.is_some() {
+            register_webview_proxy_auth(
+                &window,
+                &ANIMELIB_PROXY_AUTH_TOKEN,
+                proxy.username.clone().unwrap_or_default(),
+                proxy.password.clone().unwrap_or_default(),
+            )
+            .await?;
+        }
+        if let Ok(mut stored) = ANIMELIB_WEBVIEW_PROXY.lock() {
+            *stored = Some(proxy.marker);
+        }
+    } else if let Ok(mut stored) = ANIMELIB_WEBVIEW_PROXY.lock() {
+        *stored = None;
+    }
+    Ok("ok".to_string())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn animelib_webview_login(
+    _app_handle: tauri::AppHandle,
+    _proxy_url: Option<String>,
+    _proxyUrl: Option<String>,
+) -> Result<String, String> {
+    Err("In-app browser login is only available on Windows".to_string())
+}
+
+/// Wait for the site to store its session, validate it against `/auth/me` and
+/// save it in the keyring. Polling stops when the window is closed, so cancel
+/// is the window itself.
+#[cfg(target_os = "windows")]
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn animelib_finish_webview_login(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<String, String> {
+    use tauri::Manager;
+
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(240);
+    loop {
+        if std::time::Instant::now() > deadline {
+            return Err("login_timeout".to_string());
+        }
+        let Some(window) = app_handle.get_webview_window(ANIMELIB_WEBVIEW_LABEL) else {
+            return Err("webview_closed".to_string());
+        };
+        // A page that never runs the script (proxy prompt, navigation in
+        // flight) must not hang the command; the loop retries until the
+        // deadline instead.
+        let script = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            eval_webview_script(&window, ANIMELIB_LOGIN_SCRIPT.to_string()),
+        )
+        .await;
+        let token = match script {
+            Ok(Ok(Some(value))) => value
+                .get("token")
+                .and_then(serde_json::Value::as_str)
+                .map(|token| token.to_string()),
+            Ok(Ok(None)) | Ok(Err(_)) | Err(_) => None,
+        };
+        if let Some(token) = token {
+            let client = crate::stream::anime_lib_client::AnimeLibClient::with_token_and_proxy(
+                token.clone(),
+                proxy.clone(),
+            )?;
+            client
+                .auth_me()
+                .await
+                .map_err(|error| format!("AnimeLib rejected the session: {error}"))?;
+            save_secret(crate::stream::commands::ANIMELIB_TOKEN_ACCOUNT, &token)
+                .map_err(|error| error.to_string())?;
+            let _ = window.hide();
+            let _ = window.close();
+            if let Ok(mut stored) = ANIMELIB_WEBVIEW_PROXY.lock() {
+                *stored = None;
+            }
+            return Ok("ok".to_string());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(700)).await;
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn animelib_finish_webview_login(
+    _app_handle: tauri::AppHandle,
+    _proxy_url: Option<String>,
+    _proxyUrl: Option<String>,
+) -> Result<String, String> {
     Err("In-app browser login is only available on Windows".to_string())
 }
 

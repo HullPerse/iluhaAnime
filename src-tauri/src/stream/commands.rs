@@ -5,9 +5,10 @@
 //! answers anonymously, and a token stored in the OS keyring is sent only when
 //! one exists. The token never travels through an IPC input.
 //!
-//! There is no OAuth command. A login flow against an unconfirmed client id
-//! was removed on 2026-10-28 rather than left as a button that hangs; the
-//! conditions for bringing one back are in `.docs/features/streaming/auth.md`.
+//! Login uses the in-app browser flow in `auth.rs`: the site's own login page,
+//! a session harvested from localStorage and validated here. OAuth against the
+//! site's authorization server stays unbuilt; see
+//! `.docs/features/streaming/auth.md` for why.
 
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +23,7 @@ use crate::stream::anime_lib_resolver::{build_watch_key, keep_playable};
 
 /// Keyring account under the app's credential service. The token never
 /// travels through an IPC input and is never written to settings storage.
-const ANIMELIB_TOKEN_ACCOUNT: &str = "animelib.token";
+pub(crate) const ANIMELIB_TOKEN_ACCOUNT: &str = "animelib.token";
 
 /// Accept a raw JWT or a pasted `Authorization` value. The site stores the
 /// bare token; a leading `Bearer` is a copy-paste artefact, not part of it.
@@ -77,9 +78,39 @@ pub async fn animelib_token_save(
     save_secret(ANIMELIB_TOKEN_ACCOUNT, &token).map_err(|error| error.to_string())
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnimeLibAccount {
+    pub token_saved: bool,
+    pub login: Option<String>,
+}
+
+/// Who the stored token belongs to. A saved token the API rejects is reported
+/// as saved but nameless, so the settings surface can tell an expired session
+/// from a missing one.
 #[tauri::command]
-pub fn animelib_token_status() -> bool {
-    stored_token().is_some()
+#[allow(non_snake_case)]
+pub async fn animelib_account(
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<AnimeLibAccount, String> {
+    let Some(token) = stored_token() else {
+        return Ok(AnimeLibAccount {
+            token_saved: false,
+            login: None,
+        });
+    };
+    let client = AnimeLibClient::with_token_and_proxy(token, resolve_proxy(proxy_url, proxyUrl))?;
+    match client.auth_me_login().await {
+        Ok(login) => Ok(AnimeLibAccount {
+            token_saved: true,
+            login,
+        }),
+        Err(_) => Ok(AnimeLibAccount {
+            token_saved: true,
+            login: None,
+        }),
+    }
 }
 
 #[tauri::command]

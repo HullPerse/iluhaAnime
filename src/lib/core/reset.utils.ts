@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
-import { patchSettings } from "@/store/settings.store";
+import { getSettingsSnapshot, patchSettings } from "@/store/settings.store";
 import type { SettingsData } from "@/types/store/settings";
 import type { ResetSectionId } from "@/types/core/reset";
 
@@ -125,6 +125,15 @@ const SECTION_SETTING_MAP = new Map<string, readonly (keyof SettingsData)[]>(
 
 export function sectionSettingKeys(sectionId: string): readonly (keyof SettingsData)[] {
   return SECTION_SETTING_MAP.get(sectionId) ?? [];
+}
+
+export function isDefaultSetting(
+  fields: ResettableSetting | readonly ResettableSetting[]
+): boolean {
+  const current = getSettingsSnapshot();
+  return toResettableSettings(fields).every(
+    (field) => JSON.stringify(current[field]) === JSON.stringify(RESET_DEFAULTS[field])
+  );
 }
 
 export function resetSetting(fields: ResettableSetting | readonly ResettableSetting[]): void {

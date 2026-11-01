@@ -1,11 +1,13 @@
-import { Filter, RotateCw, Search, X } from "lucide-react";
+import { Filter, LogIn, LogOut, RotateCw, Search, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
+import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { countActiveStreamFilters } from "@/config/player/streamFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
+import { useAnimelibAccount } from "@/hooks/stream/animelibAccount.hook";
 import { useCell } from "@/lib/core/signal.hook";
 import { submitStreamSearch, streamPage, streamQuery } from "@/store/stream.store";
 import type { StreamCatalogFilters } from "@/types/player/stream";
@@ -24,7 +26,9 @@ export default function StreamToolbar({
   const { t } = useI18n();
   const query = useCell(streamQuery);
   const page = useCell(streamPage);
+  const { account, waiting, error: loginError, login, logout } = useAnimelibAccount();
   const [text, setText] = useState<string>(query);
+  const [logoutOpen, setLogoutOpen] = useState<boolean>(false);
 
   useEffect(() => {
     setText(query);
@@ -99,6 +103,51 @@ export default function StreamToolbar({
       >
         <RotateCw className="size-4" />
       </Button>
+
+      <span className="ui-toolbar-separator" aria-hidden />
+      {account?.login ? (
+        <Button
+          variant="ghost"
+          className="text-hint h-7 gap-1 px-1 text-xs"
+          title={t("stream.account.logout")}
+          aria-label={`${t("stream.account.logout")}: ${account.login}`}
+          onClick={() => setLogoutOpen(true)}
+        >
+          <User className="size-3.5" />
+          {account.login}
+          <LogOut className="size-3.5" />
+        </Button>
+      ) : (
+        <Button
+          title={loginError ?? t("stream.login.hint")}
+          aria-label={t("stream.login")}
+          onClick={async () => {
+            const signedIn = await login();
+            if (signedIn) onRefetch();
+          }}
+          loading={waiting}
+        >
+          <LogIn className="size-4" />
+          <span>{t("stream.login")}</span>
+        </Button>
+      )}
+
+      {logoutOpen && (
+        <ConfirmDialog
+          open
+          title={t("stream.account.logout.title")}
+          message={t("stream.account.logout.message")}
+          confirmLabel={t("stream.account.logout")}
+          variant="destructive"
+          onConfirm={async () => {
+            setLogoutOpen(false);
+            const signedOut = await logout();
+            if (signedOut) onRefetch();
+          }}
+          onCancel={() => setLogoutOpen(false)}
+          onClose={() => setLogoutOpen(false)}
+        />
+      )}
     </div>
   );
 }

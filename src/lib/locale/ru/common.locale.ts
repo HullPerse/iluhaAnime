@@ -191,6 +191,13 @@ const common = {
   "picker.sequential": "Последовательно",
   "stream.tabDisabled": "Вкладка потокового вещания отключена в настройках.",
   "stream.source": "Источник",
+  "stream.login": "Войти",
+  "stream.login.hint": "Вход в AnimeLib через окно сайта",
+  "stream.account.title": "Аккаунт AnimeLib",
+  "stream.account.logout": "Выйти из аккаунта",
+  "stream.account.logout.title": "Выйти из AnimeLib?",
+  "stream.account.logout.message":
+    "Токен будет удалён из системного хранилища. Каталог продолжит работать без аккаунта.",
   "stream.popular": "Популярное на AnimeLib",
   "stream.searchPlaceholder": "Поиск в AnimeLib...",
   "stream.search": "Поиск",

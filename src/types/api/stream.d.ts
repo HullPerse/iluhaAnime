@@ -4,3 +4,8 @@ export interface StreamApiConfig {
   transport?: ApiTransport;
   proxyUrl?: string | null | (() => string | null);
 }
+
+export interface AnimeLibAccount {
+  tokenSaved: boolean;
+  login: string | null;
+}

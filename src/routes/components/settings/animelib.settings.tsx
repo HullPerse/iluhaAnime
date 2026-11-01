@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { streamApi } from "@/api/stream.api";
 import { Button } from "@/components/ui/button.component";
@@ -9,10 +9,11 @@ import Select from "@/components/ui/select.component";
 import { PROXY_PRESETS, proxySelectValue } from "@/config/system/proxy.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useAnimelibAccount } from "@/hooks/stream/animelibAccount.hook";
 import { attempt } from "@/lib/core/attempt.utils";
 import { isValidProxyUrl } from "@/lib/core/proxy.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { useCell } from "@/lib/core/signal.hook";
+import { animelibAccountLabel } from "@/lib/stream/animelibAccount.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
@@ -23,27 +24,13 @@ export default function AnimelibSettings() {
   const proxyUrl = useCell(settingsAtoms.animelibProxyUrl);
   const proxyInputRef = useRef<HTMLInputElement>(null);
   const proxyInvalid = !isValidProxyUrl(proxyUrl);
+  const { account, waiting, error: loginError, login, refresh } = useAnimelibAccount();
   const [input, setInput] = useState<string>("");
-  const [hasToken, setHasToken] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [saved, setSaved] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [proxyTesting, setProxyTesting] = useState<boolean>(false);
   const [proxyTest, setProxyTest] = useState<{ ok: boolean; msg: string } | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const [value, failure] = await attempt(streamApi.tokenStatus());
-      if (cancelled) return;
-      if (failure) setError(failure.message);
-      else setHasToken(value);
-    };
-    ignore(load());
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const save = async () => {
     const token = input.trim();
@@ -55,8 +42,8 @@ export default function AnimelibSettings() {
     if (failure) setError(failure.message);
     else {
       setInput("");
-      setHasToken(true);
       setSaved(true);
+      await refresh();
     }
     setSaving(false);
   };
@@ -66,7 +53,7 @@ export default function AnimelibSettings() {
     setError(null);
     const [, failure] = await attempt(streamApi.tokenClear());
     if (failure) setError(failure.message);
-    else setHasToken(false);
+    else await refresh();
   };
 
   const testProxy = async () => {
@@ -93,6 +80,12 @@ export default function AnimelibSettings() {
             <span className="text-hint text-[12px]">
               {t("settings.animelib.token.description")}
             </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={login} disabled={waiting || !isOnline || proxyInvalid}>
+                {waiting ? t("settings.animelib.login.waiting") : t("settings.animelib.login")}
+              </Button>
+              <span className="text-hint text-xs">{t("settings.animelib.login.hint")}</span>
+            </div>
             <PasswordInput
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -109,15 +102,22 @@ export default function AnimelibSettings() {
               >
                 {t("settings.animelib.token.save")}
               </Button>
-              <Button className="h-6 px-2 text-xs" onClick={clear} disabled={!hasToken}>
+              <Button
+                className="h-6 px-2 text-xs"
+                onClick={clear}
+                disabled={account === null || !account.tokenSaved}
+              >
                 {t("settings.animelib.token.clear")}
               </Button>
               <span className="windows95-text text-hint text-xs">
-                {hasToken
-                  ? t("settings.animelib.token.stored")
-                  : t("settings.animelib.token.empty")}
+                {animelibAccountLabel(account, t)}
               </span>
             </div>
+            {loginError && (
+              <span className="text-destructive text-xs" role="alert">
+                {loginError}
+              </span>
+            )}
             {error && (
               <span className="text-destructive text-xs" role="alert">
                 {error}

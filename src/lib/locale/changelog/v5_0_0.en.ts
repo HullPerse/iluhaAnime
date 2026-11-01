@@ -51,7 +51,7 @@ const changelog500 = {
   "changelog.5_0_0.added.search.filter_presets":
     "Named filter presets: save the current settings under a name, apply with one click, delete with the cross",
   "changelog.5_0_0.added.search.did_you_mean":
-    "Live spell check in search fields: amber underline for close matches, red for distant ones, click applies the correction, right click adds the word to the personal dictionary",
+    "Live spell check in search fields: amber underline for close matches, red for distant ones, the corrected part is highlighted in the variant, click applies the correction, right click adds the word to the personal dictionary, and the dictionary builds in the background and survives restarts",
   "changelog.5_0_0.added.search.exact_match":
     "Exact title matches now appear in suggestions for one click repeat, and an empty field ranks history by usage",
   "changelog.5_0_0.added.anilist.compare_clicks":
@@ -105,7 +105,7 @@ const changelog500 = {
   "changelog.5_0_0.added.settings.theme_pack_extends":
     "Imported theme packs can extend an existing theme and inherit its colors and shape",
   "changelog.5_0_0.added.search.result_covers":
-    "Optional cover thumbnails in torrent search results: off by default and needs AniList sign-in, covers resolve from your library and the torrent page, and right-click correction with candidate picks that the app remembers",
+    "Cover thumbnails in torrent search results: three states in settings (off, tracker covers only, covers plus AniList), the full mode turns itself on after AniList sign-in until you pick your own, covers resolve from your library and the torrent page, and right-click correction with candidate picks that the app remembers",
   "changelog.5_0_0.added.search.details_image":
     "Poster menu in torrent details: save the poster as PNG, copy the image, or copy its URL",
   "changelog.5_0_0.added.torrents.erai_proxy_login":
@@ -120,24 +120,10 @@ const changelog500 = {
     "Keybinds tab in Settings: every shortcut with search, scope filter and find-by-keys, per-row editing in a change-keybinding dialog with a scope icon, current and new chord groups, live conflict display, and reset to defaults",
   "changelog.5_0_0.changed.anilist.batch_fetch":
     "AniList list, score, and media fetching runs at most 3 parallel requests with similar requests merged, so collections and friend data load in fewer server requests",
-  "changelog.5_0_0.changed.anilist.detail_bundle":
-    "Anime details open with one fewer server request: recommendations now ride inside the main details fetch",
-  "changelog.5_0_0.changed.search.scoring_unify":
-    "Search learning now uses one capped feedback model for suggestions and history: a select or repeated query raises a title, an ignore lowers it, and a ten-day half-life fades old signals. The old separate day, week and month steps are gone",
   "changelog.5_0_0.changed.search.learning_persist":
     "Search learning is stored in the app database instead of the browser: selects and ignores survive restarts, stay consistent across search surfaces, and the old anime-select counters reset once on upgrade",
-  "changelog.5_0_0.changed.search.candidate_pool":
-    "The suggestion dropdown ranks a wider candidate pool before trimming to the visible rows, so aliases and sequels are less likely to be cut before learning is applied",
-  "changelog.5_0_0.changed.search.fts_startup":
-    "Full text index optimization moved to a background thread at startup",
   "changelog.5_0_0.changed.app.folder_scan":
     "Folder scans are faster with a parallel directory walk, and folder watching calms event bursts with a 1 second settle delay",
-  "changelog.5_0_0.changed.player.tree_build":
-    "Player folder tree assembly dropped from 350 ms to 36 ms on 50 thousand files with an indexed build through a lookup map instead of repeated tree search",
-  "changelog.5_0_0.changed.app.date_fns":
-    "date-fns removed in favor of a built-in relative time replacement that measures 4.6 times faster at 1.56M against 340K operations per second",
-  "changelog.5_0_0.changed.torrents.magnet_dedup":
-    "Concurrent magnet resolutions for the same release share one request, so there are no duplicate network calls",
   "changelog.5_0_0.changed.torrents.metadata_timeout":
     "Magnet metadata wait extended from 30 to 120 seconds for slow seeders, dead fallback trackers replaced, and a dedicated preparing state with an elapsed timer",
   "changelog.5_0_0.changed.anilist.stats_tabs":
@@ -154,7 +140,7 @@ const changelog500 = {
   "changelog.5_0_0.changed.player.open_perf":
     "Native player window opens in under 0.5 seconds with zero dropped frames on the test set with a separate lightweight window",
   "changelog.5_0_0.changed.player.filename_parser":
-    "Local filename parser replaces anitomy: years stay years instead of episode numbers, season tags leave titles, release groups and episode names survive, and folder names help number-prefixed files",
+    "Local filename parser replaces anitomy: years stay years instead of episode numbers, season tags leave titles, release groups and episode names survive, release folders set the season from tags like TV-2 and help number-prefixed files, ranges such as 133-134 and 01 ~ 12 read as episodes, versions like 01v2 attach to the episode, and language and Netflix tags stop leaking into titles",
   "changelog.5_0_0.changed.torrents.instant_remove":
     "Torrent removal is instant: the row disappears at once while the engine catches up in the background, with a three button confirm dialog",
   "changelog.5_0_0.changed.app.hotkeys_registry":
@@ -167,22 +153,8 @@ const changelog500 = {
     "Tracker add and remove were broken by inconsistent release hash spelling, now the spelling is unified",
   "changelog.5_0_0.fixed.player.track_switch":
     "Audio and subtitle track switching failed on a wrong command format, now tracks switch",
-  "changelog.5_0_0.fixed.anilist.site_query":
-    "Site notifications failed to load on a wrong request, the request is fixed",
-  "changelog.5_0_0.changed.app.state_engine":
-    "Reworked internal state handling so lists, the player, and settings react faster",
-  "changelog.5_0_0.changed.search.did_you_mean_highlight":
-    "Did-you-mean suggestions now highlight what changed in the correction",
-  "changelog.5_0_0.changed.search.did_you_mean_phrase":
-    "Did-you-mean understands whole titles: glued and split words get fixed, keyboard slips and romaji variants rank higher, pasted release names are cleaned before the check, and a confident title match highlights the full correction",
-  "changelog.5_0_0.changed.search.did_you_mean_reason":
-    "Did-you-mean tells seasons apart from typos: fan abbreviations expand to the official title, season and episode markers survive spelling fixes, and broken quality tags are dropped from the suggestion",
-  "changelog.5_0_0.changed.search.spell_quickfix":
-    "Spell quick-fix card in search fields: the typo popup shows the correction with buttons, Tab applies it while typing and Ctrl+Tab saves the word to the personal dictionary",
   "changelog.5_0_0.changed.search.spell_menu":
-    "Spell corrections moved into the suggestion dropdown as their own section, with a standalone panel when the dropdown is off: up to three variants to pick from and one Tab for everything",
-  "changelog.5_0_0.fixed.search.spell_overlap":
-    "The correction popup no longer covers the first suggestion rows or gets clipped in half on narrow inputs",
+    "Spell corrections live in the suggestion dropdown as their own section, with a standalone panel when the dropdown is off: up to three variants with buttons, Tab applies the one under the cursor while typing, Ctrl+Tab saves the word to the personal dictionary, and every misspelled word gets underlined",
   "changelog.5_0_0.fixed.search.base_title":
     "A short base-title query such as `jujuts` now prefers `Jujutsu Kaisen` over `Jujutsu Kaisen 0`, and `steins` over the OVA, instead of letting a popularity boost pick a sequel",
   "changelog.5_0_0.fixed.search.release_names":
@@ -192,83 +164,43 @@ const changelog500 = {
   "changelog.5_0_0.changed.anilist.progress_blocks":
     "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
   "changelog.5_0_0.changed.settings.theme_cleanup":
-    "Theme list trimmed from 24 to 14, night theme now defaults to Tokyo Night",
-  "changelog.5_0_0.changed.settings.theme_picker_families":
-    "Theme picker groups themes by family: Windows, brands, terminals, editors and anime",
+    "Theme list trimmed from 24 to 14 and grouped by family: Windows, brands, terminals, editors and anime, with Tokyo Night as the new default night theme",
   "changelog.5_0_0.changed.settings.theme_first_paint":
     "Theme colors, shape and font reach the first frame without a flash",
   "changelog.5_0_0.fixed.player.resume_jump":
-    "Resume playback no longer stutters: the player seeks to the position once instead of twice, and position and duration are read live instead of stale data",
-  "changelog.5_0_0.fixed.player.timeline_flicker":
-    "The timeline no longer jumps to zero while paused.",
+    "The timeline no longer jitters: resume seeks to the position once instead of twice, the bar no longer jumps to zero while paused or snaps back after scrubbing, and position and duration are read live instead of stale data",
   "changelog.5_0_0.fixed.player.remaining_toggle":
     "The timeline time works with the keyboard now: it is a real button with a hint, toggles elapsed and remaining, and stays elapsed when the duration is unknown",
   "changelog.5_0_0.fixed.app.scan_db_locked":
     "The database-is-locked scan failure no longer appears when opening the player: writes now proceed strictly one at a time",
-  "changelog.5_0_0.changed.player.hot_paths":
-    "Player hot paths are faster: queue sorting, track menus, language names, and preview card order",
-  "changelog.5_0_0.changed.collection.short_query":
-    "Collection short search answers in under a millisecond on a 10 thousand item library instead of up to 20 milliseconds: first keystrokes and operator tags no longer stall the list",
-  "changelog.5_0_0.changed.search.scoring_work":
-    "Search suggestions do roughly half the text normalization work per keystroke and allocate less garbage, so the dropdown stays smooth on large anime lists",
-  "changelog.5_0_0.changed.app.parse_cache":
-    "Filename parse cache quadrupled to 8000 entries, so rescans of large libraries reuse parsed names instead of parsing every file again",
   "changelog.5_0_0.changed.search.result_card":
     "Search results use the redesigned card: a big cover thumbnail that refreshes the picture on click, the seed bar, and the shared toolbar. Details open from the title",
   "changelog.5_0_0.changed.search.details_modal":
     "The torrent details modal is rebuilt around a poster plus full metadata and tabs for screenshots, file tree, mediainfo, and comments",
   "changelog.5_0_0.changed.search.cover_cache":
     "Torrent covers resolve from a persistent cache: the second view of a title and season shows the picture with no requests, different spellings of one anime share one entry, and the season match no longer shows season 1 on a season 2 release. Click the thumbnail to drop the entry and resolve again",
-  "changelog.5_0_0.changed.search.spell_prewarm":
-    "The typo dictionary builds in the background while the app is idle and persists between runs, so the first did-you-mean lookup is instant",
   "changelog.5_0_0.changed.search.anime_index":
     "The anime index that powers search suggestions and typo checks builds at startup instead of only after the AniList tab is opened, and it re-syncs to the database only when it actually changed",
-  "changelog.5_0_0.changed.torrents.files_batch":
-    "A page of torrents loads the file lists in one call instead of one call per torrent",
-  "changelog.5_0_0.changed.player.parser_folders":
-    "The filename parser reads rutracker release folders: TV-2 style markers set the season, 12 of 12 counts stay counts, and comma or plus separated brackets split",
-  "changelog.5_0_0.changed.search.normalize":
-    "Search text cleanup now runs as a single pass, about twice as fast on large title lists, so the suggestion dropdown answers sooner while typing",
   "changelog.5_0_0.changed.search.input_latency":
     "Search fields wait for a pause before asking the database and skip one-letter queries, so typing no longer floods lookups and the list settles instead of flickering",
-  "changelog.5_0_0.changed.search.spell_words":
-    "Spellcheck underlines every misspelled word now, and Tab fixes the word under the cursor instead of the whole query at once",
   "changelog.5_0_0.changed.collection.filter_worker":
     "Collection filtering moved to a background thread, so typing in a large library no longer stalls the list",
-  "changelog.5_0_0.changed.player.ipc_quiet":
-    "Quieter player backend chatter: volume sends once per change with a drag throttle, settings sliders resend only changed properties, file setup is a single call, and playlist actions read the list once",
   "changelog.5_0_0.fixed.player.video_margins":
     "Video no longer slides under the bottom bar: margins resend after startup and on every playback restart, and failed sends retry instead of sticking",
-  "changelog.5_0_0.fixed.player.scrub_jumps":
-    "Timeline scrubbing no longer jumps back after drop: the target clears only on a fresh position or a double confirmation.",
   "changelog.5_0_0.fixed.player.scan_busy":
     "Saved folder scans no longer fail with a thread-pool error: folders scan one at a time with automatic retry, and unreadable files are skipped instead of aborting the whole scan",
   "changelog.5_0_0.fixed.torrents.magnet_source":
     "Switching search tabs while a magnet loads no longer downloads from the wrong tracker: the magnet uses the source of the shown results",
-  "changelog.5_0_0.fixed.player.parser_ranges":
-    "Filename parser reads episode ranges like 133-134 and 01 ~ 12, roman-numbered seasons, and more studio and language spellings",
   "changelog.5_0_0.fixed.search.wallpaper_loader":
     "Modern search tab no longer sticks on the loader when the wallpaper is missing: it falls back to the bundled image and reports load failures instead of hanging silently",
   "changelog.5_0_0.fixed.player.prev_button":
     "Previous file button always reported the first file because the playlist position never arrived from the player; it now follows the real queue position and switches files",
   "changelog.5_0_0.changed.player.scan_batch":
     "Folder scans run as a single batched pass with per-folder progress, and the folder tree builds faster on large libraries",
-  "changelog.5_0_0.changed.search.spell_stable":
-    "Spellcheck underlines every typo at once without flickering while you type, ignores roman numerals like II and III, and warms up in the background so the first correction is instant",
   "changelog.5_0_0.changed.anilist.stepper":
     "AniList progress stepper survives rapid taps: the last target wins, a failed save restores the confirmed value and offers retry, and save errors show the server reason in the stepper and the list editor. Marking the final episode switches the status to Completed right away and moves the entry to the completed list",
   "changelog.5_0_0.changed.player.title_arc":
     "Player title shows the story arc as Title: Arc next to season and episode",
-  "changelog.5_0_0.changed.player.parser_versions":
-    "Filename parser reads release versions like 01v2 and 01 (v2): the version lands on the episode, and names after versioned numbers survive as episode titles",
-  "changelog.5_0_0.fixed.player.parser_roman_dedup":
-    "Search titles no longer repeat a season already written in roman numerals: Overlord IV stays Overlord IV instead of gaining 4th Season",
-  "changelog.5_0_0.fixed.player.parser_subtitle_langs":
-    "Subtitle language tags like POR-BR and SPA-LA no longer leak into anime titles",
-  "changelog.5_0_0.fixed.player.parser_service_nf":
-    "Netflix tags like NF and NFX no longer leak into anime titles: they land on the streaming service instead",
-  "changelog.5_0_0.fixed.search.cover_flash":
-    "Remote covers no longer flash the placeholder file while the bytes download; the fallback picture appears only when a cover cannot be resolved at all",
   "changelog.5_0_0.fixed.collection.import_lock":
     "Collection import no longer fails with a database-is-locked error after half a minute and loses part of the items: the import command asked for the app data write lock it was already holding and timed out against itself",
   "changelog.5_0_0.fixed.search.socks_remote_dns":
@@ -277,12 +209,8 @@ const changelog500 = {
     "Search sources are ordered Rutracker, nekoBT, Erai-Raws, Nyaa.si, Sukebei with Rutracker as the default source, and stored settings migrate to the new order",
   "changelog.5_0_0.added.player.file_constraints":
     "Player file search understands filter tokens: *.mkv and ext:mp4,avi narrow by extension, !sample/ skips folders, and !*.nfo drops an extension",
-  "changelog.5_0_0.changed.search.cover_refresh":
-    "Re-downloaded covers no longer rewrite the stored picture when the pixels match: identical re-encodes keep the cached file instead of replacing it",
   "changelog.5_0_0.added.app.fatal_bsod":
     "Fatal error screens: render crashes, dead module loads, startup failures, and repeated errors now show a fullscreen blue screen with the error type, the message, expandable details with copy, and reload with cache reset. Windows 95, XP, and 7 themes get their own screens, other themes get a matching one, and safe reload forces the default theme",
-  "changelog.5_0_0.changed.search.cover_modes":
-    "Torrent search covers are a three-state setting: off, tracker covers only, or tracker plus AniList covers, with full mode auto-enabled after AniList login until you pick a value",
   "changelog.5_0_0.added.player.live_playlist":
     "Player playlist grows while you watch: episodes that finish downloading land in sorted order without moving the current file",
   "changelog.5_0_0.changed.player.watch_parity":
@@ -297,10 +225,8 @@ const changelog500 = {
     "Fast launch option in Settings Startup plus a skip checkbox on the splash itself: skips the splash and loads everything in the background",
   "changelog.5_0_0.added.app.db_gate":
     "Database health check at startup: a corrupt or locked database now shows a recovery screen with retry, reload, details copy, and the data folder instead of a toast storm",
-  "changelog.5_0_0.added.app.yorha_splash":
-    "YoRHa terminal boot screen for the YoRHa theme: glitch loading header, live boot stages, and a branded ILUHAANIME watermark",
   "changelog.5_0_0.added.settings.theme_boots":
-    "Unique startup and error screens per theme: terminal boots a kernel log with a matching panic screen, retroism boots MS-DOS style, and XP and 7 show their classic black boot screens",
+    "Unique startup and error screens per theme: terminal boots a kernel log with a matching panic screen, retroism boots MS-DOS style, YoRHa shows a terminal with a glitch header and a branded ILUHAANIME watermark, and XP and 7 show their classic black boot screens",
   "changelog.5_0_0.changed.settings.yorha_canon":
     "YoRHa theme matches the game interface: dark menu-bar selection, dark-brown text, and a black pod-style error screen instead of the generic one",
   "changelog.5_0_0.added.settings.find":
@@ -314,11 +240,7 @@ const changelog500 = {
   "changelog.5_0_0.changed.torrents.filter_hint":
     "The torrent filter is a plain field with an inline completion over the names of torrents in the current tab: Tab or the right arrow key accepts the full name",
   "changelog.5_0_0.fixed.anilist.progress_partial":
-    "Partial episode progress always lights at least one block: the start of a long series no longer looks empty, while a full bar still needs the last episode",
-  "changelog.5_0_0.fixed.anilist.related_progress":
-    "Progress bars in the Related list show their fill again instead of an empty track",
-  "changelog.5_0_0.fixed.anilist.friends_progress":
-    "Progress bars in Friends scores fill with the main color again, and the friend status square now matches the style used in Related and on cards",
+    "Episode progress bars fill again on every surface: partial progress lights at least one block, a full bar still needs the last episode, and Related and Friends' scores no longer show an empty track",
   "changelog.5_0_0.fixed.anilist.studio_dupes":
     "A studio that AniList returns twice no longer shows up twice in anime details",
   "changelog.5_0_0.added.app.vim":
@@ -439,6 +361,22 @@ const changelog500 = {
     "The calendar day view in statistics shows its date and Back in the window titlebar instead of an inner button",
   "changelog.5_0_0.fixed.app.resize_observer_crash":
     "Opening anime details no longer falls into the fatal error screen because of the browser's ResizeObserver loop warning",
+  "changelog.5_0_0.added.streaming.catalog":
+    "Streaming tab: an AnimeLib catalog with search, seasons and episodes, including AniList episode previews",
+  "changelog.5_0_0.added.streaming.sources":
+    "Voice-over, quality and subtitle choice per title: the pick is remembered and applied to the next episodes",
+  "changelog.5_0_0.added.streaming.player":
+    "Streams open in the native player: next episode, season panel, resume from the last position and remembered tracks",
+  "changelog.5_0_0.added.streaming.account":
+    "AnimeLib sign-in through the site window: the token lives in the system keyring, and account state and session refresh from settings",
+  "changelog.5_0_0.added.streaming.history":
+    "Stream watch history with a continue point and a way back to the episode",
+  "changelog.5_0_0.added.app.discord_presence":
+    "Discord Rich Presence: the current tab and the playing episode, AniList and search buttons, and optional file-name parsing",
+  "changelog.5_0_0.changed.player.chapter_snap":
+    "Dragging the timeline snaps to chapter boundaries, so missing an intro or an outro is harder",
+  "changelog.5_0_0.changed.app.splash_pace":
+    "Splash stages pass faster and the shell becomes interactive sooner: the final pause before the handover is gone",
 } as const;
 
 export default changelog500;

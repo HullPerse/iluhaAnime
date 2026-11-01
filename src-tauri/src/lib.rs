@@ -17,6 +17,7 @@ use tauri::{Emitter, Manager, WindowEvent};
 mod anilist;
 mod app_db;
 mod discord;
+mod startup;
 
 #[doc(hidden)]
 pub mod benchmark_api {
@@ -1791,8 +1792,23 @@ fn set_window_chrome(
     )
 }
 
+/// Deletes temp files this app left behind. Replaces a synchronous sweep that
+/// ran before the window became visible, which made boot depend on whatever
+/// else was sitting in `%TEMP%`.
+fn clean_stale_temp_files() {
+    let Ok(entries) = std::fs::read_dir(std::env::temp_dir()) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        if entry.file_name().to_string_lossy().starts_with("iluha_") {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    startup::begin();
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("iluhaanime=info,tauri=warn"));
     if let Err(error) = tracing_subscriber::fmt()
@@ -1804,6 +1820,7 @@ pub fn run() {
         eprintln!("unable to initialize tracing subscriber: {error}");
     }
     tracing::info!("starting iluhaAnime backend");
+    startup::mark("tracing_init");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -1826,20 +1843,10 @@ pub fn run() {
         )
         .plugin(tauri_plugin_libmpv::init())
         .setup(|app| {
-            let _ = std::fs::read_dir(std::env::temp_dir()).map(|entries| {
-                for entry in entries.flatten() {
-                    let name = entry.file_name();
-                    let name = name.to_string_lossy();
-                    if name.starts_with("iluha_") {
-                        let _ = std::fs::remove_file(entry.path());
-                    }
-                }
-            });
-
-            let _ = video::CACHED_FFMPEG_PATH.get_or_init(|| {
-                let app_handle = app.handle();
-                video::ffmpeg_exe(app_handle)
-            });
+            // Neither the temp sweep nor resolving the ffmpeg path has to
+            // finish before the first window: both moved off the boot path.
+            tauri::async_runtime::spawn_blocking(clean_stale_temp_files);
+            startup::mark("temp_cleanup_scheduled");
 
             let app_data = app.path().app_data_dir().unwrap_or_else(|e| {
                 eprintln!("Failed to get app data dir: {e}");
@@ -1848,12 +1855,14 @@ pub fn run() {
             if let Err(error) = app_db::open_database(app.handle()) {
                 tracing::error!("unable to initialize shared app database: {error}");
             }
+            startup::mark("db_open");
             let optimize_handle = app.handle().clone();
             tauri::async_runtime::spawn_blocking(move || {
                 if let Err(error) = app_db::optimize_unified_index(optimize_handle) {
                     tracing::warn!("unified index optimize at startup: {error}");
                 }
             });
+            startup::mark("db_optimize_scheduled");
 
             let chrome = app_db::read_cached_payload(
                 app.handle(),
@@ -1871,6 +1880,7 @@ pub fn run() {
                 let _ = window.show();
                 let _ = window.set_focus();
             }
+            startup::mark("window_visible");
 
             let tray_icon = app.default_window_icon().cloned().or_else(|| {
                 tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok()
@@ -1909,6 +1919,7 @@ pub fn run() {
                     tracing::warn!("tray icon unavailable: no window icon and bundled icon failed");
                 }
             }
+            startup::mark("tray");
 
             if let Some(window) = app.get_webview_window("main") {
                 let app_handle = app.handle().clone();
@@ -1931,6 +1942,7 @@ pub fn run() {
             handle.manage(player::PlayerHost::default());
             handle.manage(discord::DiscordPresence::start());
             player::state::attach(app.handle());
+            startup::mark("state_ready");
             let prewarm_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -2032,9 +2044,14 @@ pub fn run() {
                 });
             });
 
+            startup::mark("setup_done");
+            startup::log_report();
+            startup::flush(app.handle());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            startup::report_startup,
             scrapers::search_erairaws,
             scrapers::search_nyaa,
             scrapers::search_sukebei,

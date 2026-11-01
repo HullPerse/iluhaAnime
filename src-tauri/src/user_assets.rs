@@ -368,13 +368,17 @@ pub fn compare_cover_bytes(old: &[u8], new: &[u8]) -> Result<CoverDiff, String> 
     })
 }
 const THUMB_W: u32 = 336;
+/// Bumped whenever the thumbnail output changes shape (width, encoder,
+/// quality). The version is part of the file name, so a bump makes old thumbs
+/// unreachable and they are regenerated instead of being served forever.
+const THUMB_GENERATOR_VERSION: u32 = 2;
 const THUMB_PREFIX: &str = "t336_";
 
 fn thumb_id(id: &str) -> String {
     if id.starts_with(THUMB_PREFIX) {
         id.to_string()
     } else {
-        format!("{THUMB_PREFIX}{id}")
+        format!("{THUMB_PREFIX}v{THUMB_GENERATOR_VERSION}_{id}")
     }
 }
 
@@ -1431,10 +1435,11 @@ mod tests {
             resolve_asset_file_in(&root, "abc123"),
             Some(root.join("abc123.png"))
         );
-        fs::write(root.join("t336_abc123.jpg"), b"x").expect("write thumb");
+        let thumb_name = format!("{}.jpg", thumb_id("abc123"));
+        fs::write(root.join(&thumb_name), b"x").expect("write thumb");
         assert_eq!(
             resolve_asset_file_in(&root, "abc123"),
-            Some(root.join("t336_abc123.jpg"))
+            Some(root.join(thumb_name))
         );
         assert_eq!(resolve_asset_file_in(&root, "missing"), None);
         assert_eq!(resolve_asset_file_in(&root, "../abc123"), None);
@@ -1882,8 +1887,13 @@ mod tests {
 
     #[test]
     fn thumb_id_prefixes_once() {
-        assert_eq!(thumb_id("abc123"), "t336_abc123");
-        assert_eq!(thumb_id("t336_abc123"), "t336_abc123");
+        let expected = format!("{THUMB_PREFIX}v{THUMB_GENERATOR_VERSION}_abc123");
+        assert_eq!(thumb_id("abc123"), expected);
+        // A versioned id is already a thumb id: it must not gain another prefix.
+        assert_eq!(thumb_id(&expected), expected);
+        // The unversioned name must never be produced again, otherwise a
+        // generator change would keep serving files made by the old one.
+        assert_ne!(thumb_id("abc123"), "t336_abc123");
     }
 
     #[test]

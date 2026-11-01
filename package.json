@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:incremental": "bun scripts/build-incremental.ts",
+    "build:stages": "bun scripts/build-incremental.ts --plan",
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit",

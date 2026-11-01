@@ -163,17 +163,25 @@ pub fn ffprobe_exe(app_handle: &tauri::AppHandle) -> String {
 }
 
 pub fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
+    if let Some(cached) = CACHED_FFMPEG_PATH.get() {
+        return cached.clone();
+    }
     let ext = if cfg!(target_os = "windows") {
         ".exe"
     } else {
         ""
     };
     let custom = ffmpeg_bin_dir(app_handle).join(format!("ffmpeg{ext}"));
-    if custom.exists() {
+    let resolved = if custom.exists() {
         custom.to_string_lossy().to_string()
     } else {
         format!("ffmpeg{ext}")
-    }
+    };
+    // Cached on first use instead of at startup: the binary directory does not
+    // change while the app runs, and the first caller pays for one filesystem
+    // probe instead of every boot.
+    let _ = CACHED_FFMPEG_PATH.set(resolved.clone());
+    resolved
 }
 
 pub static CACHED_FFMPEG_PATH: OnceLock<String> = OnceLock::new();

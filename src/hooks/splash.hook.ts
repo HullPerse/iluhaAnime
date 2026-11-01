@@ -24,7 +24,7 @@ import type {
 
 const DEFAULT_MIN_MS = 600;
 const DEFAULT_STAGE_TIMEOUT_MS = 8000;
-const DEFAULT_STEP_MS = 300;
+const DEFAULT_STEP_MS = 150;
 
 const INITIAL_STAGES: SplashStage[] = [
   { id: "theme", status: "pending" },
@@ -124,10 +124,14 @@ export function useSplashStages(
     startedAt.current = Date.now();
     let disposed = false;
 
-    const pace = async (id: GatingKey, status: "done" | "degraded"): Promise<boolean> => {
-      if (disposed) return false;
+    const settle = (id: GatingKey, status: "done" | "degraded"): void => {
       settled.current[id] = true;
       setStages((current) => withStatus(current, id, status));
+    };
+
+    const pace = async (id: GatingKey, status: "done" | "degraded"): Promise<boolean> => {
+      if (disposed) return false;
+      settle(id, status);
       const nap = sleep(stepMs);
       naps.current.push(nap);
       await nap.done;
@@ -162,7 +166,10 @@ export function useSplashStages(
       if (disposed) return;
       if (!indexed)
         reportBackgroundError("splash.index.timeout", new Error("anime index warmup timed out"));
-      if (!(await pace("index", indexed ? "done" : "degraded"))) return;
+      // Last gated stage: settle without the pacing nap. There is nothing left
+      // to animate before the shell takes over, and the nap only delayed the
+      // first interactive frame.
+      settle("index", indexed ? "done" : "degraded");
       tryFinish();
     };
 

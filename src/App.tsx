@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { DbScreen } from "@/components/shared/db/screen.db";
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
@@ -21,6 +21,7 @@ import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
 import { isCurrentSessionSafe } from "@/lib/core/report.utils";
+import { markStartup, reportStartup } from "@/lib/core/startup.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { resolveSecretTabAction } from "@/lib/ui/tabs.utils";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
@@ -134,6 +135,12 @@ export default function App() {
 
   const splash = useSplashStages(tabs.length > 0);
   usePrewarmStreamHistory(splash.done);
+
+  useEffect(() => {
+    if (!fastLaunch && !splash.done && !splash.dbFailed) return;
+    markStartup("home_interactive");
+    reportStartup();
+  }, [fastLaunch, splash.dbFailed, splash.done]);
   if (!fastLaunch && !splash.done && !splash.dbFailed) {
     return (
       <SplashScreen

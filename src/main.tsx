@@ -15,6 +15,7 @@ import {
 import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/core/report.utils";
 import { readThemeName } from "@/lib/core/fatalTheme.utils";
 import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { markStartup } from "@/lib/core/startup.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { router } from "@/routes/__root";
 import { addNotification } from "@/store/notification.store";
@@ -51,6 +52,8 @@ window.addEventListener("unhandledrejection", (event) => {
   addNotification(appError(), "error", event.reason?.message || String(event.reason));
 });
 
+markStartup("module_start");
+
 const queryClient = new QueryClient(QUERY_CONFIG);
 
 const showStartupFallback = (message: string): void => {
@@ -73,6 +76,8 @@ const [, mountError] = await attempt(
         </ErrorBoundary>
       </StrictMode>
     );
+    markStartup("react_mount");
+    requestAnimationFrame(() => markStartup("first_paint"));
   })()
 );
 

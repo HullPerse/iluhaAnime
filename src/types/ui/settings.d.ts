@@ -271,7 +271,8 @@ export type ChangelogScope =
   | "settings"
   | "app"
   | "search"
-  | "game";
+  | "game"
+  | "streaming";
 
 export interface ChangelogEntry {
   key: TranslationKey;

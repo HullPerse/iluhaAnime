@@ -158,14 +158,14 @@ export function useLivePlaylistSync(
       if (desiredRef.current && sameList(desiredRef.current, desired)) return;
       if (busyRef.current) return;
       busyRef.current = true;
-      try {
-        const outcome = await reconcile(desired, watch.anchor, desiredRef.current);
-        if (outcome === "retry") return;
-        desiredRef.current = desired;
-        if (outcome === "stale") setArmed(false);
-      } finally {
-        busyRef.current = false;
-      }
+      const [outcome, reconcileError] = await attempt(
+        reconcile(desired, watch.anchor, desiredRef.current)
+      );
+      busyRef.current = false;
+      if (reconcileError !== null) throw reconcileError;
+      if (outcome === "retry") return;
+      desiredRef.current = desired;
+      if (outcome === "stale") setArmed(false);
     },
     [watch]
   );

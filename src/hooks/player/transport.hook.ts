@@ -18,6 +18,7 @@ import {
 import { addNotification } from "@/store/notification.store";
 import {
   playbackAtoms,
+  setHwdec,
   setPlaybackMuted,
   setPlaybackPaused,
   setPlaybackSpeed,
@@ -111,6 +112,7 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
       const playlistIndex = playbackAtoms.playlistIndex.get();
       const timePos = playbackAtoms.timePos.get();
       const paused = playbackAtoms.paused.get();
+      setHwdec(mode);
       if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
       hwdecReloadRef.current = { position: timePos, paused };
       setLoadingFile(true);

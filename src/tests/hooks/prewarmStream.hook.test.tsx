@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -49,13 +49,20 @@ describe("usePrewarmStreamHistory", () => {
     expect(client.getQueryData(queryKeys.streamHistoryRecent())).toEqual([]);
   });
 
-  it("stays idle while the streaming tab is disabled", async () => {
+  it("stays idle while the streaming tab is disabled and starts once it is enabled", async () => {
     settingsAtoms.streamTabEnabled.set(false);
 
-    renderHook(() => usePrewarmStreamHistory(true), { wrapper });
-    await Promise.resolve();
+    const { rerender } = renderHook(() => usePrewarmStreamHistory(true), { wrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(api.historyRecent).not.toHaveBeenCalled();
+
+    settingsAtoms.streamTabEnabled.set(true);
+    rerender();
+
+    await waitFor(() => expect(api.historyRecent).toHaveBeenCalledTimes(1));
   });
 });
 
@@ -64,6 +71,9 @@ describe("prefetchStreamConstants", () => {
     await prefetchStreamConstants(client);
 
     expect(api.constants).toHaveBeenCalledTimes(1);
-    expect(client.getQueryData(queryKeys.streamConstants())).toEqual(CONSTANTS);
+    const state = client.getQueryState(queryKeys.streamConstants());
+    expect(state?.status).toBe("success");
+    expect(state?.data).toEqual(CONSTANTS);
+    expect(state?.dataUpdatedAt).toBeGreaterThan(0);
   });
 });

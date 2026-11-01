@@ -177,9 +177,9 @@ export default function ThemeEditor({
             <span className="windows95-text text-text w-24 shrink-0 truncate">
               {t("settings.theme.shape.radius")}
             </span>
-            <Combobox
+            <Combobox<typeof radius>
               value={radius}
-              onChange={(value) => setRadius(value as typeof radius)}
+              onChange={setRadius}
               options={[
                 { value: "none", label: t("settings.theme.shape.radius.none") },
                 { value: "frame", label: t("settings.theme.shape.radius.frame") },
@@ -192,9 +192,9 @@ export default function ThemeEditor({
             <span className="windows95-text text-text w-24 shrink-0 truncate">
               {t("settings.theme.shape.bevel")}
             </span>
-            <Combobox
+            <Combobox<typeof bevel>
               value={bevel}
-              onChange={(value) => setBevel(value as typeof bevel)}
+              onChange={setBevel}
               options={[
                 { value: "raised", label: t("settings.theme.shape.bevel.raised") },
                 { value: "flat", label: t("settings.theme.shape.bevel.flat") },
@@ -206,9 +206,9 @@ export default function ThemeEditor({
             <span className="windows95-text text-text w-24 shrink-0 truncate">
               {t("settings.theme.shape.overlay")}
             </span>
-            <Combobox
+            <Combobox<typeof overlay>
               value={overlay}
-              onChange={(value) => setOverlay(value as typeof overlay)}
+              onChange={setOverlay}
               options={[
                 { value: "none", label: t("settings.theme.shape.overlay.none") },
                 { value: "scanlines", label: t("settings.theme.shape.overlay.scanlines") },
@@ -221,9 +221,9 @@ export default function ThemeEditor({
             <span className="windows95-text text-text w-24 shrink-0 truncate">
               {t("settings.theme.components.cardMeta")}
             </span>
-            <Combobox
+            <Combobox<typeof cardMeta>
               value={cardMeta}
-              onChange={(value) => setCardMeta(value as typeof cardMeta)}
+              onChange={setCardMeta}
               options={[
                 { value: "full", label: t("settings.theme.components.cardMeta.full") },
                 { value: "short", label: t("settings.theme.components.cardMeta.short") },

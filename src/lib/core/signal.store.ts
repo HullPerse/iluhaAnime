@@ -1,3 +1,4 @@
+import { attemptSync } from "@/lib/core/attempt.utils";
 import type { Cell, Derived, Readable, SignalStore, Unsubscriber } from "@/types/core/signal";
 
 interface Sub {
@@ -39,7 +40,7 @@ function refreshDerived(rec: DerivedRec, resolving: Set<DerivedRec>): boolean {
   let stale = !rec.hasValue;
   const args = rec.scratch;
   resolving.add(rec);
-  try {
+  const [changed, error] = attemptSync(() => {
     for (let i = 0; i < rec.deps.length; i++) {
       const dep = rec.deps[i];
       args[i] = dep.kind === "cell" ? dep.value : pullDerived(dep, resolving);
@@ -47,15 +48,16 @@ function refreshDerived(rec: DerivedRec, resolving: Set<DerivedRec>): boolean {
     }
     if (!stale) return false;
     const value = rec.compute(args);
-    const changed = !rec.hasValue || !Object.is(value, rec.cached);
+    const wasChanged = !rec.hasValue || !Object.is(value, rec.cached);
     rec.cached = value;
     rec.hasValue = true;
     for (let i = 0; i < rec.deps.length; i++) rec.depVersions[i] = rec.deps[i].version;
-    if (changed) rec.version++;
-    return changed;
-  } finally {
-    resolving.delete(rec);
-  }
+    if (wasChanged) rec.version++;
+    return wasChanged;
+  });
+  resolving.delete(rec);
+  if (error !== null) throw error;
+  return changed === true;
 }
 
 function hasDownstream(rec: BaseRec): boolean {
@@ -201,12 +203,10 @@ export function createSignalStore(): SignalStore {
     derive,
     batch: (fn) => {
       depth++;
-      try {
-        fn();
-      } finally {
-        depth--;
-        if (depth === 0) flush();
-      }
+      const [, error] = attemptSync(fn);
+      depth--;
+      if (depth === 0) flush();
+      if (error !== null) throw error;
     },
     snapshot: () => {
       const out: Record<string, unknown> = {};

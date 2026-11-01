@@ -144,31 +144,33 @@ export default function ScreenshotModal({
     setCopying(true);
     setCopied(true);
     hideCopiedSoon();
-    try {
-      const [path, prepareError] = await attempt(
-        systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
-      );
-      if (prepareError) {
-        setCopied(false);
-        showError(t("common.error"), t("screenshot.copy.error"));
-        return;
-      }
-      const [, writeError] = await attempt(writeImage(path));
-      if (path !== capture.path) {
-        ignore(
-          attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
-            if (error) reportBackgroundError("screenshot.discard-copy", error);
-            return null;
-          })
+    const [, copyError] = await attempt(
+      (async () => {
+        const [path, prepareError] = await attempt(
+          systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
         );
-      }
-      if (writeError) {
-        setCopied(false);
-        showError(t("common.error"), t("screenshot.copy.error"));
-      }
-    } finally {
-      setCopying(false);
-    }
+        if (prepareError) {
+          setCopied(false);
+          showError(t("common.error"), t("screenshot.copy.error"));
+          return;
+        }
+        const [, writeError] = await attempt(writeImage(path));
+        if (path !== capture.path) {
+          ignore(
+            attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
+              if (error) reportBackgroundError("screenshot.discard-copy", error);
+              return null;
+            })
+          );
+        }
+        if (writeError) {
+          setCopied(false);
+          showError(t("common.error"), t("screenshot.copy.error"));
+        }
+      })()
+    );
+    setCopying(false);
+    if (copyError !== null) throw copyError;
   };
 
   const save = async () => {

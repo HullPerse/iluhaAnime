@@ -49,6 +49,7 @@ import type { StageHandle } from "@/types/core/stage.screenshot";
 const LEFT_BUTTON = 0;
 const RIGHT_BUTTON = 2;
 const TEXT_HIT_PADDING = 3;
+const CROP_HANDLES: readonly CropHandle[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw", "move"];
 
 type DragMode = CropHandle | "start" | "draw" | "text-move";
 
@@ -298,7 +299,7 @@ export default function ScreenshotStage({
   }, [color, family, items, onCommit]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).dataset.textEditor === "true") return;
+    if (event.target instanceof HTMLElement && event.target.dataset.textEditor === "true") return;
     const button = event.button ?? LEFT_BUTTON;
     if (button !== LEFT_BUTTON && button !== RIGHT_BUTTON) return;
     event.preventDefault();
@@ -335,7 +336,9 @@ export default function ScreenshotStage({
       return;
     }
     grabPointer(event.pointerId);
-    const handle = (event.target as HTMLElement).dataset.handle as CropHandle | undefined;
+    const handleValue =
+      event.target instanceof HTMLElement ? event.target.dataset.handle : undefined;
+    const handle = CROP_HANDLES.find((candidate) => candidate === handleValue);
     if (tool === "select") {
       const hit = hitTestText(items, anchor, TEXT_HIT_PADDING);
       if (hit) {
@@ -527,7 +530,7 @@ export default function ScreenshotStage({
 
   const handleDoubleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (tool !== "select") return;
-    if ((event.target as HTMLElement).dataset.textEditor === "true") return;
+    if (event.target instanceof HTMLElement && event.target.dataset.textEditor === "true") return;
     const hit = hitTestText(items, toSource(event.clientX, event.clientY), TEXT_HIT_PADDING);
     if (!hit) return;
     event.preventDefault();

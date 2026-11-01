@@ -57,44 +57,50 @@ interface PlayableSource {
   headers: Record<string, string>;
 }
 
-const api = vi.hoisted(() => ({
-  prefsGet: vi.fn(async () => ({
-    sourceId: "animelib",
-    mediaId: "21371",
+const DEFAULT_PREFS = {
+  sourceId: "animelib",
+  mediaId: "21371",
+  variantId: "Kodik:7",
+  quality: "1080p",
+  audioLang: "",
+  subLang: "",
+};
+
+const DEFAULT_PLAYERS = [
+  {
+    id: "7",
+    name: "AniDUB",
+    language: "Озвучка",
+    separateStream: true,
+    player: "Kodik",
+    sourceUrl: "",
+  },
+  {
+    id: "8",
+    name: "Other",
+    language: "Озвучка",
+    separateStream: true,
+    player: "Kodik",
+    sourceUrl: "",
+  },
+];
+
+const DEFAULT_SOURCES: PlayableSource[] = [
+  {
     variantId: "Kodik:7",
-    quality: "1080p",
-    audioLang: "",
-    subLang: "",
-  })),
-  prefsSave: vi.fn(async () => undefined),
-  players: vi.fn(async (_input: { episodeId: string }) => [
-    {
-      id: "7",
-      name: "AniDUB",
-      language: "Озвучка",
-      separateStream: true,
-      player: "Kodik",
-      sourceUrl: "",
-    },
-    {
-      id: "8",
-      name: "Other",
-      language: "Озвучка",
-      separateStream: true,
-      player: "Kodik",
-      sourceUrl: "",
-    },
-  ]),
-  streamSources: vi.fn(async (_input: SourcesInput): Promise<PlayableSource[]> => [
-    {
-      variantId: "Kodik:7",
-      url: "https://cdn/1080.mp4",
-      type: "mp4",
-      quality: "1080",
-      label: "1080p",
-      headers: {},
-    },
-  ]),
+    url: "https://cdn/1080.mp4",
+    type: "mp4",
+    quality: "1080",
+    label: "1080p",
+    headers: {},
+  },
+];
+
+const api = vi.hoisted(() => ({
+  prefsGet: vi.fn(),
+  prefsSave: vi.fn(),
+  players: vi.fn(),
+  streamSources: vi.fn(),
 }));
 
 vi.mock("@/api/stream.api", () => ({ streamApi: api }));
@@ -131,10 +137,10 @@ vi.mock("@/routes/components/anilist/detail/modal.detail", () => ({
 
 beforeEach(() => {
   patchSettings({ language: "en" });
-  api.prefsGet.mockClear();
-  api.prefsSave.mockClear();
-  api.players.mockClear();
-  api.streamSources.mockClear();
+  api.prefsGet.mockReset().mockResolvedValue(DEFAULT_PREFS);
+  api.prefsSave.mockReset().mockResolvedValue(undefined);
+  api.players.mockReset().mockImplementation(async () => DEFAULT_PLAYERS);
+  api.streamSources.mockReset().mockImplementation(async (_input: SourcesInput) => DEFAULT_SOURCES);
   playback.openStream.mockClear();
   playback.loadWatch.mockClear();
   playback.prewarmPlayer.mockClear();

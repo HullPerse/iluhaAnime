@@ -16,10 +16,13 @@ import type { SearchFilters } from "@/types/search/search";
 
 import { mockInvoke } from "@/tests/mocks";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: mockInvoke,
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
+vi.mock("@tauri-apps/api/core", async () => {
+  const { mockInvoke } = await import("@/tests/mocks");
+  return {
+    invoke: mockInvoke,
+    convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
+  };
+});
 
 function animeMedia(id: number, title: string): AniMedia {
   return {

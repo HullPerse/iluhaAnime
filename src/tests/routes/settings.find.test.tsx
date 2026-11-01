@@ -61,7 +61,7 @@ describe("settings find box", () => {
   it("clears the query on Escape", async () => {
     const onChange = vi.fn();
     render(<FindBox {...boxProps({ value: "прокси", onChange })} />);
-    const box = screen.getByRole("combobox", { name: "Найти параметр..." });
+    const box = screen.getByRole("combobox", { name: /Найти параметр/ });
     box.focus();
     fireEvent.keyDown(box, { key: "Escape" });
     expect(onChange).toHaveBeenCalledWith("");
@@ -75,13 +75,13 @@ describe("settings find box", () => {
   it("forwards the input ref", () => {
     const inputRef = createRef<HTMLInputElement>();
     render(<FindBox {...boxProps({ inputRef })} />);
-    expect(inputRef.current).toBe(screen.getByRole("combobox", { name: "Найти параметр..." }));
+    expect(inputRef.current).toBe(screen.getByRole("combobox", { name: /Найти параметр/ }));
   });
 
   it("jumps to the selected hit on Enter", async () => {
     const onJumpSelected = vi.fn();
     render(<FindBox {...boxProps({ onJumpSelected })} />);
-    const box = screen.getByRole("combobox", { name: "Найти параметр..." });
+    const box = screen.getByRole("combobox", { name: /Найти параметр/ });
     box.focus();
     fireEvent.keyDown(box, { key: "Enter" });
     expect(onJumpSelected).toHaveBeenCalledTimes(1);
@@ -90,7 +90,7 @@ describe("settings find box", () => {
   it("moves the active option with arrows without leaving the field", async () => {
     const onActiveChange = vi.fn();
     render(<FindBox {...boxProps({ optionCount: 8, activeIndex: 2, onActiveChange })} />);
-    const box = screen.getByRole("combobox", { name: "Найти параметр..." });
+    const box = screen.getByRole("combobox", { name: /Найти параметр/ });
     box.focus();
     expect(box.getAttribute("aria-activedescendant")).toBe("settings-find-test-2");
     fireEvent.keyDown(box, { key: "ArrowDown" });

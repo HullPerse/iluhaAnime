@@ -125,7 +125,11 @@ pub async fn download_rife(app_handle: tauri::AppHandle) -> Result<String, Strin
     let mut found_models = false;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| format!("zip entry: {e}"))?;
-        let name = file.name().to_string().replace('\\', "/");
+        let name = file
+            .name()
+            .map_err(|e| format!("zip entry: {e}"))?
+            .to_string()
+            .replace('\\', "/");
         if name.ends_with(exe_name) {
             let mut outfile = std::fs::File::create(dir.join(exe_name))
                 .map_err(|e| format!("create file: {e}"))?;

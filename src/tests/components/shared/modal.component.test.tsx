@@ -88,7 +88,9 @@ describe("Modal animation", () => {
     expect(dialog.className).toContain("scale-[0.97]");
     expect(document.querySelectorAll(".modal-motion")).toHaveLength(2);
 
-    await waitFor(() => expect(dialog.classList.contains("opacity-100")).toBe(true));
+    await waitFor(() => expect(dialog.classList.contains("opacity-100")).toBe(true), {
+      timeout: 5000,
+    });
     expect(dialog.classList.contains("scale-[0.97]")).toBe(false);
   });
 

@@ -152,6 +152,7 @@ function collectStickyBoxes(root: ParentNode): DOMRect[] {
 }
 
 function isCovered(element: HTMLElement, rect: DOMRect, sticky: readonly DOMRect[]): boolean {
+  if (typeof document === "undefined") return false;
   const hitTest = document.elementFromPoint;
   if (typeof hitTest !== "function") return false;
   if (

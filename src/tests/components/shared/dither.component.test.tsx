@@ -88,6 +88,8 @@ const installFrameHarness = () => {
 describe("DitherCanvas remount", () => {
   beforeEach(() => {
     ditherRenderCache.clear();
+    ditherDecodeCache.clear();
+    resetDitherWorker();
   });
 
   it("repaints the dithered frame instead of leaving a blank canvas", async () => {

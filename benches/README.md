@@ -56,6 +56,29 @@ Measured on Ryzen 7 5800X (8 cores), node 26, release profile, cold and warm as 
 | IPC chattiness, torrent files | 1 invoke per poll cycle (20 ids) | `ipc-chatter`, batched |
 | Suggest pool payload | 1.3KB at 8 rows, 7.9KB at 48 rows | `ipc-chatter`, response bytes per query |
 
+### Quick run 2026-11-01 (d68428f)
+
+`bun run bench:all` on the same Ryzen 7 5800X, node 26.3.0, 8 blocks, git `d68428f` (clean). Result: `benches/.labs/results/d68428f.json`. Coverage: 29 files and 153 benchmarks. The run reported 45 warnings and 2 failures; the labs JSON persists errors but no warning array, so the warning count comes from the run console.
+
+Both failures are vim scan benchmarks and both are harness failures, not app regressions:
+
+- `vim > scan 380 hintable x100`: `ReferenceError: document is not defined` in `scanHintTargets` at `hintsHotkeys.utils.ts:155`.
+- `vim > scan 3000 candidates (caps at 380) x20`: the same path.
+
+`bun run bench:labs:compare d68428f` compares against `pilot-baseline` from 2026-10-08. Only 9 benchmarks overlap; all 9 are faster at p50, but the baseline is old and the candidate CPU clock drifted 29.4%, so treat this as a smoke check, not a release delta. The two p99 regressions are `10k text query frieren + name sort` (+7.6%) and `score query-aware x200` (+26.4%). Full output is in `benches/.labs/compare-d68428f.txt` (ignored).
+
+| Benchmark | Baseline p50 | Candidate p50 | Delta p50 |
+| --- | --- | --- | --- |
+| 1k empty query + date sort | 223.75us | 81.25us | -63.7% |
+| 10k empty query + date sort | 1.54ms | 826.95us | -46.4% |
+| 10k text query frieren + name sort | 12.47ms | 11.50ms | -7.8% |
+| 10k intent query year:2020 + rating sort | 6.83ms | 6.24ms | -8.7% |
+| parse corpus cold x125 | 6.65ms | 1.36ms | -79.5% |
+| parse corpus warm x125 | 144.45us | 66.65us | -53.9% |
+| score query-aware x200 | 1.06ms | 881.45us | -16.7% |
+| score pre-normalized x200 | 511.55us | 406.50us | -20.5% |
+| score pre-normalized SLOWED x200 | 517.15us | 434.10us | -16.1% |
+
 ### Ranking and search (2026-10-20)
 
 Medians of 3 labs runs on the same host; the host clock drifted, and labs reported 5-35% run-to-run spread, so treat sub-5% deltas as noise. `unified_index` is a Rust release bench over an in-memory fixture: 8000 anime + 8000 aliases + 200 history rows.

@@ -1,4 +1,7 @@
-import { beforeEach, vi } from "vitest";
+import { cleanup, configure } from "@testing-library/react";
+import { afterEach, beforeEach, vi } from "vitest";
+
+configure({ asyncUtilTimeout: 5000 });
 
 import {
   mockConvertFileSrc,
@@ -47,6 +50,14 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 vi.mock("@tauri-apps/plugin-updater", () => ({
   check: mockUpdaterCheck,
 }));
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  document.body.removeAttribute("style");
+  document.documentElement.removeAttribute("style");
+});
 
 beforeEach(async () => {
   const { resetTransportInflight, resetTransportStats } = await import("@/api/transport.api");

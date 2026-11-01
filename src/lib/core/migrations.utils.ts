@@ -2,7 +2,7 @@ import { attemptSync } from "@/lib/core/attempt.utils";
 import type { StoreMigration, TrackedStore } from "@/types/core/migrations";
 
 export const TRACKED_STORES: TrackedStore[] = [
-  { store: "settings", current: 59 },
+  { store: "settings", current: 60 },
   { store: "theme", current: 1 },
   { store: "cache", current: 5 },
   { store: "search", current: 4 },

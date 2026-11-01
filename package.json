@@ -20,6 +20,8 @@
     "lint:knip": "knip",
     "check:cleanup": "bun scripts/cleanup-inventory.ts --check-code",
     "test": "vitest run",
+    "test:changed": "vitest run --changed",
+    "test:shuffle": "vitest run --isolate --sequence.shuffle",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "bun scripts/e2e/run.ts",

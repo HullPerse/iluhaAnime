@@ -116,7 +116,11 @@ pub async fn download_ffmpeg(
             let mut found = false;
             for i in 0..archive.len() {
                 let mut file = archive.by_index(i).map_err(|e| format!("zip entry: {e}"))?;
-                let name = file.name().to_string().replace('\\', "/");
+                let name = file
+                    .name()
+                    .map_err(|e| format!("zip entry: {e}"))?
+                    .to_string()
+                    .replace('\\', "/");
                 if name.ends_with(in_archive) || name.contains(in_archive) {
                     let mut outfile =
                         std::fs::File::create(out_path).map_err(|e| format!("create file: {e}"))?;

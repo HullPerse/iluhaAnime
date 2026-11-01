@@ -515,10 +515,7 @@ struct WebviewProxy {
 /// folder the main window already owns; WebView2 answers ERROR_INVALID_STATE
 /// (0x8007139F). One folder per login label keeps every flow independent.
 #[cfg(target_os = "windows")]
-fn login_webview_data_dir(
-    app_handle: &tauri::AppHandle,
-    label: &str,
-) -> Result<PathBuf, String> {
+fn login_webview_data_dir(app_handle: &tauri::AppHandle, label: &str) -> Result<PathBuf, String> {
     let base = app_handle
         .path()
         .app_data_dir()
@@ -705,7 +702,10 @@ pub async fn rutracker_webview_login(
         builder = builder.proxy_url(proxy.builder_url.clone());
     }
     let window = builder
-        .data_directory(login_webview_data_dir(&app_handle, RUTRACKER_WEBVIEW_LABEL)?)
+        .data_directory(login_webview_data_dir(
+            &app_handle,
+            RUTRACKER_WEBVIEW_LABEL,
+        )?)
         .build()
         .map_err(|e| format!("webview_open: {e}"))?;
 

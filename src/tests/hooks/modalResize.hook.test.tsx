@@ -7,41 +7,24 @@ import { MODAL_RESIZE_DURATION, useModalResize } from "@/hooks/modalResize.hook"
 const size = { width: 0, height: 0 };
 const originalWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
 const originalHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
-const originalAnimate = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "animate");
 const originalInnerWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
 const originalInnerHeight = Object.getOwnPropertyDescriptor(window, "innerHeight");
 
-type Listener = () => void;
-
-interface FakeAnimation {
-  addEventListener: (type: string, listener: Listener) => void;
-  cancel: ReturnType<typeof vi.fn>;
-  finish: () => void;
-}
-
 let resizeCallback: ResizeObserverCallback | null = null;
-let animations: FakeAnimation[] = [];
+let frames = new Map<number, FrameRequestCallback>();
+let nextFrameId = 1;
+let now = 0;
 
-const animateMock = vi.fn(
-  (_keyframes: Keyframe[], _options?: KeyframeAnimationOptions): FakeAnimation => {
-    const listeners = new Map<string, Set<Listener>>();
-    const animation: FakeAnimation = {
-      addEventListener: (type, listener) => {
-        const bucket = listeners.get(type) ?? new Set<Listener>();
-        bucket.add(listener);
-        listeners.set(type, bucket);
-      },
-      cancel: vi.fn(() => {
-        for (const listener of listeners.get("cancel") ?? []) listener();
-      }),
-      finish: () => {
-        for (const listener of listeners.get("finish") ?? []) listener();
-      },
-    };
-    animations.push(animation);
-    return animation;
-  }
-);
+const rafMock = vi.fn((callback: FrameRequestCallback): number => {
+  const id = nextFrameId;
+  nextFrameId += 1;
+  frames.set(id, callback);
+  return id;
+});
+
+const cancelRafMock = vi.fn((id: number): void => {
+  frames.delete(id);
+});
 
 function Harness({ enabled }: { enabled: boolean }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
@@ -74,12 +57,26 @@ const triggerResize = (): void => {
   });
 };
 
+const runFrame = (delta: number): void => {
+  now += delta;
+  const callbacks = [...frames.values()];
+  frames.clear();
+  act(() => {
+    for (const frameCallback of callbacks) frameCallback(now);
+  });
+};
+
+const pendingFrames = (): number => frames.size;
+
 beforeEach(() => {
   size.width = 320;
   size.height = 200;
-  animations = [];
   resizeCallback = null;
-  animateMock.mockClear();
+  frames = new Map<number, FrameRequestCallback>();
+  nextFrameId = 1;
+  now = 0;
+  rafMock.mockClear();
+  cancelRafMock.mockClear();
   Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
     configurable: true,
     get: () => size.width,
@@ -88,11 +85,9 @@ beforeEach(() => {
     configurable: true,
     get: () => size.height,
   });
-  Object.defineProperty(HTMLElement.prototype, "animate", {
-    configurable: true,
-    writable: true,
-    value: animateMock,
-  });
+  vi.stubGlobal("requestAnimationFrame", rafMock);
+  vi.stubGlobal("cancelAnimationFrame", cancelRafMock);
+  vi.spyOn(performance, "now").mockImplementation(() => now);
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -112,7 +107,6 @@ afterEach(() => {
   cleanup();
   restoreProperty(HTMLElement.prototype, "offsetWidth", originalWidth);
   restoreProperty(HTMLElement.prototype, "offsetHeight", originalHeight);
-  restoreProperty(HTMLElement.prototype, "animate", originalAnimate);
   restoreProperty(window, "innerWidth", originalInnerWidth);
   restoreProperty(window, "innerHeight", originalInnerHeight);
   vi.unstubAllGlobals();
@@ -137,7 +131,7 @@ describe("useModalResize", () => {
 
     triggerResize();
 
-    expect(animateMock).not.toHaveBeenCalled();
+    expect(rafMock).not.toHaveBeenCalled();
   });
 
   it("attaches the observer when the element mounts after the first render", () => {
@@ -149,7 +143,13 @@ describe("useModalResize", () => {
     expect(resizeCallback).not.toBeNull();
     setSize(480, 300);
     triggerResize();
-    expect(animateMock).toHaveBeenCalledTimes(1);
+    expect(rafMock).toHaveBeenCalledTimes(1);
+
+    runFrame(0);
+    expect(screen.getByTestId("popup").style.width).toBe("320px");
+
+    runFrame(MODAL_RESIZE_DURATION);
+    expect(screen.getByTestId("popup").style.width).toBe("");
   });
 
   it("animates from the old size to the new one and clips the content", () => {
@@ -159,17 +159,18 @@ describe("useModalResize", () => {
     setSize(480, 300);
     triggerResize();
 
-    expect(animateMock).toHaveBeenCalledWith(
-      [
-        { width: "320px", height: "200px" },
-        { width: "480px", height: "300px" },
-      ],
-      { duration: MODAL_RESIZE_DURATION, easing: "ease-in-out" }
-    );
     expect(popup.style.overflow).toBe("hidden");
+    expect(rafMock).toHaveBeenCalledTimes(1);
 
-    act(() => animations[0].finish());
+    runFrame(0);
+    expect(popup.style.width).toBe("320px");
+    expect(popup.style.height).toBe("200px");
 
+    runFrame(MODAL_RESIZE_DURATION / 2);
+    expect(popup.style.width).toBe("400px");
+    expect(popup.style.height).toBe("250px");
+
+    runFrame(MODAL_RESIZE_DURATION / 2);
     expect(popup.style.overflow).toBe("");
   });
 
@@ -180,29 +181,36 @@ describe("useModalResize", () => {
     setSize(300, 180);
     triggerResize();
 
-    expect(animateMock).not.toHaveBeenCalled();
+    expect(rafMock).not.toHaveBeenCalled();
   });
 
   it("ignores its own resize callbacks and chains to the settled size", () => {
     render(<Harness enabled />);
+    const popup = screen.getByTestId("popup");
 
     setSize(480, 300);
     triggerResize();
     setSize(520, 340);
     triggerResize();
 
-    expect(animateMock).toHaveBeenCalledTimes(1);
+    expect(rafMock).toHaveBeenCalledTimes(1);
 
-    act(() => animations[0].finish());
+    runFrame(0);
+    runFrame(MODAL_RESIZE_DURATION);
 
-    expect(animateMock).toHaveBeenCalledTimes(2);
-    expect(animateMock).toHaveBeenLastCalledWith(
-      [
-        { width: "480px", height: "300px" },
-        { width: "520px", height: "340px" },
-      ],
-      { duration: MODAL_RESIZE_DURATION, easing: "ease-in-out" }
-    );
+    expect(rafMock).toHaveBeenCalledTimes(3);
+    expect(pendingFrames()).toBe(1);
+    expect(popup.style.overflow).toBe("hidden");
+
+    runFrame(0);
+    expect(popup.style.width).toBe("480px");
+
+    runFrame(MODAL_RESIZE_DURATION / 2);
+    expect(popup.style.width).toBe("500px");
+
+    runFrame(MODAL_RESIZE_DURATION / 2);
+    expect(popup.style.width).toBe("");
+    expect(popup.style.overflow).toBe("");
   });
 
   it("stays inert while the setting is off", () => {
@@ -211,7 +219,7 @@ describe("useModalResize", () => {
     setSize(600, 400);
     triggerResize();
 
-    expect(animateMock).not.toHaveBeenCalled();
+    expect(rafMock).not.toHaveBeenCalled();
   });
 
   it("survives a runtime without ResizeObserver", () => {
@@ -220,7 +228,7 @@ describe("useModalResize", () => {
     render(<Harness enabled />);
 
     expect(screen.getByTestId("popup")).toBeDefined();
-    expect(animateMock).not.toHaveBeenCalled();
+    expect(rafMock).not.toHaveBeenCalled();
   });
 
   it("cancels the running animation and restores clipping on unmount", () => {
@@ -229,11 +237,11 @@ describe("useModalResize", () => {
 
     setSize(480, 300);
     triggerResize();
-    expect(animations[0].cancel).not.toHaveBeenCalled();
+    expect(cancelRafMock).not.toHaveBeenCalled();
 
     view.unmount();
 
-    expect(animations[0].cancel).toHaveBeenCalled();
+    expect(cancelRafMock).toHaveBeenCalled();
     expect(popup.style.overflow).toBe("");
   });
 });

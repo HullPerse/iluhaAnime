@@ -226,7 +226,6 @@ pub async fn export_collection_zip(app: tauri::AppHandle, out_path: String) -> R
             .flatten()
             .filter(|bytes| !bytes.is_empty());
         #[allow(clippy::option_if_let_else)]
-        #[allow(clippy::option_if_let_else)]
         let bytes = match bytes_opt {
             Some(b) => b,
             None => {

@@ -11,7 +11,7 @@ const RESET_DEFAULTS: Pick<SettingsData, ResettableSetting> = {
   language: detectSystemLocale(),
 };
 
-export function toResettableSettings(
+function toResettableSettings(
   fields: ResettableSetting | readonly ResettableSetting[]
 ): readonly ResettableSetting[] {
   return typeof fields === "string" ? [fields] : fields;

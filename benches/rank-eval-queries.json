@@ -33,10 +33,7 @@
       "query": "HUNTER×HUNTER (2011)"
     },
     {
-      "expectedAliases": [
-        "Ping Pong the Animation",
-        "ピンポン THE ANIMATION"
-      ],
+      "expectedAliases": ["Ping Pong the Animation", "ピンポン THE ANIMATION"],
       "expectedTitle": "Ping Pong THE ANIMATION",
       "note": "exact title",
       "query": "Ping Pong THE ANIMATION"
@@ -52,27 +49,19 @@
       "query": "serial experiments lain"
     },
     {
-      "expectedAliases": [
-        "Afro Samurai the Movie",
-        "AFRO SAMURAI 劇場版"
-      ],
+      "expectedAliases": ["Afro Samurai the Movie", "AFRO SAMURAI 劇場版"],
       "expectedTitle": "AFRO SAMURAI Movie",
       "note": "exact title",
       "query": "AFRO SAMURAI Movie"
     },
     {
-      "expectedAliases": [
-        "Akira",
-        "アキラ"
-      ],
+      "expectedAliases": ["Akira", "アキラ"],
       "expectedTitle": "AKIRA",
       "note": "exact title",
       "query": "AKIRA"
     },
     {
-      "expectedAliases": [
-        "アフロサムライ"
-      ],
+      "expectedAliases": ["アフロサムライ"],
       "expectedTitle": "Afro Samurai",
       "note": "exact title",
       "query": "Afro Samurai"
@@ -130,10 +119,7 @@
       "query": "Dead Dead Demon's Dededededestruction"
     },
     {
-      "expectedAliases": [
-        "デス・パレード",
-        "תהלוכת המוות"
-      ],
+      "expectedAliases": ["デス・パレード", "תהלוכת המוות"],
       "expectedTitle": "Death Parade",
       "note": "exact title",
       "query": "Death Parade"
@@ -153,19 +139,13 @@
       "query": "Haibane Renm"
     },
     {
-      "expectedAliases": [
-        "Megalobox",
-        "メガロボクス"
-      ],
+      "expectedAliases": ["Megalobox", "メガロボクス"],
       "expectedTitle": "Megalo Box",
       "note": "unique prefix",
       "query": "Megalo Box"
     },
     {
-      "expectedAliases": [
-        "Paranoia Agent",
-        "妄想代理人"
-      ],
+      "expectedAliases": ["Paranoia Agent", "妄想代理人"],
       "expectedTitle": "Mousou Dairinin",
       "note": "unique prefix",
       "query": "Mousou Dairi"
@@ -181,21 +161,13 @@
       "query": "NOMAD: Megal"
     },
     {
-      "expectedAliases": [
-        "Redline",
-        "Red line",
-        "レッドライン"
-      ],
+      "expectedAliases": ["Redline", "Red line", "レッドライン"],
       "expectedTitle": "REDLINE",
       "note": "unique prefix",
       "query": "REDLINE"
     },
     {
-      "expectedAliases": [
-        "サムライチャンプルー",
-        "ساموراي تشامبلو",
-        "Самурай Чамплу"
-      ],
+      "expectedAliases": ["サムライチャンプルー", "ساموراي تشامبلو", "Самурай Чамплу"],
       "expectedTitle": "Samurai Champloo",
       "note": "unique prefix",
       "query": "Samurai Cham"
@@ -405,10 +377,7 @@
       "query": "HUNTER×HUNTER (2011) S01E05 1080p"
     },
     {
-      "expectedAliases": [
-        "Ping Pong the Animation",
-        "ピンポン THE ANIMATION"
-      ],
+      "expectedAliases": ["Ping Pong the Animation", "ピンポン THE ANIMATION"],
       "expectedTitle": "Ping Pong THE ANIMATION",
       "note": "release noise",
       "query": "Ping Pong THE ANIMATION S01E05 1080p"
@@ -424,27 +393,19 @@
       "query": "serial experiments lain S01E05 1080p"
     },
     {
-      "expectedAliases": [
-        "Afro Samurai the Movie",
-        "AFRO SAMURAI 劇場版"
-      ],
+      "expectedAliases": ["Afro Samurai the Movie", "AFRO SAMURAI 劇場版"],
       "expectedTitle": "AFRO SAMURAI Movie",
       "note": "release noise",
       "query": "AFRO SAMURAI Movie S01E05 1080p"
     },
     {
-      "expectedAliases": [
-        "Akira",
-        "アキラ"
-      ],
+      "expectedAliases": ["Akira", "アキラ"],
       "expectedTitle": "AKIRA",
       "note": "release noise",
       "query": "AKIRA S01E05 1080p"
     },
     {
-      "expectedAliases": [
-        "アフロサムライ"
-      ],
+      "expectedAliases": ["アフロサムライ"],
       "expectedTitle": "Afro Samurai",
       "note": "release noise",
       "query": "Afro Samurai S01E05 1080p",
@@ -634,21 +595,14 @@
     {
       "query": "Баки Ханма",
       "expectedTitle": "Hanma Baki",
-      "expectedAliases": [
-        "Baki Hanma",
-        "範馬刃牙",
-        "Baki: Son of Ogre",
-        "Hanma Baki: SON OF OGRE"
-      ],
+      "expectedAliases": ["Baki Hanma", "範馬刃牙", "Baki: Son of Ogre", "Hanma Baki: SON OF OGRE"],
       "note": "cyrillic alias",
       "comment": "Cyrillic alias from the index; checks non-Latin normalization."
     },
     {
       "query": "Frieren Beyond Journeys End",
       "expectedTitle": "Sousou no Frieren",
-      "expectedAliases": [
-        "Sousou no Frieren"
-      ],
+      "expectedAliases": ["Sousou no Frieren"],
       "note": "english title",
       "comment": "English title typed without punctuation; the base season is the expected answer."
     }

@@ -1,8 +1,8 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
-import { calculateCollectionStats } from '../../src/lib/anilist/collectionStats.utils';
-import { createSignalStore } from '../../src/lib/core/signal.store';
-import type { CollectionItem } from '../../src/types/anilist/collection';
+import { calculateCollectionStats } from "../../src/lib/anilist/collectionStats.utils";
+import { createSignalStore } from "../../src/lib/core/signal.store";
+import type { CollectionItem } from "../../src/types/anilist/collection";
 
 function mulberry32(seed: number): () => number {
   let state = Math.trunc(seed);
@@ -15,8 +15,8 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-const WORDS = ['Frieren', 'Naruto', 'Titan', 'Slayer', 'Gate', 'Hunter', 'Bebop', 'Bleach'];
-const STATUSES = ['planned', 'watching', 'completed', 'onhold', 'dropped', 'favorites'];
+const WORDS = ["Frieren", "Naruto", "Titan", "Slayer", "Gate", "Hunter", "Bebop", "Bleach"];
+const STATUSES = ["planned", "watching", "completed", "onhold", "dropped", "favorites"];
 
 function makeItems(count: number, seed: number): CollectionItem[] {
   const rand = mulberry32(seed);
@@ -26,18 +26,18 @@ function makeItems(count: number, seed: number): CollectionItem[] {
       id: `item-${i}`,
       title: `${WORDS[i % WORDS.length]} ${i}`,
       altTitles: [],
-      type: 'anime',
-      status: STATUSES[i % STATUSES.length] ?? 'planned',
+      type: "anime",
+      status: STATUSES[i % STATUSES.length] ?? "planned",
       progressValue: Math.trunc(rand() * 24),
       progressTotal: 24,
-      progressUnit: 'episodes',
+      progressUnit: "episodes",
       durationMinutes: 24,
       rating: rand() < 0.2 ? null : Math.trunc(rand() * 10) + 1,
-      priority: 'normal',
+      priority: "normal",
       isFavorite: rand() < 0.05,
       year: 1990 + Math.trunc(rand() * 36),
       releaseDate: null,
-      genres: ['action'],
+      genres: ["action"],
       studio: null,
       description: null,
       notes: null,
@@ -72,8 +72,8 @@ const statsDerived = store.derive([itemsCell], (args) => {
   return calculateCollectionStats(args[0] as CollectionItem[], []);
 });
 
-group('derived-counters @derived @quick', () => {
-  bench('manual stats x10k (recompute each read)', () => {
+group("derived-counters @derived @quick", () => {
+  bench("manual stats x10k (recompute each read)", () => {
     let checksum = 0;
     for (let i = 0; i < 5; i++) {
       const s = calculateCollectionStats(i % 2 === 0 ? ITEMS_A : ITEMS_B, []);
@@ -82,7 +82,7 @@ group('derived-counters @derived @quick', () => {
     return checksum;
   });
 
-  bench('derived write+read x10k (array swaps)', () => {
+  bench("derived write+read x10k (array swaps)", () => {
     let checksum = 0;
     for (let i = 0; i < 5; i++) {
       itemsCell.set(i % 2 === 0 ? ITEMS_A : ITEMS_B);
@@ -92,7 +92,7 @@ group('derived-counters @derived @quick', () => {
     return checksum;
   });
 
-  bench('derived cached reads x100 (no changes)', () => {
+  bench("derived cached reads x100 (no changes)", () => {
     itemsCell.set(ITEMS_A);
     let checksum = 0;
     for (let i = 0; i < 100; i++) {

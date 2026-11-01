@@ -1,4 +1,3 @@
-// oxlint-disable react-doctor/no-layout-property-animation -- the popup is content-sized, so a
 import { useEffect } from "react";
 
 export const MODAL_RESIZE_DURATION = 200;
@@ -24,14 +23,25 @@ function viewportSize(): BoxSize {
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
+function easeInOut(progress: number): number {
+  return progress < 0.5 ? 2 * progress * progress : 1 - (-2 * progress + 2) ** 2 / 2;
+}
+
+function clearSize(element: HTMLElement): void {
+  element.style.width = "";
+  element.style.height = "";
+}
+
 export function useModalResize(element: HTMLElement | null, enabled: boolean): void {
   useEffect(() => {
     if (!element || !enabled) return;
-    if (typeof ResizeObserver === "undefined" || typeof element.animate !== "function") return;
+    if (typeof ResizeObserver === "undefined" || typeof requestAnimationFrame !== "function") {
+      return;
+    }
 
     let previous = measure(element);
     let viewport = viewportSize();
-    let animation: Animation | null = null;
+    let frame: number | null = null;
     let clipped = false;
 
     const releaseClip = () => {
@@ -41,10 +51,10 @@ export function useModalResize(element: HTMLElement | null, enabled: boolean): v
     };
 
     const stop = () => {
-      if (!animation) return;
-      const running = animation;
-      animation = null;
-      running.cancel();
+      if (frame === null) return;
+      cancelAnimationFrame(frame);
+      frame = null;
+      clearSize(element);
       releaseClip();
       previous = measure(element);
     };
@@ -55,17 +65,18 @@ export function useModalResize(element: HTMLElement | null, enabled: boolean): v
         clipped = true;
         element.style.overflow = "hidden";
       }
-      const running = element.animate(
-        [
-          { width: `${from.width}px`, height: `${from.height}px` },
-          { width: `${to.width}px`, height: `${to.height}px` },
-        ],
-        { duration: MODAL_RESIZE_DURATION, easing: "ease-in-out" }
-      );
-      animation = running;
-      running.addEventListener("finish", () => {
-        if (animation !== running) return;
-        animation = null;
+      const startedAt = performance.now();
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / MODAL_RESIZE_DURATION);
+        const eased = easeInOut(progress);
+        element.style.width = `${from.width + (to.width - from.width) * eased}px`;
+        element.style.height = `${from.height + (to.height - from.height) * eased}px`;
+        if (progress < 1) {
+          frame = requestAnimationFrame(step);
+          return;
+        }
+        frame = null;
+        clearSize(element);
         const settled = measure(element);
         if (!sameSize(to, settled)) {
           animateTo(to, settled);
@@ -73,13 +84,8 @@ export function useModalResize(element: HTMLElement | null, enabled: boolean): v
         }
         previous = settled;
         releaseClip();
-      });
-      running.addEventListener("cancel", () => {
-        if (animation !== running) return;
-        animation = null;
-        releaseClip();
-        previous = measure(element);
-      });
+      };
+      frame = requestAnimationFrame(step);
     };
 
     const observer = new ResizeObserver(() => {
@@ -95,7 +101,7 @@ export function useModalResize(element: HTMLElement | null, enabled: boolean): v
         return;
       }
 
-      if (animation) return;
+      if (frame !== null) return;
       if (sameSize(previous, next)) {
         previous = next;
         return;

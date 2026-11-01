@@ -2,7 +2,7 @@ import * as z from "zod/mini";
 
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { withFallback } from "@/lib/core/schema.utils";
-import type { SettingsTab, TabId, TabSettings } from "@/types/ui/settings";
+import type { SettingsTab, SettingsTabGroup, TabId, TabSettings } from "@/types/ui/settings";
 
 export const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
   { id: "search", key: "app.search" },
@@ -40,16 +40,30 @@ export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey 
   { id: "notifications", key: "settings.notifications" },
   { id: "search", key: "settings.search" },
   { id: "torrent", key: "settings.torrent" },
+  { id: "proxy", key: "settings.proxy" },
   { id: "theme", key: "settings.theme" },
   { id: "keybinds", key: "settings.keybinds" },
   { id: "changelog", key: "settings.changelog" },
+  { id: "sqlite", key: "settings.sqlite" },
 ] as const;
+
+export const SETTINGS_TAB_GROUPS: readonly SettingsTabGroup[] = [
+  {
+    id: "main",
+    titleKey: "settings.group.main",
+    tabs: ["general", "theme", "notifications", "keybinds"],
+  },
+  { id: "data", titleKey: "settings.group.data", tabs: ["search", "torrent"] },
+  { id: "integrations", titleKey: "settings.group.integrations", tabs: ["proxy"] },
+  { id: "advanced", titleKey: "settings.group.advanced", tabs: ["sqlite", "changelog"] },
+];
 
 const SETTINGS_TABS = new Set<SettingsTab>([
   "general",
   "notifications",
   "search",
   "torrent",
+  "proxy",
   "theme",
   "sqlite",
   "keybinds",

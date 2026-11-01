@@ -27,7 +27,7 @@ import { toValidator } from "@/lib/core/schema.utils";
 import type { SettingsAtoms, SettingsData, SettingsSignalStore } from "@/types/store/settings";
 import type { SettingsSignalOptions } from "@/types/store/options";
 
-export const SETTINGS_SCHEMA_VERSION = 59;
+export const SETTINGS_SCHEMA_VERSION = 60;
 
 const SETTINGS_TRANSFORMS: MigrationTransform[] = [
   {
@@ -57,16 +57,6 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     from: 12,
     migrate: (state) => {
       delete state.searchDedupEnabled;
-    },
-  },
-  {
-    from: 13,
-    migrate: (state) => {
-      const legacy = state.anilistPageSize;
-      if (state.pageSize === undefined) {
-        state.pageSize = typeof legacy === "number" ? legacy : DEFAULT_SETTINGS.pageSize;
-      }
-      delete state.anilistPageSize;
     },
   },
   {
@@ -271,6 +261,25 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       }
     },
   },
+  {
+    from: 60,
+    migrate: (state) => {
+      const pageSize = state.pageSize;
+      if (state.anilistPageSize === undefined) {
+        state.anilistPageSize =
+          typeof pageSize === "number" ? pageSize : DEFAULT_SETTINGS.anilistPageSize;
+      }
+      delete state.pageSize;
+      const resultsPerPage = state.resultsPerPage;
+      if (state.searchResultsPerPage === undefined) {
+        state.searchResultsPerPage =
+          typeof resultsPerPage === "number"
+            ? resultsPerPage
+            : DEFAULT_SETTINGS.searchResultsPerPage;
+      }
+      delete state.resultsPerPage;
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -322,8 +331,9 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
     typeof value === "number" && Number.isInteger(value) && value > 0,
   maxConcurrentDownloads: (value) =>
     typeof value === "number" && Number.isInteger(value) && value > 0,
-  pageSize: (value) => typeof value === "number" && Number.isInteger(value) && value > 0,
-  resultsPerPage: (value) => typeof value === "number" && Number.isInteger(value) && value > 0,
+  anilistPageSize: (value) => typeof value === "number" && Number.isInteger(value) && value > 0,
+  searchResultsPerPage: (value) =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
   defaultDownloadDir: (value) => value === null || typeof value === "string",
   screenshotDir: (value) => value === null || typeof value === "string",
   modalBackdropOpacity: (value) => typeof value === "number" && value >= 0 && value <= 100,

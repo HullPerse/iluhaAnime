@@ -54,6 +54,12 @@ function takeFilter(_value: AtLeastOne<SearchShape>): void {}
 function takeOne(_value: ExactlyOne<SearchShape>): void {}
 
 function takeNonEmpty(_value: NonEmptyArray<string>): void {}
+type Rejects<Fn extends (...args: never[]) => unknown, Arg> = Arg extends Parameters<Fn>[0]
+  ? false
+  : true;
+
+type NoXorSide = { a?: never; b?: never };
+type NoFilterKey = { q?: never; tag?: never };
 
 describe("types/utils", () => {
   it("throws on unreachable values", () => {
@@ -77,10 +83,8 @@ describe("types/utils", () => {
     expect(anime).toBe(21);
     expect(hash).toBe("abc");
     expect(file).toBe("/tmp/x");
-    const raw = 21;
-    // @ts-expect-error - plain numbers must not flow into branded ids
-    const branded: AniListId = raw;
-    expect(branded).toBe(21);
+    expectTypeOf<number>().not.toMatchTypeOf<AniListId>();
+    expectTypeOf<string>().not.toMatchTypeOf<TorrentHash>();
   });
 
   it("pins the opaque alias to its brand", () => {
@@ -114,31 +118,25 @@ describe("types/utils", () => {
   it("accepts exactly one side of an exclusive union", () => {
     takeXor({ a: "x" });
     takeXor({ b: 1 });
-    // @ts-expect-error - both sides set
-    takeXor({ a: "x", b: 1 });
-    // @ts-expect-error - neither side set
-    takeXor({});
+    expectTypeOf<Rejects<typeof takeXor, { a: string; b: number }>>().toEqualTypeOf<true>();
+    expectTypeOf<Rejects<typeof takeXor, NoXorSide>>().toEqualTypeOf<true>();
   });
 
   it("requires at least one filter key", () => {
     takeFilter({ q: "x" });
     takeFilter({ q: "x", tag: "y" });
-    // @ts-expect-error - empty filter matches nothing
-    takeFilter({});
+    expectTypeOf<Rejects<typeof takeFilter, NoFilterKey>>().toEqualTypeOf<true>();
   });
 
   it("requires exactly one key", () => {
     takeOne({ q: "x" });
-    // @ts-expect-error - two keys set
-    takeOne({ q: "x", tag: "y" });
-    // @ts-expect-error - no key set
-    takeOne({});
+    expectTypeOf<Rejects<typeof takeOne, SearchShape>>().toEqualTypeOf<true>();
+    expectTypeOf<Rejects<typeof takeOne, NoFilterKey>>().toEqualTypeOf<true>();
   });
 
   it("rejects empty arrays where one element is required", () => {
     takeNonEmpty(["a"]);
-    // @ts-expect-error - empty array has no element to match
-    takeNonEmpty([]);
+    expectTypeOf<Rejects<typeof takeNonEmpty, []>>().toEqualTypeOf<true>();
   });
 
   it("pins event maps and array helpers", () => {

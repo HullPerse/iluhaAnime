@@ -24,7 +24,7 @@ function memoryStorage(backing = new Map<string, string>()) {
 
 test("settings patch cost by value kind x50k", async ({ bench }) => {
   const cases: Array<[string, Record<string, unknown>]> = [
-    ["number field", { pageSize: 42 }],
+    ["number field", { anilistPageSize: 42 }],
     ["boolean field", { customScrollbar: true }],
     ["string field", { defaultSearchSource: "nyaa" }],
     ["object field", { limits: { download: 100, upload: 50 } }],

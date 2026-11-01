@@ -138,7 +138,6 @@ export function ingestDeepLinks(
   if (bad) onInvalid();
 }
 
-
 export function parseAnilistPageUrl(raw: string): AnimeDeepLink | null {
   const match = /^https:\/\/anilist\.co\/anime\/(\d{1,10})(?:\/[^\s?#]*)?\/?$/i.exec(raw.trim());
   if (!match) return null;
@@ -397,8 +396,8 @@ export async function parseCollectionShareLink(
     SHARE_MAX_BYTES
   );
   if (!decompressed) return null;
-  const decoded = attemptResultSync(
-    (): unknown => JSON.parse(new TextDecoder().decode(decompressed))
+  const decoded = attemptResultSync((): unknown =>
+    JSON.parse(new TextDecoder().decode(decompressed))
   );
   return decoded.ok ? readSharePayload(decoded.value) : null;
 }

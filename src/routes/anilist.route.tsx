@@ -152,7 +152,7 @@ function AnilistRoute() {
     dir: "desc",
   });
   const [page, setPage] = useState<number>(1);
-  const pageSize = useCell(settingsAtoms.pageSize);
+  const pageSize = useCell(settingsAtoms.anilistPageSize);
   const anilistSuggestionBoost = useCell(settingsAtoms.anilistSuggestionBoost);
   const scrollRef = useRef<HTMLElement>(null);
 

@@ -29,7 +29,7 @@ export function GridPagedView({
   onEdit?: (item: CollectionItem) => void;
   onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
 }) {
-  const pageSize = useCell(settingsAtoms.pageSize);
+  const pageSize = useCell(settingsAtoms.anilistPageSize);
   const [page, setPage] = useState<number>(1);
   const scrollRef = useRef<HTMLElement>(null);
   const { total, from, to, lastPage } = usePagination(items.length, pageSize, page, setPage);

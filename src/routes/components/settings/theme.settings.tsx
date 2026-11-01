@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
@@ -50,6 +51,7 @@ export default function SettingsTheme() {
   const customThemes = useCell(themeAtoms.customThemes);
   const themePatches = useCell(themeAtoms.themePatches);
   const [showEditor, setShowEditor] = useState<boolean>(false);
+  const [showAdvancedAnimation, setShowAdvancedAnimation] = useState<boolean>(false);
   const [editingTheme, setEditingTheme] = useState<ThemeDefinition | undefined>();
   const [editingBase, setEditingBase] = useState<ThemeDefinition | undefined>();
   const [patchMode, setPatchMode] = useState<boolean>(false);
@@ -264,7 +266,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.retro.style")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Combobox
                 value={retroStyle}
                 onChange={(value) => patchSettings({ retroStyle: value })}
@@ -283,7 +285,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.density")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Combobox
                 value={uiDensity}
                 onChange={(value) => patchSettings({ uiDensity: value })}
@@ -301,19 +303,19 @@ export default function SettingsTheme() {
         </div>
       </section>
 
-      <section className="ui-panel" data-find-section="theme.retro">
+      <section className="ui-panel" data-find-section="theme.collection">
         <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">
             {t("settings.theme.collection.headers")}
           </span>
-          <SectionResetButton sectionId="theme.retro" />
+          <SectionResetButton sectionId="theme.collection" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.collection.headers")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Combobox
                 value={collectionGroupHeaderStyle}
                 onChange={(value) =>
@@ -348,7 +350,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.progress.style")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Combobox
                 value={progressStyle}
                 onChange={(value) => patchSettings({ progressStyle: value })}
@@ -395,23 +397,46 @@ export default function SettingsTheme() {
         </div>
         <div className="flex flex-col gap-1 p-2">
           <EffectsCheckbox label={t("settings.theme.modal.animation")} field="modalAnimation" />
-          <EffectsCheckbox label={t("settings.theme.spinners")} field="enableAnimations" />
-          <EffectsCheckbox label={t("settings.theme.animated.counters")} field="animateCounters" />
-          <EffectsCheckbox label={t("settings.theme.animate.toasts")} field="animateToasts" />
-          <EffectsCheckbox label={t("settings.theme.animate.sections")} field="animateSections" />
-          <EffectsCheckbox
-            label={t("settings.theme.animate.modal.content")}
-            field="animateModalContent"
-          />
-          <EffectsCheckbox label={t("settings.theme.animate.osd")} field="animateOsd" />
-          <EffectsCheckbox
-            label={t("settings.theme.animate.result.lists")}
-            field="animateResultLists"
-          />
-          <EffectsCheckbox
-            label={t("settings.theme.animate.tab.switch")}
-            field="animateTabSwitch"
-          />
+          <EffectsCheckbox label={t("settings.theme.animation")} field="enableAnimations" />
+          {showAdvancedAnimation && (
+            <>
+              <EffectsCheckbox
+                label={t("settings.theme.animated.counters")}
+                field="animateCounters"
+              />
+              <EffectsCheckbox label={t("settings.theme.animate.toasts")} field="animateToasts" />
+              <EffectsCheckbox
+                label={t("settings.theme.animate.sections")}
+                field="animateSections"
+              />
+              <EffectsCheckbox
+                label={t("settings.theme.animate.modal.content")}
+                field="animateModalContent"
+              />
+              <EffectsCheckbox label={t("settings.theme.animate.osd")} field="animateOsd" />
+              <EffectsCheckbox
+                label={t("settings.theme.animate.result.lists")}
+                field="animateResultLists"
+              />
+              <EffectsCheckbox
+                label={t("settings.theme.animate.tab.switch")}
+                field="animateTabSwitch"
+              />
+            </>
+          )}
+          <Button
+            variant="ghost"
+            className="w-fit text-xs"
+            aria-expanded={showAdvancedAnimation}
+            onClick={() => setShowAdvancedAnimation((value) => !value)}
+          >
+            {showAdvancedAnimation ? (
+              <ChevronUp className="size-3" />
+            ) : (
+              <ChevronDown className="size-3" />
+            )}
+            <span className="ml-0.5">{t("settings.group.advanced")}</span>
+          </Button>
         </div>
       </section>
 
@@ -426,15 +451,17 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.search")}
             </span>
-            <Combobox
-              value={searchType}
-              onChange={(value) => patchSettings({ searchType: value })}
-              options={[
-                { value: "default", label: t("settings.theme.search.default") },
-                { value: "modern", label: t("settings.theme.search.modern") },
-              ]}
-              className="max-w-xs"
-            />
+            <div className="group flex min-w-0 items-center gap-1">
+              <Combobox
+                value={searchType}
+                onChange={(value) => patchSettings({ searchType: value })}
+                options={[
+                  { value: "default", label: t("settings.theme.search.default") },
+                  { value: "modern", label: t("settings.theme.search.modern") },
+                ]}
+                className="max-w-xs"
+              />
+            </div>
           </div>
           <EffectsCheckbox
             label={t("settings.theme.experimental.mascot")}
@@ -453,15 +480,17 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.player")}
             </span>
-            <Combobox
-              value={playerType}
-              onChange={(value) => patchSettings({ playerType: value })}
-              options={[
-                { value: "default", label: t("settings.theme.player.default") },
-                { value: "modern", label: t("settings.theme.player.modern") },
-              ]}
-              className="max-w-xs"
-            />
+            <div className="group flex min-w-0 items-center gap-1">
+              <Combobox
+                value={playerType}
+                onChange={(value) => patchSettings({ playerType: value })}
+                options={[
+                  { value: "default", label: t("settings.theme.player.default") },
+                  { value: "modern", label: t("settings.theme.player.modern") },
+                ]}
+                className="max-w-xs"
+              />
+            </div>
           </div>
           {playerType !== "modern" && (
             <EffectsCheckbox label={t("settings.theme.player.menu")} field="playerContextMenu" />
@@ -470,36 +499,40 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.detail.width")}
             </span>
-            <Combobox
-              value={animeDetailWidth}
-              onChange={(value) => patchSettings({ animeDetailWidth: value })}
-              options={[
-                { value: "default", label: t("settings.theme.detail.width.default") },
-                { value: "wide", label: t("settings.theme.detail.width.wide") },
-              ]}
-              className="max-w-xs"
-            />
+            <div className="group flex min-w-0 items-center gap-1">
+              <Combobox
+                value={animeDetailWidth}
+                onChange={(value) => patchSettings({ animeDetailWidth: value })}
+                options={[
+                  { value: "default", label: t("settings.theme.detail.width.default") },
+                  { value: "wide", label: t("settings.theme.detail.width.wide") },
+                ]}
+                className="max-w-xs"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-x-3 gap-y-0.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.theme.experimental.effect")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <Combobox
-                value={windowEffect}
-                onChange={(value) => patchSettings({ windowEffect: value })}
-                label={t("settings.theme.experimental.effect")}
-                options={[
-                  { value: "none", label: t("settings.theme.experimental.effect.none") },
-                  {
-                    value: "acrylic",
-                    label: t("settings.theme.experimental.effect.acrylic"),
-                  },
-                  { value: "mica", label: t("settings.theme.experimental.effect.mica") },
-                  { value: "tabbed", label: t("settings.theme.experimental.effect.tabbed") },
-                ]}
-                className="max-w-xs"
-              />
+            <div className="group flex min-w-0 flex-col gap-0.5">
+              <div className="flex items-center gap-1">
+                <Combobox
+                  value={windowEffect}
+                  onChange={(value) => patchSettings({ windowEffect: value })}
+                  label={t("settings.theme.experimental.effect")}
+                  options={[
+                    { value: "none", label: t("settings.theme.experimental.effect.none") },
+                    {
+                      value: "acrylic",
+                      label: t("settings.theme.experimental.effect.acrylic"),
+                    },
+                    { value: "mica", label: t("settings.theme.experimental.effect.mica") },
+                    { value: "tabbed", label: t("settings.theme.experimental.effect.tabbed") },
+                  ]}
+                  className="max-w-xs"
+                />
+              </div>
               <span className="text-hint text-[12px]">
                 {t("settings.theme.experimental.effect.hint")}
               </span>
@@ -508,7 +541,7 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.theme.experimental.effect.opacity")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 flex-col gap-0.5">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <Slider
@@ -538,7 +571,6 @@ export default function SettingsTheme() {
           <EffectsCheckbox
             label={t("settings.theme.experimental.corners")}
             field="roundedWindowCorners"
-            hint={t("settings.theme.experimental.corners.hint")}
           />
           {currentTheme === "yorha" && (
             <EffectsCheckbox

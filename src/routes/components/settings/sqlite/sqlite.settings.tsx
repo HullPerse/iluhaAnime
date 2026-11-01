@@ -425,7 +425,7 @@ export default function SqliteSettings() {
   };
 
   return (
-    <div className="flex h-full w-full flex-col gap-1 overflow-y-auto p-1">
+    <div className="flex h-full w-full scrollbar-gutter-stable flex-col gap-1 overflow-y-auto p-1">
       <SqliteHeader
         onRefresh={() => refreshDatabases()}
         loading={loading}

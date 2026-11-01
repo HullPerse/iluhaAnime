@@ -6,6 +6,7 @@ export type SettingsFindTab =
   | "notifications"
   | "search"
   | "torrent"
+  | "proxy"
   | "theme"
   | "keybinds";
 

@@ -9,11 +9,20 @@ export type SettingsTab =
   | "general"
   | "search"
   | "torrent"
+  | "proxy"
   | "theme"
   | "sqlite"
   | "notifications"
   | "keybinds"
   | "changelog";
+
+export type SettingsTabGroupId = "main" | "data" | "integrations" | "advanced";
+
+export interface SettingsTabGroup {
+  id: SettingsTabGroupId;
+  titleKey: TranslationKey;
+  tabs: SettingsTab[];
+}
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 
@@ -33,8 +42,8 @@ export interface SettingsStore {
   visibleSources: string[];
   searchProxyUrls: Record<string, string>;
   webviewProxyEnabled: boolean;
-  resultsPerPage: number;
-  pageSize: number;
+  searchResultsPerPage: number;
+  anilistPageSize: number;
   anilistMaxPages: number;
   searchHistoryMaxItems: number;
   autocompleteMode: AutocompleteMode;

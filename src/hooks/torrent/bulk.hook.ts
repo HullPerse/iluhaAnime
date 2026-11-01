@@ -172,7 +172,15 @@ export function useTorrentBulk(): TorrentBulkApi {
       );
       setBulkBusy(false);
     },
-    [addTrackerMutation, bulkBusy, pauseMutation, recheckMutation, removeMutation, resumeMutation, t]
+    [
+      addTrackerMutation,
+      bulkBusy,
+      pauseMutation,
+      recheckMutation,
+      removeMutation,
+      resumeMutation,
+      t,
+    ]
   );
 
   return {

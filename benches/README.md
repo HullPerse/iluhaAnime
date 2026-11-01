@@ -73,15 +73,15 @@ Medians of 3 labs runs on the same host; the host clock drifted, and labs report
 
 `bun run bench:simulate` is a simulation, not a benchmark and not real user data. It builds a hard set from 109 title families (a six-character prefix of a base title should resolve to that base), generates a rank-biased click stream over it, and replays 12 simulated days (one round per day). Click probability by rank is `1 / 0.85 / 0.65 / 0.45 / 0.3 / 0.2 / 0.15 / 0.1`, with 10% misclicks and a 50% chance to ignore a wrong suggestion above the chosen one. Every arm starts from the same pure match + popularity candidates; only the feedback formula differs.
 
-| Arm | Top-1 | MRR |
-| --- | --- | --- |
-| No learning | 0.899 | 0.947 |
+| Arm                                           | Top-1 | MRR   |
+| --------------------------------------------- | ----- | ----- |
+| No learning                                   | 0.899 | 0.947 |
 | New formula (10-day half-life, caps 80/40/60) | 0.972 | 0.986 |
-| Old TS formula | 0.972 | 0.986 |
-| Half-life 5 days | 0.963 | 0.982 |
-| Half-life 20 days | 0.972 | 0.986 |
-| Selected cap 160 | 0.972 | 0.985 |
-| Selected cap 40 | 0.963 | 0.982 |
+| Old TS formula                                | 0.972 | 0.986 |
+| Half-life 5 days                              | 0.963 | 0.982 |
+| Half-life 20 days                             | 0.972 | 0.986 |
+| Selected cap 160                              | 0.972 | 0.985 |
+| Selected cap 40                               | 0.963 | 0.982 |
 
 The defaults are already on the plateau: learning adds 7.3 points of Top-1 and 0.039 MRR, the old formula catches up to the same final numbers, a shorter half-life or a smaller cap is worse, and a longer half-life or a larger cap is neutral. No ranking constant was changed. The caveat is the point: the labels and the click model are assumptions, so this validates mechanics and rules out obviously bad constants; it does not calibrate real users. The ignore stream is small (32 actions), so negative behaviour is undertested.
 

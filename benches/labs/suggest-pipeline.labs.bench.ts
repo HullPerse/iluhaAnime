@@ -1,11 +1,24 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
-import { getSearchSuggestions } from '../../src/lib/core/suggestions.utils';
-import type { SearchAnimeSuggestion, SearchQueryStat } from '../../src/types/search/search';
+import { getSearchSuggestions } from "../../src/lib/core/suggestions.utils";
+import type { SearchAnimeSuggestion, SearchQueryStat } from "../../src/types/search/search";
 
 const WORDS = [
-  'Frieren', 'Naruto', 'Titan', 'Slayer', 'Gate', 'Hunter', 'Bebop', 'Bleach',
-  'Evangelion', 'Gintama', 'Clannad', 'Toradora', 'ReZero', 'Steins', 'Alchemist',
+  "Frieren",
+  "Naruto",
+  "Titan",
+  "Slayer",
+  "Gate",
+  "Hunter",
+  "Bebop",
+  "Bleach",
+  "Evangelion",
+  "Gintama",
+  "Clannad",
+  "Toradora",
+  "ReZero",
+  "Steins",
+  "Alchemist",
 ];
 
 function makeIndex(count: number): SearchAnimeSuggestion[] {
@@ -17,7 +30,7 @@ function makeIndex(count: number): SearchAnimeSuggestion[] {
       aliases: [`alias ${i} ${WORDS[(i * 3) % WORDS.length]}`],
       favourite: i % 50 === 0,
       score: (i % 10) + 1,
-      status: 'FINISHED',
+      status: "FINISHED",
       season: null,
       seasonYear: 2000 + (i % 26),
     });
@@ -35,11 +48,11 @@ function makeStats(count: number): Record<string, SearchQueryStat> {
 
 const INDEX = makeIndex(5000);
 const STATS = makeStats(5000);
-const HISTORY = ['naruto shippuden', 'one piece', 'attack on titan'];
-const QUERIES = ['friren', 'naruto ship', 'attack', 'one', 'steins'];
+const HISTORY = ["naruto shippuden", "one piece", "attack on titan"];
+const QUERIES = ["friren", "naruto ship", "attack", "one", "steins"];
 
-group('suggest-pipeline @search @quick', () => {
-  bench('suggest x5k steady state (per keystroke)', () => {
+group("suggest-pipeline @search @quick", () => {
+  bench("suggest x5k steady state (per keystroke)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       const out = getSearchSuggestions(q, {

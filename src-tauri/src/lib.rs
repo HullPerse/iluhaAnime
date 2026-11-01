@@ -2172,6 +2172,7 @@ pub fn run() {
             stream::animelib_token_status,
             stream::animelib_token_save,
             stream::animelib_token_clear,
+            stream::animelib_test_connection,
             stream::prefs::stream_prefs_get,
             stream::prefs::stream_prefs_save,
             app_db::get_app_cache,

@@ -31,7 +31,7 @@ async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia
         format: null,
         genres: null,
         maxPages: settingsAtoms.anilistMaxPages.get(),
-        perPage: settingsAtoms.pageSize.get(),
+        perPage: settingsAtoms.anilistPageSize.get(),
         query: null,
         scoreFrom: null,
         scoreTo: null,
@@ -65,7 +65,7 @@ function buildGlobalParams(query: string, filters: AniListFilters): AnilistSearc
   return searchFiltersToParams(
     filters,
     query.trim() || null,
-    settings.pageSize,
+    settings.anilistPageSize,
     settings.anilistMaxPages
   );
 }
@@ -111,7 +111,7 @@ export function useAnilistSearch() {
       const perPage =
         typeof params.perPage === "number" && params.perPage > 0
           ? params.perPage
-          : settingsAtoms.pageSize.get();
+          : settingsAtoms.anilistPageSize.get();
       if (lastPage.media.length < perPage) return undefined;
       const loaded = allPages.reduce((count, page) => count + page.media.length, 0);
       if (loaded >= lastPage.total) return undefined;

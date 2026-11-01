@@ -121,6 +121,10 @@ export class StreamApi {
     await this.transport.call<null>("animelib_token_clear");
   }
 
+  async testConnection(): Promise<string> {
+    return this.call<string>("animelib_test_connection");
+  }
+
   async prefsGet(sourceId: string, mediaId: string): Promise<StreamPrefs | null> {
     return this.transport.call<StreamPrefs | null>("stream_prefs_get", {
       sourceId,

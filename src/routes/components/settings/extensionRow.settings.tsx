@@ -12,7 +12,7 @@ export function ExtensionRow({
   onCommit: () => void;
 }) {
   return (
-    <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+    <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
       <span className="w-36 shrink-0 font-bold">{label}</span>
       <Input
         className="h-6 flex-1"

@@ -1,4 +1,4 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
 // Decomposition bench for F-R1: where do the 28-34ms per keystroke go.
 // Budget: decomposition only, no pass/fail threshold; the numbers decide
@@ -6,18 +6,31 @@ import { bench, group } from '@pmndrs/labs';
 // so labs can detect dead code elimination. Fixtures are deterministic
 // (modulo arithmetic, no RNG), copied from suggest-pipeline.labs.bench.ts.
 
-import { normalizeSearchText } from '../../src/lib/core/normalize.utils';
-import { parseOperatorTerms } from '../../src/lib/search/searchScore.utils';
+import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { parseOperatorTerms } from "../../src/lib/search/searchScore.utils";
 import {
   getSearchSuggestions,
   matchNormalizedTitle,
   suggestSpelling,
-} from '../../src/lib/core/suggestions.utils';
-import type { SearchAnimeSuggestion, SearchQueryStat } from '../../src/types/search/search';
+} from "../../src/lib/core/suggestions.utils";
+import type { SearchAnimeSuggestion, SearchQueryStat } from "../../src/types/search/search";
 
 const WORDS = [
-  'Frieren', 'Naruto', 'Titan', 'Slayer', 'Gate', 'Hunter', 'Bebop', 'Bleach',
-  'Evangelion', 'Gintama', 'Clannad', 'Toradora', 'ReZero', 'Steins', 'Alchemist',
+  "Frieren",
+  "Naruto",
+  "Titan",
+  "Slayer",
+  "Gate",
+  "Hunter",
+  "Bebop",
+  "Bleach",
+  "Evangelion",
+  "Gintama",
+  "Clannad",
+  "Toradora",
+  "ReZero",
+  "Steins",
+  "Alchemist",
 ];
 
 function makeIndex(count: number): SearchAnimeSuggestion[] {
@@ -29,7 +42,7 @@ function makeIndex(count: number): SearchAnimeSuggestion[] {
       aliases: [`alias ${i} ${WORDS[(i * 3) % WORDS.length]}`],
       favourite: i % 50 === 0,
       score: (i % 10) + 1,
-      status: 'FINISHED',
+      status: "FINISHED",
       season: null,
       seasonYear: 2000 + (i % 26),
     });
@@ -47,18 +60,18 @@ function makeStats(count: number): Record<string, SearchQueryStat> {
 
 const INDEX = makeIndex(5000);
 const STATS = makeStats(5000);
-const HISTORY = ['naruto shippuden', 'one piece', 'attack on titan'];
-const QUERIES = ['friren', 'naruto ship', 'attack', 'one', 'steins'];
-const OPERATOR_QUERIES = ['^friren', 'naruto !piece', "'attack", 'steins$'];
+const HISTORY = ["naruto shippuden", "one piece", "attack on titan"];
+const QUERIES = ["friren", "naruto ship", "attack", "one", "steins"];
+const OPERATOR_QUERIES = ["^friren", "naruto !piece", "'attack", "steins$"];
 
 // Pre-normalized once, outside the measured closure: this isolates the
 // per-pair scoring cost from the WeakMap cache behaviour.
 const NORM_TITLES: string[][] = INDEX.map((anime) =>
-  [anime.title, ...anime.aliases].map(normalizeSearchText),
+  [anime.title, ...anime.aliases].map(normalizeSearchText)
 );
 
-group('suggest-decomp @search @slow', () => {
-  bench('query side x5 (normalize + operators, once per keystroke)', () => {
+group("suggest-decomp @search @slow", () => {
+  bench("query side x5 (normalize + operators, once per keystroke)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);
@@ -68,12 +81,12 @@ group('suggest-decomp @search @slow', () => {
     return checksum;
   });
 
-  bench('anime loop x5k plain (words hoisted, no stats)', () => {
+  bench("anime loop x5k plain (words hoisted, no stats)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);
       const terms = parseOperatorTerms(q);
-      const qw = terms ? [] : nq.split(' ');
+      const qw = terms ? [] : nq.split(" ");
       for (const titles of NORM_TITLES) {
         for (const t of titles) {
           checksum += matchNormalizedTitle(terms, nq, t, qw) ?? 0;
@@ -83,12 +96,12 @@ group('suggest-decomp @search @slow', () => {
     return checksum;
   });
 
-  bench('anime loop x5k operators (matchOperatorTerms path)', () => {
+  bench("anime loop x5k operators (matchOperatorTerms path)", () => {
     let checksum = 0;
     for (const q of OPERATOR_QUERIES) {
       const nq = normalizeSearchText(q);
       const terms = parseOperatorTerms(q);
-      const qw = terms ? [] : nq.split(' ');
+      const qw = terms ? [] : nq.split(" ");
       for (const titles of NORM_TITLES) {
         for (const t of titles) {
           checksum += matchNormalizedTitle(terms, nq, t, qw) ?? 0;
@@ -98,7 +111,7 @@ group('suggest-decomp @search @slow', () => {
     return checksum;
   });
 
-  bench('symspell fallback x5 alone (suggestSpelling)', () => {
+  bench("symspell fallback x5 alone (suggestSpelling)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       const out = suggestSpelling(q, { history: HISTORY, animeIndex: INDEX });
@@ -107,7 +120,7 @@ group('suggest-decomp @search @slow', () => {
     return checksum;
   });
 
-  bench('full getSearchSuggestions x5 (control)', () => {
+  bench("full getSearchSuggestions x5 (control)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       const out = getSearchSuggestions(q, {

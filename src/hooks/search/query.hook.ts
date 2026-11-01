@@ -41,7 +41,7 @@ import type { Anime } from "@/types/torrent/torrent";
 export function useSearchQuery(): SearchQueryController {
   const defaultSource = useCell(settingsAtoms.defaultSearchSource);
   const visibleSources = useCell(settingsAtoms.visibleSources);
-  const resultsPerPage = useCell(settingsAtoms.resultsPerPage);
+  const searchResultsPerPage = useCell(settingsAtoms.searchResultsPerPage);
   const searchProxyUrls = useCell(settingsAtoms.searchProxyUrls);
   const searchSymSpellEnabled = useCell(settingsAtoms.searchSymSpellEnabled);
 
@@ -192,11 +192,12 @@ export function useSearchQuery(): SearchQueryController {
   const deduped = useMemo(() => dedupAnimeResults(sorted), [sorted]);
 
   const displayItems = useMemo(
-    () => (isPagedSource ? deduped?.slice(0, resultsPerPage) : deduped),
-    [deduped, isPagedSource, resultsPerPage]
+    () => (isPagedSource ? deduped?.slice(0, searchResultsPerPage) : deduped),
+    [deduped, isPagedSource, searchResultsPerPage]
   );
 
-  const pageFull = isPagedSource && (data?.length ?? 0) >= resultsPerPage && nyaaPage < maxPage;
+  const pageFull =
+    isPagedSource && (data?.length ?? 0) >= searchResultsPerPage && nyaaPage < maxPage;
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
@@ -320,7 +321,7 @@ export function useSearchQuery(): SearchQueryController {
     pageFull,
     nyaaPage,
     setNyaaPage,
-    resultsPerPage,
+    resultsPerPage: searchResultsPerPage,
     rutrackerAuth,
     nekobtAuth,
     eraiAuth,

@@ -87,6 +87,23 @@ pub fn animelib_token_clear() {
     delete_secret(ANIMELIB_TOKEN_ACCOUNT);
 }
 
+/// Probe AnimeLib through the candidate proxy with the browse list.
+///
+/// `/constants` is not used here on purpose: its answer is cached per process,
+/// so a cached reply would report success for a proxy that never connected.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn animelib_test_connection(
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<String, String> {
+    let page = client_for(proxy_url, proxyUrl)?
+        .search("", Some(1), &AnimeLibSearchFilters::default())
+        .await
+        .map_err(|error| error.to_string())?;
+    Ok(format!("{} titles", page.items.len()))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchAnimeLibInput {

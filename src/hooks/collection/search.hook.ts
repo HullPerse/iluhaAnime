@@ -122,7 +122,9 @@ export function useWizardSearch(
     setSearchResults(page);
     prefetchRemoteImages(page.map((r) => r.cover_url));
     fillMissingCovers(page, "anilist");
-    const covers = res.map((r) => r.cover_url).filter((cover): cover is string => typeof cover === "string");
+    const covers = res
+      .map((r) => r.cover_url)
+      .filter((cover): cover is string => typeof cover === "string");
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
   }, [search, existingTitles, favouriteIds, fillMissingCovers]);
@@ -165,7 +167,9 @@ export function useWizardSearch(
     setSearchResults(page);
     prefetchRemoteImages(page.map((r) => r.cover_url));
     fillMissingCovers(page, "tmdb");
-    const covers = res.map((r) => r.coverUrl).filter((cover): cover is string => typeof cover === "string");
+    const covers = res
+      .map((r) => r.coverUrl)
+      .filter((cover): cover is string => typeof cover === "string");
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
   }, [search, existingTitles, favouriteIds, fillMissingCovers]);

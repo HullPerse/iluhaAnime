@@ -5,25 +5,21 @@ import type { Cell } from "@/types/core/signal";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SettingsData } from "@/types/store/settings";
 
-export function EffectsCheckbox({
-  label,
-  field,
-  hint,
-}: {
-  label: string;
-  field: keyof SettingsData;
-  hint?: string;
-}) {
+import { SettingResetButton } from "@/routes/components/settings/resetSetting.settings";
+
+export function EffectsCheckbox({ label, field }: { label: string; field: keyof SettingsData }) {
   const value = useCell(settingsAtoms[field] as Cell<boolean>);
   const { t } = useI18n();
   return (
-    <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
+    <div className="group grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
       <span className="windows95-text text-text flex items-center text-xs font-bold">{label}</span>
-      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-        <Checkbox checked={value} onChange={(v) => patchSettings({ [field]: v })} />
-        <span className="text-xs">{value ? t("common.on") : t("common.off")}</span>
-      </label>
-      {hint && <span className="text-hint col-start-2 text-[12px]">{hint}</span>}
+      <div className="flex items-center gap-1">
+        <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+          <Checkbox checked={value} onChange={(v) => patchSettings({ [field]: v })} />
+          <span className="text-xs">{value ? t("common.on") : t("common.off")}</span>
+        </label>
+        <SettingResetButton field={field} label={label} />
+      </div>
     </div>
   );
 }

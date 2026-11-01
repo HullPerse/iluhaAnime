@@ -1,17 +1,28 @@
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
+import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { patchSettings } from "@/store/settings.store";
-import type { SettingsDefaults, SettingsStore } from "@/types/ui/settings";
+import type { SettingsData } from "@/types/store/settings";
 import type { ResetSectionId } from "@/types/core/reset";
 
-const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
+export type ResettableSetting = keyof typeof DEFAULT_SETTINGS | "language";
+
+const RESET_DEFAULTS: Pick<SettingsData, ResettableSetting> = {
+  ...DEFAULT_SETTINGS,
+  language: detectSystemLocale(),
+};
+
+export function toResettableSettings(
+  fields: ResettableSetting | readonly ResettableSetting[]
+): readonly ResettableSetting[] {
+  return typeof fields === "string" ? [fields] : fields;
+}
+
+const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)[]> = {
   "general.tabs": ["collectionTabEnabled", "anilistTabEnabled", "sqliteBrowserEnabled"],
   "general.startup": ["fastLaunch", "rememberLastTab"],
   "general.keyboard": ["vimMode"],
   "general.window": ["minimizeToTray"],
   "general.language": ["language", "ffmpegSource"],
-  "general.tmdb": ["tmdbKeySet", "tmdbProxyUrl"],
-  "general.anilist": ["anilistProxyUrl", "anilistTitleLanguage", "anilistAdultContent"],
-  "general.animelib": ["animelibProxyUrl"],
   "general.parse": [
     "parseTitlesPlayer",
     "parseTitlesTorrent",
@@ -32,7 +43,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
     "anilistPollIntervalMin",
     "anilistNotifyLists",
   ],
-  "notifications.torrents": ["notifyTorrentHealth"],
+  "notifications.torrents": ["notifyTorrentHealth", "notifyOnComplete", "notifyOnError"],
   "notifications.tasks": ["notifyUpscaleDone", "notifyModelDownloads", "notifyBackup"],
   "notifications.app": ["notifyScanErrors"],
   "search.sources": [
@@ -43,7 +54,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
   ],
   "search.results": [
     "searchHistoryMaxItems",
-    "pageSize",
+    "anilistPageSize",
     "anilistMaxPages",
     "autocompleteMode",
     "anilistSuggestionBoost",
@@ -53,9 +64,8 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
   "torrent.limits": ["limits"],
   "torrent.defaults": ["defaultDownloadDir", "maxConcurrentDownloads"],
   "torrent.schedule": ["speedSchedule"],
-  "torrent.search": ["resultsPerPage"],
+  "torrent.search": ["searchResultsPerPage"],
   "torrent.files": ["fileOrder"],
-  "torrent.notifications": ["notifyOnComplete", "notifyOnError"],
   "torrent.session": ["fastresumeEnabled", "disablePersistence"],
   "torrent.network": [
     "enableUpnp",
@@ -67,8 +77,12 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
     "peerReadWriteTimeout",
     "torrentProxyUrl",
   ],
+  "proxy.tmdb": ["tmdbKeySet", "tmdbProxyUrl"],
+  "proxy.anilist": ["anilistProxyUrl", "anilistTitleLanguage", "anilistAdultContent"],
+  "proxy.animelib": ["animelibProxyUrl"],
   "theme.schedule": ["themeSchedule"],
-  "theme.retro": ["retroStyle", "uiDensity", "collectionGroupHeaderStyle"],
+  "theme.retro": ["retroStyle", "uiDensity"],
+  "theme.collection": ["collectionGroupHeaderStyle"],
   "theme.progress": ["progressStyle"],
   "theme.font": ["appFont"],
   "theme.effects": [
@@ -105,15 +119,24 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, (keyof SettingsStore)[]> = {
   "keybinds.list": ["keybindOverrides"],
 };
 
-export function resetSection(sectionId: ResetSectionId): void {
-  const keys = SECTION_SETTING_KEYS[sectionId];
-  const partial: Partial<SettingsDefaults> = {};
-  for (const key of keys) {
-    (partial as Record<string, unknown>)[key] = (
-      DEFAULT_SETTINGS as unknown as Record<string, unknown>
-    )[key];
+const SECTION_SETTING_MAP = new Map<string, readonly (keyof SettingsData)[]>(
+  Object.entries(SECTION_SETTING_KEYS)
+);
+
+export function sectionSettingKeys(sectionId: string): readonly (keyof SettingsData)[] {
+  return SECTION_SETTING_MAP.get(sectionId) ?? [];
+}
+
+export function resetSetting(fields: ResettableSetting | readonly ResettableSetting[]): void {
+  const partial: Partial<SettingsData> = {};
+  for (const field of toResettableSettings(fields)) {
+    Object.assign(partial, { [field]: RESET_DEFAULTS[field] });
   }
   patchSettings(partial);
+}
+
+export function resetSection(sectionId: ResetSectionId): void {
+  resetSetting(SECTION_SETTING_KEYS[sectionId]);
 }
 
 export function sectionHasCustomReset(sectionId: string): boolean {

@@ -63,7 +63,7 @@ export function SqliteBrowseResult({
       <section
         ref={scrollRef}
         data-virtual-list
-        className="ui-panel bg-field min-h-40 overflow-auto p-0"
+        className="ui-panel bg-field min-h-40 scrollbar-gutter-stable overflow-auto p-0"
       >
         <SqliteBrowseStatus loading={initialLoading} empty={noRows} />
         {scrollReady && (

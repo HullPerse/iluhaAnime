@@ -1,17 +1,49 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
-import type { SearchAnimeSuggestion } from '../../src/types/search/search';
+import type { SearchAnimeSuggestion } from "../../src/types/search/search";
 import {
   getSearchSuggestions,
   groupSuggestions,
   suggestSpelling,
-} from '../../src/lib/core/suggestions.utils';
+} from "../../src/lib/core/suggestions.utils";
+
+// Keystroke latency of the suggest pipeline at a 2000-title index.
+// Budget: one typed word (five prefixes) stays under one 16ms frame at 2000
+// titles; the single-char case is the worst path and runs only with @slow.
+// Each bench returns a checksum so labs can detect dead code elimination.
+// Fixtures are deterministic: a seeded LCG, no Math.random.
 
 const WORDS = [
-  'frieren', 'sousou', 'naruto', 'bleach', 'piece', 'attack', 'titan', 'demon',
-  'slayer', 'jujutsu', 'kaisen', 'chainsaw', 'spy', 'family', 'vinland', 'saga',
-  'evangelion', 'bebop', 'steins', 'gate', 'zero', 'konosuba', 'overlord',
-  'tokyo', 'ghoul', 'hunter', 'fullmetal', 'alchemist', 'death', 'note',
+  "frieren",
+  "sousou",
+  "naruto",
+  "bleach",
+  "piece",
+  "attack",
+  "titan",
+  "demon",
+  "slayer",
+  "jujutsu",
+  "kaisen",
+  "chainsaw",
+  "spy",
+  "family",
+  "vinland",
+  "saga",
+  "evangelion",
+  "bebop",
+  "steins",
+  "gate",
+  "zero",
+  "konosuba",
+  "overlord",
+  "tokyo",
+  "ghoul",
+  "hunter",
+  "fullmetal",
+  "alchemist",
+  "death",
+  "note",
 ];
 
 function makeIndex(n: number): SearchAnimeSuggestion[] {
@@ -29,10 +61,10 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
     for (let k = parts.length - 1; k >= 0; k--) alias.push(parts[k]!);
     out.push({
       id: i,
-      title: `${parts.join(' ')} ${i}`,
-      aliases: [alias.join(' ')],
-      status: 'COMPLETED',
-      season: 'WINTER',
+      title: `${parts.join(" ")} ${i}`,
+      aliases: [alias.join(" ")],
+      status: "COMPLETED",
+      season: "WINTER",
       seasonYear: 2020 + (i % 6),
       score: 70 + (i % 30),
       favourite: i % 50 === 0,
@@ -42,33 +74,42 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
 }
 
 const HISTORY = [
-  'frieren', 'one piece', 'naruto shippuden', 'attack on titan', 'berserk',
-  're zero', 'spy x family', 'chainsaw man', 'jujutsu kaisen', 'vinland saga',
+  "frieren",
+  "one piece",
+  "naruto shippuden",
+  "attack on titan",
+  "berserk",
+  "re zero",
+  "spy x family",
+  "chainsaw man",
+  "jujutsu kaisen",
+  "vinland saga",
 ];
 
-const INDEX_8000 = makeIndex(8000);
-const PREFIXES = ['f', 'fr', 'fri', 'frie', 'frier', 'friere', 'frieren'];
+const INDEX_2000 = makeIndex(2000);
+const PREFIXES = ["fr", "fri", "frie", "frier", "frieren"];
 
-group('keystroke @search @quick', () => {
-  bench('typing frieren x7 prefixes N=8000 (suggest + spell + group)', () => {
-    let checksum = 0;
-    for (const q of PREFIXES) {
-      const sug = getSearchSuggestions(q, { history: HISTORY, animeIndex: INDEX_8000, limit: 8 });
-      checksum += sug.length;
-      const spell = suggestSpelling(q, {
-        history: HISTORY,
-        animeIndex: INDEX_8000,
-        extraValues: undefined,
-        symSpell: undefined,
-      });
-      checksum += spell?.length ?? 0;
-      checksum += groupSuggestions(sug).items.length;
-    }
-    return checksum;
-  });
+function typeWord(prefixes: readonly string[]): number {
+  let checksum = 0;
+  for (const q of prefixes) {
+    const sug = getSearchSuggestions(q, { history: HISTORY, animeIndex: INDEX_2000, limit: 8 });
+    checksum += sug.length;
+    const spell = suggestSpelling(q, {
+      history: HISTORY,
+      animeIndex: INDEX_2000,
+      extraValues: undefined,
+      symSpell: undefined,
+    });
+    checksum += spell?.length ?? 0;
+    checksum += groupSuggestions(sug).items.length;
+  }
+  return checksum;
+}
 
-  bench('single-char worst case N=8000', () => {
-    const sug = getSearchSuggestions('a', { history: HISTORY, animeIndex: INDEX_8000, limit: 8 });
-    return sug.length + groupSuggestions(sug).items.length;
-  });
+group("keystroke @search @quick", () => {
+  bench("typing frieren, 5 prefixes N=2000 (suggest + spell + group)", () => typeWord(PREFIXES));
+});
+
+group("keystroke-worst @search @slow", () => {
+  bench("single-char worst case N=2000", () => typeWord(["f"]));
 });

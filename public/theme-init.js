@@ -141,15 +141,20 @@
     }
   }
 
-  try {
-    const settings = readStoredSettings();
-    const settingsFont = applyVisualSettings(settings);
-    const legacyFont = stored("appFont");
-    const hasAppFont = applyAppFont(
-      settingsFont.length > 0 ? settingsFont : (legacyFont || "").trim()
-    );
-    applyThemePayload(hasAppFont);
-  } catch (error) {
-    console.error(error);
+  function applyThemeInit() {
+    try {
+      const settings = readStoredSettings();
+      const settingsFont = applyVisualSettings(settings);
+      const legacyFont = stored("appFont");
+      const hasAppFont = applyAppFont(
+        settingsFont.length > 0 ? settingsFont : (legacyFont || "").trim()
+      );
+      applyThemePayload(hasAppFont);
+    } catch (error) {
+      console.error(error);
+    }
   }
+
+  window.themeInit = applyThemeInit;
+  applyThemeInit();
 })();

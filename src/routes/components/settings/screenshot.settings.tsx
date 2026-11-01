@@ -21,7 +21,7 @@ export default function ScreenshotSettings() {
         <SectionResetButton sectionId="general.screenshot" />
       </div>
       <div className="flex flex-col gap-1 p-2">
-        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+        <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-40 shrink-0 font-bold">{t("settings.screenshot.folder")}</span>
           <Input
             value={screenshotDir ?? ""}
@@ -30,7 +30,7 @@ export default function ScreenshotSettings() {
             className="flex-1"
           />
         </label>
-        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+        <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-40 shrink-0 font-bold">{t("settings.screenshot.format")}</span>
           <Select
             value={screenshotFormat}
@@ -42,7 +42,7 @@ export default function ScreenshotSettings() {
             className="h-6 flex-1"
           />
         </label>
-        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+        <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-40 shrink-0 font-bold">{t("settings.screenshot.open.folder")}</span>
           <Checkbox
             checked={screenshotOpenFolder}

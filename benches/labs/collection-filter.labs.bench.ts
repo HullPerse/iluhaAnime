@@ -1,14 +1,14 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
-import { DEFAULT_FILTERS } from '../../src/config/anilist/collectionFilters.config';
-import { applyShortQueryFilter, filterCollectionItems } from '../../src/lib/core/filter.utils';
+import { DEFAULT_FILTERS } from "../../src/config/anilist/collectionFilters.config";
+import { applyShortQueryFilter, filterCollectionItems } from "../../src/lib/core/filter.utils";
 import {
   matchOperatorTerm,
   matchOperatorTerms,
   parseOperatorTerms,
-} from '../../src/lib/search/searchScore.utils';
-import { normalizeSearchText } from '../../src/lib/core/normalize.utils';
-import type { CollectionItem } from '../../src/types/anilist/collection';
+} from "../../src/lib/search/searchScore.utils";
+import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import type { CollectionItem } from "../../src/types/anilist/collection";
 
 function mulberry32(seed: number): () => number {
   let state = Math.trunc(seed);
@@ -22,53 +22,53 @@ function mulberry32(seed: number): () => number {
 }
 
 const TITLE_WORDS = [
-  'Frieren',
-  'Naruto',
-  'One Piece',
-  'Attack',
-  'Titan',
-  'Demon',
-  'Slayer',
-  'Steins',
-  'Gate',
-  'Hunter',
-  'Fullmetal',
-  'Alchemist',
-  'Cowboy',
-  'Bebop',
-  'Evangelion',
-  'Bleach',
-  'Gintama',
-  'Clannad',
-  'Toradora',
-  'ReZero',
+  "Frieren",
+  "Naruto",
+  "One Piece",
+  "Attack",
+  "Titan",
+  "Demon",
+  "Slayer",
+  "Steins",
+  "Gate",
+  "Hunter",
+  "Fullmetal",
+  "Alchemist",
+  "Cowboy",
+  "Bebop",
+  "Evangelion",
+  "Bleach",
+  "Gintama",
+  "Clannad",
+  "Toradora",
+  "ReZero",
 ];
 
-const STATUSES = ['planned', 'watching', 'completed', 'onhold', 'dropped', 'favorites'];
-const GENRES = ['action', 'drama', 'fantasy', 'sci-fi', 'romance', 'comedy', 'horror'];
+const STATUSES = ["planned", "watching", "completed", "onhold", "dropped", "favorites"];
+const GENRES = ["action", "drama", "fantasy", "sci-fi", "romance", "comedy", "horror"];
 
 function makeItems(count: number, seed: number): CollectionItem[] {
   const rand = mulberry32(seed);
   const items: CollectionItem[] = [];
   for (let i = 0; i < count; i++) {
-    const w1 = TITLE_WORDS[Math.trunc(rand() * TITLE_WORDS.length)] ?? 'Anime';
-    const w2 = TITLE_WORDS[Math.trunc(rand() * TITLE_WORDS.length)] ?? 'Title';
+    const w1 = TITLE_WORDS[Math.trunc(rand() * TITLE_WORDS.length)] ?? "Anime";
+    const w2 = TITLE_WORDS[Math.trunc(rand() * TITLE_WORDS.length)] ?? "Title";
     items.push({
       id: `item-${i}`,
       title: `${w1} ${w2} ${i}`,
       altTitles: [],
-      type: 'anime',
-      status: STATUSES[i % STATUSES.length] ?? 'planned',
+      type: "anime",
+      status: STATUSES[i % STATUSES.length] ?? "planned",
       progressValue: Math.trunc(rand() * 24),
       progressTotal: 24,
-      progressUnit: 'episodes',
+      progressUnit: "episodes",
       durationMinutes: 24,
       rating: rand() < 0.2 ? null : Math.trunc(rand() * 10) + 1,
-      priority: 'normal',
+      priority: "normal",
       isFavorite: rand() < 0.05,
       year: 1990 + Math.trunc(rand() * 36),
       releaseDate: null,
-      genres: [GENRES[Math.trunc(rand() * GENRES.length)] ?? 'action'],
+      genres: [GENRES[Math.trunc(rand() * GENRES.length)] ?? "action"],
       studio: null,
       description: null,
       notes: null,
@@ -128,52 +128,52 @@ function shortQueryLegacy(list: CollectionItem[], query: string): CollectionItem
   });
 }
 
-group('collection-filter @pilot @collection @quick', () => {
-  bench('1k empty query + date sort', () => {
+group("collection-filter @pilot @collection @quick", () => {
+  bench("1k empty query + date sort", () => {
     return checksumOf(
-      filterCollectionItems(ITEMS_1K, ITEMS_1K, 'all', '', DEFAULT_FILTERS, 'date', 'desc')
+      filterCollectionItems(ITEMS_1K, ITEMS_1K, "all", "", DEFAULT_FILTERS, "date", "desc")
     );
   });
 
-  bench('10k empty query + date sort', () => {
+  bench("10k empty query + date sort", () => {
     return checksumOf(
-      filterCollectionItems(ITEMS_10K, ITEMS_10K, 'all', '', DEFAULT_FILTERS, 'date', 'desc')
+      filterCollectionItems(ITEMS_10K, ITEMS_10K, "all", "", DEFAULT_FILTERS, "date", "desc")
     );
   });
 
-  bench('10k text query frieren + name sort', () => {
+  bench("10k text query frieren + name sort", () => {
     return checksumOf(
-      filterCollectionItems(ITEMS_10K, ITEMS_10K, 'all', 'frieren', DEFAULT_FILTERS, 'name', 'asc')
+      filterCollectionItems(ITEMS_10K, ITEMS_10K, "all", "frieren", DEFAULT_FILTERS, "name", "asc")
     );
   });
 
-  bench('10k intent query year:2020 + rating sort', () => {
+  bench("10k intent query year:2020 + rating sort", () => {
     return checksumOf(
       filterCollectionItems(
         ITEMS_10K,
         ITEMS_10K,
-        'all',
-        'year:2020',
+        "all",
+        "year:2020",
         DEFAULT_FILTERS,
-        'rating',
-        'desc'
+        "rating",
+        "desc"
       )
     );
   });
 
-  bench('10k short query fr LEGACY (parse per item)', () => {
-    return checksumOf(shortQueryLegacy(ITEMS_10K, 'fr'));
+  bench("10k short query fr LEGACY (parse per item)", () => {
+    return checksumOf(shortQueryLegacy(ITEMS_10K, "fr"));
   });
 
-  bench('10k short query fr NEW (hoisted + cached)', () => {
-    return checksumOf(applyShortQueryFilter(ITEMS_10K, 'fr'));
+  bench("10k short query fr NEW (hoisted + cached)", () => {
+    return checksumOf(applyShortQueryFilter(ITEMS_10K, "fr"));
   });
 
-  bench('10k operator query ^fr LEGACY (parse per item)', () => {
-    return checksumOf(shortQueryLegacy(ITEMS_10K, '^fr'));
+  bench("10k operator query ^fr LEGACY (parse per item)", () => {
+    return checksumOf(shortQueryLegacy(ITEMS_10K, "^fr"));
   });
 
-  bench('10k operator query ^fr NEW (hoisted + cached)', () => {
-    return checksumOf(applyShortQueryFilter(ITEMS_10K, '^fr'));
+  bench("10k operator query ^fr NEW (hoisted + cached)", () => {
+    return checksumOf(applyShortQueryFilter(ITEMS_10K, "^fr"));
   });
 });

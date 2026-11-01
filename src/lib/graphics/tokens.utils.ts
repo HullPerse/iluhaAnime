@@ -56,8 +56,8 @@ export const THEME_VAR_BINDINGS: readonly ThemeVarBinding[] = [
   },
 ];
 
-export const THEME_OVERRIDE_BINDINGS: readonly ThemeOverrideBinding[] = (
-  keysOf(THEME_OVERRIDE_VARS)
+export const THEME_OVERRIDE_BINDINGS: readonly ThemeOverrideBinding[] = keysOf(
+  THEME_OVERRIDE_VARS
 ).map((key) => ({ key, varName: THEME_OVERRIDE_VARS[key] as `--${string}` }));
 
 export function buildThemeState(theme: ThemeDefinition): ThemeState {

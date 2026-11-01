@@ -24,7 +24,7 @@ test("settings store - patch route", async ({ bench }) => {
   const b1 = bench("patch full settings object x50k", () => {
     const store = createSettingsSignalStore({ getStorage: () => memoryStorage() });
     for (let i = 0; i < 50000; i++) {
-      store.patch({ pageSize: i % 2 === 0 ? 40 : 80, modalAnimation: i % 2 === 0 });
+      store.patch({ anilistPageSize: i % 2 === 0 ? 40 : 80, modalAnimation: i % 2 === 0 });
     }
   });
 
@@ -47,7 +47,7 @@ test("settings store - snapshot + persist mirror", async ({ bench }) => {
     let checksum = 0;
     for (let i = 0; i < 50000; i++) {
       const snap = store.snapshot();
-      checksum += snap.pageSize;
+      checksum += snap.anilistPageSize;
     }
     return checksum;
   });

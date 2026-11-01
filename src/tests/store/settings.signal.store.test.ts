@@ -45,8 +45,8 @@ beforeEach(() => {
 describe("settings signal defaults", () => {
   it("starts from default settings", () => {
     const { store } = setup();
-    expect(store.atoms.pageSize.get()).toBe(DEFAULT_SETTINGS.pageSize);
-    expect(store.atoms.resultsPerPage.get()).toBe(DEFAULT_SETTINGS.resultsPerPage);
+    expect(store.atoms.anilistPageSize.get()).toBe(DEFAULT_SETTINGS.anilistPageSize);
+    expect(store.atoms.searchResultsPerPage.get()).toBe(DEFAULT_SETTINGS.searchResultsPerPage);
     expect(["en", "ru"]).toContain(store.atoms.language.get());
   });
 
@@ -106,7 +106,7 @@ describe("settings signal legacy fallback", () => {
 
   it("ignores the legacy key once the new envelope exists", () => {
     const backing = new Map<string, string>([
-      ["settings", JSON.stringify({ state: { pageSize: 10 }, version: 37 })],
+      ["settings", JSON.stringify({ state: { anilistPageSize: 10 }, version: 37 })],
       [
         "iluha.v1.settings",
         JSON.stringify({
@@ -114,19 +114,19 @@ describe("settings signal legacy fallback", () => {
           store: "settings",
           sv: 37,
           ts: 1,
-          data: { pageSize: 99 },
+          data: { anilistPageSize: 99 },
         }),
       ],
     ]);
     const { store } = setup(backing);
-    expect(store.atoms.pageSize.get()).toBe(99);
+    expect(store.atoms.anilistPageSize.get()).toBe(99);
   });
 });
 
 describe("settings signal persist envelope", () => {
   it("writes format A after patch plus flush", () => {
     const { store, backing } = setup();
-    store.patch({ resultsPerPage: 33 });
+    store.patch({ searchResultsPerPage: 33 });
     store.persistor.flush();
     const raw = backing.get("iluha.v1.settings") ?? "";
     const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -134,7 +134,7 @@ describe("settings signal persist envelope", () => {
     expect(parsed.store).toBe("settings");
     expect(parsed.sv).toBe(SETTINGS_SCHEMA_VERSION);
     expect(typeof parsed.ts).toBe("number");
-    expect((parsed.data as { resultsPerPage: number }).resultsPerPage).toBe(33);
+    expect((parsed.data as { searchResultsPerPage: number }).searchResultsPerPage).toBe(33);
   });
 });
 

@@ -34,6 +34,8 @@ export default function SettingsNotifications() {
   const anilistPollIntervalMin = useCell(settingsAtoms.anilistPollIntervalMin);
   const anilistNotifyLists = useCell(settingsAtoms.anilistNotifyLists);
   const notifyTorrentHealth = useCell(settingsAtoms.notifyTorrentHealth);
+  const notifyOnComplete = useCell(settingsAtoms.notifyOnComplete);
+  const notifyOnError = useCell(settingsAtoms.notifyOnError);
   const notifyUpscaleDone = useCell(settingsAtoms.notifyUpscaleDone);
   const notifyModelDownloads = useCell(settingsAtoms.notifyModelDownloads);
   const notifyBackup = useCell(settingsAtoms.notifyBackup);
@@ -55,6 +57,7 @@ export default function SettingsNotifications() {
   }, [listNamesQuery.data]);
   const listsLoading = listNamesQuery.isLoading || listNamesQuery.isFetching;
   const listsFailed = listNamesQuery.isError;
+  const popupsOff = notificationPopups === "off";
 
   const toggleList = (name: string) => {
     const current = anilistNotifyLists ?? knownListNames;
@@ -101,41 +104,48 @@ export default function SettingsNotifications() {
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow
             label={t("settings.anilist.release.notifications")}
+            field="anilistReleaseNotifications"
             checked={anilistReleaseNotifications}
             onChange={(v) => patchSettings({ anilistReleaseNotifications: v })}
           />
           <NotifyRow
             label={t("settings.notifications.episodes")}
+            field="notifyNewEpisodes"
             checked={notifyNewEpisodes}
             disabled={anilistOff}
             onChange={(v) => patchSettings({ notifyNewEpisodes: v })}
           />
           <NotifyRow
             label={t("settings.notifications.statuses")}
+            field="notifyStatusChanges"
             checked={notifyStatusChanges}
             disabled={anilistOff}
             onChange={(v) => patchSettings({ notifyStatusChanges: v })}
           />
           <NotifyRow
             label={t("settings.notifications.media.status")}
+            field="notifyMediaStatus"
             checked={notifyMediaStatus}
             disabled={anilistOff}
             onChange={(v) => patchSettings({ notifyMediaStatus: v })}
           />
           <NotifyRow
             label={t("settings.notifications.subscribed")}
+            field="notifySubscribedReplies"
             checked={notifySubscribedReplies}
             disabled={anilistOff}
             onChange={(v) => patchSettings({ notifySubscribedReplies: v })}
           />
           <NotifyRow
             label={t("settings.notifications.merge")}
+            field="notifyMediaMerge"
             checked={notifyMediaMerge}
             disabled={anilistOff}
             onChange={(v) => patchSettings({ notifyMediaMerge: v })}
           />
           <NotifyRow
             label={t("settings.notifications.sequel")}
+            field="notifySequel"
             checked={notifySequel}
             disabled={anilistOff}
             onChange={(v) => patchSettings({ notifySequel: v })}
@@ -201,8 +211,23 @@ export default function SettingsNotifications() {
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow
             label={t("settings.notifications.torrent.health")}
+            field="notifyTorrentHealth"
             checked={notifyTorrentHealth}
             onChange={(v) => patchSettings({ notifyTorrentHealth: v })}
+          />
+          <NotifyRow
+            label={t("settings.torrent.on.complete")}
+            field="notifyOnComplete"
+            checked={notifyOnComplete}
+            disabled={popupsOff}
+            onChange={(v) => patchSettings({ notifyOnComplete: v })}
+          />
+          <NotifyRow
+            label={t("settings.torrent.on.error")}
+            field="notifyOnError"
+            checked={notifyOnError}
+            disabled={popupsOff}
+            onChange={(v) => patchSettings({ notifyOnError: v })}
           />
         </div>
       </section>
@@ -217,16 +242,19 @@ export default function SettingsNotifications() {
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow
             label={t("settings.notifications.upscale")}
+            field="notifyUpscaleDone"
             checked={notifyUpscaleDone}
             onChange={(v) => patchSettings({ notifyUpscaleDone: v })}
           />
           <NotifyRow
             label={t("settings.notifications.models")}
+            field="notifyModelDownloads"
             checked={notifyModelDownloads}
             onChange={(v) => patchSettings({ notifyModelDownloads: v })}
           />
           <NotifyRow
             label={t("settings.notifications.backup")}
+            field="notifyBackup"
             checked={notifyBackup}
             onChange={(v) => patchSettings({ notifyBackup: v })}
           />
@@ -241,6 +269,7 @@ export default function SettingsNotifications() {
         <div className="flex flex-col gap-0.5 p-2">
           <NotifyRow
             label={t("settings.notifications.scan")}
+            field="notifyScanErrors"
             checked={notifyScanErrors}
             onChange={(v) => patchSettings({ notifyScanErrors: v })}
           />

@@ -21,7 +21,8 @@ import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { shouldIgnoreHotkeys } from "@/lib/core/filterHotkeys.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
-import { folderTreesFromScan, fingerprint } from "@/lib/core/scan.utils";import { buildTree, filterTreeByPaths } from "@/lib/player/playerTree.utils";
+import { folderTreesFromScan, fingerprint } from "@/lib/core/scan.utils";
+import { buildTree, filterTreeByPaths } from "@/lib/player/playerTree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/core/visibility.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
@@ -372,7 +373,13 @@ function PlayerRoute() {
     };
   }, [watchedRoots, t, watcherDelay]);
 
-  usePlayerFolderSync({ folderTrees, setFolderTrees, savedFolderPaths, videoExtensions, scanThreads });
+  usePlayerFolderSync({
+    folderTrees,
+    setFolderTrees,
+    savedFolderPaths,
+    videoExtensions,
+    scanThreads,
+  });
 
   const handleOpenFolder = useCallback(async () => {
     const folder = await open({ multiple: false, directory: true });

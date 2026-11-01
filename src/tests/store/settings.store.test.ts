@@ -29,9 +29,9 @@ describe("settings signal migration", () => {
   });
 
   it("preserves other persisted fields", () => {
-    const result = settings.migrateSettingsData({ language: "en", pageSize: 10 }, 1);
+    const result = settings.migrateSettingsData({ language: "en", anilistPageSize: 10 }, 1);
     expect(result.language).toBe("en");
-    expect(result.pageSize).toBe(10);
+    expect(result.anilistPageSize).toBe(10);
   });
 
   it("defaults fastLaunch to false on v45 and keeps an explicit opt-out", () => {
@@ -459,7 +459,7 @@ describe("window chrome side effect", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
 
-    settings.patchSettings({ pageSize: 42 });
+    settings.patchSettings({ anilistPageSize: 42 });
 
     expect(mockInvoke).not.toHaveBeenCalled();
   });

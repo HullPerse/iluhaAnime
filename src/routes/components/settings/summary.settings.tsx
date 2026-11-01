@@ -194,7 +194,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   }
 
   return (
-    <div className="ui-panel flex w-72 shrink-0 flex-col gap-2 overflow-y-auto p-2">
+    <div className="ui-panel flex w-72 shrink-0 scrollbar-gutter-stable flex-col gap-2 overflow-y-auto p-2">
       <div className="flex flex-row items-center gap-1">
         <span className="windows95-text flex-1 text-xs font-bold">
           {t("settings.summary.title")}

@@ -1,7 +1,7 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
-import { clearMediaParseCache, parseMediaPath } from '../../src/lib/search/parse.utils';
-import fixtureRows from '../../src/tests/lib/media/fixtures.json';
+import { clearMediaParseCache, parseMediaPath } from "../../src/lib/search/parse.utils";
+import fixtureRows from "../../src/tests/lib/media/fixtures.json";
 
 interface Fixture {
   id: string;
@@ -11,8 +11,8 @@ interface Fixture {
 
 const PATHS = (fixtureRows as Fixture[]).map((f) => `${f.dir}/${f.file}`);
 
-group('parse @pilot @media @quick', () => {
-  bench('corpus cold x125 (cache cleared)', () => {
+group("parse @pilot @media @quick", () => {
+  bench("corpus cold x125 (cache cleared)", () => {
     clearMediaParseCache();
     let checksum = 0;
     for (const path of PATHS) {
@@ -21,7 +21,7 @@ group('parse @pilot @media @quick', () => {
     return checksum;
   });
 
-  bench('corpus warm x125 (cache hits)', () => {
+  bench("corpus warm x125 (cache hits)", () => {
     let checksum = 0;
     for (const path of PATHS) {
       checksum += parseMediaPath(path).title.length;

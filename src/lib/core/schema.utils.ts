@@ -4,6 +4,8 @@ import { attemptSync } from "@/lib/core/attempt.utils";
 import { err, ok } from "@/lib/core/result.utils";
 import type { Result } from "@/types/core/result";
 
+const { catch: catchSchema } = z;
+
 function issueText(parsed: {
   success: false;
   error: { issues: ReadonlyArray<{ path: PropertyKey[]; message: string }> };
@@ -32,6 +34,5 @@ export function withFallback<TSchema extends z.ZodMiniType>(
   schema: TSchema,
   fallback: z.output<TSchema>
 ) {
-  // oxlint-disable-next-line promise/valid-params -- zod `.catch(schema, fallback)`, not `Promise.catch`
-  return z.catch(schema, fallback);
+  return catchSchema(schema, fallback);
 }

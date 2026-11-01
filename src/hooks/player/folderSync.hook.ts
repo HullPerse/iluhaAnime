@@ -10,11 +10,7 @@ import { queryKeys } from "@/lib/core/keys.utils";
 import { showErrorOnce } from "@/lib/core/notification.utils";
 import { normalizePath } from "@/lib/core/pathsWatcher.utils";
 import { folderScanBus } from "@/lib/core/scanBus.utils";
-import {
-  buildTree,
-  patchTreeFile,
-  removeTreeFile,
-} from "@/lib/player/playerTree.utils";
+import { buildTree, patchTreeFile, removeTreeFile } from "@/lib/player/playerTree.utils";
 import { setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { FolderChange } from "@/types/core/watcher";

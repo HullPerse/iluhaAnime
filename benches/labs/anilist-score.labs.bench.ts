@@ -8,7 +8,13 @@ import {
 } from "../../src/lib/anilist/anilistScore.utils";
 import type { AnilistScoreFormat } from "../../src/types/anilist/anilistScore";
 
-const FORMATS: AnilistScoreFormat[] = ["POINT_100", "POINT_10_DECIMAL", "POINT_10", "POINT_5", "POINT_3"];
+const FORMATS: AnilistScoreFormat[] = [
+  "POINT_100",
+  "POINT_10_DECIMAL",
+  "POINT_10",
+  "POINT_5",
+  "POINT_3",
+];
 
 group("anilist score @anilist @quick", () => {
   bench("normalizeToTen x10k", () => {

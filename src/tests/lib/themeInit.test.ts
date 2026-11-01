@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import themeInitSource from "../../../public/theme-init.js?raw";
+import "../../../public/theme-init.js";
+
+declare global {
+  interface Window {
+    themeInit?: () => void;
+  }
+}
 
 function runInit(): void {
-  // oxlint-disable-next-line no-new-func, typescript/no-implied-eval
-  new Function(themeInitSource)();
+  window.themeInit?.();
 }
 
 function resetRoot(): void {

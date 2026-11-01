@@ -61,43 +61,153 @@ const BASE_PARAMS: Params = {
 // Half are "easy" (expected already has the highest base score) and half are
 // "hard" (expected has a lower base score and can only reach #1 through the
 // feedback bonus, so the metric is a real function of the params).
-function hardCase(query: string, expected: string): { query: string; expected: string; candidates: FixtureCandidate[]; counters: FixtureCounters } {
+function hardCase(
+  query: string,
+  expected: string
+): { query: string; expected: string; candidates: FixtureCandidate[]; counters: FixtureCounters } {
   return {
     query,
     expected,
     candidates: [
-      { value: expected, score: 20, aliases: [], favourite: false, id: 1, season: null, seasonYear: null, status: "FINISHED", title: expected },
-      { value: `${expected} Movie`, score: 35, aliases: [], favourite: false, id: 2, season: null, seasonYear: null, status: "FINISHED", title: `${expected} Movie` },
-      { value: `${expected} OVA`, score: 45, aliases: [], favourite: false, id: 3, season: null, seasonYear: null, status: "FINISHED", title: `${expected} OVA` },
-      { value: `Other ${expected}`, score: 55, aliases: [], favourite: false, id: 4, season: null, seasonYear: null, status: "FINISHED", title: `Other ${expected}` },
+      {
+        value: expected,
+        score: 20,
+        aliases: [],
+        favourite: false,
+        id: 1,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: expected,
+      },
+      {
+        value: `${expected} Movie`,
+        score: 35,
+        aliases: [],
+        favourite: false,
+        id: 2,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: `${expected} Movie`,
+      },
+      {
+        value: `${expected} OVA`,
+        score: 45,
+        aliases: [],
+        favourite: false,
+        id: 3,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: `${expected} OVA`,
+      },
+      {
+        value: `Other ${expected}`,
+        score: 55,
+        aliases: [],
+        favourite: false,
+        id: 4,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: `Other ${expected}`,
+      },
     ],
     counters: { selectedCount: 1, useCount: 2, ignoredCount: 0 },
   };
 }
 
-function easyCase(query: string, expected: string): { query: string; expected: string; candidates: FixtureCandidate[]; counters: FixtureCounters } {
+function easyCase(
+  query: string,
+  expected: string
+): { query: string; expected: string; candidates: FixtureCandidate[]; counters: FixtureCounters } {
   return {
     query,
     expected,
     candidates: [
-      { value: expected, score: 80, aliases: [], favourite: false, id: 1, season: null, seasonYear: null, status: "FINISHED", title: expected },
-      { value: `${expected} Movie`, score: 75, aliases: [], favourite: false, id: 2, season: null, seasonYear: null, status: "FINISHED", title: `${expected} Movie` },
-      { value: `${expected} OVA`, score: 70, aliases: [], favourite: false, id: 3, season: null, seasonYear: null, status: "FINISHED", title: `${expected} OVA` },
-      { value: `Other ${expected}`, score: 65, aliases: [], favourite: false, id: 4, season: null, seasonYear: null, status: "FINISHED", title: `Other ${expected}` },
+      {
+        value: expected,
+        score: 80,
+        aliases: [],
+        favourite: false,
+        id: 1,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: expected,
+      },
+      {
+        value: `${expected} Movie`,
+        score: 75,
+        aliases: [],
+        favourite: false,
+        id: 2,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: `${expected} Movie`,
+      },
+      {
+        value: `${expected} OVA`,
+        score: 70,
+        aliases: [],
+        favourite: false,
+        id: 3,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: `${expected} OVA`,
+      },
+      {
+        value: `Other ${expected}`,
+        score: 65,
+        aliases: [],
+        favourite: false,
+        id: 4,
+        season: null,
+        seasonYear: null,
+        status: "FINISHED",
+        title: `Other ${expected}`,
+      },
     ],
     counters: { selectedCount: 1, useCount: 2, ignoredCount: 0 },
   };
 }
 
 const TITLES = [
-  "Chainsaw Man", "HUNTER×HUNTER (2011)", "Ping Pong THE ANIMATION", "Jujutsu Kaisen",
-  "Steins;Gate", "Neon Genesis Evangelion", "Cowboy Bebop", "AKIRA", "Ghost in the Shell",
-  "Fullmetal Alchemist: Brotherhood", "Death Note", "Attack on Titan", "My Hero Academia",
-  "Demon Slayer", "Tokyo Ghoul", "Code Geass", "Fate/stay night", "Sword Art Online",
-  "One Piece", "Naruto", "Bleach", "Fairy Tail", "Haikyu!!", "Kuroko no Basket",
+  "Chainsaw Man",
+  "HUNTER×HUNTER (2011)",
+  "Ping Pong THE ANIMATION",
+  "Jujutsu Kaisen",
+  "Steins;Gate",
+  "Neon Genesis Evangelion",
+  "Cowboy Bebop",
+  "AKIRA",
+  "Ghost in the Shell",
+  "Fullmetal Alchemist: Brotherhood",
+  "Death Note",
+  "Attack on Titan",
+  "My Hero Academia",
+  "Demon Slayer",
+  "Tokyo Ghoul",
+  "Code Geass",
+  "Fate/stay night",
+  "Sword Art Online",
+  "One Piece",
+  "Naruto",
+  "Bleach",
+  "Fairy Tail",
+  "Haikyu!!",
+  "Kuroko no Basket",
 ];
 
-const EVAL: Array<{ query: string; expected: string; candidates: FixtureCandidate[]; counters: FixtureCounters }> = [];
+const EVAL: Array<{
+  query: string;
+  expected: string;
+  candidates: FixtureCandidate[];
+  counters: FixtureCounters;
+}> = [];
 for (let i = 0; i < TITLES.length; i++) {
   const title = TITLES[i];
   const query = title.slice(0, 5);
@@ -112,16 +222,25 @@ for (const c of EVAL) {
   }
 }
 
-interface Metric { top1: number; mrr: number; found: number; }
+interface Metric {
+  top1: number;
+  mrr: number;
+  found: number;
+}
 
-function rankWith(params: Params, candidates: FixtureCandidate[], maps: ReturnType<typeof buildLearningMaps>): FixtureCandidate[] {
+function rankWith(
+  params: Params,
+  candidates: FixtureCandidate[],
+  maps: ReturnType<typeof buildLearningMaps>
+): FixtureCandidate[] {
   return candidates
     .map((candidate) => {
       const stat = maps.suggestionStats[normalizeSearchText(candidate.value)];
       const counters = stat ? countersOf(stat) : null;
       let bonus = 0;
       if (counters) {
-        const capped = (value: number, weight: number, cap: number) => Math.min(cap, Math.max(0, value) * weight);
+        const capped = (value: number, weight: number, cap: number) =>
+          Math.min(cap, Math.max(0, value) * weight);
         const positive =
           capped(counters.selectedCount, params.selectedWeight, params.selectedCap) +
           capped(counters.useCount, params.useWeight, params.useCap);
@@ -159,7 +278,10 @@ function measure(params: Params): Metric {
   const maps = buildLearningMaps(rows, NOW);
   for (const { expected, candidates } of EVAL) {
     const ranked = rankWith(params, candidates, maps);
-    const rank = ranked.findIndex((entry) => normalizeSearchText(entry.value) === normalizeSearchText(expected)) + 1;
+    const rank =
+      ranked.findIndex(
+        (entry) => normalizeSearchText(entry.value) === normalizeSearchText(expected)
+      ) + 1;
     if (rank > 0) {
       found += 1;
       mrr += 1 / rank;
@@ -224,6 +346,14 @@ group("ranking-hillclimb @ranking @quick", () => {
 
   bench("hill climbing pass maximize metric", () => {
     const result = hillClimb(BASE_PARAMS);
-    return Math.round((result.metric.top1 * 1000 + result.metric.mrr * 1000 + result.metric.found * 100 + result.steps) * 1000) + Math.round(result.ms);
+    return (
+      Math.round(
+        (result.metric.top1 * 1000 +
+          result.metric.mrr * 1000 +
+          result.metric.found * 100 +
+          result.steps) *
+          1000
+      ) + Math.round(result.ms)
+    );
   });
 });

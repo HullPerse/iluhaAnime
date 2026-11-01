@@ -19,18 +19,20 @@ export function KeyboardSettings() {
           <span className="windows95-text text-text flex items-center text-xs font-bold">
             {t("settings.vim.mode")}
           </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="group flex min-w-0 flex-col gap-0.5">
             <span className="text-hint text-[12px]">{t("settings.vim.mode.hint")}</span>
-            <Select
-              value={vimMode ? "on" : "off"}
-              onChange={(value) => patchSettings({ vimMode: value === "on" })}
-              options={[
-                { value: "off", label: t("common.off") },
-                { value: "on", label: t("common.on") },
-              ]}
-              className="w-32"
-              label={t("settings.vim.mode")}
-            />
+            <div className="flex items-center gap-1">
+              <Select
+                value={vimMode ? "on" : "off"}
+                onChange={(value) => patchSettings({ vimMode: value === "on" })}
+                options={[
+                  { value: "off", label: t("common.off") },
+                  { value: "on", label: t("common.on") },
+                ]}
+                className="w-32"
+                label={t("settings.vim.mode")}
+              />
+            </div>
           </div>
         </div>
       </div>

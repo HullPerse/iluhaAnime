@@ -22,7 +22,7 @@ export function ViewTabs({
     <div className="shrink-0">
       <Tabs
         ariaLabel={t("anilist.friends.title")}
-        tabs={(keysOf(VIEW_LABELS)).map((value) => ({
+        tabs={keysOf(VIEW_LABELS).map((value) => ({
           id: value,
           label: t(VIEW_LABELS[value]),
         }))}

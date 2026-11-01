@@ -26,7 +26,7 @@ export default function SettingsSearch() {
   const visibleSources = useCell(settingsAtoms.visibleSources);
   const searchProxyUrls = useCell(settingsAtoms.searchProxyUrls);
   const webviewProxyEnabled = useCell(settingsAtoms.webviewProxyEnabled);
-  const pageSize = useCell(settingsAtoms.pageSize);
+  const anilistPageSize = useCell(settingsAtoms.anilistPageSize);
   const anilistMaxPages = useCell(settingsAtoms.anilistMaxPages);
   const searchHistoryMaxItems = useCell(settingsAtoms.searchHistoryMaxItems);
   const autocompleteMode = useCell(settingsAtoms.autocompleteMode);
@@ -109,7 +109,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.default.source")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Select
                 value={
                   visibleSources.includes(defaultSearchSource)
@@ -122,12 +122,13 @@ export default function SettingsSearch() {
                 className="w-28"
               />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <span className="windows95-text text-text text-xs font-bold">
-              {t("settings.search.visible.sources")}
-            </span>
+          </div>{" "}
+          <div className="group flex flex-col gap-1">
+            <div className="flex items-center gap-1">
+              <span className="windows95-text text-text text-xs font-bold">
+                {t("settings.search.visible.sources")}
+              </span>
+            </div>
             <div className="grid grid-cols-1 gap-x-3 gap-y-1 min-[560px]:grid-cols-[140px_1fr]">
               <span />
               <div className="flex flex-col gap-1">
@@ -149,7 +150,6 @@ export default function SettingsSearch() {
               </div>
             </div>
           </div>
-
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="windows95-text text-text text-xs font-bold">
@@ -252,14 +252,13 @@ export default function SettingsSearch() {
                 {t("settings.search.no.visible.sources")}
               </span>
             )}
-            <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+            <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
               <Checkbox
                 checked={webviewProxyEnabled}
                 onChange={() => patchSettings({ webviewProxyEnabled: !webviewProxyEnabled })}
               />
               <span className="text-xs font-bold">{t("settings.search.proxy.webview")}</span>
             </label>
-            <span className="text-hint text-[12px]">{t("settings.search.proxy.webview.hint")}</span>
           </div>
         </div>
       </section>
@@ -276,7 +275,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.history.max")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Input
                 type="number"
                 min={0}
@@ -292,12 +291,10 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.autocomplete.mode")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 flex-col gap-0.5">
               <Select
                 value={autocompleteMode}
-                onChange={(value) =>
-                  patchSettings({ autocompleteMode: value })
-                }
+                onChange={(value) => patchSettings({ autocompleteMode: value })}
                 options={[
                   {
                     value: "inline",
@@ -348,13 +345,13 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.page.size")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Input
                 type="number"
                 min={10}
                 max={100}
-                value={pageSize}
-                onChange={(e) => patchSettings({ pageSize: Number(e.target.value) })}
+                value={anilistPageSize}
+                onChange={(e) => patchSettings({ anilistPageSize: Number(e.target.value) })}
                 className="w-16"
               />
             </div>
@@ -362,7 +359,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.max.pages")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 items-center gap-1">
               <Input
                 type="number"
                 min={1}
@@ -398,7 +395,7 @@ export default function SettingsSearch() {
               <span />
               <div className="flex flex-col gap-1">
                 <label
-                  className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
+                  className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
                   title={t("settings.search.toggle.sym.spell.hint")}
                 >
                   <Checkbox
@@ -410,7 +407,7 @@ export default function SettingsSearch() {
                   <span>{t("settings.search.toggle.sym.spell")}</span>
                 </label>
                 <label
-                  className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
+                  className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
                   title={t("settings.search.toggle.intent.hint")}
                 >
                   <Checkbox
@@ -427,7 +424,7 @@ export default function SettingsSearch() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.search.anilist.boost")}
             </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="group flex min-w-0 flex-col gap-0.5">
               <Select
                 value={anilistSuggestionBoost}
                 onChange={(value) =>

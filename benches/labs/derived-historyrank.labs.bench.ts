@@ -1,8 +1,8 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
-import { rankHistoryEntries } from '../../src/lib/core/suggestions.utils';
-import { createSignalStore } from '../../src/lib/core/signal.store';
-import type { SearchQueryStat } from '../../src/types/search/search';
+import { rankHistoryEntries } from "../../src/lib/core/suggestions.utils";
+import { createSignalStore } from "../../src/lib/core/signal.store";
+import type { SearchQueryStat } from "../../src/types/search/search";
 
 function makeHistory(count: number): string[] {
   const out: string[] = [];
@@ -35,32 +35,32 @@ const rankedDerived = store.derive([historyCell, statsCell], (args) => {
   return rankHistoryEntries(history, stats, 8);
 });
 
-group('derived-historyrank @derived @quick', () => {
-  bench('manual rank x500 (recompute each read)', () => {
+group("derived-historyrank @derived @quick", () => {
+  bench("manual rank x500 (recompute each read)", () => {
     let checksum = 0;
     for (let i = 0; i < 10; i++) {
       const ranked = rankHistoryEntries(HISTORY, i % 2 === 0 ? STATS_A : STATS_B, 8);
-      checksum += ranked.length + ranked.join('').length;
+      checksum += ranked.length + ranked.join("").length;
     }
     return checksum;
   });
 
-  bench('derived write+read x500 (stats swap)', () => {
+  bench("derived write+read x500 (stats swap)", () => {
     let checksum = 0;
     for (let i = 0; i < 10; i++) {
       statsCell.set(i % 2 === 0 ? STATS_A : STATS_B);
       const ranked = rankedDerived.get();
-      checksum += ranked.length + ranked.join('').length;
+      checksum += ranked.length + ranked.join("").length;
     }
     return checksum;
   });
 
-  bench('derived cached reads x100 (no changes)', () => {
+  bench("derived cached reads x100 (no changes)", () => {
     statsCell.set(STATS_A);
     let checksum = 0;
     for (let i = 0; i < 100; i++) {
       const ranked = rankedDerived.get();
-      checksum += ranked.length + ranked.join('').length;
+      checksum += ranked.length + ranked.join("").length;
     }
     return checksum;
   });

@@ -77,7 +77,7 @@ export default function SettingsMedia() {
         {emptyError && (
           <span className="text-destructive text-xs">{t("settings.media.empty")}</span>
         )}
-        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+        <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-36 shrink-0 font-bold">{t("settings.media.tracks")}</span>
           <Select
             value={showTrackFiles}
@@ -90,14 +90,12 @@ export default function SettingsMedia() {
             className="h-6 flex-1"
           />
         </label>
-        <div className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+        <div className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-36 shrink-0 font-bold">{t("settings.media.streamQuality")}</span>
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex min-w-0 flex-1">
             <Select
               value={streamDefaultQuality}
-              onChange={(value) =>
-                patchSettings({ streamDefaultQuality: value })
-              }
+              onChange={(value) => patchSettings({ streamDefaultQuality: value })}
               options={STREAM_QUALITIES.map((quality) => ({
                 value: quality,
                 label: streamQualityLabel(quality),
@@ -105,10 +103,9 @@ export default function SettingsMedia() {
               className="h-6"
               label={t("settings.media.streamQuality")}
             />
-            <span className="text-hint text-[12px]">{t("settings.media.streamQuality.hint")}</span>
           </div>
         </div>
-        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+        <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-36 shrink-0 font-bold">{t("settings.media.watcher")}</span>
           <Select
             value={watcherDelay}
@@ -120,7 +117,7 @@ export default function SettingsMedia() {
             className="h-6 flex-1"
           />
         </label>
-        <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
+        <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-36 shrink-0 font-bold">{t("settings.media.scanThreads")}</span>
           <Select
             value={String(scanThreads)}

@@ -1,48 +1,51 @@
-import { bench, group } from '@pmndrs/labs';
+import { bench, group } from "@pmndrs/labs";
 
-import { fuzzyMatchScore, fuzzyMatchScorePreNormalized } from '../../src/lib/search/searchScore.utils';
-import { normalizeSearchText } from '../../src/lib/core/normalize.utils';
+import {
+  fuzzyMatchScore,
+  fuzzyMatchScorePreNormalized,
+} from "../../src/lib/search/searchScore.utils";
+import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
 
 const QUERIES = [
-  'naruto shippuden',
-  'one piece',
-  'steins gate 0',
-  'attack on titan final season',
-  'demon slayer',
-  'fullmetal alchemist brotherhood',
-  'hunter x hunter 2011',
-  'fma',
-  'snk s4',
-  'cowboy bebop movie',
+  "naruto shippuden",
+  "one piece",
+  "steins gate 0",
+  "attack on titan final season",
+  "demon slayer",
+  "fullmetal alchemist brotherhood",
+  "hunter x hunter 2011",
+  "fma",
+  "snk s4",
+  "cowboy bebop movie",
 ];
 
 const CANDIDATES = [
-  'Naruto Shippuden',
-  'Naruto',
-  'One Piece',
-  'One Piece Film Red',
-  'Steins;Gate 0',
-  'Attack on Titan',
-  'Attack on Titan: Final Season',
-  'Shingeki no Kyojin',
-  'Demon Slayer: Kimetsu no Yaiba',
-  'Fullmetal Alchemist: Brotherhood',
-  'Hunter x Hunter (2011)',
-  'Fullmetal Alchemist',
-  'Attack on Titan Season 4',
-  'Steins Gate',
-  'Cowboy Bebop: The Movie',
-  'One Piece Stampede',
-  'Demon Slayer Entertainment District',
-  'Shinsekai yori',
-  'Shingeki no Kyojin Season 3 Part 2',
-  'Fate Zero',
+  "Naruto Shippuden",
+  "Naruto",
+  "One Piece",
+  "One Piece Film Red",
+  "Steins;Gate 0",
+  "Attack on Titan",
+  "Attack on Titan: Final Season",
+  "Shingeki no Kyojin",
+  "Demon Slayer: Kimetsu no Yaiba",
+  "Fullmetal Alchemist: Brotherhood",
+  "Hunter x Hunter (2011)",
+  "Fullmetal Alchemist",
+  "Attack on Titan Season 4",
+  "Steins Gate",
+  "Cowboy Bebop: The Movie",
+  "One Piece Stampede",
+  "Demon Slayer Entertainment District",
+  "Shinsekai yori",
+  "Shingeki no Kyojin Season 3 Part 2",
+  "Fate Zero",
 ];
 
 const NORM_CANDIDATES = CANDIDATES.map(normalizeSearchText);
 
-group('score @pilot @search @quick', () => {
-  bench('query-aware x200 (normalize + parse per call)', () => {
+group("score @pilot @search @quick", () => {
+  bench("query-aware x200 (normalize + parse per call)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       for (const c of CANDIDATES) {
@@ -52,7 +55,7 @@ group('score @pilot @search @quick', () => {
     return checksum;
   });
 
-  bench('pre-normalized x200 (norm once per side)', () => {
+  bench("pre-normalized x200 (norm once per side)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);
@@ -63,7 +66,7 @@ group('score @pilot @search @quick', () => {
     return checksum;
   });
 
-  bench('pre-normalized SLOWED x200 (added 2-gram loop)', () => {
+  bench("pre-normalized SLOWED x200 (added 2-gram loop)", () => {
     let checksum = 0;
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);

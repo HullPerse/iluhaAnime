@@ -1,5 +1,9 @@
 import { DITHER_SLIDER_DEFS } from "@/config/graphics/dither.config";
-import type { DitherEffectOptions, DitherSliderDef, DitherSliderField } from "@/types/graphics/dither";
+import type {
+  DitherEffectOptions,
+  DitherSliderDef,
+  DitherSliderField,
+} from "@/types/graphics/dither";
 
 export type { DitherSliderDef } from "@/types/graphics/dither";
 

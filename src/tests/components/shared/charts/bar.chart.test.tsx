@@ -52,6 +52,7 @@ describe("BarChart", () => {
     renderBars();
 
     await waitFor(() => expect(screen.getByText("Alpha")).toBeDefined());
+    expect(screen.getByText("Alpha").getAttribute("style")).toContain("text-anchor: end");
     expect(screen.getByText("10 titles")).toBeDefined();
     expect(screen.getByText("5 titles")).toBeDefined();
     const truncated = screen.getByText(/\.\.\.$/);

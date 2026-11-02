@@ -15,6 +15,7 @@ import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
 import {
+  notifyAniListSummary,
   pollAniListReleases,
   pollSiteNotifications,
 } from "@/lib/anilist/anilistNotifications.utils";
@@ -36,7 +37,6 @@ import {
   showError,
   showWarning,
 } from "@/lib/core/notification.utils";
-import { anilistNotificationsAtoms } from "@/store/anilist.store";
 import { cacheAtoms, setEpisodeTracker, setFolderTrees, setLastSaveDir } from "@/store/cache.store";
 import { collectionAtoms, subscribeCollection } from "@/store/collection.store";
 import {
@@ -98,11 +98,6 @@ export function useApp() {
   const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
   const anilistPollIntervalMin = useCell(settingsAtoms.anilistPollIntervalMin);
 
-  const unreadReleases = useCell(anilistNotificationsAtoms.releases).reduce(
-    (count, item) => count + (item.read ? 0 : 1),
-    0
-  );
-
   const tabs = markOfflineTabs(
     visibleTabs({
       collectionTabEnabled,
@@ -115,7 +110,6 @@ export function useApp() {
     }).map((tab) => ({
       ...tab,
       label: tabLabel(tab.id, t(tab.key), language, t("settings.stream.tab.russianOnly")),
-      badge: tab.id === "anilist" ? unreadReleases : undefined,
     })),
     isOnline
   ).map((tab) => ({
@@ -470,9 +464,6 @@ export function useApp() {
     });
   }, [isOnline, goToTab]);
 
-  const releaseSignature = `${anilistReleaseNotifications}:${anilistPollIntervalMin}:${anilistTabEnabled}`;
-  const prevReleaseSignatureRef = useRef<string>(releaseSignature);
-  const firstReleasePollRef = useRef<boolean>(true);
   const releaseCancelledRef = useRef<boolean>(false);
   useEffect(
     () => () => {
@@ -486,18 +477,19 @@ export function useApp() {
     collectKeys: () => ["anilist-releases"],
     shouldFetch: () => true,
     fetch: async () => {
-      if (prevReleaseSignatureRef.current !== releaseSignature) {
-        prevReleaseSignatureRef.current = releaseSignature;
-        firstReleasePollRef.current = true;
-      }
-      const ok = await pollAniListReleases(t, () => releaseCancelledRef.current, {
-        system: !firstReleasePollRef.current,
-      });
-      await pollSiteNotifications(t, () => releaseCancelledRef.current, {
-        system: !firstReleasePollRef.current,
-      });
-      if (ok) firstReleasePollRef.current = false;
-      return ok;
+      const [releases, site] = await Promise.all([
+        pollAniListReleases(t, () => releaseCancelledRef.current, {
+          system: false,
+          silent: true,
+        }),
+        pollSiteNotifications(t, () => releaseCancelledRef.current, {
+          system: false,
+          silent: true,
+        }),
+      ]);
+      // One popup per poll: the individual rows went into the panel silently.
+      notifyAniListSummary(releases.added + site.added, t, true);
+      return releases.ok;
     },
   });
 

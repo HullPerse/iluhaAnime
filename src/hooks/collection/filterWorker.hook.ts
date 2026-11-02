@@ -12,6 +12,7 @@ import type {
   CollectionFilterWorkerPayload,
   CollectionFilterWorkerResult,
   CollectionItem,
+  CollectionStatusDef,
 } from "@/types/anilist/collection";
 import type { CollectionFilterWorkerParams } from "@/types/core/filterWorker";
 
@@ -35,6 +36,10 @@ export function useCollectionFilterWorker(params: CollectionFilterWorkerParams):
   const [stale, setStale] = useState<boolean>(false);
   const syncSnapshot = useRef<CollectionFilterSnapshot | null>(null);
   const runnerRef = useRef<JobRunner<CollectionFilterWorkerPayload> | null>(null);
+  const initializedRef = useRef<{
+    items: CollectionItem[];
+    statuses: CollectionStatusDef[];
+  } | null>(null);
 
   useEffect(() => {
     const runner = createJobRunner<CollectionFilterWorkerPayload, CollectionFilterWorkerResult>({
@@ -71,12 +76,14 @@ export function useCollectionFilterWorker(params: CollectionFilterWorkerParams):
   const initialIds = useMemo(() => items.map((item) => item.id), [items]);
 
   useEffect(() => {
-    runnerRef.current?.run({ kind: "init", items, statuses });
-  }, [items, statuses]);
-
-  useEffect(() => {
+    const runner = runnerRef.current;
+    if (!runner) return;
+    if (initializedRef.current?.items !== items || initializedRef.current?.statuses !== statuses) {
+      initializedRef.current = { items, statuses };
+      runner.run({ kind: "init", items, statuses });
+    }
     setStale(true);
-    runnerRef.current?.run({
+    runner.run({
       kind: "query",
       searchQuery: deferredQuery,
       selectedStatus,

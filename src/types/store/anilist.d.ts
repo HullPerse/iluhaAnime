@@ -17,6 +17,7 @@ type NotificationsActionKeys =
   | "saveObservation"
   | "markOwnListStatus"
   | "addRelease"
+  | "setReleaseCovers"
   | "markReleasesRead"
   | "markSiteNotificationsRead"
   | "setInitialized"
@@ -42,6 +43,7 @@ export interface AnilistNotificationsSignalStore {
   saveObservation: (id: string, observation: AniListObservation) => void;
   markOwnListStatus: (mediaId: number, status: string) => void;
   addRelease: (release: Omit<AniListRelease, "read">) => void;
+  setReleaseCovers: (covers: Record<number, string | null>) => void;
   markReleasesRead: () => void;
   markSiteNotificationsRead: (ids: number[]) => void;
   setInitialized: (initialized: boolean) => void;

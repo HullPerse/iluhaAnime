@@ -18,6 +18,10 @@ export interface NotificationItem {
   timestamp: number;
   read: boolean;
   progress?: boolean;
+  /** Panel-only item: no in-app or system popup. */
+  silent?: boolean;
+  /** Popup-only item: shown as a toast, excluded from the panel and persistence. */
+  popupOnly?: boolean;
 }
 
 export interface NotificationUpdate {
@@ -34,6 +38,8 @@ export interface NotificationUpdateOptions {
 export interface NotificationAddOptions {
   system?: boolean;
   target?: NotificationTarget;
+  silent?: boolean;
+  popupOnly?: boolean;
 }
 
 export interface DismissedEntry {

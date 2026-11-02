@@ -540,6 +540,7 @@ export interface AniListRelease {
   title: string;
   episode: number | string;
   airedAt: number;
+  coverUrl?: string | null;
   read: boolean;
 }
 
@@ -570,6 +571,7 @@ export interface AniListNotificationsStore {
   saveObservation: (id: string, observation: AniListObservation) => void;
   markOwnListStatus: (mediaId: number, status: string) => void;
   addRelease: (release: Omit<AniListRelease, "read">) => void;
+  setReleaseCovers: (covers: Record<number, string | null>) => void;
   markReleasesRead: () => void;
   markSiteNotificationsRead: (ids: number[]) => void;
   setInitialized: (value: boolean) => void;
@@ -668,6 +670,7 @@ export interface AniNotificationEntry {
     title: string;
     next_episode: number | null;
     next_airing_at: number | null;
+    cover_url?: string | null;
     status: string;
   };
   list_status: string;

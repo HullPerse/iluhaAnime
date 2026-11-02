@@ -7,6 +7,10 @@ import { useCell } from "@/lib/core/signal.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ResolvedHotkeyDef, UseHotkeysOptions } from "@/types/ui/hotkeys";
 
+function hotkeySignature<TId extends string>(defs: readonly HotkeyDef<TId>[]): string {
+  return defs.map((def) => `${def.id}:${def.chord}:${def.repeat}`).join("\n");
+}
+
 export function useHotkeys<TId extends string>(
   defs: readonly HotkeyDef<TId>[],
   options: UseHotkeysOptions<TId>
@@ -19,13 +23,15 @@ export function useHotkeys<TId extends string>(
     stateRef.current = { defs, options };
   });
 
-  const signature = defs.map((def) => `${def.id}:${def.chord}:${def.repeat}`).join("\n");
+  const signature = hotkeySignature(defs);
 
   useEffect(() => {
+    const current = stateRef.current;
+    if (hotkeySignature(current.defs) !== signature) return;
     const readOptions = () => stateRef.current.options;
     const node = readOptions().target?.current ?? window;
     return subscribeHotkeys(node, {
-      defs: stateRef.current.defs,
+      defs: current.defs,
       capture: readOptions().capture,
       ignore: (event) => readOptions().ignore?.(event) ?? false,
       onAction: (id, event) => {

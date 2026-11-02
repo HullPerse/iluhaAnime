@@ -2,6 +2,7 @@ import { mockConvertFileSrc, mockInvoke } from "@/tests/mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  notifyAniListSummary,
   pollAniListReleases,
   pollSiteNotifications,
 } from "@/lib/anilist/anilistNotifications.utils";
@@ -252,8 +253,8 @@ describe("new episode notifications", () => {
     mockNow();
     saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
     getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
-    const ok = await pollAniListReleases(t, notDisposed, { system: false });
-    expect(ok).toBe(true);
+    const result = await pollAniListReleases(t, notDisposed, { system: false });
+    expect(result.ok).toBe(true);
     const items = notificationAtoms.items.get();
     expect(items).toHaveLength(1);
     expect(items[0]?.eventKey).toBe("7:4");
@@ -263,6 +264,33 @@ describe("new episode notifications", () => {
     expect(releases[0]?.mediaId).toBe(7);
     expect(releases[0]?.episode).toBe(4);
     expect(anilistNotificationsAtoms.observations.get()["7"]?.nextEpisode).toBe(5);
+  });
+
+  it("backfills covers on releases saved before cover capture", async () => {
+    anilistNotificationsAtoms.releases.set([
+      { mediaId: 7, title: "Show", episode: 4, airedAt: NOW_MS, read: true },
+    ]);
+    getLists.mockResolvedValue([
+      {
+        name: "Watching",
+        entries: [
+          listEntry({
+            media: {
+              id: 7,
+              title: "Show",
+              next_episode: null,
+              next_airing_at: null,
+              status: "RELEASING",
+              cover_url: "https://img.example/7.jpg",
+            },
+          }),
+        ],
+      },
+    ]);
+    await pollAniListReleases(t, notDisposed, { system: false });
+    expect(anilistNotificationsAtoms.releases.get()[0]?.coverUrl).toBe(
+      "https://img.example/7.jpg"
+    );
   });
 
   it("notifies every missed episode in order", async () => {
@@ -359,16 +387,16 @@ describe("new episode notifications", () => {
     mockNow();
     saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
     getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
-    const ok = await pollAniListReleases(t, () => true, { system: false });
-    expect(ok).toBe(false);
+    const result = await pollAniListReleases(t, () => true, { system: false });
+    expect(result.ok).toBe(false);
     expect(notificationAtoms.items.get()).toHaveLength(0);
     expect(anilistNotificationsAtoms.observations.get()["7"]?.nextEpisode).toBe(4);
   });
 
   it("returns false when logged out", async () => {
     checkAuth.mockResolvedValue(null);
-    const ok = await pollAniListReleases(t, notDisposed, { system: false });
-    expect(ok).toBe(false);
+    const result = await pollAniListReleases(t, notDisposed, { system: false });
+    expect(result.ok).toBe(false);
     expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 
@@ -471,5 +499,28 @@ describe("site notifications poll", () => {
     await pollSiteNotifications(t, notDisposed, { system: true });
     expect(notificationAtoms.items.get()).toHaveLength(0);
     expect(anilistNotificationsAtoms.siteMaxSeenId.get()).toBe(6);
+  });
+
+  it("keeps fresh site items silent and lets one summary cover them", async () => {
+    notificationAtoms.items.set([]);
+    notificationAtoms.dismissed.set([]);
+    notificationAtoms.unreadCount.set(0);
+    anilistNotificationsAtoms.siteMaxSeenId.set(5);
+    getSiteNotifications.mockResolvedValue([
+      siteItem({ id: 6, kind: "sequel", anime_id: 21, anime_title: "Sequel" }),
+      siteItem({ id: 7, kind: "subscribed", text: "hello" }),
+    ]);
+    const result = await pollSiteNotifications(t, notDisposed, {
+      system: false,
+      silent: true,
+    });
+    expect(result).toEqual({ ok: true, added: 2 });
+    const items = notificationAtoms.items.get();
+    expect(items).toHaveLength(2);
+    expect(items.every((item) => item.silent === true)).toBe(true);
+    notifyAniListSummary(result.added, t, true);
+    const summary = notificationAtoms.items.get().find((item) => item.popupOnly);
+    expect(summary?.title).toContain("notification.anilist.summary");
+    expect(notificationAtoms.unreadCount.get()).toBe(2);
   });
 });

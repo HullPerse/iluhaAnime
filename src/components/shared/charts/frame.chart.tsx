@@ -11,6 +11,7 @@ export function ChartFrame({
   announcement,
   margin,
   interactive = false,
+  showFrame = true,
   className,
   onKeyDown,
   onFocus,
@@ -60,16 +61,18 @@ export function ChartFrame({
     >
       {width > 0 && (
         <svg width={width} height={height} aria-hidden="true" focusable="false" className="block">
-          <rect
-            x={plot.left}
-            y={plot.top}
-            width={plot.width}
-            height={plot.height}
-            fill="var(--color-field)"
-            stroke="var(--color-win-shadow)"
-            strokeWidth={1}
-            shapeRendering="crispEdges"
-          />
+          {showFrame && (
+            <rect
+              x={plot.left}
+              y={plot.top}
+              width={plot.width}
+              height={plot.height}
+              fill="var(--color-field)"
+              stroke="var(--color-win-shadow)"
+              strokeWidth={1}
+              shapeRendering="crispEdges"
+            />
+          )}
           {children(plot, width)}
         </svg>
       )}

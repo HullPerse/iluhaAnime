@@ -68,6 +68,7 @@ function FranchiseGraphSection({
   const dragRafRef = useRef<ScheduledTask | null>(null);
   const dragPointRef = useRef<{ x: number; y: number } | null>(null);
   const zoomedAnimeIdRef = useRef<number | null>(null);
+  const lastAnimeIdRef = useRef<number>(animeId);
   const focusAfterLayoutRef = useRef<boolean>(false);
   const positionsRef = useRef<Map<number, FranchiseNodePosition>>(positions);
   useEffect(() => {
@@ -87,6 +88,8 @@ function FranchiseGraphSection({
   });
 
   useEffect(() => {
+    if (lastAnimeIdRef.current === animeId) return;
+    lastAnimeIdRef.current = animeId;
     setSearchQuery("");
     setResetKey((key) => key + 1);
     setExpandedGroups(new Set());

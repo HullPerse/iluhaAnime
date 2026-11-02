@@ -62,9 +62,10 @@ describe("ColumnChart", () => {
     renderColumns();
 
     await waitFor(() => expect(screen.getByText("2021")).toBeDefined());
+    expect(screen.getByText("2021").getAttribute("style")).toContain("text-anchor: middle");
+    expect(screen.getByText("0").getAttribute("style")).toContain("text-anchor: end");
     expect(screen.getByText("2022")).toBeDefined();
     expect(screen.getByText("2023")).toBeDefined();
-    expect(screen.getByText("0")).toBeDefined();
     expect(screen.getByText("8")).toBeDefined();
   });
 

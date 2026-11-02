@@ -40,6 +40,7 @@ import type { TabId } from "@/types/ui/settings";
 
 import PageFindBar from "@/components/shared/keyboard/findBar.keyboard";
 import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard";
+import OfflineBanner from "@/components/shared/network/offlineBanner.component";
 import NotificationToasts from "@/components/shared/notification/toasts.notification";
 import NotificationTray from "@/components/shared/notification/tray.notification";
 import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
@@ -207,6 +208,7 @@ export default function App() {
               <NotificationTray />
             </div>
           </div>
+          <OfflineBanner />
           <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden">
             <Outlet />
           </div>

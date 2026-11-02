@@ -33,11 +33,11 @@ pub fn mark(label: &'static str) {
         return;
     };
     let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
-    MARKS
-        .get_or_init(|| Mutex::new(Vec::new()))
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .push((label, elapsed_ms));
+    crate::sync_utils::lock_or_recover(
+        MARKS.get_or_init(|| Mutex::new(Vec::new())),
+        "startup marks",
+    )
+    .push((label, elapsed_ms));
 }
 
 /// Returns the recorded phases in order. A repeated label is kept as-is: the
@@ -45,12 +45,7 @@ pub fn mark(label: &'static str) {
 pub fn marks() -> Vec<(&'static str, f64)> {
     MARKS
         .get()
-        .map(|marks| {
-            marks
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .clone()
-        })
+        .map(|marks| crate::sync_utils::lock_or_recover(marks, "startup marks").clone())
         .unwrap_or_default()
 }
 

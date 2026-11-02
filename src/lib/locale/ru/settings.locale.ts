@@ -87,6 +87,9 @@ const settings = {
   "settings.summary.ffmpeg.missing": "не найден",
   "settings.summary.help": "Помощь",
   "settings.summary.images": "Изображения",
+  "settings.summary.anilistCache": "Кэш AniList",
+  "settings.summary.videoCache": "Кэш ffprobe",
+  "settings.summary.cacheValue": "{{rate}}% · {{hits}} из {{total}}",
   "settings.summary.images.clear": "Очистить",
   "settings.summary.images.confirm":
     "Очистить кэш загруженных изображений? Картинки скачаются заново по мере просмотра.",
@@ -490,7 +493,23 @@ const settings = {
   "settings.vim.mode.hint": "F - подсказки ссылок, j/k/d/u - прокрутка. У плеера свои клавиши.",
   "settings.find.placeholder": "Найти параметр (Ctrl+K)",
   "settings.proxy": "Прокси",
+  "settings.proxy.description":
+    "Прокси для интеграций и источников. Проверка не прерывается автоматически; если она идёт дольше {{seconds}} с, индикатор краснеет.",
   "settings.proxy.invalid": "Некорректный адрес прокси. Пример: socks5://127.0.0.1:10808",
+  "settings.proxy.no": "Без прокси",
+  "settings.proxy.custom": "Свой",
+  "settings.proxy.test.action": "Проверить",
+  "settings.proxy.test.cancel": "Отменить",
+  "settings.proxy.test.retest": "Повторить",
+  "settings.proxy.test.running": "Проверка... {{seconds}} с",
+  "settings.proxy.test.ok": "Доступен",
+  "settings.proxy.test.fail": "Ошибка",
+  "settings.proxy.torrent.title": "Торрент-прокси",
+  "settings.proxy.torrent.description":
+    "SOCKS5 для peer-соединений и HTTP-трекеров. Применяется к текущей сессии после изменения.",
+  "settings.proxy.sources.title": "Прокси источников",
+  "settings.proxy.sources.description":
+    "Отдельный прокси для каждого источника поиска. Можно проверить один источник или сразу все.",
   "settings.torrent.port.invalid": "Порт должен быть числом от 0 до 65535",
   "settings.torrent.timeout.invalid": "Значение должно быть от 1 до 3600",
   "settings.group.main": "Основное",

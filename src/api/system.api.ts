@@ -131,6 +131,10 @@ export class SystemApi {
     return this.call("get_remote_images_stats");
   }
 
+  getVideoCacheStats(): Promise<{ hits: number; misses: number }> {
+    return this.call("get_video_cache_stats");
+  }
+
   clearRemoteImageCache(): Promise<number> {
     return this.call("clear_remote_image_cache");
   }
@@ -175,6 +179,13 @@ export class SystemApi {
     error: string | null;
   }> {
     return this.call("get_database_status");
+  }
+
+  probeNetwork(
+    anilistProxyUrl: string | null,
+    animelibProxyUrl: string | null
+  ): Promise<boolean> {
+    return this.call("network_probe", { anilistProxyUrl, animelibProxyUrl });
   }
 }
 

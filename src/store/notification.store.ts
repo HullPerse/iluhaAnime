@@ -56,6 +56,10 @@ function pruneDismissed(dismissed: DismissedEntry[], now: number): DismissedEntr
   return dismissed.filter((entry) => now - entry.at < DISMISS_TTL_MS).slice(0, MAX_DISMISSED);
 }
 
+function unreadCountOf(items: NotificationItem[]): number {
+  return items.filter((item) => !item.read && !item.popupOnly).length;
+}
+
 interface NotificationAtoms {
   items: Cell<NotificationItem[]>;
   dismissed: Cell<DismissedEntry[]>;
@@ -69,7 +73,9 @@ export function resolveNotificationPersisted(
   if (!storageExists) return null;
   if (!isRecord(persistedState)) return null;
   const items = Array.isArray(persistedState.items)
-    ? persistedState.items.filter(isNotificationItem).filter((item) => !item.progress)
+    ? persistedState.items
+        .filter(isNotificationItem)
+        .filter((item) => !item.progress && !item.popupOnly)
     : [];
   const dismissed = Array.isArray(persistedState.dismissed)
     ? pruneDismissed(persistedState.dismissed.filter(isDismissedEntry), Date.now())
@@ -119,7 +125,7 @@ interface NotificationSignalStore {
   markRead: (id: number) => void;
 }
 
-function createNotificationSignalStore(
+export function createNotificationSignalStore(
   options: NotificationSignalOptions = {}
 ): NotificationSignalStore {
   let restoredMaxId = 0;
@@ -140,7 +146,9 @@ function createNotificationSignalStore(
   const persisted = persistor.read();
   const persistedData = persisted ? persisted.data : {};
   const persistedItems = Array.isArray(persistedData.items)
-    ? persistedData.items.filter(isNotificationItem)
+    ? persistedData.items
+        .filter(isNotificationItem)
+        .filter((item) => !item.progress && !item.popupOnly)
     : [];
   const persistedDismissed = Array.isArray(persistedData.dismissed)
     ? persistedData.dismissed.filter(isDismissedEntry)
@@ -149,37 +157,53 @@ function createNotificationSignalStore(
     restoredMaxId = persistedItems.reduce((max, item) => Math.max(max, item.id), 0);
   }
   const mirror: Record<string, unknown> = { items: persistedItems, dismissed: persistedDismissed };
-  const items = store.atom("items", persistedItems);
-  const dismissed = store.atom("dismissed", persistedDismissed);
-  const unreadCount = store.atom("unreadCount", persistedItems.filter((item) => !item.read).length);
-  const wrapItems = {
-    id: items.id,
-    get: items.get,
+  const rawItems = store.atom("items", persistedItems);
+  const rawDismissed = store.atom("dismissed", persistedDismissed);
+  const unreadCount = store.atom("unreadCount", unreadCountOf(persistedItems));
+  // Every mutation has to go through these wrappers: the mirror is what the
+  // persist subscriber serializes, so a raw atom write would silently skip
+  // saving the change (notifications would disappear after a restart).
+  const items: Cell<NotificationItem[]> = {
+    id: rawItems.id,
+    get: rawItems.get,
     set: (value: NotificationItem[]) => {
-      items.set(value);
+      rawItems.set(value);
       mirror.items = value;
     },
-    update: items.update,
-    subscribe: items.subscribe,
+    update: (fn: (value: NotificationItem[]) => NotificationItem[]) => {
+      const next = fn(rawItems.get());
+      rawItems.set(next);
+      mirror.items = next;
+    },
+    subscribe: rawItems.subscribe,
   };
-  const wrapDismissed = {
-    id: dismissed.id,
-    get: dismissed.get,
+  const dismissed: Cell<DismissedEntry[]> = {
+    id: rawDismissed.id,
+    get: rawDismissed.get,
     set: (value: DismissedEntry[]) => {
-      dismissed.set(value);
+      rawDismissed.set(value);
       mirror.dismissed = value;
     },
-    update: dismissed.update,
-    subscribe: dismissed.subscribe,
+    update: (fn: (value: DismissedEntry[]) => DismissedEntry[]) => {
+      const next = fn(rawDismissed.get());
+      rawDismissed.set(next);
+      mirror.dismissed = next;
+    },
+    subscribe: rawDismissed.subscribe,
   };
   const atoms: NotificationAtoms = {
-    items: wrapItems,
-    dismissed: wrapDismissed,
+    items,
+    dismissed,
     unreadCount,
   };
 
   store.subscribeAll(() => {
-    persistor.write({ items: mirror.items, dismissed: mirror.dismissed });
+    const items = Array.isArray(mirror.items)
+      ? mirror.items.filter(
+          (item): item is NotificationItem => isNotificationItem(item) && !item.popupOnly
+        )
+      : [];
+    persistor.write({ items, dismissed: mirror.dismissed });
   });
 
   nextNotificationId = Math.max(nextNotificationId, restoredMaxId + 1);
@@ -246,12 +270,14 @@ function createNotificationSignalStore(
         message,
         ...(eventKey ? { eventKey } : {}),
         ...(target ? { target } : {}),
+        ...(options?.silent ? { silent: true } : {}),
+        ...(options?.popupOnly ? { popupOnly: true } : {}),
         timestamp: now,
         read: false,
       };
       items.set([item, ...current].slice(0, MAX_ITEMS));
-      unreadCount.set(unreadCount.get() + 1);
-      showToast(title, message ?? null, target ?? null, options?.system);
+      if (!options?.popupOnly) unreadCount.set(unreadCount.get() + 1);
+      if (!options?.silent) showToast(title, message ?? null, target ?? null, options?.system);
       return id;
     },
     update: (id, patch, options) => {
@@ -301,7 +327,7 @@ function createNotificationSignalStore(
         : dismissed.get();
       items.set(next);
       dismissed.set(nextDismissed);
-      unreadCount.set(next.filter((i) => !i.read).length);
+      unreadCount.set(unreadCountOf(next));
     },
     clearAll: () => {
       const now = Date.now();
@@ -331,7 +357,7 @@ function createNotificationSignalStore(
     markRead: (id) => {
       const next = items.get().map((i) => (i.id === id ? { ...i, read: true } : i));
       items.set(next);
-      unreadCount.set(next.filter((i) => !i.read).length);
+      unreadCount.set(unreadCountOf(next));
     },
   };
 

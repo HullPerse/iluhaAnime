@@ -6,7 +6,15 @@ use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 
 const SCRAPER_MIN_INTERVAL: Duration = Duration::from_millis(250);
-static SCRAPER_CONCURRENCY: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(4);
+fn env_limit(name: &str, default: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(default)
+}
+static SCRAPER_CONCURRENCY: LazyLock<tokio::sync::Semaphore> =
+    LazyLock::new(|| tokio::sync::Semaphore::new(env_limit("ILUHA_SCRAPER_CONCURRENCY", 4)));
 static SCRAPER_LAST_REQUEST: LazyLock<tokio::sync::Mutex<Instant>> =
     LazyLock::new(|| tokio::sync::Mutex::new(Instant::now()));
 pub async fn acquire_scraper_slot() -> Result<tokio::sync::SemaphorePermit<'static>, String> {
@@ -17,12 +25,7 @@ pub async fn acquire_scraper_slot() -> Result<tokio::sync::SemaphorePermit<'stat
     let mut last_request = SCRAPER_LAST_REQUEST.lock().await;
     let elapsed = last_request.elapsed();
     if elapsed < SCRAPER_MIN_INTERVAL {
-        tokio::time::sleep(
-            SCRAPER_MIN_INTERVAL
-                .checked_sub(elapsed)
-                .expect("scraper throttle delay underflow: elapsed exceeds interval"),
-        )
-        .await;
+        tokio::time::sleep(SCRAPER_MIN_INTERVAL.saturating_sub(elapsed)).await;
     }
     *last_request = Instant::now();
     drop(last_request);

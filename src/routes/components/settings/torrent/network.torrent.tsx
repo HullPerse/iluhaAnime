@@ -1,17 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "cn";
 import { useState } from "react";
 
-import { torrentApi } from "@/api/torrent.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useOnlineStatus } from "@/hooks/network.hook";
 import { TORRENT_LISTEN_PORT_KEY, useTorrentListenPort } from "@/hooks/torrent/queries.hook";
-import { attempt } from "@/lib/core/attempt.utils";
 import { isIntegerInRange } from "@/lib/core/integerRange.utils";
-import { isValidProxyUrl } from "@/lib/core/proxy.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SessionConfigPayload } from "@/types/ui/settings";
@@ -26,7 +20,6 @@ export function TorrentNetworkSettings({
 }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const isOnline = useOnlineStatus();
   const listenPort = useCell(settingsAtoms.listenPort);
   const enableUpnp = useCell(settingsAtoms.enableUpnp);
   const dhtEnabled = useCell(settingsAtoms.dhtEnabled);
@@ -34,29 +27,14 @@ export function TorrentNetworkSettings({
   const ipv4Only = useCell(settingsAtoms.ipv4Only);
   const peerConnectTimeout = useCell(settingsAtoms.peerConnectTimeout);
   const peerReadWriteTimeout = useCell(settingsAtoms.peerReadWriteTimeout);
-  const torrentProxyUrl = useCell(settingsAtoms.torrentProxyUrl);
   const listenPortQuery = useTorrentListenPort();
   const [portInput, setPortInput] = useState<string>(String(listenPort));
   const [connectInput, setConnectInput] = useState<string>(String(peerConnectTimeout));
   const [readWriteInput, setReadWriteInput] = useState<string>(String(peerReadWriteTimeout));
-  const [proxyInput, setProxyInput] = useState<string>(torrentProxyUrl ?? "");
   const [networkInvalid, setNetworkInvalid] = useState<boolean>(false);
-  const [proxyTesting, setProxyTesting] = useState<boolean>(false);
-  const [proxyTest, setProxyTest] = useState<{ ok: boolean; msg: string } | null>(null);
   const portValid = isIntegerInRange(portInput, 0, 65535);
   const connectValid = isIntegerInRange(connectInput, 1, 3600);
   const readWriteValid = isIntegerInRange(readWriteInput, 1, 3600);
-  const proxyValid = isValidProxyUrl(proxyInput);
-
-  const testProxy = async () => {
-    setProxyTesting(true);
-    setProxyTest(null);
-    const proxy = proxyInput.trim();
-    const [res, error] = await attempt(torrentApi.testSourceConnection("nyaa", proxy));
-    if (error) setProxyTest({ ok: false, msg: error.message });
-    else setProxyTest({ ok: true, msg: res });
-    setProxyTesting(false);
-  };
 
   const applyNetwork = () => {
     const valid = portValid && connectValid && readWriteValid;
@@ -65,18 +43,15 @@ export function TorrentNetworkSettings({
     const port = Number(portInput);
     const connect = Number(connectInput);
     const readWrite = Number(readWriteInput);
-    const proxy = proxyInput.trim() || null;
     patchSettings({
       listenPort: port,
       peerConnectTimeout: connect,
       peerReadWriteTimeout: readWrite,
-      torrentProxyUrl: proxy,
     });
     saveSessionConfig({
       listenPort: port,
       peerConnectTimeout: connect,
       peerReadWriteTimeout: readWrite,
-      proxyUrl: proxy,
     });
     queryClient.invalidateQueries({ queryKey: TORRENT_LISTEN_PORT_KEY });
   };
@@ -136,44 +111,6 @@ export function TorrentNetworkSettings({
               : t("settings.torrent.listen.port.active", { port: listenPortQuery.data })}
           </span>
         )}
-        <label className="group windows95-text text-text flex items-center gap-2 select-none">
-          <span className="w-48 shrink-0">{t("settings.torrent.proxy.url")}</span>
-          <Input
-            value={proxyInput}
-            placeholder="socks5://127.0.0.1:10808"
-            spellCheck={false}
-            onChange={(event) => setProxyInput(event.target.value)}
-            className="h-6 w-full min-[560px]:max-w-70"
-            aria-invalid={!proxyValid}
-          />
-        </label>
-        {!proxyValid && (
-          <span className="text-destructive pl-2 text-xs" role="alert">
-            {t("settings.proxy.invalid")}
-          </span>
-        )}
-        <div className="flex items-center gap-2 pl-2">
-          <Button
-            onClick={testProxy}
-            disabled={proxyTesting || !isOnline}
-            title={isOnline ? undefined : t("tabs.offlineUnavailable")}
-            className="text-xs"
-          >
-            {proxyTesting ? t("settings.torrent.proxy.testing") : t("settings.torrent.proxy.test")}
-          </Button>
-          {proxyTest && (
-            <span
-              className={cn(
-                "windows95-text text-xs",
-                proxyTest.ok ? "text-success" : "text-destructive"
-              )}
-            >
-              {proxyTest.ok
-                ? `${t("settings.torrent.proxy.test.ok")} - ${proxyTest.msg}`
-                : `${t("settings.torrent.proxy.test.fail")}: ${proxyTest.msg}`}
-            </span>
-          )}
-        </div>
         <NetworkNumberRow
           label={t("settings.torrent.peer.connect.timeout")}
           value={connectInput}

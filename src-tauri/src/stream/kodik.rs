@@ -75,11 +75,59 @@ impl KodikStream {
     }
 }
 
+/// The routes a Kodik resolve tries, in order.
+///
+/// Kodik decides the region from the address that reaches it. The AnimeLib
+/// proxy that the catalog needs can land in a country Kodik refuses while the
+/// direct route works, so the direct route is tried before a geo-block is
+/// reported. With no proxy configured there is only one route to try.
+fn kodik_routes(proxy: Option<&str>) -> Vec<Option<&str>> {
+    let configured = proxy.map(str::trim).filter(|value| !value.is_empty());
+    match configured {
+        Some(proxy) => vec![Some(proxy), None],
+        None => vec![None],
+    }
+}
+
 /// Turn a Kodik player URL into playable links.
 ///
 /// `referer` is the site that embeds the player, not the player itself: Kodik
 /// serves its access page when the referer is its own host.
 pub async fn resolve(
+    source_url: &str,
+    referer: &str,
+    audio_tracks: Vec<AudioTrack>,
+    variant_id: &str,
+    proxy: Option<&str>,
+) -> Result<Vec<StreamVariant>, StreamResolutionError> {
+    let mut geo_blocked: Option<StreamResolutionError> = None;
+    for route in kodik_routes(proxy) {
+        match resolve_via_route(
+            source_url,
+            referer,
+            audio_tracks.clone(),
+            variant_id,
+            route,
+        )
+        .await
+        {
+            Ok(streams) => return Ok(streams),
+            Err(error @ StreamResolutionError::GeoBlocked { .. }) => {
+                tracing::info!(
+                    via_proxy = route.is_some(),
+                    "kodik geo-blocked this route, trying the next one"
+                );
+                geo_blocked = Some(error);
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Err(geo_blocked.unwrap_or_else(|| StreamResolutionError::NetworkError {
+        message: format!("kodik did not answer for {source_url}"),
+    }))
+}
+
+async fn resolve_via_route(
     source_url: &str,
     referer: &str,
     audio_tracks: Vec<AudioTrack>,
@@ -739,6 +787,16 @@ mod tests {
                 (base + (position + shift) % ALPHABET) as char
             })
             .collect()
+    }
+
+    #[test]
+    fn kodik_routes_try_the_direct_route_after_a_configured_proxy() {
+        assert_eq!(kodik_routes(None), vec![None]);
+        assert_eq!(kodik_routes(Some("   ")), vec![None]);
+        assert_eq!(
+            kodik_routes(Some(" socks5h://127.0.0.1:10808 ")),
+            vec![Some("socks5h://127.0.0.1:10808"), None]
+        );
     }
 
     #[test]

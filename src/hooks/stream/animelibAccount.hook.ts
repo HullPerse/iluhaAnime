@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { streamApi } from "@/api/stream.api";
 import { ANIMELIB_LOGIN_ERRORS } from "@/config/settings/animelibLogin.config";
@@ -13,18 +13,18 @@ export function useAnimelibAccount() {
   const [waiting, setWaiting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const [value, failure] = await attempt(streamApi.account());
     if (failure) {
       setError(failure.message);
       return;
     }
     setAccount(value);
-  };
+  }, []);
 
   useEffect(() => {
     ignore(refresh());
-  }, []);
+  }, [refresh]);
 
   const login = async (): Promise<boolean> => {
     if (waiting) return false;

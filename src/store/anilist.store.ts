@@ -62,6 +62,7 @@ function normalizeRelease(release: unknown): AniListRelease | null {
         ? release.episode
         : "?",
     airedAt: typeof release.airedAt === "number" && release.airedAt > 0 ? release.airedAt : 0,
+    coverUrl: typeof release.coverUrl === "string" ? release.coverUrl : null,
     read: release.read === true,
   };
 }
@@ -309,6 +310,19 @@ export function createAnilistNotificationsSignalStore(
         return;
       atoms.releases.set([{ ...release, read: false }, ...releases].slice(0, RELEASE_FEED_CAP));
     },
+    setReleaseCovers: (covers) => {
+      const releases = atoms.releases.get();
+      let changed = false;
+      const next = releases.map((item) => {
+        const cover = covers[item.mediaId];
+        if (typeof cover !== "string" || cover.length === 0 || item.coverUrl === cover) {
+          return item;
+        }
+        changed = true;
+        return { ...item, coverUrl: cover };
+      });
+      if (changed) atoms.releases.set(next);
+    },
     markReleasesRead: () => {
       atoms.releases.set(
         atoms.releases.get().map((item) => (item.read ? item : { ...item, read: true }))
@@ -351,6 +365,7 @@ export const anilistNotificationsAtoms = anilistNotifications.atoms;
 export const saveAnilistObservation = anilistNotifications.saveObservation;
 export const markOwnAnilistListStatus = anilistNotifications.markOwnListStatus;
 export const addAnilistRelease = anilistNotifications.addRelease;
+export const setAnilistReleaseCovers = anilistNotifications.setReleaseCovers;
 export const markAnilistReleasesRead = anilistNotifications.markReleasesRead;
 export const markSiteNotificationsRead = anilistNotifications.markSiteNotificationsRead;
 export const setAnilistInitialized = anilistNotifications.setInitialized;

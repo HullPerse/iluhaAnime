@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import TrackDropdown from "@/routes/components/player/media/dropdown.tracks";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -7,6 +7,10 @@ import { buildVariantId, variantOf } from "@/lib/player/streamHelpers.utils";
 import { loadSources } from "@/lib/core/sessionCache.utils";
 import { attempt } from "@/lib/core/attempt.utils";
 import { ignore } from "@/lib/core/promise.utils";
+import { pickSource } from "@/lib/search/sources.utils";
+import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
+import { warmStreamUrl } from "@/lib/player/streamWarm.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import type { StreamVariant } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerStream } from "@/types/player/playerStream";
@@ -26,8 +30,11 @@ export function StreamVariantSelects({
 }) {
   const { t } = useI18n();
   const [pending, setPending] = useState<string | null>(null);
+  const lastVariantRef = useRef<string>(session.variantId);
 
   useEffect(() => {
+    if (lastVariantRef.current === session.variantId) return;
+    lastVariantRef.current = session.variantId;
     setPending(null);
   }, [session.variantId]);
 
@@ -38,7 +45,23 @@ export function StreamVariantSelects({
   const prefetch = (rows: StreamVariant[], id: string) => {
     const variant = variantOf(rows, id);
     if (!variant) return;
-    ignore(attempt(loadSources(session.episodeId, buildVariantId(variant))));
+    const variantId = buildVariantId(variant);
+    ignore(
+      attempt(loadSources(session.episodeId, variantId)).then(([sources]) => {
+        if (!sources) return undefined;
+        const source = pickSource(sources, session.quality);
+        if (!source) return undefined;
+        return warmStreamUrl(
+          source.url,
+          source.headers,
+          playbackProxyUrl(
+            source.variantId || variantId,
+            settingsAtoms.animelibProxyUrl.get(),
+            source.url
+          )
+        );
+      })
+    );
   };
 
   const pick = async (variant: StreamVariant) => {

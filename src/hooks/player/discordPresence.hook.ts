@@ -1,17 +1,17 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { discordApi } from "@/api/discord.api";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { useCell } from "@/lib/core/signal.hook";
 import {
   buildPlayerActivity,
-  PRESENCE_PROGRESS_INTERVAL_MS,
-  samePresence,
+  presenceTimestampsDrifted,
+  samePresenceCard,
 } from "@/lib/core/presence.utils";
 import { reportPresenceCommand } from "@/lib/core/presenceCommand.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
+import type { DiscordActivity } from "@/types/core/discord";
 
 export function usePlayerDiscordPresence(): void {
   const enabled = useCell(settingsAtoms.discordRpcEnabled);
@@ -42,20 +42,34 @@ export function usePlayerDiscordPresence(): void {
     );
   }, [enabled, parseTitles, path, hasFile, paused, eofReached, duration, timePos, stream, t]);
 
-  const [scheduled] = useDebouncedValue(activity, {
-    wait: PRESENCE_PROGRESS_INTERVAL_MS,
-    equal: samePresence,
-    enabled,
-  });
+  // Publishing goes through an explicit diff instead of a debounce. Discord
+  // renders the timestamp itself, so a stable anchor stays in sync while the
+  // video plays; the card only has to be re-sent when it changes (play/pause,
+  // a new episode) or when the timeline jumps (seek, speed, duration). Waiting
+  // for a progress interval here made a pause land in Discord 15 s late, with
+  // the old clock still running in the profile.
+  const lastSentRef = useRef<DiscordActivity | null>(null);
 
   useEffect(() => {
-    if (!enabled) return;
-    if (scheduled === null) {
-      reportPresenceCommand(discordApi.clear("player"), "discord.presence.player.clear");
-    } else {
-      reportPresenceCommand(discordApi.set("player", scheduled), "discord.presence.player");
+    if (!enabled) {
+      lastSentRef.current = null;
+      return;
     }
-  }, [enabled, scheduled]);
+    if (activity === null) {
+      lastSentRef.current = null;
+      reportPresenceCommand(discordApi.clear("player"), "discord.presence.player.clear");
+      return;
+    }
+    const previous = lastSentRef.current;
+    if (
+      previous === null ||
+      !samePresenceCard(previous, activity) ||
+      presenceTimestampsDrifted(previous, activity)
+    ) {
+      lastSentRef.current = activity;
+      reportPresenceCommand(discordApi.set("player", activity), "discord.presence.player");
+    }
+  }, [enabled, activity]);
 
   useEffect(
     () => () => {

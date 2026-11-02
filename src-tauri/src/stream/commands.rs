@@ -10,6 +10,9 @@
 //! site's authorization server stays unbuilt; see
 //! `.docs/features/streaming/auth.md` for why.
 
+use std::collections::BTreeMap;
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
 use crate::auth::{delete_secret, load_secret, save_secret};
@@ -305,6 +308,121 @@ pub fn anime_lib_watch_key(source_id: String, media_id: String, episode_id: Stri
     build_watch_key(&source_id, &media_id, &episode_id)
 }
 
+/// A warm request is a best-effort hit on the media host: it resolves DNS,
+/// reaches the CDN edge and pulls the first few dozen kilobytes, so the first
+/// real range the player asks for does not pay for a cold connection. The URL
+/// comes from a remote catalog, so loopback and private hosts are refused
+/// instead of letting the command probe the machine it runs on.
+fn warm_target(url: &str) -> Option<url::Url> {
+    let parsed = url::Url::parse(url.trim()).ok()?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return None;
+    }
+    let host = parsed
+        .host_str()?
+        .trim()
+        .trim_start_matches('[')
+        .trim_end_matches(']');
+    if host.is_empty() || host.eq_ignore_ascii_case("localhost") || host.ends_with(".localhost") {
+        return None;
+    }
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        let allowed = match ip {
+            std::net::IpAddr::V4(v4) => {
+                !v4.is_private()
+                    && !v4.is_loopback()
+                    && !v4.is_link_local()
+                    && !v4.is_unspecified()
+                    && !v4.is_broadcast()
+            }
+            std::net::IpAddr::V6(v6) => {
+                !v6.is_loopback()
+                    && !v6.is_unspecified()
+                    && !v6.is_unique_local()
+                    && !v6.is_unicast_link_local()
+            }
+        };
+        if !allowed {
+            return None;
+        }
+    }
+    Some(parsed)
+}
+
+fn warm_client(proxy: Option<String>) -> Result<reqwest::Client, String> {
+    let mut builder = reqwest::Client::builder()
+        .user_agent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+             (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        )
+        .connect_timeout(Duration::from_millis(2500))
+        .timeout(Duration::from_millis(4500));
+    if let Some(proxy) = proxy {
+        builder = builder.proxy(reqwest::Proxy::all(&proxy).map_err(|error| error.to_string())?);
+    }
+    builder.build().map_err(|error| error.to_string())
+}
+
+/// Two warm requests at a time are enough for a hover list and keep a fast
+/// pointer from opening a dozen connections at once.
+static WARM_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
+
+/// Prefetch the start of a resolved stream URL through the route that will play
+/// it. The caller treats this as best effort and never waits for it.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn stream_warm(
+    url: String,
+    headers: Option<BTreeMap<String, String>>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<(), String> {
+    let target = warm_target(&url).ok_or("unsupported stream URL")?;
+    // Dropping a third hover is better than queueing it: the user has already
+    // moved on, and the two running warms cover the likely pick.
+    let Ok(_permit) = WARM_SEM.try_acquire() else {
+        return Ok(());
+    };
+    let client = warm_client(resolve_proxy(proxy_url, proxyUrl))?;
+    let mut request = client
+        .get(target)
+        .header(reqwest::header::RANGE, "bytes=0-65535");
+    for (name, value) in headers.unwrap_or_default() {
+        let name = name.trim();
+        let value = value.trim();
+        if name.is_empty()
+            || value.is_empty()
+            || name.eq_ignore_ascii_case("range")
+            || name.eq_ignore_ascii_case("host")
+        {
+            continue;
+        }
+        if let (Ok(name), Ok(value)) = (
+            reqwest::header::HeaderName::from_bytes(name.as_bytes()),
+            value.parse::<reqwest::header::HeaderValue>(),
+        ) {
+            request = request.header(name, value);
+        }
+    }
+    let mut response = request.send().await.map_err(|error| error.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "stream warm answered {}",
+            response.status().as_u16()
+        ));
+    }
+    // Stop at 64 KiB: the goal is a warm DNS entry and a warm edge, not a
+    // download. A server that ignores Range must not stream a whole episode.
+    let mut read = 0usize;
+    while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
+        read += chunk.len();
+        if read >= 64 * 1024 {
+            break;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -412,6 +530,22 @@ mod tests {
                 Err(error) => println!("  resolve failed: {error}"),
             }
         }
+    }
+
+    #[test]
+    fn warm_target_accepts_public_http_urls() {
+        assert!(warm_target("https://cdn.example/720.m3u8").is_some());
+        assert!(warm_target("http://1.2.3.4/stream").is_some());
+    }
+
+    #[test]
+    fn warm_target_refuses_local_and_private_hosts() {
+        assert!(warm_target("file:///C:/video.mp4").is_none());
+        assert!(warm_target("http://localhost:8080/").is_none());
+        assert!(warm_target("http://127.0.0.1/").is_none());
+        assert!(warm_target("http://192.168.1.10/").is_none());
+        assert!(warm_target("http://10.0.0.5/").is_none());
+        assert!(warm_target("https://[::1]/").is_none());
     }
 
     #[test]

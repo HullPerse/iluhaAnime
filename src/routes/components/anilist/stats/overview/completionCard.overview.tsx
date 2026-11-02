@@ -1,6 +1,7 @@
 import { BarChart } from "@/components/shared/charts/bar.chart";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatPercent } from "@/lib/graphics/chartsFormat.utils";
+import { statsTooltipRow } from "@/lib/anilist/statsTooltip.utils";
 import type { StatsOverviewModel } from "@/types/anilist/anilistStats";
 
 import { StatsCard } from "@/routes/components/anilist/stats/card.stats";
@@ -22,8 +23,8 @@ export function CompletionCard({ model }: { model: StatsOverviewModel }) {
           return {
             title: datum.label,
             rows: [
-              { label: t("anilist.stats.tooltip.started"), value: String(row?.started ?? 0) },
-              { label: t("anilist.stats.tooltip.completed"), value: String(row?.completed ?? 0) },
+              statsTooltipRow(row?.started ?? 0, t("anilist.stats.tooltip.started"), locale),
+              statsTooltipRow(row?.completed ?? 0, t("anilist.stats.tooltip.completed"), locale),
             ],
           };
         }}

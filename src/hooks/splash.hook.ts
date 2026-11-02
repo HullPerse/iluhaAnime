@@ -73,7 +73,6 @@ export function useSplashStages(
   const [dbFailed, setDbFailed] = useState<boolean>(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [dbStatus, setDbStatus] = useState<DatabaseStatus | null>(null);
-  const [dbNonce, setDbNonce] = useState<number>(0);
   const startedAt = useRef<number>(0);
   const settled = useRef<Record<GatingKey, boolean>>({
     theme: false,
@@ -87,18 +86,12 @@ export function useSplashStages(
   const finished = useRef<boolean>(false);
   const timers = useRef<ScheduledTask[]>([]);
   const naps = useRef<SleepTask[]>([]);
+  const dbCheckCleanupRef = useRef<(() => void) | null>(null);
   const checkRef = useRef<() => Promise<DbCheckResult>>(checkDatabase);
 
   useEffect(() => {
     checkRef.current = checkDatabase;
   });
-
-  const retryDatabase = useCallback(() => {
-    setDbFailed(false);
-    setDbError(null);
-    setStages((current) => withStatus(current, "database", "active"));
-    setDbNonce((value) => value + 1);
-  }, []);
 
   const tryFinish = useCallback(() => {
     if (finished.current) return;
@@ -119,6 +112,59 @@ export function useSplashStages(
     const timer = scheduleTask("timeout", wait, () => setDone(true));
     timers.current.push(timer);
   }, [minMs]);
+
+  const runDatabaseCheck = useCallback((): (() => void) => {
+    dbCheckCleanupRef.current?.();
+    let disposed = false;
+    setStages((current) => withStatus(current, "database", "active"));
+    checkRef
+      .current()
+      .then(async (result) => {
+        if (disposed) return;
+        if (result.ok) {
+          setDbStatus(result.status);
+          const nap = sleep(stepMs);
+          naps.current.push(nap);
+          await nap.done;
+          if (disposed) return;
+          settled.current.database = true;
+          setStages((current) => withStatus(current, "database", "done"));
+          tryFinish();
+        } else {
+          setDbError(result.message);
+          setDbStatus(result.status);
+          setStages((current) => withStatus(current, "database", "degraded"));
+          setDbFailed(true);
+        }
+        return null;
+      })
+      .catch((error) => {
+        if (disposed) return;
+        reportBackgroundError("splash.database", error);
+        setDbError(error instanceof Error ? error.message : String(error));
+        setStages((current) => withStatus(current, "database", "degraded"));
+        setDbFailed(true);
+      });
+    const cleanup = () => {
+      disposed = true;
+    };
+    dbCheckCleanupRef.current = cleanup;
+    return cleanup;
+  }, [stepMs, tryFinish]);
+
+  useEffect(() => {
+    runDatabaseCheck();
+    return () => {
+      dbCheckCleanupRef.current?.();
+      dbCheckCleanupRef.current = null;
+    };
+  }, [runDatabaseCheck]);
+
+  const retryDatabase = useCallback(() => {
+    setDbFailed(false);
+    setDbError(null);
+    runDatabaseCheck();
+  }, [runDatabaseCheck]);
 
   useEffect(() => {
     startedAt.current = Date.now();
@@ -182,42 +228,6 @@ export function useSplashStages(
       timers.current = [];
     };
   }, [stepMs, stageTimeoutMs, tryFinish]);
-
-  useEffect(() => {
-    let disposed = false;
-    setStages((current) => withStatus(current, "database", "active"));
-    checkRef
-      .current()
-      .then(async (result) => {
-        if (disposed) return;
-        if (result.ok) {
-          setDbStatus(result.status);
-          const nap = sleep(stepMs);
-          naps.current.push(nap);
-          await nap.done;
-          if (disposed) return;
-          settled.current.database = true;
-          setStages((current) => withStatus(current, "database", "done"));
-          tryFinish();
-        } else {
-          setDbError(result.message);
-          setDbStatus(result.status);
-          setStages((current) => withStatus(current, "database", "degraded"));
-          setDbFailed(true);
-        }
-        return null;
-      })
-      .catch((error) => {
-        if (disposed) return;
-        reportBackgroundError("splash.database", error);
-        setDbError(error instanceof Error ? error.message : String(error));
-        setStages((current) => withStatus(current, "database", "degraded"));
-        setDbFailed(true);
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [dbNonce, stepMs, tryFinish]);
 
   useEffect(() => {
     if (!tabsReady || finished.current) return;

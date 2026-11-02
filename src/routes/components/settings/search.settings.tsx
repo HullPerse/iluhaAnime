@@ -1,7 +1,3 @@
-import { cn } from "cn";
-import { useRef, useState } from "react";
-
-import { torrentApi } from "@/api/torrent.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
@@ -9,7 +5,7 @@ import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/core/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@/lib/core/attempt.utils";
 import {
   clearAllSearchLearning,
   clearSearchScope,
@@ -24,8 +20,6 @@ import { SectionResetButton } from "@/routes/components/settings/reset.settings"
 export default function SettingsSearch() {
   const defaultSearchSource = useCell(settingsAtoms.defaultSearchSource);
   const visibleSources = useCell(settingsAtoms.visibleSources);
-  const searchProxyUrls = useCell(settingsAtoms.searchProxyUrls);
-  const webviewProxyEnabled = useCell(settingsAtoms.webviewProxyEnabled);
   const anilistPageSize = useCell(settingsAtoms.anilistPageSize);
   const anilistMaxPages = useCell(settingsAtoms.anilistMaxPages);
   const searchHistoryMaxItems = useCell(settingsAtoms.searchHistoryMaxItems);
@@ -34,38 +28,6 @@ export default function SettingsSearch() {
   const searchSymSpellEnabled = useCell(settingsAtoms.searchSymSpellEnabled);
   const searchIntentEnabled = useCell(settingsAtoms.searchIntentEnabled);
   const { t } = useI18n();
-  const [proxyTests, setProxyTests] = useState<
-    Record<string, { loading: boolean; ok?: boolean; msg?: string }>
-  >({});
-  const [proxyTestingAll, setProxyTestingAll] = useState<boolean>(false);
-  const proxyInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  const handleTestAllProxies = async () => {
-    const sources = SOURCE_INFOS.filter((s) => visibleSources.includes(s.value));
-    if (sources.length === 0) return;
-    setProxyTestingAll(true);
-    const initial: Record<string, { loading: boolean }> = {};
-    for (const s of sources) initial[s.value] = { loading: true };
-    setProxyTests(initial);
-    await Promise.all(
-      sources.map(async (info) => {
-        const proxy = searchProxyUrls[info.value] ?? "";
-        const [res, error] = await attempt(torrentApi.testSourceConnection(info.value, proxy));
-        if (error) {
-          setProxyTests((prev) => ({
-            ...prev,
-            [info.value]: { loading: false, ok: false, msg: error.message },
-          }));
-        } else {
-          setProxyTests((prev) => ({
-            ...prev,
-            [info.value]: { loading: false, ok: true, msg: res },
-          }));
-        }
-      })
-    );
-    setProxyTestingAll(false);
-  };
   const learningHistory = useCell(searchAtoms.history);
   const learningAnimeCount = useCell(searchAtoms.animeIndex).length;
   const learningQueryStats = useCell(searchAtoms.queryStats);
@@ -149,116 +111,6 @@ export default function SettingsSearch() {
                 ))}
               </div>
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="windows95-text text-text text-xs font-bold">
-                {t("settings.search.proxy.per.source")}
-              </span>
-              <Button
-                className="h-6 px-2 text-xs"
-                onClick={handleTestAllProxies}
-                disabled={proxyTestingAll || visibleSources.length === 0}
-              >
-                {proxyTestingAll
-                  ? t("settings.search.proxy.testing")
-                  : t("settings.search.proxy.test.all")}
-              </Button>
-            </div>
-            {SOURCE_INFOS.filter((s) => visibleSources.includes(s.value)).map((info) => {
-              const current = searchProxyUrls[info.value] ?? "";
-              const presets = [
-                "socks5://127.0.0.1:10808",
-                "socks5://127.0.0.1:1080",
-                "socks5h://127.0.0.1:10808",
-                "http://127.0.0.1:7890",
-                "http://127.0.0.1:10809",
-                "http://127.0.0.1:8080",
-              ];
-              const isPreset = presets.includes(current);
-              const selectValue = current === "" || isPreset ? current : "custom";
-              return (
-                <div
-                  key={info.value}
-                  className="grid grid-cols-1 gap-x-3 gap-y-0.5 min-[560px]:grid-cols-[140px_1fr]"
-                >
-                  <span className="windows95-text text-text flex items-center text-xs font-bold">
-                    {info.label}
-                  </span>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <Select
-                      value={selectValue}
-                      onChange={(v) => {
-                        if (v === "custom") {
-                          proxyInputRefs.current[info.value]?.focus();
-                          return;
-                        }
-                        const next = { ...searchProxyUrls };
-                        if (!v) delete next[info.value];
-                        else next[info.value] = v;
-                        patchSettings({ searchProxyUrls: next });
-                      }}
-                      options={[
-                        { value: "", label: t("settings.tmdb.proxy.no") },
-                        ...presets.map((p) => ({ value: p, label: p })),
-                        { value: "custom", label: t("settings.tmdb.proxy.custom") },
-                      ]}
-                      className="w-full min-[560px]:max-w-60"
-                    />
-                    <Input
-                      ref={(el) => {
-                        proxyInputRefs.current[info.value] = el;
-                      }}
-                      value={current}
-                      onChange={(e) => {
-                        const v = e.target.value.trim();
-                        const next = { ...searchProxyUrls };
-                        if (!v) delete next[info.value];
-                        else next[info.value] = v;
-                        patchSettings({ searchProxyUrls: next });
-                      }}
-                      placeholder="socks5://127.0.0.1:10808"
-                      className="w-full min-[560px]:max-w-70"
-                      spellCheck={false}
-                    />
-                    {(() => {
-                      const st = proxyTests[info.value];
-                      if (!st) return null;
-                      if (st.loading)
-                        return (
-                          <span className="windows95-text text-text/60 text-xs">
-                            {t("settings.search.proxy.testing")}
-                          </span>
-                        );
-                      return (
-                        <span
-                          className={cn(
-                            "windows95-text text-xs",
-                            st.ok ? "text-success" : "text-destructive"
-                          )}
-                        >
-                          {st.ok
-                            ? `${t("settings.search.proxy.test.ok")} - ${st.msg}`
-                            : `${t("settings.search.proxy.test.fail")}: ${st.msg}`}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                </div>
-              );
-            })}
-            {visibleSources.length === 0 && (
-              <span className="text-hint text-[12px]">
-                {t("settings.search.no.visible.sources")}
-              </span>
-            )}
-            <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-              <Checkbox
-                checked={webviewProxyEnabled}
-                onChange={() => patchSettings({ webviewProxyEnabled: !webviewProxyEnabled })}
-              />
-              <span className="text-xs font-bold">{t("settings.search.proxy.webview")}</span>
-            </label>
           </div>
         </div>
       </section>

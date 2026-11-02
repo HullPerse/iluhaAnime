@@ -1,4 +1,5 @@
 import { tauriTransport } from "@/api/transport.api";
+import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/networkHealth.utils";
 import type { ApiTransport } from "@/types/core/transport";
 import {
   normalizeAnime,
@@ -47,8 +48,15 @@ export class StreamApi {
     return streamProxyArgs(resolved);
   }
 
-  private call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
-    return this.transport.call<T>(command, { ...args, ...this.proxy() });
+  private async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
+    try {
+      const value = await this.transport.call<T>(command, { ...args, ...this.proxy() });
+      noteNetworkSuccess();
+      return value;
+    } catch (error) {
+      noteNetworkFailure(error);
+      throw error;
+    }
   }
 
   async search(
@@ -107,6 +115,23 @@ export class StreamApi {
 
   async streamSources(input: StreamSourcesInput): Promise<StreamSource[]> {
     return this.call<StreamSource[]>("anime_lib_stream_sources", { input });
+  }
+
+  /**
+   * Warm the route to a resolved media URL: DNS, TLS and the CDN edge, capped
+   * at 64 KiB by Rust. The transport call is explicit because the catalog proxy
+   * is not always the route the media plays through.
+   */
+  async warm(
+    url: string,
+    headers: Record<string, string>,
+    proxyUrl: string | null
+  ): Promise<void> {
+    await this.transport.call<null>("stream_warm", {
+      url,
+      headers,
+      proxyUrl: proxyUrl ?? null,
+    });
   }
 
   async webviewLogin(): Promise<string> {

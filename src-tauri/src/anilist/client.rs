@@ -4,21 +4,33 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use crate::scrapers::clients::resolve_proxy;
-static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
+static CLIENT: LazyLock<Result<reqwest::Client, String>> = LazyLock::new(|| {
     reqwest::Client::builder()
         .user_agent("iluhaAnime/1.0")
         .timeout(Duration::from_secs(30))
         .build()
-        .expect("failed to build reqwest client")
+        .map_err(|error| format!("failed to build reqwest client: {error}"))
 });
 
 const RATE_LIMIT_PER_MIN: usize = 25;
 const RATE_LIMIT_ADAPTIVE_CEILING: usize = 30;
 const RATE_LIMIT_BACKOFF_PER_MIN: usize = 10;
 const RATE_LIMIT_RESET_CAP_SECS: u64 = 60;
+fn env_limit(name: &str, default: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(default)
+}
+
 pub(crate) const MAX_CONCURRENT_REQUESTS: usize = 3;
-static ANILIST_CONCURRENCY: tokio::sync::Semaphore =
-    tokio::sync::Semaphore::const_new(MAX_CONCURRENT_REQUESTS);
+static ANILIST_CONCURRENCY: LazyLock<tokio::sync::Semaphore> = LazyLock::new(|| {
+    tokio::sync::Semaphore::new(env_limit(
+        "ILUHA_ANILIST_CONCURRENCY",
+        MAX_CONCURRENT_REQUESTS,
+    ))
+});
 static RATE_LOG: LazyLock<Mutex<VecDeque<Instant>>> = LazyLock::new(|| Mutex::new(VecDeque::new()));
 static RATE_LIMIT_ADAPTIVE: AtomicUsize = AtomicUsize::new(RATE_LIMIT_PER_MIN);
 
@@ -85,13 +97,14 @@ fn rate_limit_per_min() -> usize {
     RATE_LIMIT_ADAPTIVE.load(Ordering::Relaxed)
 }
 
-async fn acquire_request_slot() -> tokio::sync::SemaphorePermit<'static> {
+async fn acquire_request_slot() -> Result<tokio::sync::SemaphorePermit<'static>, String> {
     loop {
         let now = Instant::now();
         {
-            let mut log = RATE_LOG
-                .lock()
-                .expect("AniList rate-limit log mutex poisoned");
+            let mut log = RATE_LOG.lock().unwrap_or_else(|poisoned| {
+                tracing::warn!("AniList rate-limit log mutex was poisoned; recovering");
+                poisoned.into_inner()
+            });
             while let Some(&t) = log.front() {
                 if now.duration_since(t) >= Duration::from_secs(60) {
                     log.pop_front();
@@ -109,7 +122,7 @@ async fn acquire_request_slot() -> tokio::sync::SemaphorePermit<'static> {
     ANILIST_CONCURRENCY
         .acquire()
         .await
-        .expect("AniList concurrency semaphore closed")
+        .map_err(|_| "AniList request queue is closed".to_string())
 }
 pub fn forbidden_error(authenticated: bool) -> String {
     if authenticated {
@@ -129,7 +142,7 @@ fn client_for_proxy(proxy: Option<&str>) -> Result<reqwest::Client, String> {
             .build()
             .map_err(|e| format!("Failed to build proxied AniList client: {e}"))
     } else {
-        Ok(CLIENT.clone())
+        CLIENT.clone()
     }
 }
 
@@ -141,7 +154,7 @@ pub async fn graphql_request(
     let client = client_for_proxy(proxy)?;
     let mut last_err = "AniList request failed".to_string();
     for attempt in 0..3 {
-        let permit = acquire_request_slot().await;
+        let permit = acquire_request_slot().await?;
 
         let mut builder = client.post("https://graphql.anilist.co").json(&query);
         if let Some(t) = token {

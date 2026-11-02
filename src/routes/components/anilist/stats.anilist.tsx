@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -35,8 +35,11 @@ export default function StatsModal({
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<number>(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<null | number>(null);
+  const lastTabRef = useRef<StatsTab>(tab);
 
   useEffect(() => {
+    if (lastTabRef.current === tab) return;
+    lastTabRef.current = tab;
     setSelectedDay(null);
     setDrill(null);
   }, [tab]);

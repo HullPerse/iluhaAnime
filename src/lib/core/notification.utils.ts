@@ -91,6 +91,7 @@ export function getVisibleNotifications(
   currentFilter: NotificationFilter
 ): NotificationItem[] {
   if (currentFilter === "downloads") return [];
-  if (currentFilter === "all") return allItems;
-  return allItems.filter((i) => i.type === currentFilter);
+  const visible = allItems.filter((item) => !item.popupOnly);
+  if (currentFilter === "all") return visible;
+  return visible.filter((i) => i.type === currentFilter);
 }

@@ -133,12 +133,15 @@ export function useLivePlaylistSync(
   const videoExtensions = useCell(settingsAtoms.videoExtensions);
   const scanThreads = useCell(settingsAtoms.scanThreads);
   const [armed, setArmed] = useState<boolean>(true);
+  const watchRef = useRef<PlaylistWatch | null | undefined>(watch);
   const busyRef = useRef<boolean>(false);
   const desiredRef = useRef<string[] | null>(null);
   const failsRef = useRef<number>(0);
   const stableRef = useRef<boolean>(false);
 
   useEffect(() => {
+    if (watchRef.current === watch) return;
+    watchRef.current = watch;
     desiredRef.current = null;
     failsRef.current = 0;
     setArmed(true);

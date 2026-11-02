@@ -133,26 +133,22 @@ describe("Timeline buffered span", () => {
     expect(track.style.width).toBe("5%");
   });
 
-  it("warns when the cursor is outside the loaded span", () => {
-    streaming();
-    playbackAtoms.timePos.set(280);
-    playbackAtoms.cacheStart.set(280);
-    playbackAtoms.cacheEnd.set(420);
-    const { bar, container } = renderTimeline(1400);
-    fireEvent.mouseMove(bar, { clientX: 100 });
-
-    expect(container.querySelector(".bottom-full")?.textContent).toContain("Will need loading");
-  });
-
-  it("names the loaded end while the cursor is inside the span", () => {
+  it("keeps the buffered state out of the hover tooltip", () => {
     streaming();
     playbackAtoms.timePos.set(0);
     playbackAtoms.cacheStart.set(0);
     playbackAtoms.cacheEnd.set(140);
     const { bar, container } = renderTimeline(1400);
     fireEvent.mouseMove(bar, { clientX: 100 });
+    const tooltip = container.querySelector(".bottom-full")?.textContent ?? "";
+    expect(tooltip).toContain("0:00");
+    expect(tooltip).not.toContain("Buffered to");
+    expect(tooltip).not.toContain("Will need loading");
 
-    expect(container.querySelector(".bottom-full")?.textContent).toContain("Buffered to 2:20");
+    fireEvent.mouseMove(bar, { clientX: 1350 });
+    const outside = container.querySelector(".bottom-full")?.textContent ?? "";
+    expect(outside).not.toContain("Buffered to");
+    expect(outside).not.toContain("Will need loading");
   });
 });
 

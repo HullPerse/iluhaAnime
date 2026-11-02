@@ -132,7 +132,7 @@ export function useSearchQuery(): SearchQueryController {
     });
   };
 
-  const { data, dataUpdatedAt, isLoading, isFetching, isError, error, refetch } = useAppQuery(
+  const { data, isLoading, isFetching, isError, error, refetch } = useAppQuery(
     "slow",
     {
       queryKey,
@@ -147,7 +147,7 @@ export function useSearchQuery(): SearchQueryController {
     if (!isFetching && data !== undefined && fetchSourceRef.current !== null) {
       setResultSource(fetchSourceRef.current);
     }
-  }, [data, dataUpdatedAt, isFetching]);
+  }, [data, isFetching]);
 
   useEffect(() => {
     if (!isError || source !== "rutracker") return;

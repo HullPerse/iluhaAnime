@@ -18,7 +18,14 @@ export function ValueAxisLabels({
         const common = { className: CHART_TICK_TEXT_CLASS, fontSize: CHART_TICK_FONT_SIZE };
         if (side === "left") {
           return (
-            <text key={key} {...common} x={plot.left - 4} y={entry.position + 3} textAnchor="end">
+            <text
+              key={key}
+              {...common}
+              x={plot.left - 4}
+              y={entry.position + 3}
+              textAnchor="end"
+              style={{ textAnchor: "end" }}
+            >
               {entry.label}
             </text>
           );
@@ -31,6 +38,7 @@ export function ValueAxisLabels({
               x={plot.left + plot.width + 4}
               y={entry.position + 3}
               textAnchor="start"
+              style={{ textAnchor: "start" }}
             >
               {entry.label}
             </text>
@@ -43,6 +51,7 @@ export function ValueAxisLabels({
             x={entry.position}
             y={plot.top + plot.height + 12}
             textAnchor="middle"
+            style={{ textAnchor: "middle" }}
           >
             {entry.label}
           </text>

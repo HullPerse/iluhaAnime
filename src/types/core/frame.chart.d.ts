@@ -21,6 +21,7 @@ export interface ChartFrameProps {
   announcement?: string | null;
   margin?: Partial<ChartMargin>;
   interactive?: boolean;
+  showFrame?: boolean;
   className?: string;
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
   onFocus?: () => void;

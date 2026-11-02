@@ -6,7 +6,6 @@ import { formatClock } from "@/lib/core/time.utils";
 import {
   TOOLTIP_WIDTH,
   LIVE_SCRUB_INTERVAL,
-  bufferedHintText,
   bufferedSpan,
   clamp01,
   chapterTitleAt,
@@ -47,7 +46,6 @@ function Timeline({
   const span = streaming
     ? bufferedSpan(timePos, duration, cacheStart, cacheEnd, cacheDuration)
     : null;
-  const bufferedHint = bufferedHintText(t, span, hover?.time, streaming);
 
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
@@ -164,7 +162,6 @@ function Timeline({
                 </span>
               )}
               <span className="tabular-nums">{formatClock(hover.time)}</span>
-              {bufferedHint !== null && <span className="text-hint text-xs">{bufferedHint}</span>}
             </div>
           </div>
         )}

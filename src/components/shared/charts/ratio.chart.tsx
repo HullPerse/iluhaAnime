@@ -5,7 +5,7 @@ import { clamp } from "@/lib/core/math.utils";
 
 import { ChartFrame } from "@/components/shared/charts/frame.chart";
 import { SvgChartTooltip } from "@/components/shared/charts/tooltip.chart";
-import { tooltipAnnouncement } from "@/lib/graphics/chartTooltip.utils";
+import { tooltipAnnouncement, tooltipHeight } from "@/lib/graphics/chartTooltip.utils";
 import type { RatioChartProps } from "@/types/core/ratio.chart";
 
 const BAR_HEIGHT = 22;
@@ -29,6 +29,9 @@ export function RatioChart({
       ? (activeText?.(activeDatum, cursor.active) ??
         (tooltipData ? tooltipAnnouncement(tooltipData) : activeDatum.label))
       : null;
+  const tooltipSpace = tooltip
+    ? Math.max(0, ...data.map((datum, index) => tooltipHeight(tooltip(datum, index)))) + 6
+    : 0;
 
   if (data.length === 0) {
     return (
@@ -46,12 +49,13 @@ export function RatioChart({
   return (
     <div className="flex flex-col gap-1">
       <ChartFrame
-        height={BAR_HEIGHT}
+        height={BAR_HEIGHT + tooltipSpace}
         ariaLabel={ariaLabel}
         description={description}
         announcement={announcement}
         interactive
-        margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+        showFrame={false}
+        margin={{ top: tooltipSpace, right: 0, bottom: 0, left: 0 }}
         onKeyDown={cursor.handleKeyDown}
         onFocus={cursor.handleFocus}
         onBlur={cursor.handleBlur}
@@ -64,6 +68,16 @@ export function RatioChart({
           const activeSegment = cursor.active == null ? undefined : segments[cursor.active];
           return (
             <>
+              <rect
+                x={plot.left}
+                y={plot.top}
+                width={plot.width}
+                height={plot.height}
+                fill="var(--color-field)"
+                stroke="var(--color-win-shadow)"
+                strokeWidth={1}
+                shapeRendering="crispEdges"
+              />
               {segments.map((segment, index) => {
                 const datum = data[index];
                 const isActive = cursor.active === index;
@@ -84,10 +98,10 @@ export function RatioChart({
               {tooltipData && activeDatum && activeSegment && (
                 <SvgChartTooltip
                   x={plot.left + activeSegment.start + activeSegment.length / 2}
-                  y={plot.top + plot.height - 2}
+                  y={plot.top}
                   data={tooltipData}
                   plot={plot}
-                  placement="below"
+                  placement="above"
                 />
               )}
               <rect

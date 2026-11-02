@@ -79,10 +79,8 @@ impl FolderWatcher {
     /// and the directories of their output roots are dropped before
     /// aggregation, so piece writes no longer trigger full folder rescans.
     pub fn set_ignored_paths(&self, roots: Vec<String>, files: Vec<String>) {
-        let mut ignored = self
-            .ignored
-            .write()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut ignored =
+            crate::sync_utils::write_or_recover(&self.ignored, "watcher ignored paths");
         *ignored = IgnoredPaths {
             roots: roots.into_iter().map(PathBuf::from).collect(),
             files: files
@@ -94,10 +92,7 @@ impl FolderWatcher {
 
     #[cfg(test)]
     fn ignored_snapshot(&self) -> (Vec<PathBuf>, HashSet<String>) {
-        let ignored = self
-            .ignored
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let ignored = crate::sync_utils::read_or_recover(&self.ignored, "watcher ignored paths");
         (ignored.roots.clone(), ignored.files.clone())
     }
 
@@ -171,10 +166,9 @@ impl FolderWatcher {
                 if drained.is_empty() {
                     continue;
                 }
-                let ignored = ignored_state
-                    .read()
-                    .unwrap_or_else(std::sync::PoisonError::into_inner)
-                    .clone();
+                let ignored =
+                    crate::sync_utils::read_or_recover(&ignored_state, "watcher ignored paths")
+                        .clone();
                 let mut seen_roots = HashSet::with_capacity(8);
                 let mut roots_hit = Vec::with_capacity(8);
                 let mut changes = Vec::with_capacity(16);

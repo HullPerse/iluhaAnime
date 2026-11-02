@@ -454,6 +454,19 @@ impl PlayerHost {
             .clone()
     }
 
+    /// The download speed observed for the file that is still playing.
+    ///
+    /// The metrics are cleared on `file-loaded`, so during a switch this is the
+    /// previous stream's speed: exactly what the next cache profile needs before
+    /// the new file has any metrics of its own.
+    pub(crate) fn last_stream_speed(&self) -> Option<f64> {
+        self.latest
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .0
+            .cache_speed
+    }
+
     /// Diff a stream request against what mpv already has, and remember the
     /// new values so the next switch can skip them.
     pub(crate) fn stream_option_writes(

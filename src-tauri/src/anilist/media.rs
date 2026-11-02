@@ -10,6 +10,76 @@ use super::auth::optional_token;
 use super::batch::{dedup_ids, split_id_chunks, BATCH_CONCURRENCY};
 use super::client::graphql_request;
 use crate::scrapers::clients::resolve_proxy;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// Public media projections are safe to cache: none of the selections request
+/// viewer-specific fields. The version is part of every key and the TTL is the
+/// lifetime, so changing a query shape invalidates old payloads instead of
+/// serving a projection that is missing fields.
+const MEDIA_CACHE_VERSION: u32 = 1;
+const MEDIA_CACHE_TTL_SECS: i64 = 6 * 60 * 60;
+const MEDIA_CACHE_SCREEN: &str = "anilist_media_screen";
+pub(crate) const MEDIA_CACHE_DETAIL: &str = "anilist_media_detail";
+pub static ANILIST_MEDIA_CACHE_HITS: AtomicU64 = AtomicU64::new(0);
+pub static ANILIST_MEDIA_CACHE_MISSES: AtomicU64 = AtomicU64::new(0);
+
+fn media_cache_key(id: u64) -> String {
+    format!("v{MEDIA_CACHE_VERSION}:{id}")
+}
+
+pub(crate) fn cached_media_json(
+    app: &tauri::AppHandle,
+    namespace: &str,
+    id: u64,
+) -> Option<serde_json::Value> {
+    let payload = match crate::app_db::read_cached_payload(app, namespace, &media_cache_key(id)) {
+        Ok(Some(payload)) => payload,
+        _ => {
+            ANILIST_MEDIA_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
+            return None;
+        }
+    };
+    match serde_json::from_str::<serde_json::Value>(&payload) {
+        Ok(value) if value.is_object() => {
+            ANILIST_MEDIA_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
+            Some(value)
+        }
+        _ => {
+            ANILIST_MEDIA_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
+            None
+        }
+    }
+}
+
+pub(crate) fn store_media_json(
+    app: &tauri::AppHandle,
+    namespace: &str,
+    id: u64,
+    media: &serde_json::Value,
+) {
+    let _ = crate::app_db::put_app_cache(
+        app.clone(),
+        namespace.to_string(),
+        media_cache_key(id),
+        media.to_string(),
+        Some(MEDIA_CACHE_TTL_SECS),
+    );
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AniListCacheStats {
+    pub hits: u64,
+    pub misses: u64,
+}
+
+#[tauri::command]
+pub fn get_anilist_cache_stats() -> AniListCacheStats {
+    AniListCacheStats {
+        hits: ANILIST_MEDIA_CACHE_HITS.load(Ordering::Relaxed),
+        misses: ANILIST_MEDIA_CACHE_MISSES.load(Ordering::Relaxed),
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct AniRanking {
@@ -1018,6 +1088,9 @@ pub async fn get_anime_by_id(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<AniMedia, String> {
+    if let Some(cached) = cached_media_json(&app_handle, MEDIA_CACHE_SCREEN, id) {
+        return Ok(parse_animedia(&cached));
+    }
     let body = serde_json::json!({
         "query": anime_by_id_query(),
         "variables": { "id": id }
@@ -1029,6 +1102,7 @@ pub async fn get_anime_by_id(
     if m.is_null() {
         return Err(format!("Anime with id {id} not found"));
     }
+    store_media_json(&app_handle, MEDIA_CACHE_SCREEN, id, m);
     Ok(parse_animedia(m))
 }
 

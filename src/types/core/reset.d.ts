@@ -24,6 +24,8 @@ export type ResetSectionId =
   | "proxy.tmdb"
   | "proxy.anilist"
   | "proxy.animelib"
+  | "proxy.torrent"
+  | "proxy.sources"
   | "theme.schedule"
   | "theme.retro"
   | "theme.collection"

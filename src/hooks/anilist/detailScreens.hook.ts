@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AniListOverlayScreen } from "@/types/anilist/anilist";
 
 export function useDetailScreens(animeId: number, onRelated: ((id: number) => void) | undefined) {
   const [screens, setScreens] = useState<AniListOverlayScreen[]>([]);
+  const lastAnimeIdRef = useRef<number>(animeId);
   useEffect(() => {
+    if (lastAnimeIdRef.current === animeId) return;
+    lastAnimeIdRef.current = animeId;
     setScreens([]);
   }, [animeId]);
   const screenTop = screens.at(-1) ?? null;

@@ -421,16 +421,32 @@ fn mpv_proxy(url: &str) -> String {
 /// guard 4K, the hysteresis keeps mpv from restarting the download on every
 /// tick, and `cache-pause-initial` turns a stuttering first second into one
 /// honest buffering screen.
-fn stream_cache_options() -> Value {
+/// Below this the next stream gets the deeper cache profile: ~3 Mbit/s is
+/// already less than one 1080p Kodik segment per two seconds, so a 30 s window
+/// is only a few good seconds ahead of a network hiccup.
+const SLOW_STREAM_BYTES_PER_SECOND: f64 = 384.0 * 1024.0;
+
+/// mpv's cache settings for a stream source.
+///
+/// `slow` is the speed measured on the previous stream: a lagging VPN gets a
+/// 60 s window and a longer initial fill, a healthy one keeps the small profile
+/// that seeks faster. `reconnect` lets lavf ride out a dropped connection
+/// without ending the file; `network-timeout` keeps a dead route from hanging
+/// the player for the full 20 s before the route retry can take over.
+fn stream_cache_options(initial_pause: bool, slow: bool) -> Value {
     json!({
         "cache": "yes",
-        "cache-secs": 30.0,
-        "demuxer-max-bytes": "192MiB",
+        "cache-secs": if slow { 60.0 } else { 30.0 },
+        "demuxer-max-bytes": if slow { "256MiB" } else { "192MiB" },
         "demuxer-max-back-bytes": "64MiB",
         "demuxer-hysteresis-secs": 10.0,
-        "cache-pause-initial": "yes",
-        "cache-pause-wait": 2.0,
-        "network-timeout": 20.0,
+        // A fresh episode gets the buffering screen instead of a stuttering
+        // first second. A voice-over/quality switch resumes mid-file: the user
+        // already waited for the resolve, so start as soon as mpv can decode.
+        "cache-pause-initial": if initial_pause { "yes" } else { "no" },
+        "cache-pause-wait": if slow && initial_pause { 6.0 } else { 2.0 },
+        "network-timeout": 15.0,
+        "stream-lavf-o": "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5",
     })
 }
 
@@ -514,7 +530,16 @@ fn load_stream_media(
         // The cache profile is written on every load. Seven set_property calls
         // cost nothing next to loadfile, and skipping them on an unchanged
         // request is what let a local file inherit the stream's budget.
-        if let Err(error) = apply_options(&backend, &stream_cache_options(), window, "stream") {
+        let starts_mid_file = request.resume.is_some_and(|position| position > 0.0);
+        let slow = host
+            .last_stream_speed()
+            .is_some_and(|speed| speed < SLOW_STREAM_BYTES_PER_SECOND);
+        if let Err(error) = apply_options(
+            &backend,
+            &stream_cache_options(!starts_mid_file, slow),
+            window,
+            "stream",
+        ) {
             host.reset_stream_options();
             return Err(error);
         }
@@ -627,10 +652,19 @@ pub async fn player_init(
     .map_err(|error| format!("invalid player options: {error}"))?;
 
     let backend = core(&app);
-    tracing::debug!("player_init: creating mpv instance for {label}");
     let init_label = label.clone();
-    let joined =
-        tauri::async_runtime::spawn_blocking(move || backend.init(config, &init_label)).await;
+    let joined = tauri::async_runtime::spawn_blocking(move || {
+        // `init` is idempotent in the plugin: when this window already owns an
+        // instance it returns without creating a second handle. Do not destroy
+        // it first: `destroy` drops the map entry immediately and frees the
+        // native handle afterwards, so a concurrent `player_init` (StrictMode
+        // mounts the effect twice) could re-create the instance while the
+        // other call is between destroy and init. Any property write in that
+        // gap failed with "mpv instance for window label ... not found".
+        tracing::debug!("player_init: ensuring mpv instance for {init_label}");
+        backend.init(config, &init_label)
+    })
+    .await;
     match joined {
         Ok(Ok(ready)) => tracing::debug!("player_init: instance ready label={ready}"),
         Ok(Err(error)) => {
@@ -671,6 +705,23 @@ pub async fn player_destroy(app: AppHandle, window: WebviewWindow) -> Result<(),
         Err(error) => tracing::warn!("player_destroy: instance teardown failed: {error}"),
     }
     result
+}
+
+/// Rebuilds this window's player subsystem without restarting the app: a hung
+/// or wedged mpv instance is torn down and created again with the same initial
+/// options a fresh mount would pass.
+#[tauri::command]
+pub async fn player_restart(
+    app: AppHandle,
+    window: WebviewWindow,
+    initial_options: Value,
+) -> Result<String, String> {
+    let label = window.label().to_string();
+    tracing::debug!("player_restart: rebuilding mpv instance for {label}");
+    if let Err(error) = destroy_instance(app.clone(), label).await {
+        tracing::debug!("player_restart: previous instance was already gone: {error}");
+    }
+    player_init(app, window, initial_options).await
 }
 
 async fn destroy_instance(app: AppHandle, label: String) -> Result<(), String> {
@@ -1136,7 +1187,7 @@ mod tests {
 
     #[test]
     fn streams_get_a_time_bounded_cache() {
-        let options = stream_cache_options();
+        let options = stream_cache_options(true, false);
         // `cache-secs` is the option mpv actually honours while the network
         // cache is on; `demuxer-readahead-secs` would be overridden by its
         // "very high" default and leave the byte cap as the only bound.
@@ -1149,7 +1200,45 @@ mod tests {
         assert_eq!(options["demuxer-max-back-bytes"], "64MiB");
         assert!(options.get("demuxer-readahead-secs").is_none());
         assert_eq!(options["cache-pause-initial"], "yes");
-        assert_eq!(options["network-timeout"], 20.0);
+        assert_eq!(options["network-timeout"], 15.0);
+        // A dropped connection is retried by lavf instead of ending the file.
+        assert_eq!(
+            options["stream-lavf-o"],
+            "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5"
+        );
+    }
+
+    #[test]
+    fn a_switch_does_not_wait_for_the_initial_buffer() {
+        // A switch or resume starts mid-file, so the 2 s initial cache pause
+        // only adds delay to a change the user already waited for.
+        assert_eq!(
+            stream_cache_options(false, false)["cache-pause-initial"],
+            "no"
+        );
+        assert_eq!(
+            stream_cache_options(true, false)["cache-pause-initial"],
+            "yes"
+        );
+    }
+
+    #[test]
+    fn a_slow_stream_gets_a_deeper_buffer() {
+        let fast = stream_cache_options(true, false);
+        let slow = stream_cache_options(true, true);
+        assert!(
+            slow["cache-secs"].as_f64().unwrap_or_default()
+                > fast["cache-secs"].as_f64().unwrap_or_default()
+        );
+        assert_eq!(slow["demuxer-max-bytes"], "256MiB");
+        assert_eq!(slow["cache-pause-wait"], 6.0);
+        assert_eq!(fast["cache-pause-wait"], 2.0);
+        // A switch already waited for the resolve, so no initial pause even
+        // when the previous stream was slow.
+        assert_eq!(
+            stream_cache_options(false, true)["cache-pause-initial"],
+            "no"
+        );
     }
 
     #[test]

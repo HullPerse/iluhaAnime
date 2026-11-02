@@ -30,6 +30,7 @@ import { usePlayerOffsets } from "@/hooks/player/offsets.hook";
 import { usePlayerSession } from "@/hooks/player/session.hook";
 import { usePlayerSettingsSync } from "@/hooks/player/settingsSync.hook";
 import { useStreamPin } from "@/hooks/player/streamPin.hook";
+import { useStreamRouteGuard } from "@/hooks/player/streamRoute.hook";
 import { useStreamTrackPrefs } from "@/hooks/player/streamTrackPrefs.hook";
 import { usePlayerTracks } from "@/hooks/player/tracks.hook";
 import { usePlayerWatchProgress } from "@/hooks/player/watchProgress.hook";
@@ -206,6 +207,7 @@ function PlayerComponent() {
 
   const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch } =
     usePlayerSession({ videoRef, syncMarginsRef, resumeRef });
+  const streamRoute = useStreamRouteGuard({ session: stream, setLoadingFile, setFailed });
   const { onSelectTrack, onCycleTrack, onAddExternalSubtitle, onAddExternalAudio } =
     usePlayerTracks();
   const {
@@ -247,6 +249,15 @@ function PlayerComponent() {
       reportBackgroundError("player.reload", error);
     });
   }, [setLoadingFile]);
+
+  const retryPlayback = useCallback(() => {
+    setFailed(false);
+    if (stream !== null) {
+      streamRoute.retryNow();
+      return;
+    }
+    reloadPlayingFile();
+  }, [reloadPlayingFile, setFailed, stream, streamRoute]);
 
   useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
   useStreamPin(stream, loadingFile);
@@ -295,6 +306,7 @@ function PlayerComponent() {
       if (request.files.length === 0) return;
       loadEpochRef.current += 1;
       setFinished(false);
+      setFailed(false);
       setLoadingFile(true);
       if (request.stream) {
         streamSession.set(request.stream);
@@ -308,8 +320,13 @@ function PlayerComponent() {
     onFileLoaded: () => {
       ignore(handleFileLoaded());
     },
-    onEndFile: () => {
+    onEndFile: (reason) => {
       setFinished(false);
+      // mpv reports a failed open as end-file/error, not always as `error`.
+      if (reason === "error" && streamSession.get() !== null) {
+        streamRoute.failNow();
+        return;
+      }
       if (streamSession.get() !== null && eofMode === "next" && streamNext.hasNext) {
         setLoadingFile(true);
         ignore(streamNext.goNext());
@@ -320,6 +337,7 @@ function PlayerComponent() {
     },
     onPlaybackRestart: () => {
       settleSeek();
+      streamRoute.markPlaying();
       setHasShownFrame(true);
       setLoadingFile(false);
       syncMargins(true);
@@ -328,8 +346,9 @@ function PlayerComponent() {
       resetPlayback();
     },
     onError: () => {
-      setFailed(true);
-      setLoadingFile(false);
+      // A stream can recover on its other route (direct against a lagging VPN),
+      // so the guard decides whether this is fatal before the error screen.
+      streamRoute.failNow();
     },
     onDroppedFrames: (data) => {
       showDropAlert(data);
@@ -615,7 +634,9 @@ function PlayerComponent() {
                 failed={failed}
                 loading={loadingFile}
                 hasNext={hasNext}
+                streaming={stream !== null}
                 onRestart={restart}
+                onRetry={retryPlayback}
                 onNext={onFileNext}
                 onClose={close}
               />

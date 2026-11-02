@@ -146,6 +146,37 @@ pub fn delete_app_cache(
     Ok(())
 }
 
+/// Removes rows from `namespaces` that were not written for `max_age_secs`.
+/// Versioned keys (the ffprobe file stamps) are never read again after the
+/// source changes, so an occasional prune keeps the shared cache bounded.
+pub fn prune_cache_namespaces(
+    app: &tauri::AppHandle,
+    namespaces: &[&str],
+    max_age_secs: i64,
+) -> Result<usize, String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let connection = open_database(app)?;
+    prune_cache_namespaces_in(&connection, namespaces, max_age_secs)
+}
+
+fn prune_cache_namespaces_in(
+    connection: &rusqlite::Connection,
+    namespaces: &[&str],
+    max_age_secs: i64,
+) -> Result<usize, String> {
+    let cutoff = now_seconds().saturating_sub(max_age_secs.max(0));
+    let mut removed = 0;
+    for namespace in namespaces {
+        removed += connection
+            .execute(
+                "DELETE FROM cache_entries WHERE namespace = ?1 AND updated_at < ?2",
+                params![namespace, cutoff],
+            )
+            .map_err(|error| format!("prune app cache: {error}"))?;
+    }
+    Ok(removed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,5 +186,32 @@ mod tests {
         assert!(validate_cache_input("test", "key", "{\"ok\":true}").is_ok());
         assert!(validate_cache_input("test", "key", "not-json").is_err());
         assert!(validate_cache_input("test", "key", &"x".repeat(MAX_PAYLOAD_BYTES + 1)).is_err());
+    }
+
+    #[test]
+    fn prune_cache_namespaces_removes_only_stale_rows_in_scope() {
+        let connection = rusqlite::Connection::open_in_memory().expect("in-memory database");
+        crate::app_db::schema::initialize_schema(&connection).expect("schema");
+        let now = now_seconds();
+        for (namespace, key, updated_at) in [
+            ("ffprobe_duration", "stale", now - 100),
+            ("ffprobe_duration", "fresh", now),
+            ("anilist_media", "other", now - 100),
+        ] {
+            connection
+                .execute(
+                    "INSERT INTO cache_entries (namespace, cache_key, payload, expires_at, updated_at)
+                     VALUES (?1, ?2, '1', NULL, ?3)",
+                    params![namespace, key, updated_at],
+                )
+                .expect("insert cache row");
+        }
+        let removed =
+            prune_cache_namespaces_in(&connection, &["ffprobe_duration"], 10).expect("prune");
+        assert_eq!(removed, 1);
+        let remaining: i64 = connection
+            .query_row("SELECT COUNT(*) FROM cache_entries", [], |row| row.get(0))
+            .expect("count rows");
+        assert_eq!(remaining, 2);
     }
 }

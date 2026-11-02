@@ -17,7 +17,9 @@ use tauri::{Emitter, Manager, WindowEvent};
 mod anilist;
 mod app_db;
 mod discord;
+mod network;
 mod startup;
+mod sync_utils;
 
 #[doc(hidden)]
 pub mod benchmark_api {
@@ -410,9 +412,7 @@ async fn run_torrent_update_tick(
         let mut pause_on_disk_full = Vec::with_capacity(16);
         {
             let cfg_state = app.state::<std::sync::Mutex<NotificationConfig>>();
-            let cfg = cfg_state
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let cfg = crate::sync_utils::lock_or_recover(&cfg_state, "notification config");
 
             for t in &torrents {
                 let prev = state.prev_states.get(&t.id);
@@ -1091,6 +1091,7 @@ async fn scan_video_folders(
     let ext_list = video_ext_list(extensions);
     let threads = threads.unwrap_or(0);
     tokio::task::spawn_blocking(move || {
+        let started = std::time::Instant::now();
         let mut out = Vec::with_capacity(paths.len());
         for root in &paths {
             match file_index::FileIndexer::retry_scan_blocking(|| {
@@ -1129,6 +1130,12 @@ async fn scan_video_folders(
                 }
             }
         }
+        tracing::info!(
+            folders = out.len(),
+            files = out.iter().map(|folder| folder.entries.len()).sum::<usize>(),
+            elapsed_ms = started.elapsed().as_millis(),
+            "scan_video_folders done"
+        );
         Ok(out)
     })
     .await
@@ -1635,10 +1642,16 @@ async fn rebuild_file_index(
     threads: Option<usize>,
     indexer: tauri::State<'_, file_index::FileIndexer>,
 ) -> Result<(), String> {
+    let started = std::time::Instant::now();
     indexer
         .rebuild(paths, extensions, threads.unwrap_or(0))
         .await?;
-    persist_file_index(&app_handle, &indexer).await
+    persist_file_index(&app_handle, &indexer).await?;
+    tracing::info!(
+        elapsed_ms = started.elapsed().as_millis(),
+        "rebuild_file_index done"
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -1649,10 +1662,16 @@ async fn refresh_file_index(
     threads: Option<usize>,
     indexer: tauri::State<'_, file_index::FileIndexer>,
 ) -> Result<Vec<VideoFileEntry>, String> {
+    let started = std::time::Instant::now();
     let entries = indexer
         .refresh(paths, extensions, threads.unwrap_or(0))
         .await?;
     persist_file_index(&app_handle, &indexer).await?;
+    tracing::info!(
+        entries = entries.len(),
+        elapsed_ms = started.elapsed().as_millis(),
+        "refresh_file_index done"
+    );
     Ok(entries
         .into_iter()
         .map(|entry| VideoFileEntry {
@@ -2052,6 +2071,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             startup::report_startup,
+            network::network_probe,
             scrapers::search_erairaws,
             scrapers::search_nyaa,
             scrapers::search_sukebei,
@@ -2080,6 +2100,7 @@ pub fn run() {
             video::upscale_video,
             video::preview_upscale_frames,
             video::get_video_card,
+            video::get_video_cache_stats,
             video::suggest_upscale_preset,
             video::estimate_upscale_time,
             realcugan::check_realcugan,
@@ -2106,6 +2127,7 @@ pub fn run() {
             anilist::search_anilist_by_genre,
             anilist::get_anime_by_id,
             anilist::get_anime_by_ids,
+            anilist::get_anilist_cache_stats,
             anilist::get_anime_trailer,
             anilist::client::test_anilist_connection,
             jikan::get_anime_stills,
@@ -2159,6 +2181,7 @@ pub fn run() {
             player::player_prewarm,
             player::player_take_pending_open,
             player::player_init,
+            player::player_restart,
             player::player_destroy,
             player::player_close_window,
             player::player_load,
@@ -2192,6 +2215,7 @@ pub fn run() {
             stream::animelib_token_save,
             stream::animelib_token_clear,
             stream::animelib_test_connection,
+            stream::stream_warm,
             stream::prefs::stream_prefs_get,
             stream::prefs::stream_prefs_save,
             app_db::get_app_cache,

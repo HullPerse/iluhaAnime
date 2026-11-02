@@ -111,7 +111,7 @@ describe("settings find results", () => {
       0
     );
     expect(view.container.querySelectorAll(".text-highlight").length).toBe(0);
-    expect(view.container.textContent).toContain("Торренты");
+    expect(view.container.textContent).toContain("Торрент-прокси");
   });
 
   it("shows the english label with a badge when only english matches", () => {

@@ -7,6 +7,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import type { PlayerStream } from "@/types/player/playerStream";
 import { useCell } from "@/lib/core/signal.hook";
 import { isSubtitleVariant } from "@/lib/player/streamHelpers.utils";
+import { formatSpeed } from "@/lib/torrent/torrentCommon.utils";
 import { playbackAtoms } from "@/store/player.store";
 
 import { StreamVariantSelects } from "@/routes/components/player/media/streamVariantSelects.player";
@@ -21,6 +22,7 @@ interface StreamControlProps {
 export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const { t } = useI18n();
   const pausedForCache = useCell(playbackAtoms.pausedForCache);
+  const cacheSpeed = useCell(playbackAtoms.cacheSpeed);
   const [statsOpen, setStatsOpen] = useState<boolean>(false);
   const session = stream.session;
 
@@ -31,7 +33,15 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const busy = stream.switching || stream.variantsLoading || stream.variantsFailed;
   let status = "";
   if (stream.switching) status = t("player.stream.switching");
-  else if (pausedForCache === true) status = t("player.stream.buffering");
+  else if (pausedForCache === true) {
+    // The speed is what tells a lagging VPN from a dead route; a bare
+    // "buffering" label leaves the user guessing why the episode stopped.
+    const speed = cacheSpeed ?? 0;
+    status =
+      speed > 0
+        ? `${t("player.stream.buffering")} · ${formatSpeed(speed)}`
+        : t("player.stream.buffering");
+  }
 
   return (
     <section className="border-muted relative flex h-6 items-center gap-1 border-r-2 px-1">

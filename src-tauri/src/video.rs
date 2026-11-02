@@ -10,14 +10,22 @@ use base64::Engine as _;
 use serde::Serialize;
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::process::Command;
 use tokio_util::sync::CancellationToken;
 
-pub static FFMPEG_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(3);
+pub static FFMPEG_SEM: std::sync::LazyLock<tokio::sync::Semaphore> =
+    std::sync::LazyLock::new(|| {
+        let permits = std::env::var("ILUHA_FFMPEG_CONCURRENCY")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .filter(|&n| n > 0)
+            .unwrap_or(3);
+        tokio::sync::Semaphore::new(permits)
+    });
 
 struct CancellationState {
     next_id: AtomicU64,
@@ -38,11 +46,11 @@ impl CancelFlag {
     pub fn begin(&self) -> CancellationGuard {
         let id = self.0.next_id.fetch_add(1, Ordering::Relaxed);
         let token = CancellationToken::new();
-        self.0
-            .tokens
-            .lock()
-            .expect("cancel state poisoned")
-            .insert(id, token.clone());
+        let mut tokens = self.0.tokens.lock().unwrap_or_else(|poisoned| {
+            tracing::warn!("player cancellation state poisoned; recovering");
+            poisoned.into_inner()
+        });
+        tokens.insert(id, token.clone());
         CancellationGuard {
             id,
             token,
@@ -207,9 +215,18 @@ fn parse_ffmpeg_time(s: &str) -> Option<f64> {
 
 type FileStamp = (u128, u64);
 
+/// Bound for the in-memory probe caches. They are pure memoization, so dropping
+/// everything on overflow costs one re-probe per file and keeps long sessions
+/// over a large library from growing without limit.
+const VIDEO_CACHE_ENTRY_LIMIT: usize = 8192;
+
 static VIDEO_DURATION_CACHE: OnceLock<Mutex<HashMap<String, (FileStamp, f64)>>> = OnceLock::new();
 static VIDEO_DIMENSIONS_CACHE: OnceLock<Mutex<HashMap<String, (FileStamp, (u32, u32))>>> =
     OnceLock::new();
+pub static FFPROBE_CACHE_HITS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+pub static FFPROBE_CACHE_MISSES: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+static FFPROBE_CACHE_PRUNED: AtomicBool = AtomicBool::new(false);
 
 /// The cheap identity of a file: modification time plus size. A cached
 /// ffprobe result is reused only while it matches, so a file replaced at the
@@ -229,7 +246,7 @@ fn cache_get<V: Copy>(
     path: &str,
 ) -> Option<V> {
     let stamp = file_stamp(path)?;
-    let map = cache.get()?.lock().ok()?;
+    let map = crate::sync_utils::lock_or_recover(cache.get()?, "video probe cache");
     let (cached, value) = map.get(path)?;
     (*cached == stamp).then_some(*value)
 }
@@ -238,9 +255,71 @@ fn cache_put<V>(cache: &OnceLock<Mutex<HashMap<String, (FileStamp, V)>>>, path: 
     let Some(stamp) = file_stamp(path) else {
         return;
     };
-    if let Ok(mut map) = cache.get_or_init(|| Mutex::new(HashMap::new())).lock() {
-        map.insert(path.to_string(), (stamp, value));
+    let mut map = crate::sync_utils::lock_or_recover(
+        cache.get_or_init(|| Mutex::new(HashMap::new())),
+        "video probe cache",
+    );
+    if map.len() >= VIDEO_CACHE_ENTRY_LIMIT && !map.contains_key(path) {
+        // Drop a quarter instead of the whole map: a full clear would make
+        // the next pass re-probe every visible file at once.
+        let evict = (VIDEO_CACHE_ENTRY_LIMIT / 4).max(1);
+        let stale: Vec<String> = map.keys().take(evict).cloned().collect();
+        for key in stale {
+            map.remove(&key);
+        }
     }
+    map.insert(path.to_string(), (stamp, value));
+}
+
+/// Probe results are persisted through `app_db`, whose payload validation only
+/// accepts valid JSON. Keep the encoding in one place so a format that the
+/// writer accepts is always a format the reader understands.
+fn dimensions_payload(width: u32, height: u32) -> String {
+    serde_json::json!([width, height]).to_string()
+}
+
+fn parse_dimensions_payload(payload: &str) -> Option<(u32, u32)> {
+    let [width, height] = serde_json::from_str::<[u32; 2]>(payload.trim()).ok()?;
+    Some((width, height))
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoCacheStats {
+    pub hits: u64,
+    pub misses: u64,
+}
+
+/// Exposes the ffprobe cache counters so hits and misses can be measured
+/// instead of assumed.
+#[tauri::command]
+pub fn get_video_cache_stats() -> VideoCacheStats {
+    VideoCacheStats {
+        hits: FFPROBE_CACHE_HITS.load(Ordering::Relaxed),
+        misses: FFPROBE_CACHE_MISSES.load(Ordering::Relaxed),
+    }
+}
+
+/// Versioned ffprobe keys are never read again once the file stamp changes, so
+/// old rows are pruned once per process instead of growing the shared cache
+/// forever. Runs on the blocking pool so the first probe is not delayed.
+fn prune_stale_probe_cache(app_handle: &tauri::AppHandle) {
+    if FFPROBE_CACHE_PRUNED.swap(true, Ordering::Relaxed) {
+        return;
+    }
+    let app = app_handle.clone();
+    drop(tauri::async_runtime::spawn_blocking(move || {
+        const MAX_AGE_SECS: i64 = 90 * 24 * 60 * 60;
+        match crate::app_db::prune_cache_namespaces(
+            &app,
+            &["ffprobe_duration", "ffprobe_dimensions"],
+            MAX_AGE_SECS,
+        ) {
+            Ok(0) => {}
+            Ok(removed) => tracing::info!(removed, "pruned stale ffprobe cache rows"),
+            Err(error) => tracing::warn!(error = error.as_str(), "ffprobe cache prune failed"),
+        }
+    }));
 }
 
 #[cfg(test)]
@@ -269,6 +348,15 @@ mod cache_tests {
 
         let _ = std::fs::remove_file(&path);
     }
+
+    #[test]
+    fn dimensions_payload_roundtrips_as_json() {
+        let payload = dimensions_payload(1920, 1080);
+        assert!(serde_json::from_str::<serde_json::Value>(&payload).is_ok());
+        assert_eq!(parse_dimensions_payload(&payload), Some((1920, 1080)));
+        // The old comma format is not JSON, so the cache write rejected it.
+        assert_eq!(parse_dimensions_payload("1920,1080"), None);
+    }
 }
 
 pub(crate) async fn get_video_duration(
@@ -276,8 +364,23 @@ pub(crate) async fn get_video_duration(
     path: &str,
 ) -> Result<f64, String> {
     if let Some(duration) = cache_get(&VIDEO_DURATION_CACHE, path) {
+        FFPROBE_CACHE_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         return Ok(duration);
     }
+    // Persistent cache: survive process restarts when the file is unchanged.
+    let cache_key = file_stamp(path).map(|(m, s)| format!("{path}::{m}::{s}"));
+    if let Some(key) = &cache_key {
+        if let Ok(Some(payload)) =
+            crate::app_db::read_cached_payload(app_handle, "ffprobe_duration", key)
+        {
+            if let Ok(duration) = payload.trim().parse::<f64>() {
+                cache_put(&VIDEO_DURATION_CACHE, path, duration);
+                FFPROBE_CACHE_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                return Ok(duration);
+            }
+        }
+    }
+    FFPROBE_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
     let output = {
         let mut c = Command::new(ffprobe_exe(app_handle));
         c.args([
@@ -307,6 +410,16 @@ pub(crate) async fn get_video_duration(
         .map_err(|_| "parse duration failed".to_string())?;
 
     cache_put(&VIDEO_DURATION_CACHE, path, duration);
+    if let Some(key) = &cache_key {
+        let _ = crate::app_db::put_app_cache(
+            app_handle.clone(),
+            "ffprobe_duration".to_string(),
+            key.clone(),
+            duration.to_string(),
+            None,
+        );
+    }
+    prune_stale_probe_cache(app_handle);
     Ok(duration)
 }
 
@@ -428,8 +541,22 @@ async fn get_video_dimensions(
     path: &str,
 ) -> Result<(u32, u32), String> {
     if let Some(dims) = cache_get(&VIDEO_DIMENSIONS_CACHE, path) {
+        FFPROBE_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
         return Ok(dims);
     }
+    let cache_key = file_stamp(path).map(|(m, s)| format!("{path}::{m}::{s}"));
+    if let Some(key) = &cache_key {
+        if let Ok(Some(payload)) =
+            crate::app_db::read_cached_payload(app_handle, "ffprobe_dimensions", key)
+        {
+            if let Some(dims) = parse_dimensions_payload(&payload) {
+                cache_put(&VIDEO_DIMENSIONS_CACHE, path, dims);
+                FFPROBE_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
+                return Ok(dims);
+            }
+        }
+    }
+    FFPROBE_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
     let output = {
         let mut c = Command::new(ffprobe_exe(app_handle));
         c.args([
@@ -469,6 +596,16 @@ async fn get_video_dimensions(
         .parse()
         .map_err(|_| format!("parse height failed: {:?}", parts[1]))?;
     cache_put(&VIDEO_DIMENSIONS_CACHE, path, (w, h));
+    if let Some(key) = &cache_key {
+        let _ = crate::app_db::put_app_cache(
+            app_handle.clone(),
+            "ffprobe_dimensions".to_string(),
+            key.clone(),
+            dimensions_payload(w, h),
+            None,
+        );
+    }
+    prune_stale_probe_cache(app_handle);
     Ok((w, h))
 }
 
@@ -1047,6 +1184,7 @@ fn parse_frame_rate(s: &str) -> Option<f64> {
 }
 
 async fn get_frame_rate(app_handle: &tauri::AppHandle, path: &str) -> Result<f64, String> {
+    FFPROBE_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
     let output = {
         let mut c = Command::new(ffprobe_exe(app_handle));
         c.args([

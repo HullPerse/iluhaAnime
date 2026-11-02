@@ -13,7 +13,10 @@ use ipc::{DiscordConnection, DiscordIpc, FrameEvent};
 
 const CLIENT_ID: &str = "1565211430737809528";
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
-const UPDATE_INTERVAL: Duration = Duration::from_secs(15);
+/// A timestamp anchor that moves further than this is a seek, not jitter.
+const TIMESTAMP_RESYNC_MS: i64 = 1_500;
+/// Scrubbing moves the anchor every tick; one correction per second is enough.
+const TIMESTAMP_RESYNC_MIN: Duration = Duration::from_secs(1);
 const RETRY_MIN: Duration = Duration::from_secs(5);
 const RETRY_MAX: Duration = Duration::from_secs(60);
 const TICK: Duration = Duration::from_secs(1);
@@ -362,12 +365,96 @@ fn is_update_due(
     desired: &DiscordActivity,
     now: Instant,
 ) -> bool {
-    if last_sent == Some(desired) {
+    let Some(last) = last_sent else {
+        return true;
+    };
+    if last == desired {
+        return false;
+    }
+    // Play/pause, a new episode or new buttons must show up at once. Only the
+    // clock can wait: Discord counts the timestamps itself, so an unchanged
+    // card does not need a refresh at all unless the anchor actually jumped.
+    // A clock that appears or disappears (pause, resume, end of file) is a
+    // structural change and must land at once; only a pure seek may wait.
+    if !same_card(last, desired) || timestamp_presence_changed(last, desired) {
+        return true;
+    }
+    if timestamp_jump(last, desired) < TIMESTAMP_RESYNC_MS {
         return false;
     }
     match last_sent_at {
-        Some(at) => now.saturating_duration_since(at) >= UPDATE_INTERVAL,
+        Some(at) => now.saturating_duration_since(at) >= TIMESTAMP_RESYNC_MIN,
         None => true,
+    }
+}
+
+/// The card without its running clock.
+fn same_card(left: &DiscordActivity, right: &DiscordActivity) -> bool {
+    left.details == right.details
+        && left.state == right.state
+        && left.activity_type == right.activity_type
+        && left.buttons == right.buttons
+}
+
+/// Whether one side shows a running clock and the other does not.
+fn timestamp_presence_changed(left: &DiscordActivity, right: &DiscordActivity) -> bool {
+    left.start_timestamp.is_some() != right.start_timestamp.is_some()
+        || left.end_timestamp.is_some() != right.end_timestamp.is_some()
+}
+
+/// How far the clock anchor moved, in milliseconds.
+fn timestamp_jump(left: &DiscordActivity, right: &DiscordActivity) -> i64 {
+    fn delta(left: Option<i64>, right: Option<i64>) -> i64 {
+        match (left, right) {
+            (Some(left), Some(right)) => left.saturating_sub(right).max(right.saturating_sub(left)),
+            _ => 0,
+        }
+    }
+    delta(left.start_timestamp, right.start_timestamp)
+        .max(delta(left.end_timestamp, right.end_timestamp))
+}
+
+#[cfg(test)]
+mod jump_tests {
+    use super::*;
+
+    #[test]
+    fn a_dropped_clock_is_a_presence_change() {
+        let live = DiscordActivity {
+            start_timestamp: Some(1_000_000),
+            end_timestamp: Some(2_000_000),
+            ..DiscordActivity::default()
+        };
+        let paused: DiscordActivity = DiscordActivity::default();
+        assert!(timestamp_presence_changed(&paused, &live));
+        assert!(timestamp_presence_changed(&live, &paused));
+    }
+
+    #[test]
+    fn an_added_clock_is_a_presence_change() {
+        let paused: DiscordActivity = DiscordActivity::default();
+        let live = DiscordActivity {
+            start_timestamp: Some(1_000_000),
+            ..DiscordActivity::default()
+        };
+        assert!(timestamp_presence_changed(&paused, &live));
+        assert!(timestamp_presence_changed(&live, &paused));
+    }
+
+    #[test]
+    fn a_long_seek_is_a_jump() {
+        let before = DiscordActivity {
+            start_timestamp: Some(10_000_000),
+            end_timestamp: Some(10_005_000),
+            ..DiscordActivity::default()
+        };
+        let after = DiscordActivity {
+            start_timestamp: Some(10_025_000),
+            end_timestamp: Some(10_030_000),
+            ..DiscordActivity::default()
+        };
+        assert!(timestamp_jump(&before, &after) >= TIMESTAMP_RESYNC_MS);
+        assert!(timestamp_jump(&after, &before) >= TIMESTAMP_RESYNC_MS);
     }
 }
 
@@ -419,21 +506,113 @@ mod tests {
     }
 
     #[test]
-    fn a_changed_activity_waits_for_the_interval() {
+    fn a_new_card_is_sent_immediately() {
         let now = Instant::now();
         let current = activity("first");
         let next = activity("second");
-        assert!(!is_update_due(
-            Some(&current),
-            Some(now),
-            &next,
-            now + Duration::from_secs(14)
-        ));
         assert!(is_update_due(
             Some(&current),
             Some(now),
             &next,
-            now + Duration::from_secs(15)
+            now + Duration::from_millis(1)
         ));
+    }
+
+    #[test]
+    fn a_paused_card_is_sent_immediately_instead_of_waiting_for_the_clock() {
+        let now = Instant::now();
+        let current = DiscordActivity {
+            details: Some("Frieren".to_string()),
+            state: Some("Episode 12".to_string()),
+            start_timestamp: Some(1_000_000),
+            end_timestamp: Some(2_000_000),
+            ..DiscordActivity::default()
+        };
+        let paused = DiscordActivity {
+            details: Some("Frieren".to_string()),
+            state: Some("Episode 12 - Paused".to_string()),
+            ..DiscordActivity::default()
+        };
+        assert!(is_update_due(
+            Some(&current),
+            Some(now),
+            &paused,
+            now + Duration::from_millis(1)
+        ));
+    }
+
+    #[test]
+    fn a_seek_is_rate_limited_instead_of_batched() {
+        let now = Instant::now();
+        let current = DiscordActivity {
+            details: Some("Frieren".to_string()),
+            start_timestamp: Some(1_000_000),
+            end_timestamp: Some(2_000_000),
+            ..DiscordActivity::default()
+        };
+        let seeked = DiscordActivity {
+            start_timestamp: Some(1_025_000),
+            end_timestamp: Some(2_025_000),
+            ..current.clone()
+        };
+        assert!(!is_update_due(
+            Some(&current),
+            Some(now),
+            &seeked,
+            now + Duration::from_millis(500)
+        ));
+        assert!(is_update_due(
+            Some(&current),
+            Some(now),
+            &seeked,
+            now + TIMESTAMP_RESYNC_MIN
+        ));
+    }
+
+    #[test]
+    fn a_tiny_timestamp_drift_is_not_resent() {
+        let now = Instant::now();
+        let current = DiscordActivity {
+            details: Some("Frieren".to_string()),
+            start_timestamp: Some(1_000_000),
+            end_timestamp: Some(2_000_000),
+            ..DiscordActivity::default()
+        };
+        let next = DiscordActivity {
+            start_timestamp: Some(1_000_200),
+            end_timestamp: Some(2_000_200),
+            ..current.clone()
+        };
+        assert!(!is_update_due(
+            Some(&current),
+            Some(now),
+            &next,
+            now + Duration::from_secs(30)
+        ));
+    }
+
+    #[test]
+    fn clearing_the_clock_on_pause_is_immediate() {
+        // Repro of the reported bug: the card text is unchanged, only the
+        // running clock disappears. That used to wait for the update interval,
+        // so Discord kept counting up from the old position.
+        let now = Instant::now();
+        let live = DiscordActivity {
+            details: Some("Frieren".to_string()),
+            start_timestamp: Some(10_000_000),
+            end_timestamp: Some(11_450_000),
+            ..DiscordActivity::default()
+        };
+        let paused = DiscordActivity {
+            details: Some("Frieren".to_string()),
+            ..DiscordActivity::default()
+        };
+        assert!(is_update_due(
+            Some(&live),
+            Some(now),
+            &paused,
+            now + Duration::from_millis(1)
+        ));
+        assert!(timestamp_presence_changed(&live, &paused));
     }
 }

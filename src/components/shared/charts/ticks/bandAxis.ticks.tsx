@@ -25,6 +25,7 @@ export function BandAxisLabels({
               x={plot.left - 6}
               y={entry.position + 3}
               textAnchor="end"
+              style={{ textAnchor: "end" }}
               className={CHART_TICK_TEXT_CLASS}
               fontSize={CHART_TICK_FONT_SIZE}
             >
@@ -38,6 +39,7 @@ export function BandAxisLabels({
             x={entry.position}
             y={plot.top + plot.height + 12}
             textAnchor="middle"
+            style={{ textAnchor: "middle" }}
             className={CHART_TICK_TEXT_CLASS}
             fontSize={CHART_TICK_FONT_SIZE}
           >

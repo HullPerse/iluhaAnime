@@ -1,3 +1,4 @@
+import { ListFilter, ListFilterPlus } from "lucide-react";
 import type { ReactNode } from "react";
 import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
@@ -50,8 +51,7 @@ export default function SettingsRoute() {
   const [findQuery, setFindQuery] = useState<string>("");
   const [findOpen, setFindOpen] = useState<boolean>(false);
   const [findActive, setFindActive] = useState<number>(0);
-  const [flashSection, setFlashSection] = useState<string | null>(null);
-  const [flashNonce, setFlashNonce] = useState<number>(0);
+  const [flashRequest, setFlashRequest] = useState<{ sectionId: string } | null>(null);
   const [expandedSectionIds, setExpandedSectionIds] = useState<Set<string>>(new Set());
   const [changedOnly, setChangedOnly] = useState<boolean>(false);
   const settingsSnapshot = useSettingsSnapshot();
@@ -108,13 +108,13 @@ export default function SettingsRoute() {
   const handleFindChange = (value: string) => {
     setFindQuery(value);
     setFindOpen(value.trim().length > 0);
+    setFindActive(0);
   };
 
   const handleFindJump = (hit: SettingsFindHit) => {
     navigate({ search: (prev) => ({ ...prev, tab: hit.entry.tab }) });
     setFindOpen(false);
-    setFlashSection(hit.entry.sectionId);
-    setFlashNonce((nonce) => nonce + 1);
+    setFlashRequest({ sectionId: hit.entry.sectionId });
     setExpandedSectionIds((prev) => new Set(prev).add(hit.entry.sectionId));
   };
 
@@ -153,10 +153,6 @@ export default function SettingsRoute() {
   }, [findOpen]);
 
   useEffect(() => {
-    setFindActive(0);
-  }, [findHits]);
-
-  useEffect(() => {
     const content = contentRef.current;
     if (!content || findOpen) return;
     const matched = new Set(
@@ -172,9 +168,11 @@ export default function SettingsRoute() {
   }, [activeTab, findOpen, findHits, trimmedQuery]);
 
   useEffect(() => {
-    const content = contentRef.current;
-    if (!content || findOpen) return;
-    for (const section of content.querySelectorAll("[data-find-section]")) {
+    const panel = contentRef.current?.querySelector(
+      `[data-active-tab="${CSS.escape(activeTab)}"]`
+    );
+    if (!(panel instanceof HTMLElement) || findOpen) return;
+    for (const section of panel.querySelectorAll("[data-find-section]")) {
       if (!(section instanceof HTMLElement)) continue;
       const id = section.dataset.findSection;
       const keys = id === undefined ? [] : sectionSettingKeys(id);
@@ -187,13 +185,17 @@ export default function SettingsRoute() {
   }, [activeTab, changedKeys, changedOnly, findOpen]);
 
   useEffect(() => {
-    const content = contentRef.current;
-    if (!content || findOpen || flashSection === null) return;
-    const target = content.querySelector(`[data-find-section="${CSS.escape(flashSection)}"]`);
+    const panel = contentRef.current?.querySelector(
+      `[data-active-tab="${CSS.escape(activeTab)}"]`
+    );
+    if (!(panel instanceof HTMLElement) || findOpen || flashRequest === null) return;
+    const target = panel.querySelector(
+      `[data-find-section="${CSS.escape(flashRequest.sectionId)}"]`
+    );
     if (!(target instanceof HTMLElement)) return;
     target.scrollIntoView({ block: "start" });
     return flashTarget(target);
-  }, [activeTab, findOpen, flashSection, flashNonce]);
+  }, [activeTab, findOpen, flashRequest]);
 
   const components: Record<SettingsTab, ReactNode> = {
     general: <SettingsGeneral />,
@@ -295,18 +297,24 @@ export default function SettingsRoute() {
             </div>
             {changedKeys.size > 0 && (
               <Button
-                variant={changedOnly ? "default" : "ghost"}
-                className="text-xs"
+                variant={changedOnly ? "default" : "secondary"}
+                className="size-6 p-0"
                 aria-pressed={changedOnly}
+                aria-label={t("settings.changed.only")}
+                title={t("settings.changed.only")}
                 onClick={() => setChangedOnly((prev) => !prev)}
               >
-                {t("settings.changed.only")}
+                {changedOnly ? (
+                  <ListFilter className="size-4" />
+                ) : (
+                  <ListFilterPlus className="size-4" />
+                )}
               </Button>
             )}
             <span className="text-hint windows95-text text-xs">{t("settings.autosave")}</span>
           </div>
         </div>
-        <div hidden={findOpen} ref={tabContentRef}>
+        <div hidden={findOpen} ref={tabContentRef} data-active-tab={activeTab}>
           {components[activeTab]}
         </div>
         {findOpen && (

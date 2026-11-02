@@ -13,6 +13,8 @@ import {
 } from "@/lib/core/sessionCache.utils";
 import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/search/sources.utils";
 import { openStream } from "@/lib/player/playback.utils";
+import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
+import { lowerQualityLabel } from "@/lib/player/streamQuality.utils";
 import { resolveEpisodeStream, resolveNextStream } from "@/lib/player/playerStream.utils";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { ignore } from "@/lib/core/promise.utils";
@@ -29,6 +31,15 @@ function currentPosition(): number {
 
 function fallbackQuality(): string {
   return settingsAtoms.streamDefaultQuality.get();
+}
+
+/** A continuous buffer stall worth reacting to, and how often it is checked. */
+const AUTO_QUALITY_STALL_MS = 12_000;
+const AUTO_QUALITY_CHECK_MS = 1_000;
+
+/** The stream identity that keeps its "already downgraded" budget. */
+function logicalStreamKey(session: StreamOpen): string {
+  return `${session.mediaId}:${session.episodeId}:${session.variantId}`;
 }
 
 async function rememberPrefs(session: StreamOpen, patch: Partial<StreamPrefs>): Promise<void> {
@@ -48,9 +59,12 @@ export function usePlayerStream(): PlayerStream {
   const [switching, setSwitching] = useState<boolean>(false);
   const [variantAttempt, setVariantAttempt] = useState<number>(0);
   const switchingRef = useRef<boolean>(false);
+  const manualQualityRef = useRef<Set<string>>(new Set());
+  const autoQualityRef = useRef<Set<string>>(new Set());
+  const stalledSinceRef = useRef<number | null>(null);
 
   const episodeId = session?.episodeId;
-  const seeded = variantAttempt === 0 ? session?.variants : undefined;
+  const seeded = session?.variants;
 
   useEffect(() => {
     if (!episodeId) {
@@ -58,8 +72,9 @@ export function usePlayerStream(): PlayerStream {
       setVariantsFailed(false);
       return;
     }
-    if (seeded && seeded.length > 0) {
-      const preferred = preferNativeVariants(seeded);
+    const initialVariants = variantAttempt === 0 ? seeded : undefined;
+    if (initialVariants && initialVariants.length > 0) {
+      const preferred = preferNativeVariants(initialVariants);
       setVariants(preferred);
       setVariantsLoading(false);
       setVariantsFailed(false);
@@ -115,8 +130,8 @@ export function usePlayerStream(): PlayerStream {
     return true;
   }, []);
 
-  const switchQuality = useCallback(
-    async (label: string) => {
+  const applyQuality = useCallback(
+    async (label: string, automatic: boolean) => {
       const current = streamSession.get();
       if (!current || label === current.quality) return false;
       const url = variantSourceUrl(current.sources, label);
@@ -128,10 +143,20 @@ export function usePlayerStream(): PlayerStream {
         resume: currentPosition(),
         paused: playbackAtoms.paused.get(),
       }));
-      if (opened) await rememberPrefs(current, { quality: label });
+      // Preferences are not part of the switch: the dropdown must settle as
+      // soon as the session changed, not after two more IPC writes.
+      if (opened) {
+        if (!automatic) manualQualityRef.current.add(logicalStreamKey(current));
+        ignore(rememberPrefs(current, { quality: label }));
+      }
       return opened;
     },
     [runSwitch]
+  );
+
+  const switchQuality = useCallback(
+    (label: string) => applyQuality(label, false),
+    [applyQuality]
   );
 
   const switchVariant = useCallback(
@@ -144,9 +169,14 @@ export function usePlayerStream(): PlayerStream {
         const sources = await loadSources(current.episodeId, variantId);
         const source = pickSource(sources, current.quality || fallbackQuality());
         if (!source) throw new Error("this voice-over has no playable sources");
+        const nextVariantId = source.variantId || variantId;
         return {
           ...current,
-          variantId: source.variantId || variantId,
+          variantId: nextVariantId,
+          // The route depends on the target player, not on the one that is
+          // playing: a Kodik voice-over plays from its CDN directly, an
+          // AnimeLib one keeps the catalog proxy.
+          proxyUrl: playbackProxyUrl(nextVariantId, settingsAtoms.animelibProxyUrl.get()),
           quality: source.label,
           mediaUrl: source.url,
           headers: source.headers,
@@ -158,11 +188,59 @@ export function usePlayerStream(): PlayerStream {
       if (!opened) return false;
       const after = streamSession.get();
       if (after?.variantId !== variantId) return false;
-      await rememberPrefs(current, { variantId, quality: after.quality });
+      ignore(rememberPrefs(current, { variantId, quality: after.quality }));
       return true;
     },
     [runSwitch]
   );
+
+  useEffect(() => {
+    // A stall from the previous voice-over must not count toward the new one.
+    stalledSinceRef.current = null;
+  }, [episodeId, session?.variantId]);
+
+  // One automatic step down per voice-over: a slow connection gets a playable
+  // quality instead of an endless buffering screen, while a manual pick is
+  // never overridden and the user is told about the change.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const current = streamSession.get();
+      if (!current) {
+        stalledSinceRef.current = null;
+        return;
+      }
+      const stalled =
+        playbackAtoms.pausedForCache.get() === true && playbackAtoms.paused.get() !== true;
+      if (!stalled || switchingRef.current) {
+        stalledSinceRef.current = null;
+        return;
+      }
+      const key = logicalStreamKey(current);
+      if (manualQualityRef.current.has(key) || autoQualityRef.current.has(key)) {
+        stalledSinceRef.current = null;
+        return;
+      }
+      stalledSinceRef.current ??= Date.now();
+      if (Date.now() - stalledSinceRef.current < AUTO_QUALITY_STALL_MS) return;
+      const lower = lowerQualityLabel(current.sources, current.quality);
+      stalledSinceRef.current = null;
+      autoQualityRef.current.add(key);
+      if (!lower) return;
+      ignore(
+        applyQuality(lower, true).then((opened) => {
+          if (opened) {
+            addNotification(
+              tr("player.stream.quality.auto.title"),
+              "info",
+              tr("player.stream.quality.auto.body", { quality: lower })
+            );
+          }
+          return undefined;
+        })
+      );
+    }, AUTO_QUALITY_CHECK_MS);
+    return () => clearInterval(id);
+  }, [applyQuality]);
 
   return {
     session,

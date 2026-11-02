@@ -224,6 +224,12 @@ export async function initPlayer(initialOptions: Record<string, unknown>): Promi
   return invokeTyped<string>("player_init", { initialOptions });
 }
 
+export async function restartPlayer(
+  initialOptions: Record<string, unknown>
+): Promise<string> {
+  return invokeTyped<string>("player_restart", { initialOptions });
+}
+
 export async function destroyPlayer(): Promise<void> {
   await invokeTyped("player_destroy");
 }

@@ -27,6 +27,7 @@ function announcementText(item: NotificationItem | null | undefined): string {
 
 export default function NotificationTray() {
   const items = useCell(notificationAtoms.items);
+  const panelItems = useMemo(() => items.filter((item) => !item.popupOnly), [items]);
   const unreadCount = useCell(notificationAtoms.unreadCount);
   const [open, setOpen] = useState<boolean>(false);
   const [filter, setFilter] = useState<NotificationFilter>("all");
@@ -35,7 +36,7 @@ export default function NotificationTray() {
   const { data: torrents = NO_TORRENTS } = useTorrents(open);
   const activeDownloads = useMemo(() => torrents.filter(isCurrentDownload), [torrents]);
   const { t } = useI18n();
-  const latest = items[0];
+  const latest = panelItems[0];
 
   const handleOpen = useCallback(
     async (item: NotificationItem) => {
@@ -91,7 +92,7 @@ export default function NotificationTray() {
 
       {open && (
         <NotificationPanel
-          items={items}
+          items={panelItems}
           activeDownloads={activeDownloads}
           filter={filter}
           onFilterChange={setFilter}

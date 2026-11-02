@@ -113,6 +113,30 @@
       ]
     },
     {
+      "tab": "proxy",
+      "section": "torrent",
+      "titleKey": "settings.proxy.torrent.title",
+      "keys": [
+        "settings.proxy.torrent.title",
+        "settings.proxy.torrent.description",
+        "settings.torrent.proxy.url",
+        "settings.torrent.proxy.test"
+      ]
+    },
+    {
+      "tab": "proxy",
+      "section": "sources",
+      "titleKey": "settings.proxy.sources.title",
+      "keys": [
+        "settings.proxy.sources.title",
+        "settings.proxy.sources.description",
+        "settings.search.proxy.per.source",
+        "settings.search.proxy.webview",
+        "settings.search.proxy.test.all",
+        "settings.search.no.visible.sources"
+      ]
+    },
+    {
       "tab": "general",
       "section": "parse",
       "titleKey": "settings.parse.titles",
@@ -248,11 +272,7 @@
       "titleKey": "settings.search.sources",
       "keys": [
         "settings.search.default.source",
-        "settings.search.visible.sources",
-        "settings.search.no.visible.sources",
-        "settings.search.proxy.per.source",
-        "settings.search.proxy.webview",
-        "settings.search.proxy.test.all"
+        "settings.search.visible.sources"
       ]
     },
     {
@@ -377,8 +397,6 @@
         "settings.torrent.listen.port",
         "settings.torrent.listen.port.active",
         "settings.torrent.listen.port.idle",
-        "settings.torrent.proxy.url",
-        "settings.torrent.proxy.test",
         "settings.torrent.peer.connect.timeout",
         "settings.torrent.peer.readwrite.timeout",
         "settings.torrent.session.invalid",
@@ -638,6 +656,15 @@
     "settings.torrent.proxy.testing",
     "settings.torrent.proxy.test.ok",
     "settings.torrent.proxy.test.fail",
+    "settings.proxy.test.action",
+    "settings.proxy.test.cancel",
+    "settings.proxy.test.retest",
+    "settings.proxy.test.running",
+    "settings.proxy.test.ok",
+    "settings.proxy.test.fail",
+    "settings.proxy.description",
+    "settings.proxy.no",
+    "settings.proxy.custom",
     "settings.tmdb.proxy.testing",
     "settings.tmdb.proxy.test.ok",
     "settings.tmdb.proxy.test.fail",

@@ -555,7 +555,7 @@ fn detail_cache() -> &'static Mutex<HashMap<String, CachedDetail>> {
 }
 
 fn cached_detail(key: &str) -> Option<WireEpisodeDetail> {
-    let mut cache = detail_cache().lock().ok()?;
+    let mut cache = crate::sync_utils::lock_or_recover(detail_cache(), "animelib detail cache");
     let entry = cache.get(key)?;
     if entry.fetched.elapsed() < DETAIL_TTL {
         return Some(entry.detail.clone());
@@ -581,7 +581,7 @@ fn source_cache() -> &'static Mutex<HashMap<String, CachedSources>> {
 }
 
 fn cached_sources(key: &str) -> Option<Vec<StreamVariant>> {
-    let mut cache = source_cache().lock().ok()?;
+    let mut cache = crate::sync_utils::lock_or_recover(source_cache(), "animelib source cache");
     let entry = cache.get(key)?;
     if entry.fetched.elapsed() < SOURCES_TTL {
         return Some(entry.sources.clone());
@@ -591,9 +591,7 @@ fn cached_sources(key: &str) -> Option<Vec<StreamVariant>> {
 }
 
 fn store_sources(key: String, sources: &[StreamVariant]) {
-    let Ok(mut cache) = source_cache().lock() else {
-        return;
-    };
+    let mut cache = crate::sync_utils::lock_or_recover(source_cache(), "animelib source cache");
     if cache.len() >= SOURCES_CAPACITY {
         let oldest = cache
             .iter()
@@ -623,21 +621,19 @@ fn constants_cache() -> &'static Mutex<Option<(Instant, AnimeLibConstants)>> {
 }
 
 fn cached_constants() -> Option<AnimeLibConstants> {
-    let cache = constants_cache().lock().ok()?;
+    let cache = crate::sync_utils::lock_or_recover(constants_cache(), "animelib constants cache");
     let (fetched, constants) = cache.as_ref()?;
     (fetched.elapsed() < CONSTANTS_TTL).then(|| constants.clone())
 }
 
 fn store_constants(constants: &AnimeLibConstants) {
-    if let Ok(mut cache) = constants_cache().lock() {
-        *cache = Some((Instant::now(), constants.clone()));
-    }
+    let mut cache =
+        crate::sync_utils::lock_or_recover(constants_cache(), "animelib constants cache");
+    *cache = Some((Instant::now(), constants.clone()));
 }
 
 fn store_detail(key: String, detail: &WireEpisodeDetail) {
-    let Ok(mut cache) = detail_cache().lock() else {
-        return;
-    };
+    let mut cache = crate::sync_utils::lock_or_recover(detail_cache(), "animelib detail cache");
     if cache.len() >= DETAIL_CAPACITY {
         let oldest = cache
             .iter()

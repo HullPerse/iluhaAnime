@@ -27,7 +27,7 @@ export function CalendarGrid({
   const totalCells = firstDay + daysInMonth;
   const rows = Math.ceil(totalCells / 7);
   return (
-    <div className="windows95-border bg-field">
+    <div className="windows95-border bg-field overflow-hidden">
       <CalendarDayHeader />
       <div className="grid grid-cols-7">
         {Array.from({ length: rows * 7 }).map((_, idx) => {
@@ -36,7 +36,7 @@ export function CalendarGrid({
             return (
               <div
                 key={`empty-${idx}`}
-                className="border-t-muted border-l-muted bg-surface/30 h-26 border-r border-b"
+                className="border-t-muted border-l-muted bg-surface/40 h-26 border-r border-b"
               />
             );
           }

@@ -1,5 +1,6 @@
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
+import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/networkHealth.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   ActivityLikeState,
@@ -50,8 +51,15 @@ export class AnilistApi {
     return anilistProxyArgs(resolved);
   }
 
-  private call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
-    return this.transport.call<T>(command, { ...args, ...this.proxy() });
+  private async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
+    try {
+      const value = await this.transport.call<T>(command, { ...args, ...this.proxy() });
+      noteNetworkSuccess();
+      return value;
+    } catch (error) {
+      noteNetworkFailure(error);
+      throw error;
+    }
   }
 
   login(token: string): Promise<AniUser> {
@@ -108,6 +116,10 @@ export class AnilistApi {
 
   getAnimeById<T = AniMedia>(id: number): Promise<T> {
     return this.call("get_anime_by_id", { id });
+  }
+
+  getCacheStats(): Promise<{ hits: number; misses: number }> {
+    return this.call("get_anilist_cache_stats");
   }
 
   getAnimeTrailer(id: number): Promise<string | null> {

@@ -61,6 +61,8 @@ export default function UpscalePlayer({
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
+  const zoomSignature = JSON.stringify([resolution, selectedShaders, temporalDenoise]);
+  const lastZoomSignatureRef = useRef<string>(zoomSignature);
 
   const { t } = useI18n();
 
@@ -154,8 +156,10 @@ export default function UpscalePlayer({
   }, [activeItem?.status, onDone]);
 
   useEffect(() => {
+    if (lastZoomSignatureRef.current === zoomSignature) return;
+    lastZoomSignatureRef.current = zoomSignature;
     setZoomedIndex(null);
-  }, [resolution, selectedShaders, temporalDenoise]);
+  }, [zoomSignature]);
 
   const resetState = useCallback(() => {
     setActiveItemId(null);

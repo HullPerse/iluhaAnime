@@ -17,14 +17,14 @@ export function CalendarHeader({
 }) {
   const { t, locale } = useI18n();
   return (
-    <div className="mb-1 flex h-6 items-center justify-between px-1">
-      <Button onClick={onPrev} size="icon" className="size-6" aria-label={t("common.previous")}>
+    <div className="windows95-border bg-primary mb-1 flex h-7 items-center justify-between gap-1 p-0.5">
+      <Button onClick={onPrev} size="icon" className="size-5" aria-label={t("common.previous")}>
         <ChevronLeft className="size-3" />
       </Button>
       <span className="windows95-text text-xs font-bold">
         {monthLabel(month, locale, "long")} {year}
       </span>
-      <Button onClick={onNext} size="icon" className="size-6" aria-label={t("common.next")}>
+      <Button onClick={onNext} size="icon" className="size-5" aria-label={t("common.next")}>
         <ChevronRight className="size-3" />
       </Button>
     </div>

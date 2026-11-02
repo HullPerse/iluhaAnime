@@ -8,6 +8,7 @@ import { openStream } from "@/lib/player/playback.utils";
 import { attempt } from "@/lib/core/attempt.utils";
 import { toVariantSources } from "@/lib/search/sources.utils";
 import { buildWatchKey } from "@/lib/player/streamHelpers.utils";
+import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { isEpisodeWatched } from "@/lib/core/history.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
@@ -69,7 +70,11 @@ export function useStreamPlayer({
           resume,
           paused: true,
           headers: source.headers,
-          proxyUrl: settingsAtoms.animelibProxyUrl.get(),
+          proxyUrl: playbackProxyUrl(
+            source.variantId,
+            settingsAtoms.animelibProxyUrl.get(),
+            source.url
+          ),
           quality: source.label,
           variantId: source.variantId,
           sources: toVariantSources(sources),

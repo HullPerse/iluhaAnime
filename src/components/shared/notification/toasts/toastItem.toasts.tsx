@@ -79,7 +79,7 @@ export function ToastItem({
       setRemainingMs(left);
     }, COUNTDOWN_TICK_MS);
     return () => ticker.cancel();
-  }, [item.id, startExit]);
+  }, [startExit]);
 
   const pause = () => {
     if (pausedRef.current) return;

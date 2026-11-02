@@ -5,6 +5,7 @@ import { Download, Check, ChevronRight, RefreshCw, ScrollText, X } from "lucide-
 import { useState, type ReactNode } from "react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
+import { anilistApi } from "@/api/anilist.api";
 import { sqliteApi } from "@/api/sqlite.api";
 import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
@@ -19,7 +20,7 @@ import { formatBackupDate } from "@/lib/core/backup.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { attempt, attemptAll, reportBackgroundError, withFallback } from "@/lib/core/attempt.utils";
 import { formatBytes } from "@/lib/core/bytes.utils";
-import { pickDatabase, backupSize } from "@/lib/ui/summarySettings.utils";
+import { cacheRate, pickDatabase, backupSize } from "@/lib/ui/summarySettings.utils";
 import { showError, showInfo, showWarning } from "@/lib/core/notification.utils";
 import { buildReproFrontend } from "@/lib/core/repro.utils";
 import { searchAtoms } from "@/store/search.store";
@@ -38,10 +39,17 @@ interface RemoteImageStats {
   bytes: number;
 }
 
+interface CacheStats {
+  hits: number;
+  misses: number;
+}
+
 interface SummaryStorage {
   database: SqliteDatabaseInfo | null;
   backups: SqliteBackupInfo[];
   images: RemoteImageStats;
+  anilistCache: CacheStats;
+  videoCache: CacheStats;
 }
 
 export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void }) {
@@ -75,11 +83,21 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         bytes: 0,
         count: 0,
       })) ?? { bytes: 0, count: 0 };
-      return { backups, database, images };
+      const [anilistCache, videoCache] = await Promise.all([
+        withFallback(anilistApi.getCacheStats(), { hits: 0, misses: 0 }),
+        withFallback(systemApi.getVideoCacheStats(), { hits: 0, misses: 0 }),
+      ]);
+      return { anilistCache, backups, database, images, videoCache };
     },
     staleTime: 30_000,
   });
   const unknown = t("settings.summary.unknown");
+  const cacheValue = (stats: CacheStats): string =>
+    t("settings.summary.cacheValue", {
+      hits: stats.hits,
+      rate: cacheRate(stats),
+      total: stats.hits + stats.misses,
+    });
   const data = storage.data;
   const newestBackup = data?.backups[0] ?? null;
   const [collecting, setCollecting] = useState<boolean>(false);
@@ -263,6 +281,16 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
           busy={data === undefined}
           actionLabel={t("settings.summary.images.clear")}
           onAction={handleClearImages}
+        />
+        <SummaryRow
+          label={t("settings.summary.anilistCache")}
+          value={data === undefined ? "..." : cacheValue(data.anilistCache)}
+          busy={data === undefined}
+        />
+        <SummaryRow
+          label={t("settings.summary.videoCache")}
+          value={data === undefined ? "..." : cacheValue(data.videoCache)}
+          busy={data === undefined}
         />
       </SummarySection>
 

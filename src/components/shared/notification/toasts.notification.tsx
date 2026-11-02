@@ -32,8 +32,12 @@ export default function NotificationToasts() {
       setClosing(new Set());
       return;
     }
-    const fresh = items.filter((item) => !item.progress && !seen.has(item.id));
-    for (const item of fresh) seen.add(item.id);
+    const fresh = items.filter(
+      (item) => !item.progress && !item.silent && !seen.has(item.id)
+    );
+    for (const item of items) {
+      if (!item.progress) seen.add(item.id);
+    }
     setQueue((prev) => {
       const visible = new Set(items.filter((item) => !item.progress).map((item) => item.id));
       const kept = prev.filter((id) => visible.has(id));

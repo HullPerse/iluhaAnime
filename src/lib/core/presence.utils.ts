@@ -12,7 +12,8 @@ const MAX_BUTTON_LABEL_CHARS = 32;
 const MAX_URL_CHARS = 512;
 const WATCHING_TYPE = 3;
 
-export const PRESENCE_PROGRESS_INTERVAL_MS = 15_000;
+/** A timestamp anchor that moves further than this is a seek, not clock jitter. */
+export const PRESENCE_TIMESTAMP_TOLERANCE_MS = 1_500;
 
 interface PlayerCard {
   details: string;
@@ -90,17 +91,11 @@ export function buildPlayerActivity(
   });
 }
 
-export function samePresence(
-  previous: DiscordActivity | null,
-  next: DiscordActivity | null
-): boolean {
-  if (previous === next) return true;
-  if (!previous || !next) return false;
+/** Everything the card shows except the running clock. */
+export function samePresenceCard(previous: DiscordActivity, next: DiscordActivity): boolean {
   if (
     previous.details !== next.details ||
     previous.state !== next.state ||
-    previous.startTimestamp !== next.startTimestamp ||
-    previous.endTimestamp !== next.endTimestamp ||
     previous.activityType !== next.activityType
   ) {
     return false;
@@ -113,6 +108,41 @@ export function samePresence(
       (button, index) =>
         button.label === nextButtons[index].label && button.url === nextButtons[index].url
     )
+  );
+}
+
+/**
+ * True when the Discord clock has to be re-anchored: the player was paused or
+ * resumed, or the timeline jumped (seek, speed change, a corrected duration).
+ * A few milliseconds of snapshot jitter must not keep resetting the timer.
+ */
+export function presenceTimestampsDrifted(
+  previous: DiscordActivity,
+  next: DiscordActivity
+): boolean {
+  const previousStart = previous.startTimestamp;
+  const nextStart = next.startTimestamp;
+  if ((previousStart === undefined) !== (nextStart === undefined)) return true;
+  const previousEnd = previous.endTimestamp;
+  const nextEnd = next.endTimestamp;
+  if ((previousEnd === undefined) !== (nextEnd === undefined)) return true;
+  if (previousStart === undefined || nextStart === undefined) return false;
+  return (
+    Math.abs(nextStart - previousStart) >= PRESENCE_TIMESTAMP_TOLERANCE_MS ||
+    Math.abs((nextEnd ?? 0) - (previousEnd ?? 0)) >= PRESENCE_TIMESTAMP_TOLERANCE_MS
+  );
+}
+
+export function samePresence(
+  previous: DiscordActivity | null,
+  next: DiscordActivity | null
+): boolean {
+  if (previous === next) return true;
+  if (!previous || !next) return false;
+  return (
+    samePresenceCard(previous, next) &&
+    previous.startTimestamp === next.startTimestamp &&
+    previous.endTimestamp === next.endTimestamp
   );
 }
 

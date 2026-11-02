@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, OnceLock, PoisonError};
+use std::sync::{Arc, Mutex, OnceLock};
 use tokio::sync::RwLock;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -170,7 +170,7 @@ impl FileIndexer {
         let requested = Self::normalize_scan_threads(threads);
         let slot = POOL.get_or_init(|| Mutex::new(None));
         {
-            let current = slot.lock().unwrap_or_else(PoisonError::into_inner);
+            let current = crate::sync_utils::lock_or_recover(slot, "file scan thread pool");
             if let Some((size, pool)) = current.as_ref() {
                 if *size == requested {
                     return jwalk::Parallelism::RayonExistingPool {
@@ -192,7 +192,7 @@ impl FileIndexer {
         {
             Ok(pool) => {
                 let pool = Arc::new(pool);
-                let mut current = slot.lock().unwrap_or_else(PoisonError::into_inner);
+                let mut current = crate::sync_utils::lock_or_recover(slot, "file scan thread pool");
                 *current = Some((requested, Arc::clone(&pool)));
                 drop(current);
                 jwalk::Parallelism::RayonExistingPool {
@@ -221,9 +221,10 @@ impl FileIndexer {
     pub(crate) fn retry_scan_blocking<T>(
         mut run: impl FnMut() -> Result<T, String>,
     ) -> Result<T, String> {
-        let _guard = Self::scan_slot()
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let _guard = Self::scan_slot().lock().unwrap_or_else(|poisoned| {
+            tracing::warn!("file scan slot mutex was poisoned; recovering");
+            poisoned.into_inner()
+        });
         let mut attempt: u32 = 0;
         loop {
             match run() {

@@ -216,10 +216,7 @@ fn load_franchise_cache(app_handle: &AppHandle) {
             },
         );
     }
-    FRANCHISE_CACHE
-        .lock()
-        .expect("franchise cache mutex poisoned")
-        .extend(nodes);
+    crate::sync_utils::lock_or_recover(&FRANCHISE_CACHE, "franchise cache").extend(nodes);
     FRANCHISE_CACHE_LOADED.store(true, Ordering::Relaxed);
 }
 
@@ -796,7 +793,10 @@ pub async fn prefetch_anime_relations(
         let mut to_fetch: Vec<u64> = Vec::new();
         let mut cached_ids: HashSet<u64> = HashSet::new();
         for id in &batch {
-            let cached = FRANCHISE_CACHE.lock().ok().and_then(|g| g.get(id).cloned());
+            let cached = {
+                let cache = crate::sync_utils::lock_or_recover(&FRANCHISE_CACHE, "franchise cache");
+                cache.get(id).cloned()
+            };
             match cached {
                 Some(c) if is_fresh(&c) => {
                     skipped += 1;
@@ -1098,8 +1098,7 @@ mod tests {
     fn now_secs() -> i64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64
+            .map_or(0, |elapsed| elapsed.as_secs() as i64)
     }
 
     #[test]

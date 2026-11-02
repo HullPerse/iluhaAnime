@@ -25,6 +25,42 @@ import { settingsAtoms } from "@/store/settings.store";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { PlaylistWatch } from "@/types/player/videoPlayer";
 
+/**
+ * One mpv instance belongs to the player window, not to a React mount.
+ * StrictMode runs the session effect twice in development, and a window reload
+ * mounts it again, while the plugin's `init` is already idempotent. Caching the
+ * one-time setup keeps the second mount from applying the initial options twice
+ * and taking the pending open request twice (a duplicate `loadfile`).
+ */
+let sessionStart: Promise<void> | null = null;
+
+function startPlayerSession(initialOptions: Record<string, unknown>): Promise<void> {
+  if (sessionStart !== null) return sessionStart;
+
+  const started = (async () => {
+    const store = getPlayerSnapshot();
+    await initPlayer(initialOptions);
+    const batchProps: Record<string, unknown> = {
+      ...hdrOptions(store.settings),
+      ...colorOptions(store.settings),
+      ...audioOptions(store.settings),
+    };
+    const eofProps = EOF_MODE_MPV_PROPS[store.eofMode];
+    batchProps["keep-open"] = eofProps.keepOpen;
+    batchProps["loop-file"] = eofProps.loopFile;
+    batchProps["loop-playlist"] = eofProps.loopPlaylist;
+    await applyBatchProperties(batchProps).catch((error: unknown) =>
+      reportBackgroundError("player.init.batch", error)
+    );
+    await applyPlayerProfile(store.profile).catch((error: unknown) =>
+      reportBackgroundError("player.init.profile", error)
+    );
+  })();
+
+  sessionStart = started;
+  return started;
+}
+
 export function usePlayerSession({
   videoRef,
   syncMarginsRef,
@@ -54,7 +90,7 @@ export function usePlayerSession({
         window.innerHeight || 1,
         field ?? undefined
       );
-      await initPlayer({
+      await startPlayerSession({
         ...buildInitialOptions({
           volume: store.volume,
           hwdec: store.hwdec,
@@ -62,21 +98,6 @@ export function usePlayerSession({
         }),
         ...marginOptions(seedMargins),
       });
-      const batchProps: Record<string, unknown> = {
-        ...hdrOptions(store.settings),
-        ...colorOptions(store.settings),
-        ...audioOptions(store.settings),
-      };
-      const eofProps = EOF_MODE_MPV_PROPS[store.eofMode];
-      batchProps["keep-open"] = eofProps.keepOpen;
-      batchProps["loop-file"] = eofProps.loopFile;
-      batchProps["loop-playlist"] = eofProps.loopPlaylist;
-      await applyBatchProperties(batchProps).catch((error: unknown) =>
-        reportBackgroundError("player.init.batch", error)
-      );
-      await applyPlayerProfile(store.profile).catch((error: unknown) =>
-        reportBackgroundError("player.init.profile", error)
-      );
       if (disposed) return;
       syncMarginsRef.current();
       const request = await takePendingOpen();
@@ -94,6 +115,10 @@ export function usePlayerSession({
     };
 
     start().catch((error: unknown) => {
+      // A failed init must not leave a resolved/rejected cache behind: the next
+      // mount (or a retry) has to run the setup again.
+      sessionStart = null;
+      if (disposed) return;
       setFailed(true);
       addNotification(
         translate(settingsAtoms.language.get(), "player.media.error.title"),
@@ -106,6 +131,9 @@ export function usePlayerSession({
       disposed = true;
       destroyTaskRef.current = scheduleTask("timeout", 0, () => {
         destroyTaskRef.current = null;
+        // The instance is torn down with the window, so the next real mount
+        // has to initialize a fresh session instead of reusing this cache.
+        sessionStart = null;
         ignore(destroyPlayer());
       });
     };

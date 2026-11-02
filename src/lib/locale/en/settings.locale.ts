@@ -88,6 +88,9 @@ const settings = {
   "settings.summary.ffmpeg.missing": "not found",
   "settings.summary.help": "Help",
   "settings.summary.images": "Images",
+  "settings.summary.anilistCache": "AniList cache",
+  "settings.summary.videoCache": "ffprobe cache",
+  "settings.summary.cacheValue": "{{rate}}% · {{hits}} of {{total}}",
   "settings.summary.images.clear": "Clear",
   "settings.summary.images.confirm":
     "Clear the downloaded image cache? Images will re-download as you browse.",
@@ -488,7 +491,23 @@ const settings = {
   "settings.vim.mode.hint": "F - link hints, j/k/d/u - scroll. Player keeps its keys.",
   "settings.find.placeholder": "Find a setting (Ctrl+K)",
   "settings.proxy": "Proxy",
+  "settings.proxy.description":
+    "Proxies for integrations and sources. A check is never cancelled automatically; if it runs longer than {{seconds}}s, the indicator turns red.",
   "settings.proxy.invalid": "Invalid proxy address. Example: socks5://127.0.0.1:10808",
+  "settings.proxy.no": "No proxy",
+  "settings.proxy.custom": "Custom",
+  "settings.proxy.test.action": "Test connection",
+  "settings.proxy.test.cancel": "Cancel",
+  "settings.proxy.test.retest": "Test again",
+  "settings.proxy.test.running": "Testing... {{seconds}}s",
+  "settings.proxy.test.ok": "Reachable",
+  "settings.proxy.test.fail": "Failed",
+  "settings.proxy.torrent.title": "Torrent proxy",
+  "settings.proxy.torrent.description":
+    "SOCKS5 for peer connections and HTTP trackers. Applied to the current session when changed.",
+  "settings.proxy.sources.title": "Source proxies",
+  "settings.proxy.sources.description":
+    "A separate proxy for each search source. Test one source or all of them at once.",
   "settings.torrent.port.invalid": "Port must be a number from 0 to 65535",
   "settings.torrent.timeout.invalid": "Value must be from 1 to 3600",
   "settings.group.main": "Main",

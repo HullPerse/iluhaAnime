@@ -40,7 +40,7 @@ export function buildCalendarCells(
 
 export function calendarCellTone(isToday: boolean, isWeekend: boolean) {
   if (isToday) return "bg-secondary/10";
-  if (isWeekend) return "bg-surface/20";
+  if (isWeekend) return "bg-surface/40";
   return "bg-field";
 }
 

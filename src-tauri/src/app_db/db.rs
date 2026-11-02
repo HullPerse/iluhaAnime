@@ -115,7 +115,10 @@ pub fn lock_app_data_write_timeout(timeout: Duration) -> Result<MutexGuard<'stat
     loop {
         match mutex.try_lock() {
             Ok(guard) => return Ok(guard),
-            Err(std::sync::TryLockError::Poisoned(poisoned)) => return Ok(poisoned.into_inner()),
+            Err(std::sync::TryLockError::Poisoned(poisoned)) => {
+                tracing::warn!("app data write lock was poisoned; recovering");
+                return Ok(poisoned.into_inner());
+            }
             Err(std::sync::TryLockError::WouldBlock) => {
                 if Instant::now() >= deadline {
                     return Err(

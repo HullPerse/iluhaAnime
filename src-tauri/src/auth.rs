@@ -579,7 +579,7 @@ fn webview_proxy(proxy: Option<String>, source: &str) -> Result<Option<WebviewPr
 
 #[cfg(target_os = "windows")]
 fn remove_webview_proxy_auth(window: &tauri::WebviewWindow, slot: &Mutex<Option<i64>>) {
-    let token = slot.lock().ok().and_then(|mut stored| stored.take());
+    let token = crate::sync_utils::lock_or_recover(slot, "webview proxy token").take();
     let Some(token) = token else {
         return;
     };

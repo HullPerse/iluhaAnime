@@ -85,6 +85,28 @@ describe("StreamApi", () => {
     });
   });
 
+  it("warms the playback route without adding the catalog proxy", async () => {
+    patchSettings({ animelibProxyUrl: "socks5://127.0.0.1:10808" });
+    const { calls, transport } = fakeTransport(() => null);
+    const api = new StreamApi({
+      transport,
+      proxyUrl: () => settingsAtoms.animelibProxyUrl.get(),
+    });
+
+    await api.warm("https://cdn.example/720.m3u8", { Referer: "https://x/" }, null);
+
+    expect(calls).toEqual([
+      {
+        command: "stream_warm",
+        args: {
+          url: "https://cdn.example/720.m3u8",
+          headers: { Referer: "https://x/" },
+          proxyUrl: null,
+        },
+      },
+    ]);
+  });
+
   it("asks for a title and its episodes in one command", async () => {
     const { calls, transport } = fakeTransport(() => ({
       anime: { id: "11", title: "Naruto", slugUrl: "11--naruto-anime" },

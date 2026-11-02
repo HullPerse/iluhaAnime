@@ -762,17 +762,11 @@ impl TorrentManager {
     }
 
     fn file_order(&self) -> FileOrder {
-        *self
-            .file_order
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        *crate::sync_utils::read_or_recover(&self.file_order, "torrent file order")
     }
 
     fn set_file_order(&self, order: FileOrder) {
-        *self
-            .file_order
-            .write()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = order;
+        *crate::sync_utils::write_or_recover(&self.file_order, "torrent file order") = order;
     }
 
     pub fn listen_port(&self) -> Option<u16> {
@@ -2760,10 +2754,8 @@ impl TorrentManager {
     }
 
     fn save_hidden_paths(&self) {
-        let _guard = self
-            .hidden_paths_lock
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let _guard =
+            crate::sync_utils::lock_or_recover(&self.hidden_paths_lock, "torrent hidden paths");
         let map: HashMap<String, Vec<String>> = self
             .hidden_paths
             .iter()

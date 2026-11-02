@@ -38,7 +38,7 @@ export function StatsModalContent({
     );
   }
   if (tab === "released") {
-    return <StatsReleases onAnimeClick={onOpenDetail} />;
+    return <StatsReleases onAnimeClick={onOpenDetail} lists={lists} />;
   }
   if (selectedDay != null) {
     return (

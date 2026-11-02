@@ -26,7 +26,9 @@ describe("PlayerStatus", () => {
         failed={false}
         loading={false}
         hasNext={false}
+        streaming={false}
         onRestart={() => undefined}
+        onRetry={() => undefined}
         onNext={() => undefined}
         onClose={() => undefined}
       />
@@ -46,7 +48,9 @@ describe("PlayerStatus", () => {
         failed
         loading={false}
         hasNext={false}
+        streaming={false}
         onRestart={() => undefined}
+        onRetry={() => undefined}
         onNext={() => undefined}
         onClose={() => undefined}
       />
@@ -65,7 +69,9 @@ describe("PlayerStatus", () => {
         failed={false}
         loading
         hasNext
+        streaming={false}
         onRestart={() => undefined}
+        onRetry={() => undefined}
         onNext={() => undefined}
         onClose={() => undefined}
       />
@@ -83,7 +89,9 @@ describe("PlayerStatus", () => {
         failed
         loading
         hasNext={false}
+        streaming={false}
         onRestart={() => undefined}
+        onRetry={() => undefined}
         onNext={() => undefined}
         onClose={() => undefined}
       />

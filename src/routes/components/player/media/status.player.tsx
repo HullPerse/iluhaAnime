@@ -8,7 +8,9 @@ function PlayerStatus({
   failed,
   loading,
   hasNext,
+  streaming,
   onRestart,
+  onRetry,
   onNext,
   onClose,
 }: {
@@ -18,7 +20,9 @@ function PlayerStatus({
   failed: boolean;
   loading: boolean;
   hasNext: boolean;
+  streaming: boolean;
   onRestart: () => void;
+  onRetry: () => void;
   onNext: () => void;
   onClose: () => void;
 }) {
@@ -30,10 +34,17 @@ function PlayerStatus({
         <span className="windows95-text text-sm font-bold text-white">
           {t("player.media.error.title")}
         </span>
-        <span className="windows95-text text-xs text-white">{t("player.media.error.hint")}</span>
-        <Button className="h-auto px-2 py-1 text-xs" onClick={onClose}>
-          {t("player.media.panel.close")}
-        </Button>
+        <span className="windows95-text text-xs text-white">
+          {t(streaming ? "player.media.error.hint.stream" : "player.media.error.hint")}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button className="h-auto px-2 py-1 text-xs" onClick={onRetry}>
+            {t("player.media.error.retry")}
+          </Button>
+          <Button className="h-auto px-2 py-1 text-xs" onClick={onClose}>
+            {t("player.media.panel.close")}
+          </Button>
+        </div>
       </div>
     );
   }

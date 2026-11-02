@@ -5,7 +5,7 @@ import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { discordApi } from "@/api/discord.api";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { PRESENCE_PROGRESS_INTERVAL_MS } from "@/lib/core/presence.utils";
+import type { DiscordActivity } from "@/types/core/discord";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
 vi.mock("@/api/discord.api", () => ({
@@ -145,10 +145,85 @@ describe("usePlayerDiscordPresence", () => {
     act(() => {
       playbackAtoms.hasFile.set(false);
     });
-    act(() => {
-      vi.advanceTimersByTime(PRESENCE_PROGRESS_INTERVAL_MS);
-    });
     expect(discordApi.clear).toHaveBeenCalledWith("player");
+    expect(discordApi.set).toHaveBeenCalledTimes(1);
+  });
+
+  it("publishes the current card as soon as the setting is enabled", () => {
+    settingsAtoms.parseTitlesPlayer.set(true);
+    playbackAtoms.path.set("C:/Anime/Frieren.mkv");
+    playbackAtoms.hasFile.set(true);
+    playbackAtoms.paused.set(true);
+    renderHook(() => usePlayerDiscordPresence());
+    expect(discordApi.set).not.toHaveBeenCalled();
+
+    act(() => {
+      settingsAtoms.discordRpcEnabled.set(true);
+    });
+    expect(discordApi.set).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(discordApi.set).mock.calls[0]?.[1]).toMatchObject({
+      details: "Frieren",
+      state: "discord.player.paused",
+    });
+  });
+
+  it("pushes a pause immediately instead of leaving the old clock running", () => {
+    settingsAtoms.discordRpcEnabled.set(true);
+    settingsAtoms.parseTitlesPlayer.set(true);
+    playbackAtoms.path.set("C:/Anime/Frieren.mkv");
+    playbackAtoms.hasFile.set(true);
+    playbackAtoms.duration.set(1440);
+    playbackAtoms.timePos.set(25);
+    playbackAtoms.paused.set(false);
+    renderHook(() => usePlayerDiscordPresence());
+    const playing = vi.mocked(discordApi.set).mock.calls[0]?.[1] as
+      | DiscordActivity
+      | undefined;
+    expect(playing?.startTimestamp).toBeTypeOf("number");
+
+    act(() => {
+      playbackAtoms.paused.set(true);
+    });
+    const paused = vi.mocked(discordApi.set).mock.calls.at(-1)?.[1] as
+      | DiscordActivity
+      | undefined;
+    expect(paused?.state).toBe("discord.player.paused");
+    expect(paused?.startTimestamp).toBeUndefined();
+    expect(paused?.endTimestamp).toBeUndefined();
+  });
+
+  it("re-anchors the clock after a seek", () => {
+    settingsAtoms.discordRpcEnabled.set(true);
+    playbackAtoms.path.set("C:/Anime/Frieren.mkv");
+    playbackAtoms.hasFile.set(true);
+    playbackAtoms.duration.set(1440);
+    playbackAtoms.timePos.set(120);
+    playbackAtoms.paused.set(false);
+    renderHook(() => usePlayerDiscordPresence());
+    const first = vi.mocked(discordApi.set).mock.calls[0]?.[1] as DiscordActivity | undefined;
+
+    act(() => {
+      playbackAtoms.timePos.set(600);
+    });
+    const seeked = vi.mocked(discordApi.set).mock.calls.at(-1)?.[1] as
+      | DiscordActivity
+      | undefined;
+    expect(discordApi.set).toHaveBeenCalledTimes(2);
+    expect((first?.startTimestamp ?? 0) - (seeked?.startTimestamp ?? 0)).toBeGreaterThan(400_000);
+  });
+
+  it("does not resend the card for a small progress tick", () => {
+    settingsAtoms.discordRpcEnabled.set(true);
+    playbackAtoms.path.set("C:/Anime/Frieren.mkv");
+    playbackAtoms.hasFile.set(true);
+    playbackAtoms.duration.set(1440);
+    playbackAtoms.timePos.set(120);
+    playbackAtoms.paused.set(false);
+    renderHook(() => usePlayerDiscordPresence());
+
+    act(() => {
+      playbackAtoms.timePos.set(120.2);
+    });
     expect(discordApi.set).toHaveBeenCalledTimes(1);
   });
 

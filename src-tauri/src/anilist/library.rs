@@ -9,9 +9,9 @@ use serde::Serialize;
 use super::auth::{load_token, optional_token};
 use super::client::graphql_request;
 use super::media::{
-    media_detail_selection, parse_animedia, AniAnimeStaffEdge, AniCharacterDetail,
-    AniCharacterEdge, AniCharacterMediaEdge, AniCharacterNode, AniMedia, AniStaffCharacterEdge,
-    AniStaffDetail, AniStaffMediaEdge, AniVoiceActor,
+    cached_media_json, media_detail_selection, parse_animedia, store_media_json, AniAnimeStaffEdge,
+    AniCharacterDetail, AniCharacterEdge, AniCharacterMediaEdge, AniCharacterNode, AniMedia,
+    AniStaffCharacterEdge, AniStaffDetail, AniStaffMediaEdge, AniVoiceActor, MEDIA_CACHE_DETAIL,
 };
 use crate::scrapers::clients::resolve_proxy;
 
@@ -1112,6 +1112,24 @@ pub struct AniAnimeFull {
     pub recommendations: Vec<AniRecommendation>,
 }
 
+fn parse_anime_full(m: &serde_json::Value) -> AniAnimeFull {
+    AniAnimeFull {
+        media: parse_animedia(m),
+        characters: m["characters"]["edges"]
+            .as_array()
+            .map(|edges| parse_character_edges(edges))
+            .unwrap_or_default(),
+        staff: m["staff"]["edges"]
+            .as_array()
+            .map(|edges| parse_anime_staff_edges(edges))
+            .unwrap_or_default(),
+        recommendations: m["recommendations"]["nodes"]
+            .as_array()
+            .map(|nodes| parse_recommendation_nodes(nodes))
+            .unwrap_or_default(),
+    }
+}
+
 fn parse_recommendation_nodes(nodes: &[serde_json::Value]) -> Vec<AniRecommendation> {
     let mut seen = std::collections::HashSet::new();
     nodes
@@ -1147,6 +1165,9 @@ pub async fn get_anime_full(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<AniAnimeFull, String> {
+    if let Some(cached) = cached_media_json(&app_handle, MEDIA_CACHE_DETAIL, id) {
+        return Ok(parse_anime_full(&cached));
+    }
     let body = serde_json::json!({
         "query": anime_full_query(),
         "variables": { "id": id }
@@ -1158,21 +1179,8 @@ pub async fn get_anime_full(
     if m.is_null() {
         return Err(format!("Anime with id {id} not found"));
     }
-    Ok(AniAnimeFull {
-        media: parse_animedia(m),
-        characters: m["characters"]["edges"]
-            .as_array()
-            .map(|edges| parse_character_edges(edges))
-            .unwrap_or_default(),
-        staff: m["staff"]["edges"]
-            .as_array()
-            .map(|edges| parse_anime_staff_edges(edges))
-            .unwrap_or_default(),
-        recommendations: m["recommendations"]["nodes"]
-            .as_array()
-            .map(|nodes| parse_recommendation_nodes(nodes))
-            .unwrap_or_default(),
-    })
+    store_media_json(&app_handle, MEDIA_CACHE_DETAIL, id, m);
+    Ok(parse_anime_full(m))
 }
 
 /// One streaming episode row AniList keeps for a title. The thumbnail is the

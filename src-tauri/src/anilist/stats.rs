@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::auth::load_token;
 use super::client::graphql_request;
@@ -7,20 +7,20 @@ use crate::scrapers::clients::resolve_proxy;
 const GENRE_LIMIT: u32 = 30;
 const STUDIO_LIMIT: u32 = 20;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AniListStatusStatistic {
     pub status: String,
     pub count: i64,
     pub minutes_watched: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AniListScoreStatistic {
     pub score: i64,
     pub count: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AniListFormatStatistic {
     pub format: String,
     pub count: i64,
@@ -29,7 +29,7 @@ pub struct AniListFormatStatistic {
     pub media_ids: Vec<i64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AniListYearStatistic {
     pub year: i64,
     pub count: i64,
@@ -38,7 +38,7 @@ pub struct AniListYearStatistic {
     pub media_ids: Vec<i64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AniListGenreStatistic {
     pub genre: String,
     pub count: i64,
@@ -47,7 +47,7 @@ pub struct AniListGenreStatistic {
     pub media_ids: Vec<i64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AniListStudioStatistic {
     pub id: i64,
     pub name: String,
@@ -57,7 +57,7 @@ pub struct AniListStudioStatistic {
     pub media_ids: Vec<i64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AniListStatistics {
     pub count: i64,
     pub mean_score: f64,
@@ -244,6 +244,13 @@ pub fn parse_statistics(value: &serde_json::Value) -> Result<AniListStatistics, 
     })
 }
 
+/// The statistics screen is read-only and changes slowly, so a short cache is
+/// safe. It also matters because the AniList edge can answer in tens of
+/// seconds (or time out) on some routes: reopening the tab must not repeat
+/// that wait.
+const STATS_CACHE_NAMESPACE: &str = "anilist_stats";
+const STATS_CACHE_TTL_SECS: i64 = 10 * 60;
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_anilist_statistics(
@@ -252,10 +259,30 @@ pub async fn get_anilist_statistics(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<AniListStatistics, String> {
+    let cache_key = format!("user:{user_id}");
+    if let Ok(Some(payload)) =
+        crate::app_db::read_cached_payload(&app_handle, STATS_CACHE_NAMESPACE, &cache_key)
+    {
+        if let Ok(statistics) = serde_json::from_str::<AniListStatistics>(&payload) {
+            return Ok(statistics);
+        }
+    }
+
     let token = load_token(&app_handle)?;
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(statistics_body(user_id), Some(&token), proxy.as_deref()).await?;
-    parse_statistics(&json)
+    let statistics = parse_statistics(&json)?;
+    if let Ok(payload) = serde_json::to_string(&statistics) {
+        // Best effort: a slow or locked cache must never fail the screen.
+        let _ = crate::app_db::put_app_cache(
+            app_handle,
+            STATS_CACHE_NAMESPACE.to_string(),
+            cache_key,
+            payload,
+            Some(STATS_CACHE_TTL_SECS),
+        );
+    }
+    Ok(statistics)
 }
 
 #[cfg(test)]

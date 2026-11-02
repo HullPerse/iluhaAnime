@@ -1,5 +1,3 @@
-import { formatClock } from "@/lib/core/time.utils";
-import type { TFunc } from "@/types/core/i18n";
 import type { MpvChapter } from "@/types/player/videoPlayer";
 import type { BufferedSpan } from "@/types/player/timeline";
 
@@ -22,19 +20,6 @@ export function bufferedSpan(
   const end = clamp01((cacheEnd ?? timePos + (cacheDuration ?? 0)) / duration) * duration;
   if (!(end - start > SPAN_EPSILON)) return null;
   return { start, end };
-}
-
-export function bufferedHintText(
-  translate: TFunc,
-  span: BufferedSpan | null,
-  hoverTime: number | undefined,
-  streaming: boolean
-): string | null {
-  if (!streaming || hoverTime === undefined) return null;
-  if (span !== null && isBuffered(span, hoverTime)) {
-    return translate("player.media.timeline.buffered.to", { time: formatClock(span.end) });
-  }
-  return translate("player.media.timeline.buffered.pending");
 }
 
 export function isBuffered(span: BufferedSpan | null, time: number): boolean {

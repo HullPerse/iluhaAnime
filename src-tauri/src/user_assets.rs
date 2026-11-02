@@ -452,27 +452,24 @@ fn ensure_thumb(
     let generation_key = format!("{}::{}", dir.display(), id);
     let token = tokio_util::sync::CancellationToken::new();
     {
-        let mut guard = THUMB_GENERATION
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut guard =
+            crate::sync_utils::lock_or_recover(&THUMB_GENERATION, "thumbnail generations");
         if let Some(existing) = guard.get(&generation_key) {
             existing.cancel();
         }
         guard.insert(generation_key.clone(), token.clone());
     }
     let Some(thumb) = make_thumb336_with_cancel(orig_bytes, &token) else {
-        let mut guard = THUMB_GENERATION
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut guard =
+            crate::sync_utils::lock_or_recover(&THUMB_GENERATION, "thumbnail generations");
         if guard.get(&generation_key) == Some(&token) {
             guard.remove(&generation_key);
         }
         return;
     };
     {
-        let mut guard = THUMB_GENERATION
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut guard =
+            crate::sync_utils::lock_or_recover(&THUMB_GENERATION, "thumbnail generations");
         if guard.get(&generation_key) == Some(&token) {
             guard.remove(&generation_key);
         }

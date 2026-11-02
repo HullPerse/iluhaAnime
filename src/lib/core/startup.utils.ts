@@ -8,7 +8,7 @@ import { invokeTyped } from "@/lib/core/invoke.utils";
  * relative to the webview performance origin, matching `performance.now()`.
  */
 
-export interface StartupMark {
+interface StartupMark {
   label: string;
   ms: number;
 }
@@ -21,19 +21,12 @@ export function markStartup(label: string): void {
   marks.push({ label, ms: Math.round(performance.now() * 10) / 10 });
 }
 
-export function startupMarks(): StartupMark[] {
+function startupMarks(): StartupMark[] {
   return [...marks];
 }
 
-/** Sends the webview timeline once; repeated calls are ignored. */
 export function reportStartup(): void {
   if (reported) return;
   reported = true;
   invokeTyped("report_startup", { marks: startupMarks() }).catch(() => undefined);
-}
-
-/** Test seam: clears the collected marks and the one-shot flag. */
-export function resetStartupMarks(): void {
-  marks.length = 0;
-  reported = false;
 }

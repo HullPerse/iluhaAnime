@@ -1,54 +1,53 @@
-import { DEFAULT_WALLPAPER_FILTERS } from "@/config/settings/settingsDefaults.config";
+import * as z from "zod/mini";
+
 import type { TranslationKey } from "@/types/core/i18n";
 import type { WallpaperDisplayFilters, WallpaperShadowSides } from "@/types/ui/settings";
+import data from "./wallpaper.data.json";
 
-export const WALLPAPER_MAX_DPR = 2;
-export const WALLPAPER_LOAD_RETRIES = 2;
+const FiltersSchema = z.object({
+  blur: z.number(),
+  brightness: z.number(),
+  contrast: z.number(),
+  opacity: z.number(),
+  saturate: z.number(),
+});
 
-export const WALLPAPER_SHADOW_SIDE_KEYS: readonly (keyof WallpaperShadowSides)[] = [
-  "top",
-  "right",
-  "bottom",
-  "left",
-];
+const PresetSchema = z.object({
+  filters: FiltersSchema,
+  id: z.string(),
+  label: z.string(),
+});
 
-export const WALLPAPER_DISPLAY_PRESETS: readonly {
+const SliderSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  max: z.number(),
+  min: z.number(),
+  step: z.number(),
+});
+
+const WallpaperDataSchema = z.object({
+  WALLPAPER_DISPLAY_PRESETS: z.array(PresetSchema),
+  WALLPAPER_DISPLAY_SLIDERS: z.array(SliderSchema),
+  WALLPAPER_LOAD_RETRIES: z.number(),
+  WALLPAPER_MAX_DPR: z.number(),
+  WALLPAPER_SHADOW_SIDE_KEYS: z.array(z.string()),
+});
+
+const parsed = WallpaperDataSchema.parse(data);
+
+export const WALLPAPER_MAX_DPR = parsed.WALLPAPER_MAX_DPR;
+export const WALLPAPER_LOAD_RETRIES = parsed.WALLPAPER_LOAD_RETRIES;
+export const WALLPAPER_SHADOW_SIDE_KEYS = parsed.WALLPAPER_SHADOW_SIDE_KEYS as readonly (keyof WallpaperShadowSides)[];
+export const WALLPAPER_DISPLAY_PRESETS = parsed.WALLPAPER_DISPLAY_PRESETS as readonly {
   id: string;
   label: TranslationKey;
   filters: WallpaperDisplayFilters;
-}[] = [
-  {
-    id: "normal",
-    label: "search.dither.display.preset.normal",
-    filters: { ...DEFAULT_WALLPAPER_FILTERS },
-  },
-  {
-    id: "dark",
-    label: "search.dither.display.preset.dark",
-    filters: { brightness: 55, contrast: 100, saturate: 90, blur: 0, opacity: 100 },
-  },
-  {
-    id: "bright",
-    label: "search.dither.display.preset.bright",
-    filters: { brightness: 95, contrast: 110, saturate: 120, blur: 0, opacity: 100 },
-  },
-  {
-    id: "focus",
-    label: "search.dither.display.preset.focus",
-    filters: { brightness: 75, contrast: 100, saturate: 100, blur: 6, opacity: 100 },
-  },
-];
-
-export const WALLPAPER_DISPLAY_SLIDERS: readonly {
+}[];
+export const WALLPAPER_DISPLAY_SLIDERS = parsed.WALLPAPER_DISPLAY_SLIDERS as readonly {
   key: keyof WallpaperDisplayFilters;
   label: TranslationKey;
   min: number;
   max: number;
   step: number;
-}[] = [
-  { key: "brightness", label: "search.dither.display.brightness", min: 0, max: 200, step: 5 },
-  { key: "contrast", label: "search.dither.display.contrast", min: 0, max: 200, step: 5 },
-  { key: "saturate", label: "search.dither.display.saturate", min: 0, max: 200, step: 5 },
-  { key: "blur", label: "search.dither.display.blur", min: 0, max: 20, step: 1 },
-  { key: "opacity", label: "search.dither.display.opacity", min: 0, max: 100, step: 5 },
-];
+}[];

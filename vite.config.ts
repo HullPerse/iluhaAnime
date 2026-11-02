@@ -1,5 +1,5 @@
-import { readdir, stat } from "node:fs/promises";
-import { resolve, join } from "node:path";
+import { readdir, stat, readFile } from "node:fs/promises";
+import { resolve, join, basename } from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -55,6 +55,31 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    {
+      name: "config-dev-override",
+      apply: "serve",
+      async load(id) {
+        if (!id.endsWith(".data.json")) return null;
+        const overridePath = resolve(import.meta.dirname, "config.local.json");
+        let overrides: Record<string, Record<string, unknown>> = {};
+        try {
+          overrides = JSON.parse(await readFile(overridePath, "utf-8"));
+        } catch {
+          return null;
+        }
+        const base = basename(id);
+        const fileOverride = overrides[base];
+        if (!fileOverride || typeof fileOverride !== "object") return null;
+        let original: Record<string, unknown>;
+        try {
+          original = JSON.parse(await readFile(id, "utf-8"));
+        } catch {
+          return null;
+        }
+        const merged = { ...original, ...fileOverride };
+        return `export default ${JSON.stringify(merged)}`;
+      },
+    },
     {
       name: "icon-sprite",
       apply: "build",

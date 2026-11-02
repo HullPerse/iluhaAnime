@@ -1,27 +1,19 @@
-import type { TagToleranceKey } from "@/types/search/search";
+import * as z from "zod/mini";
 
-export const TAG_NUMERIC_KEYS: TagToleranceKey[] = ["year", "rating", "episodes", "progress"];
-export const TAG_NUMERIC_SET = new Set<string>(TAG_NUMERIC_KEYS);
+import data from "./tags.data.json";
 
-export const TAG_DEFAULT_VALUE_BY_KEY: Record<string, string> = {
-  rating: "8",
-  year: "2000",
-};
+const TagsDataSchema = z.object({
+  TAG_DEFAULT_VALUE_BY_KEY: z.record(z.string(), z.string()),
+  TAG_EXAMPLE_BY_KEY: z.record(z.string(), z.string()),
+  TAG_NUMERIC_KEYS: z.array(z.string()),
+  TAG_NUMERIC_SET: z.array(z.string()),
+  TAG_OPS_BY_KEY: z.record(z.string(), z.string()),
+});
 
-export const TAG_EXAMPLE_BY_KEY: Record<string, string> = {
-  date: 'date="31.01.2025"',
-  sort: "sort=rating:desc",
-  studio: "studio=mappa|ufotable",
-  genre: "genre=action|drama",
-  type: "type=anime|movie",
-  status: "status=watching|planned",
-  priority: "priority=high|normal",
-  provider: "provider=anilist|tmdb",
-  source: "source=tmdb|custom",
-  tag: "tag=fantasy|romance",
-};
+const parsed = TagsDataSchema.parse(data);
 
-export const TAG_OPS_BY_KEY: Record<string, string> = {
-  date: "=, !=, >, <, >=, <=",
-  sort: "=",
-};
+export const TAG_NUMERIC_KEYS = parsed.TAG_NUMERIC_KEYS as ("year" | "rating" | "episodes" | "progress")[];
+export const TAG_NUMERIC_SET = new Set<string>(parsed.TAG_NUMERIC_SET);
+export const TAG_DEFAULT_VALUE_BY_KEY = parsed.TAG_DEFAULT_VALUE_BY_KEY as Record<string, string>;
+export const TAG_EXAMPLE_BY_KEY = parsed.TAG_EXAMPLE_BY_KEY as Record<string, string>;
+export const TAG_OPS_BY_KEY = parsed.TAG_OPS_BY_KEY as Record<string, string>;

@@ -1,0 +1,1896 @@
+{
+  "changelog": [
+    {
+      "version": "5.0.0",
+      "added": [
+        {
+          "key": "changelog.5_0_0.added.player.native_player",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.profiles",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.osd",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.eof",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.categories",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.playlist_dnd",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.neighbor_preview",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.clean_frame",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.modern",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.dashboard",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.export_file",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.bulk",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.new_files",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.speed_schedule",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.picker_seeders",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.release_age",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.rename",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.update_check",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.external_watch",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.duplicate_guard",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.problem_headlines",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.hotkeys",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.theme_schedule",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.title_toggles",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.search.query_tags",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.added.search.filter_presets",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.added.search.did_you_mean",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.added.search.exact_match",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.compare_clicks",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.activity_likes",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.notes_lists",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.released_tab",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.site_notifications",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.progress_stepper",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.title_language",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.notification_toggles",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.status_matrix",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.site_toasts",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.health",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.update_toast",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.task_toasts",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.activity_detail",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.local_filters",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.entry_fields",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.activity_scores",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.airing_schedule",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.progress_style",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.progress_colors",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.theme_overlays",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.anilist_theme",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.theme_card_variants",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.theme_customization",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.theme_patch_files",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.theme_pack_extends",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.search.result_covers",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.added.search.details_image",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.erai_proxy_login",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.webview_proxy",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.torrents.file_icons",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.repro_bundle",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.keybinds",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.file_constraints",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.live_playlist",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.watcher_delay",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.scan_threads",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.fatal_bsod",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.splash",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.fast_launch",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.db_gate",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.theme_boots",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.find",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.tab_urls",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.not_found_page",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.vim",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.window_keys",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.folder_resize",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.file_menu",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.keybind_titles",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.chapter_keys",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.focus_main",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.esc_blur",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.page_find",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.inapp_toasts",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.game.ui",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.view_modes",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.search.details_gallery",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.detail_width",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.screen_modes",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.player.screen_cabinet",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.modal_motion",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.anilist.stat_charts",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.added.settings.animations",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.remember_last_tab",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.added.streaming.catalog",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_0_0.added.streaming.sources",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_0_0.added.streaming.player",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_0_0.added.streaming.account",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_0_0.added.streaming.history",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_0_0.added.app.discord_presence",
+          "scope": "app"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_0_0.changed.anilist.batch_fetch",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.learning_persist",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.app.folder_scan",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.watch_parity",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.torrents.metadata_timeout",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.stats_tabs",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.toolbar",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.more_menu",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.nsfw",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.pager",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.session_timeout",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.open_perf",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.filename_parser",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.torrents.instant_remove",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.changed.app.hotkeys_registry",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.pacing",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.spell_menu",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.progress_blocks",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.settings.theme_cleanup",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.changed.settings.theme_first_paint",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.input_latency",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.collection.filter_worker",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.scan_batch",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.stepper",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.title_arc",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.result_card",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.details_modal",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.cover_cache",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.anime_index",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.source_order",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.settings.yorha_canon",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.changed.torrents.speed_graph",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.changed.torrents.filter_hint",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.dither_engine",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.search.dither_presets",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.modal_back",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.person_inline",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.upscale.preview_zoom",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.5_0_0.changed.collection.confirm_inline",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.panel_slot",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.app.updater_defer",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.changed.app.button_loading",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.changed.app.hints_trim",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.changed.app.popups_off_default",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.detail_prefetch",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.detail_requests",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.custom_lists_guest",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.transform_removed",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.folder_new_files",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.game.secret_toggle",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.seek_keys",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.buffer",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.friend_compare",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.settings.summary",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.changed.upscale.preview_keep",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.similar_rail",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.torrents.queue_modal",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.franchise",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.detail_titlebar",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.stats_day_title",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.anilist.recommendations_exclude_watched",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.changed.player.chapter_snap",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.changed.app.splash_pace",
+          "scope": "app"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_0_0.fixed.anilist.save_casing",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.torrents.infohash_casing",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.track_switch",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.resume_jump",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.remaining_toggle",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.app.scan_db_locked",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.search.base_title",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.search.release_names",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.search.learning_write",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.video_margins",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.scan_busy",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.torrents.magnet_source",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.prev_button",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.search.wallpaper_loader",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.collection.import_lock",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.search.socks_remote_dns",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.flat_folder",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.anilist.progress_partial",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.anilist.studio_dupes",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.anilist.save_400",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.anilist.deeplink_stack",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.search.wallpaper_placeholder",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.settings.layout_overflow",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.app.vim_combobox",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.settings_panel",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.search.modern_spinner",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.torrents.queue_scroll",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.player.torrent_pending",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_0_0.fixed.app.resize_observer_crash",
+          "scope": "app"
+        }
+      ]
+    },
+    {
+      "version": "4.1.3",
+      "added": [
+        {
+          "key": "changelog.4_1_3.added.offline_mode",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_3.added.airing_countdown",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_3.added.old_entry_date",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_3.added.friend_compare",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_3.added.franchise_focus",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_3.added.anilist_loader_timer",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_3.added.favourites_tabs",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_3.added.friends_import",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_3.added.random_discovery",
+          "scope": "anilist"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_1_3.changed.sqlite_console_removed",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_1_3.changed.sequential_off_empty",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_3.changed.indicator_heights",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_3.changed.tabs_tray",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_3.changed.query_system",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_3.changed.activity_calendar",
+          "scope": "anilist"
+        }
+      ],
+      "fixed": []
+    },
+    {
+      "version": "4.1.2",
+      "added": [
+        {
+          "key": "changelog.4_1_2.added.collection_operators",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_1_2.added.screenshots_save",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_2.added.score_formats",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_2.added.franchise_status",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_2.added.wizard_dropdown",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_1_2.added.wizard_save_loader",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_1_2.added.rutracker_proxy_login",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_2.added.score_origin_hint",
+          "scope": "collection"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_1_2.changed.color_presets",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_1_2.changed.suggestion_perf",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_1_2.changed.friend_status_square",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_2.changed.rutracker_cookies",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_2.changed.score_hint",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_2.changed.friends_scores_batch",
+          "scope": "anilist"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_1_2.fixed.tmdb_key_save",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_1_2.fixed.tmdb_covers",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_1_2.fixed.wizard_cover_lookup",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_1_2.fixed.tmdb_metadata",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_1_2.fixed.mean_score_format",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_2.fixed.quickadd_score_format",
+          "scope": "anilist"
+        }
+      ]
+    },
+    {
+      "version": "4.1.1",
+      "added": [
+        {
+          "key": "changelog.4_1_1.added.smart_resume",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.paused_watch",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.paused_changed_names",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.paused_recheck",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.tray",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_1.added.native_toasts",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_1.added.notification_targets",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_1.added.file_order_setting",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.torrent_queue",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.torrent_queue_drag",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.torrent_proxy",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.added.screenshots",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_1.added.screenshot_draw",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_1.added.screenshot_modal",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_1.added.browser_login",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_1.added.friend_comments",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_1.added.friend_rewatch",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_1.added.list_comment",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_1.added.search_operators",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_1_1.added.app_site",
+          "scope": "app"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_1_1.changed.resume_notice",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.changed.rewrite_ghost",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.changed.file_selection",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.changed.bulk_buttons",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.changed.errors_recheck",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.changed.recreate_confirm",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_1.changed.torrent_speed",
+          "scope": "torrents"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_1_1.fixed.tray_restore",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_1.fixed.text_cursor",
+          "scope": "app"
+        }
+      ]
+    },
+    {
+      "version": "4.1.0",
+      "added": [
+        {
+          "key": "changelog.4_1_0.added.torrent_create",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.added.torrent_create_link",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.added.torrent_select",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.added.torrent_missing",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.added.overlay_escape",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_0.added.host_bars",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_1_0.added.color_picker",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_1_0.added.animated_counters",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_1_0.added.characters_window",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.added.character_cards",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.added.character_tiles",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.added.voice_actor_preview",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.added.friends_preview",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.added.detail_posters",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.added.torrent_queue",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.added.torrent_queue_drag",
+          "scope": "torrents"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_1_0.changed.file_selection",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.changed.bulk_buttons",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.changed.errors_recheck",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.changed.recreate_confirm",
+          "scope": "torrents"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_1_0.fixed.tracker_ipc",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_1_0.fixed.anilist_pages",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.fixed.staff_flash",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.fixed.detail_paging",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.fixed.staff_profile",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_1_0.fixed.staff_paging",
+          "scope": "anilist"
+        }
+      ]
+    },
+    {
+      "version": "4.0.9",
+      "added": [
+        {
+          "key": "changelog.4_0_9.added.peers_modal",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.added.peer_table",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.added.peer_flags",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.added.trackers_edit",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.added.copy_app_link",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.added.queue_order",
+          "scope": "torrents"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_0_9.changed.engine",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.changed.limits_button",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.changed.parse_cache",
+          "scope": "player"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_0_9.fixed.tracker_rewrite",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.fixed.list_refresh",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.fixed.sequential_toggle",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.fixed.queue_move",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_9.fixed.cover_fallback",
+          "scope": "collection"
+        }
+      ]
+    },
+    {
+      "version": "4.0.8",
+      "added": [],
+      "changed": [],
+      "fixed": [
+        {
+          "key": "changelog.4_0_8.fixed.covers_build",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_8.fixed.open_local",
+          "scope": "collection"
+        }
+      ]
+    },
+    {
+      "version": "4.0.7",
+      "added": [],
+      "changed": [],
+      "fixed": [
+        {
+          "key": "changelog.4_0_7.fixed.titlebar_startup",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_7.fixed.changelog_latest",
+          "scope": "settings"
+        }
+      ]
+    },
+    {
+      "version": "4.0.6",
+      "added": [
+        {
+          "key": "changelog.4_0_6.added.custom_titlebar",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_6.added.statusbar_toggle",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_6.added.rounded_corners",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_6.added.window_effects",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_6.added.new_themes",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_6.added.platform_themes",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_6.added.yorha_grid",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_6.added.theme_editor_palette",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_6.added.observer_mascot",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_6.added.dither_ascii",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_6.added.dither_violet",
+          "scope": "search"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_0_6.changed.theme_tokens",
+          "scope": "settings"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_0_6.fixed.grouped_dedupe",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_6.fixed.theme_contrast",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_6.fixed.theme_palette_build",
+          "scope": "settings"
+        }
+      ]
+    },
+    {
+      "version": "4.0.5",
+      "added": [
+        {
+          "key": "changelog.4_0_5.added.list_sort_keys",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_5.added.grouped_lists",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_5.added.all_tab",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_5.added.aired_badge",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_5.added.friend_view",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_5.added.card_dates",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_5.added.share_links",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_5.added.paste_anywhere",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_5.added.paste_magnet",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_5.added.paste_anilist_url",
+          "scope": "anilist"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_0_5.changed.sort_select",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_5.changed.continue_removed",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_5.changed.public_add",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_5.changed.relative_times",
+          "scope": "app"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_0_5.fixed.unified_index",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_5.fixed.dither_stale",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_5.fixed.import_loader",
+          "scope": "collection"
+        }
+      ]
+    },
+    {
+      "version": "4.0.4",
+      "added": [
+        {
+          "key": "changelog.4_0_4.added.friend_scores",
+          "scope": "anilist"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_0_4.changed.friends_modal",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_4.changed.friend_scores_swatch",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_4.changed.parallax_removed",
+          "scope": "search"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_0_4.fixed.youtube_build",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_4.fixed.character_duplicate_key",
+          "scope": "anilist"
+        }
+      ]
+    },
+    {
+      "version": "4.0.3",
+      "added": [
+        {
+          "key": "changelog.4_0_3.added.torrent_links",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_3.added.link_paste",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_3.added.friend_lists",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_3.added.continue_row",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_3.added.credits_seasons",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_3.added.diagnostics",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_3.added.bulk_actions",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_3.added.torrent_network",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_3.added.media_panel",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_3.added.did_you_mean",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_3.added.queue_retry",
+          "scope": "player"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_0_3.changed.torrent_notify",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_3.changed.root_sizes",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.4_0_3.changed.sqlite_jump",
+          "scope": "settings"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_0_3.fixed.anime_link_tab",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_3.fixed.fav_errors",
+          "scope": "anilist"
+        }
+      ]
+    },
+    {
+      "version": "4.0.2",
+      "added": [],
+      "changed": [
+        {
+          "key": "changelog.4_0_2.changed.cover_thumbs",
+          "scope": "collection"
+        }
+      ],
+      "fixed": []
+    },
+    {
+      "version": "4.0.1",
+      "added": [],
+      "changed": [
+        {
+          "key": "changelog.4_0_1.changed.radio_nav",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_1.changed.tag_docs",
+          "scope": "collection"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_0_1.fixed.color_popup",
+          "scope": "app"
+        }
+      ]
+    },
+    {
+      "version": "4.0.0",
+      "added": [
+        {
+          "key": "changelog.4_0_0.added.modern_tab",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_0.added.dither_presets",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_0.added.wallpaper_fx",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_0.added.spotlight",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_0.added.random_menu",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.added.random_filters",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_0.added.deeplinks",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_0.added.release_dates",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.added.tag_ranges",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.added.franchise",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_0.added.fav_people",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_0.added.bilingual_labels",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.added.descriptions",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.added.filmstrip",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.added.fonts",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_0.added.sqlite_editor",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_0.added.autocomplete",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_0.added.host_stats",
+          "scope": "app"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.4_0_0.changed.tag_syntax",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.changed.anilist_tags",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.changed.jobcenter",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_0.changed.semantic",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_0.changed.gif",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.4_0_0.changed.videoplayer",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_0.changed.status_ui",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.changed.squares",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.4_0_0.changed.tmdb_key",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.4_0_0.changed.list_rows",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.changed.autopause",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_0.changed.hints",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_0.changed.plurals_time",
+          "scope": "app"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.4_0_0.fixed.crash",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.4_0_0.fixed.fresh_images",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.4_0_0.fixed.status_order",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.fixed.files",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.4_0_0.fixed.quickadd",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.fixed.refresh_touch",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.4_0_0.fixed.tmdb_covers",
+          "scope": "anilist"
+        }
+      ]
+    },
+    {
+      "version": "3.2.0",
+      "added": [
+        {
+          "key": "changelog.3_2_0.added.upscale_cascade",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.upscale_preview",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.upscale_realcugan",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.upscale_suggest",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.upscale_codec",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.upscale_rife",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.upscale_temporal",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.upscale_eta",
+          "scope": "upscale"
+        },
+        {
+          "key": "changelog.3_2_0.added.stills",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.added.trailer",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.added.media_db",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.added.jobcenter",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.3_2_0.added.queue",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.3_2_0.added.scan_task",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.3_2_0.added.folder_resize",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.3_2_0.added.torrent_states",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.3_2_0.added.chips",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.3_2_0.added.bridge",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.3_2_0.added.prefetch_resume",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.3_2_0.added.summary",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.3_2_0.added.changelog_tab",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.3_2_0.added.import_modes",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.3_2_0.added.friends_activity",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.3_2_0.added.favorites",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.added.proxies",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.3_2_0.added.notifications_lists",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.3_2_0.added.sqlite_views",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.3_2_0.added.search_tags",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.added.backfill",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.3_2_0.added.github",
+          "scope": "app"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.3_2_0.changed.settings_layout",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.3_2_0.changed.toasts",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.3_2_0.changed.shikimori",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.3_2_0.changed.vault",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.3_2_0.changed.duplicates",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.changed.activity_button",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.3_2_0.changed.anilist_tabs",
+          "scope": "anilist"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.3_2_0.fixed.fts",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.fixed.activity_modal",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.3_2_0.fixed.eye",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.3_2_0.fixed.lost_update",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.fixed.updated_at",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.3_2_0.fixed.cloudflare",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.3_2_0.fixed.search_hang",
+          "scope": "torrents"
+        }
+      ]
+    }
+  ]
+}

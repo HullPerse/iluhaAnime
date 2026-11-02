@@ -1,3 +1,6 @@
+import * as z from "zod/mini";
+
+import type { TranslationKey } from "@/types/core/i18n";
 import type {
   DitherEffectOptions,
   DitherMatrix,
@@ -11,413 +14,117 @@ import type {
   DitherSliderField,
   DitherSliderGroup,
 } from "@/types/graphics/dither";
-import type { TranslationKey } from "@/types/core/i18n";
+import data from "./dither.data.json";
 
-export const DITHER_BAYER_4: readonly number[] = [
-  0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5,
-];
+const DitherDataSchema = z.object({
+  DITHER_BAKE_MAX_SIDE: z.number(),
+  DITHER_BAKE_TIMEOUT_MS: z.number(),
+  DITHER_BAND_ROWS: z.number(),
+  DITHER_BARREL_STRENGTH: z.number(),
+  DITHER_BAYER_4: z.array(z.number()),
+  DITHER_BAYER_8: z.array(z.number()),
+  DITHER_BAYER8_RANGE: z.number(),
+  DITHER_BAYER8_SIZE: z.number(),
+  DITHER_BAYER_RANGE: z.number(),
+  DITHER_BAYER_SIZE: z.number(),
+  DITHER_CHANNEL_SHIFT: z.array(z.array(z.number())),
+  DITHER_CHROMATIC_SHIFT: z.number(),
+  DITHER_DECODE_CACHE_CAPACITY: z.number(),
+  DITHER_DEFAULTS: z.unknown(),
+  DITHER_GLYPH_ALPHA: z.number(),
+  DITHER_GLYPH_HEIGHT: z.number(),
+  DITHER_GLYPH_PAD: z.number(),
+  DITHER_GLYPH_RAMP: z.array(z.string()),
+  DITHER_GLYPH_WIDTH: z.number(),
+  DITHER_GRAIN_FREQUENCY: z.number(),
+  DITHER_LUMINANCE_BLUE: z.number(),
+  DITHER_LUMINANCE_GREEN: z.number(),
+  DITHER_LUMINANCE_RED: z.number(),
+  DITHER_MATRIX_LABELS: z.record(z.string(), z.string()),
+  DITHER_MODE_LABELS: z.record(z.string(), z.string()),
+  DITHER_NOISE_GAIN: z.number(),
+  DITHER_NOISE_X: z.number(),
+  DITHER_NOISE_Y: z.number(),
+  DITHER_PALETTE_PRESET_LABELS: z.record(z.string(), z.string()),
+  DITHER_PALETTE_PRESETS: z.unknown(),
+  DITHER_PER_PAGE: z.number(),
+  DITHER_PLACEHOLDER_ID: z.string(),
+  DITHER_PLACEHOLDER_SRC: z.string(),
+  DITHER_PRESET_LABELS: z.record(z.string(), z.string()),
+  DITHER_PRESETS: z.unknown(),
+  DITHER_RENDER_CACHE_CAPACITY: z.number(),
+  DITHER_SCANLINE_DEPTH: z.number(),
+  DITHER_SLIDER_DEFS: z.unknown(),
+  DITHER_SLIDER_GROUPS: z.unknown(),
+  DITHER_SLIDER_LABELS: z.record(z.string(), z.string()),
+  DITHER_VIGNETTE_DEPTH: z.number(),
+});
 
-export const DITHER_BAYER_SIZE = 4;
-export const DITHER_BAYER_RANGE = 16;
+const parsed = DitherDataSchema.parse(data);
 
-export const DITHER_BAYER_8: readonly number[] = [
-  0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28,
-  52, 20, 62, 30, 54, 22, 3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7,
-  39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21,
-];
-
-export const DITHER_BAYER8_SIZE = 8;
-export const DITHER_BAYER8_RANGE = 64;
-
-const DITHER_MONO_PALETTE: DitherRGB[] = [
-  [0, 0, 0],
-  [255, 255, 255],
-];
-
-const DITHER_GAMEBOY_PALETTE: DitherRGB[] = [
-  [15, 56, 15],
-  [48, 98, 48],
-  [139, 172, 15],
-  [155, 188, 15],
-];
-
-const DITHER_PICO8_PALETTE: DitherRGB[] = [
-  [0, 0, 0],
-  [29, 43, 83],
-  [126, 37, 83],
-  [0, 135, 81],
-  [171, 82, 54],
-  [95, 87, 79],
-  [194, 195, 199],
-  [255, 241, 232],
-  [255, 0, 77],
-  [255, 163, 0],
-  [255, 236, 39],
-  [0, 228, 54],
-  [41, 173, 255],
-  [131, 118, 156],
-  [255, 119, 168],
-  [255, 204, 170],
-];
-
-const DITHER_GRAY_PALETTE: DitherRGB[] = [
-  [0, 0, 0],
-  [36, 36, 36],
-  [73, 73, 73],
-  [109, 109, 109],
-  [146, 146, 146],
-  [182, 182, 182],
-  [219, 219, 219],
-  [255, 255, 255],
-];
-
-const DITHER_AMBER_PALETTE: DitherRGB[] = [
-  [12, 8, 2],
-  [56, 30, 4],
-  [116, 66, 8],
-  [176, 112, 16],
-  [230, 176, 64],
-  [255, 226, 150],
-];
-
-const DITHER_INK_PALETTE: DitherRGB[] = [
-  [10, 14, 26],
-  [34, 46, 72],
-  [74, 92, 128],
-  [130, 148, 178],
-  [196, 206, 220],
-  [247, 246, 242],
-];
-
-const DITHER_VAPOR_PALETTE: DitherRGB[] = [
-  [14, 6, 34],
-  [48, 14, 80],
-  [104, 28, 150],
-  [178, 52, 176],
-  [70, 210, 224],
-  [198, 242, 255],
-];
-
-export const DITHER_PALETTE_PRESETS: DitherPalettePreset[] = [
-  { id: "original", colors: [] },
-  { id: "mono", colors: DITHER_MONO_PALETTE },
-  { id: "gameboy", colors: DITHER_GAMEBOY_PALETTE },
-  { id: "pico8", colors: DITHER_PICO8_PALETTE },
-  { id: "gray", colors: DITHER_GRAY_PALETTE },
-  { id: "amber", colors: DITHER_AMBER_PALETTE },
-  { id: "ink", colors: DITHER_INK_PALETTE },
-  { id: "vapor", colors: DITHER_VAPOR_PALETTE },
-];
-
-export const DITHER_DEFAULTS: {
-  scale: number;
-  mode: DitherEffectOptions["mode"];
-  matrix: DitherEffectOptions["matrix"];
-  strength: number;
-  levels: number;
-  palette: DitherRGB[];
-  paletteMix: number;
-  monochrome: boolean;
+export const DITHER_BAYER_4 = parsed.DITHER_BAYER_4 as readonly number[];
+export const DITHER_BAYER_SIZE = parsed.DITHER_BAYER_SIZE;
+export const DITHER_BAYER_RANGE = parsed.DITHER_BAYER_RANGE;
+export const DITHER_BAYER_8 = parsed.DITHER_BAYER_8 as readonly number[];
+export const DITHER_BAYER8_SIZE = parsed.DITHER_BAYER8_SIZE;
+export const DITHER_BAYER8_RANGE = parsed.DITHER_BAYER8_RANGE;
+export const DITHER_PALETTE_PRESETS = parsed.DITHER_PALETTE_PRESETS as DitherPalettePreset[];
+export const DITHER_DEFAULTS = parsed.DITHER_DEFAULTS as {
+  barrel: number;
+  chromatic: number;
   contrast: number;
-  grain: number;
-  halftone: number;
   dotSize: number;
   dotSoftness: number;
   glyphs: number;
   glyphSize: number;
+  grain: number;
+  halftone: number;
+  levels: number;
+  matrix: DitherMatrix;
+  mode: DitherMode;
+  monochrome: boolean;
+  palette: DitherRGB[];
+  paletteMix: number;
+  scale: number;
   scanlines: number;
-  chromatic: number;
-  barrel: number;
+  strength: number;
   vignette: number;
-} = {
-  scale: 1,
-  mode: "ordered",
-  matrix: "blue64",
-  strength: 0.6,
-  levels: 10,
-  palette: [],
-  paletteMix: 1,
-  monochrome: false,
-  contrast: 0.05,
-  grain: 0.02,
-  halftone: 0,
-  dotSize: 4,
-  dotSoftness: 0.4,
-  glyphs: 0,
-  glyphSize: 10,
-  scanlines: 0,
-  chromatic: 0,
-  barrel: 0,
-  vignette: 0,
 };
-
-export const DITHER_NOISE_X = 12.9898;
-export const DITHER_NOISE_Y = 78.233;
-export const DITHER_NOISE_GAIN = 43758.5453;
-
-export const DITHER_LUMINANCE_RED = 0.2126;
-export const DITHER_LUMINANCE_GREEN = 0.7152;
-export const DITHER_LUMINANCE_BLUE = 0.0722;
-
-export const DITHER_GRAIN_FREQUENCY = 1.7;
-export const DITHER_SCANLINE_DEPTH = 0.55;
-export const DITHER_CHROMATIC_SHIFT = 10;
-export const DITHER_BARREL_STRENGTH = 0.5;
-export const DITHER_VIGNETTE_DEPTH = 0.85;
-
-export const DITHER_CHANNEL_SHIFT: readonly (readonly [number, number])[] = [
-  [0, 0],
-  [37, 11],
-  [11, 37],
-];
-
-export const DITHER_GLYPH_RAMP: readonly string[] = [
-  " ",
-  " ",
-  ".",
-  ":",
-  ">",
-  "~",
-  "×",
-  "*",
-  "#",
-  "#",
-];
-
-export const DITHER_GLYPH_WIDTH = 5;
-export const DITHER_GLYPH_HEIGHT = 7;
-export const DITHER_GLYPH_PAD = 2;
-export const DITHER_GLYPH_ALPHA = 0.85;
-
-export const DITHER_RENDER_CACHE_CAPACITY = 30;
-export const DITHER_DECODE_CACHE_CAPACITY = 3;
-export const DITHER_BAKE_MAX_SIDE = 1920;
-export const DITHER_BAND_ROWS = 64;
-
-export const DITHER_PER_PAGE = 3;
-
-export const DITHER_PLACEHOLDER_ID = "placeholder";
-export const DITHER_PLACEHOLDER_SRC = "/wallpaper_placeholder.jpg";
-
-const DITHER_NEUTRAL_OPTIONS: DitherEffectOptions = {
-  mode: "ordered",
-  matrix: "bayer4",
-  strength: 0,
-  levels: 256,
-  palette: [],
-  paletteMix: 0,
-  monochrome: false,
-  contrast: 0,
-  grain: 0,
-  halftone: 0,
-  dotSize: 4,
-  dotSoftness: 0,
-  glyphs: 0,
-  glyphSize: 10,
-  scanlines: 0,
-  chromatic: 0,
-  barrel: 0,
-  vignette: 0,
-};
-
-const { scale: _scale, ...DEFAULT_EFFECT_OPTIONS } = DITHER_DEFAULTS;
-
-export const DITHER_PRESETS: readonly DitherPreset[] = [
-  { id: "none", options: DITHER_NEUTRAL_OPTIONS },
-  { id: "natural", options: { ...DEFAULT_EFFECT_OPTIONS } },
-  {
-    id: "classic",
-    options: {
-      ...DEFAULT_EFFECT_OPTIONS,
-      matrix: "bayer8",
-      strength: 1,
-      levels: 4,
-      monochrome: true,
-      contrast: 0.1,
-      grain: 0,
-    },
-  },
-  {
-    id: "gameboy",
-    options: {
-      ...DEFAULT_EFFECT_OPTIONS,
-      matrix: "bayer4",
-      strength: 1,
-      levels: 4,
-      palette: DITHER_GAMEBOY_PALETTE,
-      paletteMix: 1,
-      monochrome: true,
-      contrast: 0.1,
-      grain: 0,
-    },
-  },
-  {
-    id: "duotone",
-    options: {
-      ...DEFAULT_EFFECT_OPTIONS,
-      matrix: "blue64",
-      strength: 0.9,
-      levels: 6,
-      palette: DITHER_INK_PALETTE,
-      paletteMix: 1,
-      monochrome: true,
-      contrast: 0.15,
-      grain: 0,
-    },
-  },
-  {
-    id: "print",
-    options: {
-      ...DEFAULT_EFFECT_OPTIONS,
-      matrix: "bayer4",
-      strength: 0.8,
-      levels: 5,
-      palette: [],
-      paletteMix: 0,
-      monochrome: true,
-      contrast: 0.2,
-      grain: 0.05,
-      halftone: 1,
-      dotSize: 5,
-      dotSoftness: 0.25,
-    },
-  },
-  {
-    id: "crt",
-    options: {
-      ...DEFAULT_EFFECT_OPTIONS,
-      matrix: "bayer4",
-      strength: 0.7,
-      levels: 8,
-      monochrome: false,
-      contrast: 0.15,
-      grain: 0.03,
-      scanlines: 0.5,
-      chromatic: 0.6,
-      barrel: 0.3,
-      vignette: 0.4,
-    },
-  },
-  {
-    id: "glyphs",
-    options: {
-      ...DEFAULT_EFFECT_OPTIONS,
-      matrix: "blue64",
-      strength: 0.6,
-      levels: 6,
-      monochrome: true,
-      contrast: 0.2,
-      grain: 0,
-      glyphs: 1,
-      glyphSize: 10,
-    },
-  },
-  {
-    id: "photo",
-    options: {
-      ...DEFAULT_EFFECT_OPTIONS,
-      mode: "floyd",
-      matrix: "bayer4",
-      strength: 1,
-      levels: 6,
-      monochrome: false,
-      contrast: 0.05,
-      grain: 0.01,
-    },
-  },
-];
+export const DITHER_NOISE_X = parsed.DITHER_NOISE_X;
+export const DITHER_NOISE_Y = parsed.DITHER_NOISE_Y;
+export const DITHER_NOISE_GAIN = parsed.DITHER_NOISE_GAIN;
+export const DITHER_LUMINANCE_RED = parsed.DITHER_LUMINANCE_RED;
+export const DITHER_LUMINANCE_GREEN = parsed.DITHER_LUMINANCE_GREEN;
+export const DITHER_LUMINANCE_BLUE = parsed.DITHER_LUMINANCE_BLUE;
+export const DITHER_GRAIN_FREQUENCY = parsed.DITHER_GRAIN_FREQUENCY;
+export const DITHER_SCANLINE_DEPTH = parsed.DITHER_SCANLINE_DEPTH;
+export const DITHER_CHROMATIC_SHIFT = parsed.DITHER_CHROMATIC_SHIFT;
+export const DITHER_BARREL_STRENGTH = parsed.DITHER_BARREL_STRENGTH;
+export const DITHER_VIGNETTE_DEPTH = parsed.DITHER_VIGNETTE_DEPTH;
+export const DITHER_CHANNEL_SHIFT = parsed.DITHER_CHANNEL_SHIFT as unknown as readonly (readonly [number, number])[];
+export const DITHER_GLYPH_RAMP = parsed.DITHER_GLYPH_RAMP as readonly string[];
+export const DITHER_GLYPH_WIDTH = parsed.DITHER_GLYPH_WIDTH;
+export const DITHER_GLYPH_HEIGHT = parsed.DITHER_GLYPH_HEIGHT;
+export const DITHER_GLYPH_PAD = parsed.DITHER_GLYPH_PAD;
+export const DITHER_GLYPH_ALPHA = parsed.DITHER_GLYPH_ALPHA;
+export const DITHER_RENDER_CACHE_CAPACITY = parsed.DITHER_RENDER_CACHE_CAPACITY;
+export const DITHER_DECODE_CACHE_CAPACITY = parsed.DITHER_DECODE_CACHE_CAPACITY;
+export const DITHER_BAKE_MAX_SIDE = parsed.DITHER_BAKE_MAX_SIDE;
+export const DITHER_BAND_ROWS = parsed.DITHER_BAND_ROWS;
+export const DITHER_PER_PAGE = parsed.DITHER_PER_PAGE;
+export const DITHER_PLACEHOLDER_ID = parsed.DITHER_PLACEHOLDER_ID;
+export const DITHER_PLACEHOLDER_SRC = parsed.DITHER_PLACEHOLDER_SRC;
+export const DITHER_PRESETS = parsed.DITHER_PRESETS as readonly DitherPreset[];
+export const DITHER_SLIDER_DEFS = parsed.DITHER_SLIDER_DEFS as readonly DitherSliderDef[];
+export const DITHER_SLIDER_GROUPS = parsed.DITHER_SLIDER_GROUPS as readonly DitherSliderGroup[];
+export const DITHER_PRESET_LABELS = parsed.DITHER_PRESET_LABELS as Record<DitherPresetId, TranslationKey>;
+export const DITHER_MODE_LABELS = parsed.DITHER_MODE_LABELS as Record<DitherMode, TranslationKey>;
+export const DITHER_MATRIX_LABELS = parsed.DITHER_MATRIX_LABELS as Record<DitherMatrix, TranslationKey>;
+export const DITHER_PALETTE_PRESET_LABELS = parsed.DITHER_PALETTE_PRESET_LABELS as Record<DitherPalettePresetId, TranslationKey>;
+export const DITHER_SLIDER_LABELS = parsed.DITHER_SLIDER_LABELS as Record<DitherSliderField, TranslationKey>;
+export const DITHER_BAKE_TIMEOUT_MS = parsed.DITHER_BAKE_TIMEOUT_MS;
 
 export function resolveDitherPreset(id: DitherPresetId): DitherEffectOptions {
   const found = DITHER_PRESETS.find((preset) => preset.id === id);
-  return found ? { ...found.options } : { ...DITHER_NEUTRAL_OPTIONS };
+  return (found?.options ?? DITHER_PRESETS[0]?.options) as DitherEffectOptions;
 }
-
-export const DITHER_SLIDER_DEFS: readonly DitherSliderDef[] = [
-  { field: "strength", min: 0, max: 2, step: 0.05 },
-  { field: "levels", min: 2, max: 16, step: 1 },
-  { field: "paletteMix", min: 0, max: 1, step: 0.05 },
-  { field: "contrast", min: -1, max: 1, step: 0.05 },
-  { field: "grain", min: 0, max: 1, step: 0.05 },
-  { field: "halftone", min: 0, max: 1, step: 0.05 },
-  { field: "dotSize", min: 2, max: 12, step: 1 },
-  { field: "dotSoftness", min: 0, max: 1, step: 0.05 },
-  { field: "glyphs", min: 0, max: 1, step: 0.05 },
-  { field: "glyphSize", min: 6, max: 20, step: 1 },
-  { field: "scanlines", min: 0, max: 1, step: 0.05 },
-  { field: "chromatic", min: 0, max: 1, step: 0.05 },
-  { field: "barrel", min: 0, max: 0.5, step: 0.05 },
-  { field: "vignette", min: 0, max: 1, step: 0.05 },
-];
-
-export const DITHER_SLIDER_GROUPS: readonly DitherSliderGroup[] = [
-  {
-    title: "search.dither.group.pattern",
-    fields: ["strength", "levels", "paletteMix"],
-  },
-  {
-    title: "search.dither.group.tone",
-    fields: ["contrast", "grain"],
-  },
-  {
-    title: "search.dither.group.print",
-    fields: ["halftone", "dotSize", "dotSoftness", "glyphs", "glyphSize"],
-  },
-  {
-    title: "search.dither.group.display",
-    fields: ["scanlines", "chromatic", "barrel", "vignette"],
-  },
-];
-
-export const DITHER_PRESET_LABELS: Record<DitherPresetId, TranslationKey> = {
-  none: "search.dither.preset.none",
-  natural: "search.dither.preset.natural",
-  classic: "search.dither.preset.classic",
-  gameboy: "search.dither.preset.gameboy",
-  duotone: "search.dither.preset.duotone",
-  print: "search.dither.preset.print",
-  crt: "search.dither.preset.crt",
-  glyphs: "search.dither.preset.glyphs",
-  photo: "search.dither.preset.photo",
-};
-
-export const DITHER_MODE_LABELS: Record<DitherMode, TranslationKey> = {
-  ordered: "search.dither.diffusion.ordered",
-  floyd: "search.dither.diffusion.floyd",
-  atkinson: "search.dither.diffusion.atkinson",
-};
-
-export const DITHER_MATRIX_LABELS: Record<DitherMatrix, TranslationKey> = {
-  bayer4: "search.dither.matrix.bayer4",
-  bayer8: "search.dither.matrix.bayer8",
-  blue64: "search.dither.matrix.blue64",
-};
-
-export const DITHER_PALETTE_PRESET_LABELS: Record<DitherPalettePresetId, TranslationKey> = {
-  original: "search.dither.palette.preset.original",
-  mono: "search.dither.palette.preset.mono",
-  gameboy: "search.dither.palette.preset.gameboy",
-  pico8: "search.dither.palette.preset.pico8",
-  gray: "search.dither.palette.preset.gray",
-  amber: "search.dither.palette.preset.amber",
-  ink: "search.dither.palette.preset.ink",
-  vapor: "search.dither.palette.preset.vapor",
-};
-
-export const DITHER_SLIDER_LABELS: Record<DitherSliderField, TranslationKey> = {
-  strength: "search.dither.opt.strength",
-  levels: "search.dither.opt.levels",
-  paletteMix: "search.dither.opt.paletteMix",
-  contrast: "search.dither.opt.contrast",
-  grain: "search.dither.opt.grain",
-  halftone: "search.dither.opt.halftone",
-  dotSize: "search.dither.opt.dotSize",
-  dotSoftness: "search.dither.opt.dotSoftness",
-  glyphs: "search.dither.opt.glyphs",
-  glyphSize: "search.dither.opt.glyphSize",
-  scanlines: "search.dither.opt.scanlines",
-  chromatic: "search.dither.opt.chromatic",
-  barrel: "search.dither.opt.barrel",
-  vignette: "search.dither.opt.vignette",
-};
-
-export const DITHER_BAKE_TIMEOUT_MS = 30_000;

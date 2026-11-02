@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/core/attempt.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { PreviewFrameListSchema } from "@/api/upscale.schema";
 import { ignore } from "@/lib/core/promise.utils";
 import type { PreviewFrame } from "@/types/core/upscale";
 import type { UpscalePreviewController } from "@/types/core/upscalePreview";
@@ -69,7 +70,7 @@ export function useUpscalePreview({
     }));
     ignore(
       attempt(
-        invokeTyped<PreviewFrame[]>("preview_upscale_frames", {
+        invokeValidatedOrThrow("preview_upscale_frames", PreviewFrameListSchema, {
           height: h,
           inputPath: filePath,
           selectedShaders,

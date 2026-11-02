@@ -14,7 +14,7 @@ const TORRENT_LIFECYCLES = [
   "paused",
   "seeding",
   "completed",
-] as const satisfies readonly (TorrentLifecycle | "all")[];
+] satisfies readonly (TorrentLifecycle | "all")[];
 
 export type { TorrentSort, TorrentLifecycleFilter } from "@/types/search/torrentSearch";
 

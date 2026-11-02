@@ -1,48 +1,33 @@
+import * as z from "zod/mini";
+
 import type { CollectionStatusDef } from "@/types/anilist/collection";
+import data from "./statuses.data.json";
 
-export const DEFAULT_COLLECTION_STATUSES: CollectionStatusDef[] = [
-  {
-    id: "favorites",
-    label: "Favorites",
-    color: "#ec4899",
-    order: 0,
-    isCore: true,
-    kind: "private",
-  },
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 1, isCore: true, kind: "private" },
-  {
-    id: "watching",
-    label: "Watching",
-    color: "#3b82f6",
-    order: 2,
-    isCore: true,
-    kind: "private",
-  },
-  {
-    id: "completed",
-    label: "Completed",
-    color: "#22c55e",
-    order: 3,
-    isCore: true,
-    kind: "private",
-  },
-  { id: "paused", label: "Paused", color: "#f59e0b", order: 4, isCore: true, kind: "private" },
-  { id: "dropped", label: "Dropped", color: "#ef4444", order: 5, isCore: true, kind: "private" },
-  {
-    id: "rewatching",
-    label: "Rewatching",
-    color: "#a855f7",
-    order: 6,
-    isCore: true,
-    kind: "private",
-  },
-];
+const CollectionStatusDefSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  color: z.string(),
+  order: z.number(),
+  isCore: z.boolean(),
+  kind: z.enum(["private", "public"]),
+});
 
-export const DEFAULT_NEW_COLOR = "#0ea5e9";
+const StatusesDataSchema = z.object({
+  defaultCollectionStatuses: z.array(CollectionStatusDefSchema),
+  defaultNewColor: z.string(),
+  publicStatusMaxItems: z.number(),
+  statusTabWidth: z.number(),
+  statusShrinkAt: z.number(),
+  statusShrinkMinAt: z.number(),
+  statusShrinkClass: z.tuple([z.literal("text-xs"), z.literal("text-[10px]"), z.literal("text-[9px]")]),
+});
 
-export const PUBLIC_STATUS_MAX_ITEMS = 20;
+const parsed = StatusesDataSchema.parse(data);
 
-export const STATUS_TAB_WIDTH = 132;
-export const STATUS_SHRINK_AT = 16;
-export const STATUS_SHRINK_MIN_AT = 24;
-export const STATUS_SHRINK_CLASS = ["text-xs", "text-[10px]", "text-[9px]"] as const;
+export const DEFAULT_COLLECTION_STATUSES: CollectionStatusDef[] = parsed.defaultCollectionStatuses;
+export const DEFAULT_NEW_COLOR = parsed.defaultNewColor;
+export const PUBLIC_STATUS_MAX_ITEMS = parsed.publicStatusMaxItems;
+export const STATUS_TAB_WIDTH = parsed.statusTabWidth;
+export const STATUS_SHRINK_AT = parsed.statusShrinkAt;
+export const STATUS_SHRINK_MIN_AT = parsed.statusShrinkMinAt;
+export const STATUS_SHRINK_CLASS = parsed.statusShrinkClass;

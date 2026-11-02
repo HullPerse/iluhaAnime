@@ -1,0 +1,783 @@
+{
+  "DIGIT_KEYS": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "KEYBINDS": [
+    {
+      "action": "playPause",
+      "chord": "Space",
+      "repeat": "once",
+      "keys": "Space",
+      "description": "player.media.key.play.pause",
+      "category": "playback"
+    },
+    {
+      "action": "seekBackward",
+      "chord": "ArrowLeft",
+      "repeat": "hold",
+      "keys": "←",
+      "description": "player.media.key.seek.backward",
+      "category": "playback"
+    },
+    {
+      "action": "prevChapter",
+      "chord": "ctrl+ArrowLeft",
+      "repeat": "hold",
+      "keys": "Ctrl+←",
+      "description": "player.media.key.chapter.prev",
+      "category": "navigation"
+    },
+    {
+      "action": "nextChapter",
+      "chord": "ctrl+ArrowRight",
+      "repeat": "hold",
+      "keys": "Ctrl+→",
+      "description": "player.media.key.chapter.next",
+      "category": "navigation"
+    },
+    {
+      "action": "seekForward",
+      "chord": "ArrowRight",
+      "repeat": "hold",
+      "keys": "→",
+      "description": "player.media.key.seek.forward",
+      "category": "playback"
+    },
+    {
+      "action": "volumeUp",
+      "chord": "ArrowUp",
+      "repeat": "hold",
+      "keys": "↑",
+      "description": "player.media.key.volume.up",
+      "category": "playback"
+    },
+    {
+      "action": "volumeDown",
+      "chord": "ArrowDown",
+      "repeat": "hold",
+      "keys": "↓",
+      "description": "player.media.key.volume.down",
+      "category": "playback"
+    },
+    {
+      "action": "toggleMute",
+      "chord": "KeyM",
+      "repeat": "once",
+      "keys": "M",
+      "description": "player.media.key.mute.toggle",
+      "category": "playback"
+    },
+    {
+      "action": "frameBackward",
+      "chord": "Comma",
+      "repeat": "hold",
+      "keys": ",",
+      "description": "player.media.key.frame.backward",
+      "category": "playback"
+    },
+    {
+      "action": "frameForward",
+      "chord": "Period",
+      "repeat": "hold",
+      "keys": ".",
+      "description": "player.media.key.frame.forward",
+      "category": "playback"
+    },
+    {
+      "action": "subtitleOffsetDown",
+      "chord": "F1",
+      "repeat": "hold",
+      "keys": "F1",
+      "description": "player.media.key.subtitle.offset.down",
+      "category": "subtitles"
+    },
+    {
+      "action": "subtitleOffsetUp",
+      "chord": "F2",
+      "repeat": "hold",
+      "keys": "F2",
+      "description": "player.media.key.subtitle.offset.up",
+      "category": "subtitles"
+    },
+    {
+      "action": "subtitleOffsetDownFine",
+      "chord": "ctrl+F1",
+      "repeat": "hold",
+      "keys": "Ctrl+F1",
+      "description": "player.media.key.subtitle.offset.down.fine",
+      "category": "subtitles"
+    },
+    {
+      "action": "subtitleOffsetUpFine",
+      "chord": "ctrl+F2",
+      "repeat": "hold",
+      "keys": "Ctrl+F2",
+      "description": "player.media.key.subtitle.offset.up.fine",
+      "category": "subtitles"
+    },
+    {
+      "action": "audioOffsetDown",
+      "chord": "F3",
+      "repeat": "hold",
+      "keys": "F3",
+      "description": "player.media.key.audio.offset.down",
+      "category": "subtitles"
+    },
+    {
+      "action": "audioOffsetUp",
+      "chord": "F4",
+      "repeat": "hold",
+      "keys": "F4",
+      "description": "player.media.key.audio.offset.up",
+      "category": "subtitles"
+    },
+    {
+      "action": "audioOffsetDownFine",
+      "chord": "ctrl+F3",
+      "repeat": "hold",
+      "keys": "Ctrl+F3",
+      "description": "player.media.key.audio.offset.down.fine",
+      "category": "subtitles"
+    },
+    {
+      "action": "audioOffsetUpFine",
+      "chord": "ctrl+F4",
+      "repeat": "hold",
+      "keys": "Ctrl+F4",
+      "description": "player.media.key.audio.offset.up.fine",
+      "category": "subtitles"
+    },
+    {
+      "action": "resetDelays",
+      "chord": "F5",
+      "repeat": "once",
+      "keys": "F5",
+      "description": "player.media.key.delays.reset",
+      "category": "subtitles"
+    },
+    {
+      "action": "toggleAutoHide",
+      "chord": "ctrl+KeyH",
+      "repeat": "once",
+      "keys": "Ctrl+H",
+      "description": "player.media.key.autohide.toggle",
+      "category": "ui"
+    },
+    {
+      "action": "toggleDiagnostics",
+      "chord": "KeyI",
+      "repeat": "once",
+      "keys": "I",
+      "description": "player.media.key.diagnostics.toggle",
+      "category": "ui"
+    },
+    {
+      "action": "nextFile",
+      "chord": "PageDown",
+      "repeat": "hold",
+      "keys": "PageDown",
+      "description": "player.media.key.file.next",
+      "category": "navigation"
+    },
+    {
+      "action": "prevFile",
+      "chord": "PageUp",
+      "repeat": "hold",
+      "keys": "PageUp",
+      "description": "player.media.key.file.prev",
+      "category": "navigation"
+    },
+    {
+      "action": "toggleFullscreen",
+      "chord": "KeyF",
+      "repeat": "once",
+      "keys": "F",
+      "description": "player.media.key.fullscreen.toggle",
+      "category": "ui"
+    },
+    {
+      "action": "toggleAlwaysOnTop",
+      "chord": "ctrl+KeyA",
+      "repeat": "once",
+      "keys": "Ctrl+A",
+      "description": "player.media.key.always.on.top",
+      "category": "ui"
+    },
+    {
+      "action": "viewMinimal",
+      "chord": "Digit1",
+      "repeat": "once",
+      "keys": "1",
+      "description": "player.media.view.minimal",
+      "category": "ui"
+    },
+    {
+      "action": "viewCompact",
+      "chord": "Digit2",
+      "repeat": "once",
+      "keys": "2",
+      "description": "player.media.view.compact",
+      "category": "ui"
+    },
+    {
+      "action": "viewNormal",
+      "chord": "Digit3",
+      "repeat": "once",
+      "keys": "3",
+      "description": "player.media.view.normal",
+      "category": "ui"
+    },
+    {
+      "action": "toggleCheatsheet",
+      "chord": "Shift+Slash",
+      "repeat": "once",
+      "keys": "?",
+      "description": "player.media.key.cheatsheet.toggle",
+      "category": "ui"
+    },
+    {
+      "action": "exitCinemaMode",
+      "chord": "Escape",
+      "repeat": "once",
+      "keys": "Esc",
+      "description": "player.media.key.exit",
+      "category": "ui"
+    },
+    {
+      "action": "jumpToTime",
+      "chord": "ctrl+KeyG",
+      "repeat": "once",
+      "keys": "Ctrl+G",
+      "description": "player.media.key.jump.to.time",
+      "category": "playback"
+    },
+    {
+      "action": "saveCleanFrame",
+      "chord": "ctrl+Shift+KeyO",
+      "repeat": "hold",
+      "keys": "Ctrl+Shift+O",
+      "description": "player.media.key.frame.save",
+      "category": "playback"
+    },
+    {
+      "action": "togglePlaylist",
+      "chord": "KeyL",
+      "repeat": "once",
+      "keys": "L",
+      "description": "player.media.playlist.toggle",
+      "category": "ui"
+    },
+    {
+      "action": "skipChapter",
+      "chord": "KeyN",
+      "repeat": "once",
+      "keys": "N",
+      "description": "player.media.skip.chapter",
+      "category": "navigation"
+    },
+    {
+      "action": "speedDown",
+      "chord": "Shift+Comma",
+      "repeat": "once",
+      "keys": "Shift+,",
+      "description": "player.media.key.speed.down",
+      "category": "playback"
+    },
+    {
+      "action": "speedUp",
+      "chord": "Shift+Period",
+      "repeat": "once",
+      "keys": "Shift+.",
+      "description": "player.media.key.speed.up",
+      "category": "playback"
+    },
+    {
+      "action": "speedReset",
+      "chord": "KeyR",
+      "repeat": "once",
+      "keys": "R",
+      "description": "player.media.key.speed.reset",
+      "category": "playback"
+    },
+    {
+      "action": "cycleSubtitle",
+      "chord": "KeyV",
+      "repeat": "once",
+      "keys": "V",
+      "description": "player.media.key.subtitle.cycle",
+      "category": "subtitles"
+    },
+    {
+      "action": "cycleAudio",
+      "chord": "KeyB",
+      "repeat": "once",
+      "keys": "B",
+      "description": "player.media.key.audio.cycle",
+      "category": "subtitles"
+    },
+    {
+      "action": "seekToStart",
+      "chord": "Home",
+      "repeat": "once",
+      "keys": "Home",
+      "description": "player.media.key.seek.start",
+      "category": "playback"
+    },
+    {
+      "action": "seekToEnd",
+      "chord": "End",
+      "repeat": "once",
+      "keys": "End",
+      "description": "player.media.key.seek.end",
+      "category": "playback"
+    },
+    {
+      "action": "playlistDown",
+      "chord": "KeyJ",
+      "repeat": "hold",
+      "keys": "J",
+      "description": "player.media.key.playlist.down",
+      "category": "navigation"
+    },
+    {
+      "action": "playlistUp",
+      "chord": "KeyK",
+      "repeat": "hold",
+      "keys": "K",
+      "description": "player.media.key.playlist.up",
+      "category": "navigation"
+    },
+    {
+      "action": "playlistActivate",
+      "chord": "Enter",
+      "repeat": "once",
+      "keys": "Enter",
+      "description": "player.media.key.playlist.activate",
+      "category": "navigation"
+    },
+    {
+      "action": "seekPercent0",
+      "chord": "Digit0",
+      "repeat": "once",
+      "keys": "0",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent1",
+      "chord": "Shift+Digit1",
+      "repeat": "once",
+      "keys": "Shift+1",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent2",
+      "chord": "Shift+Digit2",
+      "repeat": "once",
+      "keys": "Shift+2",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent3",
+      "chord": "Shift+Digit3",
+      "repeat": "once",
+      "keys": "Shift+3",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent4",
+      "chord": "Digit4",
+      "repeat": "once",
+      "keys": "4",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent5",
+      "chord": "Digit5",
+      "repeat": "once",
+      "keys": "5",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent6",
+      "chord": "Digit6",
+      "repeat": "once",
+      "keys": "6",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent7",
+      "chord": "Digit7",
+      "repeat": "once",
+      "keys": "7",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent8",
+      "chord": "Digit8",
+      "repeat": "once",
+      "keys": "8",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    },
+    {
+      "action": "seekPercent9",
+      "chord": "Digit9",
+      "repeat": "once",
+      "keys": "9",
+      "description": "player.media.key.seek.percent",
+      "category": "playback"
+    }
+  ],
+  "OFFSET_LIMIT": 300,
+  "OFFSET_STEP": 0.5,
+  "OFFSET_STEP_FINE": 0.05,
+  "PLAYER_HOTKEYS": [
+    {
+      "id": "playPause",
+      "chord": "Space",
+      "repeat": "once",
+      "keybindId": "player.playPause"
+    },
+    {
+      "id": "seekBackward",
+      "chord": "ArrowLeft",
+      "repeat": "hold",
+      "keybindId": "player.seekBackward"
+    },
+    {
+      "id": "prevChapter",
+      "chord": "ctrl+ArrowLeft",
+      "repeat": "hold",
+      "keybindId": "player.prevChapter"
+    },
+    {
+      "id": "nextChapter",
+      "chord": "ctrl+ArrowRight",
+      "repeat": "hold",
+      "keybindId": "player.nextChapter"
+    },
+    {
+      "id": "seekForward",
+      "chord": "ArrowRight",
+      "repeat": "hold",
+      "keybindId": "player.seekForward"
+    },
+    {
+      "id": "volumeUp",
+      "chord": "ArrowUp",
+      "repeat": "hold",
+      "keybindId": "player.volumeUp"
+    },
+    {
+      "id": "volumeDown",
+      "chord": "ArrowDown",
+      "repeat": "hold",
+      "keybindId": "player.volumeDown"
+    },
+    {
+      "id": "toggleMute",
+      "chord": "KeyM",
+      "repeat": "once",
+      "keybindId": "player.toggleMute"
+    },
+    {
+      "id": "frameBackward",
+      "chord": "Comma",
+      "repeat": "hold",
+      "keybindId": "player.frameBackward"
+    },
+    {
+      "id": "frameForward",
+      "chord": "Period",
+      "repeat": "hold",
+      "keybindId": "player.frameForward"
+    },
+    {
+      "id": "subtitleOffsetDown",
+      "chord": "F1",
+      "repeat": "hold",
+      "keybindId": "player.subtitleOffsetDown"
+    },
+    {
+      "id": "subtitleOffsetUp",
+      "chord": "F2",
+      "repeat": "hold",
+      "keybindId": "player.subtitleOffsetUp"
+    },
+    {
+      "id": "subtitleOffsetDownFine",
+      "chord": "ctrl+F1",
+      "repeat": "hold",
+      "keybindId": "player.subtitleOffsetDownFine"
+    },
+    {
+      "id": "subtitleOffsetUpFine",
+      "chord": "ctrl+F2",
+      "repeat": "hold",
+      "keybindId": "player.subtitleOffsetUpFine"
+    },
+    {
+      "id": "audioOffsetDown",
+      "chord": "F3",
+      "repeat": "hold",
+      "keybindId": "player.audioOffsetDown"
+    },
+    {
+      "id": "audioOffsetUp",
+      "chord": "F4",
+      "repeat": "hold",
+      "keybindId": "player.audioOffsetUp"
+    },
+    {
+      "id": "audioOffsetDownFine",
+      "chord": "ctrl+F3",
+      "repeat": "hold",
+      "keybindId": "player.audioOffsetDownFine"
+    },
+    {
+      "id": "audioOffsetUpFine",
+      "chord": "ctrl+F4",
+      "repeat": "hold",
+      "keybindId": "player.audioOffsetUpFine"
+    },
+    {
+      "id": "resetDelays",
+      "chord": "F5",
+      "repeat": "once",
+      "keybindId": "player.resetDelays"
+    },
+    {
+      "id": "toggleAutoHide",
+      "chord": "ctrl+KeyH",
+      "repeat": "once",
+      "keybindId": "player.toggleAutoHide"
+    },
+    {
+      "id": "toggleDiagnostics",
+      "chord": "KeyI",
+      "repeat": "once",
+      "keybindId": "player.toggleDiagnostics"
+    },
+    {
+      "id": "nextFile",
+      "chord": "PageDown",
+      "repeat": "hold",
+      "keybindId": "player.nextFile"
+    },
+    {
+      "id": "prevFile",
+      "chord": "PageUp",
+      "repeat": "hold",
+      "keybindId": "player.prevFile"
+    },
+    {
+      "id": "toggleFullscreen",
+      "chord": "KeyF",
+      "repeat": "once",
+      "keybindId": "player.toggleFullscreen"
+    },
+    {
+      "id": "toggleAlwaysOnTop",
+      "chord": "ctrl+KeyA",
+      "repeat": "once",
+      "keybindId": "player.toggleAlwaysOnTop"
+    },
+    {
+      "id": "viewMinimal",
+      "chord": "Digit1",
+      "repeat": "once",
+      "keybindId": "player.viewMinimal"
+    },
+    {
+      "id": "viewCompact",
+      "chord": "Digit2",
+      "repeat": "once",
+      "keybindId": "player.viewCompact"
+    },
+    {
+      "id": "viewNormal",
+      "chord": "Digit3",
+      "repeat": "once",
+      "keybindId": "player.viewNormal"
+    },
+    {
+      "id": "toggleCheatsheet",
+      "chord": "Shift+Slash",
+      "repeat": "once",
+      "keybindId": "player.toggleCheatsheet"
+    },
+    {
+      "id": "exitCinemaMode",
+      "chord": "Escape",
+      "repeat": "once",
+      "keybindId": "player.exitCinemaMode"
+    },
+    {
+      "id": "jumpToTime",
+      "chord": "ctrl+KeyG",
+      "repeat": "once",
+      "keybindId": "player.jumpToTime"
+    },
+    {
+      "id": "saveCleanFrame",
+      "chord": "ctrl+Shift+KeyO",
+      "repeat": "hold",
+      "keybindId": "player.saveCleanFrame"
+    },
+    {
+      "id": "togglePlaylist",
+      "chord": "KeyL",
+      "repeat": "once",
+      "keybindId": "player.togglePlaylist"
+    },
+    {
+      "id": "skipChapter",
+      "chord": "KeyN",
+      "repeat": "once",
+      "keybindId": "player.skipChapter"
+    },
+    {
+      "id": "speedDown",
+      "chord": "Shift+Comma",
+      "repeat": "once",
+      "keybindId": "player.speedDown"
+    },
+    {
+      "id": "speedUp",
+      "chord": "Shift+Period",
+      "repeat": "once",
+      "keybindId": "player.speedUp"
+    },
+    {
+      "id": "speedReset",
+      "chord": "KeyR",
+      "repeat": "once",
+      "keybindId": "player.speedReset"
+    },
+    {
+      "id": "cycleSubtitle",
+      "chord": "KeyV",
+      "repeat": "once",
+      "keybindId": "player.cycleSubtitle"
+    },
+    {
+      "id": "cycleAudio",
+      "chord": "KeyB",
+      "repeat": "once",
+      "keybindId": "player.cycleAudio"
+    },
+    {
+      "id": "seekToStart",
+      "chord": "Home",
+      "repeat": "once",
+      "keybindId": "player.seekToStart"
+    },
+    {
+      "id": "seekToEnd",
+      "chord": "End",
+      "repeat": "once",
+      "keybindId": "player.seekToEnd"
+    },
+    {
+      "id": "playlistDown",
+      "chord": "KeyJ",
+      "repeat": "hold",
+      "keybindId": "player.playlistDown"
+    },
+    {
+      "id": "playlistUp",
+      "chord": "KeyK",
+      "repeat": "hold",
+      "keybindId": "player.playlistUp"
+    },
+    {
+      "id": "playlistActivate",
+      "chord": "Enter",
+      "repeat": "once",
+      "keybindId": "player.playlistActivate"
+    },
+    {
+      "id": "seekPercent0",
+      "chord": "Digit0",
+      "repeat": "once",
+      "keybindId": "player.seekPercent0"
+    },
+    {
+      "id": "seekPercent1",
+      "chord": "Shift+Digit1",
+      "repeat": "once",
+      "keybindId": "player.seekPercent1"
+    },
+    {
+      "id": "seekPercent2",
+      "chord": "Shift+Digit2",
+      "repeat": "once",
+      "keybindId": "player.seekPercent2"
+    },
+    {
+      "id": "seekPercent3",
+      "chord": "Shift+Digit3",
+      "repeat": "once",
+      "keybindId": "player.seekPercent3"
+    },
+    {
+      "id": "seekPercent4",
+      "chord": "Digit4",
+      "repeat": "once",
+      "keybindId": "player.seekPercent4"
+    },
+    {
+      "id": "seekPercent5",
+      "chord": "Digit5",
+      "repeat": "once",
+      "keybindId": "player.seekPercent5"
+    },
+    {
+      "id": "seekPercent6",
+      "chord": "Digit6",
+      "repeat": "once",
+      "keybindId": "player.seekPercent6"
+    },
+    {
+      "id": "seekPercent7",
+      "chord": "Digit7",
+      "repeat": "once",
+      "keybindId": "player.seekPercent7"
+    },
+    {
+      "id": "seekPercent8",
+      "chord": "Digit8",
+      "repeat": "once",
+      "keybindId": "player.seekPercent8"
+    },
+    {
+      "id": "seekPercent9",
+      "chord": "Digit9",
+      "repeat": "once",
+      "keybindId": "player.seekPercent9"
+    }
+  ],
+  "SEEK_STEP": 5,
+  "VIEW_MODE_DIGITS": [
+    1,
+    2,
+    3
+  ]
+}

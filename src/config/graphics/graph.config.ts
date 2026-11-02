@@ -1,103 +1,43 @@
+import * as z from "zod/mini";
+
 import type { TranslationKey } from "@/types/core/i18n";
+import data from "./graph.data.json";
 
-export const NODE_W = 70;
-export const NODE_H = 95;
-export const IMG_H = 80;
+const GraphDataSchema = z.object({
+  EDGE_STYLES: z.record(z.string(), z.object({ color: z.string(), dash: z.string(), width: z.number() })),
+  FILTER_GROUPS: z.record(z.string(), z.array(z.string())),
+  FILTER_LABELS: z.record(z.string(), z.string()),
+  FORMAT_SHORT: z.record(z.string(), z.string()),
+  FRANCHISE_VIEWPORT: z.object({ initialScale: z.number(), maxScale: z.number(), minScale: z.number(), wheelStep: z.number() }),
+  IMG_H: z.number(),
+  NODE_BORDER_COLORS: z.record(z.string(), z.string()),
+  NODE_H: z.number(),
+  NODE_SCALE_TIERS: z.array(z.object({ above: z.number(), scale: z.number() })),
+  NODE_W: z.number(),
+  RELATION_FILTERS: z.tuple([z.literal("SEQUEL"), z.literal("PREQUEL"), z.literal("SIDE_STORY"), z.literal("SPIN_OFF"), z.literal("OTHER")]),
+  RELATION_X: z.record(z.string(), z.number()),
+});
 
-export const NODE_SCALE_TIERS: readonly { above: number; scale: number }[] = [
-  { above: 25, scale: 0.75 },
-  { above: 15, scale: 0.85 },
-];
+const parsed = GraphDataSchema.parse(data);
 
-export const FRANCHISE_VIEWPORT = {
-  initialScale: 0.4,
-  maxScale: 5,
-  minScale: 0.1,
-  wheelStep: 0.1,
-} as const;
+export const NODE_W = parsed.NODE_W;
+export const NODE_H = parsed.NODE_H;
+export const IMG_H = parsed.IMG_H;
 
-export const RELATION_FILTERS = ["SEQUEL", "PREQUEL", "SIDE_STORY", "SPIN_OFF", "OTHER"] as const;
+export const NODE_SCALE_TIERS = parsed.NODE_SCALE_TIERS as readonly { above: number; scale: number }[];
 
-export const FILTER_GROUPS: Record<string, string[]> = {
-  OTHER: [
-    "ADAPTATION",
-    "PARENT",
-    "CONTAINS",
-    "SOURCE",
-    "SUMMARY",
-    "ALTERNATIVE",
-    "CHARACTER",
-    "OTHER",
-    "UNKNOWN",
-  ],
-  PREQUEL: ["PREQUEL"],
-  SEQUEL: ["SEQUEL"],
-  SIDE_STORY: ["SIDE_STORY"],
-  SPIN_OFF: ["SPIN_OFF"],
-};
+export const FRANCHISE_VIEWPORT = parsed.FRANCHISE_VIEWPORT as { initialScale: number; maxScale: number; minScale: number; wheelStep: number };
 
-export const EDGE_STYLES: Record<string, { color: string; dash: string; width: number }> = {
-  ADAPTATION: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
-  ALTERNATIVE: { color: "var(--color-graph-light)", dash: "4,4", width: 0.75 },
-  CHARACTER: { color: "var(--color-graph-light)", dash: "4,4", width: 0.75 },
-  CONTAINS: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
-  OTHER: { color: "var(--color-graph-pale)", dash: "3,3", width: 0.75 },
-  PARENT: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
-  PREQUEL: { color: "var(--color-graph-prequel)", dash: "", width: 1.5 },
-  SEQUEL: { color: "var(--color-graph-sequel)", dash: "", width: 1.5 },
-  SIDE_STORY: { color: "var(--color-graph-side)", dash: "5,3", width: 1 },
-  SOURCE: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
-  SPIN_OFF: { color: "var(--color-graph-spinoff)", dash: "4,4", width: 1 },
-  SUMMARY: { color: "var(--color-graph-light)", dash: "5,3", width: 0.75 },
-  UNKNOWN: { color: "var(--color-graph-pale)", dash: "3,3", width: 0.75 },
-};
+export const RELATION_FILTERS = parsed.RELATION_FILTERS;
 
-export const NODE_BORDER_COLORS: Record<string, string> = {
-  ADAPTATION: "var(--color-graph-default)",
-  ALTERNATIVE: "var(--color-graph-light)",
-  CHARACTER: "var(--color-graph-light)",
-  CONTAINS: "var(--color-graph-default)",
-  OTHER: "var(--color-graph-pale)",
-  PARENT: "var(--color-graph-default)",
-  PREQUEL: "var(--color-graph-prequel)",
-  SEQUEL: "var(--color-graph-sequel)",
-  SIDE_STORY: "var(--color-graph-side)",
-  SOURCE: "var(--color-graph-default)",
-  SPIN_OFF: "var(--color-graph-spinoff)",
-  SUMMARY: "var(--color-graph-light)",
-  UNKNOWN: "var(--color-graph-pale)",
-};
+export const FILTER_GROUPS = parsed.FILTER_GROUPS as Record<string, string[]>;
 
-export const FILTER_LABELS: Record<string, TranslationKey> = {
-  OTHER: "anilist.filter.OTHER",
-  PREQUEL: "anilist.filter.PREQUEL",
-  SEQUEL: "anilist.filter.SEQUEL",
-  SIDE_STORY: "anilist.filter.SIDE_STORY",
-  SPIN_OFF: "anilist.filter.SPIN_OFF",
-};
+export const EDGE_STYLES = parsed.EDGE_STYLES as Record<string, { color: string; dash: string; width: number }>;
 
-export const RELATION_X: Record<string, number> = {
-  ADAPTATION: 0.5,
-  ALTERNATIVE: 0.5,
-  CHARACTER: 0.5,
-  CONTAINS: 0.5,
-  OTHER: 0.5,
-  PARENT: 0.5,
-  PREQUEL: 0.25,
-  SEQUEL: 0.75,
-  SIDE_STORY: 0.65,
-  SOURCE: 0.5,
-  SPIN_OFF: 0.35,
-  SUMMARY: 0.5,
-  UNKNOWN: 0.5,
-};
+export const NODE_BORDER_COLORS = parsed.NODE_BORDER_COLORS as Record<string, string>;
 
-export const FORMAT_SHORT: Record<string, string> = {
-  TV: "TV",
-  TV_SHORT: "TVS",
-  MOVIE: "MOV",
-  SPECIAL: "SP",
-  OVA: "OVA",
-  ONA: "ONA",
-  MUSIC: "MV",
-};
+export const FILTER_LABELS = parsed.FILTER_LABELS as Record<string, TranslationKey>;
+
+export const RELATION_X = parsed.RELATION_X as Record<string, number>;
+
+export const FORMAT_SHORT = parsed.FORMAT_SHORT as Record<string, string>;

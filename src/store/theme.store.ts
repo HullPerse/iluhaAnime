@@ -7,6 +7,7 @@ import { deriveFieldColor, isHexColor } from "@/lib/graphics/palette.utils";
 import { findTheme } from "@/lib/graphics/themeResolve.utils";
 import { normalizeAutocompleteOpacity } from "@/lib/graphics/tokens.utils";
 import { attemptSync } from "@/lib/core/attempt.utils";
+import * as z from "zod/mini";
 import type {
   ParsedThemeFile,
   ThemeDefinition,
@@ -17,33 +18,57 @@ import type { ThemeData, ThemeSignalStore } from "@/types/store/theme";
 
 export const THEME_SCHEMA_VERSION = 1;
 
+const RadiusSchema = z.compile(z.enum(["frame", "all", "none"]));
+const BevelSchema = z.compile(z.enum(["flat", "raised"]));
+const OverlaySchema = z.compile(z.enum(["none", "scanlines", "grid"]));
+const TitlebarGradientSchema = z.compile(
+  z.object({ from: z.string(), to: z.string() })
+);
+const ComponentsSchema = z.compile(
+  z.object({
+    titlebarArt: z.optional(z.boolean()),
+    cardMeta: z.optional(z.enum(["full", "short"])),
+  })
+);
+const RecordSchema = z.compile(z.record(z.string(), z.unknown()));
+const PatchEnvelopeSchema = z.compile(
+  z.object({
+    format: z.literal("iluha-theme-patch"),
+    version: z.literal(1),
+    base: z.string().check(z.refine((value) => value.length > 0)),
+    patch: z.unknown(),
+  })
+);
+
 function parseRadius(value: unknown): ThemeDefinition["radius"] {
-  return value === "frame" || value === "all" || value === "none" ? value : undefined;
+  const r = RadiusSchema.safeParse(value);
+  return r.success ? r.data : undefined;
 }
 
 function parseBevel(value: unknown): ThemeDefinition["bevel"] {
-  return value === "flat" || value === "raised" ? value : undefined;
+  const r = BevelSchema.safeParse(value);
+  return r.success ? r.data : undefined;
 }
 
 function parseOverlay(value: unknown): ThemeDefinition["overlay"] {
-  return value === "scanlines" || value === "grid" || value === "none" ? value : undefined;
+  const r = OverlaySchema.safeParse(value);
+  return r.success ? r.data : undefined;
 }
 
 function parseComponents(value: unknown): ThemeDefinition["components"] {
-  if (!isRecord(value)) return undefined;
+  const r = ComponentsSchema.safeParse(value);
+  if (!r.success) return undefined;
   const components: NonNullable<ThemeDefinition["components"]> = {};
-  if (value.titlebarArt === true) components.titlebarArt = true;
-  if (value.cardMeta === "full" || value.cardMeta === "short") {
-    components.cardMeta = value.cardMeta;
-  }
+  if (r.data.titlebarArt === true) components.titlebarArt = true;
+  if (r.data.cardMeta !== undefined) components.cardMeta = r.data.cardMeta;
   return Object.keys(components).length > 0 ? components : undefined;
 }
 
 function parseTitlebarGradient(value: unknown): ThemeDefinition["titlebarGradient"] {
-  if (!isRecord(value)) return undefined;
-  const from = value.from;
-  const to = value.to;
-  if (typeof from !== "string" || typeof to !== "string") return undefined;
+  const r = TitlebarGradientSchema.safeParse(value);
+  if (!r.success) return undefined;
+  const from = r.data.from;
+  const to = r.data.to;
   if (!/^#[\da-f]{6}$/i.test(from) || !/^#[\da-f]{6}$/i.test(to)) return undefined;
   return { from, to };
 }
@@ -284,8 +309,10 @@ export function parseRetroismTheme(
   resolveBase?: (name: string) => ThemeDefinition | undefined
 ): ThemeDefinition | null {
   const [raw, error] = attemptSync((): unknown => JSON.parse(json));
-  if (error !== null || !isRecord(raw)) return null;
-  return parseRawTheme(raw, resolveBase);
+  if (error !== null) return null;
+  const recordResult = RecordSchema.safeParse(raw);
+  if (!recordResult.success) return null;
+  return parseRawTheme(recordResult.data, resolveBase);
 }
 
 export function parseThemeFile(
@@ -293,14 +320,17 @@ export function parseThemeFile(
   resolveBase?: (name: string) => ThemeDefinition | undefined
 ): ParsedThemeFile | null {
   const [raw, error] = attemptSync((): unknown => JSON.parse(json));
-  if (error !== null || !isRecord(raw)) return null;
-  if (raw.format === "iluha-theme-patch") {
-    if (raw.version !== 1) return null;
-    if (typeof raw.base !== "string" || raw.base.length === 0) return null;
-    const patch = parseThemePatch(raw.patch);
-    return patch ? { kind: "patch", base: raw.base, patch } : null;
+  if (error !== null) return null;
+  const recordResult = RecordSchema.safeParse(raw);
+  if (!recordResult.success) return null;
+  const record = recordResult.data;
+  if (record.format === "iluha-theme-patch") {
+    const envelopeResult = PatchEnvelopeSchema.safeParse(record);
+    if (!envelopeResult.success) return null;
+    const patch = parseThemePatch(envelopeResult.data.patch);
+    return patch ? { kind: "patch", base: envelopeResult.data.base, patch } : null;
   }
-  const theme = parseRawTheme(raw, resolveBase);
+  const theme = parseRawTheme(record, resolveBase);
   return theme ? { kind: "theme", theme } : null;
 }
 

@@ -1,35 +1,32 @@
 import { Bookmark, Check, Pause, Play, RotateCcw, X, type LucideIcon } from "lucide-react";
+import * as z from "zod/mini";
 
 import type { TranslationKey } from "@/types/core/i18n";
+import data from "./activity.data.json";
 
-export const CELL_LEVELS = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"];
-export const CELL_SIZE = 16;
-export const CELL_GAP = 4;
+const ActivityDataSchema = z.object({
+  ACTIVITY_STATUS_FILTERS: z.array(z.object({ key: z.string(), value: z.string() })),
+  ACTIVITY_STATUS_LABELS: z.record(z.string(), z.string()),
+  CELL_GAP: z.number(),
+  CELL_LEVELS: z.array(z.string()),
+  CELL_SIZE: z.number(),
+});
+
+const parsed = ActivityDataSchema.parse(data);
+
+export const CELL_LEVELS = parsed.CELL_LEVELS;
+export const CELL_SIZE = parsed.CELL_SIZE;
+export const CELL_GAP = parsed.CELL_GAP;
 
 export const ACTIVITY_STATUS_ICONS: Record<string, LucideIcon> = {
-  CURRENT: Play,
   COMPLETED: Check,
+  CURRENT: Play,
   DROPPED: X,
-  PLANNING: Bookmark,
   PAUSED: Pause,
+  PLANNING: Bookmark,
   REPEATING: RotateCcw,
 };
 
-export const ACTIVITY_STATUS_LABELS: Record<string, TranslationKey> = {
-  CURRENT: "anilist.activity.status.CURRENT",
-  COMPLETED: "anilist.activity.status.COMPLETED",
-  DROPPED: "anilist.activity.status.DROPPED",
-  PLANNING: "anilist.activity.status.PLANNING",
-  PAUSED: "anilist.activity.status.PAUSED",
-  REPEATING: "anilist.activity.status.REPEATING",
-};
+export const ACTIVITY_STATUS_LABELS = parsed.ACTIVITY_STATUS_LABELS as Record<string, TranslationKey>;
 
-export const ACTIVITY_STATUS_FILTERS: { value: string; key: TranslationKey }[] = [
-  { value: "", key: "anilist.activity.filter.all" },
-  { value: "CURRENT", key: "anilist.activity.filter.current" },
-  { value: "COMPLETED", key: "anilist.activity.filter.completed" },
-  { value: "DROPPED", key: "anilist.activity.filter.dropped" },
-  { value: "PAUSED", key: "anilist.activity.filter.paused" },
-  { value: "PLANNING", key: "anilist.activity.filter.planning" },
-  { value: "REPEATING", key: "anilist.activity.filter.repeating" },
-];
+export const ACTIVITY_STATUS_FILTERS = parsed.ACTIVITY_STATUS_FILTERS as { value: string; key: TranslationKey }[];

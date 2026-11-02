@@ -1,4 +1,5 @@
 import { attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import * as z from "zod/mini";
 
 const STORAGE_KEY = "iluha.v1.spellindex";
 const MAX_ENTRIES = 2;
@@ -14,28 +15,29 @@ interface SpellWordsEnvelope {
   entries: SpellWordsEntry[];
 }
 
+const SpellWordsEntrySchema = z.compile(
+  z.object({ fingerprint: z.string(), words: z.array(z.string()) })
+);
+const SpellWordsEnvelopeSchema = z.compile(
+  z.object({ f: z.literal(1), entries: z.array(z.unknown()) })
+);
+
 function storageOf(): Storage | undefined {
   if (typeof localStorage === "undefined") return undefined;
   return localStorage;
 }
 
 function isEntry(value: unknown): value is SpellWordsEntry {
-  if (!value || typeof value !== "object") return false;
-  const entry = value as { fingerprint?: unknown; words?: unknown };
-  return (
-    typeof entry.fingerprint === "string" &&
-    Array.isArray(entry.words) &&
-    entry.words.every((word) => typeof word === "string")
-  );
+  return SpellWordsEntrySchema.safeParse(value).success;
 }
 
 function parseEnvelope(raw: string | null): SpellWordsEnvelope | null {
   if (!raw) return null;
   const [parsed, error] = attemptSync((): unknown => JSON.parse(raw));
-  if (error !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { f?: unknown; entries?: unknown };
-  if (envelope.f !== 1 || !Array.isArray(envelope.entries)) return null;
-  return { f: 1, entries: envelope.entries.filter(isEntry) };
+  if (error !== null) return null;
+  const result = SpellWordsEnvelopeSchema.safeParse(parsed);
+  if (!result.success) return null;
+  return { f: 1, entries: result.data.entries.filter(isEntry) };
 }
 
 export function readCachedSpellWords(fingerprint: string): string[] | null {

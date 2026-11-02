@@ -57,12 +57,18 @@ const CORE_POLLED: u64 = ALL_CORE_OBSERVED & !CACHE_FIELDS;
 
 /// Counters for the real-playback bench (`ILUHA_BENCH`). They cover every
 /// `get_property` the player ticker issues and every snapshot it emits.
+#[cfg(debug_assertions)]
 static PROPERTY_READS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+#[cfg(debug_assertions)]
 static SNAPSHOTS_EMITTED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+#[cfg(debug_assertions)]
 static PROPERTY_EVENTS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+#[cfg(debug_assertions)]
 static TIME_POS_EVENTS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+#[cfg(debug_assertions)]
 static DIRTY_TICKS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
+#[cfg(debug_assertions)]
 pub fn poll_stats() -> (u64, u64, u64, u64, u64) {
     (
         PROPERTY_READS.load(Ordering::Relaxed),
@@ -535,9 +541,11 @@ pub fn attach(app: &AppHandle) {
                 watchdog_tick(&ticker);
             }
             if host.dirty.swap(false, Ordering::Relaxed) {
+                #[cfg(debug_assertions)]
                 DIRTY_TICKS.fetch_add(1, Ordering::Relaxed);
                 let snapshot = read_snapshot(&ticker);
                 let snapshot = smooth_snapshot(&ticker, snapshot);
+                #[cfg(debug_assertions)]
                 SNAPSHOTS_EMITTED.fetch_add(1, Ordering::Relaxed);
                 let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
             }
@@ -559,8 +567,10 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
 
     match name.as_str() {
         "property-change" => {
+            #[cfg(debug_assertions)]
             PROPERTY_EVENTS.fetch_add(1, Ordering::Relaxed);
             if event.get("name").and_then(Value::as_str) == Some("time-pos") {
+                #[cfg(debug_assertions)]
                 TIME_POS_EVENTS.fetch_add(1, Ordering::Relaxed);
             }
             if let Some(name) = event.get("name").and_then(Value::as_str) {
@@ -638,6 +648,7 @@ fn emit_typed(app: &AppHandle, kind: &str, reason: Option<String>, data: Option<
 }
 
 fn number_property(app: &AppHandle, name: &str) -> Option<f64> {
+#[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "double", PLAYER_WINDOW_LABEL)
@@ -646,6 +657,7 @@ fn number_property(app: &AppHandle, name: &str) -> Option<f64> {
 }
 
 fn int_property(app: &AppHandle, name: &str) -> Option<i64> {
+#[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "int64", PLAYER_WINDOW_LABEL)
@@ -654,6 +666,7 @@ fn int_property(app: &AppHandle, name: &str) -> Option<i64> {
 }
 
 fn flag_property(app: &AppHandle, name: &str) -> Option<bool> {
+#[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "flag", PLAYER_WINDOW_LABEL)
@@ -662,6 +675,7 @@ fn flag_property(app: &AppHandle, name: &str) -> Option<bool> {
 }
 
 fn string_property(app: &AppHandle, name: &str) -> Option<String> {
+#[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "string", PLAYER_WINDOW_LABEL)

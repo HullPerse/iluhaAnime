@@ -1,0 +1,78 @@
+{
+  "ANNOTATION_BLUR_SIGMA_FACTOR": 1.5,
+  "ANNOTATION_BRUSH_SIZES": [
+    3,
+    6,
+    12
+  ],
+  "ANNOTATION_DEFAULT_BRUSH_SIZE": 6,
+  "ANNOTATION_DEFAULT_COLOR": "#e5342f",
+  "ANNOTATION_DEFAULT_TEXT_SIZE": 28,
+  "ANNOTATION_HISTORY_LIMIT": 60,
+  "ANNOTATION_POINT_SPACING": 2,
+  "ANNOTATION_TEXT_LINE_HEIGHT": 1.2,
+  "ANNOTATION_TEXT_SIZES": [
+    18,
+    28,
+    42
+  ],
+  "CROP_DIM_OPACITY": 0.6,
+  "CROP_MIN_SIZE": 8,
+  "CROP_SNAP_DISPLAY_PX": 6,
+  "CROP_ZOOM_FIT": 1,
+  "CROP_ZOOM_MAX": 8,
+  "CROP_ZOOM_MIN": 0.5,
+  "CROP_ZOOM_PRECISION": 1000,
+  "CROP_ZOOM_STEP": 1.2,
+  "SCREENSHOT_FORMAT_LABELS": {
+    "png": "screenshot.format.png",
+    "jpeg": "screenshot.format.jpeg"
+  },
+  "SCREENSHOT_FORMATS": [
+    "png",
+    "jpeg"
+  ],
+  "SCREENSHOT_HISTORY_DEFS": [
+    {
+      "id": "undo",
+      "chord": "ctrl+KeyZ",
+      "repeat": "once"
+    },
+    {
+      "id": "undo",
+      "chord": "meta+KeyZ",
+      "repeat": "once"
+    },
+    {
+      "id": "redo",
+      "chord": "ctrl+Shift+KeyZ",
+      "repeat": "once"
+    },
+    {
+      "id": "redo",
+      "chord": "meta+Shift+KeyZ",
+      "repeat": "once"
+    },
+    {
+      "id": "redo",
+      "chord": "ctrl+KeyY",
+      "repeat": "once"
+    },
+    {
+      "id": "redo",
+      "chord": "ctrl+Shift+KeyY",
+      "repeat": "once"
+    },
+    {
+      "id": "redo",
+      "chord": "meta+KeyY",
+      "repeat": "once"
+    },
+    {
+      "id": "redo",
+      "chord": "meta+Shift+KeyY",
+      "repeat": "once"
+    }
+  ],
+  "SCREENSHOT_NAME_PREFIX": "iluhaAnime_screenshot"
+}

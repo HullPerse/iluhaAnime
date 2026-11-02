@@ -14,7 +14,12 @@ import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { withFallback } from "@/lib/core/attempt.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import {
+  Anime4kShadersSchema,
+  GpuEncodersSchema,
+  UpscalePresetSuggestionSchema,
+} from "@/api/upscale.schema";
 import { settingsAtoms } from "@/store/settings.store";
 import { addConvertItem, addUpscaleItem, cancelUpscale, upscaleItems } from "@/store/upscale.store";
 import type { UpscaleConfig, ConvertConfig } from "@/types/core/upscale";
@@ -77,8 +82,8 @@ export default function UpscalePlayer({
     queryFn: async () => {
       const [ffmpegOk, gpuEncoders, defaultShaders] = await Promise.all([
         withFallback(invokeTyped<boolean>("check_ffprobe"), false),
-        withFallback(invokeTyped<string[]>("check_gpu_encoders"), ["cpu"]),
-        withFallback(invokeTyped<string[]>("default_anime4k_shaders"), []),
+        withFallback(invokeValidatedOrThrow("check_gpu_encoders", GpuEncodersSchema), ["cpu"]),
+        withFallback(invokeValidatedOrThrow("default_anime4k_shaders", Anime4kShadersSchema), []),
       ]);
       return { ffmpegOk, gpuEncoders, defaultShaders };
     },
@@ -88,9 +93,11 @@ export default function UpscalePlayer({
     queryKey: queryKeys.upscaleSuggest(filePath),
     queryFn: () =>
       withFallback(
-        invokeTyped<{ preset: string; reason: string }>("suggest_upscale_preset", {
-          inputPath: filePath,
-        }),
+        invokeValidatedOrThrow(
+          "suggest_upscale_preset",
+          UpscalePresetSuggestionSchema,
+          { inputPath: filePath }
+        ),
         null
       ),
     enabled: open,

@@ -59,7 +59,6 @@ export function fingerprintEntries(entries: readonly FingerprintEntry[]): string
   return `${hex8(paths)}${hex8(stats)}${sorted.length.toString(16)}`;
 }
 
-/** Reports what changed between two snapshots, so a skip can name its reason. */
 export function diffFingerprintEntries(
   previous: readonly FingerprintEntry[],
   next: readonly FingerprintEntry[]

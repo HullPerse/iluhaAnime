@@ -1,0 +1,130 @@
+{
+  "FORMAT_OPTIONS": [
+    {
+      "label": "MP4 (H.264)",
+      "value": "mp4"
+    },
+    {
+      "label": "MKV",
+      "value": "mkv"
+    },
+    {
+      "label": "AVI",
+      "value": "avi"
+    },
+    {
+      "label": "MOV",
+      "value": "mov"
+    },
+    {
+      "label": "WebM",
+      "value": "webm"
+    },
+    {
+      "label": "M4V",
+      "value": "m4v"
+    },
+    {
+      "label": "TS",
+      "value": "ts"
+    }
+  ],
+  "FPS_OPTIONS": [
+    {
+      "label": "player.option.fps.original",
+      "value": ""
+    },
+    {
+      "label": "30",
+      "value": "30"
+    },
+    {
+      "label": "player.option.fps60dup",
+      "value": "60"
+    },
+    {
+      "label": "player.option.fps60interp",
+      "value": "60i"
+    }
+  ],
+  "GPU_LABELS": {
+    "amf": "AMD AMF",
+    "cpu": "CPU (x264)",
+    "nvenc": "NVIDIA NVENC",
+    "qsv": "Intel QSV"
+  },
+  "QUALITY_OPTIONS": [
+    {
+      "label": "player.option.quality.fastest",
+      "value": "ultrafast"
+    },
+    {
+      "label": "player.option.quality.fast",
+      "value": "fast"
+    },
+    {
+      "label": "player.option.quality.slow",
+      "value": "slow"
+    },
+    {
+      "label": "player.option.quality.slowest",
+      "value": "veryslow"
+    }
+  ],
+  "RESOLUTIONS": [
+    {
+      "label": "player.option.original",
+      "value": "original"
+    },
+    {
+      "label": "1920×1080 (1080p)",
+      "value": "1920x1080"
+    },
+    {
+      "label": "2560×1440 (2K)",
+      "value": "2560x1440"
+    },
+    {
+      "label": "3840×2160 (4K)",
+      "value": "3840x2160"
+    }
+  ],
+  "TABS": [
+    {
+      "id": "upscale",
+      "label": "player.tab.upscale"
+    },
+    {
+      "id": "convert",
+      "label": "player.tab.convert"
+    }
+  ],
+  "UPSCALER_OPTIONS": [
+    {
+      "label": "Lanczos (ffmpeg)",
+      "value": "ffmpeg"
+    },
+    {
+      "label": "player.option.upscaler.anime4k",
+      "value": "anime4k"
+    },
+    {
+      "label": "player.option.upscaler.realcugan",
+      "value": "realcugan"
+    }
+  ],
+  "VIDEO_CODEC_OPTIONS": [
+    {
+      "label": "player.upscale.video.codec.h264",
+      "value": "h264"
+    },
+    {
+      "label": "player.upscale.video.codec.hevc",
+      "value": "hevc"
+    },
+    {
+      "label": "player.upscale.video.codec.hevc10",
+      "value": "hevc10"
+    }
+  ]
+}

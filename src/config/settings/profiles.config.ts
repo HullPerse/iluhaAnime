@@ -1,28 +1,20 @@
+import * as z from "zod/mini";
+
 import { keysOf } from "@/lib/core/keysOf.utils";
 import type { PlayerProfile, PlayerProfileId } from "@/types/player/videoPlayer";
+import data from "./profiles.data.json";
 
-export const PLAYER_PROFILES: Record<PlayerProfileId, PlayerProfile> = {
-  basic: {
-    id: "basic",
-    labelKey: "player.media.settings.profile.basic",
-    options: {
-      "demuxer-readahead-secs": 1,
-    },
-  },
-  speed: {
-    id: "speed",
-    labelKey: "player.media.settings.profile.speed",
-    options: {
-      "demuxer-readahead-secs": 0.5,
-    },
-  },
-  quality: {
-    id: "quality",
-    labelKey: "player.media.settings.profile.quality",
-    options: {
-      "demuxer-readahead-secs": 10,
-    },
-  },
-};
+const PlayerProfileSchema = z.object({
+  id: z.string(),
+  labelKey: z.string(),
+  options: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+});
 
+const ProfilesDataSchema = z.object({
+  PLAYER_PROFILES: z.record(z.string(), PlayerProfileSchema),
+});
+
+const parsed = ProfilesDataSchema.parse(data);
+
+export const PLAYER_PROFILES = parsed.PLAYER_PROFILES as Record<PlayerProfileId, PlayerProfile>;
 export const PLAYER_PROFILE_IDS = keysOf(PLAYER_PROFILES);

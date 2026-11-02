@@ -15,6 +15,7 @@
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "typecheck:e2e": "tsc --noEmit -p scripts/e2e/tsconfig.json",
     "check:commands": "bun scripts/check-commands.ts",
+    "check:configs": "bun scripts/check-configs.ts",
     "data:flags": "bun scripts/build-flags.ts",
     "data:geoip": "bun scripts/build-geoip.ts",
     "data:chip8": "bun scripts/build-chip8-store.ts",
@@ -38,7 +39,7 @@
     "bench:snapshot": "bun scripts/rank-snapshot.ts",
     "bench:eval": "bun scripts/rank-eval.ts",
     "bench:simulate": "bun scripts/rank-simulate.ts",
-    "check": "bun scripts/check-commands.ts && ultracite check src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts",
+    "check": "bun scripts/check-commands.ts && bun scripts/check-configs.ts && ultracite check src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts",
     "fix": "ultracite fix src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts"
   },
   "dependencies": {

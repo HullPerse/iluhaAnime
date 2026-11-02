@@ -24,3 +24,13 @@ export async function invokeValidated<T>(
   const [value, error] = await attempt(invoke<unknown>(command, args));
   return error === null ? parseValue(value, schema) : err(error);
 }
+
+export async function invokeValidatedOrThrow<T>(
+  command: CommandName,
+  schema: z.ZodMiniType<T>,
+  args?: Record<string, unknown>
+): Promise<T> {
+  const result = await invokeValidated(command, schema, args);
+  if (!result.ok) throw result.error;
+  return result.value;
+}

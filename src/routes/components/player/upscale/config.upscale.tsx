@@ -15,7 +15,8 @@ import type { UpscalePreviewController } from "@/types/core/upscalePreview";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { withFallback } from "@/lib/core/attempt.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { UpscaleTimeEstimateSchema } from "@/api/upscale.schema";
 import { formatETA } from "@/lib/core/time.utils";
 import { parseUpscaleFps } from "@/lib/player/upscaleFps.utils";
 import type { PreviewFrame } from "@/types/core/upscale";
@@ -106,7 +107,7 @@ export function UpscaleConfigPanel({
     ]),
     queryFn: () =>
       withFallback(
-        invokeTyped<{ seconds: number }>("estimate_upscale_time", {
+        invokeValidatedOrThrow("estimate_upscale_time", UpscaleTimeEstimateSchema, {
           aiUpscaler: upscaler === "ffmpeg" ? null : upscaler,
           gpuBackend,
           height: h,

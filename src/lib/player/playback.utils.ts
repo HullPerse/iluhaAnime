@@ -1,7 +1,8 @@
 import { PLAYER_PROFILES } from "@/config/settings/profiles.config";
 import { fileNameFromPath, isTrackFileName } from "@/lib/search/parse.utils";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { PlaylistEntryListSchema, VideoCardInfoSchema } from "@/api/player.schema";
 import { clamp } from "@/lib/core/math.utils";
 import { joinMediaPath } from "@/lib/player/media.utils";
 import type {
@@ -23,12 +24,6 @@ import type {
   TorrentPlaylistSource,
   VideoCardInfo,
 } from "@/types/player/playback";
-
-export function rotateQueue(files: string[], startIndex: number): string[] {
-  if (files.length === 0) return files;
-  const index = ((startIndex % files.length) + files.length) % files.length;
-  return [...files.slice(index), ...files.slice(0, index)];
-}
 
 const PLAYLIST_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
@@ -344,11 +339,11 @@ export async function insertPlaylistFiles(items: PlaylistInsert[]): Promise<void
 }
 
 export async function readPlaylistEntries(): Promise<PlaylistEntry[]> {
-  return invokeTyped<PlaylistEntry[]>("player_playlist_entries");
+  return invokeValidatedOrThrow("player_playlist_entries", PlaylistEntryListSchema);
 }
 
 export async function readVideoCard(path: string): Promise<VideoCardInfo> {
-  return invokeTyped<VideoCardInfo>("get_video_card", { path });
+  return invokeValidatedOrThrow("get_video_card", VideoCardInfoSchema, { path });
 }
 
 export function startFrameStep(forward: boolean): Promise<void> {

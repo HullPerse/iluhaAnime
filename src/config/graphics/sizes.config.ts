@@ -1,11 +1,7 @@
-export const SIZE_MULTIPLIERS = {
-  B: 1,
-  GB: 1024 ** 3,
-  GiB: 1024 ** 3,
-  KB: 1024,
-  KiB: 1024,
-  MB: 1024 ** 2,
-  MiB: 1024 ** 2,
-  TB: 1024 ** 4,
-  TiB: 1024 ** 4,
-} as const;
+import * as z from "zod/mini";
+
+import data from "./sizeMultipliers.data.json";
+
+const SizeMultipliersSchema = z.record(z.string(), z.number());
+
+export const SIZE_MULTIPLIERS = SizeMultipliersSchema.parse(data);

@@ -1,0 +1,60 @@
+{
+  "NOTIFICATION_FILTER_KEYS": {
+    "all": "notification.filter.all",
+    "downloads": "notification.filter.downloads",
+    "error": "notification.filter.error",
+    "info": "notification.filter.info",
+    "success": "notification.filter.success",
+    "warning": "notification.filter.warning"
+  },
+  "NOTIFICATION_FILTERS": [
+    "all",
+    "info",
+    "success",
+    "warning",
+    "error",
+    "downloads"
+  ],
+  "NOTIFICATION_POPUP_KEYS": {
+    "off": "settings.notifications.popups.off",
+    "system": "settings.notifications.popups.system",
+    "inapp": "settings.notifications.popups.inapp",
+    "both": "settings.notifications.popups.both"
+  },
+  "NOTIFICATION_POPUP_MODES": [
+    "off",
+    "system",
+    "inapp",
+    "both"
+  ],
+  "NOTIFICATION_TOAST_STRIP": {
+    "error": "bg-red-600",
+    "info": "bg-blue-700",
+    "success": "bg-green-600",
+    "warning": "bg-yellow-500"
+  },
+  "NOTIFICATION_TYPE_COLORS": {
+    "error": "text-red-600",
+    "info": "text-blue-600",
+    "success": "text-green-600",
+    "warning": "text-orange-500"
+  },
+  "POLL_INTERVALS_MIN": [
+    5,
+    15,
+    30,
+    60,
+    120
+  ],
+  "TOAST_ACTIVATED_EVENT": "notification-activated",
+  "TOAST_DEFAULTS": {
+    "durationMs": 8000,
+    "maxVisible": 4
+  },
+  "TOAST_DURATION_MS": {
+    "error": 8000,
+    "info": 8000,
+    "success": 8000,
+    "warning": 8000
+  }
+}

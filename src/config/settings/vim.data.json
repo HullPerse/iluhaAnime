@@ -1,0 +1,30 @@
+{
+  "VIM_CONTENT_SELECTOR": "[data-scroll-root]",
+  "VIM_DISABLED_ATTRIBUTE": "data-vim-disabled",
+  "VIM_HINT_ATTRIBUTES": {
+    "target": "data-vim-target",
+    "contextMenu": "data-vim-contextmenu",
+    "ctrlClick": "data-vim-ctrlclick",
+    "label": "data-vim-label"
+  },
+  "VIM_LABEL_ALPHABET": "fjdkslaghrueiwovnmc",
+  "VIM_MAX_LABEL_LENGTH": 2,
+  "VIM_MOTION_KEYS": {
+    "firstPrefix": "KeyG",
+    "first": "KeyG",
+    "last": "Shift+KeyG",
+    "edgeTop": "KeyH",
+    "edgeMiddle": "KeyM",
+    "edgeBottom": "KeyL"
+  },
+  "VIM_SCROLL_KEYS": {
+    "lineDown": "KeyJ",
+    "lineUp": "KeyK",
+    "halfDown": "KeyD",
+    "halfUp": "KeyU"
+  },
+  "VIM_SCROLL_LINE_PX": 60,
+  "VIM_TRIGGER_CHORD": "KeyF",
+  "TREE_ROOT_SELECTOR": "[data-tree-root]",
+  "TREE_ROW_SELECTOR": "[data-tree-row]"
+}

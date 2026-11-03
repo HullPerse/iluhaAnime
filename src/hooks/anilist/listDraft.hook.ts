@@ -19,9 +19,11 @@ export function useListDraft(animeId: number, listEntry: ListEntryDraft | undefi
   const [flagsTouched, setFlagsTouched] = useState<boolean>(false);
 
   const syncedAnimeId = useRef<number>(animeId);
+  const hydratedEntry = useRef<boolean>(listEntry !== undefined);
   useEffect(() => {
     if (syncedAnimeId.current === animeId) return;
     syncedAnimeId.current = animeId;
+    hydratedEntry.current = listEntry !== undefined;
     setEditStatus(listEntry?.list_status ?? "PLANNING");
     setEditProgress(numText(listEntry?.progress));
     setEditScore(numText(listEntry?.score));
@@ -34,6 +36,22 @@ export function useListDraft(animeId: number, listEntry: ListEntryDraft | undefi
     setEditCustomLists(listEntry?.custom_lists ?? []);
     setFlagsTouched(false);
   }, [animeId, listEntry]);
+
+  useEffect(() => {
+    if (hydratedEntry.current || listEntry === undefined) return;
+    hydratedEntry.current = true;
+    setEditStatus(listEntry.list_status ?? "PLANNING");
+    setEditProgress(numText(listEntry.progress));
+    setEditScore(numText(listEntry.score));
+    setEditNotes(textOrEmpty(listEntry.notes));
+    setEditRepeat(numText(listEntry.repeat));
+    setEditPrivate(flagOrFalse(listEntry.private));
+    setEditHidden(flagOrFalse(listEntry.hidden_from_status_lists));
+    setEditStarted(textOrEmpty(listEntry.started_at));
+    setEditCompleted(textOrEmpty(listEntry.completed_at));
+    setEditCustomLists(listEntry.custom_lists ?? []);
+    setFlagsTouched(false);
+  }, [listEntry]);
 
   return {
     editStatus,

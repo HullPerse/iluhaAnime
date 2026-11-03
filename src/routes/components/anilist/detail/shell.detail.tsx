@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
@@ -9,16 +9,32 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { attemptAll } from "@/lib/core/attempt.utils";
+import { buildEntryLookup } from "@/lib/anilist/entries.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { resolveDetailBack } from "@/lib/anilist/detailBack.utils";
 import { useDetailScreens } from "@/hooks/anilist/detailScreens.hook";
 import { useDetailPresence } from "@/hooks/anilist/detailPresence.hook";
 import { ShellHeaderActions } from "@/routes/components/anilist/detail/shellHeaderActions.detail";
+import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import type { AniDetailProps as DetailProps, AniListOverlayContext } from "@/types/anilist/anilist";
 
 import { OverlayScreens } from "./screens.detail";
 import { AniListDetailView } from "./view.detail";
 import type { DetailShellSlot } from "@/types/core/shell.detail";
+
+function useDetailEntryContext(props: DetailProps) {
+  const self = useUserAnilistData({ enabled: props.isLoggedIn });
+  const fallbackLookup = useMemo(
+    () => (props.entryLookup ? undefined : buildEntryLookup(self.lists)),
+    [props.entryLookup, self.lists]
+  );
+  const entryLookup = props.entryLookup ?? fallbackLookup;
+  return {
+    entryLookup,
+    listEntry: props.listEntry ?? entryLookup?.get(props.animeId),
+    scoreFormat: props.scoreFormat ?? self.user?.score_format ?? null,
+  };
+}
 
 export function AnimeDetailShell({
   render,
@@ -39,6 +55,7 @@ export function AnimeDetailShell({
   };
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
   const queryClient = useQueryClient();
+  const { entryLookup, listEntry, scoreFormat } = useDetailEntryContext(props);
   const query = useAppQuery("static", {
     queryKey: queryKeys.animeFull(props.animeId, anilistProxyUrl ?? "", props.isLoggedIn),
     queryFn: () => anilistApi.getAnimeFull(props.animeId),
@@ -95,6 +112,9 @@ export function AnimeDetailShell({
     body = (
       <AniListDetailView
         {...props}
+        entryLookup={entryLookup}
+        listEntry={listEntry}
+        scoreFormat={scoreFormat}
         anime={query.data?.media}
         initialCharacters={query.data?.characters}
         initialRecommendations={query.data?.recommendations}

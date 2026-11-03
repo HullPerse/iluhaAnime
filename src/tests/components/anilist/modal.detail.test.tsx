@@ -114,6 +114,7 @@ beforeEach(() => {
     }
     if (command === "get_anime_recommendations") return Promise.resolve([]);
     if (command === "get_anilist_friend_scores") return Promise.resolve([]);
+    if (command === "get_anilist_custom_lists") return Promise.resolve([]);
     if (command === "list_collection_items") return Promise.resolve([]);
     if (command === "list_custom_field_defs") return Promise.resolve([]);
     if (command === "list_collection_statuses") return Promise.resolve([]);
@@ -129,6 +130,57 @@ beforeEach(() => {
       });
     }
     return Promise.reject(new Error(`unexpected command ${command}`));
+  });
+});
+
+describe("AniListDetailModal signed-in list entry", () => {
+  it("uses the user's saved entry when the caller does not pass one", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(["anilist_data"], {
+      user: { id: 7, score_format: "POINT_10" },
+      lists: [
+        {
+          name: "Completed",
+          entries: [
+            {
+              media: { id: 21 },
+              progress: 28,
+              score: 9,
+              list_status: "COMPLETED",
+              notes: null,
+              custom_lists: [],
+              created_at: null,
+              updated_at: null,
+              completed_at: null,
+              started_at: null,
+              repeat: 0,
+            },
+          ],
+        },
+      ],
+      favourites: [],
+      people: { staff: [], characters: [] },
+    });
+
+    render(
+      <AniListDetailModal
+        animeId={21}
+        isLoggedIn
+        onTag={() => undefined}
+        onGenre={() => undefined}
+        onClose={() => undefined}
+      />,
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      }
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "T" })).toBeDefined());
+    expect(screen.getByText("Manage list")).toBeTruthy();
+    expect(screen.getByText("Completed")).toBeTruthy();
+    expect((screen.getByLabelText("Progress:") as HTMLInputElement).value).toBe("28");
   });
 });
 

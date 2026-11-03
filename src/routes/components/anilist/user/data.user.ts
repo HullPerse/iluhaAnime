@@ -4,9 +4,10 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
 import type { AnilistRouteData } from "@/types/anilist/anilist";
 
-export function useUserAnilistData() {
+export function useUserAnilistData(options: { enabled?: boolean } = {}) {
   const query = useAppQuery<AnilistRouteData>("slow", {
     queryKey: queryKeys.anilistData(),
+    enabled: options.enabled ?? true,
     queryFn: async () => {
       const user = await anilistApi.checkAuth();
       if (!user) return { user: null, lists: [], favourites: [], people: NO_PEOPLE };

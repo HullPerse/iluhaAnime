@@ -1,6 +1,75 @@
 {
   "changelog": [
     {
+      "version": "5.1.0",
+      "added": [
+        {
+          "key": "changelog.5_1_0.added.app.offline_banner",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_1_0.added.settings.proxy_test",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_1_0.added.settings.cache_stats",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_1_0.added.settings.sidecar_tracks",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_1_0.added.anilist.local_filter",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_1_0.added.streaming.deep_links",
+          "scope": "streaming"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_1_0.changed.settings.proxy",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_1_0.changed.torrents.proxy_coverage",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_1_0.changed.app.cache_recovery",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_1_0.changed.player.chapters",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_1_0.changed.player.stream_error",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_1_0.changed.streaming.details",
+          "scope": "streaming"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_1_0.fixed.player.issues",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_1_0.fixed.streaming.details",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_1_0.fixed.proxy",
+          "scope": "app"
+        }
+      ]
+    },
+    {
       "version": "5.0.0",
       "added": [
         {

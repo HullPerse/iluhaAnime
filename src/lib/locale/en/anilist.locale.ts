@@ -386,6 +386,7 @@ const anilist = {
   "anilist.route.sorting": "Sort:",
   "anilist.route.studio": "studio",
   "anilist.route.tag": "tag",
+  "anilist.route.genre": "genre",
   "anilist.season.FALL": "Fall",
   "anilist.season.SPRING": "Spring",
   "anilist.season.SUMMER": "Summer",

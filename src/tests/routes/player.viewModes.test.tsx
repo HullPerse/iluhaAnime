@@ -282,4 +282,15 @@ describe("player view modes", () => {
     fireEvent.mouseMove(node, { clientX: 140, clientY: 100 });
     expect(mockStartDragging).not.toHaveBeenCalled();
   });
+
+  it("opens the context menu on the video in the default style when enabled", async () => {
+    patchSettings({ playerContextMenu: true, playerType: "default" });
+    await mountPlayer();
+    act(() => {
+      fireEvent.contextMenu(video(), { clientX: 20, clientY: 20 });
+    });
+    await act(async () => {});
+    const items = document.querySelectorAll('[role="menu"], [role="menuitem"]');
+    expect(items.length).toBeGreaterThan(0);
+  });
 });

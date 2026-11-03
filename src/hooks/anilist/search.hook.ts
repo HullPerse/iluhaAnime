@@ -99,7 +99,7 @@ export function useAnilistSearch() {
   });
 
   const globalPages = useAppInfiniteQuery<FilterPage, Error>("live", {
-    queryKey: queryKeys.anilistSearch(request),
+    queryKey: queryKeys.anilistSearchPages(request),
     queryFn: ({ pageParam }) =>
       anilistApi.filterPage({
         ...(request as { kind: "global"; params: AnilistFilterPageParams }).params,
@@ -174,7 +174,7 @@ export function useAnilistSearch() {
     (genre: string) => {
       beginRemoteSearch();
       setSearchTag(genre);
-      setSearchMode("tag");
+      setSearchMode("genre");
       setRequest({ kind: "genre", genre });
     },
     [beginRemoteSearch]

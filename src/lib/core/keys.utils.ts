@@ -42,6 +42,7 @@ export const queryKeys = {
   anilistBrowse: (tab: string) => ["anilist_browse", tab] as const,
   anilistFollowing: (userId: number | null) => ["anilist_following", userId] as const,
   anilistSearch: (request: unknown) => ["anilist_search", request] as const,
+  anilistSearchPages: (request: unknown) => ["anilist_search_pages", request] as const,
   friendLists: (id: number | null) => ["anilist_friend_lists", id] as const,
   friendFavourites: (id: number | null) => ["anilist_friend_favourites", id] as const,
   friendProfile: (id: number | null) => ["anilist_friend_profile", id] as const,

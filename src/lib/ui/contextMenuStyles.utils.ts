@@ -8,5 +8,5 @@ export const CONTEXT_MENU_ITEM_CLASS = cn(
 );
 
 export const CONTEXT_MENU_POPUP_CLASS = cn(
-  "windows95-active-border bg-field flex max-h-[min(16rem,var(--available-height))] min-w-32 flex-col overflow-hidden outline-none"
+  "windows95-active-border bg-field flex max-h-[min(70vh,var(--available-height))] min-w-32 flex-col overflow-x-hidden overflow-y-auto overscroll-contain outline-none"
 );

@@ -549,7 +549,7 @@ function PlayerComponent() {
   const cabinet = usePlayerScreen(ready, settings, hasFile);
 
   const videoWrap = (node: ReactNode): ReactNode =>
-    wrapVideoMenu(node, showModernMenu, modernEntries, setMenuOpen);
+    wrapVideoMenu(node, showModernMenu, modernEntries, menuOpen, setMenuOpen);
 
   return (
     <div className={rootClass(hasFile, failed, cursorHidden)}>
@@ -583,7 +583,10 @@ function PlayerComponent() {
               onMouseDown={onVideoMouseDown}
               onMouseMove={onVideoMouseMove}
               onMouseUp={onVideoMouseUp}
-              onContextMenu={showModernMenu ? undefined : (event) => event.preventDefault()}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                if (showModernMenu) setMenuOpen(true);
+              }}
             >
               {cabinet !== null && <PlayerBezel variant={cabinet} />}
 

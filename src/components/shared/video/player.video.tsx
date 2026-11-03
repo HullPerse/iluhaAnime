@@ -36,6 +36,7 @@ export function VideoPlayer({ youtubeId, webmUrl, title, className }: VideoPlaye
             <NativeVideo key={webmUrl} src={webmUrl} title={title} />
           ) : (
             <YouTubeVideo
+              key={youtubeId}
               ref={iframeRef}
               src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
             />

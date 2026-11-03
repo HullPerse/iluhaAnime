@@ -2,6 +2,7 @@ import { useMedia } from "@videojs/react";
 import { useEffect, useRef } from "react";
 
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
+import { attemptSync } from "@/lib/core/attempt.utils";
 
 export function VolumeInitializer() {
   const media = useMedia();
@@ -9,7 +10,10 @@ export function VolumeInitializer() {
   useEffect(() => {
     if (!media || applied.current) return;
     applied.current = true;
-    (media as { volume?: number }).volume = DEFAULT_VOLUME;
+
+    const [, error] = attemptSync(() => ((media as { volume?: number }).volume = DEFAULT_VOLUME));
+    if (error) return undefined;
   }, [media]);
+
   return null;
 }

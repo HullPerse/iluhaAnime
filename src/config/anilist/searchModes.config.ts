@@ -5,4 +5,5 @@ export const SEARCH_MODE_LABELS: Partial<Record<NonNullable<SearchMode>, Transla
   studio: "anilist.route.studio",
   season: "anilist.route.season",
   tag: "anilist.route.tag",
+  genre: "anilist.route.genre",
 };

@@ -113,11 +113,12 @@ export const wrapVideoMenu = (
   node: ReactNode,
   enabled: boolean,
   entries: ContextMenuEntry[],
+  open: boolean,
   onOpenChange: (open: boolean) => void
 ): ReactNode => {
   if (!enabled) return node;
   return (
-    <ContextMenu entries={entries} onOpenChange={onOpenChange}>
+    <ContextMenu entries={entries} open={open} onOpenChange={onOpenChange}>
       {node}
     </ContextMenu>
   );

@@ -39,7 +39,7 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
     const speed = cacheSpeed ?? 0;
     status =
       speed > 0
-        ? `${t("player.stream.buffering")} · ${formatSpeed(speed)}`
+        ? `${t("player.stream.buffering")} - ${formatSpeed(speed)}`
         : t("player.stream.buffering");
   }
 

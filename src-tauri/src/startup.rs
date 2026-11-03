@@ -123,8 +123,8 @@ mod tests {
 
     #[test]
     fn report_marks_are_deserializable() {
-        let parsed: FrontendMark = serde_json::from_str(r#"{"label":"mount","ms":12.5}"#)
-            .expect("frontend mark shape");
+        let parsed: FrontendMark =
+            serde_json::from_str(r#"{"label":"mount","ms":12.5}"#).expect("frontend mark shape");
         assert_eq!(parsed.label, "mount");
         assert!((parsed.ms - 12.5).abs() < f64::EPSILON);
     }

@@ -1,5 +1,11 @@
 const search = {
   "search.all.shown": "all",
+  "search.batch.title": "Batch download",
+  "search.batch.hint": "{groups} groups, {count} torrents",
+  "search.batch.progress": "{done} / {total}",
+  "search.batch.started": "Starting batch download",
+  "search.batch.done": "Batch download started",
+  "search.batch.failed": "Could not start {count} torrents",
   "search.details.added": "Added",
   "search.details.anonymous": "Anonymous",
   "search.details.category": "Category",

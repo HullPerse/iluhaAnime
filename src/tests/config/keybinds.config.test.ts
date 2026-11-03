@@ -96,11 +96,11 @@ describe("KEYBINDS from the player gap audit", () => {
     }
   });
 
-  it("binds every other bare digit to its tenth of the file", () => {
+  it("binds every other digit to its tenth of the file with shift", () => {
     for (const digit of DIGIT_KEYS) {
       if (VIEW_MODE_DIGITS.includes(digit)) continue;
-      expect(entryOf(`seekPercent${digit}`)?.chord).toBe(`Digit${digit}`);
-      expect(entryOf(`seekPercent${digit}`)?.keys).toBe(`${digit}`);
+      expect(entryOf(`seekPercent${digit}`)?.chord).toBe(`Shift+Digit${digit}`);
+      expect(entryOf(`seekPercent${digit}`)?.keys).toBe(`Shift+${digit}`);
     }
     expect(KEYBINDS.filter((keybind) => keybind.action.startsWith("seekPercent"))).toHaveLength(
       DIGIT_KEYS.length

@@ -213,6 +213,8 @@ export type CommandName =
   | "save_screenshot"
   | "save_session_config"
   | "scan_extra_files"
+  | "scan_sidecar_tracks"
+  | "open_magnet"
   | "scan_video_folder"
   | "scan_video_folders"
   | "search_anilist"

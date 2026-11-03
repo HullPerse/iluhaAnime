@@ -366,9 +366,9 @@
     },
     {
       "action": "seekPercent0",
-      "chord": "Digit0",
+      "chord": "Shift+Digit0",
       "repeat": "once",
-      "keys": "0",
+      "keys": "Shift+0",
       "description": "player.media.key.seek.percent",
       "category": "playback"
     },
@@ -398,49 +398,49 @@
     },
     {
       "action": "seekPercent4",
-      "chord": "Digit4",
+      "chord": "Shift+Digit4",
       "repeat": "once",
-      "keys": "4",
+      "keys": "Shift+4",
       "description": "player.media.key.seek.percent",
       "category": "playback"
     },
     {
       "action": "seekPercent5",
-      "chord": "Digit5",
+      "chord": "Shift+Digit5",
       "repeat": "once",
-      "keys": "5",
+      "keys": "Shift+5",
       "description": "player.media.key.seek.percent",
       "category": "playback"
     },
     {
       "action": "seekPercent6",
-      "chord": "Digit6",
+      "chord": "Shift+Digit6",
       "repeat": "once",
-      "keys": "6",
+      "keys": "Shift+6",
       "description": "player.media.key.seek.percent",
       "category": "playback"
     },
     {
       "action": "seekPercent7",
-      "chord": "Digit7",
+      "chord": "Shift+Digit7",
       "repeat": "once",
-      "keys": "7",
+      "keys": "Shift+7",
       "description": "player.media.key.seek.percent",
       "category": "playback"
     },
     {
       "action": "seekPercent8",
-      "chord": "Digit8",
+      "chord": "Shift+Digit8",
       "repeat": "once",
-      "keys": "8",
+      "keys": "Shift+8",
       "description": "player.media.key.seek.percent",
       "category": "playback"
     },
     {
       "action": "seekPercent9",
-      "chord": "Digit9",
+      "chord": "Shift+Digit9",
       "repeat": "once",
-      "keys": "9",
+      "keys": "Shift+9",
       "description": "player.media.key.seek.percent",
       "category": "playback"
     }
@@ -715,7 +715,7 @@
     },
     {
       "id": "seekPercent0",
-      "chord": "Digit0",
+      "chord": "Shift+Digit0",
       "repeat": "once",
       "keybindId": "player.seekPercent0"
     },
@@ -739,37 +739,37 @@
     },
     {
       "id": "seekPercent4",
-      "chord": "Digit4",
+      "chord": "Shift+Digit4",
       "repeat": "once",
       "keybindId": "player.seekPercent4"
     },
     {
       "id": "seekPercent5",
-      "chord": "Digit5",
+      "chord": "Shift+Digit5",
       "repeat": "once",
       "keybindId": "player.seekPercent5"
     },
     {
       "id": "seekPercent6",
-      "chord": "Digit6",
+      "chord": "Shift+Digit6",
       "repeat": "once",
       "keybindId": "player.seekPercent6"
     },
     {
       "id": "seekPercent7",
-      "chord": "Digit7",
+      "chord": "Shift+Digit7",
       "repeat": "once",
       "keybindId": "player.seekPercent7"
     },
     {
       "id": "seekPercent8",
-      "chord": "Digit8",
+      "chord": "Shift+Digit8",
       "repeat": "once",
       "keybindId": "player.seekPercent8"
     },
     {
       "id": "seekPercent9",
-      "chord": "Digit9",
+      "chord": "Shift+Digit9",
       "repeat": "once",
       "keybindId": "player.seekPercent9"
     }

@@ -23,7 +23,7 @@ export function CompareToolbar({
 }) {
   const { t } = useI18n();
   return (
-    <div className="border-t border-black/20 p-2">
+    <div className="border-t border-muted p-2">
       <Input
         value={query}
         onChange={(event) => onQuery(event.target.value)}

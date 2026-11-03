@@ -50,6 +50,8 @@ const settings = {
   "settings.media.scanThreads.four": "4",
   "settings.media.scanThreads.six": "6",
   "settings.media.scanThreads.eight": "8",
+  "settings.media.sidecar.auto": "Auto-load matching sidecar tracks",
+  "settings.media.sidecar.subfolders": "Scan subfolders for sidecar tracks",
   "settings.media.empty": "List cannot be empty",
   "settings.media.reset": "Reset to defaults",
   "settings.parse.titles": "Extract anime titles",
@@ -90,7 +92,7 @@ const settings = {
   "settings.summary.images": "Images",
   "settings.summary.anilistCache": "AniList cache",
   "settings.summary.videoCache": "ffprobe cache",
-  "settings.summary.cacheValue": "{{rate}}% · {{hits}} of {{total}}",
+  "settings.summary.cacheValue": "{{rate}}% - {{hits}} of {{total}}",
   "settings.summary.images.clear": "Clear",
   "settings.summary.images.confirm":
     "Clear the downloaded image cache? Images will re-download as you browse.",

@@ -1,5 +1,5 @@
 import { ListVideo, SkipBack, SkipForward } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -30,7 +30,7 @@ function NeighborFileButton({
   hasTarget: boolean;
   title: string;
   ariaLabel: string;
-  onActivate: () => void;
+  onActivate: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }) {
   const { t } = useI18n();
   const currentPath = useCell(playbackAtoms.path);
@@ -105,9 +105,9 @@ function NeighborFileButton({
         className="size-6"
         title={hintedTitle}
         aria-label={ariaLabel}
-        onClick={() => {
+        onClick={(event) => {
           close();
-          onActivate();
+          onActivate(event);
         }}
         onFocus={() => {
           if (hasTarget) setOpen(true);

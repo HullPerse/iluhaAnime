@@ -167,6 +167,7 @@ function TorrentFilePicker({
         <section className="flex flex-col items-center justify-center gap-2 py-4">
           <SmallLoader />
           <span className="windows95-text text-hint">{formatElapsed(elapsed, t)}</span>
+          <Button onClick={onCancel}>{t("common.cancel")}</Button>
         </section>
       ) : (
         <section className="flex h-full w-full flex-1 flex-col items-center gap-2 py-4">

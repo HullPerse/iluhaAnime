@@ -1,7 +1,7 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { torrentApi } from "@/api/torrent.api";
+import { invokeTyped } from "@/lib/core/invoke.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { inflightFetch } from "@/lib/core/lruCache.utils";
 import { attemptResult, err, ok } from "@/lib/core/result.utils";
@@ -54,7 +54,7 @@ export async function openMagnet(
 ) {
   const magnet = await resolveMagnet(item, magnets, setMagnets, setLoadingMagnet);
   if (!magnet.ok) return;
-  const opened = await attemptResult(openUrl(magnet.value));
+  const opened = await attemptResult(invokeTyped("open_magnet", { magnet: magnet.value }));
   if (!opened.ok) {
     addNotification(tr("common.error"), "error", tr("magnet.open.error"));
   }

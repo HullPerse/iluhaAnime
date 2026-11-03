@@ -661,7 +661,7 @@ fn emit_typed(app: &AppHandle, kind: &str, reason: Option<String>, data: Option<
 }
 
 fn number_property(app: &AppHandle, name: &str) -> Option<f64> {
-#[cfg(debug_assertions)]
+    #[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "double", PLAYER_WINDOW_LABEL)
@@ -670,7 +670,7 @@ fn number_property(app: &AppHandle, name: &str) -> Option<f64> {
 }
 
 fn int_property(app: &AppHandle, name: &str) -> Option<i64> {
-#[cfg(debug_assertions)]
+    #[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "int64", PLAYER_WINDOW_LABEL)
@@ -679,7 +679,7 @@ fn int_property(app: &AppHandle, name: &str) -> Option<i64> {
 }
 
 fn flag_property(app: &AppHandle, name: &str) -> Option<bool> {
-#[cfg(debug_assertions)]
+    #[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "flag", PLAYER_WINDOW_LABEL)
@@ -688,7 +688,7 @@ fn flag_property(app: &AppHandle, name: &str) -> Option<bool> {
 }
 
 fn string_property(app: &AppHandle, name: &str) -> Option<String> {
-#[cfg(debug_assertions)]
+    #[cfg(debug_assertions)]
     PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
     LibmpvCore::new(app.clone())
         .get_property(name, "string", PLAYER_WINDOW_LABEL)

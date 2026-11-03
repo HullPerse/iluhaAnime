@@ -1,9 +1,14 @@
 import { useMemo } from "react";
 
-import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
+import {
+  filterEntries,
+  sortEntries,
+  type LocalMediaFilter,
+} from "@/lib/anilist/entries.utils";
 import { groupEntriesByList } from "@/lib/anilist/anilistGroup.utils";
 import type {
   AniListCollection,
+  AniListFilters,
   AniListGroup,
   AniListSort,
   AniUser,
@@ -18,6 +23,8 @@ export function useAnilistListView({
   collapsedNames,
   user,
   global,
+  filters,
+  mediaFilter,
 }: {
   lists: AniListCollection[];
   sort: AniListSort;
@@ -27,6 +34,8 @@ export function useAnilistListView({
   collapsedNames: string[];
   user: AniUser | null;
   global: boolean;
+  filters?: AniListFilters;
+  mediaFilter?: LocalMediaFilter | null;
 }): {
   grouped: AniListGroup[] | null;
   collapsedLists: Set<string>;
@@ -36,9 +45,9 @@ export function useAnilistListView({
   const grouped = useMemo(() => {
     if (!groupByStatus || !user || global) return null;
     const flat = lists.flatMap((list) => list.entries);
-    const filtered = filterEntries(flat, searchTerms, false);
+    const filtered = filterEntries(flat, searchTerms, false, filters, mediaFilter);
     return groupEntriesByList(sortEntries(filtered, sort.dir, sort.key), lists);
-  }, [groupByStatus, user, global, lists, searchTerms, sort]);
+  }, [groupByStatus, user, global, lists, searchTerms, sort, filters, mediaFilter]);
   const collapsedLists = useMemo(() => new Set(collapsedNames), [collapsedNames]);
   const useScrollView = grouped !== null || (displayMode === "scroll" && !!user && !global);
   const effectiveDisplayMode = grouped !== null ? "scroll" : displayMode;

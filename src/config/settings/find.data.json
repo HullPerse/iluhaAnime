@@ -182,6 +182,8 @@
         "settings.media.tracks.hide",
         "settings.media.tracks.folders",
         "settings.media.tracks.torrent",
+        "settings.media.sidecar.auto",
+        "settings.media.sidecar.subfolders",
         "settings.media.streamQuality",
         "settings.media.watcher",
         "settings.media.watcher.fast",

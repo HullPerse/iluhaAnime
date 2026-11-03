@@ -1,7 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DIGIT_KEYS, VIEW_MODE_DIGITS } from "@/config/settings/keybinds.config";
+import { DIGIT_KEYS } from "@/config/settings/keybinds.config";
 import Keyboard from "@/routes/components/player/media/keyboard.player";
 
 const fireWheel = (target: Element, deltaY: number): void => {
@@ -74,19 +74,20 @@ describe("Keyboard shortcuts", () => {
     expect(onAction.mock.calls.at(-1)?.[0]).toBe("toggleAlwaysOnTop");
   });
 
-  it("maps each bare digit to its tenth of the file and the freed ones to shift", () => {
+  it("maps every digit to its tenth of the file with shift", () => {
     const onAction = vi.fn();
     render(<Keyboard onAction={onAction} />);
 
     for (const digit of DIGIT_KEYS) {
       onAction.mockClear();
-      const shifted = VIEW_MODE_DIGITS.includes(digit);
-      pressKey(`Digit${digit}`, { shiftKey: shifted });
-      expect(onAction.mock.calls.at(-1)?.[0], `Digit${digit}`).toBe(`seekPercent${digit}`);
+      pressKey(`Digit${digit}`, { shiftKey: true });
+      expect(onAction.mock.calls.at(-1)?.[0], `Shift+Digit${digit}`).toBe(
+        `seekPercent${digit}`
+      );
     }
   });
 
-  it("leaves the plain frame keys and unbound shifted digits alone", () => {
+  it("leaves plain digits and the frame keys alone", () => {
     const onAction = vi.fn();
     render(<Keyboard onAction={onAction} />);
 
@@ -94,7 +95,7 @@ describe("Keyboard shortcuts", () => {
     expect(onAction.mock.calls.at(-1)?.[0]).toBe("frameBackward");
 
     onAction.mockClear();
-    pressKey("Digit5", { shiftKey: true });
+    pressKey("Digit5");
     expect(onAction).not.toHaveBeenCalled();
   });
 
@@ -102,8 +103,8 @@ describe("Keyboard shortcuts", () => {
     const onAction = vi.fn();
     render(<Keyboard onAction={onAction} />);
 
-    pressKey("Digit5");
-    pressKey("Digit5", { repeat: true });
+    pressKey("Digit5", { shiftKey: true });
+    pressKey("Digit5", { shiftKey: true, repeat: true });
     expect(onAction).toHaveBeenCalledTimes(1);
 
     onAction.mockClear();

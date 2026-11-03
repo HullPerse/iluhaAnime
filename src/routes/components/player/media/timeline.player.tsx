@@ -167,7 +167,7 @@ function Timeline({
         )}
         <div
           ref={barRef}
-          className="windows95-border relative h-4 cursor-pointer bg-white"
+          className="windows95-border bg-field relative h-4 cursor-pointer"
           onMouseDown={handleBarDown}
           onMouseMove={handleBarMove}
           onMouseLeave={() => setHover(null)}

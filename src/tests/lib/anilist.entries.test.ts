@@ -96,6 +96,29 @@ describe("anilist/entries", () => {
       expect(filterEntries(entries, "", false)).toHaveLength(2);
     });
 
+    it("filters local entries by tag and studio", () => {
+      const entries = [
+        makeEntry(),
+        makeEntry({
+          media: makeMedia({
+            id: 2,
+            tags: ["Isekai"],
+            studios: [{ id: 2, name: "Bones" }],
+          }),
+        }),
+      ];
+      expect(
+        filterEntries(entries, "", false, undefined, { kind: "tag", value: "Ninja" })
+      ).toHaveLength(1);
+      expect(
+        filterEntries(entries, "", false, undefined, {
+          kind: "studio",
+          id: 2,
+          value: "Bones",
+        })
+      ).toHaveLength(1);
+    });
+
     it("keeps everything in global mode", () => {
       const entries = [makeEntry()];
       expect(filterEntries(entries, "zzz", true)).toHaveLength(1);

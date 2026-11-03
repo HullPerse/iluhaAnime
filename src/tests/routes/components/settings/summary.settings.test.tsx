@@ -34,6 +34,8 @@ const renderSummary = (seed: Update | null = null) => {
     database: DATABASE,
     backups: [],
     images: { bytes: 0, count: 0 },
+    anilistCache: { hits: 0, misses: 0 },
+    videoCache: { hits: 0, misses: 0 },
   });
   return render(
     <QueryClientProvider client={queryClient}>

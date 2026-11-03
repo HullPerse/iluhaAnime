@@ -33,14 +33,14 @@ export function TitleRows({
   const [showAll, setShowAll] = useState<boolean>(false);
   if (rows.length === 0) {
     return (
-      <div className="border-t border-black/20">
+      <div className="border-t border-muted">
         <EmptyRows tab={tab} query={query} friendName={friendName} onClear={onClear} />
       </div>
     );
   }
   const visible = showAll ? rows : rows.slice(0, 60);
   return (
-    <div className="border-t border-black/20 p-1">
+    <div className="border-t border-muted p-1">
       <div className="text-hint grid w-full grid-cols-[2rem_minmax(0,1fr)_3.25rem_3.25rem_3.5rem] items-center gap-1 px-1 text-xs">
         <span />
         <span />

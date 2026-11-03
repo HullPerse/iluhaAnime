@@ -6,7 +6,7 @@ export function GenreSection({ genres, friendName }: { genres: GenreTaste[]; fri
   const { t } = useI18n();
   if (genres.length === 0) return null;
   return (
-    <div className="border-t border-black/20 p-2">
+    <div className="border-t border-muted p-2">
       <p className="windows95-text mb-1 text-xs font-bold">{t("anilist.compare.genres.taste")}</p>
       <div className="text-hint grid grid-cols-[minmax(0,1fr)_4rem_4rem_2.5rem] gap-1 text-xs">
         <span />

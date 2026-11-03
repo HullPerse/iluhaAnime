@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveChapterJump } from "@/lib/core/chapter.utils";
+import { resolveChapterJump, resolveMediaJump } from "@/lib/core/chapter.utils";
 
 const CHAPTERS = [{ time: 0 }, { time: 60 }, { time: 120 }];
 
@@ -117,5 +117,79 @@ describe("resolveChapterJump", () => {
         step: 5,
       })
     ).toEqual({ kind: "seek", time: 180 });
+  });
+});
+
+describe("resolveMediaJump", () => {
+  it("walks chapters first and falls through to the next file", () => {
+    expect(
+      resolveMediaJump({
+        chapters: CHAPTERS,
+        timePos: 90,
+        hasPrev: true,
+        hasNext: true,
+        direction: 1,
+      })
+    ).toEqual({ kind: "seek", time: 120 });
+    expect(
+      resolveMediaJump({
+        chapters: CHAPTERS,
+        timePos: 120,
+        hasPrev: true,
+        hasNext: true,
+        direction: 1,
+      })
+    ).toEqual({ kind: "file" });
+    expect(
+      resolveMediaJump({
+        chapters: CHAPTERS,
+        timePos: 0,
+        hasPrev: true,
+        hasNext: true,
+        direction: -1,
+      })
+    ).toEqual({ kind: "file" });
+  });
+
+  it("falls back to files when the file has no chapters", () => {
+    expect(
+      resolveMediaJump({
+        chapters: [],
+        timePos: 30,
+        hasPrev: false,
+        hasNext: true,
+        direction: 1,
+      })
+    ).toEqual({ kind: "file" });
+    expect(
+      resolveMediaJump({
+        chapters: [],
+        timePos: 30,
+        hasPrev: true,
+        hasNext: false,
+        direction: -1,
+      })
+    ).toEqual({ kind: "file" });
+  });
+
+  it("reports boundaries when there is no neighbor file", () => {
+    expect(
+      resolveMediaJump({
+        chapters: CHAPTERS,
+        timePos: 0,
+        hasPrev: false,
+        hasNext: true,
+        direction: -1,
+      })
+    ).toEqual({ kind: "boundary", edge: "first" });
+    expect(
+      resolveMediaJump({
+        chapters: CHAPTERS,
+        timePos: 120,
+        hasPrev: true,
+        hasNext: false,
+        direction: 1,
+      })
+    ).toEqual({ kind: "boundary", edge: "last" });
   });
 });

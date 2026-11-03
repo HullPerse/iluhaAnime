@@ -1275,7 +1275,13 @@ mod tests {
         assert!(minimal.len() < full.len());
         let minimal_body = collection_body(7, 1, true);
         let minimal_query = minimal_body["query"].as_str().unwrap_or_default();
-        for heavy in ["synonyms", "bannerImage", "genres", "tags { name }", "description"] {
+        for heavy in [
+            "synonyms",
+            "bannerImage",
+            "genres",
+            "tags { name }",
+            "description",
+        ] {
             assert!(
                 !minimal_query.contains(heavy),
                 "minimal query leaks {heavy}"

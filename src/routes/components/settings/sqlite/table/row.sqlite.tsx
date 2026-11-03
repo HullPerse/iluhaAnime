@@ -55,7 +55,7 @@ export function DataRow({
       data-index={dataIndex}
       className={cn(
         selected && "bg-secondary/10",
-        "hover:bg-surface border-b border-black/10 align-top"
+        "hover:bg-surface border-b border-muted/30 align-top"
       )}
     >
       {interactive && rowKeys && (
@@ -69,7 +69,7 @@ export function DataRow({
             {selected ? (
               <Check className="size-3" />
             ) : (
-              <span className="block size-3 border border-black/40" />
+              <span className="block size-3 border border-muted" />
             )}
           </button>
         </td>

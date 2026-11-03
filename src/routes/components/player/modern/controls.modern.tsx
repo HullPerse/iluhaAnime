@@ -18,7 +18,7 @@ import { SEEK_STEP } from "@/config/settings/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { PlayerStream } from "@/types/player/playerStream";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { resolveChapterJump } from "@/lib/core/chapter.utils";
+import { resolveChapterJump, resolveMediaJump } from "@/lib/core/chapter.utils";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import { useCell } from "@/lib/core/signal.hook";
@@ -115,6 +115,25 @@ function ModernControls({
     scheduleTask("timeout", BOUNDARY_TIMEOUT, () => setBoundary(null));
   };
 
+  const runFileJump = (direction: ChapterJumpDirection, forceFile: boolean) => {
+    if (forceFile) {
+      if (direction < 0) {
+        if (hasPrev) onFilePrev();
+        else showBoundaryMsg(t("player.media.boundary.first"));
+      } else if (hasNext) onFileNext();
+      else showBoundaryMsg(t("player.media.boundary.last"));
+      return;
+    }
+    const jump = resolveMediaJump({ chapters, timePos, hasPrev, hasNext, direction });
+    if (jump.kind === "seek") onSeekTo(jump.time);
+    else if (jump.kind === "file") {
+      if (direction < 0) onFilePrev();
+      else onFileNext();
+    } else showBoundaryMsg(
+      t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last")
+    );
+  };
+
   const runChapterJump = (direction: ChapterJumpDirection) => {
     const jump = resolveChapterJump({
       chapters,
@@ -164,10 +183,7 @@ function ModernControls({
             hasTarget={hasPrev}
             title={t("player.media.controls.previous.file")}
             ariaLabel={t("player.media.controls.previous.file")}
-            onActivate={() => {
-              if (!hasPrev) showBoundaryMsg(t("player.media.boundary.first"));
-              else onFilePrev();
-            }}
+            onActivate={(event) => runFileJump(-1, event.shiftKey)}
           />
           <Button
             size="icon"
@@ -194,10 +210,7 @@ function ModernControls({
             hasTarget={hasNext}
             title={t("player.media.controls.next.file")}
             ariaLabel={t("player.media.controls.next.file")}
-            onActivate={() => {
-              if (!hasNext) showBoundaryMsg(t("player.media.boundary.last"));
-              else onFileNext();
-            }}
+            onActivate={(event) => runFileJump(1, event.shiftKey)}
           />
         </section>
 

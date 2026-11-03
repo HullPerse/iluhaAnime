@@ -36,7 +36,7 @@ export default function PlayerVisibilityModal({
               {folders.map((folder) => (
                 <div
                   key={folder.path}
-                  className="flex items-center gap-1 border-b border-black/10 py-1 last:border-0"
+                  className="flex items-center gap-1 border-b border-muted/30 py-1 last:border-0"
                 >
                   <FolderOpen className="size-4 shrink-0" />
                   <span
@@ -71,7 +71,7 @@ export default function PlayerVisibilityModal({
               {torrents.map((torrent) => (
                 <div
                   key={torrent.infoHash}
-                  className="flex items-center gap-1 border-b border-black/10 py-1 last:border-0"
+                  className="flex items-center gap-1 border-b border-muted/30 py-1 last:border-0"
                 >
                   <HardDrive className="size-4 shrink-0" />
                   <span

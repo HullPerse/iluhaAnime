@@ -36,6 +36,7 @@ import { usePlayerTracks } from "@/hooks/player/tracks.hook";
 import { usePlayerWatchProgress } from "@/hooks/player/watchProgress.hook";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import { startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
+import { loadSidecarTracks } from "@/lib/player/sidecar.utils";
 import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
@@ -281,6 +282,8 @@ function PlayerComponent() {
     if (!isCurrent()) return;
 
     await applyFileState(fileStatePatch(entry, playbackAtoms.speed.get() || 1));
+    if (!isCurrent()) return;
+    await loadSidecarTracks(loaded);
     if (!isCurrent()) return;
     hwdecReloadRef.current = null;
 

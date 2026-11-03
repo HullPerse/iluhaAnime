@@ -10,18 +10,35 @@ import type { HexType } from "@/types/graphics/color";
 import type { TranslationKey } from "@/types/core/i18n";
 import type { EntryListInfo, EntryLookup } from "@/types/anilist/entries";
 
+export interface LocalMediaFilter {
+  kind: "tag" | "studio";
+  value: string;
+  id?: number;
+}
+
 export function filterEntries(
   entries: AniListEntry[],
   searchTerms: string,
   global: boolean,
-  filters?: AniListFilters
+  filters?: AniListFilters,
+  mediaFilter?: LocalMediaFilter | null
 ) {
   return entries.filter((e) => {
     if (global) return true;
     if (!matchesText(e, searchTerms)) return false;
     if (filters && !matchesLocalFilters(e, filters)) return false;
+    if (mediaFilter && !matchesMediaFilter(e, mediaFilter)) return false;
     return true;
   });
+}
+
+function matchesMediaFilter(entry: AniListEntry, filter: LocalMediaFilter): boolean {
+  if (filter.kind === "tag") return entry.media.tags.includes(filter.value);
+  return entry.media.studios.some(
+    (studio) =>
+      (filter.id != null && studio.id === filter.id) ||
+      studio.name.toLowerCase() === filter.value.toLowerCase()
+  );
 }
 
 function matchesText(entry: AniListEntry, searchTerms: string): boolean {

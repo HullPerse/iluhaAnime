@@ -43,7 +43,7 @@ function JumpToTime({
         <div className="flex gap-1">
           <input
             ref={inputRef}
-            className="windows95-border w-28 bg-white px-1 text-xs outline-none"
+            className="windows95-border bg-field w-28 px-1 text-xs outline-none"
             value={value}
             placeholder={t("player.media.jump.placeholder")}
             aria-label={t("player.media.jump.title")}

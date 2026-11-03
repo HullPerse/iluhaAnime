@@ -85,7 +85,7 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
             return (
               <div
                 key={row.id}
-                className="windows95-border flex min-w-0 items-center gap-1 bg-white p-0.5"
+                className="windows95-border bg-field flex min-w-0 items-center gap-1 p-0.5"
               >
                 <span
                   role="img"

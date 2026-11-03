@@ -39,7 +39,12 @@ export default function SearchResultItem({
   const releaseAge = formatReleaseAge(item.date);
   const [correcting, setCorrecting] = useState<boolean>(false);
   const coverMode = useCell(settingsAtoms.torrentCoverMode);
-  const cover = useTorrentCover(item.title, { source, url: item.link, mode: coverMode });
+  const cover = useTorrentCover(item.title, {
+    source,
+    url: item.link,
+    pageUrl: item.website,
+    mode: coverMode,
+  });
   const visual = coverVisual(cover, coverMode);
   const coverTitle: Record<string, string> = {
     override: t("search.cover.correct.manual"),

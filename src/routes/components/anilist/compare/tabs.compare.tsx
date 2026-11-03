@@ -31,7 +31,7 @@ export function CompareTabs({
     },
   ];
   return (
-    <div className="shrink-0 border-t border-black/20 p-2">
+    <div className="shrink-0 border-t border-muted p-2">
       <Tabs ariaLabel={t("anilist.compare.compare")} tabs={tabs} activeTab={tab} onChange={onTab} />
     </div>
   );

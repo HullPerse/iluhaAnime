@@ -93,7 +93,12 @@ export default function TorrentDetailsModal({
   const activeTab = resolveActiveTab(tabs, tab);
   const busy = loadingMagnet[item.link] ?? false;
   const coverMode = useCell(settingsAtoms.torrentCoverMode);
-  const cover = useTorrentCover(item.title, { source, url: detailUrl, mode: coverMode });
+  const cover = useTorrentCover(item.title, {
+    source,
+    url: detailUrl,
+    pageUrl: item.website,
+    mode: coverMode,
+  });
   const poster = coverMode === "off" ? null : heroPoster(view, cover.coverUrl, cover.remoteUrl);
   const hidePoster = coverMode === "off" || (coverMode === "pages" && poster === null);
   const openOriginal = () => {

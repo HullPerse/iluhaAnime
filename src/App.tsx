@@ -23,6 +23,7 @@ import { useVimMode } from "@/hooks/vimMode.hook";
 import { isCurrentSessionSafe } from "@/lib/core/report.utils";
 import { markStartup, reportStartup } from "@/lib/core/startup.utils";
 import { useCell } from "@/lib/core/signal.hook";
+import { getLastSettingsTab } from "@/lib/ui/settingsTab.utils";
 import { resolveSecretTabAction } from "@/lib/ui/tabs.utils";
 import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { ignore } from "@/lib/core/promise.utils";
@@ -84,6 +85,11 @@ export default function App() {
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
 
   const goToTab = (id: TabId) => {
+    if (id === "settings") {
+      const tab = getLastSettingsTab();
+      navigate({ to: "/settings", search: { tab: tab ?? "general" } });
+      return;
+    }
     navigate({ to: tabPathFromId(id) });
   };
 

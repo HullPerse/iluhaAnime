@@ -50,6 +50,8 @@ const settings = {
   "settings.media.scanThreads.four": "4",
   "settings.media.scanThreads.six": "6",
   "settings.media.scanThreads.eight": "8",
+  "settings.media.sidecar.auto": "Автозагружать дорожки с тем же именем",
+  "settings.media.sidecar.subfolders": "Искать дорожки в подпапках",
   "settings.media.empty": "Список не может быть пустым",
   "settings.media.reset": "Сбросить",
   "settings.parse.titles": "Извлекать названия аниме",
@@ -89,7 +91,7 @@ const settings = {
   "settings.summary.images": "Изображения",
   "settings.summary.anilistCache": "Кэш AniList",
   "settings.summary.videoCache": "Кэш ffprobe",
-  "settings.summary.cacheValue": "{{rate}}% · {{hits}} из {{total}}",
+  "settings.summary.cacheValue": "{{rate}}% - {{hits}} из {{total}}",
   "settings.summary.images.clear": "Очистить",
   "settings.summary.images.confirm":
     "Очистить кэш загруженных изображений? Картинки скачаются заново по мере просмотра.",

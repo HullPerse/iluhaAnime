@@ -43,11 +43,7 @@ import type {
   TorrentTreeNode,
 } from "@/types/torrent/torrent";
 
-import {
-  mockInvoke as invokeSpy,
-  mockOpenUrl as openUrlSpy,
-  mockWriteText as writeTextSpy,
-} from "@/tests/mocks";
+import { mockInvoke as invokeSpy, mockWriteText as writeTextSpy } from "@/tests/mocks";
 
 const prepareTorrentDownloadSpy = vi.fn();
 const prepareTorrentDownloadFromBytesSpy = vi.fn();
@@ -619,7 +615,6 @@ describe("torrent/magnet", () => {
   beforeEach(() => {
     invokeSpy.mockReset();
     writeTextSpy.mockReset();
-    openUrlSpy.mockReset();
     prepareTorrentDownloadSpy.mockReset();
     prepareTorrentDownloadFromBytesSpy.mockReset();
     patchSettings({ searchProxyUrls: {} });
@@ -683,14 +678,14 @@ describe("torrent/magnet", () => {
     it("opens an existing magnet", async () => {
       const m = makeMagnets();
       await openMagnet(item, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
-      expect(openUrlSpy).toHaveBeenCalledWith(item.magnet);
+      expect(invokeSpy).toHaveBeenCalledWith("open_magnet", { magnet: item.magnet });
     });
 
     it("does nothing when no magnet is available", async () => {
       invokeSpy.mockRejectedValueOnce(new Error("boom"));
       const m = makeMagnets();
       await openMagnet({ ...item, magnet: "" }, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
-      expect(openUrlSpy).not.toHaveBeenCalled();
+      expect(invokeSpy).not.toHaveBeenCalledWith("open_magnet", expect.anything());
     });
   });
 

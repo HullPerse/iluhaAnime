@@ -372,6 +372,14 @@ export function addExternalAudio(path: string): Promise<void> {
   return runMpvCommand("audio-add", [path, "select"]);
 }
 
+export function addExternalSubtitleAuto(path: string): Promise<void> {
+  return runMpvCommand("sub-add", [path, "auto"]);
+}
+
+export function addExternalAudioAuto(path: string): Promise<void> {
+  return runMpvCommand("audio-add", [path, "auto"]);
+}
+
 export async function readPath(): Promise<string> {
   const [value] = await attempt(getMpvProperty<string>("path", "string"));
   return typeof value === "string" ? value : "";

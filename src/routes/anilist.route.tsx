@@ -5,6 +5,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
+import { useAnilistLocalFilter } from "@/hooks/anilist/localFilter.hook";
 import { useAnilistModals } from "@/hooks/anilist/modals.hook";
 import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
@@ -66,6 +67,10 @@ import { buildAniListSource } from "@/routes/components/anilist/source.anilist";
 import SpotlightModal from "@/routes/components/anilist/spotlight/modal.spotlight";
 import AniListStateViews from "@/routes/components/anilist/stateViews.anilist";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
+
+function isLocalFilterActive(isLocal: boolean, filter: unknown): boolean {
+  return isLocal || filter !== null;
+}
 
 function AnilistRoute() {
   const { t } = useI18n();
@@ -195,13 +200,36 @@ function AnilistRoute() {
     setSearchTerms,
   } = useAnilistSearch();
 
+  const {
+    filter: localFilter,
+    selectTag: handleDetailTag,
+    selectStudio: handleDetailStudio,
+    clear: clearLocalFilter,
+    searchGlobally: searchLocalFilterGlobally,
+  } = useAnilistLocalFilter({
+    global,
+    onTag: handleTag,
+    onStudio: handleStudio,
+  });
+
   const handleSelectList = useCallback(
     (name: string) => {
       setCurrentList(name);
+      clearLocalFilter();
       if (global) handleReset();
     },
-    [global, handleReset]
+    [global, handleReset, clearLocalFilter]
   );
+
+  const handleGlobalMode = useCallback(() => {
+    clearLocalFilter();
+    handleGlobal();
+  }, [handleGlobal, clearLocalFilter]);
+
+  const handleResetMode = useCallback(() => {
+    clearLocalFilter();
+    handleReset();
+  }, [handleReset, clearLocalFilter]);
 
   useResolvedHotkeys<"tab-prev" | "tab-next">(
     [
@@ -324,9 +352,10 @@ function AnilistRoute() {
       setCurrentList(ALL_LISTS_ID);
       setPage(1);
       setSearchTerms("");
+      clearLocalFilter();
       if (global) handleReset();
     },
-    [global, handleReset, setSearchTerms, handleCloseModal]
+    [global, handleReset, setSearchTerms, handleCloseModal, clearLocalFilter]
   );
 
   const backToSelf = useCallback(() => {
@@ -375,8 +404,9 @@ function AnilistRoute() {
     [source.lists, currentList]
   );
   const filteredEntries = useMemo(
-    () => filterEntries(activeEntries, deferredSearchTerms, global, searchFilters),
-    [activeEntries, deferredSearchTerms, global, searchFilters]
+    () =>
+      filterEntries(activeEntries, deferredSearchTerms, global, searchFilters, localFilter),
+    [activeEntries, deferredSearchTerms, global, searchFilters, localFilter]
   );
   const sortedEntries = useMemo(
     () => sortEntries(filteredEntries, sort.dir, sort.key),
@@ -392,8 +422,11 @@ function AnilistRoute() {
     collapsedNames,
     user,
     global,
+    filters: searchFilters,
+    mediaFilter: localFilter,
   });
   const isLocal = isLocalSearch(searchTerms, global);
+  const localSearchActive = isLocalFilterActive(isLocal, localFilter);
 
   const { total, from, to, lastPage } = usePagination(
     displayEntries.length,
@@ -411,13 +444,13 @@ function AnilistRoute() {
     setPage((p) => Math.min(p, lastPage));
   }, [lastPage]);
 
-  const sourceKey = buildAnilistSourceKey({
+  const sourceKey = `${buildAnilistSourceKey({
     currentList,
     sort,
     searchTerms: deferredSearchTerms,
     global,
     filters: searchFilters,
-  });
+  })}|${JSON.stringify(localFilter)}`;
   const [lastSourceKey, setLastSourceKey] = useState<string>(sourceKey);
   if (lastSourceKey !== sourceKey) {
     setLastSourceKey(sourceKey);
@@ -454,9 +487,9 @@ function AnilistRoute() {
     onFavouriteToggle: toggleFavourite,
     onStaffFavouriteToggle: toggleFavouriteStaff,
     onCharacterFavouriteToggle: toggleFavouriteCharacter,
-    onTag: handleTag,
+    onTag: handleDetailTag,
     onGenre: handleGenre,
-    onStudio: handleStudio,
+    onStudio: handleDetailStudio,
     onSeason: handleSeason,
     onSaved: handleDetailsSaved,
   };
@@ -467,8 +500,8 @@ function AnilistRoute() {
         <AniListSearchToolbar
           field={field}
           global={global}
-          onGlobal={handleGlobal}
-          onReset={handleReset}
+          onGlobal={handleGlobalMode}
+          onReset={handleResetMode}
           onClearSearch={handleClearSearch}
           filters={searchFilters}
           onFiltersOpen={() => handleOpenModal("filters")}
@@ -503,6 +536,11 @@ function AnilistRoute() {
         onFriends={() => handleOpenModal("friends")}
         onLogout={handleLogout}
         onBackToSelf={backToSelf}
+        filters={searchFilters}
+        localFilter={localFilter}
+        localFilterCount={filteredEntries.length}
+        onClearLocalFilter={clearLocalFilter}
+        onSearchLocalFilterGlobally={searchLocalFilterGlobally}
       />
 
       {global && searchResults.length > 0 && (
@@ -515,7 +553,7 @@ function AnilistRoute() {
           isLoading: self.isLoading,
           hasLists: source.lists.length > 0,
           global,
-          isLocal,
+          isLocal: localSearchActive,
           hasUser: !!user,
           loadingSearch,
           hasSearchResults: searchResults.length > 0,
@@ -535,7 +573,7 @@ function AnilistRoute() {
         showPagination={(!!user || global) && displayEntries.length > 0}
         pagination={{
           global,
-          isLocal,
+          isLocal: localSearchActive,
           hasUser: !!user,
           searchResultsCount: searchResults.length,
           searchTag,
@@ -576,9 +614,9 @@ function AnilistRoute() {
         onFavouriteToggle={toggleFavourite}
         onStaffFavouriteToggle={toggleFavouriteStaff}
         onCharacterFavouriteToggle={toggleFavouriteCharacter}
-        onTag={handleTag}
+        onTag={handleDetailTag}
         onGenre={handleGenre}
-        onStudio={handleStudio}
+        onStudio={handleDetailStudio}
         onSeason={handleSeason}
         onRelated={handleRelated}
         onBack={handleAnimeBack}

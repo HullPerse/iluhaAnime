@@ -11,6 +11,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSettingsSnapshot } from "@/hooks/settingsSnapshot.hook";
 import { flashTarget } from "@/lib/core/flash.utils";
+import { getLastSettingsTab, setLastSettingsTab } from "@/lib/ui/settingsTab.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 
 import { searchSettingsFind } from "@/lib/core/find.utils";
@@ -124,9 +125,21 @@ export default function SettingsRoute() {
   };
 
   const handleTabSelect = (tab: SettingsTab) => {
+    setLastSettingsTab(tab);
     navigate({ search: (prev) => ({ ...prev, tab }) });
     setFindOpen(false);
   };
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const panel = content.querySelector(`[data-active-tab="${CSS.escape(activeTab)}"]`);
+    if (panel instanceof HTMLElement) content.scrollTo({ top: 0 });
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (getLastSettingsTab() === null) setLastSettingsTab(activeTab);
+  }, [activeTab]);
 
   useResolvedHotkeys<"focus-find">(
     [{ id: "focus-find", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],

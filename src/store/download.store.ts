@@ -88,10 +88,13 @@ function createTorrentSignalStore(): TorrentSignalStore {
     lastActiveAt: {},
   };
   const atoms = buildSignalAtoms(store, initial);
+  let prepareEpoch = 0;
+  const isCurrent = (token: number) => token === prepareEpoch;
 
   const handle: TorrentSignalStore = {
     atoms,
     cancelDownload: async () => {
+      prepareEpoch += 1;
       const pending = atoms.pendingTorrent.get();
       if (!pending) {
         atoms.preparingTorrent.set(false);
@@ -161,21 +164,24 @@ function createTorrentSignalStore(): TorrentSignalStore {
     },
     prepareTorrentDownload: async (magnet, info) => {
       if (atoms.preparingTorrent.get()) return;
+      const token = ++prepareEpoch;
       let saveDir = cacheAtoms.lastSaveDir.get();
       if (!saveDir) {
         const dir = await open({
           directory: true,
           title: tr("download.select.folder"),
         });
-        if (!dir) return;
+        if (!dir || !isCurrent(token)) return;
         saveDir = dir;
         setLastSaveDir(saveDir);
       }
+      if (!isCurrent(token)) return;
 
       atoms.preparingTorrent.set(true);
 
       const cached = atoms.metadataCache.get().get(magnet);
       if (cached) {
+        if (!isCurrent(token)) return;
         atoms.preparingTorrent.set(false);
         atoms.pendingTorrent.set({
           magnet,
@@ -191,6 +197,7 @@ function createTorrentSignalStore(): TorrentSignalStore {
       }
 
       const [result, error] = await attempt(torrentApi.getTorrentInfo(magnet, saveDir));
+      if (!isCurrent(token)) return;
       if (error) showError(tr("download.error.get.info"), error.message);
 
       if (!result) {
@@ -222,20 +229,23 @@ function createTorrentSignalStore(): TorrentSignalStore {
     },
     prepareTorrentDownloadFromFile: async (filePath, info) => {
       if (atoms.preparingTorrent.get()) return;
+      const token = ++prepareEpoch;
       let saveDir = cacheAtoms.lastSaveDir.get();
       if (!saveDir) {
         const dir = await open({
           directory: true,
           title: tr("download.select.folder"),
         });
-        if (!dir) return;
+        if (!dir || !isCurrent(token)) return;
         saveDir = dir;
         setLastSaveDir(saveDir);
       }
+      if (!isCurrent(token)) return;
 
       atoms.preparingTorrent.set(true);
 
       const [fileBytes, error] = await attempt(systemApi.readFileBytes(filePath));
+      if (!isCurrent(token)) return;
       if (error) showError(tr("download.error.read.file"), error.message);
 
       if (!fileBytes) {
@@ -246,6 +256,7 @@ function createTorrentSignalStore(): TorrentSignalStore {
 
       const cached = atoms.metadataCache.get().get(filePath);
       if (cached) {
+        if (!isCurrent(token)) return;
         atoms.preparingTorrent.set(false);
         atoms.pendingTorrent.set({
           fileBytes,
@@ -263,6 +274,7 @@ function createTorrentSignalStore(): TorrentSignalStore {
       const [result, infoError] = await attempt(
         torrentApi.getTorrentInfoFromFile(fileBytes, saveDir)
       );
+      if (!isCurrent(token)) return;
       if (infoError) showError(tr("download.error.get.info"), infoError.message);
 
       if (!result) {
@@ -294,20 +306,23 @@ function createTorrentSignalStore(): TorrentSignalStore {
     },
     prepareTorrentDownloadFromBytes: async (fileBytes, info) => {
       if (atoms.preparingTorrent.get()) return;
+      const token = ++prepareEpoch;
       let saveDir = cacheAtoms.lastSaveDir.get();
       if (!saveDir) {
         const dir = await open({
           directory: true,
           title: tr("download.select.folder"),
         });
-        if (!dir) return;
+        if (!dir || !isCurrent(token)) return;
         saveDir = dir;
         setLastSaveDir(saveDir);
       }
+      if (!isCurrent(token)) return;
 
       atoms.preparingTorrent.set(true);
 
       const [result, error] = await attempt(torrentApi.getTorrentInfoFromFile(fileBytes, saveDir));
+      if (!isCurrent(token)) return;
       if (error) showError(tr("download.error.get.info"), error.message);
 
       if (!result) {

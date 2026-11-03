@@ -13,6 +13,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager, WindowEvent};
+use tauri_plugin_opener::OpenerExt;
 
 mod anilist;
 mod app_db;
@@ -766,6 +767,13 @@ struct VideoFileEntry {
 }
 
 #[derive(Clone, serde::Serialize)]
+struct SidecarTrack {
+    path: String,
+    name: String,
+    kind: String,
+}
+
+#[derive(Clone, serde::Serialize)]
 struct FolderScanResult {
     path: String,
     entries: Vec<VideoFileEntry>,
@@ -1159,6 +1167,132 @@ async fn delete_extra_file(path: String) -> Result<(), String> {
     })
     .await
     .map_err(|e| format!("delete task failed: {e}"))?
+}
+
+fn sidecar_stem_matches(file_stem: &str, video_stem: &str) -> bool {
+    let file = file_stem.to_lowercase();
+    let video = video_stem.to_lowercase();
+    if file == video {
+        return true;
+    }
+    match file.strip_prefix(&video) {
+        Some(rest) => {
+            rest.starts_with('.')
+                || rest.starts_with(' ')
+                || rest.starts_with('-')
+                || rest.starts_with('_')
+        }
+        None => false,
+    }
+}
+
+fn sidecar_extensions(values: &[String]) -> HashSet<String> {
+    values
+        .iter()
+        .map(|value| value.trim().trim_start_matches('.').to_lowercase())
+        .filter(|value| !value.is_empty())
+        .collect()
+}
+
+#[tauri::command]
+async fn scan_sidecar_tracks(
+    path: String,
+    audio_extensions: Vec<String>,
+    subtitle_extensions: Vec<String>,
+    subfolders: bool,
+) -> Result<Vec<SidecarTrack>, String> {
+    tokio::task::spawn_blocking(move || {
+        let video = std::path::Path::new(&path);
+        if !video.is_file() {
+            return Err("video file not found".to_string());
+        }
+        let video_stem = video
+            .file_stem()
+            .ok_or_else(|| "invalid video file name".to_string())?
+            .to_string_lossy()
+            .to_string();
+        let root = video
+            .parent()
+            .ok_or_else(|| "invalid video path".to_string())?;
+        let audio = sidecar_extensions(&audio_extensions);
+        let subtitles = sidecar_extensions(&subtitle_extensions);
+        let mut tracks = Vec::new();
+        let mut stack = vec![(root.to_path_buf(), 0usize)];
+        while let Some((dir, depth)) = stack.pop() {
+            let entries = match std::fs::read_dir(&dir) {
+                Ok(entries) => entries,
+                Err(error) => {
+                    tracing::warn!(
+                        "scan_sidecar_tracks: skipping unreadable dir {}: {error}",
+                        dir.to_string_lossy()
+                    );
+                    continue;
+                }
+            };
+            for entry in entries.flatten() {
+                let file_type = match entry.file_type() {
+                    Ok(file_type) => file_type,
+                    Err(_) => continue,
+                };
+                let entry_path = entry.path();
+                if file_type.is_dir() {
+                    if subfolders
+                        && depth < 2
+                        && !entry.file_name().to_string_lossy().starts_with('.')
+                    {
+                        stack.push((entry_path, depth + 1));
+                    }
+                    continue;
+                }
+                if !file_type.is_file() {
+                    continue;
+                }
+                let name = entry.file_name().to_string_lossy().to_string();
+                let extension = entry_path
+                    .extension()
+                    .map(|value| value.to_string_lossy().to_lowercase())
+                    .unwrap_or_default();
+                let kind = if subtitles.contains(&extension) {
+                    "sub"
+                } else if audio.contains(&extension) {
+                    "audio"
+                } else {
+                    continue;
+                };
+                let stem = entry_path
+                    .file_stem()
+                    .map(|value| value.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                if !sidecar_stem_matches(&stem, &video_stem) {
+                    continue;
+                }
+                tracks.push(SidecarTrack {
+                    path: entry_path.to_string_lossy().to_string(),
+                    name,
+                    kind: kind.to_string(),
+                });
+                if tracks.len() >= 512 {
+                    tracks.sort_by(|left, right| left.path.cmp(&right.path));
+                    return Ok(tracks);
+                }
+            }
+        }
+        tracks.sort_by(|left, right| left.path.cmp(&right.path));
+        Ok(tracks)
+    })
+    .await
+    .map_err(|error| format!("scan task failed: {error}"))?
+}
+
+#[tauri::command]
+fn open_magnet(app: tauri::AppHandle, magnet: String) -> Result<(), String> {
+    let value = magnet.trim();
+    if !value.starts_with("magnet:?") || !value.contains("xt=urn:btih:") {
+        return Err("invalid magnet link".to_string());
+    }
+    app.opener()
+        .open_url(value, None::<&str>)
+        .map_err(|error| format!("open magnet failed: {error}"))
 }
 
 #[tauri::command]
@@ -2288,6 +2422,8 @@ pub fn run() {
             scan_video_folder,
             scan_video_folders,
             scan_extra_files,
+            scan_sidecar_tracks,
+            open_magnet,
             delete_extra_file,
             start_watching_folders,
             stop_watching_folders,

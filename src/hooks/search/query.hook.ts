@@ -1,4 +1,5 @@
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
@@ -23,7 +24,10 @@ import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
 import { parseTorrentTags, torrentTagsToFilters } from "@/lib/torrent/torrentTags.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { tr } from "@/lib/locale/i18n.utils";
+import { addNotification } from "@/store/notification.store";
+import { cacheAtoms, setLastSaveDir } from "@/store/cache.store";
 import {
   resetSearchFilters as resetFilters,
   searchAtoms,
@@ -69,6 +73,8 @@ export function useSearchQuery(): SearchQueryController {
   const [maxPage, setMaxPage] = useState<number>(Number.POSITIVE_INFINITY);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [selectedTorrent, setSelectedTorrent] = useState<SelectedSearchTorrent | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
+  const batchBusyRef = useRef<boolean>(false);
   if (lastDefaultSource !== defaultSource) {
     setLastDefaultSource(defaultSource);
     setSource(resolveInitialSource(visibleSources, defaultSource) as Source);
@@ -245,6 +251,76 @@ export function useSearchQuery(): SearchQueryController {
   const downloadMagnetFor = (item: Anime) =>
     downloadMagnet(item, magnets, setMagnets, setLoadingMagnet, resultSource ?? source);
 
+  const batchDownloadFor = useCallback(
+    async (items: Anime[]) => {
+      if (batchBusyRef.current || items.length === 0) return;
+      batchBusyRef.current = true;
+      const total = items.length;
+      setBatchProgress({ done: 0, total });
+      let saveDir = cacheAtoms.lastSaveDir.get();
+      if (!saveDir) {
+        const selected = await open({ directory: true, title: tr("download.select.folder") });
+        if (!selected) {
+          batchBusyRef.current = false;
+          setBatchProgress(null);
+          return;
+        }
+        saveDir = selected;
+        setLastSaveDir(saveDir);
+      }
+
+      const originSource = resultSource ?? source;
+      let failed = 0;
+      for (const [index, item] of items.entries()) {
+        let magnet = item.magnet;
+        let fileBytes: number[] | undefined;
+        if (!magnet) {
+          if (item.torrent.startsWith("http")) {
+            const [fetchedBytes] = await attempt(
+              torrentApi.fetchTorrentBytes(item.torrent, originSource)
+            );
+            if (fetchedBytes && fetchedBytes.length > 0) fileBytes = fetchedBytes;
+          } else {
+            const [fetched] = await attempt(torrentApi.rutrackerGetMagnet(item.category));
+            if (fetched) magnet = fetched;
+          }
+        }
+        if (!magnet && !fileBytes) {
+          failed += 1;
+          setBatchProgress({ done: index + 1, total });
+          continue;
+        }
+        const [id, error] = await attempt(
+          torrentApi.startTorrentDownload({
+            ...(magnet ? { magnet } : { fileBytes }),
+            saveDir,
+            onlyFiles: null,
+            subFolder: null,
+            sequential: false,
+          })
+        );
+        if (error || id === undefined) failed += 1;
+        else {
+          const [, sourceError] = await attempt(
+            torrentApi.setTorrentSource(id, { source: originSource, url: item.link }, undefined)
+          );
+          if (sourceError) reportBackgroundError("search.batch.source", sourceError);
+        }
+        setBatchProgress({ done: index + 1, total });
+      }
+      batchBusyRef.current = false;
+      setBatchProgress(null);
+      addNotification(
+        tr("search.batch.done"),
+        failed > 0 ? "error" : "success",
+        failed > 0
+          ? tr("search.batch.failed", { count: failed })
+          : tr("search.batch.started", { count: total - failed })
+      );
+    },
+    [resultSource, source]
+  );
+
   const field = useSearchField({
     scope: "torrent",
     query: searchParams,
@@ -340,6 +416,9 @@ export function useSearchQuery(): SearchQueryController {
     copyMagnetFor,
     openMagnetFor,
     downloadMagnetFor,
+    batchDownloadFor,
+    batchBusy: batchProgress !== null,
+    batchProgress,
     selectedTorrent,
     setSelectedTorrent,
   };

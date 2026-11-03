@@ -2,14 +2,20 @@ import { useMemo } from "react";
 
 import { listStatusLabels } from "@/config/system/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { filterEntries, getStatusColor, type LocalMediaFilter } from "@/lib/anilist/entries.utils";
 import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/anilistGroup.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import AniListFriendHeader from "@/routes/components/anilist/friend/header.friend";
 import AniListListsRow from "@/routes/components/anilist/lists.anilist";
+import AniListLocalFilterBar from "@/routes/components/anilist/localFilter.anilist";
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
 import AniListProfileHeader from "@/routes/components/anilist/user/header.user";
-import type { AniListEntry, AniListSort, AniListSource } from "@/types/anilist/anilist";
+import type {
+  AniListEntry,
+  AniListFilters,
+  AniListSort,
+  AniListSource,
+} from "@/types/anilist/anilist";
 
 export default function AniListProfileSections({
   source,
@@ -38,6 +44,11 @@ export default function AniListProfileSections({
   onFriends,
   onLogout,
   onBackToSelf,
+  filters,
+  localFilter,
+  localFilterCount,
+  onClearLocalFilter,
+  onSearchLocalFilterGlobally,
 }: {
   source: AniListSource;
   isLoading: boolean;
@@ -65,33 +76,34 @@ export default function AniListProfileSections({
   onFriends: () => void;
   onLogout: () => void;
   onBackToSelf: () => void;
+  filters: AniListFilters;
+  localFilter: LocalMediaFilter | null;
+  localFilterCount: number;
+  onClearLocalFilter: () => void;
+  onSearchLocalFilterGlobally: () => void;
 }) {
   const { t } = useI18n();
   const { caps, friend, friendProfile, lists, mode, user } = source;
   const showProfile = !!user && !global && !isLocal;
   const showListBar = !!user && !global && lists.length > 0;
   const listTabs = useMemo(() => {
-    const q = searchTerms.trim().toLowerCase();
-    const matches = (e: AniListEntry) =>
-      !q ||
-      global ||
-      e.media.title.toLowerCase().includes(q) ||
-      e.media.titles.some((title) => title.toLowerCase().includes(q));
+    const count = (entries: AniListEntry[]) =>
+      filterEntries(entries, searchTerms, global, filters, localFilter).length;
     const tabs: { id: string; label: string; color: string | null }[] = lists
       .filter((item) => item.entries.length > 0)
       .map((item) => {
         const label = t(toLocaleKey(listStatusLabels[item.name.toUpperCase()] ?? item.name));
         const color = getStatusColor(item.name.toUpperCase());
-        return { id: item.name, label: `${label} (${item.entries.filter(matches).length})`, color };
+        return { id: item.name, label: `${label} (${count(item.entries)})`, color };
       });
-    const allCount = collectAllEntries(lists).filter(matches).length;
+    const allCount = count(collectAllEntries(lists));
     tabs.unshift({
       id: ALL_LISTS_ID,
       label: `${t("anilist.lists.all")} (${allCount})`,
       color: null,
     });
     return tabs;
-  }, [lists, searchTerms, global, t]);
+  }, [lists, searchTerms, global, filters, localFilter, t]);
   return (
     <>
       {showProfile &&
@@ -119,6 +131,15 @@ export default function AniListProfileSections({
 
       {!isLoading && showListBar && !grouped && (
         <AniListListsRow tabs={listTabs} activeTab={currentList} onChange={onSelectList} />
+      )}
+
+      {localFilter && !global && (
+        <AniListLocalFilterBar
+          filter={localFilter}
+          count={localFilterCount}
+          onClear={onClearLocalFilter}
+          onSearchGlobally={onSearchLocalFilterGlobally}
+        />
       )}
 
       {showListBar && (

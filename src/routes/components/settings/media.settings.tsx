@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
 import { STREAM_QUALITIES, streamQualityLabel } from "@/config/player/quality.config";
@@ -16,6 +17,8 @@ export default function SettingsMedia() {
   const audioExtensions = useCell(settingsAtoms.audioExtensions);
   const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
   const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
+  const autoLoadSidecarTracks = useCell(settingsAtoms.autoLoadSidecarTracks);
+  const sidecarScanSubfolders = useCell(settingsAtoms.sidecarScanSubfolders);
   const streamDefaultQuality = useCell(settingsAtoms.streamDefaultQuality);
   const watcherDelay = useCell(settingsAtoms.watcherDelay);
   const scanThreads = useCell(settingsAtoms.scanThreads);
@@ -77,6 +80,23 @@ export default function SettingsMedia() {
         {emptyError && (
           <span className="text-destructive text-xs">{t("settings.media.empty")}</span>
         )}
+        <div className="group flex flex-col gap-0.5">
+          <label className="windows95-text text-text flex cursor-pointer items-center gap-2 text-xs select-none">
+            <Checkbox
+              checked={autoLoadSidecarTracks}
+              onChange={(value) => patchSettings({ autoLoadSidecarTracks: value })}
+            />
+            <span>{t("settings.media.sidecar.auto")}</span>
+          </label>
+          <label className="windows95-text text-text ml-6 flex cursor-pointer items-center gap-2 text-xs select-none">
+            <Checkbox
+              checked={sidecarScanSubfolders}
+              onChange={(value) => patchSettings({ sidecarScanSubfolders: value })}
+              disabled={!autoLoadSidecarTracks}
+            />
+            <span>{t("settings.media.sidecar.subfolders")}</span>
+          </label>
+        </div>
         <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-36 shrink-0 font-bold">{t("settings.media.tracks")}</span>
           <Select

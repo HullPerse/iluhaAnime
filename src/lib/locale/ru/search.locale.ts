@@ -1,5 +1,11 @@
 const search = {
   "search.all.shown": "все",
+  "search.batch.title": "Пакетная загрузка",
+  "search.batch.hint": "{groups} групп, {count} торрентов",
+  "search.batch.progress": "{done} / {total}",
+  "search.batch.started": "Запуск пакетной загрузки",
+  "search.batch.done": "Пакетная загрузка запущена",
+  "search.batch.failed": "Не удалось запустить часть торрентов: {count}",
   "search.details.added": "Добавлен",
   "search.details.anonymous": "Аноним",
   "search.details.category": "Категория",

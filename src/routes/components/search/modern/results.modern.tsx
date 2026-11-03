@@ -1,6 +1,8 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { attempt } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
+import BatchDownloadBar from "@/routes/components/search/batch.search";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
 import { SearchFilterChips } from "@/routes/components/search/default/filterChips.search";
 import SearchPager from "@/routes/components/search/default/pager.search";
@@ -34,6 +36,9 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
     copyMagnetFor,
     openMagnetFor,
     downloadMagnetFor,
+    batchDownloadFor,
+    batchBusy,
+    batchProgress,
     setSelectedTorrent,
   } = controller;
 
@@ -55,6 +60,14 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
           isPagedSource={isPagedSource}
           page={nyaaPage}
           resultsPerPage={resultsPerPage}
+        />
+      )}
+      {(resultSource ?? source) === "erai-raws" && displayItems && displayItems.length > 1 && (
+        <BatchDownloadBar
+          items={displayItems}
+          busy={batchBusy}
+          progress={batchProgress}
+          onDownload={(items) => ignore(batchDownloadFor(items))}
         />
       )}
       {displayItems && (

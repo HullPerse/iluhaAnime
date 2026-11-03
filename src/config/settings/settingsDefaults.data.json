@@ -58,6 +58,8 @@
       "m4a",
       "wma"
     ],
+    "autoLoadSidecarTracks": true,
+    "sidecarScanSubfolders": false,
     "buttonPressEffect": true,
     "animateCounters": false,
     "animateToasts": false,

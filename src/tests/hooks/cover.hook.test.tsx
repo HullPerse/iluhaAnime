@@ -61,7 +61,12 @@ const NARUTO = media({
 
 const renderCover = (
   title: string,
-  options?: { source?: string; url?: string | null; mode?: TorrentCoverMode }
+  options?: {
+    source?: string;
+    url?: string | null;
+    pageUrl?: string | null;
+    mode?: TorrentCoverMode;
+  }
 ) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderHook(() => useTorrentCover(title, options), {
@@ -182,6 +187,32 @@ describe("useTorrentCover", () => {
     });
     await waitFor(() => expect(result.current.status).toBe("empty"));
     expect(calls).toEqual([]);
+  });
+
+  it("resolves the erai website poster in pages mode", async () => {
+    const calls: Array<{ command: unknown; args: unknown }> = [];
+    mockInvoke.mockImplementation(async (command: unknown, args: unknown) => {
+      calls.push({ command, args });
+      if (command === "get_torrent_details") {
+        return { poster: "https://www.erai-raws.info/poster.jpg" };
+      }
+      if (command === "download_remote_image") return { id: "blob5", path: "covers/erai.jpg" };
+      return null;
+    });
+    const { result } = renderCover("[Erai-raws] Naruto - 01 [1080p].mkv", {
+      source: "erai-raws",
+      url: "https://animetosho.org/view/1",
+      pageUrl: "https://www.erai-raws.info/episodes/naruto-01/",
+      mode: "pages",
+    });
+    await waitFor(() => expect(result.current.status).toBe("page"));
+    expect(calls).toContainEqual({
+      command: "get_torrent_details",
+      args: {
+        source: "erai-raws",
+        url: "https://www.erai-raws.info/episodes/naruto-01/",
+      },
+    });
   });
 
   it("resolves the tracker page poster for nekobt in pages mode", async () => {

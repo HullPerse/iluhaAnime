@@ -102,14 +102,7 @@ pub async fn resolve(
 ) -> Result<Vec<StreamVariant>, StreamResolutionError> {
     let mut geo_blocked: Option<StreamResolutionError> = None;
     for route in kodik_routes(proxy) {
-        match resolve_via_route(
-            source_url,
-            referer,
-            audio_tracks.clone(),
-            variant_id,
-            route,
-        )
-        .await
+        match resolve_via_route(source_url, referer, audio_tracks.clone(), variant_id, route).await
         {
             Ok(streams) => return Ok(streams),
             Err(error @ StreamResolutionError::GeoBlocked { .. }) => {
@@ -122,9 +115,11 @@ pub async fn resolve(
             Err(error) => return Err(error),
         }
     }
-    Err(geo_blocked.unwrap_or_else(|| StreamResolutionError::NetworkError {
-        message: format!("kodik did not answer for {source_url}"),
-    }))
+    Err(
+        geo_blocked.unwrap_or_else(|| StreamResolutionError::NetworkError {
+            message: format!("kodik did not answer for {source_url}"),
+        }),
+    )
 }
 
 async fn resolve_via_route(

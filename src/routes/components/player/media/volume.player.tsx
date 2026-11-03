@@ -81,7 +81,7 @@ function VolumeControl({
       </Button>
       <div
         ref={volumeRef}
-        className="windows95-border relative w-24 cursor-pointer items-center justify-center bg-white"
+        className="windows95-border bg-field relative w-24 cursor-pointer items-center justify-center"
         onClick={(event) => {
           event.preventDefault();
           handleVolume(event.clientX);

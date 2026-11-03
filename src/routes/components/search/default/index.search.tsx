@@ -9,7 +9,9 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchQuery } from "@/hooks/search/query.hook";
 import { parseTorrentTags } from "@/lib/torrent/torrentTags.utils";
 import { attempt } from "@/lib/core/attempt.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
+import BatchDownloadBar from "@/routes/components/search/batch.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
 import { SearchFilterChips } from "@/routes/components/search/default/filterChips.search";
@@ -75,6 +77,9 @@ function SearchDefault() {
     copyMagnetFor,
     openMagnetFor,
     downloadMagnetFor,
+    batchDownloadFor,
+    batchBusy,
+    batchProgress,
     selectedTorrent,
     setSelectedTorrent,
   } = useSearchQuery();
@@ -168,6 +173,15 @@ function SearchDefault() {
           isPagedSource={isPagedSource}
           page={nyaaPage}
           resultsPerPage={resultsPerPage}
+        />
+      )}
+
+      {(resultSource ?? source) === "erai-raws" && displayItems && displayItems.length > 1 && (
+        <BatchDownloadBar
+          items={displayItems}
+          busy={batchBusy}
+          progress={batchProgress}
+          onDownload={(items) => ignore(batchDownloadFor(items))}
         />
       )}
 

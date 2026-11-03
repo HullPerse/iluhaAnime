@@ -51,6 +51,8 @@ export interface SettingsStore {
   videoExtensions: string[];
   audioExtensions: string[];
   subtitleExtensions: string[];
+  autoLoadSidecarTracks: boolean;
+  sidecarScanSubfolders: boolean;
   showTrackFiles: "hide" | "torrent" | "folders";
   watcherDelay: WatcherDelay;
   scanThreads: number;

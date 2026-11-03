@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resetCoverSearchCache } from "@/hooks/search/cover.hook";
 import SearchResultItem from "@/routes/components/search/default/result.search";
 import { coverCorrectionsAtoms, removeResolvedCover } from "@/store/cover.store";
 import { patchSettings } from "@/store/settings.store";
@@ -69,6 +70,7 @@ const RUTRACKER_ITEM: Anime = {
 
 afterEach(() => {
   cleanup();
+  resetCoverSearchCache();
   removeResolvedCover("naruto|0");
   coverCorrectionsAtoms.blobs.set({});
   patchSettings({ torrentCoverMode: "off" });

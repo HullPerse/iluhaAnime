@@ -42,7 +42,7 @@ function NeighborFileButton({
   const requestRef = useRef<number>(0);
   const hintedTitle = useKeybindTitle(
     title,
-    direction === "prev" ? "player.prevFile" : "player.nextFile"
+    direction === "prev" ? "player.prevChapter" : "player.nextChapter"
   );
 
   const close = () => {

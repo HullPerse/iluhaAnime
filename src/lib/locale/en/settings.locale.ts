@@ -447,9 +447,6 @@ const settings = {
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 MB)",
   "settings.ffmpeg.source.mirror": "GitHub via mirror (gh-proxy)",
   "settings.search.toggle.sym.spell.hint": "Fixes typos: friren -> frieren.",
-  "settings.search.toggle.erai.batch": "Group erai-raws episodes",
-  "settings.search.toggle.erai.batch.hint":
-    "Show one combined result per anime and season instead of separate episodes",
   "settings.search.toggle.intent.hint": "Filters in query: year=2024 rating>=8.",
   "settings.tmdb.api.key.save": "Save key",
   "settings.tmdb.api.key.remove": "Remove key",

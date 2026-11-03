@@ -256,6 +256,29 @@ describe("FolderView row movement", () => {
   });
 });
 
+describe("FolderView folder menu", () => {
+  it("opens the folder that was right-clicked, not the root", async () => {
+    renderTree();
+    const season = row("D:/Anime/Season 1");
+    fireEvent.contextMenu(season);
+    await waitFor(() => screen.getByRole("menuitem", { name: "Open in folder" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Open in folder" }));
+
+    expect(mockOpenPath).toHaveBeenCalledWith("D:/Anime/Season 1");
+  });
+
+  it("opens a nested folder from its own row", async () => {
+    renderTree();
+    await userEvent.click(row("D:/Anime/Season 1"));
+    const extras = row("Extras");
+    fireEvent.contextMenu(extras);
+    await waitFor(() => screen.getByRole("menuitem", { name: "Open in folder" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Open in folder" }));
+
+    expect(mockOpenPath).toHaveBeenCalledWith("D:/Anime/Season 1/Extras");
+  });
+});
+
 describe("FolderView flat folders", () => {
   it("renders file rows without subfolders", () => {
     renderFlat();

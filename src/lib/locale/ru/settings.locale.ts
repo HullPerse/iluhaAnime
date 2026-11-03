@@ -449,9 +449,6 @@ const settings = {
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 МБ)",
   "settings.ffmpeg.source.mirror": "GitHub через зеркало (gh-proxy)",
   "settings.search.toggle.sym.spell.hint": "Чинит опечатки: friren -> frieren.",
-  "settings.search.toggle.erai.batch": "Объединять серии erai-raws",
-  "settings.search.toggle.erai.batch.hint":
-    "Показывать один общий результат на аниме и сезон вместо отдельных серий",
   "settings.search.toggle.intent.hint": "Фильтры в строке: year=2024 rating>=8.",
   "settings.tmdb.api.key.save": "Сохранить ключ",
   "settings.tmdb.api.key.remove": "Удалить ключ",

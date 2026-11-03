@@ -7,6 +7,17 @@ export interface ScreenshotCapture {
   defaultDir: string;
 }
 
+export interface ScreenshotVideoRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ScreenshotCaptureOptions {
+  videoElement?: () => HTMLElement | null;
+}
+
 export interface SavedScreenshot {
   path: string;
   width: number;

@@ -53,7 +53,7 @@ const RES_RX = /^\d{3,4}[pix]$/i;
 const DIM_RX = /^\d{3,4}x\d{3,4}$/i;
 const DEPTH_RX = /^(ma)?(10|12)p$|^(10|12)(bit|bits|b)$/i;
 const YEAR_RX = /^(19|20)\d{2}$/;
-const RANGE_RX = /^\d{1,3}[-~～〜]\d{1,3}$/;
+const RANGE_RX = /^\d{1,4}[-~～〜]\d{1,4}$/;
 const COUNTED_LANG_RX = /^\d+x[a-z]+$/i;
 const PLAIN_DIGITS_RX = /^\d{1,3}$/;
 const MULTI_SUB_RX = /^multisubs?$|^multiple[ _-]+subtitles?$/i;
@@ -236,6 +236,35 @@ function resolveBareResolutions(tokens: MediaClassifiedToken[]): MediaClassified
   );
 }
 
+function promoteLongEpisodeTokens(tokens: MediaClassifiedToken[]): MediaClassifiedToken[] {
+  let seenEpisode = false;
+  const out: MediaClassifiedToken[] = [];
+  for (const [index, token] of tokens.entries()) {
+    if (token.kind === "episode" || token.kind === "seasonEpisode") seenEpisode = true;
+    if (
+      !seenEpisode &&
+      token.kind === "title" &&
+      token.enclosed === "plain" &&
+      /^\d{4}$/.test(token.value) &&
+      tokens
+        .slice(index + 1)
+        .some(
+          (next) =>
+            next.bracketGroup !== undefined ||
+            next.kind === "resolution" ||
+            next.kind === "source" ||
+            next.kind === "codec"
+        )
+    ) {
+      out.push({ ...token, kind: "episode" });
+      seenEpisode = true;
+      continue;
+    }
+    out.push(token);
+  }
+  return out;
+}
+
 export function classifyMediaTokens(tokens: MediaNameToken[]): MediaClassifiedToken[] {
   const flat: MediaClassifiedToken[] = [];
   let group = 0;
@@ -249,7 +278,7 @@ export function classifyMediaTokens(tokens: MediaNameToken[]): MediaClassifiedTo
       }
     }
   }
-  return resolveBareResolutions(mergePairs(flat));
+  return promoteLongEpisodeTokens(resolveBareResolutions(mergePairs(flat)));
 }
 
 interface TechRule {

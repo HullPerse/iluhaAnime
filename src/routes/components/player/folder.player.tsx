@@ -281,14 +281,14 @@ function FolderView({
   };
 
   const countAll = node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
-  const folderMenuEntries: ContextMenuEntry[] = [
+  const folderMenuEntries = (path: string): ContextMenuEntry[] => [
     {
       kind: "item",
       id: "open-folder",
       label: "player.files.open.folder",
       icon: FolderOpen,
       onSelect: () => {
-        ignore(openPath(node.path));
+        ignore(openPath(path));
       },
     },
   ];
@@ -314,7 +314,7 @@ function FolderView({
             paddingLeft: `${depth * 12 + 2}px`,
           }}
         >
-          <ContextMenu entries={folderMenuEntries}>
+          <ContextMenu entries={folderMenuEntries(node.path)}>
             <button
               type="button"
               data-tree-row
@@ -429,7 +429,7 @@ function FolderView({
                       paddingLeft: `${item.depth * 12 + 2}px`,
                     }}
                   >
-                    <ContextMenu entries={folderMenuEntries}>
+                    <ContextMenu entries={folderMenuEntries(item.node.path)}>
                       <button
                         type="button"
                         data-tree-row

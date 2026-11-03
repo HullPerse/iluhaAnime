@@ -127,6 +127,37 @@ describe("Keyboard shortcuts", () => {
     field.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, code: "Digit5" }));
     expect(onAction).not.toHaveBeenCalled();
   });
+
+  it("keeps seeking with arrows while the timeline or a control has focus", () => {
+    const onAction = vi.fn();
+    render(
+      <>
+        <Keyboard onAction={onAction} />
+        <input type="range" data-testid="timeline" />
+        <button type="button">Play</button>
+      </>
+    );
+    const timeline = document.querySelector('input[type="range"]');
+    const button = document.querySelector("button");
+    if (!timeline || !button) throw new Error("controls missing");
+
+    timeline.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code: "ArrowRight" })
+    );
+    expect(onAction.mock.calls.at(-1)?.[0]).toBe("seekForward");
+
+    onAction.mockClear();
+    button.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code: "ArrowLeft" })
+    );
+    expect(onAction.mock.calls.at(-1)?.[0]).toBe("seekBackward");
+
+    onAction.mockClear();
+    button.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, cancelable: true, code: "Space" })
+    );
+    expect(onAction).not.toHaveBeenCalled();
+  });
 });
 
 describe("Keyboard wheel", () => {

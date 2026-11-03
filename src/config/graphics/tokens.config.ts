@@ -53,7 +53,7 @@ export const KNOWN_ARC_MAP: ReadonlyMap<string, string> = (() => {
   }
   return map;
 })();
-export const SEASON_EPISODE_RX = /S(\d{1,2})E(\d{1,3})/i;
-export const OF_TOTAL_RX = /(\d{1,3})_of_(\d{1,3})/i;
-export const LEADING_NUMBER_RX = /^(\d{1,3})\.\s*(.+)$/;
+export const SEASON_EPISODE_RX = /S(\d{1,2})E(\d{1,4})/i;
+export const OF_TOTAL_RX = /(\d{1,4})_of_(\d{1,4})/i;
+export const LEADING_NUMBER_RX = /^(\d{1,4})\.\s*(.+)$/;
 export const CRC32_RX = /\[([0-9A-Fa-f]{8})\]/;

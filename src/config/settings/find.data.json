@@ -119,7 +119,11 @@
       "keys": [
         "settings.proxy.torrent.title",
         "settings.proxy.torrent.description",
+        "settings.proxy.torrent.coverage",
+        "settings.proxy.torrent.active",
+        "settings.proxy.torrent.inactive",
         "settings.torrent.proxy.url",
+        "settings.torrent.proxy.forces.off",
         "settings.torrent.proxy.test"
       ]
     },
@@ -302,8 +306,6 @@
         "settings.search.toggle.sym.spell.hint",
         "settings.search.toggle.intent",
         "settings.search.toggle.intent.hint",
-        "settings.search.toggle.erai.batch",
-        "settings.search.toggle.erai.batch.hint",
         "settings.search.anilist.boost",
         "settings.search.anilist.boost.off",
         "settings.search.anilist.boost.subtle",
@@ -385,6 +387,7 @@
       "titleKey": "settings.torrent.session",
       "keys": [
         "settings.torrent.session.restart.note",
+        "settings.torrent.session.restart.now",
         "settings.torrent.fastresume",
         "settings.torrent.disable.persistence"
       ]
@@ -695,7 +698,8 @@
     "settings.animelib.proxy.test.ok",
     "settings.animelib.proxy.test.fail",
     "settings.animelib.login.closed",
-    "settings.animelib.login.timeout"
+    "settings.animelib.login.timeout",
+    "settings.animelib.login.proxy.socks5.auth"
   ],
   "SETTINGS_FIND_TAB_ORDER": [
     "general",

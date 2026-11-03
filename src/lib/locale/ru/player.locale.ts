@@ -172,6 +172,8 @@ const player = {
   "player.media.controls.forward": "Вперёд на 5 секунд",
   "player.media.controls.previous.file": "Предыдущий файл",
   "player.media.controls.next.file": "Следующий файл",
+  "player.media.controls.previous.chapter": "Предыдущая глава (Shift/Ctrl: предыдущий файл)",
+  "player.media.controls.next.chapter": "Следующая глава (Shift/Ctrl: следующий файл)",
   "player.media.controls.audio": "Аудиодорожка",
   "player.media.controls.subtitles": "Субтитры",
   "player.media.controls.none": "Выключить",

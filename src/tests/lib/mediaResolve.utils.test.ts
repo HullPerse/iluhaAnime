@@ -31,6 +31,18 @@ describe("resolveMediaFile western", () => {
     });
   });
 
+  it("reads four-digit long-running episode numbers", () => {
+    expect(
+      resolveMediaFile(
+        "Anime",
+        "[Erai-raws] One Piece - 1122 [1080p][Multiple Subtitle].mkv"
+      )
+    ).toMatchObject({
+      title: "One Piece",
+      episode: { number: 1122 },
+    });
+  });
+
   it("parses dotted lowercase season markers", () => {
     const parsed = resolveMediaFile(
       "Movies/Peaky Blinders s01 RGzsRutracker",

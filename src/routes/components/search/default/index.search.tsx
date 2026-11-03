@@ -9,13 +9,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchQuery } from "@/hooks/search/query.hook";
 import { parseTorrentTags } from "@/lib/torrent/torrentTags.utils";
 import { attempt } from "@/lib/core/attempt.utils";
-import { ignore } from "@/lib/core/promise.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { groupBatchResults } from "@/lib/torrent/batch.utils";
-import { settingsAtoms } from "@/store/settings.store";
 import type { Anime } from "@/types/torrent/torrent";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
-import SearchBatchResultItem from "@/routes/components/search/batch.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
 import { SearchFilterChips } from "@/routes/components/search/default/filterChips.search";
@@ -81,14 +76,10 @@ function SearchDefault() {
     copyMagnetFor,
     openMagnetFor,
     downloadMagnetFor,
-    batchDownloadFor,
-    batchBusy,
-    batchProgress,
     selectedTorrent,
     setSelectedTorrent,
   } = useSearchQuery();
 
-  const eraiBatchGrouping = useCell(settingsAtoms.eraiBatchGrouping);
   const highlightRanges = useMemo(() => {
     if (didYouMean && searchParams === submittedQuery) {
       return [{ start: 0, end: searchParams.length }];
@@ -98,12 +89,6 @@ function SearchDefault() {
       end: tag.end,
     }));
   }, [didYouMean, searchParams, submittedQuery]);
-  const batchGroups = useMemo(() => {
-    if (!eraiBatchGrouping || (resultSource ?? source) !== "erai-raws" || !displayItems) {
-      return null;
-    }
-    return groupBatchResults(displayItems);
-  }, [displayItems, eraiBatchGrouping, resultSource, source]);
   const renderResult = (item: Anime, index: number) => (
     <SearchResultItem
       key={`${item.link}-${index}`}
@@ -208,29 +193,7 @@ function SearchDefault() {
           data-scroll-root
           className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-0.5"
         >
-          {batchGroups
-            ? batchGroups.map((group) =>
-                group.items.length > 1 ? (
-                  <SearchBatchResultItem
-                    key={group.key}
-                    group={group}
-                    source={(resultSource ?? source) as "erai-raws"}
-                    busy={batchBusy}
-                    progress={batchProgress}
-                    loadingMagnet={loadingMagnet}
-                    onCopyMagnet={(i) => copyMagnetFor(i)}
-                    onOpenMagnet={(i) => openMagnetFor(i)}
-                    onDownload={(i) => downloadMagnetFor(i)}
-                    onDownloadAll={(items) => ignore(batchDownloadFor(items))}
-                    onOpenDetails={(i) =>
-                      setSelectedTorrent({ item: i, source: resultSource ?? source })
-                    }
-                  />
-                ) : (
-                  renderResult(group.items[0], 0)
-                )
-              )
-            : displayItems.map(renderResult)}
+          {displayItems.map(renderResult)}
         </section>
       )}
 

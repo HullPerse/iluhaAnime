@@ -5,6 +5,7 @@ import type {
   SavedScreenshot,
   ScreenshotCapture,
   ScreenshotLayersPayload,
+  ScreenshotVideoRect,
 } from "@/types/core/screenshot";
 import type { SettingsStore } from "@/types/ui/settings";
 import type { DitherImageMeta, UserImageFile } from "@/types/core/userimage";
@@ -64,8 +65,8 @@ export class SystemApi {
     return this.call("update_dither_image_data", { id, dataUrl });
   }
 
-  captureScreenshot(): Promise<ScreenshotCapture> {
-    return this.call("capture_screenshot");
+  captureScreenshot(videoRect?: ScreenshotVideoRect): Promise<ScreenshotCapture> {
+    return this.call("capture_screenshot", { videoRect });
   }
 
   saveScreenshot(input: SaveScreenshotInput): Promise<SavedScreenshot> {

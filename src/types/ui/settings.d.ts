@@ -107,7 +107,6 @@ export interface SettingsStore {
   parseTitlesPlayer: boolean;
   parseTitlesTorrent: boolean;
   parseTitlesSearch: boolean;
-  eraiBatchGrouping: boolean;
   torrentCoverMode: TorrentCoverMode;
   torrentCoverModeManual: boolean;
   anilistReleaseNotifications: boolean;

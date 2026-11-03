@@ -22,7 +22,7 @@ function atomSeason(
 ): SeasonHit | null {
   const short = /^s(\d+)$/i.exec(token.value);
   if (token.kind === "seasonEpisode") {
-    const match = /^s(\d{1,2})e\d{1,3}$/i.exec(token.value);
+    const match = /^s(\d{1,2})e\d{1,4}$/i.exec(token.value);
     if (match?.[1]) {
       consumed.add(index);
       return { season: Number.parseInt(match[1], 10), consumed };
@@ -52,7 +52,7 @@ export function isCountPair(tokens: MediaClassifiedToken[], digitIndex: number):
     !!total &&
     COUNT_WORD_RX.test(joiner.value) &&
     total.kind === "episode" &&
-    /^\d{1,3}$/.test(total.value)
+    /^\d{1,4}$/.test(total.value)
   );
 }
 
@@ -111,7 +111,7 @@ function findAtomEpisode(tokens: MediaClassifiedToken[], consumed: Set<number>):
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens.at(index);
     if (token?.kind !== "seasonEpisode") continue;
-    const match = /^s\d{1,2}e(\d{1,3})$/i.exec(token.value);
+    const match = /^s\d{1,2}e(\d{1,4})$/i.exec(token.value);
     if (match?.[1]) {
       consumed.add(index);
       return {
@@ -153,7 +153,7 @@ function findVersionEpisode(
     if (!token || consumed.has(index)) continue;
     if (!["episode", "unknown", "title"].includes(token.kind)) continue;
     if (token.enclosed !== "plain") continue;
-    let versionMatch = /^(\d{1,3})v(\d+)$/i.exec(token.value);
+    let versionMatch = /^(\d{1,4})v(\d+)$/i.exec(token.value);
     if (versionMatch) {
       consumed.add(index);
       return {
@@ -164,7 +164,7 @@ function findVersionEpisode(
         consumed,
       };
     }
-    versionMatch = /^(\d{1,3})\s*\(v(\d+)\)$/i.exec(token.value);
+    versionMatch = /^(\d{1,4})\s*\(v(\d+)\)$/i.exec(token.value);
     if (versionMatch) {
       consumed.add(index);
       return {
@@ -175,7 +175,7 @@ function findVersionEpisode(
         consumed,
       };
     }
-    if (/^\d{1,3}$/.test(token.value)) {
+    if (/^\d{1,4}$/.test(token.value)) {
       const next = tokens.at(index + 1);
       if (
         next &&
@@ -207,7 +207,7 @@ function findBracketEpisode(
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens.at(index);
     if (!token || token.kind !== "episode") continue;
-    const soloRange = /^(\d{1,3})[-~～〜](\d{1,3})$/.exec(token.value);
+    const soloRange = /^(\d{1,4})[-~～〜](\d{1,4})$/.exec(token.value);
     if (soloRange?.[1] && soloRange[2]) {
       consumed.add(index);
       return {
@@ -219,7 +219,7 @@ function findBracketEpisode(
       };
     }
     if (token.enclosed === "plain") continue;
-    if (/^\d{1,3}$/.test(token.value)) {
+    if (/^\d{1,4}$/.test(token.value)) {
       consumed.add(index);
       return {
         number: Number.parseInt(token.value, 10),
@@ -228,7 +228,7 @@ function findBracketEpisode(
         consumed,
       };
     }
-    const ofTotal = /(\d{1,3})_of_(\d{1,3})/i.exec(token.value);
+    const ofTotal = /(\d{1,4})_of_(\d{1,4})/i.exec(token.value);
     if (ofTotal?.[1] && ofTotal[2]) {
       consumed.add(index);
       return {
@@ -239,7 +239,7 @@ function findBracketEpisode(
         consumed,
       };
     }
-    const range = /^(\d{1,3})[-~～〜](\d{1,3})$/.exec(token.value);
+    const range = /^(\d{1,4})[-~～〜](\d{1,4})$/.exec(token.value);
     if (range?.[1] && range[2]) {
       consumed.add(index);
       return {
@@ -263,9 +263,9 @@ function findTildeRange(tokens: MediaClassifiedToken[], consumed: Set<number>): 
     const last = tokens.at(index + 2);
     if (!first || !joiner || !last) continue;
     if (consumed.has(index) || consumed.has(index + 1) || consumed.has(index + 2)) continue;
-    if (first.kind !== "episode" || !/^\d{1,3}$/.test(first.value)) continue;
+    if (first.kind !== "episode" || !/^\d{1,4}$/.test(first.value)) continue;
     if (!RANGE_JOINER_RX.test(joiner.value)) continue;
-    if (last.kind !== "episode" || !/^\d{1,3}$/.test(last.value)) continue;
+    if (last.kind !== "episode" || !/^\d{1,4}$/.test(last.value)) continue;
     consumed.add(index);
     consumed.add(index + 1);
     consumed.add(index + 2);
@@ -283,7 +283,7 @@ function findTildeRange(tokens: MediaClassifiedToken[], consumed: Set<number>): 
 function findCountPair(tokens: MediaClassifiedToken[], consumed: Set<number>): EpisodeHit | null {
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens.at(index);
-    if (!token || token.kind !== "episode" || !/^\d{1,3}$/.test(token.value)) continue;
+    if (!token || token.kind !== "episode" || !/^\d{1,4}$/.test(token.value)) continue;
     if (consumed.has(index)) continue;
     if (!isCountPair(tokens, index)) continue;
     const total = tokens.at(index + 2);
@@ -309,7 +309,7 @@ function findFallbackEpisode(
   let last = -1;
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens.at(index);
-    if (token?.kind === "episode" && /^\d{1,3}$/.test(token.value)) last = index;
+    if (token?.kind === "episode" && /^\d{1,4}$/.test(token.value)) last = index;
   }
   if (last < 0) return null;
   return { number: undefined, atomIndex: -1, fallbackIndex: last, consumed };

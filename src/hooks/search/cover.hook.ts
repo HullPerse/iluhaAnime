@@ -25,7 +25,35 @@ import type { AniMedia } from "@/types/anilist/anilist";
 import type { TorrentCoverMode } from "@/types/ui/settings";
 import type { TorrentCoverState } from "@/types/search/searchCover";
 
-async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
+const COVER_SEARCH_TTL_MS = 5 * 60_000;
+const COVER_SEARCH_CACHE_MAX = 256;
+const COVER_SEARCH_CONCURRENCY = 3;
+
+const coverSearchCache = new Map<string, { at: number; data: CoverCandidate[] }>();
+const coverSearchInflight = new Map<string, Promise<CoverCandidate[]>>();
+const coverSearchQueue: Array<() => void> = [];
+let activeCoverSearches = 0;
+
+function coverSearchKey(query: CoverQuery): string {
+  return `${query.query.trim().toLowerCase()}|${query.format ?? ""}|${query.seasonYear ?? 0}`;
+}
+
+async function withCoverSearchSlot<T>(task: () => Promise<T>): Promise<T> {
+  if (activeCoverSearches >= COVER_SEARCH_CONCURRENCY) {
+    await new Promise<void>((resolve) => {
+      coverSearchQueue.push(resolve);
+    });
+  }
+  activeCoverSearches += 1;
+  try {
+    return await task();
+  } finally {
+    activeCoverSearches -= 1;
+    coverSearchQueue.shift()?.();
+  }
+}
+
+async function fetchCoverSearch(query: CoverQuery): Promise<CoverCandidate[]> {
   const [media, error] = await attempt(
     anilistApi.search<AniMedia>({
       query: query.query,
@@ -39,6 +67,36 @@ async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
     return [];
   }
   return media.map(mediaToCandidate);
+}
+
+async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
+  const key = coverSearchKey(query);
+  const cached = coverSearchCache.get(key);
+  if (cached && Date.now() - cached.at < COVER_SEARCH_TTL_MS) return cached.data;
+  const inflight = coverSearchInflight.get(key);
+  if (inflight) return inflight;
+  const task = withCoverSearchSlot(() => fetchCoverSearch(query))
+    .then((data) => {
+      coverSearchCache.set(key, { at: Date.now(), data });
+      while (coverSearchCache.size > COVER_SEARCH_CACHE_MAX) {
+        const oldest = coverSearchCache.keys().next().value;
+        if (oldest === undefined) break;
+        coverSearchCache.delete(oldest);
+      }
+      return data;
+    })
+    .finally(() => {
+      coverSearchInflight.delete(key);
+    });
+  coverSearchInflight.set(key, task);
+  return task;
+}
+
+export function resetCoverSearchCache(): void {
+  coverSearchCache.clear();
+  coverSearchInflight.clear();
+  coverSearchQueue.length = 0;
+  activeCoverSearches = 0;
 }
 
 async function pagePoster(

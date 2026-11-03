@@ -27,7 +27,6 @@ export default function SettingsSearch() {
   const anilistSuggestionBoost = useCell(settingsAtoms.anilistSuggestionBoost);
   const searchSymSpellEnabled = useCell(settingsAtoms.searchSymSpellEnabled);
   const searchIntentEnabled = useCell(settingsAtoms.searchIntentEnabled);
-  const eraiBatchGrouping = useCell(settingsAtoms.eraiBatchGrouping);
   const { t } = useI18n();
   const learningHistory = useCell(searchAtoms.history);
   const learningAnimeCount = useCell(searchAtoms.animeIndex).length;
@@ -268,16 +267,6 @@ export default function SettingsSearch() {
                     onChange={() => patchSettings({ searchIntentEnabled: !searchIntentEnabled })}
                   />
                   <span>{t("settings.search.toggle.intent")}</span>
-                </label>
-                <label
-                  className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
-                  title={t("settings.search.toggle.erai.batch.hint")}
-                >
-                  <Checkbox
-                    checked={eraiBatchGrouping}
-                    onChange={() => patchSettings({ eraiBatchGrouping: !eraiBatchGrouping })}
-                  />
-                  <span>{t("settings.search.toggle.erai.batch")}</span>
                 </label>
               </div>
             </div>

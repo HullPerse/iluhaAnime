@@ -1,6 +1,10 @@
 import { KEYBINDS } from "@/config/settings/keybinds.config";
 import type { KeybindDef } from "@/types/ui/keybinds";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/core/signal.hook";
+import { humanizeChord } from "@/lib/core/chordHotkeys.utils";
+import { activeChordForKeybind } from "@/lib/search/titleHotkeys.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey } from "@/types/core/i18n";
 
 const CATEGORIES: KeybindDef["category"][] = ["playback", "navigation", "subtitles", "ui"];
@@ -14,6 +18,8 @@ const CATEGORY_LABELS: Record<KeybindDef["category"], TranslationKey> = {
 
 function Cheatsheet() {
   const { t } = useI18n();
+  const keybindOverrides = useCell(settingsAtoms.keybindOverrides);
+  const screenshotChord = activeChordForKeybind(keybindOverrides, "screenshot.capture");
 
   return (
     <div className="flex flex-col gap-2">
@@ -36,6 +42,14 @@ function Cheatsheet() {
                 <span className="truncate text-xs">{t(keybind.description)}</span>
               </div>
             ))}
+            {category === "ui" && screenshotChord !== null && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="windows95-border bg-field px-1 text-xs whitespace-nowrap">
+                  {humanizeChord(screenshotChord)}
+                </span>
+                <span className="truncate text-xs">{t("screenshot.title")}</span>
+              </div>
+            )}
           </div>
         );
       })}

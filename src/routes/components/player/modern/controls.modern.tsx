@@ -18,7 +18,7 @@ import { SEEK_STEP } from "@/config/settings/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { PlayerStream } from "@/types/player/playerStream";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { resolveChapterJump, resolveMediaJump } from "@/lib/core/chapter.utils";
+import { resolveMediaJump } from "@/lib/core/chapter.utils";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import { useCell } from "@/lib/core/signal.hook";
@@ -90,13 +90,13 @@ function ModernControls({
 }) {
   const { t } = useI18n();
   const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
-  const prevChapterTitle = useKeybindTitle(
+  const prevSeekTitle = useKeybindTitle(
     t("player.media.controls.backward"),
-    "player.prevChapter"
+    "player.seekBackward"
   );
-  const nextChapterTitle = useKeybindTitle(
+  const nextSeekTitle = useKeybindTitle(
     t("player.media.controls.forward"),
-    "player.nextChapter"
+    "player.seekForward"
   );
   const playlistTitle = useKeybindTitle(t("player.media.playlist.toggle"), "player.togglePlaylist");
   const autoHideTitle = useKeybindTitle(
@@ -134,21 +134,12 @@ function ModernControls({
     );
   };
 
-  const runChapterJump = (direction: ChapterJumpDirection) => {
-    const jump = resolveChapterJump({
-      chapters,
-      timePos,
-      duration,
-      hasPrev,
-      hasNext,
-      direction,
-      step: SEEK_STEP,
-    });
-    if (jump.kind === "seek") onSeekTo(jump.time);
-    else
-      showBoundaryMsg(
-        t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last")
-      );
+  const seekByStep = (direction: 1 | -1) => {
+    const target = Math.max(
+      0,
+      Math.min(duration || Number.MAX_SAFE_INTEGER, timePos + direction * SEEK_STEP)
+    );
+    onSeekTo(target);
   };
 
   return (
@@ -181,9 +172,9 @@ function ModernControls({
           <NeighborFileButton
             direction="prev"
             hasTarget={hasPrev}
-            title={t("player.media.controls.previous.file")}
-            ariaLabel={t("player.media.controls.previous.file")}
-            onActivate={(event) => runFileJump(-1, event.shiftKey)}
+            title={t("player.media.controls.previous.chapter")}
+            ariaLabel={t("player.media.controls.previous.chapter")}
+            onActivate={(event) => runFileJump(-1, event.shiftKey || event.ctrlKey)}
           />
           <Button
             size="icon"
@@ -208,9 +199,9 @@ function ModernControls({
           <NeighborFileButton
             direction="next"
             hasTarget={hasNext}
-            title={t("player.media.controls.next.file")}
-            ariaLabel={t("player.media.controls.next.file")}
-            onActivate={(event) => runFileJump(1, event.shiftKey)}
+            title={t("player.media.controls.next.chapter")}
+            ariaLabel={t("player.media.controls.next.chapter")}
+            onActivate={(event) => runFileJump(1, event.shiftKey || event.ctrlKey)}
           />
         </section>
 
@@ -218,9 +209,9 @@ function ModernControls({
           <Button
             size="icon"
             className="size-6"
-            title={prevChapterTitle}
+            title={prevSeekTitle}
             aria-label={t("player.media.controls.backward")}
-            onClick={() => runChapterJump(-1)}
+            onClick={() => seekByStep(-1)}
             disabled={timePos === 0}
           >
             <ChevronsLeft />
@@ -246,9 +237,9 @@ function ModernControls({
           <Button
             size="icon"
             className="size-6"
-            title={nextChapterTitle}
+            title={nextSeekTitle}
             aria-label={t("player.media.controls.forward")}
-            onClick={() => runChapterJump(1)}
+            onClick={() => seekByStep(1)}
             disabled={timePos === duration}
           >
             <ChevronsRight />

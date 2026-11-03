@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { SmallLoader } from "@/components/shared/loader/small.loader";
+import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
@@ -34,6 +35,7 @@ import { useStreamRouteGuard } from "@/hooks/player/streamRoute.hook";
 import { useStreamTrackPrefs } from "@/hooks/player/streamTrackPrefs.hook";
 import { usePlayerTracks } from "@/hooks/player/tracks.hook";
 import { usePlayerWatchProgress } from "@/hooks/player/watchProgress.hook";
+import { useScreenshot } from "@/hooks/screenshot.hook";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import { startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
 import { loadSidecarTracks } from "@/lib/player/sidecar.utils";
@@ -205,6 +207,9 @@ function PlayerComponent() {
   const title = playerWindowTitle({ path, stream, parseTitlesPlayer, t });
 
   const { videoRef, syncMargins, syncMarginsRef } = usePlayerMargins(immersive);
+  const { capture: screenshot, close: closeScreenshot } = useScreenshot({
+    videoElement: () => videoRef.current,
+  });
 
   const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch } =
     usePlayerSession({ videoRef, syncMarginsRef, resumeRef });
@@ -719,6 +724,8 @@ function PlayerComponent() {
         onAutoHide={setAutoHide}
         onProfile={setProfile}
       />
+
+      {screenshot && <ScreenshotModal capture={screenshot} onClose={closeScreenshot} />}
     </div>
   );
 }

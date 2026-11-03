@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useTorrentCover } from "@/hooks/search/cover.hook";
+import { resetCoverSearchCache, useTorrentCover } from "@/hooks/search/cover.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { detectLanguages, formatReleaseAge, formatSize } from "@/lib/search/searchFormat.utils";
 import { getLanguageColors } from "@/lib/core/results.utils";
@@ -53,6 +53,8 @@ export default function SearchResultItem({
   const queryClient = useQueryClient();
   const refreshCover = () => {
     removeResolvedCover(cover.coverKey);
+    // A refresh means a real new lookup, not the cached candidate list.
+    resetCoverSearchCache();
     ignore(
       queryClient.invalidateQueries({ queryKey: queryKeys.coverResolveScope(cover.coverKey) })
     );

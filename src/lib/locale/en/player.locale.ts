@@ -166,6 +166,8 @@ const player = {
   "player.media.controls.forward": "Forward 5 seconds",
   "player.media.controls.previous.file": "Previous file",
   "player.media.controls.next.file": "Next file",
+  "player.media.controls.previous.chapter": "Previous chapter (Shift/Ctrl: previous file)",
+  "player.media.controls.next.chapter": "Next chapter (Shift/Ctrl: next file)",
   "player.media.controls.audio": "Audio track",
   "player.media.controls.subtitles": "Subtitles",
   "player.media.controls.none": "Turn off",

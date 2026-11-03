@@ -109,7 +109,7 @@ export function assembleTitleWords(
       words.push(token.value);
       continue;
     }
-    if (token.kind === "episode" && !consumed.has(index) && /^\d{1,3}$/.test(token.value)) {
+    if (token.kind === "episode" && !consumed.has(index) && /^\d{1,4}$/.test(token.value)) {
       words.push(token.value);
       continue;
     }
@@ -178,7 +178,7 @@ export function extractEpTitle(
 ): { title?: string; ignored: string[] } {
   if (atomIndex < 0 && fallbackIndex < 0) return { ignored: [] };
   const fallbackToken = tokens.at(fallbackIndex);
-  if (!fallbackToken || /^\d{1,3}$/.test(fallbackToken.value)) return { ignored: [] };
+  if (!fallbackToken || /^\d{1,4}$/.test(fallbackToken.value)) return { ignored: [] };
   const start = atomIndex >= 0 ? atomIndex : fallbackIndex;
   const words: string[] = [];
   const ignored: string[] = [];

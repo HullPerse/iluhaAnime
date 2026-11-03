@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useTorrentCover } from "@/hooks/search/cover.hook";
+import { resetCoverSearchCache, useTorrentCover } from "@/hooks/search/cover.hook";
 import {
   coverCorrectionsAtoms,
   coverKey,
@@ -90,6 +90,7 @@ afterEach(() => {
 
 beforeEach(() => {
   mockInvoke.mockReset();
+  resetCoverSearchCache();
 });
 
 describe("useTorrentCover", () => {
@@ -296,6 +297,46 @@ describe("useTorrentCover", () => {
     await waitFor(() => expect(result.current.status).toBe("resolved"));
     expect(result.current.anilistId).toBe(20);
     expect(calls).not.toContain("get_torrent_poster");
+  });
+
+  it("shares one AniList search between episodes of the same anime", async () => {
+    let searches = 0;
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (command === "search_anilist") {
+        searches += 1;
+        return [NARUTO];
+      }
+      if (command === "download_remote_image") return { id: "blob-ep", path: "covers/ep.jpg" };
+      return null;
+    });
+
+    const first = renderCover("[Erai-raws] Naruto - 1122 [1080p].mkv");
+    const second = renderCover("[Erai-raws] Naruto - 1123 [1080p].mkv");
+
+    await waitFor(() => expect(first.result.current.status).toBe("resolved"));
+    await waitFor(() => expect(second.result.current.status).toBe("resolved"));
+    expect(searches).toBe(1);
+  });
+
+  it("reuses the cached cover for a later episode of the same anime", async () => {
+    setResolvedCover("one piece|0", {
+      id: 21,
+      coverUrl: "https://s4.anilist.co/file/one-piece.jpg",
+      title: "One Piece",
+      at: 1,
+    });
+    const calls: unknown[] = [];
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      calls.push(command);
+      if (command === "download_remote_image") return { id: "blob-op", path: "covers/op.jpg" };
+      return null;
+    });
+
+    const { result } = renderCover("[Erai-raws] One Piece - 1123 [1080p][Multiple Subtitle].mkv");
+
+    await waitFor(() => expect(result.current.status).toBe("resolved"));
+    expect(result.current.anilistId).toBe(21);
+    expect(calls).not.toContain("search_anilist");
   });
 
   it("serves a cached resolution without searching", async () => {

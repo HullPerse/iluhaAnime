@@ -11,14 +11,6 @@ export interface Anime {
   date?: string;
 }
 
-export interface BatchGroup {
-  key: string;
-  title: string;
-  group: string;
-  season?: number;
-  items: Anime[];
-}
-
 export interface TorrentDetailField {
   label: string;
   value: string;

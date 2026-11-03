@@ -16,7 +16,7 @@ import { SEEK_STEP } from "@/config/settings/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { PlayerStream } from "@/types/player/playerStream";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { resolveChapterJump, resolveMediaJump } from "@/lib/core/chapter.utils";
+import { resolveMediaJump } from "@/lib/core/chapter.utils";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
 import { scheduleTask } from "@/lib/core/shared.utils";
 import { PLAYER_SPEEDS as SPEEDS } from "@/lib/core/speed.utils";
@@ -92,13 +92,13 @@ function Controls({
 }) {
   const { t } = useI18n();
   const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
-  const prevChapterTitle = useKeybindTitle(
+  const prevSeekTitle = useKeybindTitle(
     t("player.media.controls.backward"),
-    "player.prevChapter"
+    "player.seekBackward"
   );
-  const nextChapterTitle = useKeybindTitle(
+  const nextSeekTitle = useKeybindTitle(
     t("player.media.controls.forward"),
-    "player.nextChapter"
+    "player.seekForward"
   );
   const playlistTitle = useKeybindTitle(t("player.media.playlist.toggle"), "player.togglePlaylist");
   const autoHideTitle = useKeybindTitle(
@@ -137,23 +137,6 @@ function Controls({
     setBoundary(message);
   };
 
-  const runChapterJump = (direction: ChapterJumpDirection) => {
-    const jump = resolveChapterJump({
-      chapters,
-      timePos: playbackAtoms.timePos.get(),
-      duration,
-      hasPrev,
-      hasNext,
-      direction,
-      step: SEEK_STEP,
-    });
-    if (jump.kind === "seek") onSeekTo(jump.time);
-    else
-      showBoundaryMsg(
-        t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last")
-      );
-  };
-
   const runFileJump = (direction: ChapterJumpDirection, forceFile: boolean) => {
     if (forceFile) {
       if (direction < 0) {
@@ -179,9 +162,17 @@ function Controls({
     );
   };
 
-  const handleForward = () => runChapterJump(1);
+  const seekByStep = (direction: 1 | -1) => {
+    const target = Math.max(
+      0,
+      Math.min(duration || Number.MAX_SAFE_INTEGER, playbackAtoms.timePos.get() + direction * SEEK_STEP)
+    );
+    onSeekTo(target);
+  };
 
-  const handleBackward = () => runChapterJump(-1);
+  const handleForward = () => seekByStep(1);
+
+  const handleBackward = () => seekByStep(-1);
 
   return (
     <main className="relative flex flex-row items-center gap-1 p-1">
@@ -217,7 +208,7 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={prevChapterTitle}
+          title={prevSeekTitle}
           aria-label={t("player.media.controls.backward")}
           onClick={handleBackward}
           disabled={atStart}
@@ -227,7 +218,7 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={nextChapterTitle}
+          title={nextSeekTitle}
           aria-label={t("player.media.controls.forward")}
           onClick={handleForward}
           disabled={atEnd}
@@ -257,16 +248,16 @@ function Controls({
           <NeighborFileButton
             direction="prev"
             hasTarget={hasPrev}
-            title={t("player.media.controls.previous.file")}
-            ariaLabel={t("player.media.controls.previous.file")}
-            onActivate={(event) => runFileJump(-1, event.shiftKey)}
+            title={t("player.media.controls.previous.chapter")}
+            ariaLabel={t("player.media.controls.previous.chapter")}
+            onActivate={(event) => runFileJump(-1, event.shiftKey || event.ctrlKey)}
           />
           <NeighborFileButton
             direction="next"
             hasTarget={hasNext}
-            title={t("player.media.controls.next.file")}
-            ariaLabel={t("player.media.controls.next.file")}
-            onActivate={(event) => runFileJump(1, event.shiftKey)}
+            title={t("player.media.controls.next.chapter")}
+            ariaLabel={t("player.media.controls.next.chapter")}
+            onActivate={(event) => runFileJump(1, event.shiftKey || event.ctrlKey)}
           />
         </section>
       )}

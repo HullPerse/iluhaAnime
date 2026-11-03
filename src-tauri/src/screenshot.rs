@@ -17,6 +17,15 @@ const DEFAULT_BLUR_SIGMA: f32 = 8.0;
 
 static COPY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+#[derive(Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoRegion {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScreenshotCapture {
@@ -102,6 +111,60 @@ pub(crate) fn default_dir(window: &tauri::WebviewWindow) -> String {
         .map_or_else(|_| String::new(), |dir| dir.to_string_lossy().to_string())
 }
 
+fn composite_video_frame(
+    capture: &[u8],
+    frame_path: &Path,
+    region: VideoRegion,
+) -> Result<Vec<u8>, String> {
+    let mut base = image::load_from_memory(capture)
+        .map_err(|error| format!("read the capture: {error}"))?
+        .to_rgba8();
+    let frame = image::open(frame_path)
+        .map_err(|error| format!("read the video frame: {error}"))?
+        .to_rgba8();
+    if frame.width() == 0 || frame.height() == 0 {
+        return Err("the video frame is empty".to_string());
+    }
+
+    let base_width = f64::from(base.width());
+    let base_height = f64::from(base.height());
+    let x = (region.x.clamp(0.0, 1.0) * base_width).round() as u32;
+    let y = (region.y.clamp(0.0, 1.0) * base_height).round() as u32;
+    let width = (region.width.clamp(0.0, 1.0) * base_width)
+        .round()
+        .min(base_width - f64::from(x)) as u32;
+    let height = (region.height.clamp(0.0, 1.0) * base_height)
+        .round()
+        .min(base_height - f64::from(y)) as u32;
+    if width == 0 || height == 0 {
+        return Err("the video region is empty".to_string());
+    }
+
+    let scale = (f64::from(width) / f64::from(frame.width()))
+        .min(f64::from(height) / f64::from(frame.height()));
+    let target_width = ((f64::from(frame.width()) * scale).round() as u32).max(1);
+    let target_height = ((f64::from(frame.height()) * scale).round() as u32).max(1);
+    let resized = image::imageops::resize(
+        &frame,
+        target_width,
+        target_height,
+        image::imageops::FilterType::Lanczos3,
+    );
+    let offset_x = x + (width - target_width) / 2;
+    let offset_y = y + (height - target_height) / 2;
+    image::imageops::overlay(
+        &mut base,
+        &resized,
+        i64::from(offset_x),
+        i64::from(offset_y),
+    );
+
+    let mut bytes = Vec::new();
+    base.write_with_encoder(image::codecs::png::PngEncoder::new(&mut bytes))
+        .map_err(|error| format!("encode the capture: {error}"))?;
+    Ok(bytes)
+}
+
 fn image_size(bytes: &[u8]) -> Result<(u32, u32), String> {
     image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
@@ -141,7 +204,7 @@ pub(crate) fn resolve_target(dir: &Path, name: &str, extension: &str) -> PathBuf
     dir.join(format!("{name}_{}.{extension}", timestamp_millis()))
 }
 
-fn capture_temp_path() -> PathBuf {
+pub(crate) fn capture_temp_path() -> PathBuf {
     let dir = std::env::temp_dir();
     let stamp = timestamp_millis();
     for _ in 0..COLLISION_LIMIT {
@@ -449,7 +512,10 @@ fn capture_webview_png(_webview: &tauri::webview::PlatformWebview) -> Result<Vec
 }
 
 #[tauri::command]
-pub async fn capture_screenshot(window: tauri::WebviewWindow) -> Result<ScreenshotCapture, String> {
+pub async fn capture_screenshot(
+    window: tauri::WebviewWindow,
+    video_rect: Option<VideoRegion>,
+) -> Result<ScreenshotCapture, String> {
     if !window.is_visible().unwrap_or(true) {
         return Err("the window is hidden, there is nothing to capture".to_string());
     }
@@ -459,9 +525,24 @@ pub async fn capture_screenshot(window: tauri::WebviewWindow) -> Result<Screensh
             let _ = sender.send(capture_webview_png(&webview));
         })
         .map_err(|error| format!("capture the page: {error}"))?;
-    let bytes = receiver
+    let mut bytes = receiver
         .recv()
         .map_err(|_| "capture the page: the webview went away".to_string())??;
+
+    if let Some(region) = video_rect {
+        if window.label() == crate::player::PLAYER_WINDOW_LABEL {
+            let frame_path = capture_temp_path();
+            match crate::player::capture_frame_to(&window, &frame_path).await {
+                Ok(()) => match composite_video_frame(&bytes, &frame_path, region) {
+                    Ok(composited) => bytes = composited,
+                    Err(error) => tracing::warn!("screenshot: video frame skipped: {error}"),
+                },
+                Err(error) => tracing::warn!("screenshot: no video frame: {error}"),
+            }
+            let _ = std::fs::remove_file(&frame_path);
+        }
+    }
+
     let (width, height) = image_size(&bytes)?;
     let path = capture_temp_path();
     std::fs::write(&path, &bytes).map_err(|error| format!("write the capture: {error}"))?;

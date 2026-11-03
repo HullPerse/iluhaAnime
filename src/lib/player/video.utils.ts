@@ -169,7 +169,7 @@ function initSeasonField(
 function startVideoHead(ctx: DirContext, stem: string): VideoHead {
   const leadingMatch = LEADING_NUMBER_RX.exec(stem);
   const leading = (leadingMatch?.[2]?.includes(" ") ?? false) ? leadingMatch : null;
-  const rangeMatch = /^(\d{1,3})-(\d{1,3})\.\s*(.+)$/.exec(stem);
+  const rangeMatch = /^(\d{1,4})-(\d{1,4})\.\s*(.+)$/.exec(stem);
   const tokens = classifyCached(stem);
   const consumed = new Set<number>();
   const { season: parsedSeason, variant } = initSeasonField(tokens, consumed);

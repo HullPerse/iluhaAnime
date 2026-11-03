@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { PLAYER_HOTKEYS } from "@/config/settings/keybinds.config";
 import type { KeybindAction } from "@/types/ui/keybinds";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import { shouldIgnoreHotkeys } from "@/lib/core/filterHotkeys.utils";
+import { shouldIgnoreHotkeys, shouldIgnorePlayerHotkeys } from "@/lib/core/filterHotkeys.utils";
 import { isInsideScrollable } from "@/lib/ui/scroll.utils";
 
 function Keyboard({
@@ -22,7 +22,7 @@ function Keyboard({
   }, [onAction, onWheel]);
 
   useResolvedHotkeys<KeybindAction>(PLAYER_HOTKEYS, {
-    ignore: (event) => shouldIgnoreHotkeys(event.target),
+    ignore: (event) => shouldIgnorePlayerHotkeys(event),
     onAction: (id) => actionRef.current(id),
   });
 

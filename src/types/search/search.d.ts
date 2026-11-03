@@ -437,9 +437,6 @@ export interface SearchQueryController {
   copyMagnetFor: (item: Anime) => void;
   openMagnetFor: (item: Anime) => void;
   downloadMagnetFor: (item: Anime) => Promise<void>;
-  batchDownloadFor: (items: Anime[]) => Promise<void>;
-  batchBusy: boolean;
-  batchProgress: { done: number; total: number } | null;
   selectedTorrent: SelectedSearchTorrent | null;
   setSelectedTorrent: (selection: SelectedSearchTorrent | null) => void;
 }

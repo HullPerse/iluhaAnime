@@ -817,6 +817,36 @@ pub async fn player_insert_files(
     Ok(())
 }
 
+/// Grabs the frame mpv is currently showing so an app screenshot can put it
+/// back over the blank area the webview capture leaves behind.
+pub(crate) async fn capture_frame_to(
+    window: &WebviewWindow,
+    target: &std::path::Path,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    core(window.app_handle()).command(
+        "screenshot-to-file",
+        &[json!(target.to_string_lossy())],
+        &label,
+    )?;
+    let mut last_len = 0;
+    let mut stable = 0;
+    for _ in 0..80 {
+        let len = std::fs::metadata(target).map(|meta| meta.len()).unwrap_or(0);
+        if len > 0 && len == last_len {
+            stable += 1;
+            if stable >= 2 {
+                return Ok(());
+            }
+        } else {
+            stable = 0;
+            last_len = len;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+    }
+    Err("mpv did not write the video frame".to_string())
+}
+
 #[tauri::command]
 pub async fn player_save_frame(
     window: WebviewWindow,

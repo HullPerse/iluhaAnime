@@ -2,9 +2,9 @@ import { cn } from "cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DITHER_DEFAULTS } from "@/config/graphics/dither.config";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
-import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { renderDitherImage } from "@/lib/graphics/ditherRender.utils";
 import {
   ditherCacheKey,

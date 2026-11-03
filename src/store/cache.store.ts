@@ -2,8 +2,8 @@ import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persis
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
 import { writeAppCache } from "@/lib/core/cache.utils";
-import { moveItem } from "@/lib/core/array.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { moveItem } from "@hullperse/hp_utils/array";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { CacheStore } from "@/types/core/cache";
 import type { FolderNode } from "@/types/torrent/torrent";
 

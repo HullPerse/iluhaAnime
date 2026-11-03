@@ -8,9 +8,9 @@ import type { GameAudio } from "@/types/player/audio";
 import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/core/frame.utils";
 import type { Rgba } from "@/types/core/frame";
 import { subscribeKeypad } from "@/lib/core/keypadHotkeys.utils";
-import { createAnimationLoop } from "@/lib/core/interval.utils";
+import { createAnimationLoop } from "@hullperse/hp_utils/interval";
 import type { AnimationLoopTask } from "@/types/core/interval";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { GameFrame, GamePalette, GameRomInfo, GameTelemetry } from "@/types/core/game";
 import type {
   GameSessionHandle,

@@ -11,7 +11,7 @@ import { resetCoverSearchCache, useTorrentCover } from "@/hooks/search/cover.hoo
 import { queryKeys } from "@/lib/core/keys.utils";
 import { detectLanguages, formatReleaseAge, formatSize } from "@/lib/search/searchFormat.utils";
 import { getLanguageColors } from "@/lib/core/results.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { ignore } from "@/lib/core/promise.utils";
 import { coverVisual } from "@/lib/torrent/coverVisual.utils";
 import TorrentActions from "@/routes/components/search/default/actions.search";

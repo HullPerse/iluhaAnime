@@ -18,7 +18,7 @@ import { searchSettingsFind } from "@/lib/core/find.utils";
 import { keysOf } from "@/lib/core/keysOf.utils";
 import { sectionSettingKeys } from "@/lib/core/reset.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/types/core/find";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsRoute } from "@/routes/__root";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import { FindBox } from "@/routes/components/settings/findBox.settings";

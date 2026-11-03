@@ -15,7 +15,7 @@ import "../src/config/graphics/screenshot.config";
 import "../src/config/graphics/sizes.config";
 import "../src/config/graphics/tags.config";
 import "../src/config/graphics/themes.config";
-import "../src/config/graphics/tokens.config";
+import "@hullperse/hp_utils/tokens";
 import "../src/config/graphics/wallpaper.config";
 import "../src/config/registry.config";
 import "../src/config/settings/find.config";

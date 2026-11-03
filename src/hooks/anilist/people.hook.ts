@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { tr } from "@/lib/locale/i18n.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type { AnilistRouteData } from "@/types/anilist/anilist";
 

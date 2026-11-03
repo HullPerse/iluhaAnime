@@ -5,7 +5,7 @@ import {
   VIM_LABEL_ALPHABET,
   VIM_MAX_LABEL_LENGTH,
 } from "@/config/settings/vim.config";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { resolveRowCollisions } from "@/lib/core/collisionResolve.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { TranslationKey } from "@/types/core/i18n";

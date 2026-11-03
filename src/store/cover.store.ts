@@ -1,6 +1,6 @@
 import { normalizeResolvedCover, normCoverKey } from "@/lib/core/cover.utils";
 import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type {
   CoverCorrectionsAtoms,
   CoverCorrectionsData,

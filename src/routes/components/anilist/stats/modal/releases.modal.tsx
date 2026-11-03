@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatDistanceToNowOwn } from "@/lib/core/distance.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import { anilistNotificationsAtoms, markAnilistReleasesRead } from "@/store/anilist.store";
 import type { AniListCollection } from "@/types/anilist/anilist";

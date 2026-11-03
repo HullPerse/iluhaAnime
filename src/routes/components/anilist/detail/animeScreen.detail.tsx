@@ -2,7 +2,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { flattenMarkup } from "@/lib/core/text.utils";
+import { flattenMarkup } from "@hullperse/hp_utils/text";
 import { queryKeys } from "@/lib/core/keys.utils";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
 

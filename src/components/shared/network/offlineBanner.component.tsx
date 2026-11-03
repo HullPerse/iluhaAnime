@@ -6,7 +6,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { networkAtoms, probeNetwork } from "@/lib/core/networkHealth.utils";
 import { ignore } from "@/lib/core/promise.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 
 /**

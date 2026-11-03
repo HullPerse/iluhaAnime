@@ -2,7 +2,7 @@ import { collectionApi } from "@/api/collection.api";
 import { IMPORT_CHUNK_SIZE } from "@/config/anilist/collectionDefaults.config";
 import { formatScore, normalizeToTen, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
-import { withFallback } from "@/lib/core/attempt.utils";
+import { withFallback } from "@hullperse/hp_utils/attempt";
 import type { AniListEntry, AniMedia } from "@/types/anilist/anilist";
 import type {
   CollectionItem,

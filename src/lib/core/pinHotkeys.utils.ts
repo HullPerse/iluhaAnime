@@ -1,4 +1,4 @@
-import { Debouncer } from "@/lib/core/debounce.utils";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
 
 export const PIN_DESCRIPTION_MS = 3000;
 

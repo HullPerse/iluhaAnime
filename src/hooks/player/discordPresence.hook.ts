@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { discordApi } from "@/api/discord.api";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import {
   buildPlayerActivity,
   presenceTimestampsDrifted,

@@ -13,10 +13,10 @@ import { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
 import { isPublicStatus } from "@/lib/core/status.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { normalizeSearchText } from "@/lib/core/suggestions.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, attemptAll } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, attemptSequence } from "@hullperse/hp_utils/attempt";
 import { searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
@@ -199,7 +199,7 @@ export function WizardModal({
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
-    await attemptAll([() => handleSave()], {
+    await attemptSequence([() => handleSave()], {
       onFinally: () => {
         savingRef.current = false;
         setSaving(false);

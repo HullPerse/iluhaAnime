@@ -4,7 +4,7 @@ import { isRecord } from "@/lib/core/record.utils";
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
 import { settingsAtoms } from "@/store/settings.store";
-import { attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type {
   DismissedEntry,
   NotificationAddOptions,

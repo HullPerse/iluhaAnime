@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { MAGNET_RX } from "@/config/system/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { enterSubmit } from "@/lib/ui/keyboard.utils";
 import type { MagnetTorrentProps as Props } from "@/types/torrent/torrent";
 

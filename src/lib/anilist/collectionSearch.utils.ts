@@ -1,4 +1,4 @@
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import {
   matchOperatorTerm,
   matchOperatorTerms,

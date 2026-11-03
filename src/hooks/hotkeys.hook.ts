@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { HotkeyDef } from "@/types/core/chordHotkeys";
 import { subscribeHotkeys } from "@/lib/core/registryHotkeys.utils";
 import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ResolvedHotkeyDef, UseHotkeysOptions } from "@/types/ui/hotkeys";
 

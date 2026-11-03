@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import { prewarmSpelling } from "@/lib/core/suggestions.utils";
 import { markIndexReady } from "@/lib/core/signals.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { indexSearchAniList, searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";

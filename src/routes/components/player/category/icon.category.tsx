@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { playerIcons } from "@/config/graphics/icons.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import { categoryAtoms, changeCategoryIcon } from "@/store/category.store";
 

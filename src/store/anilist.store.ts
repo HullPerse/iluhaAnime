@@ -7,7 +7,7 @@ import type {
   FriendsData,
   FriendsSignalStore,
 } from "@/types/store/anilist";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type {
   AniListFriendsStore,
   AniListNotificationsStore,

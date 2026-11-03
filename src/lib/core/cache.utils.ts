@@ -1,5 +1,5 @@
 import { systemApi } from "@/api/system.api";
-import { attemptAll } from "@/lib/core/attempt.utils";
+import { attemptSequence } from "@hullperse/hp_utils/attempt";
 import type { AppCacheRecord, RawAppCacheRecord } from "@/types/core/cache";
 
 export type { AppCacheRecord } from "@/types/core/cache";
@@ -9,7 +9,7 @@ export async function readAppCache<T>(
   key: string
 ): Promise<AppCacheRecord<T> | null> {
   let record: AppCacheRecord<T> | null = null;
-  const error = await attemptAll([
+  const error = await attemptSequence([
     async () => {
       const raw = await systemApi.getAppCache<RawAppCacheRecord | null>(namespace, key);
       record = raw === null ? null : { ...raw, payload: JSON.parse(raw.payload) as T };
@@ -24,13 +24,13 @@ export async function writeAppCache<T>(
   payload: T,
   ttlSeconds?: number
 ): Promise<boolean> {
-  const error = await attemptAll([
+  const error = await attemptSequence([
     () => systemApi.putAppCache(namespace, key, JSON.stringify(payload), ttlSeconds ?? null),
   ]);
   return error === null;
 }
 
 export async function deleteAppCache(namespace: string, key: string): Promise<boolean> {
-  const error = await attemptAll([() => systemApi.deleteAppCache(namespace, key)]);
+  const error = await attemptSequence([() => systemApi.deleteAppCache(namespace, key)]);
   return error === null;
 }

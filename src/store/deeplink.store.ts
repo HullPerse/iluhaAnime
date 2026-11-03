@@ -1,4 +1,4 @@
-import { createSignalStore } from "@/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import { buildSignalAtoms } from "@/lib/core/persisted.utils";
 import type { Cell } from "@/types/core/signal";
 import type {

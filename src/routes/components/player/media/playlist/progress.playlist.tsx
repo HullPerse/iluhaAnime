@@ -1,4 +1,4 @@
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { playbackAtoms } from "@/store/player.store";
 
 export function CurrentProgress() {

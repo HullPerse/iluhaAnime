@@ -4,7 +4,7 @@ import { cn } from "cn";
 
 import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { buttonVariants } from "@/config/ui/button.config";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 
 function Button({

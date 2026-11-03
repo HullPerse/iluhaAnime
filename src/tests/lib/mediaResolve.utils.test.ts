@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveMediaFile } from "@/lib/player/mediaResolve.utils";
+import { resolveMediaFile } from "@hullperse/hp_utils/media/mediaResolve";
 
 describe("resolveMediaFile western", () => {
   it("parses S01E01 with episode title", () => {

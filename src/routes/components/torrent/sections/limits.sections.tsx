@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";

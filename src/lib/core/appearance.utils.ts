@@ -2,7 +2,7 @@ import { THEMES } from "@/config/graphics/themes.config";
 import { resolveTheme } from "@/lib/graphics/themeResolve.utils";
 import { buildThemeState, THEME_OVERRIDE_BINDINGS } from "@/lib/graphics/tokens.utils";
 import type { ThemeState } from "@/types/graphics/tokens";
-import { attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/graphics/font.utils";
 import type { ThemeDefinition, ThemePatch } from "@/types/graphics/theme";
 import type { ThemePrePaintPayload } from "@/types/core/appearance";

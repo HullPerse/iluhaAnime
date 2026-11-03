@@ -8,7 +8,7 @@ import type { FilePlaybackState } from "@/types/player/playback";
 import type { HwdecReload } from "@/types/player/resume";
 import type { MediaEntry } from "@/types/player/videoPlayer";
 import type { StreamOpen } from "@/types/player/videoPlayer";
-import { fileNameFromPath } from "@/lib/search/parse.utils";
+import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { setPaused } from "@/lib/player/playback.utils";
 import type { CursorHiddenState } from "@/types/player/playerChrome";

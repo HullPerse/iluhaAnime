@@ -2,7 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/notification.utils";
 
 import { Win95PlayerButton } from "@/components/shared/video/controls/win95PlayerButton.video";

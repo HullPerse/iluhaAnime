@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 
 import { sqliteApi } from "@/api/sqlite.api";
-import { Debouncer } from "@/lib/core/debounce.utils";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
 import { displayCell } from "@/lib/core/sqliteRow.utils";
-import { attemptAll, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attemptSequence, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { assetUrl, isImageUrl } from "@/lib/graphics/image.utils";
 import { COPIED_FEEDBACK_MS } from "@/lib/core/notification.utils";
 import type { SqliteRowsPage, SqliteSelectedCell, SqliteTableInfo } from "@/types/core/sqlite";
@@ -74,7 +74,7 @@ export function useSqliteCell(params: {
     copiedHideRef.current?.cancel();
     if (!keys || !selectedDatabase || !selectedTable) return;
     setCellLoading(true);
-    const failure = await attemptAll(
+    const failure = await attemptSequence(
       [() => (isImageColumn(column) ? loadImageCell(column, keys) : loadTextCell(column, keys))],
       { onFinally: () => setCellLoading(false) }
     );
@@ -83,7 +83,7 @@ export function useSqliteCell(params: {
 
   const copyCell = async () => {
     if (!cellValue) return;
-    const failure = await attemptAll([
+    const failure = await attemptSequence([
       () => navigator.clipboard.writeText(cellValue),
       () => setCellCopied(true),
       () => {
@@ -98,7 +98,7 @@ export function useSqliteCell(params: {
       return;
     setCellSaving(true);
     setError(null);
-    const failure = await attemptAll(
+    const failure = await attemptSequence(
       [
         () =>
           sqliteApi.updateCell(

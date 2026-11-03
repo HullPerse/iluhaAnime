@@ -18,9 +18,9 @@ import type { PlayerStream } from "@/types/player/playerStream";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { resolveMediaJump } from "@/lib/core/chapter.utils";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { PLAYER_SPEEDS as SPEEDS } from "@/lib/core/speed.utils";
-import { useCell, useDerived } from "@/lib/core/signal.hook";
+import { useCell, useDerived } from "@hullperse/hp_utils/react";
 import { playbackAtEnd, playbackAtStart, playbackAtoms, streamSession } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/player/videoPlayer";
 

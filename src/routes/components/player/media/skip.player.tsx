@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import {
   SKIP_AUTO_HIDE_MS,
   SKIP_SEEK_BACK_THRESHOLD,
@@ -11,7 +11,7 @@ import {
   resolveSkipTarget,
   skipLabel,
 } from "@/lib/core/skip.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter } from "@/types/player/videoPlayer";
 

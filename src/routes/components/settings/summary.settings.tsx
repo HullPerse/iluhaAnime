@@ -17,9 +17,9 @@ import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { formatBackupDate } from "@/lib/core/backup.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, attemptAll, reportBackgroundError, withFallback } from "@/lib/core/attempt.utils";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, attemptSequence, reportBackgroundError, withFallback } from "@hullperse/hp_utils/attempt";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { cacheRate, pickDatabase, backupSize } from "@/lib/ui/summarySettings.utils";
 import { showError, showInfo, showWarning } from "@/lib/core/notification.utils";
 import { buildReproFrontend } from "@/lib/core/repro.utils";
@@ -110,7 +110,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const clearImages = async () => {
     const ok = await confirm(t("settings.summary.images.confirm"));
     if (!ok) return;
-    const error = await attemptAll([
+    const error = await attemptSequence([
       () => systemApi.clearRemoteImageCache(),
       () => {
         resetCoverCache();

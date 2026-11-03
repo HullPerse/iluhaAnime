@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { queryKeys } from "@/lib/core/keys.utils";
 import {
   desiredFolderPlaylist,
@@ -20,8 +20,8 @@ import {
   seekTo,
 } from "@/lib/player/playback.utils";
 import { folderScanBus } from "@/lib/core/scanBus.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { touchesExtensions } from "@/lib/core/changesWatcher.utils";
 import { isSameOrInside, samePath } from "@/lib/core/pathsWatcher.utils";

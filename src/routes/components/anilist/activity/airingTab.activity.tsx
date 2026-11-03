@@ -12,7 +12,7 @@ import {
   formatAiringLocal,
   groupAiringByDay,
 } from "@/lib/core/airing.utils";
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AniListCollection } from "@/types/anilist/anilist";
 

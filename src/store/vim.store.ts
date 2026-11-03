@@ -1,4 +1,4 @@
-import { createSignalStore } from "@/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { VimHintsState, VimSignalStore } from "@/types/ui/vim";
 
 const EMPTY_VIM_HINTS: VimHintsState = {

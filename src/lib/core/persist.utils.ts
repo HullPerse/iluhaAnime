@@ -1,7 +1,7 @@
 import * as z from "zod/mini";
 
-import { Debouncer } from "@/lib/core/debounce.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { parseJson } from "@/lib/core/schema.utils";
 import type {
   PersistEnvelope,

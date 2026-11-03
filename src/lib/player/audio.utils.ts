@@ -1,5 +1,5 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { GameAudio, GameAudioMode } from "@/types/player/audio";
 
 const BEEP_HZ = 440;

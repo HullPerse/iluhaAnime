@@ -12,7 +12,7 @@ import {
   formatAiringLocal,
 } from "@/lib/core/airing.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AniMedia } from "@/types/anilist/anilist";
 

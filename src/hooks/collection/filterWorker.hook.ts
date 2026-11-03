@@ -5,7 +5,7 @@ import {
   queryCollectionFilterSnapshot,
 } from "@/lib/core/filter.utils";
 import type { CollectionFilterSnapshot } from "@/types/core/filter";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { createJobRunner } from "@/lib/workers/job.utils";
 import type { JobRunner } from "@/types/core/job";
 import type {

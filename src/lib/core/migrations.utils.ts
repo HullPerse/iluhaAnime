@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { StoreMigration, TrackedStore } from "@/types/core/migrations";
 
 export const TRACKED_STORES: TrackedStore[] = [

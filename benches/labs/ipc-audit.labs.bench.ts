@@ -29,7 +29,7 @@ import { bench, group } from "@pmndrs/labs";
 // bytes; invoke counts are exact pins.
 
 import type { ApiTransport } from "../../src/types/core/transport";
-import { inflightFetch } from "../../src/lib/core/lruCache.utils";
+import { inflightFetch } from "@hullperse/hp_utils/lruCache";
 
 interface CallRecord {
   invokes: number;

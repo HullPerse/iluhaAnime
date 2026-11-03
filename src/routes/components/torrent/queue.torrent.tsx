@@ -7,9 +7,9 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { QUEUE_SCROLL_EDGE, QUEUE_SCROLL_STEP } from "@/config/torrent/queue.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { ignore } from "@/lib/core/promise.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import {
   buildQueueRows,
   queueApplyDrop,

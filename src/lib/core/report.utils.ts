@@ -1,4 +1,4 @@
-import { attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { FatalInfo } from "@/types/core/fatal";
 
 export const FATAL_STORAGE_KEY = "iluha.fatal.last";

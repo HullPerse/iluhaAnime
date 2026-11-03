@@ -1,7 +1,7 @@
 import { KEYBINDS } from "@/config/settings/keybinds.config";
 import type { KeybindDef } from "@/types/ui/keybinds";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { humanizeChord } from "@/lib/core/chordHotkeys.utils";
 import { activeChordForKeybind } from "@/lib/search/titleHotkeys.utils";
 import { settingsAtoms } from "@/store/settings.store";

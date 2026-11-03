@@ -1,5 +1,5 @@
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
-import { SymSpell } from "@/lib/core/symspell.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
+import { SymSpell } from "@hullperse/hp_utils/symspell";
 
 export class LazySpellIndex {
   private readonly wordList: readonly string[];

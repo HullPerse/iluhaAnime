@@ -1,4 +1,4 @@
-import { attemptAllLimit } from "@/lib/core/result.utils";
+import { attemptAllLimit } from "@hullperse/hp_utils/result";
 import type { TorrentCheckResult } from "@/types/torrent/torrent";
 
 export function splitRecheckOutcome<T>(

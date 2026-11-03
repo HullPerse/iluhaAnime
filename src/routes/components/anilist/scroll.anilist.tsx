@@ -11,7 +11,7 @@ import { getStatusColor } from "@/lib/anilist/entries.utils";
 import type { EntryLookup } from "@/types/anilist/entries";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import { GroupHeaderCollection } from "@/routes/components/collection/groupHeader.collection";
 import { settingsAtoms } from "@/store/settings.store";

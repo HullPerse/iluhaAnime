@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { useSetTorrentAlias } from "@/hooks/torrent/queries.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/notification.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import type { TorrentItemProps } from "@/types/torrent/torrent";

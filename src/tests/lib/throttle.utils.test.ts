@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Throttler, throttle } from "@/lib/core/throttle.utils";
+import { Throttler, throttle } from "@hullperse/hp_utils/throttle";
 
 beforeEach(() => {
   vi.useFakeTimers();

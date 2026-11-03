@@ -13,7 +13,7 @@ import { bench, group } from "@pmndrs/labs";
 
 import { buildLearningMaps, countersOf } from "../../src/lib/core/learning.utils";
 import { RANKING } from "../../src/config/anilist/ranking.config";
-import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 
 const NOW = 1_700_000_000_000;
 const LIMIT = 8;

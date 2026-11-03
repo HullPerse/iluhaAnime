@@ -1,5 +1,5 @@
 import { DEFAULT_STREAM_FILTERS } from "@/config/player/streamFilters.config";
-import { createSignalStore } from "@/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { StreamSignalStore } from "@/types/store/stream";
 import type { StreamCatalogFilters, StreamSortBy } from "@/types/player/stream";
 

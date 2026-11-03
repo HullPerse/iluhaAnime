@@ -1,5 +1,5 @@
 import { THEMES } from "@/config/graphics/themes.config";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { resolveTheme } from "@/lib/graphics/themeResolve.utils";
 import { themeAtoms } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/graphics/theme";

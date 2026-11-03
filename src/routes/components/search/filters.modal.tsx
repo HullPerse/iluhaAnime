@@ -8,7 +8,7 @@ import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import {
   deleteSearchFilterPreset,
   saveSearchFilterPreset,

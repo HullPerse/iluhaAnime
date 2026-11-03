@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import { ProxyField } from "@/routes/components/settings/proxy/proxyField.settings";

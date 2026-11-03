@@ -3,7 +3,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 
 import { translate } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { formatDistanceToNowOwn } from "@/lib/core/distance.utils";
 import { openAnimeDeepLink } from "@/store/deeplink.store";
 import { addNotification, notificationAtoms, updateNotification } from "@/store/notification.store";

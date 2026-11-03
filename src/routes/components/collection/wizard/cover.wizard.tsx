@@ -9,7 +9,7 @@ import { WIZARD_COVER_MAX } from "@/config/anilist/collectionDefaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { generatePlaceholder } from "@/lib/core/placeholder.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { assetUrl } from "@/lib/graphics/image.utils";
 import { showError } from "@/lib/core/notification.utils";
 

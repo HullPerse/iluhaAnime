@@ -1,4 +1,4 @@
-import { findSubsequenceRanges, normalizeText } from "@/lib/core/highlight.utils";
+import { findSubsequenceRanges, normalizeText } from "@hullperse/hp_utils/highlight";
 import {
   FIND_GROUPS,
   SETTINGS_FIND_ENTRIES,

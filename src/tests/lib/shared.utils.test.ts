@@ -7,7 +7,7 @@ import {
   resolveEnabled,
   scheduleTask,
   sleep,
-} from "@/lib/core/shared.utils";
+} from "@hullperse/hp_utils/shared";
 
 beforeEach(() => {
   vi.useFakeTimers();

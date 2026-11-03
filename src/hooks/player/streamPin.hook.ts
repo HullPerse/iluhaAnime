@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { shouldReleaseStreamPin } from "@/lib/player/playerChrome.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { StreamOpen } from "@/types/player/videoPlayer";

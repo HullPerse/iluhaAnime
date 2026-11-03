@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { suffixText } from "@/lib/core/format.utils";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 
 function Slider({
   wheel,

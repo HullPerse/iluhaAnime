@@ -1,5 +1,5 @@
 import type { OperatorMode } from "@/types/search/searchScore";
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import type { OperatorTerm } from "@/types/search/searchScore";
 
 function levenshtein(a: string, b: string): number {

@@ -7,7 +7,7 @@ import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { previewTheme } from "@/lib/core/appearance.utils";
 import { buildThemeColors, readImagePalette } from "@/lib/graphics/palette.utils";
 import {

@@ -4,7 +4,7 @@ import { PLAYER_MODES } from "@/config/settings/modes.config";
 import { buildModeCommands, playerModeParams } from "@/lib/core/crt.utils";
 import type { ActivePlayerShader } from "@/types/core/crt";
 import { playerShaderPath, runPlayerCommand } from "@/lib/player/playback.utils";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { PlayerBezelVariant, PlayerSettings } from "@/types/player/videoPlayer";
 
 export function usePlayerScreen(

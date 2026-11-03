@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import { humanizeChord } from "@/lib/core/chordHotkeys.utils";
 import { activeChordForKeybind, formatKeybindTitle } from "@/lib/search/titleHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 
 export function useKeybindTitle(title: string, keybindId: string): string {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatProgressLog } from "@/lib/core/prefetch.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/core/cache.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type {
   PrefetchProgressPayload,

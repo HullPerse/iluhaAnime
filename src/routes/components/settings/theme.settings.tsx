@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
 import { THEMES } from "@/config/graphics/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { windowTintAlpha } from "@/lib/graphics/palette.utils";
 import { findTheme, resolveTheme } from "@/lib/graphics/themeResolve.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import {
   addCustomTheme,

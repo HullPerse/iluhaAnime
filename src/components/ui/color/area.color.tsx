@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { hsvToHex } from "@/lib/graphics/color.utils";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 import type { HSV } from "@/types/graphics/color";
 
 export function SaturationValueArea({

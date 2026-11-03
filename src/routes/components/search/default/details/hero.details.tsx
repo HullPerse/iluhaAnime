@@ -7,7 +7,7 @@ import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatSize } from "@/lib/search/searchFormat.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { systemApi } from "@/api/system.api";
 import { showError } from "@/lib/core/notification.utils";
 import { ignore } from "@/lib/core/promise.utils";

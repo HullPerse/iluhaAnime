@@ -33,8 +33,8 @@ import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/anili
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showErrorOnce } from "@/lib/core/notification.utils";
 import { paginate } from "@/lib/core/pagination.utils";
 import {

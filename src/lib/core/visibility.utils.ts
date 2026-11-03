@@ -1,6 +1,6 @@
 import type { FolderNode } from "@/types/torrent/torrent";
 
-import { createLruCache } from "@/lib/core/lruCache.utils";
+import { createLruCache } from "@hullperse/hp_utils/lruCache";
 
 const NORMALIZED_PATH_CACHE = createLruCache<string, string>(5000);
 

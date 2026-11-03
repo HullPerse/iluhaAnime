@@ -1,10 +1,10 @@
 import { bench, group } from "@pmndrs/labs";
 
 import { LazySpellIndex } from "../../src/lib/core/lazySpellIndex.utils";
-import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { suggestSpellingWithReason } from "../../src/lib/search/searchResolve.utils";
 import { suggestSpelling } from "../../src/lib/core/suggestions.utils";
-import { buildSymSpellFromTitles, normalizedSpellWords } from "../../src/lib/core/symspell.utils";
+import { buildSymSpellFromTitles, normalizedSpellWords } from "@hullperse/hp_utils/symspell";
 import type { SearchAnimeSuggestion } from "../../src/types/search/search";
 
 const WORDS = [

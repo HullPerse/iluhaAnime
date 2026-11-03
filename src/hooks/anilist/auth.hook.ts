@@ -2,9 +2,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { tr } from "@/lib/locale/i18n.utils";
 import { consumeAuthDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { addNotification } from "@/store/notification.store";

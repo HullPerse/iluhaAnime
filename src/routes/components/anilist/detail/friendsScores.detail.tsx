@@ -14,7 +14,7 @@ import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { formatScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { loadFriendScores } from "@/lib/core/friends.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { anilistFriendsAtoms } from "@/store/anilist.store";
 

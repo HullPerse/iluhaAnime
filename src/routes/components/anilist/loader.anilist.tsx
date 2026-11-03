@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { ANILIST_LOADER_TICK_MS, ANILIST_SLOW_SEC } from "@/config/system/loading.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { formatElapsed } from "@/lib/core/time.utils";
 
 export default function AniListLoader({ className }: { className?: string }) {

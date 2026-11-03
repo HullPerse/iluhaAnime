@@ -1,5 +1,5 @@
-import { attempt } from "@/lib/core/attempt.utils";
-import { Debouncer } from "@/lib/core/debounce.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import { isSameOrInside, normalizePath } from "@/lib/core/pathsWatcher.utils";
 import type { VideoFileEntry } from "@/types/core/fs";

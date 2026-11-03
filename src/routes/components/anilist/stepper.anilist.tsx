@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { EntryListInfo } from "@/types/anilist/entries";
 import type { AniMedia } from "@/types/anilist/anilist";
-import { Debouncer } from "@/lib/core/debounce.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import {
   patchEntry,

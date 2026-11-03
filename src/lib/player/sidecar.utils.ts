@@ -1,6 +1,6 @@
 import { invokeTyped } from "@/lib/core/invoke.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
-import { fileNameFromPath, mediaFileExtension } from "@/lib/search/parse.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { fileNameFromPath, mediaFileExtension } from "@hullperse/hp_utils/media/parse";
 import {
   addExternalAudioAuto,
   addExternalSubtitleAuto,

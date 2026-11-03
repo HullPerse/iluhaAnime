@@ -1,4 +1,4 @@
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 
 const POSTER_COPY_URL_RE = /^https?:\/\/(?!asset\.localhost)/i;
 

@@ -18,7 +18,7 @@ import { DatabaseSync } from "node:sqlite";
 import { buildLearningMaps, countersOf } from "../src/lib/core/learning.utils";
 import { RANKING } from "../src/config/anilist/ranking.config";
 import type { RankingCounters } from "../src/types/core/ranking";
-import { normalizeSearchText } from "../src/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { getSearchSuggestions } from "../src/lib/core/suggestions.utils";
 import type { LearningStatRow, SearchAnimeSuggestion, SearchSuggestion } from "../src/types/search/search";
 

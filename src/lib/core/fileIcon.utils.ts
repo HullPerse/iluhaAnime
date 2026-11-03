@@ -1,4 +1,4 @@
-import { mediaFileExtension } from "@/lib/search/parse.utils";
+import { mediaFileExtension } from "@hullperse/hp_utils/media/parse";
 
 const VIDEO_EXTS = new Set([
   "avi",

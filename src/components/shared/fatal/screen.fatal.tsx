@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { resolveFatalVariant } from "@/config/settings/screens.config";
 import { resolveFatalLocale, resolveFatalTexts } from "@/lib/core/fatalTexts.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 
 import { GenericBsod } from "@/components/shared/fatal/generic.fatal";

@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 
 const ISO_639_2_TO_1: Record<string, string> = {
   ara: "ar",

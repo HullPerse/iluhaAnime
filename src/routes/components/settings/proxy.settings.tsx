@@ -9,8 +9,8 @@ import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { PROXY_TEST_SLOW_MS } from "@/hooks/proxyTest.hook";
-import { attempt } from "@/lib/core/attempt.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { attempt } from "@hullperse/hp_utils/attempt";
+import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import AnimelibSettings from "@/routes/components/settings/animelib.settings";

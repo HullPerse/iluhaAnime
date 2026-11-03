@@ -1,7 +1,7 @@
 import * as z from "zod/mini";
 
-import { attemptSync } from "@/lib/core/attempt.utils";
-import { err, ok } from "@/lib/core/result.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
+import { err, ok } from "@hullperse/hp_utils/result";
 import type { Result } from "@/types/core/result";
 
 const { catch: catchSchema } = z;

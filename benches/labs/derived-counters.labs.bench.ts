@@ -1,7 +1,7 @@
 import { bench, group } from "@pmndrs/labs";
 
 import { calculateCollectionStats } from "../../src/lib/anilist/collectionStats.utils";
-import { createSignalStore } from "../../src/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { CollectionItem } from "../../src/types/anilist/collection";
 
 function mulberry32(seed: number): () => number {

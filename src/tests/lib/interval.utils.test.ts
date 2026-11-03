@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAnimationLoop, createInterval } from "@/lib/core/interval.utils";
+import { createAnimationLoop, createInterval } from "@hullperse/hp_utils/interval";
 
 beforeEach(() => {
   vi.useFakeTimers();

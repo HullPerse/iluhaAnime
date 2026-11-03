@@ -10,7 +10,7 @@ import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { uniqueById } from "@/lib/core/array.utils";
+import { uniqueById } from "@hullperse/hp_utils/array";
 import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist/anilist";
 
 import { VoiceActorsPreview } from "@/routes/components/anilist/detail/voiceActors.detail";

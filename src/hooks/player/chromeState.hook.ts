@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AUTO_HIDE_DELAY, DROP_TOAST_TIMEOUT } from "@/config/player/playbackTiming.config";
-import { Debouncer } from "@/lib/core/debounce.utils";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
 import type { DroppedFramesData } from "@/types/player/videoPlayer";
 
 export function useBarsAutoHide(enabled: boolean, setBarsVisible: (value: boolean) => void): void {

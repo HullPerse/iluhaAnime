@@ -10,7 +10,7 @@ import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { ignore } from "@/lib/core/promise.utils";
-import { assertNever } from "@/lib/core/type.utils";
+import { assertNever } from "@hullperse/hp_utils/type";
 import { addSearchQuery } from "@/store/search.store";
 import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
 import type { AniListFilters, AniMedia, AniUser, SearchMode } from "@/types/anilist/anilist";

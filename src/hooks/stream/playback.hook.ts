@@ -5,7 +5,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { emptyPrefs, withQuality, withVariant } from "@/lib/player/streamPrefs.utils";
 import { SOURCE_ID, SOURCE_NAME, resolvePlayable } from "@/lib/player/streamResolve.utils";
 import { openStream } from "@/lib/player/playback.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { toVariantSources } from "@/lib/search/sources.utils";
 import { buildWatchKey } from "@/lib/player/streamHelpers.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";

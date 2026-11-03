@@ -10,11 +10,11 @@ import {
   autocompleteFieldA11y,
   autocompleteFieldClassName,
 } from "@/lib/search/autocompleteField.utils";
-import { mergeRanges, splitByRanges } from "@/lib/core/highlight.utils";
+import { mergeRanges, splitByRanges } from "@hullperse/hp_utils/highlight";
 import { computeGhostValue } from "@/lib/search/searchHighlight.utils";
 import { groupSuggestions, rankHistoryEntries } from "@/lib/core/suggestions.utils";
 import type { SearchSuggestion } from "@/lib/core/suggestions.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { createListNavigationHandler } from "@/lib/ui/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AutocompleteInputProps, HighlightRange } from "@/types/search/search";

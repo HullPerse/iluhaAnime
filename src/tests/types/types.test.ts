@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { assertNever } from "@/lib/core/type.utils";
+import { assertNever } from "@hullperse/hp_utils/type";
 import type {
   AniListId,
   ArrayElement,

@@ -36,7 +36,7 @@ import { useStreamTrackPrefs } from "@/hooks/player/streamTrackPrefs.hook";
 import { usePlayerTracks } from "@/hooks/player/tracks.hook";
 import { usePlayerWatchProgress } from "@/hooks/player/watchProgress.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
 import { loadSidecarTracks } from "@/lib/player/sidecar.utils";
 import {
@@ -78,8 +78,8 @@ import {
   wrapVideoMenu,
 } from "@/lib/player/playerChrome.utils";
 import { resolveViewChrome } from "@/lib/core/view.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { hydrateMediaEntry } from "@/store/media.store";
 import {

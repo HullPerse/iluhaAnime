@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { stepSpeed } from "@/lib/core/speed.utils";
 import { translate } from "@/lib/locale/i18n.utils";

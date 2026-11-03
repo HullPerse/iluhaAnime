@@ -8,7 +8,7 @@ import { countActiveStreamFilters } from "@/config/player/streamFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useAnimelibAccount } from "@/hooks/stream/animelibAccount.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { submitStreamSearch, streamPage, streamQuery } from "@/store/stream.store";
 import type { StreamCatalogFilters } from "@/types/player/stream";
 

@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
 import { STREAM_QUALITIES, streamQualityLabel } from "@/config/player/quality.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseExtensions } from "@/lib/ui/settingsMedia.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import { ExtensionRow } from "@/routes/components/settings/extensionRow.settings";

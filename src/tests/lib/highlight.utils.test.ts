@@ -5,7 +5,7 @@ import {
   mergeRanges,
   normalizeText,
   splitByRanges,
-} from "@/lib/core/highlight.utils";
+} from "@hullperse/hp_utils/highlight";
 
 describe("normalizeText", () => {
   it("lowercases ascii without normalization cost", () => {

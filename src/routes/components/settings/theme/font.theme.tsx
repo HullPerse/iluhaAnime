@@ -5,7 +5,7 @@ import Combobox from "@/components/ui/combobox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { readCachedFonts, writeCachedFonts } from "@/lib/ui/fontCache.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 

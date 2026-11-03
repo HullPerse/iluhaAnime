@@ -14,7 +14,7 @@ import {
   searchPageFind,
   stepPageFindIndex,
 } from "@/lib/core/pageFind.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import {
   closeFindBar,
   findBarAtoms,

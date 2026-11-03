@@ -2,7 +2,7 @@ import { CHART_LAYOUT } from "@/config/graphics/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
 import { nearestIndex } from "@/lib/core/geometry.utils";
 import { bandScale, niceMax, niceTicks } from "@/lib/core/scale.utils";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 
 import { ChartFrame } from "@/components/shared/charts/frame.chart";
 import { BandAxisLabels } from "@/components/shared/charts/ticks/bandAxis.ticks";

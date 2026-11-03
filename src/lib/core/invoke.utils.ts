@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import * as z from "zod/mini";
 
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import type { Result } from "@/types/core/result";
-import { err } from "@/lib/core/result.utils";
+import { err } from "@hullperse/hp_utils/result";
 import { parseValue } from "@/lib/core/schema.utils";
 import type { CommandName } from "@/types/core/ipc";
 

@@ -18,9 +18,9 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { clickRowActionButton } from "@/lib/core/dispatchHotkeys.utils";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
-import { parseMediaPath } from "@/lib/search/parse.utils";
-import { formatBytes } from "@/lib/core/bytes.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { parseMediaPath } from "@hullperse/hp_utils/media/parse";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
+import { useCell } from "@hullperse/hp_utils/react";
 import {
   handlePlayerContextMenu,
   onDiskTitle,

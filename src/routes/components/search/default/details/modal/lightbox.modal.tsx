@@ -4,7 +4,7 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
 export function DetailsLightbox({ url }: { url: string }) {
   const { t } = useI18n();

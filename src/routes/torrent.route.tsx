@@ -32,7 +32,7 @@ import {
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { isSameOrInside } from "@/lib/core/pathsWatcher.utils";
 import { pruneSelection } from "@/lib/core/bulk.utils";
 import {
@@ -42,7 +42,7 @@ import {
   getLifecycleLabel,
   getTorrentLifecycle,
 } from "@/lib/torrent/torrentCommon.utils";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { paginate } from "@/lib/core/pagination.utils";
 import { sortTorrents } from "@/lib/torrent/sort.utils";
 import { ignore } from "@/lib/core/promise.utils";

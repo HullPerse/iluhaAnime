@@ -2,7 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { torrentApi } from "@/api/torrent.api";
 import { DETAILS_KNOWN_FIELD_LABELS } from "@/config/search/details.config";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { Source } from "@/types/search/search";
 import type { Anime, TorrentDetailField, TorrentView } from "@/types/torrent/torrent";

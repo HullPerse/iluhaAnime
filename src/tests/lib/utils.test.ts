@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { translate } from "@/lib/locale/i18n.utils";
-import { uniqueById } from "@/lib/core/array.utils";
-import { attempt, attemptAll, attemptSync, toError, withFallback } from "@/lib/core/attempt.utils";
-import { formatBytes, formatRate } from "@/lib/core/bytes.utils";
+import { uniqueById } from "@hullperse/hp_utils/array";
+import { attempt, attemptSequence, attemptSync, toError, withFallback } from "@hullperse/hp_utils/attempt";
+import { formatBytes, formatRate } from "@hullperse/hp_utils/bytes";
 import {
   formatColor,
   hexToHsv,
@@ -20,8 +20,8 @@ import {
   rgbToHsv,
   rgbaToHex,
 } from "@/lib/graphics/color.utils";
-import { createLruCache, inflightFetch } from "@/lib/core/lruCache.utils";
-import { clamp } from "@/lib/core/math.utils";
+import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
+import { clamp } from "@hullperse/hp_utils/math";
 import { paginate } from "@/lib/core/pagination.utils";
 import { hashStringToUint32, mulberry32 } from "@/lib/core/random.utils";
 import {
@@ -38,7 +38,7 @@ import {
   map,
   ok,
   unwrapOr,
-} from "@/lib/core/result.utils";
+} from "@hullperse/hp_utils/result";
 import { formatClock, formatElapsed, formatETA } from "@/lib/core/time.utils";
 
 vi.mock("@tauri-apps/api/core", async () => {
@@ -140,11 +140,11 @@ describe("utils/attempt", () => {
     });
   });
 
-  describe("attemptAll", () => {
+  describe("attemptSequence", () => {
     it("runs every step in order and resolves null", async () => {
       const order: string[] = [];
       await expect(
-        attemptAll([
+        attemptSequence([
           () => order.push("a"),
           async () => {
             order.push("b");
@@ -157,7 +157,7 @@ describe("utils/attempt", () => {
 
     it("awaits a step before starting the next one", async () => {
       const order: string[] = [];
-      await attemptAll([
+      await attemptSequence([
         async () => {
           await Promise.resolve();
           order.push("first");
@@ -170,7 +170,7 @@ describe("utils/attempt", () => {
     it("stops at the first failure and resolves that error", async () => {
       const failure = new Error("step down");
       const order: string[] = [];
-      const error = await attemptAll([
+      const error = await attemptSequence([
         () => order.push("a"),
         () => {
           throw failure;
@@ -183,20 +183,20 @@ describe("utils/attempt", () => {
 
     it("normalizes a non-Error rejection", async () => {
       const plain = "nope" as unknown as Error;
-      await expect(attemptAll([() => Promise.reject(plain)])).resolves.toEqual(new Error("nope"));
+      await expect(attemptSequence([() => Promise.reject(plain)])).resolves.toEqual(new Error("nope"));
     });
 
     it("resolves null for an empty step list", async () => {
-      await expect(attemptAll([])).resolves.toBeNull();
+      await expect(attemptSequence([])).resolves.toBeNull();
     });
 
     it("always runs onFinally, after success and after failure", async () => {
       const order: string[] = [];
-      await attemptAll([() => order.push("step")], { onFinally: () => order.push("finally") });
+      await attemptSequence([() => order.push("step")], { onFinally: () => order.push("finally") });
       expect(order).toEqual(["step", "finally"]);
 
       order.length = 0;
-      await attemptAll(
+      await attemptSequence(
         [
           () => {
             throw new Error("boom");
@@ -209,7 +209,7 @@ describe("utils/attempt", () => {
 
     it("keeps the step error when the cleanup also fails", async () => {
       const failure = new Error("step");
-      const error = await attemptAll(
+      const error = await attemptSequence(
         [
           () => {
             throw failure;
@@ -227,7 +227,7 @@ describe("utils/attempt", () => {
     it("surfaces a cleanup failure when the steps succeeded", async () => {
       const cleanup = "cleanup" as unknown as Error;
       await expect(
-        attemptAll([() => undefined], { onFinally: () => Promise.reject(cleanup) })
+        attemptSequence([() => undefined], { onFinally: () => Promise.reject(cleanup) })
       ).resolves.toEqual(new Error("cleanup"));
     });
   });

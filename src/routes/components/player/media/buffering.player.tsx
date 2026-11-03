@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatRate } from "@/lib/core/bytes.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { formatRate } from "@hullperse/hp_utils/bytes";
+import { useCell } from "@hullperse/hp_utils/react";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { formatClock } from "@/lib/core/time.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 

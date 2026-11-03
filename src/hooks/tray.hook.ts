@@ -6,15 +6,15 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/core/tray.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, attemptSequence, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TabId } from "@/types/ui/settings";
 import type { TrayTab } from "@/types/core/tray";
 
 async function showMainWindow(): Promise<void> {
   const window = getCurrentWindow();
-  const error = await attemptAll([
+  const error = await attemptSequence([
     () => window.show(),
     () => window.unminimize(),
     () => window.setFocus(),

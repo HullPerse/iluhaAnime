@@ -6,7 +6,7 @@ import { bench, group } from "@pmndrs/labs";
 // so labs can detect dead code elimination. Fixtures are deterministic
 // (modulo arithmetic, no RNG), copied from suggest-pipeline.labs.bench.ts.
 
-import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { parseOperatorTerms } from "../../src/lib/search/searchScore.utils";
 import {
   getSearchSuggestions,

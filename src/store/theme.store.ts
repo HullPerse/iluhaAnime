@@ -6,7 +6,7 @@ import { applyTheme } from "@/lib/core/appearance.utils";
 import { deriveFieldColor, isHexColor } from "@/lib/graphics/palette.utils";
 import { findTheme } from "@/lib/graphics/themeResolve.utils";
 import { normalizeAutocompleteOpacity } from "@/lib/graphics/tokens.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import * as z from "zod/mini";
 import type {
   ParsedThemeFile,

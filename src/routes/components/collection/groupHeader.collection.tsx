@@ -3,7 +3,7 @@ import { ChevronRight, Plus } from "lucide-react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { settingsAtoms } from "@/store/settings.store";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 
 export function GroupHeaderCollection({

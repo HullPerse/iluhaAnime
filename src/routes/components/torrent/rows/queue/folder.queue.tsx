@@ -5,7 +5,7 @@ import type { KeyboardEvent, PointerEvent } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { QUEUE_ROW_HEIGHT } from "../queue.rows";
 import type { QueueDragTarget, QueuePlace } from "@/types/torrent/torrentQueue";
 

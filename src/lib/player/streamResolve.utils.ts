@@ -1,6 +1,6 @@
 import { streamApi } from "@/api/stream.api";
-import { attempt } from "@/lib/core/attempt.utils";
-import { inflightFetch } from "@/lib/core/lruCache.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
+import { inflightFetch } from "@hullperse/hp_utils/lruCache";
 import { loadWatch } from "@/lib/player/playback.utils";
 import { RESUME_END_MARGIN, RESUME_MIN } from "@/lib/player/resume.utils";
 import { pickSource } from "@/lib/search/sources.utils";

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { closeFindBar, findBarAtoms, openFindBar } from "@/store/findBar.store";
 import { registerOverlay } from "@/store/overlay.store";
 

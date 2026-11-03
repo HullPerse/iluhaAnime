@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { SEEK_STEP } from "@/config/settings/keybinds.config";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import { translate } from "@/lib/locale/i18n.utils";

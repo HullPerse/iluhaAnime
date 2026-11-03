@@ -1,4 +1,4 @@
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 import type { BandScale, Domain, Range } from "@/types/core/scale";
 
 const EMPTY_BAND: BandScale = {

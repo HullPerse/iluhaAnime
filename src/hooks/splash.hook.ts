@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { scheduleTask, sleep } from "@/lib/core/shared.utils";
+import { scheduleTask, sleep } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask, SleepTask } from "@/types/core/shared";
 import { detectMigrations } from "@/lib/core/migrations.utils";
 import {
@@ -12,7 +12,7 @@ import {
   onIndexReady,
   onSpellingReady,
 } from "@/lib/core/signals.utils";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { DatabaseStatus } from "@/types/core/db";
 import type {
   DbCheckResult,

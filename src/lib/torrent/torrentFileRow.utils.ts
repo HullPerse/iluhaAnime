@@ -1,9 +1,9 @@
 import { openPath } from "@tauri-apps/plugin-opener";
 import type { MouseEvent } from "react";
 
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { joinMediaPath } from "@/lib/player/media.utils";
-import { fileNameFromPath, isTrackFileName } from "@/lib/search/parse.utils";
+import { fileNameFromPath, isTrackFileName } from "@hullperse/hp_utils/media/parse";
 import type { FileRowInteractions, PlayerRowTarget } from "@/types/core/fileRows";
 import type { TFunc } from "@/types/core/i18n";
 import type { TorrentTreeFile } from "@/types/torrent/torrent";

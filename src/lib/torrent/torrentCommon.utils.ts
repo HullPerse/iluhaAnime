@@ -1,6 +1,6 @@
 import type { Event } from "@tauri-apps/api/event";
 
-import { formatRate } from "@/lib/core/bytes.utils";
+import { formatRate } from "@hullperse/hp_utils/bytes";
 import type { TFunc, TranslationKey } from "@/types/core/i18n";
 import type { TorrentDisplayState, TorrentLifecycle, TorrentInfo } from "@/types/torrent/torrent";
 import type { TorrentListState } from "@/types/torrent/torrentCommon";

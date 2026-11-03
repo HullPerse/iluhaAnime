@@ -1,4 +1,4 @@
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 import type { ChannelFormat, ColorFormat, HSL, HSV, RGBA, RGB } from "@/types/graphics/color";
 
 export function rgbaToHex({ r, g, b, a }: RGBA, includeAlpha = false) {

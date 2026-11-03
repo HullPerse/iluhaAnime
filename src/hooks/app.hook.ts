@@ -20,10 +20,10 @@ import {
   pollSiteNotifications,
 } from "@/lib/anilist/anilistNotifications.utils";
 import { markCacheReady } from "@/lib/core/signals.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { readAppCache } from "@/lib/core/cache.utils";
 import { tabLabel } from "@/lib/ui/tabs.utils";
-import { attemptAll, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attemptSequence, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import {
   DEEP_LINK_EVENT,
   ingestDeepLinks,
@@ -248,7 +248,7 @@ export function useApp() {
     }
     if (result !== "opened") return;
     const appWindow = getCurrentWindow();
-    const error = await attemptAll([
+    const error = await attemptSequence([
       () => appWindow.show(),
       () => appWindow.unminimize(),
       () => appWindow.setFocus(),

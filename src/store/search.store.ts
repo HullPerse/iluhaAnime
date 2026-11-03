@@ -11,9 +11,9 @@ import { normalizeSearchText } from "@/lib/core/suggestions.utils";
 import { buildTypedTitles } from "@/lib/search/searchTitle.utils";
 import type { Persistor } from "@/types/core/persist";
 import { buildSignalAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
-import { createSignalStore } from "@/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { Cell } from "@/types/core/signal";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist/anilist";
 import type {

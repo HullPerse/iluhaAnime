@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { TOAST_DEFAULTS } from "@/config/system/notifications.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { openNotificationTarget, showError } from "@/lib/core/notification.utils";
 import { markNotificationRead, notificationAtoms } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";

@@ -6,7 +6,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { readStoredMedia, withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
 import { mergeGenreTags } from "@/lib/core/wizard.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type { CollectionItem } from "@/types/anilist/collection";
 

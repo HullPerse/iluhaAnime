@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { isSourceImage } from "@/lib/graphics/images.utils";
 import { assetUrl } from "@/lib/graphics/image.utils";
 import { invokeTyped } from "@/lib/core/invoke.utils";
-import { createLruCache, inflightFetch } from "@/lib/core/lruCache.utils";
+import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
 import { settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/core/userimage";
 

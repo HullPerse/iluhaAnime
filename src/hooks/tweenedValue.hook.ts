@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { createAnimationLoop } from "@/lib/core/interval.utils";
+import { createAnimationLoop } from "@hullperse/hp_utils/interval";
 
 export function useTweenedValue(target: number, durationMs: number): number {
   const instant = durationMs <= 0 || !isFinite(target);

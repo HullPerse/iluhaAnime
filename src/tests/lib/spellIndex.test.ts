@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { LazySpellIndex } from "@/lib/core/lazySpellIndex.utils";
-import { isRomanNumeral } from "@/lib/core/roman.utils";
+import { isRomanNumeral } from "@hullperse/hp_utils/roman";
 import { readCachedSpellWords, writeCachedSpellWords } from "@/lib/core/spellIndexCache.utils";
 import { suggestSpelling } from "@/lib/core/suggestions.utils";
-import { buildSymSpellFromTitles, normalizedSpellWords } from "@/lib/core/symspell.utils";
+import { buildSymSpellFromTitles, normalizedSpellWords } from "@hullperse/hp_utils/symspell";
 import type { SearchAnimeSuggestion } from "@/types/search/search";
 
 const STORAGE_KEY = "iluha.v1.spellindex";

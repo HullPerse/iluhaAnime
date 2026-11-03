@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { classifyMediaTokens, classifyTokenValue } from "@/lib/player/mediaClassify.utils";
-import { tokenizeMediaName } from "@/lib/graphics/tokenize.utils";
+import { classifyMediaTokens, classifyTokenValue } from "@hullperse/hp_utils/media/mediaClassify";
+import { tokenizeMediaName } from "@hullperse/hp_utils/media/tokenize";
 
 function kindsOf(name: string): [string, string][] {
   return classifyMediaTokens(tokenizeMediaName(name)).map((token) => [token.value, token.kind]);

@@ -16,7 +16,7 @@ import { bench, group } from "@pmndrs/labs";
 // 163us / 141KB, 6k files 3.69ms / 1.87MB, 60k files 53.14ms / 18.61MB -
 // about 300B per file. Regression threshold is labs minDelta 5%.
 
-import { parseMediaPath, clearMediaParseCache } from "../../src/lib/search/parse.utils";
+import { parseMediaPath, clearMediaParseCache } from "@hullperse/hp_utils/media/parse";
 import { buildTorrentTree } from "../../src/lib/torrent/torrentTree.utils";
 import fixtureRows from "../../src/tests/lib/media/fixtures.json";
 import type { TorrentFileInfo } from "../../src/types/torrent/torrent";

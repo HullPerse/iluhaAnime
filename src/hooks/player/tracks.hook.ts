@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { streamApi } from "@/api/stream.api";
 import { AUDIO_FILTERS, SUBTITLE_FILTERS } from "@/config/player/fileFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError, withFallback } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError, withFallback } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { addExternalAudio, addExternalSubtitle, selectTrack } from "@/lib/player/playback.utils";
 import { emptyPrefs, withTrack } from "@/lib/player/streamPrefs.utils";

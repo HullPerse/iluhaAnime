@@ -7,7 +7,7 @@ import {
   matchOperatorTerms,
   parseOperatorTerms,
 } from "../../src/lib/search/searchScore.utils";
-import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import type { CollectionItem } from "../../src/types/anilist/collection";
 
 function mulberry32(seed: number): () => number {

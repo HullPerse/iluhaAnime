@@ -10,7 +10,7 @@ import { bench, group } from "@pmndrs/labs";
 // <= 3x warm. Regression threshold is labs minDelta 5%.
 
 import { buildLearningMaps } from "../../src/lib/core/learning.utils";
-import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { getSearchSuggestions } from "../../src/lib/core/suggestions.utils";
 import type { LearningStatRow, SearchAnimeSuggestion } from "../../src/types/search/search";
 

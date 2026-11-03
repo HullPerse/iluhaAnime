@@ -2,7 +2,7 @@ import { ReactElement } from "react";
 
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import { SearchType } from "@/types/search/search";
 

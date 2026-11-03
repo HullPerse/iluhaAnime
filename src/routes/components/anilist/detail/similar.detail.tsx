@@ -9,7 +9,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { itemMeta, strengthPercent } from "@/lib/anilist/anilistSimilar.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { AniRecommendation, AniRelation } from "@/types/anilist/anilist";
 

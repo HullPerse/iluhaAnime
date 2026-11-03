@@ -3,7 +3,7 @@ import type { ChangeEvent } from "react";
 
 import { useAutocomplete } from "@/hooks/search/autocomplete.hook";
 import { useSpellCheck, useSpellCorrections } from "@/hooks/search/spellcheck.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { enterSubmit } from "@/lib/ui/keyboard.utils";
 import {
   addSearchQuery as addQuery,

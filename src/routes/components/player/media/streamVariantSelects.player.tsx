@@ -5,7 +5,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { variantOptions } from "@/lib/player/streamVariant.utils";
 import { buildVariantId, variantOf } from "@/lib/player/streamHelpers.utils";
 import { loadSources } from "@/lib/core/sessionCache.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { pickSource } from "@/lib/search/sources.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";

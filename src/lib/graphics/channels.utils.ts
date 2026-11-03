@@ -1,5 +1,5 @@
 import { hslToHsv, rgbToHsv } from "@/lib/graphics/color.utils";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 import type { ChannelFormat, HSV } from "@/types/graphics/color";
 
 export const toChannels = (format: ChannelFormat, values: readonly string[]): HSV | null => {

@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
-import { formatBytes, formatRate } from "@/lib/core/bytes.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { formatBytes, formatRate } from "@hullperse/hp_utils/bytes";
 import { formatClock } from "@/lib/core/time.utils";
 import { variantOf } from "@/lib/player/streamHelpers.utils";
 import { playbackAtoms } from "@/store/player.store";

@@ -15,7 +15,7 @@ import {
   normalizeStatusLabel,
   resolveStatusLabel,
 } from "@/lib/core/status.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type { ShareImportPlan } from "@/types/core/deeplink";
 

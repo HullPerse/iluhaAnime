@@ -1,8 +1,8 @@
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { unwrapOr, withTimeout } from "@/lib/core/result.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { unwrapOr, withTimeout } from "@hullperse/hp_utils/result";
 import { settingsAtoms } from "@/store/settings.store";
 
 const SESSION_CHECK_TIMEOUT_MS = 8000;

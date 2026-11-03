@@ -1,4 +1,4 @@
-import { fileNameFromPath, mediaFileExtension } from "@/lib/search/parse.utils";
+import { fileNameFromPath, mediaFileExtension } from "@hullperse/hp_utils/media/parse";
 import type { VideoFileEntry } from "@/types/core/fs";
 import type { FolderNode } from "@/types/torrent/torrent";
 import type { PlayerTreeItem } from "@/types/player/playerTree";

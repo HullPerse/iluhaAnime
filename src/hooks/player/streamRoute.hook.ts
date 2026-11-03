@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { openStream } from "@/lib/player/playback.utils";
 import {

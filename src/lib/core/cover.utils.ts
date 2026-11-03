@@ -1,4 +1,4 @@
-import { scheduleTask, sleep } from "@/lib/core/shared.utils";
+import { scheduleTask, sleep } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { ResolvedCover } from "@/types/core/cover";
 import type {

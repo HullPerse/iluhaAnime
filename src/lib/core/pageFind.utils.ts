@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { PageFindCollection, PageFindMatch, PageFindOptions } from "@/types/core/pageFind";
 
 const PAGE_FIND_NODE_CAP = 20000;

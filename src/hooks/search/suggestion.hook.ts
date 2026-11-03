@@ -6,7 +6,7 @@ import { suggestionPoolSize, suggestionScore } from "@/lib/core/rank.utils";
 import { parseOperatorTerms } from "@/lib/search/searchScore.utils";
 import { matchNormalizedTitle, normalizeSearchText } from "@/lib/core/suggestions.utils";
 import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/core/suggestions.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import type { SearchSuggestionScope } from "@/types/search/search";
 
 const SUGGESTION_KINDS: Record<string, SearchSuggestionKind> = {

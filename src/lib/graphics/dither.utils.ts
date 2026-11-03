@@ -4,8 +4,8 @@ import {
   DITHER_DEFAULTS,
   DITHER_RENDER_CACHE_CAPACITY,
 } from "@/config/graphics/dither.config";
-import { attemptSync } from "@/lib/core/attempt.utils";
-import { createLruCache } from "@/lib/core/lruCache.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
+import { createLruCache } from "@hullperse/hp_utils/lruCache";
 import type {
   DitherCacheEntry,
   DitherEffectOptions,

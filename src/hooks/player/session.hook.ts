@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { EOF_MODE_MPV_PROPS } from "@/config/player/eofMode.config";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { computeVideoMargins, marginOptions } from "@/lib/core/margins.utils";
 import { ignore } from "@/lib/core/promise.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { translate } from "@/lib/locale/i18n.utils";
 import {
   applyBatchProperties,

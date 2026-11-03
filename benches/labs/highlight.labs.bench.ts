@@ -10,7 +10,7 @@ import {
   mergeRanges,
   normalizeText,
   splitByRanges,
-} from "../../src/lib/core/highlight.utils";
+} from "@hullperse/hp_utils/highlight";
 
 const SHORT = [
   "Naruto",

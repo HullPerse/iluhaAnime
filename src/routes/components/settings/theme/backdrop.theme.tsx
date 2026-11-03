@@ -1,6 +1,6 @@
 import Slider from "@/components/ui/range.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 export function BackdropSlider() {

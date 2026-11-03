@@ -1,6 +1,6 @@
 import Modal from "@/components/shared/modal.component";
 import { ANILIST_DETAIL_WIDTH_CLASS } from "@/config/anilist/detail.config";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniDetailProps as DetailProps } from "@/types/anilist/anilist";
 

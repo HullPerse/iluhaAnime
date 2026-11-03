@@ -9,7 +9,7 @@ import {
 import { collectAllEntries } from "@/lib/anilist/anilistGroup.utils";
 import { formatMeanScore, scoreFormatMax } from "@/lib/anilist/anilistScore.utils";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 import type { AniListCollection, AniListStatistics } from "@/types/anilist/anilist";
 import type {
   StatsGenreCompletion,

@@ -1,6 +1,6 @@
 import { translate } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { FatalInfo, FatalTexts } from "@/types/core/fatal";
 import type { Locale, TranslationKey } from "@/types/core/i18n";
 import type { DbTexts, SplashTexts } from "@/types/core/fatalTexts";

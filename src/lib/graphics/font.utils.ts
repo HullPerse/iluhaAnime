@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 
 export const DEFAULT_FONT_FAMILY = '"MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui';
 

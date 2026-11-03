@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { ImageProps } from "@/types/core/ui";
 

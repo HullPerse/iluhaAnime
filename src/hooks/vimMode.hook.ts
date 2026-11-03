@@ -25,8 +25,8 @@ import {
 import { createPinTimer } from "@/lib/core/pinHotkeys.utils";
 import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
 import { focusTreeSibling } from "@/lib/ui/tabsHotkeys.utils";
-import type { Debouncer } from "@/lib/core/debounce.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import type { Debouncer } from "@hullperse/hp_utils/debounce";
+import { useCell } from "@hullperse/hp_utils/react";
 import { closestScrollable, scrollAmount } from "@/lib/ui/scroll.utils";
 import type { ScrollDirection } from "@/types/ui/scroll";
 import { registerOverlay } from "@/store/overlay.store";

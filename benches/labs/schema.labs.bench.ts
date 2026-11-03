@@ -15,7 +15,7 @@ import { bench, group } from "@pmndrs/labs";
 // share link. Both are noise. Regression threshold is labs minDelta 5%.
 import * as z from "zod/mini";
 
-import { attemptSync } from "../../src/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { parseValue } from "../../src/lib/core/schema.utils";
 
 const PAYLOAD = JSON.stringify({

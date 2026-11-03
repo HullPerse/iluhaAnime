@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 
 export function readThemeName(): string {
   const dataset = typeof document !== "undefined" ? document.documentElement?.dataset : undefined;

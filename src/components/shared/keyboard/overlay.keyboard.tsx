@@ -10,9 +10,9 @@ import {
 } from "@/lib/core/hintsHotkeys.utils";
 import { badgeClass } from "@/lib/ui/badgeClass.utils";
 import type { HintBadgeLayout } from "@/types/core/hintsHotkeys";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { vimAtoms } from "@/store/vim.store";
 
 export default function KeyboardHintOverlay() {

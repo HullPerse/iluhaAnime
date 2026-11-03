@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
 import { streamApi } from "@/api/stream.api";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
@@ -7,7 +7,7 @@ import { useOnlineStatus } from "@/hooks/network.hook";
 import { useStreamSearch } from "@/hooks/stream/catalog.hook";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { consumeStreamDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { settingsAtoms } from "@/store/settings.store";
 import {

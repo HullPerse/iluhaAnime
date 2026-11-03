@@ -8,9 +8,9 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useModalResize } from "@/hooks/modalResize.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
 import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { getContentSignature } from "@/lib/ui/modalSignature.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/core/ui";
 

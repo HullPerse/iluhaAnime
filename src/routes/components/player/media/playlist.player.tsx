@@ -7,11 +7,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { fileNameFromPath } from "@/lib/search/parse.utils";
+import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
 import { appendFilesQuiet, readPlaylistEntries } from "@/lib/player/playback.utils";
 import type { PlaylistEntry } from "@/types/player/playback";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, attemptAll, withFallback } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, attemptSequence, withFallback } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { playbackAtoms, subscribePlayback } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
@@ -121,7 +121,7 @@ export default function PlaylistBody({
 
   const onAdd = async () => {
     setAdding(true);
-    await attemptAll(
+    await attemptSequence(
       [
         async () => {
           const selection = await withFallback(

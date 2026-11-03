@@ -1,9 +1,9 @@
 import { PLAYER_PROFILES } from "@/config/settings/profiles.config";
-import { fileNameFromPath, isTrackFileName } from "@/lib/search/parse.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { fileNameFromPath, isTrackFileName } from "@hullperse/hp_utils/media/parse";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
 import { PlaylistEntryListSchema, VideoCardInfoSchema } from "@/api/player.schema";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 import { joinMediaPath } from "@/lib/player/media.utils";
 import type {
   EndOfFileMode,

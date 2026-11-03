@@ -7,7 +7,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentCover } from "@/hooks/search/cover.hook";
 import { ignore } from "@/lib/core/promise.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { buildTorrentView } from "@/lib/torrent/torrentDetails.utils";
 import {
   buildDetailTabs,

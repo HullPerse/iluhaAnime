@@ -6,7 +6,7 @@ import { MEDIA_PAGE_SIZE } from "@/config/system/pagination.config";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { uniqueById } from "@/lib/core/array.utils";
+import { uniqueById } from "@hullperse/hp_utils/array";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
 
 import { CreditSection } from "@/routes/components/anilist/detail/creditSection.detail";

@@ -11,7 +11,7 @@ import { KEYBIND_SCOPES, RESERVED_KEYBIND_CHORDS } from "@/config/settings/keybi
 import { useI18n } from "@/hooks/i18n.hook";
 import { chordIdentity } from "@/lib/core/chordHotkeys.utils";
 import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { KeybindScope } from "@/types/core/manifest";
 import type { ResolvedKeybind } from "@/types/search/resolveHotkeys";

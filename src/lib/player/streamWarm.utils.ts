@@ -1,5 +1,5 @@
 import { streamApi } from "@/api/stream.api";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 
 /** A warm entry is useful for a short while, not for the whole session. */
 const TTL_MS = 2 * 60_000;

@@ -1,7 +1,7 @@
 import { tmdbApi } from "@/api/tmdb.api";
 import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
 import { RemoteImageIdSchema, AnimeStillsSchema } from "@/api/image.schema";
-import { attemptResult, err, map, ok, unwrapOr } from "@/lib/core/result.utils";
+import { attemptResult, err, map, ok, unwrapOr } from "@hullperse/hp_utils/result";
 import type { Result } from "@/types/core/result";
 import type { AddedMedia, QuickAddMedia } from "@/types/anilist/collection";
 

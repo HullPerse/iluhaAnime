@@ -21,9 +21,9 @@ import {
 } from "@/lib/search/searchRoute.utils";
 import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
 import { parseTorrentTags, torrentTagsToFilters } from "@/lib/torrent/torrentTags.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import {
   resetSearchFilters as resetFilters,
   searchAtoms,

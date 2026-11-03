@@ -1,5 +1,5 @@
 import { DEFAULT_THEME_COLORS } from "@/config/graphics/themes.config";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { ThemeDefinition } from "@/types/graphics/theme";
 import type { RGB } from "@/types/graphics/palette";
 

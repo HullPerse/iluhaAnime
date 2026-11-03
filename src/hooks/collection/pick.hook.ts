@@ -6,7 +6,7 @@ import type { useWizardSearch } from "@/hooks/collection/search.hook";
 import type { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { mergeGenreTags } from "@/lib/core/wizard.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/notification.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { WizardPickedMedia, WizardSearchResult } from "@/types/anilist/collection";

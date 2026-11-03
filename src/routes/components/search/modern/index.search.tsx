@@ -9,8 +9,8 @@ import { DITHER_PLACEHOLDER_SRC } from "@/config/graphics/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useWallpaperImage } from "@/hooks/wallpaper.hook";
 import { shouldDimMascot } from "@/lib/core/mascot.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { buildShadowGradients, buildWallpaperFilter } from "@/lib/graphics/wallpaper.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 

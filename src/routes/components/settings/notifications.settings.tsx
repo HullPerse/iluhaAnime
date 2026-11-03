@@ -12,7 +12,7 @@ import {
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { ignore } from "@/lib/core/promise.utils";
 import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/anilist.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";

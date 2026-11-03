@@ -2,7 +2,7 @@ import { mockInvoke } from "@/tests/mocks";
 import { describe, expect, it } from "vitest";
 import * as z from "zod/mini";
 
-import { err, ok } from "@/lib/core/result.utils";
+import { err, ok } from "@hullperse/hp_utils/result";
 import { invokeValidated } from "@/lib/core/invoke.utils";
 
 const StatusSchema = z.object({ id: z.number().check(z.gt(0)), name: z.string() });

@@ -1,7 +1,7 @@
 import { listen, type Event, type EventName } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
 export function useTauriEvent<T>(
   event: EventName,

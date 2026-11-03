@@ -16,7 +16,6 @@ export const CONFIG_REGISTRY: readonly ConfigRegistryEntry[] = [
   { domain: "graphics", file: "graphics/sizes.config.ts", keys: ["SIZE_MULTIPLIERS"] },
   { domain: "graphics", file: "graphics/tags.config.ts", keys: ["TAG_*"] },
   { domain: "graphics", file: "graphics/themes.config.ts", keys: ["DEFAULT_THEME_COLORS", "THEME_ACCENT_EXEMPT", "THEME_COLOR_KEYS", "THEME_FAMILIES", "THEME_OVERRIDE_VARS", "THEMES"] },
-  { domain: "graphics", file: "graphics/tokens.config.ts", keys: ["AUDIO_*", "CRC32_RX", "DUB_MARKERS", "EDITION_TAGS", "IGNORE_SUFFIXES", "KNOWN_ARC_MAP", "KNOWN_ARCS", "LANG_*", "LEADING_NUMBER_RX", "OF_TOTAL_RX", "RELEASE_GROUPS", "SEARCH_ALIASES", "SEASON_EPISODE_RX", "SERVICE_ALIASES", "SOURCES", "STREAM_SERVICES", "SUBTITLE_EXTS", "SUB_FORMATS", "SUB_VARIANTS", "TRACK_STUDIOS", "TYPE_MARKERS", "VIDEO_*"] },
   { domain: "graphics", file: "graphics/wallpaper.config.ts", keys: ["WALLPAPER_*"] },
   { domain: "settings", file: "settings/find.config.ts", keys: ["anchorId", "FIND_GROUPS", "SETTINGS_FIND_*"] },
   { domain: "settings", file: "settings/flags.config.ts", keys: ["FLAG_*"] },

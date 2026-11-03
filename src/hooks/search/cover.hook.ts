@@ -4,7 +4,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
-import { parseMediaFile } from "@/lib/search/parse.utils";
+import { parseMediaFile } from "@hullperse/hp_utils/media/parse";
 import { queryKeys } from "@/lib/core/keys.utils";
 import {
   findLocalMatch,
@@ -16,8 +16,8 @@ import {
   withTimeout,
 } from "@/lib/core/cover.utils";
 import type { CoverCandidate, CoverProfile, CoverQuery } from "@/types/core/cover";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { coverCorrectionsAtoms, coverKey, setResolvedCover } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";

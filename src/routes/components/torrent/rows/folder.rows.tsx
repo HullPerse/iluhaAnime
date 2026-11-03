@@ -6,7 +6,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TreeRow } from "@/types/core/treeArrow";
 import { collectFileIndices } from "@/lib/torrent/torrentTree.utils";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { TorrentFileInfo, TorrentTreeNode } from "@/types/torrent/torrent";
 

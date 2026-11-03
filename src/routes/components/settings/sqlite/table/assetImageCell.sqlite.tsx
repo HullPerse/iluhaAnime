@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { sqliteApi } from "@/api/sqlite.api";
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { assetUrl } from "@/lib/graphics/image.utils";
 
 export function AssetImageCell({

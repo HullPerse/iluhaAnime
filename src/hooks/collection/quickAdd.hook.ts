@@ -7,7 +7,7 @@ import { mediaToWizardValues } from "@/lib/core/import.utils";
 import { withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
 import { downloadCover, fetchAddedMedia } from "@/lib/core/quickadd.utils";
 import { buildWizardItem } from "@/lib/core/wizard.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/anilist/collection";
 

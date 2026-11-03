@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
 import { buildAnimeBackHandler } from "@/lib/anilist/anilistRoute.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { consumeDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import type { AniListAnime, AniListCollection } from "@/types/anilist/anilist";
 

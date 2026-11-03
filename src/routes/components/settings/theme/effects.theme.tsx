@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import type { Cell } from "@/types/core/signal";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SettingsData } from "@/types/store/settings";

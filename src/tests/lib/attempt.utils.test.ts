@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   attempt,
-  attemptAll,
+  attemptSequence,
   attemptAs,
   attemptAsSync,
   attemptRetry,
   attemptSync,
   toError,
   withFallback,
-} from "@/lib/core/attempt.utils";
+} from "@hullperse/hp_utils/attempt";
 import {
   attemptAllLimit,
   attemptResult,
@@ -21,7 +21,7 @@ import {
   unwrapOr,
   withResource,
   withTimeout,
-} from "@/lib/core/result.utils";
+} from "@hullperse/hp_utils/result";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -57,7 +57,7 @@ describe("attempt utils contract", () => {
 
   it("runs every step and reports the first failure", async () => {
     const order: string[] = [];
-    const failure = await attemptAll([
+    const failure = await attemptSequence([
       () => order.push("a"),
       () => {
         throw new Error("mid");
@@ -70,7 +70,7 @@ describe("attempt utils contract", () => {
 
   it("runs onFinally even when a step failed", async () => {
     const finallyCalls: string[] = [];
-    const failure = await attemptAll([() => Promise.reject(new Error("first"))], {
+    const failure = await attemptSequence([() => Promise.reject(new Error("first"))], {
       onFinally: () => finallyCalls.push("done"),
     });
     expect(failure).toEqual(new Error("first"));
@@ -78,7 +78,7 @@ describe("attempt utils contract", () => {
   });
 
   it("prefers the first failure over the onFinally failure", async () => {
-    const failure = await attemptAll([() => Promise.reject(new Error("first"))], {
+    const failure = await attemptSequence([() => Promise.reject(new Error("first"))], {
       onFinally: () => {
         throw new Error("finally");
       },

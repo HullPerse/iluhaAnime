@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
 import { streamApi } from "@/api/stream.api";
 import Modal from "@/components/shared/modal.component";

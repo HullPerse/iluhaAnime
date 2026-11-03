@@ -1,5 +1,5 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
-import { fileNameFromPath, parseMediaPath } from "@/lib/search/parse.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
+import { fileNameFromPath, parseMediaPath } from "@hullperse/hp_utils/media/parse";
 import type { AniUser } from "@/types/anilist/anilist";
 import type { DiscordActivity, DiscordButton, DiscordPresenceDetail } from "@/types/core/discord";
 import type { TFunc } from "@/types/core/i18n";

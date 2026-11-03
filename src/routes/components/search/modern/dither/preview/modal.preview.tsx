@@ -20,9 +20,9 @@ import {
 } from "@/config/graphics/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
-import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import {
   EXTRACT_PALETTE_MAX_COLORS,
   EXTRACT_PALETTE_MIN_COLORS,

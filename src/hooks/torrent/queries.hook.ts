@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { queryKeys } from "@/lib/core/keys.utils";
 import {
   TorrentListen,
@@ -17,7 +17,7 @@ import {
   torrentErrorText,
   withoutPendingRemoved,
 } from "@/lib/torrent/torrentCommon.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showError, showWarning } from "@/lib/core/notification.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";

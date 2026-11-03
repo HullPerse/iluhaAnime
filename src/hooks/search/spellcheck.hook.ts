@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SPELL_CORRECTION_LIMIT } from "@/config/search/autocomplete.config";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
 import { suggestSpellings } from "@/lib/core/suggestions.utils";
-import { damerauLevenshtein } from "@/lib/core/symspell.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { damerauLevenshtein } from "@hullperse/hp_utils/symspell";
+import { useCell } from "@hullperse/hp_utils/react";
 import { searchAtoms } from "@/store/search.store";
 import type { SearchAnimeSuggestion, SpellCheck, SpellWordSpan } from "@/types/search/search";
 

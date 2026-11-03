@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { WATCH_INTERVAL } from "@/config/player/playbackTiming.config";
 import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/core/cardCache.utils";
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { ignore } from "@/lib/core/promise.utils";
 import { readPlaylistEntries, saveWatch } from "@/lib/player/playback.utils";
 import { getMediaEntry, setMediaPosition } from "@/store/media.store";

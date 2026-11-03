@@ -1,4 +1,4 @@
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 
 type ReadyListener = () => void;
 

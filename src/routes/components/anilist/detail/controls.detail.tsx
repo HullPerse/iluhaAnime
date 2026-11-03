@@ -30,7 +30,7 @@ import {
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import { buildAnilistPrefill } from "@/lib/core/import.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import { requestWizardPrefill } from "@/store/collection.store";
 import type { AniMedia, AnilistRouteData } from "@/types/anilist/anilist";

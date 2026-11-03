@@ -1,8 +1,8 @@
 import * as z from "zod/mini";
 
 import { MAGNET_RX } from "@/config/system/common.config";
-import { attemptAll, attemptSync } from "@/lib/core/attempt.utils";
-import { attemptResult, attemptResultSync, unwrapOr } from "@/lib/core/result.utils";
+import { attemptSequence, attemptSync } from "@hullperse/hp_utils/attempt";
+import { attemptResult, attemptResultSync, unwrapOr } from "@hullperse/hp_utils/result";
 import type { CollectionExternalIds, CollectionItem } from "@/types/anilist/collection";
 import type {
   AnimeDeepLink,
@@ -325,7 +325,7 @@ async function runByteTransform(
 ): Promise<Uint8Array | null> {
   const writer = transform.writable.getWriter();
   const collected = collectBytes(transform.readable, maxBytes);
-  await attemptAll([() => writer.write(input), () => writer.close()]);
+  await attemptSequence([() => writer.write(input), () => writer.close()]);
   return collected;
 }
 

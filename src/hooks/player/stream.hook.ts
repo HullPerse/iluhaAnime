@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { streamApi } from "@/api/stream.api";
 import { tr } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { buildVariantId } from "@/lib/player/streamHelpers.utils";
 import { emptyPrefs, preferNativeVariants } from "@/lib/player/streamPrefs.utils";
 import {
@@ -16,7 +16,7 @@ import { openStream } from "@/lib/player/playback.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { lowerQualityLabel } from "@/lib/player/streamQuality.utils";
 import { resolveEpisodeStream, resolveNextStream } from "@/lib/player/playerStream.utils";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";

@@ -10,7 +10,7 @@ import CropFrame from "@/components/shared/screenshot/crop.screenshot";
 import { CROP_MIN_SIZE, CROP_ZOOM_STEP } from "@/config/graphics/screenshot.config";
 import { measureText, paintAnnotations, paintBlurMask } from "@/lib/core/annotationDraw.utils";
 import { paintOffscreen } from "@/lib/graphics/screenshotPaint.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import {
   appendPoint,
   blurSigmaFor,
@@ -30,7 +30,7 @@ import {
   startCrop,
   zoomAtPoint,
 } from "@/lib/core/crop.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type {
   AnnotationItem,
   CropBounds,

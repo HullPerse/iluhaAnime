@@ -14,7 +14,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import type { UpscalePreviewController } from "@/types/core/upscalePreview";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { withFallback } from "@/lib/core/attempt.utils";
+import { withFallback } from "@hullperse/hp_utils/attempt";
 import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
 import { UpscaleTimeEstimateSchema } from "@/api/upscale.schema";
 import { formatETA } from "@/lib/core/time.utils";

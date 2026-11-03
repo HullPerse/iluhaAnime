@@ -1,5 +1,5 @@
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
-import { Debouncer } from "@/lib/core/debounce.utils";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
 import {
   applyAtomValues,
   buildMirrorAtoms,
@@ -7,10 +7,10 @@ import {
   createPersistedStoreContext,
 } from "@/lib/core/persisted.utils";
 import { isRecord } from "@/lib/core/record.utils";
-import { createSignalStore } from "@/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { Cell } from "@/types/core/signal";
 import { resolveWithDefaults } from "@/lib/core/migrate.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { PlayerSignalOptions } from "@/types/store/options";
 import type {
   PlaybackData,

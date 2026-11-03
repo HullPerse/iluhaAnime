@@ -4,7 +4,7 @@ import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist/anilist";
 

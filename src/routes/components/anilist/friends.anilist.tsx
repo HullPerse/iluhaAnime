@@ -9,7 +9,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { hasFreshCachedProfile } from "@/lib/core/friends.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { enterSubmit } from "@/lib/ui/keyboard.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import { cacheAnilistProfile } from "@/store/anilist.store";

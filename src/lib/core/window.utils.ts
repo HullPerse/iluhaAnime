@@ -1,5 +1,5 @@
 import { systemApi } from "@/api/system.api";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { WindowChrome } from "@/types/core/window";
 
 export async function applyWindowChrome(chrome: WindowChrome): Promise<void> {

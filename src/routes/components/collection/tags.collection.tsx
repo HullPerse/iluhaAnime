@@ -6,7 +6,7 @@ import { clampTolerance, DEFAULT_TAG_TOLERANCES } from "@/config/graphics/tolera
 import { useI18n } from "@/hooks/i18n.hook";
 import { exampleFor, opsFor } from "@/lib/core/tags.utils";
 import { FILTER_KEYS } from "@/lib/core/intent.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: () => void }) {

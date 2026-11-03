@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 import { HUE_GRADIENT } from "@/config/graphics/colors.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { normalizeHue } from "@/lib/graphics/color.utils";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 
 export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: number) => void }) {
   const { t } = useI18n();

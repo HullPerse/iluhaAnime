@@ -16,7 +16,7 @@ import {
   transformOptions,
 } from "@/lib/player/playback.utils";
 import { queueDepthSteps } from "@/lib/player/playerQueue.utils";
-import { clearMediaParseCache, fileNameFromPath } from "@/lib/search/parse.utils";
+import { clearMediaParseCache, fileNameFromPath } from "@hullperse/hp_utils/media/parse";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import {
   buildOutputPath,

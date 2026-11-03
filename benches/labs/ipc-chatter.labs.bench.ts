@@ -23,7 +23,7 @@ import { bench, group } from "@pmndrs/labs";
 // exact pins.
 
 import type { ApiTransport } from "../../src/types/core/transport";
-import { inflightFetch } from "../../src/lib/core/lruCache.utils";
+import { inflightFetch } from "@hullperse/hp_utils/lruCache";
 import type { UnifiedIndexRow } from "../../src/types/search/search";
 import type { TorrentInfo } from "../../src/types/torrent/torrent";
 

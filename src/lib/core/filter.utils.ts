@@ -6,7 +6,7 @@ import {
 } from "@/lib/anilist/collectionSearch.utils";
 import { publicStatusIds } from "@/lib/core/status.utils";
 import { parseIntent } from "@/lib/core/intent.utils";
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import {
   matchOperatorTerm,
   matchOperatorTerms,

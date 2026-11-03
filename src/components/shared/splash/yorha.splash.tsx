@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 
 import { SPLASH_STAGE_MARKS } from "@/config/system/splash.config";
 import type { SplashVariantProps } from "@/types/core/shared.splash";

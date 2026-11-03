@@ -2,7 +2,7 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { installUpdate } from "@/lib/core/update.utils";
 
 import { Button } from "@/components/ui/button.component";

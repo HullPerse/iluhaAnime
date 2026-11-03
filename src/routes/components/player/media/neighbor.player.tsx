@@ -4,14 +4,14 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { fileNameFromPath } from "@/lib/search/parse.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { fetchVideoCard, getCachedCard } from "@/lib/core/cardCache.utils";
 import type { CardArt } from "@/types/core/cardCache";
 import { readPlaylistEntries } from "@/lib/player/playback.utils";
 import type { PlaylistEntry } from "@/types/player/playback";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { ignore } from "@/lib/core/promise.utils";
 import { formatClock } from "@/lib/core/time.utils";
 import { playbackAtoms } from "@/store/player.store";

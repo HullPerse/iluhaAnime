@@ -6,7 +6,7 @@ import {
   CROP_ZOOM_MIN,
   CROP_ZOOM_PRECISION,
 } from "@/config/graphics/screenshot.config";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 import type {
   CropBounds,
   CropFrame,

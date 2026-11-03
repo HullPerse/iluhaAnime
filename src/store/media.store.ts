@@ -1,6 +1,6 @@
 import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import type { Cell } from "@/types/core/signal";
-import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { invokeTyped } from "@/lib/core/invoke.utils";
 import type { MediaSignalOptions, MediaSignalStore } from "@/types/store/media";
 import type { MediaEntry, WatchState } from "@/types/player/videoPlayer";

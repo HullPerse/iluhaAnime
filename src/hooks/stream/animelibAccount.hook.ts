@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { streamApi } from "@/api/stream.api";
 import { ANIMELIB_LOGIN_ERRORS } from "@/config/settings/animelibLogin.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import type { AnimeLibAccount } from "@/types/api/stream";
 

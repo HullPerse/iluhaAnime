@@ -11,10 +11,10 @@ import {
   isResizeObserverLoopError,
   noteGlobalError,
   toFatalInfo,
-} from "@/lib/core/fatalClassify.utils";
+} from "@hullperse/hp_utils/fatalClassify";
 import { consumeSafeMode, markSessionSafe, reportFatal } from "@/lib/core/report.utils";
 import { readThemeName } from "@/lib/core/fatalTheme.utils";
-import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { markStartup } from "@/lib/core/startup.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { router } from "@/routes/__root";

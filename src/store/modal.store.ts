@@ -1,4 +1,4 @@
-import { createSignalStore } from "@/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { ModalSignalStore } from "@/types/store/modal";
 import type { ModalEntry, ModalScope, ModalStacks } from "@/types/ui/modal";
 

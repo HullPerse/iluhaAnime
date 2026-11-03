@@ -21,7 +21,7 @@ import {
 import { isRecord } from "@/lib/core/record.utils";
 import type { MigrationTransform } from "@/types/core/migrate";
 import { resolveWithDefaults, runTransforms } from "@/lib/core/migrate.utils";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/graphics/font.utils";
 import { toValidator } from "@/lib/core/schema.utils";
 import type { SettingsAtoms, SettingsData, SettingsSignalStore } from "@/types/store/settings";

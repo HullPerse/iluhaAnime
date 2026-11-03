@@ -8,8 +8,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
 import { displayCell } from "@/lib/core/sqliteRow.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   SqliteDatabaseInfo,

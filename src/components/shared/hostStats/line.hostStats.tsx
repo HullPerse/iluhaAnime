@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { fmtSpeed } from "@/lib/torrent/torrentCommon.utils";
 import type { HostStats } from "@/types/core/ipc";
 

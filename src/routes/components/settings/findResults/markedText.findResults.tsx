@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import { splitByRanges } from "@/lib/core/highlight.utils";
+import { splitByRanges } from "@hullperse/hp_utils/highlight";
 import type { HighlightRange } from "@/types/search/search";
 
 export function FindMarkedText({

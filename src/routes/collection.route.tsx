@@ -16,8 +16,8 @@ import { calculateCollectionStats } from "@/lib/anilist/collectionStats.utils";
 import { isPublicStatus, isPublicStatusFull, publicStatusPrefill } from "@/lib/core/status.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { buildCollectionShareLink } from "@/lib/core/deeplink.utils";
 import {
   collectionAtoms,

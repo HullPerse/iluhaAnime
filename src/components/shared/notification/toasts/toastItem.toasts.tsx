@@ -1,13 +1,13 @@
 import { X } from "lucide-react";
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { NOTIFICATION_TOAST_STRIP, TOAST_DURATION_MS } from "@/config/system/notifications.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCell } from "@/lib/core/signal.hook";
-import { createInterval } from "@/lib/core/interval.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import { markNotificationRead } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";

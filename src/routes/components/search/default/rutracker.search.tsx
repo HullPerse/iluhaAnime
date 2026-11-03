@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { mapError } from "@/lib/core/rutracker.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { enterSubmit } from "@/lib/ui/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
 

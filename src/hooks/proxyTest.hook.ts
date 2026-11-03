@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { createInterval } from "@/lib/core/interval.utils";
-import { attemptResult } from "@/lib/core/result.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
+import { attemptResult } from "@hullperse/hp_utils/result";
 
 export const PROXY_TEST_SLOW_MS = 8_000;
 const PROXY_TEST_SLOW_SECS = PROXY_TEST_SLOW_MS / 1000;

@@ -1,5 +1,5 @@
 import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import type {
   CollectionFilters,

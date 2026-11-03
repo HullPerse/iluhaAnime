@@ -1,4 +1,4 @@
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
 export function startsOnControl(target: EventTarget | null) {
   return target instanceof Element && target.closest("button, [data-no-drag]") !== null;

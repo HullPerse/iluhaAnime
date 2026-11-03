@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { ANILIST_CLIENT_ID, buildAnilistAuthorizeUrl } from "@/config/system/auth.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { enterOrSpace, enterSubmit } from "@/lib/ui/keyboard.utils";
 import type { AniUser } from "@/types/anilist/anilist";
 

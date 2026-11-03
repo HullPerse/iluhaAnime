@@ -1,4 +1,4 @@
-import { attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import * as z from "zod/mini";
 
 const FONT_CACHE_KEY = "systemFontsCache";

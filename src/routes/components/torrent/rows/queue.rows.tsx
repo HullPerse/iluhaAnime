@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { QueueDragTarget, QueuePlace } from "@/types/torrent/torrentQueue";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
 import DropLine from "./queue/dropLine.queue";

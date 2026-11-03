@@ -1,6 +1,6 @@
 import { Component } from "react";
 
-import { toFatalInfo } from "@/lib/core/fatalClassify.utils";
+import { toFatalInfo } from "@hullperse/hp_utils/fatalClassify";
 import { readRoutePath } from "@/lib/core/routePath.utils";
 import {
   clearFatal,
@@ -10,7 +10,7 @@ import {
   subscribeFatal,
 } from "@/lib/core/report.utils";
 import { readThemeName } from "@/lib/core/fatalTheme.utils";
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { FatalInfo } from "@/types/core/fatal";
 import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types/core/ui";
 

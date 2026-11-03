@@ -7,8 +7,8 @@ import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attemptAll } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attemptSequence } from "@hullperse/hp_utils/attempt";
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { resolveDetailBack } from "@/lib/anilist/detailBack.utils";
@@ -49,7 +49,7 @@ export function AnimeDetailShell({
   const toggleFavorite = async () => {
     if (favoriteLoading) return;
     setFavoriteLoading(true);
-    await attemptAll([() => props.onFavouriteToggle?.(props.animeId)], {
+    await attemptSequence([() => props.onFavouriteToggle?.(props.animeId)], {
       onFinally: () => setFavoriteLoading(false),
     });
   };

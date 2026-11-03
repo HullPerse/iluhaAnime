@@ -15,9 +15,9 @@ import {
   spotlightBoundaryMs,
   spotlightPeriodKey,
 } from "@/lib/core/spotlight.utils";
-import { createInterval } from "@/lib/core/interval.utils";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { readAppCache, writeAppCache } from "@/lib/core/cache.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { formatETA } from "@/lib/core/time.utils";
 import type { ActivityDetailBundle } from "@/types/anilist/anilist";
 import type { AniMedia, SpotlightKind, SpotlightRowState } from "@/types/anilist/anilist";

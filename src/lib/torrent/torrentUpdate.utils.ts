@@ -1,6 +1,6 @@
 import { torrentApi } from "@/api/torrent.api";
-import { fileNameFromPath } from "@/lib/search/parse.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/notification.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import type {

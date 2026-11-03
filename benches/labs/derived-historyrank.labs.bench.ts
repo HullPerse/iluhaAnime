@@ -1,7 +1,7 @@
 import { bench, group } from "@pmndrs/labs";
 
 import { rankHistoryEntries } from "../../src/lib/core/suggestions.utils";
-import { createSignalStore } from "../../src/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { SearchQueryStat } from "../../src/types/search/search";
 
 function makeHistory(count: number): string[] {

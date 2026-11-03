@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 
 export const readFastLaunch = (): boolean => {
   if (typeof localStorage === "undefined") return false;

@@ -4,7 +4,7 @@ import {
   fuzzyMatchScore,
   fuzzyMatchScorePreNormalized,
 } from "../../src/lib/search/searchScore.utils";
-import { normalizeSearchText } from "../../src/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 
 const QUERIES = [
   "naruto shippuden",

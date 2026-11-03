@@ -15,9 +15,9 @@ import {
   screenToWorld,
   zoomCameraAt,
 } from "@/lib/core/camera.utils";
-import { createAnimationLoop } from "@/lib/core/interval.utils";
+import { createAnimationLoop } from "@hullperse/hp_utils/interval";
 import type { AnimationLoopTask } from "@/types/core/interval";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import type {
   CameraPoint,

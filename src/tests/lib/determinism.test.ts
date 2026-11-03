@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
 import { filterCollectionItems } from "@/lib/core/filter.utils";
-import { parseMediaPath } from "@/lib/search/parse.utils";
+import { parseMediaPath } from "@hullperse/hp_utils/media/parse";
 import { getSearchSuggestions } from "@/lib/core/suggestions.utils";
 import { buildTorrentTree } from "@/lib/torrent/torrentTree.utils";
 import type { CollectionItem } from "@/types/anilist/collection";

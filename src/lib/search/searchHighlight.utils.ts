@@ -1,6 +1,6 @@
 import type { AutocompleteMode, SearchSuggestion } from "@/types/search/search";
 
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 
 const ARIA_MODES: Partial<Record<AutocompleteMode, "inline" | "both" | "list">> = {
   inline: "inline",

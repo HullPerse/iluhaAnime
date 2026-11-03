@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey, TranslationVariables } from "@/types/core/i18n";
 

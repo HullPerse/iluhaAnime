@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { resolveFatalVariant } from "@/config/settings/screens.config";
 import { resolveDbTexts, resolveFatalLocale } from "@/lib/core/fatalTexts.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import type { FatalVariant } from "@/types/core/fatal";
 import type { DbScreenProps } from "@/types/core/screen.db";
 

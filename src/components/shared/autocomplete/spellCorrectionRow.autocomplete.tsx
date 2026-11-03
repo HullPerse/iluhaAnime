@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 
-import { findSubsequenceRanges, splitByRanges } from "@/lib/core/highlight.utils";
+import { findSubsequenceRanges, splitByRanges } from "@hullperse/hp_utils/highlight";
 
 export const SpellCorrectionRow = memo(
   ({

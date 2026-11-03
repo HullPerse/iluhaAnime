@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
 import { PreviewFrameListSchema } from "@/api/upscale.schema";
 import { ignore } from "@/lib/core/promise.utils";

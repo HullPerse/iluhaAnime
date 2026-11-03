@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { PlayerStream } from "@/types/player/playerStream";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { isSubtitleVariant } from "@/lib/player/streamHelpers.utils";
 import { formatSpeed } from "@/lib/torrent/torrentCommon.utils";
 import { playbackAtoms } from "@/store/player.store";

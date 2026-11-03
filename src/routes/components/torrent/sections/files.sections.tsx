@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import UpdateCheck from "./update.sections";
 import { useI18n } from "@/hooks/i18n.hook";
 import { downloadOrderPositions } from "@/lib/torrent/torrentQueue.utils";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type {
   FilePriority,

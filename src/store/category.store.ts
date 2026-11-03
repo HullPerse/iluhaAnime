@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persisted.utils";
 import { isUserImageIcon } from "@/lib/graphics/image.utils";
 import type { Category, CategoryEntry } from "@/types/core/category";

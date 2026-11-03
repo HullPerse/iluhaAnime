@@ -8,8 +8,8 @@ import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { applyWindowChrome } from "@/lib/core/window.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { attempt, attemptSync } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 

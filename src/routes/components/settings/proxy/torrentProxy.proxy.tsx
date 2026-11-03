@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentActiveProxy } from "@/hooks/torrent/queries.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { isValidProxyUrlFor, type ProxyScheme } from "@/lib/core/proxy.utils";
 import { showError } from "@/lib/core/notification.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { toSessionConfig } from "@/lib/core/session.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 

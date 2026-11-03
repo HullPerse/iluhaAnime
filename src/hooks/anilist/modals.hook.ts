@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { deeplinkAtoms } from "@/store/deeplink.store";
 import type { AnilistActivityTab, AnilistModalName, AnilistModalViews } from "@/types/ui/modals";
 

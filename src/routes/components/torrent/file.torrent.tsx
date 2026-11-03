@@ -5,10 +5,10 @@ import { TORRENT_LIST_MAX_HEIGHT } from "@/config/torrent/torrents.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { activateTreeRow, findRow, rowElement, runRowAction } from "@/lib/ui/treeRow.utils";
-import { mediaFileExtension } from "@/lib/search/parse.utils";
+import { mediaFileExtension } from "@hullperse/hp_utils/media/parse";
 import { resolveTreeArrow, resolveTreeMove } from "@/lib/core/treeArrow.utils";
 import type { TreeRow } from "@/types/core/treeArrow";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import {
   applyFolderSelection,
   buildTorrentTree,

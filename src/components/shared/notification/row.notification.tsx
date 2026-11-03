@@ -8,8 +8,8 @@ import {
   NOTIFICATION_TYPE_COLORS,
   NOTIFICATION_TYPE_ICONS,
 } from "@/config/system/notifications.config";
-import { Debouncer } from "@/lib/core/debounce.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import {
   COPIED_FEEDBACK_MS,

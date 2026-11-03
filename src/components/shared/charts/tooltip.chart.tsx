@@ -1,6 +1,6 @@
 import { CHART_LAYOUT } from "@/config/graphics/palette.config";
 import { tooltipHeight } from "@/lib/graphics/chartTooltip.utils";
-import { clamp } from "@/lib/core/math.utils";
+import { clamp } from "@hullperse/hp_utils/math";
 
 import type { ChartPlot } from "@/types/core/frame.chart";
 import type { ChartTooltipData } from "@/types/core/tooltip.chart";

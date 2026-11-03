@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { GameAudioBlock, GameFrame } from "@/types/core/game";
 import type { Rgba } from "@/types/core/frame";
 

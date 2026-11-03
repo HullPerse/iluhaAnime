@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
-import { attempt, reportBackgroundError } from "@/lib/core/attempt.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { patchableVideoChanges, touchesExtensions } from "@/lib/core/changesWatcher.utils";
 import { isExtraFile } from "@/lib/core/extra.utils";
 import { queryKeys } from "@/lib/core/keys.utils";

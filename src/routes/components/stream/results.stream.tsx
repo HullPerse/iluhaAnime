@@ -7,7 +7,7 @@ import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { STREAM_ORDER_LABELS } from "@/config/player/streamFilters.config";
 import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
-import { useCell } from "@/lib/core/signal.hook";
+import { useCell } from "@hullperse/hp_utils/react";
 import { gridColumns } from "@/lib/stream/gridColumns.utils";
 import {
   streamFilters,

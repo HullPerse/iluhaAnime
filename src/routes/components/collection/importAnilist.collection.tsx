@@ -15,7 +15,7 @@ import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/core/import.
 import { resolveStatusLabel } from "@/lib/core/status.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist/anilist";
 import type { CollectionItem, ImportMode } from "@/types/anilist/collection";

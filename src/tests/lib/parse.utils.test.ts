@@ -5,7 +5,7 @@ import {
   isTrackFileName,
   mediaFileExtension,
   parseMediaFile,
-} from "@/lib/search/parse.utils";
+} from "@hullperse/hp_utils/media/parse";
 import type { MediaFileParse } from "@/types/player/media";
 
 import expectedRows from "@/tests/lib/media/expected.json";

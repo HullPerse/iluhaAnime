@@ -1,4 +1,4 @@
-import { attemptSync } from "@/lib/core/attempt.utils";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { CropBounds } from "@/types/core/screenshot";
 
 export const paintOffscreen = (

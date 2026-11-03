@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 
-import { reportBackgroundError } from "@/lib/core/attempt.utils";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { computeVideoMargins, marginsCloseEnough, ZERO_MARGINS } from "@/lib/core/margins.utils";
 import { ignore } from "@/lib/core/promise.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { setVideoMarginRatio } from "@/lib/player/playback.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { VideoMargins } from "@/types/core/margins";

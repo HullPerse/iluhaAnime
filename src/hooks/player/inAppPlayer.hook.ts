@@ -2,8 +2,8 @@ import { useCallback } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { buildTorrentPlayerPlaylist, loadWatch, openPlayer } from "@/lib/player/playback.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { withFallback } from "@/lib/core/attempt.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { withFallback } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/notification.utils";
 import { ignore } from "@/lib/core/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";

@@ -2,7 +2,7 @@ import type { TextTrackListLike, TextTrackLike } from "@videojs/media";
 import { useMedia } from "@videojs/react";
 import { useEffect, useState } from "react";
 
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 
 export function useCaptionTracks() {
   const media = useMedia();

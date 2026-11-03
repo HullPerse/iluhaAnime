@@ -1,6 +1,6 @@
 import { KIND_ORDER } from "@/config/search/autocomplete.config";
 import { ANIME_STATUS_BOOST } from "@/config/anilist/status.config";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import { feedbackScore } from "@/lib/core/feedback.utils";
 import { countersOf, learningStatKey } from "@/lib/core/learning.utils";
@@ -17,7 +17,7 @@ import type {
 
 import { isTagLikeQuery } from "@/lib/core/intent.utils";
 import { LazySpellIndex } from "@/lib/core/lazySpellIndex.utils";
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { stripReleaseNoise } from "@/lib/search/release.utils";
 import {
   fuzzyMatchScore,
@@ -27,7 +27,7 @@ import {
 } from "@/lib/search/searchScore.utils";
 import type { OperatorTerm } from "@/types/search/searchScore";
 import { readCachedSpellWords, writeCachedSpellWords } from "@/lib/core/spellIndexCache.utils";
-import { normalizedSpellWords } from "@/lib/core/symspell.utils";
+import { normalizedSpellWords } from "@hullperse/hp_utils/symspell";
 import { titleKindBonus, typedTitlesOf } from "@/lib/search/searchTitle.utils";
 
 export { fuzzyMatchScore };
@@ -38,7 +38,7 @@ export type {
   SearchSuggestionOptions,
 } from "@/types/search/search";
 
-export { normalizeSearchText } from "@/lib/core/normalize.utils";
+export { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 
 function statFeedback(stats: Record<string, SearchQueryStat> | undefined, key: string): number {
   const stat = stats?.[key];

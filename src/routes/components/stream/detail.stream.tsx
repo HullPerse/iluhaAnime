@@ -8,7 +8,7 @@ import {
   useStreamHistoryForAnime,
   useStreamTitle,
 } from "@/hooks/stream/catalog.hook";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { historyByEpisode } from "@/lib/core/history.utils";
 import { prewarmPlayer } from "@/lib/player/playback.utils";
 import { ignore } from "@/lib/core/promise.utils";

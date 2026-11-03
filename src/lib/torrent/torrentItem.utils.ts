@@ -6,7 +6,7 @@ import {
 import type { TorrentInfo, TorrentItemProps } from "@/types/torrent/torrent";
 import type { TorrentFileInfo } from "@/types/torrent/torrent";
 import type { TFunc } from "@/types/core/i18n";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 
 function sameFilesState(prev: TorrentItemProps, next: TorrentItemProps): boolean {
   return prev.files === next.files && prev.filesError === next.filesError;

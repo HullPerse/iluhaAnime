@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { anilistApi } from "@/api/anilist.api";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { removeListEntry } from "@/lib/anilist/listEntry.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { useQueryClient } from "@tanstack/react-query";

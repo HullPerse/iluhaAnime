@@ -1,8 +1,8 @@
 import type { CorrectionReason, SearchAnimeSuggestion, SpellWordSpan } from "@/types/search/search";
 
-import { normalizeSearchText } from "@/lib/core/normalize.utils";
-import { isRomanNumeral } from "@/lib/core/roman.utils";
-import { damerauLevenshtein, isKnownGlueWord } from "@/lib/core/symspell.utils";
+import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
+import { isRomanNumeral } from "@hullperse/hp_utils/roman";
+import { damerauLevenshtein, isKnownGlueWord } from "@hullperse/hp_utils/symspell";
 import {
   matchNormalizedTitle,
   spellKnownWords,

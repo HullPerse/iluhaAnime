@@ -1,5 +1,5 @@
 import { anilistApi } from "@/api/anilist.api";
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import {
   addAnilistRelease,
   anilistNotificationsAtoms,

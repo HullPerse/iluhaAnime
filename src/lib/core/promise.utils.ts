@@ -1,4 +1,4 @@
-import { attempt } from "@/lib/core/attempt.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
 
 export function ignore(promise: Promise<unknown>): void {
   promise.catch(() => undefined);

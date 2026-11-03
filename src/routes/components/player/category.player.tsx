@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
 import { normalizePlayerPath } from "@/lib/core/visibility.utils";
-import { useCell } from "@/lib/core/signal.hook";
-import { formatBytes } from "@/lib/core/bytes.utils";
+import { useCell } from "@hullperse/hp_utils/react";
+import { formatBytes } from "@hullperse/hp_utils/bytes";
 import {
   categoryAtoms,
   moveCategoryEntry,

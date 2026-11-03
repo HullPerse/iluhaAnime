@@ -1,4 +1,4 @@
-import { createSignalStore } from "@/lib/core/signal.store";
+import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { FindBarSignalStore, FindBarState } from "@/types/core/findBar";
 
 const EMPTY_FIND_BAR: FindBarState = {

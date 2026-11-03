@@ -1,5 +1,5 @@
 import type { TranslationKey, TranslationVariables } from "@/lib/locale/i18n.utils";
-import { parseMediaFile, parseMediaPath } from "@/lib/search/parse.utils";
+import { parseMediaFile, parseMediaPath } from "@hullperse/hp_utils/media/parse";
 
 export function formatParsedTitle(
   input: string,

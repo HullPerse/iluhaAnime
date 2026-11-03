@@ -2,7 +2,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 
 import { shouldStartWindowDrag, startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
-import { withFallback } from "@/lib/core/attempt.utils";
+import { withFallback } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/promise.utils";
 import type { WindowDragHandlers } from "@/types/player/playerWindowDrag";
 

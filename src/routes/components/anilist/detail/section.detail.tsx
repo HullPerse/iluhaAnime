@@ -22,7 +22,7 @@ import {
   buildSimNodes,
   runFranchiseSimulation,
 } from "@/lib/core/sim.utils";
-import { scheduleTask } from "@/lib/core/shared.utils";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import { queryKeys } from "@/lib/core/keys.utils";
 import type {

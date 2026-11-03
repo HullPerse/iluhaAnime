@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt } from "@/lib/core/attempt.utils";
-import { Debouncer } from "@/lib/core/debounce.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
+import { Debouncer } from "@hullperse/hp_utils/debounce";
 
 export function ShareStatusButton({ onShare }: { onShare: () => Promise<void> | void }) {
   const { t } = useI18n();

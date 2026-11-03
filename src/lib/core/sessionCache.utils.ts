@@ -1,8 +1,8 @@
 import { streamApi } from "@/api/stream.api";
 import { buildVariantId } from "@/lib/player/streamHelpers.utils";
 import { isNativeVariant } from "@/lib/player/streamPrefs.utils";
-import { attempt } from "@/lib/core/attempt.utils";
-import { createLruCache, inflightFetch } from "@/lib/core/lruCache.utils";
+import { attempt } from "@hullperse/hp_utils/attempt";
+import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
 import type { StreamingEpisode, StreamVariant } from "@/types/player/stream";
 import type { StreamSource } from "@/types/player/videoPlayer";
 

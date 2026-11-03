@@ -7,6 +7,7 @@ const ERROR_KEYS: Record<EraiErrorCode, TranslationKey> = {
   webview_not_found: "search.erai.err.webview.not.found",
   no_session: "search.erai.err.no.session",
   proxy_invalid: "search.erai.err.proxy.invalid",
+  proxy_socks5_auth_unsupported: "search.erai.err.proxy.socks5.auth",
   network: "search.erai.err.network",
 };
 

@@ -20,6 +20,7 @@ import { useCell } from "@/lib/core/signal.hook";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/core/attempt.utils";
 import { coverCorrectionsAtoms, coverKey, setResolvedCover } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist/anilist";
 import type { TorrentCoverMode } from "@/types/ui/settings";
 import type { TorrentCoverState } from "@/types/search/searchCover";
@@ -40,7 +41,11 @@ async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
   return media.map(mediaToCandidate);
 }
 
-async function pagePoster(source: string, url: string | null): Promise<string | null> {
+async function pagePoster(
+  source: string,
+  url: string | null,
+  proxy: string
+): Promise<string | null> {
   if (!url) return null;
   const [host] = attemptSync(() => new URL(url).host.toLowerCase());
   const site = host ?? "unparseable";
@@ -53,8 +58,8 @@ async function pagePoster(source: string, url: string | null): Promise<string | 
   )
     return null;
   if (source !== "rutracker" && source !== "nekobt" && source !== "erai-raws") return null;
-  const task = torrentApi.getTorrentDetails(source, url).then(
-    (details) => details.poster ?? null,
+  const task = torrentApi.getTorrentPoster(source, url, proxy || undefined).then(
+    (poster) => poster ?? null,
     (error: unknown) => {
       reportBackgroundError("cover.poster", error);
       return null;
@@ -93,10 +98,15 @@ function buildCoverSnapshot(parsed: {
   };
 }
 
-function useCoverPoster(source: string, pageUrl: string | null, enabled: boolean) {
+function useCoverPoster(
+  source: string,
+  pageUrl: string | null,
+  proxy: string,
+  enabled: boolean
+) {
   return useAppQuery("slow", {
-    queryKey: queryKeys.torrentPoster(pageUrl),
-    queryFn: () => pagePoster(source, pageUrl),
+    queryKey: queryKeys.torrentPoster(pageUrl, source, proxy),
+    queryFn: () => pagePoster(source, pageUrl, proxy),
     enabled: enabled && pageUrl !== null,
     retry: false,
   });
@@ -222,7 +232,7 @@ function useCoverContext(
 
   const { source, url } = options;
   const pageUrl =
-    options.pageUrl ??
+    (options.pageUrl?.trim() ? options.pageUrl : null) ??
     (source === "rutracker" || source === "nekobt" ? (url ?? null) : null);
 
   const snapshot = useMemo(() => buildCoverSnapshot(parsed), [parsed]);
@@ -298,8 +308,15 @@ export function useTorrentCover(
   const { mode = "full", source = "", url = null, pageUrl = null } = options;
   const pageEnabled = mode !== "off";
   const anilistEnabled = mode === "full";
+  const sourceProxies = useCell(settingsAtoms.searchProxyUrls);
+  const sourceProxy = sourceProxies[source] ?? "";
   const ctx = useCoverContext(torrentTitle, { source, url, pageUrl });
-  const poster = useCoverPoster(source, ctx.pageUrl, !ctx.override && pageEnabled);
+  const poster = useCoverPoster(
+    source,
+    ctx.pageUrl,
+    sourceProxy,
+    !ctx.override && pageEnabled
+  );
   const resolved = useCoverCascade(
     ctx.key,
     ctx.snapshot,

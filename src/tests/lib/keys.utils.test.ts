@@ -56,7 +56,13 @@ describe("queryKeys", () => {
   });
 
   it("keys posters, cover cascades, dht stats, and franchise refreshes", () => {
-    expect(queryKeys.torrentPoster("u")).toEqual(["torrent_poster", "u"]);
+    expect(queryKeys.torrentPoster("u")).toEqual(["torrent_poster", "u", "", ""]);
+    expect(queryKeys.torrentPoster("u", "rutracker", "socks5://p:1")).toEqual([
+      "torrent_poster",
+      "u",
+      "rutracker",
+      "socks5://p:1",
+    ]);
     expect(queryKeys.coverResolve("k", [1], "learned", "local")).toEqual([
       "cover_resolve",
       "k",

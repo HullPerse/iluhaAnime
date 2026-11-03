@@ -1,9 +1,11 @@
 export type ThemeFamily = "windows" | "brands" | "terminal" | "editor" | "anime";
+export type ThemeMode = "dark" | "light";
 
 export interface ThemeDefinition {
   name: string;
   label: string;
   family?: ThemeFamily;
+  mode?: ThemeMode;
   fontFamily?: string;
   radius?: "none" | "frame" | "all";
   bevel?: "raised" | "flat";

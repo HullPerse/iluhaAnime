@@ -1,9 +1,11 @@
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use anyhow::{Context, bail};
+use base64::Engine as _;
 use librqbit_dualstack_sockets::ConnectOpts;
 use librqbit_utp::{BindDevice, UtpSocketUdp};
 use serde::Serialize;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tracing::debug;
 
 use crate::{
@@ -20,6 +22,8 @@ pub enum ConnectionKind {
     Utp,
     #[serde(rename = "socks")]
     Socks,
+    #[serde(rename = "http")]
+    Http,
 }
 
 impl std::fmt::Display for ConnectionKind {
@@ -28,12 +32,13 @@ impl std::fmt::Display for ConnectionKind {
             ConnectionKind::Tcp => f.write_str("tcp"),
             ConnectionKind::Utp => f.write_str("uTP"),
             ConnectionKind::Socks => f.write_str("socks"),
+            ConnectionKind::Http => f.write_str("http"),
         }
     }
 }
 
 pub struct ConnectionOptions {
-    // socks5://[username:password@]host:port
+    // socks5://[username:password@]host:port or http://[username:password@]host:port
     // If set, all outgoing connections will go through the proxy over TCP.
     pub proxy_url: Option<String>,
     // TCP outgoing connections are enabled by default
@@ -58,26 +63,43 @@ pub(crate) struct SocksProxyConfig {
     pub username_password: Option<(String, String)>,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct HttpProxyConfig {
+    pub host: String,
+    pub port: u16,
+    pub username_password: Option<(String, String)>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum ProxyConfig {
+    Socks(SocksProxyConfig),
+    Http(HttpProxyConfig),
+}
+
 #[derive(Default, Debug, Clone)]
 pub(crate) struct StreamConnectorArgs {
     pub enable_tcp: bool,
-    pub socks_proxy_config: Option<SocksProxyConfig>,
+    pub proxy_config: Option<ProxyConfig>,
     pub utp_socket: Option<Arc<UtpSocketUdp>>,
     pub bind_device: Option<BindDevice>,
     pub ipv4_only: bool,
 }
 
+fn decode_component(value: &str) -> String {
+    urlencoding::decode(value).map_or_else(|_| value.to_owned(), |decoded| decoded.into_owned())
+}
+
 impl SocksProxyConfig {
     pub fn parse(url: &str) -> anyhow::Result<Self> {
         let url = ::url::Url::parse(url).context("invalid proxy URL")?;
-        if url.scheme() != "socks5" {
-            anyhow::bail!("proxy URL should have socks5 scheme");
+        if !matches!(url.scheme(), "socks5" | "socks5h") {
+            anyhow::bail!("proxy URL should have socks5 or socks5h scheme");
         }
         let host = url.host_str().context("missing host")?;
         let port = url.port().context("missing port")?;
         let up = url
             .password()
-            .map(|p| (url.username().to_owned(), p.to_owned()));
+            .map(|p| (decode_component(url.username()), decode_component(p)));
         Ok(Self {
             host: host.to_owned(),
             port,
@@ -110,6 +132,114 @@ impl SocksProxyConfig {
     }
 }
 
+impl HttpProxyConfig {
+    pub fn parse(url: &str) -> anyhow::Result<Self> {
+        let url = ::url::Url::parse(url).context("invalid proxy URL")?;
+        if url.scheme() != "http" {
+            anyhow::bail!("proxy URL should have http scheme");
+        }
+        let host = url.host_str().context("missing host")?;
+        let port = url.port().context("missing port")?;
+        let up = url
+            .password()
+            .map(|p| (decode_component(url.username()), decode_component(p)));
+        Ok(Self {
+            host: host.to_owned(),
+            port,
+            username_password: up,
+        })
+    }
+
+    async fn connect(&self, addr: SocketAddr) -> anyhow::Result<tokio::net::TcpStream> {
+        let mut stream = tokio::net::TcpStream::connect((self.host.as_str(), self.port))
+            .await
+            .with_context(|| format!("error connecting to HTTP proxy {}:{}", self.host, self.port))?;
+        let target = addr.to_string();
+        let mut request = format!(
+            "CONNECT {target} HTTP/1.1\r\nHost: {target}\r\nProxy-Connection: keep-alive\r\n"
+        );
+        if let Some((username, password)) = self.username_password.as_ref() {
+            let credentials = base64::engine::general_purpose::STANDARD
+                .encode(format!("{username}:{password}"));
+            request.push_str(&format!("Proxy-Authorization: Basic {credentials}\r\n"));
+        }
+        request.push_str("\r\n");
+        stream
+            .write_all(request.as_bytes())
+            .await
+            .context("error writing HTTP CONNECT request")?;
+        read_connect_response(&mut stream).await?;
+        Ok(stream)
+    }
+}
+
+impl ProxyConfig {
+    pub fn parse(url: &str) -> anyhow::Result<Self> {
+        let scheme = ::url::Url::parse(url)
+            .context("invalid proxy URL")?
+            .scheme()
+            .to_owned();
+        match scheme.as_str() {
+            "socks5" | "socks5h" => Ok(Self::Socks(SocksProxyConfig::parse(url)?)),
+            "http" => Ok(Self::Http(HttpProxyConfig::parse(url)?)),
+            other => bail!("unsupported proxy scheme: {other}"),
+        }
+    }
+
+    fn kind(&self) -> ConnectionKind {
+        match self {
+            Self::Socks(_) => ConnectionKind::Socks,
+            Self::Http(_) => ConnectionKind::Http,
+        }
+    }
+
+    async fn connect(&self, addr: SocketAddr) -> anyhow::Result<(BoxAsyncReadVectored, BoxAsyncWrite)> {
+        match self {
+            Self::Socks(config) => {
+                let (r, w) = config.connect(addr).await?;
+                Ok((Box::new(r.into_vectored_compat()), Box::new(w)))
+            }
+            Self::Http(config) => {
+                let stream = config.connect(addr).await?;
+                let (r, w) = stream.into_split();
+                Ok((Box::new(r), Box::new(w)))
+            }
+        }
+    }
+}
+
+async fn read_connect_response(stream: &mut tokio::net::TcpStream) -> anyhow::Result<()> {
+    let mut buffer = Vec::with_capacity(1024);
+    let mut chunk = [0u8; 512];
+    loop {
+        let read = stream
+            .read(&mut chunk)
+            .await
+            .context("error reading HTTP proxy response")?;
+        if read == 0 {
+            bail!("HTTP proxy closed the connection during CONNECT");
+        }
+        buffer.extend_from_slice(&chunk[..read]);
+        if buffer.windows(4).any(|window| window == b"\r\n\r\n") {
+            break;
+        }
+        if buffer.len() > 16 * 1024 {
+            bail!("HTTP proxy response is too large");
+        }
+    }
+    let head = String::from_utf8_lossy(&buffer);
+    let status = head.lines().next().unwrap_or_default();
+    let code = status
+        .split_whitespace()
+        .nth(1)
+        .and_then(|value| value.parse::<u16>().ok());
+    match code {
+        Some(200..=299) => Ok(()),
+        Some(code) => bail!("HTTP proxy refused CONNECT with status {code}"),
+        None => bail!("invalid HTTP proxy response: {status}"),
+    }
+}
+
 gen_stats!(SingleStatAtomic SingleStatSnapshot, [
     attempts u64,
     successes u64,
@@ -121,13 +251,14 @@ gen_stats!(PerFamilyAtomic PerFamilySnapshot, [], [
 ]);
 gen_stats!(ConnectStatsAtomic ConnectStatsSnapshot, [], [
     socks PerFamilyAtomic PerFamilySnapshot,
+    http PerFamilyAtomic PerFamilySnapshot,
     tcp PerFamilyAtomic PerFamilySnapshot,
     utp PerFamilyAtomic PerFamilySnapshot
 ]);
 
 #[derive(Debug)]
 pub(crate) struct StreamConnector {
-    proxy_config: Option<SocksProxyConfig>,
+    proxy_config: Option<ProxyConfig>,
     enable_tcp: bool,
     bind_device: Option<BindDevice>,
     utp_socket: Option<Arc<librqbit_utp::UtpSocketUdp>>,
@@ -139,12 +270,12 @@ impl StreamConnector {
     pub async fn new(config: StreamConnectorArgs) -> anyhow::Result<Self> {
         #[allow(clippy::single_match)]
         match (
-            config.socks_proxy_config.is_some(),
+            config.proxy_config.is_some(),
             config.enable_tcp,
             config.utp_socket.is_some(),
         ) {
             (false, false, false) => {
-                bail!("no way to connect to peers, enable TCP, uTP or socks proxy")
+                bail!("no way to connect to peers, enable TCP, uTP or a proxy")
             }
             _ => {
                 // TODO: maybe validate other combinations. For now there's no way to disable TCP
@@ -152,7 +283,7 @@ impl StreamConnector {
         }
 
         Ok(Self {
-            proxy_config: config.socks_proxy_config,
+            proxy_config: config.proxy_config,
             enable_tcp: config.enable_tcp,
             utp_socket: config.utp_socket,
             bind_device: config.bind_device,
@@ -166,6 +297,7 @@ impl StreamConnector {
             ConnectionKind::Tcp => &self.stats.tcp,
             ConnectionKind::Utp => &self.stats.utp,
             ConnectionKind::Socks => &self.stats.socks,
+            ConnectionKind::Http => &self.stats.http,
         };
         if is_v6 { &stat.v6 } else { &stat.v4 }
     }
@@ -226,15 +358,14 @@ impl StreamConnector {
         }
 
         if let Some(proxy) = self.proxy_config.as_ref() {
+            let kind = proxy.kind();
             let (r, w) = self
-                .with_stat(ConnectionKind::Socks, addr.is_ipv6(), proxy.connect(addr))
+                .with_stat(kind, addr.is_ipv6(), async {
+                    proxy.connect(addr).await.map_err(Error::Anyhow)
+                })
                 .await?;
-            debug!(?addr, "connected through SOCKS5");
-            return Ok((
-                ConnectionKind::Socks,
-                Box::new(r.into_vectored_compat()),
-                Box::new(w),
-            ));
+            debug!(?addr, ?kind, "connected through proxy");
+            return Ok((kind, r, w));
         }
 
         // Try to connect over TCP first. If in 1 second we haven't connected, try uTP also (if configured).

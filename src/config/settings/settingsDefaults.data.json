@@ -94,6 +94,7 @@
     "parseTitlesPlayer": false,
     "parseTitlesTorrent": false,
     "parseTitlesSearch": false,
+    "eraiBatchGrouping": false,
     "peerConnectTimeout": 10,
     "peerReadWriteTimeout": 30,
     "searchResultsPerPage": 20,

@@ -1,8 +1,13 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { useMemo } from "react";
 
 import { attempt } from "@/lib/core/attempt.utils";
 import { ignore } from "@/lib/core/promise.utils";
-import BatchDownloadBar from "@/routes/components/search/batch.search";
+import { useCell } from "@/lib/core/signal.hook";
+import { groupBatchResults } from "@/lib/torrent/batch.utils";
+import { settingsAtoms } from "@/store/settings.store";
+import type { Anime } from "@/types/torrent/torrent";
+import SearchBatchResultItem from "@/routes/components/search/batch.search";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
 import { SearchFilterChips } from "@/routes/components/search/default/filterChips.search";
 import SearchPager from "@/routes/components/search/default/pager.search";
@@ -42,6 +47,30 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
     setSelectedTorrent,
   } = controller;
 
+  const eraiBatchGrouping = useCell(settingsAtoms.eraiBatchGrouping);
+  const batchGroups = useMemo(() => {
+    if (!eraiBatchGrouping || (resultSource ?? source) !== "erai-raws" || !displayItems) {
+      return null;
+    }
+    return groupBatchResults(displayItems);
+  }, [displayItems, eraiBatchGrouping, resultSource, source]);
+  const renderResult = (item: Anime, index: number) => (
+    <SearchResultItem
+      key={`${item.link}-${index}`}
+      item={item}
+      source={resultSource ?? source}
+      loadingMagnet={loadingMagnet}
+      onCopyMagnet={(i) => copyMagnetFor(i)}
+      onOpenMagnet={(i) => openMagnetFor(i)}
+      onDownload={(i) => downloadMagnetFor(i)}
+      onOpenLink={async (i) => {
+        const [, error] = await attempt(openUrl(i.link));
+        if (error) return console.warn("openUrl failed", error);
+      }}
+      onOpenDetails={(i) => setSelectedTorrent({ item: i, source: resultSource ?? source })}
+    />
+  );
+
   return (
     <>
       <SearchFilterChips query={searchParams} filters={filters} onChange={setFilters} />
@@ -62,35 +91,34 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
           resultsPerPage={resultsPerPage}
         />
       )}
-      {(resultSource ?? source) === "erai-raws" && displayItems && displayItems.length > 1 && (
-        <BatchDownloadBar
-          items={displayItems}
-          busy={batchBusy}
-          progress={batchProgress}
-          onDownload={(items) => ignore(batchDownloadFor(items))}
-        />
-      )}
       {displayItems && (
         <section
           data-scroll-root
           className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-0.5"
         >
-          {displayItems.map((item, index) => (
-            <SearchResultItem
-              key={`${item.link}-${index}`}
-              item={item}
-              source={resultSource ?? source}
-              loadingMagnet={loadingMagnet}
-              onCopyMagnet={(i) => copyMagnetFor(i)}
-              onOpenMagnet={(i) => openMagnetFor(i)}
-              onDownload={(i) => downloadMagnetFor(i)}
-              onOpenLink={async (i) => {
-                const [, error] = await attempt(openUrl(i.link));
-                if (error) return console.warn("openUrl failed", error);
-              }}
-              onOpenDetails={(i) => setSelectedTorrent({ item: i, source: resultSource ?? source })}
-            />
-          ))}
+          {batchGroups
+            ? batchGroups.map((group) =>
+                group.items.length > 1 ? (
+                  <SearchBatchResultItem
+                    key={group.key}
+                    group={group}
+                    source={(resultSource ?? source) as "erai-raws"}
+                    busy={batchBusy}
+                    progress={batchProgress}
+                    loadingMagnet={loadingMagnet}
+                    onCopyMagnet={(i) => copyMagnetFor(i)}
+                    onOpenMagnet={(i) => openMagnetFor(i)}
+                    onDownload={(i) => downloadMagnetFor(i)}
+                    onDownloadAll={(items) => ignore(batchDownloadFor(items))}
+                    onOpenDetails={(i) =>
+                      setSelectedTorrent({ item: i, source: resultSource ?? source })
+                    }
+                  />
+                ) : (
+                  renderResult(group.items[0], 0)
+                )
+              )
+            : displayItems.map(renderResult)}
         </section>
       )}
       {isPagedSource && displayItems && displayItems.length > 0 && (

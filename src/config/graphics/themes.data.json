@@ -120,7 +120,8 @@
       },
       "label": "Windows 95",
       "name": "win95",
-      "family": "windows"
+      "family": "windows",
+      "mode": "light"
     },
     {
       "bevel": "raised",
@@ -148,7 +149,8 @@
       "titlebarGradient": {
         "from": "#3d8bef",
         "to": "#0054e3"
-      }
+      },
+      "mode": "light"
     },
     {
       "bevel": "flat",
@@ -176,7 +178,8 @@
       "titlebarGradient": {
         "from": "#f2f7fc",
         "to": "#a6c1de"
-      }
+      },
+      "mode": "light"
     },
     {
       "bevel": "flat",
@@ -200,7 +203,8 @@
       "label": "Google",
       "name": "google",
       "family": "brands",
-      "radius": "all"
+      "radius": "all",
+      "mode": "light"
     },
     {
       "bevel": "flat",
@@ -228,7 +232,8 @@
       "titlebarGradient": {
         "from": "#e6eefb",
         "to": "#a9c4e8"
-      }
+      },
+      "mode": "light"
     },
     {
       "colors": {
@@ -257,7 +262,8 @@
       },
       "components": {
         "cardMeta": "short"
-      }
+      },
+      "mode": "light"
     },
     {
       "colors": {
@@ -279,7 +285,8 @@
       "fontFamily": "Perfect DOS VGA 437",
       "label": "Retroism",
       "name": "retroism",
-      "family": "terminal"
+      "family": "terminal",
+      "mode": "light"
     },
     {
       "colors": {
@@ -305,7 +312,8 @@
       "components": {
         "titlebarArt": true
       },
-      "fontFamily": "\"IBM Plex Sans\", \"MS Sans Serif\", \"Microsoft Sans Serif\", \"Segoe UI\", system-ui"
+      "fontFamily": "\"IBM Plex Sans\", \"MS Sans Serif\", \"Microsoft Sans Serif\", \"Segoe UI\", system-ui",
+      "mode": "light"
     },
     {
       "colors": {
@@ -326,7 +334,8 @@
       },
       "label": "Gleep",
       "name": "gleep",
-      "family": "anime"
+      "family": "anime",
+      "mode": "light"
     },
     {
       "colors": {
@@ -347,7 +356,8 @@
       },
       "label": "Gruvbox Dark",
       "name": "gruvbox-dark",
-      "family": "editor"
+      "family": "editor",
+      "mode": "dark"
     },
     {
       "colors": {
@@ -368,7 +378,8 @@
       },
       "label": "Amoled",
       "name": "amoled",
-      "family": "editor"
+      "family": "editor",
+      "mode": "dark"
     },
     {
       "colors": {
@@ -394,7 +405,8 @@
       "overlay": "scanlines",
       "components": {
         "cardMeta": "short"
-      }
+      },
+      "mode": "dark"
     },
     {
       "colors": {
@@ -415,7 +427,8 @@
       },
       "label": "Tokyo Night",
       "name": "tokyo-night",
-      "family": "editor"
+      "family": "editor",
+      "mode": "dark"
     },
     {
       "colors": {
@@ -440,7 +453,8 @@
       "family": "terminal",
       "overrides": {
         "torrentDone": "#0f380f"
-      }
+      },
+      "mode": "light"
     },
     {
       "bevel": "flat",
@@ -467,7 +481,52 @@
       "components": {
         "titlebarArt": true
       },
-      "radius": "all"
+      "radius": "all",
+      "mode": "dark"
+    },
+    {
+      "colors": {
+        "autocomplete": "#7b88a1",
+        "background": "#2e3440",
+        "destructive": "#bf616a",
+        "field": "#2e3440",
+        "highlight": "#88c0d0",
+        "linkHover": "#f2c39b",
+        "muted": "#7b88a1",
+        "primary": "#3b4252",
+        "secondary": "#5e81ac",
+        "success": "#a3be8c",
+        "surface": "#434c5e",
+        "text": "#eceff4",
+        "winHighlight": "#eceff4",
+        "winShadow": "#2e3440"
+      },
+      "family": "editor",
+      "label": "Nord",
+      "mode": "dark",
+      "name": "nord"
+    },
+    {
+      "colors": {
+        "autocomplete": "#6272a4",
+        "background": "#282a36",
+        "destructive": "#ff5555",
+        "field": "#21222c",
+        "highlight": "#ff79c6",
+        "linkHover": "#8be9fd",
+        "muted": "#6272a4",
+        "primary": "#282a36",
+        "secondary": "#44475a",
+        "success": "#50fa7b",
+        "surface": "#343746",
+        "text": "#f8f8f2",
+        "winHighlight": "#f8f8f2",
+        "winShadow": "#191a21"
+      },
+      "family": "editor",
+      "label": "Dracula",
+      "mode": "dark",
+      "name": "dracula"
     }
   ],
   "defaultThemeColors": {

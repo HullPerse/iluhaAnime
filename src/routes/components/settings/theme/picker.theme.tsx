@@ -1,8 +1,14 @@
-import { THEME_FAMILIES } from "@/config/graphics/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { ThemeDefinition } from "@/types/graphics/theme";
+import { themeMode } from "@/lib/graphics/themeResolve.utils";
+import type { TranslationKey } from "@/types/core/i18n";
+import type { ThemeDefinition, ThemeMode } from "@/types/graphics/theme";
 
 import { ThemeRow } from "./picker/row.picker";
+
+const THEME_MODES: readonly { id: ThemeMode; label: TranslationKey }[] = [
+  { id: "dark", label: "settings.theme.mode.dark" },
+  { id: "light", label: "settings.theme.mode.light" },
+];
 
 export function ThemePicker({
   builtins,
@@ -23,12 +29,12 @@ export function ThemePicker({
 
   return (
     <div className="flex flex-col gap-2">
-      {THEME_FAMILIES.map((family) => {
-        const themes = builtins.filter((theme) => theme.family === family.id);
+      {THEME_MODES.map((mode) => {
+        const themes = builtins.filter((theme) => themeMode(theme) === mode.id);
         if (themes.length === 0) return null;
         return (
-          <section key={family.id} className="flex flex-col gap-1">
-            <h3 className="windows95-text text-hint text-xs font-bold">{t(family.label)}</h3>
+          <section key={mode.id} className="flex flex-col gap-1">
+            <h3 className="windows95-text text-hint text-xs font-bold">{t(mode.label)}</h3>
             <ThemeRow
               themes={themes}
               currentTheme={currentTheme}

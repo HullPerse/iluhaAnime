@@ -66,6 +66,15 @@ describe("built-in themes", () => {
     }
   });
 
+  it("assigns every theme a dark or light mode", () => {
+    for (const theme of THEMES) {
+      expect(theme.mode, theme.name).toBeDefined();
+      expect(["dark", "light"]).toContain(theme.mode);
+    }
+    expect(THEMES.some((theme) => theme.mode === "dark")).toBe(true);
+    expect(THEMES.some((theme) => theme.mode === "light")).toBe(true);
+  });
+
   it("has at least one theme in every family", () => {
     for (const family of THEME_FAMILIES) {
       expect(

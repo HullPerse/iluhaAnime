@@ -194,7 +194,7 @@ export function buildCoverQueries(
   return queries;
 }
 
-export const POSTER_TIMEOUT_MS = 5_000;
+export const POSTER_TIMEOUT_MS = 15_000;
 
 export function withTimeout<T>(task: Promise<T>, ms: number, onTimeout: () => T): Promise<T> {
   let timer: ScheduledTask | undefined;

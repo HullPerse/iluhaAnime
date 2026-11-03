@@ -1418,10 +1418,32 @@ async fn save_session_config(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
+async fn test_torrent_proxy(
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<torrent::proxy::ProxyProbe, String> {
+    let raw = proxy_url.or(proxyUrl).unwrap_or_default();
+    torrent::proxy::probe(&raw).await
+}
+
+#[tauri::command]
+fn restart_app(app: tauri::AppHandle) {
+    app.restart();
+}
+
+#[tauri::command]
 async fn torrent_listen_port(
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Option<u16>, String> {
     Ok(backend_manager(&manager).await?.listen_port())
+}
+
+#[tauri::command]
+async fn torrent_active_proxy(
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Option<String>, String> {
+    Ok(backend_manager(&manager).await?.active_proxy.clone())
 }
 
 #[tauri::command]
@@ -2212,6 +2234,7 @@ pub fn run() {
             scrapers::search_rutracker,
             scrapers::search_nekobt,
             scrapers::get_torrent_details,
+            scrapers::get_torrent_poster,
             scrapers::clients::fetch_torrent_bytes,
             auth::rutracker_login,
             auth::rutracker_set_cookies,
@@ -2431,7 +2454,10 @@ pub fn run() {
             get_running_torrent_files,
             get_running_torrent_files_batch,
             save_session_config,
+            test_torrent_proxy,
+            restart_app,
             torrent_listen_port,
+            torrent_active_proxy,
             update_torrent_only_files,
             set_torrent_download_order,
             set_file_priority,

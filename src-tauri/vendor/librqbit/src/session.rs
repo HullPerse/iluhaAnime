@@ -32,7 +32,7 @@ use crate::{
         BoxStorageFactory, StorageFactoryExt, TorrentStorage, filesystem::FilesystemStorageFactory,
     },
     stream_connect::{
-        ConnectionKind, ConnectionOptions, SocksProxyConfig, StreamConnector, StreamConnectorArgs,
+        ConnectionKind, ConnectionOptions, ProxyConfig, StreamConnector, StreamConnectorArgs,
     },
     torrent_state::{
         ManagedTorrentHandle, ManagedTorrentLocked, ManagedTorrentOptions, ManagedTorrentState,
@@ -701,7 +701,7 @@ impl Session {
             let proxy_url = opts.connect.as_ref().and_then(|s| s.proxy_url.as_ref());
             let proxy_config = match proxy_url {
                 Some(pu) => Some(
-                    SocksProxyConfig::parse(pu)
+                    ProxyConfig::parse(pu)
                         .with_context(|| format!("error parsing proxy url {pu}"))?,
                 ),
                 None => None,
@@ -735,7 +735,7 @@ impl Session {
             let stream_connector = Arc::new(
                 StreamConnector::new(StreamConnectorArgs {
                     enable_tcp: opts.connect.as_ref().map(|c| c.enable_tcp).unwrap_or(true),
-                    socks_proxy_config: proxy_config,
+                    proxy_config,
                     utp_socket: listen_result.as_ref().and_then(|l| l.utp_socket.clone()),
                     bind_device: bind_device.clone(),
                     ipv4_only: opts.ipv4_only,

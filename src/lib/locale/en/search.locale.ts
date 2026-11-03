@@ -3,6 +3,12 @@ const search = {
   "search.batch.title": "Batch download",
   "search.batch.hint": "{groups} groups, {count} torrents",
   "search.batch.progress": "{done} / {total}",
+  "search.batch.download.all": "Download all ({{count}})",
+  "search.batch.episodes": "{{count}} episodes",
+  "search.batch.season": "Season {{season}}",
+  "search.batch.episode": "Episode {{number}}",
+  "search.batch.show": "Show episodes",
+  "search.batch.hide": "Hide episodes",
   "search.batch.started": "Starting batch download",
   "search.batch.done": "Batch download started",
   "search.batch.failed": "Could not start {count} torrents",
@@ -89,6 +95,8 @@ const search = {
     "No Erai-Raws session was found. Sign in in the browser first, then save.",
   "search.erai.err.proxy.invalid":
     "The erai-raws proxy URL is invalid. Use http://host:port or socks5://host:port.",
+  "search.erai.err.proxy.socks5.auth":
+    "WebView2 does not support SOCKS5 with a username and password. Use an HTTP proxy or a SOCKS5 proxy without authentication.",
   "search.erai.err.unknown": "Erai-Raws login failed. Try again.",
   "search.erai.err.webview.not.found": "The in-app browser window is not open. Open it first.",
   "search.erai.err.webview.open": "Could not open the Erai-Raws browser window.",
@@ -118,6 +126,8 @@ const search = {
     "No rutracker session was found. Sign in in the in-app browser first, then save.",
   "search.rutracker.err.proxy.invalid":
     "The rutracker proxy URL is invalid. Use http://host:port or socks5://host:port.",
+  "search.rutracker.err.proxy.socks5.auth":
+    "WebView2 does not support SOCKS5 with a username and password. Use an HTTP proxy or a SOCKS5 proxy without authentication.",
   "search.rutracker.err.session.failed":
     "Login succeeded but the session wasn't saved. Try again or paste cookies.",
   "search.rutracker.err.unknown": "Login failed. Try again in the built-in browser.",

@@ -19,6 +19,7 @@ import type {
 
 import type { ApiTransport } from "@/types/core/transport";
 import type {
+  ProxyProbe,
   ScannedExtraFile,
   StartTorrentDownloadInput,
   TorrentApiConfig,
@@ -32,11 +33,13 @@ export class TorrentApi {
   private readonly transport: ApiTransport;
   private readonly proxies: Record<string, string> | null | (() => Record<string, string> | null);
   private readonly webviewProxyEnabled: boolean | (() => boolean);
+  private readonly torrentProxyUrl: string | null | (() => string | null);
 
   constructor(config: TorrentApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
     this.proxies = config.proxies ?? null;
     this.webviewProxyEnabled = config.webviewProxyEnabled ?? true;
+    this.torrentProxyUrl = config.torrentProxyUrl ?? null;
   }
 
   proxyFor(source: string): string | undefined {
@@ -51,7 +54,15 @@ export class TorrentApi {
         ? this.webviewProxyEnabled()
         : this.webviewProxyEnabled;
     if (!enabled) return undefined;
-    return this.proxyFor(source);
+    const sourceProxy = this.proxyFor(source);
+    if (sourceProxy) return sourceProxy;
+    // The login window is the only way into rutracker without the source proxy;
+    // the torrent proxy is still a working SOCKS5 hole and better than going
+    // direct behind DPI.
+    if (source !== "rutracker") return undefined;
+    const torrentProxy =
+      typeof this.torrentProxyUrl === "function" ? this.torrentProxyUrl() : this.torrentProxyUrl;
+    return torrentProxy?.trim() || undefined;
   }
 
   private webviewProxyArgs(source: string): Record<string, string | undefined> {
@@ -85,6 +96,14 @@ export class TorrentApi {
       proxyUrl: proxy || null,
       proxy_url: proxy || null,
     });
+  }
+
+  testTorrentProxy(proxy: string): Promise<ProxyProbe> {
+    return this.call("test_torrent_proxy", { proxyUrl: proxy, proxy_url: proxy });
+  }
+
+  restartApp(): Promise<void> {
+    return this.call("restart_app");
   }
 
   checkRutrackerSession(): Promise<boolean> {
@@ -171,12 +190,21 @@ export class TorrentApi {
     return this.call("get_torrent_details", { source, url, proxyUrl: proxy, proxy_url: proxy });
   }
 
+  getTorrentPoster(source: string, url: string, proxyUrl?: string): Promise<string | null> {
+    const proxy = proxyUrl ?? this.proxyFor(source);
+    return this.call("get_torrent_poster", { source, url, proxyUrl: proxy, proxy_url: proxy });
+  }
+
   listTorrents(): Promise<TorrentInfo[]> {
     return this.call("list_torrents");
   }
 
   listenPort(): Promise<number | null> {
     return this.call("torrent_listen_port");
+  }
+
+  activeProxy(): Promise<string | null> {
+    return this.call("torrent_active_proxy");
   }
 
   runningTorrentFiles(id: number): Promise<TorrentFileInfo[]> {
@@ -354,4 +382,5 @@ export class TorrentApi {
 export const torrentApi = new TorrentApi({
   proxies: () => settingsAtoms.searchProxyUrls.get(),
   webviewProxyEnabled: () => settingsAtoms.webviewProxyEnabled.get(),
+  torrentProxyUrl: () => settingsAtoms.torrentProxyUrl.get(),
 });

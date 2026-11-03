@@ -4,6 +4,7 @@ export const queryKeys = {
   torrentFiles: (id: number) => ["torrent-files", id] as const,
   torrentDiagnostics: (id: number) => ["torrent_diagnostics", id] as const,
   torrentListenPort: () => ["torrent-listen-port"] as const,
+  torrentActiveProxy: () => ["torrent-active-proxy"] as const,
   partialLeftovers: () => ["partial-leftovers"] as const,
   gameRoms: () => ["game-roms"] as const,
   gamePlatforms: () => ["game-platforms"] as const,
@@ -68,7 +69,8 @@ export const queryKeys = {
     proxy: string | undefined
   ) => ["animeScraper", source, query, request, page, sort, direction, proxy ?? ""] as const,
   torrentSearchScope: () => ["animeScraper"] as const,
-  torrentPoster: (pageUrl: string | null) => ["torrent_poster", pageUrl] as const,
+  torrentPoster: (pageUrl: string | null, source = "", proxy = "") =>
+    ["torrent_poster", pageUrl, source, proxy] as const,
   coverResolve: (
     key: string,
     rejectedIds: number[] | null,

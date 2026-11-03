@@ -20,6 +20,7 @@ export const THEME_SCHEMA_VERSION = 1;
 
 const RadiusSchema = z.compile(z.enum(["frame", "all", "none"]));
 const BevelSchema = z.compile(z.enum(["flat", "raised"]));
+const ModeSchema = z.compile(z.enum(["dark", "light"]));
 const OverlaySchema = z.compile(z.enum(["none", "scanlines", "grid"]));
 const TitlebarGradientSchema = z.compile(
   z.object({ from: z.string(), to: z.string() })
@@ -47,6 +48,11 @@ function parseRadius(value: unknown): ThemeDefinition["radius"] {
 
 function parseBevel(value: unknown): ThemeDefinition["bevel"] {
   const r = BevelSchema.safeParse(value);
+  return r.success ? r.data : undefined;
+}
+
+function parseMode(value: unknown): ThemeDefinition["mode"] {
+  const r = ModeSchema.safeParse(value);
   return r.success ? r.data : undefined;
 }
 
@@ -349,6 +355,7 @@ function buildParsedTheme(
     components: mergeComponents(base?.components, parseComponents(raw.components)),
     fontFamily: pickTrait(fontFamily, base?.fontFamily),
     label: String(firstValue(raw.label, raw.name, base?.label, "Imported")),
+    mode: pickTrait(parseMode(raw.mode), base?.mode),
     name: String(firstValue(raw.name, `custom-${Date.now()}`)),
     overlay: pickTrait(parseOverlay(raw.overlay), base?.overlay),
     overrides: mergeOverrides(base?.overrides, parseOverrides(raw.overrides)),

@@ -286,6 +286,7 @@ export type EraiErrorCode =
   | "webview_not_found"
   | "no_session"
   | "proxy_invalid"
+  | "proxy_socks5_auth_unsupported"
   | "network";
 
 export type RutrackerErrorCode =
@@ -297,6 +298,7 @@ export type RutrackerErrorCode =
   | "cookies_invalid"
   | "cookies_parse"
   | "proxy_invalid"
+  | "proxy_socks5_auth_unsupported"
   | "webview_open"
   | "webview_save"
   | "webview_not_found"

@@ -159,8 +159,8 @@ describe("useTorrentCover", () => {
 
   it("prefers the torrent page poster for rutracker", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
-      if (command === "get_torrent_details") {
-        return { poster: "https://img.rutracker.org/f/009/poster.jpg" };
+      if (command === "get_torrent_poster") {
+        return "https://img.rutracker.org/f/009/poster.jpg";
       }
       if (command === "download_remote_image") return { id: "blob3", path: "covers/rt.jpg" };
       return null;
@@ -193,8 +193,8 @@ describe("useTorrentCover", () => {
     const calls: Array<{ command: unknown; args: unknown }> = [];
     mockInvoke.mockImplementation(async (command: unknown, args: unknown) => {
       calls.push({ command, args });
-      if (command === "get_torrent_details") {
-        return { poster: "https://www.erai-raws.info/poster.jpg" };
+      if (command === "get_torrent_poster") {
+        return "https://www.erai-raws.info/poster.jpg";
       }
       if (command === "download_remote_image") return { id: "blob5", path: "covers/erai.jpg" };
       return null;
@@ -207,7 +207,7 @@ describe("useTorrentCover", () => {
     });
     await waitFor(() => expect(result.current.status).toBe("page"));
     expect(calls).toContainEqual({
-      command: "get_torrent_details",
+      command: "get_torrent_poster",
       args: {
         source: "erai-raws",
         url: "https://www.erai-raws.info/episodes/naruto-01/",
@@ -219,8 +219,8 @@ describe("useTorrentCover", () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
-      if (command === "get_torrent_details") {
-        return { poster: "https://s4.anilist.co/file/anilistcdn/cover.png" };
+      if (command === "get_torrent_poster") {
+        return "https://s4.anilist.co/file/anilistcdn/cover.png";
       }
       if (command === "download_remote_image") return { id: "blob4", path: "covers/neko.jpg" };
       return null;
@@ -239,7 +239,7 @@ describe("useTorrentCover", () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
-      if (command === "get_torrent_details") return { poster: null };
+      if (command === "get_torrent_poster") return null;
       return null;
     });
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
@@ -253,7 +253,7 @@ describe("useTorrentCover", () => {
 
   it("falls back to anilist when the page has no poster", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
-      if (command === "get_torrent_details") return { poster: null };
+      if (command === "get_torrent_poster") return null;
       if (command === "search_anilist") return [NARUTO];
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
       return null;
@@ -268,7 +268,7 @@ describe("useTorrentCover", () => {
 
   it("falls back to anilist when the page request fails", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
-      if (command === "get_torrent_details") throw new Error("boom");
+      if (command === "get_torrent_poster") throw new Error("boom");
       if (command === "search_anilist") return [NARUTO];
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
       return null;
@@ -295,7 +295,7 @@ describe("useTorrentCover", () => {
     });
     await waitFor(() => expect(result.current.status).toBe("resolved"));
     expect(result.current.anilistId).toBe(20);
-    expect(calls).not.toContain("get_torrent_details");
+    expect(calls).not.toContain("get_torrent_poster");
   });
 
   it("serves a cached resolution without searching", async () => {

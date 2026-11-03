@@ -3,9 +3,9 @@ import { useRef } from "react";
 
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { PROXY_PRESETS, proxySelectValue } from "@/config/system/proxy.config";
+import { proxyPresetsFor, proxySelectValue } from "@/config/system/proxy.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isValidProxyUrl } from "@/lib/core/proxy.utils";
+import { isValidProxyUrlFor, type ProxyScheme } from "@/lib/core/proxy.utils";
 
 import { ProxyCheck } from "@/routes/components/settings/proxy/proxyCheck.settings";
 
@@ -18,6 +18,7 @@ export function ProxyField({
   testOkLabel,
   testFailLabel,
   testDisabled = false,
+  schemes,
   runToken = 0,
   description,
   className,
@@ -30,14 +31,16 @@ export function ProxyField({
   testOkLabel?: string;
   testFailLabel?: string;
   testDisabled?: boolean;
+  schemes?: readonly ProxyScheme[];
   runToken?: number;
   description?: string;
   className?: string;
 }) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
-  const invalid = !isValidProxyUrl(value);
+  const invalid = !isValidProxyUrlFor(value, schemes);
   const current = value ?? "";
+  const presets = proxyPresetsFor(schemes);
 
   const commit = (next: string | null) => {
     onCommit?.(next);
@@ -56,7 +59,7 @@ export function ProxyField({
         <div className="flex flex-col gap-1 min-[560px]:flex-row min-[560px]:items-center">
           <Select
             label={label}
-            value={proxySelectValue(value)}
+            value={proxySelectValue(value, schemes)}
             onChange={(next) => {
               if (next === "custom") {
                 inputRef.current?.focus();
@@ -68,7 +71,7 @@ export function ProxyField({
             }}
             options={[
               { value: "", label: t("settings.proxy.no") },
-              ...PROXY_PRESETS.map((url) => ({ value: url, label: url })),
+              ...presets.map((url) => ({ value: url, label: url })),
               { value: "custom", label: t("settings.proxy.custom") },
             ]}
             className="w-full min-[560px]:max-w-60"
@@ -84,7 +87,7 @@ export function ProxyField({
             onKeyDown={(event) => {
               if (event.key === "Enter") event.currentTarget.blur();
             }}
-            placeholder="socks5://127.0.0.1:10808"
+            placeholder={presets[0] ?? "socks5://127.0.0.1:10808"}
             spellCheck={false}
             className="w-full min-[560px]:max-w-70"
             aria-label={label}

@@ -930,6 +930,7 @@ describe("settings/session", () => {
   describe("toSessionConfig", () => {
     it("maps the current settings into a session payload", () => {
       patchSettings({
+        dhtEnabled: false,
         disablePersistence: true,
         enableUpnp: true,
         fastresumeEnabled: false,
@@ -942,6 +943,7 @@ describe("settings/session", () => {
       });
 
       expect(toSessionConfig()).toEqual({
+        dhtEnabled: false,
         disablePersistence: true,
         enableUpnp: true,
         fastresume: false,

@@ -59,6 +59,7 @@ const ThemeDefinitionSchema = z.object({
   family: z.optional(z.string()),
   fontFamily: z.optional(z.string()),
   label: z.string(),
+  mode: z.optional(z.enum(["dark", "light"])),
   name: z.string(),
   overlay: z.optional(z.enum(["grid", "none", "scanlines"])),
   overrides: z.optional(z.record(z.string(), z.string())),

@@ -1,12 +1,32 @@
-import { isHexColor } from "@/lib/graphics/palette.utils";
+import { hexToRgb, isHexColor } from "@/lib/graphics/palette.utils";
 import { normalizeAutocompleteOpacity } from "@/lib/graphics/tokens.utils";
 import type {
   ThemeComponents,
   ThemeDefinition,
+  ThemeMode,
   ThemeOverrides,
   ThemePatch,
 } from "@/types/graphics/theme";
 import type { ResolveThemeOptions } from "@/types/graphics/themeResolve";
+
+function relativeLuminance(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0;
+  const channel = (value: number): number => {
+    const normalized = value / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
+}
+
+export function themeMode(theme: ThemeDefinition): ThemeMode {
+  if (theme.mode) return theme.mode;
+  return relativeLuminance(theme.colors.text) > relativeLuminance(theme.colors.primary)
+    ? "dark"
+    : "light";
+}
 
 export function findTheme(
   name: string,

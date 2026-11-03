@@ -1,7 +1,9 @@
 import { useDraggable } from "@dnd-kit/core";
-import { EyeOff, X } from "lucide-react";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { EyeOff, FolderOpen, X } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 
+import ContextMenu from "@/components/shared/contextMenu.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/system/folders.config";
@@ -15,7 +17,9 @@ import { normalizePlayerPath } from "@/lib/core/visibility.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { formatBytes } from "@/lib/core/bytes.utils";
+import { ignore } from "@/lib/core/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
+import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 import { setVimCount, vimAtoms } from "@/store/vim.store";
 import type { FolderNode } from "@/types/torrent/torrent";
 
@@ -36,6 +40,17 @@ export function DraggableFolder({
   });
 
   const summary = useMemo(() => summarizeTree(tree), [tree]);
+  const folderMenuEntries: ContextMenuEntry[] = [
+    {
+      kind: "item",
+      id: "open-folder",
+      label: "player.files.open.folder",
+      icon: FolderOpen,
+      onSelect: () => {
+        ignore(openPath(tree.path));
+      },
+    },
+  ];
   const audioExtensions = useCell(settingsAtoms.audioExtensions);
   const disabledExtensions = useMemo(() => new Set(audioExtensions), [audioExtensions]);
   const { t } = useI18n();
@@ -119,9 +134,11 @@ export function DraggableFolder({
         className="windows95-text hover:bg-surface flex w-full cursor-grab items-center gap-1 px-0.5 py-0.5 text-left select-none active:cursor-grabbing"
       >
         <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4 shrink-0" />
-        <span className="flex-1 truncate select-none" title={tree.name}>
-          {tree.name}
-        </span>
+        <ContextMenu entries={folderMenuEntries}>
+          <span className="flex-1 truncate select-none" title={tree.name}>
+            {tree.name}
+          </span>
+        </ContextMenu>
         <span className="text-hint text-xs whitespace-nowrap select-none">
           {t("player.folder.file.count", { count: summary.count })}, {formatBytes(summary.bytes)}
         </span>

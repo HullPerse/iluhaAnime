@@ -23,7 +23,7 @@ export function TorrentNetworkSettings({
   const listenPort = useCell(settingsAtoms.listenPort);
   const enableUpnp = useCell(settingsAtoms.enableUpnp);
   const dhtEnabled = useCell(settingsAtoms.dhtEnabled);
-  const pexEnabled = useCell(settingsAtoms.pexEnabled);
+  const torrentProxyUrl = useCell(settingsAtoms.torrentProxyUrl);
   const ipv4Only = useCell(settingsAtoms.ipv4Only);
   const peerConnectTimeout = useCell(settingsAtoms.peerConnectTimeout);
   const peerReadWriteTimeout = useCell(settingsAtoms.peerReadWriteTimeout);
@@ -77,17 +77,18 @@ export function TorrentNetworkSettings({
         <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={dhtEnabled}
-            onChange={(value) => patchSettings({ dhtEnabled: value })}
+            onChange={(value) => {
+              patchSettings({ dhtEnabled: value });
+              saveSessionConfig({ dhtEnabled: value });
+            }}
           />
           <span>{t("settings.torrent.dht.enabled")}</span>
         </label>
-        <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-          <Checkbox
-            checked={pexEnabled}
-            onChange={(value) => patchSettings({ pexEnabled: value })}
-          />
-          <span>{t("settings.torrent.pex.enabled")}</span>
-        </label>
+        {torrentProxyUrl && (
+          <span className="text-hint pl-2 text-xs">
+            {t("settings.torrent.proxy.forces.off")}
+          </span>
+        )}
         <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={ipv4Only}

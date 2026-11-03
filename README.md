@@ -31,6 +31,19 @@ Regenerate with `bun run data:geoip` and `bun run data:flags`.
 - Peer-country lookups use the [DB-IP Lite](https://db-ip.com) country database, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Packed into `src-tauri/data/geoip-v1.bin.gz` by `scripts/build-geoip.ts`.
 - Country flag tiles are [flag-icons](https://github.com/lipis/flag-icons) art (MIT), fetched as 16x12 PNGs from [flagcdn.com](https://flagcdn.com) and packed into one `public/images/flags.sprite.png` spritesheet by `scripts/build-flags.ts`.
 
+## Torrent proxy and zapret
+
+Torrent traffic can go through an HTTP or SOCKS5 proxy from **Settings → Proxy → Torrent proxy**. The proxy applies after an app restart; the settings page shows which proxy the running session is actually using.
+
+Only TCP peers and HTTP(S) trackers go through the proxy. DHT, UDP trackers, uTP and incoming connections stay direct, and DHT/UPnP are disabled automatically while a proxy is set, so no direct connections are made.
+
+If you use [zapret](https://github.com/Flowseal/zapret-discord-youtube) and downloads stall or the built-in browser cannot open Rutracker:
+
+- Prefer an HTTP proxy (`http://127.0.0.1:7890`) when your proxy offers one; HTTP CONNECT is supported for peers and trackers.
+- Make sure zapret does not filter the proxy port or localhost traffic, and disable Game Filter while testing.
+- Do not run two zapret instances at once.
+- Enable the webview proxy toggle in **Settings → Proxy** for the built-in browser.
+
 ## License
 
 [MIT](LICENSE) © HullPerse

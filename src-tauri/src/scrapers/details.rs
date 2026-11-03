@@ -2133,55 +2133,43 @@ pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> Torrent
 }
 
 const DETAILS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+const POSTER_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
 
-#[tauri::command]
-#[allow(non_snake_case)]
-pub async fn get_torrent_details(
-    app_handle: tauri::AppHandle,
-    source: String,
-    url: String,
-    proxy_url: Option<String>,
-    proxyUrl: Option<String>,
-) -> Result<TorrentDetails, String> {
-    // The page, the file tree, and the .torrent fallback each have their own
-    // client timeouts; this bounds the composition so one slow stage cannot
-    // wedge the modal past two minutes.
-    tokio::time::timeout(
-        DETAILS_TIMEOUT,
-        get_torrent_details_inner(app_handle, source, url, proxy_url, proxyUrl),
-    )
-    .await
-    .map_err(|_| "Timed out while loading torrent details".to_string())?
+struct DetailPage {
+    origin: &'static str,
+    proxy: Option<String>,
+    client: reqwest::Client,
+    html: String,
 }
 
 #[allow(non_snake_case)]
-async fn get_torrent_details_inner(
-    app_handle: tauri::AppHandle,
-    source: String,
-    url: String,
+async fn fetch_detail_page(
+    app_handle: &tauri::AppHandle,
+    source: &str,
+    url: &str,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
-) -> Result<TorrentDetails, String> {
-    let origin = validate_detail_url(&source, &url)?;
-    let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
+) -> Result<DetailPage, String> {
+    let origin = validate_detail_url(source, url)?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let client = if source == "nekobt" {
         build_nekobt_client(proxy.as_deref())?
     } else if source == "rutracker" {
-        let user_agent = load_rutracker_user_agent(&app_handle)
+        let user_agent = load_rutracker_user_agent(app_handle)
             .unwrap_or_else(|| RUTRACKER_DEFAULT_UA.to_string());
         build_rutracker_client_with_ua(&user_agent, proxy.as_deref())?
     } else {
         build_client(proxy.as_deref())?
     };
-    let mut request = client.get(&url);
+    let mut request = client.get(url);
     if source == "rutracker" {
-        let cookies = load_rutracker_cookies(&app_handle);
+        let cookies = load_rutracker_cookies(app_handle);
         if cookies.is_empty() {
             return Err("Not authenticated. Please login to rutracker first.".to_string());
         }
         request = request.header("Cookie", cookies_to_header(&cookies));
     } else if source == "erai-raws"
-        && detail_origin_for_url(&source, &url) == Some("https://www.erai-raws.info")
+        && detail_origin_for_url(source, url) == Some("https://www.erai-raws.info")
     {
         // Public pages (title, poster) work anonymously, like search;
         // episode content unlocks once the user logs in, so attach
@@ -2191,7 +2179,7 @@ async fn get_torrent_details_inner(
             request = request.header("Cookie", cookies_to_header(&cookies));
         }
     } else if source == "nekobt" {
-        let key = load_nekobt_api_key(&app_handle);
+        let key = load_nekobt_api_key(app_handle);
         if key.is_empty() {
             return Err("Not authenticated. Please enter your nekoBT API key first.".to_string());
         }
@@ -2199,7 +2187,7 @@ async fn get_torrent_details_inner(
     }
     const MAX_DETAIL_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
     let browser_response = if source == "rutracker" && proxy.is_none() {
-        rutracker_browser_fetch(&app_handle, &url).await?
+        rutracker_browser_fetch(app_handle, url).await?
     } else {
         None
     };
@@ -2237,17 +2225,91 @@ async fn get_torrent_details_inner(
     if source == "rutracker" && is_rutracker_challenge(&html) {
         return Err(rutracker_challenge_error());
     }
-    let mut details = parse_torrent_detail_html(&source, &url, &html);
+    Ok(DetailPage {
+        origin,
+        proxy,
+        client,
+        html: html.into_owned(),
+    })
+}
+
+fn parse_poster_from_html(source: &str, url: &str, html: &str) -> Option<String> {
+    let origin = detail_origin_for_url(source, url)
+        .or_else(|| detail_origin(source))
+        .unwrap_or("");
+    let doc = Html::parse_document(html);
+    match source {
+        "rutracker" => parse_rutracker_poster(&doc, origin),
+        "nekobt" => parse_nekobt_cover(&doc, origin),
+        "erai-raws" => parse_erai_poster(&doc, origin),
+        _ => None,
+    }
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_torrent_poster(
+    app_handle: tauri::AppHandle,
+    source: String,
+    url: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Option<String>, String> {
+    tokio::time::timeout(POSTER_TIMEOUT, async move {
+        let page = fetch_detail_page(&app_handle, &source, &url, proxy_url, proxyUrl).await?;
+        Ok(parse_poster_from_html(&source, &url, &page.html))
+    })
+    .await
+    .map_err(|_| "Timed out while loading torrent poster".to_string())?
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_torrent_details(
+    app_handle: tauri::AppHandle,
+    source: String,
+    url: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<TorrentDetails, String> {
+    // The page, the file tree, and the .torrent fallback each have their own
+    // client timeouts; this bounds the composition so one slow stage cannot
+    // wedge the modal past two minutes.
+    tokio::time::timeout(
+        DETAILS_TIMEOUT,
+        get_torrent_details_inner(app_handle, source, url, proxy_url, proxyUrl),
+    )
+    .await
+    .map_err(|_| "Timed out while loading torrent details".to_string())?
+}
+
+#[allow(non_snake_case)]
+async fn get_torrent_details_inner(
+    app_handle: tauri::AppHandle,
+    source: String,
+    url: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<TorrentDetails, String> {
+    let page = fetch_detail_page(
+        &app_handle,
+        &source,
+        &url,
+        proxy_url.clone(),
+        proxyUrl.clone(),
+    )
+    .await?;
+    let mut details = parse_torrent_detail_html(&source, &url, &page.html);
 
     if source == "rutracker" {
         let cookies = load_rutracker_cookies(&app_handle);
         if let Some(topic_id) = rutracker_topic_id(&url) {
             if let Ok(file_tree) = fetch_rutracker_file_tree(
                 &app_handle,
-                &client,
+                &page.client,
                 &cookies,
                 &topic_id,
-                proxy.is_none(),
+                page.proxy.is_none(),
             )
             .await
             {
@@ -2272,7 +2334,7 @@ async fn get_torrent_details_inner(
     }
 
     if details.title.is_empty() {
-        details.title = origin.to_string();
+        details.title = page.origin.to_string();
     }
 
     // Non-rutracker sources have no separate file-list endpoint: when the

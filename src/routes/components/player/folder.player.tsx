@@ -281,6 +281,17 @@ function FolderView({
   };
 
   const countAll = node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
+  const folderMenuEntries: ContextMenuEntry[] = [
+    {
+      kind: "item",
+      id: "open-folder",
+      label: "player.files.open.folder",
+      icon: FolderOpen,
+      onSelect: () => {
+        ignore(openPath(node.path));
+      },
+    },
+  ];
 
   if (flatItems.length === 0) return null;
 
@@ -303,32 +314,34 @@ function FolderView({
             paddingLeft: `${depth * 12 + 2}px`,
           }}
         >
-          <button
-            type="button"
-            data-tree-row
-            data-tree-path={node.path}
-            data-tree-depth={depth}
-            aria-expanded={open.has(node.path)}
-            aria-label={node.name}
-            className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-            onClick={() => toggle(node.path)}
-            data-tree-activate
-          >
-            {open.has(node.path) ? (
-              <ChevronDown className="size-3 shrink-0" />
-            ) : (
-              <ChevronRight className="size-3 shrink-0" />
-            )}
-            <TreeRowNumber rows={treeRows} anchorPath={anchorPath} rowPath={node.path} />
-            <ImageComponent
-              src="/images/w2k_folder_closed.ico"
-              alt=""
-              className="size-4 shrink-0"
-            />
-            <span className="truncate select-none" title={node.name}>
-              {node.name}
-            </span>
-          </button>
+          <ContextMenu entries={folderMenuEntries}>
+            <button
+              type="button"
+              data-tree-row
+              data-tree-path={node.path}
+              data-tree-depth={depth}
+              aria-expanded={open.has(node.path)}
+              aria-label={node.name}
+              className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+              onClick={() => toggle(node.path)}
+              data-tree-activate
+            >
+              {open.has(node.path) ? (
+                <ChevronDown className="size-3 shrink-0" />
+              ) : (
+                <ChevronRight className="size-3 shrink-0" />
+              )}
+              <TreeRowNumber rows={treeRows} anchorPath={anchorPath} rowPath={node.path} />
+              <ImageComponent
+                src="/images/w2k_folder_closed.ico"
+                alt=""
+                className="size-4 shrink-0"
+              />
+              <span className="truncate select-none" title={node.name}>
+                {node.name}
+              </span>
+            </button>
+          </ContextMenu>
           {onHide && (
             <Button
               size="icon"
@@ -416,36 +429,38 @@ function FolderView({
                       paddingLeft: `${item.depth * 12 + 2}px`,
                     }}
                   >
-                    <button
-                      type="button"
-                      data-tree-row
-                      data-tree-path={item.node.path}
-                      data-tree-depth={item.depth}
-                      aria-expanded={isFolderOpen}
-                      aria-label={item.node.name}
-                      className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-                      onClick={() => toggle(item.node.path)}
-                      data-tree-activate
-                    >
-                      {isFolderOpen ? (
-                        <ChevronDown className="size-3 shrink-0" />
-                      ) : (
-                        <ChevronRight className="size-3 shrink-0" />
-                      )}
-                      <TreeRowNumber
-                        rows={treeRows}
-                        anchorPath={anchorPath}
-                        rowPath={item.node.path}
-                      />
-                      <ImageComponent
-                        src="/images/w2k_folder_closed.ico"
-                        alt=""
-                        className="size-4 shrink-0 bg-transparent"
-                      />
-                      <span className="truncate select-none" title={item.node.name}>
-                        {item.node.name}
-                      </span>
-                    </button>
+                    <ContextMenu entries={folderMenuEntries}>
+                      <button
+                        type="button"
+                        data-tree-row
+                        data-tree-path={item.node.path}
+                        data-tree-depth={item.depth}
+                        aria-expanded={isFolderOpen}
+                        aria-label={item.node.name}
+                        className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+                        onClick={() => toggle(item.node.path)}
+                        data-tree-activate
+                      >
+                        {isFolderOpen ? (
+                          <ChevronDown className="size-3 shrink-0" />
+                        ) : (
+                          <ChevronRight className="size-3 shrink-0" />
+                        )}
+                        <TreeRowNumber
+                          rows={treeRows}
+                          anchorPath={anchorPath}
+                          rowPath={item.node.path}
+                        />
+                        <ImageComponent
+                          src="/images/w2k_folder_closed.ico"
+                          alt=""
+                          className="size-4 shrink-0 bg-transparent"
+                        />
+                        <span className="truncate select-none" title={item.node.name}>
+                          {item.node.name}
+                        </span>
+                      </button>
+                    </ContextMenu>
                     {onHide && (
                       <Button
                         size="icon"

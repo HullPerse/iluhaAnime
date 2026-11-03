@@ -107,6 +107,7 @@ export interface SettingsStore {
   parseTitlesPlayer: boolean;
   parseTitlesTorrent: boolean;
   parseTitlesSearch: boolean;
+  eraiBatchGrouping: boolean;
   torrentCoverMode: TorrentCoverMode;
   torrentCoverModeManual: boolean;
   anilistReleaseNotifications: boolean;
@@ -202,6 +203,7 @@ export interface SessionConfigPayload {
   peerReadWriteTimeout: number;
   listenPort: number;
   enableUpnp: boolean;
+  dhtEnabled: boolean;
   disablePersistence: boolean;
   proxyUrl: string | null;
   fileOrder: FileOrder;

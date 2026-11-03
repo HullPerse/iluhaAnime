@@ -253,6 +253,8 @@ const settings = {
   "settings.theme.family.editor": "Editors",
   "settings.theme.family.terminal": "Terminals",
   "settings.theme.family.windows": "Windows",
+  "settings.theme.mode.dark": "Dark",
+  "settings.theme.mode.light": "Light",
   "settings.theme.patch.base.error": "The base theme for this patch is not installed",
   "settings.theme.patch.export": "Export patch",
   "settings.theme.delete": "delete",
@@ -373,9 +375,12 @@ const settings = {
   "settings.torrent.proxy.testing": "Testing...",
   "settings.torrent.proxy.test.ok": "Proxy works",
   "settings.torrent.proxy.test.fail": "Failed",
+  "settings.torrent.proxy.forces.off":
+    "While a torrent proxy is set, DHT and UPnP stay off so no direct connections are made.",
   "settings.torrent.listen.port.active": "Session bound port {{port}}",
   "settings.torrent.listen.port.idle": "Session is not running",
   "settings.torrent.session.restart.note": "Applies after app restart",
+  "settings.torrent.session.restart.now": "Restart now",
   "settings.torrent.session.invalid": "Enter valid numbers",
   "settings.torrent.session.apply": "Apply",
   "settings.torrent.speed.limits": "Speed limits",
@@ -442,6 +447,9 @@ const settings = {
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 MB)",
   "settings.ffmpeg.source.mirror": "GitHub via mirror (gh-proxy)",
   "settings.search.toggle.sym.spell.hint": "Fixes typos: friren -> frieren.",
+  "settings.search.toggle.erai.batch": "Group erai-raws episodes",
+  "settings.search.toggle.erai.batch.hint":
+    "Show one combined result per anime and season instead of separate episodes",
   "settings.search.toggle.intent.hint": "Filters in query: year=2024 rating>=8.",
   "settings.tmdb.api.key.save": "Save key",
   "settings.tmdb.api.key.remove": "Remove key",
@@ -506,7 +514,11 @@ const settings = {
   "settings.proxy.test.fail": "Failed",
   "settings.proxy.torrent.title": "Torrent proxy",
   "settings.proxy.torrent.description":
-    "SOCKS5 for peer connections and HTTP trackers. Applied to the current session when changed.",
+    "SOCKS5 or HTTP for peer connections and HTTP(S) trackers. Applies after an app restart.",
+  "settings.proxy.torrent.coverage":
+    "Only TCP peers and HTTP(S) trackers go through the proxy. DHT, UDP trackers, uTP and incoming connections stay direct.",
+  "settings.proxy.torrent.active": "Active session: {{proxy}}",
+  "settings.proxy.torrent.inactive": "Active session: no proxy",
   "settings.proxy.sources.title": "Source proxies",
   "settings.proxy.sources.description":
     "A separate proxy for each search source. Test one source or all of them at once.",
@@ -545,6 +557,8 @@ const settings = {
     "The site opens through the configured proxy. Sign in as usual, the token is saved automatically.",
   "settings.animelib.login.closed": "The sign-in window closed before a session was saved.",
   "settings.animelib.login.timeout": "Sign-in did not finish. Try again.",
+  "settings.animelib.login.proxy.socks5.auth":
+    "WebView2 does not support SOCKS5 with a username and password. Use an HTTP proxy or a SOCKS5 proxy without authentication.",
   "settings.animelib.proxy.url": "Proxy",
   "settings.animelib.proxy.no": "No proxy",
   "settings.animelib.proxy.custom": "Custom",

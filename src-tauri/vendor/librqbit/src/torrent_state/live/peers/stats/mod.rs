@@ -38,6 +38,8 @@ impl AggregatePeerStatsAtomic {
             ConnectionKind::Tcp => &self.live_tcp,
             ConnectionKind::Utp => &self.live_utp,
             ConnectionKind::Socks => &self.live_socks,
+            // HTTP CONNECT uses the same proxy bucket for aggregate metrics.
+            ConnectionKind::Http => &self.live_socks,
         }
     }
 

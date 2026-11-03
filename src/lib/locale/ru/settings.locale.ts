@@ -261,6 +261,8 @@ const settings = {
   "settings.theme.family.editor": "Редакторы",
   "settings.theme.family.terminal": "Терминалы",
   "settings.theme.family.windows": "Windows",
+  "settings.theme.mode.dark": "Тёмные",
+  "settings.theme.mode.light": "Светлые",
   "settings.theme.patch.base.error": "Базовая тема для этого патча не установлена",
   "settings.theme.patch.export": "Экспорт патча",
   "settings.theme.delete": "удалить",
@@ -375,9 +377,12 @@ const settings = {
   "settings.torrent.proxy.testing": "Проверка...",
   "settings.torrent.proxy.test.ok": "Прокси работает",
   "settings.torrent.proxy.test.fail": "Ошибка",
+  "settings.torrent.proxy.forces.off":
+    "Пока задан торрент-прокси, DHT и UPnP выключены, чтобы не было прямых соединений.",
   "settings.torrent.listen.port.active": "Сессия заняла порт {{port}}",
   "settings.torrent.listen.port.idle": "Сессия не запущена",
   "settings.torrent.session.restart.note": "Применится после перезапуска",
+  "settings.torrent.session.restart.now": "Перезапустить",
   "settings.torrent.session.invalid": "Введите корректные числа",
   "settings.torrent.session.apply": "Применить",
   "settings.torrent.speed.limits": "Лимиты скорости",
@@ -444,6 +449,9 @@ const settings = {
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 МБ)",
   "settings.ffmpeg.source.mirror": "GitHub через зеркало (gh-proxy)",
   "settings.search.toggle.sym.spell.hint": "Чинит опечатки: friren -> frieren.",
+  "settings.search.toggle.erai.batch": "Объединять серии erai-raws",
+  "settings.search.toggle.erai.batch.hint":
+    "Показывать один общий результат на аниме и сезон вместо отдельных серий",
   "settings.search.toggle.intent.hint": "Фильтры в строке: year=2024 rating>=8.",
   "settings.tmdb.api.key.save": "Сохранить ключ",
   "settings.tmdb.api.key.remove": "Удалить ключ",
@@ -508,7 +516,11 @@ const settings = {
   "settings.proxy.test.fail": "Ошибка",
   "settings.proxy.torrent.title": "Торрент-прокси",
   "settings.proxy.torrent.description":
-    "SOCKS5 для peer-соединений и HTTP-трекеров. Применяется к текущей сессии после изменения.",
+    "SOCKS5 или HTTP для peer-соединений и HTTP(S)-трекеров. Применяется после перезапуска приложения.",
+  "settings.proxy.torrent.coverage":
+    "Через прокси идут TCP-пиры и HTTP(S)-трекеры. DHT, UDP-трекеры, uTP и входящие подключения — напрямую.",
+  "settings.proxy.torrent.active": "Активная сессия: {{proxy}}",
+  "settings.proxy.torrent.inactive": "Активная сессия: без прокси",
   "settings.proxy.sources.title": "Прокси источников",
   "settings.proxy.sources.description":
     "Отдельный прокси для каждого источника поиска. Можно проверить один источник или сразу все.",
@@ -549,6 +561,8 @@ const settings = {
     "Откроется страница сайта через настроенный прокси. Войдите как обычно, токен сохранится сам.",
   "settings.animelib.login.closed": "Окно входа закрыто до сохранения сессии.",
   "settings.animelib.login.timeout": "Вход не завершён. Попробуйте ещё раз.",
+  "settings.animelib.login.proxy.socks5.auth":
+    "WebView2 не поддерживает SOCKS5 с логином и паролем. Укажите HTTP-прокси или SOCKS5 без авторизации.",
   "settings.animelib.proxy.url": "Прокси",
   "settings.animelib.proxy.no": "Без прокси",
   "settings.animelib.proxy.custom": "Свой",

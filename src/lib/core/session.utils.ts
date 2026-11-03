@@ -10,6 +10,7 @@ export function toSessionConfig(): SessionConfigPayload {
     peerReadWriteTimeout: s.peerReadWriteTimeout,
     listenPort: s.listenPort,
     enableUpnp: s.enableUpnp,
+    dhtEnabled: s.dhtEnabled,
     disablePersistence: s.disablePersistence,
     proxyUrl: s.torrentProxyUrl,
     fileOrder: s.fileOrder,

@@ -33,7 +33,8 @@ export function useAnimelibAccount() {
     const [, openFailure] = await attempt(streamApi.webviewLogin());
     if (openFailure) {
       setWaiting(false);
-      setError(openFailure.message);
+      const knownKey = ANIMELIB_LOGIN_ERRORS[openFailure.message];
+      setError(knownKey ? t(knownKey) : openFailure.message);
       return false;
     }
     const [, finishFailure] = await attempt(streamApi.finishWebviewLogin());

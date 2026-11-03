@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupBatchResults } from "@/lib/torrent/batch.utils";
+import { batchEpisodeNumber, groupBatchResults } from "@/lib/torrent/batch.utils";
 import type { Anime } from "@/types/torrent/torrent";
 
 function item(title: string): Anime {
@@ -33,5 +33,22 @@ describe("groupBatchResults", () => {
       item("[SubsPlease] Naruto - 01 [1080p].mkv"),
     ]);
     expect(groups).toHaveLength(2);
+  });
+
+  it("keeps seasons of the same anime apart and reads the season", () => {
+    const groups = groupBatchResults([
+      item("[Erai-raws] Sousou no Frieren 2nd Season - 09 [1080p].mkv"),
+      item("[Erai-raws] Sousou no Frieren - 28 [1080p].mkv"),
+    ]);
+    expect(groups).toHaveLength(2);
+    expect(groups.some((group) => group.season === 2)).toBe(true);
+  });
+
+  it("sorts episodes numerically inside a group", () => {
+    const groups = groupBatchResults([
+      item("[Erai-raws] Naruto - 10 [1080p].mkv"),
+      item("[Erai-raws] Naruto - 02 [1080p].mkv"),
+    ]);
+    expect(groups[0].items.map((entry) => batchEpisodeNumber(entry))).toEqual([2, 10]);
   });
 });

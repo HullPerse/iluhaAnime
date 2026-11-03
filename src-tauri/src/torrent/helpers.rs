@@ -435,8 +435,8 @@ pub fn torrent_proxy_url(raw: &str) -> Result<Option<String>, String> {
         return Err("Proxy URL is too long".to_string());
     }
     let parsed = url::Url::parse(trimmed).map_err(|_| "Proxy URL is invalid".to_string())?;
-    if !matches!(parsed.scheme(), "socks5" | "socks5h") {
-        return Err("Proxy URL must use the socks5 or socks5h scheme".to_string());
+    if !matches!(parsed.scheme(), "socks5" | "socks5h" | "http") {
+        return Err("Proxy URL must use the socks5, socks5h or http scheme".to_string());
     }
     if parsed.host_str().is_none_or(str::is_empty) {
         return Err("Proxy URL must have a host".to_string());
@@ -444,8 +444,24 @@ pub fn torrent_proxy_url(raw: &str) -> Result<Option<String>, String> {
     if parsed.port().is_none() {
         return Err("Proxy URL must have a port".to_string());
     }
+    let scheme = parsed.scheme();
     let rest = trimmed.split_once("://").map_or(trimmed, |(_, rest)| rest);
-    Ok(Some(format!("socks5://{rest}")))
+    Ok(Some(format!("{scheme}://{rest}")))
+}
+
+/// Diagnostics-only view of a proxy URL: scheme, host and port, without
+/// credentials. Used to show which proxy the running session was built with.
+pub fn redact_proxy_url(raw: &str) -> String {
+    let Ok(parsed) = url::Url::parse(raw) else {
+        return raw.to_string();
+    };
+    let Some(host) = parsed.host_str() else {
+        return raw.to_string();
+    };
+    match parsed.port() {
+        Some(port) => format!("{}://{host}:{port}", parsed.scheme()),
+        None => format!("{}://{host}", parsed.scheme()),
+    }
 }
 
 pub fn validate_session_config(mut config: SessionConfig) -> Result<SessionConfig, String> {
@@ -486,8 +502,9 @@ pub fn build_magnet(
 mod tracker_tests {
     use super::{
         build_magnet, canonical_or_raw_tracker, canonical_tracker_url, display_order,
-        download_order, plan_sequential, torrent_proxy_url, validate_session_config,
-        validate_tracker_url, with_fallback_trackers, SequentialPlan, FALLBACK_TRACKERS,
+        download_order, plan_sequential, redact_proxy_url, torrent_proxy_url,
+        validate_session_config, validate_tracker_url, with_fallback_trackers, SequentialPlan,
+        FALLBACK_TRACKERS,
     };
     use crate::torrent::{FileOrder, FilePriority, SessionConfig};
 
@@ -779,24 +796,40 @@ mod tracker_tests {
     }
 
     #[test]
-    fn torrent_proxy_url_normalizes_to_the_scheme_librqbit_accepts() {
+    fn torrent_proxy_url_keeps_the_scheme_librqbit_uses() {
         assert_eq!(
             torrent_proxy_url("socks5://127.0.0.1:10808").unwrap(),
             Some("socks5://127.0.0.1:10808".to_string())
         );
         assert_eq!(
             torrent_proxy_url("  socks5h://user:pass@127.0.0.1:10808  ").unwrap(),
-            Some("socks5://user:pass@127.0.0.1:10808".to_string())
+            Some("socks5h://user:pass@127.0.0.1:10808".to_string())
+        );
+        assert_eq!(
+            torrent_proxy_url("http://127.0.0.1:7890").unwrap(),
+            Some("http://127.0.0.1:7890".to_string())
         );
         assert_eq!(torrent_proxy_url("   ").unwrap(), None);
     }
 
     #[test]
     fn torrent_proxy_url_rejects_what_librqbit_would_abort_on() {
-        assert!(torrent_proxy_url("http://127.0.0.1:7890").is_err());
+        assert!(torrent_proxy_url("https://127.0.0.1:7890").is_err());
         assert!(torrent_proxy_url("127.0.0.1:10808").is_err());
         assert!(torrent_proxy_url("socks5://127.0.0.1").is_err());
         assert!(torrent_proxy_url("socks5://").is_err());
+    }
+
+    #[test]
+    fn redact_proxy_url_hides_credentials() {
+        assert_eq!(
+            redact_proxy_url("socks5h://user:secret@127.0.0.1:10808"),
+            "socks5h://127.0.0.1:10808"
+        );
+        assert_eq!(
+            redact_proxy_url("http://127.0.0.1:7890"),
+            "http://127.0.0.1:7890"
+        );
     }
 
     #[test]
@@ -807,11 +840,11 @@ mod tracker_tests {
         };
         assert_eq!(
             validate_session_config(config).unwrap().proxy_url,
-            Some("socks5://127.0.0.1:10808".to_string())
+            Some("socks5h://127.0.0.1:10808".to_string())
         );
 
         let broken = SessionConfig {
-            proxy_url: Some("http://127.0.0.1:7890".to_string()),
+            proxy_url: Some("https://127.0.0.1:7890".to_string()),
             ..SessionConfig::default()
         };
         assert!(validate_session_config(broken).is_err());
@@ -822,6 +855,7 @@ mod tracker_tests {
         let legacy = r#"{"fastresume":true,"ipv4Only":false,"peerConnectTimeout":30,"peerReadWriteTimeout":30,"listenPort":0,"enableUpnp":false,"disablePersistence":false}"#;
         let parsed: SessionConfig = serde_json::from_str(legacy).unwrap();
         assert_eq!(parsed.proxy_url, None);
+        assert!(parsed.dht_enabled);
         assert_eq!(parsed.peer_connect_timeout_secs, 30);
         assert_eq!(
             parsed.file_order,

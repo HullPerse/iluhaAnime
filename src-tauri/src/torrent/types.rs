@@ -147,6 +147,10 @@ pub struct PartialLeftover {
     pub removed_at: i64,
 }
 
+const fn default_true() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SessionConfig {
     pub fastresume: bool,
@@ -160,6 +164,8 @@ pub struct SessionConfig {
     pub listen_port: u16,
     #[serde(rename = "enableUpnp")]
     pub enable_upnp: bool,
+    #[serde(default = "default_true", rename = "dhtEnabled")]
+    pub dht_enabled: bool,
     #[serde(rename = "disablePersistence")]
     pub disable_persistence: bool,
     #[serde(default, rename = "proxyUrl")]
@@ -177,6 +183,7 @@ impl Default for SessionConfig {
             peer_read_write_timeout_secs: 30,
             listen_port: 0,
             enable_upnp: true,
+            dht_enabled: true,
             disable_persistence: false,
             proxy_url: None,
             file_order: FileOrder::default(),

@@ -209,8 +209,7 @@ describe("SearchResultItem covers", () => {
   it("shows the tracker page poster in pages mode without AniList search", async () => {
     patchSettings({ torrentCoverMode: "pages" });
     mockInvoke.mockImplementation(async (command: unknown) => {
-      if (command === "get_torrent_details")
-        return { poster: "https://img.rutracker.org/f/009/poster.jpg" };
+      if (command === "get_torrent_poster") return "https://img.rutracker.org/f/009/poster.jpg";
       if (command === "download_remote_image") return { id: "blob2", path: "covers/rt.jpg" };
       if (command === "get_user_image") return { id: "blob2", path: "covers/rt.jpg" };
       return null;

@@ -31,8 +31,8 @@ use super::geoip::country_code_for_addr;
 use super::helpers::{
     build_magnet, canonical_or_raw_tracker, ensure_minimum_free_space, file_at_offset,
     final_file_path, ignored_payload_paths, is_info_hash, is_safe_relative_path, part_file_path,
-    plan_sequential, resolve_payload_path, share_ratio, to_rqbit_limits, torrent_proxy_url,
-    validate_session_config, validate_tracker_url, with_fallback_trackers,
+    plan_sequential, redact_proxy_url, resolve_payload_path, share_ratio, to_rqbit_limits,
+    torrent_proxy_url, validate_session_config, validate_tracker_url, with_fallback_trackers,
     with_fallback_trackers_bytes, with_trackers_bytes, PayloadFile, SequentialPlan,
     FALLBACK_TRACKERS,
 };
@@ -170,6 +170,8 @@ pub struct TorrentManager {
     /// its initial check.
     pending_starts: DashSet<usize>,
     pub session_config_path: PathBuf,
+    /// The proxy the running session was built with, redacted for display.
+    pub active_proxy: Option<String>,
     pub file_order: std::sync::RwLock<FileOrder>,
     pub preferences_path: PathBuf,
     pub created_dir: PathBuf,
@@ -328,13 +330,15 @@ impl TorrentManager {
                 None
             })
         });
+        let proxy_active = proxy_url.is_some();
+        let active_proxy = proxy_url.as_deref().map(redact_proxy_url);
         let mut opts = SessionOptions {
             persistence,
             fastresume: session_config.fastresume,
             ipv4_only: session_config.ipv4_only,
             listen: Some(ListenerOptions {
                 listen_addr,
-                enable_upnp_port_forwarding: session_config.enable_upnp,
+                enable_upnp_port_forwarding: session_config.enable_upnp && !proxy_active,
                 ipv4_only: session_config.ipv4_only,
                 ..Default::default()
             }),
@@ -353,7 +357,7 @@ impl TorrentManager {
             }),
             ..Default::default()
         };
-        if !enable_dht {
+        if !enable_dht || !session_config.dht_enabled || proxy_active {
             opts.dht = None;
         }
 
@@ -381,6 +385,7 @@ impl TorrentManager {
             pending_starts: DashSet::new(),
             file_order: std::sync::RwLock::new(session_config.file_order),
             session_config_path,
+            active_proxy,
             preferences_path,
             created_dir,
             limit_locks: DashMap::new(),

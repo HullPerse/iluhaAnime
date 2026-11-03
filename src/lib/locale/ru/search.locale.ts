@@ -3,6 +3,12 @@ const search = {
   "search.batch.title": "Пакетная загрузка",
   "search.batch.hint": "{groups} групп, {count} торрентов",
   "search.batch.progress": "{done} / {total}",
+  "search.batch.download.all": "Скачать все ({{count}})",
+  "search.batch.episodes": "{{count}} серий",
+  "search.batch.season": "Сезон {{season}}",
+  "search.batch.episode": "Серия {{number}}",
+  "search.batch.show": "Показать серии",
+  "search.batch.hide": "Скрыть серии",
   "search.batch.started": "Запуск пакетной загрузки",
   "search.batch.done": "Пакетная загрузка запущена",
   "search.batch.failed": "Не удалось запустить часть торрентов: {count}",
@@ -89,6 +95,8 @@ const search = {
     "Сессия Erai-Raws не найдена. Сначала войдите во встроенном браузере, затем сохраните её.",
   "search.erai.err.proxy.invalid":
     "Некорректный прокси для erai-raws. Формат: http://host:port или socks5://host:port.",
+  "search.erai.err.proxy.socks5.auth":
+    "WebView2 не поддерживает SOCKS5 с логином и паролем. Укажите HTTP-прокси или SOCKS5 без авторизации.",
   "search.erai.err.unknown": "Не удалось войти в Erai-Raws. Попробуйте ещё раз.",
   "search.erai.err.webview.not.found":
     "Окно встроенного браузера не открыто. Сначала откройте его.",
@@ -120,6 +128,8 @@ const search = {
   "search.rutracker.err.no.session": "Нет сессии rutracker. Войдите в браузере, затем сохраните.",
   "search.rutracker.err.proxy.invalid":
     "Некорректный прокси для rutracker. Формат: http://host:port или socks5://host:port.",
+  "search.rutracker.err.proxy.socks5.auth":
+    "WebView2 не поддерживает SOCKS5 с логином и паролем. Укажите HTTP-прокси или SOCKS5 без авторизации.",
   "search.rutracker.err.session.failed":
     "Вход прошёл, но сессия не сохранилась. Попробуйте ещё раз или вставьте cookies.",
   "search.rutracker.err.unknown": "Вход не удался. Попробуйте ещё раз во встроенном браузере.",

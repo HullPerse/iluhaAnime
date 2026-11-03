@@ -526,6 +526,21 @@ fn login_webview_data_dir(app_handle: &tauri::AppHandle, label: &str) -> Result<
 }
 
 #[cfg(target_os = "windows")]
+fn credential_fingerprint(username: Option<&str>, password: Option<&str>) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in username
+        .unwrap_or_default()
+        .bytes()
+        .chain(std::iter::once(0))
+        .chain(password.unwrap_or_default().bytes())
+    {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
+#[cfg(target_os = "windows")]
 fn webview_proxy(proxy: Option<String>, source: &str) -> Result<Option<WebviewProxy>, String> {
     let Some(raw) = proxy else {
         return Ok(None);
@@ -544,18 +559,20 @@ fn webview_proxy(proxy: Option<String>, source: &str) -> Result<Option<WebviewPr
     let mut parsed =
         url::Url::parse(&without_remote_dns).map_err(|e| format!("proxy_invalid: {e}"))?;
     let scheme = parsed.scheme().to_string();
-    if scheme != "http" && scheme != "socks5" {
+    if scheme != "http" && scheme != "https" && scheme != "socks5" {
         return Err(format!(
-            "proxy_invalid: the {source} proxy must be http:// or socks5://"
+            "proxy_invalid: the {source} proxy must be http://, https:// or socks5://"
         ));
     }
     let host = parsed.host_str().unwrap_or_default().to_string();
     if host.is_empty() {
         return Err(format!("proxy_invalid: the {source} proxy needs a host"));
     }
-    let port = parsed
-        .port()
-        .unwrap_or(if scheme == "http" { 80 } else { 1080 });
+    let port = parsed.port().unwrap_or(match scheme.as_str() {
+        "http" => 80,
+        "https" => 443,
+        _ => 1080,
+    });
     let username = {
         let user = parsed.username();
         if user.is_empty() {
@@ -565,10 +582,16 @@ fn webview_proxy(proxy: Option<String>, source: &str) -> Result<Option<WebviewPr
         }
     };
     let password = parsed.password().map(str::to_string);
+    if scheme == "socks5" && username.is_some() {
+        return Err("proxy_socks5_auth_unsupported".to_string());
+    }
     let _ = parsed.set_username("");
     let _ = parsed.set_password(None);
     let _ = parsed.set_port(Some(port));
-    let marker = format!("{scheme}://{host}:{port}");
+    let marker = format!(
+        "{scheme}://{host}:{port}#{:016x}",
+        credential_fingerprint(username.as_deref(), password.as_deref())
+    );
     Ok(Some(WebviewProxy {
         builder_url: parsed,
         username,

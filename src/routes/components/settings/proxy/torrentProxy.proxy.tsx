@@ -1,10 +1,12 @@
 import { useCallback } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
+import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTorrentActiveProxy } from "@/hooks/torrent/queries.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { attempt } from "@/lib/core/attempt.utils";
-import { isValidProxyUrl } from "@/lib/core/proxy.utils";
+import { isValidProxyUrlFor, type ProxyScheme } from "@/lib/core/proxy.utils";
 import { showError } from "@/lib/core/notification.utils";
 import { useCell } from "@/lib/core/signal.hook";
 import { toSessionConfig } from "@/lib/core/session.utils";
@@ -13,14 +15,17 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { ProxyField } from "@/routes/components/settings/proxy/proxyField.settings";
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
+const TORRENT_PROXY_SCHEMES: readonly ProxyScheme[] = ["socks5", "socks5h", "http"];
+
 export function TorrentProxySettings() {
   const { t } = useI18n();
   const isOnline = useOnlineStatus();
   const proxyUrl = useCell(settingsAtoms.torrentProxyUrl);
+  const activeProxy = useTorrentActiveProxy();
 
   const applyProxy = useCallback(
     (next: string | null) => {
-      if (!isValidProxyUrl(next)) return;
+      if (!isValidProxyUrlFor(next, TORRENT_PROXY_SCHEMES)) return;
       (async () => {
         const [, error] = await attempt(
           torrentApi.saveSessionConfig({ ...toSessionConfig(), proxyUrl: next })
@@ -42,13 +47,38 @@ export function TorrentProxySettings() {
           label={t("settings.torrent.proxy.url")}
           description={t("settings.proxy.torrent.description")}
           value={proxyUrl}
+          schemes={TORRENT_PROXY_SCHEMES}
           onChange={(next) => patchSettings({ torrentProxyUrl: next })}
           onCommit={applyProxy}
-          test={() => torrentApi.testSourceConnection("nyaa", proxyUrl ?? "")}
+          test={async () => {
+            const probe = await torrentApi.testTorrentProxy(proxyUrl ?? "");
+            return `${probe.latencyMs} ms`;
+          }}
           testOkLabel={t("settings.torrent.proxy.test.ok")}
           testFailLabel={t("settings.torrent.proxy.test.fail")}
-          testDisabled={!isOnline}
+          testDisabled={!isOnline || !proxyUrl}
         />
+        <span className="text-hint pl-[152px] text-xs">
+          {t("settings.proxy.torrent.coverage")}
+        </span>
+        {activeProxy.isSuccess && (
+          <span className="text-hint pl-[152px] text-xs">
+            {activeProxy.data
+              ? t("settings.proxy.torrent.active", { proxy: activeProxy.data })
+              : t("settings.proxy.torrent.inactive")}
+          </span>
+        )}
+        <div className="flex flex-wrap items-center gap-2 pl-[152px]">
+          <span className="text-hint text-xs">{t("settings.torrent.session.restart.note")}</span>
+          <Button
+            className="h-6 px-2 text-xs"
+            onClick={() => {
+              void torrentApi.restartApp();
+            }}
+          >
+            {t("settings.torrent.session.restart.now")}
+          </Button>
+        </div>
       </div>
     </section>
   );

@@ -10,6 +10,7 @@ const ERROR_KEYS: Record<RutrackerErrorCode, TranslationKey> = {
   cookies_invalid: "search.rutracker.err.cookies.invalid",
   cookies_parse: "search.rutracker.err.cookies.parse",
   proxy_invalid: "search.rutracker.err.proxy.invalid",
+  proxy_socks5_auth_unsupported: "search.rutracker.err.proxy.socks5.auth",
   webview_open: "search.rutracker.err.webview.open",
   webview_save: "search.rutracker.err.webview.save",
   webview_not_found: "search.rutracker.err.webview.not.found",

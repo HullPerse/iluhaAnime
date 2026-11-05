@@ -4,11 +4,92 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use tokio::sync::RwLock;
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+/// One indexed file.
+///
+/// The index is filled by a walk and then only ever read, so the entry keeps
+/// its strings boxed (no spare capacity to grow into) and stores the search
+/// key in the case the matcher needs instead of lowercasing every name on
+/// every keystroke. `name` is derived from `path` when the entry is serialized
+/// for the frontend rather than stored twice.
+#[derive(Clone, Debug)]
 pub struct FileEntry {
-    pub path: String,
-    pub name: String,
+    pub path: Box<str>,
+    name_lower: Box<str>,
     pub size: u64,
+}
+
+impl FileEntry {
+    #[must_use]
+    pub fn new(path: impl Into<String>, size: u64) -> Self {
+        let path = path.into();
+        let name_lower = file_name(&path).to_lowercase();
+        Self {
+            path: path.into_boxed_str(),
+            name_lower: name_lower.into_boxed_str(),
+            size,
+        }
+    }
+
+    /// The file name the UI shows, derived from the path.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        file_name(&self.path)
+    }
+
+    /// The name the fuzzy matcher scores against, lowercased once at index
+    /// build time.
+    #[must_use]
+    pub fn name_lower(&self) -> &str {
+        &self.name_lower
+    }
+}
+
+impl serde::Serialize for FileEntry {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut entry = serializer.serialize_struct("FileEntry", 3)?;
+        entry.serialize_field("path", &self.path)?;
+        entry.serialize_field("name", self.name())?;
+        entry.serialize_field("size", &self.size)?;
+        entry.end()
+    }
+}
+
+/// The last component of an indexed path, without touching the filesystem.
+fn file_name(path: &str) -> &str {
+    path.rsplit(['/', '\\']).next().unwrap_or(path)
+}
+
+/// Case-insensitive extension membership without lowercasing the extension
+/// into a fresh `String` for every indexed file on every search.
+fn extension_in(set: &HashSet<String>, extension: &str) -> bool {
+    if extension.is_ascii() {
+        return set
+            .iter()
+            .any(|known| known.eq_ignore_ascii_case(extension));
+    }
+    set.contains(&extension.to_lowercase())
+}
+
+/// Compares a path with a key built by [`index_key`] without building a second
+/// key: a watcher batch walks the whole index, and a temporary string per
+/// entry per batch is the single largest allocation there.
+fn matches_index_key(path: &str, key: &str) -> bool {
+    let mut path_chars = path.chars().flat_map(char::to_lowercase).map(|character| {
+        if character == '\\' {
+            '/'
+        } else {
+            character
+        }
+    });
+    let mut key_chars = key.chars();
+    loop {
+        match (path_chars.next(), key_chars.next()) {
+            (None, None) => return true,
+            (Some(left), Some(right)) if left == right => {}
+            _ => return false,
+        }
+    }
 }
 
 type FileIndex = Arc<RwLock<Vec<FileEntry>>>;
@@ -46,15 +127,7 @@ fn file_entry_at(path: &str, ext_list: &[String]) -> Option<FileEntry> {
     if !meta.is_file() {
         return None;
     }
-    Some(FileEntry {
-        path: path.to_string(),
-        name: Path::new(path)
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string(),
-        size: meta.len(),
-    })
+    Some(FileEntry::new(path, meta.len()))
 }
 
 fn clean_extension(raw: &str) -> Option<String> {
@@ -279,11 +352,6 @@ impl FileIndexer {
                 continue;
             }
 
-            let name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
             let size = match std::fs::metadata(&path) {
                 Ok(meta) => meta.len(),
                 Err(error) => {
@@ -295,11 +363,7 @@ impl FileIndexer {
                     continue;
                 }
             };
-            entries.push(FileEntry {
-                path: path.to_string_lossy().to_string(),
-                name,
-                size,
-            });
+            entries.push(FileEntry::new(path.to_string_lossy().as_ref(), size));
         }
         if skipped > 0 {
             tracing::warn!("file scan: skipped {skipped} unreadable entries in {root}");
@@ -348,7 +412,7 @@ impl FileIndexer {
     ) -> Result<(), String> {
         let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
         let index = self.index.clone();
-        let entries =
+        let mut entries =
             tokio::task::spawn_blocking(move || Self::scan_paths(paths, extensions, threads))
                 .await
                 .map_err(|e| format!("index task failed: {e}"))??;
@@ -357,6 +421,9 @@ impl FileIndexer {
             return Ok(());
         }
 
+        // The walk grows its vector by doubling; the index lives as long as
+        // the app, so the spare capacity is returned instead of kept.
+        entries.shrink_to_fit();
         let mut current = index.write().await;
         *current = entries;
         drop(current);
@@ -405,7 +472,7 @@ impl FileIndexer {
         current.retain(|entry| {
             !roots
                 .iter()
-                .any(|root| Path::new(&entry.path).starts_with(root))
+                .any(|root| Path::new(entry.path.as_ref()).starts_with(root))
         });
         current.extend(entries.iter().cloned());
         drop(current);
@@ -434,7 +501,7 @@ impl FileIndexer {
             .filter(|extension| !extension.is_empty())
             .collect();
         let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
-        let touched: HashSet<String> = removals
+        let touched: Vec<String> = removals
             .iter()
             .chain(upserts.iter())
             .map(|path| index_key(path))
@@ -448,7 +515,11 @@ impl FileIndexer {
             return Vec::new();
         }
         let mut current = self.index.write().await;
-        current.retain(|entry| !touched.contains(&index_key(&entry.path)));
+        current.retain(|entry| {
+            !touched
+                .iter()
+                .any(|key| matches_index_key(&entry.path, key))
+        });
         current.extend(fresh.iter().cloned());
         drop(current);
         fresh
@@ -469,6 +540,7 @@ impl FileIndexer {
         let excluded_ext: HashSet<String> = parsed.excluded_extensions.into_iter().collect();
         let limit = limit.min(500);
 
+        let mut scratch = SearchScratch::new(&text);
         let index = self.index.read().await;
         let mut results: Vec<(i32, &FileEntry)> = index
             .iter()
@@ -483,18 +555,16 @@ impl FileIndexer {
                 }
                 match entry.path.rsplit_once('.') {
                     Some((_, extension)) => {
-                        let extension = extension.to_lowercase();
-                        if excluded_ext.contains(&extension) {
+                        if extension_in(&excluded_ext, extension) {
                             return false;
                         }
-                        ext_set.is_empty() || ext_set.contains(&extension)
+                        ext_set.is_empty() || extension_in(&ext_set, extension)
                     }
                     None => ext_set.is_empty(),
                 }
             })
             .filter_map(|entry| {
-                let name = entry.name.to_lowercase();
-                let score = fuzzy_file_score(&text, &name)?;
+                let score = fuzzy_file_score(&text, entry.name_lower(), &mut scratch)?;
                 Some((score, entry))
             })
             .collect();
@@ -525,12 +595,20 @@ fn substring_score(query: &str, target: &str) -> Option<i32> {
     }
     Some(score)
 }
-fn levenshtein_capped(a: &[char], b: &[char], cap: usize) -> Option<usize> {
+fn levenshtein_capped(
+    a: &[char],
+    b: &[char],
+    cap: usize,
+    prev: &mut Vec<usize>,
+    curr: &mut Vec<usize>,
+) -> Option<usize> {
     if a.len().abs_diff(b.len()) > cap {
         return None;
     }
-    let mut prev: Vec<usize> = (0..=b.len()).collect();
-    let mut curr = vec![0; b.len() + 1];
+    prev.clear();
+    prev.extend(0..=b.len());
+    curr.clear();
+    curr.resize(b.len() + 1, 0);
     for (i, &ac) in a.iter().enumerate() {
         curr[0] = i + 1;
         let mut row_min = curr[0];
@@ -542,32 +620,66 @@ fn levenshtein_capped(a: &[char], b: &[char], cap: usize) -> Option<usize> {
         if row_min > cap {
             return None;
         }
-        std::mem::swap(&mut prev, &mut curr);
+        std::mem::swap(prev, curr);
     }
     let distance = prev[b.len()];
     (distance <= cap).then_some(distance)
 }
-fn fuzzy_file_score(query: &str, target: &str) -> Option<i32> {
+
+/// Buffers one search reuses across every entry.
+///
+/// A search scores the whole index, so a fresh `Vec<char>` per name and two
+/// more per distance calculation turned one keystroke into tens of thousands
+/// of allocations. The buffers are cleared, never reallocated.
+pub struct SearchScratch {
+    query_chars: Vec<char>,
+    target_chars: Vec<char>,
+    prev: Vec<usize>,
+    curr: Vec<usize>,
+}
+
+impl SearchScratch {
+    fn new(query: &str) -> Self {
+        Self {
+            query_chars: query.chars().collect(),
+            target_chars: Vec::new(),
+            prev: Vec::new(),
+            curr: Vec::new(),
+        }
+    }
+
+    fn distance_to(&mut self, text: &str, cap: usize) -> Option<usize> {
+        self.target_chars.clear();
+        self.target_chars.extend(text.chars());
+        let Self {
+            query_chars,
+            target_chars,
+            prev,
+            curr,
+        } = self;
+        levenshtein_capped(query_chars, target_chars, cap, prev, curr)
+    }
+}
+
+fn fuzzy_file_score(query: &str, target: &str, scratch: &mut SearchScratch) -> Option<i32> {
     if let Some(score) = substring_score(query, target) {
         return Some(score);
     }
-    let query_chars: Vec<char> = query.chars().collect();
-    if query_chars.len() < 3 {
+    if scratch.query_chars.len() < 3 {
         return None;
     }
-    let threshold = (query_chars.len() / 4).clamp(1, 3);
+    let threshold = (scratch.query_chars.len() / 4).clamp(1, 3);
     let stem = target.rsplit_once('.').map_or(target, |(stem, _)| stem);
     let mut best: Option<usize> = None;
-    let mut consider = |text: &str| {
-        let chars: Vec<char> = text.chars().collect();
-        if let Some(distance) = levenshtein_capped(&query_chars, &chars, threshold) {
-            best = Some(best.map_or(distance, |known| known.min(distance)));
+    let consider = |text: &str, best: &mut Option<usize>, scratch: &mut SearchScratch| {
+        if let Some(distance) = scratch.distance_to(text, threshold) {
+            *best = Some(best.map_or(distance, |known| known.min(distance)));
         }
     };
-    consider(stem);
+    consider(stem, &mut best, scratch);
     for token in stem.split(|c: char| !c.is_alphanumeric()) {
         if !token.is_empty() {
-            consider(token);
+            consider(token, &mut best, scratch);
         }
     }
     best.map(|distance| 600 - distance as i32 * 150)
@@ -576,7 +688,7 @@ fn fuzzy_file_score(query: &str, target: &str) -> Option<i32> {
 #[cfg(test)]
 mod tests {
     use super::FileIndexer;
-    use super::{fuzzy_file_score, index_key, parse_file_query, substring_score};
+    use super::{fuzzy_file_score, index_key, parse_file_query, substring_score, SearchScratch};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static FIXTURE_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -620,20 +732,65 @@ mod tests {
     fn handles_unicode_without_slicing_a_character() {
         assert_eq!(substring_score("ан", "тест ан"), Some(1200));
     }
+    fn fuzzy(query: &str, target: &str) -> Option<i32> {
+        fuzzy_file_score(query, target, &mut SearchScratch::new(query))
+    }
+
     #[test]
     fn typo_matches_word_with_single_deletion() {
-        assert_eq!(fuzzy_file_score("friren", "frieren s01e01.mkv"), Some(450));
+        assert_eq!(fuzzy("friren", "frieren s01e01.mkv"), Some(450));
     }
     #[test]
     fn typo_scores_below_substring_match() {
-        let typo = fuzzy_file_score("friren", "frieren s01e01.mkv");
+        let typo = fuzzy("friren", "frieren s01e01.mkv");
         let exact = substring_score("frieren", "frieren s01e01.mkv");
         assert!(typo < exact);
     }
     #[test]
     fn rejects_distant_and_short_queries() {
-        assert_eq!(fuzzy_file_score("xyz", "frieren.mkv"), None);
-        assert_eq!(fuzzy_file_score("ab", "xb"), None);
+        assert_eq!(fuzzy("xyz", "frieren.mkv"), None);
+        assert_eq!(fuzzy("ab", "xb"), None);
+    }
+
+    /// One scratch shared across a whole index must score exactly like a fresh
+    /// one per call: the buffers are reused, the answers are not.
+    #[test]
+    fn reused_scratch_scores_like_a_fresh_one() {
+        let names = [
+            "frieren s01e01.mkv",
+            "bocchi the rock - 04.mkv",
+            "некоторые русские имена.mkv",
+            "[SubsPlease] Show - 12 [1080p].mkv",
+        ];
+        let mut shared = SearchScratch::new("friren");
+        for name in names {
+            assert_eq!(
+                fuzzy_file_score("friren", name, &mut shared),
+                fuzzy("friren", name),
+                "{name}"
+            );
+        }
+        let mut empty = SearchScratch::new("");
+        assert_eq!(fuzzy_file_score("", names[0], &mut empty), Some(0));
+    }
+
+    /// Watcher batches compare paths against keys without materializing a key
+    /// per index entry, so the comparison has to keep Windows' case and
+    /// separator insensitivity.
+    #[test]
+    fn index_key_comparison_matches_the_key_builder() {
+        let path = "D:\\Anime\\Frieren\\S01E01.MKV";
+        let key = index_key(path);
+        assert!(super::matches_index_key(path, &key));
+        assert!(super::matches_index_key(
+            "d:/anime/frieren/s01e01.mkv",
+            &key
+        ));
+        assert!(!super::matches_index_key(
+            "D:\\Anime\\Frieren\\S01E02.MKV",
+            &key
+        ));
+        assert!(!super::matches_index_key(path, &index_key("D:\\Anime")));
     }
 
     #[test]
@@ -703,7 +860,7 @@ mod tests {
         remove_fixture(&root);
         // 2 dirs x 10 mkv + 1 uppercase MP4; the .nfo files are skipped.
         assert_eq!(entries.len(), 21);
-        assert!(entries.iter().any(|entry| entry.name == "movie.MP4"));
+        assert!(entries.iter().any(|entry| entry.name() == "movie.MP4"));
     }
 
     #[test]
@@ -753,7 +910,7 @@ mod tests {
             runtime.block_on(indexer.apply_paths(vec![added_path.clone()], Vec::new(), ext_list()));
         assert_eq!(fresh.len(), 1);
         assert_eq!(fresh[0].size, 5);
-        assert_eq!(fresh[0].name, "episode.mkv");
+        assert_eq!(fresh[0].name(), "episode.mkv");
         let after = runtime.block_on(indexer.snapshot());
         assert_eq!(after.len(), 22);
         assert_eq!(
@@ -886,11 +1043,7 @@ mod tests {
             let mut index = indexer.index.write().await;
             *index = entries
                 .iter()
-                .map(|(path, name)| super::FileEntry {
-                    path: (*path).to_string(),
-                    name: (*name).to_string(),
-                    size: 1,
-                })
+                .map(|(path, _name)| super::FileEntry::new(*path, 1))
                 .collect();
         });
         indexer
@@ -912,7 +1065,7 @@ mod tests {
         ]);
         let hits = search_blocking(&indexer, "ep01 !sample/", &[]);
         assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].path, "/lib/Show/ep01.mkv");
+        assert_eq!(hits[0].path.as_ref(), "/lib/Show/ep01.mkv");
     }
 
     #[test]
@@ -923,7 +1076,7 @@ mod tests {
         ]);
         let hits = search_blocking(&indexer, "*.mkv ep01", &[]);
         assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].path, "/lib/Show/ep01.mkv");
+        assert_eq!(hits[0].path.as_ref(), "/lib/Show/ep01.mkv");
     }
 
     #[test]
@@ -934,7 +1087,108 @@ mod tests {
         ]);
         let hits = search_blocking(&indexer, "ep01 !*.nfo", &[]);
         assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].path, "/lib/Show/ep01.mkv");
+        assert_eq!(hits[0].path.as_ref(), "/lib/Show/ep01.mkv");
+    }
+
+    /// Per-keystroke cost of a search over a large library index, and the
+    /// per-entry cost of one watcher batch updating it.
+    #[test]
+    fn search_and_watcher_budget() {
+        use crate::mem_layout::counting::measure;
+
+        let entries: Vec<super::FileEntry> = (0..10_000)
+            .map(|index| {
+                super::FileEntry::new(
+                    format!(
+                        "D:/Anime/Show {:03}/Season {}/[SubsPlease] Show {:03} - {:02} [1080p].mkv",
+                        index % 120,
+                        index % 12 + 1,
+                        index % 120,
+                        index % 48 + 1
+                    ),
+                    1,
+                )
+            })
+            .collect();
+        let indexer = FileIndexer::new();
+        test_runtime().block_on(async {
+            let mut index = indexer.index.write().await;
+            *index = entries.clone();
+        });
+
+        let _warm = search_blocking(&indexer, "show 012", &[]);
+        let (hits, search) = measure(|| search_blocking(&indexer, "show 012", &[]));
+        println!(
+            "search(10k): allocs={} bytes={} live={} hits={}",
+            search.allocs,
+            search.bytes,
+            search.live_bytes,
+            hits.len()
+        );
+
+        let names: Vec<&str> = entries.iter().map(super::FileEntry::name).collect();
+        let started = std::time::Instant::now();
+        for _ in 0..20 {
+            for name in &names {
+                std::hint::black_box(name.to_lowercase());
+            }
+        }
+        println!(
+            "lowercase every name(10k, removed from search): {:.2}ms",
+            started.elapsed().as_secs_f64() * 1_000.0 / 20.0
+        );
+
+        let started = std::time::Instant::now();
+        for _ in 0..20 {
+            std::hint::black_box(search_blocking(&indexer, "show 012", &[]));
+        }
+        println!(
+            "search(10k): {:.2}ms per query",
+            started.elapsed().as_secs_f64() * 1_000.0 / 20.0
+        );
+
+        let touched: Vec<String> = (0..8)
+            .map(|index| super::index_key(&entries[index].path))
+            .collect();
+        let (kept, watcher) = measure(|| {
+            entries
+                .iter()
+                .filter(|entry| {
+                    !touched
+                        .iter()
+                        .any(|key| super::matches_index_key(&entry.path, key))
+                })
+                .count()
+        });
+        println!(
+            "watcher retain(10k): allocs={} bytes={} kept={}",
+            watcher.allocs, watcher.bytes, kept
+        );
+        assert!(hits.len() <= 50);
+        // Only the returned entries are copied: one query over the whole index
+        // used to allocate per scanned file (names, extensions, distance
+        // buffers).
+        assert!(
+            search.allocs < 500,
+            "search allocates {} times per query",
+            search.allocs
+        );
+        assert!(
+            watcher.allocs < 16,
+            "retain allocates {} times per batch",
+            watcher.allocs
+        );
+    }
+
+    /// The frontend reads `path`, `name` and `size` off every entry; the name
+    /// is derived at serialization time rather than stored.
+    #[test]
+    fn serializes_the_derived_name_for_the_frontend() {
+        let entry = super::FileEntry::new("D:/Anime/Frieren/S01E01.mkv", 42);
+        let json = serde_json::to_value(&entry).expect("entry should serialize");
+        assert_eq!(json["path"], "D:/Anime/Frieren/S01E01.mkv");
+        assert_eq!(json["name"], "S01E01.mkv");
+        assert_eq!(json["size"], 42);
     }
 
     #[test]
@@ -945,7 +1199,7 @@ mod tests {
             ("/lib/Show/notes.nfo", "notes.nfo"),
         ]);
         let hits = search_blocking(&indexer, "ext:mp4 e", &["mkv".to_string()]);
-        let names: Vec<_> = hits.iter().map(|entry| entry.name.as_str()).collect();
+        let names: Vec<_> = hits.iter().map(super::FileEntry::name).collect();
         assert!(names.contains(&"ep01.mkv"));
         assert!(names.contains(&"movie.mp4"));
         assert!(!names.contains(&"notes.nfo"));

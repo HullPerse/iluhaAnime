@@ -9,6 +9,8 @@ const changelog512 = {
     'Removed the redundant "add media" button from the anime modal since the header already offers the collection wizard',
   "changelog.5_1_2.changed.collection.hidden_quickadd":
     "The quick-add button is hidden when the Collection tab is disabled in settings",
+  "changelog.5_1_2.changed.player.local_index":
+    "The local library index is smaller, and file search and folder updates no longer allocate a string per indexed file",
   "changelog.5_1_2.fixed.player.osd":
     "The player indicator for delays, tracks and speed now fades out on its own instead of staying until the next change",
   "changelog.5_1_2.fixed.torrents.tracker_covers":

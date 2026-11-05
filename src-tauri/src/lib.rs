@@ -246,6 +246,8 @@ mod file_index;
 mod game;
 mod host_stats;
 mod jikan;
+#[cfg(test)]
+mod mem_layout;
 mod player;
 mod poster;
 mod progress;
@@ -1719,8 +1721,8 @@ fn local_index_row(entry: &file_index::FileEntry) -> app_db::UnifiedIndexEntryIn
         id: format!("local:{}", entry.path),
         kind: "local_file".to_string(),
         scope: "player".to_string(),
-        value: entry.name.clone(),
-        subtitle: Some(entry.path.clone()),
+        value: entry.name().to_string(),
+        subtitle: Some(entry.path.to_string()),
         metadata: Some(serde_json::json!({ "size": entry.size })),
         bump_use: false,
     }
@@ -1772,7 +1774,7 @@ async fn update_file_index_paths(
         .await;
     // An upsert that no longer exists on disk (or no longer matches an
     // extension) drops the row it may have left behind.
-    let fresh_keys: HashSet<&str> = fresh.iter().map(|entry| entry.path.as_str()).collect();
+    let fresh_keys: HashSet<&str> = fresh.iter().map(|entry| entry.path.as_ref()).collect();
     let stale: Vec<String> = upserts
         .into_iter()
         .filter(|path| !fresh_keys.contains(path.as_str()))
@@ -1783,8 +1785,8 @@ async fn update_file_index_paths(
     Ok(fresh
         .into_iter()
         .map(|entry| VideoFileEntry {
-            path: entry.path,
-            name: entry.name,
+            name: entry.name().to_string(),
+            path: entry.path.into_string(),
             size: entry.size,
         })
         .collect())
@@ -1831,8 +1833,8 @@ async fn refresh_file_index(
     Ok(entries
         .into_iter()
         .map(|entry| VideoFileEntry {
-            path: entry.path,
-            name: entry.name,
+            name: entry.name().to_string(),
+            path: entry.path.into_string(),
             size: entry.size,
         })
         .collect())

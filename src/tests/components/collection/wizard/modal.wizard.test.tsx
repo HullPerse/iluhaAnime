@@ -320,12 +320,11 @@ describe("WizardModal discard guard", () => {
     await user.type(screen.getByLabelText("Title"), "Frieren");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByText("Discard changes?")).toBeDefined();
-    const cancels = screen.getAllByRole("button", { name: "Cancel" });
-    await user.click(cancels.at(-1) as HTMLElement);
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(screen.queryByText("Discard changes?")).toBeNull();
     expect(screen.getByDisplayValue("Frieren")).toBeDefined();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByRole("button", { name: "Discard" }));
+    await user.click(screen.getByRole("button", { name: "Close without saving" }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

@@ -9,7 +9,7 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 
-use crate::scrapers::clients::resolve_proxy;
+use crate::scrapers::clients::{cookies_to_header, resolve_proxy};
 
 const MAX_DITHER_BAKE_BYTES: u64 = 512 * 1024 * 1024;
 
@@ -647,21 +647,59 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
     get_user_image(app, id)
 }
 
-fn client_for_image_proxy(proxy: Option<&str>) -> Result<reqwest::Client, String> {
+fn client_for_image_proxy(
+    proxy: Option<&str>,
+    user_agent: &str,
+) -> Result<reqwest::Client, String> {
     if let Some(url) = proxy {
         let proxy = reqwest::Proxy::all(url).map_err(|e| format!("Invalid proxy URL: {e}"))?;
         reqwest::Client::builder()
-            .user_agent("iluhaAnime/3.0")
+            .user_agent(user_agent)
             .proxy(proxy)
             .timeout(Duration::from_secs(15))
             .build()
             .map_err(|e| format!("image http client (proxy): {e}"))
     } else {
         reqwest::Client::builder()
-            .user_agent("iluhaAnime/3.0")
+            .user_agent(user_agent)
             .timeout(Duration::from_secs(15))
             .build()
             .map_err(|e| format!("image http client: {e}"))
+    }
+}
+
+struct SiteImageAuth {
+    referer: String,
+    cookie: String,
+    user_agent: String,
+}
+
+fn site_for_image(url: &str) -> Option<&'static str> {
+    let parsed = url::Url::parse(url).ok()?;
+    let host = parsed.host_str()?.to_lowercase();
+    let on = |domain: &str| host == domain || host.ends_with(&format!(".{domain}"));
+    if on("rutracker.org") {
+        return Some("rutracker");
+    }
+    if on("erai-raws.info") {
+        return Some("erai-raws");
+    }
+    None
+}
+
+fn site_image_auth(app: &tauri::AppHandle, url: &str) -> Option<SiteImageAuth> {
+    match site_for_image(url)? {
+        "rutracker" => Some(SiteImageAuth {
+            referer: "https://rutracker.org/forum/index.php".to_string(),
+            cookie: cookies_to_header(&crate::auth::load_rutracker_cookies(app)),
+            user_agent: crate::auth::load_rutracker_user_agent(app)
+                .unwrap_or_else(|| "iluhaAnime/3.0".to_string()),
+        }),
+        _ => Some(SiteImageAuth {
+            referer: "https://www.erai-raws.info/".to_string(),
+            cookie: cookies_to_header(&crate::auth::load_erai_cookies()),
+            user_agent: "iluhaAnime/3.0".to_string(),
+        }),
     }
 }
 
@@ -685,9 +723,19 @@ pub async fn download_remote_image(
     }
     let name_hint = name_hint.or(nameHint);
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let client = client_for_image_proxy(proxy.as_deref())?;
-    let response = client
-        .get(url)
+    let site_auth = site_image_auth(&app, url);
+    let user_agent = site_auth
+        .as_ref()
+        .map_or("iluhaAnime/3.0", |auth| auth.user_agent.as_str());
+    let client = client_for_image_proxy(proxy.as_deref(), user_agent)?;
+    let mut request = client.get(url);
+    if let Some(auth) = &site_auth {
+        request = request.header(reqwest::header::REFERER, &auth.referer);
+        if !auth.cookie.is_empty() {
+            request = request.header(reqwest::header::COOKIE, &auth.cookie);
+        }
+    }
+    let response = request
         .send()
         .await
         .map_err(|e| format!("image download: {e}"))?;
@@ -800,7 +848,7 @@ pub async fn fetch_remote_image(
         return Ok(image);
     }
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let client = client_for_image_proxy(proxy.as_deref())?;
+    let client = client_for_image_proxy(proxy.as_deref(), "iluhaAnime/3.0")?;
     let mut request = client.get(url);
     // Some cover CDNs (AnimeLib's imglib) answer 403 unless the site's own
     // page is named as the referer; the webview cannot send one itself.

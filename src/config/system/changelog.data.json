@@ -1,6 +1,51 @@
 {
   "changelog": [
     {
+      "version": "5.1.2",
+      "added": [
+        {
+          "key": "changelog.5_1_2.added.player.f11",
+          "scope": "player"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_1_2.changed.player.theme_clean",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_1_2.changed.player.escape",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_1_2.changed.anilist.add_media_removed",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_1_2.changed.collection.hidden_quickadd",
+          "scope": "collection"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_1_2.fixed.player.osd",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_1_2.fixed.torrents.tracker_covers",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_1_2.fixed.anilist.score_zero",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_1_2.fixed.collection.discard_prompt",
+          "scope": "collection"
+        }
+      ]
+    },
+    {
       "version": "5.1.0",
       "added": [
         {

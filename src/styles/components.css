@@ -492,6 +492,15 @@ html[data-theme-titlebar-art="on"] .ui-titlebar {
     linear-gradient(to bottom, var(--titlebar-from), var(--titlebar-to));
 }
 
+html[data-player-window][data-theme-overlay="grid"] body::after,
+html[data-player-window][data-theme-overlay="scanlines"] body::after {
+  content: none;
+}
+
+html[data-player-window][data-theme-titlebar-art="on"] .ui-titlebar {
+  background-image: linear-gradient(to bottom, var(--titlebar-from), var(--titlebar-to));
+}
+
 html[data-theme="yorha"] ::selection {
   background: #57544a;
   color: #dad4bb;

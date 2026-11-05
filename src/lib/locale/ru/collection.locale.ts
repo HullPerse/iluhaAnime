@@ -79,6 +79,8 @@ const collection = {
     "Элементы сохранят этот статус, но сам статус восстановить нельзя.",
   "collection.wizard.discard.title": "Отменить изменения?",
   "collection.wizard.discard.message": "Несохранённые изменения будут потеряны.",
+  "collection.wizard.discard.keep": "Продолжить редактирование",
+  "collection.wizard.discard.confirm": "Закрыть без сохранения",
   "collection.wizard.duplicate.title": "Медиа с таким названием уже есть",
   "collection.wizard.cover.invalid.url": "Введите http(s) или data: ссылку на изображение",
   "collection.sortdir": "Сортировка",

@@ -76,6 +76,8 @@ const collection = {
     "Items with this status will keep it, but the status cannot be restored.",
   "collection.wizard.discard.title": "Discard changes?",
   "collection.wizard.discard.message": "Unsaved changes will be lost.",
+  "collection.wizard.discard.keep": "Keep editing",
+  "collection.wizard.discard.confirm": "Close without saving",
   "collection.wizard.duplicate.title": "Media with this title already exists",
   "collection.wizard.cover.invalid.url": "Enter an http(s) or data: image URL",
   "collection.sort.name": "Name",

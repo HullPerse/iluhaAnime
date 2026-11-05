@@ -52,16 +52,18 @@ export function WizardFooter({
         </div>
       </div>
       {confirmDiscard && (
-        <div className="bg-primary absolute inset-0 flex flex-col p-2">
+        <div className="bg-primary absolute inset-0 z-30 flex flex-col p-2">
           <p className="windows95-text text-text font-bold">
             {t("collection.wizard.discard.title")}
           </p>
           <p className="windows95-text text-text mt-1">{t("collection.wizard.discard.message")}</p>
           <div className="mt-auto ml-auto flex justify-end gap-1">
             <Button onClick={cancelDiscard} autoFocus>
-              {t("common.cancel")}
+              {t("collection.wizard.discard.keep")}
             </Button>
-            <Button onClick={onClose}>{t("common.discard")}</Button>
+            <Button variant="destructive" onClick={onClose}>
+              {t("collection.wizard.discard.confirm")}
+            </Button>
           </div>
         </div>
       )}

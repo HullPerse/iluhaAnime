@@ -170,7 +170,7 @@ describe("AniListActionControls score formats", () => {
     expect(mockInvoke).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
   });
 
-  it("clears the score by emptying the field", async () => {
+  it("clears the score by emptying the field and saves zero", async () => {
     const user = userEvent.setup();
     renderControls("POINT_100", 85);
     await user.clear(screen.getByLabelText("Score:"));
@@ -179,7 +179,7 @@ describe("AniListActionControls score formats", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ mediaId: MEDIA_ID, score: null })
+        expect.objectContaining({ mediaId: MEDIA_ID, score: 0 })
       )
     );
   });

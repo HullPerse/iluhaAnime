@@ -28,11 +28,9 @@ import {
   validateScoreInput,
 } from "@/lib/anilist/anilistScore.utils";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
-import { buildAnilistPrefill } from "@/lib/core/import.utils";
 import { queryKeys } from "@/lib/core/keys.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
-import { requestWizardPrefill } from "@/store/collection.store";
 import type { AniMedia, AnilistRouteData } from "@/types/anilist/anilist";
 import type { ListEntryDraft } from "@/types/anilist/listEntry";
 
@@ -105,7 +103,7 @@ function AniListActionControls({
       status: editStatus,
       progressInput: editProgress,
       maxEpisodes,
-      score: scoreCheck.value,
+      score: scoreCheck.value ?? 0,
       notesInput: editNotes,
       repeatInput: editRepeat,
       isPrivate: editPrivate,
@@ -323,16 +321,6 @@ function AniListActionControls({
               onError={setSaveError}
             />
           )}
-          <Button
-            variant="outline"
-            onClick={() =>
-              requestWizardPrefill(
-                buildAnilistPrefill(anime, listEntry?.list_status ?? null, listEntry?.score, format)
-              )
-            }
-          >
-            {t("collection.add.media")}
-          </Button>
           <Button onClick={handleSave} loading={saving}>
             {t("anilist.controls.save")}
           </Button>

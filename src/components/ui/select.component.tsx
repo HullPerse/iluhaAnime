@@ -32,6 +32,7 @@ function Select<T extends string = string>({
 
   const showSearch = searchable ?? options.length > 8;
   const selectedOption = options.find((o) => o.value === value);
+  const items = options.map((o) => ({ label: o.label, value: o.value }));
 
   const filteredOptions = useMemo(() => {
     if (!showSearch || !search) return options;
@@ -59,6 +60,7 @@ function Select<T extends string = string>({
 
   return (
     <BaseSelect.Root
+      items={items}
       value={value}
       onOpenChange={handleOpenChange}
       onValueChange={(v) => {

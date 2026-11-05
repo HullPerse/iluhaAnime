@@ -391,6 +391,19 @@ function PlayerComponent() {
       viewMode,
     });
 
+  const autoHideBeforeFullscreen = useRef<boolean | null>(null);
+  const onFullscreenKey = useCallback(() => {
+    if (fullscreen) {
+      const restore = autoHideBeforeFullscreen.current;
+      autoHideBeforeFullscreen.current = null;
+      if (restore !== null) setAutoHide(restore);
+    } else {
+      autoHideBeforeFullscreen.current = playerAtoms.autoHide.get();
+      if (!playerAtoms.autoHide.get()) setAutoHide(true);
+    }
+    ignore(toggleFullscreen());
+  }, [fullscreen, toggleFullscreen]);
+
   const onVideoClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (consumeVideoDrag()) return;
@@ -564,6 +577,7 @@ function PlayerComponent() {
       <Keyboard
         onAction={onKeyboardAction}
         onWheel={(direction) => onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)}
+        onFullscreenKey={onFullscreenKey}
       />
 
       {chrome.showHeader && (

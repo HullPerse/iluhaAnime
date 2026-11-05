@@ -32,7 +32,8 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
   const subTrack = tracks.find((track) => track.type === "sub" && track.selected);
 
   const [visible, setVisible] = useState<boolean>(false);
-  const [osdElement, setOsdElement] = useState<HTMLDivElement | null>(null);
+  const osdElementRef = useRef<HTMLDivElement | null>(null);
+  const animateRef = useRef<boolean>(animateOsd);
   const timerRef = useRef<ScheduledTask | null>(null);
   const previousRef = useRef<{
     audio: number | undefined;
@@ -53,6 +54,10 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
     muted: false,
     alwaysOnTop: false,
   });
+
+  useEffect(() => {
+    animateRef.current = animateOsd;
+  }, [animateOsd]);
 
   useEffect(() => {
     const previous = previousRef.current;
@@ -82,7 +87,8 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
     setVisible(true);
     timerRef.current?.cancel();
     timerRef.current = scheduleTask("timeout", OSD_TIMEOUT, () => {
-      if (!animateOsd || osdElement === null) {
+      const osdElement = osdElementRef.current;
+      if (!animateRef.current || osdElement === null) {
         setVisible(false);
         return;
       }
@@ -109,8 +115,6 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
     volume,
     muted,
     alwaysOnTop,
-    animateOsd,
-    osdElement,
   ]);
 
   if (!visible || !path) return null;
@@ -119,7 +123,9 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
 
   return (
     <div
-      ref={setOsdElement}
+      ref={(element) => {
+        osdElementRef.current = element;
+      }}
       className={`windows95-border windows95-font bg-primary/95 absolute top-4 right-4 z-20 min-w-48 p-2 text-left text-sm ${animateOsd ? "transition-opacity duration-150" : ""}`}
     >
       {audioTrack && (

@@ -9,17 +9,34 @@ import { isInsideScrollable } from "@/lib/ui/scroll.utils";
 function Keyboard({
   onAction,
   onWheel,
+  onFullscreenKey,
 }: {
   onAction: (action: KeybindAction) => void;
   onWheel?: (direction: number) => void;
+  onFullscreenKey?: () => void;
 }) {
   const actionRef = useRef<(action: KeybindAction) => void>(onAction);
   const wheelRef = useRef<((direction: number) => void) | undefined>(onWheel);
+  const fullscreenRef = useRef<(() => void) | undefined>(onFullscreenKey);
 
   useEffect(() => {
     actionRef.current = onAction;
     wheelRef.current = onWheel;
-  }, [onAction, onWheel]);
+    fullscreenRef.current = onFullscreenKey;
+  }, [onAction, onWheel, onFullscreenKey]);
+
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key !== "F11" || event.repeat) return;
+      if (shouldIgnorePlayerHotkeys(event)) return;
+      event.preventDefault();
+      fullscreenRef.current?.();
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+    };
+  }, []);
 
   useResolvedHotkeys<KeybindAction>(PLAYER_HOTKEYS, {
     ignore: (event) => shouldIgnorePlayerHotkeys(event),

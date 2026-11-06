@@ -29,7 +29,7 @@ import {
   extractPaletteFromPixels,
 } from "@/lib/graphics/dither.utils";
 import { toUserImage } from "@/lib/graphics/image.utils";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import type { DitherEffectOptions, DitherPresetId } from "@/types/graphics/dither";
 import type { UserImage } from "@/types/core/userimage";
 

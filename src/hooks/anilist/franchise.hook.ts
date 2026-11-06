@@ -14,7 +14,7 @@ import {
   panCameraBy,
   screenToWorld,
   zoomCameraAt,
-} from "@/lib/core/camera.utils";
+} from "@/lib/core/player/camera.utils";
 import { createAnimationLoop } from "@hullperse/hp_utils/interval";
 import type { AnimationLoopTask } from "@/types/core/interval";
 import { scheduleTask } from "@hullperse/hp_utils/shared";

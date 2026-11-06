@@ -16,7 +16,7 @@ import { bench, group } from "@pmndrs/labs";
 import * as z from "zod/mini";
 
 import { attemptSync } from "@hullperse/hp_utils/attempt";
-import { parseValue } from "../../src/lib/core/schema.utils";
+import { parseValue } from "../../src/lib/core/persistence/schema.utils";
 
 const PAYLOAD = JSON.stringify({
   f: 1,

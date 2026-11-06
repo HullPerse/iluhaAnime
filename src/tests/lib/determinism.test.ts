@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
-import { filterCollectionItems } from "@/lib/core/filter.utils";
+import { filterCollectionItems } from "@/lib/core/search/filter.utils";
 import { parseMediaPath } from "@hullperse/hp_utils/media/parse";
-import { getSearchSuggestions } from "@/lib/core/suggestions.utils";
+import { getSearchSuggestions } from "@/lib/core/anilist/suggestions.utils";
 import { buildTorrentTree } from "@/lib/torrent/torrentTree.utils";
 import type { CollectionItem } from "@/types/anilist/collection";
 import type { SearchAnimeSuggestion } from "@/types/search/search";
@@ -21,7 +21,7 @@ function shuffled<T>(items: readonly T[], seed: number): T[] {
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(draw() * (i + 1));
     const swap = out[j];
-    out[j] = out[i]!;
+    out[j] = out[i];
     out[i] = swap;
   }
   return out;

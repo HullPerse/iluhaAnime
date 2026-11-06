@@ -65,7 +65,7 @@ const CRC_TABLE = (() => {
 
 function crc32(bytes: Uint8Array): number {
   let crc = 0xff_ff_ff_ff;
-  for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff]! ^ (crc >>> 8);
+  for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
   return (crc ^ 0xff_ff_ff_ff) >>> 0;
 }
 
@@ -119,10 +119,10 @@ function paeth(left: number, up: number, upLeft: number): number {
 
 function unfilter(kind: number, line: Uint8Array, previous: Uint8Array, bytesPerPixel: number) {
   for (let index = 0; index < line.length; index += 1) {
-    const left = index >= bytesPerPixel ? line[index - bytesPerPixel]! : 0;
-    const up = previous[index]!;
-    const upLeft = index >= bytesPerPixel ? previous[index - bytesPerPixel]! : 0;
-    const value = line[index]!;
+    const left = index >= bytesPerPixel ? line[index - bytesPerPixel] : 0;
+    const up = previous[index];
+    const upLeft = index >= bytesPerPixel ? previous[index - bytesPerPixel] : 0;
+    const value = line[index];
     switch (kind) {
       case 0: {
         break;
@@ -167,17 +167,18 @@ function expandPixel(
   transparency: Uint8Array | undefined
 ) {
   if (colour === 3) {
-    const index = line[source]!;
-    rgba[target] = palette![index * 3]!;
-    rgba[target + 1] = palette![index * 3 + 1]!;
-    rgba[target + 2] = palette![index * 3 + 2]!;
-    rgba[target + 3] = transparency && index < transparency.length ? transparency[index]! : 255;
+    if (!palette) throw new Error("PNG palette is missing");
+    const index = line[source];
+    rgba[target] = palette[index * 3];
+    rgba[target + 1] = palette[index * 3 + 1];
+    rgba[target + 2] = palette[index * 3 + 2];
+    rgba[target + 3] = transparency && index < transparency.length ? transparency[index] : 255;
     return;
   }
-  rgba[target] = line[source]!;
-  rgba[target + 1] = line[source + 1]!;
-  rgba[target + 2] = line[source + 2]!;
-  rgba[target + 3] = colour === 6 ? line[source + 3]! : 255;
+  rgba[target] = line[source];
+  rgba[target + 1] = line[source + 1];
+  rgba[target + 2] = line[source + 2];
+  rgba[target + 3] = colour === 6 ? line[source + 3] : 255;
 }
 
 /** Decodes the 8-bit, non-interlaced greyscale-free PNGs the flag CDN serves. */
@@ -214,7 +215,7 @@ function decodePng(bytes: Uint8Array): Raster {
   const previous = new Uint8Array(stride);
   let at = 0;
   for (let row = 0; row < height; row += 1) {
-    const kind = raw[at]!;
+    const kind = raw[at];
     at += 1;
     line.set(raw.subarray(at, at + stride));
     at += stride;
@@ -246,10 +247,10 @@ function encodePng({ width, height, rgba }: Raster): Uint8Array {
       const start = row * stride;
       raw[row * (stride + 1)] = kind;
       for (let index = 0; index < stride; index += 1) {
-        const value = rgba[start + index]!;
-        const left = index >= 4 ? rgba[start + index - 4]! : 0;
-        const up = previous[index]!;
-        const upLeft = index >= 4 ? previous[index - 4]! : 0;
+        const value = rgba[start + index];
+        const left = index >= 4 ? rgba[start + index - 4] : 0;
+        const up = previous[index];
+        const upLeft = index >= 4 ? previous[index - 4] : 0;
         const predicted =
           kind === 1 ? left : kind === 2 ? up : kind === 4 ? paeth(left, up, upLeft) : 0;
         line[index] = (value - predicted) & 0xff;
@@ -297,11 +298,11 @@ async function geoipCountries(path: string): Promise<string[]> {
   if (new TextDecoder().decode(raw.subarray(0, 4)) !== "ILG1") {
     throw new Error(`${path} is not an ILG1 table`);
   }
-  const count = raw[5]! | (raw[6]! << 8);
+  const count = raw[5] | (raw[6] << 8);
   const codes: string[] = [];
   for (let index = 0; index < count; index += 1) {
     const at = 15 + index * 2;
-    codes.push(String.fromCodePoint(raw[at]!, raw[at + 1]!).toLowerCase());
+    codes.push(String.fromCodePoint(raw[at], raw[at + 1]).toLowerCase());
   }
   // XX is the table's "no country" bucket, not a place to put on a map.
   return [...new Set(codes.filter((code) => code !== "xx"))].sort();
@@ -321,7 +322,7 @@ async function main() {
   await Promise.all(
     Array.from({ length: 12 }, async () => {
       while (cursor < codes.length) {
-        const code = codes[cursor++]!;
+        const code = codes[cursor++];
         fetched.push({ code, raster: decodePng(await download(code)) });
       }
     })

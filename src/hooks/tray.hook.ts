@@ -5,7 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useMemo, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/core/tray.utils";
+import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/core/system/tray.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptSequence, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { settingsAtoms } from "@/store/settings.store";

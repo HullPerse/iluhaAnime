@@ -66,8 +66,8 @@ beforeEach(async () => {
     await import("@/store/stream.store");
   const { resetCoverCache } = await import("@/hooks/collection/cache.hook");
   const { resetRemoteImageCache } = await import("@/hooks/remoteImage.hook");
-  const { resetCardCache } = await import("@/lib/core/cardCache.utils");
-  const { resetSymSpellCache } = await import("@/lib/core/suggestions.utils");
+  const { resetCardCache } = await import("@/lib/core/player/cardCache.utils");
+  const { resetSymSpellCache } = await import("@/lib/core/anilist/suggestions.utils");
   const { resetNotificationAtoms } = await import("@/store/notification.store");
   const { resetSettingsAtoms } = await import("@/store/settings.store");
   const { resetModalAtoms } = await import("@/store/modal.store");

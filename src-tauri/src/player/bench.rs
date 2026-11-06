@@ -34,9 +34,10 @@ impl BenchConfig {
             files: std::env::var("ILUHA_BENCH_FILES")
                 .map(|value| split_paths(&value))
                 .unwrap_or_default(),
-            hwdec: std::env::var("ILUHA_BENCH_HWDEC")
-                .map(|value| split_list(&value))
-                .unwrap_or_else(|_| vec!["auto-safe".to_string()]),
+            hwdec: std::env::var("ILUHA_BENCH_HWDEC").map_or_else(
+                |_| vec!["auto-safe".to_string()],
+                |value| split_list(&value),
+            ),
             decode_secs: env_u64("ILUHA_BENCH_DECODE_SECS", 20),
             seeks: env_u64("ILUHA_BENCH_SEEKS", 8) as u32,
         })

@@ -6,7 +6,7 @@ import {
   noteNetworkFailure,
   noteNetworkSuccess,
   probeNetwork,
-} from "@/lib/core/networkHealth.utils";
+} from "@/lib/core/system/networkHealth.utils";
 
 beforeEach(() => {
   noteNetworkSuccess();

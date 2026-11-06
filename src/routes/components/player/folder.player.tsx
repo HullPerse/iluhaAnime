@@ -26,7 +26,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { clickRowActionButton } from "@/lib/core/dispatchHotkeys.utils";
+import { clickRowActionButton } from "@/lib/core/hotkeys/dispatchHotkeys.utils";
 import { mediaFileExtension, parseMediaPath } from "@hullperse/hp_utils/media/parse";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
@@ -35,7 +35,7 @@ import {
   flattenTree,
   folderFilePaths,
 } from "@/lib/player/playerTree.utils";
-import { resolveTreeArrow } from "@/lib/core/treeArrow.utils";
+import { resolveTreeArrow } from "@/lib/core/ui/treeArrow.utils";
 import { moveRingFocus } from "@/lib/ui/treeFocus.utils";
 import { findRow, rowElement, runRowAction } from "@/lib/ui/treeRow.utils";
 import type { TreeRow } from "@/types/core/treeArrow";
@@ -43,8 +43,8 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { withFallback } from "@hullperse/hp_utils/attempt";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { openFileInPlayer } from "@/lib/player/media.utils";
-import { showError } from "@/lib/core/notification.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { setAnilistSearchQuery } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { upscaleItems } from "@/store/upscale.store";

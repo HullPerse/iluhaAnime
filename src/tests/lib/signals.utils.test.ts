@@ -9,7 +9,7 @@ import {
   markIndexReady,
   markSpellingReady,
   resetSplashSignals,
-} from "@/lib/core/signals.utils";
+} from "@/lib/core/system/signals.utils";
 
 describe("splash signals contract", () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { anilistApi } from "@/api/anilist.api";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 
 export function useStaffPage(
   key: string,

@@ -2,7 +2,7 @@ import { cn } from "cn";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatSignedDelta } from "@/lib/core/compare.utils";
+import { formatSignedDelta } from "@/lib/core/anilist/compare.utils";
 import type { CompareDiffKind } from "@/types/core/compare";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import type { ComparedTitle } from "@/types/core/compare";

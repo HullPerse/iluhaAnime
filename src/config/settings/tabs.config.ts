@@ -1,7 +1,7 @@
 import * as z from "zod/mini";
 
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { withFallback } from "@/lib/core/schema.utils";
+import { withFallback } from "@/lib/core/persistence/schema.utils";
 import type { SettingsTab, SettingsTabGroup, TabId, TabSettings } from "@/types/ui/settings";
 
 export const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [

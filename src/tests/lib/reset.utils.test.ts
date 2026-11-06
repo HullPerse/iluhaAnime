@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
-import { isDefaultSetting } from "@/lib/core/reset.utils";
+import { isDefaultSetting } from "@/lib/core/system/reset.utils";
 import { patchSettings } from "@/store/settings.store";
 
 beforeEach(() => {

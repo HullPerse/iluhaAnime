@@ -1,4 +1,4 @@
-import { isSameMediaPath } from "@/lib/core/cardCache.utils";
+import { isSameMediaPath } from "@/lib/core/player/cardCache.utils";
 import type { PlaylistEntry } from "@/types/player/playback";
 
 export const HOVER_DEBOUNCE_MS = 150;

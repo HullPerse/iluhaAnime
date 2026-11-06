@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { humanizeChord } from "@/lib/core/chordHotkeys.utils";
+import { humanizeChord } from "@/lib/core/hotkeys/chordHotkeys.utils";
 import { activeChordForKeybind, formatKeybindTitle } from "@/lib/search/titleHotkeys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";

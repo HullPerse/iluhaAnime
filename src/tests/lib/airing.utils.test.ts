@@ -7,7 +7,7 @@ import {
   formatAiringLocal,
   formatAiringTime,
   groupAiringByDay,
-} from "@/lib/core/airing.utils";
+} from "@/lib/core/anilist/airing.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist/anilist";
 

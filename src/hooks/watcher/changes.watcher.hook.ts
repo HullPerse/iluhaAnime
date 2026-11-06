@@ -1,5 +1,5 @@
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
-import { WATCHER_EVENTS } from "@/lib/core/eventsWatcher.utils";
+import { WATCHER_EVENTS } from "@/lib/core/watchers/eventsWatcher.utils";
 import type { FolderContentChanged } from "@/types/core/watcher";
 
 export function useFolderContentChanged(

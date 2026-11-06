@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { gameApi } from "@/api/game.api";
 import type { GameImportInput } from "@/types/api/game";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 
 const GAME_ROMS_QUERY_KEY = queryKeys.gameRoms();
 

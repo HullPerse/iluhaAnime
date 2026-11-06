@@ -1,6 +1,6 @@
 import { CHART_LAYOUT } from "@/config/graphics/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { barLength } from "@/lib/core/geometry.utils";
+import { barLength } from "@/lib/core/player/geometry.utils";
 import { clamp } from "@hullperse/hp_utils/math";
 
 import { ChartFrame } from "@/components/shared/charts/frame.chart";

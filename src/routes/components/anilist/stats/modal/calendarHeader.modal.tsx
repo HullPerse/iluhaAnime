@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { monthLabel } from "@/lib/core/activity.utils";
+import { monthLabel } from "@/lib/core/anilist/activity.utils";
 
 export function CalendarHeader({
   month,

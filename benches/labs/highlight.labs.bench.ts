@@ -42,7 +42,7 @@ group("highlight @highlight @quick", () => {
     let sum = 0;
     for (let i = 0; i < 20_000; i++) {
       for (let k = 0; k < SHORT.length; k++)
-        sum += checksumTokens(SHORT[k]!, QUERIES[k % QUERIES.length]!);
+        sum += checksumTokens(SHORT[k], QUERIES[k % QUERIES.length]);
     }
     return sum;
   });

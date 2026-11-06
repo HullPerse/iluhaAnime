@@ -2,7 +2,7 @@ import { useCallback, type RefObject } from "react";
 
 import { TORRENT_LIST_MAX_HEIGHT, TORRENT_MIN_HEIGHT } from "@/config/torrent/torrents.config";
 import { useBottomResize } from "@/hooks/folderResize.hook";
-import { maxFolderHeight } from "@/lib/core/folder.utils";
+import { maxFolderHeight } from "@/lib/core/collection/folder.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";

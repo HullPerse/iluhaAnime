@@ -4,7 +4,7 @@ import {
   clickRowActionButton,
   dispatchClick,
   dispatchFocus,
-} from "@/lib/core/dispatchHotkeys.utils";
+} from "@/lib/core/hotkeys/dispatchHotkeys.utils";
 
 const nodes: HTMLElement[] = [];
 

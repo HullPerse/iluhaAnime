@@ -12,7 +12,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { resetTransportInflight } from "@/api/transport.api";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { TorrentFileInfo } from "@/types/torrent/torrent";
 import type { PlaylistWatch } from "@/types/player/videoPlayer";

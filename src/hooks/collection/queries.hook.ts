@@ -4,7 +4,7 @@ import { collectionApi } from "@/api/collection.api";
 import type { CollectionStatusRow } from "@/types/api/collection";
 import { DEFAULT_COLLECTION_STATUSES } from "@/config/anilist/statuses.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type {
   CollectionDataResult,
   CollectionDataState,

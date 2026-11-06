@@ -12,7 +12,7 @@ vi.mock("@/hooks/collection/queries.hook", () => ({
   useCollectionMutations: () => ({ addItem }),
 }));
 
-vi.mock("@/lib/core/quickadd.utils", () => ({
+vi.mock("@/lib/core/collection/quickadd.utils", () => ({
   downloadCover: vi.fn(async () => null),
   fetchAddedMedia: vi.fn(async () => null),
 }));

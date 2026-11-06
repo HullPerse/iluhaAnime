@@ -6,12 +6,12 @@ import {
   createCollectionFilterSnapshot,
   filterCollectionItems,
   queryCollectionFilterSnapshot,
-} from "@/lib/core/filter.utils";
+} from "@/lib/core/search/filter.utils";
 import {
   buildCollectionSearchIndex,
   searchCollectionIndex,
 } from "@/lib/anilist/collectionSearch.utils";
-import { parseIntent } from "@/lib/core/intent.utils";
+import { parseIntent } from "@/lib/core/search/intent.utils";
 import { operatorTextLength } from "@/lib/search/searchScore.utils";
 import type { CollectionItem } from "@/types/anilist/collection";
 

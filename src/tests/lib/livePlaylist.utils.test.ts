@@ -4,7 +4,7 @@ import {
   desiredFolderPlaylist,
   planLiveInserts,
   planLiveRemovals,
-} from "@/lib/core/livePlaylist.utils";
+} from "@/lib/core/player/livePlaylist.utils";
 
 describe("planLiveInserts", () => {
   it("inserts a late download before its sorted successor", () => {

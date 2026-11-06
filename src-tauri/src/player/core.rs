@@ -21,7 +21,7 @@ pub struct LibmpvCore {
 }
 
 impl LibmpvCore {
-    pub fn new(app: AppHandle) -> Self {
+    pub const fn new(app: AppHandle) -> Self {
         Self { app }
     }
 }

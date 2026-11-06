@@ -8,10 +8,10 @@ import {
   parseSize,
   qualityMatch,
 } from "@/lib/search/searchFormat.utils";
-import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/core/intent.utils";
-import { MASCOT_DIM_COVERAGE, overlapCoverage, shouldDimMascot } from "@/lib/core/mascot.utils";
-import { dedupAnimeResults, filterAnimeResults, sortAnimeResults } from "@/lib/core/results.utils";
-import { mapError } from "@/lib/core/rutracker.utils";
+import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/core/search/intent.utils";
+import { MASCOT_DIM_COVERAGE, overlapCoverage, shouldDimMascot } from "@/lib/core/graphics/mascot.utils";
+import { dedupAnimeResults, filterAnimeResults, sortAnimeResults } from "@/lib/core/text/results.utils";
+import { mapError } from "@/lib/core/torrent/rutracker.utils";
 import {
   fuzzyMatchScorePreNormalized,
   matchOperatorTerms,
@@ -25,7 +25,7 @@ import {
   normalizeSearchText,
   suggestSpelling,
   suggestSpellings,
-} from "@/lib/core/suggestions.utils";
+} from "@/lib/core/anilist/suggestions.utils";
 import {
   buildShadow,
   buildShadowGradients,
@@ -572,7 +572,7 @@ describe("search/ranking", () => {
 
     it("fuzzyScore still prefers exact > prefix", () => {
       expect(fuzzyMatchScore("frieren", "Frieren")).toBeGreaterThan(
-        fuzzyMatchScore("friren", "Frieren")!
+        fuzzyMatchScore("friren", "Frieren") ?? -1
       );
     });
   });
@@ -697,7 +697,7 @@ describe("search/results", () => {
       { key: "size", dir: "desc", first: "B", last: "C" },
       { key: "size", dir: "asc", first: "C", last: "B" },
     ] as const)("sorts by $key $dir", ({ key, dir, first, last }) => {
-      const sorted = sortAnimeResults(sortItems, key, dir)!;
+      const sorted = sortAnimeResults(sortItems, key, dir) ?? [];
       expect(sorted[0].title).toBe(first);
       expect(sorted[2].title).toBe(last);
     });
@@ -708,7 +708,7 @@ describe("search/results", () => {
         { ...sortItems[0], link: "b", seeders: 30 },
         { ...sortItems[1], link: "c" },
       ];
-      const merged = dedupAnimeResults(dupes)!;
+      const merged = dedupAnimeResults(dupes) ?? [];
       expect(merged).toHaveLength(2);
       expect(merged.find((item) => item.link === "b")?.seeders).toBe(30);
     });
@@ -728,45 +728,45 @@ describe("search/results", () => {
     });
 
     it("filters by minSeeders", () => {
-      const result = filterAnimeResults(filterItems, filters({ minSeeders: 8 }))!;
+      const result = filterAnimeResults(filterItems, filters({ minSeeders: 8 })) ?? [];
       expect(result).toHaveLength(2);
       expect(result[0].title).toContain("1080p");
       expect(result[1].title).toContain("720p");
     });
 
     it("filters by hasMagnet", () => {
-      const result = filterAnimeResults(filterItems, filters({ hasMagnet: true }))!;
+      const result = filterAnimeResults(filterItems, filters({ hasMagnet: true })) ?? [];
       expect(result).toHaveLength(2);
       expect(result.every((i) => i.magnet.startsWith("magnet:"))).toBe(true);
     });
 
     it("filters by quality 1080p", () => {
-      const result = filterAnimeResults(filterItems, filters({ quality: "1080p" }))!;
+      const result = filterAnimeResults(filterItems, filters({ quality: "1080p" })) ?? [];
       expect(result).toHaveLength(2);
       expect(result.every((i) => i.title.includes("1080p"))).toBe(true);
     });
 
     it("filters by language ru", () => {
-      const result = filterAnimeResults(filterItems, filters({ language: "ru" }))!;
+      const result = filterAnimeResults(filterItems, filters({ language: "ru" })) ?? [];
       expect(result).toHaveLength(1);
       expect(result[0].title).toContain("RUS");
     });
 
     it("filters by language dual audio", () => {
-      const result = filterAnimeResults(filterItems, filters({ language: "dual" }))!;
+      const result = filterAnimeResults(filterItems, filters({ language: "dual" })) ?? [];
       expect(result).toHaveLength(1);
       expect(result[0].title).toContain("Dual-Audio");
     });
 
     it("filters by size min 600 MiB", () => {
-      const result = filterAnimeResults(filterItems, filters({ sizeMin: 600 }))!;
+      const result = filterAnimeResults(filterItems, filters({ sizeMin: 600 })) ?? [];
       expect(result).toHaveLength(2);
       expect(result[0].title).toContain("1080p");
       expect(result[1].title).toContain("1080p");
     });
 
     it("filters by size max 300 MiB", () => {
-      const result = filterAnimeResults(filterItems, filters({ sizeMax: 300 }))!;
+      const result = filterAnimeResults(filterItems, filters({ sizeMax: 300 })) ?? [];
       expect(result).toHaveLength(1);
       expect(result[0].title).toContain("480p");
     });
@@ -778,20 +778,21 @@ describe("search/results", () => {
     });
 
     it("filters by codec HEVC", () => {
-      const result = filterAnimeResults(filterItems, filters({ codec: "HEVC" }))!;
+      const result = filterAnimeResults(filterItems, filters({ codec: "HEVC" })) ?? [];
       expect(result).toHaveLength(2);
       expect(result.every((i) => i.title.includes("HEVC"))).toBe(true);
     });
 
     it("filters by codec x264", () => {
-      expect(filterAnimeResults(filterItems, filters({ codec: "x264" }))!).toHaveLength(2);
+      expect(filterAnimeResults(filterItems, filters({ codec: "x264" })) ?? []).toHaveLength(2);
     });
 
     it("combines multiple filters", () => {
-      const result = filterAnimeResults(
-        filterItems,
-        filters({ hasMagnet: true, minSeeders: 3, quality: "1080p" })
-      )!;
+      const result =
+        filterAnimeResults(
+          filterItems,
+          filters({ hasMagnet: true, minSeeders: 3, quality: "1080p" })
+        ) ?? [];
       expect(result).toHaveLength(1);
       expect(result[0].title).toContain("[Group] Show [1080p]");
     });
@@ -967,7 +968,7 @@ describe("search/suggestions", () => {
 
     it("prefers exact and prefix matches over fuzzy matches", () => {
       expect(fuzzyMatchScore("frieren", "Frieren")).toBeGreaterThan(
-        fuzzyMatchScore("frier", "Frieren")!
+        fuzzyMatchScore("frier", "Frieren") ?? -1
       );
       expect(fuzzyMatchScore("friren", "Frieren")).not.toBeNull();
     });
@@ -1054,14 +1055,14 @@ describe("search/suggestions", () => {
       const match = fuzzyMatchScore("frieren journey", "Frieren: Beyond Journey's End");
       expect(match).not.toBeNull();
       expect(fuzzyMatchScore("frieren journey", "Fruits Basket")).toBeNull();
-      expect(match!).toBeGreaterThan(500);
+      expect(match ?? -1).toBeGreaterThan(500);
     });
 
     it("prefers matches at word boundaries over mid-word substrings", () => {
       const atBoundary = fuzzyMatchScore("att", "Attack on Titan");
       const midWord = fuzzyMatchScore("att", "Somewhere in Battle Tactics");
       expect(atBoundary).not.toBeNull();
-      expect(atBoundary!).toBeGreaterThan(midWord!);
+      expect(atBoundary ?? -1).toBeGreaterThan(midWord ?? -1);
     });
 
     it("rejects multi-word queries missing a word", () => {

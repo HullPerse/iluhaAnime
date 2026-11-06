@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import { compareDiff } from "@/lib/core/compare.utils";
+import { compareDiff } from "@/lib/core/anilist/compare.utils";
 import { COMPARE_DIFF_DEFAULT_THRESHOLD } from "@/config/anilist/compare.config";
 import type { CompareDiffKind } from "@/types/core/compare";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";

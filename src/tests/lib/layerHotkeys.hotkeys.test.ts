@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { scanHintTargets } from "@/lib/core/hintsHotkeys.utils";
+import { scanHintTargets } from "@/lib/core/hotkeys/hintsHotkeys.utils";
 import {
   isInsideLayer,
   setHintsLayerVisible,
   topLayerElement,
   VIM_HINTS_OPEN_CLASS,
-} from "@/lib/core/layerHotkeys.utils";
+} from "@/lib/core/hotkeys/layerHotkeys.utils";
 
 const nodes: HTMLElement[] = [];
 

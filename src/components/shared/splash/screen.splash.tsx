@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 
 import { resolveSplashVariant } from "@/config/settings/screens.config";
-import { resolveFatalLocale, resolveSplashTexts } from "@/lib/core/fatalTexts.utils";
+import { resolveFatalLocale, resolveSplashTexts } from "@/lib/core/fatal/fatalTexts.utils";
 import type { FatalVariant } from "@/types/core/fatal";
 
 import { GenericSplash } from "@/components/shared/splash/generic.splash";

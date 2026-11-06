@@ -1,6 +1,6 @@
 import { RATIO_PALETTE } from "@/config/graphics/palette.config";
 import { useChartCursor } from "@/hooks/chartCursor.hook";
-import { ratioSegments } from "@/lib/core/geometry.utils";
+import { ratioSegments } from "@/lib/core/player/geometry.utils";
 import { clamp } from "@hullperse/hp_utils/math";
 
 import { ChartFrame } from "@/components/shared/charts/frame.chart";

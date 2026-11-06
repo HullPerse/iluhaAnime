@@ -13,7 +13,7 @@ import {
   getDisplayState,
 } from "@/lib/torrent/torrentCommon.utils";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { formatElapsed, formatETA } from "@/lib/core/time.utils";
+import { formatElapsed, formatETA } from "@/lib/core/text/time.utils";
 import { torrentAtoms } from "@/store/download.store";
 import type { TorrentInfo } from "@/types/torrent/torrent";
 

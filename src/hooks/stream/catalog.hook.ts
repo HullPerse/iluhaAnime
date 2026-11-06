@@ -7,10 +7,10 @@ import { streamApi } from "@/api/stream.api";
 import { QUERY_PRESETS } from "@/config/system/query.config";
 import { streamFiltersKey } from "@/config/player/streamFilters.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { anilistEpisodePreviews } from "@/lib/player/episodes.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { StreamCatalogFilters } from "@/types/player/stream";
 

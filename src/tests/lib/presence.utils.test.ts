@@ -10,7 +10,7 @@ import {
   buildSearchActivity,
   presenceText,
   samePresence,
-} from "@/lib/core/presence.utils";
+} from "@/lib/core/system/presence.utils";
 import type { DiscordActivity } from "@/types/core/discord";
 import type { TFunc, TranslationKey, TranslationVariables } from "@/types/core/i18n";
 import type { StreamOpen } from "@/types/player/videoPlayer";

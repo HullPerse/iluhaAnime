@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/anilist/card.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { statusLabel } from "@/lib/core/status.utils";
+import { statusLabel } from "@/lib/core/anilist/status.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type {

@@ -1,5 +1,6 @@
-import { normalizeResolvedCover, normCoverKey } from "@/lib/core/cover.utils";
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
+import { normalizeResolvedCover, normCoverKey } from "@/lib/core/graphics/cover.utils";
+import { createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type {
   CoverCorrectionsAtoms,
@@ -39,7 +40,7 @@ export function createCoverCorrectionsStore(
   const { store, persistor } = createPersistedStoreContext({
     storeName: "coverCorrections",
     short: "covers",
-    schemaVersion: 3,
+    schemaVersion: SCHEMA_VERSIONS.coverCorrections,
     ...(getStorage ? { getStorage } : {}),
   });
 

@@ -4,7 +4,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { readStoredMedia, withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
-import { mergeGenreTags } from "@/lib/core/wizard.utils";
+import { mergeGenreTags } from "@/lib/core/collection/wizard.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";

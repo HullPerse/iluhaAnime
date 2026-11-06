@@ -1,7 +1,7 @@
-//! AnimeLib HTTP client.
+//! `AnimeLib` HTTP client.
 //!
-//! Direct HTTP client for AnimeLib (animelib.org) through the site's JSON API
-//! at https://api.cdnlibs.org/api. Every request below was verified live on
+//! Direct HTTP client for `AnimeLib` (animelib.org) through the site's JSON API
+//! at <https://api.cdnlibs.org/api>. Every request below was verified live on
 //! 2026-10-28; see `.docs/features/streaming/endpoints.md` for the recorded
 //! requests and responses.
 //!
@@ -42,10 +42,10 @@ const VIDEO_SERVER_SECONDARY_2: &str = "https://video1.imglib.info/";
 /// Browser-shaped User-Agent. This is load bearing: the API blocks unknown
 /// clients by answering HTTP 200 with an HTML error page instead of JSON.
 /// Shared with the Kodik resolver, which is refused the same way.
-pub(crate) const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+pub const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
      (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
-/// HTTP client for the AnimeLib source.
+/// HTTP client for the `AnimeLib` source.
 pub struct AnimeLibClient {
     client: Client,
     token: Option<String>,
@@ -95,7 +95,7 @@ impl AnimeLibClient {
         })
     }
 
-    /// Search AnimeLib for titles matching the query. An empty query returns
+    /// Search `AnimeLib` for titles matching the query. An empty query returns
     /// the site's browse list, and the filters narrow it the same way the
     /// site's catalog does.
     ///
@@ -146,8 +146,7 @@ impl AnimeLibClient {
         }
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .map(|elapsed| elapsed.subsec_nanos())
-            .unwrap_or(0) as usize;
+            .map_or(0, |elapsed| elapsed.subsec_nanos()) as usize;
         let index = nanos % page.items.len();
         Ok(page.items.into_iter().nth(index))
     }
@@ -167,10 +166,10 @@ impl AnimeLibClient {
         None
     }
 
-    /// The filter options for the AnimeLib catalog (site id 5).
+    /// The filter options for the `AnimeLib` catalog (site id 5).
     ///
     /// The shared constants endpoint serves every site in the family, so the
-    /// rows whose `site_ids` do not include AnimeLib are dropped. The answer
+    /// rows whose `site_ids` do not include `AnimeLib` are dropped. The answer
     /// changes rarely and is reused for twenty minutes.
     pub async fn constants(&self) -> Result<AnimeLibConstants, StreamResolutionError> {
         if let Some(constants) = cached_constants() {
@@ -524,10 +523,7 @@ fn slug_candidates(query: &str) -> Vec<String> {
     let normalized = query.to_lowercase().replace('&', " and ");
     let mut words: Vec<String> = Vec::new();
     for raw in normalized.split_whitespace() {
-        let word: String = raw
-            .chars()
-            .filter(|character| character.is_ascii_alphanumeric())
-            .collect();
+        let word: String = raw.chars().filter(char::is_ascii_alphanumeric).collect();
         if !word.is_empty() {
             words.push(word);
         }
@@ -613,7 +609,7 @@ fn store_sources(key: String, sources: &[StreamVariant]) {
 /// Constants describe the whole catalog, not one viewer's session, so the
 /// answer is shared by every client and refreshed on the same twenty minute
 /// rhythm the site itself uses.
-const CONSTANTS_TTL: Duration = Duration::from_secs(20 * 60);
+const CONSTANTS_TTL: Duration = Duration::from_mins(20);
 
 fn constants_cache() -> &'static Mutex<Option<(Instant, AnimeLibConstants)>> {
     static CACHE: OnceLock<Mutex<Option<(Instant, AnimeLibConstants)>>> = OnceLock::new();
@@ -654,7 +650,7 @@ fn store_detail(key: String, detail: &WireEpisodeDetail) {
 
 /// The referer an embedded Kodik player expects: the site that hosts it.
 /// A Kodik URL fetched with its own host as the referer is refused.
-pub(crate) fn site_referer() -> String {
+pub fn site_referer() -> String {
     format!("{ANIMELIB_SITE}/")
 }
 
@@ -679,7 +675,7 @@ fn native_media_url(video_domain: Option<&str>, href: &str) -> String {
     format!("{base}{href}")
 }
 
-/// The headers the AnimeLib CDN and the Kodik player both expect.
+/// The headers the `AnimeLib` CDN and the Kodik player both expect.
 fn site_headers() -> std::collections::BTreeMap<String, String> {
     let mut headers = std::collections::BTreeMap::new();
     headers.insert("Referer".to_string(), format!("{ANIMELIB_SITE}/"));
@@ -787,7 +783,7 @@ fn into_anime(item: WireAnimeInfo) -> AnimeLibAnime {
         .collect();
     AnimeLibAnime {
         id: id.to_string(),
-        title: rus_name.clone().unwrap_or(name),
+        title: rus_name.unwrap_or(name),
         synonyms,
         cover: Some(cover.default),
         banner: None,
@@ -881,15 +877,15 @@ fn year_from_label(label: &str) -> Option<i32> {
         .find(|year| (1900..=2100).contains(year))
 }
 
-/// The AnimeLib site id shared by the catalog and its constants.
+/// The `AnimeLib` site id shared by the catalog and its constants.
 const ANIMELIB_SITE_ID: i32 = 5;
 
-/// Whether a constant row is served on AnimeLib. A missing `site_ids` means
+/// Whether a constant row is served on `AnimeLib`. A missing `site_ids` means
 /// the value is not site-scoped; an empty one means it is served nowhere.
 fn serves_anime(site_ids: &Option<Vec<i32>>) -> bool {
     site_ids
         .as_ref()
-        .map_or(true, |ids| ids.contains(&ANIMELIB_SITE_ID))
+        .is_none_or(|ids| ids.contains(&ANIMELIB_SITE_ID))
 }
 
 fn into_constants(wire: WireConstants) -> AnimeLibConstants {

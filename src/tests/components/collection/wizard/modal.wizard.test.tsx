@@ -18,8 +18,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mockOpenDialog,
 }));
 
-vi.mock("@/lib/core/placeholder.utils", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/core/placeholder.utils")>();
+vi.mock("@/lib/core/ui/placeholder.utils", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/core/ui/placeholder.utils")>();
   return {
     ...actual,
     generatePlaceholder: () => "data:image/png;base64,PLACEHOLDER",

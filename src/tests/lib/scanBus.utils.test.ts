@@ -7,7 +7,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { createScanBus } from "@/lib/core/scanBus.utils";
+import { createScanBus } from "@/lib/core/watchers/scanBus.utils";
 import type { ScanExecutors } from "@/types/core/scanBus";
 import type { VideoFileEntry } from "@/types/core/fs";
 

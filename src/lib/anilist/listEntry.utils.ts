@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { isValidFuzzyDateInput } from "@/lib/anilist/entries.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type { AniSavedEntry, AnilistRouteData } from "@/types/anilist/anilist";
 import type { ListEntryDraft } from "@/types/anilist/listEntry";
 import type { TranslationKey } from "@/types/core/i18n";

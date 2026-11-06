@@ -9,8 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { groupLabel, buildScoreByMedia } from "@/lib/core/activity.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { groupLabel, buildScoreByMedia } from "@/lib/core/anilist/activity.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type { AniActivity, AniListCollection } from "@/types/anilist/anilist";
 
 import { FeedItem } from "@/routes/components/anilist/activity/feedItem.activity";
@@ -80,7 +80,7 @@ export function FeedTab({
       if (activity.created_at <= 0) continue;
       const label = groupLabel(activity.created_at, t, locale);
       if (!groups.has(label)) groups.set(label, []);
-      groups.get(label)!.push(activity);
+      groups.get(label)?.push(activity);
     }
     return groups;
   }, [data, includeFriends, lists, locale, statusFilter, userId, t]);

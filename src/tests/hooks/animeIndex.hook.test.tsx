@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { anilistApi } from "@/api/anilist.api";
 import { useEnsureAnimeIndex } from "@/hooks/search/animeIndex.hook";
-import { suggestSpelling } from "@/lib/core/suggestions.utils";
+import { suggestSpelling } from "@/lib/core/anilist/suggestions.utils";
 import { searchAtoms } from "@/store/search.store";
 
 vi.mock("@tauri-apps/api/core", () => ({

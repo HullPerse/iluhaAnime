@@ -15,11 +15,11 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { buildLearningMaps, countersOf } from "../src/lib/core/learning.utils";
+import { buildLearningMaps, countersOf } from "../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../src/config/anilist/ranking.config";
 import type { RankingCounters } from "../src/types/core/ranking";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
-import { getSearchSuggestions } from "../src/lib/core/suggestions.utils";
+import { getSearchSuggestions } from "../src/lib/core/anilist/suggestions.utils";
 import type { LearningStatRow, SearchAnimeSuggestion, SearchSuggestion } from "../src/types/search/search";
 
 function argument(name: string): string | undefined {
@@ -381,7 +381,7 @@ for (let round = 0; round <= rounds; round++) {
     );
 
     if (wrong.length > 0 && random() < MISCLICK) {
-      record(wrong[0]!.value, "select", nowMs);
+      record(wrong[0].value, "select", nowMs);
       continue;
     }
     if (expected) {
@@ -389,7 +389,7 @@ for (let round = 0; round <= rounds; round++) {
       if (random() < click) {
         record(expected.value, "select", nowMs);
         if (expectedIndex > 0 && random() < IGNORE_ABOVE) {
-          record(shown[0]!.value, "ignore", nowMs);
+          record(shown[0].value, "ignore", nowMs);
         }
         continue;
       }
@@ -402,7 +402,8 @@ for (let round = 0; round <= rounds; round++) {
 // Report
 // ---------------------------------------------------------------------------
 
-const final = reports.at(-1)!;
+const final = reports.at(-1);
+if (!final) throw new Error("no simulation report was produced");
 const totalSelects = [...rows.values()].reduce((sum, row) => sum + row.selected, 0);
 const totalIgnores = [...rows.values()].reduce((sum, row) => sum + row.ignored, 0);
 const maxSelected = Math.max(0, ...[...rows.values()].map((row) => row.selected));

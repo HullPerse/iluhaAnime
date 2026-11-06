@@ -17,7 +17,7 @@ import {
   decodeGameFrame,
   expandFrame,
   parseHexColor,
-} from "@/lib/core/frame.utils";
+} from "@/lib/core/player/frame.utils";
 
 function response(flags: number, payload?: number[], size = LOW_FRAME_BYTES): ArrayBuffer {
   const audio = (flags & FRAME_FLAG_XO) !== 0 ? XO_AUDIO_BYTES : 0;

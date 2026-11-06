@@ -3,7 +3,7 @@ import type { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
 import { attempt, withFallback } from "@hullperse/hp_utils/attempt";
 import { isDirectImageSrc } from "@/lib/graphics/image.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist/anilist";
 import type { CollectionItem, WizardPickedMedia } from "@/types/anilist/collection";
 

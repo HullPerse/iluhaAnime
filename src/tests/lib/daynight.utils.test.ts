@@ -5,7 +5,7 @@ import {
   nowMinutesOf,
   parseDayTime,
   scheduledThemeName,
-} from "@/lib/core/daynight.utils";
+} from "@/lib/core/graphics/daynight.utils";
 
 describe("daynight", () => {
   it("parses HH:MM to minutes", () => {

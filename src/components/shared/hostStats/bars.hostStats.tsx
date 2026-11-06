@@ -1,7 +1,7 @@
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSessionPeak } from "@/hooks/hostStatsPeak.hook";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { pressureTone } from "@/lib/core/hostStatsPressure.utils";
+import { pressureTone } from "@/lib/core/system/hostStatsPressure.utils";
 import { formatSpeed } from "@/lib/torrent/torrentCommon.utils";
 import type { HostStats } from "@/types/core/ipc";
 

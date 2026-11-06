@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@hullperse/hp_utils/react";
-import { formatClock } from "@/lib/core/time.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 import {
   TOOLTIP_WIDTH,
   LIVE_SCRUB_INTERVAL,

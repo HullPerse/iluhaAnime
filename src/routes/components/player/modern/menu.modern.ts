@@ -30,10 +30,10 @@ import {
   PLAYER_MODE_IDS,
   PLAYER_MODES,
 } from "@/config/settings/modes.config";
-import { PLAYER_SPEEDS } from "@/lib/core/speed.utils";
+import { PLAYER_SPEEDS } from "@/lib/core/player/speed.utils";
 import { selectableTracks, trackLabel } from "@/lib/torrent/tracks.utils";
 import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/player/streamHelpers.utils";
-import { formatClock } from "@/lib/core/time.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 import type { TranslationKey } from "@/types/core/i18n";
 import type {
   EndOfFileMode,

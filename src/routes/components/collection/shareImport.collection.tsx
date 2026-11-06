@@ -14,7 +14,7 @@ import {
   buildCustomStatusId,
   normalizeStatusLabel,
   resolveStatusLabel,
-} from "@/lib/core/status.utils";
+} from "@/lib/core/anilist/status.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type { ShareImportPlan } from "@/types/core/deeplink";

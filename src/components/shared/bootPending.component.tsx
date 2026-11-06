@@ -1,4 +1,4 @@
-import { readFastLaunch } from "@/lib/core/fastLaunch.utils";
+import { readFastLaunch } from "@/lib/core/system/fastLaunch.utils";
 
 import { BigLoader } from "@/components/shared/loader/big.loader";
 

@@ -10,13 +10,13 @@ import { bench, group } from "@pmndrs/labs";
 // applyLearningAction calls on a 500-entry projection under 15 ms. Regression
 // threshold is labs minDelta 5%.
 
-import { feedbackScore } from "../../src/lib/core/feedback.utils";
+import { feedbackScore } from "../../src/lib/core/ui/feedback.utils";
 import {
   applyLearningAction,
   buildLearningMaps,
   countersOf,
   dropLearningScope,
-} from "../../src/lib/core/learning.utils";
+} from "../../src/lib/core/anilist/learning.utils";
 import type { RankingCounters } from "../../src/types/core/ranking";
 import type { LearningStatRow, SearchQueryStat } from "../../src/types/search/search";
 

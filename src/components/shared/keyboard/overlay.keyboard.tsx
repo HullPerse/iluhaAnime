@@ -7,7 +7,7 @@ import {
   hintLayoutsEqual,
   measureBadgeLayouts,
   resolveBadgeCollisions,
-} from "@/lib/core/hintsHotkeys.utils";
+} from "@/lib/core/hotkeys/hintsHotkeys.utils";
 import { badgeClass } from "@/lib/ui/badgeClass.utils";
 import type { HintBadgeLayout } from "@/types/core/hintsHotkeys";
 import { scheduleTask } from "@hullperse/hp_utils/shared";

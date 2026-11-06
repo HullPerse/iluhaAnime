@@ -9,7 +9,7 @@ import {
   scrollMatchIntoView,
   searchPageFind,
   stepPageFindIndex,
-} from "@/lib/core/pageFind.utils";
+} from "@/lib/core/search/pageFind.utils";
 
 const nodes: HTMLElement[] = [];
 

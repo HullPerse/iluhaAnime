@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 
 import { findRow } from "@/lib/ui/treeRow.utils";
-import { resolveTreeMove } from "@/lib/core/treeArrow.utils";
+import { resolveTreeMove } from "@/lib/core/ui/treeArrow.utils";
 import type { TreeRow } from "@/types/core/treeArrow";
 import { setVimCount, vimAtoms } from "@/store/vim.store";
 

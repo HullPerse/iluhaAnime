@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input.component";
 import { TAG_NUMERIC_KEYS } from "@/config/graphics/tags.config";
 import { clampTolerance, DEFAULT_TAG_TOLERANCES } from "@/config/graphics/tolerance.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { exampleFor, opsFor } from "@/lib/core/tags.utils";
-import { FILTER_KEYS } from "@/lib/core/intent.utils";
+import { exampleFor, opsFor } from "@/lib/core/anilist/tags.utils";
+import { FILTER_KEYS } from "@/lib/core/search/intent.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 

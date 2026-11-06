@@ -1,6 +1,6 @@
 import { bench, group } from "@pmndrs/labs";
 
-import { rankHistoryEntries } from "../../src/lib/core/suggestions.utils";
+import { rankHistoryEntries } from "../../src/lib/core/anilist/suggestions.utils";
 import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { SearchQueryStat } from "../../src/types/search/search";
 

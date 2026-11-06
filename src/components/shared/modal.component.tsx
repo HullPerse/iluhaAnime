@@ -7,7 +7,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useModalResize } from "@/hooks/modalResize.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
-import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
+import { isTextEntryTarget } from "@/lib/core/hotkeys/filterHotkeys.utils";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { getContentSignature } from "@/lib/ui/modalSignature.utils";
 import { useCell } from "@hullperse/hp_utils/react";
@@ -30,6 +30,7 @@ function Modal({
   hideHeader = false,
   hideBackdrop = false,
   modal = true,
+  trackOverlay = true,
   children,
 }: ModalWindow) {
   const { t } = useI18n();
@@ -42,7 +43,7 @@ function Modal({
   const contentElement = useRef<HTMLDivElement>(null);
   const prevContentSignatureRef = useRef<string | undefined>(undefined);
   const contentSignature = getContentSignature(children);
-  useOverlayDialog();
+  useOverlayDialog(trackOverlay);
   useModalResize(popupElement, modalAnimation);
 
   useEffect(() => {

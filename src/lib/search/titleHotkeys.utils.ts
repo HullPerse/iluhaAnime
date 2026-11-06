@@ -1,4 +1,4 @@
-import { humanizeChord } from "@/lib/core/chordHotkeys.utils";
+import { humanizeChord } from "@/lib/core/hotkeys/chordHotkeys.utils";
 import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
 import type { KeybindOverride } from "@/types/search/resolveHotkeys";
 

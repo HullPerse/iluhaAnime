@@ -6,14 +6,14 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
-import { fetchVideoCard, getCachedCard } from "@/lib/core/cardCache.utils";
+import { fetchVideoCard, getCachedCard } from "@/lib/core/player/cardCache.utils";
 import type { CardArt } from "@/types/core/cardCache";
 import { readPlaylistEntries } from "@/lib/player/playback.utils";
 import type { PlaylistEntry } from "@/types/player/playback";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { ignore } from "@/lib/core/promise.utils";
-import { formatClock } from "@/lib/core/time.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 

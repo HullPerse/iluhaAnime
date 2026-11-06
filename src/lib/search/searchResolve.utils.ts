@@ -8,7 +8,7 @@ import {
   spellKnownWords,
   spellTitles,
   suggestSpellings,
-} from "@/lib/core/suggestions.utils";
+} from "@/lib/core/anilist/suggestions.utils";
 import { flipLayout } from "@/lib/graphics/layout.utils";
 import { stripReleaseNoise } from "@/lib/search/release.utils";
 import { resolveTitleQuery } from "@/lib/search/searchHypothesis.utils";

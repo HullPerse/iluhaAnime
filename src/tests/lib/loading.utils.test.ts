@@ -4,7 +4,7 @@ import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
-} from "@/lib/core/loading.utils";
+} from "@/lib/core/ui/loading.utils";
 
 describe("player/loading overlay", () => {
   it("shows the black ground while no file is open", () => {

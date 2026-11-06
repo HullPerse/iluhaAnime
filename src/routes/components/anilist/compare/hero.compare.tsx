@@ -7,7 +7,7 @@ import {
   COMPARE_METRICS,
   formatSignedPercent,
   metricScore,
-} from "@/lib/core/compare.utils";
+} from "@/lib/core/anilist/compare.utils";
 import type { CompareMetric, CompareSummary } from "@/types/core/compare";
 import type { AniUser, AniUserProfile } from "@/types/anilist/anilist";
 import { toProfileProps, percent } from "@/lib/anilist/compareProfile.utils";

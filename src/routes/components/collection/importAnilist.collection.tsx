@@ -11,10 +11,10 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
-import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/core/import.utils";
-import { resolveStatusLabel } from "@/lib/core/status.utils";
+import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/core/collection/import.utils";
+import { resolveStatusLabel } from "@/lib/core/anilist/status.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist/anilist";
@@ -48,7 +48,10 @@ export default function ImportAnilistCollection({
   const authUser = authQuery.data ?? null;
   const listsQuery = useAppQuery<AniListCollection[]>("live", {
     queryKey: queryKeys.anilistImportLists(authUser?.id ?? null),
-    queryFn: () => anilistApi.getLists(authUser!.id),
+    queryFn: () => {
+      if (!authUser) throw new Error("AniList user is not loaded");
+      return anilistApi.getLists(authUser.id);
+    },
     enabled: open && authUser !== null,
     staleTime: 0,
   });
@@ -254,7 +257,10 @@ export default function ImportAnilistCollection({
 
   const syncTargets = changedEntries
     .filter((e) => selected.has(e.media.id))
-    .map((e) => ({ entry: e, item: itemByAnilistId.get(e.media.id)! }));
+    .flatMap((e) => {
+      const item = itemByAnilistId.get(e.media.id);
+      return item ? [{ entry: e, item }] : [];
+    });
 
   const runSync = async (targets: Array<{ entry: AniListEntry; item: CollectionItem }>) => {
     setRunning(true);
@@ -290,12 +296,10 @@ export default function ImportAnilistCollection({
 
   const retrySync = () => {
     const failedIds = new Set(opFailures.map((f) => f.id));
-    const targets = changedEntries
-      .filter((e) => {
-        const item = itemByAnilistId.get(e.media.id);
-        return item !== undefined && failedIds.has(item.id);
-      })
-      .map((e) => ({ entry: e, item: itemByAnilistId.get(e.media.id)! }));
+    const targets = changedEntries.flatMap((e) => {
+      const item = itemByAnilistId.get(e.media.id);
+      return item && failedIds.has(item.id) ? [{ entry: e, item }] : [];
+    });
     attempt(runSync(targets));
   };
 
@@ -483,7 +487,8 @@ export default function ImportAnilistCollection({
 
       <div className="windows95-border bg-field flex max-h-[50vh] flex-col gap-1 overflow-auto p-1">
         {changedEntries.map((entry) => {
-          const item = itemByAnilistId.get(entry.media.id)!;
+          const item = itemByAnilistId.get(entry.media.id);
+          if (!item) return null;
           return (
             <SyncRow
               key={entry.media.id}

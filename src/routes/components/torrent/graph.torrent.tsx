@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { GRAPH_HEIGHT, GRAPH_POINTS, GRAPH_WIDTH } from "@/config/torrent/graph.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { drawSpeedGraph } from "@/lib/core/speedGraph.utils";
+import { drawSpeedGraph } from "@/lib/core/player/speedGraph.utils";
 import { fmtSpeed } from "@/lib/torrent/torrentCommon.utils";
 import type { DhtStatus } from "@/types/torrent/torrent";
 

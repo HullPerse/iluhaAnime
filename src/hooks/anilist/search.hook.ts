@@ -8,8 +8,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { assertNever } from "@hullperse/hp_utils/type";
 import { addSearchQuery } from "@/store/search.store";
 import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
@@ -94,7 +94,10 @@ export function useAnilistSearch() {
 
   const query = useAppQuery("live", {
     queryKey: queryKeys.anilistSearch(request),
-    queryFn: () => runSearchRequest(request!),
+    queryFn: () => {
+      if (request === null) throw new Error("AniList search request is missing");
+      return runSearchRequest(request);
+    },
     enabled: request !== null && !isGlobalRequest,
   });
 

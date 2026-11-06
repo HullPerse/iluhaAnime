@@ -1,0 +1,36 @@
+import { invoke } from "@tauri-apps/api/core";
+import * as z from "zod/mini";
+
+import { attempt } from "@hullperse/hp_utils/attempt";
+import type { Result } from "@/types/core/result";
+import { err } from "@hullperse/hp_utils/result";
+import { parseValue } from "@/lib/core/persistence/schema.utils";
+import type { CommandName } from "@/types/core/ipc";
+
+export type { CommandName };
+
+export async function invokeTyped<T>(
+  command: CommandName,
+  args?: Record<string, unknown>
+): Promise<Awaited<T>> {
+  return invoke<Awaited<T>>(command, args);
+}
+
+export async function invokeValidated<T>(
+  command: CommandName,
+  schema: z.ZodMiniType<T>,
+  args?: Record<string, unknown>
+): Promise<Result<T>> {
+  const [value, error] = await attempt(invoke<unknown>(command, args));
+  return error === null ? parseValue(value, schema) : err(error);
+}
+
+export async function invokeValidatedOrThrow<T>(
+  command: CommandName,
+  schema: z.ZodMiniType<T>,
+  args?: Record<string, unknown>
+): Promise<T> {
+  const result = await invokeValidated(command, schema, args);
+  if (!result.ok) throw result.error;
+  return result.value;
+}

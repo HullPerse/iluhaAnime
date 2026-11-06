@@ -1,11 +1,12 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { Update } from "@tauri-apps/plugin-updater";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FatalScreen } from "@/components/shared/fatal/screen.fatal";
 import type { FatalInfo } from "@/types/core/fatal";
 
-import { mockWriteText } from "@/tests/mocks";
+import { mockUpdaterCheck, mockWriteText } from "@/tests/mocks";
 
 afterEach(() => {
   cleanup();
@@ -120,6 +121,44 @@ describe("FatalScreen", () => {
     render(<FatalScreen info={baseInfo({ themeName: "yorha" })} {...handlers()} />);
     expect(screen.getByText("ERROR // SYSTEM FAILURE")).toBeDefined();
     expect(screen.getByRole("alert").style.backgroundColor).toBe("rgb(31, 27, 24)");
+  });
+
+  it("checks and installs an update without opening a dialog", async () => {
+    const user = userEvent.setup();
+    const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
+    mockUpdaterCheck.mockResolvedValue({
+      currentVersion: "5.1.2",
+      downloadAndInstall,
+      version: "5.2.0",
+    } as unknown as Update);
+    render(<FatalScreen info={baseInfo()} {...handlers()} />);
+
+    await user.click(screen.getByRole("button", { name: "Check for update" }));
+
+    await waitFor(() => expect(downloadAndInstall).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("reports that no update exists without opening a dialog", async () => {
+    const user = userEvent.setup();
+    mockUpdaterCheck.mockResolvedValue(null);
+    render(<FatalScreen info={baseInfo()} {...handlers()} />);
+
+    await user.click(screen.getByRole("button", { name: "Check for update" }));
+
+    expect(await screen.findByText("No updates available")).toBeDefined();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("shows the update failure inline", async () => {
+    const user = userEvent.setup();
+    mockUpdaterCheck.mockRejectedValue(new Error("updater offline"));
+    render(<FatalScreen info={baseInfo()} {...handlers()} />);
+
+    await user.click(screen.getByRole("button", { name: "Check for update" }));
+
+    expect(await screen.findByText("Update failed: updater offline")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Check for update" })).toBeDefined();
   });
 
   it("uses the terminal and retroism screens for their themes", () => {

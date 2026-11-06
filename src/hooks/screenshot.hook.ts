@@ -5,7 +5,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import type {
   ScreenshotCapture,
   ScreenshotCaptureOptions,

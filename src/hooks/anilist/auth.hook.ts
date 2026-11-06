@@ -3,7 +3,7 @@ import { useCallback, useEffect } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { tr } from "@/lib/locale/i18n.utils";
 import { consumeAuthDeepLink, deeplinkAtoms } from "@/store/deeplink.store";

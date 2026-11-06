@@ -1,5 +1,5 @@
 import { attemptSync } from "@hullperse/hp_utils/attempt";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { inflightFetch } from "@hullperse/hp_utils/lruCache";
 import type { CommandName } from "@/types/core/ipc";
 import type { ApiTransport, TransportStats } from "@/types/core/transport";

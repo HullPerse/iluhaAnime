@@ -2,7 +2,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect } from "react";
 
 import { withFallback } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { playerAtoms, setAlwaysOnTop } from "@/store/player.store";
 import type { PlayerViewMode } from "@/types/player/videoPlayer";
 

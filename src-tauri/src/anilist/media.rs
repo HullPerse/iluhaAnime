@@ -19,7 +19,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 const MEDIA_CACHE_VERSION: u32 = 1;
 const MEDIA_CACHE_TTL_SECS: i64 = 6 * 60 * 60;
 const MEDIA_CACHE_SCREEN: &str = "anilist_media_screen";
-pub(crate) const MEDIA_CACHE_DETAIL: &str = "anilist_media_detail";
+pub const MEDIA_CACHE_DETAIL: &str = "anilist_media_detail";
 pub static ANILIST_MEDIA_CACHE_HITS: AtomicU64 = AtomicU64::new(0);
 pub static ANILIST_MEDIA_CACHE_MISSES: AtomicU64 = AtomicU64::new(0);
 
@@ -27,17 +27,18 @@ fn media_cache_key(id: u64) -> String {
     format!("v{MEDIA_CACHE_VERSION}:{id}")
 }
 
-pub(crate) fn cached_media_json(
+pub fn cached_media_json(
     app: &tauri::AppHandle,
     namespace: &str,
     id: u64,
 ) -> Option<serde_json::Value> {
-    let payload = match crate::app_db::read_cached_payload(app, namespace, &media_cache_key(id)) {
-        Ok(Some(payload)) => payload,
-        _ => {
-            ANILIST_MEDIA_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
-            return None;
-        }
+    let payload = if let Ok(Some(payload)) =
+        crate::app_db::read_cached_payload(app, namespace, &media_cache_key(id))
+    {
+        payload
+    } else {
+        ANILIST_MEDIA_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
+        return None;
     };
     match serde_json::from_str::<serde_json::Value>(&payload) {
         Ok(value) if value.is_object() => {
@@ -51,7 +52,7 @@ pub(crate) fn cached_media_json(
     }
 }
 
-pub(crate) fn store_media_json(
+pub fn store_media_json(
     app: &tauri::AppHandle,
     namespace: &str,
     id: u64,
@@ -261,6 +262,7 @@ fn fmt_desc(s: &str) -> String {
         .replace("</em>", "")
 }
 
+#[must_use]
 pub fn collect_titles(m: &serde_json::Value, main_title: &str) -> Vec<String> {
     use std::collections::HashSet;
     let mut titles = Vec::with_capacity(32);

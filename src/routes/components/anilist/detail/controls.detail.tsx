@@ -28,7 +28,7 @@ import {
   validateScoreInput,
 } from "@/lib/anilist/anilistScore.utils";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { markOwnAnilistListStatus } from "@/store/anilist.store";
 import type { AniMedia, AnilistRouteData } from "@/types/anilist/anilist";

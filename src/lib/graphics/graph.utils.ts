@@ -72,12 +72,13 @@ export function computeMainlineIds(
     if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) continue;
     if (!adj.has(edge.source)) adj.set(edge.source, []);
     if (!adj.has(edge.target)) adj.set(edge.target, []);
-    adj.get(edge.source)!.push(edge.target);
-    adj.get(edge.target)!.push(edge.source);
+    adj.get(edge.source)?.push(edge.target);
+    adj.get(edge.target)?.push(edge.source);
   }
   const queue = [rootId];
   while (queue.length > 0) {
-    const cur = queue.shift()!;
+    const cur = queue.shift();
+    if (cur === undefined) break;
     for (const next of adj.get(cur) ?? []) {
       if (!mainline.has(next)) {
         mainline.add(next);
@@ -98,13 +99,14 @@ export function computeNodeRelationMap(
     if (!nodeMap.has(e.source) || !nodeMap.has(e.target)) continue;
     if (!adj.has(e.source)) adj.set(e.source, []);
     if (!adj.has(e.target)) adj.set(e.target, []);
-    adj.get(e.source)!.push({ node: e.target, type: e.relation_type });
-    adj.get(e.target)!.push({ node: e.source, type: e.relation_type });
+    adj.get(e.source)?.push({ node: e.target, type: e.relation_type });
+    adj.get(e.target)?.push({ node: e.source, type: e.relation_type });
   }
 
   const queue = [graph.root_id];
   while (queue.length > 0) {
-    const cur = queue.shift()!;
+    const cur = queue.shift();
+    if (cur === undefined) break;
     for (const { node, type } of adj.get(cur) ?? []) {
       if (!relation.has(node)) {
         relation.set(node, type);

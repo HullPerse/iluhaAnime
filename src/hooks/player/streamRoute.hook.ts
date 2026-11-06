@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { openStream } from "@/lib/player/playback.utils";
 import {
   alternateProxyUrl,

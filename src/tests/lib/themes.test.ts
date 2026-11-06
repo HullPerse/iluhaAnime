@@ -42,8 +42,9 @@ function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
 }
 
 function blendOver(face: string, desktop: string, alpha: number): string {
-  const base = hexToRgb(face)!;
-  const under = hexToRgb(desktop)!;
+  const base = hexToRgb(face);
+  const under = hexToRgb(desktop);
+  if (!base || !under) throw new Error("invalid theme color");
   return rgbToHex({
     b: under.b + (base.b - under.b) * alpha,
     g: under.g + (base.g - under.g) * alpha,
@@ -159,13 +160,14 @@ describe("built-in themes", () => {
     for (const name of THEME_ACCENT_EXEMPT) {
       const theme = THEMES.find((item) => item.name === name);
       expect(theme, name).toBeDefined();
+      if (!theme) throw new Error(`theme ${name} is missing`);
       const shades = new Set([
-        theme!.colors.highlight,
-        theme!.colors.linkHover,
-        theme!.colors.success,
-        theme!.colors.destructive,
-        theme!.colors.primary,
-        theme!.colors.surface,
+        theme.colors.highlight,
+        theme.colors.linkHover,
+        theme.colors.success,
+        theme.colors.destructive,
+        theme.colors.primary,
+        theme.colors.surface,
       ]);
       expect(shades.size, `${name} should be a limited palette`).toBeLessThanOrEqual(5);
     }

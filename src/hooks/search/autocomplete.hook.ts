@@ -1,7 +1,7 @@
 import { useDeferredValue, useMemo } from "react";
 
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
-import { getInlineCompletion, getSearchSuggestions } from "@/lib/core/suggestions.utils";
+import { getInlineCompletion, getSearchSuggestions } from "@/lib/core/anilist/suggestions.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AutocompleteParams } from "@/types/search/search";

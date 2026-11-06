@@ -76,7 +76,7 @@ group("anilist-titles @anilist @quick", () => {
   bench("resolve 2k titles x rotating prefs", () => {
     let sum = 0;
     for (let i = 0; i < FIELDS_2K.length; i++) {
-      sum += resolveAnimeTitle(FIELDS_2K[i]!, PREFS[i % PREFS.length]!).length;
+      sum += resolveAnimeTitle(FIELDS_2K[i], PREFS[i % PREFS.length]).length;
     }
     return sum;
   });

@@ -3,7 +3,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   createCollectionFilterSnapshot,
   queryCollectionFilterSnapshot,
-} from "@/lib/core/filter.utils";
+} from "@/lib/core/search/filter.utils";
 import type { CollectionFilterSnapshot } from "@/types/core/filter";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { createJobRunner } from "@/lib/workers/job.utils";

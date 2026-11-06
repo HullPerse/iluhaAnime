@@ -1,6 +1,6 @@
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatActivityTime } from "@/lib/core/activity.utils";
+import { formatActivityTime } from "@/lib/core/anilist/activity.utils";
 import { notificationBody } from "@/lib/anilist/siteNotifications.utils";
 import type { AniSiteNotification } from "@/types/anilist/anilist";
 

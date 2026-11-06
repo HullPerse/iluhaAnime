@@ -7,7 +7,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useAnimelibAccount } from "@/hooks/stream/animelibAccount.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { isValidProxyUrl } from "@/lib/core/proxy.utils";
+import { isValidProxyUrl } from "@/lib/core/system/proxy.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { animelibAccountLabel } from "@/lib/stream/animelibAccount.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";

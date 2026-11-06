@@ -2,7 +2,7 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BootPending } from "@/components/shared/bootPending.component";
-import { readFastLaunch } from "@/lib/core/fastLaunch.utils";
+import { readFastLaunch } from "@/lib/core/system/fastLaunch.utils";
 
 afterEach(() => {
   cleanup();

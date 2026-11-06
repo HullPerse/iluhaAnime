@@ -7,8 +7,8 @@ import { bench, group } from "@pmndrs/labs";
 // registry build 33us, dispatch hits 271us, misses 183us. Regression
 // threshold is labs minDelta 5%.
 
-import { chordKey, parseChord } from "../../src/lib/core/chordHotkeys.utils";
-import { createHotkeyRegistry } from "../../src/lib/core/registryHotkeys.utils";
+import { chordKey, parseChord } from "../../src/lib/core/hotkeys/chordHotkeys.utils";
+import { createHotkeyRegistry } from "../../src/lib/core/hotkeys/registryHotkeys.utils";
 
 const CHORDS = [
   "ctrl+KeyS",

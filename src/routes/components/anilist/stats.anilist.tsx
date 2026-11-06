@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { monthLabel } from "@/lib/core/activity.utils";
+import { monthLabel } from "@/lib/core/anilist/activity.utils";
 import { buildMediaRows } from "@/lib/anilist/anilistStats.utils";
 import { buildAiringEntries, buildCalendarCells } from "@/lib/anilist/statsCalendar.utils";
 import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist/anilist";

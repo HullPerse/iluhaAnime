@@ -4,7 +4,7 @@ import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
 import { useStreamHistoryProgress } from "@/hooks/stream/catalog.hook";
-import { formatResume } from "@/lib/core/history.utils";
+import { formatResume } from "@/lib/core/anilist/history.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { StreamingAnime } from "@/types/player/stream";
 

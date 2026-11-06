@@ -43,7 +43,7 @@ pub fn import_collection_data(
     import_collection_data_with_connection(&connection, data, &strategy)
 }
 
-pub(crate) fn import_collection_data_with_connection(
+pub fn import_collection_data_with_connection(
     connection: &rusqlite::Connection,
     data: CollectionExport,
     strategy: &str,
@@ -96,7 +96,7 @@ pub(crate) fn import_collection_data_with_connection(
             }
             (Some(existing_id), ImportStrategy::Overwrite) => {
                 insert_collection_item_connection(
-                    &connection,
+                    connection,
                     collection_item_input_from(item, existing_id.to_string()),
                 )?;
                 summary.overwritten += 1;
@@ -105,7 +105,7 @@ pub(crate) fn import_collection_data_with_connection(
             (Some(_), ImportStrategy::CreateNew) | (None, _) => {
                 let new_id = unique_import_id(&item.id, index);
                 insert_collection_item_connection(
-                    &connection,
+                    connection,
                     collection_item_input_from(item, new_id.clone()),
                 )?;
                 summary.created += 1;

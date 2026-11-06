@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
-import { buildAnimeLink } from "@/lib/core/deeplink.utils";
+import { buildAnimeLink } from "@/lib/core/system/deeplink.utils";
 import type { AniListId } from "@/types/core/types";
 
 export function CopyLinkButton({ animeId }: { animeId: number }) {

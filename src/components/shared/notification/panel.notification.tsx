@@ -8,7 +8,7 @@ import {
   NOTIFICATION_FILTER_KEYS,
 } from "@/config/system/notifications.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getVisibleNotifications } from "@/lib/core/notification.utils";
+import { getVisibleNotifications } from "@/lib/core/ui/notification.utils";
 import type { NotificationFilter, NotificationItem } from "@/types/core/notification";
 import type { TorrentInfo } from "@/types/torrent/torrent";
 

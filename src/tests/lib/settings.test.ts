@@ -11,7 +11,7 @@ import {
   paintBlurMask,
   paintStroke,
   paintText,
-} from "@/lib/core/annotationDraw.utils";
+} from "@/lib/core/graphics/annotationDraw.utils";
 import {
   appendPoint,
   blurSigmaFor,
@@ -31,7 +31,7 @@ import {
   textBounds,
   undo,
   withDraft,
-} from "@/lib/core/annotation.utils";
+} from "@/lib/core/graphics/annotation.utils";
 import {
   clampCrop,
   clampPan,
@@ -48,10 +48,10 @@ import {
   startCrop,
   toFrame,
   zoomAtPoint,
-} from "@/lib/core/crop.utils";
-import { canSaveScreenshot, defaultScreenshotName } from "@/lib/core/screenshot.utils";
-import { toSessionConfig } from "@/lib/core/session.utils";
-import { buildTrayMenuEntries, shouldHideOnClose } from "@/lib/core/tray.utils";
+} from "@/lib/core/graphics/crop.utils";
+import { canSaveScreenshot, defaultScreenshotName } from "@/lib/core/graphics/screenshot.utils";
+import { toSessionConfig } from "@/lib/core/player/session.utils";
+import { buildTrayMenuEntries, shouldHideOnClose } from "@/lib/core/system/tray.utils";
 import { patchSettings } from "@/store/settings.store";
 import type { AnnotationItem, StrokeItem, TextItem } from "@/types/core/screenshot";
 

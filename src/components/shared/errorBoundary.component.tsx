@@ -1,15 +1,15 @@
 import { Component } from "react";
 
 import { toFatalInfo } from "@hullperse/hp_utils/fatalClassify";
-import { readRoutePath } from "@/lib/core/routePath.utils";
+import { readRoutePath } from "@/lib/core/system/routePath.utils";
 import {
   clearFatal,
   isCurrentSessionSafe,
   reportFatal,
   requestSafeMode,
   subscribeFatal,
-} from "@/lib/core/report.utils";
-import { readThemeName } from "@/lib/core/fatalTheme.utils";
+} from "@/lib/core/system/report.utils";
+import { readThemeName } from "@/lib/core/fatal/fatalTheme.utils";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { FatalInfo } from "@/types/core/fatal";
 import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types/core/ui";

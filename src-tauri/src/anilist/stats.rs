@@ -245,7 +245,7 @@ pub fn parse_statistics(value: &serde_json::Value) -> Result<AniListStatistics, 
 }
 
 /// The statistics screen is read-only and changes slowly, so a short cache is
-/// safe. It also matters because the AniList edge can answer in tens of
+/// safe. It also matters because the `AniList` edge can answer in tens of
 /// seconds (or time out) on some routes: reopening the tab must not repeat
 /// that wait.
 const STATS_CACHE_NAMESPACE: &str = "anilist_stats";

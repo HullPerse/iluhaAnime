@@ -1,5 +1,5 @@
 import ImageComponent from "@/components/ui/image.component";
-import { torrentFileIcon } from "@/lib/core/fileIcon.utils";
+import { torrentFileIcon } from "@/lib/core/ui/fileIcon.utils";
 import type { TorrentDetailFile } from "@/types/torrent/torrent";
 
 export function TorrentFileLeaf({ file, depth }: { file: TorrentDetailFile; depth: number }) {

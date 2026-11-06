@@ -1,6 +1,6 @@
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatScore } from "@/lib/anilist/anilistScore.utils";
-import { formatNormalizedScore } from "@/lib/core/compare.utils";
+import { formatNormalizedScore } from "@/lib/core/anilist/compare.utils";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import { StatusMark } from "@/routes/components/anilist/compare/statusMark.compare";
 

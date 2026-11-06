@@ -1,7 +1,7 @@
 import ImageComponent from "@/components/ui/image.component";
 import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatActivityTime } from "@/lib/core/activity.utils";
+import { formatActivityTime } from "@/lib/core/anilist/activity.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AniActivity } from "@/types/anilist/anilist";
@@ -19,6 +19,10 @@ export function FeedItem({
 }) {
   const { t, locale } = useI18n();
   const Icon = ACTIVITY_STATUS_ICONS[a.status ?? ""];
+  const mediaId = a.media_id;
+  const openMedia = () => {
+    if (mediaId != null) onAnimeClick(mediaId);
+  };
 
   if (a.activity_type !== "list" || !a.media_id) {
     return (
@@ -53,7 +57,7 @@ export function FeedItem({
           src={a.media_cover}
           alt="media_cover"
           className="windows95-active-border h-16 w-11 shrink-0 object-cover hover:cursor-pointer"
-          onClick={() => onAnimeClick(a.media_id!)}
+          onClick={openMedia}
         />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
@@ -71,8 +75,8 @@ export function FeedItem({
           tabIndex={0}
           data-vim-target="activity-media"
           className="windows95-text line-clamp-2 text-xs font-bold underline decoration-dotted hover:cursor-pointer"
-          onClick={() => onAnimeClick(a.media_id!)}
-          onKeyDown={enterOrSpace(() => onAnimeClick(a.media_id!))}
+          onClick={openMedia}
+          onKeyDown={enterOrSpace(openMedia)}
         >
           {a.media_title}
         </span>

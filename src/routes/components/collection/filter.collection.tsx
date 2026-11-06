@@ -17,7 +17,7 @@ import {
   YEAR_MIN,
 } from "@/config/anilist/collectionFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { freshDefaults } from "@/lib/core/filter.utils";
+import { freshDefaults } from "@/lib/core/search/filter.utils";
 import type { CollectionFilters, CollectionType } from "@/types/anilist/collection";
 
 export default function FilterCollection({

@@ -11,7 +11,7 @@ import {
   diffFingerprintEntries,
   fingerprintEntries,
   type FingerprintEntry,
-} from "../../src/lib/core/buildFingerprint.utils";
+} from "../../src/lib/core/system/buildFingerprint.utils";
 
 function makeEntries(count: number): FingerprintEntry[] {
   const entries: FingerprintEntry[] = [];

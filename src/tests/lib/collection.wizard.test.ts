@@ -8,7 +8,7 @@ import {
   wizardDefaultsMedia,
   wizardDefaultsMeta,
   wizardDefaultsProgress,
-} from "@/lib/core/wizard.utils";
+} from "@/lib/core/collection/wizard.utils";
 import type { CollectionItem, WizardSaveValues } from "@/types/anilist/collection";
 
 describe("collection/wizard", () => {
@@ -146,16 +146,16 @@ describe("collection/wizard", () => {
       const before = Date.now();
       const item = buildWizardItem(makeValues({ status: "completed" }), null, null);
       expect(item.finishedAt).not.toBeNull();
-      expect(item.finishedAt!).toBeGreaterThanOrEqual(before);
-      expect(item.finishedAt!).toBeLessThanOrEqual(Date.now());
+      expect(item.finishedAt).toBeGreaterThanOrEqual(before);
+      expect(item.finishedAt).toBeLessThanOrEqual(Date.now());
     });
 
     it("resolves startedAt to now for watching items without a date", () => {
       const before = Date.now();
       const item = buildWizardItem(makeValues({ status: "watching", startedAt: "" }), null, null);
       expect(item.startedAt).not.toBeNull();
-      expect(item.startedAt!).toBeGreaterThanOrEqual(before);
-      expect(item.startedAt!).toBeLessThanOrEqual(Date.now());
+      expect(item.startedAt).toBeGreaterThanOrEqual(before);
+      expect(item.startedAt).toBeLessThanOrEqual(Date.now());
     });
 
     it("carries releaseDate from values and preserves it on edit", () => {
@@ -199,8 +199,8 @@ describe("collection/wizard", () => {
       const before = Date.now();
       const result = resolveFinishedAt("completed", "");
       expect(result).not.toBeNull();
-      expect(result!).toBeGreaterThanOrEqual(before);
-      expect(result!).toBeLessThanOrEqual(Date.now());
+      expect(result).toBeGreaterThanOrEqual(before);
+      expect(result).toBeLessThanOrEqual(Date.now());
     });
   });
 

@@ -11,7 +11,7 @@ import { bench, group } from "@pmndrs/labs";
 // Regression threshold is labs minDelta 5%.
 // Checksums returned so labs can detect dead code elimination.
 
-import { buildLearningMaps, countersOf } from "../../src/lib/core/learning.utils";
+import { buildLearningMaps, countersOf } from "../../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../../src/config/anilist/ranking.config";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 

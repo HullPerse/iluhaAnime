@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 
 describe("queryKeys", () => {
   it("returns stable keys for the same inputs", () => {

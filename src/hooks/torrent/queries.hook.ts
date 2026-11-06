@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { createInterval } from "@hullperse/hp_utils/interval";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import {
   TorrentListen,
   TORRENT_WATCHDOG_MS,
@@ -18,8 +18,8 @@ import {
   withoutPendingRemoved,
 } from "@/lib/torrent/torrentCommon.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { showError, showWarning } from "@/lib/core/notification.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { showError, showWarning } from "@/lib/core/ui/notification.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { cacheAtoms, removeSeedPreference } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";
@@ -312,7 +312,7 @@ export function useTorrentFilesMap(
       const failure = results[index]?.error;
       if (failure !== undefined && failure !== null)
         errors[id] = failure instanceof Error ? failure.message : String(failure);
-      else if (pollErrors[id] !== undefined) errors[id] = pollErrors[id]!;
+      else if (pollErrors[id] !== undefined) errors[id] = pollErrors[id];
     });
     return {
       errors,

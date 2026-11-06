@@ -3,7 +3,7 @@ import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { FRIEND_ACTIVITY_LIMIT } from "@/config/anilist/friendActivity.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 
 import { FriendActivityRow } from "./friendActivity/row.friendActivity";
 

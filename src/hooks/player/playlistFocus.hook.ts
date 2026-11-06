@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
-import { movePlaylistFocus } from "@/lib/core/playlistFocus.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { movePlaylistFocus } from "@/lib/core/player/playlistFocus.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type {
   PlayerPlaylistFocusHandlers,

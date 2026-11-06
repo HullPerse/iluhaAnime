@@ -7,7 +7,7 @@ import { PAGE_SIZE } from "@/config/system/sqlite.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
-import { displayCell } from "@/lib/core/sqliteRow.utils";
+import { displayCell } from "@/lib/core/system/sqliteRow.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";

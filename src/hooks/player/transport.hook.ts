@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
-import { stepSpeed } from "@/lib/core/speed.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
+import { stepSpeed } from "@/lib/core/player/speed.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import {
   closePlayerWindow,

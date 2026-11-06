@@ -6,14 +6,14 @@ import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useSearchSessions } from "@/hooks/search/sessions.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { countActiveFilters } from "@/lib/search/searchFilters.utils";
 import {
   filterAnimeResults,
   getVisibleSources,
   sortAnimeResults,
   dedupAnimeResults,
-} from "@/lib/core/results.utils";
+} from "@/lib/core/text/results.utils";
 import {
   isPagedSearchSource,
   resolveInitialSource,

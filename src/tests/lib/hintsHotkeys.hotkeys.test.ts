@@ -15,7 +15,7 @@ import {
   resolveBadgeCollisions,
   resolveHintDescription,
   scanHintTargets,
-} from "@/lib/core/hintsHotkeys.utils";
+} from "@/lib/core/hotkeys/hintsHotkeys.utils";
 import type { HintBadge, HintBadgeLayout, HintVariant } from "@/types/core/hintsHotkeys";
 import type { TranslationKey } from "@/types/core/i18n";
 

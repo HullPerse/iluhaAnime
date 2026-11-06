@@ -28,11 +28,11 @@ function entry(id: number): AniListEntry {
     media: {
       id,
       title: `Title ${id}`,
-      genres: [GENRES[id % GENRES.length]!, GENRES[(id * 3) % GENRES.length]!],
+      genres: [GENRES[id % GENRES.length], GENRES[(id * 3) % GENRES.length]],
     } as unknown as AniListEntry["media"],
     progress: id % 24,
     score: 70 + (id % 30),
-    list_status: STATUSES[id % STATUSES.length]!,
+    list_status: STATUSES[id % STATUSES.length],
     created_at: null,
     completed_at: null,
     started_at: null,

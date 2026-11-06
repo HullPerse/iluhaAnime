@@ -3,7 +3,7 @@ import { Film } from "lucide-react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { monthLabel } from "@/lib/core/activity.utils";
+import { monthLabel } from "@/lib/core/anilist/activity.utils";
 import { calendarCellTone, calendarDayNumberTone } from "@/lib/anilist/statsCalendar.utils";
 import type { CalendarCell } from "@/types/anilist/stats.anilist";
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as z from "zod/mini";
 
 import { err, ok } from "@hullperse/hp_utils/result";
-import { parseJson, parseValue, toValidator } from "@/lib/core/schema.utils";
+import { parseJson, parseValue, toValidator } from "@/lib/core/persistence/schema.utils";
 
 const ItemSchema = z.object({
   id: z.number().check(z.gt(0)),

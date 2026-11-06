@@ -8,7 +8,7 @@ import {
   markIndexReady,
   markSpellingReady,
   resetSplashSignals,
-} from "@/lib/core/signals.utils";
+} from "@/lib/core/system/signals.utils";
 
 const OPTIONS = { minMs: 50, stageTimeoutMs: 100, stepMs: 30 };
 

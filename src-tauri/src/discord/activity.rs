@@ -59,7 +59,7 @@ impl DiscordActivity {
         self
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.details.is_none()
             && self.state.is_none()
             && self.start_timestamp.is_none()

@@ -9,7 +9,7 @@ import {
   fmtSpeed,
   getDisplayState,
 } from "@/lib/torrent/torrentCommon.utils";
-import { formatETA } from "@/lib/core/time.utils";
+import { formatETA } from "@/lib/core/text/time.utils";
 import { torrentAtoms } from "@/store/download.store";
 import type { TorrentInfo } from "@/types/torrent/torrent";
 

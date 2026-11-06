@@ -7,9 +7,9 @@ import ProgressBar from "@/components/shared/progress.component";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { rowMetaParts, sameRowVisual } from "@/lib/core/list.utils";
-import { generatePlaceholder } from "@/lib/core/placeholder.utils";
-import { sortStatuses, statusColorOf, statusLabel } from "@/lib/core/status.utils";
+import { rowMetaParts, sameRowVisual } from "@/lib/core/text/list.utils";
+import { generatePlaceholder } from "@/lib/core/ui/placeholder.utils";
+import { sortStatuses, statusColorOf, statusLabel } from "@/lib/core/anilist/status.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { CollectionRowProps } from "@/types/anilist/collection";
 

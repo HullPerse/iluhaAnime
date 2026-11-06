@@ -126,7 +126,7 @@ pub struct StreamOpen {
     pub episode_title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cover: Option<String>,
-    /// The AniList id the catalog matched, when it had one. The player uses it
+    /// The `AniList` id the catalog matched, when it had one. The player uses it
     /// for episode previews; nothing plays from it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub anilist_id: Option<i64>,
@@ -286,14 +286,14 @@ pub struct TypedEvent {
 /// the instance across files, so a quality or voice-over switch only has to
 /// rewrite the ones that actually changed.
 #[derive(Default)]
-pub(crate) struct StreamOptions {
+pub struct StreamOptions {
     proxy: Option<String>,
     headers: Option<String>,
     paused: Option<bool>,
 }
 
 /// Which stream options a request still has to write to mpv.
-pub(crate) struct StreamWrites {
+pub struct StreamWrites {
     pub proxy: bool,
     pub headers: bool,
     pub pause: bool,
@@ -337,7 +337,7 @@ pub struct StreamIdentity {
 }
 
 #[derive(Default, Clone)]
-pub(crate) struct WatchdogState {
+pub struct WatchdogState {
     previous_drops: Option<i64>,
     warned: bool,
 }
@@ -348,7 +348,7 @@ const WATCHDOG_WINDOW_SECS: f64 = 5.0;
 const WATCHDOG_MIN_DROPS: i64 = 3;
 
 #[derive(Default, Clone, PartialEq)]
-pub(crate) struct Metrics {
+pub struct Metrics {
     fps_render: Option<f64>,
     fps_video: Option<f64>,
     drop_count: Option<i64>,
@@ -365,28 +365,37 @@ pub(crate) struct Metrics {
 
 impl PlayerHost {
     pub fn set_pending_open(&self, request: Option<PlayerOpenRequest>) {
-        *self.pending_open.lock().unwrap_or_else(|e| e.into_inner()) = request;
+        *self
+            .pending_open
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = request;
     }
 
     pub fn pending_open(&self) -> Option<PlayerOpenRequest> {
         self.pending_open
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
     }
 
     pub fn clear_pending_open(&self) {
-        *self.pending_open.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        *self
+            .pending_open
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
     }
 
     pub fn set_current_path(&self, path: String) {
-        *self.current_path.lock().unwrap_or_else(|e| e.into_inner()) = path;
+        *self
+            .current_path
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = path;
     }
 
     pub fn current_path(&self) -> String {
         self.current_path
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
     }
 
@@ -397,7 +406,7 @@ impl PlayerHost {
         *self
             .stream_watch_key
             .lock()
-            .unwrap_or_else(|e| e.into_inner()) = key;
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = key;
         if clearing {
             self.set_stream_identity(None);
         }
@@ -406,7 +415,7 @@ impl PlayerHost {
     pub fn stream_watch_key(&self) -> Option<String> {
         self.stream_watch_key
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
     }
 
@@ -414,13 +423,13 @@ impl PlayerHost {
         *self
             .stream_identity
             .lock()
-            .unwrap_or_else(|e| e.into_inner()) = identity;
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = identity;
     }
 
     pub fn stream_identity(&self) -> Option<StreamIdentity> {
         self.stream_identity
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
     }
 
@@ -437,7 +446,10 @@ impl PlayerHost {
     }
 
     pub fn set_metrics(&self, metrics: Metrics) {
-        let mut current = self.metrics.lock().unwrap_or_else(|e| e.into_inner());
+        let mut current = self
+            .metrics
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         if *current != metrics {
             *current = metrics;
             drop(current);
@@ -450,7 +462,7 @@ impl PlayerHost {
     pub fn metrics(&self) -> Metrics {
         self.metrics
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
     }
 
@@ -462,7 +474,7 @@ impl PlayerHost {
     pub(crate) fn last_stream_speed(&self) -> Option<f64> {
         self.latest
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .0
             .cache_speed
     }
@@ -478,7 +490,7 @@ impl PlayerHost {
         let mut state = self
             .stream_options
             .lock()
-            .unwrap_or_else(|error| error.into_inner());
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let writes = StreamWrites {
             proxy: state.proxy.as_deref() != Some(proxy),
             headers: state.headers.as_deref() != Some(headers),
@@ -497,13 +509,13 @@ impl PlayerHost {
         *self
             .readahead
             .lock()
-            .unwrap_or_else(|error| error.into_inner()) = Some(seconds);
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(seconds);
     }
 
     pub fn readahead(&self) -> f64 {
         self.readahead
             .lock()
-            .unwrap_or_else(|error| error.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .unwrap_or(1.0)
     }
 
@@ -512,20 +524,26 @@ impl PlayerHost {
         *self
             .stream_options
             .lock()
-            .unwrap_or_else(|error| error.into_inner()) = StreamOptions::default();
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = StreamOptions::default();
     }
 
     /// A local file load changes `pause` behind the stream cache's back.
     pub(crate) fn invalidate_stream_pause(&self) {
         self.stream_options
             .lock()
-            .unwrap_or_else(|error| error.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .paused = None;
     }
 
     pub fn reset_file_state(&self) {
-        *self.metrics.lock().unwrap_or_else(|e| e.into_inner()) = Metrics::default();
-        *self.watchdog.lock().unwrap_or_else(|e| e.into_inner()) = WatchdogState::default();
+        *self
+            .metrics
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Metrics::default();
+        *self
+            .watchdog
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = WatchdogState::default();
     }
 }
 
@@ -547,10 +565,10 @@ pub fn attach(app: &AppHandle) {
             if !host.is_active() {
                 continue;
             }
-            if ticks % METRICS_TICKS == 0 {
+            if ticks.is_multiple_of(METRICS_TICKS) {
                 host.set_metrics(read_metrics(&ticker));
             }
-            if ticks % WATCHDOG_TICKS == 0 {
+            if ticks.is_multiple_of(WATCHDOG_TICKS) {
                 watchdog_tick(&ticker);
             }
             if host.dirty.swap(false, Ordering::Relaxed) {
@@ -563,7 +581,7 @@ pub fn attach(app: &AppHandle) {
                 let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
             }
             ticks = ticks.wrapping_add(1);
-            if ticks % WATCH_SAVE_TICKS == 0 {
+            if ticks.is_multiple_of(WATCH_SAVE_TICKS) {
                 save_current_watch(&ticker);
             }
         }
@@ -592,7 +610,7 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
                     let mut guard = host
                         .latest
                         .lock()
-                        .unwrap_or_else(|error| error.into_inner());
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
                     let (snapshot, mask) = &mut *guard;
                     apply_observed_property(snapshot, mask, name, data);
                 }
@@ -624,7 +642,8 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
             *host
                 .latest
                 .lock()
-                .unwrap_or_else(|error| error.into_inner()) = (PlaybackSnapshot::default(), 0);
+                .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                (PlaybackSnapshot::default(), 0);
             host.mark_dirty();
             emit_typed(app, "file-loaded", None, None);
         }
@@ -758,11 +777,11 @@ fn smooth_snapshot(app: &AppHandle, next: PlaybackSnapshot) -> PlaybackSnapshot 
     let mut last = host
         .last_snapshot
         .lock()
-        .unwrap_or_else(|error| error.into_inner());
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut streak = host
         .zero_streak
         .lock()
-        .unwrap_or_else(|error| error.into_inner());
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     // Baseline is the last EMITTED sample (not raw): consecutive zeros stay
     // glitches until the streak budget runs out, then converge.
     let (emitted, updated) = smooth_with_streak(last.as_ref(), *streak, next);
@@ -893,7 +912,7 @@ fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
         let guard = host
             .latest
             .lock()
-            .unwrap_or_else(|error| error.into_inner());
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         (guard.0.clone(), guard.1)
     };
 
@@ -975,7 +994,7 @@ fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
             *host
                 .latest
                 .lock()
-                .unwrap_or_else(|error| error.into_inner()) = (snapshot.clone(), observed);
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = (snapshot.clone(), observed);
         }
     }
 
@@ -1004,7 +1023,7 @@ const DROP_KEYS: &[&str] = &[
     "decoder-frame-drop-count",
 ];
 
-pub(crate) fn parse_cache_state(value: &Value) -> Option<CacheState> {
+pub fn parse_cache_state(value: &Value) -> Option<CacheState> {
     let obj = if let Some(text) = value.as_str() {
         serde_json::from_str::<Value>(text).ok()?
     } else {
@@ -1055,13 +1074,15 @@ pub(crate) fn parse_cache_state(value: &Value) -> Option<CacheState> {
 
     Some(CacheState {
         seekable_ranges: merged,
-        cache_start: map.get("reader-pts").and_then(|value| value.as_f64()),
-        cache_end: map.get("cache-end").and_then(|value| value.as_f64()),
-        cache_duration: map.get("cache-duration").and_then(|value| value.as_f64()),
-        cache_idle: map.get("idle").and_then(|value| value.as_bool()),
-        bof_cached: map.get("bof-cached").and_then(|value| value.as_bool()),
-        eof_cached: map.get("eof-cached").and_then(|value| value.as_bool()),
-        fw_bytes: map.get("fw-bytes").and_then(|value| value.as_i64()),
+        cache_start: map.get("reader-pts").and_then(serde_json::Value::as_f64),
+        cache_end: map.get("cache-end").and_then(serde_json::Value::as_f64),
+        cache_duration: map
+            .get("cache-duration")
+            .and_then(serde_json::Value::as_f64),
+        cache_idle: map.get("idle").and_then(serde_json::Value::as_bool),
+        bof_cached: map.get("bof-cached").and_then(serde_json::Value::as_bool),
+        eof_cached: map.get("eof-cached").and_then(serde_json::Value::as_bool),
+        fw_bytes: map.get("fw-bytes").and_then(serde_json::Value::as_i64),
     })
 }
 
@@ -1099,7 +1120,10 @@ fn watchdog_tick(app: &AppHandle) {
         return;
     };
     let fps = metrics.fps_video.or(metrics.fps_render).unwrap_or_default();
-    let mut state = host.watchdog.lock().unwrap_or_else(|e| e.into_inner());
+    let mut state = host
+        .watchdog
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let previous = state.previous_drops.replace(current);
     let Some(previous) = previous else {
         return;

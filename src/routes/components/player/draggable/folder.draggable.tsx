@@ -11,13 +11,13 @@ import { useBottomResize, resolveResizeMultiplier } from "@/hooks/folderResize.h
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindChord } from "@/hooks/keybindTitle.hook";
-import { maxFolderHeight } from "@/lib/core/folder.utils";
+import { maxFolderHeight } from "@/lib/core/collection/folder.utils";
 import { summarizeTree } from "@/lib/player/playerTree.utils";
-import { normalizePlayerPath } from "@/lib/core/visibility.utils";
+import { normalizePlayerPath } from "@/lib/core/ui/visibility.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 import { setVimCount, vimAtoms } from "@/store/vim.store";

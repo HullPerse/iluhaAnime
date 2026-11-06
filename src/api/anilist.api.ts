@@ -1,6 +1,6 @@
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
-import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/networkHealth.utils";
+import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/system/networkHealth.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   ActivityLikeState,

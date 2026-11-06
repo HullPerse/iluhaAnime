@@ -1,6 +1,8 @@
 import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
-import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import { isRecord } from "@/lib/core/text/record.utils";
 import type {
   CollectionFilters,
   CollectionStatus,
@@ -11,17 +13,13 @@ import type {
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
 
-export const COLLECTION_SCHEMA_VERSION = 9;
+export const COLLECTION_SCHEMA_VERSION = SCHEMA_VERSIONS.collection;
 
 const SORT_KEYS = ["date", "name", "rating", "year"] as const;
 const VIEW_MODES = ["grid", "list"] as const;
 const MEDIA_TYPES = ["anime", "movie", "series", "custom"] as const;
 const PROVIDERS = ["any", "anilist", "tmdb", "custom"] as const;
 const YES_NO_ANY = ["any", "yes", "no"] as const;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object";
-}
 
 function isOneOf<T extends string>(value: unknown, options: readonly T[]): value is T {
   return options.some((option) => option === value);
@@ -178,7 +176,9 @@ interface CollectionSignalStore {
   consumeWizardPrefill: () => void;
 }
 
-function createCollectionSignalStore(options: CollectionSignalOptions = {}): CollectionSignalStore {
+export function createCollectionSignalStore(
+  options: CollectionSignalOptions = {}
+): CollectionSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "collection-ui",
     short: "collection",
@@ -192,7 +192,7 @@ function createCollectionSignalStore(options: CollectionSignalOptions = {}): Col
   const persistedData = persisted?.data ?? {};
   const data: CollectionData = {
     ...DEFAULT_COLLECTION_DATA,
-    ...readCollectionData(persistedData, COLLECTION_SCHEMA_VERSION),
+    ...readCollectionData(persistedData, persisted?.schemaVersion ?? COLLECTION_SCHEMA_VERSION),
   };
   const writeMirror: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data)) {
@@ -274,13 +274,3 @@ export const setCollectionDisplayMode = collection.setDisplayMode;
 export const requestWizardPrefill = collection.requestWizardPrefill;
 export const consumeWizardPrefill = collection.consumeWizardPrefill;
 
-if (
-  typeof window !== "undefined" &&
-  typeof window.addEventListener === "function" &&
-  typeof document !== "undefined"
-) {
-  window.addEventListener("beforeunload", () => collection.persistor.flush());
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") collection.persistor.flush();
-  });
-}

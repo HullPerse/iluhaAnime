@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 
 import { SEEK_STEP } from "@/config/settings/keybinds.config";
-import { resolveChapterJump } from "@/lib/core/chapter.utils";
-import { ignore } from "@/lib/core/promise.utils";
-import { resolveSkipTarget } from "@/lib/core/skip.utils";
+import { resolveChapterJump } from "@/lib/core/player/chapter.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
+import { resolveSkipTarget } from "@/lib/core/player/skip.utils";
 import { seekTo, setPaused } from "@/lib/player/playback.utils";
 import { playbackAtoms, playerAtoms, setSeekTarget } from "@/store/player.store";
 import type { ChapterJumpDirection } from "@/types/core/chapter";

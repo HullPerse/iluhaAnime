@@ -21,8 +21,8 @@ import { hasRating } from "@/lib/anilist/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { paginate } from "@/lib/core/pagination.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { paginate } from "@/lib/core/collection/pagination.utils";
 import type { ActivityDetailBundle } from "@/types/anilist/anilist";
 import type { BrowseTab } from "@/types/anilist/anilist";
 

@@ -4,7 +4,7 @@ import { memo } from "react";
 
 import { suggestionIcons, suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SearchSuggestion } from "@/lib/core/suggestions.utils";
+import type { SearchSuggestion } from "@/lib/core/anilist/suggestions.utils";
 
 import { HighlightedText } from "@/components/shared/autocomplete/highlightedText.autocomplete";
 

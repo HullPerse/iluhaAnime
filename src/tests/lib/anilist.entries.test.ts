@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
-import { buildScoreByMedia, isMentionOf } from "@/lib/core/activity.utils";
+import { buildScoreByMedia, isMentionOf } from "@/lib/core/anilist/activity.utils";
 import {
   buildEntryLookup,
   entryListDate,

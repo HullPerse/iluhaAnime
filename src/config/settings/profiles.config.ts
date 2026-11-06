@@ -1,6 +1,6 @@
 import * as z from "zod/mini";
 
-import { keysOf } from "@/lib/core/keysOf.utils";
+import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import type { PlayerProfile, PlayerProfileId } from "@/types/player/videoPlayer";
 import data from "./profiles.data.json";
 

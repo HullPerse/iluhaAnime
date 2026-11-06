@@ -4,7 +4,7 @@ import {
   resolveFatalLocale,
   resolveFatalTexts,
   resolveSplashTexts,
-} from "@/lib/core/fatalTexts.utils";
+} from "@/lib/core/fatal/fatalTexts.utils";
 
 describe("fatal texts contract", () => {
   it("defaults to english without persisted settings", () => {

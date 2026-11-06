@@ -6,8 +6,8 @@ import {
   PLAYER_HOTKEYS,
   VIEW_MODE_DIGITS,
 } from "@/config/settings/keybinds.config";
-import { parseChord } from "@/lib/core/chordHotkeys.utils";
-import { createHotkeyRegistry } from "@/lib/core/registryHotkeys.utils";
+import { parseChord } from "@/lib/core/hotkeys/chordHotkeys.utils";
+import { createHotkeyRegistry } from "@/lib/core/hotkeys/registryHotkeys.utils";
 
 describe("KEYBINDS", () => {
   it("gives every entry a unique parseable chord", () => {

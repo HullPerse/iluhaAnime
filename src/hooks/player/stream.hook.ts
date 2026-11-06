@@ -10,14 +10,14 @@ import {
   loadPlayers,
   loadSources,
   prefetchNativeSources,
-} from "@/lib/core/sessionCache.utils";
+} from "@/lib/core/player/sessionCache.utils";
 import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/search/sources.utils";
 import { openStream } from "@/lib/player/playback.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { lowerQualityLabel } from "@/lib/player/streamQuality.utils";
 import { resolveEpisodeStream, resolveNextStream } from "@/lib/player/playerStream.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
@@ -65,6 +65,8 @@ export function usePlayerStream(): PlayerStream {
 
   const episodeId = session?.episodeId;
   const seeded = session?.variants;
+  const stallKey = `${episodeId ?? ""}:${session?.variantId ?? ""}`;
+  const lastStallKeyRef = useRef(stallKey);
 
   useEffect(() => {
     if (!episodeId) {
@@ -195,9 +197,11 @@ export function usePlayerStream(): PlayerStream {
   );
 
   useEffect(() => {
+    if (lastStallKeyRef.current === stallKey) return;
+    lastStallKeyRef.current = stallKey;
     // A stall from the previous voice-over must not count toward the new one.
     stalledSinceRef.current = null;
-  }, [episodeId, session?.variantId]);
+  }, [stallKey]);
 
   // One automatic step down per voice-over: a slow connection gets a playable
   // quality instead of an endless buffering screen, while a manual pick is

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { OFFSET_LIMIT, OFFSET_STEP, OFFSET_STEP_FINE } from "@/config/settings/keybinds.config";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { setMpvProperty } from "@/lib/player/playback.utils";
 import { getMediaEntry, setMediaAudioOffset, setMediaSubOffset } from "@/store/media.store";
 import { playbackAtoms } from "@/store/player.store";

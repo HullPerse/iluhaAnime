@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { suggestionPoolSize, suggestionScore } from "@/lib/core/rank.utils";
+import { suggestionPoolSize, suggestionScore } from "@/lib/core/anilist/rank.utils";
 import { parseOperatorTerms } from "@/lib/search/searchScore.utils";
-import { matchNormalizedTitle, normalizeSearchText } from "@/lib/core/suggestions.utils";
-import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/core/suggestions.utils";
+import { matchNormalizedTitle, normalizeSearchText } from "@/lib/core/anilist/suggestions.utils";
+import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/core/anilist/suggestions.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import type { SearchSuggestionScope } from "@/types/search/search";
 

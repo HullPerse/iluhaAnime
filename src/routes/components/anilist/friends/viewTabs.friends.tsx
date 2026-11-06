@@ -1,4 +1,4 @@
-import { keysOf } from "@/lib/core/keysOf.utils";
+import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import Tabs from "@/components/shared/tabs.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { FriendView } from "@/types/anilist/anilist";

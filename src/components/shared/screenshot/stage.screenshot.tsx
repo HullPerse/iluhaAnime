@@ -8,7 +8,7 @@ import type {
 
 import CropFrame from "@/components/shared/screenshot/crop.screenshot";
 import { CROP_MIN_SIZE, CROP_ZOOM_STEP } from "@/config/graphics/screenshot.config";
-import { measureText, paintAnnotations, paintBlurMask } from "@/lib/core/annotationDraw.utils";
+import { measureText, paintAnnotations, paintBlurMask } from "@/lib/core/graphics/annotationDraw.utils";
 import { paintOffscreen } from "@/lib/graphics/screenshotPaint.utils";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import {
@@ -20,7 +20,7 @@ import {
   isBlurItem,
   nextAnnotationId,
   withDraft,
-} from "@/lib/core/annotation.utils";
+} from "@/lib/core/graphics/annotation.utils";
 import {
   clampPan,
   fitView,
@@ -29,7 +29,7 @@ import {
   snapThresholdForScale,
   startCrop,
   zoomAtPoint,
-} from "@/lib/core/crop.utils";
+} from "@/lib/core/graphics/crop.utils";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type {
   AnnotationItem,

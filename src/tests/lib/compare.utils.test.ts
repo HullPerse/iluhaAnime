@@ -17,7 +17,7 @@ import {
   spearmanCorrelation,
   topGenreOverlap,
   topGenreTaste,
-} from "@/lib/core/compare.utils";
+} from "@/lib/core/anilist/compare.utils";
 import type { AniListCollection, AniListEntry, FavouriteAnime } from "@/types/anilist/anilist";
 
 function makeEntry(

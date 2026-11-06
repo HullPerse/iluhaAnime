@@ -1,7 +1,7 @@
 import { bench, group } from "@pmndrs/labs";
 
 import { DEFAULT_FILTERS } from "../../src/config/anilist/collectionFilters.config";
-import { applyShortQueryFilter, filterCollectionItems } from "../../src/lib/core/filter.utils";
+import { applyShortQueryFilter, filterCollectionItems } from "../../src/lib/core/search/filter.utils";
 import {
   matchOperatorTerm,
   matchOperatorTerms,

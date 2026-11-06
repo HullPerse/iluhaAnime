@@ -1,5 +1,7 @@
 import type { FatalVariantProps } from "@/types/core/shared.fatal";
 
+import { FatalUpdateButton } from "@/components/shared/fatal/update.fatal";
+
 export function XpBsod({
   info,
   texts,
@@ -13,6 +15,9 @@ export function XpBsod({
   onSafeReload,
   onRetry,
   onCopy,
+  onCheckUpdate,
+  updateState,
+  updateError,
 }: FatalVariantProps) {
   return (
     <div
@@ -59,6 +64,14 @@ export function XpBsod({
           >
             {copied ? texts.copied : texts.copy}
           </button>
+          <FatalUpdateButton
+            texts={texts}
+            state={updateState}
+            error={updateError}
+            onCheck={onCheckUpdate}
+            className="border border-white bg-transparent px-8 py-1.5 text-lg text-white outline-none hover:bg-white/20 focus-visible:underline disabled:cursor-default disabled:opacity-60"
+            noteClassName="text-lg opacity-90"
+          />
         </div>
         <button
           type="button"

@@ -4,8 +4,8 @@ import { useCallback } from "react";
 import { systemApi } from "@/api/system.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { networkAtoms, probeNetwork } from "@/lib/core/networkHealth.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { networkAtoms, probeNetwork } from "@/lib/core/system/networkHealth.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 

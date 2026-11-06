@@ -3,8 +3,8 @@ import { RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isDefaultSetting, resetSetting } from "@/lib/core/reset.utils";
-import type { ResettableSetting } from "@/lib/core/reset.utils";
+import { isDefaultSetting, resetSetting } from "@/lib/core/system/reset.utils";
+import type { ResettableSetting } from "@/lib/core/system/reset.utils";
 
 export function SettingResetButton({
   field,

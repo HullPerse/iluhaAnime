@@ -1,6 +1,6 @@
 import * as z from "zod/mini";
 
-import { keysOf } from "@/lib/core/keysOf.utils";
+import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import type { TranslationKey } from "@/types/core/i18n";
 import type { CrtCurvature, PlayerCabinetId, PlayerModeId } from "@/types/player/videoPlayer";
 import type { PlayerModeDef } from "@/types/core/modes";

@@ -1,47 +1,17 @@
-import { listen } from "@tauri-apps/api/event";
-import type { UnlistenFn } from "@tauri-apps/api/event";
-
 import { tr } from "@/lib/locale/i18n.utils";
 import { buildOutputPath } from "@/lib/player/playerTree.utils";
 import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { UpscaleSignalStore } from "@/types/store/upscale";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { invokeTyped } from "@/lib/core/invoke.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type {
-  ConvertConfig,
-  UpscaleConfig,
-  UpscaleQueueItem,
-  UpscaleProgressPayload,
-} from "@/types/core/upscale";
+import { findDuplicate, genId } from "@/store/upscale/upscale.queue";
+import { runUpscaleJob } from "@/store/upscale/upscale.runner";
+import type { UpscaleQueueItem } from "@/types/core/upscale";
 
 let processingLock = false;
-
-let nextId = 1;
-function genId() {
-  return `job_${nextId++}`;
-}
-
-function sameJobConfig(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function findDuplicate(
-  items: UpscaleQueueItem[],
-  jobType: "convert" | "upscale",
-  filePath: string,
-  config: unknown
-): UpscaleQueueItem | undefined {
-  return items.find(
-    (item) =>
-      (item.status === "queued" || item.status === "processing") &&
-      item.jobType === jobType &&
-      item.filePath === filePath &&
-      sameJobConfig(item.config, config)
-  );
-}
 
 export function createUpscaleSignalStore(): UpscaleSignalStore {
   const store = createSignalStore();
@@ -133,66 +103,37 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
         )
       );
 
-      let unlisten: UnlistenFn | undefined;
       const [, error] = await attempt(
-        (async () => {
-          unlisten = await listen<UpscaleProgressPayload>("upscale-progress", (e) => {
-            const p = e.payload;
-            items.set(
-              items.get().map((i) =>
-                i.id === next.id
-                  ? {
-                      ...i,
-                      progress: p.total > 0 ? Math.round((p.current / p.total) * 100) : 0,
-                      current: p.current,
-                      total: p.total,
-                      speed: p.speed,
-                      stage: p.stage,
-                      status: p.stage === "done" ? ("done" as const) : ("processing" as const),
-                    }
-                  : i
-              )
-            );
-          });
-
-          if (next.jobType === "upscale") {
-            const cfg = next.config as UpscaleConfig;
-            await invokeTyped("upscale_video", {
-              inputPath: next.filePath,
-              outputPath: next.outputPath,
-              width: cfg.width,
-              height: cfg.height,
-              targetFps: cfg.targetFps,
-              interpolate: cfg.interpolate,
-              quality: cfg.quality,
-              gpuBackend: cfg.gpuBackend,
-              videoCodec: cfg.videoCodec,
-              aiUpscaler: cfg.aiUpscaler,
-              selectedShaders: cfg.selectedShaders,
-              temporalDenoise: cfg.temporalDenoise,
-            });
-          } else {
-            const cfg = next.config as ConvertConfig;
-            await invokeTyped("convert_video", {
-              inputPath: next.filePath,
-              outputPath: next.outputPath,
-              targetFormat: cfg.targetFormat,
-              copyStreams: cfg.copyStreams,
-            });
-          }
-
+        runUpscaleJob(next, (p) => {
           items.set(
-            items.get().map((i) => (i.id === next.id ? { ...i, status: "done", progress: 100 } : i))
+            items.get().map((i) =>
+              i.id === next.id
+                ? {
+                    ...i,
+                    progress: p.total > 0 ? Math.round((p.current / p.total) * 100) : 0,
+                    current: p.current,
+                    total: p.total,
+                    speed: p.speed,
+                    stage: p.stage,
+                    status: p.stage === "done" ? ("done" as const) : ("processing" as const),
+                  }
+                : i
+            )
           );
-          if (settingsAtoms.notifyUpscaleDone.get()) {
-            const doneKey =
-              next.jobType === "upscale"
-                ? "notification.upscale.done"
-                : "notification.convert.done";
-            addNotification(tr(doneKey), "success", next.name);
-          }
-        })()
+        })
       );
+      if (!error) {
+        items.set(
+          items.get().map((i) => (i.id === next.id ? { ...i, status: "done", progress: 100 } : i))
+        );
+        if (settingsAtoms.notifyUpscaleDone.get()) {
+          const doneKey =
+            next.jobType === "upscale"
+              ? "notification.upscale.done"
+              : "notification.convert.done";
+          addNotification(tr(doneKey), "success", next.name);
+        }
+      }
       if (error) {
         const msg =
           typeof error.message === "string" && error.message ? error.message : tr("common.error");
@@ -207,7 +148,6 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
           addNotification(tr(failedKey), "error", `${next.name}: ${msg}`);
         }
       }
-      unlisten?.();
       processing.set(false);
       processingLock = false;
       ignore(handle.processNext());

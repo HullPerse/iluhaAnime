@@ -1,6 +1,6 @@
 import { TREE_ROOT_SELECTOR, TREE_ROW_SELECTOR } from "@/config/settings/vim.config";
-import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
-import { topLayerElement } from "@/lib/core/layerHotkeys.utils";
+import { isTextEntryTarget } from "@/lib/core/hotkeys/filterHotkeys.utils";
+import { topLayerElement } from "@/lib/core/hotkeys/layerHotkeys.utils";
 
 export function stepTabId<T extends string>(
   ids: readonly T[],

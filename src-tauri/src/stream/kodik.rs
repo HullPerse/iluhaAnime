@@ -1,6 +1,6 @@
 //! Kodik player resolution.
 //!
-//! AnimeLib hands out a Kodik player URL per voice-over row, for example
+//! `AnimeLib` hands out a Kodik player URL per voice-over row, for example
 //! `//kodikplayer.com/seria/176463/<hash>/720p`. Kodik is where the media
 //! actually lives; mpv cannot open the player page, so the page has to be
 //! asked for its stream links first.
@@ -77,7 +77,7 @@ impl KodikStream {
 
 /// The routes a Kodik resolve tries, in order.
 ///
-/// Kodik decides the region from the address that reaches it. The AnimeLib
+/// Kodik decides the region from the address that reaches it. The `AnimeLib`
 /// proxy that the catalog needs can land in a country Kodik refuses while the
 /// direct route works, so the direct route is tried before a geo-block is
 /// reported. With no proxy configured there is only one route to try.
@@ -176,41 +176,37 @@ async fn resolve_via_route(
             return Err(StreamResolutionError::GeoBlocked { message });
         }
 
-        let streams = match page_form(&html) {
-            Some(form) => {
-                let server = form
-                    .get("pd")
-                    .map(|value| decode_field(value))
-                    .filter(|value| !value.is_empty())
-                    .unwrap_or_else(|| host.clone());
-                let body = page_form_body(&form, &reference);
-                post_links(
-                    &client,
-                    &format!("https://{server}{FORM_ENDPOINT}"),
-                    &RequestBody::Raw(body),
-                    &player_url,
-                    &host,
-                )
-                .await
-            }
-            None => {
-                let endpoint = match cached_endpoint(&host) {
-                    Some(endpoint) => endpoint,
-                    None => {
-                        let endpoint = discover_endpoint(&client, &html, &player_url).await?;
-                        cache_endpoint(&host, &endpoint);
-                        endpoint
-                    }
-                };
-                post_links(
-                    &client,
-                    &format!("https://{host}{endpoint}"),
-                    &RequestBody::Fields(legacy_form(&reference)),
-                    &player_url,
-                    &host,
-                )
-                .await
-            }
+        let streams = if let Some(form) = page_form(&html) {
+            let server = form
+                .get("pd")
+                .map(|value| decode_field(value))
+                .filter(|value| !value.is_empty())
+                .unwrap_or_else(|| host.clone());
+            let body = page_form_body(&form, &reference);
+            post_links(
+                &client,
+                &format!("https://{server}{FORM_ENDPOINT}"),
+                &RequestBody::Raw(body),
+                &player_url,
+                &host,
+            )
+            .await
+        } else {
+            let endpoint = if let Some(endpoint) = cached_endpoint(&host) {
+                endpoint
+            } else {
+                let endpoint = discover_endpoint(&client, &html, &player_url).await?;
+                cache_endpoint(&host, &endpoint);
+                endpoint
+            };
+            post_links(
+                &client,
+                &format!("https://{host}{endpoint}"),
+                &RequestBody::Fields(legacy_form(&reference)),
+                &player_url,
+                &host,
+            )
+            .await
         };
 
         match streams {
@@ -460,7 +456,7 @@ fn rotate_back(text: &str, shift: u8) -> String {
 
 fn decode_base64_text(encoded: &str) -> Result<String, ()> {
     let mut value = encoded.trim().to_string();
-    while value.len() % 4 != 0 {
+    while !value.len().is_multiple_of(4) {
         value.push('=');
     }
     let bytes = base64::engine::general_purpose::STANDARD
@@ -470,9 +466,7 @@ fn decode_base64_text(encoded: &str) -> Result<String, ()> {
 }
 
 fn decode_field(value: &str) -> String {
-    urlencoding::decode(value)
-        .map(|decoded| decoded.into_owned())
-        .unwrap_or_else(|_| value.to_string())
+    urlencoding::decode(value).map_or_else(|_| value.to_string(), std::borrow::Cow::into_owned)
 }
 
 fn container_of(media_type: &str, url: &str) -> &'static str {

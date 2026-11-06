@@ -1,6 +1,6 @@
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { computeGroupProgress } from "@/lib/core/importProgress.utils";
+import { computeGroupProgress } from "@/lib/core/collection/importProgress.utils";
 import type { ImportBatchGroup } from "@/types/anilist/collection";
 
 export function ImportStatusSection({

@@ -1,5 +1,5 @@
 import { createSignalStore } from "@hullperse/hp_utils/signal";
-import { buildSignalAtoms } from "@/lib/core/persisted.utils";
+import { buildSignalAtoms } from "@/lib/core/persistence/persisted.utils";
 import type { Cell } from "@/types/core/signal";
 import type {
   AnimeDeepLink,

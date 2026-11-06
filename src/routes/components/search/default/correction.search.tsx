@@ -8,8 +8,8 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import type { TorrentCoverState } from "@/types/search/searchCover";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { mediaToCandidate } from "@/lib/core/cover.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { mediaToCandidate } from "@/lib/core/graphics/cover.utils";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import CoverCandidateThumb from "@/routes/components/search/default/candidate.search";
 import {

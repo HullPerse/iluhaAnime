@@ -9,7 +9,7 @@
 import { statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { buildLearningMaps } from "../src/lib/core/learning.utils";
+import { buildLearningMaps } from "../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../src/config/anilist/ranking.config";
 import type { LearningStatRow } from "../src/types/search/search";
 

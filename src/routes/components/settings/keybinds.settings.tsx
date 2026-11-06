@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { KEYBIND_SCOPES, RESERVED_KEYBIND_CHORDS } from "@/config/settings/keybindScopes.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { chordIdentity } from "@/lib/core/chordHotkeys.utils";
+import { chordIdentity } from "@/lib/core/hotkeys/chordHotkeys.utils";
 import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";

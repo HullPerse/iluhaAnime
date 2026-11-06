@@ -2,10 +2,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Modal from "@/components/shared/modal.component";
-import { createVimEngine } from "@/lib/core/engineHotkeys.utils";
+import { createVimEngine } from "@/lib/core/hotkeys/engineHotkeys.utils";
 import type { VimEngine } from "@/types/core/engineHotkeys";
-import { scanHintTargets } from "@/lib/core/hintsHotkeys.utils";
-import { isInsideLayer, topLayerElement } from "@/lib/core/layerHotkeys.utils";
+import { scanHintTargets } from "@/lib/core/hotkeys/hintsHotkeys.utils";
+import { isInsideLayer, topLayerElement } from "@/lib/core/hotkeys/layerHotkeys.utils";
 import { patchSettings } from "@/store/settings.store";
 
 const box = (node: HTMLElement): HTMLElement => {

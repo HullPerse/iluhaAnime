@@ -1,6 +1,6 @@
 import { settingsAtoms } from "@/store/settings.store";
 import type { SettingsAtoms } from "@/types/store/settings";
-import { normalizePlayerPath } from "@/lib/core/visibility.utils";
+import { normalizePlayerPath } from "@/lib/core/ui/visibility.utils";
 
 export class PlayerVisibilityService {
   private readonly atoms: SettingsAtoms;

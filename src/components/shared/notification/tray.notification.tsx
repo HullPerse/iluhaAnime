@@ -7,7 +7,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useCell } from "@hullperse/hp_utils/react";
 import { isCurrentDownload } from "@/lib/torrent/torrentCommon.utils";
-import { openNotificationTarget, showError } from "@/lib/core/notification.utils";
+import { openNotificationTarget, showError } from "@/lib/core/ui/notification.utils";
 import {
   clearAllNotifications as clearAll,
   clearNotification as clear,

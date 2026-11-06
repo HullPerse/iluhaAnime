@@ -1,5 +1,7 @@
 import type { FatalVariantProps } from "@/types/core/shared.fatal";
 
+import { FatalUpdateButton } from "@/components/shared/fatal/update.fatal";
+
 const FONT = '"Perfect DOS VGA 437", monospace';
 
 export function YorhaBsod({
@@ -15,6 +17,9 @@ export function YorhaBsod({
   onSafeReload,
   onRetry,
   onCopy,
+  onCheckUpdate,
+  updateState,
+  updateError,
 }: FatalVariantProps) {
   return (
     <div
@@ -62,6 +67,14 @@ export function YorhaBsod({
           >
             {copied ? texts.copied : texts.copy}
           </button>
+          <FatalUpdateButton
+            texts={texts}
+            state={updateState}
+            error={updateError}
+            onCheck={onCheckUpdate}
+            className="border-2 border-white bg-transparent px-6 py-1 text-xl text-white outline-none hover:bg-white hover:text-[#1f1b18] focus-visible:bg-white focus-visible:text-[#1f1b18] disabled:cursor-default disabled:opacity-60"
+            noteClassName="text-xl opacity-80"
+          />
         </div>
         <button
           type="button"

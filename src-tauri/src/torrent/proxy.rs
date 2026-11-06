@@ -63,7 +63,7 @@ pub async fn probe(raw: &str) -> Result<ProxyProbe, String> {
 }
 
 fn decode_component(value: &str) -> String {
-    urlencoding::decode(value).map_or_else(|_| value.to_string(), |decoded| decoded.into_owned())
+    urlencoding::decode(value).map_or_else(|_| value.to_string(), std::borrow::Cow::into_owned)
 }
 
 async fn http_connect(

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CollisionBox } from "@/types/core/collisionAabb";
-import { resolveRowCollisions } from "@/lib/core/collisionResolve.utils";
+import { resolveRowCollisions } from "@/lib/core/graphics/collisionResolve.utils";
 
 const ROW_GAP = 20;
 

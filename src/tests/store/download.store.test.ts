@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { requiredBytesForSelection } from "@/store/download.store";
+import { requiredBytesForSelection } from "@/store/download/download.helpers";
 
 const files = [
   { index: 0, name: "Show/Episode 01.mkv", size: 100 },

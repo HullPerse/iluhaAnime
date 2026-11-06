@@ -4,7 +4,7 @@ import Pagination from "@/components/shared/pagination.component";
 import { CARD_W } from "@/config/anilist/card.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useCell } from "@hullperse/hp_utils/react";
-import { paginate } from "@/lib/core/pagination.utils";
+import { paginate } from "@/lib/core/collection/pagination.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   CollectionItem,

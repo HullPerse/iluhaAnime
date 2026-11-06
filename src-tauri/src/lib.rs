@@ -18,6 +18,7 @@ use tauri_plugin_opener::OpenerExt;
 mod anilist;
 mod app_db;
 mod discord;
+mod netdiag;
 mod network;
 mod startup;
 mod sync_utils;
@@ -59,6 +60,7 @@ pub mod benchmark_api {
             Ok(connection)
         }
 
+        #[must_use]
         pub fn sample_export() -> CollectionExport {
             CollectionExport {
                 version: 1,
@@ -135,7 +137,7 @@ pub mod benchmark_api {
         }
 
         /// Writes `rows` episodes spread over `anime` titles, newest last, so
-        /// the updated_at index is dense rather than all-equal.
+        /// the `updated_at` index is dense rather than all-equal.
         pub fn seed(connection: &Connection, rows: usize, anime: usize) -> Result<(), String> {
             let transaction = connection
                 .unchecked_transaction()
@@ -188,6 +190,7 @@ pub mod benchmark_api {
             Ok(connection)
         }
 
+        #[must_use]
         pub fn normalize(value: &str) -> String {
             crate::app_db::normalize_index_text(value)
         }
@@ -1013,11 +1016,11 @@ fn list_system_fonts() -> Result<Vec<String>, String> {
         if !hdc.is_invalid() {
             let mut logfont: LOGFONTW = Default::default();
             logfont.lfCharSet = DEFAULT_CHARSET;
-            let set_ptr = &mut families as *mut HashSet<String>;
+            let set_ptr = &raw mut families;
             unsafe {
                 EnumFontFamiliesExW(
                     hdc,
-                    &logfont,
+                    &raw const logfont,
                     Some(collect_family),
                     LPARAM(set_ptr as isize),
                     0,
@@ -2230,6 +2233,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             startup::report_startup,
             network::network_probe,
+            netdiag::network_diagnose,
             scrapers::search_erairaws,
             scrapers::search_nyaa,
             scrapers::search_sukebei,

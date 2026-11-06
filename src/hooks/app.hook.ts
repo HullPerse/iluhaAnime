@@ -19,9 +19,8 @@ import {
   pollAniListReleases,
   pollSiteNotifications,
 } from "@/lib/anilist/anilistNotifications.utils";
-import { markCacheReady } from "@/lib/core/signals.utils";
+import { markCacheReady } from "@/lib/core/system/signals.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { readAppCache } from "@/lib/core/cache.utils";
 import { tabLabel } from "@/lib/ui/tabs.utils";
 import { attemptSequence, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import {
@@ -30,14 +29,13 @@ import {
   isEditablePasteTarget,
   parseCollectionShareLink,
   parsePastedLink,
-} from "@/lib/core/deeplink.utils";
+} from "@/lib/core/system/deeplink.utils";
 import {
   openNotificationTarget,
   resolveNotificationText,
   showError,
   showWarning,
-} from "@/lib/core/notification.utils";
-import { cacheAtoms, setEpisodeTracker, setFolderTrees, setLastSaveDir } from "@/store/cache.store";
+} from "@/lib/core/ui/notification.utils";
 import { collectionAtoms, subscribeCollection } from "@/store/collection.store";
 import {
   deeplinkAtoms,
@@ -64,7 +62,6 @@ import type {
   ShowNotificationPayload,
 } from "@/types/core/notification";
 import type { TabId } from "@/types/ui/settings";
-import type { FolderNode } from "@/types/torrent/torrent";
 
 const NOTIFICATION_TYPES = new Set<NotificationType>(["info", "success", "warning", "error"]);
 
@@ -530,33 +527,9 @@ export function useApp() {
   }, []);
 
   useEffect(() => {
-    let disposed = false;
     clearSearchAnimeIndex();
     hydrateSearchLearning().catch((error) => reportBackgroundError("learning.hydrate", error));
-    Promise.all([
-      readAppCache<{ path: string; tree: FolderNode }[]>("player", "folderTrees"),
-      readAppCache<string>("torrent", "lastSaveDir"),
-      readAppCache<Record<number, boolean>>("torrent", "seedPreferences"),
-      readAppCache<Record<number, number>>("player", "episodeTracker"),
-    ])
-      .then(([folderTrees, lastSaveDir, seedPreferences, episodeTracker]) => {
-        if (disposed) return null;
-        if (folderTrees?.payload) setFolderTrees(folderTrees.payload);
-        if (lastSaveDir?.payload) {
-          setLastSaveDir(lastSaveDir.payload);
-        }
-        if (seedPreferences?.payload) cacheAtoms.seedPreferences.set(seedPreferences.payload);
-        if (episodeTracker?.payload) setEpisodeTracker(episodeTracker.payload);
-        markCacheReady();
-        return null;
-      })
-      .catch((error: unknown) => {
-        reportBackgroundError("cache.hydrate", error);
-        markCacheReady();
-      });
-    return () => {
-      disposed = true;
-    };
+    markCacheReady();
   }, []);
 
   return {

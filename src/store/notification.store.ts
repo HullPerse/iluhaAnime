@@ -1,10 +1,23 @@
 import { systemApi } from "@/api/system.api";
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
-import { isRecord } from "@/lib/core/record.utils";
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
+import { createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
 import { settingsAtoms } from "@/store/settings.store";
-import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import {
+  isDismissedEntry,
+  isNotificationItem,
+  NOTIFICATION_STORAGE_KEY,
+  notificationSignature,
+  pruneDismissed,
+  readLegacyNotifications,
+  resolveNotificationPersisted,
+  targetKey,
+  unreadCountOf,
+} from "@/store/notification/notification.persistence";
+
+export { resolveNotificationPersisted };
 import type {
   DismissedEntry,
   NotificationAddOptions,
@@ -13,52 +26,10 @@ import type {
   NotificationType,
 } from "@/types/core/notification";
 
-export const NOTIFICATION_SCHEMA_VERSION = 1;
+export const NOTIFICATION_SCHEMA_VERSION = SCHEMA_VERSIONS.notifications;
 
 const DEDUP_MS = 20_000;
 const MAX_ITEMS = 100;
-const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_DISMISSED = 200;
-const NOTIFICATION_STORAGE_KEY = "notifications";
-
-let nextNotificationId = 1;
-
-function targetKey(target: NotificationItem["target"]): string {
-  if (!target) return "";
-  return target.source === "folder" ? `folder:${target.path}` : `anilist:${target.id}`;
-}
-
-function notificationSignature(
-  type: NotificationType,
-  title: string,
-  message?: string,
-  target?: NotificationItem["target"]
-): string {
-  return `${type}\u0000${title}\u0000${message ?? ""}\u0000${targetKey(target)}`;
-}
-
-function isNotificationItem(value: unknown): value is NotificationItem {
-  return (
-    isRecord(value) &&
-    typeof value.id === "number" &&
-    typeof value.type === "string" &&
-    typeof value.title === "string" &&
-    typeof value.timestamp === "number" &&
-    typeof value.read === "boolean"
-  );
-}
-
-function isDismissedEntry(value: unknown): value is DismissedEntry {
-  return isRecord(value) && typeof value.signature === "string" && typeof value.at === "number";
-}
-
-function pruneDismissed(dismissed: DismissedEntry[], now: number): DismissedEntry[] {
-  return dismissed.filter((entry) => now - entry.at < DISMISS_TTL_MS).slice(0, MAX_DISMISSED);
-}
-
-function unreadCountOf(items: NotificationItem[]): number {
-  return items.filter((item) => !item.read && !item.popupOnly).length;
-}
 
 interface NotificationAtoms {
   items: Cell<NotificationItem[]>;
@@ -66,38 +37,7 @@ interface NotificationAtoms {
   unreadCount: Cell<number>;
 }
 
-export function resolveNotificationPersisted(
-  persistedState: unknown,
-  storageExists: boolean
-): { items: NotificationItem[]; dismissed: DismissedEntry[] } | null {
-  if (!storageExists) return null;
-  if (!isRecord(persistedState)) return null;
-  const items = Array.isArray(persistedState.items)
-    ? persistedState.items
-        .filter(isNotificationItem)
-        .filter((item) => !item.progress && !item.popupOnly)
-    : [];
-  const dismissed = Array.isArray(persistedState.dismissed)
-    ? pruneDismissed(persistedState.dismissed.filter(isDismissedEntry), Date.now())
-    : [];
-  return { items, dismissed };
-}
-
-function readLegacyNotifications(
-  getStorage: () => Storage | undefined
-): { data: { items: NotificationItem[]; dismissed: DismissedEntry[] }; maxId: number } | null {
-  const [storage, storageError] = attemptSync(() => getStorage());
-  if (storageError !== null || !storage) return null;
-  const [raw, readError] = attemptSync(() => storage.getItem(NOTIFICATION_STORAGE_KEY));
-  if (readError !== null) return null;
-  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw ?? "null"));
-  if (parseError !== null) return null;
-  const envelope = isRecord(parsed) && "state" in parsed ? parsed.state : parsed;
-  const resolved = resolveNotificationPersisted(envelope, raw !== null);
-  if (!resolved) return null;
-  const maxId = resolved.items.reduce((max, item) => Math.max(max, item.id), 0);
-  return { data: { items: resolved.items, dismissed: resolved.dismissed }, maxId };
-}
+let nextNotificationId = 1;
 
 interface NotificationSignalOptions {
   getStorage?: () => Storage | undefined;
@@ -385,13 +325,3 @@ export function resetNotificationAtoms(): void {
   nextNotificationId = 1;
 }
 
-if (
-  typeof window !== "undefined" &&
-  typeof window.addEventListener === "function" &&
-  typeof document !== "undefined"
-) {
-  window.addEventListener("beforeunload", () => notifications.persistor.flush());
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") notifications.persistor.flush();
-  });
-}

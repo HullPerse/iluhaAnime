@@ -1,7 +1,7 @@
 import {
   createCollectionFilterSnapshot,
   queryCollectionFilterSnapshot,
-} from "@/lib/core/filter.utils";
+} from "@/lib/core/search/filter.utils";
 import type { CollectionFilterSnapshot } from "@/types/core/filter";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { WorkerJobEnvelope, WorkerJobResponse } from "@/types/core/job";

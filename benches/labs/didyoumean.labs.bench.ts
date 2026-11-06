@@ -1,9 +1,9 @@
 import { bench, group } from "@pmndrs/labs";
 
-import { LazySpellIndex } from "../../src/lib/core/lazySpellIndex.utils";
+import { LazySpellIndex } from "../../src/lib/core/search/lazySpellIndex.utils";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { suggestSpellingWithReason } from "../../src/lib/search/searchResolve.utils";
-import { suggestSpelling } from "../../src/lib/core/suggestions.utils";
+import { suggestSpelling } from "../../src/lib/core/anilist/suggestions.utils";
 import { buildSymSpellFromTitles, normalizedSpellWords } from "@hullperse/hp_utils/symspell";
 import type { SearchAnimeSuggestion } from "../../src/types/search/search";
 
@@ -50,9 +50,9 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
   for (let i = 0; i < n; i++) {
     const w = 1 + Math.floor(rnd() * 3);
     const parts: string[] = [];
-    for (let k = 0; k < w; k++) parts.push(WORDS[Math.floor(rnd() * WORDS.length)]!);
+    for (let k = 0; k < w; k++) parts.push(WORDS[Math.floor(rnd() * WORDS.length)]);
     const alias: string[] = [];
-    for (let k = parts.length - 1; k >= 0; k--) alias.push(parts[k]!);
+    for (let k = parts.length - 1; k >= 0; k--) alias.push(parts[k]);
     out.push({
       id: i,
       title: `${parts.join(" ")} ${i}`,

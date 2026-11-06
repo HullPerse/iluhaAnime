@@ -1,7 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, type RefObject } from "react";
 
-import { makeRowId } from "@/lib/core/sqliteRow.utils";
+import { makeRowId } from "@/lib/core/system/sqliteRow.utils";
 import type { RowsTableProps } from "@/types/core/sqlite";
 
 import { RowsTableHead } from "@/routes/components/settings/sqlite/table/head.sqlite";

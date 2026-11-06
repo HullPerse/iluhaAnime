@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import type { AnilistRouteData } from "@/types/anilist/anilist";
 import type { EntryPatch, LiveEntryFields } from "@/types/anilist/progressStepper";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 
 export const STEPPER_SYNC_WAIT_MS = 600;
 export const STEPPER_SYNC_MAX_WAIT_MS = 4000;

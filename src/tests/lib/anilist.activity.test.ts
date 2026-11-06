@@ -7,7 +7,7 @@ import {
   groupLabel,
   monthLabel,
   selectInitialDayKey,
-} from "@/lib/core/activity.utils";
+} from "@/lib/core/anilist/activity.utils";
 import type {
   ActivityTranslate,
   AniListCollection,

@@ -137,7 +137,7 @@ pub fn upsert_unified_index(
     Ok(count)
 }
 
-pub(crate) fn upsert_unified_index_batch(
+pub fn upsert_unified_index_batch(
     transaction: &Transaction,
     entries: &[UnifiedIndexEntryInput],
     now: i64,
@@ -208,7 +208,7 @@ pub fn prune_unified_index_scope(
     Ok(removed)
 }
 
-pub(crate) fn prune_unified_index_scope_inner(
+pub fn prune_unified_index_scope_inner(
     transaction: &Transaction,
     scope: &str,
     keep_ids: &HashSet<&str>,
@@ -241,7 +241,7 @@ pub(crate) fn prune_unified_index_scope_inner(
     Ok(removed)
 }
 
-pub(crate) fn delete_unified_index_ids_inner(
+pub fn delete_unified_index_ids_inner(
     transaction: &Transaction,
     ids: &[String],
 ) -> Result<usize, String> {
@@ -323,7 +323,7 @@ fn action_column(action: &str) -> Result<&'static str, String> {
 /// Records feedback for every entry whose normalized value matches. History
 /// entries stay scope-isolated (they belong to a single search surface);
 /// anime and local entries are shared across scopes.
-pub(crate) fn record_value_action_inner(
+pub fn record_value_action_inner(
     connection: &rusqlite::Connection,
     normalized: &str,
     scope: Option<&str>,
@@ -369,7 +369,7 @@ pub fn record_unified_index_value_action(
     )
 }
 
-pub(crate) fn list_learning_stats_inner(
+pub fn list_learning_stats_inner(
     connection: &rusqlite::Connection,
     cutoff: i64,
 ) -> Result<Vec<LearningStatRow>, String> {
@@ -425,7 +425,7 @@ pub fn search_unified_index(
     search_unified_index_inner(&connection, &query, scope.as_deref(), limit)
 }
 
-pub(crate) fn search_unified_index_inner(
+pub fn search_unified_index_inner(
     connection: &rusqlite::Connection,
     query: &str,
     scope: Option<&str>,

@@ -1,7 +1,7 @@
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent/torrent";
 
 import TorrentFilesSection from "@/routes/components/torrent/file.torrent";

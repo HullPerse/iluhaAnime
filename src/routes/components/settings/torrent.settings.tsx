@@ -9,18 +9,19 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePartialLeftovers } from "@/hooks/torrent/queries.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { toSessionConfig } from "@/lib/core/session.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { toSessionConfig } from "@/lib/core/player/session.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import { setTorrentSpeedLimits as setSpeedLimits } from "@/store/download.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SessionConfigPayload } from "@/types/ui/settings";
 import type { FileOrder } from "@/types/torrent/torrent";
 
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
+import { TorrentDiagnosticsSettings } from "@/routes/components/settings/torrent/diagnostics.torrent";
 import { TorrentNetworkSettings } from "@/routes/components/settings/torrent/network.torrent";
 
 export default function SettingsTorrent() {
@@ -171,6 +172,7 @@ export default function SettingsTorrent() {
       </section>
 
       <TorrentNetworkSettings saveSessionConfig={saveSessionConfig} />
+      <TorrentDiagnosticsSettings />
       <section className="ui-panel" data-find-section="torrent.schedule">
         <div className="ui-titlebar group flex items-center justify-between gap-1">
           <span className="text-title-text font-bold">{t("settings.torrent.schedule")}</span>

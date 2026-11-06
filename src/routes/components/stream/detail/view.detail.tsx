@@ -4,7 +4,7 @@ import { Copy, Info } from "lucide-react";
 import Modal from "@/components/shared/modal.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { buildStreamLink } from "@/lib/core/deeplink.utils";
+import { buildStreamLink } from "@/lib/core/system/deeplink.utils";
 import type { StreamHistoryEntry, StreamingAnime, StreamingEpisode } from "@/types/player/stream";
 import type { useStreamTitle } from "@/hooks/stream/catalog.hook";
 

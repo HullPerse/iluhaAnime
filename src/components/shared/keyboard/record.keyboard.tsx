@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import type { KeybindScope } from "@/types/core/manifest";
 import { useI18n } from "@/hooks/i18n.hook";
-import { humanizeChord, parseChord } from "@/lib/core/chordHotkeys.utils";
+import { humanizeChord, parseChord } from "@/lib/core/hotkeys/chordHotkeys.utils";
 import { chordFromKeyboardEvent } from "@/lib/ui/keyboardChord.utils";
 import type { LiveModifiers } from "@/types/ui/keyboardChord";
 

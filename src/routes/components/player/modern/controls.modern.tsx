@@ -18,11 +18,11 @@ import { SEEK_STEP } from "@/config/settings/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { PlayerStream } from "@/types/player/playerStream";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { resolveMediaJump } from "@/lib/core/chapter.utils";
+import { resolveMediaJump } from "@/lib/core/player/chapter.utils";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { useCell } from "@hullperse/hp_utils/react";
-import { formatClock } from "@/lib/core/time.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/player/videoPlayer";
 

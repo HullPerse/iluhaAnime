@@ -6,7 +6,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attemptSequence } from "@hullperse/hp_utils/attempt";
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";

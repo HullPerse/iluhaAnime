@@ -9,7 +9,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
-import { normalizePlayerPath } from "@/lib/core/visibility.utils";
+import { normalizePlayerPath } from "@/lib/core/ui/visibility.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
 import {
@@ -258,7 +258,7 @@ function CategoryView({
                         title={t("player.visibility.hide")}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onHideTorrent(entry.infoHash!);
+                          if (entry.infoHash) onHideTorrent(entry.infoHash);
                         }}
                       >
                         <EyeOff className="size-3" />
@@ -270,9 +270,11 @@ function CategoryView({
                         className="size-4"
                         onClick={(e) => {
                           e.stopPropagation();
-                          queryClient.invalidateQueries({
-                            queryKey: torrentFilesKey(entry.torrentId!),
-                          });
+                          if (entry.torrentId != null) {
+                            queryClient.invalidateQueries({
+                              queryKey: torrentFilesKey(entry.torrentId),
+                            });
+                          }
                         }}
                       >
                         <RefreshCw className="size-3" />

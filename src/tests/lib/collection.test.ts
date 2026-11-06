@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/anilist/collectionGroup.utils";
-import { buildCollectionQueryHints } from "@/lib/core/hints.utils";
+import { buildCollectionQueryHints } from "@/lib/core/ui/hints.utils";
 import {
   buildAnilistPrefill,
   entryDiffers,
   entrySyncState,
   entryToWizardValues,
   mediaToWizardValues,
-} from "@/lib/core/import.utils";
-import { computeGroupProgress } from "@/lib/core/importProgress.utils";
+} from "@/lib/core/collection/import.utils";
+import { computeGroupProgress } from "@/lib/core/collection/importProgress.utils";
 import { readStoredMedia, withStoredMedia } from "@/lib/anilist/collectionMedia.utils";
 import {
   buildCollectionSearchIndex,
   searchCollectionIndex,
 } from "@/lib/anilist/collectionSearch.utils";
-import { buildShareImportPlan } from "@/lib/core/share.utils";
+import { buildShareImportPlan } from "@/lib/core/system/share.utils";
 import type { AniListEntry } from "@/types/anilist/anilist";
 import type {
   CollectionItem,
@@ -142,7 +142,8 @@ describe("collection/group", () => {
         STATUSES
       );
       expect(groups.map((g) => g.status.id)).toEqual(["watching", "custom_gone"]);
-      const last = groups.at(-1)!;
+      const last = groups.at(-1);
+      if (!last) throw new Error("last group is missing");
       expect(last.status.label).toBe("custom_gone");
       expect(last.status.isCore).toBe(false);
       expect(last.items.map((i) => i.id)).toEqual(["b", "c"]);

@@ -15,7 +15,7 @@ import {
   LOW_XO_FRAME_BYTES,
   XO_AUDIO_BYTES,
   parseHexColor,
-} from "@/lib/core/frame.utils";
+} from "@/lib/core/player/frame.utils";
 import type { GameRomInfo, GameStartInfo } from "@/types/core/game";
 
 import { mockInvoke } from "@/tests/mocks";

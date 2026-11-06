@@ -3,7 +3,7 @@ import { GENRE_PREVIEW_COUNT } from "@/config/anilist/card.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatScore, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
-import { anilistStatusToCollection } from "@/lib/core/import.utils";
+import { anilistStatusToCollection } from "@/lib/core/collection/import.utils";
 import type { AniListEntry } from "@/types/anilist/anilist";
 
 export function EntryRow({

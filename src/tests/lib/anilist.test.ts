@@ -21,12 +21,12 @@ import {
   computeGraphMetrics,
   computeNodeDimensions,
   runFranchiseSimulation,
-} from "@/lib/core/sim.utils";
+} from "@/lib/core/player/sim.utils";
 import {
   spotlightBoundaryMs,
   spotlightPageIndex,
   spotlightPeriodKey,
-} from "@/lib/core/spotlight.utils";
+} from "@/lib/core/ui/spotlight.utils";
 import type {
   AniListCollection,
   AniListEntry,
@@ -216,9 +216,11 @@ describe("anilist/graph", () => {
           ["SEQUEL", "SIDE_STORY"].includes(g)
         )
       );
-      const sequel = groups.find((g) => g.group === "SEQUEL")!;
+      const sequel = groups.find((g) => g.group === "SEQUEL");
+      if (!sequel) throw new Error("sequel group is missing");
       expect(sequel.items.map((n) => n.id)).toEqual([2]);
-      const side = groups.find((g) => g.group === "SIDE_STORY")!;
+      const side = groups.find((g) => g.group === "SIDE_STORY");
+      if (!side) throw new Error("side story group is missing");
       expect(side.items.map((n) => n.id)).toEqual([4, 3]);
     });
   });
@@ -456,9 +458,11 @@ describe("anilist/sim", () => {
       ]);
       const { simNodes } = buildSimNodes(filtered, 1000, 1, 600, { h: 95, w: 70 }, relationMap);
       expect(simNodes).toHaveLength(2);
-      const root = simNodes.find((n) => n.id === 1)!;
+      const root = simNodes.find((n) => n.id === 1);
+      if (!root) throw new Error("root node is missing");
       expect(root.clusterX).toBe(500);
-      const sequel = simNodes.find((n) => n.id === 2)!;
+      const sequel = simNodes.find((n) => n.id === 2);
+      if (!sequel) throw new Error("sequel node is missing");
       expect(sequel.clusterX).toBe(750);
     });
 
@@ -485,7 +489,8 @@ describe("anilist/sim", () => {
         relationMap,
         new Set([2])
       );
-      const sequel = simNodes.find((n) => n.id === 2)!;
+      const sequel = simNodes.find((n) => n.id === 2);
+      if (!sequel) throw new Error("sequel node is missing");
       expect(sequel.clusterX).toBe(500);
     });
   });
@@ -509,7 +514,8 @@ describe("anilist/sim", () => {
       sim.stop();
       expect(seen.length).toBeGreaterThan(0);
       expect(seen.length).toBeLessThan(200);
-      const last = seen.at(-1)!;
+      const last = seen.at(-1);
+      if (!last) throw new Error("no seen node was recorded");
       expect(last.has(1)).toBe(true);
       expect(last.has(2)).toBe(true);
     });

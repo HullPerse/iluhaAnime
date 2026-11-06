@@ -27,15 +27,15 @@ import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
-import { ignore } from "@/lib/core/promise.utils";
-import { canRedo, canUndo, commit, createHistory, redo, undo } from "@/lib/core/annotation.utils";
-import { fullCrop, isSquare, NO_PAN } from "@/lib/core/crop.utils";
-import { canSaveScreenshot, defaultScreenshotName } from "@/lib/core/screenshot.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
+import { canRedo, canUndo, commit, createHistory, redo, undo } from "@/lib/core/graphics/annotation.utils";
+import { fullCrop, isSquare, NO_PAN } from "@/lib/core/graphics/crop.utils";
+import { canSaveScreenshot, defaultScreenshotName } from "@/lib/core/graphics/screenshot.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { resolveFontFamily } from "@/lib/graphics/font.utils";
 import { assetUrl } from "@/lib/graphics/image.utils";
-import { COPIED_FEEDBACK_MS, showError } from "@/lib/core/notification.utils";
+import { COPIED_FEEDBACK_MS, showError } from "@/lib/core/ui/notification.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   AnnotationHistory,

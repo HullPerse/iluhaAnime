@@ -832,7 +832,7 @@ pub fn upsert_custom_field_def(
     upsert_custom_field_def_connection(&connection, def)
 }
 
-pub(crate) fn upsert_custom_field_def_connection(
+pub fn upsert_custom_field_def_connection(
     connection: &rusqlite::Connection,
     def: CustomFieldDefRow,
 ) -> Result<(), String> {

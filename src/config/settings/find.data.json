@@ -411,6 +411,23 @@
       ]
     },
     {
+      "tab": "torrent",
+      "section": "diagnostics",
+      "titleKey": "settings.torrent.diagnostics",
+      "keys": [
+        "settings.torrent.diagnostics.description",
+        "settings.torrent.diagnostics.action",
+        "settings.torrent.diagnostics.verdict.ok",
+        "settings.torrent.diagnostics.verdict.dns",
+        "settings.torrent.diagnostics.verdict.tcp",
+        "settings.torrent.diagnostics.verdict.tls",
+        "settings.torrent.diagnostics.verdict.http",
+        "settings.torrent.diagnostics.verdict.antibot",
+        "settings.torrent.diagnostics.verdict.request",
+        "settings.torrent.diagnostics.challenge"
+      ]
+    },
+    {
       "tab": "theme",
       "section": "themes",
       "titleKey": "settings.theme",
@@ -648,7 +665,14 @@
     "settings.sqlite",
     "settings.changelog",
     "settings.summary",
-    "settings.find"
+    "settings.find",
+    "settings.torrent.diagnostics.stage",
+    "settings.torrent.diagnostics.tcp",
+    "settings.torrent.diagnostics.https",
+    "settings.torrent.diagnostics.via",
+    "settings.torrent.diagnostics.verdict.ok.detail",
+    "settings.torrent.diagnostics.verdict.http.detail",
+    "settings.torrent.diagnostics.verdict.antibot.detail"
   ],
   "SETTINGS_FIND_SKIP_KEYS": [
     "settings.search.preview.typed",
@@ -662,6 +686,12 @@
     "settings.theme.palette.error",
     "settings.font.load.error",
     "settings.torrent.session.save.failed",
+    "settings.torrent.diagnostics.retry",
+    "settings.torrent.diagnostics.failed",
+    "settings.torrent.diagnostics.none",
+    "settings.torrent.diagnostics.available",
+    "settings.torrent.diagnostics.unavailable",
+    "settings.torrent.diagnostics.no.proxy",
     "settings.torrent.proxy.testing",
     "settings.torrent.proxy.test.ok",
     "settings.torrent.proxy.test.fail",

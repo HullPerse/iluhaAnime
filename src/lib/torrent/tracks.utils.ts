@@ -1,7 +1,7 @@
 import type { MpvTrack } from "@/types/player/videoPlayer";
 import type { DropdownOption } from "@/types/core/dropdown.tracks";
 
-import { languageName, normalizeLangCode } from "@/lib/core/language.utils";
+import { languageName, normalizeLangCode } from "@/lib/core/text/language.utils";
 import type { TrackDisplay } from "@/types/torrent/tracks";
 
 function langCodeOf(track: MpvTrack): string {

@@ -69,8 +69,9 @@ describe("settings signal migration", () => {
     expect("ulLimit" in result).toBe(false);
   });
 
-  it("returns an empty object for non-object state", () => {
-    expect(settings.migrateSettingsData(null, 1)).toEqual({});
+  it("returns defaults for non-object state", () => {
+    const result = settings.migrateSettingsData(null, 1);
+    expect(result.language).toBe("ru");
   });
 
   it("reshapes legacy shadows and defaults the wallpaper shadow on v20", () => {

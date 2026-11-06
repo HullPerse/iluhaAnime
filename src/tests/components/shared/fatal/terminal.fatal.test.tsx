@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FatalVariantProps } from "@/types/core/shared.fatal";
 import { TerminalBsod } from "@/components/shared/fatal/terminal.fatal";
-import { resolveFatalTexts } from "@/lib/core/fatalTexts.utils";
+import { resolveFatalTexts } from "@/lib/core/fatal/fatalTexts.utils";
 import type { FatalInfo } from "@/types/core/fatal";
 
 afterEach(() => {
@@ -36,6 +36,9 @@ const props = (overrides: Partial<FatalVariantProps> = {}): FatalVariantProps =>
   onSafeReload: vi.fn(),
   onRetry: vi.fn(),
   onCopy: vi.fn(),
+  onCheckUpdate: vi.fn(),
+  updateState: "idle",
+  updateError: null,
   ...overrides,
 });
 

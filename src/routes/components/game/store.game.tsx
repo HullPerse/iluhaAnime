@@ -9,11 +9,11 @@ import Select from "@/components/ui/select.component";
 import { GAME_STORE_PLATFORM_LABELS, GAME_STORE_PLATFORMS } from "@/config/system/platforms.config";
 import { useGameStore, useGameStoreInstall } from "@/hooks/game/store.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { sizeInKb } from "@/lib/core/gameFormat.utils";
+import { sizeInKb } from "@/lib/core/text/gameFormat.utils";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import type { GameStoreEntry, GameStorePlatform, GameStoreProgress } from "@/types/core/game";
 import type { GameStoreModalProps } from "@/types/core/store.game";
 

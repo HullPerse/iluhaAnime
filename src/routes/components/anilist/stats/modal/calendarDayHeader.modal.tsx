@@ -1,7 +1,7 @@
 import { cn } from "cn";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { dayLabel } from "@/lib/core/activity.utils";
+import { dayLabel } from "@/lib/core/anilist/activity.utils";
 
 export function CalendarDayHeader() {
   const { locale } = useI18n();

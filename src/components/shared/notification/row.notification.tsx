@@ -15,7 +15,7 @@ import {
   COPIED_FEEDBACK_MS,
   copyNotification,
   formatRelativeTime,
-} from "@/lib/core/notification.utils";
+} from "@/lib/core/ui/notification.utils";
 import type { NotificationRowProps } from "@/types/core/notification";
 
 export default function NotificationRow({

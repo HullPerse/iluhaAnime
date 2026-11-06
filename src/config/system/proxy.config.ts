@@ -1,6 +1,6 @@
-import { proxyScheme, type ProxyScheme } from "@/lib/core/proxy.utils";
+import { proxyScheme, type ProxyScheme } from "@/lib/core/system/proxy.utils";
 
-export const PROXY_PRESETS = [
+const PROXY_PRESETS = [
   "socks5://127.0.0.1:10808",
   "socks5://127.0.0.1:1080",
   "socks5h://127.0.0.1:10808",

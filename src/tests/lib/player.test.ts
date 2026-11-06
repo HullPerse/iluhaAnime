@@ -29,7 +29,7 @@ import {
   filterTreeByHiddenPaths,
   isPlayerPathHidden,
   normalizePlayerPath,
-} from "@/lib/core/visibility.utils";
+} from "@/lib/core/ui/visibility.utils";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import type { FolderNode } from "@/types/torrent/torrent";
 import type { UpscaleQueueItem } from "@/types/core/upscale";
@@ -258,8 +258,9 @@ describe("player/tree", () => {
       );
       const filtered = filterTreeByPaths(tree, new Set(["C:\\Anime\\movie.mkv"]));
       expect(filtered).not.toBeNull();
-      expect(filtered!.files.map((f) => f.name)).toEqual(["movie.mkv"]);
-      expect(filtered!.children).toEqual([]);
+      if (!filtered) throw new Error("filtered tree is missing");
+      expect(filtered.files.map((f) => f.name)).toEqual(["movie.mkv"]);
+      expect(filtered.children).toEqual([]);
     });
 
     it("returns null when nothing matches", () => {

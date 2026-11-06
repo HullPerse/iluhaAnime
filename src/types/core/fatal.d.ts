@@ -31,4 +31,9 @@ export interface FatalTexts {
   retry: string;
   retryUsed: string;
   safeNote: string;
+  checkUpdate: string;
+  checkingUpdate: string;
+  installingUpdate: string;
+  updateLatest: string;
+  updateFailed: string;
 }

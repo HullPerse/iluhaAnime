@@ -5,8 +5,8 @@ import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatProgressLog } from "@/lib/core/prefetch.utils";
-import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/core/cache.utils";
+import { formatProgressLog } from "@/lib/core/system/prefetch.utils";
+import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/core/system/cache.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
 import type {

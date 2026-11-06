@@ -5,7 +5,7 @@ import {
   getSearchSuggestions,
   groupSuggestions,
   suggestSpelling,
-} from "../../src/lib/core/suggestions.utils";
+} from "../../src/lib/core/anilist/suggestions.utils";
 
 // Keystroke latency of the suggest pipeline at a 2000-title index.
 // Budget: one typed word (five prefixes) stays under one 16ms frame at 2000
@@ -56,9 +56,9 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
   for (let i = 0; i < n; i++) {
     const w = 1 + Math.floor(rnd() * 3);
     const parts: string[] = [];
-    for (let k = 0; k < w; k++) parts.push(WORDS[Math.floor(rnd() * WORDS.length)]!);
+    for (let k = 0; k < w; k++) parts.push(WORDS[Math.floor(rnd() * WORDS.length)]);
     const alias: string[] = [];
-    for (let k = parts.length - 1; k >= 0; k--) alias.push(parts[k]!);
+    for (let k = parts.length - 1; k >= 0; k--) alias.push(parts[k]);
     out.push({
       id: i,
       title: `${parts.join(" ")} ${i}`,

@@ -311,7 +311,7 @@ fn yiq_pixel_diff(left: image::Rgb<u8>, right: image::Rgb<u8>) -> f32 {
     let dy = 0.5053 * (left_y - right_y);
     let di = 0.299 * (left_i - right_i);
     let dq = 0.1957 * (left_q - right_q);
-    (dy * dy + di * di + dq * dq).sqrt()
+    f32::mul_add(dq, dq, f32::mul_add(di, di, dy * dy)).sqrt()
 }
 
 /// Compares two covers pixel by pixel in YIQ space.
@@ -382,6 +382,7 @@ fn thumb_id(id: &str) -> String {
     }
 }
 
+#[must_use]
 pub fn make_thumb336(bytes: &[u8]) -> Option<Vec<u8>> {
     make_thumb336_with_cancel(bytes, &tokio_util::sync::CancellationToken::new())
 }
@@ -412,12 +413,11 @@ pub fn make_thumb336_with_cancel(
         return None;
     }
     let owned_rgb;
-    let rgb: &image::RgbImage = match &resized {
-        image::DynamicImage::ImageRgb8(image) => image,
-        _ => {
-            owned_rgb = resized.to_rgb8();
-            &owned_rgb
-        }
+    let rgb: &image::RgbImage = if let image::DynamicImage::ImageRgb8(image) = &resized {
+        image
+    } else {
+        owned_rgb = resized.to_rgb8();
+        &owned_rgb
     };
     if cancel.is_cancelled() {
         return None;

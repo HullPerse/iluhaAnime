@@ -116,17 +116,15 @@ fn favourite_overview_query() -> String {
                     favourites {{
                         anime {{
                             nodes {{
-                                {anime}
+                                {FAVOURITE_ANIME_NODES}
                             }}
                         }}
-                        staff {{ nodes {{ {nodes} }} }}
-                        characters {{ nodes {{ {nodes} }} }}
+                        staff {{ nodes {{ {FAVOURITE_PERSON_NODES} }} }}
+                        characters {{ nodes {{ {FAVOURITE_PERSON_NODES} }} }}
                     }}
                 }}
             }}
-        ",
-        anime = FAVOURITE_ANIME_NODES,
-        nodes = FAVOURITE_PERSON_NODES
+        "
     )
 }
 
@@ -1100,6 +1098,7 @@ const ANIME_FULL_QUERY_TEMPLATE: &str = r"
             }
         ";
 
+#[must_use]
 pub fn anime_full_query() -> String {
     ANIME_FULL_QUERY_TEMPLATE.replace("{SELECTION}", &media_detail_selection())
 }
@@ -1183,7 +1182,7 @@ pub async fn get_anime_full(
     Ok(parse_anime_full(m))
 }
 
-/// One streaming episode row AniList keeps for a title. The thumbnail is the
+/// One streaming episode row `AniList` keeps for a title. The thumbnail is the
 /// only field the app uses; `title` carries the episode number.
 #[derive(Debug, Serialize)]
 pub struct AniStreamingEpisode {
@@ -1194,15 +1193,15 @@ pub struct AniStreamingEpisode {
     pub site: String,
 }
 
-pub fn streaming_episodes_query() -> &'static str {
+pub const fn streaming_episodes_query() -> &'static str {
     "query ($id: Int) { Media(id: $id) { streamingEpisodes { title thumbnail url site } } }"
 }
 
-/// Episode previews of one AniList title.
+/// Episode previews of one `AniList` title.
 ///
-/// AniList collects a thumbnail per streaming episode for the services it
+/// `AniList` collects a thumbnail per streaming episode for the services it
 /// tracks, which is the only per-episode art a stream session can get: the
-/// AnimeLib episode rows carry no image of their own in most seasons.
+/// `AnimeLib` episode rows carry no image of their own in most seasons.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_anime_streaming_episodes(

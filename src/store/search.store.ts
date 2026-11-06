@@ -1,33 +1,37 @@
 import { collectionApi } from "@/api/collection.api";
-import type { UnifiedIndexEntryInput } from "@/types/api/collection";
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import {
   applyLearningAction,
   buildLearningMaps,
   dropLearningScope,
   learningStatKey,
-} from "@/lib/core/learning.utils";
+} from "@/lib/core/anilist/learning.utils";
 import { RANKING } from "@/config/anilist/ranking.config";
-import { normalizeSearchText } from "@/lib/core/suggestions.utils";
-import { buildTypedTitles } from "@/lib/search/searchTitle.utils";
+import { normalizeSearchText } from "@/lib/core/anilist/suggestions.utils";
+import {
+  animeIndexSyncKey,
+  buildAnimeIndex,
+  dropUnifiedScope,
+  invalidateAnimeIndexSync,
+  readStoredSyncKey,
+  syncUnifiedIndex,
+  writeStoredSyncKey,
+} from "@/store/search/search.index";
 import type { Persistor } from "@/types/core/persist";
-import { buildSignalAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
-import { createSignalStore } from "@hullperse/hp_utils/signal";
+import { buildSignalAtoms, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import { isRecord } from "@/lib/core/text/record.utils";
 import type { Cell } from "@/types/core/signal";
 import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { settingsAtoms } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist/anilist";
 import type {
   CorrectionReason,
-  SearchAnimeSuggestion,
   SearchFilters,
   SearchPersistedState,
   SearchStore,
 } from "@/types/search/search";
 
-export const SEARCH_SCHEMA_VERSION = 4;
-
-const MAX_LEARNING_ITEMS = RANKING.MAX_LEARNING_ITEMS;
-const INDEX_BATCH_SIZE = 1000;
+export const SEARCH_SCHEMA_VERSION = SCHEMA_VERSIONS.search;
 
 const defaultFilters: SearchFilters = {
   codec: "all",
@@ -47,127 +51,9 @@ function historyEntryId(scope: string, normalized: string): string {
   return `history:${scope}:${normalized}`;
 }
 
-let indexChain: Promise<unknown> = Promise.resolve();
-
-const ANIME_SYNC_KEY_STORAGE = "animeIndexSyncKey";
-
-function readStoredSyncKey(): string | null {
-  const [value] = attemptSync(() => localStorage.getItem(ANIME_SYNC_KEY_STORAGE));
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function writeStoredSyncKey(key: string | null): void {
-  attemptSync(() => {
-    if (key === null) localStorage.removeItem(ANIME_SYNC_KEY_STORAGE);
-    else localStorage.setItem(ANIME_SYNC_KEY_STORAGE, key);
-  });
-}
-
-function animeIndexSyncKey(animeIndex: SearchAnimeSuggestion[], profileId: number | null): string {
-  let hash = 0;
-  const mix = (text: string): void => {
-    for (const char of text) hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
-  };
-  mix(`profile:${profileId ?? 0}|n:${animeIndex.length}`);
-  for (const anime of animeIndex) {
-    mix(
-      `#${anime.id}|${anime.title}|${anime.status}|${anime.score ?? 0}|${anime.favourite ? 1 : 0}`
-    );
-    for (const alias of anime.aliases) mix(`@${alias}`);
-    for (const typed of anime.typedTitles ?? []) mix(`:${typed.kind}=${typed.title}`);
-  }
-  return `${animeIndex.length}:${hash}`;
-}
-
-function invalidateAnimeIndexSync(): void {
-  writeStoredSyncKey(null);
-}
-
-function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): Promise<boolean> {
-  if (entries.length === 0) return Promise.resolve(true);
-  const run = indexChain
-    .then(async () => {
-      for (let offset = 0; offset < entries.length; offset += INDEX_BATCH_SIZE) {
-        const batch = entries.slice(offset, offset + INDEX_BATCH_SIZE);
-        await collectionApi.upsertUnifiedIndex(batch);
-      }
-      if (entries.length > 100) await collectionApi.optimizeUnifiedIndex();
-      return true;
-    })
-    .catch((error: unknown) => {
-      reportBackgroundError("index.upsert", error);
-      return false;
-    });
-  indexChain = run;
-  return run;
-}
-
-function buildAnimeIndex(
-  lists: AniListCollection[],
-  favourites: FavouriteAnime[]
-): SearchAnimeSuggestion[] {
-  const favouriteIds = new Set(favourites.map((item) => item.id));
-  const entries = new Map<number, SearchAnimeSuggestion>();
-
-  for (const list of lists) {
-    for (const entry of list.entries) {
-      const media = entry.media;
-      entries.set(media.id, {
-        aliases: media.titles.filter((title) => title !== media.title),
-        favourite: favouriteIds.has(media.id),
-        id: media.id,
-        score: entry.score,
-        season: media.season,
-        seasonYear: media.season_year,
-        status: entry.list_status,
-        title: media.title,
-        typedTitles: buildTypedTitles(media.id, {
-          title: media.title,
-          title_english: media.title_english,
-          title_native: media.title_native,
-          title_romaji: media.title_romaji,
-          titles: media.titles,
-        }),
-      });
-    }
-  }
-
-  for (const favourite of favourites) {
-    if (entries.has(favourite.id)) continue;
-    const romaji = favourite.title.romaji;
-    const english = favourite.title.english;
-    const title = english ?? romaji;
-    entries.set(favourite.id, {
-      aliases: [romaji, english ?? ""].filter((alias) => alias && alias !== title),
-      favourite: true,
-      id: favourite.id,
-      score: favourite.mean_score,
-      season: null,
-      seasonYear: null,
-      status: "FAVOURITE",
-      title,
-      typedTitles: buildTypedTitles(favourite.id, {
-        title,
-        title_english: english,
-        title_romaji: romaji,
-        titles: [romaji, favourite.title.english ?? ""],
-      }),
-    });
-  }
-
-  return [...entries.values()].slice(0, MAX_LEARNING_ITEMS);
-}
-
-async function dropUnifiedScope(scope: string, label: string): Promise<void> {
-  const [, error] = await attempt(collectionApi.clearUnifiedIndexScope(scope));
-  if (error === null) return;
-  const [, pruneError] = await attempt(collectionApi.pruneUnifiedIndexScope(scope, []));
-  if (pruneError !== null) reportBackgroundError(label, pruneError);
-}
-
-function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
-  if (!persisted || typeof persisted !== "object") return persisted as SearchPersistedState;
-  const rest = { ...(persisted as Record<string, unknown>) };
+function migrateSearchState(persisted: unknown, version: number): Record<string, unknown> {
+  if (!isRecord(persisted)) return {};
+  const rest = { ...persisted };
   if (version < 1) {
     delete rest.animeIndex;
     delete rest.animeProfileId;
@@ -182,7 +68,7 @@ function migrateSearchState(persisted: unknown, version: number): SearchPersiste
     delete rest.queryStats;
     delete rest.suggestionStats;
   }
-  return rest as SearchPersistedState;
+  return rest;
 }
 
 const FILTER_PRESET_CAP = 20;
@@ -230,8 +116,56 @@ const DEFAULT_SEARCH_DATA: SearchData = {
   filterPresets: [],
 };
 
-function buildAtoms(store: ReturnType<typeof createSignalStore>, data: SearchData): SearchAtoms {
-  return buildSignalAtoms(store, data);
+function isSearchSortKey(value: unknown): value is SearchData["sortBy"] {
+  return value === "seeders" || value === "leechers" || value === "size" || value === "date";
+}
+
+function readStringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function readSearchFilters(value: unknown): SearchFilters {
+  const raw = isRecord(value) ? value : {};
+  return {
+    codec: typeof raw.codec === "string" ? raw.codec : defaultFilters.codec,
+    hasMagnet: typeof raw.hasMagnet === "boolean" ? raw.hasMagnet : defaultFilters.hasMagnet,
+    language: typeof raw.language === "string" ? raw.language : defaultFilters.language,
+    minSeeders:
+      typeof raw.minSeeders === "number" && Number.isFinite(raw.minSeeders)
+        ? raw.minSeeders
+        : defaultFilters.minSeeders,
+    quality: typeof raw.quality === "string" ? raw.quality : defaultFilters.quality,
+    sizeMax:
+      typeof raw.sizeMax === "number" && Number.isFinite(raw.sizeMax)
+        ? raw.sizeMax
+        : defaultFilters.sizeMax,
+    sizeMin:
+      typeof raw.sizeMin === "number" && Number.isFinite(raw.sizeMin)
+        ? raw.sizeMin
+        : defaultFilters.sizeMin,
+  };
+}
+
+function readFilterPresets(value: unknown): SearchPersistedState["filterPresets"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!isRecord(item) || typeof item.name !== "string") return [];
+    return [{ name: item.name, filters: readSearchFilters(item.filters) }];
+  });
+}
+
+function readSearchData(raw: Record<string, unknown>, version: number): SearchPersistedState {
+  const migrated = migrateSearchState(raw, version);
+  return {
+    filters: readSearchFilters(migrated.filters),
+    filterPresets: readFilterPresets(migrated.filterPresets),
+    history: readStringList(migrated.history),
+    sortBy: isSearchSortKey(migrated.sortBy) ? migrated.sortBy : DEFAULT_SEARCH_DATA.sortBy,
+    sortDirection: migrated.sortDirection === "asc" ? "asc" : "desc",
+    spellDictionary: readStringList(migrated.spellDictionary),
+  };
 }
 
 function readLegacySearch(
@@ -289,7 +223,7 @@ interface SearchSignalStore {
   subscribeAll: (fn: () => void) => () => void;
 }
 
-function createSearchSignalStore(options: SearchSignalOptions = {}): SearchSignalStore {
+export function createSearchSignalStore(options: SearchSignalOptions = {}): SearchSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "search",
     short: "search",
@@ -300,13 +234,12 @@ function createSearchSignalStore(options: SearchSignalOptions = {}): SearchSigna
   });
 
   const persisted = persistor.read();
-  const persistedData = (persisted?.data ?? {}) as Partial<SearchData>;
-  const data: SearchData = {
-    ...DEFAULT_SEARCH_DATA,
-    ...persistedData,
-    filters: { ...defaultFilters, ...persistedData.filters },
-  };
-  const atoms = buildAtoms(store, data);
+  const persistedData = readSearchData(
+    persisted?.data ?? {},
+    persisted?.schemaVersion ?? SEARCH_SCHEMA_VERSION
+  );
+  const data: SearchData = { ...DEFAULT_SEARCH_DATA, ...persistedData };
+  const atoms = buildSignalAtoms(store, data);
 
   store.subscribeAll(() => {
     persistor.write({
@@ -560,13 +493,3 @@ export function subscribeSearch(listener: () => void): () => void {
   return search.subscribeAll(listener);
 }
 
-if (
-  typeof window !== "undefined" &&
-  typeof window.addEventListener === "function" &&
-  typeof document !== "undefined"
-) {
-  window.addEventListener("beforeunload", () => search.persistor.flush());
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") search.persistor.flush();
-  });
-}

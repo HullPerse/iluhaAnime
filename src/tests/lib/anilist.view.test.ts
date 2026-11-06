@@ -7,8 +7,8 @@ import {
   screenToWorld,
   worldToScreen,
   zoomCameraAt,
-} from "@/lib/core/camera.utils";
-import { collapseGraph } from "@/lib/core/collapse.utils";
+} from "@/lib/core/player/camera.utils";
+import { collapseGraph } from "@/lib/core/anilist/collapse.utils";
 import type { FranchiseNode, RelationFilter } from "@/types/anilist/anilist";
 
 describe("anilist/camera", () => {

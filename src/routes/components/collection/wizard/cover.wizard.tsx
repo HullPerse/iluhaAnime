@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button.component";
 import { WIZARD_COVER_MAX } from "@/config/anilist/collectionDefaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { generatePlaceholder } from "@/lib/core/placeholder.utils";
+import { generatePlaceholder } from "@/lib/core/ui/placeholder.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { assetUrl } from "@/lib/graphics/image.utils";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 
 import { MemoCoverThumb } from "@/routes/components/collection/wizard/coverThumb.wizard";
 

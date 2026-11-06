@@ -16,11 +16,11 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { feedbackScore } from "../src/lib/core/feedback.utils";
-import { buildLearningMaps, countersOf } from "../src/lib/core/learning.utils";
+import { feedbackScore } from "../src/lib/core/ui/feedback.utils";
+import { buildLearningMaps, countersOf } from "../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../src/config/anilist/ranking.config";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
-import { getSearchSuggestions } from "../src/lib/core/suggestions.utils";
+import { getSearchSuggestions } from "../src/lib/core/anilist/suggestions.utils";
 import type {
   LearningStatRow,
   SearchAnimeSuggestion,

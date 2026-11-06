@@ -1,6 +1,7 @@
-import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persisted.utils";
-import { isRecord } from "@/lib/core/record.utils";
-import type { AnilistSignalOptions } from "@/types/store/options";
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
+import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import { isRecord } from "@/lib/core/text/record.utils";
+import type { SignalStoreOptions } from "@/types/store/options";
 import type {
   AnilistNotificationsData,
   AnilistNotificationsSignalStore,
@@ -13,10 +14,11 @@ import type {
   AniListNotificationsStore,
   AniListObservation,
   AniListRelease,
+  AniUserProfile,
 } from "@/types/anilist/anilist";
 
-export const ANILIST_FRIENDS_SCHEMA_VERSION = 1;
-export const ANILIST_NOTIFICATIONS_SCHEMA_VERSION = 6;
+export const ANILIST_FRIENDS_SCHEMA_VERSION = SCHEMA_VERSIONS.anilistFriends;
+export const ANILIST_NOTIFICATIONS_SCHEMA_VERSION = SCHEMA_VERSIONS.anilistReleaseObservations;
 
 function isValidFriend(
   friend: unknown
@@ -31,18 +33,32 @@ function isValidFriend(
   );
 }
 
+function isAniUserProfile(value: unknown): value is AniUserProfile {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "number" &&
+    Number.isInteger(value.id) &&
+    value.id > 0 &&
+    typeof value.name === "string" &&
+    value.name.trim().length > 0 &&
+    (value.avatar === null || typeof value.avatar === "string")
+  );
+}
+
 function normalizeFriend(friend: unknown): AniListFriendsStore["friends"] {
   if (!isValidFriend(friend)) return [];
   const profile =
-    isRecord(friend.profile) && friend.profile.id === friend.id ? friend.profile : undefined;
+    isRecord(friend.profile) &&
+    friend.profile.id === friend.id &&
+    isAniUserProfile(friend.profile)
+      ? friend.profile
+      : undefined;
   const base: AniListFriendsStore["friends"][number] = {
     id: friend.id,
     name: friend.name.trim(),
     avatar: typeof friend.avatar === "string" ? friend.avatar : null,
     added_at: typeof friend.added_at === "number" && friend.added_at > 0 ? friend.added_at : 0,
-    ...(profile
-      ? { profile: profile as unknown as AniListFriendsStore["friends"][number]["profile"] }
-      : {}),
+    ...(profile ? { profile } : {}),
     ...(typeof friend.profile_fetched_at === "number"
       ? { profile_fetched_at: friend.profile_fetched_at }
       : {}),
@@ -183,7 +199,7 @@ function readLegacyEnvelope(
   };
 }
 
-export function createFriendsSignalStore(options: AnilistSignalOptions = {}): FriendsSignalStore {
+export function createFriendsSignalStore(options: SignalStoreOptions = {}): FriendsSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "anilistFriends",
     short: "anilist",
@@ -258,7 +274,7 @@ const DEFAULT_NOTIFICATIONS_DATA: AnilistNotificationsData = {
 };
 
 export function createAnilistNotificationsSignalStore(
-  options: AnilistSignalOptions = {}
+  options: SignalStoreOptions = {}
 ): AnilistNotificationsSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "anilistReleaseObservations",
@@ -372,18 +388,3 @@ export const setAnilistInitialized = anilistNotifications.setInitialized;
 export const setKnownAnilistListNames = anilistNotifications.setKnownListNames;
 export const setSiteMaxSeenId = anilistNotifications.setSiteMaxSeenId;
 
-function flushPersistors(): void {
-  friends.persistor.flush();
-  anilistNotifications.persistor.flush();
-}
-
-if (
-  typeof window !== "undefined" &&
-  typeof window.addEventListener === "function" &&
-  typeof document !== "undefined"
-) {
-  window.addEventListener("beforeunload", flushPersistors);
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") flushPersistors();
-  });
-}

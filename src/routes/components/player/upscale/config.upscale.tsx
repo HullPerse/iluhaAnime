@@ -13,11 +13,11 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { UpscalePreviewController } from "@/types/core/upscalePreview";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { withFallback } from "@hullperse/hp_utils/attempt";
-import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
 import { UpscaleTimeEstimateSchema } from "@/api/upscale.schema";
-import { formatETA } from "@/lib/core/time.utils";
+import { formatETA } from "@/lib/core/text/time.utils";
 import { parseUpscaleFps } from "@/lib/player/upscaleFps.utils";
 import type { PreviewFrame } from "@/types/core/upscale";
 

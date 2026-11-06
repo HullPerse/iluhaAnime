@@ -4,7 +4,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import type { AniListFilters, AniMedia } from "@/types/anilist/anilist";
 import type { FilterPage } from "@/types/core/ipc";
 import type { DiscoveryQueue, RandomDiscovery } from "@/types/core/discovery";

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { useFranchiseViewport } from "@/hooks/anilist/franchise.hook";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { collapseGraph } from "@/lib/core/collapse.utils";
+import { collapseGraph } from "@/lib/core/anilist/collapse.utils";
 import { countFranchiseGroups } from "@/lib/anilist/franchise.utils";
 import {
   filterGraph,
@@ -21,10 +21,10 @@ import {
   computeGraphMetrics,
   buildSimNodes,
   runFranchiseSimulation,
-} from "@/lib/core/sim.utils";
+} from "@/lib/core/player/sim.utils";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type {
   FranchiseNodePosition,
   DragState,

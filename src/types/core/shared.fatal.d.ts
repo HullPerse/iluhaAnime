@@ -1,6 +1,8 @@
 import type { FatalInfo, FatalTexts } from "@/types/core/fatal";
 import type { RefObject } from "react";
 
+export type FatalUpdateState = "idle" | "checking" | "installing" | "latest" | "error";
+
 export interface FatalVariantProps {
   info: FatalInfo;
   texts: FatalTexts;
@@ -14,4 +16,7 @@ export interface FatalVariantProps {
   onSafeReload: () => void;
   onRetry: () => void;
   onCopy: () => void;
+  onCheckUpdate: () => void;
+  updateState: FatalUpdateState;
+  updateError: string | null;
 }

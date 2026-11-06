@@ -1,6 +1,6 @@
 import * as z from "zod/mini";
 
-import { withFallback } from "@/lib/core/schema.utils";
+import { withFallback } from "@/lib/core/persistence/schema.utils";
 import type { TorrentLifecycle } from "@/types/torrent/torrent";
 
 const TORRENT_SORTS = ["name", "size", "progress", "speed", "custom"] as const;

@@ -266,6 +266,7 @@ pub fn decode_rutracker_page(bytes: &[u8]) -> String {
     std::str::from_utf8(bytes).map_or_else(|_| decode_windows_1251(bytes), ToString::to_string)
 }
 
+#[must_use]
 pub fn is_rutracker_challenge(text: &str) -> bool {
     let lower = text.to_lowercase();
     [

@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatDistanceToNowOwn } from "@/lib/core/distance.utils";
+import { formatDistanceToNowOwn } from "@/lib/core/search/distance.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import { anilistNotificationsAtoms, markAnilistReleasesRead } from "@/store/anilist.store";

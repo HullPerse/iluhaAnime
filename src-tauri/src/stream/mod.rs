@@ -1,6 +1,6 @@
-//! Streaming source integration for AnimeLib.
+//! Streaming source integration for `AnimeLib`.
 //!
-//! Direct Rust HTTP client that resolves AnimeLib episodes into playable media
+//! Direct Rust HTTP client that resolves `AnimeLib` episodes into playable media
 //! URLs and feeds them into the existing libmpv player integration
 
 pub mod anime_lib_client;

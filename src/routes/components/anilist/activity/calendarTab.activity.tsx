@@ -11,7 +11,7 @@ import {
   dayKey,
   monthLabel,
   selectInitialDayKey,
-} from "@/lib/core/activity.utils";
+} from "@/lib/core/anilist/activity.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AniListCollection } from "@/types/anilist/anilist";
 

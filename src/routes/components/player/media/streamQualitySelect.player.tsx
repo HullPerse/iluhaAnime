@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import TrackDropdown from "@/routes/components/player/media/dropdown.tracks";
 import { useI18n } from "@/hooks/i18n.hook";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { warmStreamUrl } from "@/lib/player/streamWarm.utils";
 import { settingsAtoms } from "@/store/settings.store";

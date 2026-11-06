@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { suffixText } from "@/lib/core/format.utils";
+import { suffixText } from "@/lib/core/text/format.utils";
 import { clamp } from "@hullperse/hp_utils/math";
 
 function Slider({

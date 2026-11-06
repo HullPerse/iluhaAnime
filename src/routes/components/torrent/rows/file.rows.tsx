@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { clickRowActionButton } from "@/lib/core/dispatchHotkeys.utils";
+import { clickRowActionButton } from "@/lib/core/hotkeys/dispatchHotkeys.utils";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { parseMediaPath } from "@hullperse/hp_utils/media/parse";
 import { formatBytes } from "@hullperse/hp_utils/bytes";

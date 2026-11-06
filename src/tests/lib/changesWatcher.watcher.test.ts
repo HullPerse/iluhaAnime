@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { patchableVideoChanges, touchesExtensions } from "@/lib/core/changesWatcher.utils";
+import { patchableVideoChanges, touchesExtensions } from "@/lib/core/watchers/changesWatcher.utils";
 import type { FolderChange } from "@/types/core/watcher";
 
 function change(path: string, kind: FolderChange["kind"] = "created"): FolderChange {

@@ -1,6 +1,6 @@
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatAiringTime } from "@/lib/core/airing.utils";
+import { formatAiringTime } from "@/lib/core/anilist/airing.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { AiringEntry } from "@/types/anilist/stats.anilist";
 

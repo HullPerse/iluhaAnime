@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { torrentApi } from "@/api/torrent.api";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
 import { createInterval } from "@hullperse/hp_utils/interval";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import {
   desiredFolderPlaylist,
   planLiveInserts,
   planLiveRemovals,
-} from "@/lib/core/livePlaylist.utils";
+} from "@/lib/core/player/livePlaylist.utils";
 import {
   buildTorrentPlayerPlaylist,
   insertPlaylistFiles,
@@ -19,12 +19,12 @@ import {
   removePlaylistIndex,
   seekTo,
 } from "@/lib/player/playback.utils";
-import { folderScanBus } from "@/lib/core/scanBus.utils";
+import { folderScanBus } from "@/lib/core/watchers/scanBus.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
-import { touchesExtensions } from "@/lib/core/changesWatcher.utils";
-import { isSameOrInside, samePath } from "@/lib/core/pathsWatcher.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
+import { touchesExtensions } from "@/lib/core/watchers/changesWatcher.utils";
+import { isSameOrInside, samePath } from "@/lib/core/watchers/pathsWatcher.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { PlaylistWatch } from "@/types/player/videoPlayer";

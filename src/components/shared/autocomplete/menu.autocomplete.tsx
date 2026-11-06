@@ -3,7 +3,7 @@ import { memo } from "react";
 
 import { suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { SearchSuggestion } from "@/lib/core/suggestions.utils";
+import type { SearchSuggestion } from "@/lib/core/anilist/suggestions.utils";
 import type { SuggestionSection } from "@/types/search/search";
 
 import { SuggestionItem } from "@/components/shared/autocomplete/suggestion.autocomplete";

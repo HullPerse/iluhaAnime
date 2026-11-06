@@ -11,7 +11,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mockDialogOpen,
 }));
 
-import { fetchVideoCard, resetCardCache } from "@/lib/core/cardCache.utils";
+import { fetchVideoCard, resetCardCache } from "@/lib/core/player/cardCache.utils";
 import PlaylistBody from "@/routes/components/player/media/playlist.player";
 import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";

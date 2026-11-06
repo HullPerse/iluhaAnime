@@ -1,3 +1,4 @@
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
 import {
@@ -5,13 +6,13 @@ import {
   buildMirrorAtoms,
   buildSignalAtoms,
   createPersistedStoreContext,
-} from "@/lib/core/persisted.utils";
-import { isRecord } from "@/lib/core/record.utils";
+} from "@/lib/core/persistence/persisted.utils";
+import { isRecord } from "@/lib/core/text/record.utils";
 import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { Cell } from "@/types/core/signal";
-import { resolveWithDefaults } from "@/lib/core/migrate.utils";
+import { resolveWithDefaults } from "@/lib/core/persistence/migrate.utils";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
-import type { PlayerSignalOptions } from "@/types/store/options";
+import type { SignalStoreOptions } from "@/types/store/options";
 import type {
   PlaybackData,
   PlaybackSignalStore,
@@ -20,7 +21,7 @@ import type {
 } from "@/types/store/player";
 import type { PlaybackSnapshot, PlayerSettings, StreamOpen } from "@/types/player/videoPlayer";
 
-export const PLAYER_SCHEMA_VERSION = 3;
+export const PLAYER_SCHEMA_VERSION = SCHEMA_VERSIONS.player;
 
 export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   brightness: 100,
@@ -115,7 +116,7 @@ function migratePlayerData(persistedState: unknown): PlayerData {
   return { ...DEFAULT_PLAYER_DATA, ...resolved };
 }
 
-export function createPlayerSignalStore(options: PlayerSignalOptions = {}): PlayerSignalStore {
+export function createPlayerSignalStore(options: SignalStoreOptions = {}): PlayerSignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "player",
     short: "player",
@@ -293,16 +294,6 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
 const player = createPlayerSignalStore();
 const playback = createPlaybackSignalStore();
 
-if (
-  typeof window !== "undefined" &&
-  typeof window.addEventListener === "function" &&
-  typeof document !== "undefined"
-) {
-  window.addEventListener("beforeunload", () => player.persistor.flush());
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") player.persistor.flush();
-  });
-}
 
 export const playerAtoms = player.atoms;
 export const getPlayerSnapshot = player.snapshot;

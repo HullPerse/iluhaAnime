@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
 import { readStoredMedia } from "@/lib/anilist/collectionMedia.utils";
-import { statusLabel } from "@/lib/core/status.utils";
+import { statusLabel } from "@/lib/core/anilist/status.utils";
 import type { CollectionItem, CollectionStatusDef } from "@/types/anilist/collection";
 
 import { DetailActionsCollection } from "@/routes/components/collection/detail/actions.detail";

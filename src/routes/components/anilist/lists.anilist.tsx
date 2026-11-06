@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button.component";
 import { STATUS_SHRINK_CLASS } from "@/config/anilist/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
-import { shrinkLevelFor } from "@/lib/core/status.utils";
+import { shrinkLevelFor } from "@/lib/core/anilist/status.utils";
 
 export default function AniListListsRow({
   tabs,

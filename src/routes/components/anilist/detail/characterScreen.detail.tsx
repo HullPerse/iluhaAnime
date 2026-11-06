@@ -5,7 +5,7 @@ import { characterRoleLabels } from "@/config/system/labels.config";
 import { MEDIA_PAGE_SIZE } from "@/config/system/pagination.config";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { uniqueById } from "@hullperse/hp_utils/array";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
 

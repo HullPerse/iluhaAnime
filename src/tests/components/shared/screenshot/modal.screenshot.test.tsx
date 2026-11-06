@@ -382,7 +382,7 @@ describe("ScreenshotModal", () => {
     renderModal();
     await wheelStage(-100);
     await wheelStage(100);
-    expect(picture().style.transform).toBe("translate(0px, 0px) scale(1)");
+    expect(picture().style.transform).toBe("translate(0px) scale(1)");
     expect(zoomLabel()).toBe("100%");
     expect(isDisabled(screen.getByRole("button", { name: "100%" }))).toBe(true);
   });
@@ -440,7 +440,7 @@ describe("ScreenshotModal", () => {
     await wheelStage(-100);
     const zoomed = picture().style.transform;
     await user.click(screen.getByRole("button", { name: "120%" }));
-    expect(picture().style.transform).toBe("translate(0px, 0px) scale(1)");
+    expect(picture().style.transform).toBe("translate(0px) scale(1)");
     expect(zoomed).not.toBe(picture().style.transform);
   });
 
@@ -883,7 +883,9 @@ describe("ScreenshotModal annotations", () => {
     dragSelection(50, 50, 400, 300);
     expect(readout()).toBe("350 x 250 px");
 
-    fireEvent.pointerDown(selection()!, { clientX: 125, clientY: 95 });
+    const selected = selection();
+    if (!selected) throw new Error("selection is missing");
+    fireEvent.pointerDown(selected, { clientX: 125, clientY: 95 });
     fireEvent.pointerMove(overlay(), { clientX: 225, clientY: 195 });
     fireEvent.pointerUp(overlay(), { clientX: 225, clientY: 195 });
     expect(readout()).toBe("350 x 250 px");

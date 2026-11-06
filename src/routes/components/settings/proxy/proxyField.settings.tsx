@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { proxyPresetsFor, proxySelectValue } from "@/config/system/proxy.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { isValidProxyUrlFor, type ProxyScheme } from "@/lib/core/proxy.utils";
+import { isValidProxyUrlFor, type ProxyScheme } from "@/lib/core/system/proxy.utils";
 
 import { ProxyCheck } from "@/routes/components/settings/proxy/proxyCheck.settings";
 

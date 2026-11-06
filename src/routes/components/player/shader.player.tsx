@@ -7,10 +7,10 @@ import { CATEGORY_ORDER, SHADER_CATEGORY_LABELS } from "@/config/graphics/shader
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
 import { ShaderInfoListSchema } from "@/api/upscale.schema";
-import { formatETA } from "@/lib/core/time.utils";
+import { formatETA } from "@/lib/core/text/time.utils";
 import type { ShaderPlayerProps as Props } from "@/types/player/player";
 import type { ShaderInfo } from "@/types/core/upscale";
 

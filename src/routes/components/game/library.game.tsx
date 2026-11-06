@@ -6,7 +6,7 @@ import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
 import { GAME_PLATFORM_LABELS } from "@/config/system/platforms.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { sizeInKb } from "@/lib/core/gameFormat.utils";
+import { sizeInKb } from "@/lib/core/text/gameFormat.utils";
 import { moveIndex } from "@/lib/ui/keyboard.utils";
 import type { GameLibraryProps } from "@/types/core/library.game";
 

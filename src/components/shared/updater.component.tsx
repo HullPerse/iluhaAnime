@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { installUpdate } from "@/lib/core/update.utils";
+import { installUpdate } from "@/lib/core/system/update.utils";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -18,6 +18,7 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
     <Modal
       header={t("updater.title")}
       onClose={onClose}
+      trackOverlay={false}
       className="flex h-70 w-lg items-center gap-2"
     >
       <span className="windows95-font text-text text-center text-xl font-bold underline">

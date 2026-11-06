@@ -1,5 +1,5 @@
 import { useCoverCache } from "@/hooks/collection/cache.hook";
-import { generatePlaceholder } from "@/lib/core/placeholder.utils";
+import { generatePlaceholder } from "@/lib/core/ui/placeholder.utils";
 import type { CollectionItem } from "@/types/anilist/collection";
 
 export function SimilarCard({ item, onClick }: { item: CollectionItem; onClick: () => void }) {

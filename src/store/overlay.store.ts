@@ -1,4 +1,4 @@
-import { subscribeHotkeys } from "@/lib/core/registryHotkeys.utils";
+import { subscribeHotkeys } from "@/lib/core/hotkeys/registryHotkeys.utils";
 import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { Cell } from "@/types/core/signal";
 import type { OverlayEntry, OverlayStore } from "@/types/ui/overlay";

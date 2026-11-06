@@ -43,7 +43,7 @@ import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
-} from "@/lib/core/loading.utils";
+} from "@/lib/core/ui/loading.utils";
 import {
   applyFileState,
   loadQueue,
@@ -77,10 +77,10 @@ import {
   videoSectionClass,
   wrapVideoMenu,
 } from "@/lib/player/playerChrome.utils";
-import { resolveViewChrome } from "@/lib/core/view.utils";
+import { resolveViewChrome } from "@/lib/core/ui/view.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { hydrateMediaEntry } from "@/store/media.store";
 import {
   patchPlayerSettings,

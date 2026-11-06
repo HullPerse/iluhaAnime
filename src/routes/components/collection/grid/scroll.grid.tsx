@@ -10,8 +10,8 @@ import {
 } from "@/config/anilist/card.config";
 import { useGridColumns } from "@/hooks/collection/columns.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildRows } from "@/lib/core/grid.utils";
-import { statusLabel } from "@/lib/core/status.utils";
+import { buildRows } from "@/lib/core/graphics/grid.utils";
+import { statusLabel } from "@/lib/core/anilist/status.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type {

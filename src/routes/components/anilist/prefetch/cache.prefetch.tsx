@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-import { getCachePercentages } from "@/lib/core/prefetch.utils";
+import { getCachePercentages } from "@/lib/core/system/prefetch.utils";
 import type {
   ActivityTranslate,
   PrefetchProgressPayload,

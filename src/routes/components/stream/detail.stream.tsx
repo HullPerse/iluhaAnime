@@ -9,9 +9,9 @@ import {
   useStreamTitle,
 } from "@/hooks/stream/catalog.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { historyByEpisode } from "@/lib/core/history.utils";
+import { historyByEpisode } from "@/lib/core/anilist/history.utils";
 import { prewarmPlayer } from "@/lib/player/playback.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { prefetchEpisode } from "@/lib/player/streamResolve.utils";
 import { streamStore } from "@/store/stream.store";
 import type { StreamHistoryEntry, StreamingEpisode } from "@/types/player/stream";

@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { streamApi } from "@/api/stream.api";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { findTrackByPreference } from "@/lib/torrent/tracks.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { markTrackSelected } from "@/store/player.store";
 import { selectTrack } from "@/lib/player/playback.utils";
 import type { MpvTrack } from "@/types/player/videoPlayer";

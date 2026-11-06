@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { buildTorrentLink } from "@/lib/core/deeplink.utils";
-import { showError } from "@/lib/core/notification.utils";
+import { buildTorrentLink } from "@/lib/core/system/deeplink.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent/torrent";
 import type { TorrentHash } from "@/types/core/types";
 

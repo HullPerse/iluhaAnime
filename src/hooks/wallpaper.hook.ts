@@ -1,7 +1,7 @@
 import { systemApi } from "@/api/system.api";
 import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { assetUrl } from "@/lib/graphics/image.utils";

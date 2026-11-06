@@ -8,17 +8,17 @@ import { useCollectionData, useCollectionMutations } from "@/hooks/collection/qu
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { pickRandomItem } from "@/lib/core/filter.utils";
+import { pickRandomItem } from "@/lib/core/search/filter.utils";
 import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/anilist/collectionGroup.utils";
-import { buildCollectionQueryHints } from "@/lib/core/hints.utils";
-import { buildShareImportPlan } from "@/lib/core/share.utils";
+import { buildCollectionQueryHints } from "@/lib/core/ui/hints.utils";
+import { buildShareImportPlan } from "@/lib/core/system/share.utils";
 import { calculateCollectionStats } from "@/lib/anilist/collectionStats.utils";
-import { isPublicStatus, isPublicStatusFull, publicStatusPrefill } from "@/lib/core/status.utils";
+import { isPublicStatus, isPublicStatusFull, publicStatusPrefill } from "@/lib/core/anilist/status.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { buildCollectionShareLink } from "@/lib/core/deeplink.utils";
+import { buildCollectionShareLink } from "@/lib/core/system/deeplink.utils";
 import {
   collectionAtoms,
   consumeWizardPrefill,

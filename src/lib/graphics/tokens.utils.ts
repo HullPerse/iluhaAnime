@@ -1,4 +1,4 @@
-import { keysOf } from "@/lib/core/keysOf.utils";
+import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import { THEME_OVERRIDE_VARS } from "@/config/graphics/themes.config";
 import {
   deriveFieldColor,

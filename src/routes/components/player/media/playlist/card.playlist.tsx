@@ -4,7 +4,7 @@ import { cn } from "cn";
 import { useMediaEntry } from "@/hooks/media.hook";
 import { useOnScreen } from "@/hooks/intersection.hook";
 import { useCardArt } from "@/hooks/player/cardArt.hook";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { formatVerticalDragTransform } from "@/lib/ui/drag.utils";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { PlaylistEntry } from "@/types/player/playback";

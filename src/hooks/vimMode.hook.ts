@@ -10,19 +10,19 @@ import {
 } from "@/config/settings/vim.config";
 import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
 import { TAB_PATHS } from "@/config/settings/tabPaths.config";
-import { flashTarget } from "@/lib/core/flash.utils";
-import { blurEditable, shouldBlurOnEscape } from "@/lib/core/blurHotkeys.utils";
-import { dispatchClick, dispatchFocus } from "@/lib/core/dispatchHotkeys.utils";
-import { createVimEngine } from "@/lib/core/engineHotkeys.utils";
+import { flashTarget } from "@/lib/core/ui/flash.utils";
+import { blurEditable, shouldBlurOnEscape } from "@/lib/core/hotkeys/blurHotkeys.utils";
+import { dispatchClick, dispatchFocus } from "@/lib/core/hotkeys/dispatchHotkeys.utils";
+import { createVimEngine } from "@/lib/core/hotkeys/engineHotkeys.utils";
 import type { VimCommand, VimEngine } from "@/types/core/engineHotkeys";
-import { reduceHintKey, scanHintTargets } from "@/lib/core/hintsHotkeys.utils";
+import { reduceHintKey, scanHintTargets } from "@/lib/core/hotkeys/hintsHotkeys.utils";
 import type { HintBadge } from "@/types/core/hintsHotkeys";
 import {
   isInsideLayer,
   setHintsLayerVisible,
   topLayerElement,
-} from "@/lib/core/layerHotkeys.utils";
-import { createPinTimer } from "@/lib/core/pinHotkeys.utils";
+} from "@/lib/core/hotkeys/layerHotkeys.utils";
+import { createPinTimer } from "@/lib/core/hotkeys/pinHotkeys.utils";
 import { resolveKeybinds } from "@/lib/search/resolveHotkeys.utils";
 import { focusTreeSibling } from "@/lib/ui/tabsHotkeys.utils";
 import type { Debouncer } from "@hullperse/hp_utils/debounce";

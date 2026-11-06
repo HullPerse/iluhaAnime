@@ -4,7 +4,7 @@ import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
-import { clearFatal, reportFatal } from "@/lib/core/report.utils";
+import { clearFatal, reportFatal } from "@/lib/core/system/report.utils";
 import type { FatalInfo } from "@/types/core/fatal";
 
 afterEach(() => {

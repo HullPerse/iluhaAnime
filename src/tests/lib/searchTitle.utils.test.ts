@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getSearchSuggestions } from "@/lib/core/suggestions.utils";
+import { getSearchSuggestions } from "@/lib/core/anilist/suggestions.utils";
 import { buildTypedTitles, titleKindBonus, typedTitlesOf } from "@/lib/search/searchTitle.utils";
 import type { SearchAnimeSuggestion } from "@/types/search/search";
 

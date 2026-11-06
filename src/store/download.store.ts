@@ -1,80 +1,24 @@
-import { open, confirm } from "@tauri-apps/plugin-dialog";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { createSignalStore } from "@hullperse/hp_utils/signal";
-import { buildSignalAtoms } from "@/lib/core/persisted.utils";
+import { buildSignalAtoms } from "@/lib/core/persistence/persisted.utils";
 
 import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
 import { tr } from "@/lib/locale/i18n.utils";
 import { torrentErrorText } from "@/lib/torrent/torrentCommon.utils";
 import { attempt, reportBackgroundError, withFallback } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { cacheAtoms, setLastSaveDir } from "@/store/cache.store";
+import {
+  clearPreviousTorrentIfNeeded,
+  hasConflictingSelection,
+  pickSaveDir,
+  requiredBytesForSelection,
+  resolveOnlyFiles,
+  startDownloadForPending,
+} from "@/store/download/download.helpers";
 import type { TorrentData, TorrentSignalStore } from "@/types/core/download";
-
-function hasConflictingSelection(
-  pending: { files: { index: number; name: string }[]; conflictingFiles: string[] },
-  selectedIndices: number[]
-): boolean {
-  return selectedIndices.some((i) => {
-    const file = pending.files.find((f) => f.index === i);
-    return Boolean(file && pending.conflictingFiles.includes(file.name));
-  });
-}
-
-export function requiredBytesForSelection(
-  pending: {
-    files: { index: number; name: string; size: number }[];
-    conflictingFiles: string[];
-  },
-  selectedIndices: number[]
-): number {
-  return selectedIndices.reduce((sum, index) => {
-    const file = pending.files.find((entry) => entry.index === index);
-    if (!file) return sum;
-    const existing = pending.conflictingFiles.includes(file.name) ? file.size : 0;
-    return sum + file.size + existing;
-  }, 0);
-}
-
-function resolveOnlyFiles(allFiles: { index: number }[], selected: number[]): number[] | null {
-  return selected.length === allFiles.length ? null : selected;
-}
-
-async function startDownloadForPending(
-  pending: { magnet?: string; fileBytes?: number[] },
-  saveDir: string,
-  onlyFiles: number[] | null,
-  subFolder: string | undefined,
-  sequential: boolean,
-  requiredBytes: number
-): Promise<number | undefined> {
-  if (pending.magnet || pending.fileBytes) {
-    const [id, error] = await attempt(
-      torrentApi.startTorrentDownload({
-        magnet: pending.magnet,
-        fileBytes: pending.fileBytes,
-        saveDir,
-        onlyFiles,
-        subFolder: subFolder || null,
-        sequential,
-        requiredBytes,
-      })
-    );
-    if (error) {
-      showError(tr("download.error.start"), error.message);
-      return undefined;
-    }
-    return id;
-  }
-  return undefined;
-}
-
-async function clearPreviousTorrentIfNeeded(id: number | undefined): Promise<void> {
-  if (!id) return;
-  const [, error] = await attempt(torrentApi.removeTorrent(id, false));
-  if (error) showError(tr("download.error.clear"), error.message);
-}
 
 function createTorrentSignalStore(): TorrentSignalStore {
   const store = createSignalStore();
@@ -167,10 +111,7 @@ function createTorrentSignalStore(): TorrentSignalStore {
       const token = ++prepareEpoch;
       let saveDir = cacheAtoms.lastSaveDir.get();
       if (!saveDir) {
-        const dir = await open({
-          directory: true,
-          title: tr("download.select.folder"),
-        });
+        const dir = await pickSaveDir();
         if (!dir || !isCurrent(token)) return;
         saveDir = dir;
         setLastSaveDir(saveDir);
@@ -232,10 +173,7 @@ function createTorrentSignalStore(): TorrentSignalStore {
       const token = ++prepareEpoch;
       let saveDir = cacheAtoms.lastSaveDir.get();
       if (!saveDir) {
-        const dir = await open({
-          directory: true,
-          title: tr("download.select.folder"),
-        });
+        const dir = await pickSaveDir();
         if (!dir || !isCurrent(token)) return;
         saveDir = dir;
         setLastSaveDir(saveDir);
@@ -309,10 +247,7 @@ function createTorrentSignalStore(): TorrentSignalStore {
       const token = ++prepareEpoch;
       let saveDir = cacheAtoms.lastSaveDir.get();
       if (!saveDir) {
-        const dir = await open({
-          directory: true,
-          title: tr("download.select.folder"),
-        });
+        const dir = await pickSaveDir();
         if (!dir || !isCurrent(token)) return;
         saveDir = dir;
         setLastSaveDir(saveDir);

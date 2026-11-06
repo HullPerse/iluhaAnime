@@ -1,5 +1,7 @@
 import type { FatalVariantProps } from "@/types/core/shared.fatal";
 
+import { FatalUpdateButton } from "@/components/shared/fatal/update.fatal";
+
 const FONT = '"Perfect DOS VGA 437", monospace';
 
 export function RetroismBsod({
@@ -15,6 +17,9 @@ export function RetroismBsod({
   onSafeReload,
   onRetry,
   onCopy,
+  onCheckUpdate,
+  updateState,
+  updateError,
 }: FatalVariantProps) {
   return (
     <div
@@ -61,6 +66,14 @@ export function RetroismBsod({
           >
             {copied ? texts.copied : texts.copy}
           </button>
+          <FatalUpdateButton
+            texts={texts}
+            state={updateState}
+            error={updateError}
+            onCheck={onCheckUpdate}
+            className="border-2 border-[#d8d8d8] bg-transparent px-6 py-1 text-xl outline-none hover:bg-[#d8d8d8] hover:text-black focus-visible:bg-[#d8d8d8] focus-visible:text-black disabled:cursor-default disabled:opacity-60"
+            noteClassName="text-xl opacity-80"
+          />
         </div>
         <p className="mt-8 text-xl">Abort, Retry, Fail? _</p>
         <button

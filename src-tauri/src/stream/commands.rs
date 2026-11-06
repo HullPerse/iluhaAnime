@@ -1,7 +1,7 @@
-//! AnimeLib Tauri commands.
+//! `AnimeLib` Tauri commands.
 //!
 //! Commands exposed to the frontend for searching, browsing and resolving
-//! AnimeLib playback sources. The catalog works without a credential: the API
+//! `AnimeLib` playback sources. The catalog works without a credential: the API
 //! answers anonymously, and a token stored in the OS keyring is sent only when
 //! one exists. The token never travels through an IPC input.
 //!
@@ -26,7 +26,7 @@ use crate::stream::anime_lib_resolver::{build_watch_key, keep_playable};
 
 /// Keyring account under the app's credential service. The token never
 /// travels through an IPC input and is never written to settings storage.
-pub(crate) const ANIMELIB_TOKEN_ACCOUNT: &str = "animelib.token";
+pub const ANIMELIB_TOKEN_ACCOUNT: &str = "animelib.token";
 
 /// Accept a raw JWT or a pasted `Authorization` value. The site stores the
 /// bare token; a leading `Bearer` is a copy-paste artefact, not part of it.
@@ -63,7 +63,7 @@ fn client_for(
     client(resolve_proxy(proxy_url, proxyUrl))
 }
 
-/// Save and remove the AnimeLib session token in the OS credential store.
+/// Save and remove the `AnimeLib` session token in the OS credential store.
 /// The token is only accepted when the API confirms it with `/auth/me`.
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -121,7 +121,7 @@ pub fn animelib_token_clear() {
     delete_secret(ANIMELIB_TOKEN_ACCOUNT);
 }
 
-/// Probe AnimeLib through the candidate proxy with the browse list.
+/// Probe `AnimeLib` through the candidate proxy with the browse list.
 ///
 /// `/constants` is not used here on purpose: its answer is cached per process,
 /// so a cached reply would report success for a proxy that never connected.
@@ -185,7 +185,7 @@ pub struct AnimeLibSourcesInput {
     pub variant_id: String,
 }
 
-/// Search AnimeLib titles. Returns one page plus whatever pagination the API
+/// Search `AnimeLib` titles. Returns one page plus whatever pagination the API
 /// reports, so the tab can show real last-page information.
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -218,7 +218,7 @@ pub async fn anime_lib_random(
 }
 
 /// The type, status, age and genre choices the catalog filters offer. The list
-/// is filtered to the AnimeLib site and cached for twenty minutes.
+/// is filtered to the `AnimeLib` site and cached for twenty minutes.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn anime_lib_constants(
@@ -251,7 +251,7 @@ pub async fn anime_lib_title(
     })
 }
 
-/// Fetch episodes for an AnimeLib title.
+/// Fetch episodes for an `AnimeLib` title.
 ///
 /// The player window knows a session by its numeric media id and nothing else,
 /// so the season list is still reachable without a slug. The catalog modal

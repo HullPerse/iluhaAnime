@@ -13,7 +13,7 @@ import {
   showErrorOnce,
   formatRelativeTime,
   resolveNotificationText,
-} from "@/lib/core/notification.utils";
+} from "@/lib/core/ui/notification.utils";
 import { deeplinkAtoms } from "@/store/deeplink.store";
 import {
   addNotification,

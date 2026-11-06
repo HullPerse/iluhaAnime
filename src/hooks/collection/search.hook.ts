@@ -6,7 +6,7 @@ import { WIZARD_RESULTS_MAX } from "@/config/anilist/collectionDefaults.config";
 import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
 import { RANKING } from "@/config/anilist/ranking.config";
 import { parseOperatorTerms } from "@/lib/search/searchScore.utils";
-import { matchNormalizedTitle, normalizeSearchText } from "@/lib/core/suggestions.utils";
+import { matchNormalizedTitle, normalizeSearchText } from "@/lib/core/anilist/suggestions.utils";
 import { attempt, withFallback } from "@hullperse/hp_utils/attempt";
 import type { WizardSearchResult } from "@/types/anilist/collection";
 

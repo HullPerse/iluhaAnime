@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatNormalizedScore, formatSignedDelta } from "@/lib/core/compare.utils";
+import { formatNormalizedScore, formatSignedDelta } from "@/lib/core/anilist/compare.utils";
 import type { GenreTaste } from "@/types/core/compare";
 
 export function GenreSection({ genres, friendName }: { genres: GenreTaste[]; friendName: string }) {

@@ -3,7 +3,7 @@ import { MessageSquare } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatActivityTime } from "@/lib/core/activity.utils";
+import { formatActivityTime } from "@/lib/core/anilist/activity.utils";
 import type { AniActivity } from "@/types/anilist/anilist";
 
 import { ActivityLikeButton } from "@/routes/components/anilist/activity/like.activity";

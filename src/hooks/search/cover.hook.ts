@@ -5,7 +5,7 @@ import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { parseMediaFile } from "@hullperse/hp_utils/media/parse";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import {
   findLocalMatch,
   findResolvedAlias,
@@ -14,7 +14,7 @@ import {
   POSTER_TIMEOUT_MS,
   resolveCover,
   withTimeout,
-} from "@/lib/core/cover.utils";
+} from "@/lib/core/graphics/cover.utils";
 import type { CoverCandidate, CoverProfile, CoverQuery } from "@/types/core/cover";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";

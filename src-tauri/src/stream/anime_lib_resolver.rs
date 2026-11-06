@@ -1,4 +1,4 @@
-//! AnimeLib playback source helpers.
+//! `AnimeLib` playback source helpers.
 //!
 //! The source list is produced by the client and handed to the player as it
 //! is; which entry plays and when to switch are player concerns, not source

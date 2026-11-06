@@ -2,10 +2,10 @@ import { useRef, useState } from "react";
 
 import { sqliteApi } from "@/api/sqlite.api";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
-import { displayCell } from "@/lib/core/sqliteRow.utils";
+import { displayCell } from "@/lib/core/system/sqliteRow.utils";
 import { attemptSequence, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { assetUrl, isImageUrl } from "@/lib/graphics/image.utils";
-import { COPIED_FEEDBACK_MS } from "@/lib/core/notification.utils";
+import { COPIED_FEEDBACK_MS } from "@/lib/core/ui/notification.utils";
 import type { SqliteRowsPage, SqliteSelectedCell, SqliteTableInfo } from "@/types/core/sqlite";
 
 export function useSqliteCell(params: {

@@ -6,7 +6,7 @@ import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { activateTreeRow, findRow, rowElement, runRowAction } from "@/lib/ui/treeRow.utils";
 import { mediaFileExtension } from "@hullperse/hp_utils/media/parse";
-import { resolveTreeArrow, resolveTreeMove } from "@/lib/core/treeArrow.utils";
+import { resolveTreeArrow, resolveTreeMove } from "@/lib/core/ui/treeArrow.utils";
 import type { TreeRow } from "@/types/core/treeArrow";
 import { useCell } from "@hullperse/hp_utils/react";
 import {

@@ -2,7 +2,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 
 import { tr } from "@/lib/locale/i18n.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 
 export function joinMediaPath(basePath: string, relativePath: string): string {
   return `${basePath.replace(/[\\/]+$/, "")}/${relativePath.replace(/^[/\\\\]+/, "")}`;

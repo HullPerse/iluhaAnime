@@ -10,13 +10,13 @@ import { SETTINGS_TAB_GROUPS, SETTINGS_TAB_KEYS } from "@/config/settings/tabs.c
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSettingsSnapshot } from "@/hooks/settingsSnapshot.hook";
-import { flashTarget } from "@/lib/core/flash.utils";
+import { flashTarget } from "@/lib/core/ui/flash.utils";
 import { getLastSettingsTab, setLastSettingsTab } from "@/lib/ui/settingsTab.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 
-import { searchSettingsFind } from "@/lib/core/find.utils";
-import { keysOf } from "@/lib/core/keysOf.utils";
-import { sectionSettingKeys } from "@/lib/core/reset.utils";
+import { searchSettingsFind } from "@/lib/core/search/find.utils";
+import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
+import { sectionSettingKeys } from "@/lib/core/system/reset.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/types/core/find";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsRoute } from "@/routes/__root";

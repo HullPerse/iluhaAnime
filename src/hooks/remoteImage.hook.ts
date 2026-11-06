@@ -4,7 +4,7 @@ import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { useCell } from "@hullperse/hp_utils/react";
 import { isSourceImage } from "@/lib/graphics/images.utils";
 import { assetUrl } from "@/lib/graphics/image.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
 import { settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/core/userimage";

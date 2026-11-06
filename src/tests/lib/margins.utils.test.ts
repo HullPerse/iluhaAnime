@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeVideoMargins, marginOptions, marginsCloseEnough } from "@/lib/core/margins.utils";
+import { computeVideoMargins, marginOptions, marginsCloseEnough } from "@/lib/core/player/margins.utils";
 
 describe("computeVideoMargins", () => {
   it("converts all four field insets into fractions of the viewport", () => {

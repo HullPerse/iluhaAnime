@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeTorrentProblem } from "@/lib/core/problem.utils";
+import { describeTorrentProblem } from "@/lib/core/ui/problem.utils";
 
 describe("torrent/problem", () => {
   it("reports missing files above the message", () => {

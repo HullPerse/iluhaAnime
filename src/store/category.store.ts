@@ -1,11 +1,13 @@
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
-import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import { isRecord } from "@/lib/core/text/record.utils";
 import { isUserImageIcon } from "@/lib/graphics/image.utils";
 import type { Category, CategoryEntry } from "@/types/core/category";
-import type { CategorySignalOptions } from "@/types/store/options";
+import type { SignalStoreOptions } from "@/types/store/options";
 import type { CategoryAtoms, CategoryData, CategorySignalStore } from "@/types/store/category";
 
-export const CATEGORY_SCHEMA_VERSION = 1;
+export const CATEGORY_SCHEMA_VERSION = SCHEMA_VERSIONS.categories;
 
 const DEFAULT_CATEGORY_ICON = "w98_directory_zipper.ico";
 
@@ -15,10 +17,6 @@ function genId(): string {
 }
 function genEntryId(): string {
   return `entry_${nextId++}_${Date.now()}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object";
 }
 
 function isCategory(value: unknown): value is Category {
@@ -86,7 +84,7 @@ function readLegacyCategories(
 }
 
 export function createCategorySignalStore(
-  options: CategorySignalOptions = {}
+  options: SignalStoreOptions = {}
 ): CategorySignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "categories",
@@ -239,13 +237,3 @@ export const removeCategoryEntry = categories.removeEntry;
 export const renameCategory = categories.renameCategory;
 export const setCategoryCollapsed = categories.setCategoryCollapsed;
 
-if (
-  typeof window !== "undefined" &&
-  typeof window.addEventListener === "function" &&
-  typeof document !== "undefined"
-) {
-  window.addEventListener("beforeunload", () => categories.persistor.flush());
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") categories.persistor.flush();
-  });
-}

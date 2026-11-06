@@ -9,7 +9,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
   openPath: openPathSpy,
 }));
 
-vi.mock("@/lib/core/notification.utils", () => ({
+vi.mock("@/lib/core/ui/notification.utils", () => ({
   showError: (...args: unknown[]) => showErrorSpy(...args),
 }));
 

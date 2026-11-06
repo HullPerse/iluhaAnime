@@ -1,13 +1,45 @@
-import { createPersistedStoreContext } from "@/lib/core/persisted.utils";
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
+import { createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import { isRecord } from "@/lib/core/text/record.utils";
 import type { Cell } from "@/types/core/signal";
 import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import type { MediaSignalOptions, MediaSignalStore } from "@/types/store/media";
 import type { MediaEntry, WatchState } from "@/types/player/videoPlayer";
 
-export const MEDIA_SCHEMA_VERSION = 0;
+export const MEDIA_SCHEMA_VERSION = SCHEMA_VERSIONS.media;
 
 const MAX_ENTRIES = 200;
+
+function readMediaEntry(value: unknown): MediaEntry | null {
+  if (!isRecord(value) || typeof value.path !== "string") return null;
+  const number = (entry: unknown): number =>
+    typeof entry === "number" && Number.isFinite(entry) ? entry : 0;
+  const optionalNumber = (entry: unknown): number | undefined =>
+    typeof entry === "number" && Number.isFinite(entry) ? entry : undefined;
+  return {
+    path: value.path,
+    position: number(value.position),
+    duration: number(value.duration),
+    subOffset: number(value.subOffset),
+    audioOffset: number(value.audioOffset),
+    lastPlayed: number(value.lastPlayed),
+    ...(optionalNumber(value.audioTrack) === undefined
+      ? {}
+      : { audioTrack: optionalNumber(value.audioTrack) }),
+    ...(optionalNumber(value.subtitleTrack) === undefined
+      ? {}
+      : { subtitleTrack: optionalNumber(value.subtitleTrack) }),
+  };
+}
+
+function readMediaEntries(value: unknown): MediaEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    const normalized = readMediaEntry(entry);
+    return normalized ? [normalized] : [];
+  });
+}
 
 function touch(entries: MediaEntry[], path: string, now: number): MediaEntry[] {
   const existing = entries.find((entry) => entry.path === path);
@@ -40,13 +72,10 @@ function readLegacyMedia(
   const [raw, readError] = attemptSync(() => storage.getItem("mediaState"));
   if (readError !== null || !raw) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
-  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
-  const envelope = parsed as { state?: unknown };
-  const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
-  if (!state || typeof state !== "object") return null;
-  const entries = (state as { entries?: unknown }).entries;
+  if (parseError !== null || !isRecord(parsed)) return null;
+  const state = isRecord(parsed.state) ? parsed.state : parsed;
   return {
-    data: { entries: Array.isArray(entries) ? entries : [] },
+    data: { entries: readMediaEntries(state.entries) },
     schemaVersion: MEDIA_SCHEMA_VERSION,
   };
 }
@@ -62,10 +91,7 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
   });
 
   const persisted = persistor.read();
-  const rawEntries: unknown = persisted
-    ? (persisted.data as { entries?: unknown }).entries
-    : undefined;
-  const initial: MediaEntry[] = Array.isArray(rawEntries) ? (rawEntries as MediaEntry[]) : [];
+  const initial = readMediaEntries(persisted?.data.entries);
   const mirror: Record<string, unknown> = { entries: initial };
   const raw = store.atom("entries", initial);
   const entries: Cell<MediaEntry[]> = {
@@ -144,13 +170,3 @@ export const setMediaSubOffset = media.setSubOffset;
 export const setMediaAudioOffset = media.setAudioOffset;
 export const hydrateMediaEntry = media.hydrate;
 
-if (
-  typeof window !== "undefined" &&
-  typeof window.addEventListener === "function" &&
-  typeof document !== "undefined"
-) {
-  window.addEventListener("beforeunload", () => media.persistor.flush());
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") media.persistor.flush();
-  });
-}

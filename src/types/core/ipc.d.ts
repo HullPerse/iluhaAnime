@@ -151,6 +151,7 @@ export type CommandName =
   | "list_user_images"
   | "nekobt_logout"
   | "nekobt_set_api_key"
+  | "network_diagnose"
   | "network_probe"
   | "optimize_unified_index"
   | "patch_collection_item"

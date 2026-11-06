@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { systemApi } from "@/api/system.api";
 import OfflineBanner from "@/components/shared/network/offlineBanner.component";
-import { networkAtoms, noteNetworkSuccess } from "@/lib/core/networkHealth.utils";
+import { networkAtoms, noteNetworkSuccess } from "@/lib/core/system/networkHealth.utils";
 import { patchSettings } from "@/store/settings.store";
 
 const probeNetwork = vi.fn(

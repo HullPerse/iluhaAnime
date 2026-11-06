@@ -4,7 +4,7 @@
 //
 // Run: bun scripts/rank-hillclimb-baseline.ts
 
-import { buildLearningMaps, countersOf } from "../src/lib/core/learning.utils";
+import { buildLearningMaps, countersOf } from "../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../src/config/anilist/ranking.config";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 

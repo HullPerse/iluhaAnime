@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { feedbackScore } from "@/lib/core/feedback.utils";
-import { suggestionPoolSize } from "@/lib/core/rank.utils";
+import { feedbackScore } from "@/lib/core/ui/feedback.utils";
+import { suggestionPoolSize } from "@/lib/core/anilist/rank.utils";
 import { RANKING } from "@/config/anilist/ranking.config";
 
 const NOW = 1_700_000_000_000;

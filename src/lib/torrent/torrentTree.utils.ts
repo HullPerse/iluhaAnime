@@ -62,7 +62,8 @@ export function buildTorrentTree(
 
   for (const file of files) {
     const parts = file.name.replaceAll(/\\/g, "/").split("/");
-    const fileName = parts.pop()!;
+    const fileName = parts.pop();
+    if (fileName === undefined) continue;
 
     let node = root;
 
@@ -118,12 +119,12 @@ export function groupFilesByDirectory(
     if (idx === -1) {
       const dir = "";
       if (!groups.has(dir)) groups.set(dir, { dir, files: [] });
-      groups.get(dir)!.files.push({ ...file, displayName: file.name });
+      groups.get(dir)?.files.push({ ...file, displayName: file.name });
     } else {
       const dir = file.name.slice(0, idx);
       const displayName = file.name.slice(idx + 1);
       if (!groups.has(dir)) groups.set(dir, { dir, files: [] });
-      groups.get(dir)!.files.push({ ...file, displayName });
+      groups.get(dir)?.files.push({ ...file, displayName });
     }
   }
 

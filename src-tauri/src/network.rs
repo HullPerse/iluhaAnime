@@ -45,7 +45,7 @@ async fn animelib_answers(proxy: Option<String>) -> bool {
 }
 
 /// True when either catalog host answers. Both are tried in parallel so a
-/// blocked AniList does not report the whole connection as dead.
+/// blocked `AniList` does not report the whole connection as dead.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn network_probe(

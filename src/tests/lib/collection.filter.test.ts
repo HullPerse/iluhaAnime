@@ -3,7 +3,7 @@ import {
   applyCollectionFilters,
   filterCollectionItems,
   pickRandomItem,
-} from "@/lib/core/filter.utils";
+} from "@/lib/core/search/filter.utils";
 import type {
   CollectionItem,
   CollectionStatusDef,

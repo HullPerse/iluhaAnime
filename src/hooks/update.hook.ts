@@ -2,8 +2,8 @@ import { useCallback } from "react";
 
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { checkForUpdates } from "@/lib/core/update.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { checkForUpdates } from "@/lib/core/system/update.utils";
 import { openUpdatePrompt } from "@/store/update.store";
 import type { UpdateCheckOutcome } from "@/types/core/update";
 

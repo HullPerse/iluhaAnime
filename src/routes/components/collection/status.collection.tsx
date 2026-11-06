@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button.component";
 import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/anilist/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
-import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/core/status.utils";
+import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/core/anilist/status.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/anilist/collection";
 
 import { ShareStatusButton } from "./status/shareButton.status";

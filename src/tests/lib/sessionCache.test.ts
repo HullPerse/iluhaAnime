@@ -5,7 +5,7 @@ import {
   loadPlayers,
   loadSources,
   prefetchNativeSources,
-} from "@/lib/core/sessionCache.utils";
+} from "@/lib/core/player/sessionCache.utils";
 import type { StreamVariant } from "@/types/player/stream";
 
 const api = vi.hoisted(() => ({

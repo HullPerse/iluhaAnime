@@ -1,0 +1,97 @@
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { openPath } from "@tauri-apps/plugin-opener";
+
+import { translate } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { formatDistanceToNowOwn } from "@/lib/core/search/distance.utils";
+import { openAnimeDeepLink } from "@/store/deeplink.store";
+import { addNotification, notificationAtoms, updateNotification } from "@/store/notification.store";
+import { settingsAtoms } from "@/store/settings.store";
+import type { Locale } from "@/types/core/i18n";
+import type { NotificationTargetResult } from "@/types/core/notification";
+import type {
+  NotificationFilter,
+  NotificationItem,
+  NotificationTarget,
+  ShowNotificationPayload,
+} from "@/types/core/notification";
+
+export function showError(title: string, body: string): void {
+  addNotification(title, "error", body);
+}
+
+export function showErrorOnce(eventKey: string, title: string, body: string): void {
+  const id = addNotification(title, "error", body, eventKey);
+  if (id <= 0) return;
+  const existing = notificationAtoms.items.get().find((item) => item.id === id);
+  if (existing && (existing.title !== title || existing.message !== body)) {
+    updateNotification(id, { title, message: body });
+  }
+}
+
+export function showInfo(title: string, body?: string): void {
+  addNotification(title, "info", body);
+}
+
+export function showWarning(title: string, body?: string): void {
+  addNotification(title, "warning", body);
+}
+
+export function copyNotification(item: NotificationItem): Promise<void> {
+  const lines = [`[${item.type}] ${item.title}`];
+  if (item.message) lines.push(item.message);
+  lines.push(new Date(item.timestamp).toLocaleString());
+  return writeText(lines.join("\n"));
+}
+
+export function formatRelativeTime(timestamp: number, locale: Locale): string {
+  return formatDistanceToNowOwn(timestamp, locale);
+}
+
+export function resolveNotificationText(
+  payload: ShowNotificationPayload,
+  locale: Locale
+): { title: string; body: string } {
+  const title = payload.titleKey
+    ? translate(locale, toLocaleKey(payload.titleKey), payload.titleVars)
+    : (payload.title ?? "");
+  const body = payload.bodyKey
+    ? translate(locale, toLocaleKey(payload.bodyKey), payload.bodyVars)
+    : (payload.body ?? "");
+  return { body, title };
+}
+
+export async function openNotificationTarget(
+  target: NotificationTarget
+): Promise<NotificationTargetResult> {
+  if (target.source === "folder") {
+    const [, error] = await attempt(openPath(target.path));
+    if (error === null) return "opened";
+    reportBackgroundError("notification.open.folder", error);
+    return "failed";
+  }
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    const language = settingsAtoms.language.get();
+    showWarning(
+      translate(language, "network.offline.title"),
+      translate(language, "network.action.unavailable")
+    );
+    return "failed";
+  }
+  if (!settingsAtoms.anilistTabEnabled.get()) return "tab-disabled";
+  openAnimeDeepLink(target);
+  return "opened";
+}
+
+export const COPIED_FEEDBACK_MS = 1500;
+
+export function getVisibleNotifications(
+  allItems: NotificationItem[],
+  currentFilter: NotificationFilter
+): NotificationItem[] {
+  if (currentFilter === "downloads") return [];
+  const visible = allItems.filter((item) => !item.popupOnly);
+  if (currentFilter === "all") return visible;
+  return visible.filter((i) => i.type === currentFilter);
+}

@@ -13,8 +13,8 @@ import {
   parsePastedLink,
   parseStreamLink,
   parseTorrentLink,
-} from "@/lib/core/deeplink.utils";
-import type { AnimeDeepLink } from "@/lib/core/deeplink.utils";
+} from "@/lib/core/system/deeplink.utils";
+import type { AnimeDeepLink } from "@/lib/core/system/deeplink.utils";
 import type { CollectionItem } from "@/types/anilist/collection";
 import type { AniListId, TorrentHash } from "@/types/core/types";
 

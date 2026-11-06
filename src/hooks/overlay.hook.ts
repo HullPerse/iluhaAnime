@@ -2,8 +2,11 @@ import { useEffect, useRef } from "react";
 
 import { registerOverlay } from "@/store/overlay.store";
 
-export function useOverlayDialog(): void {
-  useEffect(() => registerOverlay(null), []);
+export function useOverlayDialog(active = true): void {
+  useEffect(() => {
+    if (!active) return;
+    return registerOverlay(null);
+  }, [active]);
 }
 
 export function useOverlay(dismiss: (() => void) | null, active = true): void {

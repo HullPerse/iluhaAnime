@@ -5,7 +5,7 @@ import {
   chordKeyFromEvent,
   humanizeChord,
   parseChord,
-} from "@/lib/core/chordHotkeys.utils";
+} from "@/lib/core/hotkeys/chordHotkeys.utils";
 
 describe("parseChord", () => {
   it("parses a bare code", () => {

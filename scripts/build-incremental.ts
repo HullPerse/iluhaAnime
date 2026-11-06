@@ -22,7 +22,7 @@ import {
   diffFingerprintEntries,
   fingerprintEntries,
   type FingerprintEntry,
-} from "../src/lib/core/buildFingerprint.utils";
+} from "../src/lib/core/system/buildFingerprint.utils";
 
 const ROOT = process.cwd();
 const STATE_DIR = resolve(ROOT, ".build-cache");

@@ -20,8 +20,8 @@ use librqbit::limits::LimitsConfig;
 use librqbit::spawn_utils::BlockingSpawner;
 use librqbit::{
     create_torrent, AddTorrent, AddTorrentOptions, AddTorrentResponse, ConnectionOptions,
-    CreateTorrentOptions, ListenerOptions, Magnet, PeerConnectionOptions, Session, SessionOptions,
-    SessionPersistenceConfig, TorrentStatsState,
+    CreateTorrentOptions, ListenerMode, ListenerOptions, Magnet, PeerConnectionOptions, Session,
+    SessionOptions, SessionPersistenceConfig, TorrentStatsState,
 };
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -89,7 +89,7 @@ fn dir_has_entry(cache: &mut HashMap<PathBuf, HashSet<std::ffi::OsString>>, path
             std::fs::read_dir(parent)
                 .map(|entries| {
                     entries
-                        .filter_map(|entry| entry.ok())
+                        .filter_map(std::result::Result::ok)
                         .map(|entry| entry.file_name())
                         .collect()
                 })
@@ -203,6 +203,14 @@ pub struct TorrentManager {
     pub files_cache: DashMap<usize, Vec<TorrentFileInfo>>,
     pub metadata_slots: Arc<tokio::sync::Semaphore>,
 }
+const fn session_listener_mode(proxy_active: bool) -> ListenerMode {
+    if proxy_active {
+        ListenerMode::TcpOnly
+    } else {
+        ListenerMode::TcpAndUtp
+    }
+}
+
 impl TorrentManager {
     pub async fn new(app_data_dir: PathBuf) -> Result<Self> {
         Self::new_internal(app_data_dir, true).await
@@ -337,6 +345,7 @@ impl TorrentManager {
             fastresume: session_config.fastresume,
             ipv4_only: session_config.ipv4_only,
             listen: Some(ListenerOptions {
+                mode: session_listener_mode(proxy_active),
                 listen_addr,
                 enable_upnp_port_forwarding: session_config.enable_upnp && !proxy_active,
                 ipv4_only: session_config.ipv4_only,
@@ -1719,11 +1728,13 @@ impl TorrentManager {
                         let full_path = resolve_payload_path(
                             &Path::new(&save_dir).join(&file.relative_filename),
                         );
-                        let meta = std::fs::metadata(&full_path).ok().filter(|m| m.is_file());
+                        let meta = std::fs::metadata(&full_path)
+                            .ok()
+                            .filter(std::fs::Metadata::is_file);
                         FileStamp {
                             name: file.relative_filename.to_string_lossy().to_string(),
                             expected_len: file.len,
-                            on_disk_len: meta.as_ref().map(|m| m.len()),
+                            on_disk_len: meta.as_ref().map(std::fs::Metadata::len),
                             mtime_secs: meta
                                 .as_ref()
                                 .and_then(|m| m.modified().ok())
@@ -3656,6 +3667,15 @@ mod tests {
     use super::super::types::FilePriority;
     use super::*;
     use librqbit::{create_torrent, torrent_from_bytes, CreateTorrentOptions};
+
+    #[test]
+    fn utp_listener_is_enabled_only_without_a_proxy() {
+        assert!(session_listener_mode(false).tcp_enabled());
+        assert!(session_listener_mode(false).utp_enabled());
+        assert!(session_listener_mode(true).tcp_enabled());
+        assert!(!session_listener_mode(true).utp_enabled());
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn diagnostics_rejects_unknown_id() {
         let dir = std::env::temp_dir().join(format!("iluha-diag-{}", std::process::id()));

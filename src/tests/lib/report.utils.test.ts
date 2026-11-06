@@ -12,7 +12,7 @@ import {
   requestSafeMode,
   resetFatalModule,
   subscribeFatal,
-} from "@/lib/core/report.utils";
+} from "@/lib/core/system/report.utils";
 import type { FatalInfo } from "@/types/core/fatal";
 
 const info = (overrides: Partial<FatalInfo> = {}): FatalInfo => ({

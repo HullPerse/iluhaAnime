@@ -28,8 +28,8 @@ interface FriendRow {
 }
 
 const ROWS_25: FriendRow[] = Array.from({ length: 25 }, (_, i) => ({
-  score: SCORES[i % SCORES.length]!,
-  scoreFormat: FORMATS[i % FORMATS.length]!,
+  score: SCORES[i % SCORES.length],
+  scoreFormat: FORMATS[i % FORMATS.length],
 }));
 
 interface Rec {

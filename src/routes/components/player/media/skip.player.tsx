@@ -10,7 +10,7 @@ import {
   findActiveChapter,
   resolveSkipTarget,
   skipLabel,
-} from "@/lib/core/skip.utils";
+} from "@/lib/core/player/skip.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter } from "@/types/player/videoPlayer";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { torrentFileIcon } from "@/lib/core/fileIcon.utils";
+import { torrentFileIcon } from "@/lib/core/ui/fileIcon.utils";
 
 describe("torrentFileIcon", () => {
   it("maps video extensions to the player icon", () => {

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/anilist/statuses.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildCustomStatusId, normalizeStatusLabel } from "@/lib/core/status.utils";
+import { buildCustomStatusId, normalizeStatusLabel } from "@/lib/core/anilist/status.utils";
 import type { CollectionStatusDef, CollectionStatusKind } from "@/types/anilist/collection";
 
 import { BilingualPreview } from "@/routes/components/collection/bilingualPreview.collection";

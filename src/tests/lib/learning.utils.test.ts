@@ -6,7 +6,7 @@ import {
   countersOf,
   dropLearningScope,
   learningStatKey,
-} from "@/lib/core/learning.utils";
+} from "@/lib/core/anilist/learning.utils";
 import { RANKING } from "@/config/anilist/ranking.config";
 import type { LearningStatRow } from "@/types/search/search";
 

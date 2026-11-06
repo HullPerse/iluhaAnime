@@ -6,7 +6,7 @@ import Modal from "@/components/shared/modal.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentCover } from "@/hooks/search/cover.hook";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { buildTorrentView } from "@/lib/torrent/torrentDetails.utils";
 import {
@@ -19,7 +19,7 @@ import {
   openDetailsOriginalUrl,
   resolveActiveTab,
 } from "@/lib/torrent/torrentDetailsModal.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ImageLightbox } from "@/types/core/detailsModal";
 import type { DetailsTab } from "@/types/core/panels.details";

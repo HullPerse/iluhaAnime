@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { tokenizeIntent } from "@/lib/core/intent.utils";
+import { tokenizeIntent } from "@/lib/core/search/intent.utils";
 import type { CollectionStore, SearchField } from "@/types/anilist/collection";
 
 import DataCollection from "@/routes/components/collection/data.collection";

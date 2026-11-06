@@ -66,7 +66,7 @@ function hostOf(mediaUrl: string): string {
 }
 
 /** One route decision per player and media host. */
-export function routeMemoryKey(variantId: string, mediaUrl: string): string {
+function routeMemoryKey(variantId: string, mediaUrl: string): string {
   return `${variantId.split(":")[0] ?? ""}|${hostOf(mediaUrl)}`;
 }
 

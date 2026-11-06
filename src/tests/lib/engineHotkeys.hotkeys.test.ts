@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { VimCommand, VimEngine, VimEngineState } from "@/types/core/engineHotkeys";
-import { createVimCommandTable, createVimEngine } from "@/lib/core/engineHotkeys.utils";
-import { isInsideLayer } from "@/lib/core/layerHotkeys.utils";
+import { createVimCommandTable, createVimEngine } from "@/lib/core/hotkeys/engineHotkeys.utils";
+import { isInsideLayer } from "@/lib/core/hotkeys/layerHotkeys.utils";
 
 const open: VimEngine[] = [];
 const nodes: HTMLElement[] = [];

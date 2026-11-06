@@ -12,7 +12,7 @@ import {
   sortStatuses,
   splitStatusLabel,
   statusLabel,
-} from "@/lib/core/status.utils";
+} from "@/lib/core/anilist/status.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { CollectionItem, CollectionStatusDef } from "@/types/anilist/collection";
 

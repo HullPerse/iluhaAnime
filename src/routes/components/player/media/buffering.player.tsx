@@ -5,7 +5,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { formatRate } from "@hullperse/hp_utils/bytes";
 import { useCell } from "@hullperse/hp_utils/react";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
-import { formatClock } from "@/lib/core/time.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 
 const SHOW_DELAY_MS = 400;

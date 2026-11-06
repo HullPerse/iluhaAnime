@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
-import { formatResume, isEpisodeWatched, watchShare } from "@/lib/core/history.utils";
+import { formatResume, isEpisodeWatched, watchShare } from "@/lib/core/anilist/history.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { StreamHistoryEntry } from "@/types/player/stream";
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { THEMES } from "@/config/graphics/themes.config";
-import { persistKey } from "@/lib/core/persist.utils";
-import { applyTheme } from "@/lib/core/appearance.utils";
+import { persistKey } from "@/lib/core/persistence/persist.utils";
+import { applyTheme } from "@/lib/core/ui/appearance.utils";
 import {
   createThemeSignalStore,
   parseRetroismTheme,
@@ -46,8 +46,8 @@ function storedTheme(currentTheme: unknown): Storage {
 }
 
 describe("theme signal unknown names", () => {
-  it("falls back to win95 for a removed builtin theme", () => {
-    const store = createThemeSignalStore({ getStorage: () => storedTheme("nord") });
+  it("falls back to win95 for an unknown theme", () => {
+    const store = createThemeSignalStore({ getStorage: () => storedTheme("removed-theme") });
     expect(store.atoms.currentTheme.get()).toBe("win95");
     store.persistor.dispose();
   });

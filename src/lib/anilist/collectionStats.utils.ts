@@ -1,4 +1,4 @@
-import { publicStatusIds } from "@/lib/core/status.utils";
+import { publicStatusIds } from "@/lib/core/anilist/status.utils";
 import type { CollectionItem, CollectionStatusDef } from "@/types/anilist/collection";
 
 function initStatusCounts(statuses: CollectionStatusDef[]): Record<string, number> {

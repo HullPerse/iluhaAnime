@@ -2,7 +2,7 @@ import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/core/bulk.utils";
+import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/core/collection/bulk.utils";
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
@@ -25,7 +25,7 @@ import {
 } from "@/lib/torrent/torrentCommon.utils";
 import type { TorrentListState } from "@/types/torrent/torrentCommon";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
-import { describeRecheckOutcome } from "@/lib/core/recheck.utils";
+import { describeRecheckOutcome } from "@/lib/core/system/recheck.utils";
 import {
   applyFolderSelection,
   buildTorrentTree,

@@ -74,7 +74,7 @@ describe("ModernControls", () => {
     if (!play) throw new Error("enabled play button not found");
     fireEvent.click(play);
     expect(owned.onPlay).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "Next file" }));
+    fireEvent.click(screen.getByRole("button", { name: /next chapter/i }));
     expect(owned.onFileNext).toHaveBeenCalledTimes(1);
   });
 

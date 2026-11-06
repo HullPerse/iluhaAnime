@@ -32,7 +32,7 @@ fn cached_player_decorations(app: &AppHandle) -> bool {
         .unwrap_or(true)
 }
 
-pub(crate) fn observed_properties() -> Value {
+pub fn observed_properties() -> Value {
     json!({
         "time-pos": "double",
         "duration": "double",
@@ -56,7 +56,7 @@ pub(crate) fn observed_properties() -> Value {
     })
 }
 
-pub(crate) fn with_structural_options(options: Value) -> Value {
+pub fn with_structural_options(options: Value) -> Value {
     let mut map = options.as_object().cloned().unwrap_or_default();
     for (key, value) in [
         ("idle", json!("yes")),
@@ -98,7 +98,7 @@ const ALLOWED_INITIAL_OPTIONS: &[&str] = &[
     "video-margin-ratio-right",
 ];
 
-pub(crate) fn sanitize_initial_options(options: Value) -> Value {
+pub fn sanitize_initial_options(options: Value) -> Value {
     let Some(map) = options.as_object() else {
         return options;
     };
@@ -207,7 +207,7 @@ pub async fn player_open(
     watch: Option<PlaylistWatch>,
 ) -> Result<(), String> {
     drop_legacy_hover_cache(&app);
-    if files.iter().any(|file| file.is_empty()) {
+    if files.iter().any(std::string::String::is_empty) {
         return Err("player_open received an empty file path".to_string());
     }
     let request = PlayerOpenRequest {
@@ -320,7 +320,7 @@ pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<()
         resume: stream.resume,
         start_index: Some(0),
         watch: None,
-        stream: Some(stream.clone()),
+        stream: Some(stream),
     };
 
     // An open player window always takes the same path: the request is queued,
@@ -672,7 +672,7 @@ pub async fn player_init(
             return Err(error);
         }
         Err(error) => return Err(format!("player init task failed: {error}")),
-    };
+    }
 
     if label == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
@@ -775,9 +775,7 @@ pub async fn player_append_files(
     let label = window.label().to_string();
     let backend = core(&app);
     for file in &files {
-        if let Err(error) = backend.command("loadfile", &[json!(file), json!(mode)], &label) {
-            return Err(error);
-        }
+        backend.command("loadfile", &[json!(file), json!(mode)], &label)?;
     }
     Ok(())
 }
@@ -819,7 +817,7 @@ pub async fn player_insert_files(
 
 /// Grabs the frame mpv is currently showing so an app screenshot can put it
 /// back over the blank area the webview capture leaves behind.
-pub(crate) async fn capture_frame_to(
+pub async fn capture_frame_to(
     window: &WebviewWindow,
     target: &std::path::Path,
 ) -> Result<(), String> {
@@ -832,7 +830,7 @@ pub(crate) async fn capture_frame_to(
     let mut last_len = 0;
     let mut stable = 0;
     for _ in 0..80 {
-        let len = std::fs::metadata(target).map(|meta| meta.len()).unwrap_or(0);
+        let len = std::fs::metadata(target).map_or(0, |meta| meta.len());
         if len > 0 && len == last_len {
             stable += 1;
             if stable >= 2 {
@@ -861,7 +859,7 @@ pub async fn player_save_frame(
     }
     let target = crate::screenshot::resolve_target(&dir, "iluhaAnime_screenshot", "png");
     let app = window.app_handle();
-    core(&app).command(
+    core(app).command(
         "screenshot-to-file",
         &[json!(target.to_string_lossy())],
         &label,
@@ -1096,7 +1094,7 @@ pub fn player_apply_file_state(
 /// Build the hidden player window ahead of the click that needs it.
 ///
 /// The app warms it once at startup, but the window is gone after the user
-/// closes the player, and the next stream would then pay for a cold WebView and
+/// closes the player, and the next stream would then pay for a cold `WebView` and
 /// a cold mpv. The catalog calls this when a title modal opens, so that window
 /// is back before the episode click arrives. Calling it again while the window
 /// exists is a no-op.
@@ -1128,8 +1126,8 @@ pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
 
     let _ = window.set_focus();
 
-    let app_for_event = app.clone();
-    let label_for_event = label.clone();
+    let app_for_event = app;
+    let label_for_event = label;
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
             clear_player_presence(&app_for_event);
@@ -1170,7 +1168,7 @@ pub async fn player_apply_batch(
     let mut failed: Vec<String> = Vec::new();
     for (i, result) in results.into_iter().enumerate() {
         if let Err(error) = result {
-            failed.push(format!("{}: {}", i, error));
+            failed.push(format!("{i}: {error}"));
         }
     }
 

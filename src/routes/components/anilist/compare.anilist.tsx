@@ -9,7 +9,7 @@ import {
   sortCompareRows,
   topGenreTaste,
   sharedFavourites,
-} from "@/lib/core/compare.utils";
+} from "@/lib/core/anilist/compare.utils";
 import type { CompareMetric, CompareSort } from "@/types/core/compare";
 import { parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import type {

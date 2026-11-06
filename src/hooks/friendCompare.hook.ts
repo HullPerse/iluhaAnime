@@ -2,8 +2,8 @@ import { useCallback } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist/anilist";
 
 function messageOf(error: unknown): string | null {

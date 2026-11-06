@@ -1,5 +1,7 @@
 import type { FatalVariantProps } from "@/types/core/shared.fatal";
 
+import { FatalUpdateButton } from "@/components/shared/fatal/update.fatal";
+
 const FONT = '"Perfect DOS VGA 437", monospace';
 
 export function TerminalBsod({
@@ -15,6 +17,9 @@ export function TerminalBsod({
   onSafeReload,
   onRetry,
   onCopy,
+  onCheckUpdate,
+  updateState,
+  updateError,
 }: FatalVariantProps) {
   return (
     <div
@@ -66,6 +71,15 @@ export function TerminalBsod({
           >
             {copied ? texts.copied : texts.copy}
           </button>
+          <FatalUpdateButton
+            texts={texts}
+            state={updateState}
+            error={updateError}
+            onCheck={onCheckUpdate}
+            className="border-2 bg-transparent px-6 py-1 text-xl outline-none hover:brightness-150 focus-visible:underline disabled:cursor-default disabled:opacity-60"
+            noteClassName="text-xl opacity-80"
+            style={{ borderColor: "#00ff41" }}
+          />
         </div>
         <button
           type="button"

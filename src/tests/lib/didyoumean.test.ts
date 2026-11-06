@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { resolveTitleQuery } from "@/lib/search/searchHypothesis.utils";
 import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
-import { suggestSpelling } from "@/lib/core/suggestions.utils";
+import { suggestSpelling } from "@/lib/core/anilist/suggestions.utils";
 import { buildSymSpellFromTitles } from "@hullperse/hp_utils/symspell";
 import type { AnimeTitle, SearchAnimeSuggestion } from "@/types/search/search";
 

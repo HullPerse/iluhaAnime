@@ -53,6 +53,7 @@ export interface ModalWindow {
   hideHeader?: boolean;
   hideBackdrop?: boolean;
   modal?: boolean;
+  trackOverlay?: boolean;
   children?: ReactNode;
 }
 

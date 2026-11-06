@@ -14,7 +14,7 @@ const cache = vi.hoisted(() => ({
   prefetchNativeSources: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/lib/core/sessionCache.utils", () => cache);
+vi.mock("@/lib/core/player/sessionCache.utils", () => cache);
 vi.mock("@/api/stream.api", () => ({
   streamApi: {
     prefsGet: vi.fn(async () => null),

@@ -359,10 +359,7 @@ mod cache_tests {
     }
 }
 
-pub(crate) async fn get_video_duration(
-    app_handle: &tauri::AppHandle,
-    path: &str,
-) -> Result<f64, String> {
+pub async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result<f64, String> {
     if let Some(duration) = cache_get(&VIDEO_DURATION_CACHE, path) {
         FFPROBE_CACHE_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         return Ok(duration);
@@ -700,7 +697,7 @@ fn preview_timestamps(duration: f64, count: usize) -> Vec<f64> {
         .collect()
 }
 
-pub(crate) async fn extract_preview_frame(
+pub async fn extract_preview_frame(
     app_handle: &tauri::AppHandle,
     input_path: &str,
     timestamp: f64,
@@ -733,7 +730,7 @@ pub(crate) async fn extract_preview_frame(
     Ok(())
 }
 
-pub(crate) fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+pub fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
     app_handle
         .path()
         .app_cache_dir()
@@ -756,7 +753,7 @@ pub async fn get_video_card(
     if path.trim().is_empty() {
         return Err("card needs a file path".to_string());
     }
-    let size = std::fs::metadata(&path).map(|meta| meta.len()).unwrap_or(0);
+    let size = std::fs::metadata(&path).map_or(0, |meta| meta.len());
     let duration = get_video_duration(&app_handle, &path)
         .await
         .unwrap_or_default();

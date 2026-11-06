@@ -8,8 +8,8 @@ import {
   isCurrentSessionSafe,
   reportFatal,
   requestSafeMode,
-} from "@/lib/core/report.utils";
-import { readThemeName } from "@/lib/core/fatalTheme.utils";
+} from "@/lib/core/system/report.utils";
+import { readThemeName } from "@/lib/core/fatal/fatalTheme.utils";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 
 export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {

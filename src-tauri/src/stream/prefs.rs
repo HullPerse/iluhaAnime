@@ -18,7 +18,7 @@ const PREFS_NAMESPACE: &str = "stream";
 const PREFS_KEY_PREFIX: &str = "prefs:";
 const MAX_FIELD_LEN: usize = 256;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamPrefs {
     pub source_id: String,
@@ -42,7 +42,7 @@ pub struct StreamPrefs {
     pub updated_at: i64,
 }
 
-fn subs_on() -> bool {
+const fn subs_on() -> bool {
     true
 }
 

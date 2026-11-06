@@ -12,7 +12,7 @@ import { appendFilesQuiet, readPlaylistEntries } from "@/lib/player/playback.uti
 import type { PlaylistEntry } from "@/types/player/playback";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptSequence, withFallback } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { playbackAtoms, subscribePlayback } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { PlaylistBodyProps } from "@/types/player/player";

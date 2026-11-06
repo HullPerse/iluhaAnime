@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { fetchVideoCard, getCachedCard } from "@/lib/core/cardCache.utils";
+import { fetchVideoCard, getCachedCard } from "@/lib/core/player/cardCache.utils";
 import type { CardArt } from "@/types/core/cardCache";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 
 export function useCardArt(path: string, visible: boolean): CardArt | null {
   const [art, setArt] = useState<CardArt | null>(() => getCachedCard(path));

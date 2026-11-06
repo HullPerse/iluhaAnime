@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
 import { PreviewFrameListSchema } from "@/api/upscale.schema";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import type { PreviewFrame } from "@/types/core/upscale";
 import type { UpscalePreviewController } from "@/types/core/upscalePreview";
 

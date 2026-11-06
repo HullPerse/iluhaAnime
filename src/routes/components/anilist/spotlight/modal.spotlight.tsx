@@ -14,11 +14,11 @@ import {
   resolveSpotlightPick,
   spotlightBoundaryMs,
   spotlightPeriodKey,
-} from "@/lib/core/spotlight.utils";
+} from "@/lib/core/ui/spotlight.utils";
 import { createInterval } from "@hullperse/hp_utils/interval";
-import { readAppCache, writeAppCache } from "@/lib/core/cache.utils";
+import { readAppCache, writeAppCache } from "@/lib/core/system/cache.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { formatETA } from "@/lib/core/time.utils";
+import { formatETA } from "@/lib/core/text/time.utils";
 import type { ActivityDetailBundle } from "@/types/anilist/anilist";
 import type { AniMedia, SpotlightKind, SpotlightRowState } from "@/types/anilist/anilist";
 

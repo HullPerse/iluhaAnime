@@ -4,7 +4,7 @@ import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import type { CollectionItem } from "@/types/anilist/collection";
 
 export function DetailActionsCollection({ item }: { item: CollectionItem }) {

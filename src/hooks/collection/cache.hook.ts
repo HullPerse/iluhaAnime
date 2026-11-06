@@ -5,7 +5,7 @@ import { systemApi } from "@/api/system.api";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { assetUrl, isDirectImageSrc } from "@/lib/graphics/image.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
 import { coverCorrectionsAtoms, setCoverBlob } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";

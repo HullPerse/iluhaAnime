@@ -11,10 +11,10 @@ import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { useUpscalePreview } from "@/hooks/player/upscalePreview.hook";
 import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { withFallback } from "@hullperse/hp_utils/attempt";
-import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
 import {
   Anime4kShadersSchema,
   GpuEncodersSchema,

@@ -1,7 +1,7 @@
 import { AUDIO_FILTERS, SUBTITLE_FILTERS } from "@/config/player/fileFilters.config";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { addExternalAudio, addExternalSubtitle, appendFiles } from "@/lib/player/playback.utils";
 import { settingsAtoms } from "@/store/settings.store";
 

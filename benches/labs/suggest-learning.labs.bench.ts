@@ -9,9 +9,9 @@ import { bench, group } from "@pmndrs/labs";
 // queries; learning adds <= 10% over the same index with no counters; cold is
 // <= 3x warm. Regression threshold is labs minDelta 5%.
 
-import { buildLearningMaps } from "../../src/lib/core/learning.utils";
+import { buildLearningMaps } from "../../src/lib/core/anilist/learning.utils";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
-import { getSearchSuggestions } from "../../src/lib/core/suggestions.utils";
+import { getSearchSuggestions } from "../../src/lib/core/anilist/suggestions.utils";
 import type { LearningStatRow, SearchAnimeSuggestion } from "../../src/types/search/search";
 
 const WORDS = [
@@ -72,7 +72,7 @@ function makeIndex(count: number): SearchAnimeSuggestion[] {
     const wordCount = 1 + Math.floor(random() * 3);
     const parts: string[] = [];
     for (let word = 0; word < wordCount; word++) {
-      parts.push(WORDS[Math.floor(random() * WORDS.length)]!);
+      parts.push(WORDS[Math.floor(random() * WORDS.length)]);
     }
     out.push({
       aliases: [parts.toReversed().join(" ")],
@@ -94,7 +94,7 @@ function makeLearningRows(index: SearchAnimeSuggestion[], density: number): Lear
   const nowSeconds = Math.floor(Date.now() / 1000);
   const rows: LearningStatRow[] = [];
   for (let position = 0; position < index.length; position += step) {
-    const anime = index[position]!;
+    const anime = index[position];
     rows.push({
       id: `anime:${anime.id}`,
       ignoredCount: 0,

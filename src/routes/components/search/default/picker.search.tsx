@@ -12,13 +12,13 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { createInterval } from "@hullperse/hp_utils/interval";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { duplicateOfMagnet } from "@/lib/core/duplicate.utils";
-import { torrentFileIcon } from "@/lib/core/fileIcon.utils";
+import { duplicateOfMagnet } from "@/lib/core/anilist/duplicate.utils";
+import { torrentFileIcon } from "@/lib/core/ui/fileIcon.utils";
 import { groupFilesByDirectory } from "@/lib/torrent/torrentTree.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { showError } from "@/lib/core/notification.utils";
-import { formatElapsed } from "@/lib/core/time.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
+import { formatElapsed } from "@/lib/core/text/time.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { PickerTorrent, TorrentInfo } from "@/types/torrent/torrent";
 
@@ -71,10 +71,11 @@ function TorrentFilePicker({
 
   useEffect(() => {
     if (loading) {
-      startRef.current = Date.now();
+      const startedAt = Date.now();
+      startRef.current = startedAt;
       setElapsed(0);
       const { cancel } = createInterval(() => {
-        setElapsed(Math.floor((Date.now() - startRef.current!) / 1000));
+        setElapsed(Math.floor((Date.now() - startedAt) / 1000));
       }, PICKER_ELAPSED_TICK_MS);
       return cancel;
     } else {
@@ -181,7 +182,7 @@ function TorrentFilePicker({
               {allSelected ? t("picker.deselect.all") : t("picker.select.all")}
               <span className="text-hint ml-auto text-xs tabular-nums">
                 {t("picker.file.count", { count: selected.size })} /{" "}
-                {t("picker.file.count", { count: torrent!.files.length })}
+                {t("picker.file.count", { count: torrent?.files.length ?? 0 })}
                 {" - "}
                 {formatBytes(selectedSize)} / {formatBytes(totalSize)}
               </span>

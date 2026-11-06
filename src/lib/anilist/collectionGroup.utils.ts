@@ -1,4 +1,4 @@
-import { isPublicStatus } from "@/lib/core/status.utils";
+import { isPublicStatus } from "@/lib/core/anilist/status.utils";
 import type {
   CollectionGroup,
   CollectionItem,

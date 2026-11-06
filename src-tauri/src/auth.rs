@@ -510,9 +510,9 @@ struct WebviewProxy {
     marker: String,
 }
 
-/// Login windows use their own WebView2 user data folder. A second webview
+/// Login windows use their own `WebView2` user data folder. A second webview
 /// with different environment options (a proxy) cannot join the default
-/// folder the main window already owns; WebView2 answers ERROR_INVALID_STATE
+/// folder the main window already owns; `WebView2` answers `ERROR_INVALID_STATE`
 /// (0x8007139F). One folder per login label keeps every flow independent.
 #[cfg(target_os = "windows")]
 fn login_webview_data_dir(app_handle: &tauri::AppHandle, label: &str) -> Result<PathBuf, String> {
@@ -1244,7 +1244,7 @@ const ANIMELIB_LOGIN_SCRIPT: &str = r#"(() => {
 })()"#;
 
 /// Open the site's own login page in a dedicated window. The proxy covers the
-/// whole WebView2 session, including the authorization hop and the redirect
+/// whole `WebView2` session, including the authorization hop and the redirect
 /// back to animelib.org.
 #[cfg(target_os = "windows")]
 #[tauri::command]
@@ -1355,8 +1355,8 @@ pub async fn animelib_finish_webview_login(
             Ok(Ok(Some(value))) => value
                 .get("token")
                 .and_then(serde_json::Value::as_str)
-                .map(|token| token.to_string()),
-            Ok(Ok(None)) | Ok(Err(_)) | Err(_) => None,
+                .map(std::string::ToString::to_string),
+            Ok(Ok(None) | Err(_)) | Err(_) => None,
         };
         if let Some(token) = token {
             let client = crate::stream::anime_lib_client::AnimeLibClient::with_token_and_proxy(

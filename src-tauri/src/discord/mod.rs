@@ -100,7 +100,7 @@ async fn run(mut rx: mpsc::Receiver<Command>) {
             frame = manager.next_frame() => Wake::Frame(frame),
         };
         match wake {
-            Wake::Command(None) | Wake::Command(Some(Command::Shutdown)) => {
+            Wake::Command(None | Some(Command::Shutdown)) => {
                 manager.shutdown().await;
                 break;
             }
@@ -397,7 +397,7 @@ fn same_card(left: &DiscordActivity, right: &DiscordActivity) -> bool {
 }
 
 /// Whether one side shows a running clock and the other does not.
-fn timestamp_presence_changed(left: &DiscordActivity, right: &DiscordActivity) -> bool {
+const fn timestamp_presence_changed(left: &DiscordActivity, right: &DiscordActivity) -> bool {
     left.start_timestamp.is_some() != right.start_timestamp.is_some()
         || left.end_timestamp.is_some() != right.end_timestamp.is_some()
 }

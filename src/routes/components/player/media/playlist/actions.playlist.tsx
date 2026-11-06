@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import type { PlaylistEntry } from "@/types/player/playback";
 import type { TFunc } from "@/types/core/i18n";
 

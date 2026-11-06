@@ -20,13 +20,13 @@ import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
-import { isCurrentSessionSafe } from "@/lib/core/report.utils";
-import { markStartup, reportStartup } from "@/lib/core/startup.utils";
+import { isCurrentSessionSafe } from "@/lib/core/system/report.utils";
+import { markStartup, reportStartup } from "@/lib/core/system/startup.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { getLastSettingsTab } from "@/lib/ui/settingsTab.utils";
 import { resolveSecretTabAction } from "@/lib/ui/tabs.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { cacheAtoms } from "@/store/cache.store";
 import {

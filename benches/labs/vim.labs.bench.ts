@@ -26,7 +26,7 @@ import { bench, group } from "@pmndrs/labs";
 // here and needs a live run. Regression threshold is labs minDelta 5%.
 
 import { VIM_LABEL_ALPHABET } from "../../src/config/settings/vim.config";
-import { createVimCommandTable } from "../../src/lib/core/engineHotkeys.utils";
+import { createVimCommandTable } from "../../src/lib/core/hotkeys/engineHotkeys.utils";
 import {
   assignLabels,
   hintLayoutsEqual,
@@ -35,7 +35,7 @@ import {
   reduceHintKey,
   resolveBadgeCollisions,
   scanHintTargets,
-} from "../../src/lib/core/hintsHotkeys.utils";
+} from "../../src/lib/core/hotkeys/hintsHotkeys.utils";
 import type { HintBadge } from "../../src/types/core/hintsHotkeys";
 import { scrollAmount } from "../../src/lib/ui/scroll.utils";
 
@@ -93,7 +93,7 @@ function makeBadges(count: number): HintBadge[] {
   const labels = assignLabels(count, VIM_LABEL_ALPHABET, 2);
   const out: HintBadge[] = [];
   for (let i = 0; i < count; i++) {
-    out.push({ element: elements[i]!, label: labels[i]!, variant: "plain" });
+    out.push({ element: elements[i], label: labels[i], variant: "plain" });
   }
   return out;
 }
@@ -148,7 +148,7 @@ group("vim @vim @quick", () => {
   bench("match label hit 380 badges x1k", () => {
     let sum = 0;
     for (let i = 0; i < 1000; i++) {
-      sum += reduceHintKey(BADGES, "", VIM_LABEL_ALPHABET[0]!, false).outcome.length;
+      sum += reduceHintKey(BADGES, "", VIM_LABEL_ALPHABET[0], false).outcome.length;
     }
     return sum;
   });

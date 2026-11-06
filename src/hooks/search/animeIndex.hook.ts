@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
-import { prewarmSpelling } from "@/lib/core/suggestions.utils";
-import { markIndexReady } from "@/lib/core/signals.utils";
+import { prewarmSpelling } from "@/lib/core/anilist/suggestions.utils";
+import { markIndexReady } from "@/lib/core/system/signals.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { indexSearchAniList, searchAtoms } from "@/store/search.store";

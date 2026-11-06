@@ -8,8 +8,8 @@
 
 import { bench, group } from "@pmndrs/labs";
 
-import { barLength, nearestIndex, ratioSegments } from "../../src/lib/core/geometry.utils";
-import { bandScale, niceTicks } from "../../src/lib/core/scale.utils";
+import { barLength, nearestIndex, ratioSegments } from "../../src/lib/core/player/geometry.utils";
+import { bandScale, niceTicks } from "../../src/lib/core/graphics/scale.utils";
 
 const SMALL = [8, 16, 32].map((count) =>
   Array.from({ length: count }, (_, index) => index * 24 + 12)
@@ -18,9 +18,9 @@ const LARGE = Array.from({ length: 400 }, (_, index) => index * 3 + 0.5);
 
 function linearNearest(sorted: readonly number[], target: number): number {
   let best = 0;
-  let bestDistance = Math.abs(sorted[0]! - target);
+  let bestDistance = Math.abs(sorted[0] - target);
   for (let index = 1; index < sorted.length; index++) {
-    const distance = Math.abs(sorted[index]! - target);
+    const distance = Math.abs(sorted[index] - target);
     if (distance < bestDistance) {
       best = index;
       bestDistance = distance;
@@ -34,12 +34,12 @@ function binaryNearest(sorted: readonly number[], target: number): number {
   let high = sorted.length - 1;
   while (low < high) {
     const middle = (low + high) >> 1;
-    if (sorted[middle]! < target) low = middle + 1;
+    if (sorted[middle] < target) low = middle + 1;
     else high = middle;
   }
   const previous = low - 1;
   if (previous < 0) return low;
-  return Math.abs(sorted[previous]! - target) <= Math.abs(sorted[low]! - target) ? previous : low;
+  return Math.abs(sorted[previous] - target) <= Math.abs(sorted[low] - target) ? previous : low;
 }
 
 let cursor = 0;

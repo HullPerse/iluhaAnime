@@ -32,11 +32,11 @@ import {
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { showErrorOnce } from "@/lib/core/notification.utils";
-import { paginate } from "@/lib/core/pagination.utils";
+import { showErrorOnce } from "@/lib/core/ui/notification.utils";
+import { paginate } from "@/lib/core/collection/pagination.utils";
 import {
   addAnilistFriend,
   anilistFriendsAtoms,

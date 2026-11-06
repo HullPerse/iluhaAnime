@@ -4,8 +4,8 @@ import { anilistApi } from "@/api/anilist.api";
 import { PROFILE_CACHE_TTL_MS } from "@/config/anilist/friends.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
-import { hasFreshCachedProfile } from "@/lib/core/friends.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { hasFreshCachedProfile } from "@/lib/core/anilist/friends.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type {
   AniFriend,
   AniListCollection,

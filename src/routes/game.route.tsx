@@ -8,7 +8,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { GAME_PLATFORMS } from "@/config/system/platforms.config";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import GameImportModal from "@/routes/components/game/import.game";
 import type { GameImportDraft } from "@/types/core/import.game";
 import GameLibrary from "@/routes/components/game/library.game";

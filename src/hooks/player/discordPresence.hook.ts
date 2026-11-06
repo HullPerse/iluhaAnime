@@ -7,8 +7,8 @@ import {
   buildPlayerActivity,
   presenceTimestampsDrifted,
   samePresenceCard,
-} from "@/lib/core/presence.utils";
-import { reportPresenceCommand } from "@/lib/core/presenceCommand.utils";
+} from "@/lib/core/system/presence.utils";
+import { reportPresenceCommand } from "@/lib/core/system/presenceCommand.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { DiscordActivity } from "@/types/core/discord";

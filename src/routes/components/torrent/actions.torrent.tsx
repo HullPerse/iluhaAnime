@@ -7,7 +7,7 @@ import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { torrentApi } from "@/api/torrent.api";
 import { joinMediaPath, openFileInPlayer } from "@/lib/player/media.utils";
-import { showError } from "@/lib/core/notification.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
 import type { TorrentTreeFile } from "@/types/torrent/torrent";
 

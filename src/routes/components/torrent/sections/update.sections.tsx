@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { showError } from "@/lib/core/notification.utils";
-import { ignore } from "@/lib/core/promise.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/torrentUpdate.utils";
 import type {

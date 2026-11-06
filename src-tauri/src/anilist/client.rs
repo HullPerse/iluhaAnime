@@ -24,7 +24,7 @@ fn env_limit(name: &str, default: usize) -> usize {
         .unwrap_or(default)
 }
 
-pub(crate) const MAX_CONCURRENT_REQUESTS: usize = 3;
+pub const MAX_CONCURRENT_REQUESTS: usize = 3;
 static ANILIST_CONCURRENCY: LazyLock<tokio::sync::Semaphore> = LazyLock::new(|| {
     tokio::sync::Semaphore::new(env_limit(
         "ILUHA_ANILIST_CONCURRENCY",
@@ -66,11 +66,10 @@ fn rate_limit_delay_secs(
     let reset_delay = reset_delay_secs(reset, now_unix_secs);
     retry
         .or(reset_delay)
-        .map(|base| match (retry, reset_delay) {
+        .map_or(fallback_secs, |base| match (retry, reset_delay) {
             (Some(a), Some(b)) => a.max(b),
             _ => base,
         })
-        .unwrap_or(fallback_secs)
         .max(1)
         .min(RATE_LIMIT_RESET_CAP_SECS)
 }
@@ -89,8 +88,7 @@ fn graphql_error_message(errors: &serde_json::Value) -> String {
 fn now_unix_secs() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
+        .map_or(0, |d| d.as_secs())
 }
 
 fn rate_limit_per_min() -> usize {

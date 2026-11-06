@@ -5,7 +5,7 @@ import {
   fingerprintEntries,
   isFingerprintCurrent,
   type FingerprintEntry,
-} from "@/lib/core/buildFingerprint.utils";
+} from "@/lib/core/system/buildFingerprint.utils";
 
 const entry = (path: string, size = 10, modifiedMs = 1000): FingerprintEntry => {
   return { path, size, modifiedMs };

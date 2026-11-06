@@ -2,7 +2,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamNext } from "@/hooks/player/stream.hook";
 import { useAnilistEpisodePreviews } from "@/hooks/stream/catalog.hook";
 import { useCell } from "@hullperse/hp_utils/react";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { streamSession } from "@/store/player.store";
 import type { PlayerSidePanelProps } from "@/types/player/player";
 

@@ -4,7 +4,7 @@ import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@hullperse/hp_utils/react";
 import { formatBytes, formatRate } from "@hullperse/hp_utils/bytes";
-import { formatClock } from "@/lib/core/time.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 import { variantOf } from "@/lib/player/streamHelpers.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { StreamVariant } from "@/types/player/stream";

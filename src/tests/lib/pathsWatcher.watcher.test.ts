@@ -5,7 +5,7 @@ import {
   isSameOrInside,
   normalizePath,
   samePath,
-} from "@/lib/core/pathsWatcher.utils";
+} from "@/lib/core/watchers/pathsWatcher.utils";
 import type { FolderContentChanged } from "@/types/core/watcher";
 
 describe("normalizePath", () => {

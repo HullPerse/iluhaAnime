@@ -11,10 +11,10 @@ import type { AniMedia } from "@/types/anilist/anilist";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import {
   patchEntry,
   readLiveFields,

@@ -57,7 +57,7 @@ const headerVisible = (): boolean => {
 };
 
 const fullBarVisible = (): boolean => {
-  return screen.queryByRole("button", { name: "Previous file" }) !== null;
+  return screen.queryByRole("button", { name: /previous (file|chapter)/i }) !== null;
 };
 
 const slimBarVisible = (): boolean => {

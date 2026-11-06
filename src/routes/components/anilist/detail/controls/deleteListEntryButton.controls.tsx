@@ -5,7 +5,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { anilistApi } from "@/api/anilist.api";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { removeListEntry } from "@/lib/anilist/listEntry.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AnilistRouteData } from "@/types/anilist/anilist";
 

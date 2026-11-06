@@ -2,7 +2,7 @@ import { KEYBIND_MANIFEST } from "@/config/system/manifest.config";
 import type { KeybindManifestEntry, KeybindScope } from "@/types/core/manifest";
 import { VIM_MOTION_KEYS } from "@/config/settings/vim.config";
 
-import { chordKey, parseChord } from "@/lib/core/chordHotkeys.utils";
+import { chordKey, parseChord } from "@/lib/core/hotkeys/chordHotkeys.utils";
 import type { KeybindOverride, ResolvedKeybind } from "@/types/search/resolveHotkeys";
 
 const RESERVED_PREFIX_CODES: readonly string[] = [VIM_MOTION_KEYS.firstPrefix];

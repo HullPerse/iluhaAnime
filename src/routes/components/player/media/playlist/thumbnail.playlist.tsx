@@ -1,6 +1,6 @@
 import { ListVideo, Play } from "lucide-react";
 
-import { formatClock } from "@/lib/core/time.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 
 export function CardThumbnail({
   url,

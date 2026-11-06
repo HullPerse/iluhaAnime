@@ -8,7 +8,7 @@ import {
   SETTINGS_FIND_SKIP_KEYS,
   SETTINGS_FIND_TAB_ORDER,
 } from "@/config/settings/find.config";
-import { searchSettingsFind } from "@/lib/core/find.utils";
+import { searchSettingsFind } from "@/lib/core/search/find.utils";
 
 const RU: Record<string, string> = ruSettings;
 const EN: Record<string, string> = enSettings;

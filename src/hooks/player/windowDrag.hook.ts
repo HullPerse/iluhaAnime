@@ -3,7 +3,7 @@ import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 
 import { shouldStartWindowDrag, startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
 import { withFallback } from "@hullperse/hp_utils/attempt";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import type { WindowDragHandlers } from "@/types/player/playerWindowDrag";
 
 export function useWindowDrag(enabled: boolean): WindowDragHandlers {

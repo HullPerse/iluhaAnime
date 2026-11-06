@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
-import { isTextEntryTarget } from "@/lib/core/filterHotkeys.utils";
+import { isTextEntryTarget } from "@/lib/core/hotkeys/filterHotkeys.utils";
 import {
   applyPageFindHighlights,
   clearPageFindHighlights,
   scrollMatchIntoView,
   searchPageFind,
   stepPageFindIndex,
-} from "@/lib/core/pageFind.utils";
+} from "@/lib/core/search/pageFind.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import {
   closeFindBar,

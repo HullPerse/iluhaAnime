@@ -1,5 +1,5 @@
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
-import { matchNormalizedTitle } from "@/lib/core/suggestions.utils";
+import { matchNormalizedTitle } from "@/lib/core/anilist/suggestions.utils";
 import {
   MAX_EPISODE_AMBIGUOUS,
   MAX_SEASON,

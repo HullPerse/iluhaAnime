@@ -711,7 +711,7 @@ fn image_src<'a>(value: &'a scraper::ElementRef<'a>) -> &'a str {
 
 fn spoiler_is_screenshots(spoiler: &scraper::ElementRef<'_>) -> bool {
     let heading = spoiler
-        .select(&*SPOILER_HEAD_SEL)
+        .select(&SPOILER_HEAD_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
@@ -739,7 +739,7 @@ fn spoiler_src_sets(post: &scraper::ElementRef<'_>) -> (HashSet<String>, HashSet
         for image in spoiler.select(image_sel) {
             target.insert(image_src(&image).to_string());
         }
-        for var in spoiler.select(&*VAR_POSTIMG_SEL) {
+        for var in spoiler.select(&VAR_POSTIMG_SEL) {
             target.insert(var.value().attr("title").unwrap_or_default().to_string());
         }
         for link in spoiler.select(anchor_sel) {
@@ -758,7 +758,7 @@ fn element_class(value: &scraper::ElementRef<'_>) -> String {
 }
 
 fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
-    let post = doc.select(&*POST_BODY_SEL).next()?;
+    let post = doc.select(&POST_BODY_SEL).next()?;
     let (screenshot_srcs, other_spoiler_srcs) = spoiler_src_sets(&post);
     let outside_spoilers =
         |src: &str| !screenshot_srcs.contains(src) && !other_spoiler_srcs.contains(src);
@@ -770,7 +770,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
         }
         pick_poster_src(image_src(image), &class, origin)
     };
-    for image in post.select(&*POSTER_IMG_SEL) {
+    for image in post.select(&POSTER_IMG_SEL) {
         let class = element_class(&image);
         if !is_aligned_poster(&class) {
             continue;
@@ -783,7 +783,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for image in post.select(&*POSTER_IMG_SEL) {
+    for image in post.select(&POSTER_IMG_SEL) {
         let src = image_src(&image);
         if !outside_spoilers(src) {
             continue;
@@ -793,7 +793,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
         }
     }
     // Poster can also be a `<var class="postImg" title="URL">` outside spoilers.
-    for var in post.select(&*VAR_POSTIMG_SEL) {
+    for var in post.select(&VAR_POSTIMG_SEL) {
         let title = var.value().attr("title").unwrap_or_default();
         if !outside_spoilers(title) {
             continue;
@@ -802,7 +802,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for image in post.select(&*POSTER_IMG_SEL) {
+    for image in post.select(&POSTER_IMG_SEL) {
         let src = image_src(&image);
         if !not_screenshot(src) {
             continue;
@@ -811,7 +811,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for image in post.select(&*IMAGE_SEL) {
+    for image in post.select(&IMAGE_SEL) {
         let src = image_src(&image);
         if !outside_spoilers(src) {
             continue;
@@ -820,7 +820,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
             return Some(url);
         }
     }
-    for link in post.select(&*ANCHOR_SEL) {
+    for link in post.select(&ANCHOR_SEL) {
         let href = link.value().attr("href").unwrap_or_default();
         let Some(target) = poster_link_target(href) else {
             continue;
@@ -837,7 +837,7 @@ fn parse_rutracker_poster(doc: &Html, origin: &str) -> Option<String> {
 
 fn spoiler_is_mediainfo(spoiler: &scraper::ElementRef<'_>) -> bool {
     spoiler
-        .select(&*SPOILER_HEAD_SEL)
+        .select(&SPOILER_HEAD_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
@@ -863,9 +863,9 @@ fn truncate_mediainfo(text: String) -> String {
 
 /// Raw `MediaInfo` dump from the `MediaInfo` spoiler, if the topic has one.
 fn parse_rutracker_mediainfo(doc: &Html) -> Option<String> {
-    let post = doc.select(&*POST_BODY_SEL).next()?;
+    let post = doc.select(&POST_BODY_SEL).next()?;
     let body_sel = &*SPOILER_BODY_SEL;
-    for spoiler in post.select(&*SPOILER_SEL) {
+    for spoiler in post.select(&SPOILER_SEL) {
         if !spoiler_is_mediainfo(&spoiler) {
             continue;
         }
@@ -879,7 +879,7 @@ fn parse_rutracker_mediainfo(doc: &Html) -> Option<String> {
     }
     // Fallback: MediaInfo is often pasted as `<pre class="post-pre">` under
     // a differently-titled spoiler (or none at all).
-    for pre in post.select(&*PRE_SEL) {
+    for pre in post.select(&PRE_SEL) {
         let text = element_text_multiline(pre);
         let text = text.trim().to_string();
         if looks_like_mediainfo(&text) {
@@ -892,7 +892,7 @@ fn parse_rutracker_mediainfo(doc: &Html) -> Option<String> {
 /// Show poster from an erai-raws.info anime page: the first content
 /// upload image, skipping plugin emoticons and theme chrome.
 fn parse_erai_poster(doc: &Html, origin: &str) -> Option<String> {
-    doc.select(&*IMAGE_SEL).find_map(|image| {
+    doc.select(&IMAGE_SEL).find_map(|image| {
         let src = image_src(&image);
         let lower = src.to_lowercase();
         if !lower.contains("/wp-content/uploads/") {
@@ -904,7 +904,7 @@ fn parse_erai_poster(doc: &Html, origin: &str) -> Option<String> {
 
 /// Uploader nick from the first post (`.poster_info .nick`).
 fn parse_rutracker_author(doc: &Html) -> String {
-    doc.select(&*NICK_SEL)
+    doc.select(&NICK_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
@@ -912,7 +912,7 @@ fn parse_rutracker_author(doc: &Html) -> String {
 
 /// Forum breadcrumb, e.g. "Аниме / Японская анимация".
 fn parse_rutracker_category(doc: &Html) -> String {
-    doc.select(&*BREADCRUMB_SEL)
+    doc.select(&BREADCRUMB_SEL)
         .map(element_text)
         .filter(|part| !part.is_empty())
         .collect::<Vec<_>>()
@@ -996,7 +996,7 @@ impl DescriptionBuilder<'_> {
         }
     }
 
-    fn is_full(&self) -> bool {
+    const fn is_full(&self) -> bool {
         self.blocks.len() >= MAX_DESCRIPTION_BLOCKS
     }
 }
@@ -1079,12 +1079,12 @@ fn visit_description_child(
             builder.flush_paragraph();
             if !spoiler_is_screenshots(&element) {
                 let title = element
-                    .select(&*SPOILER_HEAD_SEL)
+                    .select(&SPOILER_HEAD_SEL)
                     .next()
                     .map(element_text)
                     .unwrap_or_default();
                 let body = element
-                    .select(&*SPOILER_BODY_SEL)
+                    .select(&SPOILER_BODY_SEL)
                     .next()
                     .map(element_text_multiline)
                     .unwrap_or_default();
@@ -1221,7 +1221,7 @@ fn visit_description_link(
 
 /// Rich release-description blocks from the first post, in document order.
 fn parse_rutracker_description_blocks(doc: &Html, origin: &str) -> Vec<DescriptionBlock> {
-    let Some(post) = doc.select(&*POST_BODY_SEL).next() else {
+    let Some(post) = doc.select(&POST_BODY_SEL).next() else {
         return Vec::new();
     };
     let mut builder = DescriptionBuilder {
@@ -1539,9 +1539,9 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
 fn parse_rutracker_ftree_files(doc: &Html) -> Vec<TorrentDetailFile> {
     const MAX_FTREE_FILES: usize = 500;
     let mut files = Vec::with_capacity(32);
-    for row in doc.select(&*FTREE_FILE_SEL) {
+    for row in doc.select(&FTREE_FILE_SEL) {
         let name = row
-            .select(&*FTREE_NAME_SEL)
+            .select(&FTREE_NAME_SEL)
             .next()
             .map(element_text)
             .unwrap_or_default();
@@ -1549,7 +1549,7 @@ fn parse_rutracker_ftree_files(doc: &Html) -> Vec<TorrentDetailFile> {
             continue;
         }
         let size = row
-            .select(&*FTREE_SIZE_SEL)
+            .select(&FTREE_SIZE_SEL)
             .next()
             .map(element_text)
             .filter(|size| looks_like_file_size(size))
@@ -1759,7 +1759,7 @@ fn is_relative_time_tip(tip: &str) -> bool {
 /// text after the icon svg is the value.
 fn parse_nekobt_meta(doc: &Html) -> NekobtMeta {
     let mut meta = NekobtMeta::default();
-    for span in doc.select(&*NEKO_TOOLTIP_SEL) {
+    for span in doc.select(&NEKO_TOOLTIP_SEL) {
         let tip = span
             .value()
             .attr("data-tip")
@@ -1784,9 +1784,9 @@ fn parse_nekobt_meta(doc: &Html) -> NekobtMeta {
     meta
 }
 
-/// Sidebar cover: `a[href^="/media/"] img` (AniList CDN).
+/// Sidebar cover: `a[href^="/media/"] img` (`AniList` CDN).
 fn parse_nekobt_cover(doc: &Html, origin: &str) -> Option<String> {
-    doc.select(&*NEKO_COVER_SEL)
+    doc.select(&NEKO_COVER_SEL)
         .next()
         .and_then(|image| image.value().attr("src"))
         .and_then(|src| {
@@ -1801,10 +1801,10 @@ fn parse_nekobt_cover(doc: &Html, origin: &str) -> Option<String> {
 fn parse_nekobt_files(doc: &Html) -> Vec<TorrentDetailFile> {
     const MAX_NEKO_FILES: usize = 500;
     let mut files = Vec::with_capacity(32);
-    for row in doc.select(&*NEKO_FILE_ROW_SEL) {
+    for row in doc.select(&NEKO_FILE_ROW_SEL) {
         let spans: Vec<String> = row
-            .select(&*SPAN_SEL)
-            .filter(|span| span.select(&*SPAN_SEL).next().is_none())
+            .select(&SPAN_SEL)
+            .filter(|span| span.select(&SPAN_SEL).next().is_none())
             .map(element_text)
             .filter(|part| !part.is_empty())
             .collect();
@@ -1843,12 +1843,13 @@ fn parse_nekobt_torrent_url(doc: &Html, origin: &str) -> String {
 
 /// Series title from the sidebar card (`h2`).
 fn parse_nekobt_series(doc: &Html) -> String {
-    doc.select(&*NEKO_SERIES_SEL)
+    doc.select(&NEKO_SERIES_SEL)
         .next()
         .map(element_text)
         .unwrap_or_default()
 }
 
+#[must_use]
 pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDetails {
     let origin = detail_origin_for_url(source, url)
         .or_else(|| detail_origin(source))
@@ -2045,7 +2046,7 @@ pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> Torrent
         (size, uploaded_at, seeders, leechers, downloads, info_hash)
     };
     if source == "nekobt" && description.is_empty() && !neko_series.is_empty() {
-        description = neko_series.clone();
+        description = neko_series;
     }
     let files = if source == "rutracker" {
         Vec::new()
@@ -2079,7 +2080,7 @@ pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> Torrent
     let author = if source == "rutracker" {
         parse_rutracker_author(&doc)
     } else if source == "nekobt" {
-        neko_meta.uploader.clone()
+        neko_meta.uploader
     } else {
         String::new()
     };

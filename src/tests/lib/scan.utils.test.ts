@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { folderTreesFromScan, fingerprint } from "@/lib/core/scan.utils";
+import { folderTreesFromScan, fingerprint } from "@/lib/core/watchers/scan.utils";
 import type { FolderScanResult } from "@/types/core/fs";
 
 function result(path: string, files: string[]): FolderScanResult {

@@ -4,7 +4,7 @@ import {
   findDuplicateByHash,
   normalizeInfoHash,
   parseInfoHashFromMagnet,
-} from "@/lib/core/duplicate.utils";
+} from "@/lib/core/anilist/duplicate.utils";
 import type { TorrentInfo } from "@/types/torrent/torrent";
 
 const HEX = "0123456789abcdef0123456789abcdef01234567";

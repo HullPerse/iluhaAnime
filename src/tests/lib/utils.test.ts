@@ -22,14 +22,14 @@ import {
 } from "@/lib/graphics/color.utils";
 import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
 import { clamp } from "@hullperse/hp_utils/math";
-import { paginate } from "@/lib/core/pagination.utils";
-import { hashStringToUint32, mulberry32 } from "@/lib/core/random.utils";
+import { paginate } from "@/lib/core/collection/pagination.utils";
+import { hashStringToUint32, mulberry32 } from "@/lib/core/text/random.utils";
 import {
   buildReproFrontend,
   isSecretKey,
   redactProxyUrl,
   sanitizeReproValue,
-} from "@/lib/core/repro.utils";
+} from "@/lib/core/system/repro.utils";
 import {
   andThen,
   attemptResult,
@@ -39,7 +39,7 @@ import {
   ok,
   unwrapOr,
 } from "@hullperse/hp_utils/result";
-import { formatClock, formatElapsed, formatETA } from "@/lib/core/time.utils";
+import { formatClock, formatElapsed, formatETA } from "@/lib/core/text/time.utils";
 
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke } = await import("@/tests/mocks");

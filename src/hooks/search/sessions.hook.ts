@@ -1,6 +1,6 @@
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { unwrapOr, withTimeout } from "@hullperse/hp_utils/result";
 import { settingsAtoms } from "@/store/settings.store";

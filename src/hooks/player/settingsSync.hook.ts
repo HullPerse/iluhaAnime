@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { SETTINGS_FLUSH_MS, VOLUME_IPC_MS } from "@/config/player/playbackTiming.config";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
-import { ignore } from "@/lib/core/promise.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { Throttler } from "@hullperse/hp_utils/throttle";
 import { translate } from "@/lib/locale/i18n.utils";
 import {

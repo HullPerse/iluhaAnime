@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { formatClock } from "@/lib/core/time.utils";
+import { formatClock } from "@/lib/core/text/time.utils";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import type { CardArt } from "@/types/core/cardCache";
 import type { PlaylistEntry } from "@/types/player/playback";

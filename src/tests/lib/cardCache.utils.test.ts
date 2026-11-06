@@ -19,7 +19,7 @@ import {
   resetCardCache,
   scheduleCardPrefetch,
   scheduleNeighborPrefetch,
-} from "@/lib/core/cardCache.utils";
+} from "@/lib/core/player/cardCache.utils";
 
 beforeEach(() => {
   resetCardCache();

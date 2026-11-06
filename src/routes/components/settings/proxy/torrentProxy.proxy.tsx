@@ -6,10 +6,10 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentActiveProxy } from "@/hooks/torrent/queries.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { isValidProxyUrlFor, type ProxyScheme } from "@/lib/core/proxy.utils";
-import { showError } from "@/lib/core/notification.utils";
+import { isValidProxyUrlFor, type ProxyScheme } from "@/lib/core/system/proxy.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { toSessionConfig } from "@/lib/core/session.utils";
+import { toSessionConfig } from "@/lib/core/player/session.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import { ProxyField } from "@/routes/components/settings/proxy/proxyField.settings";
@@ -73,7 +73,7 @@ export function TorrentProxySettings() {
           <Button
             className="h-6 px-2 text-xs"
             onClick={() => {
-              void torrentApi.restartApp();
+              torrentApi.restartApp().catch(() => undefined);
             }}
           >
             {t("settings.torrent.session.restart.now")}

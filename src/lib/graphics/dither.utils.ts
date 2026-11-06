@@ -1,4 +1,4 @@
-import { keysOf } from "@/lib/core/keysOf.utils";
+import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import {
   DITHER_DECODE_CACHE_CAPACITY,
   DITHER_DEFAULTS,

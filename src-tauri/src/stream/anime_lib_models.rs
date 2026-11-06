@@ -1,13 +1,13 @@
-//! AnimeLib domain models.
+//! `AnimeLib` domain models.
 //!
-//! Normalized types that describe an AnimeLib title, its episodes, and the
+//! Normalized types that describe an `AnimeLib` title, its episodes, and the
 //! playback variants available for an episode. These are source-specific
 //! concepts normalized into the streaming domain layer.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-/// A normalized AnimeLib anime / title.
+/// A normalized `AnimeLib` anime / title.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnimeLibAnime {
@@ -39,7 +39,7 @@ pub struct AnimeLibAnime {
     pub slug_url: String,
 }
 
-/// One page of the AnimeLib catalog.
+/// One page of the `AnimeLib` catalog.
 ///
 /// `last_page` and `total` are what the API's `meta` reports. Both are
 /// optional because the site does not document its pagination envelope; when
@@ -87,7 +87,7 @@ pub struct AnimeLibSearchFilters {
     pub adult: bool,
 }
 
-/// One selectable value of the AnimeLib catalog filters.
+/// One selectable value of the `AnimeLib` catalog filters.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnimeLibFilterOption {
@@ -95,7 +95,7 @@ pub struct AnimeLibFilterOption {
     pub label: String,
 }
 
-/// A genre in the AnimeLib catalog; `adult` genres stay hidden until NSFW is
+/// A genre in the `AnimeLib` catalog; `adult` genres stay hidden until NSFW is
 /// enabled.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -105,8 +105,8 @@ pub struct AnimeLibGenreOption {
     pub adult: bool,
 }
 
-/// The filter options the AnimeLib filters modal offers, filtered to the
-/// AnimeLib site (`site_id` 5) instead of the manga sites the same API serves.
+/// The filter options the `AnimeLib` filters modal offers, filtered to the
+/// `AnimeLib` site (`site_id` 5) instead of the manga sites the same API serves.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnimeLibConstants {
@@ -116,7 +116,7 @@ pub struct AnimeLibConstants {
     pub genres: Vec<AnimeLibGenreOption>,
 }
 
-/// A normalized AnimeLib episode.
+/// A normalized `AnimeLib` episode.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnimeLibEpisode {
@@ -209,19 +209,19 @@ pub enum StreamResolutionError {
 impl std::fmt::Display for StreamResolutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            StreamResolutionError::NoVariants { message } => write!(f, "no variants: {message}"),
-            StreamResolutionError::ExpiredUrl { message } => write!(f, "expired url: {message}"),
-            StreamResolutionError::NetworkError { message } => {
+            Self::NoVariants { message } => write!(f, "no variants: {message}"),
+            Self::ExpiredUrl { message } => write!(f, "expired url: {message}"),
+            Self::NetworkError { message } => {
                 write!(f, "network error: {message}")
             }
-            StreamResolutionError::UnsupportedFormat { message } => {
+            Self::UnsupportedFormat { message } => {
                 write!(f, "unsupported format: {message}")
             }
-            StreamResolutionError::GeoBlocked { message } => write!(f, "geo blocked: {message}"),
-            StreamResolutionError::AuthRequired { message } => {
+            Self::GeoBlocked { message } => write!(f, "geo blocked: {message}"),
+            Self::AuthRequired { message } => {
                 write!(f, "auth required: {message}")
             }
-            StreamResolutionError::Unknown { message } => write!(f, "unknown error: {message}"),
+            Self::Unknown { message } => write!(f, "unknown error: {message}"),
         }
     }
 }

@@ -9,8 +9,8 @@ import {
   buildIdleActivity,
   buildSearchActivity,
   samePresence,
-} from "@/lib/core/presence.utils";
-import { reportPresenceCommand } from "@/lib/core/presenceCommand.utils";
+} from "@/lib/core/system/presence.utils";
+import { reportPresenceCommand } from "@/lib/core/system/presenceCommand.utils";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 import { presenceAtoms } from "@/store/presence.store";
 import { settingsAtoms } from "@/store/settings.store";

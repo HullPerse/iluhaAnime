@@ -1,4 +1,4 @@
-import { clickRowActionButton, dispatchClick } from "@/lib/core/dispatchHotkeys.utils";
+import { clickRowActionButton, dispatchClick } from "@/lib/core/hotkeys/dispatchHotkeys.utils";
 import { setVimCount } from "@/store/vim.store";
 
 export const rowElement = (target: EventTarget | null): HTMLElement | null => {

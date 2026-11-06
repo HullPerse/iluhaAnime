@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import { useAnilistStatistics } from "@/hooks/anilist/stats.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { buildStatsOverview } from "@/lib/anilist/anilistStats.utils";
-import { formatDistanceToNowOwn } from "@/lib/core/distance.utils";
+import { formatDistanceToNowOwn } from "@/lib/core/search/distance.utils";
 import type { AniListCollection } from "@/types/anilist/anilist";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import type { StatsDrillData } from "@/types/core/overview.stats";

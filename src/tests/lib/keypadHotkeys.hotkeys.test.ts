@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { GAME_KEY_BY_CODE, GAME_KEYPAD_ROWS } from "@/config/settings/keypad.config";
-import { subscribeKeypad } from "@/lib/core/keypadHotkeys.utils";
+import { subscribeKeypad } from "@/lib/core/hotkeys/keypadHotkeys.utils";
 
 function press(
   type: "keydown" | "keyup",

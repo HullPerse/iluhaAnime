@@ -8,7 +8,7 @@ import {
   findHitMatched,
   findHitRanges,
   findSectionTitleKey,
-} from "@/lib/core/find.utils";
+} from "@/lib/core/search/find.utils";
 import type { SettingsFindHit } from "@/types/core/find";
 import type { Locale } from "@/types/core/i18n";
 

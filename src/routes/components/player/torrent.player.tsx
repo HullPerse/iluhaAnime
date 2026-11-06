@@ -8,10 +8,10 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
 import { useTorrentCardResize } from "@/hooks/torrentResize.hook";
 import { isVideoFileName } from "@hullperse/hp_utils/media/parse";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { isCheckingFiles } from "@/lib/torrent/torrentCommon.utils";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentPlayerProps as Props } from "@/types/player/player";
 

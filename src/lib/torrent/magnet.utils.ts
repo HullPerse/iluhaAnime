@@ -1,7 +1,7 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 import { torrentApi } from "@/api/torrent.api";
-import { invokeTyped } from "@/lib/core/invoke.utils";
+import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { inflightFetch } from "@hullperse/hp_utils/lruCache";
 import { attemptResult, err, ok } from "@hullperse/hp_utils/result";

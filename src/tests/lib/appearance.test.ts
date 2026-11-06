@@ -6,7 +6,7 @@ import {
   previewTheme,
   resolveThemeFont,
   themePrePaintPayload,
-} from "@/lib/core/appearance.utils";
+} from "@/lib/core/ui/appearance.utils";
 import { diffTheme, resolveTheme } from "@/lib/graphics/themeResolve.utils";
 import { buildThemeState, THEME_VAR_BINDINGS } from "@/lib/graphics/tokens.utils";
 import { DEFAULT_FONT_FAMILY, toCssFontFamily } from "@/lib/graphics/font.utils";

@@ -1,5 +1,5 @@
 import { tauriTransport } from "@/api/transport.api";
-import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/networkHealth.utils";
+import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/system/networkHealth.utils";
 import type { ApiTransport } from "@/types/core/transport";
 import {
   normalizeAnime,

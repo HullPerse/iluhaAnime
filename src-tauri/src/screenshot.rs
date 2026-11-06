@@ -102,7 +102,7 @@ fn timestamp_millis() -> u128 {
         .unwrap_or_default()
 }
 
-pub(crate) fn default_dir(window: &tauri::WebviewWindow) -> String {
+pub fn default_dir(window: &tauri::WebviewWindow) -> String {
     let resolver = window.app_handle().path();
     resolver
         .picture_dir()
@@ -173,7 +173,7 @@ fn image_size(bytes: &[u8]) -> Result<(u32, u32), String> {
         .map_err(|error| format!("read the capture size: {error}"))
 }
 
-pub(crate) fn sanitize_name(raw: &str) -> Result<String, String> {
+pub fn sanitize_name(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Err("the file name is empty".to_string());
@@ -190,7 +190,7 @@ pub(crate) fn sanitize_name(raw: &str) -> Result<String, String> {
     Ok(cleaned.to_string())
 }
 
-pub(crate) fn resolve_target(dir: &Path, name: &str, extension: &str) -> PathBuf {
+pub fn resolve_target(dir: &Path, name: &str, extension: &str) -> PathBuf {
     let first = dir.join(format!("{name}.{extension}"));
     if !first.exists() {
         return first;
@@ -204,7 +204,7 @@ pub(crate) fn resolve_target(dir: &Path, name: &str, extension: &str) -> PathBuf
     dir.join(format!("{name}_{}.{extension}", timestamp_millis()))
 }
 
-pub(crate) fn capture_temp_path() -> PathBuf {
+pub fn capture_temp_path() -> PathBuf {
     let dir = std::env::temp_dir();
     let stamp = timestamp_millis();
     for _ in 0..COLLISION_LIMIT {

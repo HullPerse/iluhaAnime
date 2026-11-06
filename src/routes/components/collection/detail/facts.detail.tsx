@@ -1,5 +1,5 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatDate, statusColorOf } from "@/lib/core/status.utils";
+import { formatDate, statusColorOf } from "@/lib/core/anilist/status.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { CollectionItem } from "@/types/anilist/collection";
 

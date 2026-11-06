@@ -150,6 +150,28 @@ describe("settings signal AnimeLib connection", () => {
   });
 });
 
+describe("settings signal open dictionaries", () => {
+  it("keeps source proxies, keybinds and player heights through a persisted reload", () => {
+    const searchProxyUrls = {
+      rutracker: "socks5://127.0.0.1:10808",
+      nyaa: "http://127.0.0.1:7890",
+    };
+    const keybindOverrides = { "tree.move.down": "KeyX", "tree.move.up": null };
+    const playerFolderHeights = { "c:/anime": 320 };
+    const playerTorrentHeights = { abc: 240 };
+    const { store, backing } = setup();
+    store.patch({ searchProxyUrls, keybindOverrides, playerFolderHeights, playerTorrentHeights });
+    store.persistor.flush();
+
+    const reloaded = createSettingsSignalStore({ getStorage: () => memoryStorage(backing) });
+
+    expect(reloaded.atoms.searchProxyUrls.get()).toEqual(searchProxyUrls);
+    expect(reloaded.atoms.keybindOverrides.get()).toEqual(keybindOverrides);
+    expect(reloaded.atoms.playerFolderHeights.get()).toEqual(playerFolderHeights);
+    expect(reloaded.atoms.playerTorrentHeights.get()).toEqual(playerTorrentHeights);
+  });
+});
+
 describe("settings signal actions", () => {
   it("hides folders once, case-insensitively, and unhides them", () => {
     const { store } = setup();
@@ -195,5 +217,34 @@ describe("settings signal actions", () => {
     expect(document.documentElement.dataset.retroStyle).toBe("soft");
     expect(document.documentElement.dataset.uiDensity).toBe("compact");
     expect(store.atoms.retroStyle.get()).toBe("soft");
+  });
+});
+
+describe("settings signal envelope migrations", () => {
+  it("uses the schema version stored in the envelope", () => {
+    const backing = new Map<string, string>([
+      [
+        "iluha.v1.settings",
+        JSON.stringify({
+          f: 1,
+          store: "settings",
+          sv: 42,
+          ts: 1,
+          data: {
+            language: "en",
+            visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
+            defaultSearchSource: "erai-raws",
+          },
+        }),
+      ],
+    ]);
+    const { store } = setup(backing);
+    expect(store.atoms.visibleSources.get()).toEqual([
+      "rutracker",
+      "nekobt",
+      "erai-raws",
+      "nyaa",
+    ]);
+    expect(store.atoms.defaultSearchSource.get()).toBe("rutracker");
   });
 });

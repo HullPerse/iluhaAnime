@@ -3,7 +3,7 @@ import { memo } from "react";
 import { useI18n } from "@/hooks/i18n.hook";
 import { entryListTime, fuzzyDateToTime } from "@/lib/anilist/entries.utils";
 import type { EntryListInfo } from "@/types/anilist/entries";
-import { formatDistanceToNowOwn } from "@/lib/core/distance.utils";
+import { formatDistanceToNowOwn } from "@/lib/core/search/distance.utils";
 
 function CardListDate({
   entry,

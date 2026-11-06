@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { movePlaylistFocus } from "@/lib/core/playlistFocus.utils";
+import { movePlaylistFocus } from "@/lib/core/player/playlistFocus.utils";
 
 describe("player/playlist focus", () => {
   it("starts the ring on the playing row", () => {

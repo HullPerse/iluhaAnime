@@ -1,7 +1,7 @@
 import { PLAYER_PROFILES } from "@/config/settings/profiles.config";
 import { fileNameFromPath, isTrackFileName } from "@hullperse/hp_utils/media/parse";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/invoke.utils";
+import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
 import { PlaylistEntryListSchema, VideoCardInfoSchema } from "@/api/player.schema";
 import { clamp } from "@hullperse/hp_utils/math";
 import { joinMediaPath } from "@/lib/player/media.utils";
@@ -222,12 +222,6 @@ export async function takePendingOpen(): Promise<PlayerOpenRequest | null> {
 
 export async function initPlayer(initialOptions: Record<string, unknown>): Promise<string> {
   return invokeTyped<string>("player_init", { initialOptions });
-}
-
-export async function restartPlayer(
-  initialOptions: Record<string, unknown>
-): Promise<string> {
-  return invokeTyped<string>("player_restart", { initialOptions });
 }
 
 export async function destroyPlayer(): Promise<void> {

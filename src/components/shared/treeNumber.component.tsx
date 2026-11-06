@@ -1,4 +1,4 @@
-import { relativeRowNumber } from "@/lib/core/treeArrow.utils";
+import { relativeRowNumber } from "@/lib/core/ui/treeArrow.utils";
 import type { TreeRow } from "@/types/core/treeArrow";
 
 function TreeRowNumber({

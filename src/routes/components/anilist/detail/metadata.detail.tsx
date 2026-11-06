@@ -10,7 +10,7 @@ import {
   airingCountdownSecs,
   formatAiringCountdown,
   formatAiringLocal,
-} from "@/lib/core/airing.utils";
+} from "@/lib/core/anilist/airing.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { createInterval } from "@hullperse/hp_utils/interval";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
@@ -27,6 +27,9 @@ function AniListMetadata({
   const [now, setNow] = useState<number>(() => Date.now());
   const bestRank =
     anime.rankings.length > 0 ? anime.rankings.reduce((a, b) => (a.rank < b.rank ? a : b)) : null;
+  const openSeason = () => {
+    if (anime.season) onSeason?.(anime.season, anime.season_year);
+  };
   const coverSrc = useRemoteImage(anime.cover_url);
   const airingAt = anime.next_airing_at;
   const airingLocal = formatAiringLocal(airingAt, locale);
@@ -81,8 +84,8 @@ function AniListMetadata({
             role="button"
             tabIndex={0}
             className="windows95-text cursor-pointer underline"
-            onClick={() => onSeason?.(anime.season!, anime.season_year)}
-            onKeyDown={enterOrSpace(() => onSeason?.(anime.season!, anime.season_year))}
+            onClick={openSeason}
+            onKeyDown={enterOrSpace(openSeason)}
           >
             {t(toLocaleKey(seasonLabels[anime.season] ?? anime.season))} {anime.season_year}
           </div>

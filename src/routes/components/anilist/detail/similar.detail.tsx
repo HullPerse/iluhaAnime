@@ -8,7 +8,7 @@ import { ANILIST_SIMILAR_LIMIT, ANILIST_SIMILAR_SCROLL_STEP } from "@/config/ani
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { itemMeta, strengthPercent } from "@/lib/anilist/anilistSimilar.utils";
-import { queryKeys } from "@/lib/core/keys.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { AniRecommendation, AniRelation } from "@/types/anilist/anilist";

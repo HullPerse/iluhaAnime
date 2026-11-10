@@ -28,6 +28,8 @@ pub struct SerializedTorrent {
     torrent_bytes: Bytes,
     trackers: HashSet<String>,
     output_folder: PathBuf,
+    #[serde(default)]
+    root_name: Option<String>,
     only_files: Option<Vec<usize>>,
     is_paused: bool,
 }
@@ -59,6 +61,7 @@ impl SerializedTorrent {
             ),
             only_files: self.only_files,
             overwrite: true,
+            root_name: self.root_name,
             ..Default::default()
         };
 

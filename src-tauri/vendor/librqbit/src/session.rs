@@ -265,6 +265,11 @@ pub struct AddTorrentOptions {
     /// already on disk.
     #[serde(default)]
     pub prefer_part_files: bool,
+    /// Replace the torrent's root folder name without changing its metainfo.
+    /// The app sets it after renaming a torrent's folder on disk, and the
+    /// session persistence stores it so a restore keeps using the new name.
+    #[serde(default)]
+    pub root_name: Option<String>,
     /// Only list the files in the torrent without starting it.
     #[serde(default)]
     pub list_only: bool,
@@ -1250,7 +1255,7 @@ impl Session {
 
         let mut seen_peers = Vec::new();
 
-        let (metadata, peer_rx) = {
+        let (mut metadata, peer_rx) = {
             match metadata {
                 Some(metadata) => {
                     let mut peer_rx = None;
@@ -1281,6 +1286,10 @@ impl Session {
                 }
             }
         };
+
+        if let Some(root_name) = opts.root_name.as_deref() {
+            metadata.rename_root(root_name)?;
+        }
 
         trace!("Torrent metadata: {:#?}", &metadata.info.info());
 
@@ -1360,6 +1369,7 @@ impl Session {
                     peer_read_write_timeout: peer_opts.read_write_timeout,
                     allow_overwrite: opts.overwrite,
                     prefer_part_files: opts.prefer_part_files,
+                    root_name: opts.root_name.clone(),
                     output_folder,
                     ratelimits: opts.ratelimits,
                     initial_peers: opts.initial_peers.clone().unwrap_or_default(),

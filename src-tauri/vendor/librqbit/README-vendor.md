@@ -1,6 +1,6 @@
 # Vendored librqbit 9.0.1
 
-Copy of crates.io `librqbit` 9.0.1 with five patched files:
+Copy of crates.io `librqbit` 9.0.1 with six patched areas:
 
 - `src/storage/filesystem/fs.rs`: payload files are written as `<name>.part` and
   renamed to the final name when they finish. `prefer_part_files` parks a fresh
@@ -17,13 +17,19 @@ Copy of crates.io `librqbit` 9.0.1 with five patched files:
   `ManagedTorrentOptions` carry the `prefer_part_files` flag. It is not
   persisted: a restored session rebuilds its options from the serialized
   torrent, so a restored torrent opens the files that are on disk.
+- `src/session.rs`, `src/torrent_state/mod.rs` and
+  `src/session_persistence/`: `AddTorrentOptions.root_name` renames the common
+  root folder in `file_infos` without touching the metainfo or info hash. The
+  app uses it after renaming a torrent folder on disk. Unlike
+  `prefer_part_files`, `root_name` is persisted, so a restored session keeps
+  resolving the payload under the renamed folder.
 
 `examples/` is a verbatim copy of the crates.io package. `webui/` is not
 vendored: the app never enables the `webui` feature and `build.rs` only touches
 that directory when the feature is on. The crate is Apache-2.0; `LICENSE` is
 the upstream license file.
 
-Updating: copy the new crates.io release over this directory, reapply the five
+Updating: copy the new crates.io release over this directory, reapply the
 patches listed above, then run
 
 ```

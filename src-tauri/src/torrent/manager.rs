@@ -8,7 +8,7 @@
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -30,11 +30,11 @@ use super::disk;
 use super::geoip::country_code_for_addr;
 use super::helpers::{
     build_magnet, canonical_or_raw_tracker, ensure_minimum_free_space, file_at_offset,
-    final_file_path, ignored_payload_paths, is_info_hash, is_safe_relative_path, part_file_path,
-    plan_sequential, redact_proxy_url, resolve_payload_path, share_ratio, to_rqbit_limits,
-    torrent_proxy_url, validate_session_config, validate_tracker_url, with_fallback_trackers,
-    with_fallback_trackers_bytes, with_trackers_bytes, PayloadFile, SequentialPlan,
-    FALLBACK_TRACKERS,
+    final_file_path, ignored_payload_paths, is_info_hash, is_safe_relative_path,
+    is_valid_folder_name, part_file_path, plan_sequential, redact_proxy_url, resolve_payload_path,
+    share_ratio, to_rqbit_limits, torrent_proxy_url, validate_session_config, validate_tracker_url,
+    with_fallback_trackers, with_fallback_trackers_bytes, with_trackers_bytes, PayloadFile,
+    SequentialPlan, FALLBACK_TRACKERS,
 };
 use super::types::{
     CreatedTorrent, DhtStatus, FileOrder, FilePriority, PartialLeftover, PartialLeftoverFile,
@@ -73,6 +73,57 @@ struct RepairRequest {
 /// many unfinished files costs one `read_dir` instead of one `metadata` per
 /// file. Nested payloads are looked up in their own directory; `metadata`
 /// still runs before touching a file, because a directory entry can be stale.
+/// The common root folder of a torrent, if every payload lives under one.
+/// Single-file and flat torrents have no folder to rename.
+fn torrent_root_name(handle: &librqbit::ManagedTorrent) -> Option<String> {
+    handle
+        .with_metadata(|metadata| {
+            let mut root: Option<String> = None;
+            for file in &metadata.file_infos {
+                let mut parts = file.relative_filename.components();
+                let Some(Component::Normal(first)) = parts.next() else {
+                    return None;
+                };
+                parts.next()?;
+                let first = first.to_str()?;
+                if !is_valid_folder_name(first) {
+                    return None;
+                }
+                match &root {
+                    Some(root) if root != first => return None,
+                    None => root = Some(first.to_string()),
+                    _ => {}
+                }
+            }
+            root
+        })
+        .ok()
+        .flatten()
+}
+
+fn rename_torrent_folder(from: &Path, to: &Path) -> std::io::Result<()> {
+    if from == to {
+        return Ok(());
+    }
+    // Windows treats a case-only rename as a collision. Move through a
+    // sibling temp name so `Show` can become `show`.
+    if crate::watcher::normalize_key(from) == crate::watcher::normalize_key(to) {
+        let name = to
+            .file_name()
+            .map_or_else(|| "torrent".into(), |name| name.to_string_lossy());
+        let temp = to.with_file_name(format!(".{name}.rename-{}.tmp", std::process::id()));
+        std::fs::rename(from, &temp)?;
+        return match std::fs::rename(&temp, to) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                let _ = std::fs::rename(&temp, from);
+                Err(error)
+            }
+        };
+    }
+    std::fs::rename(from, to)
+}
+
 fn dir_has_entry(cache: &mut HashMap<PathBuf, HashSet<std::ffi::OsString>>, path: &Path) -> bool {
     let Some(parent) = path
         .parent()
@@ -157,6 +208,8 @@ pub struct TorrentManager {
     pub magnet_links_path: PathBuf,
     pub aliases: DashMap<String, String>,
     pub aliases_path: PathBuf,
+    pub root_names: DashMap<String, String>,
+    pub root_names_path: PathBuf,
     pub torrent_sources: DashMap<String, TorrentOrigin>,
     pub torrent_sources_path: PathBuf,
     pub torrent_limits: DashMap<String, TorrentLimits>,
@@ -250,6 +303,15 @@ impl TorrentManager {
             .unwrap_or_default()
             .into_iter()
             .filter(|(key, value)| is_info_hash(key) && !value.trim().is_empty())
+            .collect();
+
+        let root_names_path = app_data_dir.join("torrent_root_names.json");
+        let root_names: HashMap<String, String> = std::fs::read_to_string(&root_names_path)
+            .ok()
+            .and_then(|json| serde_json::from_str::<HashMap<String, String>>(&json).ok())
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(key, value)| is_info_hash(key) && is_valid_folder_name(value))
             .collect();
 
         let torrent_limits_path = app_data_dir.join("torrent_limits.json");
@@ -382,6 +444,8 @@ impl TorrentManager {
             magnet_links_path,
             aliases: aliases.into_iter().collect(),
             aliases_path,
+            root_names: root_names.into_iter().collect(),
+            root_names_path,
             torrent_sources: torrent_sources.into_iter().collect(),
             torrent_sources_path,
             torrent_limits: torrent_limits.into_iter().collect(),
@@ -552,6 +616,17 @@ impl TorrentManager {
         }
     }
 
+    fn save_root_names(&self) {
+        let map: HashMap<String, String> = self
+            .root_names
+            .iter()
+            .map(|r| (r.key().clone(), r.value().clone()))
+            .collect();
+        if let Ok(json) = serde_json::to_string(&map) {
+            let _ = std::fs::write(&self.root_names_path, &json);
+        }
+    }
+
     fn save_torrent_sources(&self) {
         let map: HashMap<String, TorrentOrigin> = self
             .torrent_sources
@@ -683,6 +758,7 @@ impl TorrentManager {
             })
             .filter(|files: &Vec<usize>| !files.is_empty());
         let was_paused = self.torrent_is_paused(id);
+        let root_name = self.root_names.get(&key).map(|entry| entry.clone());
 
         if limits == TorrentLimits::default() {
             self.torrent_limits.remove(&key);
@@ -719,6 +795,7 @@ impl TorrentManager {
                 false,
                 was_paused,
                 false,
+                root_name.clone(),
             )
             .await
             .map_err(|error| format!("unable to reconfigure torrent: {error:#}"));
@@ -744,6 +821,7 @@ impl TorrentManager {
                     false,
                     was_paused,
                     false,
+                    root_name,
                 )
                 .await
             {
@@ -930,6 +1008,7 @@ impl TorrentManager {
             sequential,
             false,
             true,
+            None,
         )
         .await
     }
@@ -955,6 +1034,7 @@ impl TorrentManager {
             sequential,
             false,
             true,
+            None,
         )
         .await
     }
@@ -1013,6 +1093,7 @@ impl TorrentManager {
                 false,
                 false,
                 false,
+                None,
             )
             .await?;
 
@@ -1054,6 +1135,7 @@ impl TorrentManager {
         sequential: bool,
         paused: bool,
         prefer_part_files: bool,
+        root_name: Option<String>,
     ) -> Result<usize> {
         ensure_minimum_free_space(Path::new(&save_dir))?;
 
@@ -1087,6 +1169,7 @@ impl TorrentManager {
             only_files: only_files.clone(),
             preferred_id,
             ratelimits,
+            root_name: root_name.clone(),
             paused: paused || fresh_add,
             #[cfg(test)]
             initial_peers: self.test_peer_hints(),
@@ -1303,6 +1386,7 @@ impl TorrentManager {
             .map(|r| r.clone())
             .unwrap_or_else(|| magnet.clone());
         let cached_files = self.files_cache.get(&id).map(|r| r.clone());
+        let root_name = self.root_names.get(&info_hash).map(|entry| entry.clone());
         let _rewriting = self.rewrite_guard();
         self.remove_torrent(id, false, None)
             .await
@@ -1323,6 +1407,7 @@ impl TorrentManager {
                 false,
                 was_paused,
                 prefer_part_files,
+                root_name.clone(),
             )
             .await;
         self.clear_rewrite_ghost(&info_hash);
@@ -1346,6 +1431,7 @@ impl TorrentManager {
                         false,
                         was_paused,
                         prefer_part_files,
+                        root_name,
                     )
                     .await;
                 self.save_torrent_state(&info_hash, limits, sequential, priorities, order);
@@ -2133,13 +2219,14 @@ impl TorrentManager {
             self.file_priorities.remove(&key);
             self.download_order.remove(&key);
             self.torrent_limits.remove(&key);
-            self.aliases.remove(&key);
             self.file_snapshots.remove(&key);
             self.file_watch_cache.remove(&key);
             self.part_finalize.remove(&key);
             self.repair_requests.remove(&key);
             self.last_repair.remove(&key);
             if !rewriting {
+                self.aliases.remove(&key);
+                self.root_names.remove(&key);
                 self.rewrite_ghosts.remove(&key);
             }
         }
@@ -2161,6 +2248,7 @@ impl TorrentManager {
             persisted.save_magnet_links();
             persisted.save_torrent_limits();
             persisted.save_aliases();
+            persisted.save_root_names();
             persisted.save_torrent_sources();
             persisted.save_preferences();
         });
@@ -2203,8 +2291,35 @@ impl TorrentManager {
         Ok(self.torrent_sources.get(&key).map(|r| r.value().clone()))
     }
 
-    pub fn set_torrent_alias(
-        &self,
+    fn store_alias(&self, key: &str, alias: Option<String>) {
+        match alias {
+            Some(name) => {
+                self.aliases.insert(key.to_string(), name);
+            }
+            None => {
+                self.aliases.remove(key);
+            }
+        }
+        self.save_aliases();
+    }
+
+    fn store_root_name(&self, key: &str, root_name: Option<String>) {
+        match root_name {
+            Some(name) => {
+                self.root_names.insert(key.to_string(), name);
+            }
+            None => {
+                self.root_names.remove(key);
+            }
+        }
+        self.save_root_names();
+    }
+
+    /// Rename the torrent's common root folder and keep the display alias in
+    /// sync. The engine has already opened storage by the old path, so the
+    /// torrent is paused, detached, moved, and re-added with a root override.
+    pub async fn rename_torrent(
+        self: &Arc<Self>,
         id: usize,
         info_hash: Option<&str>,
         alias: Option<String>,
@@ -2214,16 +2329,246 @@ impl TorrentManager {
             .torrent_info_hash(id)
             .or_else(|| info_hash.map(str::to_string))
             .ok_or_else(|| "torrent not found".to_string())?;
-        match alias.map(|name| name.trim().chars().take(200).collect::<String>()) {
-            Some(name) if !name.is_empty() => {
-                self.aliases.insert(key, name);
+        let alias = alias.map(|name| name.trim().chars().take(200).collect::<String>());
+        let alias = alias.filter(|name| !name.is_empty());
+        let Some(handle) = self.torrent_handle(id) else {
+            return Err("torrent not found".to_string());
+        };
+        let Some(current_root) = torrent_root_name(&handle) else {
+            // Single-file and flat torrents have no folder of their own.
+            self.store_alias(&key, alias);
+            self.store_root_name(&key, None);
+            return Ok(());
+        };
+        let native_root = handle.name().filter(|name| is_valid_folder_name(name));
+        let target_root = if let Some(name) = alias.as_deref() {
+            if !is_valid_folder_name(name) {
+                return Err(
+                    "torrent name cannot be used as a folder name; remove slashes and reserved characters"
+                        .to_string(),
+                );
             }
-            _ => {
-                self.aliases.remove(&key);
+            name.to_string()
+        } else {
+            let Some(name) = native_root.as_ref() else {
+                self.store_alias(&key, None);
+                self.store_root_name(&key, None);
+                return Ok(());
+            };
+            name.clone()
+        };
+        let root_override = match native_root.as_deref() {
+            Some(native) if native == target_root => None,
+            _ => Some(target_root.clone()),
+        };
+
+        if current_root == target_root {
+            self.store_alias(&key, alias);
+            self.store_root_name(&key, root_override);
+            return Ok(());
+        }
+
+        let save_dir = self
+            .save_dirs
+            .get(&id)
+            .map(|entry| entry.clone())
+            .filter(|dir| !dir.is_empty())
+            .ok_or_else(|| "torrent save directory is unavailable".to_string())?;
+        let source = self
+            .torrent_source(id)
+            .ok_or_else(|| "torrent metainfo is unavailable, try again".to_string())?;
+        let limits = self.get_torrent_limits(id);
+        let sequential = self.sequential_torrents.contains(&key);
+        let priorities = self.file_priorities.get(&key).map(|entry| entry.clone());
+        let order = self.download_order.get(&key).map(|entry| entry.clone());
+        let was_paused = self.torrent_is_paused(id);
+        let magnet = self.magnet_links.get(&id).map(|entry| entry.clone());
+        let selected_files = self
+            .get_running_torrent_files(id)
+            .ok()
+            .map(|files| {
+                files
+                    .into_iter()
+                    .filter(|file| file.selected)
+                    .map(|file| file.index)
+                    .collect::<Vec<_>>()
+            })
+            .filter(|files: &Vec<usize>| !files.is_empty());
+        let cached_files = self.files_cache.get(&id).map(|entry| entry.clone());
+        let previous_root = self.root_names.get(&key).map(|entry| entry.clone());
+
+        let old_path = Path::new(&save_dir).join(&current_root);
+        let new_path = Path::new(&save_dir).join(&target_root);
+        if new_path.exists()
+            && crate::watcher::normalize_key(&old_path) != crate::watcher::normalize_key(&new_path)
+        {
+            return Err("a folder with this name already exists".to_string());
+        }
+        if old_path.exists() && !old_path.is_dir() {
+            return Err("the torrent root path is not a folder".to_string());
+        }
+
+        let lock = self
+            .limit_locks
+            .entry(id)
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+            .clone();
+        let _guard = lock.lock().await;
+
+        if !was_paused {
+            if let Err(error) = self.session.pause(&handle).await {
+                return Err(format!("unable to pause the torrent: {error:#}"));
             }
         }
-        self.save_aliases();
-        Ok(())
+
+        let _rewriting = self.rewrite_guard();
+        if let Err(error) = self.session.delete(id.into(), false).await {
+            if !was_paused {
+                if let Some(handle) = self.torrent_handle(id) {
+                    let _ = self.session.unpause(&handle).await;
+                }
+            }
+            return Err(format!("unable to detach the torrent: {error:#}"));
+        }
+        self.cleanup_detached_torrent(id, &key);
+
+        let moved = if old_path.exists() {
+            if let Err(error) = rename_torrent_folder(&old_path, &new_path) {
+                let restore = self
+                    .readd_renamed_torrent(
+                        id,
+                        &source,
+                        &save_dir,
+                        selected_files.as_deref(),
+                        magnet.as_deref(),
+                        limits,
+                        was_paused,
+                        previous_root.clone(),
+                    )
+                    .await;
+                if let Some(files) = &cached_files {
+                    self.files_cache.insert(id, files.clone());
+                }
+                return match restore {
+                    Ok(()) => Err(format!(
+                        "unable to rename the torrent folder, restored it as it was: {error}"
+                    )),
+                    Err(restore_error) => Err(format!(
+                        "unable to rename the torrent folder ({error}) and restoring it failed too: {restore_error}"
+                    )),
+                };
+            }
+            true
+        } else {
+            false
+        };
+
+        let added = self
+            .readd_renamed_torrent(
+                id,
+                &source,
+                &save_dir,
+                selected_files.as_deref(),
+                magnet.as_deref(),
+                limits,
+                was_paused,
+                root_override.clone(),
+            )
+            .await;
+
+        match added {
+            Ok(()) => {
+                if let Some(files) = cached_files {
+                    self.files_cache.insert(id, files);
+                }
+                self.save_torrent_state(&key, limits, sequential, priorities, order);
+                self.snapshot_torrent_files(id);
+                self.store_alias(&key, alias);
+                self.store_root_name(&key, root_override);
+                self.save_save_dirs();
+                self.save_magnet_links();
+                Ok(())
+            }
+            Err(error) => {
+                if moved {
+                    let _ = rename_torrent_folder(&new_path, &old_path);
+                }
+                let restore = self
+                    .readd_renamed_torrent(
+                        id,
+                        &source,
+                        &save_dir,
+                        selected_files.as_deref(),
+                        magnet.as_deref(),
+                        limits,
+                        was_paused,
+                        previous_root,
+                    )
+                    .await;
+                if let Some(files) = &cached_files {
+                    self.files_cache.insert(id, files.clone());
+                }
+                match restore {
+                    Ok(()) => Err(format!(
+                        "unable to rename the torrent, restored it as it was: {error}"
+                    )),
+                    Err(restore_error) => Err(format!(
+                        "unable to rename the torrent ({error}) and restoring it failed too: {restore_error}"
+                    )),
+                }
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn readd_renamed_torrent(
+        self: &Arc<Self>,
+        id: usize,
+        source: &TorrentSource,
+        save_dir: &str,
+        selected_files: Option<&[usize]>,
+        magnet: Option<&str>,
+        limits: TorrentLimits,
+        was_paused: bool,
+        root_name: Option<String>,
+    ) -> Result<(), String> {
+        self.add_torrent_inner(
+            source.to_add_torrent(true),
+            save_dir.to_string(),
+            selected_files.map(<[usize]>::to_vec),
+            None,
+            Some(id),
+            magnet.map(str::to_string),
+            to_rqbit_limits(limits),
+            true,
+            false,
+            was_paused,
+            false,
+            root_name,
+        )
+        .await
+        .map(|_| ())
+        .map_err(|error| format!("{error:#}"))
+    }
+
+    fn cleanup_detached_torrent(&self, id: usize, key: &str) {
+        self.stop_priority_stream(id);
+        self.pending_selections.remove(&id);
+        self.pending_starts.remove(&id);
+        self.peer_counts.remove(&id);
+        self.missing_files.remove(&id);
+        self.files_cache.remove(&id);
+        self.hidden_files.remove(&id);
+        self.part_twins.remove(&id);
+        self.save_dirs.remove(&id);
+        self.magnet_links.remove(&id);
+        self.file_snapshots.remove(key);
+        self.file_watch_cache.remove(key);
+        self.part_finalize.remove(key);
+        self.repair_requests.remove(key);
+        self.last_repair.remove(key);
+        self.save_save_dirs();
+        self.save_magnet_links();
     }
 
     pub fn export_torrent_file(
@@ -5350,6 +5695,76 @@ mod tests {
             "nothing touched the files, so the resume is a plain unpause"
         );
         assert!(result.check.is_none());
+
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn renaming_a_torrent_moves_its_root_folder_and_paths() {
+        let dir = std::env::temp_dir().join(format!("iluha-rename-root-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let content: Vec<u8> = (0..20 * 1024).map(|i| (i % 251) as u8).collect();
+        let (torrent_bytes, source_dir) = create_test_torrent(
+            "rename-root",
+            &[("Show/one.bin", content.clone()), ("Show/two.bin", content)],
+        );
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+        let save_dir = dir.join("downloads");
+        std::fs::create_dir_all(&save_dir).expect("create save dir");
+        let id = manager
+            .add_torrent_from_bytes(
+                torrent_bytes,
+                save_dir.to_string_lossy().to_string(),
+                None,
+                None,
+                false,
+            )
+            .await
+            .expect("torrent adds");
+        wait_for_download_state(&manager, id).await;
+        manager.pause_torrent(id, None).await.expect("pause");
+        let key = manager.torrent_info_hash(id).expect("info hash");
+        let files = manager.get_running_torrent_files(id).expect("file list");
+        let old_root = files[0]
+            .name
+            .split(['/', '\\'])
+            .next()
+            .expect("root folder")
+            .to_string();
+        let old_path = save_dir.join(&old_root);
+        if !old_path.exists() {
+            std::fs::create_dir_all(&old_path).expect("create old root");
+        }
+        let new_root = "Renamed Show";
+        let new_path = save_dir.join(new_root);
+
+        manager
+            .rename_torrent(id, Some(&key), Some(new_root.to_string()))
+            .await
+            .expect("rename torrent");
+
+        assert!(!old_path.exists(), "the old root folder must be gone");
+        assert!(new_path.is_dir(), "the new root folder must exist");
+        let files = manager
+            .get_running_torrent_files(id)
+            .expect("file list after rename");
+        assert!(
+            files.iter().all(|file| file.name.starts_with(new_root)),
+            "the engine has to resolve payloads under the new root: {files:?}"
+        );
+        assert_eq!(
+            manager.aliases.get(&key).map(|entry| entry.clone()),
+            Some(new_root.to_string())
+        );
+        assert_eq!(
+            manager.root_names.get(&key).map(|entry| entry.clone()),
+            Some(new_root.to_string())
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_dir_all(&source_dir);

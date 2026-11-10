@@ -34,6 +34,57 @@ pub fn is_safe_relative_path(name: &str) -> bool {
             .all(|component| matches!(component, std::path::Component::Normal(_)))
 }
 
+/// A folder name that is safe on every platform the app ships to. The app uses
+/// it before renaming a torrent's root folder, so a display name like `Show: 01`
+/// cannot leave the payload at a path the engine cannot open.
+pub fn is_valid_folder_name(name: &str) -> bool {
+    if name.is_empty()
+        || name.trim() != name
+        || name == "."
+        || name == ".."
+        || name.ends_with('.')
+        || name.ends_with(' ')
+        || name.chars().count() > 200
+    {
+        return false;
+    }
+    if name.chars().any(|character| {
+        character.is_control()
+            || matches!(
+                character,
+                '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*'
+            )
+    }) {
+        return false;
+    }
+    let stem = name.split('.').next().unwrap_or(name).to_ascii_uppercase();
+    !matches!(
+        stem.as_str(),
+        "CON"
+            | "PRN"
+            | "AUX"
+            | "NUL"
+            | "COM1"
+            | "COM2"
+            | "COM3"
+            | "COM4"
+            | "COM5"
+            | "COM6"
+            | "COM7"
+            | "COM8"
+            | "COM9"
+            | "LPT1"
+            | "LPT2"
+            | "LPT3"
+            | "LPT4"
+            | "LPT5"
+            | "LPT6"
+            | "LPT7"
+            | "LPT8"
+            | "LPT9"
+    )
+}
+
 /// The payload that contains `checked` bytes of the initial check, in torrent
 /// order. Padding entries are skipped; an offset inside padding names the next
 /// payload, which is what the user sees being checked.
@@ -868,7 +919,8 @@ mod tracker_tests {
 #[cfg(test)]
 mod incomplete_file_tests {
     use super::{
-        final_file_path, human_bytes, is_safe_relative_path, part_file_path, resolve_payload_path,
+        final_file_path, human_bytes, is_safe_relative_path, is_valid_folder_name, part_file_path,
+        resolve_payload_path,
     };
     use std::path::{Path, PathBuf};
 
@@ -908,6 +960,28 @@ mod incomplete_file_tests {
         );
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn folder_names_follow_windows_rules() {
+        assert!(is_valid_folder_name("Show S01"));
+        assert!(is_valid_folder_name("Show S01 [1080p]"));
+        for name in [
+            "",
+            ".",
+            "..",
+            " Show",
+            "Show ",
+            "Show.",
+            "Show/01",
+            "Show: 01",
+            "CON",
+            "con.txt",
+            "COM1",
+            "bad\u{0}name",
+        ] {
+            assert!(!is_valid_folder_name(name), "{name:?} must be rejected");
+        }
     }
 
     #[test]

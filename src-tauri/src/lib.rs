@@ -1626,9 +1626,9 @@ async fn set_torrent_alias(
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     let backend = backend_manager(&manager).await?;
-    tokio::task::spawn_blocking(move || backend.set_torrent_alias(id, info_hash.as_deref(), alias))
+    backend
+        .rename_torrent(id, info_hash.as_deref(), alias)
         .await
-        .map_err(|error| format!("alias task failed: {error}"))?
 }
 
 #[tauri::command]

@@ -118,9 +118,11 @@ describe("TorrentHeader rename", () => {
     invokeMock.mockClear();
     renderHeader(info({ name: "Old Name" }));
     await user.click(screen.getByRole("button", { name: "Old Name" }));
-    expect((screen.getByLabelText("Rename") as HTMLInputElement).value).toBe("Old Name");
+    expect((screen.getByLabelText("Rename torrent and folder") as HTMLInputElement).value).toBe(
+      "Old Name"
+    );
     await user.keyboard("{Escape}");
-    expect(screen.queryByLabelText("Rename")).toBeNull();
+    expect(screen.queryByLabelText("Rename torrent and folder")).toBeNull();
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
@@ -131,7 +133,7 @@ describe("TorrentHeader rename", () => {
     invokeMock.mockClear();
     renderHeader(info({ name: "Old Name" }));
     await user.click(screen.getByRole("button", { name: "Old Name" }));
-    const input = screen.getByLabelText("Rename");
+    const input = screen.getByLabelText("Rename torrent and folder");
     await user.clear(input);
     await user.type(input, "  New Name  ");
     await user.keyboard("{Enter}");

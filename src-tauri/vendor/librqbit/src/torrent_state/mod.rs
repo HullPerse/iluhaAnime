@@ -7,7 +7,7 @@ pub mod utils;
 
 use std::collections::HashSet;
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::atomic::Ordering;
@@ -114,6 +114,7 @@ pub(crate) struct ManagedTorrentOptions {
     pub peer_read_write_timeout: Option<Duration>,
     pub allow_overwrite: bool,
     pub prefer_part_files: bool,
+    pub root_name: Option<String>,
     pub output_folder: PathBuf,
     pub ratelimits: LimitsConfig,
     pub initial_peers: Vec<SocketAddr>,
@@ -167,6 +168,45 @@ impl TorrentMetadata {
             info_bytes,
             file_infos,
         })
+    }
+
+    /// Rename the common root folder without changing the metainfo or the
+    /// info hash. The paths are rebuilt as `<new_root>/<rest>` for every file.
+    pub fn rename_root(&mut self, new_root: &str) -> anyhow::Result<()> {
+        let new_root = Path::new(new_root);
+        let mut components = new_root.components();
+        if !matches!(components.next(), Some(Component::Normal(_)))
+            || components.next().is_some()
+        {
+            bail!("invalid torrent root name");
+        }
+
+        let old_root = self
+            .file_infos
+            .iter()
+            .find_map(|file| {
+                let mut parts = file.relative_filename.components();
+                match (parts.next(), parts.next()) {
+                    (Some(Component::Normal(root)), Some(_)) => Some(root.to_os_string()),
+                    _ => None,
+                }
+            })
+            .context("torrent has no common root folder")?;
+
+        for file in &mut self.file_infos {
+            let mut parts = file.relative_filename.components();
+            match parts.next() {
+                Some(Component::Normal(root)) if root == old_root.as_os_str() => {}
+                _ => bail!("torrent files do not share a root folder"),
+            }
+            let rest = parts.collect::<PathBuf>();
+            if rest.as_os_str().is_empty() {
+                bail!("torrent files do not share a root folder");
+            }
+            file.relative_filename = new_root.join(rest);
+        }
+
+        Ok(())
     }
 
     pub fn lengths(&self) -> &Lengths {

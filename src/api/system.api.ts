@@ -149,7 +149,7 @@ export class SystemApi {
     return this.call("download_ffmpeg", { source });
   }
 
-  removeFfmpeg(): Promise<void> {
+  removeFfmpeg(): Promise<boolean> {
     return this.call("remove_ffmpeg");
   }
 

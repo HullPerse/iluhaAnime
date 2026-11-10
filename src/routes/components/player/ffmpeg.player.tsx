@@ -7,7 +7,7 @@ import { FFMPEG_SOURCE_SIZES } from "@/config/player/playerSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useCell } from "@hullperse/hp_utils/react";
-import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { systemApi } from "@/api/system.api";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
@@ -22,6 +22,12 @@ function FFMPEG({
 }) {
   const ffmpegSource = useCell(settingsAtoms.ffmpegSource);
   const [dlError, setDlError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<boolean>(false);
+  const removingRef = useRef<boolean>(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  // FFmpeg found on PATH belongs to the system, so there is no bundled copy to
+  // delete; the panel switches to that label instead of failing silently.
+  const [systemFfmpeg, setSystemFfmpeg] = useState<boolean>(false);
   const { t } = useI18n();
   const aliveRef = useRef<boolean>(true);
   useEffect(
@@ -33,6 +39,8 @@ function FFMPEG({
   const handleDownload = useCallback(async () => {
     setStatus("downloading");
     setDlError(null);
+    setRemoveError(null);
+    setSystemFfmpeg(false);
     const [, error] = await attempt(systemApi.downloadFfmpeg(settingsAtoms.ffmpegSource.get()));
     if (error) {
       setDlError(error.message);
@@ -45,9 +53,19 @@ function FFMPEG({
   }, [setStatus, t]);
 
   const handleRemove = useCallback(async () => {
-    const [, error] = await attempt(systemApi.removeFfmpeg());
-    if (error) reportBackgroundError("ffmpeg.remove", error);
-    else setStatus("missing");
+    if (removingRef.current) return;
+    removingRef.current = true;
+    setRemoving(true);
+    setRemoveError(null);
+    const [removed, error] = await attempt(systemApi.removeFfmpeg());
+    removingRef.current = false;
+    setRemoving(false);
+    if (error) {
+      setRemoveError(error.message);
+      return;
+    }
+    if (removed) setStatus("missing");
+    else setSystemFfmpeg(true);
   }, [setStatus]);
 
   const [dlProgress, setDlProgress] = useState<{
@@ -133,10 +151,27 @@ function FFMPEG({
     return (
       <div className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
         <span className="windows95-text">{t("player.ffmpeg.installed")}</span>
-        <Button onClick={handleRemove} variant="destructive" className="ml-auto min-h-5.75">
-          <Trash2 />
-          {t("common.delete")}
-        </Button>
+        {removeError && (
+          <span
+            className="text-destructive min-w-0 flex-1 truncate text-xs"
+            title={t("player.ffmpeg.remove.error", { message: removeError })}
+          >
+            {t("player.ffmpeg.remove.error", { message: removeError })}
+          </span>
+        )}
+        {systemFfmpeg ? (
+          <span className="text-hint ml-auto text-xs">{t("player.ffmpeg.system")}</span>
+        ) : (
+          <Button
+            onClick={handleRemove}
+            variant="destructive"
+            disabled={removing}
+            className="ml-auto min-h-5.75"
+          >
+            <Trash2 />
+            {t("common.delete")}
+          </Button>
+        )}
       </div>
     );
 }

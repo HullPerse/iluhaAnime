@@ -9,6 +9,8 @@ const player = {
   "player.ffmpeg.extracting": "Extracting FFmpeg...",
   "player.ffmpeg.installed": "FFmpeg installed",
   "player.ffmpeg.missing": "FFmpeg not found",
+  "player.ffmpeg.system": "Using the system FFmpeg from PATH",
+  "player.ffmpeg.remove.error": "Delete failed: {{message}}",
   "player.ffmpeg.download.error": "Download failed: {{message}}",
   "player.files.count": "Files: ({{count}})",
   "player.files.count.one": "File: ({{count}})",

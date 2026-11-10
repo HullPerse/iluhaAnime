@@ -49,13 +49,17 @@ export function useAnimelibAccount() {
   };
 
   const logout = async (): Promise<boolean> => {
+    const previous = account;
     setError(null);
+    // The token is gone the moment the command runs; the extra account request
+    // only put a network hop between the click and the signed-out header.
+    setAccount(null);
     const [, failure] = await attempt(streamApi.tokenClear());
     if (failure) {
+      setAccount(previous);
       setError(failure.message);
       return false;
     }
-    await refresh();
     return true;
   };
 

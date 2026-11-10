@@ -324,6 +324,12 @@ export type SearchPersistedState = Pick<
   SearchStore,
   "filters" | "filterPresets" | "history" | "sortBy" | "sortDirection" | "spellDictionary"
 >;
+export interface SearchSessionsData {
+  rutracker: boolean;
+  nekobt: boolean;
+  erai: boolean;
+}
+
 export interface AuthSearchProps {
   source: string;
   rutrackerAuth: boolean;

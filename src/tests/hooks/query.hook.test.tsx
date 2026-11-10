@@ -63,6 +63,52 @@ beforeEach(() => {
   });
 });
 
+describe("useSearchQuery logout", () => {
+  it("clears the source session before the logout command answers", async () => {
+    let finishLogout!: () => void;
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (typeof command === "string" && command.includes("session")) return true;
+      if (command === "rutracker_logout") {
+        return new Promise<void>((resolve) => {
+          finishLogout = resolve;
+        });
+      }
+      return null;
+    });
+    const { result } = renderSearch();
+    await waitFor(() => expect(result.current.rutrackerAuth).toBe(true));
+
+    let logout!: Promise<void>;
+    act(() => {
+      logout = result.current.handleLogout();
+    });
+
+    await waitFor(() => expect(result.current.rutrackerAuth).toBe(false));
+    await act(async () => {
+      finishLogout();
+      await logout;
+    });
+    expect(result.current.rutrackerAuth).toBe(false);
+    expect(mockInvoke).toHaveBeenCalledWith("rutracker_logout", undefined);
+  });
+
+  it("restores the signed-in state when the logout command fails", async () => {
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (typeof command === "string" && command.includes("session")) return true;
+      if (command === "rutracker_logout") throw new Error("keyring locked");
+      return null;
+    });
+    const { result } = renderSearch();
+    await waitFor(() => expect(result.current.rutrackerAuth).toBe(true));
+
+    await act(async () => {
+      await result.current.handleLogout();
+    });
+
+    expect(result.current.rutrackerAuth).toBe(true);
+  });
+});
+
 describe("useSearchQuery result source", () => {
   it("keeps the fetched source on rows after switching sources without searching", async () => {
     const { result } = renderSearch();

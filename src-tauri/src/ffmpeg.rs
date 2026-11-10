@@ -181,6 +181,7 @@ pub async fn download_ffmpeg(
         }
     }
 
+    video::invalidate_ffmpeg_path();
     let _ = app_handle.emit(
         "ffmpeg-download-progress",
         DownloadProgress {
@@ -193,8 +194,19 @@ pub async fn download_ffmpeg(
     Ok(dir.to_string_lossy().to_string())
 }
 
+fn remove_if_present(path: &std::path::Path, label: &str) -> Result<bool, String> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    std::fs::remove_file(path).map_err(|e| format!("remove {label}: {e}"))?;
+    Ok(true)
+}
+
+/// Only the app-managed copy is deleted. `false` means `FFmpeg` came from the
+/// system (PATH), so there is nothing here to remove and the player has to say
+/// that instead of failing with a generic error.
 #[tauri::command]
-pub async fn remove_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
+pub async fn remove_ffmpeg(app_handle: tauri::AppHandle) -> Result<bool, String> {
     let dir = video::ffmpeg_bin_dir(&app_handle);
     let ffmpeg_path = dir.join(if cfg!(target_os = "windows") {
         "ffmpeg.exe"
@@ -207,24 +219,14 @@ pub async fn remove_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
         "ffprobe"
     });
 
-    let removed_any = if ffmpeg_path.exists() {
-        std::fs::remove_file(&ffmpeg_path).map_err(|e| format!("remove ffmpeg: {e}"))?;
-        if ffprobe_path.exists() {
-            std::fs::remove_file(&ffprobe_path).map_err(|e| format!("remove ffprobe: {e}"))?;
-        }
-        true
-    } else if ffprobe_path.exists() {
-        std::fs::remove_file(&ffprobe_path).map_err(|e| format!("remove ffprobe: {e}"))?;
-        true
-    } else {
-        false
-    };
-
-    if !removed_any {
-        return Err("FFmpeg не найден".to_string());
+    let removed_ffmpeg = remove_if_present(&ffmpeg_path, "ffmpeg")?;
+    let removed_ffprobe = remove_if_present(&ffprobe_path, "ffprobe")?;
+    let removed_any = removed_ffmpeg || removed_ffprobe;
+    if removed_any {
+        video::invalidate_ffmpeg_path();
     }
 
-    Ok(())
+    Ok(removed_any)
 }
 
 #[tauri::command]

@@ -27,6 +27,7 @@ import { getLastSettingsTab } from "@/lib/ui/settingsTab.utils";
 import { resolveSecretTabAction } from "@/lib/ui/tabs.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
+import { useAnilistCoverModeSync } from "@/routes/components/anilist/user/data.user";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { cacheAtoms } from "@/store/cache.store";
 import {
@@ -128,6 +129,7 @@ export default function App() {
   });
   useDayNightScheduler();
   useEnsureAnimeIndex();
+  useAnilistCoverModeSync();
   useDiscordPresence(activeTab);
   usePrewarmSpellIndex();
   const { capture: screenshot, close: closeScreenshot } = useScreenshot();

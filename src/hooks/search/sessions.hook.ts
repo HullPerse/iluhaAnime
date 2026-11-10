@@ -4,6 +4,7 @@ import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { unwrapOr, withTimeout } from "@hullperse/hp_utils/result";
 import { settingsAtoms } from "@/store/settings.store";
+import type { SearchSessionsData } from "@/types/search/search";
 
 const SESSION_CHECK_TIMEOUT_MS = 8000;
 
@@ -17,7 +18,7 @@ export function useSearchSessions() {
   const eraiProxy = useCell(settingsAtoms.searchProxyUrls)["erai-raws"] ?? "";
   const { data: sessions } = useAppQuery("slow", {
     queryKey: queryKeys.searchSessions(rutrackerProxy, nekobtProxy, eraiProxy),
-    queryFn: async () => {
+    queryFn: async (): Promise<SearchSessionsData> => {
       const [rutracker, nekobt, erai] = await Promise.all([
         withSessionTimeout(torrentApi.checkRutrackerSession()),
         withSessionTimeout(torrentApi.checkNekobtSession()),

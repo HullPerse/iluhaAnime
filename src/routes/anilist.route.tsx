@@ -34,7 +34,7 @@ import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showErrorOnce } from "@/lib/core/ui/notification.utils";
 import { paginate } from "@/lib/core/collection/pagination.utils";
 import {
@@ -250,7 +250,6 @@ function AnilistRoute() {
   );
 
   const handleLogout = useCallback(async () => {
-    await anilistApi.logout();
     syncCoverModeWithAnilistAuth(false);
     queryClient.setQueryData(queryKeys.anilistData(), {
       user: null,
@@ -260,6 +259,10 @@ function AnilistRoute() {
     });
     setCurrentList("");
     setViewedFriend(null);
+    // The credential is deleted before any fallible step of the command, so a
+    // failure here still leaves the session signed out; only log it.
+    const [, error] = await attempt(anilistApi.logout());
+    if (error) reportBackgroundError("anilist.logout", error);
   }, [queryClient]);
 
   const {

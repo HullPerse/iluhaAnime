@@ -23,7 +23,7 @@ import { suggestSpellingWithReason } from "@/lib/search/searchResolve.utils";
 import { parseTorrentTags, torrentTagsToFilters } from "@/lib/torrent/torrentTags.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
-import { attempt } from "@hullperse/hp_utils/attempt";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import {
   resetSearchFilters as resetFilters,
   searchAtoms,
@@ -35,7 +35,12 @@ import {
 } from "@/store/search.store";
 import { setPresenceSearching } from "@/store/presence.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { Source, SearchQueryController, SelectedSearchTorrent } from "@/types/search/search";
+import type {
+  SearchSessionsData,
+  SelectedSearchTorrent,
+  SearchQueryController,
+  Source,
+} from "@/types/search/search";
 import type { Anime } from "@/types/torrent/torrent";
 
 export function useSearchQuery(): SearchQueryController {
@@ -201,23 +206,33 @@ export function useSearchQuery(): SearchQueryController {
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
-  const handleLogout = async () => {
-    const [, error] = await attempt(torrentApi.rutrackerLogout());
-    if (error) console.warn("rutracker_logout failed", error);
-    else queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
+  const setSession = (key: keyof SearchSessionsData, value: boolean) => {
+    queryClient.setQueriesData<SearchSessionsData>(
+      { queryKey: queryKeys.searchSessionsScope() },
+      (current) => (current ? { ...current, [key]: value } : current)
+    );
   };
 
-  const handleNekoBtLogout = async () => {
-    const [, error] = await attempt(torrentApi.nekobtLogout());
-    if (error) console.warn("nekobt_logout failed", error);
-    else queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
+  // The session query checks all three sources in one request, so waiting for it
+  // to refetch kept the signed-in button on screen until the slowest network
+  // check (up to the 8 s timeout) answered. The local cache is the truth here:
+  // deleting the credential is what signs out.
+  const runLogout = async (key: keyof SearchSessionsData, logout: () => Promise<void>) => {
+    setSession(key, false);
+    const [, error] = await attempt(logout());
+    if (error) {
+      setSession(key, true);
+      reportBackgroundError(`search.logout.${key}`, error);
+      return;
+    }
+    // A session check that started before the click can land while the command
+    // was running and restore the old answer.
+    setSession(key, false);
   };
 
-  const handleEraiLogout = async () => {
-    const [, error] = await attempt(torrentApi.eraiLogout());
-    if (error) console.warn("erai_logout failed", error);
-    else queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });
-  };
+  const handleLogout = () => runLogout("rutracker", () => torrentApi.rutrackerLogout());
+  const handleNekoBtLogout = () => runLogout("nekobt", () => torrentApi.nekobtLogout());
+  const handleEraiLogout = () => runLogout("erai", () => torrentApi.eraiLogout());
 
   const onAuthenticated = () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.searchSessionsScope() });

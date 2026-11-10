@@ -125,7 +125,9 @@ export const rehydrateSettings = settings.rehydrate;
 export const patchSettings = settings.patch;
 export function syncCoverModeWithAnilistAuth(loggedIn: boolean): void {
   if (settingsAtoms.torrentCoverModeManual.get()) return;
-  settings.patch({ torrentCoverMode: loggedIn ? "full" : "off" });
+  const mode = loggedIn ? "full" : "off";
+  if (settingsAtoms.torrentCoverMode.get() === mode) return;
+  settings.patch({ torrentCoverMode: mode });
 }
 export function subscribeSettings(listener: () => void): () => void {
   return settings.subscribeAll(listener);

@@ -11,7 +11,7 @@ use serde::Serialize;
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::process::Command;
@@ -171,8 +171,9 @@ pub fn ffprobe_exe(app_handle: &tauri::AppHandle) -> String {
 }
 
 pub fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
-    if let Some(cached) = CACHED_FFMPEG_PATH.get() {
-        return cached.clone();
+    let cached = crate::sync_utils::read_or_recover(&CACHED_FFMPEG_PATH, "ffmpeg path").clone();
+    if let Some(cached) = cached {
+        return cached;
     }
     let ext = if cfg!(target_os = "windows") {
         ".exe"
@@ -185,14 +186,20 @@ pub fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
     } else {
         format!("ffmpeg{ext}")
     };
-    // Cached on first use instead of at startup: the binary directory does not
-    // change while the app runs, and the first caller pays for one filesystem
-    // probe instead of every boot.
-    let _ = CACHED_FFMPEG_PATH.set(resolved.clone());
+    // Cached on first use instead of at startup: the first caller pays for one
+    // filesystem probe instead of every boot. Downloading or deleting the
+    // bundled copy drops the cache.
+    *crate::sync_utils::write_or_recover(&CACHED_FFMPEG_PATH, "ffmpeg path") = Some(resolved.clone());
     resolved
 }
 
-pub static CACHED_FFMPEG_PATH: OnceLock<String> = OnceLock::new();
+static CACHED_FFMPEG_PATH: RwLock<Option<String>> = RwLock::new(None);
+
+/// Downloading or deleting the bundled binaries changes what `ffmpeg_exe`
+/// resolves to, and the first answer is cached for the process.
+pub fn invalidate_ffmpeg_path() {
+    *crate::sync_utils::write_or_recover(&CACHED_FFMPEG_PATH, "ffmpeg path") = None;
+}
 
 #[derive(Clone, Serialize)]
 struct UpscaleProgress {

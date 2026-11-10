@@ -77,7 +77,12 @@ function fakeElement(index: number): HTMLElement {
 }
 
 function fakeRoot(elements: HTMLElement[]): ParentNode {
-  return { querySelectorAll: () => elements } as unknown as ParentNode;
+  // scanHintTargets asks for content roots, sticky boxes and then candidates.
+  // The fakes only stand in for candidates; returning them for every selector
+  // makes a fake element a content root, and the rank pass calls contains().
+  const querySelectorAll = (selector: string): HTMLElement[] =>
+    selector.includes("button") ? elements : [];
+  return { querySelectorAll } as unknown as ParentNode;
 }
 
 const CAPACITY = labelCapacity(VIM_LABEL_ALPHABET, 2);

@@ -31,7 +31,7 @@ url = "2"
 urlencoding = "2"
 unicode-normalization = "0.1"
 unicode-segmentation = "1"
-rusqlite = { version = "0.40", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled"] }
 reqwest = { version = "0.12", features = ["json", "cookies", "stream", "socks"] }
 futures = "0.3"
 encoding_rs = "0.8"
@@ -183,6 +183,10 @@ http = "1"
 # Windows sparse mark gets a valid lpBytesReturned outside the tracing macro.
 # See vendor/librqbit/README-vendor.md for the patched files.
 librqbit = { path = "vendor/librqbit" }
+# librqbit-utp 0.7.0 is the newest release and still pins ringbuf 0.4, whose
+# skip/clear are not panic-safe (RUSTSEC-2026-0293). The uTP code only uses
+# SharedRb<Heap<u8>>, so the 0.5 API is a drop-in here.
+librqbit-utp = { path = "vendor/librqbit-utp" }
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }

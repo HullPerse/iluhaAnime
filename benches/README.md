@@ -65,6 +65,8 @@ Both failures are vim scan benchmarks and both are harness failures, not app reg
 - `vim > scan 380 hintable x100`: `ReferenceError: document is not defined` in `scanHintTargets` at `hintsHotkeys.utils.ts:155`.
 - `vim > scan 3000 candidates (caps at 380) x20`: the same path.
 
+Harness fix 2026-11-11: the DOM guard in `isCovered` keeps the scan node-safe, and `fakeRoot` now answers content-root, sticky and candidate selectors separately instead of returning every fake as a content root. A vim-only rerun (`labs vim --no-save --runtime bun`) ran all 12 benches with no errors. The last complete artifact is still `d68428f`; `pilot-baseline` is the old 2026-10-08 run and its metadata says `dirty: true`, so it stays a smoke comparison until a clean full `bench:all` run replaces it.
+
 `bun run bench:labs:compare d68428f` compares against `pilot-baseline` from 2026-10-08. Only 9 benchmarks overlap; all 9 are faster at p50, but the baseline is old and the candidate CPU clock drifted 29.4%, so treat this as a smoke check, not a release delta. The two p99 regressions are `10k text query frieren + name sort` (+7.6%) and `score query-aware x200` (+26.4%). Full output is in `benches/.labs/compare-d68428f.txt` (ignored).
 
 | Benchmark | Baseline p50 | Candidate p50 | Delta p50 |

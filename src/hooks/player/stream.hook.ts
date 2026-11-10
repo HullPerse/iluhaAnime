@@ -156,10 +156,7 @@ export function usePlayerStream(): PlayerStream {
     [runSwitch]
   );
 
-  const switchQuality = useCallback(
-    (label: string) => applyQuality(label, false),
-    [applyQuality]
-  );
+  const switchQuality = useCallback((label: string) => applyQuality(label, false), [applyQuality]);
 
   const switchVariant = useCallback(
     async (variant: StreamVariant) => {

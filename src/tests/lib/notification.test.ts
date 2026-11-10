@@ -101,10 +101,7 @@ describe("notification restart persistence", () => {
       read: false,
     };
     const summary = { ...panel, id: 2, title: "2 new", popupOnly: true };
-    const restored = resolveNotificationPersisted(
-      { dismissed: [], items: [panel, summary] },
-      true
-    );
+    const restored = resolveNotificationPersisted({ dismissed: [], items: [panel, summary] }, true);
     expect(restored?.items).toEqual([panel]);
   });
 

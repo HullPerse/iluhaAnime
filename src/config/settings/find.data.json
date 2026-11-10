@@ -16,27 +16,19 @@
       "tab": "general",
       "section": "startup",
       "titleKey": "settings.startup",
-      "keys": [
-        "settings.startup.fastLaunch",
-        "settings.startup.rememberLastTab"
-      ]
+      "keys": ["settings.startup.fastLaunch", "settings.startup.rememberLastTab"]
     },
     {
       "tab": "general",
       "section": "keyboard",
       "titleKey": "settings.keyboard",
-      "keys": [
-        "settings.vim.mode",
-        "settings.vim.mode.hint"
-      ]
+      "keys": ["settings.vim.mode", "settings.vim.mode.hint"]
     },
     {
       "tab": "general",
       "section": "window",
       "titleKey": "settings.window",
-      "keys": [
-        "settings.tray.minimize"
-      ]
+      "keys": ["settings.tray.minimize"]
     },
     {
       "tab": "general",
@@ -159,9 +151,7 @@
       "tab": "general",
       "section": "rpc",
       "titleKey": "settings.rpc.title",
-      "keys": [
-        "settings.rpc.enabled"
-      ]
+      "keys": ["settings.rpc.enabled"]
     },
     {
       "tab": "general",
@@ -206,11 +196,7 @@
       "tab": "general",
       "section": "reset",
       "titleKey": "settings.reset.data",
-      "keys": [
-        "settings.reset.button",
-        "settings.reset.title",
-        "settings.reset.message"
-      ]
+      "keys": ["settings.reset.button", "settings.reset.title", "settings.reset.message"]
     },
     {
       "tab": "notifications",
@@ -268,18 +254,13 @@
       "tab": "notifications",
       "section": "app",
       "titleKey": "settings.notifications.group.app",
-      "keys": [
-        "settings.notifications.scan"
-      ]
+      "keys": ["settings.notifications.scan"]
     },
     {
       "tab": "search",
       "section": "sources",
       "titleKey": "settings.search.sources",
-      "keys": [
-        "settings.search.default.source",
-        "settings.search.visible.sources"
-      ]
+      "keys": ["settings.search.default.source", "settings.search.visible.sources"]
     },
     {
       "tab": "search",
@@ -354,9 +335,7 @@
       "tab": "torrent",
       "section": "search",
       "titleKey": "settings.torrent.search",
-      "keys": [
-        "settings.torrent.results.per.page"
-      ]
+      "keys": ["settings.torrent.results.per.page"]
     },
     {
       "tab": "torrent",
@@ -547,18 +526,13 @@
       "tab": "theme",
       "section": "progress",
       "titleKey": "settings.progress.style",
-      "keys": [
-        "settings.progress.style.blocks",
-        "settings.progress.style.solid"
-      ]
+      "keys": ["settings.progress.style.blocks", "settings.progress.style.solid"]
     },
     {
       "tab": "theme",
       "section": "font",
       "titleKey": "settings.font.title",
-      "keys": [
-        "settings.font.default"
-      ]
+      "keys": ["settings.font.default"]
     },
     {
       "tab": "theme",

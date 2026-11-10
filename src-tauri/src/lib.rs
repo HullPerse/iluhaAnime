@@ -2306,7 +2306,6 @@ pub fn run() {
             anilist::anilist_logout,
             anilist::save_anilist_entry,
             anilist::delete_anilist_entry,
-            anilist::update_anilist_entries_bulk,
             anilist::toggle_favourite,
             anilist::get_favourites,
             anilist::get_favourite_overview,

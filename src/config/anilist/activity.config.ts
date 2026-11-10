@@ -27,6 +27,12 @@ export const ACTIVITY_STATUS_ICONS: Record<string, LucideIcon> = {
   REPEATING: RotateCcw,
 };
 
-export const ACTIVITY_STATUS_LABELS = parsed.ACTIVITY_STATUS_LABELS as Record<string, TranslationKey>;
+export const ACTIVITY_STATUS_LABELS = parsed.ACTIVITY_STATUS_LABELS as Record<
+  string,
+  TranslationKey
+>;
 
-export const ACTIVITY_STATUS_FILTERS = parsed.ACTIVITY_STATUS_FILTERS as { value: string; key: TranslationKey }[];
+export const ACTIVITY_STATUS_FILTERS = parsed.ACTIVITY_STATUS_FILTERS as {
+  value: string;
+  key: TranslationKey;
+}[];

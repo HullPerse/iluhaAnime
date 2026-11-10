@@ -2,7 +2,11 @@ import { useLayoutEffect, useRef } from "react";
 
 import { THEMES } from "@/config/graphics/themes.config";
 import { useLiveResource } from "@/hooks/liveResource.hook";
-import { dayNightFrame, nowMinutesOf, scheduledThemeName } from "@/lib/core/graphics/daynight.utils";
+import {
+  dayNightFrame,
+  nowMinutesOf,
+  scheduledThemeName,
+} from "@/lib/core/graphics/daynight.utils";
 import type { DayNightFrame } from "@/types/core/daynight";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { setTorrentSpeedLimits } from "@/store/download.store";

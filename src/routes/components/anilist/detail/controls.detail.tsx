@@ -89,8 +89,10 @@ function AniListActionControls({
   const scoreInvalid = scoreCheck.error !== null;
   const scoreErrorMessage = t(scoreErrorKey(scoreCheck.error));
   const maxEpisodes = anime.episodes ?? 9999;
+  const statusMissing = editStatus.trim() === "";
 
   const handleSave = async () => {
+    if (statusMissing) return;
     if (scoreInvalid) {
       setSaveError(scoreErrorMessage);
       return;
@@ -166,14 +168,23 @@ function AniListActionControls({
           <span className="w-20 shrink-0">{t("anilist.controls.status")}</span>
           <Select
             className="flex-1"
+            label={t("anilist.controls.status")}
             value={editStatus}
             onChange={(v) => setEditStatus(v)}
-            options={listStatusOptions.map((o) => ({
-              ...o,
-              label: t(o.label),
-            }))}
+            options={[
+              ...(listEntry === undefined ? [{ value: "", label: "-" }] : []),
+              ...listStatusOptions.map((o) => ({
+                ...o,
+                label: t(o.label),
+              })),
+            ]}
           />
         </div>
+        {statusMissing && (
+          <span className="windows95-text text-hint text-xs">
+            {t("anilist.controls.status.required")}
+          </span>
+        )}
         <div className="windows95-text flex flex-row items-center gap-2">
           <span className="w-20 shrink-0">{t("anilist.controls.progress")}</span>
           <Input
@@ -321,7 +332,7 @@ function AniListActionControls({
               onError={setSaveError}
             />
           )}
-          <Button onClick={handleSave} loading={saving}>
+          <Button onClick={handleSave} loading={saving} disabled={statusMissing}>
             {t("anilist.controls.save")}
           </Button>
         </div>

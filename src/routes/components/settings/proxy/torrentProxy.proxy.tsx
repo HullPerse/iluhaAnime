@@ -58,9 +58,7 @@ export function TorrentProxySettings() {
           testFailLabel={t("settings.torrent.proxy.test.fail")}
           testDisabled={!isOnline || !proxyUrl}
         />
-        <span className="text-hint pl-[152px] text-xs">
-          {t("settings.proxy.torrent.coverage")}
-        </span>
+        <span className="text-hint pl-[152px] text-xs">{t("settings.proxy.torrent.coverage")}</span>
         {activeProxy.isSuccess && (
           <span className="text-hint pl-[152px] text-xs">
             {activeProxy.data

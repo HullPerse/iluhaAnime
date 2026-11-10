@@ -137,16 +137,13 @@ export function useSearchQuery(): SearchQueryController {
     });
   };
 
-  const { data, isLoading, isFetching, isError, error, refetch } = useAppQuery(
-    "slow",
-    {
-      queryKey,
-      queryFn: fetchBySource,
-      enabled: Boolean(submittedQuery),
-      retry: false,
-      placeholderData: keepPreviousData,
-    }
-  );
+  const { data, isLoading, isFetching, isError, error, refetch } = useAppQuery("slow", {
+    queryKey,
+    queryFn: fetchBySource,
+    enabled: Boolean(submittedQuery),
+    retry: false,
+    placeholderData: keepPreviousData,
+  });
 
   useEffect(() => {
     if (!isFetching && data !== undefined && fetchSourceRef.current !== null) {

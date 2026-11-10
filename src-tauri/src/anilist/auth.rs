@@ -790,21 +790,6 @@ pub async fn save_anilist_entry(
             return Err(error);
         }
     };
-    if json.get("errors").is_some() {
-        tracing::warn!(
-            media_id,
-            status = status.as_str(),
-            progress,
-            elapsed_ms = started.elapsed().as_millis(),
-            errors = format!("{:?}", json["errors"])
-                .chars()
-                .take(500)
-                .collect::<String>()
-                .as_str(),
-            "save_anilist_entry returned GraphQL errors"
-        );
-        return Err(format!("{:?}", json["errors"]));
-    }
     Ok(parse_saved_entry(&json["data"]["SaveMediaListEntry"]))
 }
 
@@ -824,9 +809,6 @@ pub async fn delete_anilist_entry(
         "variables": { "mediaId": media_id, "userId": user_id }
     });
     let found = graphql_request(find, Some(&token), proxy.as_deref()).await?;
-    if found.get("errors").is_some() {
-        return Err(format!("{:?}", found["errors"]));
-    }
     let entry_id = found["data"]["MediaList"]["id"].as_u64().unwrap_or(0);
     if entry_id == 0 {
         return Ok(false);
@@ -836,88 +818,9 @@ pub async fn delete_anilist_entry(
         "variables": { "id": entry_id }
     });
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     Ok(json["data"]["DeleteMediaListEntry"]["deleted"]
         .as_bool()
         .unwrap_or(true))
-}
-
-#[tauri::command]
-#[allow(non_snake_case)]
-pub async fn update_anilist_entries_bulk(
-    app_handle: tauri::AppHandle,
-    ids: Vec<u64>,
-    status: Option<String>,
-    score: Option<f64>,
-    progress: Option<i32>,
-    repeat: Option<i32>,
-    private: Option<bool>,
-    notes: Option<String>,
-    proxy_url: Option<String>,
-    proxyUrl: Option<String>,
-) -> Result<Vec<u64>, String> {
-    if ids.is_empty() {
-        return Ok(Vec::new());
-    }
-    let token = load_token(&app_handle)?;
-    let body = serde_json::json!({
-        "query": r"
-            mutation ($ids: [Int], $status: MediaListStatus, $score: Float, $progress: Int, $repeat: Int, $private: Boolean, $notes: String) {
-                UpdateMediaListEntries(ids: $ids, status: $status, score: $score, progress: $progress, repeat: $repeat, private: $private, notes: $notes) {
-                    id
-                }
-            }
-        ",
-        "variables": bulk_update_variables(
-            &ids,
-            status.as_deref(),
-            score,
-            progress,
-            repeat,
-            private,
-            notes.as_deref()
-        )
-    });
-    let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    Ok(parse_bulk_update_ids(
-        &json["data"]["UpdateMediaListEntries"],
-    ))
-}
-
-#[allow(clippy::cast_possible_wrap)]
-fn bulk_update_variables(
-    ids: &[u64],
-    status: Option<&str>,
-    score: Option<f64>,
-    progress: Option<i32>,
-    repeat: Option<i32>,
-    private: Option<bool>,
-    notes: Option<&str>,
-) -> serde_json::Value {
-    serde_json::json!({
-        "ids": ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
-        "status": status,
-        "score": score,
-        "progress": progress,
-        "repeat": repeat,
-        "private": private,
-        "notes": notes
-    })
-}
-
-fn parse_bulk_update_ids(entries: &serde_json::Value) -> Vec<u64> {
-    entries
-        .as_array()
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|entry| entry["id"].as_u64())
-                .collect()
-        })
-        .unwrap_or_default()
 }
 
 const fn is_leap_year(year: i32) -> bool {
@@ -991,16 +894,20 @@ fn save_entry_variables(
     completed_at: Option<serde_json::Value>,
 ) -> serde_json::Value {
     // Fields the UI never touched stay omitted: an explicit null trips
-    // AniList validation for repeat ("must be an integer") and would wipe
-    // values the UI never fetched.
+    // AniList validation for progress/score/repeat ("must be an integer" /
+    // "must be a number") and would wipe values the UI never fetched.
     let mut variables = serde_json::Map::from_iter([
         ("mediaId".to_string(), serde_json::json!(media_id as i64)),
         ("status".to_string(), serde_json::json!(status)),
-        ("progress".to_string(), serde_json::json!(progress)),
-        ("score".to_string(), serde_json::json!(score)),
         ("notes".to_string(), serde_json::json!(notes)),
         ("customLists".to_string(), serde_json::json!(custom_lists)),
     ]);
+    if let Some(value) = progress {
+        variables.insert("progress".to_string(), serde_json::json!(value));
+    }
+    if let Some(value) = score {
+        variables.insert("score".to_string(), serde_json::json!(value));
+    }
     if let Some(value) = repeat {
         variables.insert("repeat".to_string(), serde_json::json!(value));
     }
@@ -1153,6 +1060,8 @@ mod tests {
             parse_fuzzy_date_input(Some("2024-03-09"), "completedAt").expect("valid date"),
         );
         assert_eq!(full["mediaId"], 21);
+        assert_eq!(full["progress"], 12);
+        assert_eq!(full["score"], 8.5);
         assert_eq!(full["customLists"][0], "favorites");
         assert_eq!(full["repeat"], 2);
         assert_eq!(full["private"], true);
@@ -1165,6 +1074,8 @@ mod tests {
         );
         assert!(minimal["customLists"].is_null());
         for untouched in [
+            "progress",
+            "score",
             "repeat",
             "private",
             "hiddenFromStatusLists",
@@ -1176,6 +1087,22 @@ mod tests {
                 "{untouched} must be omitted, not nulled"
             );
         }
+
+        let zero = save_entry_variables(
+            21,
+            "PLANNING",
+            Some(0),
+            Some(0.0),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        assert_eq!(zero["progress"], 0);
+        assert_eq!(zero["score"], 0.0);
     }
 
     #[test]
@@ -1226,25 +1153,6 @@ mod tests {
         assert_eq!(empty.status, None);
         assert_eq!(empty.progress, None);
         assert!(empty.custom_lists.is_empty());
-    }
-
-    #[test]
-    fn bulk_update_variables_carry_ids_once() {
-        let vars = bulk_update_variables(&[7, 9], Some("CURRENT"), None, Some(3), None, None, None);
-        assert_eq!(vars["ids"].as_array().unwrap().len(), 2);
-        assert_eq!(vars["ids"][0], 7);
-        assert_eq!(vars["status"], "CURRENT");
-        assert_eq!(vars["progress"], 3);
-        assert!(vars["score"].is_null());
-
-        let payload = serde_json::json!([
-            { "id": 101 },
-            { "id": null },
-            {},
-            { "id": 102 }
-        ]);
-        assert_eq!(parse_bulk_update_ids(&payload), vec![101, 102]);
-        assert!(parse_bulk_update_ids(&serde_json::Value::Null).is_empty());
     }
 
     #[test]

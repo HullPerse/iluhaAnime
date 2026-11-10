@@ -84,10 +84,5 @@
   ],
   "WALLPAPER_LOAD_RETRIES": 2,
   "WALLPAPER_MAX_DPR": 2,
-  "WALLPAPER_SHADOW_SIDE_KEYS": [
-    "top",
-    "right",
-    "bottom",
-    "left"
-  ]
+  "WALLPAPER_SHADOW_SIDE_KEYS": ["top", "right", "bottom", "left"]
 }

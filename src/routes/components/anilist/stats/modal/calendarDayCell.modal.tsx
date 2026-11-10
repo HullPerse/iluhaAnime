@@ -57,7 +57,7 @@ export function CalendarDayCell({
               count: cell?.entries.length ?? 0,
               date: `${day} ${monthLabel(month, locale, "long")} ${year}`,
             })}
-            className="bg-secondary windows95-font text-title-text hover:bg-secondary/80 flex h-4 min-w-4 shrink-0 cursor-pointer items-center justify-center border border-muted px-0.5 text-[10px] leading-none"
+            className="bg-secondary windows95-font text-title-text hover:bg-secondary/80 border-muted flex h-4 min-w-4 shrink-0 cursor-pointer items-center justify-center border px-0.5 text-[10px] leading-none"
             onClick={(e) => {
               e.stopPropagation();
               onMoreClick(day);

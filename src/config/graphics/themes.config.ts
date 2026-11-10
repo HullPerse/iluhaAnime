@@ -85,7 +85,10 @@ export const DEFAULT_THEME_COLORS = parsed.defaultThemeColors as ThemeDefinition
 
 export const THEME_ACCENT_EXEMPT = parsed.themeAccentExempt;
 
-export const THEME_COLOR_KEYS = parsed.themeColorKeys as { key: ThemeColorKey; label: TranslationKey }[];
+export const THEME_COLOR_KEYS = parsed.themeColorKeys as {
+  key: ThemeColorKey;
+  label: TranslationKey;
+}[];
 
 export const THEME_FAMILIES = parsed.themeFamilies as { id: ThemeFamily; label: TranslationKey }[];
 

@@ -33,7 +33,8 @@ const SettingsDefaultsDataSchema = z.object({
 
 const parsed = SettingsDefaultsDataSchema.parse(data);
 
-export const DEFAULT_WALLPAPER_FILTERS = parsed.DEFAULT_WALLPAPER_FILTERS as WallpaperDisplayFilters;
+export const DEFAULT_WALLPAPER_FILTERS =
+  parsed.DEFAULT_WALLPAPER_FILTERS as WallpaperDisplayFilters;
 export const DEFAULT_WALLPAPER_SHADOW = parsed.DEFAULT_WALLPAPER_SHADOW as WallpaperShadow;
 export const DEFAULT_SETTINGS = {
   ...parsed.DEFAULT_SETTINGS,

@@ -135,8 +135,7 @@ function applyIntentFilters(list: CollectionItem[], intent: ParsedIntent): Colle
     out = out.filter((item) => needles.includes(item.status));
   }
   const intentRating = intent.rating;
-  if (intentRating !== undefined)
-    out = out.filter((item) => (item.rating ?? -1) >= intentRating);
+  if (intentRating !== undefined) out = out.filter((item) => (item.rating ?? -1) >= intentRating);
   for (const cond of intent.ratingOps) {
     out = out.filter(
       (item) => item.rating != null && compareNumber(item.rating, cond.op, cond.value)
@@ -315,8 +314,7 @@ function filterByYear(list: CollectionItem[], filters: FilterParams): Collection
   let out = list;
   const yearFrom = filters.yearFrom;
   const yearTo = filters.yearTo;
-  if (yearFrom != null)
-    out = out.filter((item) => item.year != null && item.year >= yearFrom);
+  if (yearFrom != null) out = out.filter((item) => item.year != null && item.year >= yearFrom);
   if (yearTo != null) out = out.filter((item) => item.year != null && item.year <= yearTo);
   return out;
 }

@@ -1,6 +1,9 @@
 import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
-import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import {
+  bindMirroredAtom,
+  createPersistedStoreContext,
+} from "@/lib/core/persistence/persisted.utils";
 import { isRecord } from "@/lib/core/text/record.utils";
 import { isUserImageIcon } from "@/lib/graphics/image.utils";
 import type { Category, CategoryEntry } from "@/types/core/category";
@@ -83,9 +86,7 @@ function readLegacyCategories(
   return { data: state, schemaVersion: CATEGORY_SCHEMA_VERSION };
 }
 
-export function createCategorySignalStore(
-  options: SignalStoreOptions = {}
-): CategorySignalStore {
+export function createCategorySignalStore(options: SignalStoreOptions = {}): CategorySignalStore {
   const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "categories",
     short: "category",
@@ -236,4 +237,3 @@ export const moveCategoryEntry = categories.moveEntry;
 export const removeCategoryEntry = categories.removeEntry;
 export const renameCategory = categories.renameCategory;
 export const setCategoryCollapsed = categories.setCategoryCollapsed;
-

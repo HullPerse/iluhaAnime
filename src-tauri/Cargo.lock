@@ -2654,7 +2654,7 @@ dependencies = [
 
 [[package]]
 name = "iluhaAnime"
-version = "5.1.4"
+version = "5.1.6"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

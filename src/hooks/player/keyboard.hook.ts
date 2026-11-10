@@ -110,19 +110,18 @@ export function usePlayerKeyboardActions(
         exitCinemaMode: onExitCinemaMode,
         saveCleanFrame: () => {
           ignore(
-            invokeTyped<{ path: string }>("player_save_frame").then(
-              (saved) => {
+            invokeTyped<{ path: string }>("player_save_frame")
+              .then((saved) => {
                 addNotification(
                   translate(settingsAtoms.language.get(), "player.media.frame.saved"),
                   "success",
                   saved.path
                 );
                 return null;
-              },
-              (error: unknown) => {
+              })
+              .catch((error: unknown) => {
                 reportBackgroundError("player.frame.save", error);
-              }
-            )
+              })
           );
         },
         togglePlaylist: onTogglePlaylist,

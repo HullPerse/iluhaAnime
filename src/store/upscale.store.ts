@@ -128,9 +128,7 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
         );
         if (settingsAtoms.notifyUpscaleDone.get()) {
           const doneKey =
-            next.jobType === "upscale"
-              ? "notification.upscale.done"
-              : "notification.convert.done";
+            next.jobType === "upscale" ? "notification.upscale.done" : "notification.convert.done";
           addNotification(tr(doneKey), "success", next.name);
         }
       }

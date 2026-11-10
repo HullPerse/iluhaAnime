@@ -288,9 +288,7 @@ describe("new episode notifications", () => {
       },
     ]);
     await pollAniListReleases(t, notDisposed, { system: false });
-    expect(anilistNotificationsAtoms.releases.get()[0]?.coverUrl).toBe(
-      "https://img.example/7.jpg"
-    );
+    expect(anilistNotificationsAtoms.releases.get()[0]?.coverUrl).toBe("https://img.example/7.jpg");
   });
 
   it("notifies every missed episode in order", async () => {

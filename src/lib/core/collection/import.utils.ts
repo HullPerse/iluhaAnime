@@ -52,7 +52,6 @@ const ANILIST_STATUS_MAP: Record<string, string> = {
   PLANNING: "planned",
   REPEATING: "rewatching",
   REWATCHING: "rewatching",
-  WATCHING: "watching",
 };
 
 export function anilistStatusToCollection(status: string): string {

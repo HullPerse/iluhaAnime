@@ -269,7 +269,6 @@ export type CommandName =
   | "toggle_favourite"
   | "toggle_favourite_character"
   | "toggle_favourite_staff"
-  | "update_anilist_entries_bulk"
   | "update_dither_image_data"
   | "update_file_index_paths"
   | "update_sqlite_cell"

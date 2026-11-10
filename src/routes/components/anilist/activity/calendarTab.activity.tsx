@@ -117,7 +117,7 @@ export function CalendarTab({
                           date: cell.date.toLocaleDateString(locale),
                           count: cell.count,
                         })}
-                        className="focus-visible:outline-text shrink-0 border border-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dotted disabled:cursor-default"
+                        className="focus-visible:outline-text border-muted shrink-0 border focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dotted disabled:cursor-default"
                         style={{
                           width: CELL_SIZE,
                           height: CELL_SIZE,
@@ -222,7 +222,7 @@ export function CalendarTab({
           <span
             key={color}
             aria-hidden="true"
-            className="inline-block shrink-0 border border-muted"
+            className="border-muted inline-block shrink-0 border"
             style={{ width: 11, height: 11, backgroundColor: color }}
           />
         ))}

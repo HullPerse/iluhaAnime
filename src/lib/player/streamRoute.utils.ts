@@ -29,10 +29,7 @@ export function streamRouteKey(session: StreamOpen): string {
 }
 
 /** Where a retried open should start: the live position, then the session's. */
-export function streamRetryPosition(
-  session: StreamOpen,
-  timePos: number
-): number | undefined {
+export function streamRetryPosition(session: StreamOpen, timePos: number): number | undefined {
   const position = Number.isFinite(timePos) && timePos >= MIN_RESUME_SECONDS ? timePos : null;
   const resumed = position ?? session.resume ?? null;
   return resumed !== null && resumed >= MIN_RESUME_SECONDS ? resumed : undefined;

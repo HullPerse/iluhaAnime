@@ -324,4 +324,3 @@ export function resetNotificationAtoms(): void {
   notificationAtoms.unreadCount.set(0);
   nextNotificationId = 1;
 }
-

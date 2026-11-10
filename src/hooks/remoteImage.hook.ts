@@ -93,15 +93,14 @@ function fetchCachedImage(remoteUrl: string, proxyUrl: string | null): Promise<s
       invokeTyped<UserImageFile>("fetch_remote_image", {
         url: remoteUrl,
         proxyUrl,
-      }).then(
-        (image) => {
+      })
+        .then((image) => {
           if (!image) return null;
           const url = assetUrl(image.path);
           resolvedUrls.set(remoteUrl, url);
           return url;
-        },
-        () => null
-      )
+        })
+        .catch(() => null)
     )
   );
 }
@@ -115,15 +114,14 @@ function fetchStreamCover(remoteUrl: string): Promise<string | null> {
     : { url: remoteUrl, proxyUrl: settingsAtoms.anilistProxyUrl.get() ?? undefined };
   return inflightFetch(streamInflight, remoteUrl, () =>
     streamCoverQueue.run(() =>
-      invokeTyped<UserImageFile>("fetch_remote_image", request).then(
-        (image) => {
+      invokeTyped<UserImageFile>("fetch_remote_image", request)
+        .then((image) => {
           if (!image) return null;
           const url = assetUrl(image.path);
           streamCovers.set(remoteUrl, url);
           return url;
-        },
-        () => null
-      )
+        })
+        .catch(() => null)
     )
   );
 }

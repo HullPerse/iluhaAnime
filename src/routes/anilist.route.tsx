@@ -407,8 +407,7 @@ function AnilistRoute() {
     [source.lists, currentList]
   );
   const filteredEntries = useMemo(
-    () =>
-      filterEntries(activeEntries, deferredSearchTerms, global, searchFilters, localFilter),
+    () => filterEntries(activeEntries, deferredSearchTerms, global, searchFilters, localFilter),
     [activeEntries, deferredSearchTerms, global, searchFilters, localFilter]
   );
   const sortedEntries = useMemo(

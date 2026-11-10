@@ -92,14 +92,8 @@ function Controls({
 }) {
   const { t } = useI18n();
   const playPauseTitle = useKeybindTitle(t("player.media.key.play.pause"), "player.playPause");
-  const prevSeekTitle = useKeybindTitle(
-    t("player.media.controls.backward"),
-    "player.seekBackward"
-  );
-  const nextSeekTitle = useKeybindTitle(
-    t("player.media.controls.forward"),
-    "player.seekForward"
-  );
+  const prevSeekTitle = useKeybindTitle(t("player.media.controls.backward"), "player.seekBackward");
+  const nextSeekTitle = useKeybindTitle(t("player.media.controls.forward"), "player.seekForward");
   const playlistTitle = useKeybindTitle(t("player.media.playlist.toggle"), "player.togglePlaylist");
   const autoHideTitle = useKeybindTitle(
     t("player.media.key.autohide.toggle"),
@@ -157,15 +151,19 @@ function Controls({
     else if (jump.kind === "file") {
       if (direction < 0) onFilePrev();
       else onFileNext();
-    } else showBoundaryMsg(
-      t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last")
-    );
+    } else
+      showBoundaryMsg(
+        t(jump.edge === "first" ? "player.media.boundary.first" : "player.media.boundary.last")
+      );
   };
 
   const seekByStep = (direction: 1 | -1) => {
     const target = Math.max(
       0,
-      Math.min(duration || Number.MAX_SAFE_INTEGER, playbackAtoms.timePos.get() + direction * SEEK_STEP)
+      Math.min(
+        duration || Number.MAX_SAFE_INTEGER,
+        playbackAtoms.timePos.get() + direction * SEEK_STEP
+      )
     );
     onSeekTo(target);
   };

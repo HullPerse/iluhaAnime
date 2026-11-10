@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { LazySpellIndex } from "@/lib/core/search/lazySpellIndex.utils";
 import { isRomanNumeral } from "@hullperse/hp_utils/roman";
-import { readCachedSpellWords, writeCachedSpellWords } from "@/lib/core/search/spellIndexCache.utils";
+import {
+  readCachedSpellWords,
+  writeCachedSpellWords,
+} from "@/lib/core/search/spellIndexCache.utils";
 import { suggestSpelling } from "@/lib/core/anilist/suggestions.utils";
 import { buildSymSpellFromTitles, normalizedSpellWords } from "@hullperse/hp_utils/symspell";
 import type { SearchAnimeSuggestion } from "@/types/search/search";

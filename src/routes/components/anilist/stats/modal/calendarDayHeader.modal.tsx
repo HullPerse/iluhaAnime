@@ -11,7 +11,7 @@ export function CalendarDayHeader() {
         <div
           key={i}
           className={cn(
-            "windows95-font border-b-muted border-r-muted/60 border-r border-b p-1 text-center text-[10px] font-bold uppercase tracking-wide",
+            "windows95-font border-b-muted border-r-muted/60 border-r border-b p-1 text-center text-[10px] font-bold tracking-wide uppercase",
             i >= 5 ? "text-destructive" : "text-text"
           )}
         >

@@ -30,11 +30,15 @@ const parsed = FindDataSchema.parse(data);
 
 export const SETTINGS_FIND_TAB_ORDER = parsed.SETTINGS_FIND_TAB_ORDER as readonly SettingsFindTab[];
 
-export const SETTINGS_FIND_TAB_TITLES = parsed.SETTINGS_FIND_TAB_TITLES as Record<SettingsFindTab, TranslationKey>;
+export const SETTINGS_FIND_TAB_TITLES = parsed.SETTINGS_FIND_TAB_TITLES as Record<
+  SettingsFindTab,
+  TranslationKey
+>;
 
 export const FIND_GROUPS = parsed.FIND_GROUPS as readonly FindGroup[];
 
-export const SETTINGS_FIND_EXCLUDED_PREFIXES = parsed.SETTINGS_FIND_EXCLUDED_PREFIXES as readonly string[];
+export const SETTINGS_FIND_EXCLUDED_PREFIXES =
+  parsed.SETTINGS_FIND_EXCLUDED_PREFIXES as readonly string[];
 
 export const SETTINGS_FIND_SKIP_KEYS = parsed.SETTINGS_FIND_SKIP_KEYS as readonly TranslationKey[];
 

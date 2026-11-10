@@ -37,7 +37,6 @@ export const listStatusLabels: Record<string, TranslationKey> = {
   PAUSED: "anilist.list.status.PAUSED",
   PLANNING: "anilist.list.status.PLANNING",
   REPEATING: "anilist.list.status.REPEATING",
-  WATCHING: "anilist.list.status.WATCHING",
 };
 
 const listStatusOrder = [
@@ -47,7 +46,6 @@ const listStatusOrder = [
   "PAUSED",
   "PLANNING",
   "REPEATING",
-  "WATCHING",
 ] as const;
 
 export const listStatusOptions = listStatusOrder.map((value) => ({

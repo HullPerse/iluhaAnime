@@ -109,20 +109,16 @@ async function pagePoster(
   const site = host ?? "unparseable";
   if (source === "rutracker" && site !== "rutracker.org") return null;
   if (source === "nekobt" && site !== "nekobt.to") return null;
-  if (
-    source === "erai-raws" &&
-    site !== "erai-raws.info" &&
-    site !== "www.erai-raws.info"
-  )
+  if (source === "erai-raws" && site !== "erai-raws.info" && site !== "www.erai-raws.info")
     return null;
   if (source !== "rutracker" && source !== "nekobt" && source !== "erai-raws") return null;
-  const task = torrentApi.getTorrentPoster(source, url, proxy || undefined).then(
-    (poster) => poster ?? null,
-    (error: unknown) => {
+  const task = torrentApi
+    .getTorrentPoster(source, url, proxy || undefined)
+    .then((poster) => poster ?? null)
+    .catch((error: unknown) => {
       reportBackgroundError("cover.poster", error);
       return null;
-    }
-  );
+    });
   return withTimeout(task, POSTER_TIMEOUT_MS, () => null);
 }
 
@@ -156,12 +152,7 @@ function buildCoverSnapshot(parsed: {
   };
 }
 
-function useCoverPoster(
-  source: string,
-  pageUrl: string | null,
-  proxy: string,
-  enabled: boolean
-) {
+function useCoverPoster(source: string, pageUrl: string | null, proxy: string, enabled: boolean) {
   return useAppQuery("slow", {
     queryKey: queryKeys.torrentPoster(pageUrl, source, proxy),
     queryFn: () => pagePoster(source, pageUrl, proxy),
@@ -345,9 +336,7 @@ function toCoverState(
 function firstCoverUrl(
   override: { coverUrl: string | null } | undefined,
   poster: string | null,
-  resolved:
-    | { pick?: { candidate: { coverUrl?: string | null } } | null }
-    | undefined
+  resolved: { pick?: { candidate: { coverUrl?: string | null } } | null } | undefined
 ): string | null {
   if (override?.coverUrl) return override.coverUrl;
   if (poster) return poster;
@@ -369,12 +358,7 @@ export function useTorrentCover(
   const sourceProxies = useCell(settingsAtoms.searchProxyUrls);
   const sourceProxy = sourceProxies[source] ?? "";
   const ctx = useCoverContext(torrentTitle, { source, url, pageUrl });
-  const poster = useCoverPoster(
-    source,
-    ctx.pageUrl,
-    sourceProxy,
-    !ctx.override && pageEnabled
-  );
+  const poster = useCoverPoster(source, ctx.pageUrl, sourceProxy, !ctx.override && pageEnabled);
   const resolved = useCoverCascade(
     ctx.key,
     ctx.snapshot,

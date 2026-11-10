@@ -1,5 +1,8 @@
 import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
-import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import {
+  buildMirrorAtoms,
+  createPersistedStoreContext,
+} from "@/lib/core/persistence/persisted.utils";
 import { isRecord } from "@/lib/core/text/record.utils";
 import type { SignalStoreOptions } from "@/types/store/options";
 import type {
@@ -48,9 +51,7 @@ function isAniUserProfile(value: unknown): value is AniUserProfile {
 function normalizeFriend(friend: unknown): AniListFriendsStore["friends"] {
   if (!isValidFriend(friend)) return [];
   const profile =
-    isRecord(friend.profile) &&
-    friend.profile.id === friend.id &&
-    isAniUserProfile(friend.profile)
+    isRecord(friend.profile) && friend.profile.id === friend.id && isAniUserProfile(friend.profile)
       ? friend.profile
       : undefined;
   const base: AniListFriendsStore["friends"][number] = {
@@ -387,4 +388,3 @@ export const markSiteNotificationsRead = anilistNotifications.markSiteNotificati
 export const setAnilistInitialized = anilistNotifications.setInitialized;
 export const setKnownAnilistListNames = anilistNotifications.setKnownListNames;
 export const setSiteMaxSeenId = anilistNotifications.setSiteMaxSeenId;
-

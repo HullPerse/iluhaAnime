@@ -294,7 +294,6 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
 const player = createPlayerSignalStore();
 const playback = createPlaybackSignalStore();
 
-
 export const playerAtoms = player.atoms;
 export const getPlayerSnapshot = player.snapshot;
 export function subscribePlayer(listener: () => void): () => void {

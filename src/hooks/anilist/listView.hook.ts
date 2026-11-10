@@ -1,10 +1,6 @@
 import { useMemo } from "react";
 
-import {
-  filterEntries,
-  sortEntries,
-  type LocalMediaFilter,
-} from "@/lib/anilist/entries.utils";
+import { filterEntries, sortEntries, type LocalMediaFilter } from "@/lib/anilist/entries.utils";
 import { groupEntriesByList } from "@/lib/anilist/anilistGroup.utils";
 import type {
   AniListCollection,

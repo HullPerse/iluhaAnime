@@ -13,7 +13,11 @@ import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/anilist/collectio
 import { buildCollectionQueryHints } from "@/lib/core/ui/hints.utils";
 import { buildShareImportPlan } from "@/lib/core/system/share.utils";
 import { calculateCollectionStats } from "@/lib/anilist/collectionStats.utils";
-import { isPublicStatus, isPublicStatusFull, publicStatusPrefill } from "@/lib/core/anilist/status.utils";
+import {
+  isPublicStatus,
+  isPublicStatusFull,
+  publicStatusPrefill,
+} from "@/lib/core/anilist/status.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import { useCell } from "@hullperse/hp_utils/react";

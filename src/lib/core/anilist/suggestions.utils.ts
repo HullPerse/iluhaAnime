@@ -26,7 +26,10 @@ import {
   parseOperatorTerms,
 } from "@/lib/search/searchScore.utils";
 import type { OperatorTerm } from "@/types/search/searchScore";
-import { readCachedSpellWords, writeCachedSpellWords } from "@/lib/core/search/spellIndexCache.utils";
+import {
+  readCachedSpellWords,
+  writeCachedSpellWords,
+} from "@/lib/core/search/spellIndexCache.utils";
 import { normalizedSpellWords } from "@hullperse/hp_utils/symspell";
 import { titleKindBonus, typedTitlesOf } from "@/lib/search/searchTitle.utils";
 

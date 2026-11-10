@@ -1,10 +1,7 @@
 import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { fileNameFromPath, mediaFileExtension } from "@hullperse/hp_utils/media/parse";
-import {
-  addExternalAudioAuto,
-  addExternalSubtitleAuto,
-} from "@/lib/player/playback.utils";
+import { addExternalAudioAuto, addExternalSubtitleAuto } from "@/lib/player/playback.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 
@@ -47,9 +44,7 @@ export async function loadSidecarTracks(videoPath: string): Promise<void> {
     if (loaded.has(key)) continue;
     loaded.add(key);
     const [, addError] = await attempt(
-      track.kind === "sub"
-        ? addExternalSubtitleAuto(track.path)
-        : addExternalAudioAuto(track.path)
+      track.kind === "sub" ? addExternalSubtitleAuto(track.path) : addExternalAudioAuto(track.path)
     );
     if (addError) reportBackgroundError("player.sidecar.add", addError);
   }

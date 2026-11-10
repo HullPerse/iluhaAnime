@@ -101,7 +101,10 @@ export const DITHER_SCANLINE_DEPTH = parsed.DITHER_SCANLINE_DEPTH;
 export const DITHER_CHROMATIC_SHIFT = parsed.DITHER_CHROMATIC_SHIFT;
 export const DITHER_BARREL_STRENGTH = parsed.DITHER_BARREL_STRENGTH;
 export const DITHER_VIGNETTE_DEPTH = parsed.DITHER_VIGNETTE_DEPTH;
-export const DITHER_CHANNEL_SHIFT = parsed.DITHER_CHANNEL_SHIFT as unknown as readonly (readonly [number, number])[];
+export const DITHER_CHANNEL_SHIFT = parsed.DITHER_CHANNEL_SHIFT as unknown as readonly (readonly [
+  number,
+  number,
+])[];
 export const DITHER_GLYPH_RAMP = parsed.DITHER_GLYPH_RAMP as readonly string[];
 export const DITHER_GLYPH_WIDTH = parsed.DITHER_GLYPH_WIDTH;
 export const DITHER_GLYPH_HEIGHT = parsed.DITHER_GLYPH_HEIGHT;
@@ -117,11 +120,23 @@ export const DITHER_PLACEHOLDER_SRC = parsed.DITHER_PLACEHOLDER_SRC;
 export const DITHER_PRESETS = parsed.DITHER_PRESETS as readonly DitherPreset[];
 export const DITHER_SLIDER_DEFS = parsed.DITHER_SLIDER_DEFS as readonly DitherSliderDef[];
 export const DITHER_SLIDER_GROUPS = parsed.DITHER_SLIDER_GROUPS as readonly DitherSliderGroup[];
-export const DITHER_PRESET_LABELS = parsed.DITHER_PRESET_LABELS as Record<DitherPresetId, TranslationKey>;
+export const DITHER_PRESET_LABELS = parsed.DITHER_PRESET_LABELS as Record<
+  DitherPresetId,
+  TranslationKey
+>;
 export const DITHER_MODE_LABELS = parsed.DITHER_MODE_LABELS as Record<DitherMode, TranslationKey>;
-export const DITHER_MATRIX_LABELS = parsed.DITHER_MATRIX_LABELS as Record<DitherMatrix, TranslationKey>;
-export const DITHER_PALETTE_PRESET_LABELS = parsed.DITHER_PALETTE_PRESET_LABELS as Record<DitherPalettePresetId, TranslationKey>;
-export const DITHER_SLIDER_LABELS = parsed.DITHER_SLIDER_LABELS as Record<DitherSliderField, TranslationKey>;
+export const DITHER_MATRIX_LABELS = parsed.DITHER_MATRIX_LABELS as Record<
+  DitherMatrix,
+  TranslationKey
+>;
+export const DITHER_PALETTE_PRESET_LABELS = parsed.DITHER_PALETTE_PRESET_LABELS as Record<
+  DitherPalettePresetId,
+  TranslationKey
+>;
+export const DITHER_SLIDER_LABELS = parsed.DITHER_SLIDER_LABELS as Record<
+  DitherSliderField,
+  TranslationKey
+>;
 export const DITHER_BAKE_TIMEOUT_MS = parsed.DITHER_BAKE_TIMEOUT_MS;
 
 export function resolveDitherPreset(id: DitherPresetId): DitherEffectOptions {

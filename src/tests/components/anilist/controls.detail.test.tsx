@@ -285,10 +285,21 @@ describe("AniListActionControls server response", () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 
+  it("starts a new entry with a dash status and blocks the save", () => {
+    renderEditable(null, { id: 1, status: "CURRENT", progress: 1, customLists: [] }, vi.fn());
+    const status = screen.getByRole("combobox", { name: "Status:" });
+    expect(status.textContent).toBe("-");
+    expect(screen.getByText("Choose a status to save")).toBeTruthy();
+    expect(saveButton().disabled).toBe(true);
+  });
+
   it("refetches when the save creates the entry", async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();
     renderEditable(null, { id: 1, status: "CURRENT", progress: 1, customLists: [] }, onSaved);
+    await user.click(screen.getByRole("combobox", { name: "Status:" }));
+    await user.click(await screen.findByRole("option", { name: "Planning" }));
+    expect(screen.queryByText("Choose a status to save")).toBeNull();
     await user.click(saveButton());
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
   });

@@ -15,18 +15,8 @@
     "source": "source=tmdb|custom",
     "tag": "tag=fantasy|romance"
   },
-  "TAG_NUMERIC_KEYS": [
-    "year",
-    "rating",
-    "episodes",
-    "progress"
-  ],
-  "TAG_NUMERIC_SET": [
-    "year",
-    "rating",
-    "episodes",
-    "progress"
-  ],
+  "TAG_NUMERIC_KEYS": ["year", "rating", "episodes", "progress"],
+  "TAG_NUMERIC_SET": ["year", "rating", "episodes", "progress"],
   "TAG_OPS_BY_KEY": {
     "date": "=, !=, >, <, >=, <=",
     "sort": "="

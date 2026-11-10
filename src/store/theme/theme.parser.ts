@@ -16,9 +16,7 @@ const RadiusSchema = z.compile(z.enum(["frame", "all", "none"]));
 const BevelSchema = z.compile(z.enum(["flat", "raised"]));
 const ModeSchema = z.compile(z.enum(["dark", "light"]));
 const OverlaySchema = z.compile(z.enum(["none", "scanlines", "grid"]));
-const TitlebarGradientSchema = z.compile(
-  z.object({ from: z.string(), to: z.string() })
-);
+const TitlebarGradientSchema = z.compile(z.object({ from: z.string(), to: z.string() }));
 const ComponentsSchema = z.compile(
   z.object({
     titlebarArt: z.optional(z.boolean()),
@@ -360,4 +358,3 @@ function buildParsedTheme(
     ),
   };
 }
-

@@ -33,11 +33,14 @@ function envelope(store: string, sv: number, data: Record<string, unknown>): str
 describe("persisted store migrations", () => {
   it("applies collection v4 defaults from the stored schema version", () => {
     const backing = new Map<string, string>([
-      ["iluha.v1.collection-ui", envelope("collection-ui", 3, {
-        groupByStatus: true,
-        viewMode: "list",
-        displayMode: "scroll",
-      })],
+      [
+        "iluha.v1.collection-ui",
+        envelope("collection-ui", 3, {
+          groupByStatus: true,
+          viewMode: "list",
+          displayMode: "scroll",
+        }),
+      ],
     ]);
 
     const store = createCollectionSignalStore({
@@ -51,13 +54,16 @@ describe("persisted store migrations", () => {
 
   it("sanitizes malformed cache payloads instead of trusting casts", () => {
     const backing = new Map<string, string>([
-      ["iluha.v1.cache", envelope("cache", 5, {
-        episodeTracker: { 4: "bad", 5: 12 },
-        folderTrees: [{ path: "C:/anime", tree: { name: "anime", path: "C:/anime" } }],
-        lastSaveDir: 42,
-        seedPreferences: { 7: "yes", 8: true },
-        torrentOrder: [3, "bad", 1],
-      })],
+      [
+        "iluha.v1.cache",
+        envelope("cache", 5, {
+          episodeTracker: { 4: "bad", 5: 12 },
+          folderTrees: [{ path: "C:/anime", tree: { name: "anime", path: "C:/anime" } }],
+          lastSaveDir: 42,
+          seedPreferences: { 7: "yes", 8: true },
+          torrentOrder: [3, "bad", 1],
+        }),
+      ],
     ]);
 
     const store = createCacheSignalStore({
@@ -73,14 +79,17 @@ describe("persisted store migrations", () => {
 
   it("sanitizes malformed search payloads", () => {
     const backing = new Map<string, string>([
-      ["iluha.v1.search", envelope("search", 4, {
-        filters: { minSeeders: "many", hasMagnet: "yes" },
-        filterPresets: [{ name: 4 }],
-        history: ["frieren", 4],
-        sortBy: "bogus",
-        sortDirection: "sideways",
-        spellDictionary: ["frieren", null],
-      })],
+      [
+        "iluha.v1.search",
+        envelope("search", 4, {
+          filters: { minSeeders: "many", hasMagnet: "yes" },
+          filterPresets: [{ name: 4 }],
+          history: ["frieren", 4],
+          sortBy: "bogus",
+          sortDirection: "sideways",
+          spellDictionary: ["frieren", null],
+        }),
+      ],
     ]);
 
     const store = createSearchSignalStore({

@@ -48,16 +48,7 @@
     "anilistDisplayMode": "pagination",
     "playerType": "default",
     "playerContextMenu": false,
-    "audioExtensions": [
-      "mp3",
-      "flac",
-      "aac",
-      "ogg",
-      "wav",
-      "opus",
-      "m4a",
-      "wma"
-    ],
+    "audioExtensions": ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
     "autoLoadSidecarTracks": true,
     "sidecarScanSubfolders": false,
     "buttonPressEffect": true,
@@ -117,16 +108,7 @@
     "statusBarEnabled": true,
     "fastLaunch": false,
     "minimizeToTray": false,
-    "subtitleExtensions": [
-      "srt",
-      "ass",
-      "ssa",
-      "vtt",
-      "sub",
-      "idx",
-      "sup",
-      "pgs"
-    ],
+    "subtitleExtensions": ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
     "uiDensity": "comfortable",
     "progressStyle": "blocks",
     "similarView": "rail",
@@ -149,12 +131,7 @@
       "ogv",
       "3gp"
     ],
-    "visibleSources": [
-      "rutracker",
-      "nekobt",
-      "erai-raws",
-      "nyaa"
-    ],
+    "visibleSources": ["rutracker", "nekobt", "erai-raws", "nyaa"],
     "searchProxyUrls": {},
     "webviewProxyEnabled": true,
     "tmdbKeySet": false,

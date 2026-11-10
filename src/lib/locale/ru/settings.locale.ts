@@ -377,8 +377,7 @@ const settings = {
   "settings.torrent.diagnostics.unavailable": "недоступен",
   "settings.torrent.diagnostics.no.proxy": "без прокси",
   "settings.torrent.diagnostics.verdict.ok": "RuTracker доступен",
-  "settings.torrent.diagnostics.description":
-    "Проверка DNS, TCP, TLS и HTTP-доступа к трекеру.",
+  "settings.torrent.diagnostics.description": "Проверка DNS, TCP, TLS и HTTP-доступа к трекеру.",
   "settings.torrent.diagnostics.verdict.ok.detail": "Все стадии пройдены.",
   "settings.torrent.diagnostics.verdict.http.detail": "Хост ответил HTTP {{status}}.",
   "settings.torrent.diagnostics.verdict.antibot.detail": "В ответе страница проверки, а не форум.",

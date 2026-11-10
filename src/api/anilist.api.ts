@@ -37,6 +37,8 @@ export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParam
 
 export type AnilistFilterPageParams = AnilistSearchParams & { page: number };
 
+const OMIT_WHEN_NULL: ReadonlySet<string> = new Set(["progress", "score", "repeat"]);
+
 export class AnilistApi {
   private readonly transport: ApiTransport;
   private readonly proxyUrl: string | null | (() => string | null);
@@ -186,7 +188,9 @@ export class AnilistApi {
     const { mediaId, ...rest } = input;
     const args: Record<string, unknown> = { media_id: mediaId, mediaId };
     for (const [key, value] of Object.entries(rest)) {
-      if (value !== undefined) args[key] = value;
+      if (value === undefined) continue;
+      if (value === null && OMIT_WHEN_NULL.has(key)) continue;
+      args[key] = value;
     }
     return this.call("save_anilist_entry", args);
   }

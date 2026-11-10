@@ -1,6 +1,29 @@
 {
   "changelog": [
     {
+      "version": "5.1.6",
+      "added": [],
+      "changed": [],
+      "fixed": [
+        {
+          "key": "changelog.5_1_6.fixed.anilist.new_entry",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_1_6.fixed.anilist.error_details",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_1_6.fixed.search.logout",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_1_6.fixed.player.ffmpeg_delete",
+          "scope": "player"
+        }
+      ]
+    },
+    {
       "version": "5.1.4",
       "added": [],
       "changed": [],
@@ -8,14 +31,6 @@
         {
           "key": "changelog.5_1_4.fixed.torrents.covers_build",
           "scope": "torrents"
-        },
-        {
-          "key": "changelog.5_1_4.fixed.search.logout",
-          "scope": "search"
-        },
-        {
-          "key": "changelog.5_1_4.fixed.player.ffmpeg_delete",
-          "scope": "player"
         }
       ]
     },

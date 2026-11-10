@@ -38,12 +38,6 @@
     "REPEATING": "anilist.activity.status.REPEATING"
   },
   "CELL_GAP": 4,
-  "CELL_LEVELS": [
-    "#ebedf0",
-    "#9be9a8",
-    "#40c463",
-    "#30a14e",
-    "#216e39"
-  ],
+  "CELL_LEVELS": ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
   "CELL_SIZE": 16
 }

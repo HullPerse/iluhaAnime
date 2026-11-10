@@ -181,9 +181,7 @@ export default function SettingsRoute() {
   }, [activeTab, findOpen, findHits, trimmedQuery]);
 
   useEffect(() => {
-    const panel = contentRef.current?.querySelector(
-      `[data-active-tab="${CSS.escape(activeTab)}"]`
-    );
+    const panel = contentRef.current?.querySelector(`[data-active-tab="${CSS.escape(activeTab)}"]`);
     if (!(panel instanceof HTMLElement) || findOpen) return;
     for (const section of panel.querySelectorAll("[data-find-section]")) {
       if (!(section instanceof HTMLElement)) continue;
@@ -198,9 +196,7 @@ export default function SettingsRoute() {
   }, [activeTab, changedKeys, changedOnly, findOpen]);
 
   useEffect(() => {
-    const panel = contentRef.current?.querySelector(
-      `[data-active-tab="${CSS.escape(activeTab)}"]`
-    );
+    const panel = contentRef.current?.querySelector(`[data-active-tab="${CSS.escape(activeTab)}"]`);
     if (!(panel instanceof HTMLElement) || findOpen || flashRequest === null) return;
     const target = panel.querySelector(
       `[data-find-section="${CSS.escape(flashRequest.sectionId)}"]`

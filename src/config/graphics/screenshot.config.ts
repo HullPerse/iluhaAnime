@@ -25,16 +25,23 @@ const ScreenshotDataSchema = z.object({
   CROP_ZOOM_STEP: z.number(),
   SCREENSHOT_FORMAT_LABELS: z.record(z.string(), z.string()),
   SCREENSHOT_FORMATS: z.array(z.string()),
-  SCREENSHOT_HISTORY_DEFS: z.array(z.object({ chord: z.string(), id: z.string(), repeat: z.string() })),
+  SCREENSHOT_HISTORY_DEFS: z.array(
+    z.object({ chord: z.string(), id: z.string(), repeat: z.string() })
+  ),
   SCREENSHOT_NAME_PREFIX: z.string(),
 });
 
 const parsed = ScreenshotDataSchema.parse(data);
 
-export const SCREENSHOT_HISTORY_DEFS = parsed.SCREENSHOT_HISTORY_DEFS as readonly HotkeyDef<"undo" | "redo">[];
+export const SCREENSHOT_HISTORY_DEFS = parsed.SCREENSHOT_HISTORY_DEFS as readonly HotkeyDef<
+  "undo" | "redo"
+>[];
 export const SCREENSHOT_NAME_PREFIX = parsed.SCREENSHOT_NAME_PREFIX;
 export const SCREENSHOT_FORMATS = parsed.SCREENSHOT_FORMATS as readonly ScreenshotFormat[];
-export const SCREENSHOT_FORMAT_LABELS = parsed.SCREENSHOT_FORMAT_LABELS as Record<ScreenshotFormat, TranslationKey>;
+export const SCREENSHOT_FORMAT_LABELS = parsed.SCREENSHOT_FORMAT_LABELS as Record<
+  ScreenshotFormat,
+  TranslationKey
+>;
 export const CROP_MIN_SIZE = parsed.CROP_MIN_SIZE;
 export const CROP_SNAP_DISPLAY_PX = parsed.CROP_SNAP_DISPLAY_PX;
 export const CROP_DIM_OPACITY = parsed.CROP_DIM_OPACITY;

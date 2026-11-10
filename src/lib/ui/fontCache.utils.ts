@@ -4,9 +4,7 @@ import * as z from "zod/mini";
 const FONT_CACHE_KEY = "systemFontsCache";
 const FONT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-const FontCacheSchema = z.compile(
-  z.object({ fonts: z.array(z.string()), ts: z.number() })
-);
+const FontCacheSchema = z.compile(z.object({ fonts: z.array(z.string()), ts: z.number() }));
 
 export const readCachedFonts = (): string[] => {
   const [parsed, error] = attemptSync(() => {

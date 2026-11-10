@@ -38,7 +38,8 @@ const parsed = WallpaperDataSchema.parse(data);
 
 export const WALLPAPER_MAX_DPR = parsed.WALLPAPER_MAX_DPR;
 export const WALLPAPER_LOAD_RETRIES = parsed.WALLPAPER_LOAD_RETRIES;
-export const WALLPAPER_SHADOW_SIDE_KEYS = parsed.WALLPAPER_SHADOW_SIDE_KEYS as readonly (keyof WallpaperShadowSides)[];
+export const WALLPAPER_SHADOW_SIDE_KEYS =
+  parsed.WALLPAPER_SHADOW_SIDE_KEYS as readonly (keyof WallpaperShadowSides)[];
 export const WALLPAPER_DISPLAY_PRESETS = parsed.WALLPAPER_DISPLAY_PRESETS as readonly {
   id: string;
   label: TranslationKey;

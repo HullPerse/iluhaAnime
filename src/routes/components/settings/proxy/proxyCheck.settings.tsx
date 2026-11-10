@@ -86,7 +86,7 @@ export function ProxyCheck({
         </Button>
         {status !== null && (
           <span
-            className={`windows95-text min-w-0 max-w-full text-xs break-words ${tone}`}
+            className={`windows95-text max-w-full min-w-0 text-xs break-words ${tone}`}
             role="status"
             aria-live="polite"
           >

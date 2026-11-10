@@ -12,7 +12,7 @@ export function createCoalescedRunner(): (task: () => Promise<void>) => Promise<
   const start = (task: () => Promise<void>): void => {
     const run = attempt(Promise.resolve().then(task)).then(() => undefined);
     current = run;
-    ignore(run.then(settle, settle));
+    ignore(run.finally(settle));
   };
 
   const settle = (): void => {

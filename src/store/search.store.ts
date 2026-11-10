@@ -18,7 +18,10 @@ import {
   writeStoredSyncKey,
 } from "@/store/search/search.index";
 import type { Persistor } from "@/types/core/persist";
-import { buildSignalAtoms, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import {
+  buildSignalAtoms,
+  createPersistedStoreContext,
+} from "@/lib/core/persistence/persisted.utils";
 import { isRecord } from "@/lib/core/text/record.utils";
 import type { Cell } from "@/types/core/signal";
 import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
@@ -492,4 +495,3 @@ export const resetSearchFilters = search.resetFilters;
 export function subscribeSearch(listener: () => void): () => void {
   return search.subscribeAll(listener);
 }
-

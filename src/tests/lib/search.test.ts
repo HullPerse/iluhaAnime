@@ -9,8 +9,16 @@ import {
   qualityMatch,
 } from "@/lib/search/searchFormat.utils";
 import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/core/search/intent.utils";
-import { MASCOT_DIM_COVERAGE, overlapCoverage, shouldDimMascot } from "@/lib/core/graphics/mascot.utils";
-import { dedupAnimeResults, filterAnimeResults, sortAnimeResults } from "@/lib/core/text/results.utils";
+import {
+  MASCOT_DIM_COVERAGE,
+  overlapCoverage,
+  shouldDimMascot,
+} from "@/lib/core/graphics/mascot.utils";
+import {
+  dedupAnimeResults,
+  filterAnimeResults,
+  sortAnimeResults,
+} from "@/lib/core/text/results.utils";
 import { mapError } from "@/lib/core/torrent/rutracker.utils";
 import {
   fuzzyMatchScorePreNormalized,

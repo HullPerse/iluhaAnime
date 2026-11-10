@@ -95,11 +95,9 @@ export default function UpscalePlayer({
     queryKey: queryKeys.upscaleSuggest(filePath),
     queryFn: () =>
       withFallback(
-        invokeValidatedOrThrow(
-          "suggest_upscale_preset",
-          UpscalePresetSuggestionSchema,
-          { inputPath: filePath }
-        ),
+        invokeValidatedOrThrow("suggest_upscale_preset", UpscalePresetSuggestionSchema, {
+          inputPath: filePath,
+        }),
         null
       ),
     enabled: open,

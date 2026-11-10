@@ -85,9 +85,7 @@ export function TorrentNetworkSettings({
           <span>{t("settings.torrent.dht.enabled")}</span>
         </label>
         {torrentProxyUrl && (
-          <span className="text-hint pl-2 text-xs">
-            {t("settings.torrent.proxy.forces.off")}
-          </span>
+          <span className="text-hint pl-2 text-xs">{t("settings.torrent.proxy.forces.off")}</span>
         )}
         <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
           <Checkbox

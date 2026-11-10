@@ -2,7 +2,10 @@ import * as z from "zod/mini";
 
 import { listSortKeys } from "@/config/anilist/list.config";
 import { SOURCE_INFOS } from "@/config/search/searchSources.config";
-import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/settingsDefaults.config";
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_WALLPAPER_SHADOW,
+} from "@/config/settings/settingsDefaults.config";
 import { STREAM_QUALITIES } from "@/config/player/quality.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
 import { isRecord } from "@/lib/core/text/record.utils";

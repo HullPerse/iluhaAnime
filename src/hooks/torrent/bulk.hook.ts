@@ -10,7 +10,11 @@ import {
   useResumeTorrent,
 } from "@/hooks/torrent/queries.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import { BULK_CONCURRENCY, applyBulkAction, splitRecheckOutcome } from "@/lib/core/collection/bulk.utils";
+import {
+  BULK_CONCURRENCY,
+  applyBulkAction,
+  splitRecheckOutcome,
+} from "@/lib/core/collection/bulk.utils";
 import { attemptAllLimit } from "@hullperse/hp_utils/result";
 import { prepareTorrentDownload } from "@/store/download.store";
 import { addNotification } from "@/store/notification.store";

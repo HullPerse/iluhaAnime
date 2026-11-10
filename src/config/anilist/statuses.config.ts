@@ -19,7 +19,11 @@ const StatusesDataSchema = z.object({
   statusTabWidth: z.number(),
   statusShrinkAt: z.number(),
   statusShrinkMinAt: z.number(),
-  statusShrinkClass: z.tuple([z.literal("text-xs"), z.literal("text-[10px]"), z.literal("text-[9px]")]),
+  statusShrinkClass: z.tuple([
+    z.literal("text-xs"),
+    z.literal("text-[10px]"),
+    z.literal("text-[9px]"),
+  ]),
 });
 
 const parsed = StatusesDataSchema.parse(data);

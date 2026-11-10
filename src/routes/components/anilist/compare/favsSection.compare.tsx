@@ -12,7 +12,7 @@ export function FavsSection({
   const { t } = useI18n();
   if (favourites.length === 0) return null;
   return (
-    <div className="border-t border-muted p-2">
+    <div className="border-muted border-t p-2">
       <p className="windows95-text mb-1 text-xs font-bold">
         {t("anilist.compare.common.favs")} ({favourites.length})
       </p>

@@ -44,15 +44,14 @@ function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<stri
       nameHint: "collection-cover",
       proxyUrl,
       previousId,
-    }).then(
-      (img) => {
+    })
+      .then((img) => {
         const url = assetUrl(img.path);
         coverCache.set(remoteUrl, { url, blobId: img.id });
         setCoverBlob(remoteUrl, img.id);
         return url;
-      },
-      () => null
-    )
+      })
+      .catch(() => null)
   );
 }
 

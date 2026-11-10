@@ -1,7 +1,10 @@
 import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
 import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
-import { bindMirroredAtom, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import {
+  bindMirroredAtom,
+  createPersistedStoreContext,
+} from "@/lib/core/persistence/persisted.utils";
 import { isRecord } from "@/lib/core/text/record.utils";
 import type {
   CollectionFilters,
@@ -273,4 +276,3 @@ export const setCollectionViewMode = collection.setViewMode;
 export const setCollectionDisplayMode = collection.setDisplayMode;
 export const requestWizardPrefill = collection.requestWizardPrefill;
 export const consumeWizardPrefill = collection.consumeWizardPrefill;
-

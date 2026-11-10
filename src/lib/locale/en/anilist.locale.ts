@@ -118,6 +118,7 @@ const anilist = {
   "anilist.controls.score.need.int.5": "Whole number from 0 to 5",
   "anilist.controls.score.need.int.3": "Whole number from 0 to 3",
   "anilist.controls.status": "Status:",
+  "anilist.controls.status.required": "Choose a status to save",
   "anilist.details.add.fav": "Add to favourites",
   "anilist.details.all.titles": "All titles",
   "anilist.details.copy.link": "Copy direct link",
@@ -467,7 +468,6 @@ const anilist = {
   "anilist.list.status.PAUSED": "Paused",
   "anilist.list.status.PLANNING": "Planning",
   "anilist.list.status.REPEATING": "Repeating",
-  "anilist.list.status.WATCHING": "In progress",
   "anilist.loading.slow": "Slow load - a proxy may help (Settings > General > AniList proxy)",
 } as const;
 

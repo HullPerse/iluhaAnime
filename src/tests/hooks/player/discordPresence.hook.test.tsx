@@ -176,17 +176,13 @@ describe("usePlayerDiscordPresence", () => {
     playbackAtoms.timePos.set(25);
     playbackAtoms.paused.set(false);
     renderHook(() => usePlayerDiscordPresence());
-    const playing = vi.mocked(discordApi.set).mock.calls[0]?.[1] as
-      | DiscordActivity
-      | undefined;
+    const playing = vi.mocked(discordApi.set).mock.calls[0]?.[1] as DiscordActivity | undefined;
     expect(playing?.startTimestamp).toBeTypeOf("number");
 
     act(() => {
       playbackAtoms.paused.set(true);
     });
-    const paused = vi.mocked(discordApi.set).mock.calls.at(-1)?.[1] as
-      | DiscordActivity
-      | undefined;
+    const paused = vi.mocked(discordApi.set).mock.calls.at(-1)?.[1] as DiscordActivity | undefined;
     expect(paused?.state).toBe("discord.player.paused");
     expect(paused?.startTimestamp).toBeUndefined();
     expect(paused?.endTimestamp).toBeUndefined();
@@ -205,9 +201,7 @@ describe("usePlayerDiscordPresence", () => {
     act(() => {
       playbackAtoms.timePos.set(600);
     });
-    const seeked = vi.mocked(discordApi.set).mock.calls.at(-1)?.[1] as
-      | DiscordActivity
-      | undefined;
+    const seeked = vi.mocked(discordApi.set).mock.calls.at(-1)?.[1] as DiscordActivity | undefined;
     expect(discordApi.set).toHaveBeenCalledTimes(2);
     expect((first?.startTimestamp ?? 0) - (seeked?.startTimestamp ?? 0)).toBeGreaterThan(400_000);
   });

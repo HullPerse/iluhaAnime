@@ -22,9 +22,5 @@
       }
     }
   },
-  "PLAYER_PROFILE_IDS": [
-    "basic",
-    "speed",
-    "quality"
-  ]
+  "PLAYER_PROFILE_IDS": ["basic", "speed", "quality"]
 }

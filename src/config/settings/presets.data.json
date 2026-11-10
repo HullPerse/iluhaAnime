@@ -4,33 +4,21 @@
       "gpuBackend": "gpu",
       "label": "player.preset.lightning",
       "quality": "ultrafast",
-      "shaders": [
-        "clamp",
-        "upscale_cnn_x2_s"
-      ],
+      "shaders": ["clamp", "upscale_cnn_x2_s"],
       "value": "lightning"
     },
     {
       "gpuBackend": "gpu",
       "label": "player.preset.fast",
       "quality": "fast",
-      "shaders": [
-        "clamp",
-        "restore_cnn_s",
-        "upscale_cnn_x2_s"
-      ],
+      "shaders": ["clamp", "restore_cnn_s", "upscale_cnn_x2_s"],
       "value": "fast"
     },
     {
       "gpuBackend": "cpu",
       "label": "player.preset.balanced",
       "quality": "slow",
-      "shaders": [
-        "clamp",
-        "restore_cnn_l",
-        "upscale_cnn_x2_l",
-        "thin_fast"
-      ],
+      "shaders": ["clamp", "restore_cnn_l", "upscale_cnn_x2_l", "thin_fast"],
       "value": "balanced"
     },
     {
@@ -77,12 +65,7 @@
       "gpuBackend": "cpu",
       "label": "player.preset.clean",
       "quality": "fast",
-      "shaders": [
-        "clamp",
-        "restore_cnn_m",
-        "upscale_cnn_x2_m",
-        "thin_fast"
-      ],
+      "shaders": ["clamp", "restore_cnn_m", "upscale_cnn_x2_m", "thin_fast"],
       "value": "clean"
     },
     {

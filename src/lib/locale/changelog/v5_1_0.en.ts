@@ -23,10 +23,8 @@ const changelog510 = {
     "Stream playback errors show a dedicated hint and a retry action",
   "changelog.5_1_0.changed.streaming.details":
     "Streaming detail modal and list improvements for slow connections",
-  "changelog.5_1_0.fixed.player.issues":
-    "Fixed player playback, screenshot and control issues",
-  "changelog.5_1_0.fixed.streaming.details":
-    "Fixed streaming detail and cover loading issues",
+  "changelog.5_1_0.fixed.player.issues": "Fixed player playback, screenshot and control issues",
+  "changelog.5_1_0.fixed.streaming.details": "Fixed streaming detail and cover loading issues",
   "changelog.5_1_0.fixed.proxy": "Fixed proxy connection and authentication issues",
 } as const;
 

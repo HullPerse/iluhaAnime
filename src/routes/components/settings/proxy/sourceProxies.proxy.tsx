@@ -61,7 +61,10 @@ export function SourceProxySettings() {
                   value={current}
                   onChange={(next) => setProxy(source.value, next)}
                   test={() =>
-                    torrentApi.testSourceConnection(source.value, searchProxyUrls[source.value] ?? "")
+                    torrentApi.testSourceConnection(
+                      source.value,
+                      searchProxyUrls[source.value] ?? ""
+                    )
                   }
                   testOkLabel={t("settings.search.proxy.test.ok")}
                   testFailLabel={t("settings.search.proxy.test.fail")}

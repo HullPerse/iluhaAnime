@@ -78,18 +78,10 @@
       "OTHER",
       "UNKNOWN"
     ],
-    "PREQUEL": [
-      "PREQUEL"
-    ],
-    "SEQUEL": [
-      "SEQUEL"
-    ],
-    "SIDE_STORY": [
-      "SIDE_STORY"
-    ],
-    "SPIN_OFF": [
-      "SPIN_OFF"
-    ]
+    "PREQUEL": ["PREQUEL"],
+    "SEQUEL": ["SEQUEL"],
+    "SIDE_STORY": ["SIDE_STORY"],
+    "SPIN_OFF": ["SPIN_OFF"]
   },
   "FILTER_LABELS": {
     "OTHER": "anilist.filter.OTHER",
@@ -141,13 +133,7 @@
     }
   ],
   "NODE_W": 70,
-  "RELATION_FILTERS": [
-    "SEQUEL",
-    "PREQUEL",
-    "SIDE_STORY",
-    "SPIN_OFF",
-    "OTHER"
-  ],
+  "RELATION_FILTERS": ["SEQUEL", "PREQUEL", "SIDE_STORY", "SPIN_OFF", "OTHER"],
   "RELATION_X": {
     "ADAPTATION": 0.5,
     "ALTERNATIVE": 0.5,

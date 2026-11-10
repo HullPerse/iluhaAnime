@@ -79,10 +79,42 @@ fn graphql_error_message(errors: &serde_json::Value) -> String {
     let message = first
         .and_then(|error| error.get("message").and_then(serde_json::Value::as_str))
         .unwrap_or("unknown GraphQL error");
-    match first.and_then(|error| error.get("status").and_then(serde_json::Value::as_i64)) {
+    let base = match first.and_then(|error| error.get("status").and_then(serde_json::Value::as_i64))
+    {
         Some(status) => format!("AniList GraphQL error {status}: {message}"),
         None => format!("AniList GraphQL error: {message}"),
+    };
+    let details = first
+        .and_then(|error| error.get("validation"))
+        .and_then(serde_json::Value::as_object)
+        .map(|fields| {
+            fields
+                .iter()
+                .filter_map(|(field, messages)| {
+                    let text = messages
+                        .as_array()?
+                        .iter()
+                        .filter_map(serde_json::Value::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; ");
+                    if text.is_empty() {
+                        None
+                    } else {
+                        Some(format!("{field}: {text}"))
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("; ")
+        })
+        .filter(|details| !details.is_empty());
+    match details {
+        Some(details) => format!("{base} ({details})"),
+        None => base,
     }
+}
+
+fn should_retry_http(status: reqwest::StatusCode) -> bool {
+    status.is_server_error()
 }
 
 fn now_unix_secs() -> u64 {
@@ -213,23 +245,28 @@ pub async fn graphql_request(
 
         if !resp.status().is_success() {
             let status = resp.status();
-            let snippet: String = resp
-                .text()
-                .await
-                .unwrap_or_default()
-                .chars()
-                .take(300)
-                .collect();
-            last_err = if snippet.is_empty() {
-                format!("AniList HTTP {status}")
-            } else {
-                format!("AniList HTTP {status}: {snippet}")
+            let body = resp.text().await.unwrap_or_default();
+            let snippet: String = body.chars().take(300).collect();
+            last_err = match serde_json::from_str::<serde_json::Value>(&body) {
+                Ok(json)
+                    if json
+                        .get("errors")
+                        .and_then(serde_json::Value::as_array)
+                        .is_some_and(|errors| !errors.is_empty()) =>
+                {
+                    graphql_error_message(&json["errors"])
+                }
+                _ if snippet.is_empty() => format!("AniList HTTP {status}"),
+                _ => format!("AniList HTTP {status}: {snippet}"),
             };
             tracing::warn!(
                 attempt,
                 error = last_err.as_str(),
                 "anilist http error response"
             );
+            if !should_retry_http(status) {
+                return Err(last_err);
+            }
             tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
             continue;
         }
@@ -323,6 +360,29 @@ mod tests {
         assert!(client_for_proxy(Some("socks5://127.0.0.1:10808")).is_ok());
         assert!(client_for_proxy(Some("http://127.0.0.1:7890")).is_ok());
         assert!(client_for_proxy(Some("://bad-url")).is_err());
+    }
+
+    #[test]
+    fn graphql_error_message_unpacks_validation_fields() {
+        let validation = serde_json::json!([{
+            "message": "validation",
+            "status": 400,
+            "validation": { "progress": ["The progress must be an integer."] }
+        }]);
+        assert_eq!(
+            graphql_error_message(&validation),
+            "AniList GraphQL error 400: validation (progress: The progress must be an integer.)"
+        );
+    }
+
+    #[test]
+    fn client_errors_skip_retries() {
+        assert!(!should_retry_http(reqwest::StatusCode::BAD_REQUEST));
+        assert!(!should_retry_http(reqwest::StatusCode::UNAUTHORIZED));
+        assert!(should_retry_http(
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR
+        ));
+        assert!(should_retry_http(reqwest::StatusCode::BAD_GATEWAY));
     }
 
     #[test]

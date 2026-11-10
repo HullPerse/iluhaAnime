@@ -239,12 +239,7 @@ describe("settings signal envelope migrations", () => {
       ],
     ]);
     const { store } = setup(backing);
-    expect(store.atoms.visibleSources.get()).toEqual([
-      "rutracker",
-      "nekobt",
-      "erai-raws",
-      "nyaa",
-    ]);
+    expect(store.atoms.visibleSources.get()).toEqual(["rutracker", "nekobt", "erai-raws", "nyaa"]);
     expect(store.atoms.defaultSearchSource.get()).toBe("rutracker");
   });
 });

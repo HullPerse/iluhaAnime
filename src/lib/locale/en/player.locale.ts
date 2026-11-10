@@ -149,7 +149,8 @@ const player = {
   "player.media.empty": "No file selected",
   "player.media.error.title": "Playback error",
   "player.media.error.hint": "The file could not be started. Check the codec or open another file.",
-  "player.media.error.hint.stream": "The stream could not be loaded. Check the connection or the proxy.",
+  "player.media.error.hint.stream":
+    "The stream could not be loaded. Check the connection or the proxy.",
   "player.media.error.retry": "Retry",
   "player.media.finished.title": "Playback finished",
   "player.media.finished.replay": "Replay",

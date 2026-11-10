@@ -136,12 +136,11 @@ export async function applyProperties(options: Record<string, unknown>): Promise
   const names = Object.keys(options);
   const settled = await Promise.allSettled(
     Object.entries(options).map(([name, value]) =>
-      setMpvProperty(name, value).then(
-        () => undefined,
-        (error: unknown) => {
+      setMpvProperty(name, value)
+        .then(() => undefined)
+        .catch((error: unknown) => {
           throw new Error(`set ${name} failed: ${String(error)}`);
-        }
-      )
+        })
     )
   );
   const failed: string[] = [];

@@ -1,7 +1,5 @@
 {
-  "themeAccentExempt": [
-    "game-boy"
-  ],
+  "themeAccentExempt": ["game-boy"],
   "themeColorKeys": [
     {
       "key": "background",

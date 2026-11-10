@@ -8,7 +8,7 @@ export function QueueItemDepth({ item }: { item: UpscaleQueueItem }) {
   const steps = queueDepthSteps(item, t);
   const failed = item.status === "error";
   return (
-    <div className="flex flex-col gap-0.5 border-t border-muted/30 px-1 py-1">
+    <div className="border-muted/30 flex flex-col gap-0.5 border-t px-1 py-1">
       {steps.map((step) => (
         <div key={step.key} className="flex flex-row items-center gap-1">
           <span className="windows95-text w-24 shrink-0 truncate text-xs" title={step.detail}>

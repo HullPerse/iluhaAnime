@@ -75,4 +75,3 @@ export function readLegacyNotifications(
   const maxId = resolved.items.reduce((max, item) => Math.max(max, item.id), 0);
   return { data: { items: resolved.items, dismissed: resolved.dismissed }, maxId };
 }
-

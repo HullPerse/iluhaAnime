@@ -1,6 +1,9 @@
 import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { THEMES } from "@/config/graphics/themes.config";
-import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import {
+  buildMirrorAtoms,
+  createPersistedStoreContext,
+} from "@/lib/core/persistence/persisted.utils";
 import { isRecord } from "@/lib/core/text/record.utils";
 import type { SignalStoreOptions } from "@/types/store/options";
 import { applyTheme } from "@/lib/core/ui/appearance.utils";
@@ -150,4 +153,3 @@ export const removeCustomTheme = theme.removeCustomTheme;
 export const setTheme = theme.setTheme;
 export const setThemePatch = theme.setThemePatch;
 export const clearThemePatch = theme.clearThemePatch;
-

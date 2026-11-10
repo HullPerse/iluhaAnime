@@ -122,11 +122,7 @@ export class StreamApi {
    * at 64 KiB by Rust. The transport call is explicit because the catalog proxy
    * is not always the route the media plays through.
    */
-  async warm(
-    url: string,
-    headers: Record<string, string>,
-    proxyUrl: string | null
-  ): Promise<void> {
+  async warm(url: string, headers: Record<string, string>, proxyUrl: string | null): Promise<void> {
     await this.transport.call<null>("stream_warm", {
       url,
       headers,

@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
-import {
-  readRememberedRoute,
-  rememberStreamRoute,
-} from "@/lib/player/streamRouteMemory.utils";
+import { readRememberedRoute, rememberStreamRoute } from "@/lib/player/streamRouteMemory.utils";
 
 const PROXY = "socks5://127.0.0.1:10808";
 const KODIK_URL = "https://cdn.example/kodik/720.m3u8";

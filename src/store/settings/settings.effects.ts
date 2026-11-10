@@ -78,4 +78,3 @@ export function applyPatchSideEffects(atoms: SettingsAtoms, partial: Partial<Set
     }
   }
 }
-

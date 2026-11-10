@@ -29,9 +29,7 @@ describe("ThemePicker", () => {
       />
     );
 
-    const headings = screen
-      .getAllByText(/^(Dark|Light|Custom)$/)
-      .map((node) => node.textContent);
+    const headings = screen.getAllByText(/^(Dark|Light|Custom)$/).map((node) => node.textContent);
 
     expect(headings).toEqual([
       translate("en", "settings.theme.mode.dark"),

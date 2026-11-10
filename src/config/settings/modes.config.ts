@@ -28,4 +28,7 @@ export const PLAYER_MODE_IDS = keysOf(PLAYER_MODES);
 export const PLAYER_CABINETS = parsed.playerCabinets as Record<PlayerCabinetId, TranslationKey>;
 export const PLAYER_CABINET_IDS = keysOf(PLAYER_CABINETS);
 export const CRT_CURVATURES = parsed.crtCurvatures as readonly CrtCurvature[];
-export const CRT_CURVATURE_LABELS = parsed.crtCurvatureLabels as Record<CrtCurvature, TranslationKey>;
+export const CRT_CURVATURE_LABELS = parsed.crtCurvatureLabels as Record<
+  CrtCurvature,
+  TranslationKey
+>;

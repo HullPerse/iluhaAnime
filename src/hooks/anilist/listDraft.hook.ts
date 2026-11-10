@@ -4,7 +4,7 @@ import { flagOrFalse, numText, textOrEmpty } from "@/lib/anilist/listEntry.utils
 import type { ListEntryDraft } from "@/types/anilist/listEntry";
 
 export function useListDraft(animeId: number, listEntry: ListEntryDraft | undefined) {
-  const [editStatus, setEditStatus] = useState<string>(listEntry?.list_status ?? "PLANNING");
+  const [editStatus, setEditStatus] = useState<string>(listEntry?.list_status ?? "");
   const [editProgress, setEditProgress] = useState<string>(numText(listEntry?.progress));
   const [editScore, setEditScore] = useState<string>(numText(listEntry?.score));
   const [editNotes, setEditNotes] = useState<string>(textOrEmpty(listEntry?.notes));
@@ -24,7 +24,7 @@ export function useListDraft(animeId: number, listEntry: ListEntryDraft | undefi
     if (syncedAnimeId.current === animeId) return;
     syncedAnimeId.current = animeId;
     hydratedEntry.current = listEntry !== undefined;
-    setEditStatus(listEntry?.list_status ?? "PLANNING");
+    setEditStatus(listEntry?.list_status ?? "");
     setEditProgress(numText(listEntry?.progress));
     setEditScore(numText(listEntry?.score));
     setEditNotes(textOrEmpty(listEntry?.notes));
@@ -40,7 +40,7 @@ export function useListDraft(animeId: number, listEntry: ListEntryDraft | undefi
   useEffect(() => {
     if (hydratedEntry.current || listEntry === undefined) return;
     hydratedEntry.current = true;
-    setEditStatus(listEntry.list_status ?? "PLANNING");
+    setEditStatus(listEntry.list_status ?? "");
     setEditProgress(numText(listEntry.progress));
     setEditScore(numText(listEntry.score));
     setEditNotes(textOrEmpty(listEntry.notes));

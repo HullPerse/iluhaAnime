@@ -28,7 +28,14 @@ import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
 import { ignore } from "@/lib/core/shared/promise.utils";
-import { canRedo, canUndo, commit, createHistory, redo, undo } from "@/lib/core/graphics/annotation.utils";
+import {
+  canRedo,
+  canUndo,
+  commit,
+  createHistory,
+  redo,
+  undo,
+} from "@/lib/core/graphics/annotation.utils";
 import { fullCrop, isSquare, NO_PAN } from "@/lib/core/graphics/crop.utils";
 import { canSaveScreenshot, defaultScreenshotName } from "@/lib/core/graphics/screenshot.utils";
 import { useCell } from "@hullperse/hp_utils/react";

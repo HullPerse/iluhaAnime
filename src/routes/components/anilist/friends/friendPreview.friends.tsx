@@ -86,11 +86,11 @@ export function FriendPreview({
         </Button>
       </div>
       {profile.about && (
-        <p className="windows95-text border-t border-muted p-2 text-xs whitespace-pre-wrap">
+        <p className="windows95-text border-muted border-t p-2 text-xs whitespace-pre-wrap">
           {profile.about}
         </p>
       )}
-      <div className="border-t border-muted p-2">
+      <div className="border-muted border-t p-2">
         <FriendActivityFeed friendId={profile.id} />
       </div>
     </div>

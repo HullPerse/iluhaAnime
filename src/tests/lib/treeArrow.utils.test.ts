@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { relativeRowNumber, resolveTreeArrow, resolveTreeMove } from "@/lib/core/ui/treeArrow.utils";
+import {
+  relativeRowNumber,
+  resolveTreeArrow,
+  resolveTreeMove,
+} from "@/lib/core/ui/treeArrow.utils";
 import type { TreeRow } from "@/types/core/treeArrow";
 
 function folder(path: string, depth: number, expanded: boolean): TreeRow {

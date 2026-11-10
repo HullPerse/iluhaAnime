@@ -17,6 +17,7 @@ import changelog500 from "@/lib/locale/changelog/v5_0_0.ru";
 import changelog510 from "@/lib/locale/changelog/v5_1_0.ru";
 import changelog512 from "@/lib/locale/changelog/v5_1_2.ru";
 import changelog514 from "@/lib/locale/changelog/v5_1_4.ru";
+import changelog516 from "@/lib/locale/changelog/v5_1_6.ru";
 import anilist from "@/lib/locale/ru/anilist.locale";
 import collection from "@/lib/locale/ru/collection.locale";
 import common from "@/lib/locale/ru/common.locale";
@@ -32,6 +33,7 @@ import updater from "@/lib/locale/ru/updater.locale";
 
 const ru = {
   ...anilist,
+  ...changelog516,
   ...changelog514,
   ...changelog512,
   ...changelog510,

@@ -43,9 +43,7 @@ function readLegacyMigrated(
   return { data: { ...migrated }, schemaVersion: SETTINGS_SCHEMA_VERSION };
 }
 
-export function createSettingsSignalStore(
-  options: SignalStoreOptions = {}
-): SettingsSignalStore {
+export function createSettingsSignalStore(options: SignalStoreOptions = {}): SettingsSignalStore {
   const { store, persistor, getStorage, finishAdopt } = createPersistedStoreContext({
     storeName: "settings",
     short: "settings",
@@ -138,7 +136,6 @@ const INITIAL_SETTINGS_SNAPSHOT: SettingsData = getSettingsSnapshot();
 export function resetSettingsAtoms(): void {
   applyAtomValues(settingsAtoms, INITIAL_SETTINGS_SNAPSHOT);
 }
-
 
 settings.rehydrate();
 applyUiPreferences(settingsAtoms.retroStyle.get(), settingsAtoms.uiDensity.get());

@@ -124,6 +124,7 @@ const anilist = {
   "anilist.controls.score.need.int.5": "Нужно целое 0-5",
   "anilist.controls.score.need.int.3": "Нужно целое 0-3",
   "anilist.controls.status": "Статус:",
+  "anilist.controls.status.required": "Выберите статус, чтобы сохранить",
   "anilist.details.add.fav": "Добавить в избранное",
   "anilist.details.all.titles": "Все названия",
   "anilist.details.copy.link": "Скопировать прямую ссылку",
@@ -478,7 +479,6 @@ const anilist = {
   "anilist.list.status.PAUSED": "На паузе",
   "anilist.list.status.PLANNING": "Запланировано",
   "anilist.list.status.REPEATING": "Пересматриваю",
-  "anilist.list.status.WATCHING": "В процессе",
   "anilist.loading.slow":
     "Загрузка затянулась - может помочь прокси (Настройки > Общие > Прокси AniList)",
 } as const;

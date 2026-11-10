@@ -225,37 +225,20 @@
   "defaultFilters": {
     "adult": false,
     "country": "",
-    "episodes": [
-      0,
-      0
-    ],
+    "episodes": [0, 0],
     "format": "",
     "genres": [],
-    "score": [
-      0,
-      0
-    ],
+    "score": [0, 0],
     "season": "",
     "seasonYear": null,
     "sort": "",
     "source": "",
     "status": "",
     "tags": [],
-    "year": [
-      0,
-      0
-    ]
+    "year": [0, 0]
   },
   "DETAIL_TAG_COUNT": 15,
-  "FORMATS": [
-    "TV",
-    "TV_SHORT",
-    "MOVIE",
-    "OVA",
-    "ONA",
-    "SPECIAL",
-    "MUSIC"
-  ],
+  "FORMATS": ["TV", "TV_SHORT", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC"],
   "NSFW_TAG_SET": [
     "Ahegao",
     "Anal Sex",
@@ -287,17 +270,6 @@
     "Virginity",
     "Voyeur"
   ],
-  "SEASONS": [
-    "WINTER",
-    "SPRING",
-    "SUMMER",
-    "FALL"
-  ],
-  "STATUSES": [
-    "FINISHED",
-    "RELEASING",
-    "NOT_YET_RELEASED",
-    "CANCELLED",
-    "HIATUS"
-  ]
+  "SEASONS": ["WINTER", "SPRING", "SUMMER", "FALL"],
+  "STATUSES": ["FINISHED", "RELEASING", "NOT_YET_RELEASED", "CANCELLED", "HIATUS"]
 }

@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { translate } from "@/lib/locale/i18n.utils";
 import { uniqueById } from "@hullperse/hp_utils/array";
-import { attempt, attemptSequence, attemptSync, toError, withFallback } from "@hullperse/hp_utils/attempt";
+import {
+  attempt,
+  attemptSequence,
+  attemptSync,
+  toError,
+  withFallback,
+} from "@hullperse/hp_utils/attempt";
 import { formatBytes, formatRate } from "@hullperse/hp_utils/bytes";
 import {
   formatColor,
@@ -183,7 +189,9 @@ describe("utils/attempt", () => {
 
     it("normalizes a non-Error rejection", async () => {
       const plain = "nope" as unknown as Error;
-      await expect(attemptSequence([() => Promise.reject(plain)])).resolves.toEqual(new Error("nope"));
+      await expect(attemptSequence([() => Promise.reject(plain)])).resolves.toEqual(
+        new Error("nope")
+      );
     });
 
     it("resolves null for an empty step list", async () => {

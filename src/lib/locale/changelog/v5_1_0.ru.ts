@@ -3,8 +3,7 @@ const changelog510 = {
     "Баннер офлайн-состояния: какие вкладки работают без сети, а какие требуют интернет, плюс состояние деградации сети с повторной проверкой",
   "changelog.5_1_0.added.settings.proxy_test":
     "Тест подключения прокси в настройках с прогрессом, отменой и повторной проверкой",
-  "changelog.5_1_0.added.settings.cache_stats":
-    "Хитрейты кэша AniList и ffprobe в сводке настроек",
+  "changelog.5_1_0.added.settings.cache_stats": "Хитрейты кэша AniList и ffprobe в сводке настроек",
   "changelog.5_1_0.added.settings.sidecar_tracks":
     "Автозагрузка подходящих сайдкар-треков и скан подпапок для них",
   "changelog.5_1_0.added.anilist.local_filter":
@@ -25,8 +24,7 @@ const changelog510 = {
     "Улучшения деталей и списка стримов для медленного соединения",
   "changelog.5_1_0.fixed.player.issues":
     "Исправлены проблемы воспроизведения, скриншотов и управления плеером",
-  "changelog.5_1_0.fixed.streaming.details":
-    "Исправлены детали стрима и загрузка обложек",
+  "changelog.5_1_0.fixed.streaming.details": "Исправлены детали стрима и загрузка обложек",
   "changelog.5_1_0.fixed.proxy": "Исправлены подключение и авторизация прокси",
 } as const;
 

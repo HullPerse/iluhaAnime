@@ -2,7 +2,11 @@ import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/core/collection/bulk.utils";
+import {
+  applyBulkAction,
+  pruneSelection,
+  splitRecheckOutcome,
+} from "@/lib/core/collection/bulk.utils";
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,

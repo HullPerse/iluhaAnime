@@ -81,9 +81,7 @@ describe("Keyboard shortcuts", () => {
     for (const digit of DIGIT_KEYS) {
       onAction.mockClear();
       pressKey(`Digit${digit}`, { shiftKey: true });
-      expect(onAction.mock.calls.at(-1)?.[0], `Shift+Digit${digit}`).toBe(
-        `seekPercent${digit}`
-      );
+      expect(onAction.mock.calls.at(-1)?.[0], `Shift+Digit${digit}`).toBe(`seekPercent${digit}`);
     }
   });
 

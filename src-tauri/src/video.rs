@@ -189,7 +189,8 @@ pub fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
     // Cached on first use instead of at startup: the first caller pays for one
     // filesystem probe instead of every boot. Downloading or deleting the
     // bundled copy drops the cache.
-    *crate::sync_utils::write_or_recover(&CACHED_FFMPEG_PATH, "ffmpeg path") = Some(resolved.clone());
+    *crate::sync_utils::write_or_recover(&CACHED_FFMPEG_PATH, "ffmpeg path") =
+        Some(resolved.clone());
     resolved
 }
 

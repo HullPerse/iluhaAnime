@@ -7,7 +7,11 @@ import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useThemeComponents } from "@/hooks/themeComponents.hook";
-import { resolveCardCover, sameCardVisual, uncachedCoverSource } from "@/lib/core/player/card.utils";
+import {
+  resolveCardCover,
+  sameCardVisual,
+  uncachedCoverSource,
+} from "@/lib/core/player/card.utils";
 import { statusColorOf } from "@/lib/core/anilist/status.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import type { CollectionCardProps } from "@/types/anilist/collection";

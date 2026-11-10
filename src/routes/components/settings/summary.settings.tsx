@@ -18,7 +18,12 @@ import { useUpdateCheck } from "@/hooks/update.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { formatBackupDate } from "@/lib/core/system/backup.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { attempt, attemptSequence, reportBackgroundError, withFallback } from "@hullperse/hp_utils/attempt";
+import {
+  attempt,
+  attemptSequence,
+  reportBackgroundError,
+  withFallback,
+} from "@hullperse/hp_utils/attempt";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { cacheRate, pickDatabase, backupSize } from "@/lib/ui/summarySettings.utils";
 import { showError, showInfo, showWarning } from "@/lib/core/ui/notification.utils";

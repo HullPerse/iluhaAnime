@@ -106,16 +106,7 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
       timerRef.current?.cancel();
       timerRef.current = null;
     };
-  }, [
-    audioTrack?.id,
-    subTrack?.id,
-    subOffset,
-    audioOffset,
-    speed,
-    volume,
-    muted,
-    alwaysOnTop,
-  ]);
+  }, [audioTrack?.id, subTrack?.id, subOffset, audioOffset, speed, volume, muted, alwaysOnTop]);
 
   if (!visible || !path) return null;
 

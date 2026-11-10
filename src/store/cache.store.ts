@@ -1,5 +1,8 @@
 import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
-import { buildMirrorAtoms, createPersistedStoreContext } from "@/lib/core/persistence/persisted.utils";
+import {
+  buildMirrorAtoms,
+  createPersistedStoreContext,
+} from "@/lib/core/persistence/persisted.utils";
 import { isRecord } from "@/lib/core/text/record.utils";
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
@@ -210,4 +213,3 @@ export const setFolderTrees = cache.setFolderTrees;
 export const setLastSaveDir = cache.setLastSaveDir;
 export const setSeedPreference = cache.setSeedPreference;
 export const removeSeedPreference = cache.removeSeedPreference;
-

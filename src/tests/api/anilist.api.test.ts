@@ -81,6 +81,69 @@ describe("AnilistApi", () => {
     });
   });
 
+  it("drops null numeric fields that AniList rejects", async () => {
+    const { calls, transport } = fakeTransport(() => undefined);
+    const api = new AnilistApi({ transport });
+
+    await api.saveEntry({
+      mediaId: 21,
+      status: "PLANNING",
+      progress: null,
+      score: null,
+      notes: null,
+      repeat: null,
+      customLists: [],
+    });
+
+    const args = calls[0]?.args ?? {};
+    expect(args).toMatchObject({
+      mediaId: 21,
+      status: "PLANNING",
+      notes: null,
+      customLists: [],
+    });
+    expect(args).not.toHaveProperty("progress");
+    expect(args).not.toHaveProperty("score");
+    expect(args).not.toHaveProperty("repeat");
+  });
+
+  it("sends every field of a new entry, including explicit zeroes", async () => {
+    const { calls, transport } = fakeTransport(() => undefined);
+    const api = new AnilistApi({ transport });
+
+    await api.saveEntry({
+      mediaId: 21,
+      status: "PLANNING",
+      progress: 0,
+      score: 0,
+      notes: "",
+      repeat: 0,
+      private: false,
+      hiddenFromStatusLists: false,
+      startedAt: "2023-05-02",
+      completedAt: "2024-03-09",
+      customLists: [],
+    });
+
+    expect(calls[0]).toEqual({
+      command: "save_anilist_entry",
+      args: {
+        media_id: 21,
+        mediaId: 21,
+        status: "PLANNING",
+        progress: 0,
+        score: 0,
+        notes: "",
+        repeat: 0,
+        private: false,
+        hiddenFromStatusLists: false,
+        startedAt: "2023-05-02",
+        completedAt: "2024-03-09",
+        customLists: [],
+      },
+    });
+  });
+
   it("forwards repeat, privacy flags and dates when saving an entry", async () => {
     const { calls, transport } = fakeTransport(() => undefined);
     const api = new AnilistApi({ transport });

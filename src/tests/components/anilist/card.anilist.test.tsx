@@ -183,7 +183,7 @@ describe("ProgressStepper", () => {
       });
       expect(vi.mocked(invoke)).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID, progress: 21, status: "COMPLETED" })
+        expect.objectContaining({ mediaId: MEDIA_ID, progress: 21, status: "COMPLETED" })
       );
       expect(screen.getByLabelText("Progress saved")).toBeTruthy();
       await act(async () => {
@@ -204,7 +204,7 @@ describe("ProgressStepper", () => {
     await waitFor(() =>
       expect(vi.mocked(invoke)).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID, progress: 21 })
+        expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 })
       )
     );
   });
@@ -270,7 +270,7 @@ describe("ProgressStepper coalescing", () => {
       });
       const calls = saveCalls(vi.mocked(invoke));
       expect(calls.length).toBe(1);
-      expect(calls[0]?.[1]).toEqual(expect.objectContaining({ media_id: MEDIA_ID, progress: 23 }));
+      expect(calls[0]?.[1]).toEqual(expect.objectContaining({ mediaId: MEDIA_ID, progress: 23 }));
       const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
         "anilist_data",
       ]);
@@ -398,7 +398,7 @@ describe("ProgressStepper coalescing", () => {
       });
       const calls = saveCalls(vi.mocked(invoke));
       expect(calls.length).toBe(2);
-      expect(calls[1]?.[1]).toEqual(expect.objectContaining({ media_id: MEDIA_ID, progress: 21 }));
+      expect(calls[1]?.[1]).toEqual(expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 }));
       expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
     } finally {
       vi.useRealTimers();

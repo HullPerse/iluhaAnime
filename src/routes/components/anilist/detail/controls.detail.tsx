@@ -13,6 +13,7 @@ import { useListDraft } from "@/hooks/anilist/listDraft.hook";
 import {
   buildSaveValues,
   datesInvalid,
+  insertListEntry,
   patchListEntry,
   readListStatus,
   reconcileSavedEntry,
@@ -120,7 +121,11 @@ function AniListActionControls({
     setSaveError("");
     const previousStatus = readListStatus(queryClient, anime.id);
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-    if (previousStatus !== null) patchListEntry(queryClient, anime.id, values);
+    if (previousStatus !== null) {
+      patchListEntry(queryClient, anime.id, values);
+    } else {
+      insertListEntry(queryClient, anime, values);
+    }
     const startedAt = performance.now();
     const [saved, error] = await attempt(
       anilistApi.saveEntry({
@@ -138,7 +143,7 @@ function AniListActionControls({
       })
     );
     if (error) {
-      if (previousStatus !== null) queryClient.setQueryData(queryKeys.anilistData(), previous);
+      if (previous !== undefined) queryClient.setQueryData(queryKeys.anilistData(), previous);
       const message = error instanceof Error ? error.message : String(error);
       const reason = message.length > 300 ? `${message.slice(0, 300)}...` : message;
       console.warn("anilist.save.failed", {

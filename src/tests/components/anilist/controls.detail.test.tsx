@@ -1,6 +1,6 @@
 import { mockInvoke } from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -126,9 +126,15 @@ const cachedEntry = (client: QueryClient) => {
   const data = client.getQueryData(["anilist_data"]);
   if (!data) return null;
   const typed = data as {
-    lists: { entries: { progress: number | null; list_status: string }[] }[];
+    lists: {
+      entries: { media: { id: number }; progress: number | null; list_status: string }[];
+    }[];
   };
-  return typed.lists[0]?.entries[0] ?? null;
+  for (const list of typed.lists) {
+    const found = list.entries.find((entry) => entry.media.id === MEDIA_ID);
+    if (found) return found;
+  }
+  return null;
 };
 
 afterEach(() => cleanup());
@@ -183,7 +189,7 @@ describe("AniListActionControls score formats", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID, score: 0 })
+        expect.objectContaining({ mediaId: MEDIA_ID, score: 0 })
       )
     );
   });
@@ -206,7 +212,7 @@ describe("AniListActionControls score formats", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID, score: 5.5 })
+        expect.objectContaining({ mediaId: MEDIA_ID, score: 5.5 })
       )
     );
   });
@@ -225,7 +231,7 @@ describe("AniListActionControls score formats", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID, score: 85 })
+        expect.objectContaining({ mediaId: MEDIA_ID, score: 85 })
       )
     );
   });
@@ -251,7 +257,7 @@ describe("AniListActionControls save diagnostics", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID })
+        expect.objectContaining({ mediaId: MEDIA_ID })
       )
     );
     expect(screen.queryByText(/Failed to save/u)).toBeNull();
@@ -297,14 +303,43 @@ describe("AniListActionControls server response", () => {
     expect(saveButton().disabled).toBe(true);
   });
 
-  it("refetches when the save creates the entry", async () => {
+  it("shows a new entry before the save resolves and refetches afterwards", async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();
-    renderEditable(null, { id: 1, status: "CURRENT", progress: 1, customLists: [] }, onSaved);
+    let resolveSave: ((value: unknown) => void) | undefined;
+    const client = new QueryClient();
+    client.setQueryData(["anilist_data"], {
+      user: { id: 7 },
+      lists: [{ name: "Planning", entries: [] }],
+      favourites: [],
+      people: { staff: [], characters: [] },
+    });
+    mockInvoke.mockImplementation((command: unknown) =>
+      command === "save_anilist_entry"
+        ? new Promise((resolve) => {
+            resolveSave = resolve;
+          })
+        : Promise.resolve(null)
+    );
+    render(
+      <QueryClientProvider client={client}>
+        <AniListActionControls
+          anime={makeAnime()}
+          scoreFormat="POINT_10"
+          isLoggedIn
+          onSaved={onSaved}
+        />
+      </QueryClientProvider>
+    );
     await user.click(screen.getByRole("combobox", { name: "Status:" }));
     await user.click(await screen.findByRole("option", { name: "Planning" }));
     expect(screen.queryByText("Choose a status to save")).toBeNull();
-    await user.click(saveButton());
+    fireEvent.click(saveButton());
+    expect(cachedEntry(client)?.list_status).toBe("PLANNING");
+    await act(async () => {
+      resolveSave?.({ id: 1, status: "PLANNING", progress: null, customLists: [] });
+      await Promise.resolve();
+    });
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
   });
 });
@@ -322,7 +357,7 @@ describe("AniListActionControls entry fields", () => {
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
         expect.objectContaining({
-          media_id: MEDIA_ID,
+          mediaId: MEDIA_ID,
           repeat: 2,
           startedAt: "2023-05-02",
           completedAt: "2024-03-09",
@@ -349,7 +384,7 @@ describe("AniListActionControls entry fields", () => {
       expect(mockInvoke).toHaveBeenCalledWith("save_anilist_entry", expect.anything())
     );
     const call = mockInvoke.mock.calls.find((args) => args[0] === "save_anilist_entry");
-    expect(call?.[1]).toMatchObject({ media_id: MEDIA_ID });
+    expect(call?.[1]).toMatchObject({ mediaId: MEDIA_ID });
     expect(call?.[1] as Record<string, unknown>).not.toHaveProperty("private");
     expect(call?.[1] as Record<string, unknown>).not.toHaveProperty("hiddenFromStatusLists");
   });
@@ -389,7 +424,7 @@ describe("AniListActionControls delete", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "delete_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID, user_id: 7 })
+        expect.objectContaining({ mediaId: MEDIA_ID, userId: 7 })
       )
     );
   });

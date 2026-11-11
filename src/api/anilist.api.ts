@@ -306,7 +306,7 @@ export class AnilistApi {
 
   async saveEntry(input: SaveAnilistEntryInput): Promise<AniSavedEntry> {
     const { mediaId, ...rest } = input;
-    const args: Record<string, unknown> = { media_id: mediaId };
+    const args: Record<string, unknown> = { mediaId };
     for (const [key, value] of Object.entries(rest)) {
       if (value === undefined) continue;
       if (value === null && OMIT_WHEN_NULL.has(key)) continue;
@@ -319,8 +319,8 @@ export class AnilistApi {
 
   async deleteEntry(mediaId: number, userId: number): Promise<boolean> {
     const deleted = await this.call<boolean>("delete_anilist_entry", {
-      media_id: mediaId,
-      user_id: userId,
+      mediaId,
+      userId,
     });
     assertSchema(deleted, AniBooleanSchema);
     return deleted;

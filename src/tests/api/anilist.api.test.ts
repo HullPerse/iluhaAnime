@@ -83,7 +83,7 @@ describe("AnilistApi", () => {
     });
   });
 
-  it("sends the backend's snake_case id when saving an entry", async () => {
+  it("sends the backend's camelCase id when saving an entry", async () => {
     const { calls, transport } = fakeTransport(() => SAVED_ENTRY);
     const api = new AnilistApi({ transport });
 
@@ -91,7 +91,7 @@ describe("AnilistApi", () => {
 
     expect(calls[0]).toMatchObject({
       command: "save_anilist_entry",
-      args: { media_id: 21, status: "CURRENT", progress: 3 },
+      args: { mediaId: 21, status: "CURRENT", progress: 3 },
     });
   });
 
@@ -111,7 +111,7 @@ describe("AnilistApi", () => {
 
     const args = calls[0]?.args ?? {};
     expect(args).toMatchObject({
-      media_id: 21,
+      mediaId: 21,
       status: "PLANNING",
       notes: null,
       customLists: [],
@@ -142,7 +142,7 @@ describe("AnilistApi", () => {
     expect(calls[0]).toEqual({
       command: "save_anilist_entry",
       args: {
-        media_id: 21,
+        mediaId: 21,
         status: "PLANNING",
         progress: 0,
         score: 0,
@@ -177,7 +177,7 @@ describe("AnilistApi", () => {
     expect(calls[0]).toMatchObject({
       command: "save_anilist_entry",
       args: {
-        media_id: 21,
+        mediaId: 21,
         repeat: 2,
         private: true,
         hiddenFromStatusLists: false,
@@ -187,7 +187,7 @@ describe("AnilistApi", () => {
     });
   });
 
-  it("sends the backend's snake_case ids when deleting an entry", async () => {
+  it("sends camelCase ids when deleting an entry", async () => {
     const { calls, transport } = fakeTransport(() => true);
     const api = new AnilistApi({ transport });
 
@@ -195,7 +195,7 @@ describe("AnilistApi", () => {
 
     expect(calls[0]).toMatchObject({
       command: "delete_anilist_entry",
-      args: { media_id: 21, user_id: 7 },
+      args: { mediaId: 21, userId: 7 },
     });
   });
 

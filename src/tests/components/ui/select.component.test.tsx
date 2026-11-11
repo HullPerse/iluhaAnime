@@ -83,4 +83,17 @@ describe("searchable Select Escape ladder", () => {
     expect(screen.queryByRole("option", { name: "Alpha" })).toBeNull();
     expect(screen.getByRole("option", { name: "Beta" })).not.toBeNull();
   });
+
+  it("marks the selected option and only the selected option in the list", async () => {
+    openSearchable();
+    await screen.findByRole("listbox");
+
+    const selected = screen.getByRole("option", { name: "Alpha" });
+    expect(selected.getAttribute("aria-selected")).toBe("true");
+    expect(selected.querySelector("svg")).not.toBeNull();
+
+    const other = screen.getByRole("option", { name: "Beta" });
+    expect(other.getAttribute("aria-selected")).toBe("false");
+    expect(other.querySelector("svg")).toBeNull();
+  });
 });

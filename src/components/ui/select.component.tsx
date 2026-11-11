@@ -1,7 +1,7 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { cn } from "cn";
-import { ChevronDown } from "lucide-react";
-import { createContext, useContext, useState, useMemo, useRef } from "react";
+import { Check, ChevronDown } from "lucide-react";
+import { createContext, useContext, useEffect, useState, useMemo, useRef } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
@@ -31,9 +31,12 @@ function Select<T extends string = string>({
   const portalContainer = useContext(SelectPortalContainerContext);
 
   const showSearch = searchable ?? options.length > 8;
-  const selectedOption = options.find((o) => o.value === value);
-  const items = options.map((o) => ({ label: o.label, value: o.value }));
+  const selectedOption = useMemo(
+    () => options.find((option) => option.value === value),
+    [options, value]
+  );
 
+  const items = useMemo(() => options.map(({ label, value }) => ({ label, value })), [options]);
   const filteredOptions = useMemo(() => {
     if (!showSearch || !search) return options;
     const q = search.toLowerCase();
@@ -42,9 +45,36 @@ function Select<T extends string = string>({
     );
   }, [options, search, showSearch]);
 
+  const scrollToSelected = () => {
+    const list = listRef.current;
+    const item = list?.querySelector<HTMLElement>("[data-selected]");
+    if (!list || !item) return;
+    const listRect = list.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    list.scrollTop += itemRect.top - listRect.top - (listRect.height - itemRect.height) / 2;
+  };
+
+  useEffect(() => {
+    if (!search) return;
+    const task = scheduleTask("raf", 0, () => {
+      if (listRef.current) listRef.current.scrollTop = 0;
+    });
+    return () => task.cancel();
+  }, [search]);
+
+  const scheduleScrollToSelected = () => {
+    scheduleTask("raf", 0, () => {
+      if (showSearch) searchInputRef.current?.focus();
+      scrollToSelected();
+    });
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) setSearch("");
-    else if (showSearch) scheduleTask("raf", 0, () => searchInputRef.current?.focus());
+    if (!nextOpen) {
+      setSearch("");
+      return;
+    }
+    scheduleScrollToSelected();
   };
 
   const handleSearchKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -95,6 +125,7 @@ function Select<T extends string = string>({
           side="bottom"
           align="start"
           sideOffset={4}
+          alignItemWithTrigger={false}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             if (e.key === "Escape") e.preventDefault();
@@ -121,17 +152,20 @@ function Select<T extends string = string>({
             <BaseSelect.List
               ref={listRef}
               tabIndex={-1}
-              className="max-h-48 flex-1 overflow-y-auto overscroll-contain outline-0"
+              className="max-h-48 flex-1 overflow-y-auto overscroll-contain scroll-auto outline-0 [overflow-anchor:none]"
             >
               {filteredOptions.map((o, i) => (
                 <BaseSelect.Item
                   key={o.value}
                   value={o.value}
-                  className="windows95-text windows95-border data-highlighted:bg-highlight text-text cursor-pointer truncate px-1 py-0.5 data-highlighted:text-white"
+                  className="windows95-text windows95-border text-text data-highlighted:bg-highlight data-selected:bg-primary/70 hover:text-title-text data-highlighted:text-title-text flex cursor-pointer items-center gap-1 px-1 py-0.5 data-selected:font-bold"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <BaseSelect.ItemText>
+                  <span aria-hidden className="flex w-2.5 shrink-0 justify-center">
+                    {o.value === value && <Check className="size-2.5" />}
+                  </span>
+                  <BaseSelect.ItemText className="min-w-0 flex-1 truncate" style={o.style}>
                     {indexed ? `${i + 1}. ${o.label}` : o.label}
                   </BaseSelect.ItemText>
                 </BaseSelect.Item>

@@ -1,4 +1,7 @@
 const news = {
+  "news.anilist": "Детали в AniList",
+  "news.anilist.error": "Не удалось получить данные аниме",
+  "news.anilist.missing": "У этого аниме нет ссылки на MyAnimeList",
   "news.attachments": "Вложения",
   "news.empty": "Новостей нет",
   "news.error.badShape": "Shikimori вернул неожиданный ответ",

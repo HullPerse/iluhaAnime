@@ -739,6 +739,14 @@ const ANIME_BY_IDS_QUERY_TEMPLATE: &str = r"
                     }
                 ";
 
+const ANIME_ID_BY_MAL_QUERY: &str = r"
+            query ($idMal: Int) {
+                Media(idMal: $idMal, type: ANIME) {
+                    id
+                }
+            }
+        ";
+
 #[must_use]
 pub fn anime_by_id_query() -> String {
     with_selection(ANIME_BY_ID_QUERY_TEMPLATE, &media_screen_selection())
@@ -1109,6 +1117,16 @@ pub async fn get_anime_by_id(
     Ok(parse_animedia(m))
 }
 
+/// Resolves a MyAnimeList id to the AniList id; `None` when AniList has no such title.
+pub async fn anime_id_by_mal(mal_id: u64, proxy: Option<String>) -> Result<Option<u64>, String> {
+    let body = serde_json::json!({
+        "query": ANIME_ID_BY_MAL_QUERY,
+        "variables": { "idMal": mal_id }
+    });
+    let json = graphql_request(body, None, proxy.as_deref()).await?;
+    Ok(json["data"]["Media"]["id"].as_u64())
+}
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_anime_trailer(
@@ -1237,6 +1255,13 @@ mod tests {
         assert!(query.contains("description(asHtml: false)"));
         assert!(!query.contains("trailer { id site }"));
         assert!(!query.contains("relations {"));
+    }
+
+    #[test]
+    fn anime_id_by_mal_query_asks_only_for_the_id() {
+        let query = ANIME_ID_BY_MAL_QUERY;
+        assert!(query.contains("Media(idMal: $idMal, type: ANIME)"));
+        assert!(query.contains("id"));
     }
 
     #[test]

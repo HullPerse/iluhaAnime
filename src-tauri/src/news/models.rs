@@ -57,6 +57,9 @@ pub struct NewsItem {
     pub site_url: String,
     pub blocks: Vec<NewsBlock>,
     pub attachments: Vec<NewsAttachment>,
+    /// Shikimori anime id when the post is attached to one; used to resolve AniList.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub linked_anime_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

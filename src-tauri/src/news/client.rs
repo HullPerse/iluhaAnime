@@ -9,10 +9,13 @@ use crate::news::parse::{parse_attachments, parse_blocks};
 use crate::scrapers::clients::read_body_capped;
 
 const API_URL: &str = "https://shikimori.io/api/topics";
+const GRAPHQL_URL: &str = "https://shikimori.io/api/graphql";
 const SITE_URL: &str = "https://shikimori.io/forum/news";
 const PAGE_SIZE: usize = 30;
 const CACHE_TTL: Duration = Duration::from_secs(600);
+const MAL_CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
 const MAX_CACHED_PAGES: usize = 10;
+const MAX_CACHED_MAL: usize = 512;
 const MAX_BODY_BYTES: usize = 8 * 1024 * 1024;
 const REQUEST_TIMEOUT_SECS: u64 = 20;
 
@@ -25,6 +28,43 @@ struct RawTopic {
     #[serde(default)]
     html_footer: String,
     created_at: String,
+    #[serde(default)]
+    linked_id: Option<i64>,
+    #[serde(default)]
+    linked_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawExternalLink {
+    kind: String,
+    url: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawAnimeLinks {
+    #[serde(default)]
+    external_links: Vec<RawExternalLink>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawGraphQlData {
+    #[serde(default)]
+    animes: Vec<RawAnimeLinks>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawGraphQlError {
+    #[serde(default)]
+    message: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawGraphQlResponse {
+    #[serde(default)]
+    data: Option<RawGraphQlData>,
+    #[serde(default)]
+    errors: Vec<RawGraphQlError>,
 }
 
 struct CachedPage {
@@ -32,7 +72,15 @@ struct CachedPage {
     page: NewsPage,
 }
 
+#[derive(Clone, Copy)]
+struct CachedMalId {
+    stored_at: Instant,
+    mal_id: Option<u64>,
+}
+
 static CACHE: LazyLock<Mutex<HashMap<u32, CachedPage>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static MAL_CACHE: LazyLock<Mutex<HashMap<u64, CachedMalId>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Fetches one page of the news forum; cached pages are reused for ten minutes.
@@ -88,6 +136,12 @@ fn build_page(page: u32, mut topics: Vec<RawTopic>) -> NewsPage {
 }
 
 fn to_item(topic: RawTopic) -> NewsItem {
+    let linked_anime_id = topic
+        .linked_type
+        .as_deref()
+        .filter(|kind| *kind == "Anime")
+        .and(topic.linked_id)
+        .filter(|id| *id > 0);
     NewsItem {
         id: topic.id,
         title: topic.topic_title.trim().to_string(),
@@ -95,7 +149,76 @@ fn to_item(topic: RawTopic) -> NewsItem {
         site_url: format!("{SITE_URL}/{}", topic.id),
         blocks: parse_blocks(&topic.html_body),
         attachments: parse_attachments(&topic.html_footer),
+        linked_anime_id,
     }
+}
+
+/// Resolves the MyAnimeList id from the Shikimori "На других сайтах" block; `None` when absent.
+pub async fn fetch_mal_id(shikimori_id: u64, proxy: Option<String>) -> Result<Option<u64>, String> {
+    if shikimori_id == 0 {
+        return Err("bad-shape: anime id starts at 1".to_string());
+    }
+    if let Some(cached) = cached_mal_id(shikimori_id) {
+        return Ok(cached.mal_id);
+    }
+
+    let client = build_client(proxy.as_deref())?;
+    let body = serde_json::json!({
+        "query": "query ($ids: String) { animes(ids: $ids) { externalLinks { kind url } } }",
+        "variables": { "ids": shikimori_id.to_string() },
+    });
+    let response = client
+        .post(GRAPHQL_URL)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|error| format!("unreachable: {error}"))?;
+
+    let status = response.status();
+    if matches!(status.as_u16(), 401 | 403 | 429 | 451) {
+        return Err(format!("blocked: shikimori answered {status}"));
+    }
+    if !status.is_success() {
+        return Err(format!("unreachable: shikimori answered {status}"));
+    }
+
+    let raw = read_body_capped(response, MAX_BODY_BYTES)
+        .await
+        .map_err(|error| format!("unreachable: {error:?}"))?;
+    let parsed = serde_json::from_slice::<RawGraphQlResponse>(&raw)
+        .map_err(|error| format!("bad-shape: {error}"))?;
+    let data = match parsed.data {
+        Some(data) => data,
+        None => {
+            let message = parsed
+                .errors
+                .first()
+                .map(|error| error.message.trim())
+                .filter(|message| !message.is_empty())
+                .unwrap_or("shikimori graphql failed");
+            return Err(format!("bad-shape: {message}"));
+        }
+    };
+    let mal_id = data
+        .animes
+        .into_iter()
+        .next()
+        .and_then(|anime| mal_id_from_links(&anime.external_links));
+    store_mal_id(shikimori_id, mal_id);
+    Ok(mal_id)
+}
+
+fn mal_id_from_links(links: &[RawExternalLink]) -> Option<u64> {
+    links
+        .iter()
+        .find(|link| link.kind == "myanimelist")
+        .and_then(|link| parse_mal_url(&link.url))
+}
+
+fn parse_mal_url(url: &str) -> Option<u64> {
+    let rest = url.split("myanimelist.net/anime/").nth(1)?;
+    let digits = rest.split(|ch: char| !ch.is_ascii_digit()).next()?;
+    digits.parse::<u64>().ok().filter(|id| *id > 0)
 }
 
 fn build_client(proxy: Option<&str>) -> Result<reqwest::Client, String> {
@@ -124,6 +247,38 @@ fn cached_page(page: u32) -> Option<NewsPage> {
         return None;
     }
     Some(entry.page.clone())
+}
+
+fn cached_mal_id(shikimori_id: u64) -> Option<CachedMalId> {
+    let mut cache = MAL_CACHE.lock().ok()?;
+    let entry = cache.get(&shikimori_id)?;
+    if entry.stored_at.elapsed() > MAL_CACHE_TTL {
+        cache.remove(&shikimori_id);
+        return None;
+    }
+    Some(*entry)
+}
+
+fn store_mal_id(shikimori_id: u64, mal_id: Option<u64>) {
+    let Ok(mut cache) = MAL_CACHE.lock() else {
+        return;
+    };
+    if cache.len() >= MAX_CACHED_MAL {
+        if let Some(oldest) = cache
+            .iter()
+            .min_by_key(|(_, entry)| entry.stored_at)
+            .map(|(id, _)| *id)
+        {
+            cache.remove(&oldest);
+        }
+    }
+    cache.insert(
+        shikimori_id,
+        CachedMalId {
+            stored_at: Instant::now(),
+            mal_id,
+        },
+    );
 }
 
 fn store_page(page: u32, data: &NewsPage) {
@@ -159,7 +314,53 @@ mod tests {
             html_body: "Текст".to_string(),
             html_footer: String::new(),
             created_at: "2026-11-11T14:15:23.755+03:00".to_string(),
+            linked_id: None,
+            linked_type: None,
         }
+    }
+
+    #[test]
+    fn keeps_only_anime_links_from_the_topic() {
+        let mut anime = topic(1);
+        anime.linked_type = Some("Anime".to_string());
+        anime.linked_id = Some(61813);
+        let mut manga = topic(2);
+        manga.linked_type = Some("Manga".to_string());
+        manga.linked_id = Some(61813);
+        let page = build_page(1, vec![anime, manga, topic(3)]);
+        assert_eq!(page.items[0].linked_anime_id, Some(61813));
+        assert_eq!(page.items[1].linked_anime_id, None);
+        assert_eq!(page.items[2].linked_anime_id, None);
+    }
+
+    #[test]
+    fn extracts_the_mal_id_from_external_links() {
+        let links = vec![
+            RawExternalLink {
+                kind: "official_site".to_string(),
+                url: "https://example.com".to_string(),
+            },
+            RawExternalLink {
+                kind: "myanimelist".to_string(),
+                url: "http://myanimelist.net/anime/61813".to_string(),
+            },
+        ];
+        assert_eq!(mal_id_from_links(&links), Some(61813));
+        assert_eq!(mal_id_from_links(&links[..1]), None);
+    }
+
+    #[test]
+    fn parses_mal_ids_from_absolute_and_suffixed_urls() {
+        assert_eq!(
+            parse_mal_url("https://myanimelist.net/anime/21/One_Piece"),
+            Some(21)
+        );
+        assert_eq!(
+            parse_mal_url("http://myanimelist.net/anime/61813"),
+            Some(61813)
+        );
+        assert_eq!(parse_mal_url("https://myanimelist.net/anime/"), None);
+        assert_eq!(parse_mal_url("https://example.com/anime/21"), None);
     }
 
     #[test]

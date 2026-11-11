@@ -16,6 +16,12 @@ import { patchSettings } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/core/userimage";
 import type { NewsItem, NewsPage } from "@/types/news/news";
 
+vi.mock("@/routes/components/anilist/detail/modal.detail", () => ({
+  default: ({ animeId }: { animeId: number }) => (
+    <div data-testid="anilist-detail">{animeId}</div>
+  ),
+}));
+
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -26,6 +32,7 @@ const first: NewsItem = {
   title: "Звёздный поток бежит навстречу лету",
   createdAt: "2026-11-01T10:00:00+03:00",
   siteUrl: "https://shikimori.io/topic/101",
+  linkedAnimeId: 61813,
   blocks: [
     {
       kind: "paragraph",
@@ -260,6 +267,33 @@ describe("news route", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Open on site" }));
 
     expect(mockOpenUrl).toHaveBeenCalledWith(first.siteUrl);
+  });
+
+  it("opens the linked anime in the AniList detail modal", async () => {
+    mockInvoke.mockImplementation((command: string, args?: Record<string, unknown>) => {
+      if (command === "news_feed") return Promise.resolve(pages[Number(args?.page ?? 1)]);
+      if (command === "news_anime_link") {
+        return Promise.resolve({ anilistId: 194213, malId: 61813 });
+      }
+      return Promise.reject(new Error(`unexpected ${command}`));
+    });
+    renderRoute();
+
+    const dialog = await openReader(first.title);
+    await userEvent.click(within(dialog).getByRole("button", { name: "AniList details" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("anilist-detail").textContent).toBe("194213")
+    );
+    expect(mockInvoke).toHaveBeenCalledWith("news_anime_link", { shikimoriId: 61813 });
+  });
+
+  it("does not offer AniList for a post without a linked anime", async () => {
+    renderRoute();
+
+    const dialog = await openReader(withYoutube.title);
+
+    expect(within(dialog).queryByRole("button", { name: "AniList details" })).toBeNull();
   });
 
   it("copies a deep link that points at the post page", async () => {

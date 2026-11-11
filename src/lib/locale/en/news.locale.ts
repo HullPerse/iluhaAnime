@@ -1,4 +1,7 @@
 const news = {
+  "news.anilist": "AniList details",
+  "news.anilist.error": "Could not load the anime data",
+  "news.anilist.missing": "This anime has no MyAnimeList link",
   "news.attachments": "Attachments",
   "news.empty": "No news yet",
   "news.error.badShape": "Shikimori answered with an unexpected shape",

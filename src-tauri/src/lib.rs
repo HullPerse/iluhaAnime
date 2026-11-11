@@ -2275,6 +2275,7 @@ pub fn run() {
             user_assets::download_remote_image,
             user_assets::fetch_remote_image,
             news::commands::news_feed,
+            news::commands::news_anime_link,
             user_assets::list_user_images,
             user_assets::get_remote_images_stats,
             user_assets::clear_remote_image_cache,

@@ -35,7 +35,7 @@ describe("IPC command contract", () => {
   it("covers the TypeScript command union exactly", () => {
     const rustNames = [...new Set(contracts.map((contract) => contract.name))].sort();
 
-    expect(rustNames).toHaveLength(282);
+    expect(rustNames).toHaveLength(283);
     expect(rustNames).toEqual(commandUnion());
   });
 

@@ -33,6 +33,12 @@ const NewsItemSchema = z.looseObject({
   siteUrl: HttpUrlSchema,
   blocks: z.array(NewsBlockSchema),
   attachments: z.array(NewsAttachmentSchema),
+  linkedAnimeId: z.optional(z.number()),
+});
+
+const NewsAnimeLinkSchema = z.looseObject({
+  anilistId: z.number(),
+  malId: z.number(),
 });
 
 export const NewsPageSchema = z.compile(
@@ -42,3 +48,5 @@ export const NewsPageSchema = z.compile(
     hasMore: z.boolean(),
   })
 );
+
+export const NewsAnimeLinkSchemaCompiled = z.compile(NewsAnimeLinkSchema);

@@ -154,6 +154,7 @@ export type CommandName =
   | "network_diagnose"
   | "network_probe"
   | "news_feed"
+  | "news_anime_link"
   | "optimize_unified_index"
   | "patch_collection_item"
   | "pause_torrent"

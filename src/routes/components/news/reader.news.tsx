@@ -1,9 +1,11 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { Check, ExternalLink, Link2 } from "lucide-react";
+import { useCell } from "@hullperse/hp_utils/react";
+import { Check, ExternalLink, Info, Link2, LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { newsApi } from "@/api/news.api";
 import ContextMenu from "@/components/shared/contextMenu.component";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import { VkEmbed } from "@/components/shared/lightbox/vkEmbed.media";
@@ -13,10 +15,14 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useImageMenuEntries } from "@/hooks/imageMenu.hook";
+import { useAnilistSignedIn } from "@/hooks/anilist/session.hook";
 import { buildNewsLink } from "@/lib/core/system/deeplink.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
+import { showError } from "@/lib/core/ui/notification.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import type { NewsAttachment, NewsItem } from "@/types/news/news";
 
+import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
 import ContentNews from "@/routes/components/news/content.news";
 import MediaNews from "@/routes/components/news/media.news";
 
@@ -83,7 +89,48 @@ export default function ReaderNews({
       })
     );
   }, []);
+  const newsProxyUrl = useCell(settingsAtoms.newsProxyUrl) ?? "";
+  const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl) ?? "";
+  const signedIn = useAnilistSignedIn();
+  const [animeLinkPending, setAnimeLinkPending] = useState<boolean>(false);
+  const [animeDetailId, setAnimeDetailId] = useState<number | null>(null);
+  const linkedAnimeId = item.linkedAnimeId ?? null;
+  const openAniList = useCallback((): void => {
+    if (linkedAnimeId === null || animeLinkPending) return;
+    setAnimeLinkPending(true);
+    ignore(
+      attempt(
+        newsApi.animeLink(linkedAnimeId, newsProxyUrl || null, anilistProxyUrl || null)
+      ).then(([link, error]) => {
+        setAnimeLinkPending(false);
+        if (error !== null) {
+          reportBackgroundError("news.anilist-link", error);
+          showError(t("common.error"), t("news.anilist.error"));
+          return null;
+        }
+        if (link === null) {
+          showError(t("common.error"), t("news.anilist.missing"));
+          return null;
+        }
+        setAnimeDetailId(link.anilistId);
+        return null;
+      })
+    );
+  }, [anilistProxyUrl, animeLinkPending, linkedAnimeId, newsProxyUrl, t]);
   const back = () => setMode({ kind: "post" });
+
+  if (animeDetailId !== null) {
+    return (
+      <AniListDetailModal
+        animeId={animeDetailId}
+        isLoggedIn={signedIn}
+        onTag={() => undefined}
+        onGenre={() => undefined}
+        onBack={() => setAnimeDetailId(null)}
+        onClose={onClose}
+      />
+    );
+  }
 
   if (mode.kind === "image") {
     const step = (delta: number) => () =>
@@ -173,6 +220,22 @@ export default function ReaderNews({
       className="w-[min(64rem,calc(100vw-2rem))]"
       headerActions={
         <>
+          {linkedAnimeId !== null && (
+            <button
+              type="button"
+              className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
+              title={t("news.anilist")}
+              aria-label={t("news.anilist")}
+              disabled={animeLinkPending}
+              onClick={openAniList}
+            >
+              {animeLinkPending ? (
+                <LoaderCircle className="size-2.5 animate-spin" />
+              ) : (
+                <Info className="size-2.5" />
+              )}
+            </button>
+          )}
           <button
             type="button"
             className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"

@@ -40,4 +40,12 @@ export interface NewsItem {
   siteUrl: string;
   blocks: NewsBlock[];
   attachments: NewsAttachment[];
+  /** Shikimori anime id when the post is attached to one. */
+  linkedAnimeId?: number;
+}
+
+/** AniList entry resolved from a Shikimori anime through its MyAnimeList link. */
+export interface NewsAnimeLink {
+  anilistId: number;
+  malId: number;
 }

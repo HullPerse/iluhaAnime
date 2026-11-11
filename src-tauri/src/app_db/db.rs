@@ -59,6 +59,7 @@ pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DatabaseStatus {
     pub ok: bool,
     pub version: Option<i64>,
@@ -148,6 +149,20 @@ pub fn lock_app_data_write_if_timeout(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn database_status_serializes_camel_case_fields() {
+        let status = DatabaseStatus {
+            ok: true,
+            version: Some(CURRENT_SCHEMA_VERSION),
+            data_dir: "C:/data".into(),
+            error: None,
+        };
+        let value = serde_json::to_value(&status).expect("serialize status");
+        assert_eq!(value["dataDir"], "C:/data");
+        assert!(value.get("data_dir").is_none(), "snake_case key leaked: {value}");
+        assert_eq!(value["ok"], true);
+    }
 
     #[test]
     fn write_lock_timeout_fails_fast_when_held() {

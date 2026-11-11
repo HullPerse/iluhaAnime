@@ -11,6 +11,7 @@ import { useApp } from "@/hooks/app.hook";
 import { useDiscordPresence } from "@/hooks/discordPresence.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDayNightScheduler } from "@/hooks/schedule.hook";
+import { usePlayerPrewarm } from "@/hooks/player/prewarm.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { useEnsureAnimeIndex, usePrewarmSpellIndex } from "@/hooks/search/animeIndex.hook";
 import { useSecretCode } from "@/hooks/secretCode.hook";
@@ -84,6 +85,7 @@ export default function App() {
   const customTitleBarEnabled = useCell(settingsAtoms.customTitleBarEnabled);
   const statusBarEnabled = useCell(settingsAtoms.statusBarEnabled);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
+  const playerPrewarmEnabled = useCell(settingsAtoms.playerPrewarmEnabled);
   const currentTheme = useCell(themeAtoms.currentTheme);
   const overlays = useCell(overlayAtoms.entries);
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
@@ -134,6 +136,7 @@ export default function App() {
   useEnsureAnimeIndex();
   useAnilistCoverModeSync();
   useDiscordPresence(activeTab);
+  usePlayerPrewarm(activeTab, playerPrewarmEnabled);
   usePrewarmSpellIndex();
   const { capture: screenshot, close: closeScreenshot } = useScreenshot();
 

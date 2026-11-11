@@ -5,7 +5,7 @@
 // the desired-list builder differ, and both are unit-tested).
 
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, statSync } from "node:fs";
+import { copyFileSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Page } from "playwright-core";
@@ -84,6 +84,9 @@ export const livePlaylist: Scenario = {
   name: "livePlaylist",
   async run({ browser, page, step }) {
     await step("fixture videos ready", async () => {
+      // The late file must be created by this run. Leaving it behind makes the
+      // next run overwrite an existing path, which is a different watcher path.
+      rmSync(EP02, { force: true });
       for (const target of [EP01, EP03]) {
         let exists = true;
         try {

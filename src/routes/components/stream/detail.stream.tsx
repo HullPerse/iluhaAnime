@@ -13,7 +13,9 @@ import { historyByEpisode } from "@/lib/core/anilist/history.utils";
 import { prewarmPlayer } from "@/lib/player/playback.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { prefetchEpisode } from "@/lib/player/streamResolve.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import { streamStore } from "@/store/stream.store";
+import { useCell } from "@hullperse/hp_utils/react";
 import type { StreamHistoryEntry, StreamingEpisode } from "@/types/player/stream";
 
 import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
@@ -38,12 +40,14 @@ export default function StreamDetail({ slug }: { slug: string }) {
   const [episode, setEpisode] = useStreamEpisodeSelection(episodes, latestEpisodeId);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const { play } = useStreamPlayer({ anime, playingId, setPlayingId });
+  const prewarmEnabled = useCell(settingsAtoms.playerPrewarmEnabled);
 
   const close = () => streamStore.selectedSlug.set(null);
 
   useEffect(() => {
+    if (!prewarmEnabled) return;
     ignore(attempt(prewarmPlayer()).then(() => undefined));
-  }, []);
+  }, [prewarmEnabled]);
 
   const animeId = anime?.id ?? null;
   const episodeIndex = useMemo(() => {

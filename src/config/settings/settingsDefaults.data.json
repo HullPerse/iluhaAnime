@@ -51,6 +51,7 @@
     "audioExtensions": ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
     "autoLoadSidecarTracks": true,
     "sidecarScanSubfolders": false,
+    "playerPrewarmEnabled": false,
     "buttonPressEffect": true,
     "animateCounters": false,
     "animateToasts": false,

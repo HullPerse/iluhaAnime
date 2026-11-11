@@ -178,6 +178,7 @@
         "settings.media.tracks.torrent",
         "settings.media.sidecar.auto",
         "settings.media.sidecar.subfolders",
+        "settings.media.prewarm",
         "settings.media.streamQuality",
         "settings.media.watcher",
         "settings.media.watcher.fast",

@@ -52,6 +52,7 @@ const settings = {
   "settings.media.scanThreads.eight": "8",
   "settings.media.sidecar.auto": "Автозагружать дорожки с тем же именем",
   "settings.media.sidecar.subfolders": "Искать дорожки в подпапках",
+  "settings.media.prewarm": "Прогревать окно плеера на вкладках Плеер и Стриминг",
   "settings.media.empty": "Список не может быть пустым",
   "settings.media.reset": "Сбросить",
   "settings.parse.titles": "Извлекать названия аниме",

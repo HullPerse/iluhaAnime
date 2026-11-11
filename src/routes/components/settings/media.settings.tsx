@@ -19,6 +19,7 @@ export default function SettingsMedia() {
   const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
   const autoLoadSidecarTracks = useCell(settingsAtoms.autoLoadSidecarTracks);
   const sidecarScanSubfolders = useCell(settingsAtoms.sidecarScanSubfolders);
+  const playerPrewarmEnabled = useCell(settingsAtoms.playerPrewarmEnabled);
   const streamDefaultQuality = useCell(settingsAtoms.streamDefaultQuality);
   const watcherDelay = useCell(settingsAtoms.watcherDelay);
   const scanThreads = useCell(settingsAtoms.scanThreads);
@@ -97,6 +98,13 @@ export default function SettingsMedia() {
             <span>{t("settings.media.sidecar.subfolders")}</span>
           </label>
         </div>
+        <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 text-xs select-none">
+          <Checkbox
+            checked={playerPrewarmEnabled}
+            onChange={(value) => patchSettings({ playerPrewarmEnabled: value })}
+          />
+          <span>{t("settings.media.prewarm")}</span>
+        </label>
         <label className="group windows95-text text-text flex items-center gap-2 text-xs select-none">
           <span className="w-36 shrink-0 font-bold">{t("settings.media.tracks")}</span>
           <Select

@@ -2070,13 +2070,11 @@ pub fn run() {
             handle.manage(discord::DiscordPresence::start());
             player::state::attach(app.handle());
             startup::mark("state_ready");
-            let prewarm_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                if let Err(error) = player::prewarm_player(prewarm_handle).await {
-                    tracing::warn!("player prewarm failed: {error}");
-                }
-            });
+            // The player window is not warmed at startup: a hidden WebView2
+            // window costs ~160 MB with nothing playing. The player tab warms
+            // it on entry (`usePlayerPrewarm`), which is where local playback
+            // starts, and the catalog modal warms it before an episode click.
+            // Leaving the player tab releases an unused prewarmed window.
             #[cfg(debug_assertions)]
             match std::env::var("ILUHA_OPEN_FILE") {
                 Ok(path) => {
@@ -2288,6 +2286,7 @@ pub fn run() {
             player::player_open,
             player::player_open_stream,
             player::player_prewarm,
+            player::player_release_prewarm,
             player::player_take_pending_open,
             player::player_init,
             player::player_restart,

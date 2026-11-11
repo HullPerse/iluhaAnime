@@ -136,7 +136,7 @@ vi.mock("@/routes/components/anilist/detail/modal.detail", () => ({
 }));
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "en", playerPrewarmEnabled: true });
   api.prefsGet.mockReset().mockResolvedValue(DEFAULT_PREFS);
   api.prefsSave.mockReset().mockResolvedValue(undefined);
   api.players.mockReset().mockImplementation(async () => DEFAULT_PLAYERS);
@@ -155,6 +155,14 @@ describe("StreamDetail AniList button", () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
     expect(playback.prewarmPlayer).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the player cold when prewarming is turned off", () => {
+    patchSettings({ playerPrewarmEnabled: false });
+
+    render(<StreamDetail slug={ANIME.slugUrl} />);
+
+    expect(playback.prewarmPlayer).not.toHaveBeenCalled();
   });
 
   it("copies the sharing link of this title from the modal header", async () => {

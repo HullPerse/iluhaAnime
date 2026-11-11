@@ -6,7 +6,7 @@
 // Run: bun run test:e2e
 // Options via env: E2E_PLAYER_FILE=<video>, E2E_ONLY=boot,collection
 
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { cdpPort, connectCdp, createConsoleCollector, mainPage, waitForReady } from "./cdp";
@@ -27,11 +27,24 @@ import {
 import { boot } from "./scenarios/boot";
 import { collection } from "./scenarios/collection";
 import { livePlaylist } from "./scenarios/livePlaylist";
+import { navigation } from "./scenarios/navigation";
 import { player } from "./scenarios/player";
+import { playerMedia } from "./scenarios/playerMedia";
 import { repro } from "./scenarios/repro";
 import { torrent } from "./scenarios/torrent";
 
-const ALL: Scenario[] = [boot, collection, torrent, player, livePlaylist, repro];
+const SMOKE: Scenario[] = [boot, collection, torrent, player, livePlaylist, repro];
+const SUITES: Record<string, Scenario[]> = {
+  smoke: SMOKE,
+  media: [playerMedia],
+  perf: [navigation, playerMedia],
+  all: [...SMOKE, navigation, playerMedia],
+};
+
+function selectedSuite(): string {
+  const fromArg = process.argv.find((value) => value.startsWith("--suite="));
+  return fromArg?.slice("--suite=".length) ?? process.env.E2E_SUITE ?? "smoke";
+}
 
 interface ChildLog {
   text: string;
@@ -46,12 +59,19 @@ function pipe(child: import("node:child_process").ChildProcess, sink: ChildLog):
 }
 
 async function main(): Promise<number> {
-  const only = (process.env.E2E_ONLY ?? "").split(",").filter(Boolean);
-  const scenarios = only.length > 0 ? ALL.filter((scenario) => only.includes(scenario.name)) : ALL;
-  if (scenarios.length === 0) {
-    console.error(`no scenario matched E2E_ONLY=${process.env.E2E_ONLY ?? ""}`);
+  const suiteName = selectedSuite();
+  const suite = SUITES[suiteName];
+  if (!suite) {
+    console.error(`unknown suite "${suiteName}"; use ${Object.keys(SUITES).join(", ")}`);
     return 2;
   }
+  const only = (process.env.E2E_ONLY ?? "").split(",").filter(Boolean);
+  const scenarios = only.length > 0 ? suite.filter((scenario) => only.includes(scenario.name)) : suite;
+  if (scenarios.length === 0) {
+    console.error(`no scenario matched E2E_ONLY=${process.env.E2E_ONLY ?? ""} in suite ${suiteName}`);
+    return 2;
+  }
+  console.log(`[e2e] suite: ${suiteName}`);
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const outDir = join(outRoot(), stamp);
@@ -109,6 +129,7 @@ async function main(): Promise<number> {
     writeReport(outDir, results, collector.errors);
     return 1;
   } finally {
+    writeFileSync(join(outDir, "app.log"), appLog.text);
     child.kill();
     killE2eProcesses();
     stopVite(vite);

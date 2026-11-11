@@ -1103,6 +1103,46 @@ pub async fn player_prewarm(app: AppHandle) -> Result<(), String> {
     prewarm_player(app).await
 }
 
+/// Whether the hidden player window may be destroyed to give its memory back.
+///
+/// A visible window is in use, a pending open is about to load into it, and a
+/// loaded `path` means media is open in it. Anything else is an idle prewarm
+/// with nothing to lose. Split from the command so the policy is testable
+/// without a running app.
+fn prewarm_is_releasable(visible: bool, pending_open: bool, loaded_path: &str) -> bool {
+    !visible && !pending_open && loaded_path.is_empty()
+}
+
+/// Destroy the hidden prewarmed player window when it holds no session.
+///
+/// Returns whether a window was closed. The frontend calls this when it leaves
+/// the player tab: the prewarm keeps playback fast while the user browses
+/// files, and the ~160 MB renderer goes away as soon as they are elsewhere.
+#[tauri::command]
+pub async fn player_release_prewarm(app: AppHandle) -> Result<bool, String> {
+    let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) else {
+        return Ok(false);
+    };
+    let visible = window.is_visible().unwrap_or(false);
+    let pending_open = app.state::<PlayerHost>().pending_open().is_some();
+    // The host's `current_path` outlives the window that played it, so the
+    // live mpv property is the truth here. A window whose mpv is still starting
+    // has no path either, which is exactly when releasing is safe.
+    let loaded_path = core(&app)
+        .get_property("path", "string", PLAYER_WINDOW_LABEL)
+        .ok()
+        .and_then(|value| value.as_str().map(str::to_string))
+        .unwrap_or_default();
+    if !prewarm_is_releasable(visible, pending_open, &loaded_path) {
+        return Ok(false);
+    }
+    tracing::info!("releasing idle player prewarm");
+    app.state::<PlayerHost>().set_active(false);
+    destroy_instance(app.clone(), PLAYER_WINDOW_LABEL.to_string()).await?;
+    window.close().map_err(|error| error.to_string())?;
+    Ok(true)
+}
+
 pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
     let label = PLAYER_WINDOW_LABEL.to_string();
 
@@ -1183,7 +1223,7 @@ pub async fn player_apply_batch(
 mod tests {
     use super::{
         eof_properties, header_fields, local_cache_options, mpv_proxy, observed_properties,
-        stream_cache_options, PlayerOpenRequest, PlaylistWatch,
+        prewarm_is_releasable, stream_cache_options, PlayerOpenRequest, PlaylistWatch,
     };
     use std::collections::BTreeMap;
 
@@ -1267,6 +1307,18 @@ mod tests {
             stream_cache_options(false, true)["cache-pause-initial"],
             "no"
         );
+    }
+
+    #[test]
+    fn an_idle_prewarm_is_released_but_a_live_player_is_not() {
+        // Hidden, nothing pending, nothing loaded: the prewarmed renderer can
+        // go and the next player tab entry warms it again.
+        assert!(prewarm_is_releasable(false, false, ""));
+        // Shown to the user, about to load, or already playing: keep it.
+        assert!(!prewarm_is_releasable(true, false, ""));
+        assert!(!prewarm_is_releasable(false, true, ""));
+        assert!(!prewarm_is_releasable(false, false, "D:/Anime/ep01.mkv"));
+        assert!(!prewarm_is_releasable(true, true, "https://cdn/ep01.mp4"));
     }
 
     #[test]

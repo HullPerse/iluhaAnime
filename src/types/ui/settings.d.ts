@@ -53,6 +53,7 @@ export interface SettingsStore {
   subtitleExtensions: string[];
   autoLoadSidecarTracks: boolean;
   sidecarScanSubfolders: boolean;
+  playerPrewarmEnabled: boolean;
   showTrackFiles: "hide" | "torrent" | "folders";
   watcherDelay: WatcherDelay;
   scanThreads: number;

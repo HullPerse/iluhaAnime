@@ -174,6 +174,7 @@ export type CommandName =
   | "player_open_stream"
   | "player_playlist_entries"
   | "player_prewarm"
+  | "player_release_prewarm"
   | "player_save_watch"
   | "player_save_frame"
   | "player_set_property"

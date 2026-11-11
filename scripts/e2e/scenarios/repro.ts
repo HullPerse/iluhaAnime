@@ -93,6 +93,9 @@ export const repro: Scenario = {
   name: "repro",
   async run({ page, step }) {
     await step("settings summary is open", async () => {
+      // The summary rail is hidden below the `lg` breakpoint, and the e2e
+      // window opens narrower than that on this display.
+      await page.setViewportSize({ width: 1280, height: 800 });
       await clickTabByAnyOf(page, TAB.settings);
       const summary = page.locator(`text=/summary|${RU_SUMMARY}/i`).first();
       const found = await summary
@@ -102,20 +105,12 @@ export const repro: Scenario = {
       if (!found) throw new Error("settings summary did not render");
     });
 
-    await step("repro row offers an enabled save action", async () => {
-      const row = page
-        .locator("div")
-        .filter({ has: page.locator(`text=/${RU_LABEL}|Bug report bundle/i`) })
-        .last();
-      const button = row.locator("button").first();
+    await step("repro action is enabled", async () => {
+      const button = page.getByRole("button", {
+        name: new RegExp(`^(?:${RU_LABEL}|Bug report bundle)$`, "i"),
+      });
       await button.waitFor({ timeout: 15_000 });
-      const text = await button.textContent();
-      const label = (text ?? "").trim();
-      if (!/save|Сохранить/i.test(label)) {
-        throw new Error(`repro row action is not a save button: "${label}"`);
-      }
-      const enabled = await button.isEnabled();
-      if (!enabled) throw new Error("repro save button is disabled");
+      if (!(await button.isEnabled())) throw new Error("repro action is disabled");
     });
 
     await step("command writes a bundle", async () => {

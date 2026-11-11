@@ -224,6 +224,12 @@ export async function prewarmPlayer(): Promise<void> {
   await invokeTyped("player_prewarm");
 }
 
+/// Drops the hidden prewarmed player window when it holds no session.
+/// Returns whether a window was actually closed.
+export async function releasePlayerPrewarm(): Promise<boolean> {
+  return invokeTyped<boolean>("player_release_prewarm");
+}
+
 export async function takePendingOpen(): Promise<PlayerOpenRequest | null> {
   return invokeValidated<PlayerOpenRequest | null>("player_take_pending_open", PendingOpenSchema);
 }

@@ -52,6 +52,7 @@ const settings = {
   "settings.media.scanThreads.eight": "8",
   "settings.media.sidecar.auto": "Auto-load matching sidecar tracks",
   "settings.media.sidecar.subfolders": "Scan subfolders for sidecar tracks",
+  "settings.media.prewarm": "Preload the player window on the Player and Streaming tabs",
   "settings.media.empty": "List cannot be empty",
   "settings.media.reset": "Reset to defaults",
   "settings.parse.titles": "Extract anime titles",

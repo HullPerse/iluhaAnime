@@ -28,6 +28,10 @@ import type {
   TorrentSearchArgs,
 } from "@/types/api/torrent";
 import { tauriTransport } from "@/api/transport.api";
+import { assertSchema } from "@/lib/core/system/invoke.utils";
+import { SearchResultListSchema } from "@/api/search.schema";
+import { TorrentDetailsSchema, TorrentInfoListSchema } from "@/api/torrent.schema";
+import { SessionConfigSchema } from "@/api/settings.schema";
 
 export class TorrentApi {
   private readonly transport: ApiTransport;
@@ -67,39 +71,41 @@ export class TorrentApi {
 
   private webviewProxyArgs(source: string): Record<string, string | undefined> {
     const proxy = this.webviewProxyFor(source);
-    return { proxyUrl: proxy, proxy_url: proxy };
+    return { proxyUrl: proxy };
   }
 
   private proxyArgs(source?: string): Record<string, string | undefined> {
     const proxy = source ? this.proxyFor(source) : undefined;
-    return { proxyUrl: proxy, proxy_url: proxy };
+    return { proxyUrl: proxy };
   }
 
   private call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
     return this.transport.call<T>(command, args);
   }
 
-  searchBySource(source: Source, args: TorrentSearchArgs): Promise<Anime[]> {
+  async searchBySource(source: Source, args: TorrentSearchArgs): Promise<Anime[]> {
     const proxy = this.proxyFor(source);
-    const base = { query: args.query, proxyUrl: proxy, proxy_url: proxy };
+    const base = { query: args.query, proxyUrl: proxy };
     const paged = { ...base, page: args.page, sort: args.sort, order: args.order };
-    if (source === "rutracker") return this.call("search_rutracker", base);
-    if (source === "nyaa") return this.call("search_nyaa", paged);
-    if (source === "sukebei") return this.call("search_sukebei", paged);
-    if (source === "nekobt") return this.call("search_nekobt", { ...base, page: args.page });
-    return this.call("search_erairaws", base);
+    let result: Anime[];
+    if (source === "rutracker") result = await this.call("search_rutracker", base);
+    else if (source === "nyaa") result = await this.call("search_nyaa", paged);
+    else if (source === "sukebei") result = await this.call("search_sukebei", paged);
+    else if (source === "nekobt") result = await this.call("search_nekobt", { ...base, page: args.page });
+    else result = await this.call("search_erairaws", base);
+    assertSchema(result, SearchResultListSchema);
+    return result;
   }
 
   testSourceConnection(source: string, proxy: string): Promise<string> {
     return this.call("test_source_connection", {
       source,
       proxyUrl: proxy || null,
-      proxy_url: proxy || null,
     });
   }
 
   testTorrentProxy(proxy: string): Promise<ProxyProbe> {
-    return this.call("test_torrent_proxy", { proxyUrl: proxy, proxy_url: proxy });
+    return this.call("test_torrent_proxy", { proxyUrl: proxy });
   }
 
   restartApp(): Promise<void> {
@@ -182,21 +188,33 @@ export class TorrentApi {
 
   fetchTorrentBytes(url: string, source?: string): Promise<number[]> {
     const proxy = source ? this.proxyFor(source) : undefined;
-    return this.call("fetch_torrent_bytes", { url, proxyUrl: proxy, proxy_url: proxy });
+    return this.call("fetch_torrent_bytes", { url, proxyUrl: proxy });
   }
 
-  getTorrentDetails(source: string, url: string, proxyUrl?: string): Promise<TorrentDetails> {
+  async getTorrentDetails(
+    source: string,
+    url: string,
+    proxyUrl?: string
+  ): Promise<TorrentDetails> {
     const proxy = proxyUrl ?? this.proxyFor(source);
-    return this.call("get_torrent_details", { source, url, proxyUrl: proxy, proxy_url: proxy });
+    const details = await this.call<TorrentDetails>("get_torrent_details", {
+      source,
+      url,
+      proxyUrl: proxy,
+    });
+    assertSchema(details, TorrentDetailsSchema);
+    return details;
   }
 
   getTorrentPoster(source: string, url: string, proxyUrl?: string): Promise<string | null> {
     const proxy = proxyUrl ?? this.proxyFor(source);
-    return this.call("get_torrent_poster", { source, url, proxyUrl: proxy, proxy_url: proxy });
+    return this.call("get_torrent_poster", { source, url, proxyUrl: proxy });
   }
 
-  listTorrents(): Promise<TorrentInfo[]> {
-    return this.call("list_torrents");
+  async listTorrents(): Promise<TorrentInfo[]> {
+    const torrents = await this.call<TorrentInfo[]>("list_torrents");
+    assertSchema(torrents, TorrentInfoListSchema);
+    return torrents;
   }
 
   listenPort(): Promise<number | null> {
@@ -359,6 +377,7 @@ export class TorrentApi {
   }
 
   saveSessionConfig(config: SessionConfigPayload): Promise<void> {
+    assertSchema(config, SessionConfigSchema);
     return this.call("save_session_config", { config });
   }
 

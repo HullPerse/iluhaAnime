@@ -80,7 +80,7 @@ export interface ScreenshotScale {
 
 export type ScreenshotTool = "select" | "pencil" | "eraser" | "text" | "blur";
 
-export type InkTool = "pencil" | "eraser" | "blur";
+type InkTool = "pencil" | "eraser" | "blur";
 
 export interface StrokeItem {
   id: string;
@@ -110,7 +110,7 @@ export interface AnnotationHistory {
   future: AnnotationItem[][];
 }
 
-export interface BlurLayerPayload {
+interface BlurLayerPayload {
   mask: string;
   sigma: number;
 }

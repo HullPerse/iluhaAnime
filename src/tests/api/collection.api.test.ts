@@ -45,6 +45,13 @@ describe("CollectionApi", () => {
     ]);
   });
 
+  it("rejects a malformed collection list response", async () => {
+    const { transport } = fakeTransport(() => [{ id: "a" }]);
+    const api = new CollectionApi({ transport });
+
+    await expect(api.listItems()).rejects.toThrow();
+  });
+
   it("sends the touch flag with the backend key", async () => {
     const { calls, transport } = fakeTransport(() => undefined);
     const api = new CollectionApi({ transport });

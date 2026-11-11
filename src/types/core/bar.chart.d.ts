@@ -1,6 +1,6 @@
 import type { ChartTooltipData } from "@/types/core/tooltip.chart";
 
-export interface BarDatum {
+interface BarDatum {
   key: string;
   label: string;
   value: number;

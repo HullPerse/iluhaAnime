@@ -1,6 +1,6 @@
 export type GamePlatform = "chip8" | "schip" | "schip11" | "xochip";
 
-export type GameRomSource = "builtin" | "user";
+type GameRomSource = "builtin" | "user";
 
 export interface GameRomInfo {
   id: string;

@@ -302,6 +302,7 @@ fn trailer_youtube_id_from_media(m: &serde_json::Value) -> Option<String> {
         })
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
     let main_title = m["title"]["romaji"]
         .as_str()

@@ -14,7 +14,7 @@ import {
   displayStateLabel,
   findJustFinished,
   findNewErrors,
-  fmtSpeed,
+  formatSpeed,
   getDisplayState,
   getLifecycleLabel,
   getTorrentLifecycle,
@@ -23,7 +23,7 @@ import {
   shouldHealTorrentPoll,
   stateLabel,
   TORRENT_EVENT_STALE_MS,
-  TorrentListen,
+  reduceTorrentEvent,
   torrentErrorText,
   withoutPendingRemoved,
 } from "@/lib/torrent/torrentCommon.utils";
@@ -241,22 +241,22 @@ describe("torrent/common", () => {
     });
   });
 
-  describe("fmtSpeed", () => {
-    it("returns empty for zero or negative", () => {
-      expect(fmtSpeed(0)).toBe("");
-      expect(fmtSpeed(-1)).toBe("");
+  describe("formatSpeed", () => {
+    it("labels zero and negative speeds explicitly", () => {
+      expect(formatSpeed(0)).toBe("0 B/s");
+      expect(formatSpeed(-1)).toBe("0 B/s");
     });
 
     it("formats B/s", () => {
-      expect(fmtSpeed(500)).toBe("500 B/s");
+      expect(formatSpeed(500)).toBe("500 B/s");
     });
 
     it("formats KB/s", () => {
-      expect(fmtSpeed(2048)).toBe("2.0 KB/s");
+      expect(formatSpeed(2048)).toBe("2.0 KB/s");
     });
 
     it("formats MB/s", () => {
-      expect(fmtSpeed(2_097_152)).toBe("2.0 MB/s");
+      expect(formatSpeed(2_097_152)).toBe("2.0 MB/s");
     });
   });
 
@@ -312,32 +312,32 @@ describe("torrent/common", () => {
     });
   });
 
-  describe("TorrentListen", () => {
+  describe("reduceTorrentEvent", () => {
     const NOW = 1_000_000;
     const TICK = Math.floor(NOW / 1000);
     it("replaces the list when the length changes", () => {
       const next = [makeInfo(1), makeInfo(2)];
-      const result = TorrentListen(makeState([makeInfo(1)]), makeEvent(next), NOW);
+      const result = reduceTorrentEvent(makeState([makeInfo(1)]), makeEvent(next), NOW);
       expect(result).toEqual({ torrents: next, lastActiveAt: { 2: TICK } });
     });
 
     it("returns an empty patch when nothing changed", () => {
       const current = [makeInfo(1)];
-      const result = TorrentListen(makeState(current), makeEvent([makeInfo(1)]));
+      const result = reduceTorrentEvent(makeState(current), makeEvent([makeInfo(1)]));
       expect(result).toEqual({});
     });
 
     it("returns a patch when progress changed", () => {
       const current = [makeInfo(1)];
       const next = [makeInfo(1, { progress_bytes: 500 })];
-      const result = TorrentListen(makeState(current), makeEvent(next), NOW);
+      const result = reduceTorrentEvent(makeState(current), makeEvent(next), NOW);
       expect(result).toEqual({ torrents: next, lastActiveAt: { 1: TICK } });
     });
 
     it("returns a patch when the state changed", () => {
       const current = [makeInfo(1)];
       const next = [makeInfo(1, { state: "paused" })];
-      const result = TorrentListen(makeState(current), makeEvent(next));
+      const result = reduceTorrentEvent(makeState(current), makeEvent(next));
       expect(result).toEqual({ torrents: next });
     });
 
@@ -348,24 +348,24 @@ describe("torrent/common", () => {
         total_bytes: 0,
         checking_file: "Show/E01.mkv",
       });
-      expect(TorrentListen(makeState(current), makeEvent([next]))).toEqual({ torrents: [next] });
+      expect(reduceTorrentEvent(makeState(current), makeEvent([next]))).toEqual({ torrents: [next] });
     });
 
     it("returns a patch when upload speed changes", () => {
       const current = [makeInfo(1)];
       const next = [makeInfo(1, { upload_speed: 128 })];
-      const result = TorrentListen(makeState(current), makeEvent(next));
+      const result = reduceTorrentEvent(makeState(current), makeEvent(next));
       expect(result).toEqual({ torrents: next });
     });
 
     it("returns a patch when the share ratio changed", () => {
       const current = [makeInfo(1)];
       const next = [makeInfo(1, { share_ratio: 1.25 })];
-      const result = TorrentListen(makeState(current), makeEvent(next));
+      const result = reduceTorrentEvent(makeState(current), makeEvent(next));
       expect(result).toEqual({ torrents: next });
     });
     it("stamps first-sight torrents", () => {
-      const result = TorrentListen(makeState([]), makeEvent([makeInfo(7)]), NOW);
+      const result = reduceTorrentEvent(makeState([]), makeEvent([makeInfo(7)]), NOW);
       expect(result).toEqual({
         torrents: [expect.objectContaining({ id: 7 })],
         lastActiveAt: { 7: TICK },
@@ -374,19 +374,24 @@ describe("torrent/common", () => {
 
     it("drops stamps of removed torrents", () => {
       const state = { torrents: [makeInfo(1)], lastActiveAt: { 1: TICK, 9: TICK } };
-      const result = TorrentListen(state, makeEvent([makeInfo(1)]), NOW);
+      const result = reduceTorrentEvent(state, makeEvent([makeInfo(1)]), NOW);
       expect(result).toEqual({ lastActiveAt: { 1: TICK } });
     });
 
     it("returns a patch when the backend order changes", () => {
       const current = [makeInfo(1), makeInfo(2)];
       const next = [makeInfo(2), makeInfo(1)];
-      const result = TorrentListen(makeState(current), makeEvent(next), NOW);
+      const result = reduceTorrentEvent(makeState(current), makeEvent(next), NOW);
       expect(result).toEqual({ torrents: next });
     });
   });
 
   describe("torrentErrorText", () => {
+    it("prefers a stable code over the English fallback", () => {
+      expect(torrentErrorText("torrent not found", ru, "torrent_gone")).toBe(
+        ru("download.error.gone")
+      );
+    });
     it("maps engine strings to localized keys", () => {
       expect(torrentErrorText("torrent with id 0 did not exist", ru)).toBe(
         ru("download.error.gone")
@@ -598,19 +603,19 @@ describe("torrent/common", () => {
     });
   });
 
-  describe("TorrentListen", () => {
+  describe("reduceTorrentEvent", () => {
     const event = (payload: TorrentInfo[]) => ({ payload }) as Event<TorrentInfo[]>;
     const state = (torrents: TorrentInfo[]): TorrentListState => ({ lastActiveAt: {}, torrents });
 
     it("repaints when a check reports the files gone", () => {
       const prev = state([makeInfo(1, { finished: true })]);
       const next = [makeInfo(1, { finished: true, missing_files: true })];
-      expect(TorrentListen(prev, event(next), 60_000).torrents).toEqual(next);
+      expect(reduceTorrentEvent(prev, event(next), 60_000).torrents).toEqual(next);
     });
 
     it("drops the repaint when the verdict is unchanged", () => {
       const torrents = [makeInfo(1, { finished: true, missing_files: true })];
-      expect(TorrentListen(state(torrents), event(torrents), 60_000).torrents).toBeUndefined();
+      expect(reduceTorrentEvent(state(torrents), event(torrents), 60_000).torrents).toBeUndefined();
     });
   });
 });
@@ -759,7 +764,6 @@ describe("torrent/magnet", () => {
       expect(invokeSpy).toHaveBeenCalledWith("rutracker_get_magnet", {
         topicId: "topic-123",
         proxyUrl: "socks5://127.0.0.1:10808",
-        proxy_url: "socks5://127.0.0.1:10808",
       });
     });
     it("sends the rutracker proxy when downloading .torrent bytes via dl.php", async () => {
@@ -770,7 +774,6 @@ describe("torrent/magnet", () => {
       expect(invokeSpy).toHaveBeenCalledWith("rutracker_get_torrent_bytes", {
         topicId: "topic-123",
         proxyUrl: "socks5://127.0.0.1:10808",
-        proxy_url: "socks5://127.0.0.1:10808",
       });
     });
     it("sends the source proxy when downloading .torrent bytes via direct URL", async () => {
@@ -787,7 +790,6 @@ describe("torrent/magnet", () => {
       expect(invokeSpy).toHaveBeenCalledWith("fetch_torrent_bytes", {
         url: "https://nyaa.si/download/file.torrent",
         proxyUrl: "http://127.0.0.1:7890",
-        proxy_url: "http://127.0.0.1:7890",
       });
     });
     it("does not borrow another source proxy for a direct URL", async () => {
@@ -804,7 +806,6 @@ describe("torrent/magnet", () => {
       expect(invokeSpy).toHaveBeenCalledWith("fetch_torrent_bytes", {
         url: "https://nyaa.si/download/file.torrent",
         proxyUrl: undefined,
-        proxy_url: undefined,
       });
     });
   });

@@ -1,3 +1,4 @@
+/* eslint-disable max-depth -- error diffusion and glyph masks traverse rows, columns, and cells. */
 import {
   DITHER_BAND_ROWS,
   DITHER_BARREL_STRENGTH,

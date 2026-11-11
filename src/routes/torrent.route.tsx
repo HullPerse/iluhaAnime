@@ -21,7 +21,7 @@ import { useKeybindTitle } from "@/hooks/keybindTitle.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useFolderContentChanged } from "@/hooks/watcher/changes.watcher.hook";
-import { useTorrentBulk } from "@/hooks/torrent/bulk.hook";
+import { useTorrentBulk, useTorrentBulkDialogs } from "@/hooks/torrent/bulk.hook";
 import {
   TORRENTS_QUERY_KEY,
   useTorrentFilesMap,
@@ -38,7 +38,6 @@ import { pruneSelection } from "@/lib/core/collection/bulk.utils";
 import {
   countLiveTorrents,
   formatSpeed,
-  fmtSpeed,
   getLifecycleLabel,
   getTorrentLifecycle,
 } from "@/lib/torrent/torrentCommon.utils";
@@ -46,7 +45,7 @@ import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { paginate } from "@/lib/core/collection/pagination.utils";
 import { sortTorrents } from "@/lib/torrent/sort.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
-import { torrentRoute } from "@/routes/__root";
+import { torrentRoute } from "@/routes/__root.defs";
 import {
   cacheAtoms,
   moveTorrentOrder,
@@ -217,9 +216,20 @@ function TorrentRoute() {
       return pruned === prev ? prev : new Set(pruned);
     });
   }, [filteredTorrents]);
-  const [bulkRemoveTargets, setBulkRemoveTargets] = useState<TorrentInfo[] | null>(null);
-  const [showBulkTrackers, setShowBulkTrackers] = useState<boolean>(false);
-  const [showBulkLimits, setShowBulkLimits] = useState<boolean>(false);
+  const {
+    removeTargets,
+    requestRemove,
+    confirmRemove,
+    closeRemove,
+    trackersOpen,
+    openTrackers,
+    closeTrackers,
+    applyTrackers,
+    limitsOpen,
+    openLimits,
+    closeLimits,
+    applyLimits,
+  } = useTorrentBulkDialogs(selectedTorrents, runBulk);
   useResolvedHotkeys<"torrent-pause-resume" | "torrent-recheck-errors">(
     [
       {
@@ -347,7 +357,7 @@ function TorrentRoute() {
     const totalUl = torrents.reduce((s, t) => s + t.upload_speed, 0);
     const suffix =
       totalDl > 0 || totalUl > 0
-        ? ` download ${fmtSpeed(totalDl)} upload ${fmtSpeed(totalUl)}`
+        ? ` download ${formatSpeed(totalDl)} upload ${formatSpeed(totalUl)}`
         : "";
     const next = `iluhaAnime${suffix}`;
     if (document.title !== next) document.title = next;
@@ -534,9 +544,9 @@ function TorrentRoute() {
           onPause={() => runBulk("pause", selectedTorrents)}
           onResume={() => runBulk("resume", selectedTorrents)}
           onRecheck={() => runBulk("recheck", selectedTorrents)}
-          onDelete={() => setBulkRemoveTargets(selectedTorrents)}
-          onTrackers={() => setShowBulkTrackers(true)}
-          onLimits={() => setShowBulkLimits(true)}
+          onDelete={() => requestRemove(selectedTorrents)}
+          onTrackers={openTrackers}
+          onLimits={openLimits}
           onSelectAll={() => setSelected(new Set(filteredTorrents.map((torrent) => torrent.id)))}
           onClear={() => setSelected(new Set())}
         />
@@ -552,45 +562,26 @@ function TorrentRoute() {
           statusText={t("torrent.summary.total", { count: total })}
         />
       )}
-      {bulkRemoveTargets && bulkRemoveTargets.length > 0 && (
+      {removeTargets && removeTargets.length > 0 && (
         <DeleteTorrentDialog
           open
           message={t("torrent.delete.message.many")}
-          onWithFiles={() => {
-            const targets = bulkRemoveTargets;
-            setBulkRemoveTargets(null);
-            runBulk("remove", targets, true);
-          }}
-          onKeepFiles={() => {
-            const targets = bulkRemoveTargets;
-            setBulkRemoveTargets(null);
-            runBulk("remove", targets, false);
-          }}
-          onClose={() => setBulkRemoveTargets(null)}
+          onWithFiles={() => confirmRemove(true)}
+          onKeepFiles={() => confirmRemove(false)}
+          onClose={closeRemove}
         />
       )}
       <BulkTrackerModal
-        open={showBulkTrackers}
+        open={trackersOpen}
         busy={bulkBusy}
-        onClose={() => setShowBulkTrackers(false)}
-        onApply={(tracker) => {
-          setShowBulkTrackers(false);
-          ignore(runBulk("trackers", selectedTorrents, false, { tracker }));
-        }}
+        onClose={closeTrackers}
+        onApply={applyTrackers}
       />
       <BulkLimitsModal
-        open={showBulkLimits}
+        open={limitsOpen}
         busy={bulkBusy}
-        onClose={() => setShowBulkLimits(false)}
-        onApply={(limits) => {
-          setShowBulkLimits(false);
-          ignore(
-            runBulk("limits", selectedTorrents, false, {
-              downloadBps: limits.download,
-              uploadBps: limits.upload,
-            })
-          );
-        }}
+        onClose={closeLimits}
+        onApply={applyLimits}
       />
       {recreateTargets.length > 0 && (
         <ConfirmDialog

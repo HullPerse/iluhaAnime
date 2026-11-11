@@ -438,12 +438,14 @@ fn prepare_copy(
 fn read_stream(stream: &windows::Win32::System::Com::IStream) -> Result<Vec<u8>, String> {
     use windows::Win32::System::Com::STREAM_SEEK_SET;
 
+    // SAFETY: stream is a live COM IStream owned by CapturePreview.
     unsafe { stream.Seek(0, STREAM_SEEK_SET, None) }
         .map_err(|error| format!("rewind the capture: {error}"))?;
     let mut bytes = Vec::new();
     let mut buffer = vec![0u8; READ_CHUNK];
     loop {
         let mut read = 0u32;
+        // SAFETY: the buffer has READ_CHUNK capacity and read points to a local u32.
         let result = unsafe {
             stream.Read(
                 buffer.as_mut_ptr().cast(),
@@ -478,8 +480,10 @@ fn capture_webview_png(webview: &tauri::webview::PlatformWebview) -> Result<Vec<
     use windows::Win32::System::Com::StructuredStorage::CreateStreamOnHGlobal;
 
     let controller = webview.controller();
+    // SAFETY: the controller belongs to the live webview on its UI thread.
     let core = unsafe { controller.CoreWebView2() }
         .map_err(|error| format!("the webview is not ready: {error}"))?;
+    // SAFETY: the call owns the returned stream and frees the HGLOBAL on release.
     let stream = unsafe { CreateStreamOnHGlobal(HGLOBAL::default(), true) }
         .map_err(|error| format!("create the capture stream: {error}"))?;
     let (sender, receiver) = std::sync::mpsc::channel::<Result<Vec<u8>, String>>();
@@ -495,6 +499,7 @@ fn capture_webview_png(webview: &tauri::webview::PlatformWebview) -> Result<Vec<
                 Ok(())
             },
         ));
+    // SAFETY: core, stream, and handler are live until the asynchronous capture completes.
     unsafe {
         core.CapturePreview(
             COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG,

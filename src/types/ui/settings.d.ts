@@ -16,7 +16,7 @@ export type SettingsTab =
   | "keybinds"
   | "changelog";
 
-export type SettingsTabGroupId = "main" | "data" | "integrations" | "advanced";
+type SettingsTabGroupId = "main" | "data" | "integrations" | "advanced";
 
 export interface SettingsTabGroup {
   id: SettingsTabGroupId;
@@ -26,7 +26,7 @@ export interface SettingsTabGroup {
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 
-export type WindowEffect = "none" | "acrylic" | "mica" | "tabbed";
+type WindowEffect = "none" | "acrylic" | "mica" | "tabbed";
 
 export interface SettingsStore {
   language: Locale;
@@ -224,7 +224,7 @@ export type NotificationPopupMode = "off" | "system" | "inapp" | "both";
 
 export type WatcherDelay = "fast" | "calm";
 
-export interface SpeedSchedule {
+interface SpeedSchedule {
   enabled: boolean;
   dayStart: string;
   nightStart: string;
@@ -265,7 +265,7 @@ export type TabSettings = Pick<
   | "gameTabUnlocked"
 >;
 
-export type ChangelogScope =
+type ChangelogScope =
   | "upscale"
   | "player"
   | "torrents"

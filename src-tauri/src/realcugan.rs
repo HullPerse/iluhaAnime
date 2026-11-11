@@ -57,6 +57,7 @@ pub async fn check_realcugan(app_handle: tauri::AppHandle) -> Result<bool, Strin
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_lines)]
 pub async fn download_realcugan(app_handle: tauri::AppHandle) -> Result<String, String> {
     let dir = realcugan_bin_dir(&app_handle);
     std::fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;

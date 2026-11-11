@@ -14,7 +14,7 @@ import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { withFallback } from "@hullperse/hp_utils/attempt";
-import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
+import { invokeTyped, invokeValidated } from "@/lib/core/system/invoke.utils";
 import {
   Anime4kShadersSchema,
   GpuEncodersSchema,
@@ -84,8 +84,8 @@ export default function UpscalePlayer({
     queryFn: async () => {
       const [ffmpegOk, gpuEncoders, defaultShaders] = await Promise.all([
         withFallback(invokeTyped<boolean>("check_ffprobe"), false),
-        withFallback(invokeValidatedOrThrow("check_gpu_encoders", GpuEncodersSchema), ["cpu"]),
-        withFallback(invokeValidatedOrThrow("default_anime4k_shaders", Anime4kShadersSchema), []),
+        withFallback(invokeValidated("check_gpu_encoders", GpuEncodersSchema), ["cpu"]),
+        withFallback(invokeValidated("default_anime4k_shaders", Anime4kShadersSchema), []),
       ]);
       return { ffmpegOk, gpuEncoders, defaultShaders };
     },
@@ -95,7 +95,7 @@ export default function UpscalePlayer({
     queryKey: queryKeys.upscaleSuggest(filePath),
     queryFn: () =>
       withFallback(
-        invokeValidatedOrThrow("suggest_upscale_preset", UpscalePresetSuggestionSchema, {
+        invokeValidated("suggest_upscale_preset", UpscalePresetSuggestionSchema, {
           inputPath: filePath,
         }),
         null

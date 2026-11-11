@@ -1,6 +1,4 @@
 #![allow(
-    clippy::too_many_arguments,
-    clippy::too_many_lines,
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     clippy::cast_precision_loss
@@ -792,6 +790,7 @@ pub async fn get_video_card(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_lines)]
 pub async fn preview_upscale_frames(
     app_handle: tauri::AppHandle,
     input_path: String,
@@ -1129,6 +1128,7 @@ fn estimate_seconds(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn estimate_upscale_time(
     app_handle: tauri::AppHandle,
     input_path: String,
@@ -1386,6 +1386,8 @@ async fn rife_interpolate_frames(
     Ok((out_dir, f64::from(target_fps)))
 }
 
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 async fn realcugan_upscale(
     app_handle: &tauri::AppHandle,
     input_path: &str,
@@ -1579,6 +1581,8 @@ async fn realcugan_upscale(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 pub async fn upscale_video(
     app_handle: tauri::AppHandle,
     input_path: String,
@@ -2074,6 +2078,7 @@ pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_lines)]
 pub async fn convert_video(
     app_handle: tauri::AppHandle,
     input_path: String,

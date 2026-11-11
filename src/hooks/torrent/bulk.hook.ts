@@ -15,11 +15,12 @@ import {
   applyBulkAction,
   splitRecheckOutcome,
 } from "@/lib/core/collection/bulk.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { attemptAllLimit } from "@hullperse/hp_utils/result";
 import { prepareTorrentDownload } from "@/store/download.store";
 import { addNotification } from "@/store/notification.store";
 import type { TorrentBulkKind, TorrentBulkPayload } from "@/types/torrent/bulk";
-import type { TorrentInfo } from "@/types/torrent/torrent";
+import type { SpeedLimits, TorrentInfo } from "@/types/torrent/torrent";
 
 interface TorrentBulkApi {
   bulkBusy: boolean;
@@ -193,5 +194,60 @@ export function useTorrentBulk(): TorrentBulkApi {
     setRecreateTargets,
     recreateTorrents,
     runBulk,
+  };
+}
+
+export function useTorrentBulkDialogs(
+  selectedTorrents: TorrentInfo[],
+  runBulk: TorrentBulkApi["runBulk"]
+) {
+  const [removeTargets, setRemoveTargets] = useState<TorrentInfo[] | null>(null);
+  const [trackersOpen, setTrackersOpen] = useState<boolean>(false);
+  const [limitsOpen, setLimitsOpen] = useState<boolean>(false);
+
+  const confirmRemove = useCallback(
+    (deleteFiles: boolean) => {
+      const targets = removeTargets;
+      if (!targets) return;
+      setRemoveTargets(null);
+      ignore(runBulk("remove", targets, deleteFiles));
+    },
+    [removeTargets, runBulk]
+  );
+
+  const applyTrackers = useCallback(
+    (tracker: string) => {
+      setTrackersOpen(false);
+      ignore(runBulk("trackers", selectedTorrents, false, { tracker }));
+    },
+    [runBulk, selectedTorrents]
+  );
+
+  const applyLimits = useCallback(
+    (limits: SpeedLimits) => {
+      setLimitsOpen(false);
+      ignore(
+        runBulk("limits", selectedTorrents, false, {
+          downloadBps: limits.download,
+          uploadBps: limits.upload,
+        })
+      );
+    },
+    [runBulk, selectedTorrents]
+  );
+
+  return {
+    removeTargets,
+    requestRemove: setRemoveTargets,
+    confirmRemove,
+    closeRemove: () => setRemoveTargets(null),
+    trackersOpen,
+    openTrackers: () => setTrackersOpen(true),
+    closeTrackers: () => setTrackersOpen(false),
+    applyTrackers,
+    limitsOpen,
+    openLimits: () => setLimitsOpen(true),
+    closeLimits: () => setLimitsOpen(false),
+    applyLimits,
   };
 }

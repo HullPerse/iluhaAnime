@@ -1,6 +1,9 @@
 import { STAFF_CREDITS_PAGE_SIZE } from "@/config/system/pagination.config";
 import { flattenMarkup } from "@hullperse/hp_utils/text";
-import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
+import type {
+  AniListOverlayContext,
+  AniListOverlayScreen,
+} from "@/types/anilist/anilistUi";
 
 import { DetailProfileHeader } from "@/routes/components/anilist/detail/profileHeader.detail";
 import { PersonFavButton } from "@/routes/components/anilist/detail/favbutton.detail";

@@ -37,6 +37,7 @@ fn wide(path: &Path) -> Vec<u16> {
 
 #[cfg(windows)]
 pub fn is_hidden(path: &Path) -> bool {
+    // SAFETY: wide() returns a null-terminated UTF-16 buffer alive for the call.
     let attributes = unsafe { GetFileAttributesW(wide(path).as_ptr()) };
     attributes != u32::MAX && attributes & FILE_ATTRIBUTE_HIDDEN != 0
 }
@@ -49,10 +50,12 @@ pub fn is_hidden(_path: &Path) -> bool {
 #[cfg(windows)]
 pub fn hide_file(path: &Path) {
     let name = wide(path);
+    // SAFETY: name is a null-terminated UTF-16 buffer alive for the call.
     let attributes = unsafe { GetFileAttributesW(name.as_ptr()) };
     if attributes == u32::MAX || attributes & FILE_ATTRIBUTE_HIDDEN != 0 {
         return;
     }
+    // SAFETY: name is a valid null-terminated path for this process.
     unsafe {
         SetFileAttributesW(name.as_ptr(), attributes | FILE_ATTRIBUTE_HIDDEN);
     }
@@ -64,10 +67,12 @@ pub fn hide_file(_path: &Path) {}
 #[cfg(windows)]
 pub fn unhide_file(path: &Path) {
     let name = wide(path);
+    // SAFETY: name is a null-terminated UTF-16 buffer alive for the call.
     let attributes = unsafe { GetFileAttributesW(name.as_ptr()) };
     if attributes == u32::MAX || attributes & FILE_ATTRIBUTE_HIDDEN == 0 {
         return;
     }
+    // SAFETY: name is a valid null-terminated path for this process.
     unsafe {
         SetFileAttributesW(name.as_ptr(), attributes & !FILE_ATTRIBUTE_HIDDEN);
     }
@@ -79,7 +84,9 @@ pub fn unhide_file(_path: &Path) {}
 #[cfg(windows)]
 pub fn allocated_bytes(path: &Path) -> Option<u64> {
     let mut high = 0u32;
+    // SAFETY: the path buffer is null-terminated and high points to a local u32.
     let low = unsafe { GetCompressedFileSizeW(wide(path).as_ptr(), &raw mut high) };
+    // SAFETY: GetLastError reads thread-local state immediately after the failed call.
     if low == INVALID_FILE_SIZE && unsafe { GetLastError() } != 0 {
         return None;
     }
@@ -113,6 +120,7 @@ fn volume_root(path: &Path) -> PathBuf {
 #[cfg(windows)]
 fn set_sparse(handle: isize) -> bool {
     let mut returned = 0u32;
+    // SAFETY: handle is a valid file handle and all null buffers have zero sizes.
     let result = unsafe {
         DeviceIoControl(
             handle,
@@ -197,10 +205,12 @@ mod tests {
         let dir = temp_dir("hidden");
         let file = dir.join("episode.mkv");
         std::fs::write(&file, b"data").expect("write file");
+        // SAFETY: the temporary path buffer is null-terminated and alive for the call.
         let before = unsafe { GetFileAttributesW(wide(&file).as_ptr()) };
 
         hide_file(&file);
         assert!(is_hidden(&file));
+        // SAFETY: the temporary path buffer is null-terminated and alive for the call.
         let hidden = unsafe { GetFileAttributesW(wide(&file).as_ptr()) };
         assert_eq!(
             hidden & !FILE_ATTRIBUTE_HIDDEN,
@@ -212,6 +222,7 @@ mod tests {
 
         unhide_file(&file);
         assert!(!is_hidden(&file));
+        // SAFETY: the temporary path buffer is null-terminated and alive for the call.
         let after = unsafe { GetFileAttributesW(wide(&file).as_ptr()) };
         assert_eq!(after, before);
 

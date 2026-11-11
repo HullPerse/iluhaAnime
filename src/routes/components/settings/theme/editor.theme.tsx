@@ -137,7 +137,7 @@ export default function ThemeEditor({
     onClose();
   };
 
-  const header = t(editorHeaderKey(patchMode, isEdit));
+  const header = t(editorHeaderKey({ patchMode, isEdit }));
 
   return (
     <Modal header={header} onClose={onClose}>

@@ -3,13 +3,13 @@ export interface WorkerJobEnvelope<P> {
   payload: P;
 }
 
-export interface WorkerJobDone<R> {
+interface WorkerJobDone<R> {
   id: number;
   ok: true;
   result: R;
 }
 
-export interface WorkerJobFailed {
+interface WorkerJobFailed {
   id: number;
   ok: false;
   error: string;

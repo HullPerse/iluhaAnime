@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useI18n } from "@/hooks/i18n.hook";
 import { uniqueById } from "@hullperse/hp_utils/array";
 import type { StaffPage } from "@/hooks/anilist/staff.hook";
-import type { AniListOverlayContext } from "@/types/anilist/anilist";
+import type { AniListOverlayContext } from "@/types/anilist/anilistUi";
 
 import { CreditSection } from "@/routes/components/anilist/detail/creditSection.detail";
 

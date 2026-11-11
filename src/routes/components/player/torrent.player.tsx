@@ -11,7 +11,8 @@ import { isVideoFileName } from "@hullperse/hp_utils/media/parse";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { isCheckingFiles } from "@/lib/torrent/torrentCommon.utils";
-import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { invokeValidated } from "@/lib/core/system/invoke.utils";
+import { FileEntryListSchema } from "@/api/fileIndex.schema";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentPlayerProps as Props } from "@/types/player/player";
 
@@ -30,9 +31,11 @@ export default function TorrentFilesPlayerSection({
   const { data = [], refetch } = useAppQuery("slow", {
     queryKey: queryKeys.extraFiles(item.save_dir),
     queryFn: () =>
-      invokeTyped<{ path: string; name: string; size: number }[]>("scan_extra_files", {
-        path: item.save_dir,
-      }).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
+      invokeValidated<{ path: string; name: string; size: number }[]>(
+        "scan_extra_files",
+        FileEntryListSchema,
+        { path: item.save_dir }
+      ).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
     enabled: !!item.save_dir,
   });
 

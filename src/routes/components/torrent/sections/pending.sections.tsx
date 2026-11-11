@@ -6,7 +6,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
-  fmtSpeed,
+  formatSpeed,
   getDisplayState,
 } from "@/lib/torrent/torrentCommon.utils";
 import { formatETA } from "@/lib/core/text/time.utils";
@@ -21,7 +21,10 @@ export function TorrentPendingState({ item, actions }: { item: TorrentInfo; acti
   const hasSize = item.total_bytes > 0;
   const showProgress = display !== "missing" && (hasSize || display === "initializing");
   const percent = Math.round(item.progress * 100);
-  const speed = display === "downloading" ? fmtSpeed(item.download_speed) : "";
+  const speed =
+    display === "downloading" && item.download_speed > 0
+      ? formatSpeed(item.download_speed)
+      : "";
   const eta = display === "downloading" ? formatETA(item.eta_secs, t) : "";
 
   return (

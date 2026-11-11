@@ -11,6 +11,9 @@ type DistanceToken =
   | "overXYears"
   | "almostXYears";
 
+const MINUTES_IN_HOUR = 60;
+const APPROX_HOURS_FROM_MINUTES = 45;
+const APPROX_ONE_HOUR_UNTIL_MINUTES = 90;
 const MINUTES_IN_DAY = 1440;
 const MINUTES_IN_MONTH = 43200;
 const MINUTES_IN_ALMOST_TWO_DAYS = 2520;
@@ -240,6 +243,64 @@ function formatRu(token: DistanceToken, count: number, comparison: number): stri
   return entry.past ? declension(entry.past, count) : `${declension(entry.regular, count)} назад`;
 }
 
+interface DistanceResolution {
+  token: DistanceToken;
+  count: number;
+}
+
+interface DistanceBucket {
+  limit: number;
+  resolve: (minutes: number) => DistanceResolution;
+}
+
+const DISTANCE_BUCKETS: readonly DistanceBucket[] = [
+  {
+    limit: 2,
+    resolve: (minutes) =>
+      minutes === 0
+        ? { token: "lessThanXMinutes", count: 1 }
+        : { token: "xMinutes", count: minutes },
+  },
+  { limit: APPROX_HOURS_FROM_MINUTES, resolve: (minutes) => ({ token: "xMinutes", count: minutes }) },
+  { limit: APPROX_ONE_HOUR_UNTIL_MINUTES, resolve: () => ({ token: "aboutXHours", count: 1 }) },
+  {
+    limit: MINUTES_IN_DAY,
+    resolve: (minutes) => ({
+      token: "aboutXHours",
+      count: Math.round(minutes / MINUTES_IN_HOUR),
+    }),
+  },
+  { limit: MINUTES_IN_ALMOST_TWO_DAYS, resolve: () => ({ token: "xDays", count: 1 }) },
+  {
+    limit: MINUTES_IN_MONTH,
+    resolve: (minutes) => ({ token: "xDays", count: Math.round(minutes / MINUTES_IN_DAY) }),
+  },
+  {
+    limit: MINUTES_IN_MONTH * 2,
+    resolve: (minutes) => ({ token: "aboutXMonths", count: Math.round(minutes / MINUTES_IN_MONTH) }),
+  },
+];
+
+const YEAR_BUCKETS: readonly { restLimit: number; token: DistanceToken; extraYears: number }[] = [
+  { restLimit: 3, token: "aboutXYears", extraYears: 0 },
+  { restLimit: 9, token: "overXYears", extraYears: 0 },
+  { restLimit: 12, token: "almostXYears", extraYears: 1 },
+];
+
+function resolveDistance(minutes: number, laterMs: number, earlierMs: number): DistanceResolution {
+  for (const bucket of DISTANCE_BUCKETS) {
+    if (minutes < bucket.limit) return bucket.resolve(minutes);
+  }
+  const months = differenceInMonths(laterMs, earlierMs);
+  if (months < 12) {
+    return { token: "xMonths", count: Math.round(minutes / MINUTES_IN_MONTH) };
+  }
+  const rest = months % 12;
+  const years = Math.trunc(months / 12);
+  const bucket = YEAR_BUCKETS.find((entry) => rest < entry.restLimit) ?? YEAR_BUCKETS[2];
+  return { token: bucket.token, count: years + bucket.extraYears };
+}
+
 export function formatDistanceToNowOwn(
   date: number | Date,
   locale: Locale,
@@ -253,53 +314,6 @@ export function formatDistanceToNowOwn(
   const seconds = Math.trunc((laterMs - earlierMs) / 1000);
   const offsetSec = (timezoneOffsetMs(earlierMs) - timezoneOffsetMs(laterMs)) / 1000;
   const minutes = Math.round((seconds - offsetSec) / 60);
-  let token: DistanceToken;
-  let count: number;
-  if (minutes < 2) {
-    if (minutes === 0) {
-      token = "lessThanXMinutes";
-      count = 1;
-    } else {
-      token = "xMinutes";
-      count = minutes;
-    }
-  } else if (minutes < 45) {
-    token = "xMinutes";
-    count = minutes;
-  } else if (minutes < 90) {
-    token = "aboutXHours";
-    count = 1;
-  } else if (minutes < MINUTES_IN_DAY) {
-    token = "aboutXHours";
-    count = Math.round(minutes / 60);
-  } else if (minutes < MINUTES_IN_ALMOST_TWO_DAYS) {
-    token = "xDays";
-    count = 1;
-  } else if (minutes < MINUTES_IN_MONTH) {
-    token = "xDays";
-    count = Math.round(minutes / MINUTES_IN_DAY);
-  } else if (minutes < MINUTES_IN_MONTH * 2) {
-    token = "aboutXMonths";
-    count = Math.round(minutes / MINUTES_IN_MONTH);
-  } else {
-    const months = differenceInMonths(laterMs, earlierMs);
-    if (months < 12) {
-      token = "xMonths";
-      count = Math.round(minutes / MINUTES_IN_MONTH);
-    } else {
-      const rest = months % 12;
-      const years = Math.trunc(months / 12);
-      if (rest < 3) {
-        token = "aboutXYears";
-        count = years;
-      } else if (rest < 9) {
-        token = "overXYears";
-        count = years;
-      } else {
-        token = "almostXYears";
-        count = years + 1;
-      }
-    }
-  }
+  const { token, count } = resolveDistance(minutes, laterMs, earlierMs);
   return locale === "ru" ? formatRu(token, count, comparison) : formatEn(token, count, comparison);
 }

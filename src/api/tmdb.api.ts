@@ -74,7 +74,7 @@ export class TmdbApi {
 
   testConnection(): Promise<string> {
     const proxy = this.proxy();
-    return this.call("test_tmdb_connection", { proxyUrl: proxy, proxy_url: proxy });
+    return this.call("test_tmdb_connection", { proxyUrl: proxy });
   }
 }
 

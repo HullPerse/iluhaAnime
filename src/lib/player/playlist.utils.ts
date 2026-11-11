@@ -42,7 +42,15 @@ export function cardMetaText(art: CardArt | null): string {
   return "";
 }
 
-export function cardClass(current: boolean, focused: boolean, isOver: boolean): string {
+export function cardClass({
+  current,
+  focused,
+  isOver,
+}: {
+  current: boolean;
+  focused: boolean;
+  isOver: boolean;
+}): string {
   return cn(
     "windows95-border relative mb-1 flex flex-col gap-1 p-1",
     current ? "windows95-active-border bg-secondary text-primary" : "bg-field hover:bg-surface",

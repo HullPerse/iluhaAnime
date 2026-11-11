@@ -12,10 +12,6 @@ export type SortKey = "seeders" | "leechers" | "size" | "date";
 export type SortDirection = "asc" | "desc";
 export type SearchType = "default" | "modern";
 
-export interface SettingsScraper {
-  sort: SortKey;
-}
-
 export interface SearchFilters {
   minSeeders: number;
   hasMagnet: boolean;
@@ -26,7 +22,7 @@ export interface SearchFilters {
   codec: string;
 }
 
-export interface FilterPreset {
+interface FilterPreset {
   name: string;
   filters: SearchFilters;
 }
@@ -52,7 +48,7 @@ export interface SearchSuggestion {
   value: string;
 }
 
-export interface CollectionSuggestionItem {
+interface CollectionSuggestionItem {
   title: string;
   altTitles?: string[];
   subtitle?: string;
@@ -195,7 +191,7 @@ export interface DateCond {
   yearOnly: boolean;
 }
 
-export interface NegationCond {
+interface NegationCond {
   key: string;
   value: string;
 }
@@ -237,7 +233,7 @@ export interface HighlightRange {
   kind?: "match" | "spell-warn" | "spell-error";
 }
 
-export type SpellSeverity = "warn" | "error";
+type SpellSeverity = "warn" | "error";
 
 export type CorrectionReason =
   | "typo"

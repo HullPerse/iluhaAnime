@@ -22,6 +22,39 @@ import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { PlayerSettings } from "@/types/player/videoPlayer";
 
+function buildSettingsJobs(
+  reference: PlayerSettings,
+  latest: PlayerSettings,
+  full: boolean
+): Array<Promise<string[]>> {
+  const groups: Array<[Record<string, unknown>, Record<string, unknown>]> = [
+    [transformOptions(reference), transformOptions(latest)],
+    [hdrOptions(reference), hdrOptions(latest)],
+    [colorOptions(reference), colorOptions(latest)],
+    [audioOptions(reference), audioOptions(latest)],
+  ];
+  const jobs: Array<Promise<string[]>> = [];
+  for (const [prevOptions, nextOptions] of groups) {
+    const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
+    if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
+  }
+  return jobs;
+}
+
+function reportRejectedSettings(rejected: string[], seen: Set<string>): void {
+  const fresh = rejected.filter((name) => !seen.has(name));
+  if (fresh.length === 0) return;
+  for (const name of fresh) seen.add(name);
+  const language = settingsAtoms.language.get();
+  addNotification(
+    translate(language, "player.media.settings.rejected.title"),
+    "error",
+    translate(language, "player.media.settings.rejected.message", {
+      properties: fresh.join(", "),
+    })
+  );
+}
+
 export function usePlayerSettingsSync(): void {
   const volumeThrottlerRef = useRef<Throttler<[number]> | null>(null);
   const settingsDebouncerRef = useRef<Debouncer<[PlayerSettings]> | null>(null);
@@ -72,17 +105,7 @@ export function usePlayerSettingsSync(): void {
               const full = settingsSyncFailedRef.current || baseline === null;
               previousSettingsRef.current = latest;
               const reference = baseline ?? latest;
-              const groups: Array<[Record<string, unknown>, Record<string, unknown>]> = [
-                [transformOptions(reference), transformOptions(latest)],
-                [hdrOptions(reference), hdrOptions(latest)],
-                [colorOptions(reference), colorOptions(latest)],
-                [audioOptions(reference), audioOptions(latest)],
-              ];
-              const jobs: Array<Promise<string[]>> = [];
-              for (const [prevOptions, nextOptions] of groups) {
-                const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
-                if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
-              }
+              const jobs = buildSettingsJobs(reference, latest, full);
               if (jobs.length === 0) {
                 settingsSyncFailedRef.current = false;
                 return;
@@ -93,19 +116,9 @@ export function usePlayerSettingsSync(): void {
                   settingsSyncFailedRef.current = rejected.length > 0;
                   if (rejected.length === 0) {
                     rejectedSettingsRef.current.clear();
-                    return;
+                    return null;
                   }
-                  const fresh = rejected.filter((name) => !rejectedSettingsRef.current.has(name));
-                  if (fresh.length === 0) return;
-                  for (const name of fresh) rejectedSettingsRef.current.add(name);
-                  const language = settingsAtoms.language.get();
-                  addNotification(
-                    translate(language, "player.media.settings.rejected.title"),
-                    "error",
-                    translate(language, "player.media.settings.rejected.message", {
-                      properties: fresh.join(", "),
-                    })
-                  );
+                  reportRejectedSettings(rejected, rejectedSettingsRef.current);
                   return null;
                 })
               );

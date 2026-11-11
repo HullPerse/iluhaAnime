@@ -45,12 +45,12 @@ async function withCoverSearchSlot<T>(task: () => Promise<T>): Promise<T> {
     });
   }
   activeCoverSearches += 1;
-  try {
-    return await task();
-  } finally {
+  const [value, error] = await attempt(task()).finally(() => {
     activeCoverSearches -= 1;
     coverSearchQueue.shift()?.();
-  }
+  });
+  if (error !== null) throw error;
+  return value;
 }
 
 async function fetchCoverSearch(query: CoverQuery): Promise<CoverCandidate[]> {

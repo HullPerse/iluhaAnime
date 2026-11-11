@@ -13,7 +13,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import { useState, useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
+import { useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/types/ui/contextMenu";
@@ -22,6 +22,7 @@ import TreeRowNumber from "@/components/shared/treeNumber.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/system/folders.config";
+import { useFolderTree } from "@/hooks/player/folderTree.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -30,15 +31,10 @@ import { clickRowActionButton } from "@/lib/core/hotkeys/dispatchHotkeys.utils";
 import { mediaFileExtension, parseMediaPath } from "@hullperse/hp_utils/media/parse";
 import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
-import {
-  findFolderContainingFile,
-  flattenTree,
-  folderFilePaths,
-} from "@/lib/player/playerTree.utils";
+import { findFolderContainingFile, folderFilePaths } from "@/lib/player/playerTree.utils";
 import { resolveTreeArrow } from "@/lib/core/ui/treeArrow.utils";
 import { moveRingFocus } from "@/lib/ui/treeFocus.utils";
 import { findRow, rowElement, runRowAction } from "@/lib/ui/treeRow.utils";
-import type { TreeRow } from "@/types/core/treeArrow";
 import { useCell } from "@hullperse/hp_utils/react";
 import { withFallback } from "@hullperse/hp_utils/attempt";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
@@ -146,20 +142,25 @@ function FolderView({
     [showTrackFiles, audioExtensions, subtitleExtensions]
   );
 
-  const [open, setOpen] = useState<Set<string>>(
-    () => new Set(node.children.length > 0 ? [node.path] : [])
-  );
+  const { open, toggle, anchorPath, setAnchorPath, flatItems, treeRows } = useFolderTree({
+    node,
+    searchQuery,
+    disabledExtensions,
+    depth,
+    hideRoot,
+    trackExts,
+  });
   const localScrollRef = useRef<HTMLDivElement>(null);
   const scrollElementRef = scrollRef ?? localScrollRef;
+  const treeRef = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef<string | null>(null);
 
-  const toggle = useCallback((path: string) => {
-    setOpen((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  }, []);
+  useEffect(() => {
+    const path = pendingFocus.current;
+    if (!path) return;
+    pendingFocus.current = null;
+    findRow(treeRef.current, path)?.focus();
+  }, [open]);
 
   const openInAppPlayer = useCallback(
     async (path: string) => {
@@ -180,53 +181,12 @@ function FolderView({
     [node, t]
   );
 
-  const flatItems = useMemo(
-    () => flattenTree(node, open, searchQuery, disabledExtensions, depth, trackExts),
-    [node, open, searchQuery, disabledExtensions, depth, trackExts]
-  );
-
   const virtualizer = useVirtualizer({
     count: flatItems.length,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => 20,
     overscan: 20,
   });
-
-  const treeRef = useRef<HTMLDivElement>(null);
-  const pendingFocus = useRef<string | null>(null);
-  const [anchorPath, setAnchorPath] = useState<string | null>(null);
-
-  const treeRows = useMemo<TreeRow[]>(() => {
-    const header: TreeRow[] =
-      !hideRoot || depth > 0
-        ? [{ path: node.path, depth, kind: "folder", expanded: open.has(node.path) }]
-        : [];
-    return [
-      ...header,
-      ...flatItems.map((item) =>
-        item.kind === "folder"
-          ? {
-              path: item.node.path,
-              depth: item.depth,
-              kind: "folder" as const,
-              expanded: open.has(item.node.path),
-            }
-          : {
-              path: item.file.path,
-              depth: item.depth,
-              kind: "file" as const,
-              expanded: false,
-            }
-      ),
-    ];
-  }, [depth, flatItems, hideRoot, node.path, open]);
-
-  useEffect(() => {
-    const path = pendingFocus.current;
-    if (!path) return;
-    pendingFocus.current = null;
-    findRow(treeRef.current, path)?.focus();
-  }, [open]);
 
   useResolvedHotkeys<TreeKeyAction>(TREE_KEYBINDS, {
     ignore: (event) => {

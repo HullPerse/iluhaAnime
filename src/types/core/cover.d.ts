@@ -81,7 +81,7 @@ export interface NormalizedResolvedCover {
   year?: number;
 }
 
-export interface CoverOverride {
+interface CoverOverride {
   id: number;
   coverUrl: string | null;
   title: string;

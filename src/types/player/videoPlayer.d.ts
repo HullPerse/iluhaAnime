@@ -83,7 +83,7 @@ export interface StreamSource {
   audioTracks: StreamAudioTrack[];
 }
 
-export interface StreamSubtitleTrack {
+interface StreamSubtitleTrack {
   id: string;
   url: string;
   language: string;
@@ -91,7 +91,7 @@ export interface StreamSubtitleTrack {
   headers: Record<string, string>;
 }
 
-export interface StreamAudioTrack {
+interface StreamAudioTrack {
   id: string;
   language: string;
   title?: string;
@@ -135,7 +135,7 @@ export interface PlaybackSnapshot {
   videoHeight?: number;
 }
 
-export type PlaybackEventKind =
+type PlaybackEventKind =
   | "file-loaded"
   | "end-file"
   | "idle"
@@ -247,12 +247,7 @@ export interface PlayerSettings {
   loudnorm: boolean;
 }
 
-export type PlayerPanel = "none" | "settings" | "tracks" | "subtitles" | "cheatsheet" | "jump";
-
-export interface PlayerOsd {
-  id: number;
-  text: string;
-}
+type PlayerPanel = "none" | "settings" | "tracks" | "subtitles" | "cheatsheet" | "jump";
 
 export interface VideoMarginRatio {
   left?: number;
@@ -324,15 +319,4 @@ export interface PlaybackStore {
   setPlaybackSpeed: (speed: number) => void;
   markTrackSelected: (kind: "audio" | "sub", id: number | "no") => void;
   reset: () => void;
-}
-
-export interface MediaStore {
-  entries: MediaEntry[];
-  getEntry: (path: string) => MediaEntry | undefined;
-  setPosition: (path: string, time: number, duration?: number) => void;
-  setTrack: (path: string, type: "audio" | "sub", index: number) => void;
-  setSubOffset: (path: string, offset: number) => void;
-  setAudioOffset: (path: string, offset: number) => void;
-  hydrate: (path: string) => Promise<MediaEntry | undefined>;
-  clearEntries: () => void;
 }

@@ -8,7 +8,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
-import { invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
+import { invokeValidated } from "@/lib/core/system/invoke.utils";
 import { ShaderInfoListSchema } from "@/api/upscale.schema";
 import { formatETA } from "@/lib/core/text/time.utils";
 import type { ShaderPlayerProps as Props } from "@/types/player/player";
@@ -22,7 +22,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
 
   const { data: shaders = [] } = useAppQuery("static", {
     queryKey: queryKeys.shaders(),
-    queryFn: () => invokeValidatedOrThrow("list_anime4k_shaders", ShaderInfoListSchema),
+    queryFn: () => invokeValidated("list_anime4k_shaders", ShaderInfoListSchema),
   });
 
   const grouped = useMemo(() => {

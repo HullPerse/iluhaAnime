@@ -14,6 +14,13 @@ import type { DitherImageMeta, UserImageFile } from "@/types/core/userimage";
 import type { ApiTransport } from "@/types/core/transport";
 import { tauriTransport } from "@/api/transport.api";
 import type { SaveScreenshotInput, SystemApiConfig } from "@/types/core/system";
+import { assertSchema } from "@/lib/core/system/invoke.utils";
+import {
+  DatabaseStatusSchema,
+  HostStatsSchema,
+  RemoteImageStatsSchema,
+  VideoCacheStatsSchema,
+} from "@/api/system.schema";
 
 export class SystemApi {
   private readonly transport: ApiTransport;
@@ -121,20 +128,26 @@ export class SystemApi {
     return this.call("collect_repro_bundle", { frontendJson, outPath });
   }
 
-  getHostStats(): Promise<HostStats> {
-    return this.call("get_host_stats");
+  async getHostStats(): Promise<HostStats> {
+    const stats = await this.call<HostStats>("get_host_stats");
+    assertSchema(stats, HostStatsSchema);
+    return stats;
   }
 
   listSystemFonts(): Promise<string[]> {
     return this.call("list_system_fonts");
   }
 
-  getRemoteImagesStats(): Promise<{ bytes: number; count: number }> {
-    return this.call("get_remote_images_stats");
+  async getRemoteImagesStats(): Promise<{ bytes: number; count: number }> {
+    const stats = await this.call<{ bytes: number; count: number }>("get_remote_images_stats");
+    assertSchema(stats, RemoteImageStatsSchema);
+    return stats;
   }
 
-  getVideoCacheStats(): Promise<{ hits: number; misses: number }> {
-    return this.call("get_video_cache_stats");
+  async getVideoCacheStats(): Promise<{ hits: number; misses: number }> {
+    const stats = await this.call<{ hits: number; misses: number }>("get_video_cache_stats");
+    assertSchema(stats, VideoCacheStatsSchema);
+    return stats;
   }
 
   clearRemoteImageCache(): Promise<number> {
@@ -174,13 +187,20 @@ export class SystemApi {
     return this.call("delete_app_cache", { key, namespace });
   }
 
-  getDatabaseStatus(): Promise<{
+  async getDatabaseStatus(): Promise<{
     ok: boolean;
     version: number | null;
     dataDir: string;
     error: string | null;
   }> {
-    return this.call("get_database_status");
+    const status = await this.call<{
+      ok: boolean;
+      version: number | null;
+      dataDir: string;
+      error: string | null;
+    }>("get_database_status");
+    assertSchema(status, DatabaseStatusSchema);
+    return status;
   }
 
   probeNetwork(anilistProxyUrl: string | null, animelibProxyUrl: string | null): Promise<boolean> {
@@ -188,7 +208,7 @@ export class SystemApi {
   }
 
   diagnoseNetwork(url: string, proxyUrl: string | null): Promise<NetworkDiagnosis> {
-    return this.call("network_diagnose", { url, proxyUrl, proxy_url: proxyUrl });
+    return this.call("network_diagnose", { url, proxyUrl });
   }
 }
 

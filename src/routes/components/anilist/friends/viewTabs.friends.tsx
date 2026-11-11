@@ -1,14 +1,18 @@
 import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import Tabs from "@/components/shared/tabs.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { FriendView } from "@/types/anilist/anilist";
+import type {
+  FriendView,
+} from "@/types/anilist/anilistUi";
 
 const VIEW_LABELS = {
   profile: "anilist.compare.profile",
   compare: "anilist.compare.compare",
 } as const;
 
-export type { FriendView } from "@/types/anilist/anilist";
+export type {
+  FriendView,
+} from "@/types/anilist/anilistUi";
 
 export function ViewTabs({
   view,

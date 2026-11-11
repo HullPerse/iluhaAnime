@@ -70,7 +70,6 @@ beforeEach(async () => {
   const { resetSymSpellCache } = await import("@/lib/core/anilist/suggestions.utils");
   const { resetNotificationAtoms } = await import("@/store/notification.store");
   const { resetSettingsAtoms } = await import("@/store/settings.store");
-  const { resetModalAtoms } = await import("@/store/modal.store");
   const { resetUpdateAtoms } = await import("@/store/update.store");
   resetAllSharedMocks();
   resetTransportInflight();
@@ -81,7 +80,6 @@ beforeEach(async () => {
   resetSymSpellCache();
   resetNotificationAtoms();
   resetSettingsAtoms();
-  resetModalAtoms();
   resetUpdateAtoms();
   streamSlug.set(null);
   streamPage.set(1);

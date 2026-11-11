@@ -24,17 +24,6 @@ export interface NotificationItem {
   popupOnly?: boolean;
 }
 
-export interface NotificationUpdate {
-  title?: string;
-  message?: string;
-  type?: NotificationType;
-  progress?: boolean;
-}
-
-export interface NotificationUpdateOptions {
-  system?: boolean;
-}
-
 export interface NotificationAddOptions {
   system?: boolean;
   target?: NotificationTarget;
@@ -46,24 +35,6 @@ export interface DismissedEntry {
   signature: string;
   eventKey?: string;
   at: number;
-}
-
-export interface NotificationStore {
-  items: NotificationItem[];
-  unreadCount: number;
-  dismissed: DismissedEntry[];
-  add: (
-    title: string,
-    type?: NotificationType,
-    message?: string,
-    eventKey?: string,
-    options?: NotificationAddOptions
-  ) => number;
-  update: (id: number, patch: NotificationUpdate, options?: NotificationUpdateOptions) => void;
-  markRead: (id: number) => void;
-  markAllRead: () => void;
-  clear: (id: number) => void;
-  clearAll: () => void;
 }
 
 export interface ShowNotificationPayload {

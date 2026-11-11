@@ -42,11 +42,11 @@ export interface Scenario {
   run: (context: ScenarioContext) => Promise<void>;
 }
 
-export function repoRoot(): string {
+function repoRoot(): string {
   return process.cwd();
 }
 
-export function e2eTargetDir(): string {
+function e2eTargetDir(): string {
   return join(repoRoot(), "src-tauri", "target-e2e");
 }
 
@@ -62,7 +62,7 @@ export function fixtureRoot(): string {
   return join(e2eTargetDir(), "harness", "fixtures");
 }
 
-export function appDataDir(): string {
+function appDataDir(): string {
   const base = process.env.APPDATA ?? join(e2eTargetDir(), "appdata");
   return join(base, E2E_IDENTIFIER);
 }
@@ -71,7 +71,7 @@ export function appDataDir(): string {
 // the local app data dir. Without wiping it, a search query or a persisted UI
 // atom from one run leaks into the next one, which makes scenarios depend on
 // execution history.
-export function webViewDataDir(): string {
+function webViewDataDir(): string {
   const base = process.env.LOCALAPPDATA ?? join(e2eTargetDir(), "localappdata");
   return join(base, E2E_IDENTIFIER);
 }
@@ -263,7 +263,7 @@ export function wipeData(): void {
 // collides with it and `create_torrent_from_folder` fails deep inside librqbit
 // with a socket error. The e2e app owns its own app-data dir, so it gets its
 // own listen port and no longer has to compete with a running dev build.
-export const E2E_LISTEN_PORT = 51413;
+const E2E_LISTEN_PORT = 51413;
 
 function seedSessionConfig(): void {
   const path = join(appDataDir(), "session_config.json");

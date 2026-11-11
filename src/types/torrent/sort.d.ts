@@ -8,6 +8,6 @@ export interface SortableTorrent {
   download_speed: number;
 }
 
-export type TorrentSorter = (a: SortableTorrent, b: SortableTorrent) => number;
+type TorrentSorter = (a: SortableTorrent, b: SortableTorrent) => number;
 
 export type TorrentSorterMap = Partial<Record<TorrentSort, TorrentSorter>>;

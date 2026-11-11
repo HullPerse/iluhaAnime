@@ -10,7 +10,7 @@ export interface ThemeOverrideBinding {
   varName: `--${string}`;
 }
 
-export interface ThemeDatasets {
+interface ThemeDatasets {
   theme: string;
   radius: NonNullable<ThemeDefinition["radius"]>;
   bevel: NonNullable<ThemeDefinition["bevel"]>;

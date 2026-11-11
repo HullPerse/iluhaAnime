@@ -1,5 +1,5 @@
 import { tmdbApi } from "@/api/tmdb.api";
-import { invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
+import { invokeValidated } from "@/lib/core/system/invoke.utils";
 import { RemoteImageIdSchema, AnimeStillsSchema } from "@/api/image.schema";
 import { attemptResult, err, map, ok, unwrapOr } from "@hullperse/hp_utils/result";
 import type { Result } from "@/types/core/result";
@@ -9,7 +9,7 @@ export async function downloadCover(url: string): Promise<string | null> {
   if (!url.startsWith("http://") && !url.startsWith("https://")) return null;
 
   const image = await attemptResult(
-    invokeValidatedOrThrow("download_remote_image", RemoteImageIdSchema, {
+    invokeValidated("download_remote_image", RemoteImageIdSchema, {
       url,
       nameHint: "collection-cover",
     })
@@ -47,7 +47,7 @@ async function fetchFromMal(media: QuickAddMedia): Promise<Result<AddedMedia>> {
   const malId = media.id_mal;
   if (malId == null) return err("no mal id to look stills up by");
   const stills = await attemptResult(
-    invokeValidatedOrThrow("get_anime_stills", AnimeStillsSchema, {
+    invokeValidated("get_anime_stills", AnimeStillsSchema, {
       malId,
     })
   );

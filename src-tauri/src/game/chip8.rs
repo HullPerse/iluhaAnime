@@ -360,12 +360,14 @@ impl Chip8 {
 
     /// First-plane pixel state; XO programs read both planes through
     /// [`Self::pixel_color`].
+    #[allow(dead_code)]
     #[must_use]
     pub const fn pixel(&self, x: usize, y: usize) -> bool {
         self.plane_pixel(1, x, y)
     }
 
     /// Colour index of one pixel: bit 0 plane 1, bit 1 plane 2.
+    #[allow(dead_code)]
     #[must_use]
     pub const fn pixel_color(&self, x: usize, y: usize) -> u8 {
         let plane1 = if self.plane_pixel(1, x, y) { 1 } else { 0 };
@@ -373,6 +375,7 @@ impl Chip8 {
         plane1 | plane2
     }
 
+    #[allow(dead_code)]
     #[must_use]
     const fn plane_pixel(&self, plane: u8, x: usize, y: usize) -> bool {
         if x >= self.cols() || y >= self.rows() {
@@ -386,6 +389,7 @@ impl Chip8 {
         word & (1u64 << (63 - x % 64)) != 0
     }
 
+    #[allow(dead_code)]
     pub const fn set_pixel(&mut self, x: usize, y: usize) {
         if x >= self.cols() || y >= self.rows() {
             return;
@@ -583,6 +587,7 @@ impl Chip8 {
         self.waiting_key.is_some()
     }
 
+    #[allow(dead_code)]
     #[must_use]
     pub const fn cycles(&self) -> u64 {
         self.cycle_count
@@ -672,6 +677,7 @@ impl Chip8 {
         self.memory_at(self.i.wrapping_add(offset as u16))
     }
 
+    #[allow(clippy::too_many_lines)]
     fn execute(&mut self, opcode: u16, pc: u16) {
         let x = ((opcode >> 8) & 0x0F) as usize;
         let y = ((opcode >> 4) & 0x0F) as usize;

@@ -33,12 +33,10 @@ public/icons
 
 .playwright-mcp
 
-# slop
+# local agent tooling and internal notes; AGENTS.md is the tracked contract
 .agents
 skills-lock.json
 .docs
-AGENTS.md
-bun.lock
 # debug outputs
 temp.txt
 typecheck.txt

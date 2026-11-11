@@ -110,6 +110,21 @@ function toRawRange(
   };
 }
 
+function asciiMatchRanges(
+  haystack: string,
+  needle: string
+): Array<{ start: number; end: number }> {
+  const found: Array<{ start: number; end: number }> = [];
+  let from = 0;
+  while (from + needle.length <= haystack.length) {
+    const at = haystack.indexOf(needle, from);
+    if (at === -1) break;
+    found.push({ start: at, end: at + needle.length });
+    from = at + needle.length;
+  }
+  return found;
+}
+
 function matchRangesInNode(
   text: string,
   query: string,
@@ -119,16 +134,7 @@ function matchRangesInNode(
   if (isAsciiText(text) && isAsciiText(query)) {
     const haystack = lower ? text.toLowerCase() : text;
     const needle = lower ? query.toLowerCase() : query;
-    const found: Array<{ start: number; end: number }> = [];
-    if (needle) {
-      let from = 0;
-      while (from + needle.length <= haystack.length) {
-        const at = haystack.indexOf(needle, from);
-        if (at === -1) break;
-        found.push({ start: at, end: at + needle.length });
-        from = at + needle.length;
-      }
-    }
+    const found = needle ? asciiMatchRanges(haystack, needle) : [];
     if (!options.wholeWords) return found;
     return found.filter((range) => isWholeWord(text, range.start, range.end));
   }

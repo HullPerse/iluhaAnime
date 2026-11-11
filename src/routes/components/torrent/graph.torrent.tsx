@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { GRAPH_HEIGHT, GRAPH_POINTS, GRAPH_WIDTH } from "@/config/torrent/graph.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { drawSpeedGraph } from "@/lib/core/player/speedGraph.utils";
-import { fmtSpeed } from "@/lib/torrent/torrentCommon.utils";
+import { formatSpeed } from "@/lib/torrent/torrentCommon.utils";
 import type { DhtStatus } from "@/types/torrent/torrent";
 
 export function SpeedGraph({
@@ -68,10 +68,10 @@ export function SpeedGraph({
       />
       <div className="windows95-text flex min-w-0 flex-col text-xs">
         <span className="truncate tabular-nums">
-          {t("torrent.graph.down", { speed: fmtSpeed(download) })}
+          {t("torrent.graph.down", { speed: formatSpeed(download) })}
         </span>
         <span className="truncate tabular-nums">
-          {t("torrent.graph.up", { speed: fmtSpeed(upload) })}
+          {t("torrent.graph.up", { speed: formatSpeed(upload) })}
         </span>
       </div>
       <div className="windows95-text text-hint ml-auto flex shrink-0 items-center gap-2 text-xs">

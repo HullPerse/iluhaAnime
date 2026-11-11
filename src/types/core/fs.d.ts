@@ -9,11 +9,3 @@ export interface FolderScanResult {
   entries: VideoFileEntry[];
   skipped: number;
 }
-
-export interface MediaTrack {
-  id: number;
-  kind: "video" | "audio" | "subtitle";
-  codec: string | null;
-  language: string | null;
-  title: string | null;
-}

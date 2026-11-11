@@ -176,6 +176,7 @@ fn client_for_proxy(proxy: Option<&str>) -> Result<reqwest::Client, String> {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn graphql_request(
     query: serde_json::Value,
     token: Option<&str>,

@@ -1,4 +1,4 @@
-export type FolderChangeKind = "created" | "removed" | "modified";
+type FolderChangeKind = "created" | "removed" | "modified";
 
 export interface FolderChange {
   path: string;

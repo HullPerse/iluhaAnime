@@ -3,7 +3,8 @@ import { useCallback } from "react";
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { SEEK_STEP } from "@/config/settings/keybinds.config";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { invokeValidated } from "@/lib/core/system/invoke.utils";
+import { SavedFrameSchema } from "@/api/player.schema";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import { addNotification } from "@/store/notification.store";
@@ -110,7 +111,7 @@ export function usePlayerKeyboardActions(
         exitCinemaMode: onExitCinemaMode,
         saveCleanFrame: () => {
           ignore(
-            invokeTyped<{ path: string }>("player_save_frame")
+            invokeValidated<{ path: string }>("player_save_frame", SavedFrameSchema)
               .then((saved) => {
                 addNotification(
                   translate(settingsAtoms.language.get(), "player.media.frame.saved"),

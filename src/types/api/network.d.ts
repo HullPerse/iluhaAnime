@@ -7,12 +7,12 @@ export type NetworkVerdict =
   | "anti_bot"
   | "request_failed";
 
-export interface NetworkDnsAnswer {
+interface NetworkDnsAnswer {
   address: string;
   family: "ipv4" | "ipv6";
 }
 
-export interface NetworkTcpProbe {
+interface NetworkTcpProbe {
   address: string;
   family: "ipv4" | "ipv6";
   ok: boolean;
@@ -20,7 +20,7 @@ export interface NetworkTcpProbe {
   error: string | null;
 }
 
-export interface NetworkHttpsProbe {
+interface NetworkHttpsProbe {
   ok: boolean;
   status: number | null;
   httpVersion: string | null;

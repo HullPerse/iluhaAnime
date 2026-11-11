@@ -1,7 +1,12 @@
 import { anilistApi } from "@/api/anilist.api";
 import { PROFILE_CACHE_TTL_MS } from "@/config/anilist/friends.config";
 import { parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
-import type { AniFriend, FriendScore } from "@/types/anilist/anilist";
+import type {
+  AniFriend,
+} from "@/types/anilist/anilist";
+import type {
+  FriendScore,
+} from "@/types/anilist/anilistUi";
 
 export async function loadFriendScores(
   animeId: number,

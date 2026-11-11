@@ -386,10 +386,9 @@ describe("anilist/proxy", () => {
       expect(anilistProxyArgs("   ")).toEqual({});
     });
 
-    it("returns both casings trimmed for a set proxy", () => {
+    it("returns the trimmed proxy for a set proxy", () => {
       expect(anilistProxyArgs("  http://127.0.0.1:7890 ")).toEqual({
         proxyUrl: "http://127.0.0.1:7890",
-        proxy_url: "http://127.0.0.1:7890",
       });
     });
   });

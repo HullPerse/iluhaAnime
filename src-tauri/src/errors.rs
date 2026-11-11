@@ -2,6 +2,16 @@ use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
 
+#[derive(Debug, Clone, Copy, Serialize)]
+pub enum AppErrorCode {
+    #[serde(rename = "io_error")]
+    Io,
+    #[serde(rename = "json_error")]
+    Json,
+    #[serde(rename = "credential_store_error")]
+    CredentialStore,
+}
+
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("I/O error: {0}")]
@@ -13,11 +23,11 @@ pub enum AppError {
 }
 
 impl AppError {
-    pub const fn code(&self) -> &'static str {
+    pub const fn code(&self) -> AppErrorCode {
         match self {
-            Self::Io(_) => "io_error",
-            Self::Json(_) => "json_error",
-            Self::Keyring(_) => "credential_store_error",
+            Self::Io(_) => AppErrorCode::Io,
+            Self::Json(_) => AppErrorCode::Json,
+            Self::Keyring(_) => AppErrorCode::CredentialStore,
         }
     }
 
@@ -32,7 +42,7 @@ impl Serialize for AppError {
         S: Serializer,
     {
         let mut state = serializer.serialize_struct("AppError", 2)?;
-        state.serialize_field("code", self.code())?;
+        state.serialize_field("code", &self.code())?;
         state.serialize_field("message", &self.message())?;
         state.end()
     }

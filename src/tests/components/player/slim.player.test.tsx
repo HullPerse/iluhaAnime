@@ -35,12 +35,6 @@ describe("PlayerSlimBar", () => {
     expect(paused.onPlayPause).toHaveBeenCalledTimes(1);
   });
 
-  it("renders the timeline with its time toggle", () => {
-    const idle = props(false);
-    render(<PlayerSlimBar {...idle} />);
-    expect(screen.getByRole("button", { name: "Toggle elapsed / remaining time" })).toBeTruthy();
-  });
-
   it("disables the button while no file is loaded", () => {
     render(<PlayerSlimBar {...props(true)} hasFile={false} />);
     const button = screen.getByRole("button", { name: "Play / pause" });

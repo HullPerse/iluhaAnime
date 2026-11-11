@@ -10,7 +10,7 @@ type ThemeActionKeys =
   | "clearThemePatch";
 
 export type ThemeData = Omit<ThemeStore, ThemeActionKeys>;
-export type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
+type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
 
 export interface ThemeSignalStore {
   atoms: ThemeAtoms;

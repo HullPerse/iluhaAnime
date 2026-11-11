@@ -44,32 +44,6 @@ export interface StreamVariant {
   sourceUrl: string;
 }
 
-export interface StreamVideoSource {
-  variantId: string;
-  quality: string;
-  label: string;
-  url: string;
-  type: string;
-  headers: Record<string, string>;
-  subtitles: SubtitleTrack[];
-  audioTracks: AudioTrack[];
-}
-
-export interface SubtitleTrack {
-  id: string;
-  url: string;
-  language: string;
-  isDefault: boolean;
-  headers: Record<string, string>;
-}
-
-export interface AudioTrack {
-  id: string;
-  language: string;
-  title?: string;
-  default: boolean;
-}
-
 export interface StreamPrefs {
   sourceId: string;
   mediaId: string;
@@ -148,10 +122,4 @@ export interface StreamConstants {
   statuses: StreamFilterOption[];
   ageRatings: StreamFilterOption[];
   genres: StreamGenreOption[];
-}
-
-export interface StreamSearchParams {
-  query: string;
-  page?: number;
-  filters?: StreamCatalogFilters;
 }

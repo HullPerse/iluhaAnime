@@ -1,4 +1,4 @@
-export type Unsubscriber = () => void;
+type Unsubscriber = () => void;
 
 export interface Cell<T> {
   readonly id: number;
@@ -13,7 +13,7 @@ export interface Derived<T> {
   subscribe: (fn: () => void) => Unsubscriber;
 }
 
-export interface Readable<T> {
+interface Readable<T> {
   get: () => T;
   subscribe: (fn: () => void) => Unsubscriber;
 }

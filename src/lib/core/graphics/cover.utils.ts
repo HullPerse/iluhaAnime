@@ -70,6 +70,15 @@ const COVER_RETRY_DELAY_MS = 800;
 const NO_TRUSTED: ReadonlySet<number> = new Set();
 const NO_REJECTED: ReadonlySet<number> = new Set();
 
+function mergeSeenCandidates(
+  seen: Map<number, CoverCandidate>,
+  found: readonly CoverCandidate[]
+): void {
+  for (const candidate of found) {
+    if (!seen.has(candidate.id)) seen.set(candidate.id, candidate);
+  }
+}
+
 export async function resolveCover(
   parsed: CoverParsed,
   backend: CoverSearchBackend,
@@ -96,9 +105,7 @@ export async function resolveCover(
   for (let attempt = 0; attempt < 2; attempt += 1) {
     for (const query of buildCoverQueries(parsed, localTitle, rawTitle)) {
       const found = await backend.search(query);
-      for (const candidate of found) {
-        if (!seen.has(candidate.id)) seen.set(candidate.id, candidate);
-      }
+      mergeSeenCandidates(seen, found);
       const scored = profileById
         ? withProfile([...seen.values()], profileById)
         : [...seen.values()];
@@ -307,8 +314,11 @@ function seasonOrdinalWord(season: number): string {
   return `${season}th`;
 }
 
+const MIN_SEASON = 1;
+const MAX_SEASON = 12;
+
 function seasonTitleBoost(season: number | undefined, haystack: string[]): number {
-  if (season === undefined || season < 1 || season > 12) return 0;
+  if (season === undefined || season < MIN_SEASON || season > MAX_SEASON) return 0;
   const words = new Set(haystack.flatMap((part) => part.split(" ")));
   const joined = haystack.join(" ");
   const ordinal = seasonOrdinalWord(season);

@@ -2,6 +2,40 @@ import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
 import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/system/networkHealth.utils";
 import { settingsAtoms } from "@/store/settings.store";
+import { attempt } from "@hullperse/hp_utils/attempt";
+import { assertSchema } from "@/lib/core/system/invoke.utils";
+import {
+  ActivityLikeStateSchema,
+  AniAnimeFullSchema,
+  AniAnimeStaffEdgeListSchema,
+  AniBooleanSchema,
+  AniCacheStatsSchema,
+  AniCharacterDetailSchema,
+  AniCharacterEdgeListSchema,
+  AniFriendScoreListSchema,
+  AniListCollectionListSchema,
+  AniListStatisticsSchema,
+  AniMediaListSchema,
+  AniMediaPageSchema,
+  AniMediaSchema,
+  AniRecommendationListSchema,
+  AniActivityListSchema,
+  AniSavedEntrySchema,
+  AniSiteNotificationListSchema,
+  AniStaffDetailSchema,
+  AniStreamingEpisodeListSchema,
+  AniStringListSchema,
+  AniTrailerSchema,
+  AniUserOrNullSchema,
+  AniUserProfileSchemaCompiled,
+  AniUserSchema,
+  FavouriteAnimeListSchema,
+  FavouriteOverviewSchema,
+  FavouritePersonListSchema,
+  FollowingPageSchema,
+  FranchiseGraphSchema,
+  PrefetchSummarySchema,
+} from "@/api/anilist.schema";
 import type {
   ActivityLikeState,
   AniActivity,
@@ -10,7 +44,6 @@ import type {
   AniAnimeStaffEdge,
   AniCharacterDetail,
   AniCharacterEdge,
-  AniFriendScore,
   AniListCollection,
   AniListStatistics,
   AniMedia,
@@ -27,6 +60,9 @@ import type {
   FranchiseGraph,
   PrefetchSummary,
 } from "@/types/anilist/anilist";
+import type {
+  AniFriendScore,
+} from "@/types/anilist/anilistUi";
 import type { FilterPage, SpotlightPage } from "@/types/core/ipc";
 
 import { tauriTransport } from "@/api/transport.api";
@@ -54,182 +90,284 @@ export class AnilistApi {
   }
 
   private async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
-    try {
-      const value = await this.transport.call<T>(command, { ...args, ...this.proxy() });
-      noteNetworkSuccess();
-      return value;
-    } catch (error) {
+    const [value, error] = await attempt(
+      this.transport.call<T>(command, { ...args, ...this.proxy() })
+    );
+    if (error !== null) {
       noteNetworkFailure(error);
       throw error;
     }
+    noteNetworkSuccess();
+    return value;
   }
 
-  login(token: string): Promise<AniUser> {
-    return this.call("anilist_login", { token: token.trim() });
+  async login(token: string): Promise<AniUser> {
+    const user = await this.call<AniUser>("anilist_login", { token: token.trim() });
+    assertSchema(user, AniUserSchema);
+    return user;
   }
 
   logout(): Promise<void> {
     return this.call("anilist_logout");
   }
 
-  checkAuth(): Promise<AniUser | null> {
-    return this.call("check_anilist_auth");
+  async checkAuth(): Promise<AniUser | null> {
+    const user = await this.call<AniUser | null>("check_anilist_auth");
+    assertSchema(user, AniUserOrNullSchema);
+    return user;
   }
 
-  getProfile(userId?: number, userName?: string): Promise<AniUserProfile> {
-    return this.call("get_anilist_profile", { userId, userName });
+  async getProfile(userId?: number, userName?: string): Promise<AniUserProfile> {
+    const profile = await this.call<AniUserProfile>("get_anilist_profile", {
+      userId,
+      userName,
+    });
+    assertSchema(profile, AniUserProfileSchemaCompiled);
+    return profile;
   }
 
-  getLists(userId: number, minimal = false): Promise<AniListCollection[]> {
-    return this.call("get_anilist_lists", { userId, minimal });
+  async getLists(userId: number, minimal = false): Promise<AniListCollection[]> {
+    const lists = await this.call<AniListCollection[]>("get_anilist_lists", {
+      userId,
+      minimal,
+    });
+    assertSchema(lists, AniListCollectionListSchema);
+    return lists;
   }
 
-  getStatistics(userId: number): Promise<AniListStatistics> {
-    return this.call("get_anilist_statistics", { userId });
+  async getStatistics(userId: number): Promise<AniListStatistics> {
+    const statistics = await this.call<AniListStatistics>("get_anilist_statistics", { userId });
+    assertSchema(statistics, AniListStatisticsSchema);
+    return statistics;
   }
 
-  getFriendScores(mediaId: number, userIds: number[]): Promise<AniFriendScore[]> {
-    return this.call("get_anilist_friend_scores", { mediaId, userIds });
+  async getFriendScores(mediaId: number, userIds: number[]): Promise<AniFriendScore[]> {
+    const scores = await this.call<AniFriendScore[]>("get_anilist_friend_scores", {
+      mediaId,
+      userIds,
+    });
+    assertSchema(scores, AniFriendScoreListSchema);
+    return scores;
   }
 
-  getFollowing(userId: number, page = 1, perPage = 25): Promise<FollowingPage> {
-    return this.call("get_anilist_following", { userId, page, perPage });
+  async getFollowing(userId: number, page = 1, perPage = 25): Promise<FollowingPage> {
+    const following = await this.call<FollowingPage>("get_anilist_following", {
+      userId,
+      page,
+      perPage,
+    });
+    assertSchema(following, FollowingPageSchema);
+    return following;
   }
 
-  search<T = AniMedia>(params: AnilistSearchParams): Promise<T[]> {
-    return this.call("search_anilist", { ...params });
+  async search<T = AniMedia>(params: AnilistSearchParams): Promise<T[]> {
+    const media = await this.call<T[]>("search_anilist", { ...params });
+    assertSchema(media, AniMediaListSchema);
+    return media;
   }
 
-  searchByStudio(studioId: number): Promise<AniMedia[]> {
-    return this.call("search_anilist_by_studio", { studioId });
+  async searchByStudio(studioId: number): Promise<AniMedia[]> {
+    const media = await this.call<AniMedia[]>("search_anilist_by_studio", { studioId });
+    assertSchema(media, AniMediaListSchema);
+    return media;
   }
 
-  searchByTag(tag: string): Promise<AniMedia[]> {
-    return this.call("search_anilist_by_tag", { tag });
+  async searchByTag(tag: string): Promise<AniMedia[]> {
+    const media = await this.call<AniMedia[]>("search_anilist_by_tag", { tag });
+    assertSchema(media, AniMediaListSchema);
+    return media;
   }
 
-  searchByGenre(genre: string): Promise<AniMedia[]> {
-    return this.call("search_anilist_by_genre", { genre });
+  async searchByGenre(genre: string): Promise<AniMedia[]> {
+    const media = await this.call<AniMedia[]>("search_anilist_by_genre", { genre });
+    assertSchema(media, AniMediaListSchema);
+    return media;
   }
 
-  filterPage(params: AnilistFilterPageParams): Promise<FilterPage> {
-    return this.call("get_anilist_filter_page", { ...params });
+  async filterPage(params: AnilistFilterPageParams): Promise<FilterPage> {
+    const page = await this.call<FilterPage>("get_anilist_filter_page", { ...params });
+    assertSchema(page, AniMediaPageSchema);
+    return page;
   }
 
-  getAnimeById<T = AniMedia>(id: number): Promise<T> {
-    return this.call("get_anime_by_id", { id });
+  async getAnimeById<T = AniMedia>(id: number): Promise<T> {
+    const media = await this.call<T>("get_anime_by_id", { id });
+    assertSchema(media, AniMediaSchema);
+    return media;
   }
 
-  getCacheStats(): Promise<{ hits: number; misses: number }> {
-    return this.call("get_anilist_cache_stats");
+  async getCacheStats(): Promise<{ hits: number; misses: number }> {
+    const stats = await this.call<{ hits: number; misses: number }>("get_anilist_cache_stats");
+    assertSchema(stats, AniCacheStatsSchema);
+    return stats;
   }
 
-  getAnimeTrailer(id: number): Promise<string | null> {
-    return this.call("get_anime_trailer", { id });
+  async getAnimeTrailer(id: number): Promise<string | null> {
+    const trailer = await this.call<string | null>("get_anime_trailer", { id });
+    assertSchema(trailer, AniTrailerSchema);
+    return trailer;
   }
 
-  getAnimeFull(id: number): Promise<AniAnimeFull> {
-    return this.call("get_anime_full", { id });
+  async getAnimeFull(id: number): Promise<AniAnimeFull> {
+    const full = await this.call<AniAnimeFull>("get_anime_full", { id });
+    assertSchema(full, AniAnimeFullSchema);
+    return full;
   }
 
-  getStreamingEpisodes(id: number): Promise<AniStreamingEpisode[]> {
-    return this.call("get_anime_streaming_episodes", { id });
+  async getStreamingEpisodes(id: number): Promise<AniStreamingEpisode[]> {
+    const episodes = await this.call<AniStreamingEpisode[]>("get_anime_streaming_episodes", {
+      id,
+    });
+    assertSchema(episodes, AniStreamingEpisodeListSchema);
+    return episodes;
   }
 
-  getAnimeByIds(ids: number[]): Promise<AniMedia[]> {
-    return this.call("get_anime_by_ids", { ids });
+  async getAnimeByIds(ids: number[]): Promise<AniMedia[]> {
+    const media = await this.call<AniMedia[]>("get_anime_by_ids", { ids });
+    assertSchema(media, AniMediaListSchema);
+    return media;
   }
 
-  getAnimeCharacters(id: number, page: number): Promise<AniCharacterEdge[]> {
-    return this.call("get_anime_characters", { id, page });
+  async getAnimeCharacters(id: number, page: number): Promise<AniCharacterEdge[]> {
+    const characters = await this.call<AniCharacterEdge[]>("get_anime_characters", { id, page });
+    assertSchema(characters, AniCharacterEdgeListSchema);
+    return characters;
   }
 
-  getCharacterDetail(id: number, page: number): Promise<AniCharacterDetail> {
-    return this.call("get_character_detail", { id, page });
+  async getCharacterDetail(id: number, page: number): Promise<AniCharacterDetail> {
+    const detail = await this.call<AniCharacterDetail>("get_character_detail", { id, page });
+    assertSchema(detail, AniCharacterDetailSchema);
+    return detail;
   }
 
-  getStaffCharacters(id: number, page: number, charPage?: number): Promise<AniStaffDetail> {
-    return this.call("get_staff_characters", { id, page, charPage });
+  async getStaffCharacters(
+    id: number,
+    page: number,
+    charPage?: number
+  ): Promise<AniStaffDetail> {
+    const detail = await this.call<AniStaffDetail>("get_staff_characters", {
+      id,
+      page,
+      charPage,
+    });
+    assertSchema(detail, AniStaffDetailSchema);
+    return detail;
   }
 
-  getAnimeStaff(id: number): Promise<AniAnimeStaffEdge[]> {
-    return this.call("get_anime_staff", { id });
+  async getAnimeStaff(id: number): Promise<AniAnimeStaffEdge[]> {
+    const staff = await this.call<AniAnimeStaffEdge[]>("get_anime_staff", { id });
+    assertSchema(staff, AniAnimeStaffEdgeListSchema);
+    return staff;
   }
 
-  getFavourites(userId: number): Promise<FavouriteAnime[]> {
-    return this.call("get_favourites", { userId });
+  async getFavourites(userId: number): Promise<FavouriteAnime[]> {
+    const favourites = await this.call<FavouriteAnime[]>("get_favourites", { userId });
+    assertSchema(favourites, FavouriteAnimeListSchema);
+    return favourites;
   }
 
-  getFavouriteOverview(userId: number): Promise<FavouriteOverview> {
-    return this.call("get_favourite_overview", { userId });
+  async getFavouriteOverview(userId: number): Promise<FavouriteOverview> {
+    const overview = await this.call<FavouriteOverview>("get_favourite_overview", { userId });
+    assertSchema(overview, FavouriteOverviewSchema);
+    return overview;
   }
 
-  toggleFavourite(animeId: number): Promise<FavouriteAnime[]> {
-    return this.call("toggle_favourite", { animeId });
+  async toggleFavourite(animeId: number): Promise<FavouriteAnime[]> {
+    const favourites = await this.call<FavouriteAnime[]>("toggle_favourite", { animeId });
+    assertSchema(favourites, FavouriteAnimeListSchema);
+    return favourites;
   }
 
-  toggleFavouriteStaff(staffId: number): Promise<FavouritePerson[]> {
-    return this.call("toggle_favourite_staff", { staffId });
+  async toggleFavouriteStaff(staffId: number): Promise<FavouritePerson[]> {
+    const favourites = await this.call<FavouritePerson[]>("toggle_favourite_staff", { staffId });
+    assertSchema(favourites, FavouritePersonListSchema);
+    return favourites;
   }
 
-  toggleFavouriteCharacter(characterId: number): Promise<FavouritePerson[]> {
-    return this.call("toggle_favourite_character", { characterId });
+  async toggleFavouriteCharacter(characterId: number): Promise<FavouritePerson[]> {
+    const favourites = await this.call<FavouritePerson[]>("toggle_favourite_character", {
+      characterId,
+    });
+    assertSchema(favourites, FavouritePersonListSchema);
+    return favourites;
   }
 
-  getCustomLists(): Promise<string[]> {
-    return this.call("get_anilist_custom_lists");
+  async getCustomLists(): Promise<string[]> {
+    const lists = await this.call<string[]>("get_anilist_custom_lists");
+    assertSchema(lists, AniStringListSchema);
+    return lists;
   }
 
-  getSiteNotifications(): Promise<AniSiteNotification[]> {
-    return this.call("get_anilist_notifications");
+  async getSiteNotifications(): Promise<AniSiteNotification[]> {
+    const notifications = await this.call<AniSiteNotification[]>("get_anilist_notifications");
+    assertSchema(notifications, AniSiteNotificationListSchema);
+    return notifications;
   }
 
-  saveEntry(input: SaveAnilistEntryInput): Promise<AniSavedEntry> {
+  async saveEntry(input: SaveAnilistEntryInput): Promise<AniSavedEntry> {
     const { mediaId, ...rest } = input;
-    const args: Record<string, unknown> = { media_id: mediaId, mediaId };
+    const args: Record<string, unknown> = { media_id: mediaId };
     for (const [key, value] of Object.entries(rest)) {
       if (value === undefined) continue;
       if (value === null && OMIT_WHEN_NULL.has(key)) continue;
       args[key] = value;
     }
-    return this.call("save_anilist_entry", args);
+    const entry = await this.call<AniSavedEntry>("save_anilist_entry", args);
+    assertSchema(entry, AniSavedEntrySchema);
+    return entry;
   }
 
-  deleteEntry(mediaId: number, userId: number): Promise<boolean> {
-    return this.call("delete_anilist_entry", {
+  async deleteEntry(mediaId: number, userId: number): Promise<boolean> {
+    const deleted = await this.call<boolean>("delete_anilist_entry", {
       media_id: mediaId,
-      mediaId,
       user_id: userId,
-      userId,
     });
+    assertSchema(deleted, AniBooleanSchema);
+    return deleted;
   }
 
   testConnection(): Promise<string> {
     return this.call("test_anilist_connection");
   }
 
-  getActivity(userIds: number[]): Promise<AniActivity[]> {
-    return this.call("get_anilist_activity", { userIds });
+  async getActivity(userIds: number[]): Promise<AniActivity[]> {
+    const activities = await this.call<AniActivity[]>("get_anilist_activity", { userIds });
+    assertSchema(activities, AniActivityListSchema);
+    return activities;
   }
 
-  toggleActivityLike(activityId: number): Promise<ActivityLikeState> {
-    return this.call("toggle_activity_like", { activityId });
+  async toggleActivityLike(activityId: number): Promise<ActivityLikeState> {
+    const state = await this.call<ActivityLikeState>("toggle_activity_like", { activityId });
+    assertSchema(state, ActivityLikeStateSchema);
+    return state;
   }
 
-  getProfileRecommendations(userId: number): Promise<AniRecommendation[]> {
-    return this.call("get_profile_recommendations", { userId });
+  async getProfileRecommendations(userId: number): Promise<AniRecommendation[]> {
+    const recommendations = await this.call<AniRecommendation[]>("get_profile_recommendations", {
+      userId,
+    });
+    assertSchema(recommendations, AniRecommendationListSchema);
+    return recommendations;
   }
 
-  getAnimeRecommendations(id: number): Promise<AniRecommendation[]> {
-    return this.call("get_anime_recommendations", { id });
+  async getAnimeRecommendations(id: number): Promise<AniRecommendation[]> {
+    const recommendations = await this.call<AniRecommendation[]>("get_anime_recommendations", {
+      id,
+    });
+    assertSchema(recommendations, AniRecommendationListSchema);
+    return recommendations;
   }
 
-  getAnimeFranchise(id: number, scope: string): Promise<FranchiseGraph> {
-    return this.call("get_anime_franchise", { id, scope });
+  async getAnimeFranchise(id: number, scope: string): Promise<FranchiseGraph> {
+    const graph = await this.call<FranchiseGraph>("get_anime_franchise", { id, scope });
+    assertSchema(graph, FranchiseGraphSchema);
+    return graph;
   }
 
-  prefetchRelations(animeIds: number[]): Promise<PrefetchSummary> {
-    return this.call("prefetch_anime_relations", { animeIds });
+  async prefetchRelations(animeIds: number[]): Promise<PrefetchSummary> {
+    const summary = await this.call<PrefetchSummary>("prefetch_anime_relations", { animeIds });
+    assertSchema(summary, PrefetchSummarySchema);
+    return summary;
   }
 
   cancelPrefetch(): Promise<void> {
@@ -240,8 +378,18 @@ export class AnilistApi {
     return this.call("sync_franchise_to_index");
   }
 
-  getSpotlightPage(page: number, perPage: number, scoreFrom: number): Promise<SpotlightPage> {
-    return this.call("get_spotlight_page", { page, perPage, scoreFrom });
+  async getSpotlightPage(
+    page: number,
+    perPage: number,
+    scoreFrom: number
+  ): Promise<SpotlightPage> {
+    const result = await this.call<SpotlightPage>("get_spotlight_page", {
+      page,
+      perPage,
+      scoreFrom,
+    });
+    assertSchema(result, AniMediaPageSchema);
+    return result;
   }
 }
 

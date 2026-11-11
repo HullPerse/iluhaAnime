@@ -3,9 +3,9 @@ import type { TranslationKey } from "@/types/core/i18n";
 
 export type KeybindScope = "global" | "settings" | "player" | "vim" | "find" | "menu" | "tree";
 
-export type KeybindMode = "base" | "vim";
+type KeybindMode = "base" | "vim";
 
-export type KeybindCategory =
+type KeybindCategory =
   | "navigation"
   | "playback"
   | "subtitles"

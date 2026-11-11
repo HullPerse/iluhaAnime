@@ -7,6 +7,22 @@ import { normalizePath } from "@/lib/core/watchers/pathsWatcher.utils";
 import type { VideoFileEntry } from "@/types/core/fs";
 import type { PlannedInsert } from "@/types/core/livePlaylist";
 
+function findInsertionIndex(
+  desiredKeys: readonly string[],
+  workingKeys: readonly string[],
+  index: number
+): number {
+  for (let p = index - 1; p >= 0; p--) {
+    const predecessor = workingKeys.indexOf(desiredKeys[p] ?? "");
+    if (predecessor !== -1) return predecessor + 1;
+  }
+  for (let s = index + 1; s < desiredKeys.length; s++) {
+    const successor = workingKeys.indexOf(desiredKeys[s] ?? "");
+    if (successor !== -1) return successor;
+  }
+  return -1;
+}
+
 export function planLiveInserts(
   desired: string[],
   live: string[],
@@ -21,23 +37,7 @@ export function planLiveInserts(
     const path = desired[d];
     const key = desiredKeys[d];
     if (workingKeys.includes(key)) continue;
-    let at = -1;
-    for (let p = d - 1; p >= 0; p--) {
-      const predecessor = workingKeys.indexOf(desiredKeys[p]);
-      if (predecessor !== -1) {
-        at = predecessor + 1;
-        break;
-      }
-    }
-    if (at === -1) {
-      for (let s = d + 1; s < desired.length; s++) {
-        const successor = workingKeys.indexOf(desiredKeys[s]);
-        if (successor !== -1) {
-          at = successor;
-          break;
-        }
-      }
-    }
+    let at = findInsertionIndex(desiredKeys, workingKeys, d);
     if (at === -1) at = working.length;
     working.splice(at, 0, path);
     workingKeys.splice(at, 0, key);

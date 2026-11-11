@@ -132,12 +132,8 @@ export function findJustFinished(
   });
 }
 
-export function fmtSpeed(bps: number): string {
-  return formatRate(bps);
-}
-
 export function formatSpeed(bps: number): string {
-  return fmtSpeed(bps) || "0 B/s";
+  return formatRate(bps) || "0 B/s";
 }
 
 export function isCurrentDownload(torrent: TorrentInfo): boolean {
@@ -200,7 +196,17 @@ export function withoutPendingRemoved(
   return torrents.filter((t) => !pendingIds.has(t.id));
 }
 
-export function TorrentListen(
+export function pendingRemoveIds(
+  opInFlight: Readonly<Record<number, "pause" | "resume" | "remove">>
+): Set<number> {
+  const ids = new Set<number>();
+  for (const [key, op] of Object.entries(opInFlight)) {
+    if (op === "remove") ids.add(Number(key));
+  }
+  return ids;
+}
+
+export function reduceTorrentEvent(
   state: TorrentListState,
   event: Event<TorrentInfo[]>,
   now: number = Date.now()
@@ -276,7 +282,22 @@ const KNOWN_TORRENT_ERRORS: { match: (raw: string) => boolean; key: TranslationK
   },
 ];
 
-export function torrentErrorText(raw: string, t: TFunc): string {
+const KNOWN_TORRENT_ERROR_CODES: Readonly<Record<string, TranslationKey>> = {
+  torrent_gone: "download.error.gone",
+  torrent_already_paused: "download.error.already.paused",
+  torrent_already_live: "download.error.already.live",
+  torrent_initializing: "download.error.initializing",
+  torrent_error_state: "download.error.state",
+  torrent_list_stale: "download.error.stale",
+  torrent_reconfigure_gone: "download.error.restore",
+};
+
+export function torrentErrorText(raw: string, t: TFunc, code?: string | null): string {
+  if (code === "torrent_files_kept") {
+    return `${t("download.error.files.kept")} ${raw}`;
+  }
+  const coded = code === undefined || code === null ? undefined : KNOWN_TORRENT_ERROR_CODES[code];
+  if (coded !== undefined) return t(coded);
   if (raw.startsWith("torrent deleted, but could not delete files:")) {
     return `${t("download.error.files.kept")} ${raw}`;
   }

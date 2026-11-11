@@ -34,7 +34,6 @@ describe("StreamApi", () => {
         args: {
           input: { query: "naruto", page: 2 },
           proxyUrl: "socks5://127.0.0.1:10808",
-          proxy_url: "socks5://127.0.0.1:10808",
         },
       },
     ]);
@@ -72,7 +71,6 @@ describe("StreamApi", () => {
       command: "anime_lib_constants",
       args: {
         proxyUrl: "http://127.0.0.1:7890",
-        proxy_url: "http://127.0.0.1:7890",
       },
     });
     expect(calls[1]).toMatchObject({
@@ -80,7 +78,6 @@ describe("StreamApi", () => {
       args: {
         input: { episodeId: "10", variantId: "Kodik:9" },
         proxyUrl: "http://127.0.0.1:7890",
-        proxy_url: "http://127.0.0.1:7890",
       },
     });
   });
@@ -138,7 +135,6 @@ describe("StreamApi", () => {
       args: {
         token: "token.value",
         proxyUrl: "socks5h://127.0.0.1:10808",
-        proxy_url: "socks5h://127.0.0.1:10808",
       },
     });
   });

@@ -18,11 +18,11 @@ export interface VideoPlayerProps {
   className?: string;
 }
 
-export type MediaFileKind = "tv" | "movie" | "special";
+type MediaFileKind = "tv" | "movie" | "special";
 
-export type MediaSidecarKind = "audio" | "subs";
+type MediaSidecarKind = "audio" | "subs";
 
-export interface MediaSidecar {
+interface MediaSidecar {
   kind: MediaSidecarKind;
   studio?: string;
   origin?: string;
@@ -31,7 +31,7 @@ export interface MediaSidecar {
   dub?: boolean;
 }
 
-export interface MediaEpisode {
+interface MediaEpisode {
   number?: number;
   numberAlt?: number;
   title?: string;
@@ -68,100 +68,4 @@ export interface MediaFileParse {
   type?: string;
   dub?: boolean;
   subVariant?: string;
-}
-
-export type MediaTokenEnclosed = "bracket" | "paren" | "plain";
-
-export interface MediaNameToken {
-  value: string;
-  enclosed: MediaTokenEnclosed;
-}
-
-export type MediaTokenKind =
-  | "group"
-  | "studio"
-  | "service"
-  | "source"
-  | "lang"
-  | "codec"
-  | "resolution"
-  | "depth"
-  | "audio"
-  | "subs"
-  | "dub"
-  | "season"
-  | "part"
-  | "episode"
-  | "seasonEpisode"
-  | "year"
-  | "crc"
-  | "special"
-  | "type"
-  | "tag"
-  | "title"
-  | "unknown";
-
-export interface MediaClassifiedToken extends MediaNameToken {
-  kind: MediaTokenKind;
-  bracketGroup?: number;
-}
-
-export interface FieldBag {
-  groups: string[];
-  langs: string[];
-  type?: string;
-  dub: boolean;
-  special?: string;
-  source?: string;
-  service?: string;
-  codec?: string;
-  resolution?: string;
-  depth?: string;
-  audio?: string;
-  subs: string[];
-  subVariant?: string;
-  crc?: string;
-  year?: number;
-  tags: string[];
-  season?: number;
-  variant?: string;
-}
-
-export interface DirContext {
-  titleWords: string[];
-  season?: number;
-  ofTotal?: number;
-  subs: string[];
-  subVariant?: string;
-  year?: number;
-  source?: string;
-  service?: string;
-  codec?: string;
-  resolution?: string;
-  groups: string[];
-  langs: string[];
-  hasMovieRoot: boolean;
-  hasSpecial: boolean;
-}
-
-export interface SeasonHit {
-  season: number;
-  variant?: string;
-  consumed: Set<number>;
-}
-
-export interface PartHit {
-  part?: number;
-  consumed: Set<number>;
-}
-
-export interface EpisodeHit {
-  number?: number;
-  numberAlt?: number;
-  ofTotal?: number;
-  version?: number;
-  title?: string;
-  atomIndex: number;
-  fallbackIndex: number;
-  consumed: Set<number>;
 }

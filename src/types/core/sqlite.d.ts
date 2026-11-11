@@ -7,7 +7,7 @@ export interface SqliteDatabaseInfo {
   tables: string[];
 }
 
-export interface SqliteColumnInfo {
+interface SqliteColumnInfo {
   name: string;
   dataType: string;
   notNull: boolean;

@@ -360,6 +360,7 @@ pub async fn run(app: AppHandle, config: BenchConfig, trigger_start: Instant) {
     tracing::info!("bench: report written to {}", report_path().display());
 }
 
+#[allow(clippy::too_many_lines)]
 async fn run_one(
     app: &AppHandle,
     file: &str,

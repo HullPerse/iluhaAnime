@@ -25,7 +25,7 @@ export interface CollectionShareDeepLink {
   readonly items: CollectionShareItem[];
 }
 
-export interface ShareImportPlanRow {
+interface ShareImportPlanRow {
   readonly snapshot: CollectionShareItem;
 }
 

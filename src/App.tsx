@@ -18,6 +18,7 @@ import { useSplashStages } from "@/hooks/splash.hook";
 import { prefetchStreamConstants, usePrewarmStreamHistory } from "@/hooks/stream/catalog.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
+import { useTorrentRealtime } from "@/hooks/torrent/realtime.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
 import { isCurrentSessionSafe } from "@/lib/core/system/report.utils";
@@ -76,7 +77,9 @@ export default function App() {
   const queryClient = useQueryClient();
   const pendingTorrent = useCell(torrentAtoms.pendingTorrent);
   const preparingTorrent = useCell(torrentAtoms.preparingTorrent);
-  const { data: existingTorrents } = useTorrents();
+  const torrentsQuery = useTorrents();
+  const { data: existingTorrents } = torrentsQuery;
+  useTorrentRealtime(torrentsQuery);
   const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
   const customTitleBarEnabled = useCell(settingsAtoms.customTitleBarEnabled);
   const statusBarEnabled = useCell(settingsAtoms.statusBarEnabled);

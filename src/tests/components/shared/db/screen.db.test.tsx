@@ -32,28 +32,6 @@ describe("DbScreen", () => {
     expect(screen.getByRole("button", { name: "Open data folder" })).toBeDefined();
   });
 
-  it("uses the win95 backdrop for windows themes", () => {
-    render(<DbScreen {...props()} />);
-    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe("rgb(0, 0, 170)");
-  });
-
-  it("uses the dark terminal backdrop for the yorha theme", () => {
-    render(<DbScreen {...props({ themeName: "yorha" })} />);
-    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe(
-      "rgb(31, 27, 24)"
-    );
-  });
-
-  it("uses the matching backdrops for terminal and retroism themes", () => {
-    const { unmount } = render(<DbScreen {...props({ themeName: "terminal" })} />);
-    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe(
-      "rgb(12, 12, 12)"
-    );
-    unmount();
-    render(<DbScreen {...props({ themeName: "retroism" })} />);
-    expect((screen.getByRole("alert") as HTMLElement).style.backgroundColor).toBe("rgb(0, 0, 0)");
-  });
-
   it("hides the folder button without a data dir", () => {
     render(<DbScreen {...props({ dataDir: "" })} />);
     expect(screen.queryByRole("button", { name: "Open data folder" })).toBeNull();

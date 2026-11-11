@@ -11,6 +11,9 @@ keywords = ["anime", "torrent", "player", "tauri"]
 categories = ["multimedia::video", "multimedia::player"]
 default-run = "iluhaAnime"
 
+[features]
+bench-api = []
+
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
@@ -91,86 +94,107 @@ tauri-plugin-updater = "2"
 [[bench]]
 name = "anilist_queries"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "scan_walk"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "string_intern"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "parse_resolve"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "details_batch"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "search_probe"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "cover_diff"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "file_query"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "stream_history"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "unified_index"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "anilist_detail_bundle"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "anilist_detail_audit"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "anilist_list_trim"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "chip8"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "concurrency"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "thumbnail_make"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "player_property_cache"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "details_parse"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "collect_titles"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "collection_import"
 harness = false
+required-features = ["bench-api"]
 
 [[bench]]
 name = "torrent_payloads"
 harness = false
+required-features = ["bench-api"]
 
 [dev-dependencies]
 # Test-only response builder for the body-cap tests. Already in the
@@ -196,4 +220,3 @@ multiple_crate_versions = "allow"
 cast_possible_wrap = "allow"
 cast_possible_truncation = "allow"
 cast_precision_loss = "allow"
-too_many_arguments = "allow"

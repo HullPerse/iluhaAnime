@@ -5,14 +5,24 @@ import { WIZARD_COVER_MAX } from "@/config/anilist/collectionDefaults.config";
 import type { useWizardSearch } from "@/hooks/collection/search.hook";
 import type { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { mergeGenreTags } from "@/lib/core/collection/wizard.utils";
+import { ignore } from "@/lib/core/shared/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/ui/notification.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { WizardPickedMedia, WizardSearchResult } from "@/types/anilist/collection";
 
 type WizardForm = ReturnType<typeof useWizardForm>;
 type WizardSearchState = ReturnType<typeof useWizardSearch>;
+
+function reportPickError(scope: string, error: unknown): void {
+  reportBackgroundError(scope, error);
+  if (!settingsAtoms.notifyScanErrors.get()) return;
+  showError(
+    tr("notification.sync.failed"),
+    error instanceof Error ? error.message : String(error)
+  );
+}
 
 export function useWizardPick({
   form,
@@ -80,63 +90,51 @@ export function useWizardPick({
       tmdbPickRef.current += 1;
       const pickId = tmdbPickRef.current;
       const mediaType = r.mediaType;
-      tmdbApi
-        .getDetails<{
-          title: string;
-          overview: string | null;
-          year: number | null;
-          releaseDate: string | null;
-          runtimeMinutes: number | null;
-          genres: string[];
-          posters: { url: string }[];
-        }>(r.id, mediaType)
-        .then((d) => {
-          if (tmdbPickRef.current !== pickId) return;
-          if (d.overview) setDescription(d.overview);
-          if (d.genres.length) setGenres(d.genres.join(", "));
-          if (d.year) setYear(String(d.year));
-          if (d.releaseDate) setReleaseDate(d.releaseDate);
-          if (d.runtimeMinutes) setDurationMinutes(String(d.runtimeMinutes));
-          setType(mediaType === "movie" ? "movie" : "series");
-          const posters = d.posters.map((p) => p.url).filter(Boolean);
-          if (posters.length)
-            setCoverOptions((prev) =>
-              [...new Set([...posters, ...prev])].slice(0, WIZARD_COVER_MAX)
-            );
-          tmdbApi
-            .getMedia<{
-              backdrops: { url: string }[];
-              trailerYoutubeId: string | null;
-            }>(r.id, mediaType)
-            .then((m) => {
-              if (tmdbPickRef.current !== pickId) return null;
-              mediaRef.current = {
-                stills: m.backdrops
-                  .map((b) => b.url)
-                  .filter(Boolean)
-                  .slice(0, 8),
-                trailerYoutubeId: m.trailerYoutubeId,
-              };
-              return null;
-            })
-            .catch((error: unknown) => {
-              reportBackgroundError("tmdb.pick.media", error);
-              if (settingsAtoms.notifyScanErrors.get())
-                showError(
-                  tr("notification.sync.failed"),
-                  error instanceof Error ? error.message : String(error)
-                );
-            });
-          return null;
-        })
-        .catch((error: unknown) => {
-          reportBackgroundError("tmdb.pick.details", error);
-          if (settingsAtoms.notifyScanErrors.get())
-            showError(
-              tr("notification.sync.failed"),
-              error instanceof Error ? error.message : String(error)
-            );
-        });
+      const loadTmdbPick = async (): Promise<void> => {
+        const [details, detailsError] = await attempt(
+          tmdbApi.getDetails<{
+            title: string;
+            overview: string | null;
+            year: number | null;
+            releaseDate: string | null;
+            runtimeMinutes: number | null;
+            genres: string[];
+            posters: { url: string }[];
+          }>(r.id, mediaType)
+        );
+        if (detailsError !== null) {
+          reportPickError("tmdb.pick.details", detailsError);
+          return;
+        }
+        if (tmdbPickRef.current !== pickId) return;
+        if (details.overview) setDescription(details.overview);
+        if (details.genres.length) setGenres(details.genres.join(", "));
+        if (details.year) setYear(String(details.year));
+        if (details.releaseDate) setReleaseDate(details.releaseDate);
+        if (details.runtimeMinutes) setDurationMinutes(String(details.runtimeMinutes));
+        setType(mediaType === "movie" ? "movie" : "series");
+        const posters = (details.posters ?? []).map((p) => p.url).filter(Boolean);
+        if (posters.length)
+          setCoverOptions((prev) =>
+            [...new Set([...posters, ...prev])].slice(0, WIZARD_COVER_MAX)
+          );
+        const [media, mediaError] = await attempt(
+          tmdbApi.getMedia<{
+            backdrops: { url: string }[];
+            trailerYoutubeId: string | null;
+          }>(r.id, mediaType)
+        );
+        if (mediaError !== null) {
+          reportPickError("tmdb.pick.media", mediaError);
+          return;
+        }
+        if (tmdbPickRef.current !== pickId) return;
+        mediaRef.current = {
+          stills: (media.backdrops ?? []).map((b) => b.url).filter(Boolean).slice(0, 8),
+          trailerYoutubeId: media.trailerYoutubeId,
+        };
+      };
+      ignore(loadTmdbPick());
     }
   };
 

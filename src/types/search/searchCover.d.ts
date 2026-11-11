@@ -1,6 +1,6 @@
 import type { CoverCandidate } from "@/types/core/cover";
 
-export type TorrentCoverStatus = "override" | "page" | "resolved" | "pending" | "empty";
+type TorrentCoverStatus = "override" | "page" | "resolved" | "pending" | "empty";
 
 export interface TorrentCoverState {
   status: TorrentCoverStatus;

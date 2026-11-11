@@ -9,7 +9,7 @@ import { chromium, type Browser, type Page } from "playwright-core";
 // Parallel runs are possible (a second harness, a Chromium someone started with
 // remote debugging), so the port is configurable instead of hard-wired. Default
 // stays 9222 because that is what WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS carries.
-export const DEFAULT_CDP_PORT = 9222;
+const DEFAULT_CDP_PORT = 9222;
 
 export function cdpPort(): number {
   const raw = process.env.E2E_CDP_PORT;
@@ -22,7 +22,7 @@ export function cdpPort(): number {
 }
 
 export const E2E_IDENTIFIER = "iluhaAnime.e2e";
-export const READY_SELECTOR = '[role="tab"]';
+const READY_SELECTOR = '[role="tab"]';
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -73,7 +73,7 @@ export async function connectCdp(waitMs = 900_000): Promise<Browser> {
   throw new Error(`CDP connect failed on port ${port} after ${waitMs}ms: ${String(lastError)}`);
 }
 
-export async function findPage(
+async function findPage(
   browser: Browser,
   predicate: (url: string) => boolean,
   timeoutMs = 30_000
@@ -180,11 +180,6 @@ export async function tabLabels(page: Page): Promise<string[]> {
   );
 }
 
-export async function clickTab(page: Page, label: string): Promise<void> {
-  const tab = page.locator('[role="tab"]', { hasText: label }).first();
-  await tab.click({ timeout: 10_000 });
-}
-
 // The app is localized (RU by default here), so scenarios pass both names.
 // Matches by tab role plus text, which tolerates nested spans inside a tab.
 export async function clickTabByAnyOf(page: Page, labels: readonly string[]): Promise<void> {
@@ -210,5 +205,5 @@ export const TAB = {
   torrent: ["Torrent", "Торрент"],
 } as const;
 
-export const MAIN_URL = "localhost:1420";
-export const PLAYER_URL = "localhost:1420/player-window";
+const MAIN_URL = "localhost:1420";
+const PLAYER_URL = "localhost:1420/player-window";

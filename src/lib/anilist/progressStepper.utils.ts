@@ -56,7 +56,12 @@ export function resolveSaveStatus(target: number, max: number | null, current: s
   return current;
 }
 
+const REASON_MAX_CHARS = 300;
+
 export function shortReason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  return message.length > 300 ? `${message.slice(0, 300)}...` : message;
+
+  if (message.length > REASON_MAX_CHARS) return `${message.slice(0, REASON_MAX_CHARS)}...`
+  return message
+
 }

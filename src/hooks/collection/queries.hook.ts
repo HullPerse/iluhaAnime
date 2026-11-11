@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { collectionApi } from "@/api/collection.api";
+import { CollectionDetailsSchema, CollectionSitesSchema } from "@/api/collection.schema";
 import type { CollectionStatusRow } from "@/types/api/collection";
 import { DEFAULT_COLLECTION_STATUSES } from "@/config/anilist/statuses.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
@@ -22,17 +23,25 @@ const EMPTY: CollectionDataState = {
   statuses: DEFAULT_COLLECTION_STATUSES,
 };
 
+function normalizeSitesToView(value: unknown): CollectionItem["sitesToView"] {
+  const parsed = CollectionSitesSchema.safeParse(value);
+  return parsed.success ? parsed.data : [];
+}
+
+function normalizeDetails(value: unknown): CollectionItem["detailsJson"] {
+  const parsed = CollectionDetailsSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
 function normalizeItem(raw: RawCollectionItem): CollectionItem {
-  const sitesToView = Array.isArray(raw.sitesToView)
-    ? (raw.sitesToView as Array<{ url: string }>)
-    : [];
+  const { isFavorite, sitesToView, tvCurrentSeason, tvCurrentEpisode, detailsJson, ...item } = raw;
   return {
-    ...(raw as unknown as CollectionItem),
-    isFavorite: Boolean(raw.isFavorite),
-    sitesToView,
-    tvCurrentSeason: raw.tvCurrentSeason ?? null,
-    tvCurrentEpisode: raw.tvCurrentEpisode ?? null,
-    detailsJson: (raw.detailsJson as CollectionItem["detailsJson"]) ?? null,
+    ...item,
+    isFavorite: Boolean(isFavorite),
+    sitesToView: normalizeSitesToView(sitesToView),
+    tvCurrentSeason: tvCurrentSeason ?? null,
+    tvCurrentEpisode: tvCurrentEpisode ?? null,
+    detailsJson: normalizeDetails(detailsJson),
   };
 }
 

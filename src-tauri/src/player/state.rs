@@ -793,6 +793,7 @@ fn smooth_snapshot(app: &AppHandle, next: PlaybackSnapshot) -> PlaybackSnapshot 
 
 /// Applies one mpv property-change payload to the cached snapshot and returns
 /// whether the field was updated. Exposed for benches and tests.
+#[allow(clippy::too_many_lines)]
 pub fn apply_observed_property(
     snapshot: &mut PlaybackSnapshot,
     mask: &mut u64,

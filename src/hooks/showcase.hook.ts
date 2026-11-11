@@ -4,7 +4,12 @@ import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { withFallback } from "@hullperse/hp_utils/attempt";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AniMedia, AnimeShowcase } from "@/types/anilist/anilist";
+import type {
+  AniMedia,
+} from "@/types/anilist/anilist";
+import type {
+  AnimeShowcase,
+} from "@/types/anilist/anilistUi";
 
 async function loadShowcase(anime: AniMedia): Promise<AnimeShowcase> {
   let trailerYoutubeId = anime.trailer_youtube_id ?? null;

@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FranchiseToolbar } from "@/routes/components/anilist/franchise/toolbar.franchise";
 import { patchSettings } from "@/store/settings.store";
-import type { FranchiseToolbarProps, RelationFilter } from "@/types/anilist/anilist";
+import type {
+  RelationFilter,
+} from "@/types/anilist/anilist";
+import type {
+  FranchiseToolbarProps,
+} from "@/types/anilist/anilistUi";
 
 const groupCounts: Record<RelationFilter, number> = {
   OTHER: 4,

@@ -61,7 +61,13 @@ describe("media entries", () => {
 
   it("hydrates from the backend and keeps local track choices", async () => {
     mockInvoke.mockReset();
-    mockInvoke.mockResolvedValue({ position: 30, duration: 90, subDelay: 1, audioDelay: 2 });
+    mockInvoke.mockResolvedValue({
+      position: 30,
+      duration: 90,
+      subDelay: 1,
+      audioDelay: 2,
+      updatedAt: 1,
+    });
     const store = createMediaSignalStore({ getStorage: () => memoryStorage() });
     store.setTrack("/a.mkv", "sub", 3);
     const merged = await store.hydrate("/a.mkv");
@@ -86,7 +92,7 @@ describe("media entries", () => {
     const store = createMediaSignalStore({ getStorage: () => memoryStorage() });
     const pending = store.hydrate("/a.mkv");
     store.setPosition("/a.mkv", 42, 100);
-    releaseBackend({ position: 10, duration: 100, subDelay: 0, audioDelay: 0 });
+    releaseBackend({ position: 10, duration: 100, subDelay: 0, audioDelay: 0, updatedAt: 1 });
     const merged = await pending;
     expect(merged?.position).toBe(10);
     expect(store.getEntry("/a.mkv")?.position).toBe(10);

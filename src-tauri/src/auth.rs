@@ -611,12 +611,14 @@ fn remove_webview_proxy_auth(window: &tauri::WebviewWindow, slot: &Mutex<Option<
         use windows_core::Interface;
 
         let controller = platform.controller();
+        // SAFETY: with_webview runs this callback on the live WebView2 UI thread.
         let Ok(core) = (unsafe { controller.CoreWebView2() }) else {
             return;
         };
         let Ok(core) = core.cast::<ICoreWebView2_10>() else {
             return;
         };
+        // SAFETY: token was returned by add_BasicAuthenticationRequested on this controller.
         unsafe {
             let _ = core.remove_BasicAuthenticationRequested(token);
         }
@@ -641,6 +643,7 @@ async fn register_webview_proxy_auth(
         .with_webview(move |platform| {
             let result = (|| -> Result<i64, String> {
                 let controller = platform.controller();
+                // SAFETY: with_webview runs this callback on the live WebView2 UI thread.
                 let core = unsafe { controller.CoreWebView2() }
                     .map_err(|e| format!("CoreWebView2: {e}"))?;
                 let core: ICoreWebView2_10 = core.cast().map_err(|e| format!("cast: {e}"))?;
@@ -649,6 +652,7 @@ async fn register_webview_proxy_auth(
                         let Some(args) = args else {
                             return Ok(());
                         };
+                        // SAFETY: args is a COM event payload owned by the active handler.
                         let Ok(response) = (unsafe { args.Response() }) else {
                             return Ok(());
                         };
@@ -656,6 +660,7 @@ async fn register_webview_proxy_auth(
                             username.encode_utf16().chain(std::iter::once(0)).collect();
                         let pass_wide: Vec<u16> =
                             password.encode_utf16().chain(std::iter::once(0)).collect();
+                        // SAFETY: both UTF-16 buffers stay alive until the COM calls return.
                         unsafe {
                             let _ = response
                                 .SetUserName(windows_core::PCWSTR::from_raw(user_wide.as_ptr()));
@@ -666,6 +671,7 @@ async fn register_webview_proxy_auth(
                     }),
                 );
                 let mut token: i64 = 0;
+                // SAFETY: the handler is intentionally forgotten and stays alive for the token.
                 unsafe { core.add_BasicAuthenticationRequested(&handler, &raw mut token) }
                     .map_err(|e| format!("proxy auth: {e}"))?;
                 std::mem::forget(handler);
@@ -913,6 +919,7 @@ async fn eval_webview_script(
 }
 
 #[cfg(target_os = "windows")]
+#[allow(clippy::too_many_lines)]
 async fn harvest_webview_cookies(
     webview: &tauri::Webview,
     domain_markers: &'static [&'static str],
@@ -929,17 +936,21 @@ async fn harvest_webview_cookies(
         .with_webview(move |platform| {
             let result = (|| -> Result<(String, Vec<tokio::sync::oneshot::Receiver<HarvestResult>>), String> {
                 let controller = platform.controller();
+                // SAFETY: with_webview runs this callback on the live WebView2 UI thread.
                 let core = unsafe { controller.CoreWebView2() }
                     .map_err(|e| format!("CoreWebView2: {e}"))?;
                 let core: ICoreWebView2_2 = core.cast().map_err(|e| format!("cast: {e}"))?;
+                // SAFETY: core is a live WebView2 object obtained on its UI thread.
                 let manager = unsafe { core.CookieManager() }
                     .map_err(|e| format!("CookieManager: {e}"))?;
 
                 let mut user_agent = String::new();
+                // SAFETY: core is a live WebView2 object obtained on its UI thread.
                 if let Ok(settings) = unsafe { core.Settings() } {
                     use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings2;
                     if let Ok(settings2) = settings.cast::<ICoreWebView2Settings2>() {
                         let mut ua = windows_core::PWSTR::null();
+                        // SAFETY: COM writes a settings-owned string into the local pointer.
                         unsafe {
                             let _ = settings2.UserAgent(&raw mut ua);
                         }
@@ -962,14 +973,17 @@ async fn harvest_webview_cookies(
                             }
                             if let Some(list) = list {
                                 let mut count: u32 = 0;
+                                // SAFETY: list is the live cookie list supplied by GetCookies.
                                 unsafe {
                                     let _ = list.Count(&raw mut count);
                                 }
                                 for i in 0..count {
+                                    // SAFETY: i is bounded by the count read from the same list.
                                     if let Ok(cookie) = unsafe { list.GetValueAtIndex(i) } {
                                         let mut name = windows_core::PWSTR::null();
                                         let mut value = windows_core::PWSTR::null();
                                         let mut domain = windows_core::PWSTR::null();
+                                        // SAFETY: cookie is live and the output strings stay allocated by it.
                                         unsafe {
                                             let _ = cookie.Name(&raw mut name);
                                             let _ = cookie.Value(&raw mut value);
@@ -998,6 +1012,7 @@ async fn harvest_webview_cookies(
                             Ok(())
                         },
                     ));
+                    // SAFETY: manager and handler are live for the duration of the call.
                     unsafe { manager.GetCookies(uri, &handler) }
                         .map_err(|e| format!("GetCookies call: {e}"))?;
                     receivers.push(rx);
@@ -1030,6 +1045,7 @@ fn pwstr_to_string(ptr: windows_core::PWSTR) -> String {
     if ptr.is_null() {
         return String::new();
     }
+    // SAFETY: ptr is non-null and points to a null-terminated UTF-16 buffer.
     unsafe {
         let mut len = 0usize;
         while *ptr.0.add(len) != 0 {

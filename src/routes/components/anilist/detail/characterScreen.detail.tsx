@@ -7,7 +7,10 @@ import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { uniqueById } from "@hullperse/hp_utils/array";
-import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilist";
+import type {
+  AniListOverlayContext,
+  AniListOverlayScreen,
+} from "@/types/anilist/anilistUi";
 
 import { CreditSection } from "@/routes/components/anilist/detail/creditSection.detail";
 import { PersonFavButton } from "@/routes/components/anilist/detail/favbutton.detail";

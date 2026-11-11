@@ -8,7 +8,7 @@ import type {
   AniListOverlayContext,
   AniListOverlayScreen,
   FavouritesTab,
-} from "@/types/anilist/anilist";
+} from "@/types/anilist/anilistUi";
 
 import { OverlayScreens } from "@/routes/components/anilist/detail/screens.detail";
 import { FavouriteAnimeRow } from "@/routes/components/anilist/favourites/animeRow.favourites";

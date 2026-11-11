@@ -3,7 +3,6 @@
     clippy::needless_pass_by_value,
     clippy::unnecessary_wraps,
     clippy::missing_panics_doc,
-    clippy::too_many_lines,
     clippy::large_stack_frames
 )]
 
@@ -11,7 +10,6 @@ use futures::FutureExt;
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::Arc;
-use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
@@ -20,9 +18,11 @@ mod app_db;
 mod discord;
 mod netdiag;
 mod network;
+mod setup;
 mod startup;
 mod sync_utils;
 
+#[cfg(feature = "bench-api")]
 #[doc(hidden)]
 pub mod benchmark_api {
     pub use crate::anilist::library::anime_full_query;
@@ -348,6 +348,7 @@ fn is_disk_full_error(error: &str) -> bool {
     .any(|needle| lowered.contains(needle))
 }
 
+#[allow(clippy::too_many_lines)]
 async fn run_torrent_update_tick(
     app: &tauri::AppHandle,
     manager: &Arc<TorrentManager>,
@@ -1987,6 +1988,7 @@ fn clean_stale_temp_files() {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[allow(clippy::too_many_lines)]
 pub fn run() {
     startup::begin();
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
@@ -2002,26 +2004,7 @@ pub fn run() {
     tracing::info!("starting iluhaAnime backend");
     startup::mark("tracing_init");
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            deeplink::handle_second_instance(app, args);
-        }))
-        .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(
-            tauri_plugin_window_state::Builder::default()
-                .with_state_flags(
-                    tauri_plugin_window_state::StateFlags::all()
-                        & !tauri_plugin_window_state::StateFlags::DECORATIONS
-                        & !tauri_plugin_window_state::StateFlags::VISIBLE,
-                )
-                .build(),
-        )
-        .plugin(tauri_plugin_libmpv::init())
+    setup::with_plugins(tauri::Builder::default())
         .setup(|app| {
             // Neither the temp sweep nor resolving the ffmpeg path has to
             // finish before the first window: both moved off the boot path.
@@ -2062,43 +2045,7 @@ pub fn run() {
             }
             startup::mark("window_visible");
 
-            let tray_icon = app.default_window_icon().cloned().or_else(|| {
-                tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok()
-            });
-            match tray_icon {
-                Some(icon) => {
-                    if let Err(error) = TrayIconBuilder::with_id("iluhaanime-tray")
-                        .icon(icon)
-                        .tooltip("iluhaAnime")
-                        .on_tray_icon_event(|tray, event| {
-                            let restore = matches!(
-                                event,
-                                TrayIconEvent::Click {
-                                    button: MouseButton::Left,
-                                    ..
-                                } | TrayIconEvent::DoubleClick {
-                                    button: MouseButton::Left,
-                                    ..
-                                }
-                            );
-                            if !restore {
-                                return;
-                            }
-                            if let Some(window) = tray.app_handle().get_webview_window("main") {
-                                let _ = window.unminimize();
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        })
-                        .build(app)
-                    {
-                        tracing::warn!("unable to create the tray icon: {error}");
-                    }
-                }
-                None => {
-                    tracing::warn!("tray icon unavailable: no window icon and bundled icon failed");
-                }
-            }
+            setup::install_tray(app.handle());
             startup::mark("tray");
 
             if let Some(window) = app.get_webview_window("main") {
@@ -2380,38 +2327,38 @@ pub fn run() {
             stream::stream_warm,
             stream::prefs::stream_prefs_get,
             stream::prefs::stream_prefs_save,
-            app_db::get_app_cache,
-            app_db::put_app_cache,
-            app_db::delete_app_cache,
-            app_db::stream_history_record,
-            app_db::stream_history_recent,
-            app_db::stream_history_for_anime,
-            app_db::stream_history_progress,
-            app_db::stream_history_clear,
-            app_db::get_database_status,
-            app_db::upsert_unified_index,
-            app_db::clear_unified_index_scope,
-            app_db::delete_unified_index_entry,
-            app_db::prune_unified_index_scope,
-            app_db::optimize_unified_index,
-            app_db::record_unified_index_action,
-            app_db::record_unified_index_value_action,
-            app_db::list_learning_stats,
-            app_db::search_unified_index,
-            app_db::list_collection_statuses,
-            app_db::upsert_collection_status,
-            app_db::delete_collection_status,
-            app_db::list_collection_items,
-            app_db::upsert_collection_item,
-            app_db::import_collection_items_batch,
-            app_db::patch_collection_item,
-            app_db::delete_collection_item,
-            app_db::list_custom_field_defs,
-            app_db::upsert_custom_field_def,
-            app_db::delete_custom_field_def,
-            app_db::export_collection_data,
-            app_db::export_collection_zip,
-            app_db::import_collection_data,
+            app_db::cache::get_app_cache,
+            app_db::cache::put_app_cache,
+            app_db::cache::delete_app_cache,
+            app_db::stream_history::stream_history_record,
+            app_db::stream_history::stream_history_recent,
+            app_db::stream_history::stream_history_for_anime,
+            app_db::stream_history::stream_history_progress,
+            app_db::stream_history::stream_history_clear,
+            app_db::db::get_database_status,
+            app_db::unified_index::upsert_unified_index,
+            app_db::unified_index::clear_unified_index_scope,
+            app_db::unified_index::delete_unified_index_entry,
+            app_db::unified_index::prune_unified_index_scope,
+            app_db::unified_index::optimize_unified_index,
+            app_db::unified_index::record_unified_index_action,
+            app_db::unified_index::record_unified_index_value_action,
+            app_db::unified_index::list_learning_stats,
+            app_db::unified_index::search_unified_index,
+            app_db::collection::list_collection_statuses,
+            app_db::collection::upsert_collection_status,
+            app_db::collection::delete_collection_status,
+            app_db::collection::list_collection_items,
+            app_db::collection::upsert_collection_item,
+            app_db::collection::import_collection_items_batch,
+            app_db::collection::patch_collection_item,
+            app_db::collection::delete_collection_item,
+            app_db::collection::list_custom_field_defs,
+            app_db::collection::upsert_custom_field_def,
+            app_db::collection::delete_custom_field_def,
+            app_db::collection_io::export_collection_data,
+            app_db::collection_io::export_collection_zip,
+            app_db::collection_io::import_collection_data,
             tmdb::search_tmdb,
             tmdb::get_tmdb_details,
             tmdb::get_tmdb_media,

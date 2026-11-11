@@ -1,3 +1,4 @@
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { createSignalStore } from "@hullperse/hp_utils/signal";
 
 const store = createSignalStore();
@@ -51,15 +52,14 @@ export function noteNetworkFailure(error: unknown): void {
 export async function probeNetwork(probe: () => Promise<boolean>): Promise<boolean> {
   if (networkAtoms.checking.get()) return networkAtoms.reachable.get();
   networkAtoms.checking.set(true);
-  try {
-    const reachable = await probe();
-    if (reachable) noteNetworkSuccess();
-    else networkAtoms.reachable.set(false);
-    return reachable;
-  } catch (error) {
+  const [reachable, error] = await attempt(probe()).finally(() => {
+    networkAtoms.checking.set(false);
+  });
+  if (error !== null) {
     noteNetworkFailure(error);
     return false;
-  } finally {
-    networkAtoms.checking.set(false);
   }
+  if (reachable) noteNetworkSuccess();
+  else networkAtoms.reachable.set(false);
+  return reachable;
 }

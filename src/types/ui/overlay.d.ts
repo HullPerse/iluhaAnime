@@ -1,4 +1,4 @@
-export type OverlayDismiss = (() => void) | null;
+type OverlayDismiss = (() => void) | null;
 
 export interface OverlayEntry {
   id: number;

@@ -4,6 +4,14 @@ import { AnilistApi } from "@/api/anilist.api";
 import type { ApiTransport } from "@/types/core/transport";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
+const SAVED_ENTRY = {
+  id: 21,
+  status: "CURRENT",
+  progress: 3,
+  repeat: null,
+  customLists: [],
+};
+
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];
   const transport: ApiTransport = {
@@ -37,10 +45,16 @@ describe("AnilistApi", () => {
           userId: 7,
           minimal: false,
           proxyUrl: "socks5://127.0.0.1:10808",
-          proxy_url: "socks5://127.0.0.1:10808",
         },
       },
     ]);
+  });
+
+  it("rejects a malformed AniList list response", async () => {
+    const { transport } = fakeTransport(() => [{ name: "Watching" }]);
+    const api = new AnilistApi({ transport });
+
+    await expect(api.getLists(7)).rejects.toThrow();
   });
 
   it("asks for the statistics of one user in one call", async () => {
@@ -69,20 +83,20 @@ describe("AnilistApi", () => {
     });
   });
 
-  it("sends both id casings when saving an entry", async () => {
-    const { calls, transport } = fakeTransport(() => undefined);
+  it("sends the backend's snake_case id when saving an entry", async () => {
+    const { calls, transport } = fakeTransport(() => SAVED_ENTRY);
     const api = new AnilistApi({ transport });
 
     await api.saveEntry({ mediaId: 21, status: "CURRENT", progress: 3, score: null, notes: null });
 
     expect(calls[0]).toMatchObject({
       command: "save_anilist_entry",
-      args: { media_id: 21, mediaId: 21, status: "CURRENT", progress: 3 },
+      args: { media_id: 21, status: "CURRENT", progress: 3 },
     });
   });
 
   it("drops null numeric fields that AniList rejects", async () => {
-    const { calls, transport } = fakeTransport(() => undefined);
+    const { calls, transport } = fakeTransport(() => SAVED_ENTRY);
     const api = new AnilistApi({ transport });
 
     await api.saveEntry({
@@ -97,7 +111,7 @@ describe("AnilistApi", () => {
 
     const args = calls[0]?.args ?? {};
     expect(args).toMatchObject({
-      mediaId: 21,
+      media_id: 21,
       status: "PLANNING",
       notes: null,
       customLists: [],
@@ -108,7 +122,7 @@ describe("AnilistApi", () => {
   });
 
   it("sends every field of a new entry, including explicit zeroes", async () => {
-    const { calls, transport } = fakeTransport(() => undefined);
+    const { calls, transport } = fakeTransport(() => SAVED_ENTRY);
     const api = new AnilistApi({ transport });
 
     await api.saveEntry({
@@ -129,7 +143,6 @@ describe("AnilistApi", () => {
       command: "save_anilist_entry",
       args: {
         media_id: 21,
-        mediaId: 21,
         status: "PLANNING",
         progress: 0,
         score: 0,
@@ -145,7 +158,7 @@ describe("AnilistApi", () => {
   });
 
   it("forwards repeat, privacy flags and dates when saving an entry", async () => {
-    const { calls, transport } = fakeTransport(() => undefined);
+    const { calls, transport } = fakeTransport(() => SAVED_ENTRY);
     const api = new AnilistApi({ transport });
 
     await api.saveEntry({
@@ -174,7 +187,7 @@ describe("AnilistApi", () => {
     });
   });
 
-  it("sends both id casings when deleting an entry", async () => {
+  it("sends the backend's snake_case ids when deleting an entry", async () => {
     const { calls, transport } = fakeTransport(() => true);
     const api = new AnilistApi({ transport });
 
@@ -182,7 +195,7 @@ describe("AnilistApi", () => {
 
     expect(calls[0]).toMatchObject({
       command: "delete_anilist_entry",
-      args: { media_id: 21, mediaId: 21, user_id: 7, userId: 7 },
+      args: { media_id: 21, user_id: 7 },
     });
   });
 
@@ -212,7 +225,12 @@ describe("AnilistApi", () => {
   });
 
   it("fetches the full detail bundle in one call", async () => {
-    const { calls, transport } = fakeTransport(() => ({}));
+    const { calls, transport } = fakeTransport(() => ({
+      media: { id: 21, title: "Episode" },
+      characters: [],
+      staff: [],
+      recommendations: [],
+    }));
     const api = new AnilistApi({ transport });
 
     await api.getAnimeFull(21);
@@ -243,7 +261,7 @@ describe("AnilistApi", () => {
   });
 
   it("fetches the franchise graph in one call with scope", async () => {
-    const { calls, transport } = fakeTransport(() => ({}));
+    const { calls, transport } = fakeTransport(() => ({ root_id: 21, nodes: [], edges: [] }));
     const api = new AnilistApi({ transport });
 
     await api.getAnimeFranchise(21, "all");
@@ -253,5 +271,35 @@ describe("AnilistApi", () => {
       command: "get_anime_franchise",
       args: { id: 21, scope: "all" },
     });
+  });
+
+  it("rejects a malformed detail bundle", async () => {
+    const { transport } = fakeTransport(() => ({ media: { id: 21, title: "Episode" } }));
+    const api = new AnilistApi({ transport });
+
+    await expect(api.getAnimeFull(21)).rejects.toThrow(/characters/);
+  });
+
+  it("rejects a malformed saved-entry response", async () => {
+    const { transport } = fakeTransport(() => ({}));
+    const api = new AnilistApi({ transport });
+
+    await expect(
+      api.saveEntry({ mediaId: 21, status: "CURRENT", progress: 3, score: null, notes: null })
+    ).rejects.toThrow(/id/);
+  });
+
+  it("rejects a malformed activity response", async () => {
+    const { transport } = fakeTransport(() => [{}]);
+    const api = new AnilistApi({ transport });
+
+    await expect(api.getActivity([7])).rejects.toThrow(/id/);
+  });
+
+  it("rejects a malformed site-notification response", async () => {
+    const { transport } = fakeTransport(() => [{}]);
+    const api = new AnilistApi({ transport });
+
+    await expect(api.getSiteNotifications()).rejects.toThrow(/id/);
   });
 });

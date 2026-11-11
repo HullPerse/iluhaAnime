@@ -1,6 +1,6 @@
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { fmtSpeed } from "@/lib/torrent/torrentCommon.utils";
+import { formatSpeed } from "@/lib/torrent/torrentCommon.utils";
 import type { HostStats } from "@/types/core/ipc";
 
 export function HostStatsLine({
@@ -23,8 +23,8 @@ export function HostStatsLine({
       })}
       {showNet &&
         t("torrent.host.stats.net", {
-          rx: fmtSpeed(stats.netRxBps) || "0 B/s",
-          tx: fmtSpeed(stats.netTxBps) || "0 B/s",
+          rx: formatSpeed(stats.netRxBps),
+          tx: formatSpeed(stats.netTxBps),
         })}
     </span>
   );

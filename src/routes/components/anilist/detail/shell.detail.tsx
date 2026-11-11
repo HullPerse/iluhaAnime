@@ -1,6 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type {
+  ReactNode } from "react";
+import { useEffect,
+  useMemo,
+  useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
@@ -16,7 +19,10 @@ import { useDetailScreens } from "@/hooks/anilist/detailScreens.hook";
 import { useDetailPresence } from "@/hooks/anilist/detailPresence.hook";
 import { ShellHeaderActions } from "@/routes/components/anilist/detail/shellHeaderActions.detail";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
-import type { AniDetailProps as DetailProps, AniListOverlayContext } from "@/types/anilist/anilist";
+import type {
+  AniDetailProps as DetailProps,
+  AniListOverlayContext,
+} from "@/types/anilist/anilistUi";
 
 import { OverlayScreens } from "./screens.detail";
 import { AniListDetailView } from "./view.detail";

@@ -38,14 +38,25 @@ export function buildCalendarCells(
   return cells;
 }
 
-export function calendarCellTone(isToday: boolean, isWeekend: boolean) {
-  if (isToday) return "bg-secondary/10";
-  if (isWeekend) return "bg-surface/40";
-  return "bg-field";
-}
+type CalendarDayFlags = { isToday: boolean; isWeekend: boolean };
 
-export function calendarDayNumberTone(isToday: boolean, isWeekend: boolean) {
-  if (isToday) return "bg-secondary text-title-text font-bold";
-  if (isWeekend) return "text-destructive font-bold";
-  return "text-text font-bold";
+type CalendarTone = { cell: string; dayNumber: string };
+
+export function calendarTone({ isToday, isWeekend }: CalendarDayFlags): CalendarTone {
+  if (isToday) {
+    return {
+      cell: "bg-secondary/10",
+      dayNumber: "bg-secondary text-title-text font-bold",
+    };
+  }
+  if (isWeekend) {
+    return {
+      cell: "bg-surface/40",
+      dayNumber: "text-destructive font-bold",
+    };
+  }
+  return {
+    cell: "bg-field",
+    dayNumber: "text-text font-bold",
+  };
 }

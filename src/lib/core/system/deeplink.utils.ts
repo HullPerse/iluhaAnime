@@ -79,6 +79,9 @@ export function parseAnimeLink(raw: string): AnimeDeepLink | null {
 }
 
 const AUTH_PREFIX = `${DEEP_LINK_SCHEME}://auth/anilist`;
+const AUTH_TOKEN_MAX_CHARS = 4096;
+const SHARE_YEAR_MIN = 1000;
+const SHARE_YEAR_MAX = 9999;
 
 export function parseAnilistAuthCallback(raw: string): AnilistAuthDeepLink | null {
   const trimmed = raw.trim();
@@ -90,7 +93,7 @@ export function parseAnilistAuthCallback(raw: string): AnilistAuthDeepLink | nul
   const fragmentPart = hashIndex !== -1 ? rest.slice(hashIndex + 1) : "";
   const params = new URLSearchParams(fragmentPart || queryPart);
   const token = (params.get("access_token") ?? "").trim();
-  if (token.length === 0 || token.length > 4096 || /\s/.test(token)) return null;
+  if (token.length === 0 || token.length > AUTH_TOKEN_MAX_CHARS || /\s/.test(token)) return null;
   return { accessToken: token };
 }
 
@@ -223,7 +226,7 @@ function readShareId(value: unknown): number | undefined {
 
 function normalizeYear(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isInteger(value)) return null;
-  return value >= 1000 && value <= 9999 ? value : null;
+  return value >= SHARE_YEAR_MIN && value <= SHARE_YEAR_MAX ? value : null;
 }
 
 function normalizeCoverUrl(value: unknown): string | null {

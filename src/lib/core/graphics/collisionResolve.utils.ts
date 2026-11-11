@@ -4,6 +4,54 @@ import type { RowCollisionOptions, RowCollisionResult } from "@/types/core/colli
 
 const DEFAULT_MAX_PASSES = 5;
 
+function rowEdge(
+  index: number,
+  placed: readonly number[],
+  boxes: readonly CollisionBox[],
+  left: readonly number[],
+  width: readonly number[],
+  rowGap: number,
+  filter: (index: number, other: number) => boolean
+): number {
+  let edge = left[index] ?? 0;
+  for (const other of placed) {
+    const sameRow = Math.abs((boxes[index]?.minY ?? 0) - (boxes[other]?.minY ?? 0)) < rowGap;
+    const overlaps =
+      sameRow &&
+      edge < (left[other] ?? 0) + (width[other] ?? 0) &&
+      edge + (width[index] ?? 0) > (left[other] ?? 0);
+    if (filter(index, other) && overlaps) edge = (left[other] ?? 0) + (width[other] ?? 0);
+  }
+  return edge;
+}
+
+function resolveRow(
+  row: readonly number[],
+  boxes: readonly CollisionBox[],
+  left: number[],
+  width: readonly number[],
+  rowGap: number,
+  anchored: (index: number) => boolean,
+  filter: (index: number, other: number) => boolean
+): boolean {
+  const placed: number[] = [];
+  const order = [...row].sort(
+    (a, b) => Number(anchored(b)) - Number(anchored(a)) || (left[a] ?? 0) - (left[b] ?? 0)
+  );
+  let moved = false;
+  for (const index of order) {
+    if (!anchored(index)) {
+      const edge = rowEdge(index, placed, boxes, left, width, rowGap, filter);
+      if (edge !== left[index]) {
+        left[index] = edge;
+        moved = true;
+      }
+    }
+    placed.push(index);
+  }
+  return moved;
+}
+
 export function resolveRowCollisions(
   boxes: readonly CollisionBox[],
   options: RowCollisionOptions
@@ -19,27 +67,7 @@ export function resolveRowCollisions(
   for (let pass = 0; pass < maxPasses; pass += 1) {
     let moved = false;
     for (const row of rows) {
-      const placed: number[] = [];
-      const order = [...row].sort(
-        (a, b) => Number(anchored(b)) - Number(anchored(a)) || left[a] - left[b]
-      );
-      for (const index of order) {
-        if (!anchored(index)) {
-          let edge = left[index];
-          for (const other of placed) {
-            if (!filter(index, other)) continue;
-            const sameRow = Math.abs(boxes[index].minY - boxes[other].minY) < rowGap;
-            if (sameRow && edge < left[other] + width[other] && edge + width[index] > left[other]) {
-              edge = left[other] + width[other];
-            }
-          }
-          if (edge !== left[index]) {
-            left[index] = edge;
-            moved = true;
-          }
-        }
-        placed.push(index);
-      }
+      moved = resolveRow(row, boxes, left, width, rowGap, anchored, filter) || moved;
     }
     if (!moved) break;
   }

@@ -21,7 +21,7 @@ export interface TorrentDetailFile {
   size: string;
 }
 
-export interface TorrentDetailComment {
+interface TorrentDetailComment {
   author: string;
   date: string;
   text: string;
@@ -120,7 +120,7 @@ export interface TorrentFileInfo {
   exists: boolean;
 }
 
-export interface PartialLeftoverFile {
+interface PartialLeftoverFile {
   name: string;
   size: number;
   on_disk_bytes: number;
@@ -158,7 +158,7 @@ export interface TorrentResumeResult {
   check: TorrentCheckResult | null;
 }
 
-export interface TorrentDiagPeer {
+interface TorrentDiagPeer {
   addr: string;
   country: string | null;
   state: string;
@@ -198,7 +198,7 @@ export interface PickerTorrent {
   origin?: TorrentOrigin;
 }
 
-export interface CachedTorrentMeta {
+interface CachedTorrentMeta {
   name: string;
   files: TorrentFileInfo[];
   conflictingFiles: string[];
@@ -206,7 +206,7 @@ export interface CachedTorrentMeta {
   savedAt: number;
 }
 
-export interface PendingTorrentSource {
+interface PendingTorrentSource {
   kind: "magnet" | "file";
   value: string;
 }

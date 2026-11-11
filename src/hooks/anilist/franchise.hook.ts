@@ -16,15 +16,18 @@ import {
   zoomCameraAt,
 } from "@/lib/core/player/camera.utils";
 import { createAnimationLoop } from "@hullperse/hp_utils/interval";
-import type { AnimationLoopTask } from "@/types/core/interval";
+import type {
+  AnimationLoopTask } from "@/types/core/interval";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import type {
   CameraPoint,
   FranchiseCamera,
+} from "@/types/anilist/anilist";
+import type {
   FranchiseViewport,
   UseFranchiseViewportOptions,
-} from "@/types/anilist/anilist";
+} from "@/types/anilist/anilistUi";
 
 const DEFAULT_OPTIONS = FRANCHISE_VIEWPORT;
 

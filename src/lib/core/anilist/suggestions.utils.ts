@@ -203,6 +203,21 @@ export function matchNormalizedTitle(
     : fuzzyMatchScorePreNormalized(normalizedQuery, title, queryWords, targetWords);
 }
 
+function bestTitleMatch(
+  titles: readonly string[],
+  bonuses: readonly number[],
+  score: (title: string) => number | null
+): number {
+  let best = -Infinity;
+  for (let index = 0; index < titles.length; index++) {
+    const match = score(titles[index] ?? "");
+    if (match == null) continue;
+    const scored = match + (bonuses[index] ?? 0);
+    if (scored > best) best = scored;
+  }
+  return best;
+}
+
 function addAnimeSuggestions(
   normalizedQuery: string,
   queryWords: string[],
@@ -217,15 +232,10 @@ function addAnimeSuggestions(
     const anime = options.animeIndex?.[index];
     if (!anime) continue;
     const bonuses = titleBonuses[index] ?? [];
-    let best = -Infinity;
-    for (let titleIndex = 0; titleIndex < (normalizedTitles[index] ?? []).length; titleIndex++) {
-      const title = (normalizedTitles[index] ?? [])[titleIndex] ?? "";
-      const match = matchNormalizedTitle(terms, normalizedQuery, title, queryWords);
-      if (match != null) {
-        const scored = match + (bonuses[titleIndex] ?? 0);
-        if (scored > best) best = scored;
-      }
-    }
+    const titles = normalizedTitles[index] ?? [];
+    const best = bestTitleMatch(titles, bonuses, (title) =>
+      matchNormalizedTitle(terms, normalizedQuery, title, queryWords)
+    );
     if (!Number.isFinite(best)) continue;
     put({
       kind: "anime",

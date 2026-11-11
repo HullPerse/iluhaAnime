@@ -4,5 +4,3 @@ export interface DatabaseStatus {
   dataDir: string;
   error: string | null;
 }
-
-export type DbGateState = "idle" | "checking" | "ok" | "failed";

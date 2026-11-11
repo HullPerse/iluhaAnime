@@ -8,6 +8,7 @@ import {
 } from "@/lib/player/streamHelpers.utils";
 import { streamProxyArgs } from "@/lib/player/streamProxy.utils";
 import { settingsAtoms } from "@/store/settings.store";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import type {
   StreamCatalogFilters,
   StreamConstants,
@@ -49,14 +50,15 @@ export class StreamApi {
   }
 
   private async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
-    try {
-      const value = await this.transport.call<T>(command, { ...args, ...this.proxy() });
-      noteNetworkSuccess();
-      return value;
-    } catch (error) {
+    const [value, error] = await attempt(
+      this.transport.call<T>(command, { ...args, ...this.proxy() })
+    );
+    if (error !== null) {
       noteNetworkFailure(error);
       throw error;
     }
+    noteNetworkSuccess();
+    return value;
   }
 
   async search(

@@ -48,7 +48,12 @@ const setPropertyCalls = (name: string): unknown[] => {
 
 beforeEach(() => {
   invokeMock.mockReset();
-  invokeMock.mockResolvedValue(undefined);
+  invokeMock.mockImplementation((command: unknown) => {
+    if (command === "player_take_pending_open" || command === "player_load_watch") {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(undefined);
+  });
   listenMock.mockReset();
   listenMock.mockResolvedValue(() => undefined);
   mockDialogOpen.mockResolvedValue(null);

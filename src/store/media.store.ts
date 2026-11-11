@@ -3,7 +3,8 @@ import { createPersistedStoreContext } from "@/lib/core/persistence/persisted.ut
 import { isRecord } from "@/lib/core/text/record.utils";
 import type { Cell } from "@/types/core/signal";
 import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
-import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { invokeValidated } from "@/lib/core/system/invoke.utils";
+import { WatchStateSchema } from "@/api/player.schema";
 import type { MediaSignalOptions, MediaSignalStore } from "@/types/store/media";
 import type { MediaEntry, WatchState } from "@/types/player/videoPlayer";
 
@@ -136,7 +137,9 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
     setAudioOffset: (path, offset) =>
       entries.set(patchEntry(entries.get(), path, { audioOffset: offset })),
     hydrate: async (path) => {
-      const [stored] = await attempt(invokeTyped<WatchState | null>("player_load_watch", { path }));
+      const [stored] = await attempt(
+        invokeValidated<WatchState | null>("player_load_watch", WatchStateSchema, { path })
+      );
       const entry = getEntry(path);
       if (!stored) return entry;
       const merged: MediaEntry = {

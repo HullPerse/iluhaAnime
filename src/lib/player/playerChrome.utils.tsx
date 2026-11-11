@@ -1,8 +1,5 @@
 import { cn } from "cn";
-import type { ReactNode } from "react";
 
-import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 import type { TranslationKey, TranslationVariables } from "@/types/core/i18n";
 import type { FilePlaybackState } from "@/types/player/playback";
 import type { HwdecReload } from "@/types/player/resume";
@@ -13,11 +10,15 @@ import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import { setPaused } from "@/lib/player/playback.utils";
 import type { CursorHiddenState } from "@/types/player/playerChrome";
 
-export const barClass = (
-  position: "top" | "bottom",
-  immersive: boolean,
-  hidden: boolean
-): string => {
+export const barClass = ({
+  position,
+  immersive,
+  hidden,
+}: {
+  position: "top" | "bottom";
+  immersive: boolean;
+  hidden: boolean;
+}): string => {
   if (!immersive) return "z-20 shrink-0 bg-primary";
   return cn(
     "bg-primary/90 absolute inset-x-0 z-20 shrink-0 transition-opacity duration-300",
@@ -73,7 +74,15 @@ export const shouldHideCursor = (state: CursorHiddenState): boolean => {
   );
 };
 
-export const rootClass = (hasFile: boolean, failed: boolean, cursorHidden: boolean): string => {
+export const rootClass = ({
+  hasFile,
+  failed,
+  cursorHidden,
+}: {
+  hasFile: boolean;
+  failed: boolean;
+  cursorHidden: boolean;
+}): string => {
   return cn(
     "relative flex h-screen w-screen flex-col overflow-hidden",
     (!hasFile || failed) && "bg-black",
@@ -107,21 +116,6 @@ export const hideDefaultTracks = (
   contextMenu: boolean
 ): boolean => {
   return playerType === "default" && contextMenu;
-};
-
-export const wrapVideoMenu = (
-  node: ReactNode,
-  enabled: boolean,
-  entries: ContextMenuEntry[],
-  open: boolean,
-  onOpenChange: (open: boolean) => void
-): ReactNode => {
-  if (!enabled) return node;
-  return (
-    <ContextMenu entries={entries} open={open} onOpenChange={onOpenChange}>
-      {node}
-    </ContextMenu>
-  );
 };
 
 export const playerWindowTitle = ({

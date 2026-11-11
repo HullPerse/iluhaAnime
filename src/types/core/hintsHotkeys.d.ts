@@ -26,7 +26,7 @@ export interface HintBadgeLayout {
   left: number;
 }
 
-export type HintKeyOutcome = "activate" | "pin" | "buffer" | "clear";
+type HintKeyOutcome = "activate" | "pin" | "buffer" | "clear";
 
 export interface HintKeyResult {
   outcome: HintKeyOutcome;

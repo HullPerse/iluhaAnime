@@ -2,7 +2,7 @@ import { Download } from "lucide-react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { fmtSpeed, stateLabel } from "@/lib/torrent/torrentCommon.utils";
+import { formatSpeed, stateLabel } from "@/lib/torrent/torrentCommon.utils";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
 import { formatETA } from "@/lib/core/text/time.utils";
 import type { TorrentInfo } from "@/types/torrent/torrent";
@@ -12,7 +12,7 @@ export default function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
   const progress = Math.max(0, Math.min(1, item.progress));
   const percentage = Math.round(progress * 100);
   const eta = formatETA(item.eta_secs, t);
-  const speed = fmtSpeed(item.download_speed);
+  const speed = item.download_speed > 0 ? formatSpeed(item.download_speed) : "";
 
   return (
     <div className="border-muted/30 border-b px-1 py-1">

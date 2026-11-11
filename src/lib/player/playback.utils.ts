@@ -1,8 +1,17 @@
 import { PLAYER_PROFILES } from "@/config/settings/profiles.config";
 import { fileNameFromPath, isTrackFileName } from "@hullperse/hp_utils/media/parse";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { invokeTyped, invokeValidatedOrThrow } from "@/lib/core/system/invoke.utils";
-import { PlaylistEntryListSchema, VideoCardInfoSchema } from "@/api/player.schema";
+import { invokeTyped, invokeValidated } from "@/lib/core/system/invoke.utils";
+import {
+  MpvDoubleSchema,
+  MpvFlagSchema,
+  MpvInt64Schema,
+  MpvStringSchema,
+  PendingOpenSchema,
+  PlaylistEntryListSchema,
+  VideoCardInfoSchema,
+  WatchStateSchema,
+} from "@/api/player.schema";
 import { clamp } from "@hullperse/hp_utils/math";
 import { joinMediaPath } from "@/lib/player/media.utils";
 import type {
@@ -216,7 +225,7 @@ export async function prewarmPlayer(): Promise<void> {
 }
 
 export async function takePendingOpen(): Promise<PlayerOpenRequest | null> {
-  return invokeTyped<PlayerOpenRequest | null>("player_take_pending_open");
+  return invokeValidated<PlayerOpenRequest | null>("player_take_pending_open", PendingOpenSchema);
 }
 
 export async function initPlayer(initialOptions: Record<string, unknown>): Promise<string> {
@@ -255,11 +264,30 @@ export async function setMpvProperty(name: string, value: unknown): Promise<void
   await invokeTyped("player_set_property", { name, value });
 }
 
-async function getMpvProperty<T>(
+type MpvPropertyFormat = "double" | "flag" | "int64" | "string";
+type MpvPropertyValue = string | number | boolean | null;
+
+async function getMpvProperty(
   name: string,
-  format: "double" | "flag" | "int64" | "string"
-): Promise<T | null> {
-  return invokeTyped<T | null>("player_get_property", { name, format });
+  format: "double" | "int64"
+): Promise<number | null>;
+async function getMpvProperty(name: string, format: "flag"): Promise<boolean | null>;
+async function getMpvProperty(name: string, format: "string"): Promise<string | null>;
+async function getMpvProperty(name: string, format: MpvPropertyFormat): Promise<MpvPropertyValue> {
+  switch (format) {
+    case "double": {
+      return invokeValidated("player_get_property", MpvDoubleSchema, { name, format });
+    }
+    case "flag": {
+      return invokeValidated("player_get_property", MpvFlagSchema, { name, format });
+    }
+    case "int64": {
+      return invokeValidated("player_get_property", MpvInt64Schema, { name, format });
+    }
+    case "string": {
+      return invokeValidated("player_get_property", MpvStringSchema, { name, format });
+    }
+  }
 }
 
 export async function setVideoMarginRatio(ratio: VideoMarginRatio): Promise<void> {
@@ -280,7 +308,7 @@ export async function saveWatch(path: string, state: WatchState): Promise<void> 
 }
 
 export async function loadWatch(path: string): Promise<WatchState | null> {
-  return invokeTyped<WatchState | null>("player_load_watch", { path });
+  return invokeValidated<WatchState | null>("player_load_watch", WatchStateSchema, { path });
 }
 
 export function seekTo(seconds: number, mode: SeekMode = "keyframes"): Promise<void> {
@@ -338,11 +366,11 @@ export async function insertPlaylistFiles(items: PlaylistInsert[]): Promise<void
 }
 
 export async function readPlaylistEntries(): Promise<PlaylistEntry[]> {
-  return invokeValidatedOrThrow("player_playlist_entries", PlaylistEntryListSchema);
+  return invokeValidated("player_playlist_entries", PlaylistEntryListSchema);
 }
 
 export async function readVideoCard(path: string): Promise<VideoCardInfo> {
-  return invokeValidatedOrThrow("get_video_card", VideoCardInfoSchema, { path });
+  return invokeValidated("get_video_card", VideoCardInfoSchema, { path });
 }
 
 export function startFrameStep(forward: boolean): Promise<void> {
@@ -374,16 +402,16 @@ export function addExternalAudioAuto(path: string): Promise<void> {
 }
 
 export async function readPath(): Promise<string> {
-  const [value] = await attempt(getMpvProperty<string>("path", "string"));
+  const [value] = await attempt(getMpvProperty("path", "string"));
   return typeof value === "string" ? value : "";
 }
 
 export async function readDuration(): Promise<number> {
-  const [value] = await attempt(getMpvProperty<number>("duration", "double"));
+  const [value] = await attempt(getMpvProperty("duration", "double"));
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 export async function readPlaylistIndex(): Promise<number> {
-  const [value] = await attempt(getMpvProperty<number>("playlist-pos", "int64"));
+  const [value] = await attempt(getMpvProperty("playlist-pos", "int64"));
   return typeof value === "number" && Number.isFinite(value) ? value : -1;
 }

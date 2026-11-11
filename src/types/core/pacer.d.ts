@@ -1,13 +1,7 @@
-export type PacerWait = number | (() => number);
-export type PacerEnabled = boolean | (() => boolean);
-export type PacerMode = "timeout" | "raf";
-export type PacerStatus = "disabled" | "idle" | "pending";
-
-export interface PacerState {
-  executionCount: number;
-  isPending: boolean;
-  status: PacerStatus;
-}
+type PacerWait = number | (() => number);
+type PacerEnabled = boolean | (() => boolean);
+type PacerMode = "timeout" | "raf";
+type PacerStatus = "disabled" | "idle" | "pending";
 
 export interface DebounceOptions {
   wait: PacerWait;

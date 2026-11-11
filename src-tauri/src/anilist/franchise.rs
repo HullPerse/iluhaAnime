@@ -488,6 +488,7 @@ static FRANCHISE_BATCH_QUERY: LazyLock<String> = LazyLock::new(|| {
     FRANCHISE_BATCH_QUERY_TEMPLATE.replace("{SELECTION}", &franchise_media_selection())
 });
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize)]
 pub struct FranchiseQueryMetrics {
     pub id_count: usize,
@@ -508,6 +509,7 @@ pub fn franchise_query_body(ids: &[u64]) -> serde_json::Value {
     })
 }
 
+#[allow(dead_code)]
 #[must_use]
 pub fn franchise_query_metrics(ids: &[u64]) -> FranchiseQueryMetrics {
     let body = franchise_query_body(ids);
@@ -579,6 +581,7 @@ async fn fetch_franchise_batch_inner(
 
 #[tauri::command]
 #[allow(non_snake_case)]
+#[allow(clippy::too_many_lines)]
 pub async fn get_anime_franchise(
     app_handle: tauri::AppHandle,
     id: u64,
@@ -737,6 +740,7 @@ fn emit_prefetch_progress(app_handle: &tauri::AppHandle, progress: &PrefetchProg
 
 #[tauri::command]
 #[allow(non_snake_case)]
+#[allow(clippy::too_many_lines)]
 pub async fn prefetch_anime_relations(
     app_handle: tauri::AppHandle,
     anime_ids: Vec<u64>,

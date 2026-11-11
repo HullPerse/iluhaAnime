@@ -1,5 +1,5 @@
 import { save } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { flushSync } from "react-dom";
 
 import { sqliteApi } from "@/api/sqlite.api";
@@ -7,16 +7,11 @@ import { PAGE_SIZE } from "@/config/system/sqlite.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
+import { useSqliteSettingsState } from "@/hooks/sqlite/settingsReducer.hook";
 import { displayCell } from "@/lib/core/system/sqliteRow.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type {
-  SqliteDatabaseInfo,
-  SqliteRowsPage,
-  SqliteTableInfo,
-  SortState,
-} from "@/types/core/sqlite";
 
 import { BackupPanel } from "@/routes/components/settings/sqlite/backup.sqlite";
 import { SqliteBrowseResult } from "@/routes/components/settings/sqlite/browseResult.sqlite";
@@ -39,28 +34,57 @@ import { VirtualRowsTable } from "@/routes/components/settings/sqlite/virtual.sq
 export default function SqliteSettings() {
   const { t } = useI18n();
   const showImages = useCell(settingsAtoms.sqliteShowImages);
-  const [object, setObject] = useState<"tables" | "backup">("tables");
-  const [databases, setDatabases] = useState<SqliteDatabaseInfo[]>([]);
-  const [tables, setTables] = useState<SqliteTableInfo[]>([]);
-  const [selectedDatabase, setSelectedDatabase] = useState<string>("");
-  const [selectedTable, setSelectedTable] = useState<string>("");
-  const [rows, setRows] = useState<SqliteRowsPage | null>(null);
-  const [filterInput, setFilterInput] = useState<string>("");
-  const [filter, setFilter] = useState<string>("");
+  const {
+    object,
+    databases,
+    tables,
+    selectedDatabase,
+    selectedTable,
+    rows,
+    filterInput,
+    filter,
+    page,
+    display,
+    accRows,
+    hideId,
+    sort,
+    loading,
+    loadingRows,
+    error,
+    pendingDelete,
+    selectedRows,
+    pendingBatchDelete,
+    deleting,
+    setObject,
+    setDatabases,
+    setTables,
+    setSelectedDatabase,
+    setSelectedTable,
+    setRows,
+    setFilterInput,
+    setPage,
+    setDisplay,
+    setAccRows,
+    setHideId,
+    setSort,
+    setLoading,
+    setLoadingRows,
+    setError,
+    setSelectedRows,
+    setDeleting,
+    selectDatabase,
+    selectTable,
+    commitFilter,
+    toggleColumnSort,
+    toggleRow,
+    toggleAllRows: toggleAllRowKeys,
+    requestRowDelete,
+    requestBatchDelete,
+    cancelRowDelete,
+    cancelBatchDelete,
+  } = useSqliteSettingsState();
   const filterInputRef = useRef<HTMLInputElement>(null);
-  const [page, setPage] = useState<number>(1);
-  const [display, setDisplay] = useState<"pagination" | "scroll">("pagination");
-  const [accRows, setAccRows] = useState<Array<unknown>[]>([]);
   const requestedForLength = useRef<number>(-1);
-  const [hideId, setHideId] = useState<boolean>(true);
-  const [sort, setSort] = useState<SortState>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadingRows, setLoadingRows] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
-  const [selectedRows, setSelectedRows] = useState<Record<string, string[]>>({});
-  const [pendingBatchDelete, setPendingBatchDelete] = useState<boolean>(false);
-  const [deleting, setDeleting] = useState<boolean>(false);
   const deletingRef = useRef<boolean>(false);
 
   const refreshDatabases = useCallback(async () => {
@@ -75,7 +99,7 @@ export default function SqliteSettings() {
       );
     }
     setLoading(false);
-  }, []);
+  }, [setDatabases, setError, setLoading, setSelectedDatabase]);
 
   useEffect(() => {
     refreshDatabases();
@@ -107,7 +131,7 @@ export default function SqliteSettings() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDatabase]);
+  }, [selectedDatabase, setError, setLoading, setPage, setSelectedTable, setSort, setTables]);
 
   const loadRows = useCallback(async () => {
     if (!selectedDatabase || !selectedTable) {
@@ -142,18 +166,33 @@ export default function SqliteSettings() {
       if (page > nextTotalPages) setPage(nextTotalPages);
     }
     setLoadingRows(false);
-  }, [page, filter, selectedDatabase, selectedTable, sort, display]);
+  }, [
+    page,
+    filter,
+    selectedDatabase,
+    selectedTable,
+    sort,
+    display,
+    setAccRows,
+    setError,
+    setLoadingRows,
+    setPage,
+    setRows,
+  ]);
 
   const handleLoadMore = useCallback(() => {
     if (requestedForLength.current === accRows.length) return;
     requestedForLength.current = accRows.length;
     setPage((current) => current + 1);
-  }, [accRows.length]);
+  }, [accRows.length, setPage]);
 
-  const handleDisplayChange = useCallback((value: "pagination" | "scroll") => {
-    setDisplay(value);
-    setPage(1);
-  }, []);
+  const handleDisplayChange = useCallback(
+    (value: "pagination" | "scroll") => {
+      setDisplay(value);
+      setPage(1);
+    },
+    [setDisplay, setPage]
+  );
 
   useEffect(() => {
     loadRows();
@@ -204,10 +243,7 @@ export default function SqliteSettings() {
     [tables]
   );
 
-  const applyFilter = () => {
-    setPage(1);
-    setFilter(filterInput.trim());
-  };
+  const applyFilter = () => commitFilter(filterInput);
 
   const isTextColumn = (column: string) => {
     const type = (
@@ -233,14 +269,7 @@ export default function SqliteSettings() {
     }
   };
 
-  const toggleSort = (column: string) => {
-    setSort((current) => {
-      if (current?.column !== column) return { column, direction: "asc" };
-      if (current.direction === "asc") return { column, direction: "desc" };
-      return null;
-    });
-    setPage(1);
-  };
+
 
   const exportRows = async (columns: string[], rowsArray: Array<unknown>[], name: string) => {
     const [path, dialogError] = await attempt(
@@ -268,31 +297,14 @@ export default function SqliteSettings() {
 
   const toggleRowSelection = (keys: string[] | null) => {
     if (!keys || keys.length === 0) return;
-    const id = keys.join(" | ");
-    setSelectedRows((current) => {
-      const next = { ...current };
-      if (next[id]) delete next[id];
-      else next[id] = keys;
-      return next;
-    });
+    toggleRow(keys);
   };
 
   const toggleAllRows = (rowsArray: Array<unknown>[]) => {
     const currentPageKeys = rowsArray
       .map((row) => primaryKeyValues(row))
       .filter((keys): keys is string[] => !!keys && keys.length > 0);
-    setSelectedRows((current) => {
-      const next = { ...current };
-      const allSelected =
-        currentPageKeys.length > 0 &&
-        currentPageKeys.every((keys) => Boolean(next[keys.join(" | ")]));
-      for (const keys of currentPageKeys) {
-        const id = keys.join(" | ");
-        if (allSelected) delete next[id];
-        else next[id] = keys;
-      }
-      return next;
-    });
+    toggleAllRowKeys(currentPageKeys);
   };
 
   const deleteBatch = async () => {
@@ -300,7 +312,7 @@ export default function SqliteSettings() {
     if (!rowsToDelete.length || !selectedDatabase || !selectedTable || deletingRef.current) return;
     deletingRef.current = true;
     setDeleting(true);
-    setPendingBatchDelete(false);
+    cancelBatchDelete();
     const [, error] = await attempt(
       (async () => {
         await sqliteApi.deleteRows(selectedDatabase, selectedTable, rowsToDelete);
@@ -328,11 +340,11 @@ export default function SqliteSettings() {
     const keyToDelete = pendingDelete;
     deletingRef.current = true;
     setDeleting(true);
-    setPendingDelete(null);
+    cancelRowDelete();
     const [, error] = await attempt(
       (async () => {
         await sqliteApi.deleteRow(selectedDatabase, selectedTable, keyToDelete);
-        setPendingDelete(null);
+        cancelRowDelete();
         await loadRows();
         await refreshDatabases();
         const refreshedTables = await sqliteApi.listTables(selectedDatabase);
@@ -371,10 +383,10 @@ export default function SqliteSettings() {
       selectedTable={selectedTable}
       primaryKeyValues={primaryKeyValues}
       toggleAllRows={toggleAllRows}
-      toggleSort={toggleSort}
+      toggleSort={toggleColumnSort}
       toggleRowSelection={toggleRowSelection}
       openCell={cell.openCell}
-      setPendingDelete={setPendingDelete}
+      setPendingDelete={requestRowDelete}
       hideId={hideIdValue}
       baseIndex={baseIndexValue}
     />
@@ -401,10 +413,10 @@ export default function SqliteSettings() {
       selectedTable={selectedTable}
       primaryKeyValues={primaryKeyValues}
       toggleAllRows={toggleAllRows}
-      toggleSort={toggleSort}
+      toggleSort={toggleColumnSort}
       toggleRowSelection={toggleRowSelection}
       openCell={cell.openCell}
-      setPendingDelete={setPendingDelete}
+      setPendingDelete={requestRowDelete}
       hideId={hideId}
       baseIndex={0}
       hasMore={hasMore}
@@ -440,13 +452,7 @@ export default function SqliteSettings() {
           <BackupPanel
             database={selectedDatabase}
             databases={databaseOptions}
-            onSelectDatabase={(value) => {
-              setSelectedDatabase(value);
-              setTables([]);
-              setSelectedTable("");
-              setRows(null);
-              setPage(1);
-            }}
+            onSelectDatabase={selectDatabase}
             onChanged={() => refreshDatabases()}
           />
         }
@@ -454,20 +460,10 @@ export default function SqliteSettings() {
           <>
             <SqliteSelectorGrid
               selectedDatabase={selectedDatabase}
-              onSelectDatabase={(value) => {
-                setSelectedDatabase(value);
-                setTables([]);
-                setSelectedTable("");
-                setRows(null);
-                setPage(1);
-              }}
+              onSelectDatabase={selectDatabase}
               databaseOptions={databaseOptions}
               selectedTable={selectedTable}
-              onSelectTable={(value) => {
-                setSelectedTable(value);
-                setPage(1);
-                setSort(null);
-              }}
+              onSelectTable={selectTable}
               tableOptions={tableOptions}
               loading={loading}
               deleting={deleting}
@@ -488,7 +484,7 @@ export default function SqliteSettings() {
                 selectedCount={Object.keys(selectedRows).length}
                 hasPrimaryKeys={primaryKeys.length > 0}
                 deleting={deleting}
-                onBatchDelete={() => setPendingBatchDelete(true)}
+                onBatchDelete={requestBatchDelete}
                 canExport={exportable}
                 onExport={handleExport}
               />
@@ -545,9 +541,9 @@ export default function SqliteSettings() {
         selectedRows={selectedRows}
         selectedTable={selectedTable}
         onDeleteRow={() => deleteRow()}
-        onCancelDelete={() => setPendingDelete(null)}
+        onCancelDelete={cancelRowDelete}
         onDeleteBatch={() => deleteBatch()}
-        onCancelBatch={() => setPendingBatchDelete(false)}
+        onCancelBatch={cancelBatchDelete}
       />
 
       {cell.selectedCell && (

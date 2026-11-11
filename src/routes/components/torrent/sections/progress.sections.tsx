@@ -9,7 +9,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
-  fmtSpeed,
+  formatSpeed,
   getDisplayState,
 } from "@/lib/torrent/torrentCommon.utils";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
@@ -62,13 +62,13 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
             )}
           </span>
           <span className="windows95-font text-hint text-xs">
-            {fmtSpeed(item.download_speed)}
+            {formatSpeed(item.download_speed)}
             {item.share_ratio > 0 && (
               <span className="ml-1">
                 {t("torrent.ratio", { ratio: item.share_ratio.toFixed(2) })}
               </span>
             )}
-            {fmtSpeed(item.download_speed) && formatETA(item.eta_secs, t) && " - "}
+            {item.download_speed > 0 && formatETA(item.eta_secs, t) && " - "}
             {formatETA(item.eta_secs, t)}
           </span>
           <span className="ml-auto flex flex-row">
@@ -76,7 +76,7 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
               <div className="flex items-center gap-1">
                 {item.upload_speed > 0 && (
                   <span className="text-hint windows95-font text-xs">
-                    <ArrowUp className="inline size-2.5" /> {fmtSpeed(item.upload_speed)}
+                    <ArrowUp className="inline size-2.5" /> {formatSpeed(item.upload_speed)}
                   </span>
                 )}
                 {item.uploaded_bytes > 0 && (

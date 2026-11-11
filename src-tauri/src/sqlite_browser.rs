@@ -675,6 +675,7 @@ fn build_sqlite_substring_where(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn get_sqlite_rows(
     app_handle: tauri::AppHandle,
     database: String,

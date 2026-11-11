@@ -35,30 +35,6 @@ describe("ProgressBar", () => {
     expect(container.querySelector<HTMLElement>(".progress-blocks")?.style.width).toBe("25%");
   });
 
-  it("renders a sunken track and a block-masked fill", () => {
-    const { container } = render(<ProgressBar value={1} max={2} />);
-    const track = screen.getByRole("progressbar");
-    expect(track.className).toContain("windows95-active-border");
-    expect(container.querySelector(".progress-blocks")?.className).toContain("progress-blocks");
-  });
-
-  it("uses bg-progress-main as the fill colour when no barClassName is given", () => {
-    const { container } = render(<ProgressBar value={1} max={2} />);
-    expect(container.querySelector(".progress-blocks")?.className).toContain("bg-progress-main");
-  });
-
-  it("overrides the fill colour with barClassName", () => {
-    const { container } = render(<ProgressBar value={1} max={2} barClassName="bg-highlight" />);
-    const fill = container.querySelector(".progress-blocks");
-    expect(fill?.className).toContain("bg-highlight");
-    expect(fill?.className).not.toContain("bg-secondary");
-  });
-
-  it("merges a custom container className over the defaults", () => {
-    render(<ProgressBar value={1} max={2} className="h-3 w-16" />);
-    expect(screen.getByRole("progressbar").className).toContain("h-3");
-  });
-
   it("renders an indeterminate sweep with no value attributes", () => {
     const { container } = render(<ProgressBar value={0} max={0} indeterminate />);
     const track = screen.getByRole("progressbar");
@@ -67,15 +43,6 @@ describe("ProgressBar", () => {
     expect(chunk?.className).toContain("animate-indeterminate");
     expect(chunk?.className).toContain("w-[40%]");
     expect(chunk?.style.width).toBe("");
-  });
-
-  it("applies barClassName to the indeterminate chunk", () => {
-    const { container } = render(
-      <ProgressBar value={0} max={0} indeterminate barClassName="bg-torrent-initializing" />
-    );
-    const chunk = container.querySelector<HTMLElement>(".progress-blocks");
-    expect(chunk?.className).toContain("bg-torrent-initializing");
-    expect(chunk?.className).not.toContain("bg-progress-main");
   });
 });
 

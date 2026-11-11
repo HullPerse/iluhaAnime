@@ -1,6 +1,6 @@
 import type { CSSProperties, ComponentProps, ImgHTMLAttributes, ReactNode } from "react";
 
-export interface SelectOption<T extends string = string> {
+interface SelectOption<T extends string = string> {
   value: T;
   label: string;
 }
@@ -78,7 +78,7 @@ export interface InputDialogProps {
   onClose: () => void;
 }
 
-export interface SelectDialogOption {
+interface SelectDialogOption {
   value: string;
   label: string;
 }

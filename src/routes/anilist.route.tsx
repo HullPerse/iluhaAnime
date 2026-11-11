@@ -2,6 +2,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import {
+  useAnilistEntries,
+  useAnilistIdentity,
+  useAnilistSource,
+} from "@/hooks/anilist/derived.hook";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
@@ -17,18 +22,9 @@ import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useAnilistAuth } from "@/hooks/anilist/auth.hook";
 import { useAnilistFavouriteToggle } from "@/hooks/anilist/favourite.hook";
-import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
-import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/anilistGroup.utils";
-import {
-  buildAnilistSourceKey,
-  pickDisplayEntries,
-  hasAnyFavourites,
-  isLocalSearch,
-  resolveAniListView,
-  resolveFriendState,
-  routePeople,
-} from "@/lib/anilist/anilistRoute.utils";
+import { ALL_LISTS_ID } from "@/lib/anilist/anilistGroup.utils";
+import { buildAnilistSourceKey, resolveAniListView, resolveFriendState } from "@/lib/anilist/anilistRoute.utils";
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
@@ -39,7 +35,6 @@ import { showErrorOnce } from "@/lib/core/ui/notification.utils";
 import { paginate } from "@/lib/core/collection/pagination.utils";
 import {
   addAnilistFriend,
-  anilistFriendsAtoms,
   cacheAnilistProfile,
   removeAnilistFriend,
 } from "@/store/anilist.store";
@@ -63,14 +58,9 @@ import AniListProfileSections from "@/routes/components/anilist/profileSections.
 import AniListResultsHost from "@/routes/components/anilist/resultsHost.anilist";
 import AniListSearchToolbar from "@/routes/components/anilist/searchToolbar.anilist";
 import AniListSecondaryModals from "@/routes/components/anilist/secondaryModals.anilist";
-import { buildAniListSource } from "@/routes/components/anilist/source.anilist";
 import SpotlightModal from "@/routes/components/anilist/spotlight/modal.spotlight";
 import AniListStateViews from "@/routes/components/anilist/stateViews.anilist";
 import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
-
-function isLocalFilterActive(isLocal: boolean, filter: unknown): boolean {
-  return isLocal || filter !== null;
-}
 
 function AnilistRoute() {
   const { t } = useI18n();
@@ -117,25 +107,21 @@ function AnilistRoute() {
     });
   }, [t, user]);
 
-  const favouriteIds = useMemo(() => new Set(favourites.map((f) => f.id)), [favourites]);
-
-  const people = routePeople(self.data);
-  const favouriteStaffIds = useMemo(() => new Set(people.staff.map((p) => p.id)), [people]);
-  const favouriteCharacterIds = useMemo(
-    () => new Set(people.characters.map((p) => p.id)),
-    [people]
-  );
-  const friends = useCell(anilistFriendsAtoms.friends);
-  const friendIds = useMemo(() => [...new Set(friends.map((friend) => friend.id))], [friends]);
+  const {
+    people,
+    friends,
+    favouriteIds,
+    favouriteStaffIds,
+    favouriteCharacterIds,
+    friendIds,
+    allAnimeIds,
+    listIds,
+    hasFavourites,
+  } = useAnilistIdentity({ data: self.data, lists, favourites });
 
   useEffect(() => {
     if (friendData.profile) cacheAnilistProfile(friendData.profile);
   }, [friendData.profile]);
-
-  const allAnimeIds = useMemo(
-    () => lists.flatMap((l) => l.entries.map((e) => e.media.id)),
-    [lists]
-  );
 
   const sort = useCell(settingsAtoms.anilistListSort);
   const setSort = useCallback((next: AniListSort) => {
@@ -239,11 +225,7 @@ function AnilistRoute() {
     {
       ignore: (event) => ignoreTabCycle(event),
       onAction: (id) => {
-        const ids = [
-          ALL_LISTS_ID,
-          ...lists.filter((item) => item.entries.length > 0).map((item) => item.name),
-        ];
-        const next = stepTabId(ids, currentList, id === "tab-next" ? 1 : -1);
+        const next = stepTabId(listIds, currentList, id === "tab-next" ? 1 : -1);
         if (next) handleSelectList(next);
       },
     }
@@ -276,39 +258,23 @@ function AnilistRoute() {
     handleDetailsClose,
   } = useAnilistDetail(lists);
 
-  const source = useMemo(
-    () =>
-      buildAniListSource({
-        entryLookup,
-        favouriteIds,
-        favourites,
-        friend: viewedFriend,
-        friendData: viewedFriend
-          ? {
-              displayFavouriteIds: friendData.displayFavouriteIds,
-              entryLookup: friendData.entryLookup,
-              favourites: friendData.favourites,
-              lists: friendData.lists,
-              profile: friendData.profile,
-            }
-          : null,
-        lists,
-        user,
-      }),
-    [
-      entryLookup,
-      favouriteIds,
-      favourites,
-      friendData.displayFavouriteIds,
-      friendData.entryLookup,
-      friendData.favourites,
-      friendData.lists,
-      friendData.profile,
-      lists,
-      user,
-      viewedFriend,
-    ]
-  );
+  const source = useAnilistSource({
+    entryLookup,
+    favouriteIds,
+    favourites,
+    friend: viewedFriend,
+    friendData: viewedFriend
+      ? {
+          displayFavouriteIds: friendData.displayFavouriteIds,
+          entryLookup: friendData.entryLookup,
+          favourites: friendData.favourites,
+          lists: friendData.lists,
+          profile: friendData.profile,
+        }
+      : null,
+    lists,
+    user,
+  });
 
   const { handleRandomFromList } = useAnilistRandom(
     source.lists,
@@ -402,19 +368,19 @@ function AnilistRoute() {
     [source.friendProfile, source.mode, source.user]
   );
   const viewerScoreFormat = useMemo(() => parseScoreFormat(user?.score_format), [user]);
-  const activeEntries = useMemo(
-    () => activeListEntries(source.lists, currentList),
-    [source.lists, currentList]
-  );
-  const filteredEntries = useMemo(
-    () => filterEntries(activeEntries, deferredSearchTerms, global, searchFilters, localFilter),
-    [activeEntries, deferredSearchTerms, global, searchFilters, localFilter]
-  );
-  const sortedEntries = useMemo(
-    () => sortEntries(filteredEntries, sort.dir, sort.key),
-    [filteredEntries, sort.dir, sort.key]
-  );
-  const displayEntries = pickDisplayEntries(global, searchResults, sortedEntries, globalSort);
+  const { activeEntries, filteredEntries, displayEntries, isLocal, localSearchActive } =
+    useAnilistEntries({
+      lists: source.lists,
+      currentList,
+      sort,
+      searchTerms,
+      filterTerms: deferredSearchTerms,
+      global,
+      filters: searchFilters,
+      localFilter,
+      searchResults,
+      globalSort,
+    });
   const { grouped, collapsedLists, useScrollView, effectiveDisplayMode } = useAnilistListView({
     lists: source.lists,
     sort,
@@ -427,9 +393,6 @@ function AnilistRoute() {
     filters: searchFilters,
     mediaFilter: localFilter,
   });
-  const isLocal = isLocalSearch(searchTerms, global);
-  const localSearchActive = isLocalFilterActive(isLocal, localFilter);
-
   const { total, from, to, lastPage } = usePagination(
     displayEntries.length,
     pageSize,
@@ -521,7 +484,7 @@ function AnilistRoute() {
         searchTerms={searchTerms}
         sort={sort}
         onSortChange={setSort}
-        hasFavourites={hasAnyFavourites(favourites, people)}
+        hasFavourites={hasFavourites}
         grouped={grouped !== null}
         groupByStatus={groupByStatus}
         onGroupChange={setGroupByStatus}

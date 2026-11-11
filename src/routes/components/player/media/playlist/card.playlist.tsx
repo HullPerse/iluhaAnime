@@ -70,7 +70,7 @@ export function PlaylistCard({
       data-testid="playlist-card"
       data-current={current ? "true" : undefined}
       data-focused={focused ? "true" : undefined}
-      className={cardClass(current, focused, isOver)}
+      className={cardClass({ current, focused, isOver })}
       style={{
         transform: formatVerticalDragTransform(transform),
         zIndex: isDragging ? 10 : undefined,

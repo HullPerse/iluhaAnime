@@ -1,5 +1,7 @@
 import Details from "@/routes/components/anilist/detail/modal.detail";
-import type { AniListDetailModalHostProps } from "@/types/anilist/anilist";
+import type {
+  AniListDetailModalHostProps,
+} from "@/types/anilist/anilistUi";
 
 export default function AniListDetailModalHost({
   selectedAnime,

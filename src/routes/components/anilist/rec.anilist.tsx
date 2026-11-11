@@ -6,7 +6,9 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { hasRating } from "@/lib/anilist/anilistScore.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
-import type { AniRecProps as Props } from "@/types/anilist/anilist";
+import type {
+  AniRecProps as Props,
+} from "@/types/anilist/anilistUi";
 
 export default function AniListRecsModal({
   open,

@@ -1,7 +1,12 @@
 import { anilistApi } from "@/api/anilist.api";
 import { readAppCache } from "@/lib/core/system/cache.utils";
 import { hashStringToUint32, mulberry32 } from "@/lib/core/text/random.utils";
-import type { AniMedia, SpotlightKind } from "@/types/anilist/anilist";
+import type {
+  AniMedia,
+} from "@/types/anilist/anilist";
+import type {
+  SpotlightKind,
+} from "@/types/anilist/anilistUi";
 import type { SpotlightPage } from "@/types/core/ipc";
 
 const SPOTLIGHT_SCORE_FLOOR = 65;

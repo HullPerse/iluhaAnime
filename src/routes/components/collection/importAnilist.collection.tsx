@@ -8,10 +8,11 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useAnilistImportDiff, useImportSelection } from "@/hooks/collection/import.hook";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
-import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/core/collection/import.utils";
+import { entrySyncState, runImportBatch } from "@/lib/core/collection/import.utils";
 import { resolveStatusLabel } from "@/lib/core/anilist/status.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
@@ -62,7 +63,6 @@ export default function ImportAnilistCollection({
   if (listsQuery.error instanceof Error) listsErrorText = listsQuery.error.message;
   else if (listsQuery.error) listsErrorText = String(listsQuery.error);
   const [mode, setMode] = useState<ImportMode>("summary");
-  const [selected, setSelected] = useState<Set<number>>(new Set());
   const [importing, setImporting] = useState<boolean>(false);
   const [processed, setProcessed] = useState<number>(0);
   const [current, setCurrent] = useState<string | null>(null);
@@ -74,63 +74,28 @@ export default function ImportAnilistCollection({
   const [opFailures, setOpFailures] = useState<Array<{ id: string; title: string }>>([]);
   const [opDone, setOpDone] = useState<{ ok: number } | null>(null);
   const abortRef = useRef<boolean>(false);
+  const scoreFormat = useMemo(() => parseScoreFormat(authUser?.score_format), [authUser]);
 
   const labelById = useMemo<Record<string, string>>(
     () => Object.fromEntries(statuses.map((s) => [s.id, s.label])),
     [statuses]
   );
 
-  const itemByAnilistId = useMemo(() => {
-    const map = new Map<number, CollectionItem>();
-    for (const item of items) {
-      if (item.externalIds.anilist != null) map.set(item.externalIds.anilist, item);
-    }
-    return map;
-  }, [items]);
-
-  const existingAnilistIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const it of items) {
-      const aid = it.externalIds.anilist;
-      if (typeof aid === "number") ids.add(aid);
-    }
-    return ids;
-  }, [items]);
-  const existingTitles = useMemo(() => {
-    const titles = new Set<string>();
-    for (const it of items) titles.add(it.title.trim().toLocaleLowerCase());
-    return titles;
-  }, [items]);
-
-  const allEntries = useMemo(() => lists.flatMap((l) => l.entries), [lists]);
-  const newEntries = useMemo(
-    () =>
-      allEntries.filter(
-        (e) =>
-          !existingAnilistIds.has(e.media.id) &&
-          !existingTitles.has(e.media.title.trim().toLocaleLowerCase())
-      ),
-    [allEntries, existingAnilistIds, existingTitles]
-  );
-  const changedEntries = useMemo(
-    () =>
-      allEntries.filter((e) => {
-        const item = itemByAnilistId.get(e.media.id);
-        return (
-          item !== undefined && entryDiffers(e, item, parseScoreFormat(authUser?.score_format))
-        );
-      }),
-    [allEntries, itemByAnilistId, authUser]
-  );
-  const existingCount = allEntries.length - newEntries.length;
-  const backfillTargets = useMemo(
-    () => items.filter((item) => item.externalIds.anilist != null),
-    [items]
-  );
+  const { itemByAnilistId, newEntries, changedEntries, existingCount, backfillTargets } =
+    useAnilistImportDiff({ lists, items, scoreFormat });
+  const {
+    selected,
+    selectedCount,
+    selectedNew,
+    allChangedSelected,
+    resetSelection,
+    toggleOne,
+    toggleAll,
+  } = useImportSelection({ newEntries, changedEntries });
 
   useEffect(() => {
     if (!open) return;
-    setSelected(new Set());
+    resetSelection();
     setMode("summary");
     setProcessed(0);
     setCurrent(null);
@@ -140,35 +105,15 @@ export default function ImportAnilistCollection({
     setOpFailures([]);
     setOpDone(null);
     abortRef.current = false;
-  }, [open]);
+  }, [open, resetSelection]);
 
   const switchMode = (next: ImportMode) => {
-    setSelected(new Set());
+    resetSelection();
     setImportFailures([]);
     setResult(null);
     setOpFailures([]);
     setOpDone(null);
     setMode(next);
-  };
-
-  const toggleOne = (id: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAll = (entries: AniListEntry[]) => {
-    const ids = entries.map((e) => e.media.id);
-    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (allSelected) ids.forEach((id) => next.delete(id));
-      else ids.forEach((id) => next.add(id));
-      return next;
-    });
   };
 
   const notify = (type: "success" | "error" | "info", key: string, vars?: TranslationVariables) => {
@@ -184,7 +129,7 @@ export default function ImportAnilistCollection({
         setProcessed(done);
         setCurrent(title === "" ? null : title);
       },
-      parseScoreFormat(authUser?.score_format)
+      scoreFormat
     );
     setImporting(false);
     return outcome;
@@ -229,7 +174,7 @@ export default function ImportAnilistCollection({
   };
 
   const changeTextFor = (entry: AniListEntry, item: CollectionItem): string => {
-    const s = entrySyncState(entry, parseScoreFormat(authUser?.score_format));
+    const s = entrySyncState(entry, scoreFormat);
     const parts: string[] = [];
     if (s.status !== item.status)
       parts.push(
@@ -272,7 +217,7 @@ export default function ImportAnilistCollection({
     for (const { entry, item } of targets) {
       if (abortRef.current) break;
       setOpCurrent(entry.media.title);
-      const s = entrySyncState(entry, parseScoreFormat(authUser?.score_format));
+      const s = entrySyncState(entry, scoreFormat);
       const [, err] = await attempt(
         collectionApi.patchItem(item.id, {
           status: s.status,
@@ -352,11 +297,6 @@ export default function ImportAnilistCollection({
     attempt(runBackfill(backfillTargets.filter((item) => failedIds.has(item.id))));
   };
 
-  const selectedCount = selected.size;
-  const selectedNew = newEntries.filter((e) => selected.has(e.media.id)).length;
-  const allChangedSelected =
-    changedEntries.length > 0 && changedEntries.every((e) => selected.has(e.media.id));
-
   if (!open) return null;
 
   const renderSummary = () => (
@@ -431,7 +371,7 @@ export default function ImportAnilistCollection({
                       entry={entry}
                       checked={selected.has(entry.media.id)}
                       isDup={false}
-                      scoreFormat={parseScoreFormat(authUser?.score_format)}
+                      scoreFormat={scoreFormat}
                       onToggle={toggleOne}
                     />
                   ))}

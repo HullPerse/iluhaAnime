@@ -11,7 +11,7 @@ import type { Cell } from "@/types/core/signal";
 type FriendsActionKeys = "addFriend" | "cacheProfile" | "removeFriend";
 
 export type FriendsData = Omit<AniListFriendsStore, FriendsActionKeys>;
-export type FriendsAtoms = { [K in keyof FriendsData]: Cell<FriendsData[K]> };
+type FriendsAtoms = { [K in keyof FriendsData]: Cell<FriendsData[K]> };
 
 type NotificationsActionKeys =
   | "saveObservation"
@@ -25,7 +25,7 @@ type NotificationsActionKeys =
   | "setSiteMaxSeenId";
 
 export type AnilistNotificationsData = Omit<AniListNotificationsStore, NotificationsActionKeys>;
-export type AnilistNotificationsAtoms = {
+type AnilistNotificationsAtoms = {
   [K in keyof AnilistNotificationsData]: Cell<AnilistNotificationsData[K]>;
 };
 

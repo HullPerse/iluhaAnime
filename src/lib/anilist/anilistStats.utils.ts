@@ -40,9 +40,13 @@ function byCountThenName<T extends { count: number }>(
     : right.count - left.count;
 }
 
+const SCORE_LARGE_MAX = 10;
+const SCORE_WIDTH_LARGE = 5;
+const SCORE_WIDTH_SMALL = 1;
+
 function scoreWidth(format: AnilistScoreFormat): number {
   if (format === "POINT_10_DECIMAL") return 0.5;
-  return scoreFormatMax(format) > 10 ? 5 : 1;
+  return scoreFormatMax(format) > SCORE_LARGE_MAX ? SCORE_WIDTH_LARGE : SCORE_WIDTH_SMALL;
 }
 
 function buildScoreBlock(

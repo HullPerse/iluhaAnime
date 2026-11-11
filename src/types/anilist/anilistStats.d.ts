@@ -1,4 +1,4 @@
-export interface StatsKpi {
+interface StatsKpi {
   titles: number;
   episodes: number;
   hours: number;
@@ -9,7 +9,7 @@ export interface StatsKpi {
   started: number;
 }
 
-export interface StatsScoreBucket {
+interface StatsScoreBucket {
   key: string;
   label: string;
   from: number;
@@ -29,19 +29,19 @@ export interface StatsStatusRow {
   count: number;
 }
 
-export interface StatsFormatRow {
+interface StatsFormatRow {
   format: string;
   count: number;
   mediaIds: number[];
 }
 
-export interface StatsYearRow {
+interface StatsYearRow {
   year: number;
   count: number;
   mediaIds: number[];
 }
 
-export interface StatsGenreRow {
+interface StatsGenreRow {
   genre: string;
   count: number;
   meanScore: number;
@@ -49,7 +49,7 @@ export interface StatsGenreRow {
   mediaIds: number[];
 }
 
-export interface StatsStudioRow {
+interface StatsStudioRow {
   id: number;
   name: string;
   count: number;

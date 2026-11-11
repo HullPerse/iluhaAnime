@@ -6,6 +6,7 @@ import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
 import { tr } from "@/lib/locale/i18n.utils";
 import { torrentErrorText } from "@/lib/torrent/torrentCommon.utils";
+import { ipcErrorCode } from "@/lib/core/system/ipcError.utils";
 import { attempt, reportBackgroundError, withFallback } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/ui/notification.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
@@ -294,7 +295,11 @@ function createTorrentSignalStore(): TorrentSignalStore {
       const [, error] = await attempt(
         torrentApi.setTorrentLimits(id, { downloadBps, uploadBps }, infoHash)
       );
-      if (error) showError(tr("download.error.set.limits"), torrentErrorText(error.message, tr));
+      if (error)
+        showError(
+          tr("download.error.set.limits"),
+          torrentErrorText(error.message, tr, ipcErrorCode(error))
+        );
     },
   };
 

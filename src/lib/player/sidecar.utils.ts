@@ -1,4 +1,5 @@
-import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { invokeValidated } from "@/lib/core/system/invoke.utils";
+import { SidecarTrackListSchema } from "@/api/fileIndex.schema";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { fileNameFromPath, mediaFileExtension } from "@hullperse/hp_utils/media/parse";
 import { addExternalAudioAuto, addExternalSubtitleAuto } from "@/lib/player/playback.utils";
@@ -20,7 +21,7 @@ export async function loadSidecarTracks(videoPath: string): Promise<void> {
   if (!mediaFileExtension(fileNameFromPath(videoPath))) return;
 
   const [tracks, error] = await attempt(
-    invokeTyped<SidecarTrack[]>("scan_sidecar_tracks", {
+    invokeValidated<SidecarTrack[]>("scan_sidecar_tracks", SidecarTrackListSchema, {
       path: videoPath,
       audioExtensions: settingsAtoms.audioExtensions.get(),
       subtitleExtensions: settingsAtoms.subtitleExtensions.get(),

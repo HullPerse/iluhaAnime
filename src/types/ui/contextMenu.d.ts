@@ -1,7 +1,7 @@
 import type { TranslationKey, TranslationVariables } from "@/types/core/i18n";
 import type { ComponentType, ReactNode } from "react";
 
-export interface ContextMenuItem {
+interface ContextMenuItem {
   kind: "item";
   id: string;
   label: TranslationKey;
@@ -15,7 +15,7 @@ export interface ContextMenuItem {
   variant?: "default" | "destructive";
 }
 
-export interface ContextMenuSubmenu {
+interface ContextMenuSubmenu {
   kind: "submenu";
   id: string;
   label: TranslationKey;
@@ -29,7 +29,7 @@ export interface ContextMenuSubmenu {
 
 export type ContextMenuEntry = ContextMenuItem | ContextMenuSubmenu | ContextMenuSeparator;
 
-export interface ContextMenuSeparator {
+interface ContextMenuSeparator {
   kind: "separator";
   id: string;
 }

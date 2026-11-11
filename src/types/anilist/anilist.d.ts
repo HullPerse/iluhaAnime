@@ -6,18 +6,18 @@ import type { EntryLookup } from "@/types/anilist/entries";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 
-export interface AniRanking {
+interface AniRanking {
   rank: number;
   type: string;
   context: string;
 }
 
-export interface AniStudio {
+interface AniStudio {
   id: number;
   name: string;
 }
 
-export interface AniRelatedMedia {
+interface AniRelatedMedia {
   id: number;
   title: string;
   cover_url: string | null;
@@ -173,18 +173,18 @@ export interface AniListGroup {
   entries: AniListEntry[];
 }
 
-export interface AniListStatusStatistic {
+interface AniListStatusStatistic {
   status: string;
   count: number;
   minutes_watched: number;
 }
 
-export interface AniListScoreStatistic {
+interface AniListScoreStatistic {
   score: number;
   count: number;
 }
 
-export interface AniListFormatStatistic {
+interface AniListFormatStatistic {
   format: string;
   count: number;
   mean_score: number;
@@ -192,7 +192,7 @@ export interface AniListFormatStatistic {
   media_ids: number[];
 }
 
-export interface AniListYearStatistic {
+interface AniListYearStatistic {
   year: number;
   count: number;
   mean_score: number;
@@ -200,7 +200,7 @@ export interface AniListYearStatistic {
   media_ids: number[];
 }
 
-export interface AniListGenreStatistic {
+interface AniListGenreStatistic {
   genre: string;
   count: number;
   mean_score: number;
@@ -208,7 +208,7 @@ export interface AniListGenreStatistic {
   media_ids: number[];
 }
 
-export interface AniListStudioStatistic {
+interface AniListStudioStatistic {
   id: number;
   name: string;
   count: number;
@@ -232,7 +232,7 @@ export interface AniListStatistics {
   studios: AniListStudioStatistic[];
 }
 
-export type AniListViewMode = "self" | "friend";
+type AniListViewMode = "self" | "friend";
 
 export interface AniListCaps {
   headerActions: boolean;
@@ -276,7 +276,7 @@ export interface AniRecommendation {
   recommendation_rating: number;
 }
 
-export interface AniCharacterNode {
+interface AniCharacterNode {
   id: number;
   name: string;
   native_name: string | null;
@@ -299,7 +299,7 @@ export interface AniCharacterEdge {
   voice_actors: AniVoiceActor[];
 }
 
-export interface AniCharacterMediaEdge {
+interface AniCharacterMediaEdge {
   id: number;
   title: string;
   cover_url: string | null;
@@ -315,13 +315,13 @@ export interface AniCharacterDetail {
   media: AniCharacterMediaEdge[];
 }
 
-export interface AniStaffCharacterEdge {
+interface AniStaffCharacterEdge {
   id: number;
   name: string;
   image: string | null;
 }
 
-export interface AniStaffMediaEdge {
+interface AniStaffMediaEdge {
   id: number;
   title: string;
   cover_url: string | null;
@@ -397,7 +397,7 @@ export interface AniListFilters {
   score: [number, number];
 }
 
-export interface FranchiseNextAiringEpisode {
+interface FranchiseNextAiringEpisode {
   episode: number;
   airing_at: number;
 }
@@ -488,12 +488,6 @@ export interface FranchiseCamera {
   x: number;
   y: number;
   scale: number;
-}
-
-export interface ContextMenuState {
-  x: number;
-  y: number;
-  node: FranchiseNode;
 }
 
 export interface FranchiseGraphSectionProps {
@@ -687,5 +681,3 @@ export interface CameraTransform {
   x: number;
   y: number;
 }
-
-export * from "./anilistUi";

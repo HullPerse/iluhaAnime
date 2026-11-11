@@ -68,7 +68,6 @@ describe("TorrentDiagnosticsSettings", () => {
     expect(mockInvoke).toHaveBeenCalledWith("network_diagnose", {
       url: "https://rutracker.org/forum/index.php",
       proxyUrl: null,
-      proxy_url: null,
     });
   });
 
@@ -102,7 +101,6 @@ describe("TorrentDiagnosticsSettings", () => {
     expect(mockInvoke).toHaveBeenCalledWith("network_diagnose", {
       url: "https://rutracker.org/forum/index.php",
       proxyUrl: "socks5://user:secret@127.0.0.1:1080",
-      proxy_url: "socks5://user:secret@127.0.0.1:1080",
     });
   });
 

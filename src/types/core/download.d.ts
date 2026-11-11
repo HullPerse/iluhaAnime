@@ -3,7 +3,7 @@ import type { Cell } from "@/types/core/signal";
 
 export type TorrentData = Omit<TorrentStore, TorrentActionKeys>;
 
-export type TorrentAtoms = { [K in keyof TorrentData]: Cell<TorrentData[K]> };
+type TorrentAtoms = { [K in keyof TorrentData]: Cell<TorrentData[K]> };
 
 export interface TorrentSignalStore {
   atoms: TorrentAtoms;

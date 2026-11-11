@@ -3,8 +3,8 @@ import type { TagToleranceKey } from "@/types/search/search";
 
 export type CollectionStatus = string;
 export type CollectionType = "anime" | "movie" | "series" | "custom";
-export type ProgressUnit = "episodes" | "seasons" | "minutes" | "pages";
-export type Priority = "low" | "normal" | "high";
+type ProgressUnit = "episodes" | "seasons" | "minutes" | "pages";
+type Priority = "low" | "normal" | "high";
 
 export type CollectionStatusKind = "private" | "public";
 
@@ -81,22 +81,13 @@ export interface CollectionItem {
   } | null;
 }
 
-export type CustomFieldType = "text" | "number" | "select" | "date";
+type CustomFieldType = "text" | "number" | "select" | "date";
 
 export interface CustomFieldDef {
   id: string;
   name: string;
   fieldType: CustomFieldType;
   options: string[] | null;
-}
-
-export interface CollectionStats {
-  total: number;
-  byStatus: Record<CollectionStatus, number>;
-  avgRating: number | null;
-  totalHours: number;
-  favoriteCount: number;
-  ratingDistribution: Record<number, number>;
 }
 
 export interface WizardPrefill {
@@ -144,12 +135,6 @@ export interface CollectionFilters {
   defaultStatus?: CollectionStatus;
 }
 
-export type CollectionConfig = {
-  STATUS: CollectionStatus | "all";
-  SORT: "date" | "name" | "rating" | "year";
-  DIR: "asc" | "desc";
-};
-
 export type SearchFieldParams = {
   scope: SearchSuggestionScope;
   query: string;
@@ -174,7 +159,7 @@ export type SearchFieldParams = {
   historyScope?: string;
 };
 
-export interface SearchFieldInputProps {
+interface SearchFieldInputProps {
   value: string;
   completion: string | null;
   suggestions: SearchSuggestion[];
@@ -360,11 +345,6 @@ export interface StoredMedia {
   trailerYoutubeId: string | null;
 }
 
-export interface ViewerMedia {
-  backdrops: { url: string }[];
-  trailerYoutubeId: string | null;
-}
-
 export interface WizardPickedMedia {
   stills: string[];
   trailerYoutubeId: string | null;
@@ -410,7 +390,7 @@ export interface AddedMedia {
 
 export type ImportMode = "summary" | "import" | "sync" | "backfill";
 
-export interface CollectionFilterWorkerInit {
+interface CollectionFilterWorkerInit {
   items: CollectionItem[];
   statuses: CollectionStatusDef[];
 }

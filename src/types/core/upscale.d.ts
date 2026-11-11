@@ -22,8 +22,8 @@ export interface ConvertConfig {
   copyStreams: boolean;
 }
 
-export type QueueItemStatus = "queued" | "processing" | "done" | "error";
-export type JobType = "upscale" | "convert";
+type QueueItemStatus = "queued" | "processing" | "done" | "error";
+type JobType = "upscale" | "convert";
 
 export interface UpscaleQueueItem {
   id: string;
@@ -46,21 +46,6 @@ export interface UpscaleProgressPayload {
   total: number;
   stage: string;
   speed: number;
-}
-
-export interface UpscaleQueueStore {
-  items: UpscaleQueueItem[];
-  processing: boolean;
-  paused: boolean;
-  setPaused: (paused: boolean) => void;
-  addUpscaleItem: (filePath: string, name: string, config: UpscaleConfig) => string;
-  addConvertItem: (filePath: string, name: string, config: ConvertConfig) => string;
-  removeItem: (id: string) => void;
-  clearDone: () => void;
-  clearErrors: () => void;
-  clearAll: () => void;
-  restartItem: (id: string) => void;
-  processNext: () => Promise<void>;
 }
 
 export interface ShaderInfo {

@@ -22,7 +22,7 @@ type PlayerActionKeys =
   | "patchSettings";
 
 export type PlayerData = Omit<PlayerStore, PlayerActionKeys>;
-export type PlayerAtoms = { [K in keyof PlayerData]: Cell<PlayerData[K]> };
+type PlayerAtoms = { [K in keyof PlayerData]: Cell<PlayerData[K]> };
 
 type PlaybackActionKeys =
   | "setSnapshot"
@@ -37,7 +37,7 @@ type PlaybackActionKeys =
   | "reset";
 
 export type PlaybackData = Omit<PlaybackStore, PlaybackActionKeys>;
-export type PlaybackAtoms = { [K in keyof PlaybackData]-?: Cell<PlaybackData[K]> };
+type PlaybackAtoms = { [K in keyof PlaybackData]-?: Cell<PlaybackData[K]> };
 
 export interface PlayerSignalStore {
   atoms: PlayerAtoms;

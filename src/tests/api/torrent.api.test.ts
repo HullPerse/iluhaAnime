@@ -110,12 +110,11 @@ describe("TorrentApi", () => {
         sort: "seeders",
         order: "desc",
         proxyUrl: "http://127.0.0.1:7890",
-        proxy_url: "http://127.0.0.1:7890",
       },
     });
     expect(calls[1]).toEqual({
       command: "search_rutracker",
-      args: { query: "frieren", proxyUrl: undefined, proxy_url: undefined },
+      args: { query: "frieren", proxyUrl: undefined },
     });
   });
 
@@ -139,7 +138,7 @@ describe("TorrentApi", () => {
     expect(api.webviewProxyFor("nyaa")).toBeUndefined();
   });
 
-  it("probes the torrent proxy with both argument casings", async () => {
+  it("probes the torrent proxy with the camelCase argument", async () => {
     const { calls, transport } = fakeTransport(() => ({ latencyMs: 12 }));
     const api = new TorrentApi({ transport });
 
@@ -148,7 +147,6 @@ describe("TorrentApi", () => {
       command: "test_torrent_proxy",
       args: {
         proxyUrl: "socks5://127.0.0.1:10808",
-        proxy_url: "socks5://127.0.0.1:10808",
       },
     });
   });
@@ -191,6 +189,13 @@ describe("TorrentApi", () => {
         requiredBytes: 123,
       },
     });
+  });
+
+  it("rejects a malformed torrent list response", async () => {
+    const { transport } = fakeTransport(() => [{ id: 1 }]);
+    const api = new TorrentApi({ transport });
+
+    await expect(api.listTorrents()).rejects.toThrow();
   });
 
   it("lists and clears recorded partial leftovers", async () => {

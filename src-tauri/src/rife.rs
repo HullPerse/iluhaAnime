@@ -55,6 +55,7 @@ pub async fn check_rife(app_handle: tauri::AppHandle) -> Result<bool, String> {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_lines)]
 pub async fn download_rife(app_handle: tauri::AppHandle) -> Result<String, String> {
     let dir = rife_bin_dir(&app_handle);
     std::fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;

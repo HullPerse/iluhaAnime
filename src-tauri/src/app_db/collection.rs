@@ -544,6 +544,7 @@ where
     Option::<T>::deserialize(deserializer).map(Some)
 }
 
+#[allow(clippy::too_many_lines)]
 fn patch_collection_item_connection(
     connection: &Connection,
     id: &str,

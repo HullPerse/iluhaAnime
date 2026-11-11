@@ -10,11 +10,24 @@ vi.mock("@tauri-apps/api/core", () => ({
 import {
   buildTorrentPlayerPlaylist,
   readDuration,
+  readPath,
   readPlaylistIndex,
 } from "@/lib/player/playback.utils";
 
 beforeEach(() => {
   mockInvoke.mockReset();
+});
+
+describe("readPath", () => {
+  it("returns the mpv path property", async () => {
+    mockInvoke.mockResolvedValue("C:/anime/ep01.mkv");
+    await expect(readPath()).resolves.toBe("C:/anime/ep01.mkv");
+  });
+
+  it("falls back to an empty path for a non-string response", async () => {
+    mockInvoke.mockResolvedValue(42);
+    await expect(readPath()).resolves.toBe("");
+  });
 });
 
 describe("readDuration", () => {

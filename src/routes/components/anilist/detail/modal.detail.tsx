@@ -2,7 +2,9 @@ import Modal from "@/components/shared/modal.component";
 import { ANILIST_DETAIL_WIDTH_CLASS } from "@/config/anilist/detail.config";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AniDetailProps as DetailProps } from "@/types/anilist/anilist";
+import type {
+  AniDetailProps as DetailProps,
+} from "@/types/anilist/anilistUi";
 
 import { AnimeDetailShell } from "./shell.detail";
 

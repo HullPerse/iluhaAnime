@@ -428,6 +428,7 @@ fn parse_bootstrap_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
     fields
 }
 
+#[allow(clippy::too_many_lines)]
 fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
     let selectors = [
         ".torrent-file-list li",
@@ -1013,6 +1014,7 @@ fn walk_description_children(
     builder.flush_paragraph();
 }
 
+#[allow(clippy::too_many_lines)]
 fn visit_description_child(
     builder: &mut DescriptionBuilder<'_>,
     siblings: &[NodeRef<'_, scraper::node::Node>],
@@ -1850,6 +1852,7 @@ fn parse_nekobt_series(doc: &Html) -> String {
 }
 
 #[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDetails {
     let origin = detail_origin_for_url(source, url)
         .or_else(|| detail_origin(source))

@@ -1,3 +1,5 @@
+import { attemptSync } from "@hullperse/hp_utils/attempt";
+
 const STORAGE_KEY = "iluha.stream.route-memory";
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_ENTRIES = 32;
@@ -12,11 +14,10 @@ interface RouteEntry {
 type RouteMemory = Record<string, RouteEntry>;
 
 function storage(): Storage | null {
-  try {
-    return typeof localStorage === "undefined" ? null : localStorage;
-  } catch {
-    return null;
-  }
+  const [store] = attemptSync(() =>
+    typeof localStorage === "undefined" ? null : localStorage
+  );
+  return store;
 }
 
 function isEntry(value: unknown): value is RouteEntry {
@@ -32,37 +33,27 @@ function isEntry(value: unknown): value is RouteEntry {
 function readMemory(now: number): RouteMemory {
   const store = storage();
   if (!store) return {};
-  try {
-    const raw = store.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return {};
-    const memory: RouteMemory = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (isEntry(value) && now - value.at <= TTL_MS) memory[key] = value;
-    }
-    return memory;
-  } catch {
-    return {};
+  const [raw] = attemptSync(() => store.getItem(STORAGE_KEY));
+  if (!raw) return {};
+  const [parsed] = attemptSync((): unknown => JSON.parse(raw));
+  if (typeof parsed !== "object" || parsed === null) return {};
+  const memory: RouteMemory = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (isEntry(value) && now - value.at <= TTL_MS) memory[key] = value;
   }
+  return memory;
 }
 
 function writeMemory(memory: RouteMemory): void {
   const store = storage();
   if (!store) return;
-  try {
-    store.setItem(STORAGE_KEY, JSON.stringify(memory));
-  } catch {
-    // A disabled or full storage must never break playback.
-  }
+  // A disabled or full storage must never break playback.
+  attemptSync(() => store.setItem(STORAGE_KEY, JSON.stringify(memory)));
 }
 
 function hostOf(mediaUrl: string): string {
-  try {
-    return new URL(mediaUrl).host;
-  } catch {
-    return "";
-  }
+  const [host] = attemptSync(() => new URL(mediaUrl).host);
+  return host ?? "";
 }
 
 /** One route decision per player and media host. */

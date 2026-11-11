@@ -15,7 +15,9 @@ import { ignore } from "@/lib/core/shared/promise.utils";
 import { cacheAnilistProfile } from "@/store/anilist.store";
 import type { ActivityDetailBundle } from "@/types/anilist/anilist";
 import type { AniFriend, AniUserProfile } from "@/types/anilist/anilist";
-import type { AniFriendsProps as Props } from "@/types/anilist/anilist";
+import type {
+  AniFriendsProps as Props,
+} from "@/types/anilist/anilistUi";
 
 import { InlineDetail } from "@/routes/components/anilist/detail/inline.detail";
 import { ViewTabs, type FriendView } from "@/routes/components/anilist/friends/viewTabs.friends";

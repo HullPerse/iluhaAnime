@@ -1,7 +1,7 @@
 import ProgressBar from "@/components/shared/progress.component";
 import { ProgressStepper } from "@/routes/components/anilist/stepper.anilist";
 import type { EntryListInfo } from "@/types/anilist/entries";
-import type { AniCardProps } from "@/types/anilist/anilist";
+import type { AniCardProps } from "@/types/anilist/anilistUi";
 
 export function CardProgressBlock({
   item,

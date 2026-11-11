@@ -1,13 +1,13 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
 
+import ContextMenu from "@/components/shared/contextMenu.component";
 import { SmallLoader } from "@/components/shared/loader/small.loader";
 import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
 import { VOLUME_STEP } from "@/config/player/video.config";
@@ -20,12 +20,13 @@ import { usePlayerOverlayState } from "@/hooks/player/overlayState.hook";
 import { usePlayerPlaylistFocus } from "@/hooks/player/playlistFocus.hook";
 import { usePlayerTransport } from "@/hooks/player/transport.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
+import { usePlayerFileLoad } from "@/hooks/player/fileLoad.hook";
+import { usePlayerModernMenu } from "@/hooks/player/modernMenu.hook";
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
 import { useSeekHandlers } from "@/hooks/player/seek.hook";
 import { usePlayerStream, useStreamNext } from "@/hooks/player/stream.hook";
-import { useWindowControls } from "@/hooks/player/windowControls.hook";
-import { useWindowDrag } from "@/hooks/player/windowDrag.hook";
-import { useBarsAutoHide, useDropAlert } from "@/hooks/player/chromeState.hook";
+import { useDropAlert } from "@/hooks/player/chromeState.hook";
+import { usePlayerViewChrome } from "@/hooks/player/viewChrome.hook";
 import { usePlayerMargins } from "@/hooks/player/margins.hook";
 import { usePlayerOffsets } from "@/hooks/player/offsets.hook";
 import { usePlayerSession } from "@/hooks/player/session.hook";
@@ -38,50 +39,24 @@ import { usePlayerWatchProgress } from "@/hooks/player/watchProgress.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
-import { loadSidecarTracks } from "@/lib/player/sidecar.utils";
 import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
 } from "@/lib/core/ui/loading.utils";
-import {
-  applyFileState,
-  loadQueue,
-  movePlaylistIndex,
-  playPlaylistIndex,
-  readPath,
-  readDuration,
-  removePlaylistIndex,
-  seekTo,
-  setPaused,
-  startFrameStep,
-} from "@/lib/player/playback.utils";
-import {
-  RESUME_END_MARGIN,
-  RESUME_MIN,
-  resolveLoadPosition,
-  needsExactSeek,
-  shouldSkipFrontendSeek,
-} from "@/lib/player/resume.utils";
-import type { HwdecReload } from "@/types/player/resume";
+import { loadQueue, movePlaylistIndex, removePlaylistIndex } from "@/lib/player/playback.utils";
 import {
   barClass,
-  fileStatePatch,
   hideDefaultTracks,
   modernMenuEnabled,
   navigationAvailability,
   playerWindowTitle,
-  restoreReloadPaused,
   rootClass,
   shouldHideCursor,
   videoSectionClass,
-  wrapVideoMenu,
 } from "@/lib/player/playerChrome.utils";
-import { resolveViewChrome } from "@/lib/core/ui/view.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
-import { hydrateMediaEntry } from "@/store/media.store";
 import {
   patchPlayerSettings,
   playbackAtoms,
@@ -95,7 +70,8 @@ import {
   settleSeek,
 } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { PlayerSettings, PlayerViewMode } from "@/types/player/videoPlayer";
+import type { HwdecReload } from "@/types/player/resume";
+import type { PlayerSettings } from "@/types/player/videoPlayer";
 
 import PlayerBezel from "@/routes/components/player/bezel.player";
 import BufferingOverlay from "@/routes/components/player/media/buffering.player";
@@ -108,7 +84,6 @@ import OsdOverlay from "@/routes/components/player/media/offset.player";
 import SkipButton from "@/routes/components/player/media/skip.player";
 import PlayerStatus from "@/routes/components/player/media/status.player";
 import PlayerBottomBar from "@/routes/components/player/modern/bottom.modern";
-import { buildModernPlayerMenu } from "@/routes/components/player/modern/menu.modern";
 import { PlayerPanel } from "@/routes/components/player/media/panel.player";
 import PlayerSidePanel from "@/routes/components/player/side.player";
 
@@ -144,10 +119,6 @@ function PlayerComponent() {
   const playerContextMenu = useCell(settingsAtoms.playerContextMenu);
   const showModernMenu = modernMenuEnabled(playerType, playerContextMenu);
 
-  const [cinema, setCinema] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<PlayerViewMode>("normal");
-  const [fullscreen, setFullscreen] = useState<boolean>(false);
-  const [barsVisible, setBarsVisible] = useState<boolean>(true);
   const {
     panel,
     setPanel,
@@ -173,16 +144,24 @@ function PlayerComponent() {
   const hwdecReloadRef = useRef<HwdecReload | null>(null);
   const loadEpochRef = useRef<number>(0);
 
-  const chrome = resolveViewChrome({
-    mode: viewMode,
+  const {
     cinema,
+    viewMode,
     fullscreen,
-    autoHide,
-    barsVisible,
-    menuOpen,
-  });
-  const immersive = chrome.fullBleed;
-  const barsAutoHide = chrome.barsAutoHide;
+    chrome,
+    immersive,
+    barsHidden,
+    toggleFullscreen,
+    applyViewMode,
+    toggleCinema,
+    applyAlwaysOnTop,
+    exitCinemaMode,
+    onFullscreenKey,
+    onVideoMouseDown,
+    onVideoMouseMove,
+    onVideoMouseUp,
+    consumeVideoDrag,
+  } = usePlayerViewChrome({ autoHide, menuOpen, closeOverlay });
   const stream = useCell(streamSession);
   usePlayerDiscordPresence();
   const streamNext = useStreamNext();
@@ -193,7 +172,6 @@ function PlayerComponent() {
     playlistCount,
     playlistIndex,
   });
-  const barsHidden = chrome.barsHidden;
   const { dropAlert, showDropAlert } = useDropAlert();
   const cursorHidden = shouldHideCursor({
     barsHidden,
@@ -241,29 +219,17 @@ function PlayerComponent() {
     hwdecReloadRef,
   });
 
-  const reloadPlayingFile = useCallback(() => {
-    const playlistIndex = playbackAtoms.playlistIndex.get();
-    if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
-    hwdecReloadRef.current = {
-      position: playbackAtoms.timePos.get(),
-      paused: playbackAtoms.paused.get(),
-    };
-    setLoadingFile(true);
-    playPlaylistIndex(playlistIndex).catch((error: unknown) => {
-      hwdecReloadRef.current = null;
-      setLoadingFile(false);
-      reportBackgroundError("player.reload", error);
-    });
-  }, [setLoadingFile]);
-
-  const retryPlayback = useCallback(() => {
-    setFailed(false);
-    if (stream !== null) {
-      streamRoute.retryNow();
-      return;
-    }
-    reloadPlayingFile();
-  }, [reloadPlayingFile, setFailed, stream, streamRoute]);
+  const { handleFileLoaded, reloadPlayingFile, retryPlayback } = usePlayerFileLoad({
+    stream,
+    streamRoute,
+    syncMarginsRef,
+    resumeRef,
+    hwdecReloadRef,
+    loadEpochRef,
+    setFinished,
+    setLoadingFile,
+    setFailed,
+  });
 
   useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
   useStreamPin(stream, loadingFile);
@@ -271,43 +237,6 @@ function PlayerComponent() {
   usePlayerFileDrop();
   usePlayerSettingsSync();
 
-  const handleFileLoaded = useCallback(async () => {
-    loadEpochRef.current += 1;
-    const epoch = loadEpochRef.current;
-    const isCurrent = () => loadEpochRef.current === epoch;
-    setFinished(false);
-    const loaded = await readPath();
-    if (!loaded || !isCurrent()) return;
-    if (streamSession.get() !== null) {
-      syncMarginsRef.current(true);
-      return;
-    }
-    const reload = hwdecReloadRef.current;
-    const entry = await hydrateMediaEntry(loaded);
-    if (!isCurrent()) return;
-
-    await applyFileState(fileStatePatch(entry, playbackAtoms.speed.get() || 1));
-    if (!isCurrent()) return;
-    await loadSidecarTracks(loaded);
-    if (!isCurrent()) return;
-    hwdecReloadRef.current = null;
-
-    const resume = resumeRef.current;
-    resumeRef.current = undefined;
-    const liveDuration = await readDuration();
-    if (!isCurrent()) return;
-    const position = resolveLoadPosition(reload, resume, entry?.position);
-    const inside =
-      position > RESUME_MIN && (liveDuration <= 0 || position < liveDuration - RESUME_END_MARGIN);
-    if (!shouldSkipFrontendSeek(reload, resume, position)) {
-      if (needsExactSeek(reload, position, inside)) await seekTo(position, "exact");
-    }
-    if (!isCurrent()) return;
-    await setPaused(true);
-    await restoreReloadPaused(reload);
-    if (!isCurrent()) return;
-    syncMarginsRef.current(true);
-  }, [syncMarginsRef]);
 
   usePlayerEvents({
     onOpenRequest: (request) => {
@@ -370,39 +299,6 @@ function PlayerComponent() {
   }, [loadingFile, setLoadingFile]);
 
   usePlayerWatchProgress({ playlistOpen });
-
-  useBarsAutoHide(barsAutoHide, setBarsVisible);
-
-  const {
-    onMouseDown: onVideoMouseDown,
-    onMouseMove: onVideoMouseMove,
-    onMouseUp: onVideoMouseUp,
-    consumeDrag: consumeVideoDrag,
-  } = useWindowDrag(!chrome.showHeader);
-
-  const { toggleFullscreen, applyViewMode, toggleCinema, applyAlwaysOnTop, exitCinemaMode } =
-    useWindowControls({
-      cinema,
-      closeOverlay,
-      fullscreen,
-      setCinema,
-      setFullscreen,
-      setViewMode,
-      viewMode,
-    });
-
-  const autoHideBeforeFullscreen = useRef<boolean | null>(null);
-  const onFullscreenKey = useCallback(() => {
-    if (fullscreen) {
-      const restore = autoHideBeforeFullscreen.current;
-      autoHideBeforeFullscreen.current = null;
-      if (restore !== null) setAutoHide(restore);
-    } else {
-      autoHideBeforeFullscreen.current = playerAtoms.autoHide.get();
-      if (!playerAtoms.autoHide.get()) setAutoHide(true);
-    }
-    ignore(toggleFullscreen());
-  }, [fullscreen, toggleFullscreen]);
 
   const onVideoClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -479,57 +375,8 @@ function PlayerComponent() {
     reloadVariants: reloadStreamVariants,
   } = playerStream;
 
-  const modernEntries = useMemo(() => {
-    if (!showModernMenu) return [];
-    return buildModernPlayerMenu(
-      {
-        hasFile,
-        paused,
-        tracks,
-        chapters,
-        playlistOpen,
-        fullscreen,
-        viewMode,
-        alwaysOnTop,
-        speed,
-        eofMode,
-        playerMode: settings.playerMode,
-        cabinet: settings.cabinet,
-        stream:
-          playerStreamSession === null
-            ? null
-            : {
-                session: playerStreamSession,
-                variants: playerStreamVariants,
-                variantsLoading: playerStreamLoading,
-                variantsFailed: playerStreamFailed,
-                switching: playerStreamSwitching,
-              },
-      },
-      {
-        onPlayPause,
-        onFrameStep: (forward) => ignore(startFrameStep(forward)),
-        onPrevFile: onFilePrev,
-        onNextFile: onFileNext,
-        onSelectAudio: onSelectTrack("audio"),
-        onSelectSub: onSelectTrack("sub"),
-        onSeekTo,
-        onSpeed,
-        onTogglePlaylist: () => setPlaylistOpen((previous) => !previous),
-        onToggleFullscreen: () => ignore(toggleFullscreen()),
-        onViewMode: applyViewMode,
-        onToggleAlwaysOnTop: () => applyAlwaysOnTop(!alwaysOnTop),
-        onEofMode: setEofMode,
-        onPlayerMode: (mode) => handlePatchSettings({ playerMode: mode }),
-        onCabinet: (cabinet) => handlePatchSettings({ cabinet }),
-        onOpenSettings: () => setPanel("settings"),
-        onOpenCheatsheet: () => setPanel("cheatsheet"),
-        onSelectVariant: (variant) => ignore(switchStreamVariant(variant)),
-        onSelectQuality: (label) => ignore(switchStreamQuality(label)),
-        onRetryVariants: reloadStreamVariants,
-      }
-    );
-  }, [
+  const modernEntries = usePlayerModernMenu({
+    enabled: showModernMenu,
     hasFile,
     paused,
     tracks,
@@ -539,41 +386,47 @@ function PlayerComponent() {
     viewMode,
     alwaysOnTop,
     speed,
+    eofMode,
+    playerMode: settings.playerMode,
+    cabinet: settings.cabinet,
+    streamSession: playerStreamSession,
+    streamVariants: playerStreamVariants,
+    streamVariantsLoading: playerStreamLoading,
+    streamVariantsFailed: playerStreamFailed,
+    streamSwitching: playerStreamSwitching,
     onPlayPause,
-    onFilePrev,
-    onFileNext,
+    onPrevFile: onFilePrev,
+    onNextFile: onFileNext,
     onSelectTrack,
     onSeekTo,
     onSpeed,
+    setEofMode,
     toggleFullscreen,
     applyViewMode,
     applyAlwaysOnTop,
-    eofMode,
-    settings.playerMode,
-    settings.cabinet,
+    setPanel,
+    setPlaylistOpen,
     handlePatchSettings,
-    showModernMenu,
-    playerStreamSession,
-    playerStreamVariants,
-    playerStreamLoading,
-    playerStreamFailed,
-    playerStreamSwitching,
     switchStreamVariant,
     switchStreamQuality,
     reloadStreamVariants,
-    setPanel,
-    setPlaylistOpen,
-  ]);
+  });
 
   const eofPaused = eofReached && (eofMode === "pause" || eofMode === "none");
 
   const cabinet = usePlayerScreen(ready, settings, hasFile);
 
   const videoWrap = (node: ReactNode): ReactNode =>
-    wrapVideoMenu(node, showModernMenu, modernEntries, menuOpen, setMenuOpen);
+    showModernMenu ? (
+      <ContextMenu entries={modernEntries} open={menuOpen} onOpenChange={setMenuOpen}>
+        {node}
+      </ContextMenu>
+    ) : (
+      node
+    );
 
   return (
-    <div className={rootClass(hasFile, failed, cursorHidden)}>
+    <div className={rootClass({ hasFile, failed, cursorHidden })}>
       <Keyboard
         onAction={onKeyboardAction}
         onWheel={(direction) => onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)}
@@ -581,7 +434,7 @@ function PlayerComponent() {
       />
 
       {chrome.showHeader && (
-        <div className={barClass("top", immersive, barsHidden)}>
+        <div className={barClass({ position: "top", immersive, hidden: barsHidden })}>
           <PlayerHeader
             title={title}
             cinema={cinema}
@@ -679,7 +532,7 @@ function PlayerComponent() {
         </div>
       </div>
 
-      <div className={barClass("bottom", immersive, barsHidden)}>
+      <div className={barClass({ position: "bottom", immersive, hidden: barsHidden })}>
         <PlayerBottomBar
           variant={chrome.bottom}
           playerType={playerType}

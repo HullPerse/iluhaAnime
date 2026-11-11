@@ -15,6 +15,8 @@ import type {
   UnifiedIndexEntryInput,
 } from "@/types/api/collection";
 import { tauriTransport } from "@/api/transport.api";
+import { assertSchema } from "@/lib/core/system/invoke.utils";
+import { CollectionRowListSchema } from "@/api/collection.schema";
 
 export class CollectionApi {
   private readonly transport: ApiTransport;
@@ -27,8 +29,10 @@ export class CollectionApi {
     return this.transport.call<T>(command, args);
   }
 
-  listItems(): Promise<RawCollectionItem[]> {
-    return this.call("list_collection_items");
+  async listItems(): Promise<RawCollectionItem[]> {
+    const items = await this.call<RawCollectionItem[]>("list_collection_items");
+    assertSchema(items, CollectionRowListSchema);
+    return items;
   }
 
   listCustomFieldDefs(): Promise<CustomFieldDef[]> {

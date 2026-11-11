@@ -1,12 +1,6 @@
-export type FatalKind = "render" | "chunk" | "startup" | "global-loop";
+type FatalKind = "render" | "chunk" | "startup" | "global-loop";
 
 export type FatalVariant = "win95" | "xp" | "win7" | "generic" | "yorha" | "terminal" | "retroism";
-
-export interface FatalContext {
-  scope: string;
-  route?: string;
-  themeName?: string;
-}
 
 export interface FatalInfo {
   kind: FatalKind;

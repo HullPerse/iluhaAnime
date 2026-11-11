@@ -174,6 +174,7 @@ export default defineConfig({
   },
   rules: {
     complexity: "error",
+    "max-depth": ["error", 3],
     curly: "off",
     "react/exhaustive-effect-dependencies": "warn",
     "no-console": ["warn", { allow: ["warn", "error"] }],
@@ -245,6 +246,13 @@ export default defineConfig({
       files: ["scripts/**"],
       rules: {
         "no-console": "off",
+      },
+    },
+    {
+      // E2E and benchmark harnesses keep nested scenario loops for readability.
+      files: ["scripts/**", "benches/**"],
+      rules: {
+        "max-depth": "off",
       },
     },
   ],

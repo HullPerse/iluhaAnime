@@ -4,7 +4,7 @@ import { Film } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { monthLabel } from "@/lib/core/anilist/activity.utils";
-import { calendarCellTone, calendarDayNumberTone } from "@/lib/anilist/statsCalendar.utils";
+import { calendarTone } from "@/lib/anilist/statsCalendar.utils";
 import type { CalendarCell } from "@/types/anilist/stats.anilist";
 
 export function CalendarDayCell({
@@ -29,11 +29,12 @@ export function CalendarDayCell({
   const { t, locale } = useI18n();
   const mainEntry = cell?.entries[0];
   const extraCount = (cell?.entries.length ?? 0) - 1;
+  const tone = calendarTone({ isToday, isWeekend });
   return (
     <div
       className={cn(
         "border-t-muted border-l-muted relative flex h-26 flex-col overflow-hidden border-r border-b",
-        calendarCellTone(isToday, isWeekend),
+        tone.cell,
         isToday && "shadow-[inset_0_0_0_1px_var(--color-secondary)]"
       )}
     >
@@ -41,7 +42,7 @@ export function CalendarDayCell({
         <span
           className={cn(
             "windows95-font flex min-w-4 items-center justify-center text-xs leading-4",
-            calendarDayNumberTone(isToday, isWeekend)
+            tone.dayNumber
           )}
         >
           {day}

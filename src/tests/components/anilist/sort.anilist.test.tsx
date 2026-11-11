@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { AniSortProps } from "@/types/anilist/anilist";
+import type {
+  AniSortProps,
+} from "@/types/anilist/anilistUi";
 
 const renderBar = (overrides: Partial<AniSortProps> = {}) => {
   const props: AniSortProps = {

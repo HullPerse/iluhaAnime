@@ -1,7 +1,5 @@
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
-import { listen } from "@tauri-apps/api/event";
-import type { Event } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
@@ -9,19 +7,15 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { createInterval } from "@hullperse/hp_utils/interval";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import {
-  TorrentListen,
-  TORRENT_WATCHDOG_MS,
-  findJustFinished,
-  findNewErrors,
-  shouldHealTorrentChannel,
+  pendingRemoveIds,
   torrentErrorText,
   withoutPendingRemoved,
 } from "@/lib/torrent/torrentCommon.utils";
-import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { showError, showWarning } from "@/lib/core/ui/notification.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { cacheAtoms, removeSeedPreference } from "@/store/cache.store";
+import { removeSeedPreference } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";
 import type {
   FilePriority,
@@ -35,131 +29,18 @@ export const TORRENTS_QUERY_KEY = queryKeys.torrents();
 export const torrentFilesKey = (id: number) => queryKeys.torrentFiles(id);
 export const TORRENT_LISTEN_PORT_KEY = queryKeys.torrentListenPort();
 
-let initialErrorNotified = false;
-let primedSeedPause = false;
-let subscriptionOwners = 0;
-let sharedUnlisten: (() => void) | undefined;
-let listenPending = false;
-let lastTorrentEventAt = 0;
-let lastTorrentHealAt = 0;
-let torrentWatchStartedAt = 0;
-
-function pendingRemoveIds(): Set<number> {
-  const ids = new Set<number>();
-  const opInFlight = torrentAtoms.opInFlight.get();
-  for (const [key, op] of Object.entries(opInFlight)) {
-    if (op === "remove") ids.add(Number(key));
-  }
-  return ids;
-}
-
-function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentInfo[]>): void {
-  lastTorrentEventAt = Date.now();
-  const lastActiveAt = torrentAtoms.lastActiveAt.get();
-  const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY) ?? [];
-  const payload = withoutPendingRemoved(event.payload, pendingRemoveIds());
-  const patch = TorrentListen(
-    { torrents: prev, lastActiveAt },
-    {
-      ...event,
-      payload,
-    }
-  );
-  if (patch.torrents !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, patch.torrents);
-  if (patch.lastActiveAt !== undefined) torrentAtoms.lastActiveAt.set(patch.lastActiveAt);
-  for (const t of findNewErrors(prev, payload)) {
-    showError(tr("torrent.state.error"), `${t.name}: ${t.error}`);
-  }
-  const prefs = cacheAtoms.seedPreferences.get();
-  for (const t of findJustFinished(prev, payload, prefs)) {
-    torrentApi
-      .pauseTorrent(t.id)
-      .catch((error) => reportBackgroundError("torrent.autopause.push", error));
-  }
-}
-
-function startTorrentSubscription(queryClient: QueryClient): void {
-  if (sharedUnlisten || listenPending) return;
-  listenPending = true;
-  (async () => {
-    const [unlisten, error] = await attempt(
-      listen<TorrentInfo[]>("torrents-update", (event) => {
-        if (subscriptionOwners > 0) applyTorrentEvent(queryClient, event);
-      })
-    );
-    listenPending = false;
-    if (error || !unlisten) return;
-    if (subscriptionOwners <= 0) unlisten();
-    else sharedUnlisten = unlisten;
-  })();
-}
-
-function ensureTorrentSubscription(queryClient: QueryClient): () => void {
-  subscriptionOwners += 1;
-  if (torrentWatchStartedAt === 0) torrentWatchStartedAt = Date.now();
-  startTorrentSubscription(queryClient);
-  return () => {
-    subscriptionOwners -= 1;
-    if (subscriptionOwners <= 0) {
-      subscriptionOwners = 0;
-      sharedUnlisten?.();
-      sharedUnlisten = undefined;
-    }
-  };
-}
-
 export function useTorrents(enabled = true) {
-  const queryClient = useQueryClient();
   const query = useAppQuery("realtime", {
     queryKey: queryKeys.torrents(),
     queryFn: () =>
       torrentApi
         .listTorrents()
-        .then((list) => withoutPendingRemoved(list ?? [], pendingRemoveIds())),
+        .then((list) =>
+          withoutPendingRemoved(list ?? [], pendingRemoveIds(torrentAtoms.opInFlight.get()))
+        ),
     enabled,
     retry: false,
   });
-  useEffect(() => {
-    if (enabled && query.error && !initialErrorNotified) {
-      initialErrorNotified = true;
-      const message = query.error instanceof Error ? query.error.message : String(query.error);
-      showError(tr("app.torrent"), message);
-    }
-  }, [enabled, query.error]);
-  useEffect(() => {
-    if (!enabled || !query.data || primedSeedPause) return;
-    primedSeedPause = true;
-    const prefs = cacheAtoms.seedPreferences.get();
-    for (const t of findJustFinished([], query.data, prefs)) {
-      torrentApi
-        .pauseTorrent(t.id)
-        .catch((error) => reportBackgroundError("torrent.autopause.prime", error));
-    }
-  }, [enabled, query.data]);
-  useEffect(() => {
-    if (!enabled) return;
-    return ensureTorrentSubscription(queryClient);
-  }, [enabled, queryClient]);
-  useEffect(() => {
-    if (!enabled) return;
-    const { cancel } = createInterval(() => {
-      if (subscriptionOwners > 0) startTorrentSubscription(queryClient);
-      if (document.hidden) return;
-      const now = Date.now();
-      const heal = shouldHealTorrentChannel(
-        {
-          lastEventAt: lastTorrentEventAt,
-          watchStartedAt: torrentWatchStartedAt,
-          lastHealAt: lastTorrentHealAt,
-        },
-        now
-      );
-      if (!heal) return;
-      lastTorrentHealAt = now;
-      queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
-    }, TORRENT_WATCHDOG_MS);
-    return cancel;
-  }, [enabled, queryClient]);
   return query;
 }
 

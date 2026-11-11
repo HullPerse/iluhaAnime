@@ -28,8 +28,14 @@ const ISOLATED_TESTS = [
   "src/tests/hooks/prewarmStream.hook.test.tsx",
   "src/tests/store/settings.store.test.ts",
   "src/tests/components/stream/episodes.stream.test.tsx",
-  "src/tests/components/stream/hero.stream.test.tsx",
   "src/tests/components/stream/detail.stream.test.tsx",
+  "src/tests/lib/streamWarm.test.ts",
+  "src/tests/routes/player.init.test.tsx",
+  "src/tests/components/anilist/sort.anilist.test.tsx",
+  "src/tests/lib/playerChrome.utils.test.ts",
+  "src/tests/lib/playlist.utils.test.ts",
+  "src/tests/lib/statsCalendar.utils.test.ts",
+  "src/tests/lib/themeEditor.utils.test.ts",
 ];
 
 export default defineConfig({
@@ -135,7 +141,7 @@ export default defineConfig({
       {
         test: {
           name: "shared",
-          isolate: false,
+          isolate: true,
           include: ["src/tests/**/*.test.ts", "src/tests/**/*.test.tsx"],
           exclude: ISOLATED_TESTS,
         },

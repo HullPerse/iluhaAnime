@@ -40,6 +40,7 @@ fn download_urls(source: &str) -> Result<(String, &'static str, &'static str), S
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_lines)]
 pub async fn download_ffmpeg(
     app_handle: tauri::AppHandle,
     source: Option<String>,

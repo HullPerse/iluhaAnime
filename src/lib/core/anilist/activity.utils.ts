@@ -57,6 +57,12 @@ export function isMentionOf(text: string | null, name: string): boolean {
   return text.toLowerCase().includes(`@${name.trim().toLowerCase()}`);
 }
 
+function completedDayKey(completedAt: string): string | null {
+  const [year, month, day] = completedAt.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return dayKey(new Date(year, month - 1, day));
+}
+
 export function buildActivityMap(
   lists: AniListCollection[],
   t: ActivityTranslate
@@ -102,12 +108,8 @@ export function buildActivityMap(
       if (entry.created_at) {
         addEvent(dayKey(new Date(entry.created_at * 1000)), "added", item);
       }
-      if (entry.completed_at) {
-        const [y, m, d] = entry.completed_at.split("-").map(Number);
-        if (y && m && d) {
-          addEvent(dayKey(new Date(y, m - 1, d)), "completed", item);
-        }
-      }
+      const completedKey = entry.completed_at ? completedDayKey(entry.completed_at) : null;
+      if (completedKey) addEvent(completedKey, "completed", item);
       if (entry.updated_at) {
         addEvent(dayKey(new Date(entry.updated_at * 1000)), "progress", item);
       }

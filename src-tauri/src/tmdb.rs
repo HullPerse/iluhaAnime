@@ -327,6 +327,8 @@ pub fn get_tmdb_rate_limit() -> TmdbRateLimit {
 
 #[allow(non_snake_case)]
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 pub async fn search_tmdb(
     api_key: Option<String>,
     apiKey: Option<String>,
@@ -464,6 +466,8 @@ pub async fn search_tmdb(
 
 #[allow(non_snake_case)]
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 pub async fn get_tmdb_details(
     api_key: Option<String>,
     apiKey: Option<String>,
@@ -608,6 +612,7 @@ pub async fn get_tmdb_details(
 }
 #[allow(non_snake_case)]
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn get_tmdb_media(
     api_key: Option<String>,
     apiKey: Option<String>,

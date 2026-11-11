@@ -19,7 +19,7 @@ import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import { sectionSettingKeys } from "@/lib/core/system/reset.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/types/core/find";
 import { useCell } from "@hullperse/hp_utils/react";
-import { settingsRoute } from "@/routes/__root";
+import { settingsRoute } from "@/routes/__root.defs";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import { FindBox } from "@/routes/components/settings/findBox.settings";
 import { FindResults } from "@/routes/components/settings/findResults.settings";

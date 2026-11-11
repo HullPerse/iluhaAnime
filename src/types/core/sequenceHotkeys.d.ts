@@ -1,4 +1,4 @@
-export interface SequenceDef {
+interface SequenceDef {
   codes: readonly string[];
   timeoutMs: number;
 }

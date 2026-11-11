@@ -60,6 +60,13 @@ function classifyWordFix(query: string, correction: string): CorrectionReason {
 
 const aliasLookupCache = new WeakMap<SearchAnimeSuggestion[], Map<string, string>>();
 
+function addAliasWords(map: Map<string, string>, normalized: string, title: string): void {
+  if (normalized && !map.has(normalized)) map.set(normalized, title);
+  for (const word of normalized.split(" ")) {
+    if (word && !map.has(word)) map.set(word, title);
+  }
+}
+
 function aliasLookup(animeIndex: SearchAnimeSuggestion[]): Map<string, string> {
   const cached = aliasLookupCache.get(animeIndex);
   if (cached) return cached;
@@ -67,11 +74,7 @@ function aliasLookup(animeIndex: SearchAnimeSuggestion[]): Map<string, string> {
   for (const anime of animeIndex) {
     for (const entry of typedTitlesOf(anime)) {
       if (entry.kind !== "alias" && entry.kind !== "abbreviation") continue;
-      const normalized = normalizeSearchText(entry.title);
-      if (normalized && !map.has(normalized)) map.set(normalized, anime.title);
-      for (const word of normalized.split(" ")) {
-        if (word && !map.has(word)) map.set(word, anime.title);
-      }
+      addAliasWords(map, normalizeSearchText(entry.title), anime.title);
     }
   }
   aliasLookupCache.set(animeIndex, map);

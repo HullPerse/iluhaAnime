@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use super::db::CURRENT_SCHEMA_VERSION;
 
+#[allow(clippy::too_many_lines)]
 pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
     connection
         .busy_timeout(Duration::from_secs(5))

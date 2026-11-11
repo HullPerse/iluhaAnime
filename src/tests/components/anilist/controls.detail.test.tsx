@@ -136,7 +136,11 @@ afterEach(() => cleanup());
 beforeEach(() => {
   patchSettings({ language: "en" });
   mockInvoke.mockReset();
-  mockInvoke.mockResolvedValue(null);
+  mockInvoke.mockImplementation((command: unknown) =>
+    command === "save_anilist_entry"
+      ? Promise.resolve({ id: 1, status: null, progress: null, customLists: [] })
+      : Promise.resolve(null)
+  );
 });
 
 describe("AniListActionControls score formats", () => {
@@ -179,7 +183,7 @@ describe("AniListActionControls score formats", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ mediaId: MEDIA_ID, score: 0 })
+        expect.objectContaining({ media_id: MEDIA_ID, score: 0 })
       )
     );
   });
@@ -202,7 +206,7 @@ describe("AniListActionControls score formats", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ mediaId: MEDIA_ID, score: 5.5 })
+        expect.objectContaining({ media_id: MEDIA_ID, score: 5.5 })
       )
     );
   });
@@ -221,7 +225,7 @@ describe("AniListActionControls score formats", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ mediaId: MEDIA_ID, score: 85 })
+        expect.objectContaining({ media_id: MEDIA_ID, score: 85 })
       )
     );
   });
@@ -247,7 +251,7 @@ describe("AniListActionControls save diagnostics", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
-        expect.objectContaining({ mediaId: MEDIA_ID })
+        expect.objectContaining({ media_id: MEDIA_ID })
       )
     );
     expect(screen.queryByText(/Failed to save/u)).toBeNull();
@@ -318,7 +322,7 @@ describe("AniListActionControls entry fields", () => {
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
         expect.objectContaining({
-          mediaId: MEDIA_ID,
+          media_id: MEDIA_ID,
           repeat: 2,
           startedAt: "2023-05-02",
           completedAt: "2024-03-09",
@@ -345,7 +349,7 @@ describe("AniListActionControls entry fields", () => {
       expect(mockInvoke).toHaveBeenCalledWith("save_anilist_entry", expect.anything())
     );
     const call = mockInvoke.mock.calls.find((args) => args[0] === "save_anilist_entry");
-    expect(call?.[1]).toMatchObject({ mediaId: MEDIA_ID });
+    expect(call?.[1]).toMatchObject({ media_id: MEDIA_ID });
     expect(call?.[1] as Record<string, unknown>).not.toHaveProperty("private");
     expect(call?.[1] as Record<string, unknown>).not.toHaveProperty("hiddenFromStatusLists");
   });
@@ -385,7 +389,7 @@ describe("AniListActionControls delete", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "delete_anilist_entry",
-        expect.objectContaining({ media_id: MEDIA_ID, mediaId: MEDIA_ID, user_id: 7, userId: 7 })
+        expect.objectContaining({ media_id: MEDIA_ID, user_id: 7 })
       )
     );
   });

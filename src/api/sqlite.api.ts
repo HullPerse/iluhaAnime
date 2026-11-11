@@ -7,6 +7,14 @@ import type {
 
 import type { ApiTransport } from "@/types/core/transport";
 import { tauriTransport } from "@/api/transport.api";
+import { assertSchema } from "@/lib/core/system/invoke.utils";
+import {
+  SqliteBackupListSchema,
+  SqliteBackupSchemaCompiled,
+  SqliteDatabaseListSchema,
+  SqliteRowsPageSchemaCompiled,
+  SqliteTableListSchema,
+} from "@/api/sqlite.schema";
 
 interface SqliteApiConfig {
   transport?: ApiTransport;
@@ -20,7 +28,7 @@ interface SqliteRowsQuery {
   orderDirection: string | null;
 }
 
-class SqliteApi {
+export class SqliteApi {
   private readonly transport: ApiTransport;
 
   constructor(config: SqliteApiConfig = {}) {
@@ -31,16 +39,30 @@ class SqliteApi {
     return this.transport.call<T>(command, args);
   }
 
-  listDatabases(): Promise<SqliteDatabaseInfo[]> {
-    return this.call("list_sqlite_databases");
+  async listDatabases(): Promise<SqliteDatabaseInfo[]> {
+    const databases = await this.call<SqliteDatabaseInfo[]>("list_sqlite_databases");
+    assertSchema(databases, SqliteDatabaseListSchema);
+    return databases;
   }
 
-  listTables(database: string): Promise<SqliteTableInfo[]> {
-    return this.call("get_sqlite_tables", { database });
+  async listTables(database: string): Promise<SqliteTableInfo[]> {
+    const tables = await this.call<SqliteTableInfo[]>("get_sqlite_tables", { database });
+    assertSchema(tables, SqliteTableListSchema);
+    return tables;
   }
 
-  getRows(database: string, table: string, query: SqliteRowsQuery): Promise<SqliteRowsPage> {
-    return this.call("get_sqlite_rows", { database, table, ...query });
+  async getRows(
+    database: string,
+    table: string,
+    query: SqliteRowsQuery
+  ): Promise<SqliteRowsPage> {
+    const page = await this.call<SqliteRowsPage>("get_sqlite_rows", {
+      database,
+      table,
+      ...query,
+    });
+    assertSchema(page, SqliteRowsPageSchemaCompiled);
+    return page;
   }
 
   writeExport(path: string, content: string): Promise<void> {
@@ -78,16 +100,25 @@ class SqliteApi {
     return this.call("update_sqlite_cell", { database, table, column, keys, value });
   }
 
-  listBackups(database: string): Promise<SqliteBackupInfo[]> {
-    return this.call("list_sqlite_backups", { database });
+  async listBackups(database: string): Promise<SqliteBackupInfo[]> {
+    const backups = await this.call<SqliteBackupInfo[]>("list_sqlite_backups", { database });
+    assertSchema(backups, SqliteBackupListSchema);
+    return backups;
   }
 
-  backupDatabase(database: string, keep = 5): Promise<SqliteBackupInfo> {
-    return this.call("backup_sqlite_database", { database, keep });
+  async backupDatabase(database: string, keep = 5): Promise<SqliteBackupInfo> {
+    const backup = await this.call<SqliteBackupInfo>("backup_sqlite_database", {
+      database,
+      keep,
+    });
+    assertSchema(backup, SqliteBackupSchemaCompiled);
+    return backup;
   }
 
-  vacuumDatabase(database: string): Promise<SqliteBackupInfo> {
-    return this.call("vacuum_sqlite_database", { database });
+  async vacuumDatabase(database: string): Promise<SqliteBackupInfo> {
+    const backup = await this.call<SqliteBackupInfo>("vacuum_sqlite_database", { database });
+    assertSchema(backup, SqliteBackupSchemaCompiled);
+    return backup;
   }
 
   restoreBackup(database: string, name: string): Promise<void> {

@@ -126,7 +126,13 @@ export function saveTheme(
   if (currentTheme === draft.name) setTheme(draft.name);
 }
 
-export function editorHeaderKey(patchMode: boolean, isEdit: boolean): TranslationKey {
+export function editorHeaderKey({
+  patchMode,
+  isEdit,
+}: {
+  patchMode: boolean;
+  isEdit: boolean;
+}): TranslationKey {
   if (patchMode) return "settings.theme.customize";
   if (isEdit) return "settings.theme.edit.title";
   return "settings.theme.create.title";

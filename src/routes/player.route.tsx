@@ -28,7 +28,8 @@ import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptRetry, reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { invokeTyped, invokeValidated } from "@/lib/core/system/invoke.utils";
+import { FileEntryListSchema, FolderScanResultListSchema } from "@/api/fileIndex.schema";
 import { showError, showErrorOnce } from "@/lib/core/ui/notification.utils";
 import { createCoalescedRunner } from "@/lib/core/shared/promise.utils";
 import { unwrapOr } from "@hullperse/hp_utils/result";
@@ -108,7 +109,7 @@ function PlayerRoute() {
     queryKey: queryKeys.playerFileSearch(debouncedSearch, videoExtensions),
     queryFn: async () => {
       const [results] = await attempt(
-        invokeTyped<FileSearchResult[]>("search_file_index", {
+        invokeValidated<FileSearchResult[]>("search_file_index", FileEntryListSchema, {
           query: debouncedSearch,
           extensions: videoExtensions,
           limit: 100,
@@ -285,7 +286,7 @@ function PlayerRoute() {
       const done = new Set<string>();
       const runScan = (): Promise<[FolderScanResult[], null] | [null, Error]> =>
         attempt(
-          invokeTyped<FolderScanResult[]>("scan_video_folders", {
+          invokeValidated<FolderScanResult[]>("scan_video_folders", FolderScanResultListSchema, {
             paths: savedFolderPaths,
             extensions: videoExtensions,
             threads: scanThreads,
@@ -399,7 +400,7 @@ function PlayerRoute() {
     });
 
     const [entries, scanError] = await attempt(
-      invokeTyped<VideoFileEntry[]>("scan_video_folder", {
+      invokeValidated<VideoFileEntry[]>("scan_video_folder", FileEntryListSchema, {
         path: folder,
         extensions: videoExtensions,
         threads: scanThreads,

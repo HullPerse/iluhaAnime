@@ -1,6 +1,7 @@
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
-import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { invokeValidated } from "@/lib/core/system/invoke.utils";
+import { FileEntryListSchema } from "@/api/fileIndex.schema";
 import { isSameOrInside, normalizePath } from "@/lib/core/watchers/pathsWatcher.utils";
 import type { VideoFileEntry } from "@/types/core/fs";
 import type {
@@ -33,13 +34,13 @@ interface PendingRequest {
 
 const scanExecutors: ScanExecutors = {
   walk: (roots, extensions, threads) =>
-    invokeTyped<VideoFileEntry[]>("refresh_file_index", {
+    invokeValidated<VideoFileEntry[]>("refresh_file_index", FileEntryListSchema, {
       paths: roots,
       extensions,
       threads,
     }),
   patch: (upserts, removals, extensions, threads) =>
-    invokeTyped<VideoFileEntry[]>("update_file_index_paths", {
+    invokeValidated<VideoFileEntry[]>("update_file_index_paths", FileEntryListSchema, {
       upserts,
       removals,
       extensions,

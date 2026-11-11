@@ -9,6 +9,7 @@ import type {
   AnilistAuthDeepLink,
   CollectionShareDeepLink,
   CollectionShareItem,
+  NewsDeepLink,
   PastedLink,
   StreamDeepLink,
   TorrentDeepLink,
@@ -40,6 +41,34 @@ export function buildTorrentLink(
   infoHash: TorrentHash
 ): `${typeof DEEP_LINK_SCHEME}://torrent/${string}` {
   return `${DEEP_LINK_SCHEME}://torrent/${infoHash.toLowerCase()}`;
+}
+/** The feed page travels with the id, so the post can be found again without paging around. */
+export function buildNewsLink(id: number, page: number): string {
+  return `${DEEP_LINK_SCHEME}://news/${id}?page=${page}`;
+}
+
+const NEWS_LINK_PREFIX = `${DEEP_LINK_SCHEME}://news/`;
+const NEWS_MAX_PAGE = 500;
+
+export function parseNewsLink(raw: string): NewsDeepLink | null {
+  const trimmed = raw.trim();
+  if (trimmed.toLowerCase().indexOf(NEWS_LINK_PREFIX) !== 0) return null;
+  const rest = trimmed.slice(NEWS_LINK_PREFIX.length);
+  if (rest.includes("#")) return null;
+  const queryStart = rest.indexOf("?");
+  const path = queryStart === -1 ? rest : rest.slice(0, queryStart);
+  const query = queryStart === -1 ? "" : rest.slice(queryStart + 1);
+  if (!/^\d{1,10}$/.test(path)) return null;
+  const id = Number(path);
+  if (!Number.isSafeInteger(id) || id < 1) return null;
+  let page = 1;
+  if (query !== "") {
+    const rawPage = new URLSearchParams(query).get("page");
+    if (rawPage === null || !/^\d{1,3}$/.test(rawPage)) return null;
+    page = Number(rawPage);
+    if (page < 1 || page > NEWS_MAX_PAGE) return null;
+  }
+  return { id, page };
 }
 
 export function parseTorrentLink(raw: string): TorrentDeepLink | null {
@@ -104,7 +133,8 @@ export function ingestDeepLinks(
   openTorrent?: (link: TorrentDeepLink) => void,
   openShare?: (rawUrl: string) => void,
   openAuth?: (link: AnilistAuthDeepLink) => void,
-  openStream?: (link: StreamDeepLink) => void
+  openStream?: (link: StreamDeepLink) => void,
+  openNews?: (link: NewsDeepLink) => void
 ): void {
   if (!Array.isArray(urls)) return;
   let bad = false;
@@ -122,6 +152,11 @@ export function ingestDeepLinks(
     }
     if (openShare && looksLikeCollectionShareLink(raw)) {
       openShare(raw);
+      continue;
+    }
+    const news = openNews ? parseNewsLink(raw) : null;
+    if (news && openNews) {
+      openNews(news);
       continue;
     }
     const anime = parseAnimeLink(raw);
@@ -159,6 +194,8 @@ export function parsePastedLink(text: string): PastedLink | "invalid" | null {
     if (stream) return { kind: "stream", link: stream };
     const torrent = parseTorrentLink(trimmed);
     if (torrent) return { kind: "torrent", link: torrent };
+    const news = parseNewsLink(trimmed);
+    if (news) return { kind: "news", link: news };
     return "invalid";
   }
   if (MAGNET_RX.test(trimmed)) return { kind: "magnet", magnet: trimmed };

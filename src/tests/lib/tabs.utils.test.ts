@@ -17,6 +17,7 @@ afterEach(() => {
     torrentTabEnabled: true,
     playerTabEnabled: true,
     streamTabEnabled: true,
+    newsTabEnabled: true,
     gameTabUnlocked: false,
   });
 });
@@ -30,6 +31,7 @@ describe("tabs visibility", () => {
       "/anilist",
       "/stream",
       "/collection",
+      "/news",
       "/settings",
     ]);
   });
@@ -61,6 +63,7 @@ describe("tabs visibility", () => {
       torrentTabEnabled: false,
       playerTabEnabled: false,
       streamTabEnabled: false,
+      newsTabEnabled: false,
     });
 
     expect(enabledTabPaths()).toEqual(["/settings"]);

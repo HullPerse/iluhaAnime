@@ -557,7 +557,7 @@ mod tracker_tests {
         validate_session_config, validate_tracker_url, with_fallback_trackers, SequentialPlan,
         FALLBACK_TRACKERS,
     };
-    use crate::torrent::{FileOrder, FilePriority, SessionConfig};
+    use crate::torrent::types::{FileOrder, FilePriority, SessionConfig};
 
     fn names(entries: &[&str]) -> Vec<String> {
         entries.iter().map(|entry| (*entry).to_string()).collect()

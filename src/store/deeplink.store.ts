@@ -6,6 +6,7 @@ import type {
   AnilistAuthDeepLink,
   CollectionShareDeepLink,
   DeepLinkStore,
+  NewsDeepLink,
   StreamDeepLink,
   TorrentDeepLink,
 } from "@/types/core/deeplink";
@@ -22,7 +23,9 @@ type DeepLinkActionKeys =
   | "openShare"
   | "consumeShare"
   | "openAuth"
-  | "consumeAuth";
+  | "consumeAuth"
+  | "openNews"
+  | "consumeNews";
 
 type DeepLinkData = Omit<DeepLinkStore, DeepLinkActionKeys>;
 type DeepLinkAtoms = { [K in keyof DeepLinkData]: Cell<DeepLinkData[K]> };
@@ -34,6 +37,7 @@ const DEFAULT_DEEPLINK_DATA: DeepLinkData = {
   magnetTarget: null,
   shareTarget: null,
   authTarget: null,
+  newsTarget: null,
 };
 
 interface DeepLinkSignalStore {
@@ -51,6 +55,8 @@ interface DeepLinkSignalStore {
   consumeShare: () => void;
   openAuth: (link: AnilistAuthDeepLink) => void;
   consumeAuth: () => void;
+  openNews: (link: NewsDeepLink) => void;
+  consumeNews: () => void;
 }
 
 function createDeepLinkSignalStore(): DeepLinkSignalStore {
@@ -72,6 +78,8 @@ function createDeepLinkSignalStore(): DeepLinkSignalStore {
     consumeShare: () => atoms.shareTarget.set(null),
     openAuth: (link) => atoms.authTarget.set(link),
     consumeAuth: () => atoms.authTarget.set(null),
+    openNews: (link) => atoms.newsTarget.set(link),
+    consumeNews: () => atoms.newsTarget.set(null),
   };
 }
 
@@ -93,3 +101,5 @@ export const openShareDeepLink = deeplinks.openShare;
 export const consumeShareDeepLink = deeplinks.consumeShare;
 export const openAuthDeepLink = deeplinks.openAuth;
 export const consumeAuthDeepLink = deeplinks.consumeAuth;
+export const openNewsDeepLink = deeplinks.openNews;
+export const consumeNewsDeepLink = deeplinks.consumeNews;

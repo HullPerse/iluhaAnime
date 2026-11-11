@@ -1,4 +1,5 @@
 export const queryKeys = {
+  newsFeed: (page: number, proxy: string) => ["news_feed", page, proxy] as const,
   customEmoji: () => ["custom-emoji"] as const,
   torrents: () => ["torrents"] as const,
   torrentFiles: (id: number) => ["torrent-files", id] as const,

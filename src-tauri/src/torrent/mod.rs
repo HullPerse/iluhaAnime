@@ -8,7 +8,7 @@ pub mod types;
 
 pub use manager::TorrentManager;
 pub use types::{
-    CreatedTorrent, DhtStatus, FileOrder, FilePriority, PartialLeftover, SessionConfig,
+    CreatedTorrent, DhtStatus, FilePriority, PartialLeftover, SessionConfig,
     TorrentCheckResult,
     TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentOrigin,
     TorrentResumeResult,

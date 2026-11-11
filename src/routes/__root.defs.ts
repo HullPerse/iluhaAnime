@@ -61,6 +61,11 @@ export const gameRoute = createRoute({
   path: "/game",
 });
 
+export const newsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/news",
+});
+
 export const settingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/settings",

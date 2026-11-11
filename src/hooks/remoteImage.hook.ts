@@ -80,6 +80,19 @@ export function resetRemoteImageCache(): void {
   streamCoverQueue.reset();
 }
 
+/** Downloads a remote image into the Rust cache and returns its local file path. */
+export function fetchRemoteImagePath(
+  remoteUrl: string,
+  proxyUrl?: string | null
+): Promise<string | null> {
+  return invokeTyped<UserImageFile>("fetch_remote_image", {
+    url: remoteUrl,
+    proxyUrl: proxyUrl ?? undefined,
+  })
+    .then((image) => image?.path ?? null)
+    .catch(() => null);
+}
+
 export function toSizedThumbUrl(url: string): string {
   if (url.includes("image.tmdb.org")) return url.replace(/\/w\d+\//u, "/w92/");
   return url;

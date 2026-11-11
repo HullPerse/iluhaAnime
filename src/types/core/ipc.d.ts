@@ -153,6 +153,7 @@ export type CommandName =
   | "nekobt_set_api_key"
   | "network_diagnose"
   | "network_probe"
+  | "news_feed"
   | "optimize_unified_index"
   | "patch_collection_item"
   | "pause_torrent"

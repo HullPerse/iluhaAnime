@@ -136,6 +136,7 @@ export interface SettingsStore {
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
   streamTabEnabled: boolean;
+  newsTabEnabled: boolean;
   gameTabUnlocked: boolean;
   rememberLastTab: boolean;
   gameVolume: number;
@@ -143,6 +144,7 @@ export interface SettingsStore {
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
   anilistProxyUrl: string | null;
+  newsProxyUrl: string | null;
   animelibProxyUrl: string | null;
   anilistTitleLanguage: AniTitlePreference;
   anilistAdultContent: boolean;
@@ -217,7 +219,8 @@ export type TabId =
   | "collection"
   | "settings"
   | "game"
-  | "stream";
+  | "stream"
+  | "news";
 
 export type TorrentCoverMode = "off" | "pages" | "full";
 
@@ -263,6 +266,7 @@ export type TabSettings = Pick<
   | "torrentTabEnabled"
   | "playerTabEnabled"
   | "streamTabEnabled"
+  | "newsTabEnabled"
   | "gameTabUnlocked"
 >;
 

@@ -48,6 +48,11 @@ export interface AnilistAuthDeepLink {
   readonly accessToken: string;
 }
 
+export interface NewsDeepLink {
+  readonly id: number;
+  readonly page: number;
+}
+
 export interface DeepLinkStore {
   target: AnimeDeepLink | null;
   openAnime: (link: AnimeDeepLink) => void;
@@ -67,6 +72,9 @@ export interface DeepLinkStore {
   authTarget: AnilistAuthDeepLink | null;
   openAuth: (link: AnilistAuthDeepLink) => void;
   consumeAuth: () => void;
+  newsTarget: NewsDeepLink | null;
+  openNews: (link: NewsDeepLink) => void;
+  consumeNews: () => void;
 }
 
 export type PastedLink =
@@ -74,4 +82,5 @@ export type PastedLink =
   | { kind: "stream"; link: StreamDeepLink }
   | { kind: "torrent"; link: TorrentDeepLink }
   | { kind: "magnet"; magnet: string }
+  | { kind: "news"; link: NewsDeepLink }
   | { kind: "collectionShare" };

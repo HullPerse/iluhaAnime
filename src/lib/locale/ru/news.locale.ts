@@ -1,0 +1,26 @@
+const news = {
+  "news.attachments": "Вложения",
+  "news.empty": "Новостей нет",
+  "news.error.badShape": "Shikimori вернул неожиданный ответ",
+  "news.error.blocked": "Shikimori заблокировал запрос. Проверьте прокси новостей",
+  "news.error.unreachable": "Не удалось связаться с Shikimori",
+  "news.images": "Изображения",
+  "news.more.attachments": "Ещё {{count}} вложений",
+  "news.more.attachments.one": "Ещё {{count}} вложение",
+  "news.more.attachments.few": "Ещё {{count}} вложения",
+  "news.more.attachments.many": "Ещё {{count}} вложений",
+  "news.open": "Открыть новость",
+  "news.openImage": "Открыть изображение",
+  "news.openSite": "Открыть на сайте",
+  "news.openVideo": "Открыть видео на сайте",
+  "news.page": "Страница {{page}}",
+  "news.playVk": "Воспроизвести видео VK",
+  "news.playVideo": "Воспроизвести видео",
+  "news.refresh": "Обновить",
+  "news.refreshing": "Обновление",
+  "news.retry": "Повторить",
+  "news.share": "Копировать ссылку",
+  "news.share.copied": "Ссылка скопирована",
+} as const;
+
+export default news;

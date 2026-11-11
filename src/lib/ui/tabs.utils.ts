@@ -13,6 +13,7 @@ function tabSettingsSnapshot(): TabSettings {
     torrentTabEnabled: settingsAtoms.torrentTabEnabled.get(),
     playerTabEnabled: settingsAtoms.playerTabEnabled.get(),
     streamTabEnabled: settingsAtoms.streamTabEnabled.get(),
+    newsTabEnabled: settingsAtoms.newsTabEnabled.get(),
     gameTabUnlocked: settingsAtoms.gameTabUnlocked.get(),
   };
 }

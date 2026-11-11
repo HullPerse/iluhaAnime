@@ -39,6 +39,7 @@ beforeEach(() => {
     anilistTabEnabled: true,
     collectionTabEnabled: true,
     streamTabEnabled: true,
+    newsTabEnabled: true,
     gameTabUnlocked: true,
   });
   mockInvoke.mockImplementation((command: string) => {
@@ -73,6 +74,7 @@ describe("route surfaces", () => {
     ["/stream", () => screen.getByRole("button", { name: "Filters" })],
     ["/settings?tab=general", () => screen.getByText("General")],
     ["/game", () => screen.getByText("ROM library")],
+    ["/news", () => screen.getByRole("button", { name: "Refresh" })],
   ];
 
   it.each(surfaces)("mounts the real %s surface", async (href, findSurface) => {

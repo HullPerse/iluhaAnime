@@ -73,6 +73,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   ],
   "proxy.tmdb": ["tmdbKeySet", "tmdbProxyUrl"],
   "proxy.anilist": ["anilistProxyUrl", "anilistTitleLanguage", "anilistAdultContent"],
+  "proxy.news": ["newsProxyUrl"],
   "proxy.animelib": ["animelibProxyUrl"],
   "proxy.torrent": ["torrentProxyUrl"],
   "proxy.sources": ["searchProxyUrls", "webviewProxyEnabled"],

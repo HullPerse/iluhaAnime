@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import { newsApi } from "@/api/news.api";
 import { tmdbApi } from "@/api/tmdb.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -25,6 +26,7 @@ export default function SettingsProxy() {
   const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
   const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
+  const newsProxyUrl = useCell(settingsAtoms.newsProxyUrl);
   const anilistTitleLanguage = useCell(settingsAtoms.anilistTitleLanguage);
   const anilistAdultContent = useCell(settingsAtoms.anilistAdultContent);
   const [tmdbInput, setTmdbInput] = useState<string>("");
@@ -166,6 +168,25 @@ export default function SettingsProxy() {
               </label>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="ui-panel" data-find-section="proxy.news">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
+          <span className="text-title-text font-bold">{t("settings.news.proxy.title")}</span>
+          <SectionResetButton sectionId="proxy.news" />
+        </div>
+        <div className="flex flex-col gap-2 p-2">
+          <span className="text-hint text-xs">{t("settings.news.proxy.description")}</span>
+          <ProxyField
+            label={t("settings.news.proxy.url")}
+            value={newsProxyUrl}
+            onChange={(next) => patchSettings({ newsProxyUrl: next })}
+            test={() => newsApi.testConnection(newsProxyUrl)}
+            testOkLabel={t("settings.anilist.proxy.test.ok")}
+            testFailLabel={t("settings.anilist.proxy.test.fail")}
+            testDisabled={!isOnline}
+          />
         </div>
       </section>
 

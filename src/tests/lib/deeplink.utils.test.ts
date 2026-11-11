@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildAnimeLink,
   buildCollectionShareLink,
+  buildNewsLink,
   buildStreamLink,
   buildTorrentLink,
   ingestDeepLinks,
@@ -10,6 +11,7 @@ import {
   parseAnilistAuthCallback,
   parseAnilistPageUrl,
   parseCollectionShareLink,
+  parseNewsLink,
   parsePastedLink,
   parseStreamLink,
   parseTorrentLink,
@@ -133,6 +135,54 @@ describe("utils/deeplink", () => {
 
       expect(streams).toEqual([SLUG]);
       expect(anime).toEqual([]);
+    });
+  });
+
+  describe("news links", () => {
+    it("builds and parses a link with the feed page", () => {
+      const link = buildNewsLink(101, 3);
+      expect(link).toBe("iluhaanime://news/101?page=3");
+      expect(parseNewsLink(link)).toEqual({ id: 101, page: 3 });
+    });
+
+    it("defaults the page to one", () => {
+      expect(parseNewsLink("iluhaanime://news/101")).toEqual({ id: 101, page: 1 });
+    });
+
+    it("rejects ids and pages that cannot come from the feed", () => {
+      for (const raw of [
+        "iluhaanime://news/0",
+        "iluhaanime://news/abc",
+        "iluhaanime://news/101?page=0",
+        "iluhaanime://news/101?page=9999",
+        "iluhaanime://news/101?page=x",
+        "iluhaanime://news/101#frag",
+        "iluhaanime://topics/101",
+        "https://shikimori.io/topic/101",
+      ]) {
+        expect(parseNewsLink(raw)).toBeNull();
+      }
+    });
+
+    it("routes a news link to the news handler", () => {
+      const opened: unknown[] = [];
+      let invalid = 0;
+      ingestDeepLinks(
+        [buildNewsLink(101, 2)],
+        () => {
+          throw new Error("should not open anime");
+        },
+        () => {
+          invalid += 1;
+        },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        (link) => opened.push(link)
+      );
+      expect(opened).toEqual([{ id: 101, page: 2 }]);
+      expect(invalid).toBe(0);
     });
   });
 
@@ -341,6 +391,13 @@ describe("utils/deeplink", () => {
       ).toEqual({
         kind: "magnet",
         magnet: "magnet:?xt=urn:btih:ABCDEF0123456789ABCDEF0123456789ABCDEF01",
+      });
+    });
+
+    it("routes news links to the news kind", () => {
+      expect(parsePastedLink("iluhaanime://news/101?page=2")).toEqual({
+        kind: "news",
+        link: { id: 101, page: 2 },
       });
     });
 

@@ -31,6 +31,7 @@ export default function SettingsGeneral() {
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
   const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
+  const newsTabEnabled = useCell(settingsAtoms.newsTabEnabled);
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
@@ -123,6 +124,15 @@ export default function SettingsGeneral() {
                   />
                   <span className="text-xs">{t("settings.stream.tab")}</span>
                   <StreamTabNote />
+                </label>
+              </div>
+              <div className="group flex items-center gap-1">
+                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
+                  <Checkbox
+                    checked={newsTabEnabled}
+                    onChange={(v) => patchSettings({ newsTabEnabled: v })}
+                  />
+                  <span className="text-xs">{t("settings.news.tab")}</span>
                 </label>
               </div>
               <div className="group flex items-center gap-1">

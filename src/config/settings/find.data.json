@@ -9,6 +9,7 @@
         "settings.anilist.tab",
         "settings.stream.tab",
         "settings.stream.tab.russianOnly",
+        "settings.news.tab",
         "settings.sqlite"
       ]
     },
@@ -102,6 +103,16 @@
         "settings.anilist.title.native",
         "settings.anilist.adult",
         "settings.anilist.adult.description"
+      ]
+    },
+    {
+      "tab": "proxy",
+      "section": "news",
+      "titleKey": "settings.news.proxy.title",
+      "keys": [
+        "settings.news.proxy.title",
+        "settings.news.proxy.description",
+        "settings.news.proxy.url"
       ]
     },
     {

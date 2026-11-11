@@ -16,6 +16,7 @@ describe("tabs/paths", () => {
       "settings",
       "game",
       "stream",
+      "news",
     ]);
     for (const id of ids) {
       expect(tabPathFromId(id)).toBe(TAB_PATHS[id]);

@@ -255,5 +255,13 @@ export default defineConfig({
         "max-depth": "off",
       },
     },
+    {
+      // VK's video_ext player breaks inside a sandboxed frame in WebView2, so the frame stays
+      // unrestricted and the reader offers an explicit copy to open on the site instead.
+      files: ["src/components/shared/lightbox/vkEmbed.media.tsx"],
+      rules: {
+        "react/iframe-missing-sandbox": "off",
+      },
+    },
   ],
 });

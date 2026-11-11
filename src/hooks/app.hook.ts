@@ -42,6 +42,7 @@ import {
   openAnimeDeepLink,
   openAuthDeepLink,
   openMagnetDeepLink,
+  openNewsDeepLink,
   openShareDeepLink,
   openStreamDeepLink,
   openTorrentDeepLink,
@@ -83,6 +84,7 @@ export function useApp() {
   const torrentTabEnabled = useCell(settingsAtoms.torrentTabEnabled);
   const playerTabEnabled = useCell(settingsAtoms.playerTabEnabled);
   const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
+  const newsTabEnabled = useCell(settingsAtoms.newsTabEnabled);
   const gameTabUnlocked = useCell(settingsAtoms.gameTabUnlocked);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
   const language = useCell(settingsAtoms.language);
@@ -103,6 +105,7 @@ export function useApp() {
       torrentTabEnabled,
       playerTabEnabled,
       streamTabEnabled,
+      newsTabEnabled,
       gameTabUnlocked,
     }).map((tab) => ({
       ...tab,
@@ -167,6 +170,7 @@ export function useApp() {
     torrentTabEnabled,
     playerTabEnabled,
     streamTabEnabled,
+    newsTabEnabled,
     gameTabUnlocked,
   }).map((tab, index) => ({
     id: tab.id,
@@ -308,6 +312,18 @@ export function useApp() {
           }
           openStreamDeepLink(link);
           goToTab("stream");
+        },
+        (link) => {
+          if (!settingsAtoms.newsTabEnabled.get()) {
+            showError(t("common.error"), t("anilist.details.link.invalid"));
+            return;
+          }
+          if (!isOnline) {
+            showWarning(t("network.offline.title"), t("network.action.unavailable"));
+            return;
+          }
+          openNewsDeepLink(link);
+          goToTab("news");
         }
       );
     },
@@ -337,6 +353,17 @@ export function useApp() {
   );
 
   useEffect(() => {
+    const ensureTab = (enabled: boolean): boolean => {
+      if (!enabled) {
+        showError(t("common.error"), t("anilist.details.link.invalid"));
+        return false;
+      }
+      if (!isOnline) {
+        showWarning(t("network.offline.title"), t("network.action.unavailable"));
+        return false;
+      }
+      return true;
+    };
     const ensureTorrentTab = (): boolean => {
       if (!settingsAtoms.torrentTabEnabled.get()) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
@@ -360,26 +387,16 @@ export function useApp() {
       }
       event.preventDefault();
       if (parsed.kind === "anime") {
-        if (!settingsAtoms.anilistTabEnabled.get()) {
-          showError(t("common.error"), t("anilist.details.link.invalid"));
-          return;
-        }
-        if (!isOnline) {
-          showWarning(t("network.offline.title"), t("network.action.unavailable"));
-          return;
-        }
+        if (!ensureTab(settingsAtoms.anilistTabEnabled.get())) return;
         openAnimeDeepLink(parsed.link);
       } else if (parsed.kind === "stream") {
-        if (!settingsAtoms.streamTabEnabled.get()) {
-          showError(t("common.error"), t("anilist.details.link.invalid"));
-          return;
-        }
-        if (!isOnline) {
-          showWarning(t("network.offline.title"), t("network.action.unavailable"));
-          return;
-        }
+        if (!ensureTab(settingsAtoms.streamTabEnabled.get())) return;
         openStreamDeepLink(parsed.link);
         goToTab("stream");
+      } else if (parsed.kind === "news") {
+        if (!ensureTab(settingsAtoms.newsTabEnabled.get())) return;
+        openNewsDeepLink(parsed.link);
+        goToTab("news");
       } else if (parsed.kind === "torrent") {
         if (!ensureTorrentTab()) return;
         openTorrentDeepLink(parsed.link);
@@ -443,6 +460,20 @@ export function useApp() {
       const next = deeplinkAtoms.shareTarget.get();
       if (next && next !== previousShare) switchToCollection();
       previousShare = next;
+    });
+  }, [goToTab]);
+
+  useEffect(() => {
+    const switchToNews = () => {
+      if (!settingsAtoms.newsTabEnabled.get()) return;
+      goToTab("news");
+    };
+    if (deeplinkAtoms.newsTarget.get()) switchToNews();
+    let previousNews = deeplinkAtoms.newsTarget.get();
+    return subscribeDeepLink(() => {
+      const next = deeplinkAtoms.newsTarget.get();
+      if (next && next !== previousNews) switchToNews();
+      previousNews = next;
     });
   }, [goToTab]);
 

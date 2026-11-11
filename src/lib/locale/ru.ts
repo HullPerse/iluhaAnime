@@ -23,6 +23,7 @@ import collection from "@/lib/locale/ru/collection.locale";
 import common from "@/lib/locale/ru/common.locale";
 import discord from "@/lib/locale/ru/discord.locale";
 import game from "@/lib/locale/ru/game.locale";
+import news from "@/lib/locale/ru/news.locale";
 import keyboard from "@/lib/locale/ru/keyboard.locale";
 import player from "@/lib/locale/ru/player.locale";
 import screenshot from "@/lib/locale/ru/screenshot.locale";
@@ -58,6 +59,7 @@ const ru = {
   ...collection,
   ...discord,
   ...game,
+  ...news,
   ...player,
   ...screenshot,
   ...search,

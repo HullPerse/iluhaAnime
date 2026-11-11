@@ -57,6 +57,7 @@ const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   anilist: () => import("@/routes/anilist.route"),
   collection: () => import("@/routes/collection.route"),
   game: () => import("@/routes/game.route"),
+  news: () => import("@/routes/news.route"),
   player: () => import("@/routes/player.route"),
   search: () => import("@/routes/search.route"),
   settings: () => import("@/routes/settings.route"),

@@ -23,6 +23,7 @@ import collection from "@/lib/locale/en/collection.locale";
 import common from "@/lib/locale/en/common.locale";
 import discord from "@/lib/locale/en/discord.locale";
 import game from "@/lib/locale/en/game.locale";
+import news from "@/lib/locale/en/news.locale";
 import keyboard from "@/lib/locale/en/keyboard.locale";
 import player from "@/lib/locale/en/player.locale";
 import screenshot from "@/lib/locale/en/screenshot.locale";
@@ -58,6 +59,7 @@ const en = {
   ...collection,
   ...discord,
   ...game,
+  ...news,
   ...player,
   ...screenshot,
   ...search,

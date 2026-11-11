@@ -18,6 +18,7 @@ mod app_db;
 mod discord;
 mod netdiag;
 mod network;
+mod news;
 mod setup;
 mod startup;
 mod sync_utils;
@@ -2273,6 +2274,7 @@ pub fn run() {
             user_assets::import_dither_image,
             user_assets::download_remote_image,
             user_assets::fetch_remote_image,
+            news::commands::news_feed,
             user_assets::list_user_images,
             user_assets::get_remote_images_stats,
             user_assets::clear_remote_image_cache,

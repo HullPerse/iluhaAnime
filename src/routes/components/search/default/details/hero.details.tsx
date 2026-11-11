@@ -1,17 +1,8 @@
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { save } from "@tauri-apps/plugin-dialog";
-import { Copy, Link, Save } from "lucide-react";
-
 import ContextMenu from "@/components/shared/contextMenu.component";
-import type { ContextMenuEntry } from "@/types/ui/contextMenu";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useImageMenuEntries } from "@/hooks/imageMenu.hook";
 import { formatSize } from "@/lib/search/searchFormat.utils";
-import { attempt } from "@hullperse/hp_utils/attempt";
-import { systemApi } from "@/api/system.api";
-import { showError } from "@/lib/core/ui/notification.utils";
-import { ignore } from "@/lib/core/shared/promise.utils";
-import { canCopyPosterUrl, posterPngBlob } from "@/lib/torrent/poster.utils";
 import TorrentActions from "@/routes/components/search/default/actions.search";
 import type { Source } from "@/types/search/search";
 import type { Anime, TorrentView } from "@/types/torrent/torrent";
@@ -46,96 +37,7 @@ export default function DetailsHero({
   const { t } = useI18n();
 
   const posterSrc: string | null = hidePoster ? null : poster;
-
-  const copyPosterUrl = (): void => {
-    if (!posterSrc) return;
-    ignore(
-      attempt(writeText(posterSrc)).then(([, error]) => {
-        if (error) showError(t("common.error"), t("screenshot.copy.error"));
-        return null;
-      })
-    );
-  };
-
-  const copyPosterImage = (): void => {
-    if (!posterSrc) return;
-    const src = posterSrc;
-    ignore(
-      attempt(posterPngBlob(src)).then(([blob, fetchError]) => {
-        if (fetchError || !blob) {
-          showError(t("common.error"), t("screenshot.copy.error"));
-          return;
-        }
-        ignore(
-          attempt(navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])).then(
-            ([, writeError]) => {
-              if (writeError) showError(t("common.error"), t("screenshot.copy.error"));
-              return null;
-            }
-          )
-        );
-        return null;
-      })
-    );
-  };
-
-  const savePosterImage = (): void => {
-    if (!posterSrc) return;
-    const src = posterSrc;
-    ignore(
-      attempt(posterPngBlob(src)).then(([blob, fetchError]) => {
-        if (fetchError || !blob) {
-          showError(t("common.error"), t("screenshot.save.error"));
-          return;
-        }
-        ignore(
-          (async () => {
-            const base = src.split("?")[0]?.split("/").pop()?.trim() || "poster";
-            const [picked, dialogError] = await attempt(
-              save({
-                defaultPath: `${base}.png`,
-                filters: [{ name: "PNG images", extensions: ["png"] }],
-              })
-            );
-            if (dialogError || !picked) {
-              if (dialogError) showError(t("common.error"), t("screenshot.save.error"));
-              return;
-            }
-            const bytes = new Uint8Array(await blob.arrayBuffer());
-            const [, saveError] = await attempt(systemApi.savePosterBytes([...bytes], picked));
-            if (saveError) showError(t("common.error"), t("screenshot.save.error"));
-          })()
-        );
-        return null;
-      })
-    );
-  };
-
-  const posterMenuEntries: ContextMenuEntry[] = [
-    {
-      kind: "item",
-      id: "save",
-      label: "search.details.image.save",
-      icon: Save,
-      onSelect: savePosterImage,
-    },
-    {
-      kind: "item",
-      id: "copy",
-      label: "search.details.image.copy",
-      icon: Copy,
-      onSelect: copyPosterImage,
-    },
-  ];
-  if (posterSrc && canCopyPosterUrl(posterSrc)) {
-    posterMenuEntries.push({
-      kind: "item",
-      id: "copy-url",
-      label: "search.details.image.copy.url",
-      icon: Link,
-      onSelect: copyPosterUrl,
-    });
-  }
+  const posterMenuEntries = useImageMenuEntries(posterSrc);
 
   return (
     <div className="windows95-border bg-surface flex flex-col gap-2 p-1.5 sm:flex-row">

@@ -6,6 +6,7 @@ const common = {
   "app.torrent": "Торрент",
   "app.collection": "Коллекция",
   "app.stream": "Стриминг",
+  "app.news": "Новости",
   "common.close": "Закрыть",
   "common.cancel": "Отмена",
   "common.back": "Назад",

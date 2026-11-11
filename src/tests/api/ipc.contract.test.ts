@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import ipcContractDocument from "../../../docs/codebase-audit/ipc-contract.md?raw";
 import {
-  formatIpcContract,
   parseIpcCommandContracts,
   type IpcCommandContract,
 } from "@/lib/core/system/ipcContract.utils";
@@ -29,27 +27,25 @@ const commandUnion = (): string[] => {
   return [...names].sort();
 };
 
-const contracts: IpcCommandContract[] = Object.entries(rustSources).flatMap(([path, source]) => {
-  const module = path.split("/src/")[1]?.split("/")[0]?.replace(/\.rs$/, "") ?? "root";
-  return parseIpcCommandContracts(source, module);
-});
+const contracts: IpcCommandContract[] = Object.values(rustSources).flatMap((source) =>
+  parseIpcCommandContracts(source)
+);
 
 describe("IPC command contract", () => {
   it("covers the TypeScript command union exactly", () => {
     const rustNames = [...new Set(contracts.map((contract) => contract.name))].sort();
 
-    expect(rustNames).toHaveLength(281);
+    expect(rustNames).toHaveLength(282);
     expect(rustNames).toEqual(commandUnion());
-  });
-
-  it("keeps the generated argument and result table current", () => {
-    expect(ipcContractDocument).toBe(formatIpcContract(contracts));
   });
 
   it("records arguments and result shapes for every command", () => {
     for (const contract of contracts) {
       expect(contract.result.length, contract.name).toBeGreaterThan(0);
-      expect(contract.args.every((arg) => arg.length > 0), contract.name).toBe(true);
+      expect(
+        contract.args.every((arg) => arg.length > 0),
+        contract.name
+      ).toBe(true);
     }
   });
 

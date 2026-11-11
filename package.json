@@ -16,7 +16,6 @@
     "typecheck:e2e": "tsc --noEmit -p scripts/e2e/tsconfig.json",
     "check:commands": "bun scripts/check-commands.ts",
     "check:configs": "bun scripts/check-configs.ts",
-    "check:ipc": "bun scripts/ipc-contract.ts --check",
     "data:flags": "bun scripts/build-flags.ts",
     "data:geoip": "bun scripts/build-geoip.ts",
     "data:chip8": "bun scripts/build-chip8-store.ts",

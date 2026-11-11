@@ -2444,6 +2444,7 @@ pub fn run() {
             screenshot::copy_screenshot,
             screenshot::discard_screenshot,
             poster::save_poster_bytes,
+            poster::save_cached_image,
             repro::collect_repro_bundle,
             search_file_index,
             game::game_start,

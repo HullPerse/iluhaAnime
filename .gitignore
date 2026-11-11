@@ -35,6 +35,7 @@ public/icons
 
 # local agent tooling and internal notes; AGENTS.md is the tracked contract
 .agents
+AGENTS.md
 skills-lock.json
 .docs
 # debug outputs

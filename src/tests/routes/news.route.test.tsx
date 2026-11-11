@@ -1,4 +1,10 @@
-import { mockInvoke, mockOpenUrl, mockWriteText } from "@/tests/mocks";
+import {
+  mockDialogSave,
+  mockInvoke,
+  mockOpenUrl,
+  mockWriteImage,
+  mockWriteText,
+} from "@/tests/mocks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import NewsRoute from "@/routes/news.route";
 import { consumeNewsDeepLink, openNewsDeepLink } from "@/store/deeplink.store";
 import { patchSettings } from "@/store/settings.store";
+import type { UserImageFile } from "@/types/core/userimage";
 import type { NewsItem, NewsPage } from "@/types/news/news";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -83,6 +90,39 @@ const openReader = async (title: string) => {
   return screen.getByRole("dialog");
 };
 
+const CACHED_IMAGE_PATH = "C:/cache/images/remote_images/a1b164675a47232e556f.webp";
+
+const openImageMenu = (): Element => {
+  const trigger = screen.getByRole("dialog").querySelector("div.contents");
+  if (!trigger) throw new Error("image context menu trigger missing");
+  return trigger;
+};
+
+const cachedImage = (): UserImageFile => ({
+  id: "a1b164675a47232e556f",
+  name: "remote-image",
+  mimeType: "image/webp",
+  path: CACHED_IMAGE_PATH,
+  originalPath: null,
+  version: null,
+  createdAt: 0,
+  source: "remote",
+});
+
+const mockImageCommands = (): void => {
+  mockInvoke.mockImplementation((command: string, args?: Record<string, unknown>) => {
+    if (command === "news_feed") {
+      const page = pages[Number(args?.page ?? 1)];
+      return page === undefined
+        ? Promise.reject(new Error("unreachable: no such page"))
+        : Promise.resolve(page);
+    }
+    if (command === "fetch_remote_image") return Promise.resolve(cachedImage());
+    if (command === "save_cached_image") return Promise.resolve("C:/out/full.webp");
+    return Promise.reject(new Error(`unexpected ${command}`));
+  });
+};
+
 beforeEach(() => {
   consumeNewsDeepLink();
   mockInvoke.mockImplementation((command: string, args?: Record<string, unknown>) => {
@@ -122,9 +162,7 @@ describe("news route", () => {
 
     const dialog = await openReader(first.title);
 
-    expect(within(dialog).getAllByText(/Звёздный поток бежит навстречу/).length).toBeGreaterThan(
-      0
-    );
+    expect(within(dialog).getAllByText(/Звёздный поток бежит навстречу/).length).toBeGreaterThan(0);
     expect(mockOpenUrl).not.toHaveBeenCalled();
   });
 
@@ -167,12 +205,52 @@ describe("news route", () => {
 
     const dialog = await openReader(first.title);
     await userEvent.click(within(dialog).getAllByRole("button", { name: "Open image" })[0]);
-    const trigger = screen.getByRole("dialog").querySelector("div.contents");
-    if (!trigger) throw new Error("image context menu trigger missing");
-    fireEvent.contextMenu(trigger);
+    fireEvent.contextMenu(openImageMenu());
 
     await waitFor(() => screen.getByRole("menuitem", { name: "Copy image" }));
     expect(screen.getByRole("menuitem", { name: "Save image as..." })).toBeTruthy();
+  });
+
+  it("copies the full-size cached attachment instead of the preview", async () => {
+    mockImageCommands();
+    mockWriteImage.mockResolvedValue(undefined);
+    renderRoute();
+
+    const dialog = await openReader(first.title);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Open image" })[0]);
+    fireEvent.contextMenu(openImageMenu());
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Copy image" }));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("fetch_remote_image", {
+        url: "https://shikimori.io/a/full.jpg",
+        full: true,
+      })
+    );
+    await waitFor(() => expect(mockWriteImage).toHaveBeenCalledWith(CACHED_IMAGE_PATH));
+  });
+
+  it("saves the cached attachment bytes under the detected format", async () => {
+    mockImageCommands();
+    mockDialogSave.mockResolvedValue("C:/out/full.webp");
+    renderRoute();
+
+    const dialog = await openReader(first.title);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Open image" })[0]);
+    fireEvent.contextMenu(openImageMenu());
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Save image as..." }));
+
+    await waitFor(() =>
+      expect(mockDialogSave).toHaveBeenCalledWith(
+        expect.objectContaining({ defaultPath: "full.webp" })
+      )
+    );
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("save_cached_image", {
+        source: CACHED_IMAGE_PATH,
+        path: "C:/out/full.webp",
+      })
+    );
   });
 
   it("opens the source page only from the explicit action", async () => {

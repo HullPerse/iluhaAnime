@@ -62,6 +62,12 @@ fn images_dir(app: &tauri::AppHandle, table: &str) -> Result<PathBuf, String> {
     Ok(assets_root(app)?.join("images").join(table))
 }
 
+/// The directory `fetch_remote_image` writes into; `save_cached_image` only
+/// reads files that resolve inside it.
+pub(crate) fn remote_images_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    images_dir(app, REMOTE_IMAGES_TABLE)
+}
+
 pub fn is_safe_asset_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 128
@@ -777,7 +783,7 @@ pub async fn download_remote_image(
     get_user_image(app, id)
 }
 
-fn lookup_remote_image(dir: &Path, conn: &Connection, url: &str) -> Option<UserImage> {
+fn lookup_remote_image_row(dir: &Path, conn: &Connection, url: &str) -> Option<UserImage> {
     let (id, name, mime_type): (String, String, String) = conn
         .query_row(
             "SELECT id, name, mime_type FROM remote_images WHERE url = ?1",
@@ -785,17 +791,25 @@ fn lookup_remote_image(dir: &Path, conn: &Connection, url: &str) -> Option<UserI
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .ok()?;
-    let image =
-        user_image_from_row(id.clone(), name, mime_type, SOURCE_REMOTE.to_string(), dir).ok()?;
-    let thumb = remote_thumb_file(dir, &id);
-    if thumb.is_file() {
-        return Some(UserImage {
-            path: thumb.to_string_lossy().into_owned(),
-            mime_type: "image/jpeg".to_string(),
-            ..image
-        });
+    user_image_from_row(id, name, mime_type, SOURCE_REMOTE.to_string(), dir).ok()
+}
+
+/// Points a cached row at its 336 px thumbnail when one exists: the webview
+/// only needs the small copy to paint an attachment or a cover.
+fn remote_image_with_thumb(dir: &Path, image: UserImage) -> UserImage {
+    let thumb = remote_thumb_file(dir, &image.id);
+    if !thumb.is_file() {
+        return image;
     }
-    Some(image)
+    UserImage {
+        path: thumb.to_string_lossy().into_owned(),
+        mime_type: "image/jpeg".to_string(),
+        ..image
+    }
+}
+
+fn lookup_remote_image(dir: &Path, conn: &Connection, url: &str) -> Option<UserImage> {
+    lookup_remote_image_row(dir, conn, url).map(|image| remote_image_with_thumb(dir, image))
 }
 
 fn evict_remote_image_cache(dir: &Path, conn: &Connection, cap: i64) -> Result<(), String> {
@@ -825,6 +839,7 @@ pub async fn fetch_remote_image(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
     referer: Option<String>,
+    full: Option<bool>,
 ) -> Result<UserImage, String> {
     let url = url.trim();
     if url.is_empty() || url.len() > 4_096 {
@@ -842,9 +857,17 @@ pub async fn fetch_remote_image(
             return Err("Image referer must use http(s)".to_string());
         }
     }
+    // `full` is the export switch used by "Save image as..." and "Copy image":
+    // those must get the cached original, never the 336 px display thumbnail.
+    let full_size = full.unwrap_or(false);
     let dir = images_dir(&app, REMOTE_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    if let Some(image) = lookup_remote_image(&dir, &conn, url) {
+    let cached = if full_size {
+        lookup_remote_image_row(&dir, &conn, url)
+    } else {
+        lookup_remote_image(&dir, &conn, url)
+    };
+    if let Some(image) = cached {
         return Ok(image);
     }
     let proxy = resolve_proxy(proxy_url, proxyUrl);
@@ -885,16 +908,18 @@ pub async fn fetch_remote_image(
     .map_err(|e| format!("save cached image: {e}"))?;
     evict_remote_image_cache(&dir, &conn, REMOTE_IMAGE_CACHE_CAP)?;
     if let Some(thumb_path) = write_remote_thumb(&dir, &id, &data) {
-        return Ok(UserImage {
-            id: id.clone(),
-            name: "remote-image".to_string(),
-            path: thumb_path.to_string_lossy().into_owned(),
-            version: None,
-            original_path: None,
-            mime_type: "image/jpeg".to_string(),
-            created_at: 0,
-            source: SOURCE_REMOTE.to_string(),
-        });
+        if !full_size {
+            return Ok(UserImage {
+                id: id.clone(),
+                name: "remote-image".to_string(),
+                path: thumb_path.to_string_lossy().into_owned(),
+                version: None,
+                original_path: None,
+                mime_type: "image/jpeg".to_string(),
+                created_at: 0,
+                source: SOURCE_REMOTE.to_string(),
+            });
+        }
     }
     user_image_from_row(
         id,

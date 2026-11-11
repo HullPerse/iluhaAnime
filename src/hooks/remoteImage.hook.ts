@@ -80,15 +80,13 @@ export function resetRemoteImageCache(): void {
   streamCoverQueue.reset();
 }
 
-/** Downloads a remote image into the Rust cache and returns its local file path. */
-export function fetchRemoteImagePath(
-  remoteUrl: string,
-  proxyUrl?: string | null
-): Promise<string | null> {
-  return invokeTyped<UserImageFile>("fetch_remote_image", {
-    url: remoteUrl,
-    proxyUrl: proxyUrl ?? undefined,
-  })
+/**
+ * Downloads a remote image into the Rust cache and returns its full-size file
+ * path, never the 336 px display thumbnail. Save and copy must export the
+ * original bytes, so they ask the command for the export copy explicitly.
+ */
+export function fetchRemoteImageSource(remoteUrl: string): Promise<string | null> {
+  return invokeTyped<UserImageFile>("fetch_remote_image", { url: remoteUrl, full: true })
     .then((image) => image?.path ?? null)
     .catch(() => null);
 }

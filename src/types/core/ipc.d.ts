@@ -212,6 +212,7 @@ export type CommandName =
   | "rutracker_set_cookies"
   | "rutracker_webview_login"
   | "save_anilist_entry"
+  | "save_cached_image"
   | "save_created_torrent"
   | "report_startup"
   | "save_poster_bytes"

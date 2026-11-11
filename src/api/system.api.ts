@@ -158,6 +158,10 @@ export class SystemApi {
     return this.call("save_poster_bytes", { data, path });
   }
 
+  saveCachedImage(source: string, path: string): Promise<string> {
+    return this.call("save_cached_image", { source, path });
+  }
+
   downloadFfmpeg(source: string): Promise<string> {
     return this.call("download_ffmpeg", { source });
   }

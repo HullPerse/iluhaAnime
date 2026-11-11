@@ -33,7 +33,7 @@ public/icons
 
 .playwright-mcp
 
-# local agent tooling and internal notes; AGENTS.md is the tracked contract
+# local agent tooling and internal notes; AGENTS.md is the local contract
 .agents
 AGENTS.md
 skills-lock.json

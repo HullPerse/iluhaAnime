@@ -46,7 +46,10 @@ function returnType(source: string, start: number): string {
     if (char === "<" || char === "(" || char === "[") depth += 1;
     if (char === ">" || char === ")" || char === "]") depth -= 1;
     if (char === "{" && depth === 0) {
-      return source.slice(arrow + 2, index).replace(/\s+/g, " ").trim();
+      return source
+        .slice(arrow + 2, index)
+        .replace(/\s+/g, " ")
+        .trim();
     }
   }
   return "";

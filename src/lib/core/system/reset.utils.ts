@@ -18,7 +18,13 @@ function toResettableSettings(
 }
 
 const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)[]> = {
-  "general.tabs": ["collectionTabEnabled", "anilistTabEnabled", "sqliteBrowserEnabled"],
+  "general.tabs": [
+    "newsTabEnabled",
+    "streamTabEnabled",
+    "collectionTabEnabled",
+    "anilistTabEnabled",
+    "sqliteBrowserEnabled",
+  ],
   "general.startup": ["fastLaunch", "rememberLastTab"],
   "general.keyboard": ["vimMode"],
   "general.window": ["minimizeToTray"],

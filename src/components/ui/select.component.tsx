@@ -158,7 +158,7 @@ function Select<T extends string = string>({
                 <BaseSelect.Item
                   key={o.value}
                   value={o.value}
-                  className="windows95-text windows95-border text-text data-highlighted:bg-highlight data-selected:bg-primary/70 hover:text-title-text data-highlighted:text-title-text flex cursor-pointer items-center gap-1 px-1 py-0.5 data-selected:font-bold"
+                  className="windows95-text windows95-border text-text data-highlighted:bg-highlight data-selected:bg-primary/70 data-highlighted:not-data-selected:text-title-text flex cursor-pointer items-center gap-1 px-1 py-0.5 data-selected:font-bold"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >

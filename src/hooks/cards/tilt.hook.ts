@@ -8,6 +8,9 @@ function resetTilt(target: HTMLElement): void {
   target.style.setProperty("--cards-tilt-y", "0deg");
   target.style.setProperty("--cards-tilt-shift-x", "50%");
   target.style.setProperty("--cards-tilt-shift-y", "50%");
+  target.style.setProperty("--cards-tilt-deg-x", "0");
+  target.style.setProperty("--cards-tilt-deg-y", "0");
+  target.style.setProperty("--cards-tilt-strength", "0");
 }
 
 export function useCardTilt(enabled: boolean) {
@@ -39,6 +42,14 @@ export function useCardTilt(enabled: boolean) {
       target.style.setProperty("--cards-tilt-y", `${(x * maxY).toFixed(1)}deg`);
       target.style.setProperty("--cards-tilt-shift-x", `${(35 + (x + 0.5) * 30).toFixed(1)}%`);
       target.style.setProperty("--cards-tilt-shift-y", `${(35 + (y + 0.5) * 30).toFixed(1)}%`);
+      // Unitless angles let the finishes do real math in CSS: the foil band
+      // slides with rotateY and holo hue shifts with it, like a real surface.
+      target.style.setProperty("--cards-tilt-deg-x", (-y * maxX).toFixed(2));
+      target.style.setProperty("--cards-tilt-deg-y", (x * maxY).toFixed(2));
+      target.style.setProperty(
+        "--cards-tilt-strength",
+        Math.min(1, Math.max(Math.abs(x), Math.abs(y)) * 2).toFixed(2)
+      );
     },
     { wait: 16 }
   );

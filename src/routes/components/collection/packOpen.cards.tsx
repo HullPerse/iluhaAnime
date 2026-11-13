@@ -1,10 +1,14 @@
 import { useCell } from "@hullperse/hp_utils/react";
 import { SkipForward } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
+import {
+  cancelRemoteImageQueue,
+  prefetchRemoteImages,
+  setRemoteImageScope,
+} from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { OpenedCard } from "@/types/api/cards";
@@ -15,6 +19,18 @@ import Reveal from "@/routes/components/collection/reveal.cards";
 const INTRO_MS = 3_200;
 
 type Phase = "intro" | "reveal";
+
+function packImageUrls(cards: readonly OpenedCard[]): string[] {
+  const urls: string[] = [];
+  for (const card of cards) {
+    if (card.imageUrl) urls.push(card.imageUrl);
+    if (card.collectionCoverUrl) urls.push(card.collectionCoverUrl);
+    for (const cover of card.collage) {
+      if (cover) urls.push(cover);
+    }
+  }
+  return urls;
+}
 
 export default function PackOpen({
   cards,
@@ -31,27 +47,39 @@ export default function PackOpen({
 }) {
   const { t } = useI18n();
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
-  const [phase, setPhase] = useState<Phase>(enableAnimations ? "intro" : "reveal");
+  const [phase, setPhase] = useState<Phase>("intro");
+  const [introFinished, setIntroFinished] = useState(false);
+  const [imagesReady, setImagesReady] = useState(false);
   const [flipped, setFlipped] = useState<ReadonlySet<number>>(() => new Set());
   const packRef = useRef<HTMLButtonElement>(null);
+  const images = useMemo(() => packImageUrls(cards), [cards]);
 
   useEffect(() => {
-    prefetchRemoteImages([
-      ...cards.map((item) => item.imageUrl),
-      ...cards.map((item) => item.collectionCoverUrl),
-      ...cards.flatMap((item) => item.collage),
-    ]);
-  }, [cards]);
+    setImagesReady(false);
+    setRemoteImageScope(images);
+    let cancelled = false;
+    prefetchRemoteImages(images)
+      .then(() => {
+        if (!cancelled) setImagesReady(true);
+        return null;
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      setRemoteImageScope(null);
+      cancelRemoteImageQueue();
+    };
+  }, [images]);
 
   useEffect(() => {
+    setIntroFinished(false);
     if (!enableAnimations) {
-      setPhase("reveal");
+      setIntroFinished(true);
       return;
     }
-    setPhase("intro");
     const pack = packRef.current;
     if (pack === null || typeof pack.animate !== "function") {
-      setPhase("reveal");
+      setIntroFinished(true);
       return;
     }
     let cancelled = false;
@@ -73,7 +101,7 @@ export default function PackOpen({
     );
     animation.finished
       .then(() => {
-        if (!cancelled) setPhase("reveal");
+        if (!cancelled) setIntroFinished(true);
         return null;
       })
       .catch(() => undefined);
@@ -82,6 +110,10 @@ export default function PackOpen({
       animation.cancel();
     };
   }, [enableAnimations, introMs]);
+
+  useEffect(() => {
+    if (phase === "intro" && introFinished && imagesReady) setPhase("reveal");
+  }, [phase, introFinished, imagesReady]);
 
   const flip = (index: number) => {
     setFlipped((current) => {
@@ -94,6 +126,7 @@ export default function PackOpen({
 
   const skipIntro = () => {
     packRef.current?.getAnimations().forEach((animation) => animation.cancel());
+    setIntroFinished(true);
     setPhase("reveal");
   };
 

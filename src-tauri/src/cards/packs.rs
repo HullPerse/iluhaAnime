@@ -44,6 +44,7 @@ pub struct OpenedCard {
 /// Test packs use an id prefix as their guarantee marker; the pack row stays
 /// exactly the same shape as every other pack.
 const TEST_LEGENDARY_PREFIX: &str = "legendary-test-";
+const TEST_EFFECTS_PREFIX: &str = "effects-test-";
 const PREPARE_BATCH: i64 = 5;
 const PREPARE_MAX_ATTEMPTS: i64 = 5;
 const PREPARE_IMAGE_LIMIT: usize = 24;
@@ -66,6 +67,10 @@ impl Drop for PrepareRunningGuard {
 
 fn is_test_legendary_pack(pack_id: &str) -> bool {
     pack_id.starts_with(TEST_LEGENDARY_PREFIX)
+}
+
+fn is_test_effects_pack(pack_id: &str) -> bool {
+    pack_id.starts_with(TEST_EFFECTS_PREFIX)
 }
 
 /// A copy the user already owns pays this much more on opening, so a duplicate
@@ -348,17 +353,55 @@ fn guarantee_minimum_rarity(cards: &mut [GeneratedCard], minimum: CardRarity) {
     ));
 }
 
+/// Test-only: lay the new finishes out across the pack instead of leaving them
+/// to the random variant roll. The anime card moves to slot 0 so the frosted
+/// art edge is visible without hunting for it.
+fn arrange_effects_showcase(cards: &mut [GeneratedCard]) {
+    if let Some(index) = cards.iter().position(|card| card.card.kind == CardKind::Anime) {
+        cards.swap(0, index);
+    }
+    const SHOWCASE: [(CardRarity, CardVariant); 7] = [
+        (CardRarity::Common, CardVariant::Foil),
+        (CardRarity::Epic, CardVariant::Foil),
+        (CardRarity::Legendary, CardVariant::Foil),
+        (CardRarity::Rare, CardVariant::Holo),
+        (CardRarity::Epic, CardVariant::Holo),
+        (CardRarity::Legendary, CardVariant::Holo),
+        (CardRarity::Legendary, CardVariant::Normal),
+    ];
+    for (card, (rarity, variant)) in cards.iter_mut().zip(SHOWCASE.into_iter()) {
+        card.card.rarity = rarity;
+        card.card.variant = variant;
+        card.card.value = i64::from(card_value(
+            card.card.kind,
+            rarity,
+            variant,
+            card.node.score,
+        ));
+    }
+}
+
 async fn generate_pack_contents(
     app: &AppHandle,
     pack: &CardPackRow,
     proxy: Option<&str>,
 ) -> Result<Vec<GeneratedCard>, String> {
     let mut plan_rng = Rng::new(pack.seed as u64 ^ 0x9E37_79B9_7F4A_7C15);
-    let needs = pack_needs(&pack.pack_kind, pack.size as usize, &mut plan_rng)?;
+    let needs = if is_test_effects_pack(&pack.id) {
+        vec![
+            (CardKind::Anime, 1),
+            (CardKind::Character, pack.size.saturating_sub(1) as usize),
+        ]
+    } else {
+        pack_needs(&pack.pack_kind, pack.size as usize, &mut plan_rng)?
+    };
     let nodes = sample_cards(app, &needs, pack.seed as u64, proxy).await?;
     let mut generated = generate_cards(nodes, pack.seed as u64);
     if is_test_legendary_pack(&pack.id) {
         guarantee_minimum_rarity(&mut generated, CardRarity::Legendary);
+    }
+    if is_test_effects_pack(&pack.id) {
+        arrange_effects_showcase(&mut generated);
     }
     if generated.len() != pack.size as usize {
         return Err("card pack size changed while preparing".into());
@@ -750,6 +793,15 @@ pub fn cards_grant_test_legendary_pack(app: AppHandle) -> Result<CardPackRow, St
     Ok(pack)
 }
 
+/// A test pack that always shows every new finish: matte and gold foil, holo,
+/// pressed legendary text and frosted anime art.
+#[tauri::command]
+pub fn cards_grant_test_effects_pack(app: AppHandle) -> Result<CardPackRow, String> {
+    let pack = grant_test_pack(app.clone(), TEST_EFFECTS_PREFIX)?;
+    spawn_prepare_packs(app);
+    Ok(pack)
+}
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn cards_open_pack(
@@ -922,6 +974,35 @@ mod tests {
         assert!(is_test_legendary_pack("legendary-test-123"));
         assert!(!is_test_legendary_pack("test-123"));
         assert!(!is_test_legendary_pack("buy-123"));
+    }
+
+    #[test]
+    fn the_effects_test_pack_id_is_recognisable() {
+        assert!(is_test_effects_pack("effects-test-123"));
+        assert!(!is_test_effects_pack("test-123"));
+        assert!(!is_test_effects_pack("legendary-test-123"));
+    }
+
+    #[test]
+    fn the_effects_test_pack_shows_every_finish() {
+        let nodes = (1..=7).map(|id| node(id, 5.0)).collect();
+        let mut cards = generate_cards(nodes, 7);
+        arrange_effects_showcase(&mut cards);
+
+        assert_eq!(cards[0].card.rarity, CardRarity::Common);
+        assert_eq!(cards[0].card.variant, CardVariant::Foil);
+        assert_eq!(cards[2].card.variant, CardVariant::Foil);
+        assert_eq!(cards[2].card.rarity, CardRarity::Legendary);
+        assert_eq!(cards[3].card.variant, CardVariant::Holo);
+        assert_eq!(cards[5].card.rarity, CardRarity::Legendary);
+        assert_eq!(cards[5].card.variant, CardVariant::Holo);
+        assert_eq!(cards[6].card.rarity, CardRarity::Legendary);
+        assert_eq!(cards[6].card.variant, CardVariant::Normal);
+        assert!(cards.iter().all(|card| card.card.value >= 1));
+        assert!(
+            cards[5].card.value > cards[3].card.value,
+            "holo value must follow its new rarity"
+        );
     }
 
     #[test]

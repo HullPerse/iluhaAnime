@@ -42,6 +42,7 @@ export interface AniMedia {
   episodes: number | null;
   duration: number | null;
   format: string | null;
+  source?: string | null;
   status: string;
   score: number | null;
   genres: string[];

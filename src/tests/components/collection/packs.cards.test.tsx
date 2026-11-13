@@ -31,6 +31,10 @@ beforeEach(() => {
       granted = true;
       return Promise.resolve(makePack({ id: "legendary-test-1" }));
     }
+    if (command === "cards_grant_test_effects_pack") {
+      granted = true;
+      return Promise.resolve(makePack({ id: "effects-test-1" }));
+    }
     return Promise.resolve(null);
   });
 });
@@ -81,6 +85,18 @@ describe("collection packs", () => {
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_grant_test_legendary_pack", undefined)
+    );
+    expect(await screen.findAllByText("Standard pack")).not.toHaveLength(0);
+  });
+
+  it("grants the effects test pack from the album menu", async () => {
+    renderWithCardsClient(<CollectionShell />);
+
+    await screen.findByText("No packs yet. Complete a title to earn packs.");
+    await grantFromAlbumMenu("Effects pack");
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("cards_grant_test_effects_pack", undefined)
     );
     expect(await screen.findAllByText("Standard pack")).not.toHaveLength(0);
   });

@@ -372,6 +372,7 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
             episodes: m["episodes"].as_i64().map(|n| n as i32),
             duration: None,
             format: None,
+            source: None,
             status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
             score: m["averageScore"].as_f64().map(|n| n.round() as i32),
             genres: m["genres"]
@@ -685,9 +686,67 @@ pub async fn get_anilist_friend_scores(
             parse_friend_score(&json["data"][alias.as_str()], user_id)
         },
     )
-    .await?;
-    Ok(outcome.values)
+    .await;
+    match outcome {
+        Ok(outcome) => Ok(outcome.values),
+        Err(error) => {
+            // One private or deleted friend makes AniList reject the whole
+            // alias batch with a GraphQL 404 ("Private User"), losing every
+            // other score. Retry one friend per request and skip only the
+            // friends the API refuses.
+            tracing::warn!(
+                error = error.as_str(),
+                "friend score batch failed; retrying per friend"
+            );
+            Ok(load_friend_scores_individually(
+                &token,
+                media_id,
+                user_ids,
+                proxy.as_deref(),
+            )
+            .await)
+        }
+    }
 }
+
+async fn load_friend_scores_individually(
+    token: &str,
+    media_id: u64,
+    user_ids: Vec<u64>,
+    proxy: Option<&str>,
+) -> Vec<AniFriendScore> {
+    let mut tasks = tokio::task::JoinSet::new();
+    for user_id in user_ids {
+        let token = token.to_string();
+        let proxy = proxy.map(str::to_string);
+        tasks.spawn(async move {
+            let body = serde_json::json!({
+                "query": friend_score_query(&[user_id]),
+                "variables": { "mediaId": media_id as i64 }
+            });
+            match graphql_request(body, Some(&token), proxy.as_deref()).await {
+                Ok(json) => parse_friend_score(&json["data"]["f0"], user_id),
+                Err(error) => {
+                    tracing::warn!(
+                        user_id,
+                        error = error.as_str(),
+                        "friend score skipped"
+                    );
+                    None
+                }
+            }
+        });
+    }
+    let mut values = Vec::new();
+    while let Some(result) = tasks.join_next().await {
+        if let Ok(Some(value)) = result {
+            values.push(value);
+        }
+    }
+    values.sort_by_key(|value| value.user_id);
+    values
+}
+
 #[tauri::command]
 pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
     delete_secret(ANILIST_CREDENTIAL);

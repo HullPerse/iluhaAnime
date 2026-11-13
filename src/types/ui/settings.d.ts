@@ -62,6 +62,7 @@ export interface SettingsStore {
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
   enableAnimations: boolean;
+  cardEffects: "off" | "subtle" | "full";
   modalBackdropOpacity: number;
   animateCounters: boolean;
   animateToasts: boolean;

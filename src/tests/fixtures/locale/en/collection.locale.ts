@@ -281,6 +281,8 @@ const collection = {
   "collection.testTools.hint": "Grants exactly one pack.",
   "collection.testTools.legendary": "Legendary pack",
   "collection.testTools.legendary.hint": "Grants a pack with a guaranteed legendary card.",
+  "collection.testTools.effects": "Effects pack",
+  "collection.testTools.effects.hint": "Grants a pack with foil and holo across rarities.",
   "collection.testTools.granted": "Pack added.",
   "collection.testTools.error": "Could not grant a test pack.",
   "collection.packs.empty": "No packs yet. Complete a title to earn packs.",

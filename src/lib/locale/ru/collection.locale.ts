@@ -55,6 +55,8 @@ const collection = {
   "collection.testTools.hint": "Выдаёт ровно один пак.",
   "collection.testTools.legendary": "Легендарный пак",
   "collection.testTools.legendary.hint": "Выдаёт пак с гарантированной легендарной картой.",
+  "collection.testTools.effects": "Пак эффектов",
+  "collection.testTools.effects.hint": "Выдаёт пак с фойлом и холо всех редкостей.",
   "collection.testTools.granted": "Пак добавлен.",
   "collection.testTools.error": "Не удалось выдать тестовый пак.",
   "collection.packs.empty": "Пока нет паков. Заверши тайтл, чтобы получить пак.",

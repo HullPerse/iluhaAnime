@@ -1,4 +1,5 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use futures::StreamExt;
 use rusqlite::{params, Connection};
 use serde::Serialize;
 use sha1::{Digest, Sha1};
@@ -24,6 +25,11 @@ const REMOTE_SOURCE_NAMES: [&str; 3] = ["collection-cover", "remote-cover", "rem
 
 static THUMB_GENERATION: LazyLock<Mutex<HashMap<String, tokio_util::sync::CancellationToken>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+static IMAGE_CLIENTS: LazyLock<Mutex<HashMap<String, reqwest::Client>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static IMAGE_DOWNLOAD_SLOTS: LazyLock<tokio::sync::Semaphore> =
+    LazyLock::new(|| tokio::sync::Semaphore::new(4));
+static ASSETS_DB_READY: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(|| Mutex::new(None));
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -139,6 +145,26 @@ fn open_database_at(path: &Path) -> Result<Connection, String> {
 
 fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
     open_database_at(&database_path(app)?)
+}
+
+/// Hot-path connection for image caching. The first open initializes the
+/// assets schema; later opens skip the DDL and source backfill that otherwise
+/// run for every cover the album paints.
+fn open_assets_database(app: &tauri::AppHandle) -> Result<Connection, String> {
+    let path = database_path(app)?;
+    let ready = {
+        let guard = crate::sync_utils::lock_or_recover(&ASSETS_DB_READY, "assets db readiness");
+        guard.as_deref() == Some(path.as_path())
+    };
+    if ready {
+        let conn = Connection::open(&path).map_err(|e| format!("open assets db: {e}"))?;
+        conn.busy_timeout(Duration::from_secs(5))
+            .map_err(|e| format!("assets db timeout: {e}"))?;
+        return Ok(conn);
+    }
+    let conn = open_database_at(&path)?;
+    *crate::sync_utils::lock_or_recover(&ASSETS_DB_READY, "assets db readiness") = Some(path);
+    Ok(conn)
 }
 
 /// Adds the `source` column to pre-existing `user_images` tables and backfills it.
@@ -657,21 +683,31 @@ fn client_for_image_proxy(
     proxy: Option<&str>,
     user_agent: &str,
 ) -> Result<reqwest::Client, String> {
-    if let Some(url) = proxy {
+    let key = format!("{user_agent}\n{}", proxy.unwrap_or_default());
+    if let Some(client) = crate::sync_utils::lock_or_recover(&IMAGE_CLIENTS, "image http clients")
+        .get(&key)
+        .cloned()
+    {
+        return Ok(client);
+    }
+    let client = if let Some(url) = proxy {
         let proxy = reqwest::Proxy::all(url).map_err(|e| format!("Invalid proxy URL: {e}"))?;
         reqwest::Client::builder()
             .user_agent(user_agent)
             .proxy(proxy)
             .timeout(Duration::from_secs(15))
             .build()
-            .map_err(|e| format!("image http client (proxy): {e}"))
+            .map_err(|e| format!("image http client (proxy): {e}"))?
     } else {
         reqwest::Client::builder()
             .user_agent(user_agent)
             .timeout(Duration::from_secs(15))
             .build()
-            .map_err(|e| format!("image http client: {e}"))
-    }
+            .map_err(|e| format!("image http client: {e}"))?
+    };
+    crate::sync_utils::lock_or_recover(&IMAGE_CLIENTS, "image http clients")
+        .insert(key, client.clone());
+    Ok(client)
 }
 
 struct SiteImageAuth {
@@ -831,17 +867,14 @@ fn evict_remote_image_cache(dir: &Path, conn: &Connection, cap: i64) -> Result<(
     Ok(())
 }
 
-#[allow(non_snake_case)]
-#[tauri::command]
-pub async fn fetch_remote_image(
+async fn fetch_remote_image_core(
     app: tauri::AppHandle,
     url: String,
-    proxy_url: Option<String>,
-    proxyUrl: Option<String>,
+    proxy: Option<String>,
     referer: Option<String>,
-    full: Option<bool>,
+    full_size: bool,
 ) -> Result<UserImage, String> {
-    let url = url.trim();
+    let url = url.trim().to_string();
     if url.is_empty() || url.len() > 4_096 {
         return Err("Remote image URL is empty or too long".to_string());
     }
@@ -857,77 +890,170 @@ pub async fn fetch_remote_image(
             return Err("Image referer must use http(s)".to_string());
         }
     }
-    // `full` is the export switch used by "Save image as..." and "Copy image":
+    // `full_size` is the export switch used by "Save image as..." and "Copy image":
     // those must get the cached original, never the 336 px display thumbnail.
-    let full_size = full.unwrap_or(false);
     let dir = images_dir(&app, REMOTE_IMAGES_TABLE)?;
-    let conn = open_database(&app)?;
-    let cached = if full_size {
-        lookup_remote_image_row(&dir, &conn, url)
-    } else {
-        lookup_remote_image(&dir, &conn, url)
-    };
+    let lookup_app = app.clone();
+    let lookup_dir = dir.clone();
+    let lookup_url = url.clone();
+    let cached = tauri::async_runtime::spawn_blocking(move || {
+        let conn = open_assets_database(&lookup_app)?;
+        if full_size {
+            Ok::<Option<UserImage>, String>(lookup_remote_image_row(
+                &lookup_dir,
+                &conn,
+                &lookup_url,
+            ))
+        } else {
+            Ok::<Option<UserImage>, String>(lookup_remote_image(
+                &lookup_dir,
+                &conn,
+                &lookup_url,
+            ))
+        }
+    })
+    .await
+    .map_err(|e| format!("cached image lookup task: {e}"))??;
     if let Some(image) = cached {
         return Ok(image);
     }
-    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let client = client_for_image_proxy(proxy.as_deref(), "iluhaAnime/3.0")?;
-    let mut request = client.get(url);
-    // Some cover CDNs (AnimeLib's imglib) answer 403 unless the site's own
-    // page is named as the referer; the webview cannot send one itself.
-    if let Some(value) = referer {
-        request = request.header(reqwest::header::REFERER, value);
-    }
-    let response = request
-        .send()
+    let download_slot = IMAGE_DOWNLOAD_SLOTS
+        .acquire()
         .await
-        .map_err(|e| format!("cached image download: {e}"))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "cached image download failed: status {}",
-            response.status()
-        ));
+        .map_err(|_| "Image download slot is closed".to_string())?;
+    let mut data = Vec::new();
+    let mut body_error = String::new();
+    for attempt in 0..2 {
+        let mut request = client.get(&url);
+        // Some cover CDNs (AnimeLib's imglib) answer 403 unless the site's own
+        // page is named as the referer; the webview cannot send one itself.
+        if let Some(value) = referer {
+            request = request.header(reqwest::header::REFERER, value);
+        }
+        if attempt > 0 {
+            // A proxy or a stale keep-alive connection can break the body
+            // mid-stream ("error decoding response body"). Retry once on a
+            // fresh connection and ask for uncompressed bytes so a broken
+            // decoder cannot fail the whole cover.
+            request = request
+                .header(reqwest::header::ACCEPT_ENCODING, "identity")
+                .header(reqwest::header::CONNECTION, "close");
+        }
+        let response = request
+            .send()
+            .await
+            .map_err(|e| format!("cached image download: {e}"))?;
+        if !response.status().is_success() {
+            return Err(format!(
+                "cached image download failed: status {}",
+                response.status()
+            ));
+        }
+        match response.bytes().await {
+            Ok(bytes) => {
+                data = bytes.to_vec();
+                break;
+            }
+            Err(error) => body_error = format!("cached image body: {error}"),
+        }
     }
-    let data = response
-        .bytes()
-        .await
-        .map_err(|e| format!("cached image body: {e}"))?
-        .to_vec();
+    drop(download_slot);
     if data.is_empty() {
-        return Err("Downloaded image is empty".to_string());
+        return Err(if body_error.is_empty() {
+            "Downloaded image is empty".to_string()
+        } else {
+            body_error
+        });
     }
     let mime_type = image_mime(&data, None).ok_or_else(|| {
         "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string()
     })?;
-    let id = content_id(&data);
-    write_image_file(&dir, &format!("{id}.{}", mime_ext(mime_type)), &data)?;
-    conn.execute(
-        "INSERT OR REPLACE INTO remote_images (id, name, mime_type, created_at, url) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![id, "remote-image", mime_type, now_seconds(), url],
-    )
-    .map_err(|e| format!("save cached image: {e}"))?;
-    evict_remote_image_cache(&dir, &conn, REMOTE_IMAGE_CACHE_CAP)?;
-    if let Some(thumb_path) = write_remote_thumb(&dir, &id, &data) {
+    let save_app = app.clone();
+    let save_dir = dir;
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = open_assets_database(&save_app)?;
+        let id = content_id(&data);
+        write_image_file(&save_dir, &format!("{id}.{}", mime_ext(mime_type)), &data)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO remote_images (id, name, mime_type, created_at, url) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, "remote-image", mime_type, now_seconds(), url],
+        )
+        .map_err(|e| format!("save cached image: {e}"))?;
+        evict_remote_image_cache(&save_dir, &conn, REMOTE_IMAGE_CACHE_CAP)?;
         if !full_size {
-            return Ok(UserImage {
-                id: id.clone(),
-                name: "remote-image".to_string(),
-                path: thumb_path.to_string_lossy().into_owned(),
-                version: None,
-                original_path: None,
-                mime_type: "image/jpeg".to_string(),
-                created_at: 0,
-                source: SOURCE_REMOTE.to_string(),
-            });
+            if let Some(thumb_path) = write_remote_thumb(&save_dir, &id, &data) {
+                return Ok(UserImage {
+                    id: id.clone(),
+                    name: "remote-image".to_string(),
+                    path: thumb_path.to_string_lossy().into_owned(),
+                    version: None,
+                    original_path: None,
+                    mime_type: "image/jpeg".to_string(),
+                    created_at: 0,
+                    source: SOURCE_REMOTE.to_string(),
+                });
+            }
         }
+        user_image_from_row(
+            id,
+            "remote-image".into(),
+            mime_type.to_string(),
+            SOURCE_REMOTE.to_string(),
+            &save_dir,
+        )
+    })
+    .await
+    .map_err(|e| format!("cached image save task: {e}"))?
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn fetch_remote_image(
+    app: tauri::AppHandle,
+    url: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+    referer: Option<String>,
+    full: Option<bool>,
+) -> Result<UserImage, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    fetch_remote_image_core(app, url, proxy, referer, full.unwrap_or(false)).await
+}
+
+/// Batch display covers for grid prefetch: one IPC call, one shared HTTP client
+/// pool, and per-URL failures become `null` instead of failing the whole page.
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn fetch_remote_images(
+    app: tauri::AppHandle,
+    urls: Vec<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<Option<UserImage>>, String> {
+    if urls.len() > 32 {
+        return Err("At most 32 images per batch".to_string());
     }
-    user_image_from_row(
-        id,
-        "remote-image".into(),
-        mime_type.to_string(),
-        SOURCE_REMOTE.to_string(),
-        &dir,
-    )
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let mut results = vec![None; urls.len()];
+    let tasks = urls.into_iter().enumerate().map(|(index, url)| {
+        let app = app.clone();
+        let proxy = proxy.clone();
+        async move {
+            let image = fetch_remote_image_core(app, url, proxy, None, false)
+                .await
+                .ok();
+            (index, image)
+        }
+    });
+    let fetched: Vec<(usize, Option<UserImage>)> = futures::stream::iter(tasks)
+        .buffer_unordered(4)
+        .collect()
+        .await;
+    for (index, image) in fetched {
+        results[index] = image;
+    }
+    Ok(results)
 }
 
 #[derive(Debug, Serialize)]

@@ -63,6 +63,19 @@ export function cardSourceLabelKey(source: string): TranslationKey {
   return cardSourceLabelKeys[source] ?? "collection.source.other";
 }
 
+/// AniList MediaSource values. Unknown/new values fall back to a humanized
+/// enum name in the card detail instead of an empty line.
+export const animeSourceLabelKeys: Record<string, TranslationKey> = {
+  ORIGINAL: "anilist.filters.source.original",
+  MANGA: "anilist.filters.source.manga",
+  LIGHT_NOVEL: "anilist.filters.source.light.novel",
+  NOVEL: "anilist.filters.source.novel",
+  VISUAL_NOVEL: "anilist.filters.source.visual.novel",
+  VIDEO_GAME: "anilist.filters.source.video.game",
+  WEB_MANGA: "anilist.filters.source.web.manga",
+  OTHER: "anilist.filters.source.other",
+};
+
 export function packLabelKey(packKind: string): TranslationKey {
   if (packKind === "default") return "collection.packs.default";
   if (packKind in cardKindLabelKeys) return cardKindLabelKeys[packKind as CardKind];

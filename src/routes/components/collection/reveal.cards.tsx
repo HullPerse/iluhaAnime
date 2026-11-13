@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { useCell } from "@hullperse/hp_utils/react";
 
-import { useCardTilt } from "@/hooks/cards/tilt.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { settingsAtoms } from "@/store/settings.store";
 import { useRemoteImageStatus } from "@/hooks/remoteImage.hook";
 import type { OpenedCard } from "@/types/api/cards";
 
@@ -22,8 +19,9 @@ export default function Reveal({
   onFlip: (index: number) => void;
 }) {
   const { t } = useI18n();
-  const enableAnimations = useCell(settingsAtoms.enableAnimations);
-  const tilt = useCardTilt(enableAnimations);
+  // The reveal keeps the cards still: seven tilted, animated finishes on one
+  // screen made the flip and the intro noticeably janky. Same static face as
+  // the album, only the click flip moves.
   const [hoverReady, setHoverReady] = useState(false);
 
   const title =
@@ -50,14 +48,10 @@ export default function Reveal({
       aria-label={`${t("collection.reveal.card")}: ${title}`}
       aria-pressed={flipped}
       onClick={() => onFlip(index)}
-      onPointerMove={(event) => {
-        tilt.onPointerMove(event);
+      onPointerMove={() => {
         if (flipped) setHoverReady(true);
       }}
-      onPointerLeave={(event) => {
-        setHoverReady(false);
-        tilt.onPointerLeave(event);
-      }}
+      onPointerLeave={() => setHoverReady(false)}
     >
       <div className="cards-flip-inner">
         <div className="cards-face-front" aria-hidden={!flipped}>

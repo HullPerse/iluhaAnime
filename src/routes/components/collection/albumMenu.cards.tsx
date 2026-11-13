@@ -3,6 +3,7 @@ import {
   Infinity as InfinityIcon,
   MoreHorizontal,
   PackagePlus,
+  Palette,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -36,7 +37,8 @@ export default function AlbumMenu({
 }) {
   const { t } = useI18n();
   const bootstrap = useCardsBootstrap();
-  const { grantTestPack, grantTestLegendaryPack, resetCollection } = useCardsMutations();
+  const { grantTestPack, grantTestLegendaryPack, grantTestEffectsPack, resetCollection } =
+    useCardsMutations();
   const [confirmStep, setConfirmStep] = useState<ConfirmStep>(0);
   const testTools = bootstrap.data?.testToolsEnabled === true;
   const closeConfirm = () => setConfirmStep(0);
@@ -95,6 +97,14 @@ export default function AlbumMenu({
                 >
                   <Sparkles className="size-4" />
                   {t("collection.testTools.legendary")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={grantTestEffectsPack.isPending}
+                  title={t("collection.testTools.effects.hint")}
+                  onClick={() => grantTestEffectsPack.mutate()}
+                >
+                  <Palette className="size-4" />
+                  {t("collection.testTools.effects")}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </>

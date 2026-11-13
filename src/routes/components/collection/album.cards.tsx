@@ -8,6 +8,11 @@ import { useCardsCollection, useCardsCollectionInfinite } from "@/hooks/cards/qu
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import {
+  cancelRemoteImageQueue,
+  prefetchRemoteImages,
+  setRemoteImageScope,
+} from "@/hooks/remoteImage.hook";
+import {
   cardsAtoms,
   setCardsBinderPage,
   setCardsCollectionSort,
@@ -29,6 +34,17 @@ const GRID_PAGE_SIZE = 36;
 const GRID_INFINITE_PAGE_SIZE = 48;
 const SEARCH_DEBOUNCE_MS = 220;
 const SUGGESTION_LIMIT = 6;
+
+function cardImageUrls(cards: readonly CollectionItem[]): string[] {
+  const urls: string[] = [];
+  for (const card of cards) {
+    if (card.imageUrl) urls.push(card.imageUrl);
+    for (const cover of card.collage) {
+      if (cover) urls.push(cover);
+    }
+  }
+  return urls;
+}
 
 function suggestionTitles(cards: readonly CollectionItem[]): string[] {
   const titles: string[] = [];
@@ -208,11 +224,38 @@ export default function AlbumCards() {
   const lastPage = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
-  const loadedCards = infinite && view === "grid" ? gridCards : (data?.items ?? []);
+  const loadedCards = useMemo(
+    () => (infinite && view === "grid" ? gridCards : (data?.items ?? [])),
+    [data?.items, gridCards, infinite, view]
+  );
   const suggestions = suggestionTitles(loadedCards);
   const filtered = queryKind !== null || rarity !== null || query !== "";
   const activeSort = activeSortState(mode, sort, sortDir, collectionSort, collectionSortDir);
   const showPagination = paginationVisible(mode, view, infinite, total, data !== undefined);
+
+  useEffect(() => {
+    if (mode === "collections" || loadedCards.length === 0) {
+      setRemoteImageScope([]);
+      return;
+    }
+    const urls = cardImageUrls(loadedCards);
+    setRemoteImageScope(urls);
+    prefetchRemoteImages(urls).catch(() => undefined);
+  }, [loadedCards, mode]);
+
+  useEffect(
+    () => () => {
+      setRemoteImageScope(null);
+      cancelRemoteImageQueue();
+    },
+    []
+  );
+
+  const openCollectionPage = (animeId: number, kind: "anime" | "manga") => {
+    setRemoteImageScope(null);
+    cancelRemoteImageQueue();
+    setOpenCollection({ id: animeId, kind });
+  };
 
   const detail =
     selected === null ? null : (
@@ -225,7 +268,10 @@ export default function AlbumCards() {
         <CollectionPageCards
           animeId={openCollection.id}
           collectionKind={openCollection.kind}
-          onBack={() => setOpenCollection(null)}
+          onBack={() => {
+            setOpenCollection(null);
+            setRemoteImageScope(cardImageUrls(loadedCards));
+          }}
           onOpenCard={setSelected}
         />
         {detail}
@@ -281,7 +327,7 @@ export default function AlbumCards() {
           pageSize={pageSize}
           onRetry={() => collection.refetch()}
           onOpen={setSelected}
-          onOpenCollection={(id, kind) => setOpenCollection({ id, kind })}
+          onOpenCollection={openCollectionPage}
         />
       </div>
       {showPagination && (

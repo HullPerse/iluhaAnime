@@ -123,6 +123,7 @@ pub struct AniMedia {
     pub episodes: Option<i32>,
     pub duration: Option<i32>,
     pub format: Option<String>,
+    pub source: Option<String>,
     pub status: String,
     pub score: Option<i32>,
     pub genres: Vec<String>,
@@ -318,6 +319,7 @@ pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
         episodes: m["episodes"].as_i64().map(|n| n as i32),
         duration: m["duration"].as_i64().map(|n| n as i32),
         format: m["format"].as_str().map(String::from),
+        source: m["source"].as_str().map(String::from),
         status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
         score: m["averageScore"].as_i64().map(|n| n as i32),
         genres: m["genres"]
@@ -544,6 +546,7 @@ pub const MEDIA_CORE_SELECTION: &str = r"
 pub const MEDIA_LIST_EXTRA_SELECTION: &str = r"
                 synonyms
                 duration
+                source
                 status
                 genres
                 tags { name }

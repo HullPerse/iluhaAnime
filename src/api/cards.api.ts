@@ -78,6 +78,10 @@ export class CardsApi {
     );
   }
 
+  async grantTestEffectsPack(): Promise<CardPackRow> {
+    return assertSchema(await this.call("cards_grant_test_effects_pack"), CardPackSchema);
+  }
+
   async preparePacks(proxy: string | null = null): Promise<PackPreparation> {
     return assertSchema(
       await this.call("cards_prepare_packs", anilistProxyArgs(proxy)),

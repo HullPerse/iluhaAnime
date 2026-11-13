@@ -4,16 +4,20 @@ import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent } f
 
 import Modal from "@/components/shared/modal.component";
 import Select from "@/components/ui/select.component";
+import { anilistApi } from "@/api/anilist.api";
 import {
+  animeSourceLabelKeys,
   cardKindLabelKeys,
   cardRarityLabelKeys,
   cardVariantLabelKeys,
 } from "@/config/cards/labels.config";
 import { useAnilistSignedIn } from "@/hooks/anilist/session.hook";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useCardsMutations } from "@/hooks/cards/mutations.hook";
 import { useCardsCardVariants } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatCardDate, formatCardRelativeDate } from "@/lib/cards/format.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { CardVariant, CollectionItem } from "@/types/api/cards";
 
@@ -96,8 +100,23 @@ export default function CardDetail({
   const card =
     ownedVariants.find((entry) => entry.variant === pickedVariant) ?? item;
   const title = card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
-  const source = card.collectionTitle?.trim() || t("collection.detail.no.source");
   const animeId = animeIdOf(card);
+  // Anime cards carry no collection title, so their source line asks AniList
+  // for the adaptation source (original, manga, light novel, ...).
+  const animeQuery = useAppQuery("static", {
+    queryKey: queryKeys.animeScreen(animeId ?? 0),
+    queryFn: () => anilistApi.getAnimeById(animeId ?? 0),
+    enabled: card.kind === "anime" && animeId !== null,
+  });
+  const sourceMaterial = card.kind === "anime" ? (animeQuery.data?.source ?? null) : null;
+  const sourceLabelKey =
+    sourceMaterial === null ? undefined : animeSourceLabelKeys[sourceMaterial];
+  const source =
+    sourceLabelKey !== undefined
+      ? t(sourceLabelKey)
+      : sourceMaterial !== null
+        ? sourceMaterial.replaceAll("_", " ").toLowerCase()
+        : card.collectionTitle?.trim() || t("collection.detail.no.source");
   // Dates describe the card, not the finish, so switching the variant never
   // changes the "obtained" age shown here.
   const cardFirstAt = ownedVariants.reduce(
@@ -117,6 +136,14 @@ export default function CardDetail({
     if (rotator === null) return;
     rotator.style.setProperty("--cards-spin-x", `${rotateX.toFixed(2)}deg`);
     rotator.style.setProperty("--cards-spin-y", `${rotateY.toFixed(2)}deg`);
+    // The finishes read the same unitless angles the grid tilt writes, so the
+    // foil and holo follow the card while it is being spun by hand.
+    rotator.style.setProperty("--cards-tilt-deg-x", rotateX.toFixed(2));
+    rotator.style.setProperty("--cards-tilt-deg-y", rotateY.toFixed(2));
+    rotator.style.setProperty(
+      "--cards-tilt-strength",
+      Math.min(1, Math.max(Math.abs(rotateX) / HOVER_TILT_X, Math.abs(rotateY) / HOVER_TILT_Y)).toFixed(2)
+    );
   };
 
   const applySheen = (rect: DOMRect, clientX: number, clientY: number) => {
@@ -248,6 +275,7 @@ export default function CardDetail({
         isLoggedIn={signedIn}
         onTag={() => undefined}
         onGenre={() => undefined}
+        onBack={() => setOpenAnimeId(null)}
         onClose={() => setOpenAnimeId(null)}
       />
     );

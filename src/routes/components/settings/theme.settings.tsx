@@ -39,6 +39,7 @@ export default function SettingsTheme() {
   const { t } = useI18n();
   const currentTheme = useCell(themeAtoms.currentTheme);
   const retroStyle = useCell(settingsAtoms.retroStyle);
+  const cardEffects = useCell(settingsAtoms.cardEffects);
   const searchType = useCell(settingsAtoms.searchType);
   const playerType = useCell(settingsAtoms.playerType);
   const animeDetailWidth = useCell(settingsAtoms.animeDetailWidth);
@@ -384,6 +385,23 @@ export default function SettingsTheme() {
           <EffectsCheckbox label={t("settings.theme.3d.borders")} field="enable3dBorders" />
           <EffectsCheckbox label={t("settings.theme.button.press")} field="buttonPressEffect" />
           <EffectsCheckbox label={t("settings.theme.scrollbar")} field="customScrollbar" />
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
+            <span className="windows95-text text-text text-xs font-bold">
+              {t("settings.theme.effects.cards")}
+            </span>
+            <div className="group flex min-w-0 items-center gap-1">
+              <Combobox
+                value={cardEffects}
+                onChange={(value) => patchSettings({ cardEffects: value })}
+                options={[
+                  { value: "full", label: t("settings.theme.effects.cards.full") },
+                  { value: "subtle", label: t("settings.theme.effects.cards.subtle") },
+                  { value: "off", label: t("settings.theme.effects.cards.off") },
+                ]}
+                className="max-w-xs"
+              />
+            </div>
+          </div>
           <BackdropSlider />
 
           {importError && <span className="text-destructive">{importError}</span>}

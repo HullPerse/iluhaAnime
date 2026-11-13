@@ -80,7 +80,7 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
       });
       if (cleanupError !== null)
         reportBackgroundError("settings.signal.cleanup-lobby", cleanupError);
-      applyUiPreferences(state.retroStyle, state.uiDensity);
+      applyUiPreferences(state.retroStyle, state.uiDensity, state.cardEffects);
       applyWindowEffect(state.windowEffect);
       applyWindowChrome({
         customTitleBarEnabled: state.customTitleBarEnabled,
@@ -126,7 +126,11 @@ export function resetSettingsAtoms(): void {
 }
 
 settings.rehydrate();
-applyUiPreferences(settingsAtoms.retroStyle.get(), settingsAtoms.uiDensity.get());
+applyUiPreferences(
+  settingsAtoms.retroStyle.get(),
+  settingsAtoms.uiDensity.get(),
+  settingsAtoms.cardEffects.get()
+);
 applyWindowEffect(settingsAtoms.windowEffect.get());
 applyWindowTint(settingsAtoms.windowTintOpacity.get());
 applyYorhaScanlines(settingsAtoms.yorhaScanlinesEnabled.get());

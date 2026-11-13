@@ -48,19 +48,36 @@ function monogram(title: string): string {
   return letters.join("") || "?";
 }
 
+function StudioCover({ cover, title }: { cover: string; title: string }) {
+  const { src, failed } = useRemoteImageStatus(cover === "" ? null : cover);
+  if (cover === "") {
+    return (
+      <span className="cards-studio-letter" aria-hidden>
+        {monogram(title)}
+      </span>
+    );
+  }
+  const imageSrc = src ?? (failed ? cover : null);
+  if (imageSrc === null) {
+    return (
+      <div
+        className="bg-surface h-full w-full animate-pulse motion-reduce:animate-none"
+        aria-hidden
+      />
+    );
+  }
+  return (
+    <img src={imageSrc} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+  );
+}
+
 function StudioCollage({ title, collage }: { title: string; collage: string[] }) {
   const covers = Array.from({ length: 4 }, (_, index) => collage[index] ?? "");
   return (
     <div className="cards-studio-grid" aria-label={title}>
       {covers.map((cover, index) => (
         <div key={index} className="cards-studio-cell">
-          {cover === "" ? (
-            <span className="cards-studio-letter" aria-hidden>
-              {monogram(title)}
-            </span>
-          ) : (
-            <img src={cover} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
-          )}
+          <StudioCover cover={cover} title={title} />
         </div>
       ))}
     </div>
@@ -95,6 +112,7 @@ export default function CardFace({
     <div
       className={cn("cards-window", RARITY_CLASS[card.rarity], className)}
       data-card-face
+      data-kind={card.kind}
       data-tilt={tilt}
       onPointerLeave={onPointerLeave}
     >

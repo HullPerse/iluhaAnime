@@ -6,11 +6,13 @@ import type { SettingsAtoms, SettingsData } from "@/types/store/settings";
 
 export function applyUiPreferences(
   retroStyle: SettingsData["retroStyle"],
-  uiDensity: SettingsData["uiDensity"]
+  uiDensity: SettingsData["uiDensity"],
+  cardEffects?: SettingsData["cardEffects"]
 ): void {
   if (typeof document === "undefined") return;
   document.documentElement.dataset.retroStyle = retroStyle;
   document.documentElement.dataset.uiDensity = uiDensity;
+  if (cardEffects !== undefined) document.documentElement.dataset.cardEffects = cardEffects;
 }
 
 export function applyWindowEffect(effect: SettingsData["windowEffect"]): void {
@@ -37,7 +39,8 @@ export function applyYorhaScanlines(enabled: boolean): void {
 export function applyPatchSideEffects(atoms: SettingsAtoms, partial: Partial<SettingsData>): void {
   applyUiPreferences(
     partial.retroStyle ?? atoms.retroStyle.get(),
-    partial.uiDensity ?? atoms.uiDensity.get()
+    partial.uiDensity ?? atoms.uiDensity.get(),
+    partial.cardEffects ?? atoms.cardEffects.get()
   );
   if ("yorhaScanlinesEnabled" in partial) {
     applyYorhaScanlines(partial.yorhaScanlinesEnabled ?? atoms.yorhaScanlinesEnabled.get());

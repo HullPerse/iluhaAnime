@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   prefetchRemoteImages,
   resetRemoteImageCache,
+  setRemoteImageScope,
   STREAM_COVER_REFERER,
   useRemoteImageStatus,
   useStreamCover,
@@ -19,70 +20,124 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 beforeEach(() => {
   invokeMock.mockReset();
+  patchSettings({ anilistProxyUrl: null });
   resetRemoteImageCache();
 });
 
 describe("prefetchRemoteImages", () => {
-  it("warms the memory cache so a later hook mount needs no invoke", async () => {
-    invokeMock.mockResolvedValue({ id: "blob-1", path: "C:/images/blob-1.jpg" });
-    prefetchRemoteImages(["https://example.com/dune.jpg"]);
-    await waitFor(() => {
-      expect(invokeMock).toHaveBeenCalledTimes(1);
+  it("warms the memory cache with one batch call so a later hook mount needs no invoke", async () => {
+    invokeMock.mockResolvedValue([{ id: "blob-1", path: "C:/images/blob-1.jpg" }]);
+    await prefetchRemoteImages(["https://example.com/dune.jpg"]);
+    expect(invokeMock).toHaveBeenCalledWith("fetch_remote_images", {
+      urls: ["https://example.com/dune.jpg"],
+      proxyUrl: undefined,
     });
-    expect(invokeMock).toHaveBeenCalledWith(
-      "fetch_remote_image",
-      expect.objectContaining({ url: "https://example.com/dune.jpg" })
+
+    const { result, unmount } = renderHook(() =>
+      useRemoteImageStatus("https://example.com/dune.jpg")
     );
-    await waitFor(() => {
-      const { result, unmount } = renderHook(() =>
-        useRemoteImageStatus("https://example.com/dune.jpg")
-      );
-      expect(result.current.src).toBe(assetUrl("C:/images/blob-1.jpg"));
-      expect(result.current.failed).toBe(false);
-      unmount();
-    });
+    expect(result.current.src).toBe(assetUrl("C:/images/blob-1.jpg"));
+    expect(result.current.failed).toBe(false);
+    unmount();
     expect(invokeMock).toHaveBeenCalledTimes(1);
   });
 
   it("dedupes the same url prefetched twice", async () => {
-    invokeMock.mockResolvedValue({ id: "blob-dedupe", path: "C:/images/dedupe.jpg" });
-    prefetchRemoteImages(["https://example.com/dedupe.jpg", "https://example.com/dedupe.jpg"]);
-    await waitFor(() => {
-      expect(invokeMock).toHaveBeenCalledTimes(1);
+    invokeMock.mockResolvedValue([{ id: "blob-dedupe", path: "C:/images/dedupe.jpg" }]);
+    await prefetchRemoteImages([
+      "https://example.com/dedupe.jpg",
+      "https://example.com/dedupe.jpg",
+    ]);
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    expect(invokeMock.mock.calls[0]?.[1]).toEqual({
+      urls: ["https://example.com/dedupe.jpg"],
+      proxyUrl: undefined,
     });
   });
 
-  it("starts at most 4 fetches at once and drains the queue", async () => {
-    const resolvers = new Map<string, (value: { id: string; path: string }) => void>();
-    invokeMock.mockImplementation((_cmd: string, args: { url: string }) => {
-      return new Promise<{ id: string; path: string }>((resolve) => {
-        resolvers.set(args.url, resolve);
-      });
+  it("sends low-priority prefetches in batches of eight", async () => {
+    invokeMock.mockImplementation((_command: string, args: { urls: string[] }) =>
+      Promise.resolve(
+        args.urls.map((url, index) => ({ id: url, path: `C:/images/batch-${index}.jpg` }))
+      )
+    );
+    const urls = Array.from({ length: 18 }, (_, index) => `https://example.com/batch-${index}.jpg`);
+
+    await prefetchRemoteImages(urls);
+
+    const batchSizes = invokeMock.mock.calls.map(
+      (call) => (call[1] as { urls: string[] }).urls.length
+    );
+    expect(batchSizes).toEqual([8, 8, 2]);
+  });
+
+  it("passes the configured AniList proxy to visible card art", async () => {
+    patchSettings({ anilistProxyUrl: "socks5://127.0.0.1:10808" });
+    invokeMock.mockResolvedValue({ id: "card-1", path: "C:/images/card-1.jpg" });
+    const { result, unmount } = renderHook(() =>
+      useRemoteImageStatus("https://s4.anilist.co/file/anilistcdn/card.jpg")
+    );
+
+    await waitFor(() => {
+      expect(result.current.src).toBe(assetUrl("C:/images/card-1.jpg"));
     });
-    const urls = [
-      "https://example.com/q-0.jpg",
-      "https://example.com/q-1.jpg",
-      "https://example.com/q-2.jpg",
-      "https://example.com/q-3.jpg",
-      "https://example.com/q-4.jpg",
-    ];
-    prefetchRemoteImages(urls);
+    expect(invokeMock).toHaveBeenCalledWith("fetch_remote_image", {
+      url: "https://s4.anilist.co/file/anilistcdn/card.jpg",
+      proxyUrl: "socks5://127.0.0.1:10808",
+    });
+    unmount();
+  });
+
+  it("drops queued prefetches outside the active screen scope", async () => {
+    const resolvers: Array<(value: unknown) => void> = [];
+    invokeMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+    const urls = Array.from({ length: 40 }, (_, index) => `https://example.com/scope-${index}.jpg`);
+    const prefetching = prefetchRemoteImages(urls);
     expect(invokeMock).toHaveBeenCalledTimes(4);
-    resolvers.get("https://example.com/q-0.jpg")?.({ id: "q-0", path: "C:/images/q-0.jpg" });
-    await waitFor(() => {
-      expect(invokeMock).toHaveBeenCalledTimes(5);
-    });
-    for (const url of urls.slice(1)) {
-      resolvers.get(url)?.({ id: url, path: `C:/images/${url.slice(-7)}` });
-    }
-    await waitFor(() => {
-      expect(invokeMock).toHaveBeenCalledTimes(5);
-    });
+
+    setRemoteImageScope([urls[0] as string]);
+    for (const resolve of resolvers) resolve([]);
+    await prefetching;
+
+    expect(invokeMock).toHaveBeenCalledTimes(4);
   });
 
-  it("skips nullish urls without invoking", () => {
-    prefetchRemoteImages([null, undefined, ""]);
-    expect(invokeMock).not.toHaveBeenCalled();
+  it("runs a visible card before queued prefetches", async () => {
+    const lowResolvers: Array<(value: unknown) => void> = [];
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "fetch_remote_images") {
+        return new Promise((resolve) => {
+          lowResolvers.push(resolve);
+        });
+      }
+      return Promise.resolve({ id: "high", path: "C:/images/high.jpg" });
+    });
+    const urls = Array.from({ length: 32 }, (_, index) => `https://example.com/priority-${index}.jpg`);
+    const prefetching = prefetchRemoteImages(urls);
+    expect(invokeMock).toHaveBeenCalledTimes(4);
+
+    const { result, unmount } = renderHook(() =>
+      useRemoteImageStatus("https://example.com/high.jpg")
+    );
+    expect(result.current.src).toBeNull();
+
+    lowResolvers.shift()?.([]);
+    await waitFor(() => {
+      expect(result.current.src).toBe(assetUrl("C:/images/high.jpg"));
+    });
+    expect(invokeMock).toHaveBeenCalledWith("fetch_remote_image", {
+      url: "https://example.com/high.jpg",
+      proxyUrl: undefined,
+    });
+
+    for (const resolve of lowResolvers) resolve([]);
+    await prefetching;
+    unmount();
   });
 });
 
@@ -118,7 +173,6 @@ describe("useStreamCover", () => {
       proxyUrl: "socks5://127.0.0.1:10808",
     });
     unmount();
-    patchSettings({ anilistProxyUrl: null });
   });
 
   it("does not download one cover twice and stays empty for a missing url", async () => {

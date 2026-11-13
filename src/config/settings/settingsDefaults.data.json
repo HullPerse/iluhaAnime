@@ -1,6 +1,7 @@
 {
   "DEFAULT_SETTINGS": {
     "anilistMaxPages": 3,
+    "cardEffects": "full",
     "collectionGroupHeaderStyle": "torrent",
     "defaultDownloadDir": null,
     "maxConcurrentDownloads": 3,

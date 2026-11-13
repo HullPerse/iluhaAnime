@@ -35,6 +35,11 @@ export function useCardsMutations() {
     onSuccess: invalidate,
   });
 
+  const grantTestEffectsPack = useMutation({
+    mutationFn: () => cardsApi.grantTestEffectsPack(),
+    onSuccess: invalidate,
+  });
+
   const resetCollection = useMutation({
     mutationFn: () => cardsApi.resetCollection(),
     onSuccess: invalidate,
@@ -84,6 +89,7 @@ export function useCardsMutations() {
   return {
     grantTestPack,
     grantTestLegendaryPack,
+    grantTestEffectsPack,
     resetCollection,
     setCardVariant,
     openPack,

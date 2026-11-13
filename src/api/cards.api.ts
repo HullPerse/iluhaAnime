@@ -4,6 +4,8 @@ import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
 import { assertSchema } from "@/lib/core/system/invoke.utils";
 import {
   AnimeCollectionPageSchema,
+  CardFavoriteSchema,
+  CardGallerySchema,
   CardVariantsSchema,
   CardsBootstrapSchema,
   CardsUnreadSchema,
@@ -11,6 +13,7 @@ import {
   CardPackListSchema,
   CardPackSchema,
   CreatedGiftSchema,
+  GiftCardsSchema,
   GiftDeleteResultSchema,
   GiftItemSchema,
   GiftListSchema,
@@ -19,7 +22,6 @@ import {
   CollectionShelfSchema,
   DustResultSchema,
   GrantResultSchema,
-  OpenedCardSchema,
   PackOpeningSchema,
   PackPreparationSchema,
   PurchaseResultSchema,
@@ -28,6 +30,7 @@ import {
 } from "@/api/cards.schema";
 import type {
   AnimeCollectionPage,
+  CardGallery,
   CardGiftClaimInput,
   CardPackRow,
   CardsApiConfig,
@@ -40,13 +43,14 @@ import type {
   CollectionPage,
   CollectionRosterPage,
   CollectionShelfItem,
+  CreateGiftInput,
   CreatedGift,
   DustCardInput,
+  GiftCard,
   GiftDeleteResult,
   GiftItem,
   DustResult,
   GrantResult,
-  OpenedCard,
   PackOpening,
   PackPreparation,
   PurchaseResult,
@@ -78,10 +82,7 @@ export class CardsApi {
   }
 
   async grantTestLegendaryPack(): Promise<CardPackRow> {
-    return assertSchema(
-      await this.call("cards_grant_test_legendary_pack"),
-      CardPackSchema
-    );
+    return assertSchema(await this.call("cards_grant_test_legendary_pack"), CardPackSchema);
   }
 
   async grantTestEffectsPack(): Promise<CardPackRow> {
@@ -152,6 +153,32 @@ export class CardsApi {
     );
   }
 
+  async gallery(
+    kind: CollectionItem["kind"],
+    entityId: number,
+    proxy: string | null = null
+  ): Promise<CardGallery> {
+    return assertSchema(
+      await this.call("cards_gallery", {
+        kind,
+        entityId,
+        ...anilistProxyArgs(proxy),
+      }),
+      CardGallerySchema
+    );
+  }
+
+  async setPreferredImage(
+    kind: CollectionItem["kind"],
+    entityId: number,
+    imageUrl: string | null
+  ): Promise<number> {
+    return assertSchema(
+      await this.call("cards_set_preferred_image", { kind, entityId, imageUrl }),
+      z.number()
+    );
+  }
+
   async setCardVariant(
     kind: CollectionItem["kind"],
     entityId: number,
@@ -160,6 +187,24 @@ export class CardsApi {
     return assertSchema(
       await this.call("cards_set_card_variant", { kind, entityId, variant }),
       SetCardVariantSchema
+    );
+  }
+
+  async isCardFavorite(kind: CollectionItem["kind"], entityId: number): Promise<boolean> {
+    return assertSchema(
+      await this.call("cards_card_favorite", { kind, entityId }),
+      CardFavoriteSchema
+    );
+  }
+
+  async setCardFavorite(
+    kind: CollectionItem["kind"],
+    entityId: number,
+    favorite: boolean
+  ): Promise<boolean> {
+    return assertSchema(
+      await this.call("cards_set_card_favorite", { kind, entityId, favorite }),
+      CardFavoriteSchema
     );
   }
 
@@ -219,10 +264,7 @@ export class CardsApi {
   }
 
   async buyPack(packKind: string): Promise<PurchaseResult> {
-    return assertSchema(
-      await this.call("cards_buy_pack", { packKind }),
-      PurchaseResultSchema
-    );
+    return assertSchema(await this.call("cards_buy_pack", { packKind }), PurchaseResultSchema);
   }
 
   async grantStarter(userId: number, proxy: string | null = null): Promise<GrantResult> {
@@ -235,30 +277,34 @@ export class CardsApi {
     );
   }
 
-  async createGift(input: DustCardInput): Promise<CreatedGift> {
+  async createGift(input: CreateGiftInput): Promise<CreatedGift> {
     return assertSchema(
       await this.call("cards_create_gift", {
         kind: input.kind,
         entityId: input.entityId,
-        rarity: input.rarity,
-        variant: input.variant,
       }),
       CreatedGiftSchema
     );
   }
 
-  async claimGift(input: CardGiftClaimInput): Promise<OpenedCard> {
-    return assertSchema(
-      await this.call("cards_claim_gift", {
-        giftId: input.giftId,
-        kind: input.kind,
-        entityId: input.entityId,
-        rarity: input.rarity,
-        variant: input.variant,
-        value: input.value,
-      }),
-      OpenedCardSchema
-    );
+  async claimGift(input: CardGiftClaimInput): Promise<GiftCard[]> {
+    const payload =
+      input.cards && input.cards.length > 0
+        ? {
+            giftId: input.giftId,
+            kind: input.kind,
+            entityId: input.entityId,
+            cards: input.cards,
+          }
+        : {
+            giftId: input.giftId,
+            kind: input.kind,
+            entityId: input.entityId,
+            rarity: input.rarity,
+            variant: input.variant,
+            value: input.value,
+          };
+    return assertSchema(await this.call("cards_claim_gift", payload), GiftCardsSchema);
   }
 
   async gifts(): Promise<GiftItem[]> {
@@ -266,17 +312,11 @@ export class CardsApi {
   }
 
   async markGiftClaimed(giftId: string): Promise<GiftItem> {
-    return assertSchema(
-      await this.call("cards_mark_gift_claimed", { giftId }),
-      GiftItemSchema
-    );
+    return assertSchema(await this.call("cards_mark_gift_claimed", { giftId }), GiftItemSchema);
   }
 
   async deleteGift(giftId: string): Promise<GiftDeleteResult> {
-    return assertSchema(
-      await this.call("cards_delete_gift", { giftId }),
-      GiftDeleteResultSchema
-    );
+    return assertSchema(await this.call("cards_delete_gift", { giftId }), GiftDeleteResultSchema);
   }
 }
 

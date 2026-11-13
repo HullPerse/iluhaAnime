@@ -37,8 +37,8 @@ use super::helpers::{
     SequentialPlan, FALLBACK_TRACKERS,
 };
 mod lifecycle;
-mod selection;
 mod limits;
+mod selection;
 mod trackers;
 
 use super::registry::TorrentRegistry;
@@ -434,7 +434,8 @@ impl TorrentManager {
         if let Some(bytes) = self.live_metainfo_bytes(id) {
             return Some(TorrentSource::Bytes(bytes));
         }
-        self.registry.magnet_links
+        self.registry
+            .magnet_links
             .get(&id)
             .map(|entry| TorrentSource::Magnet(entry.clone()))
     }
@@ -502,8 +503,6 @@ impl TorrentManager {
         }
     }
 
-
-
     fn torrent_is_paused(&self, id: usize) -> bool {
         self.session
             .with_torrents(|iter| {
@@ -541,7 +540,6 @@ impl TorrentManager {
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
     }
-
 
     pub fn save_session_config(&self, config: SessionConfig) -> Result<(), String> {
         let config = validate_session_config(config)?;
@@ -590,7 +588,8 @@ impl TorrentManager {
                 };
 
                 let save_dir = self
-                    .registry.save_dirs
+                    .registry
+                    .save_dirs
                     .get(&id)
                     .map(|r| r.clone())
                     .unwrap_or_default();
@@ -635,7 +634,8 @@ impl TorrentManager {
                 result.push(TorrentInfo {
                     id,
                     name: self
-                        .registry.aliases
+                        .registry
+                        .aliases
                         .get(&info_hash)
                         .map(|alias| alias.clone())
                         .unwrap_or_else(|| handle.name().unwrap_or_default()),
@@ -1043,7 +1043,9 @@ impl TorrentManager {
         order: Option<Vec<usize>>,
     ) {
         if limits != TorrentLimits::default() {
-            self.registry.torrent_limits.insert(info_hash.to_string(), limits);
+            self.registry
+                .torrent_limits
+                .insert(info_hash.to_string(), limits);
         }
         if sequential {
             self.sequential_torrents.insert(info_hash.to_string());
@@ -1073,7 +1075,8 @@ impl TorrentManager {
     ) -> Result<usize, String> {
         self.verify_torrent(id, expected_hash)?;
         let save_dir = self
-            .registry.save_dirs
+            .registry
+            .save_dirs
             .get(&id)
             .map(|r| r.clone())
             .unwrap_or_default();
@@ -1086,12 +1089,17 @@ impl TorrentManager {
         let order = self.download_order.get(&info_hash).map(|r| r.clone());
         let was_paused = self.torrent_is_paused(id);
         let rollback_magnet = self
-            .registry.magnet_links
+            .registry
+            .magnet_links
             .get(&id)
             .map(|r| r.clone())
             .unwrap_or_else(|| magnet.clone());
         let cached_files = self.files_cache.get(&id).map(|r| r.clone());
-        let root_name = self.registry.root_names.get(&info_hash).map(|entry| entry.clone());
+        let root_name = self
+            .registry
+            .root_names
+            .get(&info_hash)
+            .map(|entry| entry.clone());
         let _rewriting = self.rewrite_guard();
         self.remove_torrent(id, false, None)
             .await
@@ -1168,7 +1176,8 @@ impl TorrentManager {
         };
 
         let magnet = self
-            .registry.magnet_links
+            .registry
+            .magnet_links
             .get(&id)
             .map(|r| r.clone())
             .unwrap_or_else(|| format!("magnet:?xt=urn:btih:{info_hash}"));
@@ -1209,10 +1218,6 @@ impl TorrentManager {
 
         Ok(new_id)
     }
-
-
-
-
 
     pub async fn get_torrent_info(
         self: &Arc<Self>,
@@ -1405,14 +1410,6 @@ impl TorrentManager {
         Ok(())
     }
 
-
-
-
-
-
-
-
-
     pub async fn pause_for_disk_full(&self, id: usize) -> bool {
         let Some(handle) = self.torrent_handle(id) else {
             return false;
@@ -1559,7 +1556,12 @@ impl TorrentManager {
         // before the snapshot, so the baseline describes the settled folder
         // rather than the pre-finalize one.
         if let Some(handle) = self.torrent_handle(new_id) {
-            if let Some(save_dir) = self.registry.save_dirs.get(&new_id).map(|entry| entry.clone()) {
+            if let Some(save_dir) = self
+                .registry
+                .save_dirs
+                .get(&new_id)
+                .map(|entry| entry.clone())
+            {
                 let stats = handle.stats();
                 self.finalize_part_files(&key, &handle, &stats, &save_dir);
             }
@@ -1620,7 +1622,8 @@ impl TorrentManager {
                 self.finalize_part_files(key, handle, &stats, save_dir);
             }
             let name = self
-                .registry.aliases
+                .registry
+                .aliases
                 .get(key.as_deref().unwrap_or_default())
                 .map(|entry| entry.clone())
                 .or_else(|| handle.as_ref().and_then(|handle| handle.name()))
@@ -1644,7 +1647,9 @@ impl TorrentManager {
         let mut hidden_changed = false;
         if let Some(key) = &key {
             if let Some(leftover) = leftover {
-                self.registry.partial_leftovers.insert(key.clone(), leftover);
+                self.registry
+                    .partial_leftovers
+                    .insert(key.clone(), leftover);
             } else if delete_files {
                 self.registry.partial_leftovers.remove(key);
             }
@@ -1730,7 +1735,8 @@ impl TorrentManager {
         if source.is_empty() || url.is_empty() {
             return Err("torrent source is empty".to_string());
         }
-        self.registry.torrent_sources
+        self.registry
+            .torrent_sources
             .insert(key, TorrentOrigin { source, url });
         self.registry.save_torrent_sources();
         Ok(())
@@ -1746,7 +1752,11 @@ impl TorrentManager {
             .torrent_info_hash(id)
             .or_else(|| info_hash.map(str::to_string))
             .ok_or_else(|| "torrent not found".to_string())?;
-        Ok(self.registry.torrent_sources.get(&key).map(|r| r.value().clone()))
+        Ok(self
+            .registry
+            .torrent_sources
+            .get(&key)
+            .map(|r| r.value().clone()))
     }
 
     fn store_alias(&self, key: &str, alias: Option<String>) {
@@ -1828,7 +1838,8 @@ impl TorrentManager {
         }
 
         let save_dir = self
-            .registry.save_dirs
+            .registry
+            .save_dirs
             .get(&id)
             .map(|entry| entry.clone())
             .filter(|dir| !dir.is_empty())
@@ -1841,7 +1852,11 @@ impl TorrentManager {
         let priorities = self.file_priorities.get(&key).map(|entry| entry.clone());
         let order = self.download_order.get(&key).map(|entry| entry.clone());
         let was_paused = self.torrent_is_paused(id);
-        let magnet = self.registry.magnet_links.get(&id).map(|entry| entry.clone());
+        let magnet = self
+            .registry
+            .magnet_links
+            .get(&id)
+            .map(|entry| entry.clone());
         let selected_files = self
             .get_running_torrent_files(id)
             .ok()
@@ -1854,7 +1869,11 @@ impl TorrentManager {
             })
             .filter(|files: &Vec<usize>| !files.is_empty());
         let cached_files = self.files_cache.get(&id).map(|entry| entry.clone());
-        let previous_root = self.registry.root_names.get(&key).map(|entry| entry.clone());
+        let previous_root = self
+            .registry
+            .root_names
+            .get(&key)
+            .map(|entry| entry.clone());
 
         let old_path = Path::new(&save_dir).join(&current_root);
         let new_path = Path::new(&save_dir).join(&target_root);
@@ -2050,7 +2069,6 @@ impl TorrentManager {
         Ok(out_path)
     }
 
-
     pub fn dht_status(&self) -> Option<DhtStatus> {
         let stats = self.session.get_dht()?.stats();
         Some(DhtStatus {
@@ -2179,29 +2197,6 @@ impl TorrentManager {
             Err("torrent not found or no metadata".to_string())
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 /// The payload the initial check is hashing at `checked` bytes, as the user
@@ -2243,7 +2238,6 @@ fn remove_empty_parents(path: &Path, stop: &Path) {
         current = parent.parent();
     }
 }
-
 
 #[cfg(test)]
 mod tests;

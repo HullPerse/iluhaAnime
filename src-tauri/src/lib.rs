@@ -46,7 +46,6 @@ pub mod benchmark_api {
     pub use crate::user_assets::{compare_cover_bytes, make_thumb336, CoverDiff};
     pub use crate::watcher::FolderWatcher;
 
-
     /// Offline fixture hooks for `benches/stream_history.rs`. The real
     /// commands are AppHandle-bound; these wrappers take a plain connection so
     /// the history reads can be measured without a Tauri runtime, against the
@@ -179,7 +178,6 @@ mod ffmpeg;
 mod file_index;
 mod game;
 mod host_stats;
-mod jikan;
 #[cfg(test)]
 mod mem_layout;
 mod player;
@@ -193,6 +191,7 @@ mod screenshot;
 mod shaders;
 mod sqlite_browser;
 mod stream;
+mod tenrai;
 mod toast;
 mod torrent;
 mod user_assets;
@@ -2124,6 +2123,8 @@ pub fn run() {
             cards::collection::cards_dust,
             cards::collection::cards_card_variants,
             cards::collection::cards_set_card_variant,
+            cards::collection::cards_card_favorite,
+            cards::collection::cards_set_card_favorite,
             cards::collection::cards_reset_collection,
             cards::collection::cards_claim_gift,
             cards::collection::cards_create_gift,
@@ -2193,7 +2194,9 @@ pub fn run() {
             anilist::get_anilist_cache_stats,
             anilist::get_anime_trailer,
             anilist::client::test_anilist_connection,
-            jikan::get_anime_stills,
+            tenrai::get_anime_stills,
+            cards::gallery::cards_gallery,
+            cards::gallery::cards_set_preferred_image,
             anilist::get_anilist_profile,
             anilist::get_anilist_following,
             anilist::anilist_login,

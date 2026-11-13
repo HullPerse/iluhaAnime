@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   airingCountdownSecs,
   collectAiringRows,
+  currentAnimeSeason,
   formatAiringCountdown,
   formatAiringLocal,
   formatAiringTime,
   groupAiringByDay,
+  seasonAiringRows,
 } from "@/lib/core/anilist/airing.utils";
 import { translateFor } from "@/lib/locale/i18n.utils";
 import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist/anilist";
@@ -185,6 +187,85 @@ describe("anilist/airing", () => {
     it("filters by list status", () => {
       expect(collectAiringRows(makeLists(), "PLANNING").map((r) => r.id)).toEqual([3]);
       expect(collectAiringRows(makeLists(), "DROPPED")).toHaveLength(0);
+    });
+  });
+
+  describe("currentAnimeSeason", () => {
+    it.each([
+      { date: new Date(2026, 0, 15), season: "WINTER", year: 2026 },
+      { date: new Date(2026, 2, 31), season: "WINTER", year: 2026 },
+      { date: new Date(2026, 3, 1), season: "SPRING", year: 2026 },
+      { date: new Date(2026, 6, 1), season: "SUMMER", year: 2026 },
+      { date: new Date(2026, 9, 1), season: "FALL", year: 2026 },
+      { date: new Date(2026, 11, 31), season: "FALL", year: 2026 },
+    ])("derives $season $year", ({ date, season, year }) => {
+      expect(currentAnimeSeason(date)).toEqual({ season, year });
+    });
+  });
+
+  describe("seasonAiringRows", () => {
+    function seasonMedia(overrides: Partial<AniMedia> = {}): AniMedia {
+      return {
+        cover_url: null,
+        description: null,
+        duration: 23,
+        end_date: null,
+        episodes: 12,
+        favourites: null,
+        format: "TV",
+        genres: [],
+        id: 1,
+        next_airing_at: null,
+        next_episode: null,
+        popularity: null,
+        rankings: [],
+        relations: [],
+        score: null,
+        season: null,
+        season_year: null,
+        start_date: null,
+        status: "RELEASING",
+        studios: [],
+        tags: [],
+        title: "Show",
+        titles: ["Show"],
+        ...overrides,
+      };
+    }
+
+    it("keeps airing entries, dedupes ids and sorts by time", () => {
+      const rows = seasonAiringRows([
+        {
+          ...seasonMedia(),
+          id: 3,
+          title: "Later",
+          next_airing_at: 300,
+          next_episode: 4,
+        },
+        {
+          ...seasonMedia(),
+          id: 2,
+          title: "No airing",
+          next_airing_at: null,
+        },
+        {
+          ...seasonMedia(),
+          id: 1,
+          title: "Earlier",
+          next_airing_at: 100,
+          next_episode: 2,
+        },
+        {
+          ...seasonMedia(),
+          id: 1,
+          title: "Earlier duplicate",
+          next_airing_at: 100,
+          next_episode: 2,
+        },
+      ]);
+      expect(rows.map((row) => row.id)).toEqual([1, 3]);
+      expect(rows[0]?.listStatus).toBeUndefined();
+      expect(rows[0]?.episode).toBe(2);
     });
   });
 

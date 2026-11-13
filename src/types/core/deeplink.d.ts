@@ -1,5 +1,5 @@
 import type { AniListId } from "@/types/core/types";
-import type { CardKind, CardRarity, CardVariant } from "@/types/api/cards";
+import type { CardGiftStack, CardKind } from "@/types/api/cards";
 
 export interface AnimeDeepLink {
   readonly source: "anilist";
@@ -24,15 +24,21 @@ export interface NewsDeepLink {
   readonly page: number;
 }
 
+export interface CardGiftPreview {
+  readonly title: string;
+  readonly imageUrl: string | null;
+  readonly collage: string[];
+  readonly collectionTitle: string | null;
+}
+
 export interface CardGiftDeepLink {
   readonly giftId: string;
   readonly kind: CardKind;
   readonly entityId: number;
-  readonly rarity: CardRarity;
-  readonly variant: CardVariant;
-  // Frozen sender-side value. Older links without it fall back to the local
-  // gift row or the minimum value for the rarity/variant.
-  readonly value: number | null;
+  // The whole card travels in the link. Older links resolve to one stack.
+  readonly cards: CardGiftStack[];
+  // New links carry enough card metadata to show the face before claiming.
+  readonly preview?: CardGiftPreview;
 }
 
 export interface CardGiftReceiptDeepLink {

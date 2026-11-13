@@ -4,18 +4,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 import GiftsCards from "@/routes/components/collection/gifts.cards";
 import type { GiftItem } from "@/types/api/cards";
 
-import { makeOpenedCards } from "@/tests/fixtures/cards/cards.fixture";
+import { makeGiftCards } from "@/tests/fixtures/cards/cards.fixture";
 import { mockInvoke } from "@/tests/mocks";
 import { renderWithCardsClient } from "@/tests/components/collection/render.cards";
-
-const [CARD] = makeOpenedCards(1);
-if (CARD === undefined) throw new Error("card fixture is empty");
 
 const GIFT: GiftItem = {
   id: "gift-1",
   createdAt: 1_760_000_000,
   claimedAt: null,
-  card: CARD,
+  cards: makeGiftCards(1),
+  totalCopies: 2,
 };
 
 beforeEach(() => {
@@ -27,11 +25,13 @@ beforeEach(() => {
 });
 
 describe("collection gifts tab", () => {
-  it("lists the outbox and deletes an unclaimed gift", async () => {
+  it("lists gifts and deletes an unclaimed gift", async () => {
     renderWithCardsClient(<GiftsCards />);
 
-    expect(await screen.findAllByText("Card 1")).toHaveLength(2);
-    expect(screen.getByText("Waiting")).toBeTruthy();
+    expect(await screen.findAllByText("Card 1")).toHaveLength(1);
+    expect(screen.queryByText("Outgoing gifts")).toBeNull();
+    expect(screen.queryByText("Waiting")).toBeNull();
+    expect(screen.getByText("×2")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -39,6 +39,8 @@ describe("collection gifts tab", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_delete_gift", { giftId: "gift-1" })
     );
-    expect(await screen.findByText("Gift deleted; its copy is back in the collection.")).toBeTruthy();
+    expect(
+      await screen.findByText("Gift deleted; every variant and copy is back in the collection.")
+    ).toBeTruthy();
   });
 });

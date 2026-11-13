@@ -17,7 +17,8 @@ beforeEach(() => {
     if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
     if (command === "cards_stats") return Promise.resolve(makeCardsStats({ totalCards: 2 }));
     if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
-    if (command === "cards_collection") return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+    if (command === "cards_collection")
+      return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
     return Promise.resolve(null);
   });
 });
@@ -39,6 +40,23 @@ describe("collection shell", () => {
     expect(count.textContent).toBe("2");
     const wallet = await screen.findByTitle("Chubriks");
     expect(wallet.textContent).toContain("500");
+  });
+
+  it("shows the active gift count next to the gifts tab", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_stats")
+        return Promise.resolve(makeCardsStats({ totalCards: 2, activeGifts: 2 }));
+      if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
+      if (command === "cards_collection")
+        return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+      return Promise.resolve(null);
+    });
+    renderWithCardsClient(<CollectionShell />);
+
+    const badge = await screen.findByTestId("collection-active-gifts");
+    expect(badge.textContent).toBe("2");
+    expect(badge.title).toBe("Active gifts: 2");
   });
 
   it("shows unread badges on the packs and album tabs", async () => {

@@ -42,6 +42,8 @@ export const queryKeys = {
   anilistBrowse: (tab: string) => ["anilist_browse", tab] as const,
   anilistFollowing: (userId: number | null) => ["anilist_following", userId] as const,
   anilistSearch: (request: unknown) => ["anilist_search", request] as const,
+  anilistSeasonAiring: (season: string, year: number, adult: boolean) =>
+    ["anilist_season_airing", season, year, adult ? 1 : 0] as const,
   anilistSearchPages: (request: unknown) => ["anilist_search_pages", request] as const,
   friendLists: (id: number | null) => ["anilist_friend_lists", id] as const,
   friendFavourites: (id: number | null) => ["anilist_friend_favourites", id] as const,
@@ -114,11 +116,12 @@ export const queryKeys = {
   cardsCollectionScope: () => ["cards-collection"] as const,
   cardsCardVariants: (kind: string, entityId: number) =>
     ["cards-card-variants", kind, entityId] as const,
-  cardsCollections: (
-    sort: string,
-    sortDir: string,
-    proxy: string
-  ) => ["cards-collections", sort, sortDir, proxy] as const,
+  cardsCardFavorite: (kind: string, entityId: number) =>
+    ["cards-card-favorite", kind, entityId] as const,
+  cardsGallery: (kind: string, entityId: number, proxy: string) =>
+    ["cards-gallery", kind, entityId, proxy] as const,
+  cardsCollections: (sort: string, sortDir: string, proxy: string) =>
+    ["cards-collections", sort, sortDir, proxy] as const,
   cardsCollectionsScope: () => ["cards-collections"] as const,
   cardsAnimeCollection: (animeId: number, kind: string, proxy: string) =>
     ["cards-anime-collection", animeId, kind, proxy] as const,

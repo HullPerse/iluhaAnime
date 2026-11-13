@@ -3,7 +3,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cardsApi } from "@/api/cards.api";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { CardGiftClaimInput, DustCardInput } from "@/types/api/cards";
+import type {
+  CardGallery,
+  CardGiftClaimInput,
+  CardKind,
+  CreateGiftInput,
+  DustCardInput,
+} from "@/types/api/cards";
 
 function anilistProxy(): string | null {
   return settingsAtoms.anilistProxyUrl.get() ?? null;
@@ -46,6 +52,20 @@ export function useCardsMutations() {
     onSuccess: invalidate,
   });
 
+  const setPreferredImage = useMutation({
+    mutationFn: (vars: { kind: CardKind; entityId: number; imageUrl: string | null }) =>
+      cardsApi.setPreferredImage(vars.kind, vars.entityId, vars.imageUrl),
+    onSuccess: (changed, vars) => {
+      if (changed === 0) return;
+      const proxy = anilistProxy() ?? "";
+      queryClient.setQueryData<CardGallery>(
+        queryKeys.cardsGallery(vars.kind, vars.entityId, proxy),
+        (current) => (current === undefined ? current : { ...current, preferredUrl: vars.imageUrl })
+      );
+      invalidate();
+    },
+  });
+
   const setCardVariant = useMutation({
     mutationFn: (vars: {
       kind: Parameters<typeof cardsApi.setCardVariant>[0];
@@ -53,6 +73,18 @@ export function useCardsMutations() {
       variant: Parameters<typeof cardsApi.setCardVariant>[2];
     }) => cardsApi.setCardVariant(vars.kind, vars.entityId, vars.variant),
     onSuccess: invalidate,
+  });
+
+  const setCardFavorite = useMutation({
+    mutationFn: (vars: {
+      kind: Parameters<typeof cardsApi.setCardFavorite>[0];
+      entityId: Parameters<typeof cardsApi.setCardFavorite>[1];
+      favorite: Parameters<typeof cardsApi.setCardFavorite>[2];
+    }) => cardsApi.setCardFavorite(vars.kind, vars.entityId, vars.favorite),
+    onSuccess: (favorite, vars) => {
+      queryClient.setQueryData(queryKeys.cardsCardFavorite(vars.kind, vars.entityId), favorite);
+      invalidate();
+    },
   });
 
   // The reveal owns this invalidation: it runs when the opening closes so the
@@ -73,7 +105,7 @@ export function useCardsMutations() {
   });
 
   const createGift = useMutation({
-    mutationFn: (input: DustCardInput) => cardsApi.createGift(input),
+    mutationFn: (input: CreateGiftInput) => cardsApi.createGift(input),
     onSuccess: invalidate,
   });
 
@@ -102,7 +134,9 @@ export function useCardsMutations() {
     grantTestLegendaryPack,
     grantTestEffectsPack,
     resetCollection,
+    setPreferredImage,
     setCardVariant,
+    setCardFavorite,
     openPack,
     dust,
     buyPack,

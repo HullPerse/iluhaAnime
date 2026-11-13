@@ -1,14 +1,20 @@
+import { useCell } from "@hullperse/hp_utils/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { monthLabel } from "@/lib/core/anilist/activity.utils";
+import { currentAnimeSeason } from "@/lib/core/anilist/airing.utils";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { buildMediaRows } from "@/lib/anilist/anilistStats.utils";
-import { buildAiringEntries, buildCalendarCells } from "@/lib/anilist/statsCalendar.utils";
-import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist/anilist";
+import { buildAiringEntries, buildCalendarCells, buildSeasonAiringEntries } from "@/lib/anilist/statsCalendar.utils";
+import { settingsAtoms } from "@/store/settings.store";
+import type { ActivityDetailBundle, AniListCollection, AniMedia } from "@/types/anilist/anilist";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
+import type { StatsCalendarMode, StatsTab } from "@/types/anilist/stats.anilist";
 import type { StatsDrillData } from "@/types/core/overview.stats";
-import type { StatsTab } from "@/types/anilist/stats.anilist";
 
 import { InlineDetail } from "@/routes/components/anilist/detail/inline.detail";
 import { StatsModalContent } from "@/routes/components/anilist/stats/modal/content.modal";
@@ -35,7 +41,24 @@ export default function StatsModal({
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<number>(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<null | number>(null);
+  const [calendarMode, setCalendarMode] = useState<StatsCalendarMode>("list");
+  const adult = useCell(settingsAtoms.anilistAdultContent);
   const lastTabRef = useRef<StatsTab>(tab);
+  const season = currentAnimeSeason();
+  const seasonQuery = useAppQuery<AniMedia[]>("slow", {
+    queryKey: queryKeys.anilistSeasonAiring(season.season, season.year, adult),
+    queryFn: () =>
+      anilistApi.search({
+        adult: adult ? null : false,
+        maxPages: 4,
+        perPage: 50,
+        season: season.season,
+        seasonYear: season.year,
+        sort: ["POPULARITY_DESC"],
+        status: "RELEASING",
+      }),
+    enabled: tab === "calendar" && calendarMode === "season",
+  });
 
   useEffect(() => {
     if (lastTabRef.current === tab) return;
@@ -62,7 +85,12 @@ export default function StatsModal({
     setMonth((m) => m + 1);
   };
 
-  const allEntries = useMemo(() => buildAiringEntries(lists), [lists]);
+  const listEntries = useMemo(() => buildAiringEntries(lists), [lists]);
+  const seasonEntries = useMemo(
+    () => buildSeasonAiringEntries(seasonQuery.data ?? []),
+    [seasonQuery.data]
+  );
+  const allEntries = calendarMode === "season" ? seasonEntries : listEntries;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
   const today = now.getDate();
@@ -75,6 +103,12 @@ export default function StatsModal({
     () => (drill == null ? [] : buildMediaRows(drill.ids, lists)),
     [drill, lists]
   );
+  const changeCalendarMode = (next: StatsCalendarMode) => {
+    if (next === calendarMode) return;
+    setCalendarMode(next);
+    setSelectedDay(null);
+    setDrill(null);
+  };
 
   if (detailId != null) {
     return (
@@ -124,8 +158,12 @@ export default function StatsModal({
         firstDay={firstDay}
         daysInMonth={daysInMonth}
         calendarCells={calendarCells}
+        calendarMode={calendarMode}
         isCurrentMonth={isCurrentMonth}
+        seasonError={seasonQuery.isError}
+        seasonLoading={seasonQuery.isLoading}
         today={today}
+        onCalendarMode={changeCalendarMode}
         onOpenDetail={setDetailId}
         onSelectDay={setSelectedDay}
         onDrill={(data) => {
@@ -134,6 +172,7 @@ export default function StatsModal({
         }}
         onPrevMonth={prevMonth}
         onNextMonth={nextMonth}
+        onRetrySeason={() => seasonQuery.refetch()}
       />
     </Modal>
   );

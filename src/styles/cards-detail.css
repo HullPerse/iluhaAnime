@@ -10,11 +10,51 @@
   overflow-clip-margin: 2rem;
 }
 
+.cards-detail-left {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .cards-detail-art {
   min-width: 0;
   cursor: grab;
   touch-action: none;
   user-select: none;
+}
+
+.cards-detail-gallery {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.15rem;
+  padding: 0.15rem 0.25rem;
+  border: 1px solid var(--color-muted);
+  background: color-mix(in srgb, var(--color-field) 78%, var(--color-primary));
+}
+
+.cards-detail-gallery-counter {
+  flex: 1;
+  min-width: 2.4rem;
+  color: var(--color-hint);
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.cards-detail-gallery-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.cards-detail-gallery-error {
+  color: var(--color-danger, #c0392b);
+  font-family: var(--font-family);
+  font-size: 9px;
+  text-align: center;
 }
 
 .cards-detail-art[data-spinning="true"] {
@@ -25,7 +65,8 @@
   position: relative;
   width: 100%;
   transform-style: preserve-3d;
-  transform: perspective(900px) rotateX(var(--cards-spin-x, 0deg)) rotateY(var(--cards-spin-y, 0deg));
+  transform: perspective(900px) rotateX(var(--cards-spin-x, 0deg))
+    rotateY(var(--cards-spin-y, 0deg));
   transition: transform 180ms ease-out;
 }
 
@@ -265,9 +306,13 @@
     grid-template-columns: 1fr;
   }
 
-  .cards-detail-art {
+  .cards-detail-left {
     width: min(12rem, 60%);
     margin: 0 auto;
+  }
+
+  .cards-detail-art {
+    width: 100%;
   }
 
   .cards-detail-actions {
@@ -291,4 +336,124 @@
   .cards-shop-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* The gift tab is a shelf of cards: the card itself plus its two actions. */
+.cards-gifts {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.cards-gifts-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.cards-gift-item {
+  display: flex;
+  width: min(14.5rem, 100%);
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cards-gift-item-row {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.cards-gift-cardface {
+  position: relative;
+  width: 12rem;
+  max-width: calc(100% - 2.5rem);
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.cards-gift-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cards-gift-copies {
+  position: absolute;
+  top: 1.35rem;
+  right: 0.15rem;
+  z-index: 10;
+  padding: 0 0.15rem;
+}
+
+.cards-gift-detail {
+  min-height: 22rem;
+}
+
+.cards-gift-receipt {
+  min-height: 22rem;
+}
+
+.cards-gift-receipt-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid var(--color-muted);
+  background: color-mix(in srgb, var(--color-field) 82%, var(--color-primary));
+}
+
+.cards-gift-detail-stacks {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cards-gift-detail-label {
+  color: var(--color-hint);
+  font-family: var(--font-family);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cards-gift-detail-stacks ul {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cards-gift-detail-stack {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-muted);
+  background: color-mix(in srgb, var(--color-field) 78%, var(--color-primary));
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: 11px;
+}
+
+.cards-gift-detail-receipt {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
 }

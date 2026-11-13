@@ -42,6 +42,9 @@ async function enableInfiniteScroll() {
 
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown, args: unknown) => {
+    if (command === "cards_gallery") {
+      return Promise.resolve({ images: [], preferredUrl: null });
+    }
     if (command === "cards_collection") {
       const request = args as { page?: number; pageSize?: number } | undefined;
       const page = request?.page ?? 1;
@@ -194,6 +197,9 @@ describe("collection album", () => {
 
   it("switches the displayed variant when the same card is owned in several", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images: [], preferredUrl: null });
+      }
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -267,6 +273,46 @@ describe("collection album", () => {
     await waitFor(() => expect(called()).toBe(true));
   });
 
+  it("previews another art and saves it only after Check", async () => {
+    const images = [
+      { url: "https://cdn/levi-1.jpg", thumbUrl: "https://cdn/levi-1-thumb.jpg" },
+      { url: "https://cdn/levi-2.jpg", thumbUrl: "https://cdn/levi-2-thumb.jpg" },
+    ];
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images, preferredUrl: null });
+      }
+      if (command === "cards_collection") {
+        return Promise.resolve(
+          makeCollectionPage({
+            total: 1,
+            pageSize: 36,
+            items: [makeCollectionItem({ entityId: 45_627, title: "Levi" })],
+          })
+        );
+      }
+      if (command === "cards_set_preferred_image") return Promise.resolve(1);
+      return Promise.resolve(null);
+    });
+
+    renderWithCardsClient(<AlbumCards />);
+    fireEvent.click(await screen.findByRole("button", { name: /Levi/ }));
+    expect(await screen.findByRole("button", { name: "Next art" })).toBeTruthy();
+    expect(document.querySelector(".cards-detail-gallery-counter")?.textContent).toBe("1 / 2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Next art" }));
+    expect(document.querySelector(".cards-detail-gallery-counter")?.textContent).toBe("2 / 2");
+    fireEvent.click(screen.getByRole("button", { name: "Use this art" }));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("cards_set_preferred_image", {
+        kind: "character",
+        entityId: 45_627,
+        imageUrl: "https://cdn/levi-2.jpg",
+      })
+    );
+  });
+
   it("shows the source anime and the obtained dates without a dust action", async () => {
     renderWithCardsClient(<AlbumCards />);
     await screen.findByText("Levi");
@@ -285,5 +331,27 @@ describe("collection album", () => {
 
     expect(screen.queryByRole("button", { name: "Dust" })).toBeNull();
     expect(mockInvoke).not.toHaveBeenCalledWith("cards_dust", expect.anything());
+  });
+
+  it("marks favorite cards in the album", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images: [], preferredUrl: null });
+      }
+      if (command === "cards_collection") {
+        return Promise.resolve(
+          makeCollectionPage({
+            total: 1,
+            items: [makeCollectionItem({ entityId: 45_627, title: "Levi", isFavorite: true })],
+          })
+        );
+      }
+      return Promise.resolve(null);
+    });
+
+    renderWithCardsClient(<AlbumCards />);
+    await screen.findByText("Levi");
+
+    expect(screen.getByTestId("card-favorite")).toBeTruthy();
   });
 });

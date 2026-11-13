@@ -1,4 +1,5 @@
-import type { AniListCollection } from "@/types/anilist/anilist";
+import { seasonAiringRows } from "@/lib/core/anilist/airing.utils";
+import type { AniListCollection, AniMedia } from "@/types/anilist/anilist";
 import type { AiringEntry, CalendarCell } from "@/types/anilist/stats.anilist";
 
 const SECONDS_PER_DAY = 86_400;
@@ -20,6 +21,16 @@ export function buildAiringEntries(lists: AniListCollection[]): AiringEntry[] {
   }
   result.sort((a, b) => a.airingAt - b.airingAt);
   return result;
+}
+
+export function buildSeasonAiringEntries(media: AniMedia[]): AiringEntry[] {
+  return seasonAiringRows(media).map((row) => ({
+    id: row.id,
+    title: row.title,
+    airingAt: row.airingAt,
+    episode: row.episode,
+    coverUrl: row.cover,
+  }));
 }
 
 export function buildCalendarCells(

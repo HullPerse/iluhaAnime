@@ -12,30 +12,66 @@ const GIFT: CardGiftDeepLink = {
   giftId: "gift-123-456",
   kind: "character",
   entityId: 45627,
-  rarity: "rare",
-  variant: "foil",
-  value: 12,
+  preview: {
+    title: "Леви Аккерман",
+    imageUrl: "https://img/levi.jpg",
+    collage: ["https://img/levi-1.jpg", "https://img/levi-2.jpg"],
+    collectionTitle: "Атака титанов",
+  },
+  cards: [
+    {
+      rarity: "rare",
+      variant: "foil",
+      copies: 2,
+      value: 12,
+      firstObtainedAt: 1_760_000_000,
+      lastObtainedAt: 1_760_000_100,
+    },
+    {
+      rarity: "rare",
+      variant: "normal",
+      copies: 1,
+      value: 8,
+      firstObtainedAt: 1_760_000_200,
+      lastObtainedAt: 1_760_000_200,
+    },
+  ],
 };
 
 describe("card gift links", () => {
-  it("round-trips the opaque gift id, card fields and frozen value", () => {
+  it("round-trips the opaque gift id, card identity and every stack", () => {
     const link = buildCardGiftLink(GIFT);
-    expect(link).toBe(
-      "iluhaanime://card/gift/gift-123-456/character/45627/rare/foil/12"
-    );
+    expect(link.startsWith("iluhaanime://card/gift/gift-123-456/character/45627/")).toBe(true);
     expect(parseCardGiftLink(link)).toEqual(GIFT);
+  });
+
+  it("reads a four-segment stack link without a preview", () => {
+    const legacy: CardGiftDeepLink = {
+      giftId: GIFT.giftId,
+      kind: GIFT.kind,
+      entityId: GIFT.entityId,
+      cards: GIFT.cards,
+    };
+    expect(parseCardGiftLink(buildCardGiftLink(legacy))).toEqual(legacy);
   });
 
   it("still accepts an older link without a value", () => {
     expect(
       parseCardGiftLink(`  ILUHAANIME://card/gift/${GIFT.giftId}/anime/1/junk/normal  `)
     ).toEqual({
-      ...GIFT,
+      giftId: GIFT.giftId,
       kind: "anime",
       entityId: 1,
-      rarity: "junk",
-      variant: "normal",
-      value: null,
+      cards: [
+        {
+          rarity: "junk",
+          variant: "normal",
+          copies: 1,
+          value: 0,
+          firstObtainedAt: 0,
+          lastObtainedAt: 0,
+        },
+      ],
     });
   });
 
@@ -63,5 +99,11 @@ describe("card gift links", () => {
     expect(
       parseCardGiftLink(`iluhaanime://card/gift/${"a".repeat(500)}/anime/1/rare/normal`)
     ).toBeNull();
+    expect(parseCardGiftLink(`iluhaanime://card/gift/x/anime/1/${"a".repeat(5000)}`)).toBeNull();
+  });
+
+  it("rejects a malformed bundle payload", () => {
+    expect(parseCardGiftLink("iluhaanime://card/gift/x/anime/1/not-base64!")).toBeNull();
+    expect(parseCardGiftLink("iluhaanime://card/gift/x/anime/1/YWJj")).toBeNull();
   });
 });

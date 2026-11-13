@@ -4,9 +4,7 @@ use ego_tree::NodeRef;
 use scraper::node::Node;
 use scraper::{ElementRef, Html, Selector};
 
-use crate::news::models::{
-    NewsAttachment, NewsAttachmentKind, NewsBlock, NewsBlockKind, NewsRun,
-};
+use crate::news::models::{NewsAttachment, NewsAttachmentKind, NewsBlock, NewsBlockKind, NewsRun};
 
 const BLOCK_TAGS: &[&str] = &[
     "div", "p", "section", "article", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
@@ -59,7 +57,10 @@ pub fn parse_attachments(html: &str) -> Vec<NewsAttachment> {
         let embed_url = element.value().attr("data-href").and_then(normalize_url);
         let page_url = element.value().attr("href").and_then(normalize_url);
         let kind = match embed_url.as_deref() {
-            Some(url) if url.contains("youtube.com/embed") || url.contains("youtube-nocookie.com/embed") => {
+            Some(url)
+                if url.contains("youtube.com/embed")
+                    || url.contains("youtube-nocookie.com/embed") =>
+            {
                 NewsAttachmentKind::Youtube
             }
             Some(_) => NewsAttachmentKind::Vk,
@@ -207,7 +208,10 @@ fn push_block(runs: &mut Vec<NewsRun>, kind: NewsBlockKind, blocks: &mut Vec<New
         return;
     }
 
-    blocks.push(NewsBlock { kind, runs: cleaned });
+    blocks.push(NewsBlock {
+        kind,
+        runs: cleaned,
+    });
 }
 
 fn is_block(node: NodeRef<'_, Node>) -> bool {
@@ -264,7 +268,10 @@ mod tests {
     #[test]
     fn keeps_single_breaks_as_spaces() {
         let blocks = parse_blocks("Первая строка<br>вторая");
-        assert_eq!(plain(&blocks), vec![(NewsBlockKind::Paragraph, "Первая строка вторая".to_string())]);
+        assert_eq!(
+            plain(&blocks),
+            vec![(NewsBlockKind::Paragraph, "Первая строка вторая".to_string())]
+        );
     }
 
     #[test]
@@ -273,10 +280,7 @@ mod tests {
             "В <strong>Arknights</strong> и <em>Endfield</em> <a href=\"https://shikimori.io/x\">ссылка</a>",
         );
         let runs = &blocks[0].runs;
-        let bold = runs
-            .iter()
-            .find(|run| run.bold)
-            .expect("bold run missing");
+        let bold = runs.iter().find(|run| run.bold).expect("bold run missing");
         assert_eq!(bold.text, "Arknights");
         let italic = runs
             .iter()
@@ -328,7 +332,10 @@ mod tests {
         assert_eq!(attachments.len(), 3);
 
         assert_eq!(attachments[0].kind, NewsAttachmentKind::Image);
-        assert_eq!(attachments[0].full_url.as_deref(), Some("https://shikimori.io/a.png"));
+        assert_eq!(
+            attachments[0].full_url.as_deref(),
+            Some("https://shikimori.io/a.png")
+        );
 
         assert_eq!(attachments[1].kind, NewsAttachmentKind::Vk);
         assert_eq!(
@@ -344,9 +351,9 @@ mod tests {
     fn skips_unknown_attachment_markup() {
         assert!(parse_attachments("").is_empty());
         assert!(parse_attachments("<div class=\"b-image\"></div>").is_empty());
-        assert!(
-            parse_attachments("<a class=\"video-link\" data-href=\"ftp://x\"><img src=\"https://x/1.png\"></a>")
-                .is_empty()
-        );
+        assert!(parse_attachments(
+            "<a class=\"video-link\" data-href=\"ftp://x\"><img src=\"https://x/1.png\"></a>"
+        )
+        .is_empty());
     }
 }

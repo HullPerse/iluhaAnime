@@ -905,11 +905,7 @@ async fn fetch_remote_image_core(
                 &lookup_url,
             ))
         } else {
-            Ok::<Option<UserImage>, String>(lookup_remote_image(
-                &lookup_dir,
-                &conn,
-                &lookup_url,
-            ))
+            Ok::<Option<UserImage>, String>(lookup_remote_image(&lookup_dir, &conn, &lookup_url))
         }
     })
     .await

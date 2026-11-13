@@ -30,10 +30,7 @@ pub fn chunks(ids: &[i64]) -> Vec<Vec<i64>> {
 }
 
 fn ids_array(ids: &[i64]) -> String {
-    ids.iter()
-        .map(i64::to_string)
-        .collect::<Vec<_>>()
-        .join(",")
+    ids.iter().map(i64::to_string).collect::<Vec<_>>().join(",")
 }
 
 pub fn anime_query(ids: &[i64]) -> Value {
@@ -97,11 +94,17 @@ fn text(value: &Value) -> Option<String> {
 }
 
 fn favourites(node: &Value) -> u32 {
-    node["favourites"].as_u64().unwrap_or(0).min(u64::from(u32::MAX)) as u32
+    node["favourites"]
+        .as_u64()
+        .unwrap_or(0)
+        .min(u64::from(u32::MAX)) as u32
 }
 
 fn popularity(node: &Value) -> u32 {
-    node["popularity"].as_u64().unwrap_or(0).min(u64::from(u32::MAX)) as u32
+    node["popularity"]
+        .as_u64()
+        .unwrap_or(0)
+        .min(u64::from(u32::MAX)) as u32
 }
 
 fn media_popularity(node: &Value) -> u32 {
@@ -124,9 +127,9 @@ fn title_for(kind: CardKind, node: &Value, id: i64) -> String {
         CardKind::Anime | CardKind::Manga => text(&node["title"]["romaji"])
             .or_else(|| text(&node["title"]["english"]))
             .unwrap_or_else(|| format!("Media {id}")),
-        CardKind::Character | CardKind::Staff => text(&node["name"]["full"])
-
-            .unwrap_or_else(|| format!("Entity {id}")),
+        CardKind::Character | CardKind::Staff => {
+            text(&node["name"]["full"]).unwrap_or_else(|| format!("Entity {id}"))
+        }
         CardKind::Studio => text(&node["name"]).unwrap_or_else(|| format!("Studio {id}")),
     }
 }
@@ -204,6 +207,7 @@ pub fn parse_meta(kind: CardKind, node: &Value, fetched_at: i64) -> Option<CardM
         collection_cover_url,
         collage_json,
         fetched_at,
+        preferred_image_url: None,
     })
 }
 
@@ -354,7 +358,10 @@ mod tests {
         assert_eq!(meta.collection_anime_id, Some(16498));
         assert!(meta.collection_manga_id.is_none());
         assert_eq!(meta.collection_title.as_deref(), Some("Shingeki no Kyojin"));
-        assert_eq!(meta.collection_cover_url.as_deref(), Some("https://img/aot.jpg"));
+        assert_eq!(
+            meta.collection_cover_url.as_deref(),
+            Some("https://img/aot.jpg")
+        );
         assert!(meta.image_url.is_some());
     }
 

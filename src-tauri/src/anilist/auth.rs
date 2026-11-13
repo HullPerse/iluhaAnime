@@ -698,13 +698,7 @@ pub async fn get_anilist_friend_scores(
                 error = error.as_str(),
                 "friend score batch failed; retrying per friend"
             );
-            Ok(load_friend_scores_individually(
-                &token,
-                media_id,
-                user_ids,
-                proxy.as_deref(),
-            )
-            .await)
+            Ok(load_friend_scores_individually(&token, media_id, user_ids, proxy.as_deref()).await)
         }
     }
 }
@@ -727,11 +721,7 @@ async fn load_friend_scores_individually(
             match graphql_request(body, Some(&token), proxy.as_deref()).await {
                 Ok(json) => parse_friend_score(&json["data"]["f0"], user_id),
                 Err(error) => {
-                    tracing::warn!(
-                        user_id,
-                        error = error.as_str(),
-                        "friend score skipped"
-                    );
+                    tracing::warn!(user_id, error = error.as_str(), "friend score skipped");
                     None
                 }
             }

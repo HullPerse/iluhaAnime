@@ -4,7 +4,7 @@ export interface AiringRow {
   cover: string | null;
   episode: number | null;
   airingAt: number;
-  listStatus: string;
+  listStatus?: string;
 }
 
 export interface AiringDay {

@@ -229,10 +229,10 @@ fn build_client(proxy: Option<&str>) -> Result<reqwest::Client, String> {
         ))
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS));
     if let Some(proxy) = proxy {
-        builder = builder
-            .proxy(reqwest::Proxy::all(proxy).map_err(|error| {
-                format!("unreachable: invalid proxy address: {error}")
-            })?);
+        builder = builder.proxy(
+            reqwest::Proxy::all(proxy)
+                .map_err(|error| format!("unreachable: invalid proxy address: {error}"))?,
+        );
     }
     builder
         .build()

@@ -24,6 +24,7 @@ pub struct PurchaseResult {
 /// transaction as the pack insert.
 #[tauri::command]
 pub fn cards_buy_pack(app: AppHandle, pack_kind: String) -> Result<PurchaseResult, String> {
+    crate::cards::require_anilist_account(&app)?;
     let entry = shop_pack(pack_kind.trim()).ok_or("unknown shop pack")?;
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let mut connection = open_database(&app)?;

@@ -4,16 +4,13 @@ use rusqlite::Connection;
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::config::{
-    packs_for_completed, starter_packs, CARD_PACK_SIZE, CARDS_GRANT_ENABLED,
-};
+use super::config::{packs_for_completed, starter_packs, CARDS_GRANT_ENABLED, CARD_PACK_SIZE};
 use super::packs::spawn_prepare_packs_with_proxy;
 use super::rng::seed_now;
 use crate::anilist::auth::{get_anilist_lists, AniListCollection};
 use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
-    insert_pack, insert_pack_grant, insert_starter_grant, starter_grant, CardPackRow,
-    LOCAL_USER_ID,
+    insert_pack, insert_pack_grant, insert_starter_grant, starter_grant, CardPackRow, LOCAL_USER_ID,
 };
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -231,7 +228,10 @@ pub async fn maybe_grant_for_completion(
     if !CARDS_GRANT_ENABLED {
         return;
     }
-    let episodes = fetch_episode_count(token, media_id, proxy).await.ok().flatten();
+    let episodes = fetch_episode_count(token, media_id, proxy)
+        .await
+        .ok()
+        .flatten();
     match grant_for_completion(app, media_id, episodes, CARDS_GRANT_ENABLED) {
         Ok(result) if result.granted => {
             spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_string))

@@ -1,8 +1,6 @@
 use tauri::AppHandle;
 
-use super::sampling::{
-    page_query, parse_aliased_page, SampledPage, PER_PAGE,
-};
+use super::sampling::{page_query, parse_aliased_page, SampledPage, PER_PAGE};
 use super::types::CardKind;
 use crate::anilist::client::graphql_request;
 use crate::app_db::cache::{put_app_cache, read_cached_payload};
@@ -98,7 +96,9 @@ pub async fn fetch_pages(
             for page in &clamped {
                 match parse_aliased_page(kind, *page, &response) {
                     Ok(parsed) => fetched.push(parsed),
-                    Err(_) => fetched.push(fetch_single(kind, *page, per_page, token, proxy).await?),
+                    Err(_) => {
+                        fetched.push(fetch_single(kind, *page, per_page, token, proxy).await?)
+                    }
                 }
             }
             Ok(fetched)

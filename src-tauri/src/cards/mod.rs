@@ -2,6 +2,7 @@ pub mod ceilings;
 pub mod collection;
 pub mod collections;
 pub mod config;
+pub mod gallery;
 pub mod grant;
 pub mod metadata;
 pub mod packs;
@@ -13,11 +14,25 @@ pub mod types;
 
 use tauri::AppHandle;
 
-use crate::app_db::cards::{
-    starter_grant, unopened_pack_count, wallet_balance, LOCAL_USER_ID,
-};
+use crate::anilist::auth::optional_token;
+use crate::app_db::cards::{starter_grant, unopened_pack_count, wallet_balance, LOCAL_USER_ID};
 use crate::app_db::db::open_database;
 use types::CardsBootstrap;
+
+/// Card ownership is a single local profile, so every path that can add cards
+/// first has to prove that an AniList account is connected.
+pub(crate) fn require_anilist_token(token: Option<&str>) -> Result<(), String> {
+    if token.is_some_and(|value| !value.trim().is_empty()) {
+        Ok(())
+    } else {
+        Err("AniList account required to receive cards".into())
+    }
+}
+
+pub(crate) fn require_anilist_account(app: &AppHandle) -> Result<(), String> {
+    let token = optional_token(app);
+    require_anilist_token(token.as_deref())
+}
 
 /// Static card rules, wallet, starter status and the feature flags.
 #[tauri::command]
@@ -53,6 +68,13 @@ mod tests {
             serde_json::to_value(types::CardVariant::Holo).expect("variant"),
             serde_json::json!("holo")
         );
+    }
+
+    #[test]
+    fn card_grants_require_an_anilist_session() {
+        assert!(require_anilist_token(None).is_err());
+        assert!(require_anilist_token(Some("   ")).is_err());
+        assert!(require_anilist_token(Some("token")).is_ok());
     }
 
     #[test]

@@ -75,6 +75,7 @@ const PAGE: CollectionPage = {
       lastObtainedAt: 2,
       collectionAnimeId: 16498,
       collectionTitle: "Shingeki no Kyojin",
+      isFavorite: false,
     },
   ],
   total: 1,
@@ -88,6 +89,7 @@ const STATS: CardsStats = {
   duplicates: 1,
   totalValue: 16,
   legendaryCards: 0,
+  activeGifts: 0,
   lastPulls: [],
 };
 
@@ -136,9 +138,6 @@ describe("cards queries", () => {
     );
 
     await waitFor(() => expect(result.current.data?.items[0]?.title).toBe("Levi"));
-    expect(collection).toHaveBeenCalledWith(
-      { kind: "character", sort: "value", page: 2 },
-      null
-    );
+    expect(collection).toHaveBeenCalledWith({ kind: "character", sort: "value", page: 2 }, null);
   });
 });

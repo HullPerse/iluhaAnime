@@ -1,9 +1,23 @@
 import { formatETA } from "@/lib/core/text/time.utils";
-import type { AniListCollection } from "@/types/anilist/anilist";
+import type { AniListCollection, AniMedia } from "@/types/anilist/anilist";
 import type { TFunc } from "@/types/core/i18n";
 import type { AiringDay, AiringRow } from "@/types/core/airing";
 
 export const AIRING_TICK_MS = 30_000;
+
+export type AnimeSeason = "WINTER" | "SPRING" | "SUMMER" | "FALL";
+
+export function currentAnimeSeason(now = new Date()): {
+  season: AnimeSeason;
+  year: number;
+} {
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  if (month <= 3) return { season: "WINTER", year };
+  if (month <= 6) return { season: "SPRING", year };
+  if (month <= 9) return { season: "SUMMER", year };
+  return { season: "FALL", year };
+}
 
 const AIRING_WEEK_DAYS = 7;
 
@@ -64,6 +78,28 @@ export function collectAiringRows(lists: AniListCollection[], statusFilter: stri
     }
   }
   rows.sort((a, b) => a.airingAt - b.airingAt);
+  return rows;
+}
+
+/// Rows for the current season come from a different source than the user's
+/// lists, so they carry no list status and are deduplicated by media id.
+export function seasonAiringRows(media: AniMedia[]): AiringRow[] {
+  const rows: AiringRow[] = [];
+  const seen = new Set<number>();
+  for (const entry of media) {
+    if (seen.has(entry.id)) continue;
+    const airingAt = entry.next_airing_at;
+    if (airingAt == null || !Number.isFinite(airingAt) || airingAt <= 0) continue;
+    seen.add(entry.id);
+    rows.push({
+      id: entry.id,
+      title: entry.title,
+      cover: entry.cover_url,
+      episode: entry.next_episode,
+      airingAt,
+    });
+  }
+  rows.sort((left, right) => left.airingAt - right.airingAt);
   return rows;
 }
 

@@ -102,29 +102,51 @@ export interface PackOpening {
   value: number;
 }
 
+export interface GiftCard extends OpenedCard {
+  copies: number;
+  firstObtainedAt: number;
+  lastObtainedAt: number;
+}
+
+export interface CardGiftStack {
+  rarity: CardRarity;
+  variant: CardVariant;
+  copies: number;
+  value: number;
+  firstObtainedAt: number;
+  lastObtainedAt: number;
+}
+
 export interface CreatedGift {
   id: string;
-  card: OpenedCard;
+  cards: GiftCard[];
 }
 
 export interface GiftItem {
   id: string;
   createdAt: number;
   claimedAt: number | null;
-  card: OpenedCard;
+  cards: GiftCard[];
+  totalCopies: number;
 }
 
 export interface GiftDeleteResult {
   returned: boolean;
 }
 
-export interface CardGiftClaimInput {
-  giftId: string;
+export interface CreateGiftInput {
   kind: CardKind;
   entityId: number;
-  rarity: CardRarity;
-  variant: CardVariant;
-  value: number | null;
+}
+
+export interface CardGiftClaimInput {
+  giftId: string;
+  kind?: CardKind;
+  entityId?: number;
+  cards?: CardGiftStack[] | null;
+  rarity?: CardRarity;
+  variant?: CardVariant;
+  value?: number | null;
 }
 
 export interface CollectionItem {
@@ -142,6 +164,17 @@ export interface CollectionItem {
   lastObtainedAt: number;
   collectionAnimeId: number | null;
   collectionTitle: string | null;
+  isFavorite: boolean;
+}
+
+export interface CardGalleryImage {
+  url: string;
+  thumbUrl: string;
+}
+
+export interface CardGallery {
+  images: CardGalleryImage[];
+  preferredUrl: string | null;
 }
 
 export interface CollectionPage {
@@ -224,6 +257,7 @@ export interface CardsStats {
   duplicates: number;
   totalValue: number;
   legendaryCards: number;
+  activeGifts: number;
   lastPulls: CardPull[];
 }
 

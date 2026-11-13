@@ -7,9 +7,11 @@ use super::packs::OpenedCard;
 use super::rarity::card_value;
 use super::types::{CardKind, CardRarity, CardVariant};
 use crate::app_db::cards::{
-    add_wallet, claim_gift, delete_gift, get_gift, get_meta, get_user_card, insert_gift,
-    list_gifts, list_recent_pulls, list_user_cards, record_gift_claim, remove_one_card_copy,
-    upsert_card, wallet_balance, CardGiftRow, CardPullRow, UserCardRow, LOCAL_USER_ID,
+    add_wallet, claim_gift, count_active_gifts, delete_gift, delete_user_card_stacks, get_gift,
+    get_meta, insert_gift, is_card_favorite, list_gifts, list_recent_pulls, list_user_card_stacks,
+    list_user_cards, record_gift_claim, remove_one_card_copy, set_card_favorite, upsert_card,
+    wallet_balance, CardGiftRow, CardMetaRow, CardPullRow, GiftCardStack, UserCardRow,
+    LOCAL_USER_ID,
 };
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -34,6 +36,7 @@ pub struct CollectionItem {
     pub last_obtained_at: i64,
     pub collection_anime_id: Option<i64>,
     pub collection_title: Option<String>,
+    pub is_favorite: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -66,6 +69,7 @@ pub struct CardsStats {
     pub duplicates: i64,
     pub total_value: i64,
     pub legendary_cards: i64,
+    pub active_gifts: i64,
     pub last_pulls: Vec<CardPull>,
 }
 
@@ -79,11 +83,31 @@ pub struct DustResult {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GiftCard {
+    pub kind: CardKind,
+    pub entity_id: i64,
+    pub title: String,
+    pub image_url: Option<String>,
+    pub collage: Vec<String>,
+    pub rarity: CardRarity,
+    pub variant: CardVariant,
+    pub value: i64,
+    pub copies: i64,
+    pub first_obtained_at: i64,
+    pub last_obtained_at: i64,
+    pub collection_anime_id: Option<i64>,
+    pub collection_title: Option<String>,
+    pub collection_cover_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GiftItem {
     pub id: String,
     pub created_at: i64,
     pub claimed_at: Option<i64>,
-    pub card: OpenedCard,
+    pub cards: Vec<GiftCard>,
+    pub total_copies: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -97,18 +121,49 @@ static GIFT_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 fn next_gift_id(now: i64) -> String {
     let sequence = GIFT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
     let mut rng = Rng::new(seed_now() ^ sequence.wrapping_mul(0x9E37_79B9_7F4A_7C15));
-    format!(
-        "gift-{now}-{:016x}{:016x}",
-        rng.next_u64(),
-        rng.next_u64()
-    )
+    format!("gift-{now}-{:016x}{:016x}", rng.next_u64(), rng.next_u64())
 }
 
-fn gift_value(gift: &CardGiftRow) -> i64 {
-    if gift.value > 0 {
-        gift.value
-    } else {
-        i64::from(card_value(gift.kind, gift.rarity, gift.variant, 0.0))
+fn gift_card_from_stack(
+    connection: &rusqlite::Connection,
+    kind: CardKind,
+    entity_id: i64,
+    stack: &GiftCardStack,
+) -> Result<GiftCard, String> {
+    let card = opened_card_from_identity(
+        connection,
+        kind,
+        entity_id,
+        stack.rarity,
+        stack.variant,
+        stack.value,
+    )?;
+    Ok(GiftCard {
+        kind: card.kind,
+        entity_id: card.entity_id,
+        title: card.title,
+        image_url: card.image_url,
+        collage: card.collage,
+        rarity: card.rarity,
+        variant: card.variant,
+        value: card.value,
+        copies: stack.copies,
+        first_obtained_at: stack.first_obtained_at,
+        last_obtained_at: stack.last_obtained_at,
+        collection_anime_id: card.collection_anime_id,
+        collection_title: card.collection_title,
+        collection_cover_url: card.collection_cover_url,
+    })
+}
+
+fn card_stack(card: &UserCardRow) -> GiftCardStack {
+    GiftCardStack {
+        rarity: card.rarity,
+        variant: card.variant,
+        copies: card.copies,
+        value: card.value,
+        first_obtained_at: card.first_obtained_at,
+        last_obtained_at: card.last_obtained_at,
     }
 }
 
@@ -133,30 +188,31 @@ fn opened_card_from_identity(
             .as_ref()
             .map(|row| row.title.clone())
             .unwrap_or_else(|| format!("{kind} #{entity_id}", kind = kind.as_str())),
-        image_url: meta.as_ref().and_then(|row| row.image_url.clone()),
+        image_url: meta.as_ref().and_then(CardMetaRow::display_image_url),
         collage,
         rarity,
         variant,
         value,
         collection_anime_id: meta.as_ref().and_then(|row| row.collection_anime_id),
         collection_title: meta.as_ref().and_then(|row| row.collection_title.clone()),
-        collection_cover_url: meta.as_ref().and_then(|row| row.collection_cover_url.clone()),
+        collection_cover_url: meta
+            .as_ref()
+            .and_then(|row| row.collection_cover_url.clone()),
     })
 }
 
 fn gift_item(connection: &rusqlite::Connection, gift: &CardGiftRow) -> Result<GiftItem, String> {
+    let cards = gift
+        .cards
+        .iter()
+        .map(|stack| gift_card_from_stack(connection, gift.kind, gift.entity_id, stack))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(GiftItem {
         id: gift.id.clone(),
         created_at: gift.created_at,
         claimed_at: gift.claimed_at,
-        card: opened_card_from_identity(
-            connection,
-            gift.kind,
-            gift.entity_id,
-            gift.rarity,
-            gift.variant,
-            gift_value(gift),
-        )?,
+        total_copies: cards.iter().map(|card| card.copies).sum(),
+        cards,
     })
 }
 
@@ -196,6 +252,7 @@ pub(crate) fn collection_item(row: &rusqlite::Row<'_>) -> rusqlite::Result<Colle
         last_obtained_at: row.get(7)?,
         collection_anime_id: row.get(10)?,
         collection_title: row.get(11)?,
+        is_favorite: row.get(13)?,
     })
 }
 
@@ -210,8 +267,8 @@ pub(crate) fn list_media_collection_items(
     let mut statement = connection
         .prepare(
             "SELECT c.kind, c.entity_id, c.rarity, c.variant, c.copies, c.value,
-                    c.first_obtained_at, c.last_obtained_at, m.title, m.image_url,
-                    m.collection_anime_id, m.collection_title, m.collage_json
+                    c.first_obtained_at, c.last_obtained_at, m.title, COALESCE(m.preferred_image_url, m.image_url),
+                    m.collection_anime_id, m.collection_title, m.collage_json, c.is_favorite
              FROM user_cards c
              LEFT JOIN card_meta m ON m.kind = c.kind AND m.entity_id = c.entity_id
              WHERE c.user_id = ?1
@@ -224,7 +281,10 @@ pub(crate) fn list_media_collection_items(
         )
         .map_err(|error| format!("prepare media collection: {error}"))?;
     let rows = statement
-        .query_map(rusqlite::params![user_id, media_id, kind.as_str()], collection_item)
+        .query_map(
+            rusqlite::params![user_id, media_id, kind.as_str()],
+            collection_item,
+        )
         .map_err(|error| format!("query media collection: {error}"))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("collect media collection: {error}"))
@@ -307,8 +367,8 @@ fn collection_page(
                 (SELECT MAX(u.last_obtained_at) FROM user_cards u
                   WHERE u.user_id = c.user_id AND u.kind = c.kind
                     AND u.entity_id = c.entity_id) AS last_at,
-                m.title, m.image_url,
-                m.collection_anime_id, m.collection_title, m.collage_json
+                m.title, COALESCE(m.preferred_image_url, m.image_url),
+                m.collection_anime_id, m.collection_title, m.collage_json, c.is_favorite
          FROM user_cards c
          LEFT JOIN card_meta m ON m.kind = c.kind AND m.entity_id = c.entity_id
          WHERE c.user_id = ?1
@@ -317,7 +377,7 @@ fn collection_page(
            AND (?4 IS NULL OR c.variant = ?4)
            AND {COLLECTION_SEARCH}
            AND {COLLECTION_VISIBLE_VARIANT}
-         ORDER BY {order} LIMIT ?6 OFFSET ?7"
+         ORDER BY c.is_favorite DESC, {order} LIMIT ?6 OFFSET ?7"
     );
     let mut statement = connection
         .prepare(&sql)
@@ -471,8 +531,8 @@ pub fn cards_card_variants(
     let mut statement = connection
         .prepare(
             "SELECT c.kind, c.entity_id, c.rarity, c.variant, c.copies, c.value,
-                    c.first_obtained_at, c.last_obtained_at, m.title, m.image_url,
-                    m.collection_anime_id, m.collection_title, m.collage_json
+                    c.first_obtained_at, c.last_obtained_at, m.title, COALESCE(m.preferred_image_url, m.image_url),
+                    m.collection_anime_id, m.collection_title, m.collage_json, c.is_favorite
              FROM user_cards c
              LEFT JOIN card_meta m ON m.kind = c.kind AND m.entity_id = c.entity_id
              WHERE c.user_id = ?1 AND c.kind = ?2 AND c.entity_id = ?3
@@ -547,6 +607,7 @@ pub fn cards_stats(app: AppHandle) -> Result<CardsStats, String> {
         duplicates: total_cards.saturating_sub(unique_cards),
         total_value,
         legendary_cards,
+        active_gifts: count_active_gifts(&connection, LOCAL_USER_ID)?,
         last_pulls,
     })
 }
@@ -555,9 +616,9 @@ fn pull_from_row(row: CardPullRow) -> CardPull {
     CardPull {
         kind: row.kind,
         entity_id: row.entity_id,
-        title: row
-            .title
-            .unwrap_or_else(|| format!("{kind} #{id}", kind = row.kind.as_str(), id = row.entity_id)),
+        title: row.title.unwrap_or_else(|| {
+            format!("{kind} #{id}", kind = row.kind.as_str(), id = row.entity_id)
+        }),
         image_url: row.image_url,
         rarity: row.rarity,
         variant: row.variant,
@@ -609,6 +670,35 @@ pub fn cards_set_card_variant(
     store_preferred_variant(&connection, kind, entity_id, variant)
 }
 
+#[tauri::command]
+pub fn cards_card_favorite(app: AppHandle, kind: String, entity_id: i64) -> Result<bool, String> {
+    let kind = CardKind::from_db(kind.trim()).ok_or("unknown card kind")?;
+    if entity_id <= 0 {
+        return Err("invalid card entity id".into());
+    }
+    let connection = open_database(&app)?;
+    is_card_favorite(&connection, LOCAL_USER_ID, kind, entity_id)
+}
+
+#[tauri::command]
+pub fn cards_set_card_favorite(
+    app: AppHandle,
+    kind: String,
+    entity_id: i64,
+    favorite: bool,
+) -> Result<bool, String> {
+    let kind = CardKind::from_db(kind.trim()).ok_or("unknown card kind")?;
+    if entity_id <= 0 {
+        return Err("invalid card entity id".into());
+    }
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let connection = open_database(&app)?;
+    if !set_card_favorite(&connection, LOCAL_USER_ID, kind, entity_id, favorite)? {
+        return Err("card is not owned".into());
+    }
+    Ok(favorite)
+}
+
 /// Wipes the collection: every owned card and the whole chubrik wallet. The
 /// metadata cache stays so the album can be refilled without refetching titles.
 fn reset_collection(connection: &mut rusqlite::Connection) -> Result<usize, String> {
@@ -652,8 +742,14 @@ pub fn cards_dust(
     let transaction = connection
         .transaction()
         .map_err(|error| format!("dust card transaction: {error}"))?;
-    let Some(remaining) =
-        remove_one_card_copy(&transaction, LOCAL_USER_ID, kind, entity_id, rarity, variant)?
+    let Some(remaining) = remove_one_card_copy(
+        &transaction,
+        LOCAL_USER_ID,
+        kind,
+        entity_id,
+        rarity,
+        variant,
+    )?
     else {
         return Err("card not found".into());
     };
@@ -672,35 +768,39 @@ pub fn cards_dust(
 #[serde(rename_all = "camelCase")]
 pub struct CreatedGift {
     pub id: String,
-    pub card: OpenedCard,
+    pub cards: Vec<GiftCard>,
 }
 
-/// Removes one duplicate copy and stores the gift. The caller only needs the
-/// returned id to build the deep link; the DB row is authoritative on claim.
+/// Transfers the whole card: every owned rarity/variant stack and all copies.
+/// The row is removed from the sender in the same transaction.
 pub fn create_gift_in(
     connection: &mut rusqlite::Connection,
     user_id: i64,
     kind: CardKind,
     entity_id: i64,
-    rarity: CardRarity,
-    variant: CardVariant,
     gift_id: &str,
     now: i64,
 ) -> Result<CreatedGift, String> {
     let transaction = connection
         .transaction()
         .map_err(|error| format!("create card gift transaction: {error}"))?;
-    let Some(card) = get_user_card(&transaction, user_id, kind, entity_id, rarity, variant)? else {
+    let owned = list_user_card_stacks(&transaction, user_id, kind, entity_id)?;
+    if owned.is_empty() {
         return Err("card not found".into());
-    };
-    if card.copies <= 1 {
-        return Err("a gift needs a duplicate copy".into());
     }
-    let Some(_remaining) =
-        remove_one_card_copy(&transaction, user_id, kind, entity_id, rarity, variant)?
-    else {
-        return Err("card not found".into());
-    };
+    let cards = owned
+        .iter()
+        .map(|card| {
+            let stack = card_stack(card);
+            gift_card_from_stack(&transaction, kind, entity_id, &stack)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let lead = owned
+        .iter()
+        .max_by_key(|card| card.value)
+        .ok_or_else(|| "card not found".to_string())?;
+    let stacks = owned.iter().map(card_stack).collect::<Vec<_>>();
+    delete_user_card_stacks(&transaction, user_id, kind, entity_id)?;
     insert_gift(
         &transaction,
         &CardGiftRow {
@@ -708,60 +808,35 @@ pub fn create_gift_in(
             from_user: user_id,
             kind,
             entity_id,
-            rarity,
-            variant,
-            value: card.value,
+            rarity: lead.rarity,
+            variant: lead.variant,
+            value: lead.value,
+            cards: stacks,
             created_at: now,
             claimed_at: None,
         },
     )?;
-    let meta = get_meta(&transaction, kind, entity_id)?;
-    let collage = meta
-        .as_ref()
-        .and_then(|row| row.collage_json.as_deref())
-        .and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
-        .unwrap_or_default();
     transaction
         .commit()
         .map_err(|error| format!("commit card gift: {error}"))?;
     Ok(CreatedGift {
         id: gift_id.to_string(),
-        card: OpenedCard {
-            kind,
-            entity_id,
-            title: meta
-                .as_ref()
-                .map(|row| row.title.clone())
-                .unwrap_or_else(|| {
-                    format!("{kind} #{entity_id}", kind = kind.as_str())
-                }),
-            image_url: meta.as_ref().and_then(|row| row.image_url.clone()),
-            collage,
-            rarity,
-            variant,
-            value: card.value,
-            collection_anime_id: meta.as_ref().and_then(|row| row.collection_anime_id),
-            collection_title: meta.as_ref().and_then(|row| row.collection_title.clone()),
-            collection_cover_url: meta
-                .as_ref()
-                .and_then(|row| row.collection_cover_url.clone()),
-        },
+        cards,
     })
 }
 
-/// Creates a gift link payload for one duplicate card. The frontend builds the
-/// actual `iluhaanime://card/gift/...` URL from the returned id.
+/// Creates a gift link payload for the whole card. The frontend builds the
+/// actual `iluhaanime://card/gift/...` URL from the returned cards.
 #[tauri::command]
 pub fn cards_create_gift(
     app: AppHandle,
     kind: String,
     entity_id: i64,
-    rarity: String,
-    variant: String,
 ) -> Result<CreatedGift, String> {
     let kind = CardKind::from_db(kind.trim()).ok_or("unknown card kind")?;
-    let rarity = CardRarity::from_db(rarity.trim()).ok_or("unknown card rarity")?;
-    let variant = CardVariant::from_db(variant.trim()).ok_or("unknown card variant")?;
+    if entity_id <= 0 {
+        return Err("invalid card entity id".into());
+    }
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let mut connection = open_database(&app)?;
     let now = now_seconds();
@@ -771,16 +846,65 @@ pub fn cards_create_gift(
         LOCAL_USER_ID,
         kind,
         entity_id,
-        rarity,
-        variant,
         &gift_id,
         now,
     )
 }
 
-/// Claims a self-contained gift link once on this install. The link carries the
-/// card identity and the frozen value, so the sender's database is not needed.
-/// `card_gift_claims` is the recipient-side replay guard.
+fn normalized_gift_stacks(
+    kind: CardKind,
+    raw: Vec<GiftCardStack>,
+    now: i64,
+) -> Result<Vec<GiftCardStack>, String> {
+    if raw.is_empty() || raw.len() > 64 {
+        return Err("invalid card gift stack list".into());
+    }
+    let mut stacks: Vec<GiftCardStack> = Vec::with_capacity(raw.len());
+    for item in raw {
+        if item.copies <= 0 || item.copies > 1_000_000 {
+            return Err("invalid card gift copy count".into());
+        }
+        let value = if item.value > 0 {
+            item.value
+        } else {
+            i64::from(card_value(kind, item.rarity, item.variant, 0.0))
+        };
+        if value <= 0 {
+            return Err("invalid card gift value".into());
+        }
+        let first = if item.first_obtained_at > 0 {
+            item.first_obtained_at
+        } else {
+            now
+        };
+        let last = if item.last_obtained_at > 0 {
+            item.last_obtained_at.max(first)
+        } else {
+            first
+        };
+        if let Some(existing) = stacks
+            .iter_mut()
+            .find(|stack| stack.rarity == item.rarity && stack.variant == item.variant)
+        {
+            existing.copies = existing.copies.saturating_add(item.copies);
+            existing.first_obtained_at = existing.first_obtained_at.min(first);
+            existing.last_obtained_at = existing.last_obtained_at.max(last);
+        } else {
+            stacks.push(GiftCardStack {
+                rarity: item.rarity,
+                variant: item.variant,
+                copies: item.copies,
+                value,
+                first_obtained_at: first,
+                last_obtained_at: last,
+            });
+        }
+    }
+    Ok(stacks)
+}
+
+/// Claims a self-contained gift link once on this install. New links carry the
+/// whole card stack; older links still resolve to one copy.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub fn cards_claim_gift(
@@ -788,14 +912,16 @@ pub fn cards_claim_gift(
     gift_id: String,
     kind: Option<String>,
     entity_id: Option<i64>,
+    cards: Option<Vec<GiftCardStack>>,
     rarity: Option<String>,
     variant: Option<String>,
     value: Option<i64>,
-) -> Result<OpenedCard, String> {
+) -> Result<Vec<GiftCard>, String> {
     let gift_id = gift_id.trim().to_string();
     if gift_id.is_empty() || gift_id.len() > 128 {
         return Err("invalid card gift id".into());
     }
+    crate::cards::require_anilist_account(&app)?;
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let mut connection = open_database(&app)?;
     let transaction = connection
@@ -803,68 +929,93 @@ pub fn cards_claim_gift(
         .map_err(|error| format!("claim card gift transaction: {error}"))?;
     let now = now_seconds();
     let local_gift = get_gift(&transaction, &gift_id)?;
-    let payload = match (kind, entity_id, rarity, variant) {
-        (Some(kind), Some(entity_id), Some(rarity), Some(variant)) => {
-            let kind = CardKind::from_db(kind.trim()).ok_or("unknown card kind")?;
-            let rarity = CardRarity::from_db(rarity.trim()).ok_or("unknown card rarity")?;
-            let variant = CardVariant::from_db(variant.trim()).ok_or("unknown card variant")?;
-            if entity_id <= 0 {
-                return Err("invalid card entity id".into());
-            }
-            Some((kind, entity_id, rarity, variant))
+
+    let (kind, entity_id, stacks) = if let Some(claimed) = cards {
+        let kind = kind
+            .as_deref()
+            .and_then(CardKind::from_db)
+            .ok_or("unknown card kind")?;
+        let entity_id = entity_id
+            .filter(|id| *id > 0)
+            .ok_or("invalid card entity id")?;
+        (kind, entity_id, claimed)
+    } else if let (Some(kind), Some(entity_id), Some(rarity), Some(variant)) = (
+        kind.as_deref(),
+        entity_id,
+        rarity.as_deref(),
+        variant.as_deref(),
+    ) {
+        let kind = CardKind::from_db(kind).ok_or("unknown card kind")?;
+        let rarity = CardRarity::from_db(rarity).ok_or("unknown card rarity")?;
+        let variant = CardVariant::from_db(variant).ok_or("unknown card variant")?;
+        if entity_id <= 0 {
+            return Err("invalid card entity id".into());
         }
-        (None, None, None, None) => None,
-        _ => return Err("incomplete card gift payload".into()),
+        (
+            kind,
+            entity_id,
+            vec![GiftCardStack {
+                rarity,
+                variant,
+                copies: 1,
+                value: value.unwrap_or(0),
+                first_obtained_at: now,
+                last_obtained_at: now,
+            }],
+        )
+    } else {
+        let Some(gift) = local_gift else {
+            return Err("card gift is missing or already claimed".into());
+        };
+        (gift.kind, gift.entity_id, gift.cards.clone())
     };
-    let (kind, entity_id, rarity, variant, value) = match payload {
-        Some((kind, entity_id, rarity, variant)) => {
-            let value = value
-                .filter(|value| *value > 0)
-                .or_else(|| local_gift.as_ref().map(gift_value))
-                .unwrap_or_else(|| i64::from(card_value(kind, rarity, variant, 0.0)));
-            (kind, entity_id, rarity, variant, value)
-        }
-        None => {
-            let Some(gift) = local_gift else {
-                return Err("card gift is missing or already claimed".into());
-            };
-            (gift.kind, gift.entity_id, gift.rarity, gift.variant, gift_value(&gift))
-        }
-    };
-    if value <= 0 || !record_gift_claim(
+    let stacks = normalized_gift_stacks(kind, stacks, now)?;
+    let lead = stacks
+        .iter()
+        .max_by_key(|stack| stack.value)
+        .ok_or_else(|| "card gift is missing".to_string())?;
+    if !record_gift_claim(
         &transaction,
         &gift_id,
         kind,
         entity_id,
-        rarity,
-        variant,
-        value,
+        lead.rarity,
+        lead.variant,
+        lead.value,
         now,
     )? {
         return Err("card gift is missing or already claimed".into());
     }
-    upsert_card(
-        &transaction,
-        LOCAL_USER_ID,
-        &UserCardRow {
-            kind,
-            entity_id,
-            rarity,
-            variant,
-            copies: 1,
-            value,
-            first_obtained_at: now,
-            last_obtained_at: now,
-        },
-    )?;
+    for stack in &stacks {
+        upsert_card(
+            &transaction,
+            LOCAL_USER_ID,
+            &UserCardRow {
+                kind,
+                entity_id,
+                rarity: stack.rarity,
+                variant: stack.variant,
+                copies: stack.copies,
+                value: stack.value,
+                first_obtained_at: stack.first_obtained_at,
+                last_obtained_at: stack.last_obtained_at,
+            },
+        )?;
+    }
     // A claim on the sender's install also settles the outbox row. On another
     // install this is simply absent and the receipt link does the same job.
     claim_gift(&transaction, &gift_id, now)?;
-    let card = opened_card_from_identity(&transaction, kind, entity_id, rarity, variant, value)?;
+    let cards = stacks
+        .iter()
+        .map(|stack| gift_card_from_stack(&transaction, kind, entity_id, stack))
+        .collect::<Result<Vec<_>, _>>()?;
+    // When the link is claimed on the sender's install, the outbox row should
+    // disappear at once instead of staying there as a claimed gift.
+    delete_gift(&transaction, &gift_id)?;
     transaction
         .commit()
         .map_err(|error| format!("commit card gift claim: {error}"))?;
-    Ok(card)
+    Ok(cards)
 }
 
 #[tauri::command]
@@ -876,8 +1027,30 @@ pub fn cards_gifts(app: AppHandle) -> Result<Vec<GiftItem>, String> {
         .collect()
 }
 
-/// Opens a receipt link on the sender's install and settles the outbox row.
-/// Reopening the same receipt is idempotent.
+fn settle_gift_receipt(
+    connection: &mut rusqlite::Connection,
+    gift_id: &str,
+    now: i64,
+) -> Result<GiftItem, String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("settle card gift transaction: {error}"))?;
+    let Some(gift) = get_gift(&transaction, gift_id)? else {
+        return Err("card gift is missing".into());
+    };
+    let item = gift_item(&transaction, &gift)?;
+    let _ = claim_gift(&transaction, gift_id, now)?;
+    if !delete_gift(&transaction, gift_id)? {
+        return Err("card gift is missing".into());
+    }
+    transaction
+        .commit()
+        .map_err(|error| format!("commit card gift receipt: {error}"))?;
+    Ok(item)
+}
+
+/// Opens a receipt link on the sender's install, returns the settled card
+/// snapshot, and removes the gift from the outbox.
 #[tauri::command]
 pub fn cards_mark_gift_claimed(app: AppHandle, gift_id: String) -> Result<GiftItem, String> {
     let gift_id = gift_id.trim().to_string();
@@ -885,12 +1058,8 @@ pub fn cards_mark_gift_claimed(app: AppHandle, gift_id: String) -> Result<GiftIt
         return Err("invalid card gift id".into());
     }
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
-    let connection = open_database(&app)?;
-    claim_gift(&connection, &gift_id, now_seconds())?;
-    let Some(gift) = get_gift(&connection, &gift_id)? else {
-        return Err("card gift is missing".into());
-    };
-    gift_item(&connection, &gift)
+    let mut connection = open_database(&app)?;
+    settle_gift_receipt(&mut connection, &gift_id, now_seconds())
 }
 
 fn delete_gift_in(
@@ -906,20 +1075,23 @@ fn delete_gift_in(
     let returned = gift.claimed_at.is_none();
     if returned {
         let now = now_seconds();
-        upsert_card(
-            &transaction,
-            LOCAL_USER_ID,
-            &UserCardRow {
-                kind: gift.kind,
-                entity_id: gift.entity_id,
-                rarity: gift.rarity,
-                variant: gift.variant,
-                copies: 1,
-                value: gift_value(&gift),
-                first_obtained_at: now,
-                last_obtained_at: now,
-            },
-        )?;
+        let stacks = normalized_gift_stacks(gift.kind, gift.cards.clone(), now)?;
+        for stack in &stacks {
+            upsert_card(
+                &transaction,
+                LOCAL_USER_ID,
+                &UserCardRow {
+                    kind: gift.kind,
+                    entity_id: gift.entity_id,
+                    rarity: stack.rarity,
+                    variant: stack.variant,
+                    copies: stack.copies,
+                    value: stack.value,
+                    first_obtained_at: stack.first_obtained_at,
+                    last_obtained_at: stack.last_obtained_at,
+                },
+            )?;
+        }
     }
     if !delete_gift(&transaction, gift_id)? {
         return Err("card gift is missing".into());
@@ -938,6 +1110,9 @@ pub fn cards_delete_gift(app: AppHandle, gift_id: String) -> Result<GiftDeleteRe
     if gift_id.is_empty() || gift_id.len() > 128 {
         return Err("invalid card gift id".into());
     }
+    // Deleting an unclaimed gift returns its cards, so it is another way to
+    // receive cards and follows the same AniList account rule.
+    crate::cards::require_anilist_account(&app)?;
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let mut connection = open_database(&app)?;
     delete_gift_in(&mut connection, &gift_id)
@@ -946,7 +1121,7 @@ pub fn cards_delete_gift(app: AppHandle, gift_id: String) -> Result<GiftDeleteRe
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app_db::cards::{upsert_meta, CardMetaRow};
+    use crate::app_db::cards::{get_user_card, upsert_meta, CardMetaRow};
     use crate::app_db::schema::initialize_schema;
 
     fn memory_db() -> rusqlite::Connection {
@@ -968,94 +1143,174 @@ mod tests {
         }
     }
 
+    fn normal_card() -> UserCardRow {
+        UserCardRow {
+            kind: CardKind::Character,
+            entity_id: 45627,
+            rarity: CardRarity::Rare,
+            variant: CardVariant::Normal,
+            copies: 1,
+            value: 5,
+            first_obtained_at: 150,
+            last_obtained_at: 180,
+        }
+    }
+
+    fn levi_meta() -> CardMetaRow {
+        CardMetaRow {
+            kind: CardKind::Character,
+            entity_id: 45627,
+            title: "Levi".into(),
+            image_url: Some("https://img/levi.jpg".into()),
+            score: Some(6),
+            popularity: None,
+            favourites: Some(38_718),
+            collection_anime_id: Some(16498),
+            collection_manga_id: None,
+            collection_title: Some("Shingeki no Kyojin".into()),
+            collection_cover_url: None,
+            collage_json: None,
+            fetched_at: 100,
+            preferred_image_url: None,
+        }
+    }
+
     #[test]
-    fn a_gift_removes_one_copy_and_can_be_claimed_once() {
+    fn a_gift_transfers_every_variant_and_copy() {
         let mut connection = memory_db();
         upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).expect("card");
-        upsert_meta(
-            &connection,
-            &CardMetaRow {
-                kind: CardKind::Character,
-                entity_id: 45627,
-                title: "Levi".into(),
-                image_url: Some("https://img/levi.jpg".into()),
-                score: Some(6),
-                popularity: None,
-                favourites: Some(38_718),
-                collection_anime_id: Some(16498),
-                collection_manga_id: None,
-                collection_title: Some("Shingeki no Kyojin".into()),
-                collection_cover_url: None,
-                collage_json: None,
-                fetched_at: 100,
-            },
-        )
-        .expect("meta");
+        upsert_card(&connection, LOCAL_USER_ID, &normal_card()).expect("card");
+        upsert_meta(&connection, &levi_meta()).expect("meta");
 
         let gift = create_gift_in(
             &mut connection,
             LOCAL_USER_ID,
             CardKind::Character,
             45627,
-            CardRarity::Rare,
-            CardVariant::Foil,
             "gift-test-1",
             200,
         )
         .expect("create gift");
         assert_eq!(gift.id, "gift-test-1");
-        assert_eq!(gift.card.title, "Levi");
-        assert_eq!(gift.card.value, 8);
-        assert_eq!(get_gift(&connection, "gift-test-1").unwrap().unwrap().value, 8);
-        assert_eq!(
-            get_user_card(
-                &connection,
-                LOCAL_USER_ID,
-                CardKind::Character,
-                45627,
-                CardRarity::Rare,
-                CardVariant::Foil
-            )
-            .unwrap()
-            .unwrap()
-            .copies,
-            1
+        assert_eq!(gift.cards.len(), 2);
+        assert_eq!(gift.cards.iter().map(|card| card.copies).sum::<i64>(), 3);
+        assert!(gift.cards.iter().all(|card| card.title == "Levi"));
+        assert!(
+            list_user_card_stacks(&connection, LOCAL_USER_ID, CardKind::Character, 45627)
+                .unwrap()
+                .is_empty()
         );
-        assert!(claim_gift(&connection, "gift-test-1", 300).unwrap().is_some());
-        assert!(claim_gift(&connection, "gift-test-1", 400).unwrap().is_none());
+
+        let stored = get_gift(&connection, "gift-test-1").unwrap().unwrap();
+        assert_eq!(stored.cards.len(), 2);
+        assert_eq!(stored.cards.iter().map(|card| card.copies).sum::<i64>(), 3);
+        assert!(claim_gift(&connection, "gift-test-1", 300)
+            .unwrap()
+            .is_some());
+        assert!(claim_gift(&connection, "gift-test-1", 400)
+            .unwrap()
+            .is_none());
     }
 
     #[test]
-    fn a_gift_rejects_a_last_copy() {
-        let mut connection = memory_db();
-        let mut card = duplicate_card();
-        card.copies = 1;
-        upsert_card(&connection, LOCAL_USER_ID, &card).expect("card");
-        let error = create_gift_in(
-            &mut connection,
-            LOCAL_USER_ID,
-            CardKind::Character,
-            45627,
-            CardRarity::Rare,
-            CardVariant::Foil,
-            "gift-test-2",
-            200,
-        )
-        .expect_err("last copy must stay");
-        assert!(error.contains("duplicate"));
-    }
-
-    #[test]
-    fn deleting_an_unclaimed_gift_returns_the_copy() {
+    fn confirming_a_receipt_removes_the_gift_from_the_outbox() {
         let mut connection = memory_db();
         upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).expect("card");
+        upsert_meta(&connection, &levi_meta()).expect("meta");
         create_gift_in(
             &mut connection,
             LOCAL_USER_ID,
             CardKind::Character,
             45627,
+            "gift-receipt-1",
+            200,
+        )
+        .expect("create gift");
+
+        let settled =
+            settle_gift_receipt(&mut connection, "gift-receipt-1", 300).expect("settle receipt");
+
+        assert_eq!(settled.cards.len(), 1);
+        assert_eq!(settled.cards[0].title, "Levi");
+        assert_eq!(settled.total_copies, 2);
+        assert!(get_gift(&connection, "gift-receipt-1").unwrap().is_none());
+        assert!(list_gifts(&connection, LOCAL_USER_ID, 100)
+            .unwrap()
+            .is_empty());
+        assert_eq!(count_active_gifts(&connection, LOCAL_USER_ID).unwrap(), 0);
+    }
+
+    #[test]
+    fn gift_stacks_merge_and_keep_the_full_date_range() {
+        let stacks = normalized_gift_stacks(
+            CardKind::Character,
+            vec![
+                GiftCardStack {
+                    rarity: CardRarity::Rare,
+                    variant: CardVariant::Foil,
+                    copies: 2,
+                    value: 0,
+                    first_obtained_at: 100,
+                    last_obtained_at: 200,
+                },
+                GiftCardStack {
+                    rarity: CardRarity::Rare,
+                    variant: CardVariant::Foil,
+                    copies: 1,
+                    value: 9,
+                    first_obtained_at: 50,
+                    last_obtained_at: 400,
+                },
+            ],
+            500,
+        )
+        .expect("stacks");
+        assert_eq!(stacks.len(), 1);
+        assert_eq!(stacks[0].copies, 3);
+        assert_eq!(stacks[0].value, 8);
+        assert_eq!(stacks[0].first_obtained_at, 50);
+        assert_eq!(stacks[0].last_obtained_at, 400);
+    }
+
+    #[test]
+    fn a_single_copy_can_be_gifted_without_staying_in_the_collection() {
+        let mut connection = memory_db();
+        let mut card = duplicate_card();
+        card.copies = 1;
+        upsert_card(&connection, LOCAL_USER_ID, &card).expect("card");
+        let gift = create_gift_in(
+            &mut connection,
+            LOCAL_USER_ID,
+            CardKind::Character,
+            45627,
+            "gift-test-2",
+            200,
+        )
+        .expect("the whole card can be gifted");
+        assert_eq!(gift.cards.len(), 1);
+        assert_eq!(gift.cards[0].copies, 1);
+        assert!(get_user_card(
+            &connection,
+            LOCAL_USER_ID,
+            CardKind::Character,
+            45627,
             CardRarity::Rare,
-            CardVariant::Foil,
+            CardVariant::Foil
+        )
+        .unwrap()
+        .is_none());
+    }
+
+    #[test]
+    fn deleting_an_unclaimed_gift_returns_every_variant() {
+        let mut connection = memory_db();
+        upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).expect("card");
+        upsert_card(&connection, LOCAL_USER_ID, &normal_card()).expect("card");
+        create_gift_in(
+            &mut connection,
+            LOCAL_USER_ID,
+            CardKind::Character,
+            45627,
             "gift-delete-1",
             200,
         )
@@ -1065,24 +1320,14 @@ mod tests {
 
         assert!(deleted.returned);
         assert!(get_gift(&connection, "gift-delete-1").unwrap().is_none());
-        assert_eq!(
-            get_user_card(
-                &connection,
-                LOCAL_USER_ID,
-                CardKind::Character,
-                45627,
-                CardRarity::Rare,
-                CardVariant::Foil
-            )
-            .unwrap()
-            .unwrap()
-            .copies,
-            2
-        );
+        let restored =
+            list_user_card_stacks(&connection, LOCAL_USER_ID, CardKind::Character, 45627).unwrap();
+        assert_eq!(restored.len(), 2);
+        assert_eq!(restored.iter().map(|card| card.copies).sum::<i64>(), 3);
     }
 
     #[test]
-    fn deleting_a_receipt_confirmed_gift_does_not_return_the_copy() {
+    fn deleting_a_receipt_confirmed_gift_does_not_return_the_card() {
         let mut connection = memory_db();
         upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).expect("card");
         create_gift_in(
@@ -1090,8 +1335,6 @@ mod tests {
             LOCAL_USER_ID,
             CardKind::Character,
             45627,
-            CardRarity::Rare,
-            CardVariant::Foil,
             "gift-delete-2",
             200,
         )
@@ -1103,20 +1346,16 @@ mod tests {
         let deleted = delete_gift_in(&mut connection, "gift-delete-2").expect("delete gift");
 
         assert!(!deleted.returned);
-        assert_eq!(
-            get_user_card(
-                &connection,
-                LOCAL_USER_ID,
-                CardKind::Character,
-                45627,
-                CardRarity::Rare,
-                CardVariant::Foil
-            )
-            .unwrap()
-            .unwrap()
-            .copies,
-            1
-        );
+        assert!(get_user_card(
+            &connection,
+            LOCAL_USER_ID,
+            CardKind::Character,
+            45627,
+            CardRarity::Rare,
+            CardVariant::Foil
+        )
+        .unwrap()
+        .is_none());
     }
 
     #[test]
@@ -1154,19 +1393,57 @@ mod tests {
                     collection_cover_url: None,
                     collage_json: None,
                     fetched_at: 100,
+                    preferred_image_url: None,
                 },
             )
             .expect("meta");
         }
 
         let order = collection_order("title", true).expect("title order");
-        let items = collection_page(&connection, None, None, None, None, order, 10, 0)
-            .expect("title page");
+        let items =
+            collection_page(&connection, None, None, None, None, order, 10, 0).expect("title page");
 
         assert_eq!(
             items.iter().map(|item| item.entity_id).collect::<Vec<_>>(),
             vec![30_002, 30_001]
         );
+    }
+
+    #[test]
+    fn favorite_cards_sort_before_every_other_card() {
+        let connection = memory_db();
+        for (entity_id, value) in [(62_001, 1), (62_002, 99)] {
+            upsert_card(
+                &connection,
+                LOCAL_USER_ID,
+                &UserCardRow {
+                    kind: CardKind::Character,
+                    entity_id,
+                    rarity: CardRarity::Rare,
+                    variant: CardVariant::Normal,
+                    copies: 1,
+                    value,
+                    first_obtained_at: 100,
+                    last_obtained_at: 100,
+                },
+            )
+            .expect("card");
+        }
+        assert!(set_card_favorite(
+            &connection,
+            LOCAL_USER_ID,
+            CardKind::Character,
+            62_001,
+            true
+        )
+        .expect("favorite"));
+
+        let order = collection_order("value", true).expect("value order");
+        let items =
+            collection_page(&connection, None, None, None, None, order, 10, 0).expect("page");
+
+        assert_eq!(items[0].entity_id, 62_001);
+        assert_eq!(items[1].entity_id, 62_002);
     }
 
     #[test]
@@ -1189,6 +1466,7 @@ mod tests {
                     collection_cover_url: None,
                     collage_json: None,
                     fetched_at: 100,
+                    preferred_image_url: None,
                 },
             )
             .expect("meta");
@@ -1214,7 +1492,10 @@ mod tests {
         let matched = collection_page(&connection, None, None, None, Some(&pattern), order, 10, 0)
             .expect("search page");
         assert_eq!(
-            matched.iter().map(|item| item.entity_id).collect::<Vec<_>>(),
+            matched
+                .iter()
+                .map(|item| item.entity_id)
+                .collect::<Vec<_>>(),
             vec![40_001]
         );
 
@@ -1245,8 +1526,13 @@ mod tests {
         let removed = reset_collection(&mut connection).expect("reset");
 
         assert_eq!(removed, 1);
-        assert!(list_user_cards(&connection, LOCAL_USER_ID).expect("cards").is_empty());
-        assert_eq!(wallet_balance(&connection, LOCAL_USER_ID).expect("wallet"), 0);
+        assert!(list_user_cards(&connection, LOCAL_USER_ID)
+            .expect("cards")
+            .is_empty());
+        assert_eq!(
+            wallet_balance(&connection, LOCAL_USER_ID).expect("wallet"),
+            0
+        );
     }
 
     #[test]
@@ -1270,14 +1556,14 @@ mod tests {
             .expect("card");
         }
         let order = collection_order("recent", true).expect("order");
-        let listed = collection_page(&connection, None, None, None, None, order, 10, 0)
-            .expect("page");
+        let listed =
+            collection_page(&connection, None, None, None, None, order, 10, 0).expect("page");
         assert_eq!(listed.len(), 2);
 
         store_preferred_variant(&connection, CardKind::Character, 60_001, CardVariant::Foil)
             .expect("preference");
-        let listed = collection_page(&connection, None, None, None, None, order, 10, 0)
-            .expect("page");
+        let listed =
+            collection_page(&connection, None, None, None, None, order, 10, 0).expect("page");
 
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].variant.as_str(), "foil");
@@ -1308,18 +1594,23 @@ mod tests {
         }
 
         let order = collection_order("recent", false).expect("order");
-        let listed = collection_page(&connection, None, None, None, None, order, 10, 0)
-            .expect("page");
+        let listed =
+            collection_page(&connection, None, None, None, None, order, 10, 0).expect("page");
         assert_eq!(listed.len(), 2);
         for item in &listed {
             assert_eq!(item.first_obtained_at, 100);
             assert_eq!(item.last_obtained_at, 900);
         }
 
-        store_preferred_variant(&connection, CardKind::Character, 61_001, CardVariant::Normal)
-            .expect("preference");
-        let listed = collection_page(&connection, None, None, None, None, order, 10, 0)
-            .expect("page");
+        store_preferred_variant(
+            &connection,
+            CardKind::Character,
+            61_001,
+            CardVariant::Normal,
+        )
+        .expect("preference");
+        let listed =
+            collection_page(&connection, None, None, None, None, order, 10, 0).expect("page");
 
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].variant.as_str(), "normal");
@@ -1342,6 +1633,9 @@ mod tests {
 
     #[test]
     fn dust_credits_the_frozen_value_not_a_recomputed_one() {
-        assert_eq!(card_value(CardKind::Anime, CardRarity::Rare, CardVariant::Normal, 0.0), 5);
+        assert_eq!(
+            card_value(CardKind::Anime, CardRarity::Rare, CardVariant::Normal, 0.0),
+            5
+        );
     }
 }

@@ -184,7 +184,10 @@ mod tests {
         assert_eq!(tier_for(CardKind::Character, nadia), CardRarity::Junk);
 
         let one_piece_uta = character_score(1_150, 769_142);
-        assert_eq!(tier_for(CardKind::Character, one_piece_uta), CardRarity::Rare);
+        assert_eq!(
+            tier_for(CardKind::Character, one_piece_uta),
+            CardRarity::Rare
+        );
 
         let levi = character_score(38_718, 1_077_853);
         assert_eq!(tier_for(CardKind::Character, levi), CardRarity::Legendary);

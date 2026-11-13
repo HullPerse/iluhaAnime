@@ -307,8 +307,6 @@ impl TorrentManager {
         }
     }
 
-
-
     pub async fn advance_sequential_torrents(self: &Arc<Self>) {
         let sequential: Vec<usize> = self
             .session
@@ -339,7 +337,8 @@ impl TorrentManager {
     ) -> Result<TorrentCheckResult, String> {
         self.verify_torrent(id, info_hash.as_deref())?;
         let save_dir = self
-            .registry.save_dirs
+            .registry
+            .save_dirs
             .get(&id)
             .map(|r| r.clone())
             .unwrap_or_default();

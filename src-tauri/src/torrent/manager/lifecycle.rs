@@ -139,7 +139,8 @@ impl TorrentManager {
             .torrent_source(id)
             .ok_or_else(|| "the torrent metainfo is unavailable, try again".to_string())?;
         let magnet = self
-            .registry.magnet_links
+            .registry
+            .magnet_links
             .get(&id)
             .map(|entry| entry.clone())
             .unwrap_or_else(|| format!("magnet:?xt=urn:btih:{info_hash}"));
@@ -163,7 +164,8 @@ impl TorrentManager {
     pub fn finalize_part_files_pass(&self) {
         self.session.with_torrents(|iter| {
             for (id, handle) in iter {
-                let Some(save_dir) = self.registry.save_dirs.get(&id).map(|entry| entry.clone()) else {
+                let Some(save_dir) = self.registry.save_dirs.get(&id).map(|entry| entry.clone())
+                else {
                     continue;
                 };
                 let key = handle.info_hash().as_string();
@@ -187,7 +189,11 @@ impl TorrentManager {
         }
     }
 
-    pub(super) fn reconcile_torrent_files(&self, id: usize, handle: &Arc<librqbit::ManagedTorrent>) {
+    pub(super) fn reconcile_torrent_files(
+        &self,
+        id: usize,
+        handle: &Arc<librqbit::ManagedTorrent>,
+    ) {
         let Some(save_dir) = self.registry.save_dirs.get(&id).map(|entry| entry.clone()) else {
             return;
         };
@@ -195,7 +201,8 @@ impl TorrentManager {
         let stats = handle.stats();
         if stats.finished {
             let same_folder = self
-                .registry.partial_leftovers
+                .registry
+                .partial_leftovers
                 .get(&key)
                 .is_some_and(|record| record.save_dir == save_dir);
             if same_folder && self.registry.partial_leftovers.remove(&key).is_some() {
@@ -224,7 +231,8 @@ impl TorrentManager {
                     let path = Path::new(&save_dir).join(&file.relative_filename);
                     let path_key = path.to_string_lossy().to_string();
                     let remembered = self
-                        .registry.hidden_paths
+                        .registry
+                        .hidden_paths
                         .get(&key)
                         .is_some_and(|entry| entry.contains(&path_key));
                     let progress = stats.file_progress.get(index).copied().unwrap_or(0);
@@ -486,7 +494,8 @@ impl TorrentManager {
                 continue;
             };
             let magnet = self
-                .registry.magnet_links
+                .registry
+                .magnet_links
                 .get(&request.id)
                 .map(|entry| entry.clone())
                 .unwrap_or_else(|| format!("magnet:?xt=urn:btih:{key}"));
@@ -522,7 +531,8 @@ impl TorrentManager {
     }
 
     pub(super) fn remember_hidden_path(&self, key: &str, path: &str) -> bool {
-        self.registry.hidden_paths
+        self.registry
+            .hidden_paths
             .entry(key.to_string())
             .or_default()
             .insert(path.to_string())
@@ -530,13 +540,15 @@ impl TorrentManager {
 
     pub(super) fn forget_hidden_path(&self, key: &str, path: &str) -> bool {
         let (removed, empty) = self
-            .registry.hidden_paths
+            .registry
+            .hidden_paths
             .get_mut(key)
             .map_or((false, false), |mut entry| {
                 (entry.remove(path), entry.is_empty())
             });
         if empty {
-            self.registry.hidden_paths
+            self.registry
+                .hidden_paths
                 .remove_if(key, |_, paths| paths.is_empty());
         }
         removed
@@ -544,7 +556,8 @@ impl TorrentManager {
 
     pub(super) fn reveal_hidden_paths(&self, key: &str, keep: &[PathBuf]) -> bool {
         let paths: Vec<String> = self
-            .registry.hidden_paths
+            .registry
+            .hidden_paths
             .get(key)
             .map(|entry| entry.value().iter().cloned().collect())
             .unwrap_or_default();
@@ -569,7 +582,8 @@ impl TorrentManager {
     }
 
     pub(super) fn leftover_paths(&self, key: &str) -> Vec<PathBuf> {
-        self.registry.partial_leftovers
+        self.registry
+            .partial_leftovers
             .get(key)
             .map_or_else(Vec::new, |record| {
                 record
@@ -586,7 +600,8 @@ impl TorrentManager {
     pub fn sweep_stale_hidden(&self) {
         let active = self.active_info_hashes();
         let keys: Vec<String> = self
-            .registry.hidden_paths
+            .registry
+            .hidden_paths
             .iter()
             .map(|entry| entry.key().clone())
             .collect();
@@ -661,7 +676,11 @@ impl TorrentManager {
     /// Files with no verified data and no allocated bytes. Their logical length
     /// may already be the full file size because the engine pre-extends selected
     /// files, so length alone cannot identify them.
-    pub(super) fn empty_placeholder_paths(&self, id: usize, save_dir: Option<&str>) -> Vec<PathBuf> {
+    pub(super) fn empty_placeholder_paths(
+        &self,
+        id: usize,
+        save_dir: Option<&str>,
+    ) -> Vec<PathBuf> {
         let (Some(save_dir), Some(handle)) = (save_dir, self.torrent_handle(id)) else {
             return Vec::new();
         };
@@ -789,7 +808,8 @@ impl TorrentManager {
         self.prune_partial_leftovers();
         let active = self.active_info_hashes();
         let mut result: Vec<PartialLeftover> = self
-            .registry.partial_leftovers
+            .registry
+            .partial_leftovers
             .iter()
             .filter(|entry| !active.contains(entry.key()))
             .map(|entry| entry.value().clone())
@@ -801,7 +821,8 @@ impl TorrentManager {
     pub fn clear_partial_leftovers(&self, hashes: Option<&[String]>) -> u64 {
         let active = self.active_info_hashes();
         let keys: Vec<String> = self
-            .registry.partial_leftovers
+            .registry
+            .partial_leftovers
             .iter()
             .filter(|entry| !active.contains(entry.key()))
             .filter(|entry| hashes.is_none_or(|wanted| wanted.contains(entry.key())))

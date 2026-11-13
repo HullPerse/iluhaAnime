@@ -92,8 +92,7 @@ fn torrent_preferences_round_trip_through_json() {
 #[test]
 fn a_preferences_file_without_a_queue_still_loads() {
     let json = r#"{"sequential_torrents":["0123456789abcdef0123456789abcdef01234567"],"file_priorities":{}}"#;
-    let restored: TorrentPreferences =
-        serde_json::from_str(json).expect("preferences deserialize");
+    let restored: TorrentPreferences = serde_json::from_str(json).expect("preferences deserialize");
     assert!(restored.download_order.is_empty());
     assert_eq!(restored.sequential_torrents.len(), 1);
 }
@@ -404,8 +403,7 @@ async fn create_torrent_from_folder_seeds_the_folder_in_place() {
     let source = dir.join("Show");
     std::fs::create_dir_all(source.join("nested")).expect("create source dir");
     std::fs::write(source.join("one.bin"), b"first").expect("write file");
-    std::fs::write(source.join("nested").join("two.bin"), b"second")
-        .expect("write nested file");
+    std::fs::write(source.join("nested").join("two.bin"), b"second").expect("write nested file");
 
     let manager = Arc::new(
         TorrentManager::new_test(dir.clone())
@@ -430,7 +428,8 @@ async fn create_torrent_from_folder_seeds_the_folder_in_place() {
     assert_eq!(parsed.info_hash.as_string(), created.info_hash);
 
     let seeded_from = manager
-        .registry.save_dirs
+        .registry
+        .save_dirs
         .get(&created.id)
         .map(|saved| saved.value().clone())
         .expect("the created torrent is in the session");
@@ -1108,8 +1107,7 @@ async fn without_the_mode_the_library_takes_the_nested_file_first() {
             .await
             .expect("session starts"),
     );
-    let id =
-        download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
+    let id = download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
 
     let files = manager.get_running_torrent_files(id).expect("file list");
     let (target, other) = swarm_file_indices(&files, &root, &nested);
@@ -1141,8 +1139,7 @@ async fn a_real_swarm_flags_external_edits_and_reverifies_on_resume() {
             .await
             .expect("session starts"),
     );
-    let id =
-        download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
+    let id = download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
 
     let deadline = Instant::now() + Duration::from_secs(90);
     let is_finished = |manager: &Arc<TorrentManager>| {
@@ -1297,7 +1294,8 @@ async fn per_torrent_limits_are_keyed_by_info_hash() {
     assert_eq!(manager.get_torrent_limits(id), limits);
     assert_eq!(
         manager
-            .registry.torrent_limits
+            .registry
+            .torrent_limits
             .get(&hash)
             .map(|entry| *entry.value()),
         Some(limits)
@@ -1327,8 +1325,7 @@ async fn limits_under_a_foreign_key_never_apply() {
 
     #[allow(clippy::cast_sign_loss)]
     let content: Vec<u8> = (0..20 * 1024).map(|i| (i * 5 % 251) as u8).collect();
-    let (torrent_bytes, source_dir) =
-        create_test_torrent("limits-stale", &[("one.bin", content)]);
+    let (torrent_bytes, source_dir) = create_test_torrent("limits-stale", &[("one.bin", content)]);
 
     let manager = Arc::new(
         TorrentManager::new_test(dir.clone())
@@ -1336,7 +1333,8 @@ async fn limits_under_a_foreign_key_never_apply() {
             .expect("session starts"),
     );
     manager
-        .registry.torrent_limits
+        .registry
+        .torrent_limits
         .insert("deadbeef".to_string(), download_limit(32 * 1024));
 
     let save_dir = dir.join("downloads").to_string_lossy().to_string();
@@ -1678,8 +1676,7 @@ async fn resume_without_external_changes_unpauses_without_a_recheck() {
     let dir = std::env::temp_dir().join(format!("iluha-resume-clean-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let content: Vec<u8> = (0..20 * 1024).map(|i| (i % 251) as u8).collect();
-    let (manager, _save_dir, source_dir, id) =
-        paused_fixture(&dir, "resume-clean", &content).await;
+    let (manager, _save_dir, source_dir, id) = paused_fixture(&dir, "resume-clean", &content).await;
 
     let result = manager.resume_torrent(id, None).await.expect("resume");
     assert!(
@@ -1750,11 +1747,19 @@ async fn renaming_a_torrent_moves_its_root_folder_and_paths() {
         "the engine has to resolve payloads under the new root: {files:?}"
     );
     assert_eq!(
-        manager.registry.aliases.get(&key).map(|entry| entry.clone()),
+        manager
+            .registry
+            .aliases
+            .get(&key)
+            .map(|entry| entry.clone()),
         Some(new_root.to_string())
     );
     assert_eq!(
-        manager.registry.root_names.get(&key).map(|entry| entry.clone()),
+        manager
+            .registry
+            .root_names
+            .get(&key)
+            .map(|entry| entry.clone()),
         Some(new_root.to_string())
     );
 
@@ -1767,8 +1772,7 @@ async fn the_paused_watcher_raises_the_badge_before_resume() {
     let dir = std::env::temp_dir().join(format!("iluha-paused-watch-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let content: Vec<u8> = (0..20 * 1024).map(|i| (i % 251) as u8).collect();
-    let (manager, save_dir, source_dir, id) =
-        paused_fixture(&dir, "paused-watch", &content).await;
+    let (manager, save_dir, source_dir, id) = paused_fixture(&dir, "paused-watch", &content).await;
 
     let mut torrents = manager.collect_torrents();
     manager.watch_external_files(&mut torrents);
@@ -1821,8 +1825,7 @@ async fn the_finished_watcher_flags_outside_edits() {
             .await
             .expect("session starts"),
     );
-    let id =
-        download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
+    let id = download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
 
     let deadline = Instant::now() + Duration::from_secs(90);
     let is_finished = |manager: &Arc<TorrentManager>| {
@@ -1931,8 +1934,7 @@ async fn recheck_from_the_badge_reverifies_and_stays_paused() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_finished_torrent_keeps_the_unselected_placeholder_without_a_badge() {
-    let dir =
-        std::env::temp_dir().join(format!("iluha-placeholder-badge-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("iluha-placeholder-badge-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let (torrent_bytes, source_dir) = create_test_torrent(
         "placeholder-badge",
@@ -2014,8 +2016,7 @@ async fn the_lightweight_recheck_clears_the_external_badge() {
     let dir = std::env::temp_dir().join(format!("iluha-recheck-badge-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let content: Vec<u8> = (0..20 * 1024).map(|i| (i % 251) as u8).collect();
-    let (manager, save_dir, source_dir, id) =
-        paused_fixture(&dir, "recheck-badge", &content).await;
+    let (manager, save_dir, source_dir, id) = paused_fixture(&dir, "recheck-badge", &content).await;
 
     let files = manager.get_running_torrent_files(id).expect("file list");
     let target = resolve_payload_path(&save_dir.join(&files[0].name));
@@ -2058,8 +2059,7 @@ async fn the_lightweight_recheck_clears_the_external_badge() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn resume_after_external_writes_reverifies_from_disk() {
-    let dir =
-        std::env::temp_dir().join(format!("iluha-resume-external-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("iluha-resume-external-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let content: Vec<u8> = (0..20 * 1024).map(|i| (i % 251) as u8).collect();
     let (manager, save_dir, source_dir, id) =
@@ -2810,8 +2810,7 @@ async fn selecting_a_file_after_the_finish_downloads_it() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn removing_a_finished_torrent_finalizes_the_part_before_keeping_files() {
-    let dir =
-        std::env::temp_dir().join(format!("iluha-remove-finished-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("iluha-remove-finished-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let content = payload_bytes(2 * 1024 * 1024);
     let (torrent_bytes, source_dir) =
@@ -3374,8 +3373,7 @@ async fn real_magnet_download_keeps_part_files_and_records_leftovers() {
         }
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
-    let partial =
-        partial.expect("no payload arrived in 180s: tracker, DHT or peers unavailable");
+    let partial = partial.expect("no payload arrived in 180s: tracker, DHT or peers unavailable");
 
     manager.finalize_part_files_pass();
     let final_path = save_dir.join(&partial.name);

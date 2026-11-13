@@ -8,6 +8,7 @@ import { settingsAtoms } from "@/store/settings.store";
 import type { CardsCollectionSort, CardsSortDir } from "@/types/store/cards";
 import type {
   AnimeCollectionPage,
+  CardGallery,
   CardPackRow,
   CardsBootstrap,
   CardsCollectionParams,
@@ -54,23 +55,21 @@ export function useCardsCollectionInfinite(
   enabled = true
 ) {
   const proxy = anilistProxy();
-  return useAppInfiniteQuery<
-    CollectionPage,
-    Error,
-    InfiniteData<CollectionPage>,
-    QueryKey,
-    number
-  >("slow", {
-    queryKey: queryKeys.cardsCollectionInfinite(params, proxy),
-    queryFn: ({ pageParam }) => cardsApi.collection({ ...params, page: pageParam }, proxy || null),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) =>
-      lastPage.page * lastPage.pageSize < lastPage.total ? lastPage.page + 1 : undefined,
-    // Re-sorting keeps the current rows on screen instead of blanking the grid
-    // and snapping back to the top of an empty list.
-    placeholderData: keepPreviousData,
-    enabled,
-  });
+  return useAppInfiniteQuery<CollectionPage, Error, InfiniteData<CollectionPage>, QueryKey, number>(
+    "slow",
+    {
+      queryKey: queryKeys.cardsCollectionInfinite(params, proxy),
+      queryFn: ({ pageParam }) =>
+        cardsApi.collection({ ...params, page: pageParam }, proxy || null),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) =>
+        lastPage.page * lastPage.pageSize < lastPage.total ? lastPage.page + 1 : undefined,
+      // Re-sorting keeps the current rows on screen instead of blanking the grid
+      // and snapping back to the top of an empty list.
+      placeholderData: keepPreviousData,
+      enabled,
+    }
+  );
 }
 
 export function useCardsCollections(sort: CardsCollectionSort, sortDir: CardsSortDir) {
@@ -90,10 +89,23 @@ export function useCardsCardVariants(kind: CollectionItem["kind"], entityId: num
   });
 }
 
-export function useCardsAnimeCollection(
-  animeId: number | null,
-  kind: "anime" | "manga" = "anime"
-) {
+export function useCardsCardFavorite(kind: CollectionItem["kind"], entityId: number) {
+  return useAppQuery<boolean>("static", {
+    queryKey: queryKeys.cardsCardFavorite(kind, entityId),
+    queryFn: () => cardsApi.isCardFavorite(kind, entityId),
+  });
+}
+
+export function useCardsGallery(kind: CollectionItem["kind"], entityId: number, enabled = true) {
+  const proxy = anilistProxy();
+  return useAppQuery<CardGallery>("slow", {
+    queryKey: queryKeys.cardsGallery(kind, entityId, proxy),
+    queryFn: () => cardsApi.gallery(kind, entityId, proxy || null),
+    enabled: enabled && (kind === "anime" || kind === "manga" || kind === "character"),
+  });
+}
+
+export function useCardsAnimeCollection(animeId: number | null, kind: "anime" | "manga" = "anime") {
   const proxy = anilistProxy();
   return useAppQuery<AnimeCollectionPage>("slow", {
     queryKey: queryKeys.cardsAnimeCollection(animeId ?? 0, kind, proxy),

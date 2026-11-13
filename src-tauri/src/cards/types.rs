@@ -122,8 +122,7 @@ pub enum CardVariant {
 }
 
 impl CardVariant {
-    pub const ALL: [CardVariant; 3] =
-        [CardVariant::Normal, CardVariant::Foil, CardVariant::Holo];
+    pub const ALL: [CardVariant; 3] = [CardVariant::Normal, CardVariant::Foil, CardVariant::Holo];
 
     pub fn as_str(self) -> &'static str {
         match self {

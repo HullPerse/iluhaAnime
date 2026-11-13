@@ -193,7 +193,14 @@ mod tests {
     fn pack_size_adds_up() {
         let default = shop_pack("default").expect("default pack");
         assert!(default.contents.is_empty());
-        assert_eq!(default.chances.iter().map(|chance| chance.weight).sum::<u32>(), 100);
+        assert_eq!(
+            default
+                .chances
+                .iter()
+                .map(|chance| chance.weight)
+                .sum::<u32>(),
+            100
+        );
         assert_eq!(default.size, CARD_PACK_SIZE);
         assert!(CARD_GUARANTEED_RARE_PLUS);
     }

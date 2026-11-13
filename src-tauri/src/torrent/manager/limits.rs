@@ -8,7 +8,10 @@ impl TorrentManager {
     }
 
     fn get_torrent_limits_by_key(&self, key: &str) -> Option<TorrentLimits> {
-        self.registry.torrent_limits.get(key).map(|entry| *entry.value())
+        self.registry
+            .torrent_limits
+            .get(key)
+            .map(|entry| *entry.value())
     }
 
     #[allow(clippy::too_many_lines)]
@@ -32,9 +35,14 @@ impl TorrentManager {
         let key = self
             .torrent_info_hash(id)
             .ok_or_else(|| "Torrent not found".to_string())?;
-        let magnet = self.registry.magnet_links.get(&id).map(|entry| entry.clone());
+        let magnet = self
+            .registry
+            .magnet_links
+            .get(&id)
+            .map(|entry| entry.clone());
         let save_dir = self
-            .registry.save_dirs
+            .registry
+            .save_dirs
             .get(&id)
             .map(|entry| entry.clone())
             .ok_or_else(|| "Torrent save directory is unavailable".to_string())?;
@@ -50,7 +58,11 @@ impl TorrentManager {
             })
             .filter(|files: &Vec<usize>| !files.is_empty());
         let was_paused = self.torrent_is_paused(id);
-        let root_name = self.registry.root_names.get(&key).map(|entry| entry.clone());
+        let root_name = self
+            .registry
+            .root_names
+            .get(&key)
+            .map(|entry| entry.clone());
 
         if limits == TorrentLimits::default() {
             self.registry.torrent_limits.remove(&key);
@@ -66,7 +78,9 @@ impl TorrentManager {
             if previous_limits == TorrentLimits::default() {
                 self.registry.torrent_limits.remove(&key);
             } else {
-                self.registry.torrent_limits.insert(key.clone(), previous_limits);
+                self.registry
+                    .torrent_limits
+                    .insert(key.clone(), previous_limits);
             }
             self.registry.save_torrent_limits();
             return Err(format!("unable to reconfigure torrent: {error:#}"));
@@ -97,7 +111,9 @@ impl TorrentManager {
             if previous_limits == TorrentLimits::default() {
                 self.registry.torrent_limits.remove(&key);
             } else {
-                self.registry.torrent_limits.insert(key.clone(), previous_limits);
+                self.registry
+                    .torrent_limits
+                    .insert(key.clone(), previous_limits);
             }
             self.registry.save_torrent_limits();
             if let Err(restore_error) = self

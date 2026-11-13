@@ -1009,7 +1009,10 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("read gift value column: {error}"))?;
         if has_value == 0 {
             transaction
-                .execute("ALTER TABLE card_gifts ADD COLUMN value INTEGER NOT NULL DEFAULT 0", [])
+                .execute(
+                    "ALTER TABLE card_gifts ADD COLUMN value INTEGER NOT NULL DEFAULT 0",
+                    [],
+                )
                 .map_err(|error| format!("add gift value column: {error}"))?;
         }
         transaction
@@ -1031,6 +1034,102 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
         transaction
             .commit()
             .map_err(|error| format!("app database gift value commit: {error}"))?;
+    }
+
+    if version < 32 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database card gallery transaction: {error}"))?;
+        let has_preferred_image: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('card_meta')
+                 WHERE name = 'preferred_image_url'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("read preferred card image column: {error}"))?;
+        if has_preferred_image == 0 {
+            transaction
+                .execute(
+                    "ALTER TABLE card_meta ADD COLUMN preferred_image_url TEXT",
+                    [],
+                )
+                .map_err(|error| format!("add preferred card image column: {error}"))?;
+        }
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE IF NOT EXISTS card_gallery (
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character')),
+                    entity_id INTEGER NOT NULL,
+                    mal_id INTEGER,
+                    media_mal_id INTEGER,
+                    images_json TEXT NOT NULL DEFAULT '[]',
+                    fetched_at INTEGER NOT NULL,
+                    PRIMARY KEY (kind, entity_id)
+                );
+                PRAGMA user_version = 32;
+                ",
+            )
+            .map_err(|error| format!("app database card gallery schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database card gallery commit: {error}"))?;
+    }
+
+    if version < 33 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database gift stack transaction: {error}"))?;
+        let has_cards_json: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('card_gifts') WHERE name = 'cards_json'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("read gift cards column: {error}"))?;
+        if has_cards_json == 0 {
+            transaction
+                .execute("ALTER TABLE card_gifts ADD COLUMN cards_json TEXT", [])
+                .map_err(|error| format!("add gift cards column: {error}"))?;
+        }
+        transaction
+            .execute_batch("PRAGMA user_version = 33;")
+            .map_err(|error| format!("app database gift stack schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database gift stack commit: {error}"))?;
+    }
+
+    if version < 34 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database card favorites transaction: {error}"))?;
+        let has_favorite: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('user_cards') WHERE name = 'is_favorite'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("read card favorite column: {error}"))?;
+        if has_favorite == 0 {
+            transaction
+                .execute(
+                    "ALTER TABLE user_cards ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0",
+                    [],
+                )
+                .map_err(|error| format!("add card favorite column: {error}"))?;
+        }
+        transaction
+            .execute_batch(
+                "CREATE INDEX IF NOT EXISTS idx_user_cards_favorite
+                    ON user_cards(user_id, is_favorite);
+                 PRAGMA user_version = 34;",
+            )
+            .map_err(|error| format!("app database card favorite schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database card favorite commit: {error}"))?;
     }
 
     if version > CURRENT_SCHEMA_VERSION {
@@ -1128,5 +1227,4 @@ mod tests {
             .expect("read user version");
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
     }
-
 }

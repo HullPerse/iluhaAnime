@@ -25,9 +25,10 @@ pub fn with_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
 }
 
 pub fn install_tray(app: &tauri::AppHandle) {
-    let tray_icon = app.default_window_icon().cloned().or_else(|| {
-        tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok()
-    });
+    let tray_icon = app
+        .default_window_icon()
+        .cloned()
+        .or_else(|| tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok());
     match tray_icon {
         Some(icon) => {
             if let Err(error) = TrayIconBuilder::with_id("iluhaanime-tray")

@@ -5,9 +5,10 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { anilistApi } from "@/api/anilist.api";
 import StatsModal from "@/routes/components/anilist/stats.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type { ActivityDetailBundle, AniListCollection } from "@/types/anilist/anilist";
+import type { ActivityDetailBundle, AniListCollection, AniMedia } from "@/types/anilist/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
@@ -69,6 +70,7 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 beforeEach(() => {
@@ -101,6 +103,44 @@ describe("StatsModal inline detail", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(await screen.findByText("Statistics")).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+  });
+
+  it("switches the calendar between the user's lists and the current season", async () => {
+    const user = userEvent.setup();
+    const now = new Date();
+    const seasonAiringAt = Math.floor(
+      new Date(now.getFullYear(), now.getMonth(), 20, 12).getTime() / 1000
+    );
+    vi.spyOn(anilistApi, "search").mockResolvedValue([
+      {
+        id: 31,
+        title: "Season Show",
+        next_airing_at: seasonAiringAt,
+        next_episode: 3,
+        cover_url: null,
+      } as AniMedia,
+    ]);
+
+    render(
+      <StatsModal
+        lists={listsWithAiring()}
+        userId={123}
+        scoreFormat="POINT_10"
+        onClose={vi.fn()}
+        detail={DETAIL}
+      />,
+      { wrapper }
+    );
+
+    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    expect(await screen.findByRole("button", { name: "Frieren" })).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Season" }));
+    expect(await screen.findByRole("button", { name: "Season Show" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Frieren" })).toBeNull();
+    expect(anilistApi.search).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "RELEASING", maxPages: 4, perPage: 50 })
+    );
   });
 
   it("moves the calendar day into the modal titlebar and returns on back", async () => {

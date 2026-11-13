@@ -63,6 +63,13 @@ const openedCard = {
   collectionCoverUrl: null,
 };
 
+const giftCard = {
+  ...openedCard,
+  copies: 2,
+  firstObtainedAt: 1,
+  lastObtainedAt: 2,
+};
+
 const collectionItem = {
   ...openedCard,
   copies: 2,
@@ -71,6 +78,7 @@ const collectionItem = {
   lastObtainedAt: 2,
   collectionAnimeId: 16498,
   collectionTitle: "Shingeki no Kyojin",
+  isFavorite: false,
 };
 
 function fakeTransport(responses: Record<string, unknown>) {
@@ -233,6 +241,56 @@ describe("CardsApi", () => {
     ]);
   });
 
+  it("loads the art gallery and persists the chosen image", async () => {
+    const gallery = {
+      images: [{ url: "https://cdn/levi-alt.jpg", thumbUrl: "https://cdn/levi-thumb.jpg" }],
+      preferredUrl: null,
+    };
+    const { calls, transport } = fakeTransport({
+      cards_gallery: gallery,
+      cards_set_preferred_image: 1,
+    });
+    const api = new CardsApi({ transport });
+
+    const loaded = await api.gallery("character", 45627, "http://127.0.0.1:7890");
+    const changed = await api.setPreferredImage("character", 45627, "https://cdn/levi-alt.jpg");
+
+    expect(loaded.images[0]?.thumbUrl).toBe("https://cdn/levi-thumb.jpg");
+    expect(changed).toBe(1);
+    expect(calls).toEqual([
+      {
+        command: "cards_gallery",
+        args: { kind: "character", entityId: 45627, proxyUrl: "http://127.0.0.1:7890" },
+      },
+      {
+        command: "cards_set_preferred_image",
+        args: {
+          kind: "character",
+          entityId: 45627,
+          imageUrl: "https://cdn/levi-alt.jpg",
+        },
+      },
+    ]);
+  });
+
+  it("reads and toggles the card favorite", async () => {
+    const { calls, transport } = fakeTransport({
+      cards_card_favorite: true,
+      cards_set_card_favorite: false,
+    });
+    const api = new CardsApi({ transport });
+
+    expect(await api.isCardFavorite("character", 45627)).toBe(true);
+    expect(await api.setCardFavorite("character", 45627, false)).toBe(false);
+    expect(calls).toEqual([
+      { command: "cards_card_favorite", args: { kind: "character", entityId: 45627 } },
+      {
+        command: "cards_set_card_favorite",
+        args: { kind: "character", entityId: 45627, favorite: false },
+      },
+    ]);
+  });
+
   it("prepares and acknowledges ready packs", async () => {
     const { calls, transport } = fakeTransport({
       cards_prepare_packs: { prepared: 2, failed: 0, unnotified: 2 },
@@ -259,7 +317,8 @@ describe("CardsApi", () => {
       cards_dust: { remaining: 1, amount: 8, wallet: 8 },
       cards_buy_pack: { pack, price: 120, wallet: 8 },
       cards_grant_starter: { granted: false, packs: 0 },
-      cards_claim_gift: openedCard,
+      cards_create_gift: { id: "gift-2", cards: [giftCard] },
+      cards_claim_gift: [giftCard],
     });
     const api = new CardsApi({ transport });
 
@@ -272,13 +331,21 @@ describe("CardsApi", () => {
     });
     await api.buyPack("character");
     await api.grantStarter(7, null);
+    await api.createGift({ kind: "character", entityId: 45627 });
     await api.claimGift({
       giftId: "gift-1",
       kind: "character",
       entityId: 45627,
-      rarity: "rare",
-      variant: "foil",
-      value: 12,
+      cards: [
+        {
+          rarity: "rare",
+          variant: "foil",
+          copies: 2,
+          value: 8,
+          firstObtainedAt: 1,
+          lastObtainedAt: 2,
+        },
+      ],
     });
 
     expect(calls).toEqual([
@@ -298,14 +365,25 @@ describe("CardsApi", () => {
       { command: "cards_buy_pack", args: { packKind: "character" } },
       { command: "cards_grant_starter", args: { userId: 7 } },
       {
+        command: "cards_create_gift",
+        args: { kind: "character", entityId: 45627 },
+      },
+      {
         command: "cards_claim_gift",
         args: {
           giftId: "gift-1",
           kind: "character",
           entityId: 45627,
-          rarity: "rare",
-          variant: "foil",
-          value: 12,
+          cards: [
+            {
+              rarity: "rare",
+              variant: "foil",
+              copies: 2,
+              value: 8,
+              firstObtainedAt: 1,
+              lastObtainedAt: 2,
+            },
+          ],
         },
       },
     ]);

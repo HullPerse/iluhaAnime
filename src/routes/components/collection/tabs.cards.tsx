@@ -8,7 +8,10 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { cardsAtoms, setCardsAlbumMode, setCardsTab } from "@/store/cards.store";
 import type { CardsAlbumMode, CardsTab } from "@/types/store/cards";
 
-const ALBUM_MODES: readonly { value: CardsAlbumMode; labelKey: "collection.mode.all" | "collection.mode.collections" }[] = [
+const ALBUM_MODES: readonly {
+  value: CardsAlbumMode;
+  labelKey: "collection.mode.all" | "collection.mode.collections";
+}[] = [
   { value: "all", labelKey: "collection.mode.all" },
   { value: "collections", labelKey: "collection.mode.collections" },
 ];
@@ -28,6 +31,7 @@ export default function TabsCards() {
   const albumMode = useCell(cardsAtoms.albumMode);
   const stats = useCardsStats();
   const totalCards = stats.data?.totalCards;
+  const activeGifts = stats.data?.activeGifts;
   const packsReadAt = useCell(cardsAtoms.packsReadAt);
   const albumReadAt = useCell(cardsAtoms.albumReadAt);
   const unread = useCardsUnread(packsReadAt, albumReadAt);
@@ -91,7 +95,8 @@ export default function TabsCards() {
             >
               {group.tabs.map((value) => {
                 const active = value === tab;
-                const unreadCount = value === "packs" ? unreadPacks : value === "album" ? unreadCards : 0;
+                const unreadCount =
+                  value === "packs" ? unreadPacks : value === "album" ? unreadCards : 0;
                 return (
                   <div key={value} className="flex flex-col gap-0.5">
                     <Button
@@ -115,6 +120,16 @@ export default function TabsCards() {
                           aria-label={t("collection.unread", { count: unreadCount })}
                         >
                           [{unreadCount}]
+                        </span>
+                      )}
+                      {value === "gifts" && activeGifts !== undefined && activeGifts > 0 && (
+                        <span
+                          data-testid="collection-active-gifts"
+                          className="windows95-text tabular-nums opacity-70"
+                          title={t("collection.gifts.active", { count: activeGifts })}
+                          aria-label={t("collection.gifts.active", { count: activeGifts })}
+                        >
+                          {activeGifts}
                         </span>
                       )}
                     </Button>

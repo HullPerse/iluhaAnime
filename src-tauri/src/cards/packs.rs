@@ -8,9 +8,7 @@ use super::config::{pick_variant, shop_pack, CARD_PACK_SIZE};
 use super::metadata::refresh_metadata;
 use super::rarity::{card_value, tier_for};
 use super::rng::{seed_now, Rng};
-use super::sampling::{
-    ensure_rare_plus, merge_distinct, pick_distinct, CardNode,
-};
+use super::sampling::{ensure_rare_plus, merge_distinct, pick_distinct, CardNode};
 use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
 use crate::app_db::cards::{
     acknowledge_ready_packs, add_wallet, get_meta, get_pack, get_user_card, insert_ledger,
@@ -83,7 +81,8 @@ const DUPLICATE_PAYOUT_MAX: f64 = 2.3;
 
 fn payout_for(value: i64, copies_before: i64) -> i64 {
     let copies = copies_before.max(0) as f64;
-    let multiplier = (1.0 + DUPLICATE_PAYOUT_GROWTH * copies / (copies + DUPLICATE_PAYOUT_SOFTNESS))
+    let multiplier = (1.0
+        + DUPLICATE_PAYOUT_GROWTH * copies / (copies + DUPLICATE_PAYOUT_SOFTNESS))
         .min(DUPLICATE_PAYOUT_MAX);
     (value as f64 * multiplier).round() as i64
 }
@@ -116,6 +115,9 @@ struct PreparedCard {
     favourites: u32,
     popularity: u32,
     score: f64,
+    /// AniList art kept separately from the frozen pack art so saving a pack
+    /// never rewrites the metadata default with the user's MAL choice.
+    meta_image_url: Option<String>,
     meta_fetched_at: i64,
 }
 
@@ -139,6 +141,7 @@ impl PreparedCard {
             favourites: u32::try_from(row.favourites).unwrap_or(0),
             popularity: u32::try_from(row.popularity).unwrap_or(0),
             score: row.score,
+            meta_image_url: None,
             meta_fetched_at: 1,
         }
     }
@@ -170,7 +173,7 @@ impl PreparedCard {
             kind: self.card.kind,
             entity_id: self.card.entity_id,
             title: self.card.title.clone(),
-            image_url: self.card.image_url.clone(),
+            image_url: self.meta_image_url.clone(),
             score: Some(self.score.round() as i64),
             popularity: Some(i64::from(self.popularity)),
             favourites: Some(i64::from(self.favourites)),
@@ -179,10 +182,10 @@ impl PreparedCard {
             collection_title: self.card.collection_title.clone(),
             collection_cover_url: self.card.collection_cover_url.clone(),
             collage_json: Some(
-                serde_json::to_string(&self.card.collage)
-                    .unwrap_or_else(|_| "[]".to_string()),
+                serde_json::to_string(&self.card.collage).unwrap_or_else(|_| "[]".to_string()),
             ),
             fetched_at: if self.meta_fetched_at > 0 { now } else { 0 },
+            preferred_image_url: None,
         }
     }
 }
@@ -195,7 +198,8 @@ pub fn pack_needs(
     size: usize,
     rng: &mut Rng,
 ) -> Result<Vec<(CardKind, usize)>, String> {
-    let pack = shop_pack(pack_kind).ok_or_else(|| format!("unknown card pack kind: {pack_kind}"))?;
+    let pack =
+        shop_pack(pack_kind).ok_or_else(|| format!("unknown card pack kind: {pack_kind}"))?;
     if size != pack.size {
         return Err(format!(
             "{pack_kind} pack size must be {}, got {size}",
@@ -205,7 +209,9 @@ pub fn pack_needs(
     if pack.chances.is_empty() {
         let total: usize = pack.contents.iter().map(|slot| slot.count).sum();
         if total != size {
-            return Err(format!("{pack_kind} contents total {total}, expected {size}"));
+            return Err(format!(
+                "{pack_kind} contents total {total}, expected {size}"
+            ));
         }
         return Ok(pack
             .contents
@@ -331,15 +337,12 @@ fn guarantee_minimum_rarity(cards: &mut [GeneratedCard], minimum: CardRarity) {
         .iter()
         .enumerate()
         .max_by(|(_, left), (_, right)| {
-            left.card
-                .rarity
-                .cmp(&right.card.rarity)
-                .then_with(|| {
-                    left.node
-                        .score
-                        .partial_cmp(&right.node.score)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
+            left.card.rarity.cmp(&right.card.rarity).then_with(|| {
+                left.node
+                    .score
+                    .partial_cmp(&right.node.score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
         })
         .map(|(index, _)| index)
     else {
@@ -359,7 +362,10 @@ fn guarantee_minimum_rarity(cards: &mut [GeneratedCard], minimum: CardRarity) {
 /// to the random variant roll. The anime card moves to slot 0 so the frosted
 /// art edge is visible without hunting for it.
 fn arrange_effects_showcase(cards: &mut [GeneratedCard]) {
-    if let Some(index) = cards.iter().position(|card| card.card.kind == CardKind::Anime) {
+    if let Some(index) = cards
+        .iter()
+        .position(|card| card.card.kind == CardKind::Anime)
+    {
         cards.swap(0, index);
     }
     const SHOWCASE: [(CardRarity, CardVariant); 7] = [
@@ -374,12 +380,7 @@ fn arrange_effects_showcase(cards: &mut [GeneratedCard]) {
     for (card, (rarity, variant)) in cards.iter_mut().zip(SHOWCASE.into_iter()) {
         card.card.rarity = rarity;
         card.card.variant = variant;
-        card.card.value = i64::from(card_value(
-            card.card.kind,
-            rarity,
-            variant,
-            card.node.score,
-        ));
+        card.card.value = i64::from(card_value(card.card.kind, rarity, variant, card.node.score));
     }
 }
 
@@ -413,7 +414,10 @@ async fn generate_pack_contents(
         .map(|item| (item.card.kind, item.card.entity_id))
         .collect();
     if let Err(error) = refresh_metadata(app, &meta_keys, proxy).await {
-        tracing::warn!(error = error.as_str(), "card metadata refresh after prepare failed");
+        tracing::warn!(
+            error = error.as_str(),
+            "card metadata refresh after prepare failed"
+        );
     }
     Ok(generated)
 }
@@ -427,6 +431,10 @@ fn prepare_generated(
         .map(|generated| {
             let GeneratedCard { node, mut card } = generated;
             let meta = get_meta(connection, card.kind, card.entity_id)?;
+            let meta_image_url = meta
+                .as_ref()
+                .and_then(|row| row.image_url.clone())
+                .or_else(|| card.image_url.clone());
             let collage = meta
                 .as_ref()
                 .and_then(|row| row.collage_json.as_deref())
@@ -436,8 +444,8 @@ fn prepare_generated(
                 if !row.title.trim().is_empty() {
                     card.title = row.title.clone();
                 }
-                if card.image_url.is_none() {
-                    card.image_url = row.image_url.clone();
+                if let Some(image_url) = row.display_image_url() {
+                    card.image_url = Some(image_url);
                 }
                 card.collection_anime_id = row.collection_anime_id;
                 card.collection_title = row.collection_title.clone();
@@ -449,6 +457,7 @@ fn prepare_generated(
                 favourites: node.favourites,
                 popularity: node.popularity,
                 score: node.score,
+                meta_image_url,
                 meta_fetched_at: meta.as_ref().map_or(0, |row| row.fetched_at),
             })
         })
@@ -610,6 +619,21 @@ fn opened_from_db(
     connection: &rusqlite::Connection,
     pack_id: &str,
 ) -> Result<Vec<OpenedCard>, String> {
+    // A pack is a snapshot: its cards keep the art frozen when the pack was
+    // prepared. Only packs from before this table existed fall back to the
+    // current preferred art.
+    let frozen_images: std::collections::HashMap<
+        (CardKind, i64, CardRarity, CardVariant),
+        Option<String>,
+    > = list_pack_cards(connection, pack_id)?
+        .into_iter()
+        .map(|row| {
+            (
+                (row.kind, row.entity_id, row.rarity, row.variant),
+                row.image_url,
+            )
+        })
+        .collect();
     let mut cards = Vec::new();
     for opening in list_openings_for_pack(connection, LOCAL_USER_ID, pack_id)? {
         let Some(stored) = get_user_card(
@@ -619,7 +643,8 @@ fn opened_from_db(
             opening.entity_id,
             opening.rarity,
             opening.variant,
-        )? else {
+        )?
+        else {
             continue;
         };
         let meta = get_meta(connection, opening.kind, opening.entity_id)?;
@@ -631,15 +656,29 @@ fn opened_from_db(
         cards.push(OpenedCard {
             kind: opening.kind,
             entity_id: opening.entity_id,
-            title: meta.as_ref().map(|row| row.title.clone()).unwrap_or_default(),
-            image_url: meta.as_ref().and_then(|row| row.image_url.clone()),
+            title: meta
+                .as_ref()
+                .map(|row| row.title.clone())
+                .unwrap_or_default(),
+            image_url: frozen_images
+                .get(&(
+                    opening.kind,
+                    opening.entity_id,
+                    opening.rarity,
+                    opening.variant,
+                ))
+                .cloned()
+                .flatten()
+                .or_else(|| meta.as_ref().and_then(CardMetaRow::display_image_url)),
             collage,
             rarity: opening.rarity,
             variant: opening.variant,
             value: stored.value,
             collection_anime_id: meta.as_ref().and_then(|row| row.collection_anime_id),
             collection_title: meta.as_ref().and_then(|row| row.collection_title.clone()),
-            collection_cover_url: meta.as_ref().and_then(|row| row.collection_cover_url.clone()),
+            collection_cover_url: meta
+                .as_ref()
+                .and_then(|row| row.collection_cover_url.clone()),
         });
     }
     Ok(cards)
@@ -669,12 +708,7 @@ async fn prepare_packs_inner(
     for pack in packs {
         let claimed = {
             let connection = open_database(app)?;
-            mark_pack_prepare_started(
-                &connection,
-                LOCAL_USER_ID,
-                &pack.id,
-                PREPARE_MAX_ATTEMPTS,
-            )?
+            mark_pack_prepare_started(&connection, LOCAL_USER_ID, &pack.id, PREPARE_MAX_ATTEMPTS)?
         };
         if !claimed {
             continue;
@@ -688,19 +722,22 @@ async fn prepare_packs_inner(
                 Ok(false) => {}
                 Err(error) => {
                     failed += 1;
-                    tracing::warn!(pack_id = pack.id, error = error.as_str(), "card pack save failed");
+                    tracing::warn!(
+                        pack_id = pack.id,
+                        error = error.as_str(),
+                        "card pack save failed"
+                    );
                     let connection = open_database(app)?;
-                    mark_pack_prepare_failed(
-                        &connection,
-                        LOCAL_USER_ID,
-                        &pack.id,
-                        &error,
-                    )?;
+                    mark_pack_prepare_failed(&connection, LOCAL_USER_ID, &pack.id, &error)?;
                 }
             },
             Err(error) => {
                 failed += 1;
-                tracing::warn!(pack_id = pack.id, error = error.as_str(), "card pack preparation failed");
+                tracing::warn!(
+                    pack_id = pack.id,
+                    error = error.as_str(),
+                    "card pack preparation failed"
+                );
                 let connection = open_database(app)?;
                 mark_pack_prepare_failed(&connection, LOCAL_USER_ID, &pack.id, &error)?;
             }
@@ -734,7 +771,10 @@ pub fn spawn_prepare_packs(app: AppHandle) {
 pub fn spawn_prepare_packs_with_proxy(app: AppHandle, proxy: Option<String>) {
     tauri::async_runtime::spawn(async move {
         if let Err(error) = prepare_packs_guarded(&app, proxy.as_deref()).await {
-            tracing::warn!(error = error.as_str(), "card pack background preparation failed");
+            tracing::warn!(
+                error = error.as_str(),
+                "card pack background preparation failed"
+            );
         }
     });
 }
@@ -760,6 +800,7 @@ pub fn cards_ack_prepared_packs(app: AppHandle) -> Result<usize, String> {
 }
 
 fn grant_test_pack(app: AppHandle, id_prefix: &str) -> Result<CardPackRow, String> {
+    crate::cards::require_anilist_account(&app)?;
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let seed = seed_now();
@@ -816,6 +857,7 @@ pub async fn cards_open_pack(
     if pack_id.is_empty() || pack_id.len() > 128 {
         return Err("invalid card pack id".into());
     }
+    crate::cards::require_anilist_account(&app)?;
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let connection = open_database(&app)?;
     let Some(pack) = get_pack(&connection, LOCAL_USER_ID, &pack_id)? else {
@@ -823,7 +865,11 @@ pub async fn cards_open_pack(
     };
     if pack.opened_at.is_some() {
         let cards = opened_from_db(&connection, &pack_id)?;
-        return Ok(PackOpening { pack_id, cards, value: 0 });
+        return Ok(PackOpening {
+            pack_id,
+            cards,
+            value: 0,
+        });
     }
     let ready_cards = if pack.contents_state == CardPackContentsState::Ready {
         let rows = list_pack_cards(&connection, &pack_id)?;
@@ -848,7 +894,11 @@ pub async fn cards_open_pack(
             if !save_prepared(&app, &pack_id, &cards)? {
                 let connection = open_database(&app)?;
                 let cards = opened_from_db(&connection, &pack_id)?;
-                return Ok(PackOpening { pack_id, cards, value: 0 });
+                return Ok(PackOpening {
+                    pack_id,
+                    cards,
+                    value: 0,
+                });
             }
             cards
         }
@@ -1046,8 +1096,13 @@ mod tests {
             favourites: 2_041,
             popularity: 754_505,
             score: 8.16,
+            meta_image_url: Some("https://img/uta.jpg".into()),
             meta_fetched_at: 100,
         };
+        assert_eq!(
+            card.meta_row(100).image_url.as_deref(),
+            Some("https://img/uta.jpg")
+        );
         let row = card.row("pack-1", 3);
         assert_eq!(row.pack_id, "pack-1");
         assert_eq!(row.slot, 3);

@@ -110,10 +110,31 @@ export const PackOpeningSchema = z.compile(
   })
 );
 
+export const GiftCardSchema = z.compile(
+  z.object({
+    kind: CardKindSchema,
+    entityId: z.number(),
+    title: z.string(),
+    imageUrl: z.nullable(z.string()),
+    collage: z.array(z.string()),
+    rarity: CardRaritySchema,
+    variant: CardVariantSchema,
+    value: z.number(),
+    copies: z.number(),
+    firstObtainedAt: z.number(),
+    lastObtainedAt: z.number(),
+    collectionAnimeId: z.nullable(z.number()),
+    collectionTitle: z.nullable(z.string()),
+    collectionCoverUrl: z.nullable(z.string()),
+  })
+);
+
+export const GiftCardsSchema = z.compile(z.array(GiftCardSchema));
+
 export const CreatedGiftSchema = z.compile(
   z.object({
     id: z.string(),
-    card: OpenedCardSchema,
+    cards: z.array(GiftCardSchema),
   })
 );
 
@@ -122,7 +143,8 @@ export const GiftItemSchema = z.compile(
     id: z.string(),
     createdAt: z.number(),
     claimedAt: z.nullable(z.number()),
-    card: OpenedCardSchema,
+    cards: z.array(GiftCardSchema),
+    totalCopies: z.number(),
   })
 );
 
@@ -149,9 +171,22 @@ const CollectionItemSchema = z.object({
   lastObtainedAt: z.number(),
   collectionAnimeId: z.nullable(z.number()),
   collectionTitle: z.nullable(z.string()),
+  isFavorite: z.boolean(),
 });
 
 export const CardVariantsSchema = z.compile(z.array(CollectionItemSchema));
+
+const CardGalleryImageSchema = z.object({
+  url: z.string(),
+  thumbUrl: z.string(),
+});
+
+export const CardGallerySchema = z.compile(
+  z.object({
+    images: z.array(CardGalleryImageSchema),
+    preferredUrl: z.nullable(z.string()),
+  })
+);
 
 export const CollectionPageSchema = z.compile(
   z.object({
@@ -244,11 +279,14 @@ export const CardsStatsSchema = z.compile(
     duplicates: z.number(),
     totalValue: z.number(),
     legendaryCards: z.number(),
+    activeGifts: z.number(),
     lastPulls: z.array(CardPullSchema),
   })
 );
 
 export const SetCardVariantSchema = z.compile(z.number());
+
+export const CardFavoriteSchema = z.compile(z.boolean());
 
 export const ResetCollectionSchema = z.compile(z.number());
 

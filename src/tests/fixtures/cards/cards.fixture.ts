@@ -7,6 +7,7 @@ import type {
   CollectionItem,
   CollectionPage,
   CollectionShelfItem,
+  GiftCard,
   OpenedCard,
   PackOpening,
   PurchaseResult,
@@ -91,6 +92,7 @@ export function makeCardsStats(overrides: Partial<CardsStats> = {}): CardsStats 
     duplicates: 0,
     totalValue: 0,
     legendaryCards: 0,
+    activeGifts: 0,
     lastPulls: [],
     ...overrides,
   };
@@ -128,6 +130,15 @@ export function makeOpenedCards(count = 7): OpenedCard[] {
   }));
 }
 
+export function makeGiftCards(count = 1): GiftCard[] {
+  return makeOpenedCards(count).map((card, index) => ({
+    ...card,
+    copies: index === 0 ? 2 : 1,
+    firstObtainedAt: 1_760_000_000,
+    lastObtainedAt: 1_760_000_100,
+  }));
+}
+
 export function makeOpening(cards = makeOpenedCards()): PackOpening {
   return {
     packId: "pack-1",
@@ -152,6 +163,7 @@ export function makeCollectionItem(overrides: Partial<CollectionItem> = {}): Col
     lastObtainedAt: 1_760_000_100,
     collectionAnimeId: 16498,
     collectionTitle: "Shingeki no Kyojin",
+    isFavorite: false,
     ...overrides,
   };
 }
@@ -170,9 +182,7 @@ export function makePurchase(pack = makePack({ source: "purchase" })): PurchaseR
   return { pack, price: 100, wallet: 80 };
 }
 
-export function makeShelfItem(
-  overrides: Partial<CollectionShelfItem> = {}
-): CollectionShelfItem {
+export function makeShelfItem(overrides: Partial<CollectionShelfItem> = {}): CollectionShelfItem {
   return {
     animeId: 16498,
     kind: "anime",

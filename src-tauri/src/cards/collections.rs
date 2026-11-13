@@ -32,11 +32,7 @@ pub struct CollectionRarityCounts {
 
 impl CollectionRarityCounts {
     fn score(&self) -> i64 {
-        self.legendary * 5
-            + self.epic * 4
-            + self.rare * 3
-            + self.common * 2
-            + self.junk
+        self.legendary * 5 + self.epic * 4 + self.rare * 3 + self.common * 2 + self.junk
     }
 
     fn add(&mut self, rarity: CardRarity) {
@@ -179,8 +175,7 @@ fn is_invalid_token(error: &str) -> bool {
 }
 
 fn roster_page_is_valid(response: &Value) -> bool {
-    !response["data"]["Media"].is_null()
-        && !response["data"]["Media"]["characters"].is_null()
+    !response["data"]["Media"].is_null() && !response["data"]["Media"]["characters"].is_null()
 }
 
 fn roster_page_has_next_but_no_characters(characters: &[RosterMeta], has_next: bool) -> bool {
@@ -430,19 +425,17 @@ async fn fetch_roster_totals(
             })
             .collect::<String>();
         let query = format!("query {{ {fields} }}");
-        let response = match graphql_request(json!({ "query": query }), token.as_deref(), proxy)
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => {
-                tracing::warn!(error = error.as_str(), "card roster totals unavailable");
-                continue;
-            }
-        };
+        let response =
+            match graphql_request(json!({ "query": query }), token.as_deref(), proxy).await {
+                Ok(response) => response,
+                Err(error) => {
+                    tracing::warn!(error = error.as_str(), "card roster totals unavailable");
+                    continue;
+                }
+            };
         for (index, id) in chunk.iter().enumerate() {
-            let total = response["data"][format!("a{index}")]["characters"]["pageInfo"]
-                ["total"]
-                .as_i64();
+            let total =
+                response["data"][format!("a{index}")]["characters"]["pageInfo"]["total"].as_i64();
             if let Some(total) = total {
                 totals.insert(*id, total);
                 let _ = put_app_cache(
@@ -466,14 +459,15 @@ fn shelf_rows(app: &AppHandle) -> Result<Vec<ShelfRow>, String> {
                     entity_id, rarity, value, copies, last_obtained_at
              FROM (
                 SELECT 'anime' AS collection_kind, c.entity_id AS collection_id,
-                       COALESCE(m.title, '') AS title, m.image_url AS cover_url,
+                       COALESCE(m.title, '') AS title,
+                       COALESCE(m.preferred_image_url, m.image_url) AS cover_url,
                        c.kind, c.entity_id, c.rarity, c.value, c.copies, c.last_obtained_at
                 FROM user_cards c
                 LEFT JOIN card_meta m ON m.kind = c.kind AND m.entity_id = c.entity_id
                 WHERE c.user_id = ?1 AND c.kind = 'anime'
                 UNION ALL
                 SELECT 'manga', c.entity_id,
-                       COALESCE(m.title, ''), m.image_url,
+                       COALESCE(m.title, ''), COALESCE(m.preferred_image_url, m.image_url),
                        c.kind, c.entity_id, c.rarity, c.value, c.copies, c.last_obtained_at
                 FROM user_cards c
                 LEFT JOIN card_meta m ON m.kind = c.kind AND m.entity_id = c.entity_id
@@ -515,11 +509,7 @@ fn shelf_rows(app: &AppHandle) -> Result<Vec<ShelfRow>, String> {
                 title: row.get(2)?,
                 cover_url: row.get(3)?,
                 rarity: CardRarity::from_db(&rarity).ok_or_else(|| {
-                    rusqlite::Error::InvalidColumnType(
-                        6,
-                        rarity,
-                        rusqlite::types::Type::Text,
-                    )
+                    rusqlite::Error::InvalidColumnType(6, rarity, rusqlite::types::Type::Text)
                 })?,
                 value: row.get(7)?,
                 copies: row.get(8)?,
@@ -612,7 +602,7 @@ pub async fn cards_anime_collection(
                 (SELECT collection_cover_url FROM card_meta
                  WHERE {collection_column} = ?1 AND collection_cover_url IS NOT NULL
                  LIMIT 1),
-                (SELECT image_url FROM card_meta WHERE kind = ?2 AND entity_id = ?1)
+                (SELECT COALESCE(preferred_image_url, image_url) FROM card_meta WHERE kind = ?2 AND entity_id = ?1)
              )"
             ),
             rusqlite::params![anime_id, media_kind],
@@ -729,7 +719,10 @@ pub async fn cards_collection_roster(
         .collect::<Vec<_>>();
     Ok(CollectionRosterPage {
         page,
-        total: cache.total.unwrap_or(characters.len()).max(characters.len()),
+        total: cache
+            .total
+            .unwrap_or(characters.len())
+            .max(characters.len()),
         has_more: cache.has_next,
         available: true,
         characters,
@@ -783,7 +776,10 @@ mod tests {
         assert_eq!(total, Some(212));
         assert_eq!(characters.len(), 2);
         assert_eq!(characters[0].title, "Levi");
-        assert_eq!(characters[0].image_url.as_deref(), Some("https://img/levi.jpg"));
+        assert_eq!(
+            characters[0].image_url.as_deref(),
+            Some("https://img/levi.jpg")
+        );
         assert_eq!(characters[1].title, "Character 2");
     }
 
@@ -871,17 +867,16 @@ mod tests {
         let mut owned_rows = rows.clone();
         owned_rows.push(shelf_row(3, "Beta", CardRarity::Common, 1, 1, 25));
         owned_rows.push(shelf_row(3, "Beta", CardRarity::Epic, 1, 1, 26));
-        let by_owned = shelf_from_rows(owned_rows.into_iter(), "owned", Some("desc"))
-            .expect("owned shelf");
+        let by_owned =
+            shelf_from_rows(owned_rows.into_iter(), "owned", Some("desc")).expect("owned shelf");
         assert_eq!(by_owned[0].anime_id, 3);
         assert_eq!(by_owned[0].owned, 3);
 
         let by_value_asc = shelf_from_rows(rows.clone().into_iter(), "value", Some("asc"))
             .expect("ascending value shelf");
         assert_eq!(by_value_asc[0].anime_id, 3);
-        let newest_title_desc =
-            shelf_from_rows(rows.clone().into_iter(), "title", Some("desc"))
-                .expect("descending title shelf");
+        let newest_title_desc = shelf_from_rows(rows.clone().into_iter(), "title", Some("desc"))
+            .expect("descending title shelf");
         assert_eq!(newest_title_desc[0].anime_id, 1);
         let mut kind_rows = rows.clone();
         let mut manga = shelf_row(4, "Manga", CardRarity::Common, 1, 1, 5);

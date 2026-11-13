@@ -75,6 +75,27 @@ pub struct CardMetaRow {
     pub collection_cover_url: Option<String>,
     pub collage_json: Option<String>,
     pub fetched_at: i64,
+    pub preferred_image_url: Option<String>,
+}
+
+impl CardMetaRow {
+    /// The art the user picked, or the AniList default until they pick one.
+    pub fn display_image_url(&self) -> Option<String> {
+        self.preferred_image_url
+            .clone()
+            .or_else(|| self.image_url.clone())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CardGalleryRow {
+    pub kind: CardKind,
+    pub entity_id: i64,
+    pub mal_id: Option<i64>,
+    pub media_mal_id: Option<i64>,
+    pub images_json: String,
+    pub fetched_at: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -120,6 +141,17 @@ pub struct StarterGrantRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GiftCardStack {
+    pub rarity: CardRarity,
+    pub variant: CardVariant,
+    pub copies: i64,
+    pub value: i64,
+    pub first_obtained_at: i64,
+    pub last_obtained_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CardGiftRow {
     pub id: String,
     pub from_user: i64,
@@ -128,6 +160,7 @@ pub struct CardGiftRow {
     pub rarity: CardRarity,
     pub variant: CardVariant,
     pub value: i64,
+    pub cards: Vec<GiftCardStack>,
     pub created_at: i64,
     pub claimed_at: Option<i64>,
 }
@@ -163,14 +196,15 @@ fn pack_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CardPackRow> {
         size: row.get(5)?,
         created_at: row.get(6)?,
         opened_at: row.get(7)?,
-        contents_state: CardPackContentsState::from_db(&row.get::<_, String>(8)?)
-            .ok_or_else(|| {
+        contents_state: CardPackContentsState::from_db(&row.get::<_, String>(8)?).ok_or_else(
+            || {
                 rusqlite::Error::InvalidColumnType(
                     8,
                     "unknown card pack contents state".into(),
                     rusqlite::types::Type::Text,
                 )
-            })?,
+            },
+        )?,
     })
 }
 
@@ -223,6 +257,7 @@ fn meta_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CardMetaRow> {
         collection_cover_url: row.get(10)?,
         collage_json: row.get(11)?,
         fetched_at: row.get(12)?,
+        preferred_image_url: row.get(13)?,
     })
 }
 
@@ -239,20 +274,43 @@ fn opening_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CardOpeningRow>
 }
 
 fn gift_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CardGiftRow> {
+    let rarity = rarity_at(row, 4)?;
+    let variant = variant_at(row, 5)?;
+    let value = row.get(6)?;
+    let cards_json: Option<String> = row.get(9)?;
+    let mut cards = cards_json
+        .as_deref()
+        .and_then(|json| serde_json::from_str::<Vec<GiftCardStack>>(json).ok())
+        .unwrap_or_default();
+    if cards.is_empty() {
+        cards.push(GiftCardStack {
+            rarity,
+            variant,
+            copies: 1,
+            value,
+            first_obtained_at: 0,
+            last_obtained_at: 0,
+        });
+    }
     Ok(CardGiftRow {
         id: row.get(0)?,
         from_user: row.get(1)?,
         kind: kind_at(row, 2)?,
         entity_id: row.get(3)?,
-        rarity: rarity_at(row, 4)?,
-        variant: variant_at(row, 5)?,
-        value: row.get(6)?,
+        rarity,
+        variant,
+        value,
+        cards,
         created_at: row.get(7)?,
         claimed_at: row.get(8)?,
     })
 }
 
-pub fn insert_pack(connection: &Connection, user_id: i64, pack: &CardPackRow) -> Result<(), String> {
+pub fn insert_pack(
+    connection: &Connection,
+    user_id: i64,
+    pack: &CardPackRow,
+) -> Result<(), String> {
     connection
         .execute(
             "INSERT INTO card_packs (
@@ -466,7 +524,11 @@ pub fn ready_unnotified_count(connection: &Connection, user_id: i64) -> Result<i
         .map_err(|error| format!("count prepared card packs: {error}"))
 }
 
-pub fn acknowledge_ready_packs(connection: &Connection, user_id: i64, at: i64) -> Result<usize, String> {
+pub fn acknowledge_ready_packs(
+    connection: &Connection,
+    user_id: i64,
+    at: i64,
+) -> Result<usize, String> {
     connection
         .execute(
             "UPDATE card_packs SET notified_at = ?2
@@ -518,6 +580,7 @@ pub fn upsert_card(
              ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
              ON CONFLICT(user_id, kind, entity_id, rarity, variant) DO UPDATE SET
                 copies = user_cards.copies + excluded.copies,
+                first_obtained_at = MIN(user_cards.first_obtained_at, excluded.first_obtained_at),
                 last_obtained_at = MAX(user_cards.last_obtained_at, excluded.last_obtained_at)",
             params![
                 user_id,
@@ -563,6 +626,43 @@ pub fn get_user_card(
         .map_err(|error| format!("read user card: {error}"))
 }
 
+pub fn list_user_card_stacks(
+    connection: &Connection,
+    user_id: i64,
+    kind: CardKind,
+    entity_id: i64,
+) -> Result<Vec<UserCardRow>, String> {
+    let mut statement = connection
+        .prepare(
+            "SELECT kind, entity_id, rarity, variant, copies, value,
+                    first_obtained_at, last_obtained_at
+             FROM user_cards
+             WHERE user_id = ?1 AND kind = ?2 AND entity_id = ?3
+             ORDER BY rarity, variant",
+        )
+        .map_err(|error| format!("prepare user card stacks: {error}"))?;
+    let rows = statement
+        .query_map(params![user_id, kind.as_str(), entity_id], card_from_row)
+        .map_err(|error| format!("query user card stacks: {error}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("collect user card stacks: {error}"))
+}
+
+pub fn delete_user_card_stacks(
+    connection: &Connection,
+    user_id: i64,
+    kind: CardKind,
+    entity_id: i64,
+) -> Result<usize, String> {
+    connection
+        .execute(
+            "DELETE FROM user_cards
+             WHERE user_id = ?1 AND kind = ?2 AND entity_id = ?3",
+            params![user_id, kind.as_str(), entity_id],
+        )
+        .map_err(|error| format!("delete user card stacks: {error}"))
+}
+
 pub fn list_user_cards(connection: &Connection, user_id: i64) -> Result<Vec<UserCardRow>, String> {
     let mut statement = connection
         .prepare(
@@ -577,6 +677,44 @@ pub fn list_user_cards(connection: &Connection, user_id: i64) -> Result<Vec<User
         .map_err(|error| format!("query user cards: {error}"))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("collect user cards: {error}"))
+}
+
+/// Favorites belong to the card identity, so every owned variant follows the
+/// same flag and the album can float all of them above the other cards.
+pub fn is_card_favorite(
+    connection: &Connection,
+    user_id: i64,
+    kind: CardKind,
+    entity_id: i64,
+) -> Result<bool, String> {
+    let favorite: i64 = connection
+        .query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM user_cards
+                 WHERE user_id = ?1 AND kind = ?2 AND entity_id = ?3 AND is_favorite = 1
+             )",
+            params![user_id, kind.as_str(), entity_id],
+            |row| row.get(0),
+        )
+        .map_err(|error| format!("read card favorite: {error}"))?;
+    Ok(favorite != 0)
+}
+
+pub fn set_card_favorite(
+    connection: &Connection,
+    user_id: i64,
+    kind: CardKind,
+    entity_id: i64,
+    favorite: bool,
+) -> Result<bool, String> {
+    let changed = connection
+        .execute(
+            "UPDATE user_cards SET is_favorite = ?1
+              WHERE user_id = ?2 AND kind = ?3 AND entity_id = ?4",
+            params![favorite, user_id, kind.as_str(), entity_id],
+        )
+        .map_err(|error| format!("set card favorite: {error}"))?;
+    Ok(changed > 0)
 }
 
 /// Removes one copy and returns the remaining count. `None` means the card is
@@ -633,8 +771,8 @@ pub fn upsert_meta(connection: &Connection, meta: &CardMetaRow) -> Result<(), St
             "INSERT INTO card_meta (
                 kind, entity_id, title, image_url, score, popularity, favourites,
                 collection_anime_id, collection_manga_id, collection_title,
-                collection_cover_url, collage_json, fetched_at
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                collection_cover_url, collage_json, fetched_at, preferred_image_url
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
              ON CONFLICT(kind, entity_id) DO UPDATE SET
                 title = excluded.title,
                 image_url = excluded.image_url,
@@ -646,7 +784,8 @@ pub fn upsert_meta(connection: &Connection, meta: &CardMetaRow) -> Result<(), St
                 collection_title = excluded.collection_title,
                 collection_cover_url = excluded.collection_cover_url,
                 collage_json = excluded.collage_json,
-                fetched_at = excluded.fetched_at",
+                fetched_at = excluded.fetched_at,
+                preferred_image_url = COALESCE(card_meta.preferred_image_url, excluded.preferred_image_url)",
             params![
                 meta.kind.as_str(),
                 meta.entity_id,
@@ -660,7 +799,8 @@ pub fn upsert_meta(connection: &Connection, meta: &CardMetaRow) -> Result<(), St
                 meta.collection_title,
                 meta.collection_cover_url,
                 meta.collage_json,
-                meta.fetched_at
+                meta.fetched_at,
+                meta.preferred_image_url
             ],
         )
         .map_err(|error| format!("upsert card meta: {error}"))?;
@@ -676,13 +816,98 @@ pub fn get_meta(
         .query_row(
             "SELECT kind, entity_id, title, image_url, score, popularity, favourites,
                     collection_anime_id, collection_manga_id, collection_title,
-                    collection_cover_url, collage_json, fetched_at
+                    collection_cover_url, collage_json, fetched_at, preferred_image_url
              FROM card_meta WHERE kind = ?1 AND entity_id = ?2",
             params![kind.as_str(), entity_id],
             meta_from_row,
         )
         .optional()
         .map_err(|error| format!("read card meta: {error}"))
+}
+
+pub fn get_card_gallery(
+    connection: &Connection,
+    kind: CardKind,
+    entity_id: i64,
+) -> Result<Option<CardGalleryRow>, String> {
+    connection
+        .query_row(
+            "SELECT kind, entity_id, mal_id, media_mal_id, images_json, fetched_at
+             FROM card_gallery WHERE kind = ?1 AND entity_id = ?2",
+            params![kind.as_str(), entity_id],
+            |row| {
+                Ok(CardGalleryRow {
+                    kind: kind_at(row, 0)?,
+                    entity_id: row.get(1)?,
+                    mal_id: row.get(2)?,
+                    media_mal_id: row.get(3)?,
+                    images_json: row.get(4)?,
+                    fetched_at: row.get(5)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(|error| format!("read card gallery: {error}"))
+}
+
+pub fn upsert_card_gallery(
+    connection: &Connection,
+    gallery: &CardGalleryRow,
+) -> Result<(), String> {
+    connection
+        .execute(
+            "INSERT INTO card_gallery (kind, entity_id, mal_id, media_mal_id, images_json, fetched_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(kind, entity_id) DO UPDATE SET
+                mal_id = excluded.mal_id,
+                media_mal_id = excluded.media_mal_id,
+                images_json = excluded.images_json,
+                fetched_at = excluded.fetched_at",
+            params![
+                gallery.kind.as_str(),
+                gallery.entity_id,
+                gallery.mal_id,
+                gallery.media_mal_id,
+                gallery.images_json,
+                gallery.fetched_at
+            ],
+        )
+        .map_err(|error| format!("upsert card gallery: {error}"))?;
+    Ok(())
+}
+
+pub fn set_card_preferred_image(
+    connection: &Connection,
+    kind: CardKind,
+    entity_id: i64,
+    image_url: Option<&str>,
+) -> Result<usize, String> {
+    connection
+        .execute(
+            "UPDATE card_meta SET preferred_image_url = ?3
+             WHERE kind = ?1 AND entity_id = ?2",
+            params![kind.as_str(), entity_id, image_url],
+        )
+        .map_err(|error| format!("set preferred card image: {error}"))
+}
+
+pub fn owns_card(
+    connection: &Connection,
+    user_id: i64,
+    kind: CardKind,
+    entity_id: i64,
+) -> Result<bool, String> {
+    connection
+        .query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM user_cards
+                 WHERE user_id = ?1 AND kind = ?2 AND entity_id = ?3
+             )",
+            params![user_id, kind.as_str(), entity_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .map(|value| value != 0)
+        .map_err(|error| format!("check card ownership: {error}"))
 }
 
 pub fn insert_opening(
@@ -728,11 +953,7 @@ pub fn list_openings_for_pack(
         .map_err(|error| format!("collect pack openings: {error}"))
 }
 
-pub fn trim_openings(
-    connection: &Connection,
-    user_id: i64,
-    keep: i64,
-) -> Result<usize, String> {
+pub fn trim_openings(connection: &Connection, user_id: i64, keep: i64) -> Result<usize, String> {
     connection
         .execute(
             "DELETE FROM card_openings
@@ -868,11 +1089,7 @@ pub fn insert_pack_grant(
 }
 
 #[cfg(test)]
-pub fn pack_granted(
-    connection: &Connection,
-    user_id: i64,
-    media_id: i64,
-) -> Result<bool, String> {
+pub fn pack_granted(connection: &Connection, user_id: i64, media_id: i64) -> Result<bool, String> {
     connection
         .query_row(
             "SELECT 1 FROM pack_grants WHERE user_id = ?1 AND media_id = ?2",
@@ -927,7 +1144,8 @@ pub fn list_recent_pulls(
     let mut statement = connection
         .prepare(
             "SELECT o.kind, o.entity_id, o.rarity, o.variant,
-                    COALESCE(c.value, 0), o.at, m.title, m.image_url
+                    COALESCE(c.value, 0), o.at, m.title,
+                    COALESCE(m.preferred_image_url, m.image_url)
              FROM card_openings o
              LEFT JOIN user_cards c
                ON c.user_id = o.user_id AND c.kind = o.kind
@@ -960,8 +1178,9 @@ pub fn insert_gift(connection: &Connection, gift: &CardGiftRow) -> Result<(), St
     connection
         .execute(
             "INSERT INTO card_gifts (
-                id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                id, from_user, kind, entity_id, rarity, variant, value,
+                created_at, claimed_at, cards_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 gift.id,
                 gift.from_user,
@@ -971,20 +1190,19 @@ pub fn insert_gift(connection: &Connection, gift: &CardGiftRow) -> Result<(), St
                 gift.variant.as_str(),
                 gift.value,
                 gift.created_at,
-                gift.claimed_at
+                gift.claimed_at,
+                serde_json::to_string(&gift.cards).unwrap_or_else(|_| "[]".to_string())
             ],
         )
         .map_err(|error| format!("insert card gift: {error}"))?;
     Ok(())
 }
 
-pub fn get_gift(
-    connection: &Connection,
-    gift_id: &str,
-) -> Result<Option<CardGiftRow>, String> {
+pub fn get_gift(connection: &Connection, gift_id: &str) -> Result<Option<CardGiftRow>, String> {
     connection
         .query_row(
-            "SELECT id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at
+            "SELECT id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at,
+                    cards_json
              FROM card_gifts WHERE id = ?1",
             [gift_id],
             gift_from_row,
@@ -1018,7 +1236,8 @@ pub fn list_gifts(
 ) -> Result<Vec<CardGiftRow>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at
+            "SELECT id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at,
+                    cards_json
              FROM card_gifts WHERE from_user = ?1
              ORDER BY created_at DESC, id DESC LIMIT ?2",
         )
@@ -1028,6 +1247,17 @@ pub fn list_gifts(
         .map_err(|error| format!("query card gifts: {error}"))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("collect card gifts: {error}"))
+}
+
+pub fn count_active_gifts(connection: &Connection, from_user: i64) -> Result<i64, String> {
+    connection
+        .query_row(
+            "SELECT COUNT(*) FROM card_gifts
+             WHERE from_user = ?1 AND claimed_at IS NULL",
+            params![from_user],
+            |row| row.get(0),
+        )
+        .map_err(|error| format!("count active card gifts: {error}"))
 }
 
 pub fn delete_gift(connection: &Connection, gift_id: &str) -> Result<bool, String> {
@@ -1121,6 +1351,7 @@ mod tests {
             collection_cover_url: None,
             collage_json: None,
             fetched_at: 100,
+            preferred_image_url: None,
         }
     }
 
@@ -1136,12 +1367,13 @@ mod tests {
                 "SELECT COUNT(*) FROM sqlite_master
                  WHERE type = 'table' AND name IN (
                     'card_packs','card_pack_cards','user_cards','card_meta','pack_grants',
-                    'starter_grants','card_openings','user_wallet','chubrik_ledger','card_gifts')",
+                    'starter_grants','card_openings','user_wallet','chubrik_ledger','card_gifts',
+                    'card_gallery')",
                 [],
                 |row| row.get(0),
             )
             .expect("count card tables");
-        assert_eq!(tables, 10);
+        assert_eq!(tables, 11);
         let manga_column: i64 = connection
             .query_row(
                 "SELECT COUNT(*) FROM pragma_table_info('card_meta')
@@ -1209,8 +1441,10 @@ mod tests {
             collection_title: Some("Tokyo Ghoul".into()),
             collection_cover_url: None,
         };
-        assert!(save_pack_cards(&mut connection, LOCAL_USER_ID, "prepared-pack", &[row], 20)
-            .expect("save contents"));
+        assert!(
+            save_pack_cards(&mut connection, LOCAL_USER_ID, "prepared-pack", &[row], 20)
+                .expect("save contents")
+        );
         assert_eq!(
             get_pack(&connection, LOCAL_USER_ID, "prepared-pack")
                 .expect("get pack")
@@ -1218,10 +1452,22 @@ mod tests {
                 .contents_state,
             CardPackContentsState::Ready
         );
-        assert_eq!(list_pack_cards(&connection, "prepared-pack").unwrap().len(), 1);
-        assert_eq!(ready_unnotified_count(&connection, LOCAL_USER_ID).unwrap(), 1);
-        assert_eq!(acknowledge_ready_packs(&connection, LOCAL_USER_ID, 30).unwrap(), 1);
-        assert_eq!(ready_unnotified_count(&connection, LOCAL_USER_ID).unwrap(), 0);
+        assert_eq!(
+            list_pack_cards(&connection, "prepared-pack").unwrap().len(),
+            1
+        );
+        assert_eq!(
+            ready_unnotified_count(&connection, LOCAL_USER_ID).unwrap(),
+            1
+        );
+        assert_eq!(
+            acknowledge_ready_packs(&connection, LOCAL_USER_ID, 30).unwrap(),
+            1
+        );
+        assert_eq!(
+            ready_unnotified_count(&connection, LOCAL_USER_ID).unwrap(),
+            0
+        );
     }
 
     #[test]
@@ -1265,7 +1511,13 @@ mod tests {
         let packs = list_packs(&connection, LOCAL_USER_ID, 10).unwrap();
         assert_eq!(packs.len(), 2);
         assert_eq!(packs[0].id, "pack-2");
-        assert_eq!(get_pack(&connection, LOCAL_USER_ID, "pack-1").unwrap().unwrap().opened_at, Some(30));
+        assert_eq!(
+            get_pack(&connection, LOCAL_USER_ID, "pack-1")
+                .unwrap()
+                .unwrap()
+                .opened_at,
+            Some(30)
+        );
     }
 
     #[test]
@@ -1273,6 +1525,7 @@ mod tests {
         let connection = memory_db();
         upsert_card(&connection, LOCAL_USER_ID, &card(1)).expect("insert card");
         let mut duplicate = card(1);
+        duplicate.first_obtained_at = 50;
         duplicate.last_obtained_at = 200;
         upsert_card(&connection, LOCAL_USER_ID, &duplicate).expect("duplicate card");
         let stored = get_user_card(
@@ -1287,7 +1540,7 @@ mod tests {
         .unwrap();
         assert_eq!(stored.copies, 2);
         assert_eq!(stored.last_obtained_at, 200);
-        assert_eq!(stored.first_obtained_at, 100);
+        assert_eq!(stored.first_obtained_at, 50);
         assert_eq!(
             remove_one_card_copy(
                 &connection,
@@ -1312,7 +1565,9 @@ mod tests {
             .unwrap(),
             Some(0)
         );
-        assert!(list_user_cards(&connection, LOCAL_USER_ID).unwrap().is_empty());
+        assert!(list_user_cards(&connection, LOCAL_USER_ID)
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
@@ -1329,6 +1584,80 @@ mod tests {
         assert_eq!(stored.title, "Levi Ackerman");
         assert_eq!(stored.collection_anime_id, Some(16498));
         assert_eq!(stored.fetched_at, 200);
+    }
+
+    #[test]
+    fn metadata_refresh_keeps_the_users_preferred_art() {
+        let connection = memory_db();
+        let mut chosen = meta(1);
+        chosen.preferred_image_url = Some("https://cdn/levi-alt.jpg".into());
+        upsert_meta(&connection, &chosen).expect("insert chosen art");
+
+        let mut refreshed = meta(1);
+        refreshed.image_url = Some("https://cdn/levi-new.jpg".into());
+        refreshed.fetched_at = 300;
+        upsert_meta(&connection, &refreshed).expect("refresh metadata");
+
+        let stored = get_meta(&connection, CardKind::Character, 1)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            stored.preferred_image_url.as_deref(),
+            Some("https://cdn/levi-alt.jpg")
+        );
+        assert_eq!(
+            stored.display_image_url().as_deref(),
+            Some("https://cdn/levi-alt.jpg")
+        );
+        assert_eq!(
+            stored.image_url.as_deref(),
+            Some("https://cdn/levi-new.jpg")
+        );
+    }
+
+    #[test]
+    fn gallery_cache_roundtrips_and_preferred_art_can_be_cleared() {
+        let connection = memory_db();
+        upsert_meta(&connection, &meta(1)).expect("meta");
+        let gallery = CardGalleryRow {
+            kind: CardKind::Character,
+            entity_id: 1,
+            mal_id: Some(45627),
+            media_mal_id: Some(16498),
+            images_json: r#"[{"url":"https://cdn/art.jpg","thumbUrl":"https://cdn/thumb.jpg"}]"#
+                .into(),
+            fetched_at: 100,
+        };
+        upsert_card_gallery(&connection, &gallery).expect("gallery");
+        let stored = get_card_gallery(&connection, CardKind::Character, 1)
+            .unwrap()
+            .unwrap();
+        assert_eq!(stored.mal_id, Some(45627));
+        assert_eq!(stored.media_mal_id, Some(16498));
+
+        assert_eq!(
+            set_card_preferred_image(
+                &connection,
+                CardKind::Character,
+                1,
+                Some("https://cdn/art.jpg")
+            )
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            get_meta(&connection, CardKind::Character, 1)
+                .unwrap()
+                .unwrap()
+                .preferred_image_url,
+            Some("https://cdn/art.jpg".into())
+        );
+        set_card_preferred_image(&connection, CardKind::Character, 1, None).unwrap();
+        assert!(get_meta(&connection, CardKind::Character, 1)
+            .unwrap()
+            .unwrap()
+            .preferred_image_url
+            .is_none());
     }
 
     #[test]
@@ -1413,11 +1742,21 @@ mod tests {
             rarity: CardRarity::Epic,
             variant: CardVariant::Holo,
             value: 45,
+            cards: vec![GiftCardStack {
+                rarity: CardRarity::Epic,
+                variant: CardVariant::Holo,
+                copies: 2,
+                value: 45,
+                first_obtained_at: 5,
+                last_obtained_at: 7,
+            }],
             created_at: 10,
             claimed_at: None,
         };
         insert_gift(&connection, &gift).unwrap();
+        assert_eq!(count_active_gifts(&connection, 7).unwrap(), 1);
         assert!(claim_gift(&connection, "gift-1", 20).unwrap().is_some());
+        assert_eq!(count_active_gifts(&connection, 7).unwrap(), 0);
         assert!(claim_gift(&connection, "gift-1", 30).unwrap().is_none());
         assert_eq!(list_gifts(&connection, 7, 10).unwrap().len(), 1);
         assert_eq!(list_gifts(&connection, 7, 10).unwrap()[0].value, 45);

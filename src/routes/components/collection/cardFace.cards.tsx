@@ -1,11 +1,9 @@
 import { cn } from "cn";
+import { Heart } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
-import {
-  cardKindLabelKeys,
-  cardRarityLabelKeys,
-} from "@/config/cards/labels.config";
+import { cardKindLabelKeys, cardRarityLabelKeys } from "@/config/cards/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImageStatus } from "@/hooks/remoteImage.hook";
 import type { CardKind, CardRarity, CardVariant } from "@/types/api/cards";
@@ -37,6 +35,7 @@ export interface CardFaceItem {
   rarity: CardRarity;
   variant: CardVariant;
   value: number;
+  isFavorite?: boolean;
 }
 
 function monogram(title: string): string {
@@ -66,9 +65,7 @@ function StudioCover({ cover, title }: { cover: string; title: string }) {
       />
     );
   }
-  return (
-    <img src={imageSrc} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
-  );
+  return <img src={imageSrc} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />;
 }
 
 function StudioCollage({ title, collage }: { title: string; collage: string[] }) {
@@ -118,6 +115,16 @@ export default function CardFace({
     >
       <div className="cards-window-bar" title={title}>
         <span>{title}</span>
+        {card.isFavorite === true && (
+          <div
+            className="ml-auto flex shrink-0 items-center"
+            title={t("collection.favorite")}
+            data-testid="card-favorite"
+          >
+            <Heart className="size-2.5 fill-red-500 text-white" aria-hidden />
+            <span className="sr-only">{t("collection.favorite")}</span>
+          </div>
+        )}
       </div>
       <div className={cn("cards-inner", variantClass)}>
         <div className="cards-art">

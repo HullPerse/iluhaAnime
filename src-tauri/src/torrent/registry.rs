@@ -34,10 +34,12 @@ pub struct TorrentRegistry {
 impl TorrentRegistry {
     pub fn load(app_data_dir: &Path) -> Self {
         let save_dirs_path = app_data_dir.join("save_dirs.json");
-        let save_dirs: HashMap<usize, String> = read_json::<HashMap<usize, String>>(&save_dirs_path).unwrap_or_default();
+        let save_dirs: HashMap<usize, String> =
+            read_json::<HashMap<usize, String>>(&save_dirs_path).unwrap_or_default();
 
         let magnet_links_path = app_data_dir.join("magnet_links.json");
-        let magnet_links: HashMap<usize, String> = read_json::<HashMap<usize, String>>(&magnet_links_path).unwrap_or_default();
+        let magnet_links: HashMap<usize, String> =
+            read_json::<HashMap<usize, String>>(&magnet_links_path).unwrap_or_default();
 
         let aliases_path = app_data_dir.join("torrent_aliases.json");
         let aliases: HashMap<String, String> = read_json::<HashMap<String, String>>(&aliases_path)
@@ -47,43 +49,47 @@ impl TorrentRegistry {
             .collect();
 
         let root_names_path = app_data_dir.join("torrent_root_names.json");
-        let root_names: HashMap<String, String> = read_json::<HashMap<String, String>>(&root_names_path)
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|(key, value)| is_info_hash(key) && is_valid_folder_name(value))
-            .collect();
+        let root_names: HashMap<String, String> =
+            read_json::<HashMap<String, String>>(&root_names_path)
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|(key, value)| is_info_hash(key) && is_valid_folder_name(value))
+                .collect();
 
         let torrent_limits_path = app_data_dir.join("torrent_limits.json");
-        let torrent_limits: HashMap<String, TorrentLimits> = read_json::<HashMap<String, TorrentLimits>>(&torrent_limits_path)
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|(key, _)| is_info_hash(key))
-            .collect();
+        let torrent_limits: HashMap<String, TorrentLimits> =
+            read_json::<HashMap<String, TorrentLimits>>(&torrent_limits_path)
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|(key, _)| is_info_hash(key))
+                .collect();
 
         let torrent_sources_path = app_data_dir.join("torrent_sources.json");
-        let torrent_sources: HashMap<String, TorrentOrigin> = read_json::<HashMap<String, TorrentOrigin>>(&torrent_sources_path)
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|(key, value)| {
-                is_info_hash(key)
-                    && !value.source.trim().is_empty()
-                    && !value.url.trim().is_empty()
-            })
-            .collect();
+        let torrent_sources: HashMap<String, TorrentOrigin> = read_json::<
+            HashMap<String, TorrentOrigin>,
+        >(&torrent_sources_path)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|(key, value)| {
+            is_info_hash(key) && !value.source.trim().is_empty() && !value.url.trim().is_empty()
+        })
+        .collect();
 
         let partial_leftovers_path = app_data_dir.join("partial_leftovers.json");
-        let partial_leftovers: HashMap<String, PartialLeftover> = read_json::<HashMap<String, PartialLeftover>>(&partial_leftovers_path)
+        let partial_leftovers: HashMap<String, PartialLeftover> =
+            read_json::<HashMap<String, PartialLeftover>>(&partial_leftovers_path)
                 .unwrap_or_default()
                 .into_iter()
                 .filter(|(key, value)| is_info_hash(key) && !value.files.is_empty())
                 .collect();
 
         let hidden_paths_path = app_data_dir.join("hidden_files.json");
-        let hidden_paths: HashMap<String, Vec<String>> = read_json::<HashMap<String, Vec<String>>>(&hidden_paths_path)
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|(key, paths)| is_info_hash(key) && !paths.is_empty())
-            .collect();
+        let hidden_paths: HashMap<String, Vec<String>> =
+            read_json::<HashMap<String, Vec<String>>>(&hidden_paths_path)
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|(key, paths)| is_info_hash(key) && !paths.is_empty())
+                .collect();
 
         Self {
             save_dirs: save_dirs.into_iter().collect(),
@@ -291,7 +297,10 @@ mod tests {
             Some("Show".to_string())
         );
         assert_eq!(
-            loaded.torrent_sources.get(&hash).map(|entry| entry.source.clone()),
+            loaded
+                .torrent_sources
+                .get(&hash)
+                .map(|entry| entry.source.clone()),
             Some("nyaa".into())
         );
         assert_eq!(

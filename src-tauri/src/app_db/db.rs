@@ -13,7 +13,7 @@ pub const DATABASE_FILE: &str = "app_data.sqlite3";
 /// beats hanging the UI forever.
 pub const APP_DATA_WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 pub const MAX_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
-pub const CURRENT_SCHEMA_VERSION: i64 = 31;
+pub const CURRENT_SCHEMA_VERSION: i64 = 34;
 pub fn now_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -153,7 +153,10 @@ mod tests {
         };
         let value = serde_json::to_value(&status).expect("serialize status");
         assert_eq!(value["dataDir"], "C:/data");
-        assert!(value.get("data_dir").is_none(), "snake_case key leaked: {value}");
+        assert!(
+            value.get("data_dir").is_none(),
+            "snake_case key leaked: {value}"
+        );
         assert_eq!(value["ok"], true);
     }
 

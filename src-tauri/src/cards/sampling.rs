@@ -85,10 +85,7 @@ pub fn page_query(kind: CardKind, pages: &[u32], per_page: u32) -> Value {
 }
 
 fn number(value: &Value) -> u32 {
-    value
-        .as_u64()
-        .unwrap_or(0)
-        .min(u64::from(u32::MAX)) as u32
+    value.as_u64().unwrap_or(0).min(u64::from(u32::MAX)) as u32
 }
 
 fn text(value: &Value) -> Option<String> {
@@ -104,8 +101,9 @@ fn title_for(kind: CardKind, node: &Value, id: i64) -> String {
         CardKind::Anime | CardKind::Manga => text(&node["title"]["romaji"])
             .or_else(|| text(&node["title"]["english"]))
             .unwrap_or_else(|| format!("Media {id}")),
-        CardKind::Character | CardKind::Staff => text(&node["name"]["full"])
-            .unwrap_or_else(|| format!("Entity {id}")),
+        CardKind::Character | CardKind::Staff => {
+            text(&node["name"]["full"]).unwrap_or_else(|| format!("Entity {id}"))
+        }
         CardKind::Studio => text(&node["name"]).unwrap_or_else(|| format!("Studio {id}")),
     }
 }
@@ -233,9 +231,9 @@ pub fn ensure_rare_plus(selected: &mut [CardNode], pool: &[CardNode]) {
         .iter()
         .filter(|card| {
             tier_for(card.kind, card.score) >= CardRarity::Rare
-                && !selected.iter().any(|picked| {
-                    picked.kind == card.kind && picked.entity_id == card.entity_id
-                })
+                && !selected
+                    .iter()
+                    .any(|picked| picked.kind == card.kind && picked.entity_id == card.entity_id)
         })
         .max_by(|left, right| {
             left.score
@@ -246,15 +244,11 @@ pub fn ensure_rare_plus(selected: &mut [CardNode], pool: &[CardNode]) {
     let Some(best) = best else {
         return;
     };
-    if let Some((index, _)) = selected
-        .iter()
-        .enumerate()
-        .min_by(|(_, left), (_, right)| {
-            left.score
-                .partial_cmp(&right.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-    {
+    if let Some((index, _)) = selected.iter().enumerate().min_by(|(_, left), (_, right)| {
+        left.score
+            .partial_cmp(&right.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    }) {
         selected[index] = best;
     }
 }
@@ -322,7 +316,10 @@ mod tests {
         assert_eq!(page.last_page, 20);
         assert!(page.has_next_page);
         assert_eq!(page.nodes[0].title, "Character 1");
-        assert_eq!(page.nodes[0].image_url.as_deref(), Some("https://img/one.jpg"));
+        assert_eq!(
+            page.nodes[0].image_url.as_deref(),
+            Some("https://img/one.jpg")
+        );
         assert!(page.nodes[0].score > page.nodes[1].score);
         assert!(page.nodes[1].image_url.is_none());
     }
@@ -428,7 +425,12 @@ mod tests {
 
     #[test]
     fn merging_pages_dedupes_across_aliases() {
-        let first = parse_page(CardKind::Character, 1, &fixture_cards(&[(1, Some(1), None)])).unwrap();
+        let first = parse_page(
+            CardKind::Character,
+            1,
+            &fixture_cards(&[(1, Some(1), None)]),
+        )
+        .unwrap();
         let second = parse_page(
             CardKind::Character,
             2,

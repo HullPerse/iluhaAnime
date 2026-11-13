@@ -117,6 +117,23 @@ export const CreatedGiftSchema = z.compile(
   })
 );
 
+export const GiftItemSchema = z.compile(
+  z.object({
+    id: z.string(),
+    createdAt: z.number(),
+    claimedAt: z.nullable(z.number()),
+    card: OpenedCardSchema,
+  })
+);
+
+export const GiftListSchema = z.compile(z.array(GiftItemSchema));
+
+export const GiftDeleteResultSchema = z.compile(
+  z.object({
+    returned: z.boolean(),
+  })
+);
+
 const CollectionItemSchema = z.object({
   kind: CardKindSchema,
   entityId: z.number(),

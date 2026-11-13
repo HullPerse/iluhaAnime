@@ -14,7 +14,12 @@ import {
   parseStreamLink,
   parseTorrentLink,
 } from "@/lib/core/system/deeplink.utils";
-import type { AnimeDeepLink } from "@/lib/core/system/deeplink.utils";
+import type {
+  AnimeDeepLink,
+  CardGiftDeepLink,
+  CardGiftReceiptDeepLink,
+} from "@/lib/core/system/deeplink.utils";
+import { buildCardGiftReceiptLink } from "@/lib/cards/gift.utils";
 import type { AniListId, TorrentHash } from "@/types/core/types";
 
 vi.mock("@tauri-apps/api/core", async () => {
@@ -228,6 +233,28 @@ describe("utils/deeplink", () => {
       s.run(["junk", 7]);
       expect(s.opened).toEqual([]);
       expect(s.invalidCalls()).toBe(1);
+    });
+
+    it("routes a receipt link to the receipt handler", () => {
+      const gifts: CardGiftDeepLink[] = [];
+      const receipts: CardGiftReceiptDeepLink[] = [];
+      let invalid = 0;
+      ingestDeepLinks(
+        [buildCardGiftReceiptLink("gift-1")],
+        () => {},
+        () => {
+          invalid += 1;
+        },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        (gift) => gifts.push(gift),
+        (receipt) => receipts.push(receipt)
+      );
+      expect(receipts).toEqual([{ giftId: "gift-1" }]);
+      expect(gifts).toEqual([]);
+      expect(invalid).toBe(0);
     });
   });
 

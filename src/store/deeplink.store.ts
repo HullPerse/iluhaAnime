@@ -5,6 +5,7 @@ import type {
   AnimeDeepLink,
   AnilistAuthDeepLink,
   CardGiftDeepLink,
+  CardGiftReceiptDeepLink,
   DeepLinkStore,
   NewsDeepLink,
   StreamDeepLink,
@@ -25,7 +26,9 @@ type DeepLinkActionKeys =
   | "openNews"
   | "consumeNews"
   | "openGift"
-  | "consumeGift";
+  | "consumeGift"
+  | "openGiftReceipt"
+  | "consumeGiftReceipt";
 
 type DeepLinkData = Omit<DeepLinkStore, DeepLinkActionKeys>;
 type DeepLinkAtoms = { [K in keyof DeepLinkData]: Cell<DeepLinkData[K]> };
@@ -38,6 +41,7 @@ const DEFAULT_DEEPLINK_DATA: DeepLinkData = {
   authTarget: null,
   newsTarget: null,
   giftTarget: null,
+  giftReceiptTarget: null,
 };
 
 interface DeepLinkSignalStore {
@@ -57,6 +61,8 @@ interface DeepLinkSignalStore {
   consumeNews: () => void;
   openGift: (link: CardGiftDeepLink) => void;
   consumeGift: () => void;
+  openGiftReceipt: (link: CardGiftReceiptDeepLink) => void;
+  consumeGiftReceipt: () => void;
 }
 
 function createDeepLinkSignalStore(): DeepLinkSignalStore {
@@ -80,6 +86,8 @@ function createDeepLinkSignalStore(): DeepLinkSignalStore {
     consumeNews: () => atoms.newsTarget.set(null),
     openGift: (link) => atoms.giftTarget.set(link),
     consumeGift: () => atoms.giftTarget.set(null),
+    openGiftReceipt: (link) => atoms.giftReceiptTarget.set(link),
+    consumeGiftReceipt: () => atoms.giftReceiptTarget.set(null),
   };
 }
 
@@ -103,3 +111,5 @@ export const openNewsDeepLink = deeplinks.openNews;
 export const consumeNewsDeepLink = deeplinks.consumeNews;
 export const openGiftDeepLink = deeplinks.openGift;
 export const consumeGiftDeepLink = deeplinks.consumeGift;
+export const openGiftReceiptDeepLink = deeplinks.openGiftReceipt;
+export const consumeGiftReceiptDeepLink = deeplinks.consumeGiftReceipt;

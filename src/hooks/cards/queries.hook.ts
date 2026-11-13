@@ -17,6 +17,7 @@ import type {
   CollectionRosterPage,
   CollectionShelfItem,
   CollectionItem,
+  GiftItem,
 } from "@/types/api/cards";
 
 function anilistProxy(): string {
@@ -125,5 +126,12 @@ export function useCardsStats() {
   return useAppQuery<CardsStats>("slow", {
     queryKey: queryKeys.cardsStats(),
     queryFn: () => cardsApi.stats(),
+  });
+}
+
+export function useCardsGifts() {
+  return useAppQuery<GiftItem[]>("slow", {
+    queryKey: queryKeys.cardsGifts(),
+    queryFn: () => cardsApi.gifts(),
   });
 }

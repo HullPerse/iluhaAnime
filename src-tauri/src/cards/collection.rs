@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use serde::Serialize;
 use tauri::AppHandle;
 
@@ -5,14 +7,14 @@ use super::packs::OpenedCard;
 use super::rarity::card_value;
 use super::types::{CardKind, CardRarity, CardVariant};
 use crate::app_db::cards::{
-    add_wallet, claim_gift, get_meta, get_user_card, insert_gift, list_recent_pulls,
-    list_user_cards, remove_one_card_copy, upsert_card, wallet_balance, CardGiftRow, CardPullRow,
-    UserCardRow, LOCAL_USER_ID,
+    add_wallet, claim_gift, delete_gift, get_gift, get_meta, get_user_card, insert_gift,
+    list_gifts, list_recent_pulls, list_user_cards, record_gift_claim, remove_one_card_copy,
+    upsert_card, wallet_balance, CardGiftRow, CardPullRow, UserCardRow, LOCAL_USER_ID,
 };
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
 };
-use crate::cards::rng::seed_now;
+use crate::cards::rng::{seed_now, Rng};
 use crate::scrapers::clients::resolve_proxy;
 
 #[derive(Debug, Clone, Serialize)]
@@ -73,6 +75,89 @@ pub struct DustResult {
     pub remaining: i64,
     pub amount: i64,
     pub wallet: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GiftItem {
+    pub id: String,
+    pub created_at: i64,
+    pub claimed_at: Option<i64>,
+    pub card: OpenedCard,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GiftDeleteResult {
+    pub returned: bool,
+}
+
+static GIFT_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+
+fn next_gift_id(now: i64) -> String {
+    let sequence = GIFT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let mut rng = Rng::new(seed_now() ^ sequence.wrapping_mul(0x9E37_79B9_7F4A_7C15));
+    format!(
+        "gift-{now}-{:016x}{:016x}",
+        rng.next_u64(),
+        rng.next_u64()
+    )
+}
+
+fn gift_value(gift: &CardGiftRow) -> i64 {
+    if gift.value > 0 {
+        gift.value
+    } else {
+        i64::from(card_value(gift.kind, gift.rarity, gift.variant, 0.0))
+    }
+}
+
+fn opened_card_from_identity(
+    connection: &rusqlite::Connection,
+    kind: CardKind,
+    entity_id: i64,
+    rarity: CardRarity,
+    variant: CardVariant,
+    value: i64,
+) -> Result<OpenedCard, String> {
+    let meta = get_meta(connection, kind, entity_id)?;
+    let collage = meta
+        .as_ref()
+        .and_then(|row| row.collage_json.as_deref())
+        .and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
+        .unwrap_or_default();
+    Ok(OpenedCard {
+        kind,
+        entity_id,
+        title: meta
+            .as_ref()
+            .map(|row| row.title.clone())
+            .unwrap_or_else(|| format!("{kind} #{entity_id}", kind = kind.as_str())),
+        image_url: meta.as_ref().and_then(|row| row.image_url.clone()),
+        collage,
+        rarity,
+        variant,
+        value,
+        collection_anime_id: meta.as_ref().and_then(|row| row.collection_anime_id),
+        collection_title: meta.as_ref().and_then(|row| row.collection_title.clone()),
+        collection_cover_url: meta.as_ref().and_then(|row| row.collection_cover_url.clone()),
+    })
+}
+
+fn gift_item(connection: &rusqlite::Connection, gift: &CardGiftRow) -> Result<GiftItem, String> {
+    Ok(GiftItem {
+        id: gift.id.clone(),
+        created_at: gift.created_at,
+        claimed_at: gift.claimed_at,
+        card: opened_card_from_identity(
+            connection,
+            gift.kind,
+            gift.entity_id,
+            gift.rarity,
+            gift.variant,
+            gift_value(gift),
+        )?,
+    })
 }
 
 fn parsed_at<T>(
@@ -625,6 +710,7 @@ pub fn create_gift_in(
             entity_id,
             rarity,
             variant,
+            value: card.value,
             created_at: now,
             claimed_at: None,
         },
@@ -679,7 +765,7 @@ pub fn cards_create_gift(
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let mut connection = open_database(&app)?;
     let now = now_seconds();
-    let gift_id = format!("gift-{now}-{seed}", seed = seed_now());
+    let gift_id = next_gift_id(now);
     create_gift_in(
         &mut connection,
         LOCAL_USER_ID,
@@ -692,9 +778,20 @@ pub fn cards_create_gift(
     )
 }
 
-/// Claims a local honor-system gift once. The gift row is the replay guard.
+/// Claims a self-contained gift link once on this install. The link carries the
+/// card identity and the frozen value, so the sender's database is not needed.
+/// `card_gift_claims` is the recipient-side replay guard.
 #[tauri::command]
-pub fn cards_claim_gift(app: AppHandle, gift_id: String) -> Result<OpenedCard, String> {
+#[allow(clippy::too_many_arguments)]
+pub fn cards_claim_gift(
+    app: AppHandle,
+    gift_id: String,
+    kind: Option<String>,
+    entity_id: Option<i64>,
+    rarity: Option<String>,
+    variant: Option<String>,
+    value: Option<i64>,
+) -> Result<OpenedCard, String> {
     let gift_id = gift_id.trim().to_string();
     if gift_id.is_empty() || gift_id.len() > 128 {
         return Err("invalid card gift id".into());
@@ -705,51 +802,145 @@ pub fn cards_claim_gift(app: AppHandle, gift_id: String) -> Result<OpenedCard, S
         .transaction()
         .map_err(|error| format!("claim card gift transaction: {error}"))?;
     let now = now_seconds();
-    let Some(gift) = claim_gift(&transaction, &gift_id, now)? else {
-        return Err("card gift is missing or already claimed".into());
+    let local_gift = get_gift(&transaction, &gift_id)?;
+    let payload = match (kind, entity_id, rarity, variant) {
+        (Some(kind), Some(entity_id), Some(rarity), Some(variant)) => {
+            let kind = CardKind::from_db(kind.trim()).ok_or("unknown card kind")?;
+            let rarity = CardRarity::from_db(rarity.trim()).ok_or("unknown card rarity")?;
+            let variant = CardVariant::from_db(variant.trim()).ok_or("unknown card variant")?;
+            if entity_id <= 0 {
+                return Err("invalid card entity id".into());
+            }
+            Some((kind, entity_id, rarity, variant))
+        }
+        (None, None, None, None) => None,
+        _ => return Err("incomplete card gift payload".into()),
     };
-    let value = i64::from(card_value(gift.kind, gift.rarity, gift.variant, 0.0));
+    let (kind, entity_id, rarity, variant, value) = match payload {
+        Some((kind, entity_id, rarity, variant)) => {
+            let value = value
+                .filter(|value| *value > 0)
+                .or_else(|| local_gift.as_ref().map(gift_value))
+                .unwrap_or_else(|| i64::from(card_value(kind, rarity, variant, 0.0)));
+            (kind, entity_id, rarity, variant, value)
+        }
+        None => {
+            let Some(gift) = local_gift else {
+                return Err("card gift is missing or already claimed".into());
+            };
+            (gift.kind, gift.entity_id, gift.rarity, gift.variant, gift_value(&gift))
+        }
+    };
+    if value <= 0 || !record_gift_claim(
+        &transaction,
+        &gift_id,
+        kind,
+        entity_id,
+        rarity,
+        variant,
+        value,
+        now,
+    )? {
+        return Err("card gift is missing or already claimed".into());
+    }
     upsert_card(
         &transaction,
         LOCAL_USER_ID,
         &UserCardRow {
-            kind: gift.kind,
-            entity_id: gift.entity_id,
-            rarity: gift.rarity,
-            variant: gift.variant,
+            kind,
+            entity_id,
+            rarity,
+            variant,
             copies: 1,
             value,
             first_obtained_at: now,
             last_obtained_at: now,
         },
     )?;
-    let meta = get_meta(&transaction, gift.kind, gift.entity_id)?;
-    let collage = meta
-        .as_ref()
-        .and_then(|row| row.collage_json.as_deref())
-        .and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
-        .unwrap_or_default();
+    // A claim on the sender's install also settles the outbox row. On another
+    // install this is simply absent and the receipt link does the same job.
+    claim_gift(&transaction, &gift_id, now)?;
+    let card = opened_card_from_identity(&transaction, kind, entity_id, rarity, variant, value)?;
     transaction
         .commit()
         .map_err(|error| format!("commit card gift claim: {error}"))?;
-    Ok(OpenedCard {
-        kind: gift.kind,
-        entity_id: gift.entity_id,
-        title: meta
-            .as_ref()
-            .map(|row| row.title.clone())
-            .unwrap_or_else(|| format!("{kind} #{id}", kind = gift.kind.as_str(), id = gift.entity_id)),
-        image_url: meta.as_ref().and_then(|row| row.image_url.clone()),
-        collage,
-        rarity: gift.rarity,
-        variant: gift.variant,
-        value,
-        collection_anime_id: meta.as_ref().and_then(|row| row.collection_anime_id),
-        collection_title: meta.as_ref().and_then(|row| row.collection_title.clone()),
-        collection_cover_url: meta
-            .as_ref()
-            .and_then(|row| row.collection_cover_url.clone()),
-    })
+    Ok(card)
+}
+
+#[tauri::command]
+pub fn cards_gifts(app: AppHandle) -> Result<Vec<GiftItem>, String> {
+    let connection = open_database(&app)?;
+    list_gifts(&connection, LOCAL_USER_ID, 100)?
+        .iter()
+        .map(|gift| gift_item(&connection, gift))
+        .collect()
+}
+
+/// Opens a receipt link on the sender's install and settles the outbox row.
+/// Reopening the same receipt is idempotent.
+#[tauri::command]
+pub fn cards_mark_gift_claimed(app: AppHandle, gift_id: String) -> Result<GiftItem, String> {
+    let gift_id = gift_id.trim().to_string();
+    if gift_id.is_empty() || gift_id.len() > 128 {
+        return Err("invalid card gift id".into());
+    }
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let connection = open_database(&app)?;
+    claim_gift(&connection, &gift_id, now_seconds())?;
+    let Some(gift) = get_gift(&connection, &gift_id)? else {
+        return Err("card gift is missing".into());
+    };
+    gift_item(&connection, &gift)
+}
+
+fn delete_gift_in(
+    connection: &mut rusqlite::Connection,
+    gift_id: &str,
+) -> Result<GiftDeleteResult, String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("delete card gift transaction: {error}"))?;
+    let Some(gift) = get_gift(&transaction, gift_id)? else {
+        return Err("card gift is missing".into());
+    };
+    let returned = gift.claimed_at.is_none();
+    if returned {
+        let now = now_seconds();
+        upsert_card(
+            &transaction,
+            LOCAL_USER_ID,
+            &UserCardRow {
+                kind: gift.kind,
+                entity_id: gift.entity_id,
+                rarity: gift.rarity,
+                variant: gift.variant,
+                copies: 1,
+                value: gift_value(&gift),
+                first_obtained_at: now,
+                last_obtained_at: now,
+            },
+        )?;
+    }
+    if !delete_gift(&transaction, gift_id)? {
+        return Err("card gift is missing".into());
+    }
+    transaction
+        .commit()
+        .map_err(|error| format!("commit card gift delete: {error}"))?;
+    Ok(GiftDeleteResult { returned })
+}
+
+/// Removes an outbox gift. An unclaimed copy goes back to the sender; a gift
+/// confirmed by a receipt is only removed from the list.
+#[tauri::command]
+pub fn cards_delete_gift(app: AppHandle, gift_id: String) -> Result<GiftDeleteResult, String> {
+    let gift_id = gift_id.trim().to_string();
+    if gift_id.is_empty() || gift_id.len() > 128 {
+        return Err("invalid card gift id".into());
+    }
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let mut connection = open_database(&app)?;
+    delete_gift_in(&mut connection, &gift_id)
 }
 
 #[cfg(test)]
@@ -814,6 +1005,8 @@ mod tests {
         .expect("create gift");
         assert_eq!(gift.id, "gift-test-1");
         assert_eq!(gift.card.title, "Levi");
+        assert_eq!(gift.card.value, 8);
+        assert_eq!(get_gift(&connection, "gift-test-1").unwrap().unwrap().value, 8);
         assert_eq!(
             get_user_card(
                 &connection,
@@ -850,6 +1043,80 @@ mod tests {
         )
         .expect_err("last copy must stay");
         assert!(error.contains("duplicate"));
+    }
+
+    #[test]
+    fn deleting_an_unclaimed_gift_returns_the_copy() {
+        let mut connection = memory_db();
+        upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).expect("card");
+        create_gift_in(
+            &mut connection,
+            LOCAL_USER_ID,
+            CardKind::Character,
+            45627,
+            CardRarity::Rare,
+            CardVariant::Foil,
+            "gift-delete-1",
+            200,
+        )
+        .expect("create gift");
+
+        let deleted = delete_gift_in(&mut connection, "gift-delete-1").expect("delete gift");
+
+        assert!(deleted.returned);
+        assert!(get_gift(&connection, "gift-delete-1").unwrap().is_none());
+        assert_eq!(
+            get_user_card(
+                &connection,
+                LOCAL_USER_ID,
+                CardKind::Character,
+                45627,
+                CardRarity::Rare,
+                CardVariant::Foil
+            )
+            .unwrap()
+            .unwrap()
+            .copies,
+            2
+        );
+    }
+
+    #[test]
+    fn deleting_a_receipt_confirmed_gift_does_not_return_the_copy() {
+        let mut connection = memory_db();
+        upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).expect("card");
+        create_gift_in(
+            &mut connection,
+            LOCAL_USER_ID,
+            CardKind::Character,
+            45627,
+            CardRarity::Rare,
+            CardVariant::Foil,
+            "gift-delete-2",
+            200,
+        )
+        .expect("create gift");
+        claim_gift(&connection, "gift-delete-2", 300)
+            .expect("claim")
+            .expect("outbox row");
+
+        let deleted = delete_gift_in(&mut connection, "gift-delete-2").expect("delete gift");
+
+        assert!(!deleted.returned);
+        assert_eq!(
+            get_user_card(
+                &connection,
+                LOCAL_USER_ID,
+                CardKind::Character,
+                45627,
+                CardRarity::Rare,
+                CardVariant::Foil
+            )
+            .unwrap()
+            .unwrap()
+            .copies,
+            1
+        );
     }
 
     #[test]

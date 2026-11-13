@@ -30,6 +30,13 @@ export interface CardGiftDeepLink {
   readonly entityId: number;
   readonly rarity: CardRarity;
   readonly variant: CardVariant;
+  // Frozen sender-side value. Older links without it fall back to the local
+  // gift row or the minimum value for the rarity/variant.
+  readonly value: number | null;
+}
+
+export interface CardGiftReceiptDeepLink {
+  readonly giftId: string;
 }
 
 export interface DeepLinkStore {
@@ -54,6 +61,9 @@ export interface DeepLinkStore {
   giftTarget: CardGiftDeepLink | null;
   openGift: (link: CardGiftDeepLink) => void;
   consumeGift: () => void;
+  giftReceiptTarget: CardGiftReceiptDeepLink | null;
+  openGiftReceipt: (link: CardGiftReceiptDeepLink) => void;
+  consumeGiftReceipt: () => void;
 }
 
 export type PastedLink =
@@ -62,4 +72,5 @@ export type PastedLink =
   | { kind: "torrent"; link: TorrentDeepLink }
   | { kind: "magnet"; magnet: string }
   | { kind: "news"; link: NewsDeepLink }
-  | { kind: "gift"; link: CardGiftDeepLink };
+  | { kind: "gift"; link: CardGiftDeepLink }
+  | { kind: "gift-receipt"; link: CardGiftReceiptDeepLink };

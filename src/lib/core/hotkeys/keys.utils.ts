@@ -125,6 +125,8 @@ export const queryKeys = {
   cardsCollectionRoster: (mediaId: number, kind: string, page: number, proxy: string) =>
     ["cards-collection-roster", mediaId, kind, page, proxy] as const,
   cardsStats: () => ["cards-stats"] as const,
+  cardsGifts: () => ["cards-gifts"] as const,
+  cardsGiftsScope: () => ["cards-gifts"] as const,
   cardsUnread: (packsSince: number, cardsSince: number) =>
     ["cards-unread", packsSince, cardsSince] as const,
   cardsUnreadScope: () => ["cards-unread"] as const,

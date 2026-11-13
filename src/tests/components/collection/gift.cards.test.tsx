@@ -14,6 +14,7 @@ const GIFT: CardGiftDeepLink = {
   entityId: 45627,
   rarity: "rare",
   variant: "foil",
+  value: 12,
 };
 
 beforeEach(() => {
@@ -24,7 +25,7 @@ beforeEach(() => {
 });
 
 describe("collection gift dialog", () => {
-  it("explains the local gift and claims it with the opaque id", async () => {
+  it("claims the full payload and shows a receipt link", async () => {
     const onClose = vi.fn();
     renderWithCardsClient(<GiftDialog gift={GIFT} onClose={onClose} />);
 
@@ -34,10 +35,18 @@ describe("collection gift dialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Claim" }));
 
     await waitFor(() =>
-      expect(mockInvoke).toHaveBeenCalledWith("cards_claim_gift", { giftId: GIFT.giftId })
+      expect(mockInvoke).toHaveBeenCalledWith("cards_claim_gift", {
+        giftId: GIFT.giftId,
+        kind: GIFT.kind,
+        entityId: GIFT.entityId,
+        rarity: GIFT.rarity,
+        variant: GIFT.variant,
+        value: GIFT.value,
+      })
     );
     expect(await screen.findByText("Gift claimed.")).toBeTruthy();
     expect(screen.getAllByText("Card 1")).toHaveLength(2);
+    expect(screen.getByDisplayValue("iluhaanime://card/gift/receipt/gift-123-456")).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 });

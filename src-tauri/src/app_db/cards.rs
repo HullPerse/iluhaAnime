@@ -127,6 +127,7 @@ pub struct CardGiftRow {
     pub entity_id: i64,
     pub rarity: CardRarity,
     pub variant: CardVariant,
+    pub value: i64,
     pub created_at: i64,
     pub claimed_at: Option<i64>,
 }
@@ -245,8 +246,9 @@ fn gift_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CardGiftRow> {
         entity_id: row.get(3)?,
         rarity: rarity_at(row, 4)?,
         variant: variant_at(row, 5)?,
-        created_at: row.get(6)?,
-        claimed_at: row.get(7)?,
+        value: row.get(6)?,
+        created_at: row.get(7)?,
+        claimed_at: row.get(8)?,
     })
 }
 
@@ -958,8 +960,8 @@ pub fn insert_gift(connection: &Connection, gift: &CardGiftRow) -> Result<(), St
     connection
         .execute(
             "INSERT INTO card_gifts (
-                id, from_user, kind, entity_id, rarity, variant, created_at, claimed_at
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 gift.id,
                 gift.from_user,
@@ -967,6 +969,7 @@ pub fn insert_gift(connection: &Connection, gift: &CardGiftRow) -> Result<(), St
                 gift.entity_id,
                 gift.rarity.as_str(),
                 gift.variant.as_str(),
+                gift.value,
                 gift.created_at,
                 gift.claimed_at
             ],
@@ -981,7 +984,7 @@ pub fn get_gift(
 ) -> Result<Option<CardGiftRow>, String> {
     connection
         .query_row(
-            "SELECT id, from_user, kind, entity_id, rarity, variant, created_at, claimed_at
+            "SELECT id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at
              FROM card_gifts WHERE id = ?1",
             [gift_id],
             gift_from_row,
@@ -1008,7 +1011,6 @@ pub fn claim_gift(
     get_gift(connection, gift_id)
 }
 
-#[cfg(test)]
 pub fn list_gifts(
     connection: &Connection,
     from_user: i64,
@@ -1016,7 +1018,7 @@ pub fn list_gifts(
 ) -> Result<Vec<CardGiftRow>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT id, from_user, kind, entity_id, rarity, variant, created_at, claimed_at
+            "SELECT id, from_user, kind, entity_id, rarity, variant, value, created_at, claimed_at
              FROM card_gifts WHERE from_user = ?1
              ORDER BY created_at DESC, id DESC LIMIT ?2",
         )
@@ -1026,6 +1028,44 @@ pub fn list_gifts(
         .map_err(|error| format!("query card gifts: {error}"))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("collect card gifts: {error}"))
+}
+
+pub fn delete_gift(connection: &Connection, gift_id: &str) -> Result<bool, String> {
+    let changed = connection
+        .execute("DELETE FROM card_gifts WHERE id = ?1", [gift_id])
+        .map_err(|error| format!("delete card gift: {error}"))?;
+    Ok(changed > 0)
+}
+
+/// Recipient-side replay guard. Each install may claim a shared link once;
+/// there is no global authority without a server.
+pub fn record_gift_claim(
+    connection: &Connection,
+    gift_id: &str,
+    kind: CardKind,
+    entity_id: i64,
+    rarity: CardRarity,
+    variant: CardVariant,
+    value: i64,
+    claimed_at: i64,
+) -> Result<bool, String> {
+    let changed = connection
+        .execute(
+            "INSERT OR IGNORE INTO card_gift_claims (
+                gift_id, kind, entity_id, rarity, variant, value, claimed_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                gift_id,
+                kind.as_str(),
+                entity_id,
+                rarity.as_str(),
+                variant.as_str(),
+                value,
+                claimed_at
+            ],
+        )
+        .map_err(|error| format!("record card gift claim: {error}"))?;
+    Ok(changed > 0)
 }
 
 #[cfg(test)]
@@ -1372,6 +1412,7 @@ mod tests {
             entity_id: 2,
             rarity: CardRarity::Epic,
             variant: CardVariant::Holo,
+            value: 45,
             created_at: 10,
             claimed_at: None,
         };
@@ -1379,5 +1420,35 @@ mod tests {
         assert!(claim_gift(&connection, "gift-1", 20).unwrap().is_some());
         assert!(claim_gift(&connection, "gift-1", 30).unwrap().is_none());
         assert_eq!(list_gifts(&connection, 7, 10).unwrap().len(), 1);
+        assert_eq!(list_gifts(&connection, 7, 10).unwrap()[0].value, 45);
+        assert!(delete_gift(&connection, "gift-1").unwrap());
+        assert!(get_gift(&connection, "gift-1").unwrap().is_none());
+    }
+
+    #[test]
+    fn a_gift_claim_is_recorded_once_per_install() {
+        let connection = memory_db();
+        assert!(record_gift_claim(
+            &connection,
+            "gift-claim-1",
+            CardKind::Character,
+            45627,
+            CardRarity::Rare,
+            CardVariant::Foil,
+            12,
+            100,
+        )
+        .unwrap());
+        assert!(!record_gift_claim(
+            &connection,
+            "gift-claim-1",
+            CardKind::Character,
+            45627,
+            CardRarity::Rare,
+            CardVariant::Foil,
+            12,
+            200,
+        )
+        .unwrap());
     }
 }

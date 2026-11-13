@@ -29,6 +29,7 @@ import {
   isEditablePasteTarget,
   parsePastedLink,
 } from "@/lib/core/system/deeplink.utils";
+import type { PastedLink } from "@/lib/core/system/deeplink.utils";
 import {
   openNotificationTarget,
   resolveNotificationText,
@@ -40,6 +41,7 @@ import {
   openAnimeDeepLink,
   openAuthDeepLink,
   openGiftDeepLink,
+  openGiftReceiptDeepLink,
   openMagnetDeepLink,
   openNewsDeepLink,
   openStreamDeepLink,
@@ -303,6 +305,14 @@ export function useApp() {
           }
           openGiftDeepLink(link);
           goToTab("collection");
+        },
+        (link) => {
+          if (!settingsAtoms.collectionTabEnabled.get()) {
+            showError(t("common.error"), t("anilist.details.link.invalid"));
+            return;
+          }
+          openGiftReceiptDeepLink(link);
+          goToTab("collection");
         }
       );
     },
@@ -359,19 +369,36 @@ export function useApp() {
       goToTab("collection");
       openGiftDeepLink(link);
     };
+    const openGiftReceipt = (
+      link: Parameters<typeof openGiftReceiptDeepLink>[0]
+    ): void => {
+      if (!settingsAtoms.collectionTabEnabled.get()) {
+        showError(t("common.error"), t("anilist.details.link.invalid"));
+        return;
+      }
+      openGiftReceiptDeepLink(link);
+      goToTab("collection");
+    };
+    const openGiftPasted = (
+      link: Extract<PastedLink, { kind: "gift" | "gift-receipt" }>
+    ): void => {
+      if (link.kind === "gift") openGift(link.link);
+      else openGiftReceipt(link.link);
+    };
+    const rejectInvalidPaste = (event: ClipboardEvent): void => {
+      if (activeTab !== "anilist" && activeTab !== "torrent") return;
+      event.preventDefault();
+      showError(t("common.error"), t("anilist.details.link.invalid"));
+    };
     const handler = (event: ClipboardEvent) => {
       if (event.defaultPrevented) return;
       if (isEditablePasteTarget(event.target)) return;
       const text = event.clipboardData?.getData("text") ?? "";
       const parsed = parsePastedLink(text);
-      if (!parsed) return;
-      if (parsed === "invalid") {
-        if (activeTab === "anilist" || activeTab === "torrent") {
-          event.preventDefault();
-          showError(t("common.error"), t("anilist.details.link.invalid"));
+      if (!parsed) return;        if (parsed === "invalid") {
+          rejectInvalidPaste(event);
+          return;
         }
-        return;
-      }
       event.preventDefault();
       if (parsed.kind === "anime") {
         if (!ensureTab(settingsAtoms.anilistTabEnabled.get())) return;
@@ -384,8 +411,8 @@ export function useApp() {
         if (!ensureTab(settingsAtoms.newsTabEnabled.get())) return;
         openNewsDeepLink(parsed.link);
         goToTab("news");
-      } else if (parsed.kind === "gift") {
-        openGift(parsed.link);
+      } else if (parsed.kind === "gift" || parsed.kind === "gift-receipt") {
+        openGiftPasted(parsed);
       } else if (parsed.kind === "torrent") {
         if (!ensureTorrentTab()) return;
         openTorrentDeepLink(parsed.link);

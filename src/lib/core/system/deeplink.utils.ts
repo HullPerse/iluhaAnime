@@ -3,18 +3,23 @@ import type {
   AnimeDeepLink,
   AnilistAuthDeepLink,
   CardGiftDeepLink,
+  CardGiftReceiptDeepLink,
   NewsDeepLink,
   PastedLink,
   StreamDeepLink,
   TorrentDeepLink,
 } from "@/types/core/deeplink";
-import { parseCardGiftLink } from "@/lib/cards/gift.utils";
+import {
+  parseCardGiftLink,
+  parseCardGiftReceiptLink,
+} from "@/lib/cards/gift.utils";
 import type { AniListId, TorrentHash } from "@/types/core/types";
 
 export type {
   AnimeDeepLink,
   AnilistAuthDeepLink,
   CardGiftDeepLink,
+  CardGiftReceiptDeepLink,
   NewsDeepLink,
   PastedLink,
   StreamDeepLink,
@@ -120,6 +125,57 @@ export function parseAnilistAuthCallback(raw: string): AnilistAuthDeepLink | nul
   return { accessToken: token };
 }
 
+type DeepLinkHandlers = {
+  openAnime: (link: AnimeDeepLink) => void;
+  openTorrent?: (link: TorrentDeepLink) => void;
+  openAuth?: (link: AnilistAuthDeepLink) => void;
+  openStream?: (link: StreamDeepLink) => void;
+  openNews?: (link: NewsDeepLink) => void;
+  openGift?: (link: CardGiftDeepLink) => void;
+  openGiftReceipt?: (link: CardGiftReceiptDeepLink) => void;
+};
+
+function routeDeepLink(raw: string, handlers: DeepLinkHandlers): boolean {
+  if (handlers.openAuth) {
+    const auth = parseAnilistAuthCallback(raw);
+    if (auth) {
+      handlers.openAuth(auth);
+      return true;
+    }
+  }
+  const receipt = handlers.openGiftReceipt ? parseCardGiftReceiptLink(raw) : null;
+  if (receipt && handlers.openGiftReceipt) {
+    handlers.openGiftReceipt(receipt);
+    return true;
+  }
+  const gift = handlers.openGift ? parseCardGiftLink(raw) : null;
+  if (gift && handlers.openGift) {
+    handlers.openGift(gift);
+    return true;
+  }
+  const news = handlers.openNews ? parseNewsLink(raw) : null;
+  if (news && handlers.openNews) {
+    handlers.openNews(news);
+    return true;
+  }
+  const anime = parseAnimeLink(raw);
+  if (anime) {
+    handlers.openAnime(anime);
+    return true;
+  }
+  const stream = handlers.openStream ? parseStreamLink(raw) : null;
+  if (stream && handlers.openStream) {
+    handlers.openStream(stream);
+    return true;
+  }
+  const torrent = handlers.openTorrent ? parseTorrentLink(raw) : null;
+  if (torrent && handlers.openTorrent) {
+    handlers.openTorrent(torrent);
+    return true;
+  }
+  return false;
+}
+
 export function ingestDeepLinks(
   urls: unknown,
   openAnime: (link: AnimeDeepLink) => void,
@@ -128,45 +184,24 @@ export function ingestDeepLinks(
   openAuth?: (link: AnilistAuthDeepLink) => void,
   openStream?: (link: StreamDeepLink) => void,
   openNews?: (link: NewsDeepLink) => void,
-  openGift?: (link: CardGiftDeepLink) => void
+  openGift?: (link: CardGiftDeepLink) => void,
+  openGiftReceipt?: (link: CardGiftReceiptDeepLink) => void
 ): void {
   if (!Array.isArray(urls)) return;
+  const handlers: DeepLinkHandlers = {
+    openAnime,
+    openTorrent,
+    openAuth,
+    openStream,
+    openNews,
+    openGift,
+    openGiftReceipt,
+  };
   let bad = false;
   for (const raw of urls) {
-    if (typeof raw !== "string") {
+    if (typeof raw !== "string" || !routeDeepLink(raw, handlers)) {
       bad = true;
-      continue;
     }
-    if (openAuth) {
-      const auth = parseAnilistAuthCallback(raw);
-      if (auth) {
-        openAuth(auth);
-        continue;
-      }
-    }
-    const gift = openGift ? parseCardGiftLink(raw) : null;
-    if (gift && openGift) {
-      openGift(gift);
-      continue;
-    }
-    const news = openNews ? parseNewsLink(raw) : null;
-    if (news && openNews) {
-      openNews(news);
-      continue;
-    }
-    const anime = parseAnimeLink(raw);
-    if (anime) {
-      openAnime(anime);
-      continue;
-    }
-    const stream = openStream ? parseStreamLink(raw) : null;
-    if (stream && openStream) {
-      openStream(stream);
-      continue;
-    }
-    const torrent = openTorrent ? parseTorrentLink(raw) : null;
-    if (torrent && openTorrent) openTorrent(torrent);
-    else bad = true;
   }
   if (bad) onInvalid();
 }
@@ -190,6 +225,8 @@ export function parsePastedLink(text: string): PastedLink | "invalid" | null {
     if (torrent) return { kind: "torrent", link: torrent };
     const news = parseNewsLink(trimmed);
     if (news) return { kind: "news", link: news };
+    const receipt = parseCardGiftReceiptLink(trimmed);
+    if (receipt) return { kind: "gift-receipt", link: receipt };
     const gift = parseCardGiftLink(trimmed);
     if (gift) return { kind: "gift", link: gift };
     return "invalid";

@@ -25,6 +25,7 @@ import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail"
 import CardBack from "@/routes/components/collection/cardBack.cards";
 import CardFace from "@/routes/components/collection/cardFace.cards";
 import GiftAction from "@/routes/components/collection/giftAction.cards";
+import GiftFlow from "@/routes/components/collection/giftFlow.cards";
 
 /// Degrees of rotation per dragged pixel.
 const SPIN_SENSITIVITY = 0.5;
@@ -90,6 +91,7 @@ export default function CardDetail({
   const { setCardVariant } = useCardsMutations();
   const [pickedVariant, setPickedVariant] = useState<CardVariant>(item.variant);
   const [openAnimeId, setOpenAnimeId] = useState<number | null>(null);
+  const [giftOpen, setGiftOpen] = useState<boolean>(false);
   const [spinning, setSpinning] = useState<boolean>(false);
   const rotatorRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -281,10 +283,27 @@ export default function CardDetail({
     );
   }
 
+  if (giftOpen) {
+    return (
+      <GiftFlow
+        item={card}
+        onBack={() => setGiftOpen(false)}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
     <Modal
       header={t("collection.detail.title")}
       onClose={onClose}
+      headerActions={
+        <GiftAction
+          key={`${card.kind}-${card.entityId}-${card.rarity}-${card.variant}`}
+          item={card}
+          onOpen={() => setGiftOpen(true)}
+        />
+      }
       className="w-[min(56rem,calc(100vw-1rem))]"
       contentClassName="p-0"
     >
@@ -389,9 +408,6 @@ export default function CardDetail({
             </div>
           </dl>
 
-          <div className="cards-detail-actions">
-            <GiftAction item={card} />
-          </div>
         </div>
       </div>
     </Modal>

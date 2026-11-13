@@ -34,6 +34,7 @@ describe("collection shell", () => {
     expect(await screen.findByRole("tab", { name: "Packs" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Album" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Shop" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Gifts" })).toBeTruthy();
     const count = await screen.findByTestId("collection-card-count");
     expect(count.textContent).toBe("2");
     const wallet = await screen.findByTitle("Chubriks");

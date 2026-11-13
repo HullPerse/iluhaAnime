@@ -272,7 +272,14 @@ describe("CardsApi", () => {
     });
     await api.buyPack("character");
     await api.grantStarter(7, null);
-    await api.claimGift("gift-1");
+    await api.claimGift({
+      giftId: "gift-1",
+      kind: "character",
+      entityId: 45627,
+      rarity: "rare",
+      variant: "foil",
+      value: 12,
+    });
 
     expect(calls).toEqual([
       {
@@ -290,7 +297,17 @@ describe("CardsApi", () => {
       },
       { command: "cards_buy_pack", args: { packKind: "character" } },
       { command: "cards_grant_starter", args: { userId: 7 } },
-      { command: "cards_claim_gift", args: { giftId: "gift-1" } },
+      {
+        command: "cards_claim_gift",
+        args: {
+          giftId: "gift-1",
+          kind: "character",
+          entityId: 45627,
+          rarity: "rare",
+          variant: "foil",
+          value: 12,
+        },
+      },
     ]);
   });
 });

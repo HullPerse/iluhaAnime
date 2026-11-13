@@ -18,7 +18,7 @@ const NAV_GROUPS: readonly {
   titleKey: "collection.nav.cards" | "collection.nav.shopGroup";
   tabs: readonly CardsTab[];
 }[] = [
-  { id: "cards", titleKey: "collection.nav.cards", tabs: ["packs", "album"] },
+  { id: "cards", titleKey: "collection.nav.cards", tabs: ["packs", "album", "gifts"] },
   { id: "shop", titleKey: "collection.nav.shopGroup", tabs: ["shop"] },
 ];
 

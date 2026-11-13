@@ -996,6 +996,43 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database preferred variant commit: {error}"))?;
     }
 
+    if version < 31 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database gift value transaction: {error}"))?;
+        let has_value: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('card_gifts') WHERE name = 'value'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("read gift value column: {error}"))?;
+        if has_value == 0 {
+            transaction
+                .execute("ALTER TABLE card_gifts ADD COLUMN value INTEGER NOT NULL DEFAULT 0", [])
+                .map_err(|error| format!("add gift value column: {error}"))?;
+        }
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE IF NOT EXISTS card_gift_claims (
+                    gift_id TEXT PRIMARY KEY,
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    value INTEGER NOT NULL,
+                    claimed_at INTEGER NOT NULL
+                );
+                PRAGMA user_version = 31;
+                ",
+            )
+            .map_err(|error| format!("app database gift value schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database gift value commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"

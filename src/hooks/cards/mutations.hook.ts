@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cardsApi } from "@/api/cards.api";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { DustCardInput } from "@/types/api/cards";
+import type { CardGiftClaimInput, DustCardInput } from "@/types/api/cards";
 
 function anilistProxy(): string | null {
   return settingsAtoms.anilistProxyUrl.get() ?? null;
@@ -19,6 +19,7 @@ export function useCardsMutations() {
       queryKeys.cardsCollectionScope(),
       queryKeys.cardsCollectionsScope(),
       queryKeys.cardsStats(),
+      queryKeys.cardsGiftsScope(),
       queryKeys.cardsUnreadScope(),
     ]) {
       queryClient.invalidateQueries({ queryKey });
@@ -77,7 +78,17 @@ export function useCardsMutations() {
   });
 
   const claimGift = useMutation({
-    mutationFn: (giftId: string) => cardsApi.claimGift(giftId),
+    mutationFn: (input: CardGiftClaimInput) => cardsApi.claimGift(input),
+    onSuccess: invalidate,
+  });
+
+  const markGiftClaimed = useMutation({
+    mutationFn: (giftId: string) => cardsApi.markGiftClaimed(giftId),
+    onSuccess: invalidate,
+  });
+
+  const deleteGift = useMutation({
+    mutationFn: (giftId: string) => cardsApi.deleteGift(giftId),
     onSuccess: invalidate,
   });
 
@@ -97,6 +108,8 @@ export function useCardsMutations() {
     buyPack,
     createGift,
     claimGift,
+    markGiftClaimed,
+    deleteGift,
     grantStarter,
     invalidate,
   };

@@ -1,3 +1,4 @@
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
@@ -9,6 +10,7 @@ import {
 } from "@/config/cards/labels.config";
 import { useCardsMutations } from "@/hooks/cards/mutations.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { buildCardGiftReceiptLink } from "@/lib/cards/gift.utils";
 import type { CardGiftDeepLink } from "@/types/core/deeplink";
 import type { OpenedCard } from "@/types/api/cards";
 
@@ -24,6 +26,20 @@ export default function GiftDialog({
   const { t } = useI18n();
   const claim = useCardsMutations().claimGift;
   const [claimed, setClaimed] = useState<OpenedCard | null>(null);
+  const [receiptCopied, setReceiptCopied] = useState<boolean>(false);
+  const [receiptError, setReceiptError] = useState<boolean>(false);
+  const receiptLink = buildCardGiftReceiptLink(gift.giftId);
+
+  const copyReceipt = async () => {
+    try {
+      await writeText(receiptLink);
+      setReceiptCopied(true);
+      setReceiptError(false);
+    } catch {
+      setReceiptCopied(false);
+      setReceiptError(true);
+    }
+  };
 
   return (
     <Modal header={t("collection.gift")} onClose={onClose} className="w-[min(40rem,calc(100vw-1rem))]">
@@ -37,6 +53,12 @@ export default function GiftDialog({
             <dd className="m-0">{t(cardRarityLabelKeys[gift.rarity])}</dd>
             <dt className="text-hint">{t("collection.variant")}</dt>
             <dd className="m-0">{t(cardVariantLabelKeys[gift.variant])}</dd>
+            {gift.value === null ? null : (
+              <>
+                <dt className="text-hint">{t("collection.value")}</dt>
+                <dd className="m-0 tabular-nums">{gift.value}</dd>
+              </>
+            )}
           </dl>
           {claim.isError && (
             <p className="windows95-text text-destructive m-0" role="alert">
@@ -50,7 +72,19 @@ export default function GiftDialog({
             <Button
               className="h-6 px-2 text-xs"
               loading={claim.isPending}
-              onClick={() => claim.mutate(gift.giftId, { onSuccess: setClaimed })}
+              onClick={() =>
+                claim.mutate(
+                  {
+                    giftId: gift.giftId,
+                    kind: gift.kind,
+                    entityId: gift.entityId,
+                    rarity: gift.rarity,
+                    variant: gift.variant,
+                    value: gift.value,
+                  },
+                  { onSuccess: setClaimed }
+                )
+              }
             >
               {t("collection.gift.claim")}
             </Button>
@@ -65,6 +99,29 @@ export default function GiftDialog({
             <CardFace card={claimed} />
           </div>
           <p className="windows95-text text-center font-bold">{claimed.title}</p>
+          <p className="windows95-text text-hint m-0">{t("collection.gift.receipt.hint")}</p>
+          <div className="flex items-center gap-1">
+            <input
+              className="windows95-border bg-primary text-text windows95-text min-w-0 flex-1 px-1 py-0.5"
+              value={receiptLink}
+              readOnly
+              aria-label={t("collection.gift.receipt.link")}
+              onFocus={(event) => event.currentTarget.select()}
+            />
+            <Button className="h-6 px-2 text-xs" onClick={copyReceipt}>
+              {t("collection.gift.copy")}
+            </Button>
+          </div>
+          {receiptCopied && (
+            <span className="windows95-text text-success" role="status">
+              {t("collection.gift.receipt.copied")}
+            </span>
+          )}
+          {receiptError && (
+            <span className="windows95-text text-destructive" role="alert">
+              {t("collection.gift.copy.error")}
+            </span>
+          )}
           <div className="flex justify-end">
             <Button className="h-6 px-2 text-xs" onClick={onClose}>
               {t("common.close")}

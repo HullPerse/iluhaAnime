@@ -73,17 +73,19 @@ fn is_test_effects_pack(pack_id: &str) -> bool {
     pack_id.starts_with(TEST_EFFECTS_PREFIX)
 }
 
-/// A copy the user already owns pays this much more on opening, so a duplicate
-/// pull is worth more than a new card instead of feeling like a loss. The
-/// frozen per-copy value itself never changes.
-const DUPLICATE_PAYOUT_MULTIPLIER: i64 = 2;
+/// Duplicate payouts grow with the number of copies already owned, from 1x on
+/// the first copy towards 2.3x. The curve is deliberately soft: the first
+/// duplicate is 1.33x, the tenth is 2x, and the cap keeps legendary holo pulls
+/// from printing chubriks. The frozen per-copy value itself never changes.
+const DUPLICATE_PAYOUT_GROWTH: f64 = 1.3;
+const DUPLICATE_PAYOUT_SOFTNESS: f64 = 3.0;
+const DUPLICATE_PAYOUT_MAX: f64 = 2.3;
 
-fn payout_for(value: i64, owned: bool) -> i64 {
-    if owned {
-        value.saturating_mul(DUPLICATE_PAYOUT_MULTIPLIER)
-    } else {
-        value
-    }
+fn payout_for(value: i64, copies_before: i64) -> i64 {
+    let copies = copies_before.max(0) as f64;
+    let multiplier = (1.0 + DUPLICATE_PAYOUT_GROWTH * copies / (copies + DUPLICATE_PAYOUT_SOFTNESS))
+        .min(DUPLICATE_PAYOUT_MAX);
+    (value as f64 * multiplier).round() as i64
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -507,7 +509,7 @@ fn open_prepared(
     let mut value = 0i64;
     for (index, prepared) in prepared.iter().enumerate() {
         let card = &prepared.card;
-        let owned = get_user_card(
+        let copies_before = get_user_card(
             &transaction,
             LOCAL_USER_ID,
             card.kind,
@@ -515,8 +517,8 @@ fn open_prepared(
             card.rarity,
             card.variant,
         )?
-        .is_some_and(|row| row.copies > 0);
-        value = value.saturating_add(payout_for(card.value, owned));
+        .map_or(0, |row| row.copies);
+        value = value.saturating_add(payout_for(card.value, copies_before));
         upsert_card(
             &transaction,
             LOCAL_USER_ID,
@@ -962,11 +964,17 @@ mod tests {
     }
 
     #[test]
-    fn a_copy_the_user_already_owns_pays_double() {
-        assert_eq!(payout_for(20, false), 20);
-        assert_eq!(payout_for(20, true), 40);
-        assert_eq!(payout_for(1, true), 2);
-        assert_eq!(payout_for(i64::MAX, true), i64::MAX);
+    fn duplicate_payout_grows_from_one_x_to_the_cap() {
+        assert_eq!(payout_for(20, 0), 20);
+        assert_eq!(payout_for(20, 1), 27);
+        assert_eq!(payout_for(20, 5), 36);
+        assert_eq!(payout_for(20, 10), 40);
+        assert_eq!(payout_for(20, 100), 45);
+        assert_eq!(payout_for(40, 1), 53);
+        assert_eq!(payout_for(120, 1), 159);
+        assert_eq!(payout_for(120, 1_000), 276);
+        assert_eq!(payout_for(1, 0), 1);
+        assert_eq!(payout_for(1, 1), 1);
     }
 
     #[test]

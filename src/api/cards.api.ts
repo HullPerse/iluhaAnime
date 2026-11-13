@@ -11,6 +11,9 @@ import {
   CardPackListSchema,
   CardPackSchema,
   CreatedGiftSchema,
+  GiftDeleteResultSchema,
+  GiftItemSchema,
+  GiftListSchema,
   CardsStatsSchema,
   CollectionPageSchema,
   CollectionShelfSchema,
@@ -25,6 +28,7 @@ import {
 } from "@/api/cards.schema";
 import type {
   AnimeCollectionPage,
+  CardGiftClaimInput,
   CardPackRow,
   CardsApiConfig,
   CardsBootstrap,
@@ -38,6 +42,8 @@ import type {
   CollectionShelfItem,
   CreatedGift,
   DustCardInput,
+  GiftDeleteResult,
+  GiftItem,
   DustResult,
   GrantResult,
   OpenedCard,
@@ -241,10 +247,35 @@ export class CardsApi {
     );
   }
 
-  async claimGift(giftId: string): Promise<OpenedCard> {
+  async claimGift(input: CardGiftClaimInput): Promise<OpenedCard> {
     return assertSchema(
-      await this.call("cards_claim_gift", { giftId }),
+      await this.call("cards_claim_gift", {
+        giftId: input.giftId,
+        kind: input.kind,
+        entityId: input.entityId,
+        rarity: input.rarity,
+        variant: input.variant,
+        value: input.value,
+      }),
       OpenedCardSchema
+    );
+  }
+
+  async gifts(): Promise<GiftItem[]> {
+    return assertSchema(await this.call("cards_gifts"), GiftListSchema);
+  }
+
+  async markGiftClaimed(giftId: string): Promise<GiftItem> {
+    return assertSchema(
+      await this.call("cards_mark_gift_claimed", { giftId }),
+      GiftItemSchema
+    );
+  }
+
+  async deleteGift(giftId: string): Promise<GiftDeleteResult> {
+    return assertSchema(
+      await this.call("cards_delete_gift", { giftId }),
+      GiftDeleteResultSchema
     );
   }
 }

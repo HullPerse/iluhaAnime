@@ -14,10 +14,16 @@ import {
   setCardsPacksNewSince,
   setCardsPacksReadAt,
 } from "@/store/cards.store";
-import { consumeGiftDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
+import {
+  consumeGiftDeepLink,
+  consumeGiftReceiptDeepLink,
+  deeplinkAtoms,
+} from "@/store/deeplink.store";
 
 import AlbumCards from "@/routes/components/collection/album.cards";
 import GiftDialog from "@/routes/components/collection/giftDialog.cards";
+import GiftReceiptDialog from "@/routes/components/collection/giftReceiptDialog.cards";
+import GiftsCards from "@/routes/components/collection/gifts.cards";
 import PacksCards from "@/routes/components/collection/packs.cards";
 import ShopCards from "@/routes/components/collection/shop.cards";
 import TabsCards from "@/routes/components/collection/tabs.cards";
@@ -28,6 +34,7 @@ export default function CollectionShell() {
   const { t } = useI18n();
   const tab = useCell(cardsAtoms.tab);
   const gift = useCell(deeplinkAtoms.giftTarget);
+  const giftReceipt = useCell(deeplinkAtoms.giftReceiptTarget);
   const online = useOnlineStatus();
   const bootstrap = useCardsBootstrap();
 
@@ -69,6 +76,8 @@ export default function CollectionShell() {
     body = <AlbumCards />;
   } else if (tab === "shop") {
     body = <ShopCards />;
+  } else if (tab === "gifts") {
+    body = <GiftsCards />;
   } else {
     body = <PacksCards />;
   }
@@ -104,6 +113,9 @@ export default function CollectionShell() {
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</section>
       </section>
       {gift !== null && <GiftDialog gift={gift} onClose={consumeGiftDeepLink} />}
+      {giftReceipt !== null && (
+        <GiftReceiptDialog receipt={giftReceipt} onClose={consumeGiftReceiptDeepLink} />
+      )}
     </div>
   );
 }

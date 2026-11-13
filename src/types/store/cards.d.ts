@@ -1,7 +1,7 @@
 import type { Cell } from "@/types/core/signal";
 import type { CardKind, CardRarity, CollectionShelfSort } from "@/types/api/cards";
 
-export type CardsTab = "packs" | "album" | "shop";
+export type CardsTab = "packs" | "album" | "shop" | "gifts";
 export type CardsSort = "recent" | "value" | "rarity" | "title" | "kind";
 export type CardsSortDir = "asc" | "desc";
 export type CardsCollectionSort = CollectionShelfSort;

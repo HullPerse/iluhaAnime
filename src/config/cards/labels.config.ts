@@ -7,12 +7,13 @@ export const CARD_RARITIES = ["junk", "common", "rare", "epic", "legendary"] as 
 export const CARD_VARIANTS = ["normal", "foil", "holo"] as const;
 export const CARD_SORTS = ["recent", "value", "rarity", "title", "kind"] as const;
 export const COLLECTION_SORTS = [...CARD_SORTS, "completion", "owned"] as const;
-export const CARDS_TABS = ["packs", "album", "shop"] as const;
+export const CARDS_TABS = ["packs", "album", "shop", "gifts"] as const;
 
 export const cardsTabLabelKeys = {
   packs: "collection.tabs.packs",
   album: "collection.tabs.album",
   shop: "collection.tabs.shop",
+  gifts: "collection.tabs.gifts",
 } satisfies Record<CardsTab, TranslationKey>;
 
 export const cardKindLabelKeys = {

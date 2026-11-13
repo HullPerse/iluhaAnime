@@ -107,6 +107,26 @@ export interface CreatedGift {
   card: OpenedCard;
 }
 
+export interface GiftItem {
+  id: string;
+  createdAt: number;
+  claimedAt: number | null;
+  card: OpenedCard;
+}
+
+export interface GiftDeleteResult {
+  returned: boolean;
+}
+
+export interface CardGiftClaimInput {
+  giftId: string;
+  kind: CardKind;
+  entityId: number;
+  rarity: CardRarity;
+  variant: CardVariant;
+  value: number | null;
+}
+
 export interface CollectionItem {
   kind: CardKind;
   entityId: number;

@@ -73,7 +73,7 @@ describe("settings signal legacy fallback", () => {
     ]);
     const { store } = setup(backing);
     expect(store.atoms.limits.get()).toEqual({ download: 500, upload: 100 });
-    expect(store.atoms.language.get()).toBe("en");
+    expect(store.atoms.language.get()).toBe("ru");
   });
 
   it("disables the persisted day-night theme schedule once", () => {

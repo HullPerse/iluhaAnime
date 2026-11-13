@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { collectionApi } from "@/api/collection.api";
+import { unifiedIndexApi } from "@/api/unifiedIndex.api";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { suggestionPoolSize, suggestionScore } from "@/lib/core/anilist/rank.utils";
 import { parseOperatorTerms } from "@/lib/search/searchScore.utils";
@@ -42,7 +42,7 @@ export function useSuggestions(
     const queryWords = terms ? [] : nq.split(" ");
     (async () => {
       const [rows, error] = await attempt(
-        collectionApi.searchUnifiedIndex(normalized, scope, suggestionPoolSize(limit))
+        unifiedIndexApi.searchUnifiedIndex(normalized, scope, suggestionPoolSize(limit))
       );
       if (requestRef.current !== requestId) return;
       if (error) {

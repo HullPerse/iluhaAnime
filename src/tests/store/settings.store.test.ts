@@ -16,8 +16,8 @@ beforeAll(async () => {
 });
 
 describe("settings signal migration", () => {
-  it("keeps the persisted English locale", () => {
-    expect(settings.migrateSettingsData({ language: "en" }, 1).language).toBe("en");
+  it("forces the persisted English locale to Russian", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 1).language).toBe("ru");
   });
 
   it("keeps the persisted Russian locale", () => {
@@ -30,7 +30,7 @@ describe("settings signal migration", () => {
 
   it("preserves other persisted fields", () => {
     const result = settings.migrateSettingsData({ language: "en", anilistPageSize: 10 }, 1);
-    expect(result.language).toBe("en");
+    expect(result.language).toBe("ru");
     expect(result.anilistPageSize).toBe(10);
   });
 
@@ -63,7 +63,7 @@ describe("settings signal migration", () => {
 
   it("migrates legacy dlLimit/ulLimit into limits.download/upload", () => {
     const result = settings.migrateSettingsData({ dlLimit: 500, ulLimit: 100, language: "en" }, 14);
-    expect(result.language).toBe("en");
+    expect(result.language).toBe("ru");
     expect(result.limits).toEqual({ download: 500, upload: 100 });
     expect("dlLimit" in result).toBe(false);
     expect("ulLimit" in result).toBe(false);
@@ -186,7 +186,7 @@ describe("settings signal autocomplete", () => {
       2
     ) as Record<string, unknown>;
     expect(result.autocompleteMode).toBe("off");
-    expect(result.language).toBe("en");
+    expect(result.language).toBe("ru");
     expect("inlineAutocompleteEnabled" in result).toBe(false);
   });
 });

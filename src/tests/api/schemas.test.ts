@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { CollectionRowListSchema } from "@/api/collection.schema";
 import {
   AniListCollectionListSchema,
   AniMediaListSchema,
@@ -19,43 +18,6 @@ import { SearchResultListSchema } from "@/api/search.schema";
 import { SessionConfigSchema } from "@/api/settings.schema";
 import { TorrentDetailsSchema, TorrentInfoListSchema } from "@/api/torrent.schema";
 
-const COLLECTION_ROW = {
-  id: "a",
-  title: "Episode",
-  altTitles: [],
-  type: "anime",
-  status: "watching",
-  progressValue: 1,
-  progressTotal: null,
-  progressUnit: "episodes",
-  durationMinutes: null,
-  rating: null,
-  priority: "normal",
-  isFavorite: false,
-  year: null,
-  releaseDate: null,
-  genres: [],
-  studio: null,
-  description: null,
-  notes: null,
-  coverUrl: null,
-  coverBlobId: null,
-  thumbBlobId: null,
-  externalIds: {},
-  customFields: {},
-  localPath: null,
-  localKind: null,
-  startedAt: null,
-  finishedAt: null,
-  lastWatchedAt: null,
-  rewatchCount: 0,
-  addedAt: 1,
-  updatedAt: 2,
-  sitesToView: [],
-  tvCurrentSeason: null,
-  tvCurrentEpisode: null,
-  detailsJson: null,
-};
 
 const TORRENT_INFO = {
   id: 1,
@@ -84,7 +46,7 @@ describe("IPC response schemas", () => {
     );
   });
 
-  it("validates torrent details, collection rows, search rows, and session config", () => {
+  it("validates torrent details, search rows, and session config", () => {
     expect(
       TorrentDetailsSchema.safeParse({
         source: "nyaa",
@@ -95,10 +57,6 @@ describe("IPC response schemas", () => {
         screenshots: [],
       }).success
     ).toBe(true);
-    expect(CollectionRowListSchema.safeParse([COLLECTION_ROW]).success).toBe(true);
-    expect(CollectionRowListSchema.safeParse([{ ...COLLECTION_ROW, title: 7 }]).success).toBe(
-      false
-    );
     expect(
       SearchResultListSchema.safeParse([
         {

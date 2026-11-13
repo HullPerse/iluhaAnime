@@ -1,5 +1,5 @@
-import { collectionApi } from "@/api/collection.api";
-import type { UnifiedIndexEntryInput } from "@/types/api/collection";
+import { unifiedIndexApi } from "@/api/unifiedIndex.api";
+import type { UnifiedIndexEntryInput } from "@/types/api/unifiedIndex";
 import { RANKING } from "@/config/anilist/ranking.config";
 import { buildTypedTitles } from "@/lib/search/searchTitle.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
@@ -52,9 +52,9 @@ export function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): Promise<boo
     .then(async () => {
       for (let offset = 0; offset < entries.length; offset += INDEX_BATCH_SIZE) {
         const batch = entries.slice(offset, offset + INDEX_BATCH_SIZE);
-        await collectionApi.upsertUnifiedIndex(batch);
+        await unifiedIndexApi.upsertUnifiedIndex(batch);
       }
-      if (entries.length > 100) await collectionApi.optimizeUnifiedIndex();
+      if (entries.length > 100) await unifiedIndexApi.optimizeUnifiedIndex();
       return true;
     })
     .catch((error: unknown) => {
@@ -122,8 +122,8 @@ export function buildAnimeIndex(
 }
 
 export async function dropUnifiedScope(scope: string, label: string): Promise<void> {
-  const [, error] = await attempt(collectionApi.clearUnifiedIndexScope(scope));
+  const [, error] = await attempt(unifiedIndexApi.clearUnifiedIndexScope(scope));
   if (error === null) return;
-  const [, pruneError] = await attempt(collectionApi.pruneUnifiedIndexScope(scope, []));
+  const [, pruneError] = await attempt(unifiedIndexApi.pruneUnifiedIndexScope(scope, []));
   if (pruneError !== null) reportBackgroundError(label, pruneError);
 }

@@ -4,7 +4,6 @@ import { TabLoader } from "@/components/shared/loader/tab.loader";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useAnimeShowcase } from "@/hooks/showcase.hook";
 import { setCrossSearchQuery } from "@/store/search.store";
 import type {
   AniDetailViewProps as ViewProps,
@@ -23,11 +22,9 @@ import { StudiosSection } from "@/routes/components/anilist/detail/studios.detai
 import { TitlesSection } from "@/routes/components/anilist/detail/titles.detail";
 
 export function AniListDetailView({
-  animeId,
   listEntry,
   scoreFormat,
   isLoggedIn,
-  favouriteIds,
   onTag,
   onGenre,
   onSeason,
@@ -49,9 +46,7 @@ export function AniListDetailView({
   const { t } = useI18n();
   const [showFranchise, setShowFranchise] = useState<boolean>(false);
   const [showDesc, setShowDesc] = useState<boolean>(false);
-  const showcase = useAnimeShowcase(anime);
-  const headerTrailerId = showcase?.trailerYoutubeId ?? null;
-  const isFavorite = favouriteIds?.has(animeId) ?? false;
+  const headerTrailerId = anime?.trailer_youtube_id ?? null;
   const handleSearchTorrents = (query?: string) => {
     setCrossSearchQuery(query ?? anime?.title ?? "");
     onClose();
@@ -81,14 +76,7 @@ export function AniListDetailView({
           />
         </div>
         <div className="flex shrink-0 flex-col items-end justify-between gap-1 self-stretch">
-          <DetailHeaderActions
-            isFavorite={isFavorite}
-            trailerId={headerTrailerId}
-            onTrailer={onTrailer}
-            anime={anime}
-            listEntry={listEntry}
-            scoreFormat={scoreFormat}
-          />
+          <DetailHeaderActions trailerId={headerTrailerId} onTrailer={onTrailer} />
         </div>
       </div>
 

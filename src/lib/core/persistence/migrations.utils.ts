@@ -7,7 +7,6 @@ export const TRACKED_STORES: TrackedStore[] = [
   { store: "theme", current: SCHEMA_VERSIONS.theme },
   { store: "cache", current: SCHEMA_VERSIONS.cache },
   { store: "search", current: SCHEMA_VERSIONS.search },
-  { store: "collection-ui", current: SCHEMA_VERSIONS.collection },
   { store: "notifications", current: SCHEMA_VERSIONS.notifications },
   { store: "anilistFriends", current: SCHEMA_VERSIONS.anilistFriends },
   { store: "anilistReleaseObservations", current: SCHEMA_VERSIONS.anilistReleaseObservations },
@@ -19,6 +18,7 @@ export const TRACKED_STORES: TrackedStore[] = [
 
 export function detectMigrations(): StoreMigration[] {
   if (typeof localStorage === "undefined") return [];
+  attemptSync(() => localStorage.removeItem("iluha.v1.collection-ui"));
   const found: StoreMigration[] = [];
   for (const tracked of TRACKED_STORES) {
     const [raw, readError] = attemptSync(() => localStorage.getItem(`iluha.v1.${tracked.store}`));

@@ -9,7 +9,6 @@ import {
   SPOTLIGHT_REFRESH_TICK_MS,
 } from "@/config/system/spotlight.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import {
   resolveSpotlightPick,
   spotlightBoundaryMs,
@@ -33,14 +32,10 @@ import { SpotlightRow } from "@/routes/components/anilist/spotlight/spotlightRow
 
 export default function SpotlightModal({
   hasUser,
-  isFavorite,
-  scoreFormat,
   detail,
   onClose,
 }: {
   hasUser: boolean;
-  isFavorite: (id: number) => boolean;
-  scoreFormat?: AnilistScoreFormat | null;
   detail: ActivityDetailBundle;
   onClose: () => void;
 }) {
@@ -149,8 +144,6 @@ export default function SpotlightModal({
                     media={row.media}
                     countdown={countdown}
                     onDetails={setDetailId}
-                    isFavorite={isFavorite}
-                    scoreFormat={scoreFormat}
                   />
                 )}
               </div>

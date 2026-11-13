@@ -24,9 +24,6 @@ function buildMix(i: number): readonly unknown[] {
         undefined
       );
     }
-    case 2: {
-      return queryKeys.animeShowcase(i, i * 2, "proxy");
-    }
     case 3: {
       return queryKeys.activity([i, i + 1, i + 2]);
     }
@@ -35,9 +32,6 @@ function buildMix(i: number): readonly unknown[] {
     }
     case 5: {
       return queryKeys.animeInlineSearch(`query ${i}`, i % 2 === 0);
-    }
-    case 6: {
-      return queryKeys.tmdbMedia(i, "tv", i % 2 === 0, "proxy");
     }
     default: {
       return queryKeys.torrentFiles(i);

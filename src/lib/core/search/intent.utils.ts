@@ -7,7 +7,7 @@ import type {
   TagToleranceKey,
 } from "@/types/search/search";
 
-export const FILTER_KEYS: Record<string, true> = {
+const FILTER_KEYS: Record<string, true> = {
   year: true,
   date: true,
   studio: true,

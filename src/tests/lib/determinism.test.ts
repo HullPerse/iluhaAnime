@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_FILTERS } from "@/config/anilist/collectionFilters.config";
-import { filterCollectionItems } from "@/lib/core/search/filter.utils";
 import { parseMediaPath } from "@hullperse/hp_utils/media/parse";
 import { getSearchSuggestions } from "@/lib/core/anilist/suggestions.utils";
 import { buildTorrentTree } from "@/lib/torrent/torrentTree.utils";
-import type { CollectionItem } from "@/types/anilist/collection";
 import type { SearchAnimeSuggestion } from "@/types/search/search";
 import type { TorrentFileInfo } from "@/types/torrent/torrent";
 
@@ -127,50 +124,6 @@ const ANIME_INDEX: SearchAnimeSuggestion[] = [
   { aliases: [], favourite: false, id: 4, score: 70, status: "RELEASING", title: "Frieren" },
 ];
 
-function collectionItems(count: number): CollectionItem[] {
-  const words = ["Frieren", "Naruto", "Fruits", "Attack", "Titan"];
-  const out: CollectionItem[] = [];
-  for (let i = 0; i < count; i++) {
-    out.push({
-      addedAt: count - i,
-      altTitles: [],
-      coverBlobId: null,
-      coverUrl: null,
-      customFields: {},
-      description: null,
-      detailsJson: null,
-      durationMinutes: 24,
-      externalIds: {},
-      finishedAt: null,
-      genres: ["action"],
-      id: `item-${i}`,
-      isFavorite: false,
-      lastWatchedAt: null,
-      localKind: null,
-      localPath: null,
-      notes: null,
-      priority: "normal",
-      progressTotal: 24,
-      progressUnit: "episodes",
-      progressValue: i % 24,
-      rating: null,
-      releaseDate: null,
-      rewatchCount: 0,
-      sitesToView: [],
-      startedAt: null,
-      status: i % 2 === 0 ? "watching" : "completed",
-      studio: null,
-      thumbBlobId: null,
-      title: `${words[i % words.length]} ${i}`,
-      tvCurrentEpisode: null,
-      tvCurrentSeason: null,
-      type: "anime",
-      updatedAt: count - i,
-      year: 2000 + (i % 20),
-    });
-  }
-  return out;
-}
 
 describe("determinism", () => {
   it("parses the same media path identically on every run", () => {
@@ -197,22 +150,4 @@ describe("determinism", () => {
     }
   });
 
-  it("orders filtered collections canonically for any input order", () => {
-    const items = collectionItems(50);
-    const run = (seed: number | null): string[] =>
-      filterCollectionItems(
-        seed === null ? items : shuffled(items, seed),
-        items,
-        "all",
-        "fri",
-        DEFAULT_FILTERS,
-        "name",
-        "asc"
-      ).map((item) => item.id);
-    const reference = run(null);
-    expect(reference).toContain("item-0");
-    for (const seed of SEEDS) {
-      expect(run(seed)).toEqual(reference);
-    }
-  });
 });

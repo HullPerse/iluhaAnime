@@ -1,8 +1,6 @@
-import { tauriTransport } from "@/api/transport.api";
 import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/graphics/dither.config";
-import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { applyWindowChrome } from "@/lib/core/system/window.utils";
 import {
   applyAtomValues,
@@ -10,7 +8,7 @@ import {
   createPersistedStoreContext,
 } from "@/lib/core/persistence/persisted.utils";
 import { isRecord } from "@/lib/core/text/record.utils";
-import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { applyFontFamily } from "@/lib/graphics/font.utils";
 import type { SettingsData, SettingsSignalStore } from "@/types/store/settings";
 import type { SignalStoreOptions } from "@/types/store/options";
@@ -55,8 +53,8 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
 
   const persisted = persistor.read();
   const data: SettingsData = persisted
-    ? migrateSettingsData(persisted.data, persisted.schemaVersion, detectSystemLocale())
-    : { ...DEFAULT_SETTINGS, language: detectSystemLocale() };
+    ? migrateSettingsData(persisted.data, persisted.schemaVersion)
+    : { ...DEFAULT_SETTINGS, language: "ru" };
   if (data.selectedDitherId === DITHER_PLACEHOLDER_ID) data.selectedDitherId = null;
   const mirror: Record<string, unknown> = { ...data };
   const atoms = buildMirrorAtoms(store, data, mirror);
@@ -67,15 +65,6 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
 
   const snapshot = (): SettingsData => ({ ...mirror }) as SettingsData;
 
-  const drainTmdbPendingKey = (): void => {
-    const pending = atoms.tmdbPendingKey.get();
-    if (!pending) return;
-    (async () => {
-      const [, error] = await attempt(tauriTransport.call("tmdb_set_api_key", { apiKey: pending }));
-      if (error) handle.patch({ tmdbKeySet: false });
-      else handle.patch({ tmdbPendingKey: null, tmdbKeySet: true });
-    })();
-  };
 
   const handle: SettingsSignalStore = {
     atoms,
@@ -101,7 +90,6 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
       applyWindowTint(state.windowTintOpacity);
       applyYorhaScanlines(state.yorhaScanlinesEnabled);
       if (state.appFont) applyFontFamily(state.appFont);
-      drainTmdbPendingKey();
     },
     patch: (partial) => {
       applyPatchSideEffects(atoms, partial);

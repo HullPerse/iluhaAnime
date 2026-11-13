@@ -2,7 +2,7 @@ import { visibleTabs } from "@/config/settings/tabs.config";
 import { TAB_PATHS, tabIdFromPath } from "@/config/settings/tabPaths.config";
 import type { TabPath } from "@/types/ui/tabPaths";
 import { settingsAtoms } from "@/store/settings.store";
-import type { TabId, TabSettings } from "@/types/ui/settings";
+import type { TabSettings } from "@/types/ui/settings";
 import type { SecretTabAction } from "@/types/ui/tabs";
 
 function tabSettingsSnapshot(): TabSettings {
@@ -16,15 +16,6 @@ function tabSettingsSnapshot(): TabSettings {
     newsTabEnabled: settingsAtoms.newsTabEnabled.get(),
     gameTabUnlocked: settingsAtoms.gameTabUnlocked.get(),
   };
-}
-
-export function tabLabel(
-  id: TabId,
-  label: string,
-  language: "en" | "ru",
-  russianOnlyNote: string
-): string {
-  return id === "stream" && language === "en" ? `${label} ${russianOnlyNote}` : label;
 }
 
 export function enabledTabPaths(): TabPath[] {

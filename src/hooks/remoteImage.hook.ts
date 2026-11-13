@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
-import { useCell } from "@hullperse/hp_utils/react";
 import { isSourceImage } from "@/lib/graphics/images.utils";
 import { assetUrl } from "@/lib/graphics/image.utils";
 import { invokeTyped } from "@/lib/core/system/invoke.utils";
@@ -17,7 +16,7 @@ export const STREAM_COVER_REFERER = "https://animelib.org/";
 const streamCovers = createLruCache<string, string>(300);
 const streamInflight = new Map<string, Promise<string | null>>();
 
-const REMOTE_IMAGE_CONCURRENCY = 2;
+const REMOTE_IMAGE_CONCURRENCY = 4;
 const STREAM_COVER_CONCURRENCY = 6;
 
 interface FetchQueue {
@@ -91,11 +90,6 @@ export function fetchRemoteImageSource(remoteUrl: string): Promise<string | null
     .catch(() => null);
 }
 
-export function toSizedThumbUrl(url: string): string {
-  if (url.includes("image.tmdb.org")) return url.replace(/\/w\d+\//u, "/w92/");
-  return url;
-}
-
 function fetchCachedImage(remoteUrl: string, proxyUrl: string | null): Promise<string | null> {
   const cached = resolvedUrls.get(remoteUrl);
   if (cached) return Promise.resolve(cached);
@@ -163,14 +157,13 @@ export function useStreamCover(remoteUrl: string | null | undefined): string | n
 
 export function prefetchRemoteImages(
   urls: Array<string | null | undefined>,
-  proxyUrl?: string | null
+  proxyUrl: string | null = null
 ): void {
-  const proxy = proxyUrl === undefined ? (settingsAtoms.tmdbProxyUrl.get() ?? null) : proxyUrl;
   for (const raw of urls) {
     if (!raw) continue;
-    const url = toSizedThumbUrl(raw);
+    const url = raw;
     if (resolvedUrls.has(url) || inflight.has(url)) continue;
-    fetchCachedImage(url, proxy);
+    fetchCachedImage(url, proxyUrl);
   }
 }
 
@@ -178,7 +171,6 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
   src: string | null;
   failed: boolean;
 } {
-  const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
   const [state, setState] = useState<{ src: string | null; failed: boolean }>(() => {
     if (!remoteUrl) return { src: null, failed: false };
     return { src: resolvedUrls.get(remoteUrl) ?? null, failed: false };
@@ -189,7 +181,8 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
       return;
     }
     let cancelled = false;
-    fetchCachedImage(remoteUrl, tmdbProxyUrl)
+    setState({ src: resolvedUrls.get(remoteUrl) ?? null, failed: false });
+    fetchCachedImage(remoteUrl, null)
       .then((url) => {
         if (!cancelled) setState({ src: url, failed: url === null });
         return null;
@@ -198,7 +191,7 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
     return () => {
       cancelled = true;
     };
-  }, [remoteUrl, tmdbProxyUrl]);
+  }, [remoteUrl]);
   return state;
 }
 

@@ -720,6 +720,282 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database stream history commit: {error}"))?;
     }
 
+    if version < 25 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database collection removal transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                DROP TRIGGER IF EXISTS trg_collection_items_fts_insert;
+                DROP TRIGGER IF EXISTS trg_collection_items_fts_update;
+                DROP TRIGGER IF EXISTS trg_collection_items_fts_delete;
+                DROP TABLE IF EXISTS collection_items_fts;
+                DROP TABLE IF EXISTS collection_items;
+                DROP TABLE IF EXISTS collection_items_v5;
+                DROP TABLE IF EXISTS collection_events;
+                DROP TABLE IF EXISTS custom_field_defs;
+                DROP TABLE IF EXISTS collection_statuses;
+                PRAGMA user_version = 25;
+                ",
+            )
+            .map_err(|error| format!("app database collection removal schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database collection removal commit: {error}"))?;
+    }
+
+    if version < 26 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database cards transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE IF NOT EXISTS card_packs (
+                    id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    source TEXT NOT NULL CHECK(source IN ('status','starter','test','purchase')),
+                    pack_kind TEXT NOT NULL CHECK(pack_kind IN ('default','character','anime','staff','studio')),
+                    media_id INTEGER,
+                    seed INTEGER NOT NULL,
+                    size INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    opened_at INTEGER
+                );
+                CREATE TABLE IF NOT EXISTS user_cards (
+                    user_id INTEGER NOT NULL,
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    copies INTEGER NOT NULL DEFAULT 1,
+                    value INTEGER NOT NULL,
+                    first_obtained_at INTEGER NOT NULL,
+                    last_obtained_at INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, kind, entity_id, rarity, variant)
+                );
+                CREATE TABLE IF NOT EXISTS card_meta (
+                    kind TEXT NOT NULL,
+                    entity_id INTEGER NOT NULL,
+                    title TEXT NOT NULL,
+                    image_url TEXT,
+                    score INTEGER,
+                    popularity INTEGER,
+                    favourites INTEGER,
+                    collection_anime_id INTEGER,
+                    collection_title TEXT,
+                    collection_cover_url TEXT,
+                    collage_json TEXT,
+                    fetched_at INTEGER NOT NULL,
+                    PRIMARY KEY (kind, entity_id)
+                );
+                CREATE TABLE IF NOT EXISTS pack_grants (
+                    user_id INTEGER NOT NULL,
+                    media_id INTEGER NOT NULL,
+                    granted_at INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, media_id)
+                );
+                CREATE TABLE IF NOT EXISTS starter_grants (
+                    user_id INTEGER PRIMARY KEY,
+                    packs INTEGER NOT NULL,
+                    granted_at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS card_openings (
+                    id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    pack_id TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    entity_id INTEGER NOT NULL,
+                    rarity TEXT NOT NULL,
+                    variant TEXT NOT NULL,
+                    at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS user_wallet (
+                    user_id INTEGER PRIMARY KEY,
+                    chubriks INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE IF NOT EXISTS chubrik_ledger (
+                    id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    amount INTEGER NOT NULL,
+                    reason TEXT NOT NULL,
+                    at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS card_gifts (
+                    id TEXT PRIMARY KEY,
+                    from_user INTEGER NOT NULL,
+                    kind TEXT NOT NULL,
+                    entity_id INTEGER NOT NULL,
+                    rarity TEXT NOT NULL,
+                    variant TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    claimed_at INTEGER
+                );
+                CREATE INDEX IF NOT EXISTS idx_card_packs_user ON card_packs(user_id, opened_at);
+                CREATE INDEX IF NOT EXISTS idx_user_cards_user ON user_cards(user_id, kind, rarity);
+                CREATE INDEX IF NOT EXISTS idx_card_openings_user ON card_openings(user_id, at);
+                CREATE INDEX IF NOT EXISTS idx_chubrik_ledger_user ON chubrik_ledger(user_id, at);
+                CREATE INDEX IF NOT EXISTS idx_card_meta_collection ON card_meta(collection_anime_id);
+                PRAGMA user_version = 26;
+                ",
+            )
+            .map_err(|error| format!("app database cards schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database cards commit: {error}"))?;
+    }
+
+    if version < 27 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database manga cards transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE user_cards_v27 (
+                    user_id INTEGER NOT NULL,
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    copies INTEGER NOT NULL DEFAULT 1,
+                    value INTEGER NOT NULL,
+                    first_obtained_at INTEGER NOT NULL,
+                    last_obtained_at INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, kind, entity_id, rarity, variant)
+                );
+                INSERT INTO user_cards_v27
+                    SELECT user_id, kind, entity_id, rarity, variant, copies, value,
+                           first_obtained_at, last_obtained_at FROM user_cards;
+                DROP TABLE user_cards;
+                ALTER TABLE user_cards_v27 RENAME TO user_cards;
+                CREATE INDEX IF NOT EXISTS idx_user_cards_user ON user_cards(user_id, kind, rarity);
+
+                CREATE TABLE card_packs_v27 (
+                    id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    source TEXT NOT NULL CHECK(source IN ('status','starter','test','purchase')),
+                    pack_kind TEXT NOT NULL CHECK(pack_kind IN ('default','character','anime','manga','staff','studio')),
+                    media_id INTEGER,
+                    seed INTEGER NOT NULL,
+                    size INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    opened_at INTEGER
+                );
+                INSERT INTO card_packs_v27
+                    SELECT id, user_id, source, pack_kind, media_id, seed, size, created_at, opened_at
+                    FROM card_packs;
+                DROP TABLE card_packs;
+                ALTER TABLE card_packs_v27 RENAME TO card_packs;
+                CREATE INDEX IF NOT EXISTS idx_card_packs_user ON card_packs(user_id, opened_at);
+                PRAGMA user_version = 27;
+                ",
+            )
+            .map_err(|error| format!("app database manga cards schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database manga cards commit: {error}"))?;
+    }
+
+    if version < 28 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database card preparation transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                ALTER TABLE card_packs ADD COLUMN contents_state TEXT NOT NULL DEFAULT 'pending';
+                ALTER TABLE card_packs ADD COLUMN content_ready_at INTEGER;
+                ALTER TABLE card_packs ADD COLUMN prepare_attempts INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE card_packs ADD COLUMN last_prepare_error TEXT;
+                ALTER TABLE card_packs ADD COLUMN notified_at INTEGER;
+                UPDATE card_packs
+                   SET contents_state = 'ready', content_ready_at = opened_at
+                 WHERE opened_at IS NOT NULL;
+                CREATE TABLE IF NOT EXISTS card_pack_cards (
+                    pack_id TEXT NOT NULL REFERENCES card_packs(id) ON DELETE CASCADE,
+                    slot INTEGER NOT NULL,
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    title TEXT NOT NULL,
+                    image_url TEXT,
+                    rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    value INTEGER NOT NULL,
+                    favourites INTEGER NOT NULL DEFAULT 0,
+                    popularity INTEGER NOT NULL DEFAULT 0,
+                    score REAL NOT NULL DEFAULT 0,
+                    collage_json TEXT NOT NULL DEFAULT '[]',
+                    collection_anime_id INTEGER,
+                    collection_title TEXT,
+                    collection_cover_url TEXT,
+                    PRIMARY KEY (pack_id, slot)
+                );
+                CREATE INDEX IF NOT EXISTS idx_card_packs_prepare
+                    ON card_packs (user_id, opened_at, contents_state, prepare_attempts);
+                PRAGMA user_version = 28;
+                ",
+            )
+            .map_err(|error| format!("app database card preparation schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database card preparation commit: {error}"))?;
+    }
+
+    if version < 29 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database manga collection transaction: {error}"))?;
+        let has_manga_column: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('card_meta')
+                 WHERE name = 'collection_manga_id'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("read manga collection column: {error}"))?;
+        if has_manga_column == 0 {
+            transaction
+                .execute_batch("ALTER TABLE card_meta ADD COLUMN collection_manga_id INTEGER;")
+                .map_err(|error| format!("add manga collection column: {error}"))?;
+        }
+        transaction
+            .execute_batch(
+                "
+                CREATE INDEX IF NOT EXISTS idx_card_meta_manga_collection
+                    ON card_meta(collection_manga_id);
+                PRAGMA user_version = 29;
+                ",
+            )
+            .map_err(|error| format!("app database manga collection schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database manga collection commit: {error}"))?;
+    }
+
+    if version < 30 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database preferred variant transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE IF NOT EXISTS card_preferred_variant (
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    PRIMARY KEY (kind, entity_id)
+                );
+                PRAGMA user_version = 30;
+                ",
+            )
+            .map_err(|error| format!("app database preferred variant schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database preferred variant commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -744,7 +1020,7 @@ mod tests {
                 |row| row.get(0),
             )
             .expect("table count");
-        assert_eq!(table_count, 4);
+        assert_eq!(table_count, 2);
         let vault_gone: i64 = connection
             .query_row(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'media_records'",
@@ -786,145 +1062,6 @@ mod tests {
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
     }
     #[test]
-    fn migration_v18_prunes_orphaned_fav_people_cache() {
-        let connection = Connection::open_in_memory().expect("in-memory database");
-        initialize_schema(&connection).expect("schema migration");
-        connection
-            .execute(
-                "INSERT INTO cache_entries (namespace, cache_key, payload, expires_at, updated_at)
-                 VALUES ('fav_people', 'index:5', '{}', NULL, 0),
-                        ('search', 'keep', '{}', NULL, 0)",
-                [],
-            )
-            .expect("insert cache rows");
-        connection
-            .execute_batch("ALTER TABLE collection_statuses DROP COLUMN kind;")
-            .expect("simulate v17 schema");
-        connection
-            .pragma_update(None, "user_version", 17)
-            .expect("rewind user version");
-        initialize_schema(&connection).expect("rerun migrations");
-
-        let pruned: i64 = connection
-            .query_row(
-                "SELECT COUNT(*) FROM cache_entries WHERE namespace = 'fav_people'",
-                [],
-                |row| row.get(0),
-            )
-            .expect("read fav people cache");
-        assert_eq!(pruned, 0, "orphaned fav_people rows removed");
-        let kept: i64 = connection
-            .query_row(
-                "SELECT COUNT(*) FROM cache_entries WHERE namespace = 'search'",
-                [],
-                |row| row.get(0),
-            )
-            .expect("read search cache");
-        assert_eq!(kept, 1, "other namespaces untouched");
-    }
-
-    #[test]
-    fn migration_v15_rewrites_seconds_scale_updated_at_to_milliseconds() {
-        let connection = Connection::open_in_memory().expect("in-memory database");
-        initialize_schema(&connection).expect("schema migration");
-        connection
-            .execute(
-                "INSERT INTO collection_items (
-                    id, title, alt_titles_json, type, status, progress_value, progress_total,
-                    progress_unit, duration_minutes, rating, priority, is_favorite, year,
-                    genres_json, studio, description, notes, cover_url, cover_blob_id,
-                    thumb_blob_id, external_ids_json, custom_fields_json, local_path, local_kind,
-                    started_at, finished_at, last_watched_at, rewatch_count, added_at, updated_at
-                 ) VALUES (
-                    'item_sec', 'Serial Experiments Lain', '[]', 'anime', 'completed', 13, 13,
-                    'episodes', 23, 10, 'normal', 0, 1998, '[\"Drama\"]', 'TV Tokyo', NULL, NULL,
-                    NULL, NULL, NULL, '{\"anilist\":339}', '{}', NULL, NULL, NULL, NULL, NULL,
-                    0, 1000, 1750000000
-                 )",
-                [],
-            )
-            .expect("insert item");
-        connection
-            .execute(
-                "UPDATE collection_items SET updated_at = 1750000000000 WHERE id = 'item_sec'",
-                [],
-            )
-            .expect("set ms row");
-        connection
-            .execute(
-                "INSERT INTO collection_items (
-                    id, title, alt_titles_json, type, status, progress_value, progress_total,
-                    progress_unit, duration_minutes, rating, priority, is_favorite, year,
-                    genres_json, studio, description, notes, cover_url, cover_blob_id,
-                    thumb_blob_id, external_ids_json, custom_fields_json, local_path, local_kind,
-                    started_at, finished_at, last_watched_at, rewatch_count, added_at, updated_at
-                 ) VALUES (
-                    'item_sec2', 'Ergo Proxy', '[]', 'anime', 'completed', 23, 23,
-                    'episodes', 25, 9, 'normal', 0, 2006, '[\"Drama\"]', 'Manglobe', NULL, NULL,
-                    NULL, NULL, NULL, '{\"anilist\":50}', '{}', NULL, NULL, NULL, NULL, NULL,
-                    0, 1000, 1750000000
-                 )",
-                [],
-            )
-            .expect("insert seconds row");
-
-        connection
-            .execute_batch(
-                "ALTER TABLE collection_items DROP COLUMN release_date;
-                 ALTER TABLE collection_statuses DROP COLUMN kind;",
-            )
-            .expect("simulate v14 schema");
-        connection
-            .pragma_update(None, "user_version", 14)
-            .expect("rewind user version");
-        initialize_schema(&connection).expect("rerun migrations");
-
-        let ms: i64 = connection
-            .query_row(
-                "SELECT updated_at FROM collection_items WHERE id = 'item_sec'",
-                [],
-                |row| row.get(0),
-            )
-            .expect("read ms row");
-        assert_eq!(ms, 1_750_000_000_000, "ms-scale row untouched");
-        let seconds: i64 = connection
-            .query_row(
-                "SELECT updated_at FROM collection_items WHERE id = 'item_sec2'",
-                [],
-                |row| row.get(0),
-            )
-            .expect("read seconds row");
-        assert_eq!(
-            seconds, 1_750_000_000_000,
-            "seconds-scale row rewritten to ms"
-        );
-    }
-    #[test]
-    fn migration_v21_creates_the_game_rom_table() {
-        let connection = Connection::open_in_memory().expect("in-memory database");
-        initialize_schema(&connection).expect("schema migration");
-        connection
-            .execute(
-                "INSERT INTO game_roms (id, name, platform, source, size, added_at, data)
-                 VALUES ('rom1', 'Demo', 'chip8', 'user', 2, 0, x'00E0')",
-                [],
-            )
-            .expect("insert rom row");
-        let size: i64 = connection
-            .query_row("SELECT size FROM game_roms WHERE id = 'rom1'", [], |row| {
-                row.get(0)
-            })
-            .expect("read rom row");
-        assert_eq!(size, 2);
-        let data: Vec<u8> = connection
-            .query_row("SELECT data FROM game_roms WHERE id = 'rom1'", [], |row| {
-                row.get(0)
-            })
-            .expect("read rom bytes");
-        assert_eq!(data, vec![0x00, 0xE0]);
-    }
-
-    #[test]
     fn migration_v24_rebuilds_a_half_created_stream_history_table() {
         let connection = Connection::open_in_memory().expect("in-memory database");
         initialize_schema(&connection).expect("schema migration");
@@ -952,44 +1089,7 @@ mod tests {
         let version: i64 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("read user version");
-        assert_eq!(version, 24);
-    }
-
-    #[test]
-    fn migration_v20_renames_status_kinds_to_private_and_public() {
-        let connection = Connection::open_in_memory().expect("in-memory database");
-        initialize_schema(&connection).expect("schema migration");
-        connection
-            .execute(
-                "INSERT INTO collection_statuses (id, label, color, order_index, is_core, kind)
-                 VALUES ('legacy_share', 'Shared', '#0ea5e9', 9, 0, 'share'),
-                        ('legacy_normal', 'Ordinary', '#9ca3af', 10, 0, 'normal')",
-                [],
-            )
-            .expect("insert legacy statuses");
-        connection
-            .pragma_update(None, "user_version", 19)
-            .expect("rewind user version");
-        initialize_schema(&connection).expect("rerun migrations");
-        let public: String = connection
-            .query_row(
-                "SELECT kind FROM collection_statuses WHERE id = 'legacy_share'",
-                [],
-                |row| row.get(0),
-            )
-            .expect("read renamed share kind");
-        assert_eq!(public, "public");
-        let private: String = connection
-            .query_row(
-                "SELECT kind FROM collection_statuses WHERE id = 'legacy_normal'",
-                [],
-                |row| row.get(0),
-            )
-            .expect("read renamed normal kind");
-        assert_eq!(private, "private");
-        let version: i64 = connection
-            .pragma_query_value(None, "user_version", |row| row.get(0))
-            .expect("read user version");
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
     }
+
 }

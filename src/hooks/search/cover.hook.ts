@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useCoverCache } from "@/hooks/collection/cache.hook";
+import { useCoverCache } from "@/hooks/coverCache.hook";
 import { parseMediaFile } from "@hullperse/hp_utils/media/parse";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import {

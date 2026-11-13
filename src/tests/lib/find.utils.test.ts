@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import enSettings from "@/lib/locale/en/settings.locale";
 import ruSettings from "@/lib/locale/ru/settings.locale";
 import {
   SETTINGS_FIND_ENTRIES,
@@ -11,17 +10,15 @@ import {
 import { searchSettingsFind } from "@/lib/core/search/find.utils";
 
 const RU: Record<string, string> = ruSettings;
-const EN: Record<string, string> = enSettings;
 
 function indexedKeys(): Set<string> {
   return new Set(SETTINGS_FIND_ENTRIES.map((entry) => entry.key));
 }
 
 describe("settings/find index", () => {
-  it("indexes only keys that exist with text in both locales", () => {
+  it("indexes only keys that exist with text in Russian", () => {
     for (const entry of SETTINGS_FIND_ENTRIES) {
       expect(RU[entry.key], `ru text for ${entry.key}`).toBeTruthy();
-      expect(EN[entry.key], `en text for ${entry.key}`).toBeTruthy();
     }
   });
 
@@ -70,14 +67,6 @@ describe("settings/find search", () => {
     expect(hits.length).toBeGreaterThan(0);
     expect(hits.every((hit) => hit.matchedRu)).toBe(true);
     expect(hits[0]?.rangesRu.length).toBeGreaterThan(0);
-  });
-
-  it("matches english labels while the ui is russian", () => {
-    const hits = searchSettingsFind("proxy");
-    expect(hits.length).toBeGreaterThan(0);
-    const torrentProxy = hits.find((hit) => hit.entry.key === "settings.torrent.proxy.url");
-    expect(torrentProxy?.matchedEn).toBe(true);
-    expect(torrentProxy?.matchedRu).toBe(false);
   });
 
   it("finds tab titles as tab hits", () => {

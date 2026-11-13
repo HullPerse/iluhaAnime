@@ -232,10 +232,6 @@ export interface AniSortProps {
   showActions?: boolean;
 }
 
-export interface AnimeShowcase {
-  stills: string[];
-  trailerYoutubeId: string | null;
-}
 
 export type SpotlightKind = "day" | "week" | "month";
 

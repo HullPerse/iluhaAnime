@@ -25,7 +25,6 @@ import {
   setSeekTarget,
   setVolume,
 } from "@/store/player.store";
-import { settingsAtoms } from "@/store/settings.store";
 import type { PlayerTransport, PlayerTransportOptions } from "@/types/player/transport";
 
 export function usePlayerTransport(options: PlayerTransportOptions): PlayerTransport {
@@ -123,7 +122,7 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
           setLoadingFile(false);
           reportBackgroundError("player.hwdec.reload", error);
           addNotification(
-            translate(settingsAtoms.language.get(), "player.media.error.title"),
+            translate("player.media.error.title"),
             "error",
             String(error)
           );

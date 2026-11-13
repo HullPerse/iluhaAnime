@@ -35,8 +35,6 @@ export const queryKeys = {
   torrentDetails: (source: string, url: string, proxy: string) =>
     ["torrent_details", source, url, proxy] as const,
   torrentSource: (id: number, infoHash: string) => ["torrent_source", id, infoHash] as const,
-  animeShowcase: (id: number, tmdb: number, proxy: string) =>
-    ["anilist_showcase", id, tmdb, proxy, "v3"] as const,
   anilistData: () => ["anilist_data"] as const,
   anilistStatistics: (userId: number | null) => ["anilist_statistics", userId] as const,
   anilistCheckAuth: () => ["anilist_check_auth"] as const,
@@ -55,9 +53,7 @@ export const queryKeys = {
   siteNotifications: () => ["anilist_site_notifications"] as const,
   customLists: () => ["anilist_custom_lists"] as const,
   anilistListNames: () => ["anilist_list_names"] as const,
-  collectionData: () => ["collection-data"] as const,
-  tmdbMedia: (id: number | null, mediaType: string, keySet: boolean, proxy: string) =>
-    ["tmdb_media", id, mediaType, keySet ? 1 : 0, proxy, "v2"] as const,
+
   anilistTrailer: (id: number | null, proxy: string) =>
     ["anilist_trailer", id, proxy, "v2"] as const,
   torrentSearch: (
@@ -86,7 +82,6 @@ export const queryKeys = {
   dhtStats: () => ["dht-stats"] as const,
   systemFonts: () => ["system_fonts"] as const,
   coverManualSearch: (query: string) => ["cover_manual_search", query] as const,
-  tmdbRate: () => ["tmdb-rate"] as const,
   appUpdates: () => ["app-updates"] as const,
   releasesPoll: () => ["anilist-releases"] as const,
   wallpaper: (id: string | null) => ["dither-wallpaper", id] as const,
@@ -108,4 +103,29 @@ export const queryKeys = {
   playerFileSearch: (query: string, extensions: readonly string[]) =>
     ["player-file-search", query, extensions] as const,
   checkFfprobe: () => ["check-ffprobe"] as const,
+  collectionData: () => ["collection-data"] as const,
+  cardsBootstrap: () => ["cards-bootstrap"] as const,
+  cardsPacks: (proxy: string) => ["cards-packs", proxy] as const,
+  cardsPacksScope: () => ["cards-packs"] as const,
+  cardsCollection: (request: unknown, proxy: string) =>
+    ["cards-collection", request, proxy] as const,
+  cardsCollectionInfinite: (request: unknown, proxy: string) =>
+    ["cards-collection", "infinite", request, proxy] as const,
+  cardsCollectionScope: () => ["cards-collection"] as const,
+  cardsCardVariants: (kind: string, entityId: number) =>
+    ["cards-card-variants", kind, entityId] as const,
+  cardsCollections: (
+    sort: string,
+    sortDir: string,
+    proxy: string
+  ) => ["cards-collections", sort, sortDir, proxy] as const,
+  cardsCollectionsScope: () => ["cards-collections"] as const,
+  cardsAnimeCollection: (animeId: number, kind: string, proxy: string) =>
+    ["cards-anime-collection", animeId, kind, proxy] as const,
+  cardsCollectionRoster: (mediaId: number, kind: string, page: number, proxy: string) =>
+    ["cards-collection-roster", mediaId, kind, page, proxy] as const,
+  cardsStats: () => ["cards-stats"] as const,
+  cardsUnread: (packsSince: number, cardsSince: number) =>
+    ["cards-unread", packsSince, cardsSince] as const,
+  cardsUnreadScope: () => ["cards-unread"] as const,
 } as const;

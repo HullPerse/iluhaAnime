@@ -19,7 +19,6 @@ import {
 } from "@/lib/player/playback.utils";
 import { getPlayerSnapshot, streamSession, subscribePlayer } from "@/store/player.store";
 import { addNotification } from "@/store/notification.store";
-import { settingsAtoms } from "@/store/settings.store";
 import type { PlayerSettings } from "@/types/player/videoPlayer";
 
 function buildSettingsJobs(
@@ -45,11 +44,10 @@ function reportRejectedSettings(rejected: string[], seen: Set<string>): void {
   const fresh = rejected.filter((name) => !seen.has(name));
   if (fresh.length === 0) return;
   for (const name of fresh) seen.add(name);
-  const language = settingsAtoms.language.get();
   addNotification(
-    translate(language, "player.media.settings.rejected.title"),
+    translate("player.media.settings.rejected.title"),
     "error",
-    translate(language, "player.media.settings.rejected.message", {
+    translate("player.media.settings.rejected.message", {
       properties: fresh.join(", "),
     })
   );

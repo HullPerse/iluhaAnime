@@ -3,7 +3,7 @@ import { check } from "@tauri-apps/plugin-updater";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { resolveFatalVariant } from "@/config/settings/screens.config";
-import { resolveFatalLocale, resolveFatalTexts } from "@/lib/core/fatal/fatalTexts.utils";
+import { resolveFatalTexts } from "@/lib/core/fatal/fatalTexts.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { useHotkeys } from "@/hooks/hotkeys.hook";
 
@@ -43,7 +43,7 @@ export function FatalScreen({
   const reloadRef = useRef<HTMLButtonElement | null>(null);
   const canRetry = info.retryCount < 1;
   const variant = resolveFatalVariant(info.themeName, safe);
-  const texts = resolveFatalTexts(resolveFatalLocale(), info.kind);
+  const texts = resolveFatalTexts(info.kind);
 
   useEffect(() => {
     reloadRef.current?.focus();

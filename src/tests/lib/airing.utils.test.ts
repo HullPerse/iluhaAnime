@@ -8,14 +8,14 @@ import {
   formatAiringTime,
   groupAiringByDay,
 } from "@/lib/core/anilist/airing.utils";
-import { translate } from "@/lib/locale/i18n.utils";
+import { translateFor } from "@/lib/locale/i18n.utils";
 import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist/anilist";
 
-const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
-  translate("ru", key, vars);
+const ru = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
+  translateFor("ru", key, vars);
 
-const en = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
-  translate("en", key, vars);
+const en = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
+  translateFor("en", key, vars);
 
 describe("anilist/airing", () => {
   describe("airingCountdownSecs", () => {

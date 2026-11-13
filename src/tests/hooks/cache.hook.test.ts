@@ -2,17 +2,16 @@ import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { COVER_CACHE_CAPACITY } from "@/hooks/collection/cache.hook";
+import { COVER_CACHE_CAPACITY } from "@/hooks/coverCache.hook";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-import { useCoverCache } from "@/hooks/collection/cache.hook";
+import { useCoverCache } from "@/hooks/coverCache.hook";
 import { assetUrl } from "@/lib/graphics/image.utils";
 import { setCoverBlob } from "@/store/cover.store";
-import { patchSettings } from "@/store/settings.store";
 
 let resolveGate!: (value: { id: string; path: string }) => void;
 beforeEach(() => {
@@ -114,42 +113,6 @@ describe("useCoverCache", () => {
   });
 });
 
-describe("useCoverCache proxy passthrough", () => {
-  it("passes the tmdb proxy url to the download command", async () => {
-    patchSettings({ tmdbProxyUrl: "http://127.0.0.1:9/proxy" });
-    invokeMock.mockResolvedValue({ id: "blob-proxy", path: "C:/images/proxy.png" });
-
-    const { result, unmount } = renderHook(() =>
-      useCoverCache("https://image.tmdb.org/t/p/w500/cover.jpg", null)
-    );
-    await waitFor(() => {
-      expect(result.current.cachedUrl).toBe(assetUrl("C:/images/proxy.png"));
-    });
-    expect(invokeMock).toHaveBeenCalledWith(
-      "download_remote_image",
-      expect.objectContaining({ proxyUrl: "http://127.0.0.1:9/proxy" })
-    );
-    unmount();
-    patchSettings({ tmdbProxyUrl: null });
-  });
-
-  it("sends a null proxy when none is configured", async () => {
-    patchSettings({ tmdbProxyUrl: null });
-    invokeMock.mockResolvedValue({ id: "blob-noproxy", path: "C:/images/noproxy.png" });
-
-    const { result, unmount } = renderHook(() =>
-      useCoverCache("https://example.com/plain.jpg", null)
-    );
-    await waitFor(() => {
-      expect(result.current.cachedUrl).toBe(assetUrl("C:/images/noproxy.png"));
-    });
-    expect(invokeMock).toHaveBeenCalledWith(
-      "download_remote_image",
-      expect.objectContaining({ proxyUrl: null })
-    );
-    unmount();
-  });
-});
 
 describe("useCoverCache previous id", () => {
   it("passes the persisted blob id as previousId when re-downloading", async () => {

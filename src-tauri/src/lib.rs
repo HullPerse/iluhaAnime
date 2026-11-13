@@ -46,77 +46,6 @@ pub mod benchmark_api {
     pub use crate::user_assets::{compare_cover_bytes, make_thumb336, CoverDiff};
     pub use crate::watcher::FolderWatcher;
 
-    pub mod collection {
-        use rusqlite::Connection;
-        use serde_json::json;
-
-        pub use crate::app_db::{
-            CollectionExport, CollectionItemRow, CustomFieldDefRow, ImportSummary,
-        };
-
-        pub fn open_fixture() -> Result<Connection, String> {
-            let connection = Connection::open_in_memory()
-                .map_err(|error| format!("bench collection connection: {error}"))?;
-            crate::app_db::schema::initialize_schema(&connection)?;
-            Ok(connection)
-        }
-
-        #[must_use]
-        pub fn sample_export() -> CollectionExport {
-            CollectionExport {
-                version: 1,
-                exported_at: 1,
-                items: vec![CollectionItemRow {
-                    id: "item-1".to_string(),
-                    title: "Title".to_string(),
-                    alt_titles: json!([]),
-                    r#type: "anime".to_string(),
-                    status: "planned".to_string(),
-                    progress_value: 0,
-                    progress_total: None,
-                    progress_unit: "episodes".to_string(),
-                    duration_minutes: None,
-                    rating: None,
-                    priority: "normal".to_string(),
-                    is_favorite: false,
-                    year: Some(2024),
-                    release_date: None,
-                    genres: json!([]),
-                    studio: None,
-                    description: None,
-                    notes: None,
-                    cover_url: None,
-                    cover_blob_id: None,
-                    thumb_blob_id: None,
-                    external_ids: json!({"anilist": 1}),
-                    custom_fields: json!({}),
-                    local_path: None,
-                    local_kind: None,
-                    started_at: None,
-                    finished_at: None,
-                    last_watched_at: None,
-                    rewatch_count: 0,
-                    added_at: 1,
-                    updated_at: 1,
-                    sites_to_view: json!([]),
-                    tv_current_season: None,
-                    tv_current_episode: None,
-                    details_json: None,
-                }],
-                custom_field_defs: Vec::new(),
-            }
-        }
-
-        pub fn import(
-            connection: &Connection,
-            data: CollectionExport,
-            strategy: &str,
-        ) -> Result<ImportSummary, String> {
-            crate::app_db::collection_io::import_collection_data_with_connection(
-                connection, data, strategy,
-            )
-        }
-    }
 
     /// Offline fixture hooks for `benches/stream_history.rs`. The real
     /// commands are AppHandle-bound; these wrappers take a plain connection so
@@ -242,6 +171,7 @@ pub mod benchmark_api {
 }
 mod auth;
 mod bencode;
+mod cards;
 mod deeplink;
 mod emoji;
 mod errors;
@@ -263,7 +193,6 @@ mod screenshot;
 mod shaders;
 mod sqlite_browser;
 mod stream;
-mod tmdb;
 mod toast;
 mod torrent;
 mod user_assets;
@@ -2178,6 +2107,27 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             startup::report_startup,
+            cards::cards_bootstrap,
+            cards::packs::cards_packs,
+            cards::packs::cards_prepare_packs,
+            cards::packs::cards_ack_prepared_packs,
+            cards::packs::cards_grant_test_pack,
+            cards::packs::cards_grant_test_legendary_pack,
+            cards::packs::cards_open_pack,
+            cards::collection::cards_collection,
+            cards::collections::cards_collections,
+            cards::collections::cards_anime_collection,
+            cards::collections::cards_collection_roster,
+            cards::collection::cards_stats,
+            cards::collection::cards_unread,
+            cards::collection::cards_dust,
+            cards::collection::cards_card_variants,
+            cards::collection::cards_set_card_variant,
+            cards::collection::cards_reset_collection,
+            cards::collection::cards_claim_gift,
+            cards::collection::cards_create_gift,
+            cards::shop::cards_buy_pack,
+            cards::grant::cards_grant_starter,
             network::network_probe,
             netdiag::network_diagnose,
             scrapers::search_erairaws,
@@ -2347,28 +2297,6 @@ pub fn run() {
             app_db::unified_index::record_unified_index_value_action,
             app_db::unified_index::list_learning_stats,
             app_db::unified_index::search_unified_index,
-            app_db::collection::list_collection_statuses,
-            app_db::collection::upsert_collection_status,
-            app_db::collection::delete_collection_status,
-            app_db::collection::list_collection_items,
-            app_db::collection::upsert_collection_item,
-            app_db::collection::import_collection_items_batch,
-            app_db::collection::patch_collection_item,
-            app_db::collection::delete_collection_item,
-            app_db::collection::list_custom_field_defs,
-            app_db::collection::upsert_custom_field_def,
-            app_db::collection::delete_custom_field_def,
-            app_db::collection_io::export_collection_data,
-            app_db::collection_io::export_collection_zip,
-            app_db::collection_io::import_collection_data,
-            tmdb::search_tmdb,
-            tmdb::get_tmdb_details,
-            tmdb::get_tmdb_media,
-            tmdb::get_tmdb_rate_limit,
-            tmdb::test_tmdb_connection,
-            tmdb::tmdb_set_api_key,
-            tmdb::check_tmdb_session,
-            tmdb::tmdb_logout,
             scrapers::test_source_connection,
             emoji::emoji_list,
             sqlite_browser::reset_sqlite_data,

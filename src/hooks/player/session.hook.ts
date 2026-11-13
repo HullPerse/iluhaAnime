@@ -21,7 +21,6 @@ import {
 } from "@/lib/player/playback.utils";
 import { getPlayerSnapshot, streamSession } from "@/store/player.store";
 import { addNotification } from "@/store/notification.store";
-import { settingsAtoms } from "@/store/settings.store";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { PlaylistWatch } from "@/types/player/videoPlayer";
 
@@ -121,7 +120,7 @@ export function usePlayerSession({
       if (disposed) return;
       setFailed(true);
       addNotification(
-        translate(settingsAtoms.language.get(), "player.media.error.title"),
+        translate("player.media.error.title"),
         "error",
         String(error)
       );

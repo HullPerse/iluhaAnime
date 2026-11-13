@@ -14,7 +14,7 @@ import {
   BULK_CONCURRENCY,
   applyBulkAction,
   splitRecheckOutcome,
-} from "@/lib/core/collection/bulk.utils";
+} from "@/lib/torrent/bulk.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { attemptAllLimit } from "@hullperse/hp_utils/result";
 import { prepareTorrentDownload } from "@/store/download.store";

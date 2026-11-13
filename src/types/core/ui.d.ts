@@ -50,6 +50,7 @@ export interface ModalWindow {
   pager?: ModalPager;
   className?: string;
   contentClassName?: string;
+  style?: CSSProperties;
   hideHeader?: boolean;
   hideBackdrop?: boolean;
   modal?: boolean;

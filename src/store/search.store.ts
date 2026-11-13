@@ -1,4 +1,4 @@
-import { collectionApi } from "@/api/collection.api";
+import { unifiedIndexApi } from "@/api/unifiedIndex.api";
 import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import {
   applyLearningAction,
@@ -256,7 +256,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
   });
 
   const hydrateLearning = async (): Promise<void> => {
-    const [rows, error] = await attempt(collectionApi.listLearningStats(RANKING.TTL_DAYS));
+    const [rows, error] = await attempt(unifiedIndexApi.listLearningStats(RANKING.TTL_DAYS));
     if (error) {
       reportBackgroundError("learning.hydrate", error);
       return;
@@ -374,7 +374,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
           );
         }
       });
-      collectionApi
+      unifiedIndexApi
         .recordUnifiedIndexValueAction("select", value, scope)
         .catch((error) => reportBackgroundError("learning.select", error));
     },
@@ -393,7 +393,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
           );
         }
       });
-      collectionApi
+      unifiedIndexApi
         .recordUnifiedIndexValueAction("ignore", value, scope)
         .catch((error) => reportBackgroundError("learning.ignore", error));
     },
@@ -407,7 +407,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
         delete next[key];
         atoms.queryStats.set(next);
       }
-      collectionApi
+      unifiedIndexApi
         .deleteUnifiedIndexEntry(historyEntryId(scope, q))
         .catch((error) => reportBackgroundError("learning.remove", error));
     },

@@ -14,7 +14,7 @@ import {
   searchAtoms,
 } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
-import { SearchField, SearchFieldParams } from "@/types/anilist/collection";
+import type { SearchField, SearchFieldParams } from "@/types/search/search";
 import type { CorrectionReason } from "@/types/search/search";
 
 export function useSearchField(params: SearchFieldParams): SearchField {

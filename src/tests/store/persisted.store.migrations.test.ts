@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createCacheSignalStore } from "@/store/cache.store";
-import { createCollectionSignalStore } from "@/store/collection.store";
 import { createSearchSignalStore } from "@/store/search.store";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -31,26 +30,6 @@ function envelope(store: string, sv: number, data: Record<string, unknown>): str
 }
 
 describe("persisted store migrations", () => {
-  it("applies collection v4 defaults from the stored schema version", () => {
-    const backing = new Map<string, string>([
-      [
-        "iluha.v1.collection-ui",
-        envelope("collection-ui", 3, {
-          groupByStatus: true,
-          viewMode: "list",
-          displayMode: "scroll",
-        }),
-      ],
-    ]);
-
-    const store = createCollectionSignalStore({
-      getStorage: () => memoryStorage(backing),
-    });
-
-    expect(store.atoms.groupByStatus.get()).toBe(false);
-    expect(store.atoms.viewMode.get()).toBe("grid");
-    expect(store.atoms.displayMode.get()).toBe("pagination");
-  });
 
   it("sanitizes malformed cache payloads instead of trusting casts", () => {
     const backing = new Map<string, string>([

@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 
 import { resolveSplashVariant } from "@/config/settings/screens.config";
-import { resolveFatalLocale, resolveSplashTexts } from "@/lib/core/fatal/fatalTexts.utils";
+import { resolveSplashTexts } from "@/lib/core/fatal/fatalTexts.utils";
 import type { FatalVariant } from "@/types/core/fatal";
 
 import { GenericSplash } from "@/components/shared/splash/generic.splash";
@@ -32,7 +32,7 @@ export function SplashScreen({
   onToggleFastLaunch,
 }: SplashScreenProps) {
   const variant = resolveSplashVariant(themeName, safe);
-  const texts = resolveSplashTexts(resolveFatalLocale());
+  const texts = resolveSplashTexts();
   const View = VARIANTS[variant];
   return (
     <View

@@ -93,16 +93,6 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     },
   },
   {
-    from: 23,
-    migrate: (state) => {
-      const legacy = state.tmdbApiKey;
-      delete state.tmdbApiKey;
-      if (typeof legacy === "string" && legacy.trim()) {
-        state.tmdbPendingKey = legacy.trim();
-      }
-    },
-  },
-  {
     from: 25,
     migrate: (state) => {
       delete state.wallpaperParallax;
@@ -268,6 +258,15 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       delete state.resultsPerPage;
     },
   },
+  {
+    from: 61,
+    migrate: (state) => {
+      delete state.tmdbApiKey;
+      delete state.tmdbKeySet;
+      delete state.tmdbPendingKey;
+      delete state.tmdbProxyUrl;
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -333,18 +332,15 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
     typeof value === "number" && Number.isInteger(value) && value > 0,
 };
 
-export function migrateSettingsData(
-  persistedState: unknown,
-  version: number,
-  fallbackLanguage: "en" | "ru" = "ru"
-): SettingsData {
-  if (!isRecord(persistedState)) return { ...DEFAULT_SETTINGS, language: fallbackLanguage };
-  const { language, ...rest } = persistedState;
+export function migrateSettingsData(persistedState: unknown, version: number): SettingsData {
+  if (!isRecord(persistedState)) return { ...DEFAULT_SETTINGS, language: "ru" };
+  const rest = { ...persistedState };
+  delete rest.language;
   const transformed = runTransforms(rest, version, SETTINGS_TRANSFORMS);
   const resolved = resolveWithDefaults(transformed, { ...DEFAULT_SETTINGS }, SETTINGS_VALIDATORS);
   return {
     ...DEFAULT_SETTINGS,
     ...resolved,
-    language: language === "en" ? "en" : fallbackLanguage,
+    language: "ru",
   };
 }

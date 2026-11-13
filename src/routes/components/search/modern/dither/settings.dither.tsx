@@ -29,7 +29,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { toUserImage } from "@/lib/graphics/image.utils";
 import { showError } from "@/lib/core/ui/notification.utils";
-import { paginate } from "@/lib/core/collection/pagination.utils";
+import { paginate } from "@/lib/core/text/pagination.utils";
 import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dither/placeholder.dither";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";

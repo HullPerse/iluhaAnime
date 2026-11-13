@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { collectionApi } from "@/api/collection.api";
+import { unifiedIndexApi } from "@/api/unifiedIndex.api";
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
 import { suggestionPoolSize } from "@/lib/core/anilist/rank.utils";
 
@@ -9,7 +9,7 @@ const POOL = suggestionPoolSize(8);
 
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.spyOn(collectionApi, "searchUnifiedIndex").mockResolvedValue([]);
+  vi.spyOn(unifiedIndexApi, "searchUnifiedIndex").mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -25,7 +25,7 @@ const advance = (ms: number): void => {
 
 describe("useSuggestions", () => {
   it("does not query the backend until the debounce settles", () => {
-    const spy = vi.mocked(collectionApi.searchUnifiedIndex);
+    const spy = vi.mocked(unifiedIndexApi.searchUnifiedIndex);
     const { rerender } = renderHook(({ query }) => useSuggestions(query, "anilist", 8), {
       initialProps: { query: "" },
     });
@@ -37,7 +37,7 @@ describe("useSuggestions", () => {
   });
 
   it("coalesces rapid keystrokes into a single backend call", () => {
-    const spy = vi.mocked(collectionApi.searchUnifiedIndex);
+    const spy = vi.mocked(unifiedIndexApi.searchUnifiedIndex);
     const { rerender } = renderHook(({ query }) => useSuggestions(query, "anilist", 8), {
       initialProps: { query: "" },
     });
@@ -51,7 +51,7 @@ describe("useSuggestions", () => {
   });
 
   it("skips one-character queries", () => {
-    const spy = vi.mocked(collectionApi.searchUnifiedIndex);
+    const spy = vi.mocked(unifiedIndexApi.searchUnifiedIndex);
     const { result, rerender } = renderHook(({ query }) => useSuggestions(query, "anilist", 8), {
       initialProps: { query: "" },
     });

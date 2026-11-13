@@ -1,4 +1,4 @@
-import { lazyRouteComponent } from "@tanstack/react-router";
+import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { lazy } from "react";
 
 import { BootPending } from "@/components/shared/bootPending.component";
@@ -22,6 +22,14 @@ import {
 const App = lazy(() => import("@/App"));
 
 const PlayerWindow = lazy(() => import("@/routes/components/player/player.component"));
+
+const cardsLabRoute = import.meta.env.DEV
+  ? createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/lab/cards",
+      component: lazyRouteComponent(() => import("@/routes/cardsLab.route")),
+    })
+  : undefined;
 
 appLayoutRoute.update({ component: App, pendingComponent: BootPending });
 
@@ -85,4 +93,5 @@ export const routeTree = rootRoute.addChildren([
     newsRoute,
   ]),
   playerWindowRoute,
+  ...(cardsLabRoute === undefined ? [] : [cardsLabRoute]),
 ]);

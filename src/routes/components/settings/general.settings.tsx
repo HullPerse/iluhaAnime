@@ -17,10 +17,8 @@ import SettingsMedia from "@/routes/components/settings/media.settings";
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 import ScreenshotSettings from "@/routes/components/settings/screenshot.settings";
 import { KeyboardSettings } from "@/routes/components/settings/keyboard.settings";
-import { StreamTabNote } from "@/routes/components/settings/streamTabNote.settings";
 
 export default function SettingsGeneral() {
-  const language = useCell(settingsAtoms.language);
   const discordRpcEnabled = useCell(settingsAtoms.discordRpcEnabled);
   const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
   const parseTitlesTorrent = useCell(settingsAtoms.parseTitlesTorrent);
@@ -42,28 +40,13 @@ export default function SettingsGeneral() {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="ui-panel" data-find-section="general.language">
+      <section className="ui-panel" data-find-section="general.ffmpeg">
         <div className="ui-titlebar group flex items-center justify-between gap-1">
-          <span className="text-title-text font-bold">{t("settings.language")}</span>
-          <SectionResetButton sectionId="general.language" />
+          <span className="text-title-text font-bold">{t("settings.ffmpeg.source")}</span>
+          <SectionResetButton sectionId="general.ffmpeg" />
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
-            <span className="windows95-text text-text flex items-center text-xs font-bold">
-              {t("settings.language")}
-            </span>
-            <div className="group flex min-w-0 items-center gap-1">
-              <Select
-                value={language}
-                onChange={(value) => patchSettings({ language: value })}
-                options={[
-                  { value: "ru", label: t("settings.language.ru") },
-                  { value: "en", label: t("settings.language.en") },
-                ]}
-                className="w-32"
-              />
-            </div>
-
             <span className="windows95-text text-text flex items-center text-xs font-bold">
               {t("settings.ffmpeg.source")}
             </span>
@@ -123,7 +106,6 @@ export default function SettingsGeneral() {
                     onChange={(v) => patchSettings({ streamTabEnabled: v })}
                   />
                   <span className="text-xs">{t("settings.stream.tab")}</span>
-                  <StreamTabNote />
                 </label>
               </div>
               <div className="group flex items-center gap-1">

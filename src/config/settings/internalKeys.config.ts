@@ -1,1 +1,1 @@
-export const INTERNAL_SETTING_KEYS = ["torrentCoverModeManual", "tmdbPendingKey"] as const;
+export const INTERNAL_SETTING_KEYS = ["torrentCoverModeManual"] as const;

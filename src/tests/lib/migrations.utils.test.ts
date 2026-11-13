@@ -7,7 +7,6 @@ import {
 } from "@/store/anilist.store";
 import { CACHE_SCHEMA_VERSION } from "@/store/cache.store";
 import { CATEGORY_SCHEMA_VERSION } from "@/store/category.store";
-import { COLLECTION_SCHEMA_VERSION } from "@/store/collection.store";
 import { MEDIA_SCHEMA_VERSION } from "@/store/media.store";
 import { NOTIFICATION_SCHEMA_VERSION } from "@/store/notification.store";
 import { PLAYER_SCHEMA_VERSION } from "@/store/player.store";
@@ -20,7 +19,6 @@ const LIVE: Record<string, number> = {
   theme: THEME_SCHEMA_VERSION,
   cache: CACHE_SCHEMA_VERSION,
   search: SEARCH_SCHEMA_VERSION,
-  "collection-ui": COLLECTION_SCHEMA_VERSION,
   notifications: NOTIFICATION_SCHEMA_VERSION,
   anilistFriends: ANILIST_FRIENDS_SCHEMA_VERSION,
   anilistReleaseObservations: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,

@@ -5,9 +5,8 @@ import {
   SETTINGS_FIND_TAB_ORDER,
   anchorId,
 } from "@/config/settings/find.config";
-import enSettings from "@/lib/locale/en/settings.locale";
 import ruSettings from "@/lib/locale/ru/settings.locale";
-import type { Locale, TranslationKey } from "@/types/core/i18n";
+import type { TranslationKey } from "@/types/core/i18n";
 import type { HighlightRange } from "@/types/search/search";
 import type { SettingsFindHit, SettingsFindKind, SettingsFindTab } from "@/types/core/find";
 
@@ -18,10 +17,9 @@ export function findSectionTitleKey(sectionId: string): TranslationKey | null {
 }
 
 const RU: Record<string, string> = ruSettings;
-const EN: Record<string, string> = enSettings;
 
-function textOf(key: TranslationKey, locale: Locale): string {
-  return (locale === "ru" ? RU : EN)[key] ?? "";
+function textOf(key: TranslationKey): string {
+  return RU[key] ?? "";
 }
 
 function scoreTokenIn(token: string, text: string): number | null {
@@ -44,34 +42,23 @@ export function searchSettingsFind(query: string): SettingsFindHit[] {
   if (tokens.length === 0) return [];
   const hits: SettingsFindHit[] = [];
   for (const entry of SETTINGS_FIND_ENTRIES) {
-    const labelRu = textOf(entry.key, "ru");
-    const labelEn = textOf(entry.key, "en");
+    const label = textOf(entry.key);
     let score = 0;
-    let matchedRu = true;
-    let matchedEn = true;
-    let ok = true;
+    let matched = true;
     for (const token of tokens) {
-      const ruScore = scoreTokenIn(token, labelRu);
-      const enScore = scoreTokenIn(token, labelEn);
-      if (ruScore === null && enScore === null) {
-        ok = false;
+      const tokenScore = scoreTokenIn(token, label);
+      if (tokenScore === null) {
+        matched = false;
         break;
       }
-      if (ruScore === null) matchedRu = false;
-      if (enScore === null) matchedEn = false;
-      score +=
-        ruScore !== null && enScore !== null
-          ? Math.min(ruScore, enScore)
-          : (ruScore ?? enScore ?? 0);
+      score += tokenScore;
     }
-    if (!ok) continue;
+    if (!matched) continue;
     hits.push({
       entry,
       score,
-      matchedRu,
-      matchedEn,
-      rangesRu: matchedRu ? rangesFor(labelRu, tokens) : [],
-      rangesEn: matchedEn ? rangesFor(labelEn, tokens) : [],
+      matchedRu: true,
+      rangesRu: rangesFor(label, tokens),
     });
   }
   const tabRank = new Map<SettingsFindTab, number>(
@@ -90,14 +77,10 @@ export function searchSettingsFind(query: string): SettingsFindHit[] {
   return hits;
 }
 
-export function findHitLabel(hit: SettingsFindHit, locale: Locale): string {
-  return textOf(hit.entry.key, locale);
+export function findHitLabel(hit: SettingsFindHit): string {
+  return textOf(hit.entry.key);
 }
 
-export function findHitRanges(hit: SettingsFindHit, locale: Locale): HighlightRange[] {
-  return locale === "ru" ? hit.rangesRu : hit.rangesEn;
-}
-
-export function findHitMatched(hit: SettingsFindHit, locale: Locale): boolean {
-  return locale === "ru" ? hit.matchedRu : hit.matchedEn;
+export function findHitRanges(hit: SettingsFindHit): HighlightRange[] {
+  return hit.rangesRu;
 }

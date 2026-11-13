@@ -27,6 +27,7 @@ function Modal({
   pager,
   className,
   contentClassName,
+  style,
   hideHeader = false,
   hideBackdrop = false,
   modal = true,
@@ -116,6 +117,7 @@ function Modal({
             enable3dBorders && "windows95-3d-border",
             className
           )}
+          style={style}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(event) => {
             if (!pager || pager.total < 2) return;

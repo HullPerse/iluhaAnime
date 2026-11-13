@@ -1,25 +1,11 @@
 import { translate } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { attemptSync } from "@hullperse/hp_utils/attempt";
 import type { FatalInfo, FatalTexts } from "@/types/core/fatal";
-import type { Locale, TranslationKey } from "@/types/core/i18n";
+import type { TranslationKey } from "@/types/core/i18n";
 import type { DbTexts, SplashTexts } from "@/types/core/fatalTexts";
 
-export function resolveFatalLocale(): Locale {
-  if (typeof localStorage === "undefined") return "en";
-  const [raw, readError] = attemptSync(() => localStorage.getItem("iluha.v1.settings"));
-  if (readError !== null || !raw) return "en";
-  const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
-  if (parseError !== null || typeof parsed !== "object" || parsed === null) return "en";
-  const envelope = parsed as { data?: unknown };
-  const data = envelope.data;
-  if (typeof data !== "object" || data === null) return "en";
-  const language = (data as { language?: unknown }).language;
-  return language === "ru" ? "ru" : "en";
-}
-
-export function resolveFatalTexts(locale: Locale, kind: FatalInfo["kind"]): FatalTexts {
-  const pick = (key: TranslationKey): string => translate(locale, key);
+export function resolveFatalTexts(kind: FatalInfo["kind"]): FatalTexts {
+  const pick = (key: TranslationKey): string => translate(key);
   return {
     kindLabel: pick(toLocaleKey(`fatal.kind.${kind}`)),
     yorhaBanner: pick("fatal.yorha.banner"),
@@ -40,8 +26,8 @@ export function resolveFatalTexts(locale: Locale, kind: FatalInfo["kind"]): Fata
   };
 }
 
-export function resolveSplashTexts(locale: Locale): SplashTexts {
-  const pick = (key: TranslationKey): string => translate(locale, key);
+export function resolveSplashTexts(): SplashTexts {
+  const pick = (key: TranslationKey): string => translate(key);
   return {
     theme: pick("splash.stage.theme"),
     migrations: pick("splash.stage.migrations"),
@@ -61,8 +47,8 @@ export function resolveSplashTexts(locale: Locale): SplashTexts {
   };
 }
 
-export function resolveDbTexts(locale: Locale): DbTexts {
-  const pick = (key: TranslationKey): string => translate(locale, key);
+export function resolveDbTexts(): DbTexts {
+  const pick = (key: TranslationKey): string => translate(key);
   return {
     title: pick("db.title"),
     hint: pick("db.hint"),

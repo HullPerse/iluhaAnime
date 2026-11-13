@@ -52,7 +52,16 @@ const renderAt = (href: string) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({
+    language: "en",
+    collectionTabEnabled: true,
+    anilistTabEnabled: true,
+    searchTabEnabled: true,
+    torrentTabEnabled: true,
+    playerTabEnabled: true,
+    streamTabEnabled: true,
+    newsTabEnabled: true,
+  });
 });
 
 afterEach(() => {

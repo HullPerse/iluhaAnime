@@ -2,7 +2,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useEffect, useRef, useState } from "react";
 
 import { resolveFatalVariant } from "@/config/settings/screens.config";
-import { resolveDbTexts, resolveFatalLocale } from "@/lib/core/fatal/fatalTexts.utils";
+import { resolveDbTexts } from "@/lib/core/fatal/fatalTexts.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import type { FatalVariant } from "@/types/core/fatal";
 import type { DbScreenProps } from "@/types/core/screen.db";
@@ -49,7 +49,7 @@ export function DbScreen({
   const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const retryRef = useRef<HTMLButtonElement | null>(null);
-  const texts = resolveDbTexts(resolveFatalLocale());
+  const texts = resolveDbTexts();
 
   useEffect(() => {
     retryRef.current?.focus();

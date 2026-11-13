@@ -187,11 +187,6 @@ harness = false
 required-features = ["bench-api"]
 
 [[bench]]
-name = "collection_import"
-harness = false
-required-features = ["bench-api"]
-
-[[bench]]
 name = "torrent_payloads"
 harness = false
 required-features = ["bench-api"]

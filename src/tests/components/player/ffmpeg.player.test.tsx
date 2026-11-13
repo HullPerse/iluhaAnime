@@ -9,7 +9,7 @@ import { patchSettings } from "@/store/settings.store";
 import { mockInvoke } from "@/tests/mocks";
 
 const deleteButton = (): HTMLElement => {
-  return screen.getByRole("button", { name: translate("en", "common.delete") });
+  return screen.getByRole("button", { name: translate("common.delete") });
 };
 
 beforeEach(() => {
@@ -24,8 +24,8 @@ describe("FFMPEG panel", () => {
 
     await userEvent.click(deleteButton());
 
-    expect(await screen.findByText(translate("en", "player.ffmpeg.system"))).not.toBeNull();
-    expect(screen.queryByRole("button", { name: translate("en", "common.delete") })).toBeNull();
+    expect(await screen.findByText(translate("player.ffmpeg.system"))).not.toBeNull();
+    expect(screen.queryByRole("button", { name: translate("common.delete") })).toBeNull();
     expect(setStatus).not.toHaveBeenCalled();
   });
 
@@ -48,7 +48,7 @@ describe("FFMPEG panel", () => {
 
     expect(
       await screen.findByText(
-        translate("en", "player.ffmpeg.remove.error", { message: "remove ffmpeg: access denied" })
+        translate("player.ffmpeg.remove.error", { message: "remove ffmpeg: access denied" })
       )
     ).not.toBeNull();
     expect(setStatus).not.toHaveBeenCalled();

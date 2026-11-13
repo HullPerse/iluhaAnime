@@ -104,9 +104,6 @@ beforeEach(() => {
     if (command === "get_anime_recommendations") return Promise.resolve([]);
     if (command === "get_anilist_friend_scores") return Promise.resolve([]);
     if (command === "get_anilist_custom_lists") return Promise.resolve([]);
-    if (command === "list_collection_items") return Promise.resolve([]);
-    if (command === "list_custom_field_defs") return Promise.resolve([]);
-    if (command === "list_collection_statuses") return Promise.resolve([]);
     if (command === "get_character_detail")
       return Promise.resolve({
         id: 11,
@@ -142,9 +139,6 @@ describe("AniListDetailView mount inventory", () => {
   const EXPECTED_COMMANDS = [
     "get_anime_franchise",
     "get_anime_recommendations",
-    "list_collection_items",
-    "list_custom_field_defs",
-    "list_collection_statuses",
   ];
 
   it("issues exactly one call per expected command and skips custom lists when logged out", async () => {

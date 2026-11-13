@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { translate } from "@/lib/locale/i18n.utils";
+import { translateFor } from "@/lib/locale/i18n.utils";
 import { uniqueById } from "@hullperse/hp_utils/array";
 import {
   attempt,
@@ -28,7 +28,7 @@ import {
 } from "@/lib/graphics/color.utils";
 import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
 import { clamp } from "@hullperse/hp_utils/math";
-import { paginate } from "@/lib/core/collection/pagination.utils";
+import { paginate } from "@/lib/core/text/pagination.utils";
 import { hashStringToUint32, mulberry32 } from "@/lib/core/text/random.utils";
 import {
   buildReproFrontend,
@@ -760,11 +760,11 @@ describe("utils/result", () => {
 });
 
 describe("utils/time", () => {
-  const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
-    translate("ru", key, vars);
+  const ru = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
+    translateFor("ru", key, vars);
 
-  const en = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
-    translate("en", key, vars);
+  const en = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
+    translateFor("en", key, vars);
 
   describe("formatClock", () => {
     it.each([
@@ -823,7 +823,7 @@ describe("utils/repro", () => {
   describe("isSecretKey", () => {
     it.each([
       ["authToken", true],
-      ["tmdb_api_key", true],
+      ["nekobt_api_key", true],
       ["proxyPassword", true],
       ["cookie", true],
       ["theme", false],

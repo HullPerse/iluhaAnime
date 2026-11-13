@@ -1,7 +1,6 @@
-import type { ComponentProps } from "react";
+import type { ChangeEvent, ComponentProps, KeyboardEvent } from "react";
 
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist/anilist";
-import type { SearchField } from "@/types/anilist/collection";
 import type { Anime } from "@/types/torrent/torrent";
 
 export interface LanguageTag {
@@ -468,4 +467,69 @@ export interface AutocompleteInputProps extends ComponentProps<"input"> {
   onAddWordToDictionary?: (spanIndex?: number) => void;
   historyStats?: Record<string, SearchQueryStat>;
   historyScope?: string;
+}
+
+export type SearchFieldParams = {
+  scope: SearchSuggestionScope;
+  query: string;
+  setQuery: (value: string) => void;
+  history?: string[];
+  queryStats?: Record<string, SearchQueryStat>;
+  suggestionStats?: Record<string, SearchQueryStat>;
+  animeIndex?: SearchAnimeSuggestion[];
+  animeProfileId?: number | null;
+  anilistBoost?: AnilistSuggestionBoost;
+  extraValues?: Array<{
+    kind?: SearchSuggestionKind;
+    value: string;
+    subtitle?: string;
+    operator?: boolean;
+  }>;
+  collectionItems?: CollectionSuggestionItem[];
+  collectionBoost?: number;
+  limit?: number;
+  onSubmit?: (trimmed: string) => void;
+  submitOnSelect?: boolean;
+  historyScope?: string;
+};
+
+interface SearchFieldInputProps {
+  value: string;
+  completion: string | null;
+  suggestions: SearchSuggestion[];
+  history: string[];
+  spellCheck: SpellCheck | null;
+  spellCorrections: string[];
+  onApplySpellCorrection: (spanIndex?: number) => void;
+  onApplySpellCorrectionAt: (correction: string) => void;
+  onAddWordToDictionary: (spanIndex?: number) => void;
+  historyStats?: Record<string, SearchQueryStat>;
+  historyScope?: string;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onAcceptCompletion: (value: string) => void;
+  onDismissCompletion: () => void;
+  onSelectSuggestion: (value: string) => void;
+  onRemoveHistory: (query: string) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+}
+
+export interface SearchField {
+  suggestions: SearchSuggestion[];
+  inlineCompletion: string | null;
+  deferredQuery: string;
+  history: string[];
+  removeQuery: (query: string) => void;
+  recordSuggestion: (value: string, reason?: CorrectionReason) => void;
+  recordSuggestionIgnored: (value: string) => void;
+  spellCheck: SpellCheck | null;
+  spellCorrections: string[];
+  applySpellCorrection: () => void;
+  applySpellCorrectionAt: (correction: string) => void;
+  addWordToDictionary: () => void;
+  addQuery: (query: string, scope?: string) => void;
+  handleSubmit: () => void;
+  handleSelect: (value: string) => void;
+  handleAcceptCompletion: (value: string) => void;
+  handleDismissCompletion: () => void;
+  inputProps: SearchFieldInputProps;
 }

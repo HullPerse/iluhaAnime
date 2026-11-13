@@ -114,13 +114,6 @@ describe("settings find results", () => {
     expect(view.container.textContent).toContain("Торрент-прокси");
   });
 
-  it("shows the english label with a badge when only english matches", () => {
-    const hits = searchSettingsFind("timeout");
-    const view = render(<FindResults {...resultsProps(hits)} />);
-    expect(view.container.textContent).toContain("EN");
-    expect(view.container.textContent).toContain("Peer connect timeout");
-  });
-
   it("marks the controlled active option and follows hover", async () => {
     const user = userEvent.setup();
     const hits = searchSettingsFind("прокси");

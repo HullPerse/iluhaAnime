@@ -4,7 +4,7 @@ import type { Cell } from "@/types/core/signal";
 import type {
   AnimeDeepLink,
   AnilistAuthDeepLink,
-  CollectionShareDeepLink,
+  CardGiftDeepLink,
   DeepLinkStore,
   NewsDeepLink,
   StreamDeepLink,
@@ -20,12 +20,12 @@ type DeepLinkActionKeys =
   | "consumeStream"
   | "openMagnet"
   | "consumeMagnet"
-  | "openShare"
-  | "consumeShare"
   | "openAuth"
   | "consumeAuth"
   | "openNews"
-  | "consumeNews";
+  | "consumeNews"
+  | "openGift"
+  | "consumeGift";
 
 type DeepLinkData = Omit<DeepLinkStore, DeepLinkActionKeys>;
 type DeepLinkAtoms = { [K in keyof DeepLinkData]: Cell<DeepLinkData[K]> };
@@ -35,9 +35,9 @@ const DEFAULT_DEEPLINK_DATA: DeepLinkData = {
   torrentTarget: null,
   streamTarget: null,
   magnetTarget: null,
-  shareTarget: null,
   authTarget: null,
   newsTarget: null,
+  giftTarget: null,
 };
 
 interface DeepLinkSignalStore {
@@ -51,12 +51,12 @@ interface DeepLinkSignalStore {
   consumeStream: () => void;
   openMagnet: (magnet: string) => void;
   consumeMagnet: () => void;
-  openShare: (link: CollectionShareDeepLink) => void;
-  consumeShare: () => void;
   openAuth: (link: AnilistAuthDeepLink) => void;
   consumeAuth: () => void;
   openNews: (link: NewsDeepLink) => void;
   consumeNews: () => void;
+  openGift: (link: CardGiftDeepLink) => void;
+  consumeGift: () => void;
 }
 
 function createDeepLinkSignalStore(): DeepLinkSignalStore {
@@ -74,12 +74,12 @@ function createDeepLinkSignalStore(): DeepLinkSignalStore {
     consumeStream: () => atoms.streamTarget.set(null),
     openMagnet: (magnet) => atoms.magnetTarget.set(magnet),
     consumeMagnet: () => atoms.magnetTarget.set(null),
-    openShare: (link) => atoms.shareTarget.set(link),
-    consumeShare: () => atoms.shareTarget.set(null),
     openAuth: (link) => atoms.authTarget.set(link),
     consumeAuth: () => atoms.authTarget.set(null),
     openNews: (link) => atoms.newsTarget.set(link),
     consumeNews: () => atoms.newsTarget.set(null),
+    openGift: (link) => atoms.giftTarget.set(link),
+    consumeGift: () => atoms.giftTarget.set(null),
   };
 }
 
@@ -97,9 +97,9 @@ export const openStreamDeepLink = deeplinks.openStream;
 export const consumeStreamDeepLink = deeplinks.consumeStream;
 export const openMagnetDeepLink = deeplinks.openMagnet;
 export const consumeMagnetDeepLink = deeplinks.consumeMagnet;
-export const openShareDeepLink = deeplinks.openShare;
-export const consumeShareDeepLink = deeplinks.consumeShare;
 export const openAuthDeepLink = deeplinks.openAuth;
 export const consumeAuthDeepLink = deeplinks.consumeAuth;
 export const openNewsDeepLink = deeplinks.openNews;
 export const consumeNewsDeepLink = deeplinks.consumeNews;
+export const openGiftDeepLink = deeplinks.openGift;
+export const consumeGiftDeepLink = deeplinks.consumeGift;

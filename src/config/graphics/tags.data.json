@@ -11,8 +11,8 @@
     "type": "type=anime|movie",
     "status": "status=watching|planned",
     "priority": "priority=high|normal",
-    "provider": "provider=anilist|tmdb",
-    "source": "source=tmdb|custom",
+    "provider": "provider=anilist|custom",
+    "source": "source=anilist|custom",
     "tag": "tag=fantasy|romance"
   },
   "TAG_NUMERIC_KEYS": ["year", "rating", "episodes", "progress"],

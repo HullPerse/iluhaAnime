@@ -34,7 +34,7 @@ import { isTextEntryTarget } from "@/lib/core/hotkeys/filterHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { isSameOrInside } from "@/lib/core/watchers/pathsWatcher.utils";
-import { pruneSelection } from "@/lib/core/collection/bulk.utils";
+import { pruneSelection } from "@/lib/torrent/bulk.utils";
 import {
   countLiveTorrents,
   formatSpeed,
@@ -42,7 +42,7 @@ import {
   getTorrentLifecycle,
 } from "@/lib/torrent/torrentCommon.utils";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { paginate } from "@/lib/core/collection/pagination.utils";
+import { paginate } from "@/lib/core/text/pagination.utils";
 import { sortTorrents } from "@/lib/torrent/sort.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { torrentRoute } from "@/routes/__root.defs";

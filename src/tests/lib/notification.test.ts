@@ -211,14 +211,14 @@ describe("openNotificationTarget", () => {
 
 describe("resolveNotificationText", () => {
   it("passes through plain title/body payloads", () => {
-    expect(resolveNotificationText({ body: "World", title: "Hello" }, "en")).toEqual({
+    expect(resolveNotificationText({ body: "World", title: "Hello" })).toEqual({
       body: "World",
       title: "Hello",
     });
   });
 
   it("falls back to empty strings when nothing is provided", () => {
-    expect(resolveNotificationText({}, "en")).toEqual({ body: "", title: "" });
+    expect(resolveNotificationText({})).toEqual({ body: "", title: "" });
   });
 });
 

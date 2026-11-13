@@ -1,9 +1,8 @@
 export const SCHEMA_VERSIONS = {
-  settings: 60,
+  settings: 61,
   theme: 1,
   cache: 5,
   search: 4,
-  collection: 9,
   notifications: 1,
   anilistFriends: 1,
   anilistReleaseObservations: 6,

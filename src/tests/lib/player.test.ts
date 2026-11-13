@@ -1,7 +1,7 @@
 import { mockConvertFileSrc, mockInvoke } from "@/tests/mocks";
 import { describe, expect, it, vi } from "vitest";
 
-import { translate } from "@/lib/locale/i18n.utils";
+import { translateFor } from "@/lib/locale/i18n.utils";
 import {
   appendFiles,
   appendFilesQuiet,
@@ -38,7 +38,7 @@ import type { PlayerSettings } from "@/types/player/videoPlayer";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke, convertFileSrc: mockConvertFileSrc }));
 
 describe("player/queue", () => {
-  const ru = (key: Parameters<typeof translate>[1]) => translate("ru", key);
+  const ru = (key: Parameters<typeof translateFor>[1]) => translateFor("ru", key);
 
   function upscale(overrides: Partial<UpscaleQueueItem> = {}): UpscaleQueueItem {
     return {
@@ -361,8 +361,8 @@ describe("player/tree", () => {
 });
 
 describe("player/title", () => {
-  const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
-    translate("ru", key, vars);
+  const ru = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
+    translateFor("ru", key, vars);
 
   describe("formatParsedTitle", () => {
     it("formats a simple episode", () => {

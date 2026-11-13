@@ -1,16 +1,18 @@
 import { cn } from "cn";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
+import { createLruCache } from "@hullperse/hp_utils/lruCache";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { ImageProps } from "@/types/core/ui";
 
 const RETRY_DELAYS = [500, 1500];
+const loadedSources = createLruCache<string, true>(300);
 
 const Image = ({ src, alt, className, width, height, type = "cover", ...props }: ImageProps) => {
   const { t } = useI18n();
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => loadedSources.has(src));
   const [finalSrc, setFinalSrc] = useState<string>(src);
   const [retryKey, setRetryKey] = useState<number>(0);
   const attemptRef = useRef<number>(0);
@@ -22,7 +24,7 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
   useEffect(() => {
     srcRef.current = src;
     setFinalSrc(src);
-    setIsLoaded(false);
+    setIsLoaded(loadedSources.has(src));
     attemptRef.current = 0;
     return () => {
       timerRef.current?.cancel();
@@ -30,11 +32,18 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
     };
   }, [src]);
 
-  useEffect(() => {
-    if (imgRef.current?.complete) setIsLoaded(true);
-  }, []);
+  useLayoutEffect(() => {
+    const image = imgRef.current;
+    if (finalSrc !== "" && image?.complete && image.naturalWidth > 0) {
+      loadedSources.set(finalSrc, true);
+      setIsLoaded(true);
+    }
+  }, [finalSrc]);
 
-  const handleLoad = useCallback(() => setIsLoaded(true), []);
+  const handleLoad = useCallback(() => {
+    loadedSources.set(srcRef.current, true);
+    setIsLoaded(true);
+  }, []);
 
   const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     if (e.currentTarget.getAttribute("src") !== srcRef.current) return;

@@ -1,0 +1,71 @@
+import changelog320 from "./changelog/v3_2_0.en";
+import changelog400 from "./changelog/v4_0_0.en";
+import changelog401 from "./changelog/v4_0_1.en";
+import changelog402 from "./changelog/v4_0_2.en";
+import changelog403 from "./changelog/v4_0_3.en";
+import changelog404 from "./changelog/v4_0_4.en";
+import changelog405 from "./changelog/v4_0_5.en";
+import changelog406 from "./changelog/v4_0_6.en";
+import changelog407 from "./changelog/v4_0_7.en";
+import changelog408 from "./changelog/v4_0_8.en";
+import changelog409 from "./changelog/v4_0_9.en";
+import changelog410 from "./changelog/v4_1_0.en";
+import changelog411 from "./changelog/v4_1_1.en";
+import changelog412 from "./changelog/v4_1_2.en";
+import changelog413 from "./changelog/v4_1_3.en";
+import changelog500 from "./changelog/v5_0_0.en";
+import changelog510 from "./changelog/v5_1_0.en";
+import changelog512 from "./changelog/v5_1_2.en";
+import changelog514 from "./changelog/v5_1_4.en";
+import changelog516 from "./changelog/v5_1_6.en";
+import anilist from "./en/anilist.locale";
+import collection from "./en/collection.locale";
+import common from "./en/common.locale";
+import discord from "./en/discord.locale";
+import game from "./en/game.locale";
+import news from "./en/news.locale";
+import keyboard from "./en/keyboard.locale";
+import player from "./en/player.locale";
+import screenshot from "./en/screenshot.locale";
+import search from "./en/search.locale";
+import settings from "./en/settings.locale";
+import torrent from "./en/torrent.locale";
+import updater from "./en/updater.locale";
+
+const en = {
+  ...anilist,
+  ...changelog516,
+  ...changelog514,
+  ...changelog512,
+  ...changelog510,
+  ...changelog500,
+  ...changelog413,
+  ...changelog412,
+  ...changelog411,
+  ...changelog410,
+  ...changelog409,
+  ...changelog408,
+  ...changelog407,
+  ...changelog406,
+  ...changelog405,
+  ...changelog404,
+  ...changelog403,
+  ...changelog402,
+  ...changelog401,
+  ...changelog400,
+  ...changelog320,
+  ...common,
+  ...keyboard,
+  ...collection,
+  ...discord,
+  ...game,
+  ...news,
+  ...player,
+  ...screenshot,
+  ...search,
+  ...settings,
+  ...torrent,
+  ...updater,
+} as const;
+
+export default en;

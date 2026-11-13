@@ -140,9 +140,6 @@ export interface SettingsStore {
   gameTabUnlocked: boolean;
   rememberLastTab: boolean;
   gameVolume: number;
-  tmdbKeySet: boolean;
-  tmdbPendingKey: string | null;
-  tmdbProxyUrl: string | null;
   anilistProxyUrl: string | null;
   newsProxyUrl: string | null;
   animelibProxyUrl: string | null;

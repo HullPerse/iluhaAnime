@@ -10,6 +10,7 @@ import { tabIdFromPath, tabPathFromId } from "@/config/settings/tabPaths.config"
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
+import { usePrepareCardsPacks } from "@/hooks/cards/prepare.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
@@ -21,13 +22,11 @@ import {
 } from "@/lib/anilist/anilistNotifications.utils";
 import { markCacheReady } from "@/lib/core/system/signals.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { tabLabel } from "@/lib/ui/tabs.utils";
 import { attemptSequence, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import {
   DEEP_LINK_EVENT,
   ingestDeepLinks,
   isEditablePasteTarget,
-  parseCollectionShareLink,
   parsePastedLink,
 } from "@/lib/core/system/deeplink.utils";
 import {
@@ -36,14 +35,13 @@ import {
   showError,
   showWarning,
 } from "@/lib/core/ui/notification.utils";
-import { collectionAtoms, subscribeCollection } from "@/store/collection.store";
 import {
   deeplinkAtoms,
   openAnimeDeepLink,
   openAuthDeepLink,
+  openGiftDeepLink,
   openMagnetDeepLink,
   openNewsDeepLink,
-  openShareDeepLink,
   openStreamDeepLink,
   openTorrentDeepLink,
   subscribeDeepLink,
@@ -79,6 +77,7 @@ export function useApp() {
   );
 
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
+  usePrepareCardsPacks(collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
   const searchTabEnabled = useCell(settingsAtoms.searchTabEnabled);
   const torrentTabEnabled = useCell(settingsAtoms.torrentTabEnabled);
@@ -87,7 +86,6 @@ export function useApp() {
   const newsTabEnabled = useCell(settingsAtoms.newsTabEnabled);
   const gameTabUnlocked = useCell(settingsAtoms.gameTabUnlocked);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
-  const language = useCell(settingsAtoms.language);
   const urlTab = tabIdFromPath(pathname) ?? "search";
   const activeTab = rememberLastTab ? urlTab : "search";
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
@@ -109,7 +107,7 @@ export function useApp() {
       gameTabUnlocked,
     }).map((tab) => ({
       ...tab,
-      label: tabLabel(tab.id, t(tab.key), language, t("settings.stream.tab.russianOnly")),
+      label: t(tab.key),
     })),
     isOnline
   ).map((tab) => ({
@@ -215,27 +213,13 @@ export function useApp() {
       previousAnilist = next;
     });
   }, [isOnline, goToTab]);
-  useEffect(() => {
-    const switchToCollection = () => {
-      if (!settingsAtoms.collectionTabEnabled.get()) return;
-      goToTab("collection");
-    };
-    if (collectionAtoms.wizardPrefill.get()) switchToCollection();
-    let previousPrefill = collectionAtoms.wizardPrefill.get();
-    return subscribeCollection(() => {
-      const next = collectionAtoms.wizardPrefill.get();
-      if (next && next !== previousPrefill) switchToCollection();
-      previousPrefill = next;
-    });
-  }, [goToTab]);
-
   useTauriEvent<ShowNotificationPayload>(
     "show-notification",
     (event) => {
       const type = NOTIFICATION_TYPES.has(event.payload.type as NotificationType)
         ? (event.payload.type as NotificationType)
         : "info";
-      const { title, body } = resolveNotificationText(event.payload, settingsAtoms.language.get());
+      const { title, body } = resolveNotificationText(event.payload);
       addNotification(title, type, body, event.payload.eventKey, { target: event.payload.action });
     },
     { errorTag: "notifications" }
@@ -285,19 +269,6 @@ export function useApp() {
           openTorrentDeepLink(link);
           goToTab("torrent");
         },
-        (rawUrl) => {
-          if (!settingsAtoms.collectionTabEnabled.get()) {
-            showError(t("common.error"), t("anilist.details.link.invalid"));
-            return;
-          }
-          parseCollectionShareLink(rawUrl)
-            .then((link) => {
-              if (link) openShareDeepLink(link);
-              else showError(t("common.error"), t("collection.share.invalid"));
-              return null;
-            })
-            .catch((error) => reportBackgroundError("deeplink.share-pending", error));
-        },
         (link) => {
           openAuthDeepLink(link);
         },
@@ -324,6 +295,14 @@ export function useApp() {
           }
           openNewsDeepLink(link);
           goToTab("news");
+        },
+        (link) => {
+          if (!settingsAtoms.collectionTabEnabled.get()) {
+            showError(t("common.error"), t("anilist.details.link.invalid"));
+            return;
+          }
+          openGiftDeepLink(link);
+          goToTab("collection");
         }
       );
     },
@@ -372,6 +351,14 @@ export function useApp() {
       goToTab("torrent");
       return true;
     };
+    const openGift = (link: Parameters<typeof openGiftDeepLink>[0]): void => {
+      if (!settingsAtoms.collectionTabEnabled.get()) {
+        showError(t("common.error"), t("anilist.details.link.invalid"));
+        return;
+      }
+      goToTab("collection");
+      openGiftDeepLink(link);
+    };
     const handler = (event: ClipboardEvent) => {
       if (event.defaultPrevented) return;
       if (isEditablePasteTarget(event.target)) return;
@@ -397,24 +384,14 @@ export function useApp() {
         if (!ensureTab(settingsAtoms.newsTabEnabled.get())) return;
         openNewsDeepLink(parsed.link);
         goToTab("news");
+      } else if (parsed.kind === "gift") {
+        openGift(parsed.link);
       } else if (parsed.kind === "torrent") {
         if (!ensureTorrentTab()) return;
         openTorrentDeepLink(parsed.link);
       } else if (parsed.kind === "magnet") {
         if (!ensureTorrentTab()) return;
         openMagnetDeepLink(parsed.magnet);
-      } else {
-        if (!settingsAtoms.collectionTabEnabled.get()) {
-          showError(t("common.error"), t("anilist.details.link.invalid"));
-          return;
-        }
-        parseCollectionShareLink(text)
-          .then((link) => {
-            if (link) openShareDeepLink(link);
-            else showError(t("common.error"), t("collection.share.invalid"));
-            return null;
-          })
-          .catch((error) => reportBackgroundError("deeplink.share-paste", error));
       }
     };
     window.addEventListener("paste", handler);
@@ -454,12 +431,12 @@ export function useApp() {
       if (!settingsAtoms.collectionTabEnabled.get()) return;
       goToTab("collection");
     };
-    if (deeplinkAtoms.shareTarget.get()) switchToCollection();
-    let previousShare = deeplinkAtoms.shareTarget.get();
+    if (deeplinkAtoms.giftTarget.get()) switchToCollection();
+    let previousGift = deeplinkAtoms.giftTarget.get();
     return subscribeDeepLink(() => {
-      const next = deeplinkAtoms.shareTarget.get();
-      if (next && next !== previousShare) switchToCollection();
-      previousShare = next;
+      const next = deeplinkAtoms.giftTarget.get();
+      if (next && next !== previousGift) switchToCollection();
+      previousGift = next;
     });
   }, [goToTab]);
 

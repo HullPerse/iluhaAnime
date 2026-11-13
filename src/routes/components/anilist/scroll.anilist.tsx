@@ -14,7 +14,7 @@ import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
-import { GroupHeaderCollection } from "@/routes/components/collection/groupHeader.collection";
+import { GroupHeaderCollection } from "@/routes/components/anilist/groupHeader.anilist";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   AniListAnime,

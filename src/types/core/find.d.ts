@@ -23,7 +23,5 @@ export interface SettingsFindHit {
   entry: SettingsFindEntry;
   score: number;
   matchedRu: boolean;
-  matchedEn: boolean;
   rangesRu: HighlightRange[];
-  rangesEn: HighlightRange[];
 }

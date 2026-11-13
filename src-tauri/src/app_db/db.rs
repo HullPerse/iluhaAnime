@@ -13,19 +13,12 @@ pub const DATABASE_FILE: &str = "app_data.sqlite3";
 /// beats hanging the UI forever.
 pub const APP_DATA_WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 pub const MAX_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
-pub const CURRENT_SCHEMA_VERSION: i64 = 24;
+pub const CURRENT_SCHEMA_VERSION: i64 = 30;
 pub fn now_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
-}
-
-pub fn now_millis() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as i64
 }
 pub fn database_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let directory = app
@@ -203,4 +196,23 @@ mod tests {
                 .is_none()
         );
     }
+}
+
+/// Deletes the app database and its sidecar files. Returns `false` when none existed.
+pub fn remove_database(app: &tauri::AppHandle) -> Result<bool, String> {
+    let path = database_path(app)?;
+    let mut removed = false;
+    for suffix in ["", "-wal", "-shm"] {
+        let candidate = if suffix.is_empty() {
+            path.clone()
+        } else {
+            PathBuf::from(format!("{}{}", path.to_string_lossy(), suffix))
+        };
+        match fs::remove_file(candidate) {
+            Ok(()) => removed = true,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(format!("remove app database: {error}")),
+        }
+    }
+    Ok(removed)
 }

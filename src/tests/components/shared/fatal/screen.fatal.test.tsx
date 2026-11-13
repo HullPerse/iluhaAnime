@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FatalScreen } from "@/components/shared/fatal/screen.fatal";
+import { patchSettings } from "@/store/settings.store";
 import type { FatalInfo } from "@/types/core/fatal";
 
 import { mockUpdaterCheck, mockWriteText } from "@/tests/mocks";
@@ -106,11 +107,8 @@ describe("FatalScreen", () => {
     expect(props.onRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("localizes labels through the persisted settings language", () => {
-    localStorage.setItem(
-      "iluha.v1.settings",
-      JSON.stringify({ f: 1, store: "settings", sv: 1, ts: 1, data: { language: "ru" } })
-    );
+  it("localizes labels through the settings language", () => {
+    patchSettings({ language: "ru" });
     render(<FatalScreen info={baseInfo()} {...handlers()} />);
     expect(screen.getByText("Ошибка загрузки модуля")).toBeDefined();
     expect(screen.getByRole("button", { name: "Перезапустить" })).toBeDefined();

@@ -1,12 +1,12 @@
 import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { translate } from "@/lib/locale/i18n.utils";
+import { translateFor } from "@/lib/locale/i18n.utils";
 import {
   applyBulkAction,
   pruneSelection,
   splitRecheckOutcome,
-} from "@/lib/core/collection/bulk.utils";
+} from "@/lib/torrent/bulk.utils";
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
@@ -187,8 +187,8 @@ describe("torrent/bulk", () => {
 });
 
 describe("torrent/common", () => {
-  const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
-    translate("ru", key, vars);
+  const ru = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
+    translateFor("ru", key, vars);
 
   function makeInfo(id: number, overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     return {

@@ -64,12 +64,14 @@ beforeEach(async () => {
   const { DEFAULT_STREAM_FILTERS } = await import("@/config/player/streamFilters.config");
   const { streamFilters, streamPage, streamQuery, streamSlug } =
     await import("@/store/stream.store");
-  const { resetCoverCache } = await import("@/hooks/collection/cache.hook");
+  const { resetCoverCache } = await import("@/hooks/coverCache.hook");
   const { resetRemoteImageCache } = await import("@/hooks/remoteImage.hook");
   const { resetCardCache } = await import("@/lib/core/player/cardCache.utils");
   const { resetSymSpellCache } = await import("@/lib/core/anilist/suggestions.utils");
   const { resetNotificationAtoms } = await import("@/store/notification.store");
-  const { resetSettingsAtoms } = await import("@/store/settings.store");
+  const { resetSettingsAtoms, patchSettings } = await import("@/store/settings.store");
+  const { registerLocale } = await import("@/lib/locale/i18n.utils");
+  const { default: en } = await import("@/tests/fixtures/locale/en");
   const { resetUpdateAtoms } = await import("@/store/update.store");
   resetAllSharedMocks();
   resetTransportInflight();
@@ -80,6 +82,8 @@ beforeEach(async () => {
   resetSymSpellCache();
   resetNotificationAtoms();
   resetSettingsAtoms();
+  registerLocale("en", en);
+  patchSettings({ language: "en" });
   resetUpdateAtoms();
   streamSlug.set(null);
   streamPage.set(1);

@@ -3,10 +3,8 @@ import { describe, expect, it } from "vitest";
 import { KEYBIND_MANIFEST, keybindEntriesByScope } from "@/config/system/manifest.config";
 import { KEYBINDS } from "@/config/settings/keybinds.config";
 import { chordKey, parseChord } from "@/lib/core/hotkeys/chordHotkeys.utils";
-import en from "@/lib/locale/en";
 import ru from "@/lib/locale/ru";
 
-const EN: Record<string, string> = en;
 const RU: Record<string, string> = ru;
 
 describe("keybind manifest", () => {
@@ -43,9 +41,8 @@ describe("keybind manifest", () => {
     expect(find?.chord).toBe("ctrl+KeyF");
   });
 
-  it("resolves every description in both dictionaries", () => {
+  it("resolves every description in the Russian dictionary", () => {
     for (const entry of KEYBIND_MANIFEST) {
-      expect(EN[entry.description], `en ${entry.description}`).toBeTruthy();
       expect(RU[entry.description], `ru ${entry.description}`).toBeTruthy();
     }
   });

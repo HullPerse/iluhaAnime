@@ -1,4 +1,3 @@
-import en from "@/lib/locale/en";
 import ru from "@/lib/locale/ru";
 import { settingsAtoms } from "@/store/settings.store";
 import type { Locale, TranslationKey, TranslationVariables } from "@/types/core/i18n";
@@ -6,7 +5,16 @@ import type { Locale, TranslationKey, TranslationVariables } from "@/types/core/
 export type { Locale, TranslationVariables };
 export type { TranslationKey };
 
-const dictionaries: Record<Locale, Record<string, string>> = { en, ru };
+const RU_DICTIONARY: Record<string, string> = ru;
+const dictionaries: Partial<Record<Locale, Record<string, string>>> = { ru };
+const PLURAL_RULES: Record<Locale, Intl.PluralRules> = {
+  ru: new Intl.PluralRules("ru"),
+  en: new Intl.PluralRules("en"),
+};
+
+export function registerLocale(locale: Locale, dictionary: Record<string, string>): void {
+  dictionaries[locale] = dictionary;
+}
 
 function repairLegacyCyrillic(value: string): string {
   if (!/[РС]/u.test(value)) return value;
@@ -22,38 +30,45 @@ function repairLegacyCyrillic(value: string): string {
     )
   );
   const repaired = new TextDecoder("utf-8").decode(bytes);
-  return repaired.includes("\uFFFD") ? value : repaired;
+  if (repaired.includes("\uFFFD")) return value;
+  return repaired;
 }
 
-function resolvePluralKey(locale: Locale, key: string, count: number): string {
-  const category = new Intl.PluralRules(locale).select(count);
+function resolvePluralKey(
+  locale: Locale,
+  dictionary: Record<string, string>,
+  key: string,
+  count: number
+): string {
+  const category = PLURAL_RULES[locale].select(count);
   if (category === "other") return key;
   const suffixed = `${key}.${category}`;
-  if (suffixed in dictionaries[locale]) return suffixed;
-  if (locale !== "ru" && suffixed in dictionaries.ru) return suffixed;
-  return key;
+  return suffixed in dictionary ? suffixed : key;
 }
 
-export function translate(
+export function translateFor(
   locale: Locale,
   key: TranslationKey,
   variables?: TranslationVariables
 ): string {
-  const safeLocale = locale === "en" ? "en" : "ru";
+  const dictionary = dictionaries[locale] ?? RU_DICTIONARY;
   const resolvedKey =
     variables && typeof variables.count === "number"
-      ? resolvePluralKey(safeLocale, key, variables.count)
+      ? resolvePluralKey(locale, dictionary, key, variables.count)
       : key;
-  const template = repairLegacyCyrillic(
-    dictionaries[safeLocale][resolvedKey] ?? dictionaries.ru[resolvedKey] ?? key
+  const template = repairLegacyCyrillic(dictionary[resolvedKey] ?? key);
+
+  if (!variables) return template;
+
+  return template.replaceAll(/\{\{(\w+)\}\}/gu, (_match: string, name: string) =>
+    String(variables[name] ?? `{{${name}}}`)
   );
-  return variables
-    ? template.replaceAll(/\{\{(\w+)\}\}/gu, (_match: string, name: string) =>
-        String(variables[name] ?? `{{${name}}}`)
-      )
-    : template;
+}
+
+export function translate(key: TranslationKey, variables?: TranslationVariables): string {
+  return translateFor(settingsAtoms.language.get(), key, variables);
 }
 
 export function tr(key: TranslationKey, vars?: TranslationVariables): string {
-  return translate(settingsAtoms.language.get(), key, vars);
+  return translate(key, vars);
 }

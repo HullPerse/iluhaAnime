@@ -11,7 +11,7 @@ import { useBottomResize, resolveResizeMultiplier } from "@/hooks/folderResize.h
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useKeybindChord } from "@/hooks/keybindTitle.hook";
-import { maxFolderHeight } from "@/lib/core/collection/folder.utils";
+import { maxFolderHeight } from "@/lib/ui/folder.utils";
 import { summarizeTree } from "@/lib/player/playerTree.utils";
 import { normalizePlayerPath } from "@/lib/core/ui/visibility.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";

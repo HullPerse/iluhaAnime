@@ -1,5 +1,4 @@
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
-import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { getSettingsSnapshot, patchSettings } from "@/store/settings.store";
 import type { SettingsData } from "@/types/store/settings";
 import type { ResetSectionId } from "@/types/core/reset";
@@ -8,7 +7,7 @@ export type ResettableSetting = keyof typeof DEFAULT_SETTINGS | "language";
 
 const RESET_DEFAULTS: Pick<SettingsData, ResettableSetting> = {
   ...DEFAULT_SETTINGS,
-  language: detectSystemLocale(),
+  language: "ru",
 };
 
 function toResettableSettings(
@@ -28,7 +27,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   "general.startup": ["fastLaunch", "rememberLastTab"],
   "general.keyboard": ["vimMode"],
   "general.window": ["minimizeToTray"],
-  "general.language": ["language", "ffmpegSource"],
+  "general.ffmpeg": ["ffmpegSource"],
   "general.parse": [
     "parseTitlesPlayer",
     "parseTitlesTorrent",
@@ -77,7 +76,6 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
     "peerConnectTimeout",
     "peerReadWriteTimeout",
   ],
-  "proxy.tmdb": ["tmdbKeySet", "tmdbProxyUrl"],
   "proxy.anilist": ["anilistProxyUrl", "anilistTitleLanguage", "anilistAdultContent"],
   "proxy.news": ["newsProxyUrl"],
   "proxy.animelib": ["animelibProxyUrl"],

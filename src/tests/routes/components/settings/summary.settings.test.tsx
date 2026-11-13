@@ -45,7 +45,7 @@ const renderSummary = (seed: Update | null = null) => {
 };
 
 const checkButton = (): HTMLElement => {
-  return screen.getByRole("button", { name: translate("en", "updater.check") });
+  return screen.getByRole("button", { name: translate("updater.check") });
 };
 
 beforeEach(() => {
@@ -64,7 +64,7 @@ describe("SettingsSummary", () => {
 
     expect(await screen.findByText("5.0.0")).not.toBeNull();
     expect(
-      await screen.findByText(translate("en", "settings.summary.ffmpeg.installed"))
+      await screen.findByText(translate("settings.summary.ffmpeg.installed"))
     ).not.toBeNull();
     expect(await screen.findByText("app_data.sqlite3")).not.toBeNull();
     expect(screen.queryByText("Theme")).toBeNull();
@@ -80,8 +80,8 @@ describe("SettingsSummary", () => {
       expect(notificationAtoms.items.get()).toContainEqual(
         expect.objectContaining({
           type: "info",
-          title: translate("en", "updater.title"),
-          message: translate("en", "updater.check.none"),
+          title: translate("updater.title"),
+          message: translate("updater.check.none"),
         })
       );
     });
@@ -97,7 +97,7 @@ describe("SettingsSummary", () => {
     await userEvent.click(checkButton());
 
     const updateButton = await screen.findByRole("button", {
-      name: translate("en", "updater.update"),
+      name: translate("updater.update"),
     });
     expect(updateAtoms.promptOpen.get()).toBe(true);
     expect(mockUpdaterCheck).toHaveBeenCalledTimes(1);
@@ -118,7 +118,7 @@ describe("SettingsSummary", () => {
       expect(notificationAtoms.items.get()).toContainEqual(
         expect.objectContaining({
           type: "error",
-          title: translate("en", "updater.check.error"),
+          title: translate("updater.check.error"),
           message: "network down",
         })
       );

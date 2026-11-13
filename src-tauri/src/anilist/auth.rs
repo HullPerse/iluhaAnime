@@ -790,7 +790,17 @@ pub async fn save_anilist_entry(
             return Err(error);
         }
     };
-    Ok(parse_saved_entry(&json["data"]["SaveMediaListEntry"]))
+    let saved = parse_saved_entry(&json["data"]["SaveMediaListEntry"]);
+    if status.eq_ignore_ascii_case("COMPLETED") && crate::cards::config::CARDS_GRANT_ENABLED {
+        crate::cards::grant::maybe_grant_for_completion(
+            &app_handle,
+            media_id,
+            &token,
+            proxy.as_deref(),
+        )
+        .await;
+    }
+    Ok(saved)
 }
 
 #[tauri::command]

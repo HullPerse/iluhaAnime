@@ -32,7 +32,7 @@ import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showErrorOnce } from "@/lib/core/ui/notification.utils";
-import { paginate } from "@/lib/core/collection/pagination.utils";
+import { paginate } from "@/lib/core/text/pagination.utils";
 import {
   addAnilistFriend,
   cacheAnilistProfile,
@@ -592,8 +592,6 @@ function AnilistRoute() {
       {views.spotlight && source.caps.modals && (
         <SpotlightModal
           hasUser={!!user}
-          isFavorite={(id) => favouriteIds.has(id)}
-          scoreFormat={viewerScoreFormat}
           detail={detailBundle}
           onClose={() => handleCloseModal("spotlight")}
         />

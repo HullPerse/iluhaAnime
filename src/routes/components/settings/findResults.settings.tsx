@@ -3,14 +3,8 @@ import { useEffect, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { SETTINGS_FIND_TAB_ORDER, SETTINGS_FIND_TAB_TITLES } from "@/config/settings/find.config";
-import {
-  findHitLabel,
-  findHitMatched,
-  findHitRanges,
-  findSectionTitleKey,
-} from "@/lib/core/search/find.utils";
+import { findHitLabel, findHitRanges, findSectionTitleKey } from "@/lib/core/search/find.utils";
 import type { SettingsFindHit } from "@/types/core/find";
-import type { Locale } from "@/types/core/i18n";
 
 import { FindMarkedText } from "./findResults/markedText.findResults";
 
@@ -27,9 +21,8 @@ export function FindResults({
   onJump: (hit: SettingsFindHit) => void;
   listId: string;
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const listRef = useRef<HTMLDivElement>(null);
-  const other: Locale = locale === "ru" ? "en" : "ru";
 
   useEffect(() => {
     listRef.current
@@ -72,8 +65,6 @@ export function FindResults({
                   rowIndex += 1;
                   const index = rowIndex;
                   const active = index === activeIndex;
-                  const matchedCurrent = findHitMatched(hit, locale);
-                  const primaryLocale = matchedCurrent ? locale : other;
                   const sectionTitleKey = findSectionTitleKey(hit.entry.sectionId);
                   return (
                     <button
@@ -96,8 +87,8 @@ export function FindResults({
                     >
                       <span className="block">
                         <FindMarkedText
-                          text={findHitLabel(hit, primaryLocale)}
-                          ranges={findHitRanges(hit, primaryLocale)}
+                          text={findHitLabel(hit)}
+                          ranges={findHitRanges(hit)}
                           active={active}
                         />
                       </span>
@@ -107,11 +98,6 @@ export function FindResults({
                           active ? "text-white" : "text-hint"
                         )}
                       >
-                        {!matchedCurrent && (
-                          <span className="border border-current px-0.5 leading-tight">
-                            {primaryLocale.toUpperCase()}
-                          </span>
-                        )}
                         {hit.entry.kind === "setting" && sectionTitleKey
                           ? `${t(SETTINGS_FIND_TAB_TITLES[tab])} / ${t(sectionTitleKey)}`
                           : t(SETTINGS_FIND_TAB_TITLES[tab])}

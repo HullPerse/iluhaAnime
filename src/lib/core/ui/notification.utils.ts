@@ -49,15 +49,15 @@ export function formatRelativeTime(timestamp: number, locale: Locale): string {
   return formatDistanceToNowOwn(timestamp, locale);
 }
 
-export function resolveNotificationText(
-  payload: ShowNotificationPayload,
-  locale: Locale
-): { title: string; body: string } {
+export function resolveNotificationText(payload: ShowNotificationPayload): {
+  title: string;
+  body: string;
+} {
   const title = payload.titleKey
-    ? translate(locale, toLocaleKey(payload.titleKey), payload.titleVars)
+    ? translate(toLocaleKey(payload.titleKey), payload.titleVars)
     : (payload.title ?? "");
   const body = payload.bodyKey
-    ? translate(locale, toLocaleKey(payload.bodyKey), payload.bodyVars)
+    ? translate(toLocaleKey(payload.bodyKey), payload.bodyVars)
     : (payload.body ?? "");
   return { body, title };
 }
@@ -72,11 +72,7 @@ export async function openNotificationTarget(
     return "failed";
   }
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    const language = settingsAtoms.language.get();
-    showWarning(
-      translate(language, "network.offline.title"),
-      translate(language, "network.action.unavailable")
-    );
+    showWarning(translate("network.offline.title"), translate("network.action.unavailable"));
     return "failed";
   }
   if (!settingsAtoms.anilistTabEnabled.get()) return "tab-disabled";

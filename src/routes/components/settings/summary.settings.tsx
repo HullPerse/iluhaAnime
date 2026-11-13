@@ -10,7 +10,7 @@ import { sqliteApi } from "@/api/sqlite.api";
 import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { resetCoverCache } from "@/hooks/collection/cache.hook";
+import { resetCoverCache } from "@/hooks/coverCache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";

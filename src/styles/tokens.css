@@ -25,6 +25,11 @@
   --color-destructive-trans: color-mix(in srgb, var(--color-destructive) 70%, transparent);
   --color-muted-trans: color-mix(in srgb, var(--color-muted) 50%, transparent);
   --color-fav-gold: #facc15;
+  --color-card-junk: var(--color-muted);
+  --color-card-common: var(--color-success);
+  --color-card-rare: var(--color-secondary);
+  --color-card-epic: #800080;
+  --color-card-legendary: #b8860b;
   --color-torrent-downloading: var(--color-highlight);
   --color-torrent-seeding: #f97316;
   --color-torrent-done: var(--color-success);

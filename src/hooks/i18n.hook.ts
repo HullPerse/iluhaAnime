@@ -11,7 +11,7 @@ export function useI18n() {
     () => ({
       locale,
       t: (key: TranslationKey, variables?: TranslationVariables) =>
-        translate(locale, key, variables),
+        translate(key, variables),
     }),
     [locale]
   );

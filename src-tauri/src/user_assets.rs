@@ -74,37 +74,6 @@ pub(crate) fn remote_images_dir(app: &tauri::AppHandle) -> Result<PathBuf, Strin
     images_dir(app, REMOTE_IMAGES_TABLE)
 }
 
-pub fn is_safe_asset_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 128
-        && id.chars().all(|character| {
-            character.is_ascii_alphanumeric() || character == '_' || character == '-'
-        })
-}
-
-fn resolve_asset_file_in(dir: &Path, id: &str) -> Option<PathBuf> {
-    if !is_safe_asset_id(id) {
-        return None;
-    }
-    let thumb = dir.join(format!("{}.jpg", thumb_id(id)));
-    if thumb.is_file() {
-        return Some(thumb);
-    }
-    data_file_names(id)
-        .into_iter()
-        .map(|name| dir.join(name))
-        .find(|path| path.is_file())
-}
-
-pub fn resolve_asset_file(
-    app: &tauri::AppHandle,
-    table: &str,
-    id: &str,
-) -> Result<Option<PathBuf>, String> {
-    let dir = images_dir(app, table)?;
-    Ok(resolve_asset_file_in(&dir, id))
-}
-
 fn open_database_at(path: &Path) -> Result<Connection, String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("create assets dir: {e}"))?;
@@ -1605,37 +1574,6 @@ mod tests {
         let red = solid_jpeg(64, 64, [220, 20, 20]);
         let blue = solid_jpeg(64, 64, [20, 20, 220]);
         assert_eq!(compare_cover_bytes(&red, &blue), Ok(CoverDiff::Different));
-    }
-
-    #[test]
-    fn asset_ids_reject_path_traversal() {
-        assert!(is_safe_asset_id("t336_0123456789abcdef0123"));
-        assert!(is_safe_asset_id("cover-1_thumb"));
-        assert!(!is_safe_asset_id(""));
-        assert!(!is_safe_asset_id("../secret"));
-        assert!(!is_safe_asset_id("a/b"));
-        assert!(!is_safe_asset_id("a\\b"));
-        assert!(!is_safe_asset_id("a.b"));
-        assert!(!is_safe_asset_id(&"a".repeat(129)));
-    }
-
-    #[test]
-    fn resolve_asset_file_prefers_thumb_then_original() {
-        let root = temp_root("resolve_asset");
-        fs::write(root.join("abc123.png"), b"x").expect("write original");
-        assert_eq!(
-            resolve_asset_file_in(&root, "abc123"),
-            Some(root.join("abc123.png"))
-        );
-        let thumb_name = format!("{}.jpg", thumb_id("abc123"));
-        fs::write(root.join(&thumb_name), b"x").expect("write thumb");
-        assert_eq!(
-            resolve_asset_file_in(&root, "abc123"),
-            Some(root.join(thumb_name))
-        );
-        assert_eq!(resolve_asset_file_in(&root, "missing"), None);
-        assert_eq!(resolve_asset_file_in(&root, "../abc123"), None);
-        std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
     #[test]

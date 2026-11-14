@@ -125,20 +125,6 @@ pub fn lock_app_data_write_timeout(timeout: Duration) -> Result<MutexGuard<'stat
     }
 }
 
-/// Like [`lock_app_data_write_timeout`], but only when `database` selects the
-/// shared app database. Returns `Ok(None)` for unrelated files so they keep
-/// their own concurrency.
-pub fn lock_app_data_write_if_timeout(
-    database: &str,
-    timeout: Duration,
-) -> Result<Option<MutexGuard<'static, ()>>, String> {
-    if database == "app_data" {
-        lock_app_data_write_timeout(timeout).map(Some)
-    } else {
-        Ok(None)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,20 +170,6 @@ mod tests {
         let _acquired =
             lock_app_data_write_timeout(Duration::from_secs(5)).expect("acquires after release");
         holder.join().expect("holder thread");
-    }
-
-    #[test]
-    fn write_lock_if_timeout_is_selective() {
-        assert!(
-            lock_app_data_write_if_timeout("app_data", Duration::from_secs(1))
-                .expect("app_data locks")
-                .is_some()
-        );
-        assert!(
-            lock_app_data_write_if_timeout("franchise", Duration::from_secs(1))
-                .expect("other files skip")
-                .is_none()
-        );
     }
 }
 

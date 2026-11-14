@@ -7,8 +7,8 @@ pub mod unified_index;
 
 pub use cache::{prune_cache_namespaces, put_app_cache, read_cached_payload};
 pub use db::{
-    lock_app_data_write_if_timeout, lock_app_data_write_timeout, now_seconds, open_database,
-    remove_database, APP_DATA_WRITE_TIMEOUT,
+    lock_app_data_write_timeout, now_seconds, open_database, remove_database,
+    APP_DATA_WRITE_TIMEOUT,
 };
 #[allow(unused_imports)]
 pub use stream_history::{

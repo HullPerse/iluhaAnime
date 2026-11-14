@@ -1,5 +1,8 @@
-import { CARD_KINDS, CARD_RARITIES, CARD_VARIANTS } from "@/config/cards/labels.config";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
+
+import { isCardKind, isCardRarity, isCardVariant } from "@/lib/cards/guards.utils";
 import type { CardGiftStack, OpenedCard } from "@/types/api/cards";
+import type { GiftPayload } from "@/types/ui/collection";
 import type {
   CardGiftDeepLink,
   CardGiftPreview,
@@ -13,11 +16,6 @@ const GIFT_ID_RX = /^[A-Za-z0-9_-]{1,96}$/;
 const BASE64URL_RX = /^[A-Za-z0-9_-]+$/;
 const PREVIEW_TITLE_MAX = 200;
 const PREVIEW_URL_MAX = 2048;
-
-interface GiftPayload {
-  readonly cards: CardGiftStack[];
-  readonly preview?: CardGiftPreview;
-}
 
 function encodeBase64(value: unknown): string {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
@@ -34,9 +32,13 @@ function decodeBase64(raw: string): unknown {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function parsePreview(value: unknown): CardGiftPreview | null {
-  if (typeof value !== "object" || value === null) return null;
-  const row = value as Record<string, unknown>;
+  if (!isRecord(value)) return null;
+  const row = value;
   const title = typeof row.title === "string" ? row.title.trim().slice(0, PREVIEW_TITLE_MAX) : "";
   if (title === "") return null;
   const collectionTitle =
@@ -65,52 +67,66 @@ function parsePreviewUrl(value: unknown): string | null {
   return /^https?:\/\//iu.test(url) ? url : null;
 }
 
+function decodeCard(value: unknown): CardGiftStack | null {
+  if (!isRecord(value)) return null;
+  const card = value;
+  if (typeof card.rarity !== "string" || !isCardRarity(card.rarity)) return null;
+  if (typeof card.variant !== "string" || !isCardVariant(card.variant)) return null;
+  if (typeof card.copies !== "number" || !Number.isSafeInteger(card.copies)) return null;
+  if (card.copies < 1 || card.copies > 1_000_000) return null;
+  if (typeof card.value !== "number" || !Number.isSafeInteger(card.value) || card.value < 1) {
+    return null;
+  }
+  if (
+    typeof card.firstObtainedAt !== "number" ||
+    !Number.isSafeInteger(card.firstObtainedAt) ||
+    card.firstObtainedAt < 0
+  ) {
+    return null;
+  }
+  if (
+    typeof card.lastObtainedAt !== "number" ||
+    !Number.isSafeInteger(card.lastObtainedAt) ||
+    card.lastObtainedAt < 0
+  ) {
+    return null;
+  }
+  if (card.lastObtainedAt < card.firstObtainedAt) return null;
+  return {
+    rarity: card.rarity,
+    variant: card.variant,
+    copies: card.copies,
+    value: card.value,
+    firstObtainedAt: card.firstObtainedAt,
+    lastObtainedAt: card.lastObtainedAt,
+  };
+}
+
 function decodeCards(value: unknown): CardGiftStack[] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > 64) return null;
   const cards: CardGiftStack[] = [];
   for (const entry of value) {
-    if (typeof entry !== "object" || entry === null) return null;
-    const card = entry as Record<string, unknown>;
-    if (!CARD_RARITIES.includes(card.rarity as (typeof CARD_RARITIES)[number])) return null;
-    if (!CARD_VARIANTS.includes(card.variant as (typeof CARD_VARIANTS)[number])) return null;
-    if (!Number.isSafeInteger(card.copies) || (card.copies as number) < 1) return null;
-    if ((card.copies as number) > 1_000_000) return null;
-    if (!Number.isSafeInteger(card.value) || (card.value as number) < 1) return null;
-    if (!Number.isSafeInteger(card.firstObtainedAt) || (card.firstObtainedAt as number) < 0) {
-      return null;
-    }
-    if (!Number.isSafeInteger(card.lastObtainedAt) || (card.lastObtainedAt as number) < 0) {
-      return null;
-    }
-    if ((card.lastObtainedAt as number) < (card.firstObtainedAt as number)) return null;
-    cards.push({
-      rarity: card.rarity as CardGiftStack["rarity"],
-      variant: card.variant as CardGiftStack["variant"],
-      copies: card.copies as number,
-      value: card.value as number,
-      firstObtainedAt: card.firstObtainedAt as number,
-      lastObtainedAt: card.lastObtainedAt as number,
-    });
+    const card = decodeCard(entry);
+    if (card === null) return null;
+    cards.push(card);
   }
   return cards;
 }
 
 function decodePayload(raw: string): GiftPayload | null {
-  try {
+  const [payload, error] = attemptSync((): GiftPayload | null => {
     const parsed = decodeBase64(raw);
     if (Array.isArray(parsed)) {
       const cards = decodeCards(parsed);
       return cards === null ? null : { cards };
     }
-    if (typeof parsed !== "object" || parsed === null) return null;
-    const row = parsed as Record<string, unknown>;
-    const cards = decodeCards(row.cards);
+    if (!isRecord(parsed)) return null;
+    const cards = decodeCards(parsed.cards);
     if (cards === null) return null;
-    const preview = parsePreview(row.preview);
+    const preview = parsePreview(parsed.preview);
     return preview === null ? { cards } : { cards, preview };
-  } catch {
-    return null;
-  }
+  });
+  return error === null ? payload : null;
 }
 
 function parseCommon(
@@ -122,8 +138,8 @@ function parseCommon(
   if (!/^\d{1,10}$/.test(entityIdRaw)) return null;
   const entityId = Number(entityIdRaw);
   if (!Number.isSafeInteger(entityId) || entityId < 1) return null;
-  if (!CARD_KINDS.includes(kind as (typeof CARD_KINDS)[number])) return null;
-  return { giftId, kind: kind as CardGiftDeepLink["kind"], entityId };
+  if (!isCardKind(kind)) return null;
+  return { giftId, kind, entityId };
 }
 
 export function cardGiftPreview(
@@ -170,8 +186,8 @@ export function parseCardGiftLink(raw: string): CardGiftDeepLink | null {
   const [giftId, kind, entityIdRaw, rarity, variant, valueRaw] = parts;
   const common = parseCommon(giftId, kind, entityIdRaw);
   if (!common) return null;
-  if (!CARD_RARITIES.includes(rarity as (typeof CARD_RARITIES)[number])) return null;
-  if (!CARD_VARIANTS.includes(variant as (typeof CARD_VARIANTS)[number])) return null;
+  if (!isCardRarity(rarity)) return null;
+  if (!isCardVariant(variant)) return null;
   let value = 0;
   if (valueRaw !== undefined) {
     if (!/^\d{1,10}$/.test(valueRaw)) return null;
@@ -182,8 +198,8 @@ export function parseCardGiftLink(raw: string): CardGiftDeepLink | null {
     ...common,
     cards: [
       {
-        rarity: rarity as CardGiftStack["rarity"],
-        variant: variant as CardGiftStack["variant"],
+        rarity,
+        variant,
         copies: 1,
         value,
         firstObtainedAt: 0,

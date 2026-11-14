@@ -21,3 +21,17 @@ export function isValidProxyUrlFor(
 export function isValidProxyUrl(value: string | null): boolean {
   return isValidProxyUrlFor(value);
 }
+
+/**
+ * Per-feature proxies inherit the AniList proxy when the override is empty,
+ * so existing setups keep routing card art and Daily through it.
+ */
+export function effectiveProxyUrl(
+  override: string | null | undefined,
+  fallback: string | null | undefined
+): string | null {
+  const primary = override?.trim() ?? "";
+  if (primary !== "") return primary;
+  const secondary = fallback?.trim() ?? "";
+  return secondary !== "" ? secondary : null;
+}

@@ -1,5 +1,6 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -26,19 +27,19 @@ export default function CopyLinkButton({
   useEffect(() => () => hideRef.current?.cancel(), []);
 
   const copy = async () => {
-    try {
-      await writeText(value);
-      setCopied(true);
-      onCopied?.();
-      if (hideRef.current === null) {
-        hideRef.current = new Debouncer(() => setCopied(false), { wait: 2000 });
-      }
-      hideRef.current.maybeExecute();
-    } catch {
+    const [, error] = await attempt(writeText(value));
+    if (error !== null) {
       hideRef.current?.cancel();
       setCopied(false);
       onError?.();
+      return;
     }
+    setCopied(true);
+    onCopied?.();
+    if (hideRef.current === null) {
+      hideRef.current = new Debouncer(() => setCopied(false), { wait: 2000 });
+    }
+    hideRef.current.maybeExecute();
   };
 
   const label = copied ? t("collection.gift.copied") : t("collection.gift.copy");

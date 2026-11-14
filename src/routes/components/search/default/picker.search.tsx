@@ -128,10 +128,13 @@ function TorrentFilePicker({
   const handleConfirm = useCallback(async () => {
     if (!torrent) return;
     setIsLoading(true);
-    const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
-    const [, error] = await attempt(onConfirm([...selected], saveDir, subFolder, sequential));
-    if (error) showError(t("common.error"), error.message);
-    setIsLoading(false);
+    try {
+      const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
+      const [, error] = await attempt(onConfirm([...selected], saveDir, subFolder, sequential));
+      if (error) showError(t("common.error"), error.message);
+    } finally {
+      setIsLoading(false);
+    }
   }, [torrent, selected, saveDir, sequential, onConfirm, t]);
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;

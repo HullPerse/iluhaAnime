@@ -24,6 +24,7 @@ export type ResetSectionId =
   | "proxy.anilist"
   | "proxy.news"
   | "proxy.animelib"
+  | "proxy.collection"
   | "proxy.torrent"
   | "proxy.sources"
   | "theme.schedule"

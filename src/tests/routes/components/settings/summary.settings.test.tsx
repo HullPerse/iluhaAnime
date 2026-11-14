@@ -10,20 +10,10 @@ import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import { notificationAtoms } from "@/store/notification.store";
 import { patchSettings } from "@/store/settings.store";
 import { updateAtoms } from "@/store/update.store";
-import type { SqliteDatabaseInfo } from "@/types/core/sqlite";
 
 import { mockUpdaterCheck } from "@/tests/mocks";
 
 const ONLINE = Object.getOwnPropertyDescriptor(window.navigator, "onLine");
-
-const DATABASE: SqliteDatabaseInfo = {
-  id: "main",
-  label: "main",
-  fileName: "app_data.sqlite3",
-  available: true,
-  sizeBytes: 2048,
-  tables: [],
-};
 
 const renderSummary = (seed: Update | null = null) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -31,8 +21,6 @@ const renderSummary = (seed: Update | null = null) => {
   queryClient.setQueryData(queryKeys.summaryVersion(), "5.0.0");
   queryClient.setQueryData(queryKeys.summaryFfprobe(), true);
   queryClient.setQueryData(queryKeys.summaryStorage(), {
-    database: DATABASE,
-    backups: [],
     images: { bytes: 0, count: 0 },
     anilistCache: { hits: 0, misses: 0 },
     videoCache: { hits: 0, misses: 0 },
@@ -66,7 +54,7 @@ describe("SettingsSummary", () => {
     expect(
       await screen.findByText(translate("settings.summary.ffmpeg.installed"))
     ).not.toBeNull();
-    expect(await screen.findByText("app_data.sqlite3")).not.toBeNull();
+    expect(await screen.findByText(translate("settings.summary.images"))).not.toBeNull();
     expect(screen.queryByText("Theme")).toBeNull();
     expect(screen.queryByText("Learning")).toBeNull();
   });

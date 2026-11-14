@@ -4,6 +4,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { entryListTime, fuzzyDateToTime } from "@/lib/anilist/entries.utils";
 import type { EntryListInfo } from "@/types/anilist/entries";
 import { formatDistanceToNowOwn } from "@/lib/core/search/distance.utils";
+import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
 
 function CardListDate({
   entry,
@@ -23,7 +24,7 @@ function CardListDate({
       </span>
     );
   }
-  const absolute = new Date(time).toLocaleDateString(locale);
+  const absolute = new Date(time).toLocaleDateString(locale, { timeZone: LOCAL_TIME_ZONE });
   return (
     <span className="text-muted ml-auto" title={absolute}>
       {formatDistanceToNowOwn(time, locale)}

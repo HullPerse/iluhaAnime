@@ -70,27 +70,6 @@ export interface ConfirmDialogProps {
   onClose?: () => void;
 }
 
-export interface InputDialogProps {
-  header: string;
-  label: string;
-  defaultValue?: string;
-  placeholder?: string;
-  onSubmit: (value: string) => void;
-  onClose: () => void;
-}
-
-interface SelectDialogOption {
-  value: string;
-  label: string;
-}
-
-export interface SelectDialogProps {
-  header: string;
-  label: string;
-  options: SelectDialogOption[];
-  onSubmit: (value: string) => void;
-  onClose: () => void;
-}
 
 export interface ErrorBoundaryProps {
   children: ReactNode;

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { excerptOf } from "@/lib/news/text.utils";
+import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
 import type { NewsItem } from "@/types/news/news";
 
 import StripNews from "@/routes/components/news/strip.news";
@@ -24,6 +25,7 @@ export default function CardNews({
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: LOCAL_TIME_ZONE,
       }).format(new Date(item.createdAt)),
     [item.createdAt, locale]
   );

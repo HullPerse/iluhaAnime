@@ -17,7 +17,7 @@ export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {
     () => ({
       ...toFatalInfo(error, {
         scope: "router",
-        route: window.location.pathname,
+        route: typeof window === "undefined" ? "" : window.location.pathname,
         themeName: readThemeName(),
       }),
       retryCount: 0,

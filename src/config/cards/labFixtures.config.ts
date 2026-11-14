@@ -4,20 +4,11 @@ import type {
   CardVariant,
   OpenedCard,
   ShopPackConfig,
-  VariantWeights,
 } from "@/types/api/cards";
 
 const KINDS: CardKind[] = ["anime", "manga", "character", "staff", "studio"];
 const RARITIES: CardRarity[] = ["junk", "common", "rare", "epic", "legendary"];
 const VARIANTS: CardVariant[] = ["normal", "foil", "holo"];
-
-const RARITY_RANK: Record<CardRarity, number> = {
-  junk: 0,
-  common: 1,
-  rare: 2,
-  epic: 3,
-  legendary: 4,
-};
 
 const BASE_VALUES: Record<CardRarity, number> = {
   junk: 1,
@@ -165,7 +156,7 @@ export const LAB_BINDER: OpenedCard[] = [
   pick("staff", "epic", "normal"),
 ];
 
-export interface LabShelfCharacter {
+interface LabShelfCharacter {
   id: number;
   name: string;
   imageUrl: string;
@@ -256,15 +247,9 @@ export const LAB_SHOP_PACKS: ShopPackConfig[] = [
   },
 ];
 
-export const LAB_VARIANT_WEIGHTS: VariantWeights = { normal: 85, foil: 12, holo: 3 };
 export const LAB_WALLET = 500;
 
 /** Debug helper for the matrix counter. */
 export function labCombinationCount(): number {
   return KINDS.length * RARITIES.length * VARIANTS.length;
-}
-
-/** Exposed only so the lab can explain which tier came from where. */
-export function labRarityRank(rarity: CardRarity): number {
-  return RARITY_RANK[rarity];
 }

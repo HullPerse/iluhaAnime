@@ -7,7 +7,7 @@ use tauri::AppHandle;
 use super::config::{packs_for_completed, starter_packs, CARDS_GRANT_ENABLED, CARD_PACK_SIZE};
 use super::packs::spawn_prepare_packs_with_proxy;
 use super::rng::seed_now;
-use crate::anilist::auth::{get_anilist_lists, AniListCollection};
+use crate::anilist::auth::{check_anilist_auth, get_anilist_lists, AniListCollection};
 use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
     insert_pack, insert_pack_grant, insert_starter_grant, starter_grant, CardPackRow, LOCAL_USER_ID,
@@ -20,6 +20,16 @@ use crate::scrapers::clients::resolve_proxy;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrantResult {
+    pub granted: bool,
+    pub packs: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StarterStatus {
+    pub connected: bool,
+    pub user_id: u64,
+    pub completed: u32,
     pub granted: bool,
     pub packs: i64,
 }
@@ -191,6 +201,39 @@ pub async fn fetch_episode_count(
         .and_then(|value| i32::try_from(value).ok()))
 }
 
+/// The profile state for the manual starter claim. It never grants anything.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn cards_starter_status(
+    app: AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<StarterStatus, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let Some(user) = check_anilist_auth(app.clone(), proxy.clone(), None).await? else {
+        return Ok(StarterStatus {
+            connected: false,
+            user_id: 0,
+            completed: 0,
+            granted: false,
+            packs: 0,
+        });
+    };
+    let lists = get_anilist_lists(app.clone(), user.id, Some(true), proxy, None).await?;
+    let completed = completed_media_ids(&lists).len() as u32;
+    let connection = open_database(&app)?;
+    let granted = starter_grant(&connection, LOCAL_USER_ID)?;
+    Ok(StarterStatus {
+        connected: true,
+        user_id: user.id,
+        completed,
+        granted: granted.is_some(),
+        packs: granted.map_or(0, |row| row.packs),
+    })
+}
+
+/// Manual starter claim from the Collection header. The automatic completion
+/// grant stays behind `CARDS_GRANT_ENABLED`; this command is the only starter path.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn cards_grant_starter(
@@ -199,18 +242,18 @@ pub async fn cards_grant_starter(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<GrantResult, String> {
-    if !CARDS_GRANT_ENABLED {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let lists = get_anilist_lists(app.clone(), user_id, Some(true), proxy.clone(), None).await?;
+    let completed = completed_media_ids(&lists).len() as u32;
+    if completed == 0 {
         return Ok(GrantResult {
             granted: false,
             packs: 0,
         });
     }
-    let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let lists = get_anilist_lists(app.clone(), user_id, Some(true), proxy.clone(), None).await?;
-    let completed = completed_media_ids(&lists).len() as u32;
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
-    let result = grant_starter_in(&connection, completed, CARDS_GRANT_ENABLED)?;
+    let result = grant_starter_in(&connection, completed, true)?;
     drop(connection);
     if result.granted {
         spawn_prepare_packs_with_proxy(app, proxy);

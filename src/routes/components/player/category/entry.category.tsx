@@ -2,7 +2,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { FileEntryListSchema } from "@/api/fileIndex.schema";
+import { FileEntryListSchema } from "@/schemas/fileIndex.schema";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent/torrent";
 
 import TorrentFilesSection from "@/routes/components/torrent/file.torrent";

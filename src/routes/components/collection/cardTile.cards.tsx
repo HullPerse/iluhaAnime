@@ -4,14 +4,9 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { useI18n } from "@/hooks/i18n.hook";
 import { cardsAtoms } from "@/store/cards.store";
 
-import CardFace from "@/routes/components/collection/cardFace.cards";
-import type { CardFaceItem } from "@/routes/components/collection/cardFace.cards";
+import type { CardTileItem } from "@/types/ui/collection";
 
-export interface CardTileItem extends CardFaceItem {
-  copies?: number;
-  totalValue?: number;
-  firstObtainedAt?: number;
-}
+import CardFace from "@/routes/components/collection/cardFace.cards";
 
 export default function CardTile({ card, onOpen }: { card: CardTileItem; onOpen?: () => void }) {
   const { t } = useI18n();

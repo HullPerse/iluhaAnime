@@ -74,6 +74,7 @@ export default function CoverCorrectionModal({
   };
 
   const applyOnEnter = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (event.nativeEvent.isComposing) return;
     if (event.key === "Enter" && selectedId !== null) apply();
   };
 

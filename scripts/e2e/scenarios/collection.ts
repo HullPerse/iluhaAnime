@@ -1,74 +1,127 @@
-// Collection scenario: seeds through the real import command, then asserts
-// the list renders, filtering and sorting work.
+// Collection scenario: enables the card tab in the isolated e2e profile and
+// walks the current surface (packs, album, shop, daily game, gifts).
+//
+// It runs signed out, so cards cannot be seeded through the test grant
+// (`cards_grant_test_pack` requires an AniList account). The scenario therefore
+// checks the empty states and the surfaces that do not need an account.
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import type { Page } from "playwright-core";
 
-import { TAB, clickTabByAnyOf, invokeRetryOnBusy, sleep } from "../cdp";
+import { clickTabByAnyOf, sleep, TAB, waitForReady } from "../cdp";
 import type { Scenario } from "../harness";
 
-function fixture(): Record<string, unknown> {
-  const raw = readFileSync(
-    join(process.cwd(), "scripts", "e2e", "fixtures", "collection.json"),
-    "utf-8"
+const SETTINGS_KEY = "iluha.v1.settings";
+const SETTINGS_SCHEMA_VERSION = 61;
+
+async function enableCollectionTab(page: Page): Promise<void> {
+  await page.evaluate(
+    ({ key, sv }) => {
+      const raw = localStorage.getItem(key);
+      const envelope =
+        raw === null
+          ? { f: 1, store: "settings", sv, ts: Date.now(), data: {} }
+          : (JSON.parse(raw) as {
+              f: number;
+              store: string;
+              sv: number;
+              ts?: number;
+              data: Record<string, unknown>;
+            });
+      envelope.data = { ...envelope.data, collectionTabEnabled: true };
+      localStorage.setItem(key, JSON.stringify(envelope));
+    },
+    { key: SETTINGS_KEY, sv: SETTINGS_SCHEMA_VERSION }
   );
-  const items = JSON.parse(raw) as Array<Record<string, unknown>>;
-  return { customFieldDefs: [], exportedAt: 0, items, version: 1 };
+  await page.reload();
+  await waitForReady(page);
+}
+
+async function expectVisible(page: Page, text: string, timeout = 15_000): Promise<void> {
+  await page.locator(`text=${text}`).first().waitFor({ timeout });
+}
+
+async function clickTab(page: Page, name: string): Promise<void> {
+  const tab = page.getByRole("tab", { name }).first();
+  // The active tab is disabled on purpose, so selecting it again is a no-op.
+  if ((await tab.getAttribute("aria-selected")) === "true") return;
+  await tab.click({ timeout: 10_000 });
 }
 
 export const collection: Scenario = {
   name: "collection",
   async run({ page, step }) {
-    await step("import fixture collection", async () => {
-      const summary = await invokeRetryOnBusy<{ imported: number }>(
-        page,
-        "import_collection_data",
-        { data: fixture(), strategy: "create_new" }
-      );
-      if (summary.imported !== 12) throw new Error(`imported=${summary.imported}, expected 12`);
+    await step("enable the collection tab", async () => {
+      await enableCollectionTab(page);
+      await page.locator('[role="tab"]', { hasText: "Коллекция" }).first().waitFor({
+        timeout: 10_000,
+      });
     });
 
-    await step("collection tab lists items", async () => {
+    await step("collection shell renders", async () => {
       await clickTabByAnyOf(page, TAB.collection);
-      await page.locator("text=Sousou no Frieren").first().waitFor({ timeout: 25_000 });
-      // A persisted search query would silently narrow the list to one row, so
-      // assert the box starts empty before counting cards.
-      const search = page.getByPlaceholder(/Search title|Поиск по названию/i).first();
-      const value = (await search.inputValue()) ?? "";
-      if (value !== "") throw new Error(`search box starts with a stale query: "${value}"`);
-      // Cards render in staggered batches, so poll instead of sampling once.
-      const cards = page.locator("text=/Frieren|Bocchi|Odd Taxi|Monster/");
-      const started = Date.now();
-      let visible = 0;
-      while (Date.now() - started < 15_000) {
-        visible = await cards.count();
-        if (visible >= 4) return;
-        await sleep(500);
+      await expectVisible(page, "Карты");
+      await expectVisible(page, "Магазин");
+      await expectVisible(page, "Чубрики");
+      const errors = await page.locator('[role="alert"]').count();
+      if (errors > 0) throw new Error("collection shell rendered an alert");
+    });
+
+    await step("packs tab has no packs while signed out", async () => {
+      await clickTab(page, "Паки");
+      await sleep(1_500);
+      const packCards = await page.locator("article").count();
+      if (packCards !== 0) throw new Error(`expected no packs, found ${packCards} cards`);
+      const cardCount = await page.getByTestId("collection-card-count").textContent();
+      if ((cardCount ?? "").trim() !== "0") {
+        throw new Error(`card counter is "${cardCount}", expected "0"`);
       }
-      throw new Error(`only ${visible} expected titles visible`);
     });
 
-    await step("search narrows the list", async () => {
-      // The collection search box has no type attribute (base-ui Input), so it
-      // is reached by placeholder: "Search title..." / "Поиск по названию...".
-      const search = page.getByPlaceholder(/Search title|Поиск по названию/i).first();
-      await search.waitFor({ timeout: 10_000 });
-      await search.fill("bocchi");
-      await page.locator("text=Bocchi the Rock!").first().waitFor({ timeout: 20_000 });
-      // Wait for the row to leave instead of sampling the count once: the
-      // filter result re-renders asynchronously after the query is typed.
-      const stray = page.locator("text=Monster").first();
-      const gone = await stray
-        .waitFor({ state: "hidden", timeout: 10_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (!gone) throw new Error("unrelated item still visible after search");
+    await step("album shows the empty state and toolbar", async () => {
+      await clickTab(page, "Альбом");
+      await page
+        .getByPlaceholder("Поиск по карточкам")
+        .first()
+        .waitFor({ timeout: 10_000 });
+      await expectVisible(page, "В альбоме пока нет карточек.");
     });
 
-    await step("clearing search restores the list", async () => {
-      const search = page.getByPlaceholder(/Search title|Поиск по названию/i).first();
-      await search.fill("");
-      await page.locator("text=Monster").first().waitFor({ timeout: 20_000 });
+    await step("album binder toggle switches back to the grid", async () => {
+      await page.getByRole("button", { name: "Биндер", exact: true }).click({ timeout: 10_000 });
+      await page.getByRole("button", { name: "Сетка", exact: true }).waitFor({ timeout: 10_000 });
+    });
+
+    await step("collections mode renders without cards", async () => {
+      await page.getByRole("button", { name: "Коллекция", exact: true }).click({
+        timeout: 10_000,
+      });
+      await sleep(1_500);
+      const shelf = await page.getByTestId("collection-shelf").count();
+      if (shelf !== 0) throw new Error("shelf rendered without any owned collections");
+    });
+
+    await step("shop lists six packs and blocks a zero wallet", async () => {
+      await clickTab(page, "Магазин");
+      await page.locator(".cards-shop-pack").first().waitFor({ timeout: 15_000 });
+      const packs = await page.locator(".cards-shop-pack").count();
+      if (packs !== 6) throw new Error(`expected 6 shop packs, found ${packs}`);
+      const disabled = await page.locator(".cards-shop-buy:disabled").count();
+      if (disabled !== 6) throw new Error(`expected 6 unaffordable packs, found ${disabled}`);
+    });
+
+    await step("daily game renders its three modes", async () => {
+      await clickTab(page, "iluhaGuesser");
+      await expectVisible(page, "Кадры");
+      await expectVisible(page, "Опенинг");
+      await expectVisible(page, "На слух");
+      await expectVisible(page, "Серия:");
+    });
+
+    await step("gifts tab renders without a crash", async () => {
+      await clickTab(page, "Подарки");
+      await sleep(1_500);
+      const errors = await page.locator('[role="alert"]').count();
+      if (errors > 0) throw new Error("gifts tab rendered an alert");
     });
   },
 };

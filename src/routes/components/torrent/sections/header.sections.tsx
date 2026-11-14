@@ -120,6 +120,7 @@ export function TorrentHeader({
             className="h-6 min-w-0 flex-1 text-xs"
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing) return;
               if (event.key === "Enter") commitAlias(draft);
               else if (event.key === "Escape") setEditing(false);
             }}

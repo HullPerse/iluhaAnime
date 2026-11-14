@@ -72,12 +72,13 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-
-    const [data, error] = await attempt(systemApi.listDitherImageMeta());
-    if (error) showError(t("common.error"), t("search.dither.load.error"));
-    else setMetas(data);
-
-    setLoading(false);
+    try {
+      const [data, error] = await attempt(systemApi.listDitherImageMeta());
+      if (error) showError(t("common.error"), t("search.dither.load.error"));
+      else setMetas(data);
+    } finally {
+      setLoading(false);
+    }
   }, [t]);
 
   useEffect(() => {
@@ -136,16 +137,19 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       return;
     }
     setPreviewBusy(true);
-    const [image, error] = await attempt(systemApi.getDitherImage(selected));
-    setPreviewBusy(false);
-    if (error) {
-      showError(t("common.error"), t("search.dither.load.error"));
-      return;
+    try {
+      const [image, error] = await attempt(systemApi.getDitherImage(selected));
+      if (error) {
+        showError(t("common.error"), t("search.dither.load.error"));
+        return;
+      }
+      const mapped = toUserImage(image);
+      setRows((prev) => ({ ...prev, [mapped.id]: mapped }));
+      setPreviewImage(mapped);
+      setPreview(true);
+    } finally {
+      setPreviewBusy(false);
     }
-    const mapped = toUserImage(image);
-    setRows((prev) => ({ ...prev, [mapped.id]: mapped }));
-    setPreviewImage(mapped);
-    setPreview(true);
   };
   const patchDisplayFilters = (partial: Partial<WallpaperDisplayFilters>) => {
     patchSettings({ wallpaperFilters: { ...displayFilters, ...partial } });

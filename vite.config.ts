@@ -48,6 +48,66 @@ export default defineConfig({
         if (log.code === "MODULE_LEVEL_DIRECTIVE" && isCompilerRuntime) return;
         defaultHandler(level, log);
       },
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-react",
+              test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/u,
+              priority: 40,
+              minShareCount: 2,
+            },
+            {
+              name: "vendor-zod",
+              test: /node_modules[\\/]zod[\\/]/u,
+              priority: 30,
+              minShareCount: 2,
+            },
+            {
+              name: "vendor-query",
+              test: /node_modules[\\/]@tanstack[\\/]/u,
+              priority: 30,
+              minShareCount: 2,
+            },
+            {
+              name: "vendor-base-ui",
+              test: /node_modules[\\/](@base-ui|@floating-ui|use-sync-external-store)[\\/]/u,
+              priority: 20,
+              minShareCount: 2,
+            },
+            {
+              name: "vendor-icons",
+              test: /node_modules[\\/]lucide-react[\\/]/u,
+              priority: 20,
+              minShareCount: 2,
+            },
+            {
+              name: "vendor-classes",
+              test: /node_modules[\\/](cn|clsx|class-variance-authority)[\\/]/u,
+              priority: 20,
+              minShareCount: 2,
+            },
+            {
+              name: "vendor-tauri",
+              test: /node_modules[\\/]@tauri-apps[\\/]/u,
+              priority: 20,
+              minShareCount: 2,
+            },
+            {
+              name: "vendor-hp",
+              test: /node_modules[\\/]@hullperse[\\/]/u,
+              priority: 20,
+              minShareCount: 2,
+            },
+            {
+              name: "locale-ru",
+              test: /src[\\/]lib[\\/]locale[\\/]ru[\\/]/u,
+              priority: 10,
+              includeDependenciesRecursively: false,
+            },
+          ],
+        },
+      },
     },
     sourcemap: false,
   },

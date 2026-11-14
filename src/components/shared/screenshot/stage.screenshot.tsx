@@ -518,6 +518,7 @@ export default function ScreenshotStage({
   };
 
   const handleEditorKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return;
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -626,13 +627,12 @@ export default function ScreenshotStage({
               aria-label={label}
               onKeyDown={handleEditorKeyDown}
               onBlur={() => commitEditor()}
-              onChange={(event) =>
-                setEditor((previous) => {
-                  const next = previous ? { ...previous, value: event.target.value } : previous;
-                  editorRef.current = next;
-                  return next;
-                })
-              }
+              onChange={(event) => {
+                const current = editorRef.current;
+                const next = current ? { ...current, value: event.target.value } : current;
+                editorRef.current = next;
+                setEditor(next);
+              }}
             />
           )}
         </div>

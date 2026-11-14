@@ -8,6 +8,7 @@ import type {
 } from "react";
 
 import { settingsAtoms } from "@/store/settings.store";
+import type { CardDragState } from "@/types/ui/collection";
 
 /// Degrees of rotation per dragged pixel.
 const SPIN_SENSITIVITY = 0.5;
@@ -16,14 +17,6 @@ const SPIN_LIMIT_X = 82;
 /// Hover tilt, matching the previous "full" tilt the face used to do on its own.
 const HOVER_TILT_X = 8;
 const HOVER_TILT_Y = 12;
-
-interface DragState {
-  pointerId: number;
-  x: number;
-  y: number;
-  rotateX: number;
-  rotateY: number;
-}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -49,7 +42,7 @@ export default function CardSpin({
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
   const [spinning, setSpinning] = useState<boolean>(false);
   const rotatorRef = useRef<HTMLDivElement | null>(null);
-  const dragRef = useRef<DragState | null>(null);
+  const dragRef = useRef<CardDragState | null>(null);
   const settleRef = useRef<Animation | null>(null);
   const rotationRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 

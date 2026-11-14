@@ -183,20 +183,23 @@ export default function ScreenshotModal({
   const save = async () => {
     if (!canSave) return;
     setSaving(true);
-    const [, error] = await attempt(
-      systemApi.saveScreenshot({
-        sourcePath: capture.path,
-        dir,
-        name: name.trim(),
-        format,
-        crop: selection,
-        layers: stageRef.current?.layers() ?? undefined,
-      })
-    );
-    setSaving(false);
-    if (error) {
-      showError(t("common.error"), t("screenshot.save.error"));
-      return;
+    try {
+      const [, error] = await attempt(
+        systemApi.saveScreenshot({
+          sourcePath: capture.path,
+          dir,
+          name: name.trim(),
+          format,
+          crop: selection,
+          layers: stageRef.current?.layers() ?? undefined,
+        })
+      );
+      if (error) {
+        showError(t("common.error"), t("screenshot.save.error"));
+        return;
+      }
+    } finally {
+      setSaving(false);
     }
     patchSettings({
       screenshotDir: dir,

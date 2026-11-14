@@ -20,7 +20,7 @@ import {
   HostStatsSchema,
   RemoteImageStatsSchema,
   VideoCacheStatsSchema,
-} from "@/api/system.schema";
+} from "@/schemas/system.schema";
 
 export class SystemApi {
   private readonly transport: ApiTransport;
@@ -152,6 +152,10 @@ export class SystemApi {
 
   clearRemoteImageCache(): Promise<number> {
     return this.call("clear_remote_image_cache");
+  }
+
+  resetData(): Promise<string[]> {
+    return this.call("reset_sqlite_data");
   }
 
   savePosterBytes(data: number[], path: string): Promise<string> {

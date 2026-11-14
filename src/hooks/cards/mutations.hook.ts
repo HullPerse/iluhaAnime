@@ -25,6 +25,7 @@ export function useCardsMutations() {
       queryKeys.cardsCollectionScope(),
       queryKeys.cardsCollectionsScope(),
       queryKeys.cardsStats(),
+      queryKeys.cardsStarterStatusScope(),
       queryKeys.cardsGiftsScope(),
       queryKeys.cardsUnreadScope(),
     ]) {

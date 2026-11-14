@@ -18,6 +18,7 @@ import changelog510 from "./changelog/v5_1_0.en";
 import changelog512 from "./changelog/v5_1_2.en";
 import changelog514 from "./changelog/v5_1_4.en";
 import changelog516 from "./changelog/v5_1_6.en";
+import changelog520 from "./changelog/v5_2_0.en";
 import anilist from "./en/anilist.locale";
 import collection from "./en/collection.locale";
 import common from "./en/common.locale";
@@ -34,6 +35,7 @@ import updater from "./en/updater.locale";
 
 const en = {
   ...anilist,
+  ...changelog520,
   ...changelog516,
   ...changelog514,
   ...changelog512,

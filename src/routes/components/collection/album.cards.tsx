@@ -2,8 +2,9 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import Pagination from "@/components/shared/pagination.component";
-import { CARD_SORTS } from "@/config/cards/labels.config";
+import { isCardsCollectionSort, isCardsSort } from "@/lib/cards/guards.utils";
 import { useBinderColumns } from "@/hooks/cards/binderColumns.hook";
+import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import { useCardsCollection, useCardsCollectionInfinite } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
@@ -86,8 +87,11 @@ function activeSortState(
 }
 
 function applySort(mode: AlbumMode, next: string) {
-  if (mode === "all") setCardsSort(next as (typeof CARD_SORTS)[number]);
-  else setCardsCollectionSort(next as CardsCollectionSort);
+  if (mode === "all") {
+    if (isCardsSort(next)) setCardsSort(next);
+    return;
+  }
+  if (isCardsCollectionSort(next)) setCardsCollectionSort(next);
 }
 
 function applySortDir(mode: AlbumMode, next: CardsSortDir) {
@@ -108,6 +112,7 @@ function paginationVisible(
 
 export default function AlbumCards() {
   const { t } = useI18n();
+  const imageProxy = useCardsImageProxy();
   const [view, setView] = useState<"grid" | "binder">("grid");
   const [infinite, setInfinite] = useState(false);
   const [search, setSearch] = useState<string>("");
@@ -229,7 +234,6 @@ export default function AlbumCards() {
     [data?.items, gridCards, infinite, view]
   );
   const suggestions = suggestionTitles(loadedCards);
-  const filtered = queryKind !== null || rarity !== null || query !== "";
   const activeSort = activeSortState(mode, sort, sortDir, collectionSort, collectionSortDir);
   const showPagination = paginationVisible(mode, view, infinite, total, data !== undefined);
 
@@ -240,8 +244,8 @@ export default function AlbumCards() {
     }
     const urls = cardImageUrls(loadedCards);
     setRemoteImageScope(urls);
-    prefetchRemoteImages(urls).catch(() => undefined);
-  }, [loadedCards, mode]);
+    prefetchRemoteImages(urls, imageProxy).catch(() => undefined);
+  }, [imageProxy, loadedCards, mode]);
 
   useEffect(
     () => () => {
@@ -318,7 +322,6 @@ export default function AlbumCards() {
             total: gridTotal,
           }}
           scrollRef={scrollRef}
-          filtered={filtered}
           total={total}
           page={page}
           collectionSort={collectionSort}

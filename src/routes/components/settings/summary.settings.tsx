@@ -1,12 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { confirm, save as saveDialog } from "@tauri-apps/plugin-dialog";
-import { Download, Check, ChevronRight, RefreshCw, ScrollText, X } from "lucide-react";
+import { Download, Check, RefreshCw, ScrollText, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { anilistApi } from "@/api/anilist.api";
-import { sqliteApi } from "@/api/sqlite.api";
 import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
@@ -16,7 +15,6 @@ import { useOnlineStatus } from "@/hooks/network.hook";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { useUpdateCheck } from "@/hooks/update.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
-import { formatBackupDate } from "@/lib/core/system/backup.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import {
   attempt,
@@ -25,13 +23,12 @@ import {
   withFallback,
 } from "@hullperse/hp_utils/attempt";
 import { formatBytes } from "@hullperse/hp_utils/bytes";
-import { cacheRate, pickDatabase, backupSize } from "@/lib/ui/summarySettings.utils";
+import { cacheRate } from "@/lib/ui/summarySettings.utils";
 import { showError, showInfo, showWarning } from "@/lib/core/ui/notification.utils";
 import { buildReproFrontend } from "@/lib/core/system/repro.utils";
 import { searchAtoms } from "@/store/search.store";
-import { getSettingsSnapshot, patchSettings, settingsAtoms } from "@/store/settings.store";
+import { getSettingsSnapshot } from "@/store/settings.store";
 import type { SettingsTab } from "@/types/ui/settings";
-import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/core/sqlite";
 
 import { SummaryButton } from "@/routes/components/settings/summary/button.settings";
 import { SummaryRow } from "@/routes/components/settings/summary/row.settings";
@@ -50,8 +47,6 @@ interface CacheStats {
 }
 
 interface SummaryStorage {
-  database: SqliteDatabaseInfo | null;
-  backups: SqliteBackupInfo[];
   images: RemoteImageStats;
   anilistCache: CacheStats;
   videoCache: CacheStats;
@@ -64,7 +59,6 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const historyCount = useCell(searchAtoms.history).length;
   const queryStatCount = Object.keys(useCell(searchAtoms.queryStats)).length;
   const indexCount = useCell(searchAtoms.animeIndex).length;
-  const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const { data: update, isFetching: checkingUpdate, check } = useUpdateCheck();
 
   const ffmpeg = useAppQuery("static", {
@@ -78,12 +72,6 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const storage = useAppQuery("slow", {
     queryKey: queryKeys.summaryStorage(),
     queryFn: async (): Promise<SummaryStorage> => {
-      const [databases, error] = await attempt(sqliteApi.listDatabases());
-      const database = error === null ? pickDatabase(databases ?? []) : null;
-      const backups =
-        database === null
-          ? []
-          : ((await withFallback(sqliteApi.listBackups(database.id), [])) ?? []);
       const images = (await withFallback(systemApi.getRemoteImagesStats(), {
         bytes: 0,
         count: 0,
@@ -92,11 +80,10 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         withFallback(anilistApi.getCacheStats(), { hits: 0, misses: 0 }),
         withFallback(systemApi.getVideoCacheStats(), { hits: 0, misses: 0 }),
       ]);
-      return { anilistCache, backups, database, images, videoCache };
+      return { anilistCache, images, videoCache };
     },
     staleTime: 30_000,
   });
-  const unknown = t("settings.summary.unknown");
   const cacheValue = (stats: CacheStats): string =>
     t("settings.summary.cacheValue", {
       hits: stats.hits,
@@ -104,13 +91,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
       total: stats.hits + stats.misses,
     });
   const data = storage.data;
-  const newestBackup = data?.backups[0] ?? null;
   const [collecting, setCollecting] = useState<boolean>(false);
-
-  const openSqlite = () => {
-    if (!sqliteBrowserEnabled) patchSettings({ sqliteBrowserEnabled: true });
-    onJump("sqlite");
-  };
 
   const clearImages = async () => {
     const ok = await confirm(t("settings.summary.images.confirm"));
@@ -184,19 +165,6 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     collectRepro().catch((error) => reportBackgroundError("summary.repro.collect", error));
   };
 
-  let backupsValue: ReactNode = "...";
-  if (data !== undefined) {
-    backupsValue =
-      newestBackup === null ? (
-        t("settings.summary.none")
-      ) : (
-        <>
-          <AnimatedNumber value={data.backups.length} format={String} /> -{" "}
-          {formatBytes(backupSize(data.backups))}
-        </>
-      );
-  }
-
   const updateActionLabel = update ? t("updater.update") : t("updater.check");
   const updateActionTitle = update
     ? t("updater.check.available", { version: update.version })
@@ -253,24 +221,6 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
       </SummarySection>
 
       <SummarySection title={t("settings.summary.storage")}>
-        <SummaryRow
-          label={t("settings.summary.database")}
-          value={data === undefined ? "..." : (data.database?.fileName ?? unknown)}
-          hint={data?.database ? formatBytes(data.database.sizeBytes) : undefined}
-          busy={data === undefined}
-          actionLabel={t("settings.summary.open")}
-          actionIcon={<ChevronRight className="size-3" />}
-          onAction={openSqlite}
-        />
-        <SummaryRow
-          label={t("settings.summary.backups")}
-          value={backupsValue}
-          hint={newestBackup === null ? undefined : formatBackupDate(newestBackup.modifiedMs)}
-          busy={data === undefined}
-          actionLabel={t("settings.summary.open")}
-          actionIcon={<ChevronRight className="size-3" />}
-          onAction={openSqlite}
-        />
         <SummaryRow
           label={t("settings.summary.images")}
           value={

@@ -2,16 +2,19 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import { CHANGELOG } from "@/config/system/changelog.config";
-import { useI18n } from "@/hooks/i18n.hook";
+import { useChangelogLocale, useI18n } from "@/hooks/i18n.hook";
 
 import { ChangelogCategory } from "@/routes/components/settings/changelogCategory.settings";
 
 export function SettingsChangelog() {
   const { t } = useI18n();
+  const changelogReady = useChangelogLocale();
   const [latest] = CHANGELOG;
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     latest ? { [latest.version]: true } : {}
   );
+
+  if (!changelogReady) return null;
 
   return (
     <div className="flex flex-col gap-1">

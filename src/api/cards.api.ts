@@ -22,12 +22,13 @@ import {
   CollectionShelfSchema,
   DustResultSchema,
   GrantResultSchema,
+  StarterStatusSchema,
   PackOpeningSchema,
   PackPreparationSchema,
   PurchaseResultSchema,
   ResetCollectionSchema,
   SetCardVariantSchema,
-} from "@/api/cards.schema";
+} from "@/schemas/cards.schema";
 import type {
   AnimeCollectionPage,
   CardGallery,
@@ -52,6 +53,7 @@ import type {
   DustResult,
   GrantResult,
   PackOpening,
+  StarterStatus,
   PackPreparation,
   PurchaseResult,
 } from "@/types/api/cards";
@@ -265,6 +267,15 @@ export class CardsApi {
 
   async buyPack(packKind: string): Promise<PurchaseResult> {
     return assertSchema(await this.call("cards_buy_pack", { packKind }), PurchaseResultSchema);
+  }
+
+  async starterStatus(proxy: string | null = null): Promise<StarterStatus> {
+    return assertSchema(
+      await this.call("cards_starter_status", {
+        ...anilistProxyArgs(proxy),
+      }),
+      StarterStatusSchema
+    );
   }
 
   async grantStarter(userId: number, proxy: string | null = null): Promise<GrantResult> {

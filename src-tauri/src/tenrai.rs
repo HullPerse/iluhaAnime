@@ -210,6 +210,54 @@ pub async fn characters_for_media(
     Ok(parse_characters(&json))
 }
 
+/// Episode thumbnails used as the screenshot-mode fallback. Tenrai nests the
+/// URLs under `images.jpg`, but the collector walks the whole payload so a
+/// shape change does not break the fallback.
+pub async fn episode_images(id: i64, proxy: Option<&str>) -> Result<Vec<String>, String> {
+    if id <= 0 {
+        return Err("invalid MAL id".into());
+    }
+    let json = request_json(&format!("/anime/{id}/videos/episodes"), proxy).await?;
+    Ok(parse_episode_images(&json))
+}
+
+fn parse_episode_images(json: &serde_json::Value) -> Vec<String> {
+    let mut urls = Vec::new();
+    collect_image_urls(&json["data"], &mut urls);
+    let mut seen = std::collections::HashSet::new();
+    urls.retain(|url| seen.insert(url.clone()));
+    urls
+}
+
+fn collect_image_urls(value: &serde_json::Value, urls: &mut Vec<String>) {
+    match value {
+        serde_json::Value::String(raw) => {
+            let url = raw.trim();
+            if url.starts_with("https://") && is_image_path(url) {
+                urls.push(url.to_string());
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                collect_image_urls(item, urls);
+            }
+        }
+        serde_json::Value::Object(map) => {
+            for item in map.values() {
+                collect_image_urls(item, urls);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn is_image_path(url: &str) -> bool {
+    let path = url.split('?').next().unwrap_or(url).to_ascii_lowercase();
+    [".jpg", ".jpeg", ".png", ".webp"]
+        .iter()
+        .any(|extension| path.ends_with(extension))
+}
+
 #[tauri::command]
 pub async fn get_anime_stills(mal_id: u64) -> Result<Vec<AnimeStill>, String> {
     let id = i64::try_from(mal_id).map_err(|_| "invalid MAL id".to_string())?;
@@ -262,6 +310,25 @@ mod tests {
         assert_eq!(characters[0].mal_id, 45627);
         assert_eq!(characters[0].role.as_deref(), Some("Main"));
         assert_eq!(characters[1].name, "Eren Yeager");
+    }
+
+    #[test]
+    fn parses_and_dedupes_episode_images() {
+        let json = json!({
+            "data": [
+                { "images": { "jpg": { "image_url": "https://cdn.example/ep1.jpg", "large_image_url": "" } } },
+                { "images": { "jpg": { "image_url": "https://cdn.example/ep1.jpg" } } },
+                { "images": { "jpg": { "image_url": "https://cdn.example/ep2.webp?w=400" } } },
+                { "images": { "jpg": { "image_url": null } } }
+            ]
+        });
+        assert_eq!(
+            parse_episode_images(&json),
+            vec![
+                "https://cdn.example/ep1.jpg",
+                "https://cdn.example/ep2.webp?w=400"
+            ]
+        );
     }
 
     #[test]

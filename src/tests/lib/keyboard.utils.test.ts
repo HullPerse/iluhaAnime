@@ -19,6 +19,7 @@ describe("utils/keyboard", () => {
   function keyEvent(overrides: Partial<KeyboardEvent<Element>> = {}): KeyboardEvent<Element> {
     return {
       key: "",
+      nativeEvent: { isComposing: false },
       preventDefault: vi.fn(),
       shiftKey: false,
       ctrlKey: false,

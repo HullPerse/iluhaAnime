@@ -1,6 +1,6 @@
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 
-export interface IpcErrorEnvelope {
+interface IpcErrorEnvelope {
   code: string;
   message: string;
 }

@@ -20,8 +20,3 @@ export function formatCardRelativeDate(
   if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
   return formatDistanceToNowOwn(timestamp * 1000, locale, nowMs);
 }
-
-export function sharePercent(part: number, total: number): number {
-  if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) return 0;
-  return Math.round((part / total) * 100);
-}

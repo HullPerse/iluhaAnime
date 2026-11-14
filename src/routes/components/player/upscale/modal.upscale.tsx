@@ -19,7 +19,7 @@ import {
   Anime4kShadersSchema,
   GpuEncodersSchema,
   UpscalePresetSuggestionSchema,
-} from "@/api/upscale.schema";
+} from "@/schemas/upscale.schema";
 import { settingsAtoms } from "@/store/settings.store";
 import { addConvertItem, addUpscaleItem, cancelUpscale, upscaleItems } from "@/store/upscale.store";
 import type { UpscaleConfig, ConvertConfig } from "@/types/core/upscale";

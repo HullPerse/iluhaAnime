@@ -36,21 +36,23 @@ const escalate = (value: unknown): boolean => {
 
 const appError = () => tr("common.error");
 
-window.addEventListener("error", (event) => {
-  event.preventDefault();
-  const reason = event.error ?? event.message;
-  if (isResizeObserverLoopError(reason)) return;
-  if (escalate(reason)) return;
-  console.error("Uncaught error:", event.error);
-  addNotification(appError(), "error", event.error?.message || String(event));
-});
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (event) => {
+    event.preventDefault();
+    const reason = event.error ?? event.message;
+    if (isResizeObserverLoopError(reason)) return;
+    if (escalate(reason)) return;
+    console.error("Uncaught error:", event.error);
+    addNotification(appError(), "error", event.error?.message || String(event));
+  });
 
-window.addEventListener("unhandledrejection", (event) => {
-  event.preventDefault();
-  if (escalate(event.reason)) return;
-  console.error("Unhandled rejection:", event.reason);
-  addNotification(appError(), "error", event.reason?.message || String(event.reason));
-});
+  window.addEventListener("unhandledrejection", (event) => {
+    event.preventDefault();
+    if (escalate(event.reason)) return;
+    console.error("Unhandled rejection:", event.reason);
+    addNotification(appError(), "error", event.reason?.message || String(event.reason));
+  });
+}
 
 markStartup("module_start");
 

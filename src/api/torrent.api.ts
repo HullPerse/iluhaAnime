@@ -29,9 +29,9 @@ import type {
 } from "@/types/api/torrent";
 import { tauriTransport } from "@/api/transport.api";
 import { assertSchema } from "@/lib/core/system/invoke.utils";
-import { SearchResultListSchema } from "@/api/search.schema";
-import { TorrentDetailsSchema, TorrentInfoListSchema } from "@/api/torrent.schema";
-import { SessionConfigSchema } from "@/api/settings.schema";
+import { SearchResultListSchema } from "@/schemas/search.schema";
+import { TorrentDetailsSchema, TorrentInfoListSchema } from "@/schemas/torrent.schema";
+import { SessionConfigSchema } from "@/schemas/settings.schema";
 
 export class TorrentApi {
   private readonly transport: ApiTransport;

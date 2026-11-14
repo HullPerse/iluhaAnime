@@ -86,6 +86,7 @@ export function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
           setIndex(0);
         }}
         onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing) return;
           if (event.key === "Enter") {
             event.preventDefault();
             step(event.shiftKey ? -1 : 1);

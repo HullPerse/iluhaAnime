@@ -5,24 +5,10 @@ import {
   cardVariantLabelKeys,
 } from "@/config/cards/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { formatCardDate, formatCardRelativeDate } from "@/lib/cards/format.utils";
+import { isCardVariant } from "@/lib/cards/guards.utils";
 import type { CardVariant, CollectionItem } from "@/types/api/cards";
 
-function CardDate({ timestamp }: { timestamp: number }) {
-  const { locale } = useI18n();
-  const relative = formatCardRelativeDate(timestamp, locale);
-  const exact = formatCardDate(timestamp, locale);
-  if (relative === "" || exact === "") return <span>-</span>;
-  return (
-    <time
-      dateTime={new Date(timestamp * 1000).toISOString()}
-      title={exact}
-      className="cards-detail-date"
-    >
-      {relative}
-    </time>
-  );
-}
+import CardDate from "@/routes/components/collection/cardDate.cards";
 
 export default function CardFacts({
   card,
@@ -82,7 +68,9 @@ export default function CardFacts({
               value: entry.variant,
               label: t(cardVariantLabelKeys[entry.variant]),
             }))}
-            onChange={(value) => onVariantChange(value as CardVariant)}
+            onChange={(value) => {
+              if (isCardVariant(value)) onVariantChange(value);
+            }}
           />
         </div>
       )}

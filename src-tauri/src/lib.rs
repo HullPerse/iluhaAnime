@@ -171,6 +171,7 @@ pub mod benchmark_api {
 mod auth;
 mod bencode;
 mod cards;
+mod daily;
 mod deeplink;
 mod emoji;
 mod errors;
@@ -189,7 +190,7 @@ mod rife;
 mod scrapers;
 mod screenshot;
 mod shaders;
-mod sqlite_browser;
+mod reset;
 mod stream;
 mod tenrai;
 mod toast;
@@ -2133,6 +2134,20 @@ pub fn run() {
             cards::collection::cards_delete_gift,
             cards::shop::cards_buy_pack,
             cards::grant::cards_grant_starter,
+            cards::grant::cards_starter_status,
+            daily::commands::daily_game_bootstrap,
+            daily::commands::daily_game_prepare,
+            daily::commands::daily_game_prepare_op,
+            daily::commands::daily_game_prepare_audio,
+            daily::commands::daily_game_guess_op,
+            daily::commands::daily_game_skip_op,
+            daily::commands::daily_game_guess_audio,
+            daily::commands::daily_game_skip_audio,
+            daily::commands::daily_game_guess,
+            daily::commands::daily_game_history,
+            daily::commands::daily_game_reset,
+            daily::commands::daily_game_reveal_frames,
+            daily::commands::daily_game_skip,
             network::network_probe,
             netdiag::network_diagnose,
             scrapers::search_erairaws,
@@ -2307,20 +2322,7 @@ pub fn run() {
             app_db::unified_index::search_unified_index,
             scrapers::test_source_connection,
             emoji::emoji_list,
-            sqlite_browser::reset_sqlite_data,
-            sqlite_browser::list_sqlite_databases,
-            sqlite_browser::get_sqlite_tables,
-            sqlite_browser::get_sqlite_rows,
-            sqlite_browser::delete_sqlite_row,
-            sqlite_browser::delete_sqlite_rows,
-            sqlite_browser::write_sqlite_export,
-            sqlite_browser::update_sqlite_cell,
-            sqlite_browser::get_sqlite_cell,
-            sqlite_browser::get_sqlite_cell_image,
-            sqlite_browser::backup_sqlite_database,
-            sqlite_browser::list_sqlite_backups,
-            sqlite_browser::restore_sqlite_backup,
-            sqlite_browser::vacuum_sqlite_database,
+            reset::reset_sqlite_data,
             start_torrent_download,
             get_torrent_info,
             list_torrents,

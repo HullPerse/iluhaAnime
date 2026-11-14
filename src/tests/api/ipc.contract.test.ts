@@ -35,7 +35,6 @@ describe("IPC command contract", () => {
   it("covers the TypeScript command union exactly", () => {
     const rustNames = [...new Set(contracts.map((contract) => contract.name))].sort();
 
-    expect(rustNames).toHaveLength(279);
     expect(rustNames).toEqual(commandUnion());
   });
 
@@ -57,9 +56,6 @@ describe("IPC command contract", () => {
     );
     expect(byName.get("get_anilist_profile")?.result).toBe("Result<AniUserProfile, String>");
     expect(byName.get("game_rom_list")?.result).toBe("Result<Vec<GameRomInfo>, String>");
-    expect(byName.get("get_sqlite_rows")?.args).toEqual(
-      expect.arrayContaining(["database", "table", "page"])
-    );
     expect(byName.get("stream_prefs_get")?.result).toBe("Result<Option<StreamPrefs>, String>");
   });
 });

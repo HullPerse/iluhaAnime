@@ -13,7 +13,7 @@ pub const DATABASE_FILE: &str = "app_data.sqlite3";
 /// beats hanging the UI forever.
 pub const APP_DATA_WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 pub const MAX_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
-pub const CURRENT_SCHEMA_VERSION: i64 = 34;
+pub const CURRENT_SCHEMA_VERSION: i64 = 42;
 pub fn now_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -126,8 +126,8 @@ pub fn lock_app_data_write_timeout(timeout: Duration) -> Result<MutexGuard<'stat
 }
 
 /// Like [`lock_app_data_write_timeout`], but only when `database` selects the
-/// shared app database (the id used by the sqlite browser UI). Returns
-/// `Ok(None)` for unrelated files so they keep their own concurrency.
+/// shared app database. Returns `Ok(None)` for unrelated files so they keep
+/// their own concurrency.
 pub fn lock_app_data_write_if_timeout(
     database: &str,
     timeout: Duration,

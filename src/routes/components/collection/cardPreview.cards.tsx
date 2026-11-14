@@ -2,6 +2,7 @@ import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
 import type { CardGalleryImage, CollectionItem } from "@/types/api/cards";
@@ -26,6 +27,7 @@ export default function CardPreview({
   onSaveImage: (imageUrl: string) => void;
 }) {
   const { t } = useI18n();
+  const imageProxy = useCardsImageProxy();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const galleryImages = useMemo(() => images ?? [], [images]);
   const savedImageUrl = preferredUrl ?? card.imageUrl;
@@ -56,8 +58,8 @@ export default function CardPreview({
       slides[activeIndex - 1]?.url,
       slides[activeIndex + 1]?.url,
     ].filter((url): url is string => url !== undefined);
-    prefetchRemoteImages(neighbors).catch(() => undefined);
-  }, [activeIndex, slides]);
+    prefetchRemoteImages(neighbors, imageProxy).catch(() => undefined);
+  }, [activeIndex, imageProxy, slides]);
 
   return (
     <>

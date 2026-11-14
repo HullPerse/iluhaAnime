@@ -107,6 +107,12 @@ export const queryKeys = {
   checkFfprobe: () => ["check-ffprobe"] as const,
   collectionData: () => ["collection-data"] as const,
   cardsBootstrap: () => ["cards-bootstrap"] as const,
+  dailyGame: (day: string) => ["daily-game", day] as const,
+  dailyGameScope: () => ["daily-game"] as const,
+  dailyAnswer: (id: number) => ["daily-answer", id] as const,
+  dailySearch: (query: string) => ["daily-search", query] as const,
+  dailyHistory: () => ["daily-history"] as const,
+  dailyHistoryFor: (day: string, mode: string) => ["daily-history", day, mode] as const,
   cardsPacks: (proxy: string) => ["cards-packs", proxy] as const,
   cardsPacksScope: () => ["cards-packs"] as const,
   cardsCollection: (request: unknown, proxy: string) =>
@@ -127,6 +133,8 @@ export const queryKeys = {
     ["cards-anime-collection", animeId, kind, proxy] as const,
   cardsCollectionRoster: (mediaId: number, kind: string, page: number, proxy: string) =>
     ["cards-collection-roster", mediaId, kind, page, proxy] as const,
+  cardsStarterStatus: (proxy: string) => ["cards-starter-status", proxy] as const,
+  cardsStarterStatusScope: () => ["cards-starter-status"] as const,
   cardsStats: () => ["cards-stats"] as const,
   cardsGifts: () => ["cards-gifts"] as const,
   cardsGiftsScope: () => ["cards-gifts"] as const,

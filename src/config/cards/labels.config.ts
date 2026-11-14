@@ -4,16 +4,15 @@ import type { CardsCollectionSort, CardsSort, CardsTab } from "@/types/store/car
 
 export const CARD_KINDS = ["anime", "manga", "character", "staff", "studio"] as const;
 export const CARD_RARITIES = ["junk", "common", "rare", "epic", "legendary"] as const;
-export const CARD_VARIANTS = ["normal", "foil", "holo"] as const;
 export const CARD_SORTS = ["recent", "value", "rarity", "title", "kind"] as const;
 export const COLLECTION_SORTS = [...CARD_SORTS, "completion", "owned"] as const;
-export const CARDS_TABS = ["packs", "album", "shop", "gifts"] as const;
 
 export const cardsTabLabelKeys = {
   packs: "collection.tabs.packs",
   album: "collection.tabs.album",
   shop: "collection.tabs.shop",
   gifts: "collection.tabs.gifts",
+  game: "collection.tabs.game",
 } satisfies Record<CardsTab, TranslationKey>;
 
 export const cardKindLabelKeys = {
@@ -52,11 +51,12 @@ export const collectionSortLabelKeys = {
   owned: "collection.sort.owned",
 } satisfies Record<CardsCollectionSort, TranslationKey>;
 
-export const cardSourceLabelKeys: Record<string, TranslationKey> = {
+const cardSourceLabelKeys: Record<string, TranslationKey> = {
   test: "collection.source.test",
   purchase: "collection.source.purchase",
   starter: "collection.source.starter",
   completion: "collection.source.completion",
+  daily: "collection.source.daily",
   gift: "collection.source.gift",
 };
 

@@ -4,7 +4,7 @@ import { VOLUME_STEP } from "@/config/player/video.config";
 import { SEEK_STEP } from "@/config/settings/keybinds.config";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { SavedFrameSchema } from "@/api/player.schema";
+import { SavedFrameSchema } from "@/schemas/player.schema";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import { addNotification } from "@/store/notification.store";

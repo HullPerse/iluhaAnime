@@ -132,6 +132,7 @@ export function enterOrSpace(onActivate: () => void): (event: KeyboardEvent) => 
 
 export function enterSubmit(onSubmit: () => void): (event: KeyboardEvent) => void {
   return (event) => {
+    if (event.nativeEvent.isComposing) return;
     if (event.key === "Enter") onSubmit();
   };
 }

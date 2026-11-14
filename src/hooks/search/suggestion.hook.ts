@@ -30,6 +30,7 @@ export function useSuggestions(
   const [debouncedQuery] = useDebouncedValue(query, { wait: 150 });
 
   useEffect(() => {
+    let active = true;
     const normalized = debouncedQuery.trim();
     if (!normalized || normalized.length < 2) {
       setSuggestions([]);
@@ -44,7 +45,7 @@ export function useSuggestions(
       const [rows, error] = await attempt(
         unifiedIndexApi.searchUnifiedIndex(normalized, scope, suggestionPoolSize(limit))
       );
-      if (requestRef.current !== requestId) return;
+      if (!active || requestRef.current !== requestId) return;
       if (error) {
         setSuggestions([]);
         return;
@@ -72,6 +73,9 @@ export function useSuggestions(
           .slice(0, Math.max(1, limit))
       );
     })();
+    return () => {
+      active = false;
+    };
   }, [limit, debouncedQuery, scope]);
 
   return suggestions;

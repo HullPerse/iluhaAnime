@@ -1,6 +1,55 @@
 {
   "changelog": [
     {
+      "version": "5.2.0",
+      "added": [
+        {
+          "key": "changelog.5_2_0.added.collection.cards",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_0.added.collection.starter",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_0.added.collection.gifts",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_0.added.game.daily",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_2_0.added.news.tab",
+          "scope": "app"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_2_0.changed.settings.proxy_cards_daily",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_2_0.changed.torrents.rename_folder",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_2_0.changed.app.bundle",
+          "scope": "app"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_2_0.fixed.anilist.new_entry",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_2_0.fixed.app.select",
+          "scope": "app"
+        }
+      ]
+    },
+    {
       "version": "5.1.6",
       "added": [],
       "changed": [],

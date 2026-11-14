@@ -19,6 +19,7 @@ import type {
   CollectionShelfItem,
   CollectionItem,
   GiftItem,
+  StarterStatus,
 } from "@/types/api/cards";
 
 function anilistProxy(): string {
@@ -29,6 +30,14 @@ export function useCardsBootstrap() {
   return useAppQuery<CardsBootstrap>("static", {
     queryKey: queryKeys.cardsBootstrap(),
     queryFn: () => cardsApi.bootstrap(),
+  });
+}
+
+export function useCardsStarterStatus() {
+  const proxy = anilistProxy();
+  return useAppQuery<StarterStatus>("slow", {
+    queryKey: queryKeys.cardsStarterStatus(proxy),
+    queryFn: () => cardsApi.starterStatus(proxy || null),
   });
 }
 

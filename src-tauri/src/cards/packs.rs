@@ -6,7 +6,7 @@ use tauri::AppHandle;
 use super::ceilings::{fetch_pages, page_ceiling};
 use super::config::{pick_variant, shop_pack, CARD_PACK_SIZE};
 use super::metadata::refresh_metadata;
-use super::rarity::{card_value, tier_for};
+use super::rarity::{card_value, score_for, tier_for};
 use super::rng::{seed_now, Rng};
 use super::sampling::{ensure_rare_plus, merge_distinct, pick_distinct, CardNode};
 use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
@@ -292,6 +292,74 @@ async fn sample_cards(
     Ok(selected)
 }
 
+fn card_node_from_meta(meta: &CardMetaRow) -> CardNode {
+    let favourites = meta.favourites.unwrap_or(0).clamp(0, i64::from(u32::MAX)) as u32;
+    let popularity = meta.popularity.unwrap_or(0).clamp(0, i64::from(u32::MAX)) as u32;
+    CardNode {
+        kind: meta.kind,
+        entity_id: meta.entity_id,
+        title: meta.title.clone(),
+        image_url: meta.display_image_url(),
+        favourites,
+        popularity,
+        score: score_for(meta.kind, favourites, popularity),
+    }
+}
+
+/// Daily packs promise the answer anime. If the random draw missed it, swap the
+/// last slot for a generated card of that exact anime and reshuffle.
+fn replace_with_guaranteed(
+    generated: &mut [GeneratedCard],
+    node: CardNode,
+    seed: u64,
+) -> Result<(), String> {
+    if generated
+        .iter()
+        .any(|item| item.card.kind == node.kind && item.card.entity_id == node.entity_id)
+    {
+        return Ok(());
+    }
+    if generated.is_empty() {
+        return Err("daily reward pack has no slots".into());
+    }
+    let mut replacement = generate_cards(vec![node], seed ^ 0xDA11_CA5E);
+    let Some(card) = replacement.pop() else {
+        return Err("could not generate the daily answer card".into());
+    };
+    if let Some(slot) = generated.last_mut() {
+        *slot = card;
+    }
+    let mut rng = Rng::new(seed ^ 0xD1A1_1E55);
+    rng.shuffle(generated);
+    Ok(())
+}
+
+async fn ensure_daily_guarantee(
+    app: &AppHandle,
+    pack: &CardPackRow,
+    generated: &mut Vec<GeneratedCard>,
+    proxy: Option<&str>,
+) -> Result<(), String> {
+    if pack.source != "daily" {
+        return Ok(());
+    }
+    let Some(media_id) = pack.media_id.filter(|id| *id > 0) else {
+        return Err("daily reward pack has no answer media id".into());
+    };
+    if generated
+        .iter()
+        .any(|item| item.card.kind == CardKind::Anime && item.card.entity_id == media_id)
+    {
+        return Ok(());
+    }
+    refresh_metadata(app, &[(CardKind::Anime, media_id)], proxy).await?;
+    let connection = open_database(app)?;
+    let meta = get_meta(&connection, CardKind::Anime, media_id)?
+        .ok_or_else(|| format!("daily answer metadata missing for {media_id}"))?;
+    drop(connection);
+    replace_with_guaranteed(generated, card_node_from_meta(&meta), pack.seed as u64)
+}
+
 fn generate_cards(nodes: Vec<CardNode>, seed: u64) -> Vec<GeneratedCard> {
     let mut rng = Rng::new(seed ^ 0xA5A5_A5A5_5A5A_5A5A);
     let mut generated: Vec<GeneratedCard> = nodes
@@ -405,6 +473,9 @@ async fn generate_pack_contents(
     }
     if is_test_effects_pack(&pack.id) {
         arrange_effects_showcase(&mut generated);
+    }
+    if pack.source == "daily" {
+        ensure_daily_guarantee(app, pack, &mut generated, proxy).await?;
     }
     if generated.len() != pack.size as usize {
         return Err("card pack size changed while preparing".into());
@@ -970,6 +1041,48 @@ mod tests {
             popularity: 0,
             score,
         }
+    }
+
+    fn anime_node(entity_id: i64) -> CardNode {
+        CardNode {
+            kind: CardKind::Anime,
+            entity_id,
+            title: format!("Anime {entity_id}"),
+            image_url: None,
+            favourites: 80_784,
+            popularity: 1_077_853,
+            score: 8.0,
+        }
+    }
+
+    #[test]
+    fn daily_answer_replaces_a_missing_slot() {
+        let mut cards = generate_cards(vec![node(1, 1.0), node(2, 2.0), node(3, 3.0)], 7);
+        replace_with_guaranteed(&mut cards, anime_node(16498), 11).expect("guarantee");
+        assert_eq!(cards.len(), 3);
+        assert_eq!(
+            cards
+                .iter()
+                .filter(|item| item.card.kind == CardKind::Anime && item.card.entity_id == 16498)
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn daily_answer_is_not_duplicated_when_already_present() {
+        let answer = anime_node(16498);
+        let mut cards = generate_cards(vec![answer.clone(), node(1, 1.0)], 7);
+        let before: Vec<(CardKind, i64)> = cards
+            .iter()
+            .map(|item| (item.card.kind, item.card.entity_id))
+            .collect();
+        replace_with_guaranteed(&mut cards, answer, 11).expect("guarantee");
+        let after: Vec<(CardKind, i64)> = cards
+            .iter()
+            .map(|item| (item.card.kind, item.card.entity_id))
+            .collect();
+        assert_eq!(before, after);
     }
 
     #[test]

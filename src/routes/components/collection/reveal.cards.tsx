@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImageStatus } from "@/hooks/remoteImage.hook";
 import type { OpenedCard } from "@/types/api/cards";
@@ -28,8 +29,10 @@ export default function Reveal({
     card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
   const sourceTitle = card.collectionTitle?.trim() ?? "";
   const hasSource = flipped && card.kind === "character" && sourceTitle !== "";
+  const imageProxy = useCardsImageProxy();
   const sourceCover = useRemoteImageStatus(
-    card.kind === "character" ? card.collectionCoverUrl : null
+    card.kind === "character" ? card.collectionCoverUrl : null,
+    imageProxy
   );
   const sourceCoverSrc =
     sourceCover.src ?? (sourceCover.failed ? card.collectionCoverUrl : null);

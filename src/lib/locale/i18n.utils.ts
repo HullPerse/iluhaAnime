@@ -16,6 +16,30 @@ export function registerLocale(locale: Locale, dictionary: Record<string, string
   dictionaries[locale] = dictionary;
 }
 
+let changelogState: "idle" | "loading" | "ready" = "idle";
+let changelogLoading: Promise<void> | null = null;
+
+export function isChangelogLocaleLoaded(): boolean {
+  return changelogState === "ready";
+}
+
+/** Loads the changelog strings once, only when the Changelog tab is opened. */
+export function loadChangelogLocale(): Promise<void> {
+  if (changelogState === "ready") return Promise.resolve();
+  if (changelogLoading !== null) return changelogLoading;
+  changelogState = "loading";
+  changelogLoading = (async (): Promise<void> => {
+    const { ruChangelog } = await import("@/lib/locale/ru.changelog");
+    dictionaries.ru = { ...(dictionaries.ru ?? RU_DICTIONARY), ...ruChangelog };
+    changelogState = "ready";
+  })().catch((error: unknown) => {
+    changelogState = "idle";
+    changelogLoading = null;
+    throw error;
+  });
+  return changelogLoading;
+}
+
 function repairLegacyCyrillic(value: string): string {
   if (!/[РС]/u.test(value)) return value;
   const legacyDecoder = new TextDecoder("windows-1251");

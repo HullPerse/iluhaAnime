@@ -278,6 +278,14 @@ export interface GrantResult {
   packs: number;
 }
 
+export interface StarterStatus {
+  connected: boolean;
+  userId: number;
+  completed: number;
+  granted: boolean;
+  packs: number;
+}
+
 export type CollectionShelfSort =
   | "recent"
   | "value"

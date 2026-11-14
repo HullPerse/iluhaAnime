@@ -8,7 +8,8 @@ import type { CardsCollectionSort, CardsSortDir } from "@/types/store/cards";
 
 import type { AlbumMode } from "@/routes/components/collection/albumToolbar.cards";
 import BinderCards from "@/routes/components/collection/binder.cards";
-import CardGrid, { VirtualCardGrid } from "@/routes/components/collection/cardGrid.cards";
+import CardGrid from "@/routes/components/collection/cardGrid.cards";
+import { VirtualCardGrid } from "@/routes/components/collection/virtualCardGrid.cards";
 import CollectionShelf from "@/routes/components/collection/collectionShelf.cards";
 
 export default function AlbumBody({
@@ -17,7 +18,6 @@ export default function AlbumBody({
   collection,
   grid,
   scrollRef,
-  filtered,
   total,
   page,
   collectionSort,
@@ -48,7 +48,6 @@ export default function AlbumBody({
     total: number;
   };
   scrollRef: RefObject<HTMLDivElement | null>;
-  filtered: boolean;
   total: number;
   page: number;
   collectionSort: CardsCollectionSort;
@@ -90,11 +89,7 @@ export default function AlbumBody({
       );
     }
     if (grid.cards.length === 0) {
-      return (
-        <p className="windows95-text text-hint p-2">
-          {filtered ? t("collection.empty.filter") : t("collection.album.empty")}
-        </p>
-      );
+      return <p className="windows95-text text-hint p-2">{t("collection.album.empty")}</p>;
     }
     return (
       <VirtualCardGrid
@@ -123,12 +118,9 @@ export default function AlbumBody({
     );
   }
   const data = collection.data;
-  if (data === undefined || data.items.length === 0) {
-    return (
-      <p className="windows95-text text-hint p-2">
-        {filtered ? t("collection.empty.filter") : t("collection.album.empty")}
-      </p>
-    );
+  if (data === undefined) return null;
+  if (data.items.length === 0) {
+    return <p className="windows95-text text-hint p-2">{t("collection.album.empty")}</p>;
   }
   if (view === "grid") {
     return <CardGrid cards={data.items} onOpen={onOpen} />;

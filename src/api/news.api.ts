@@ -1,4 +1,4 @@
-import { NewsAnimeLinkSchemaCompiled, NewsPageSchema } from "@/api/news.schema";
+import { NewsAnimeLinkSchemaCompiled, NewsPageSchema } from "@/schemas/news.schema";
 import { tauriTransport } from "@/api/transport.api";
 import { assertSchema } from "@/lib/core/system/invoke.utils";
 import type { ApiTransport } from "@/types/core/transport";

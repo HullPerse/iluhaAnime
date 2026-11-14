@@ -4,11 +4,9 @@
     "src/routes/*.tsx",
     "src/tests/**/*.test.ts",
     "src/tests/**/*.test.tsx",
-    "src/tests/**/*.bench.ts",
     "scripts/**/*.ts",
     "benches/**/*.ts"
   ],
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "benches/**/*.ts"],
-  "ignoreBinaries": ["ffmpeg"],
-  "ignoreDependencies": ["tailwindcss"]
+  "project": ["src/**/*.{ts,tsx,css}", "scripts/**/*.ts", "benches/**/*.ts"],
+  "ignoreBinaries": ["ffmpeg"]
 }

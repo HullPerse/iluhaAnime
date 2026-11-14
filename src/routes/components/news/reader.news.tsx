@@ -20,6 +20,7 @@ import { buildNewsLink } from "@/lib/core/system/deeplink.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { showError } from "@/lib/core/ui/notification.utils";
 import { settingsAtoms } from "@/store/settings.store";
+import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
 import type { NewsAttachment, NewsItem } from "@/types/news/news";
 
 import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
@@ -69,9 +70,11 @@ export default function ReaderNews({
 
   const stamp = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, { dateStyle: "long", timeStyle: "short" }).format(
-        new Date(item.createdAt)
-      ),
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "long",
+        timeStyle: "short",
+        timeZone: LOCAL_TIME_ZONE,
+      }).format(new Date(item.createdAt)),
     [item.createdAt, locale]
   );
   const images = useMemo(

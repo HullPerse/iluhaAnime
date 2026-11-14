@@ -4,11 +4,14 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { cardKindLabelKeys, cardRarityLabelKeys } from "@/config/cards/labels.config";
+import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImageStatus } from "@/hooks/remoteImage.hook";
-import type { CardKind, CardRarity, CardVariant } from "@/types/api/cards";
+import type { CardRarity } from "@/types/api/cards";
+import type { CardFaceItem } from "@/types/ui/collection";
 
 import RarityBadge from "@/routes/components/collection/rarityBadge.cards";
+import StudioCollage from "@/routes/components/collection/studioCollage.cards";
 
 const RARITY_CLASS: Record<CardRarity, string> = {
   junk: "cards-rarity-junk",
@@ -26,61 +29,6 @@ const RARITY_RANK: Record<CardRarity, number> = {
   legendary: 4,
 };
 
-export interface CardFaceItem {
-  kind: CardKind;
-  entityId: number;
-  title: string;
-  imageUrl: string | null;
-  collage: string[];
-  rarity: CardRarity;
-  variant: CardVariant;
-  value: number;
-  isFavorite?: boolean;
-}
-
-function monogram(title: string): string {
-  const parts = title
-    .split(/\s+/u)
-    .map((part) => part.trim())
-    .filter((part) => part !== "");
-  const letters = parts.slice(0, 2).map((part) => part[0] ?? "");
-  return letters.join("") || "?";
-}
-
-function StudioCover({ cover, title }: { cover: string; title: string }) {
-  const { src, failed } = useRemoteImageStatus(cover === "" ? null : cover);
-  if (cover === "") {
-    return (
-      <span className="cards-studio-letter" aria-hidden>
-        {monogram(title)}
-      </span>
-    );
-  }
-  const imageSrc = src ?? (failed ? cover : null);
-  if (imageSrc === null) {
-    return (
-      <div
-        className="bg-surface h-full w-full animate-pulse motion-reduce:animate-none"
-        aria-hidden
-      />
-    );
-  }
-  return <img src={imageSrc} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />;
-}
-
-function StudioCollage({ title, collage }: { title: string; collage: string[] }) {
-  const covers = Array.from({ length: 4 }, (_, index) => collage[index] ?? "");
-  return (
-    <div className="cards-studio-grid" aria-label={title}>
-      {covers.map((cover, index) => (
-        <div key={index} className="cards-studio-cell">
-          <StudioCover cover={cover} title={title} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function CardFace({
   card,
   className,
@@ -93,9 +41,10 @@ export default function CardFace({
   onPointerLeave?: (event: ReactPointerEvent<HTMLElement>) => void;
 }) {
   const { t } = useI18n();
+  const imageProxy = useCardsImageProxy();
   const title = card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
   const remoteImage = card.kind === "studio" ? null : card.imageUrl;
-  const { src: cachedImage, failed: imageFailed } = useRemoteImageStatus(remoteImage);
+  const { src: cachedImage, failed: imageFailed } = useRemoteImageStatus(remoteImage, imageProxy);
   const imageSrc = cachedImage ?? (imageFailed ? card.imageUrl : null);
   const holoAllowed = card.variant !== "holo" || RARITY_RANK[card.rarity] >= RARITY_RANK.rare;
   const variantClass =

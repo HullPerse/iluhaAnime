@@ -8,6 +8,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { cardsAtoms, setCardsAlbumMode, setCardsTab } from "@/store/cards.store";
 import type { CardsAlbumMode, CardsTab } from "@/types/store/cards";
 
+import GameResetTimer from "@/routes/components/collection/gameResetTimer.cards";
+
 const ALBUM_MODES: readonly {
   value: CardsAlbumMode;
   labelKey: "collection.mode.all" | "collection.mode.collections";
@@ -21,7 +23,7 @@ const NAV_GROUPS: readonly {
   titleKey: "collection.nav.cards" | "collection.nav.shopGroup";
   tabs: readonly CardsTab[];
 }[] = [
-  { id: "cards", titleKey: "collection.nav.cards", tabs: ["packs", "album", "gifts"] },
+  { id: "cards", titleKey: "collection.nav.cards", tabs: ["packs", "game", "album", "gifts"] },
   { id: "shop", titleKey: "collection.nav.shopGroup", tabs: ["shop"] },
 ];
 
@@ -103,6 +105,7 @@ export default function TabsCards() {
                       role="tab"
                       aria-selected={active}
                       aria-current={active ? "page" : undefined}
+                      aria-label={value === "game" ? t(cardsTabLabelKeys[value]) : undefined}
                       className={cn(
                         "flex h-6 w-full justify-start text-xs",
                         active && "bg-highlight border-transparent text-white"
@@ -113,6 +116,7 @@ export default function TabsCards() {
                       <span className="min-w-0 flex-1 truncate text-left">
                         {t(cardsTabLabelKeys[value])}
                       </span>
+                      {value === "game" && <GameResetTimer />}
                       {unreadCount > 0 && (
                         <span
                           data-testid={`collection-unread-${value}`}

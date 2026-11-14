@@ -9,7 +9,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { ShaderInfoListSchema } from "@/api/upscale.schema";
+import { ShaderInfoListSchema } from "@/schemas/upscale.schema";
 import { formatETA } from "@/lib/core/text/time.utils";
 import type { ShaderPlayerProps as Props } from "@/types/player/player";
 import type { ShaderInfo } from "@/types/core/upscale";

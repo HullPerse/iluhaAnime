@@ -1,8 +1,7 @@
 import { ListFilter, ListFilterPlus } from "lucide-react";
 import type { ReactNode } from "react";
-import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
-import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
 import { INTERNAL_SETTING_KEYS } from "@/config/settings/internalKeys.config";
 import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
@@ -19,6 +18,7 @@ import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import { sectionSettingKeys } from "@/lib/core/system/reset.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/types/core/find";
 import { useCell } from "@hullperse/hp_utils/react";
+import { settingsAtoms } from "@/store/settings.store";
 import { settingsRoute } from "@/routes/__root.defs";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import { FindBox } from "@/routes/components/settings/findBox.settings";
@@ -31,11 +31,8 @@ import SettingsProxy from "@/routes/components/settings/proxy.settings";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
-import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey } from "@/types/core/i18n";
 import type { SettingsTab } from "@/types/ui/settings";
-
-const SettingsSqlite = lazy(() => import("@/routes/components/settings/sqlite/sqlite.settings"));
 
 const FIND_LIST_ID = "settings-find-listbox";
 const INTERNAL_KEYS = new Set<string>(INTERNAL_SETTING_KEYS);
@@ -45,7 +42,6 @@ const TAB_TITLE_KEYS = new Map<SettingsTab, TranslationKey>(
 
 export default function SettingsRoute() {
   const { t } = useI18n();
-  const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const animateTabSwitch = useCell(settingsAtoms.animateTabSwitch);
   const navigate = settingsRoute.useNavigate();
   const activeTab = settingsRoute.useSearch().tab;
@@ -70,12 +66,8 @@ export default function SettingsRoute() {
     return counts;
   }, [findHits, trimmedQuery]);
   const navGroups = useMemo(
-    () =>
-      SETTINGS_TAB_GROUPS.map((group) => ({
-        ...group,
-        tabs: group.tabs.filter((tab) => tab !== "sqlite" || sqliteBrowserEnabled),
-      })).filter((group) => group.tabs.length > 0),
-    [sqliteBrowserEnabled]
+    () => SETTINGS_TAB_GROUPS.filter((group) => group.tabs.length > 0),
+    []
   );
   const navTabs = useMemo(() => navGroups.flatMap((group) => group.tabs), [navGroups]);
   const changedKeys = useMemo(() => {
@@ -100,12 +92,6 @@ export default function SettingsRoute() {
     }
     prevTabRef.current = activeTab;
   }, [activeTab, animateTabSwitch]);
-  useEffect(() => {
-    if (!sqliteBrowserEnabled && activeTab === "sqlite") {
-      navigate({ search: (prev) => ({ ...prev, tab: "general" }) });
-    }
-  }, [activeTab, sqliteBrowserEnabled, navigate]);
-
   const handleFindChange = (value: string) => {
     setFindQuery(value);
     setFindOpen(value.trim().length > 0);
@@ -215,11 +201,6 @@ export default function SettingsRoute() {
     theme: <SettingsTheme />,
     keybinds: <SettingsKeybinds expandedSectionIds={expandedSectionIds} />,
     changelog: <SettingsChangelog />,
-    sqlite: (
-      <Suspense fallback={<TabLoader className="min-h-40" />}>
-        <SettingsSqlite />
-      </Suspense>
-    ),
   };
 
   return (

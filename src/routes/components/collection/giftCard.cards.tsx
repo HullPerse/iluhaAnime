@@ -4,17 +4,10 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { buildCardGiftLink, cardGiftPreview } from "@/lib/cards/gift.utils";
 import type { GiftItem } from "@/types/api/cards";
+import type { GiftCardProps } from "@/types/ui/collection";
 
 import CardFace from "@/routes/components/collection/cardFace.cards";
 import CopyLinkButton from "@/routes/components/collection/copyLinkButton.cards";
-
-export interface GiftCardProps {
-  gift: GiftItem;
-  deleting: boolean;
-  copyError: boolean;
-  onDelete: () => void;
-  onCopyError: (giftId: string | null) => void;
-}
 
 function giftLink(gift: GiftItem): string {
   const lead = gift.cards[0];

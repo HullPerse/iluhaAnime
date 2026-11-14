@@ -11,7 +11,6 @@ export type SettingsTab =
   | "torrent"
   | "proxy"
   | "theme"
-  | "sqlite"
   | "notifications"
   | "keybinds"
   | "changelog";
@@ -129,8 +128,6 @@ export interface SettingsStore {
   anilistGroupByStatus: boolean;
   anilistCollapsedLists: string[];
   anilistDisplayMode: "scroll" | "pagination";
-  sqliteBrowserEnabled: boolean;
-  sqliteShowImages: boolean;
   collectionTabEnabled: boolean;
   anilistTabEnabled: boolean;
   searchTabEnabled: boolean;
@@ -144,6 +141,8 @@ export interface SettingsStore {
   anilistProxyUrl: string | null;
   newsProxyUrl: string | null;
   animelibProxyUrl: string | null;
+  cardsImageProxyUrl: string | null;
+  dailyProxyUrl: string | null;
   anilistTitleLanguage: AniTitlePreference;
   anilistAdultContent: boolean;
   ffmpegSource: "essentials" | "github" | "github-mirror";

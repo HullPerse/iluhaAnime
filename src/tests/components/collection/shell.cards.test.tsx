@@ -12,9 +12,18 @@ import {
 import { mockInvoke } from "@/tests/mocks";
 import { renderWithCardsClient } from "@/tests/components/collection/render.cards";
 
+const NO_STARTER = {
+  connected: false,
+  userId: 0,
+  completed: 0,
+  granted: false,
+  packs: 0,
+};
+
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+    if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
     if (command === "cards_stats") return Promise.resolve(makeCardsStats({ totalCards: 2 }));
     if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
     if (command === "cards_collection")
@@ -36,6 +45,8 @@ describe("collection shell", () => {
     expect(screen.getByRole("tab", { name: "Album" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Shop" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Gifts" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "iluhaGuesser" })).toBeTruthy();
+    expect(screen.getByTestId("daily-reset-timer")).toBeTruthy();
     const count = await screen.findByTestId("collection-card-count");
     expect(count.textContent).toBe("2");
     const wallet = await screen.findByTitle("Chubriks");
@@ -45,6 +56,7 @@ describe("collection shell", () => {
   it("shows the active gift count next to the gifts tab", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
       if (command === "cards_stats")
         return Promise.resolve(makeCardsStats({ totalCards: 2, activeGifts: 2 }));
       if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
@@ -62,6 +74,7 @@ describe("collection shell", () => {
   it("shows unread badges on the packs and album tabs", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
       if (command === "cards_stats") return Promise.resolve(makeCardsStats({ totalCards: 2 }));
       if (command === "cards_unread") return Promise.resolve({ packs: 3, cards: 2 });
       if (command === "cards_collection")
@@ -84,10 +97,11 @@ describe("collection shell", () => {
     expect(await screen.findByText("No cards in the album yet.")).toBeTruthy();
   });
 
-  it("hides the test tools when the backend disables them", async () => {
+  it("keeps the removed pack and daily test buttons out of the UI", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_bootstrap")
-        return Promise.resolve(makeBootstrap({ testToolsEnabled: false }));
+        return Promise.resolve(makeBootstrap({ testToolsEnabled: true }));
+      if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
       return Promise.resolve(null);
@@ -98,6 +112,9 @@ describe("collection shell", () => {
     fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
     expect(await screen.findByRole("menuitem", { name: "Clear collection" })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: "Test pack" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Legendary pack" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Effects pack" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reset daily" })).toBeNull();
   });
 
   it("shows the bootstrap error and retries", async () => {
@@ -107,9 +124,70 @@ describe("collection shell", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toBe("Could not load the collection.");
 
-    mockInvoke.mockResolvedValue(makeBootstrap());
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+      return Promise.resolve(null);
+    });
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(screen.getByTitle("Chubriks").textContent).toContain("500"));
+  });
+
+  it("hides the starter claim when the profile has no completed anime", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_starter_status")
+        return Promise.resolve({
+          connected: true,
+          userId: 7,
+          completed: 0,
+          granted: false,
+          packs: 0,
+        });
+      if (command === "cards_stats") return Promise.resolve(makeCardsStats());
+      if (command === "cards_collection")
+        return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+      return Promise.resolve(null);
+    });
+    renderWithCardsClient(<CollectionShell />);
+
+    await screen.findByRole("tab", { name: "Packs" });
+    expect(screen.queryByRole("button", { name: "Claim packs" })).toBeNull();
+  });
+
+  it("claims the profile starter once and hides the button", async () => {
+    let claimed = false;
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_bootstrap")
+        return Promise.resolve(makeBootstrap({ starterGranted: claimed }));
+      if (command === "cards_starter_status")
+        return Promise.resolve({
+          connected: true,
+          userId: 7,
+          completed: 12,
+          granted: claimed,
+          packs: claimed ? 3 : 0,
+        });
+      if (command === "cards_grant_starter") {
+        claimed = true;
+        return Promise.resolve({ granted: true, packs: 3 });
+      }
+      if (command === "cards_stats") return Promise.resolve(makeCardsStats());
+      if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
+      if (command === "cards_collection")
+        return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+      return Promise.resolve(null);
+    });
+    renderWithCardsClient(<CollectionShell />);
+
+    const button = await screen.findByRole("button", { name: "Claim packs" });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Claim packs" })).toBeNull());
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "cards_grant_starter",
+      expect.objectContaining({ userId: 7 })
+    );
   });
 });

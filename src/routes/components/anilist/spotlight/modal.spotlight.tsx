@@ -60,10 +60,11 @@ export default function SpotlightModal({
 
   useEffect(() => {
     if (!hasUser) return;
+    let active = true;
     const load = async (kind: SpotlightKind) => {
       const periodKey = spotlightPeriodKey(kind, new Date());
       const cached = await readAppCache<AniMedia>("spotlight", `pick:${kind}:${periodKey}`);
-      if (cancelled.current) return;
+      if (!active) return;
       if (cached?.payload) {
         setRows((prev) => ({ ...prev, [kind]: { status: "ready", media: cached.payload } }));
         return;
@@ -71,19 +72,21 @@ export default function SpotlightModal({
       const [, error] = await attempt(
         (async () => {
           const media = await resolveSpotlightPick(kind, periodKey);
-          if (cancelled.current) return;
+          if (!active) return;
           await writeAppCache("spotlight", `pick:${kind}:${periodKey}`, media);
-          if (cancelled.current) return;
+          if (!active) return;
           setRows((prev) => ({ ...prev, [kind]: { status: "ready", media } }));
         })()
       );
-      if (error && !cancelled.current)
-        setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
+      if (error && active) setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
     };
     for (const kind of SPOTLIGHT_KINDS) {
       setRows((prev) => ({ ...prev, [kind]: { status: "loading" } }));
       load(kind);
     }
+    return () => {
+      active = false;
+    };
   }, [hasUser]);
 
   const retry = (kind: SpotlightKind) => {

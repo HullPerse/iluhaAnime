@@ -1,5 +1,8 @@
 import type { TFunc } from "@/types/core/i18n";
 
+/** The user's explicit zone: locale formatting must not depend on the renderer's zone. */
+export const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export function formatClock(totalSeconds: number): string {
   if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
   const total = Math.floor(totalSeconds);

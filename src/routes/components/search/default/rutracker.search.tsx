@@ -42,30 +42,39 @@ function RutrackerLoginModal({
     if (!username.trim() || !password.trim()) return;
     setLoading(true);
     setError("");
-    const [, error] = await attempt(torrentApi.rutrackerLogin(username, password));
-    if (error) {
-      const raw = String(error);
-      setError(mapError(raw, t));
-      if (raw.trim().startsWith("blocked:")) setMode("browser");
-    } else handleSuccess();
-    setLoading(false);
+    try {
+      const [, error] = await attempt(torrentApi.rutrackerLogin(username, password));
+      if (error) {
+        const raw = String(error);
+        setError(mapError(raw, t));
+        if (raw.trim().startsWith("blocked:")) setMode("browser");
+      } else handleSuccess();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenBrowser = async () => {
     setLoading(true);
     setError("");
-    const [, error] = await attempt(torrentApi.rutrackerWebviewLogin());
-    if (error) setError(mapError(String(error), t));
-    setLoading(false);
+    try {
+      const [, error] = await attempt(torrentApi.rutrackerWebviewLogin());
+      if (error) setError(mapError(String(error), t));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveBrowserSession = async () => {
     setLoading(true);
     setError("");
-    const [, error] = await attempt(torrentApi.rutrackerFinishWebviewLogin());
-    if (error) setError(mapError(String(error), t));
-    else handleSuccess();
-    setLoading(false);
+    try {
+      const [, error] = await attempt(torrentApi.rutrackerFinishWebviewLogin());
+      if (error) setError(mapError(String(error), t));
+      else handleSuccess();
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

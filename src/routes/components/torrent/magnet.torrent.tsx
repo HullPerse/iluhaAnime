@@ -27,8 +27,10 @@ export default function AddTorrentModal({
       setMagnetInput(initialMagnet);
       return;
     }
+    let active = true;
     (async () => {
       const [text, error] = await attempt(readText());
+      if (!active) return;
       if (error) {
         reportBackgroundError("magnet.clipboard", error);
         return;
@@ -37,6 +39,9 @@ export default function AddTorrentModal({
         setMagnetInput(text.trim());
       }
     })();
+    return () => {
+      active = false;
+    };
   }, [open, initialMagnet]);
 
   if (!open) return null;

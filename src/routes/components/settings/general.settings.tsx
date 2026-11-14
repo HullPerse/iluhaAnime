@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { sqliteApi } from "@/api/sqlite.api";
+import { systemApi } from "@/api/system.api";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -25,7 +25,6 @@ export default function SettingsGeneral() {
   const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
   const coverMode = useCell(settingsAtoms.torrentCoverMode);
   const { user: anilistUser } = useUserAnilistData();
-  const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
   const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
@@ -115,15 +114,6 @@ export default function SettingsGeneral() {
                     onChange={(v) => patchSettings({ newsTabEnabled: v })}
                   />
                   <span className="text-xs">{t("settings.news.tab")}</span>
-                </label>
-              </div>
-              <div className="group flex items-center gap-1">
-                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                  <Checkbox
-                    checked={sqliteBrowserEnabled}
-                    onChange={(v) => patchSettings({ sqliteBrowserEnabled: v })}
-                  />
-                  <span className="text-xs">{t("settings.sqlite")}</span>
                 </label>
               </div>
             </div>
@@ -321,7 +311,7 @@ export default function SettingsGeneral() {
           confirmLabel={t("common.delete")}
           variant="destructive"
           onConfirm={async () => {
-            const [, error] = await attempt(sqliteApi.resetData());
+            const [, error] = await attempt(systemApi.resetData());
             if (error) {
               setResetError(error.message);
               return;

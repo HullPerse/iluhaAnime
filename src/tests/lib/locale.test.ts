@@ -1,16 +1,43 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { CHANGELOG } from "@/config/system/changelog.config";
-import { translate } from "@/lib/locale/i18n.utils";
+import {
+  isChangelogLocaleLoaded,
+  loadChangelogLocale,
+  registerLocale,
+  translate,
+} from "@/lib/locale/i18n.utils";
 import ru from "@/lib/locale/ru";
+import { ruChangelog } from "@/lib/locale/ru.changelog";
 import { patchSettings } from "@/store/settings.store";
 
 describe("locale dictionary", () => {
-  const RU: Record<string, string> = ru;
+  const RU: Record<string, string> = { ...ru, ...ruChangelog };
   const keys = new Set(Object.keys(RU));
 
   beforeEach(() => {
+    registerLocale("ru", RU);
     patchSettings({ language: "ru" });
+  });
+
+  it("loads the changelog strings on demand", async () => {
+    const entryKey = CHANGELOG.flatMap(({ added, changed, fixed }) => [
+      ...added,
+      ...changed,
+      ...fixed,
+    ])[0]?.key;
+    if (entryKey === undefined) throw new Error("no changelog entries");
+
+    const ruOnly: Record<string, string> = ru;
+    registerLocale("ru", ruOnly);
+    patchSettings({ language: "ru" });
+    expect(translate(entryKey)).toBe(entryKey);
+    expect(isChangelogLocaleLoaded()).toBe(false);
+
+    await loadChangelogLocale();
+
+    expect(isChangelogLocaleLoaded()).toBe(true);
+    expect(translate(entryKey)).toBe(RU[entryKey]);
   });
 
   it("never ships an empty string", () => {

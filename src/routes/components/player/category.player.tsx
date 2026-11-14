@@ -178,6 +178,7 @@ function CategoryView({
             value={editName}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return;
               if (e.key === "Enter") handleFinishEdit();
               if (e.key === "Escape") setEditing(false);
             }}

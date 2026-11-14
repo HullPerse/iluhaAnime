@@ -1,8 +1,6 @@
 import { cardRarityLabelKeys, cardVariantLabelKeys } from "@/config/cards/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CardGiftStack } from "@/types/api/cards";
-
-type GiftStack = Pick<CardGiftStack, "rarity" | "variant" | "copies">;
+import type { GiftStack } from "@/types/ui/collection";
 
 export default function GiftStacks({ cards }: { cards: readonly GiftStack[] }) {
   const { t } = useI18n();
@@ -14,7 +12,7 @@ export default function GiftStacks({ cards }: { cards: readonly GiftStack[] }) {
         {cards.map((card) => (
           <li key={`${card.rarity}-${card.variant}`} className="cards-gift-detail-stack">
             <span>
-              {t(cardRarityLabelKeys[card.rarity])} · {t(cardVariantLabelKeys[card.variant])}
+              {t(cardRarityLabelKeys[card.rarity])} / {t(cardVariantLabelKeys[card.variant])}
             </span>
             <span className="tabular-nums">×{card.copies}</span>
           </li>

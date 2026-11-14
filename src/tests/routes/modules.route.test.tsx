@@ -70,7 +70,7 @@ describe("route surfaces", () => {
     ["/torrent", () => screen.getByText("0 torrents")],
     ["/player", () => screen.getByText("Add folder")],
     ["/anilist", () => screen.getByText("Log in to your profile")],
-    ["/collection", () => screen.getByRole("heading", { name: "Collection" })],
+    ["/collection", () => screen.getByRole("tab", { name: "iluhaGuesser" })],
     ["/stream", () => screen.getByRole("button", { name: "Filters" })],
     ["/settings?tab=general", () => screen.getByText("General")],
     ["/game", () => screen.getByText("ROM library")],

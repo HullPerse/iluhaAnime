@@ -141,11 +141,11 @@ describe("Modal pager", () => {
         onClose={() => undefined}
         pager={{ index: 0, total: 2, onPrevious: vi.fn(), onNext }}
       >
-        <input aria-label="field" />
+        <input aria-label="Search query" />
       </Modal>
     );
 
-    fireEvent.keyDown(screen.getByLabelText("field"), { key: "ArrowRight" });
+    fireEvent.keyDown(screen.getByLabelText("Search query"), { key: "ArrowRight" });
 
     expect(onNext).not.toHaveBeenCalled();
   });

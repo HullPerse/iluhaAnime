@@ -1,12 +1,14 @@
 import { useCell } from "@hullperse/hp_utils/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
-import { useCardsBootstrap } from "@/hooks/cards/queries.hook";
+import { useCardsMutations } from "@/hooks/cards/mutations.hook";
+import { useCardsBootstrap, useCardsStarterStatus } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { ignore } from "@/lib/core/shared/promise.utils";
+import { showError, showInfo } from "@/lib/core/ui/notification.utils";
 import {
   cardsAtoms,
   setCardsAlbumNewSince,
@@ -19,8 +21,10 @@ import {
   consumeGiftReceiptDeepLink,
   deeplinkAtoms,
 } from "@/store/deeplink.store";
+import type { StarterStatus } from "@/types/api/cards";
 
 import AlbumCards from "@/routes/components/collection/album.cards";
+import GameCards from "@/routes/components/collection/game.cards";
 import GiftDialog from "@/routes/components/collection/giftDialog.cards";
 import GiftReceiptDialog from "@/routes/components/collection/giftReceiptDialog.cards";
 import GiftsCards from "@/routes/components/collection/gifts.cards";
@@ -30,6 +34,22 @@ import TabsCards from "@/routes/components/collection/tabs.cards";
 
 const NEW_BADGE_MS = 5_000;
 
+function isStarterEligible(
+  claimed: boolean,
+  bootstrapGranted: boolean | undefined,
+  starter: StarterStatus | undefined
+): boolean {
+  return (
+    !claimed &&
+    bootstrapGranted !== true &&
+    starter !== undefined &&
+    starter.connected &&
+    starter.userId > 0 &&
+    starter.completed > 0 &&
+    !starter.granted
+  );
+}
+
 export default function CollectionShell() {
   const { t } = useI18n();
   const tab = useCell(cardsAtoms.tab);
@@ -37,6 +57,9 @@ export default function CollectionShell() {
   const giftReceipt = useCell(deeplinkAtoms.giftReceiptTarget);
   const online = useOnlineStatus();
   const bootstrap = useCardsBootstrap();
+  const starterStatus = useCardsStarterStatus();
+  const { grantStarter } = useCardsMutations();
+  const [starterClaimed, setStarterClaimed] = useState(false);
 
   useEffect(() => {
     const now = Math.floor(Date.now() / 1000);
@@ -72,6 +95,8 @@ export default function CollectionShell() {
         <Button onClick={() => ignore(bootstrap.refetch())}>{t("collection.retry")}</Button>
       </section>
     );
+  } else if (tab === "game") {
+    body = <GameCards />;
   } else if (tab === "album") {
     body = <AlbumCards />;
   } else if (tab === "shop") {
@@ -82,11 +107,47 @@ export default function CollectionShell() {
     body = <PacksCards />;
   }
 
+  const starter = starterStatus.data;
+  const starterEligible = isStarterEligible(
+    starterClaimed,
+    bootstrap.data?.starterGranted,
+    starter
+  );
+
   return (
     <div className="flex h-full w-full gap-1 overflow-hidden">
       <aside className="windows95-border bg-field flex w-44 shrink-0 flex-col gap-1 overflow-y-auto p-1">
         <TabsCards />
         <div className="border-muted mt-auto flex flex-col gap-1 border-t pt-1">
+          {starterEligible && (
+            <Button
+              className="h-6 w-full justify-start text-xs"
+              title={t("collection.starter.hint")}
+              disabled={grantStarter.isPending}
+              loading={grantStarter.isPending}
+              onClick={() => {
+                if (starter === undefined) return;
+                grantStarter.mutate(starter.userId, {
+                  onSuccess: (result) => {
+                    setStarterClaimed(true);
+                    showInfo(
+                      t(result.granted ? "collection.starter.done" : "collection.starter.already", {
+                        count: result.packs,
+                      })
+                    );
+                  },
+                  onError: (error) => {
+                    showError(
+                      t("common.error"),
+                      error instanceof Error ? error.message : t("collection.starter.error")
+                    );
+                  },
+                });
+              }}
+            >
+              {t("collection.starter.claim")}
+            </Button>
+          )}
           {bootstrap.data && (
             <div
               className="windows95-border bg-primary flex items-center justify-between gap-2 px-2 py-1"

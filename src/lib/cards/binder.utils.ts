@@ -1,15 +1,8 @@
-export const BINDER_COLUMNS = 4;
-export const BINDER_ROWS = 3;
-export const BINDER_PAGE_SIZE = BINDER_COLUMNS * BINDER_ROWS;
+import type { BinderPage } from "@/types/ui/collection";
 
-export interface BinderPage<T> {
-  slots: (T | null)[];
-  page: number;
-  pageCount: number;
-  total: number;
-  from: number;
-  to: number;
-}
+const BINDER_COLUMNS = 4;
+const BINDER_ROWS = 3;
+export const BINDER_PAGE_SIZE = BINDER_COLUMNS * BINDER_ROWS;
 
 /** Pads one binder page to twelve pockets and clamps the requested page. */
 export function buildBinderPage<T>(

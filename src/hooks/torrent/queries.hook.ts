@@ -149,25 +149,26 @@ export function useTorrentFilesMap(
       const [entries] = await attempt(torrentApi.runningTorrentFilesBatch(idsToFetch));
       if (disposed) return;
       setPollingIds(new Set());
+      const batch = entries ?? [];
+      for (const entry of batch) {
+        if (entry.error !== null) continue;
+        const files = entry.files ?? [];
+        const key = queryKeys.torrentFiles(entry.id);
+        const cached = queryClient.getQueryData<TorrentFileInfo[]>(key);
+        queryClient.setQueryData(
+          key,
+          cached &&
+            cached.length === files.length &&
+            cached.every((file, index) => sameFileInfo(file, files[index]))
+            ? cached
+            : files
+        );
+      }
       setPollErrors((prev) => {
         const next: Record<number, string> = { ...prev };
-        for (const entry of entries ?? []) {
-          if (entry.error !== null) {
-            next[entry.id] = entry.error;
-            continue;
-          }
-          delete next[entry.id];
-          const files = entry.files ?? [];
-          const key = queryKeys.torrentFiles(entry.id);
-          const cached = queryClient.getQueryData<TorrentFileInfo[]>(key);
-          queryClient.setQueryData(
-            key,
-            cached &&
-              cached.length === files.length &&
-              cached.every((file, index) => sameFileInfo(file, files[index]))
-              ? cached
-              : files
-          );
+        for (const entry of batch) {
+          if (entry.error !== null) next[entry.id] = entry.error;
+          else delete next[entry.id];
         }
         return next;
       });

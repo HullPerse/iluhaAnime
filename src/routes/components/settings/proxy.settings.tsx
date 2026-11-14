@@ -20,6 +20,8 @@ export default function SettingsProxy() {
   const isOnline = useOnlineStatus();
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
   const newsProxyUrl = useCell(settingsAtoms.newsProxyUrl);
+  const cardsImageProxyUrl = useCell(settingsAtoms.cardsImageProxyUrl);
+  const dailyProxyUrl = useCell(settingsAtoms.dailyProxyUrl);
   const anilistTitleLanguage = useCell(settingsAtoms.anilistTitleLanguage);
   const anilistAdultContent = useCell(settingsAtoms.anilistAdultContent);
 
@@ -86,12 +88,43 @@ export default function SettingsProxy() {
           <SectionResetButton sectionId="proxy.news" />
         </div>
         <div className="flex flex-col gap-2 p-2">
-          <span className="text-hint text-xs">{t("settings.news.proxy.description")}</span>
           <ProxyField
             label={t("settings.news.proxy.url")}
             value={newsProxyUrl}
             onChange={(next) => patchSettings({ newsProxyUrl: next })}
             test={() => newsApi.testConnection(newsProxyUrl)}
+            testOkLabel={t("settings.anilist.proxy.test.ok")}
+            testFailLabel={t("settings.anilist.proxy.test.fail")}
+            testDisabled={!isOnline}
+          />
+        </div>
+      </section>
+
+      <section className="ui-panel" data-find-section="proxy.collection">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
+          <span className="text-title-text font-bold">
+            {t("settings.collection.proxy.title")}
+          </span>
+          <SectionResetButton sectionId="proxy.collection" />
+        </div>
+        <div className="flex flex-col gap-2 p-2">
+          <p className="text-hint windows95-text px-1 text-xs">
+            {t("settings.collection.proxy.description")}
+          </p>
+          <ProxyField
+            label={t("settings.collection.proxy.images")}
+            value={cardsImageProxyUrl}
+            onChange={(next) => patchSettings({ cardsImageProxyUrl: next })}
+            test={() => anilistApi.testConnection(cardsImageProxyUrl ?? anilistProxyUrl)}
+            testOkLabel={t("settings.anilist.proxy.test.ok")}
+            testFailLabel={t("settings.anilist.proxy.test.fail")}
+            testDisabled={!isOnline}
+          />
+          <ProxyField
+            label={t("settings.collection.proxy.daily")}
+            value={dailyProxyUrl}
+            onChange={(next) => patchSettings({ dailyProxyUrl: next })}
+            test={() => anilistApi.testConnection(dailyProxyUrl ?? anilistProxyUrl)}
             testOkLabel={t("settings.anilist.proxy.test.ok")}
             testFailLabel={t("settings.anilist.proxy.test.fail")}
             testDisabled={!isOnline}

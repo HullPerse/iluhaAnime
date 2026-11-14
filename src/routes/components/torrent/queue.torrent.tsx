@@ -194,13 +194,16 @@ export function TorrentQueueModal({
     );
     if (payload.order.length === 0) return;
     setBusy(true);
-    const applied = await onApply(payload);
-    setBusy(false);
-    if (applied) {
-      onClose();
-      return;
+    try {
+      const applied = await onApply(payload);
+      if (applied) {
+        onClose();
+        return;
+      }
+      setConfirm(false);
+    } finally {
+      setBusy(false);
     }
-    setConfirm(false);
   };
 
   const requestClose = () => {

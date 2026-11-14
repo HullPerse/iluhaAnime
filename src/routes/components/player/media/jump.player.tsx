@@ -52,6 +52,7 @@ function JumpToTime({
               setInvalid(false);
             }}
             onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing) return;
               if (event.key === "Enter") handleSubmit();
               if (event.key === "Escape") onClose();
             }}

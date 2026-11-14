@@ -13,6 +13,7 @@ import {
   selectInitialDayKey,
 } from "@/lib/core/anilist/activity.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
 import type { AniListCollection } from "@/types/anilist/anilist";
 
 export function CalendarTab({
@@ -38,6 +39,7 @@ export function CalendarTab({
   }, [activity, year]);
 
   const pitch = CELL_SIZE + CELL_GAP;
+  const formatDay = (date: Date) => date.toLocaleDateString(locale, { timeZone: LOCAL_TIME_ZONE });
 
   const activeKey = selectedKey;
   const activeActivity = activeKey ? activity.get(activeKey) : undefined;
@@ -114,7 +116,7 @@ export function CalendarTab({
                         disabled={!isActive}
                         aria-pressed={isSelected}
                         aria-label={t("anilist.activity.day.summary", {
-                          date: cell.date.toLocaleDateString(locale),
+                          date: formatDay(cell.date),
                           count: cell.count,
                         })}
                         className="focus-visible:outline-text border-muted shrink-0 border focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dotted disabled:cursor-default"
@@ -129,8 +131,8 @@ export function CalendarTab({
                         onClick={() => setSelectedKey(key)}
                         title={
                           cell.count > 0
-                            ? `${cell.date.toLocaleDateString(locale)}: ${cell.count}`
-                            : cell.date.toLocaleDateString(locale)
+                            ? `${formatDay(cell.date)}: ${cell.count}`
+                            : formatDay(cell.date)
                         }
                       />
                     );
@@ -147,11 +149,13 @@ export function CalendarTab({
               <div className="border-muted/40 flex items-center justify-between border-b px-2 py-1">
                 <span className="windows95-text text-xs font-bold">
                   {activeKey
-                    ? new Date(
-                        Number(activeKey.split("-")[0]),
-                        Number(activeKey.split("-")[1]) - 1,
-                        Number(activeKey.split("-")[2])
-                      ).toLocaleDateString(locale)
+                    ? formatDay(
+                        new Date(
+                          Number(activeKey.split("-")[0]),
+                          Number(activeKey.split("-")[1]) - 1,
+                          Number(activeKey.split("-")[2])
+                        )
+                      )
                     : ""}
                 </span>
                 <Button

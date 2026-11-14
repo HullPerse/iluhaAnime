@@ -187,11 +187,13 @@ export function useSplashStages(
     const run = async (): Promise<void> => {
       setStages((current) => withStatus(current, "theme", "active"));
       if (!(await pace("theme", "done"))) return;
+      if (disposed) return;
 
       setStages((current) => withStatus(current, "migrations", "active"));
       const [, migrationError] = attemptSync(() => detectMigrations());
       if (migrationError !== null) reportBackgroundError("splash.migrations", migrationError);
       if (!(await pace("migrations", "done"))) return;
+      if (disposed) return;
 
       setStages((current) => withStatus(current, "cache", "active"));
       const ready = await awaitCacheReady(stageTimeoutMs);
@@ -199,6 +201,7 @@ export function useSplashStages(
       if (!ready)
         reportBackgroundError("splash.cache.timeout", new Error("cache warmup timed out"));
       if (!(await pace("cache", ready ? "done" : "degraded"))) return;
+      if (disposed) return;
 
       setStages((current) => withStatus(current, "spelling", "active"));
       const spelled = await awaitSignal(isSpellingReady, onSpellingReady, stageTimeoutMs);
@@ -206,6 +209,7 @@ export function useSplashStages(
       if (!spelled)
         reportBackgroundError("splash.spelling.timeout", new Error("spelling warmup timed out"));
       if (!(await pace("spelling", spelled ? "done" : "degraded"))) return;
+      if (disposed) return;
 
       setStages((current) => withStatus(current, "index", "active"));
       const indexed = await awaitSignal(isIndexReady, onIndexReady, stageTimeoutMs);

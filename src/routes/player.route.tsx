@@ -29,7 +29,7 @@ import { playerVisibility } from "@/lib/player/playerVisibility.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptRetry, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { invokeTyped, invokeValidated } from "@/lib/core/system/invoke.utils";
-import { FileEntryListSchema, FolderScanResultListSchema } from "@/api/fileIndex.schema";
+import { FileEntryListSchema, FolderScanResultListSchema } from "@/schemas/fileIndex.schema";
 import { showError, showErrorOnce } from "@/lib/core/ui/notification.utils";
 import { createCoalescedRunner } from "@/lib/core/shared/promise.utils";
 import { unwrapOr } from "@hullperse/hp_utils/result";
@@ -389,57 +389,57 @@ function PlayerRoute() {
 
     setLoading(true);
     setScanProgress({ current: 0, total: 0 });
+    try {
+      const unlistenPromise = listen<{
+        path: string;
+        current: number;
+        total: number;
+      }>("folder-scan-progress", (e) => {
+        if (e.payload.path !== folder) return;
+        setScanProgress({ current: e.payload.current, total: e.payload.total });
+      });
 
-    const unlistenPromise = listen<{
-      path: string;
-      current: number;
-      total: number;
-    }>("folder-scan-progress", (e) => {
-      if (e.payload.path !== folder) return;
-      setScanProgress({ current: e.payload.current, total: e.payload.total });
-    });
-
-    const [entries, scanError] = await attempt(
-      invokeValidated<VideoFileEntry[]>("scan_video_folder", FileEntryListSchema, {
-        path: folder,
-        extensions: videoExtensions,
-        threads: scanThreads,
-      })
-    );
-    if (scanError) {
-      reportBackgroundError("folders.scan", scanError);
-      if (settingsAtoms.notifyScanErrors.get())
-        showError(t("notification.scan.failed"), scanError.message);
-    } else if (entries && entries.length > 0) {
-      const tree = buildTree(entries, folder);
-      const next = [...folderTrees, tree];
-      setFolderTrees(next);
-      patchSettings({ savedFolderPaths: next.map((t) => t.path) });
-      rebuildIndex(next.map((t) => t.path));
-      setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
+      const [entries, scanError] = await attempt(
+        invokeValidated<VideoFileEntry[]>("scan_video_folder", FileEntryListSchema, {
+          path: folder,
+          extensions: videoExtensions,
+          threads: scanThreads,
+        })
+      );
+      if (scanError) {
+        reportBackgroundError("folders.scan", scanError);
+        if (settingsAtoms.notifyScanErrors.get())
+          showError(t("notification.scan.failed"), scanError.message);
+      } else if (entries && entries.length > 0) {
+        const tree = buildTree(entries, folder);
+        const next = [...folderTrees, tree];
+        setFolderTrees(next);
+        patchSettings({ savedFolderPaths: next.map((t) => t.path) });
+        rebuildIndex(next.map((t) => t.path));
+        setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
+      }
+      const unlisten = await unlistenPromise.catch((error) =>
+        reportBackgroundError("folderscan.unlisten", error)
+      );
+      unlisten?.();
+    } finally {
+      setLoading(false);
+      setScanProgress(null);
     }
-    const unlisten = await unlistenPromise.catch((error) =>
-      reportBackgroundError("folderscan.unlisten", error)
-    );
-    unlisten?.();
-    setLoading(false);
-    setScanProgress(null);
   }, [folderTrees, t, videoExtensions, scanThreads, rebuildIndex]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
       removeEntriesByFolderPath(path);
       playerVisibility.unhidePlayerFolder(path);
-      setFolderTrees((prev) => {
-        const next = prev.filter((t) => t.path !== path);
-        patchSettings({ savedFolderPaths: next.map((t) => t.path) });
-        playerVisibility.setPlayerFolderHeight(path, null);
-        rebuildIndex(next.map((t) => t.path));
-        setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
-        return next;
-      });
+      const next = folderTrees.filter((t) => t.path !== path);
+      setFolderTrees(next);
+      patchSettings({ savedFolderPaths: next.map((t) => t.path) });
+      playerVisibility.setPlayerFolderHeight(path, null);
+      rebuildIndex(next.map((t) => t.path));
+      setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
     },
-    [rebuildIndex]
+    [folderTrees, rebuildIndex]
   );
 
   const toggleExpanded = useCallback((id: number) => {

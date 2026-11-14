@@ -16,7 +16,7 @@ import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { withFallback } from "@hullperse/hp_utils/attempt";
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { UpscaleTimeEstimateSchema } from "@/api/upscale.schema";
+import { UpscaleTimeEstimateSchema } from "@/schemas/upscale.schema";
 import { formatETA } from "@/lib/core/text/time.utils";
 import { parseUpscaleFps } from "@/lib/player/upscaleFps.utils";
 import type { PreviewFrame } from "@/types/core/upscale";

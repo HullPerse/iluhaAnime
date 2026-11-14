@@ -27,10 +27,13 @@ function AniListAuthModal({
     if (!token.trim()) return;
     setLoading(true);
     setError("");
-    const [user, error] = await attempt(anilistApi.login(token));
-    if (error) setError(String(error));
-    else onAuth(user);
-    setLoading(false);
+    try {
+      const [user, error] = await attempt(anilistApi.login(token));
+      if (error) setError(String(error));
+      else onAuth(user);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

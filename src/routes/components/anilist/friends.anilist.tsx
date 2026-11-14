@@ -63,14 +63,17 @@ export default function AniListFriendsModal({
   const fetchProfile = async (friend: AniFriend, force = false): Promise<void> => {
     setRefreshing(true);
     setProfileError(null);
-    const [profile, fetchError] = await attempt(anilistApi.getProfile(friend.id));
-    setRefreshing(false);
-    if (fetchError) {
-      if (force || !friend.profile) setProfileError(fetchError.message);
-      return;
+    try {
+      const [profile, fetchError] = await attempt(anilistApi.getProfile(friend.id));
+      if (fetchError) {
+        if (force || !friend.profile) setProfileError(fetchError.message);
+        return;
+      }
+      setProfiles((current) => ({ ...current, [profile.id]: profile }));
+      cacheAnilistProfile(profile);
+    } finally {
+      setRefreshing(false);
     }
-    setProfiles((current) => ({ ...current, [profile.id]: profile }));
-    cacheAnilistProfile(profile);
   };
 
   const selectFriend = (friend: AniFriend) => {
@@ -100,17 +103,20 @@ export default function AniListFriendsModal({
 
     setLoading(true);
     setError(null);
-    const [profile, fetchError] = await attempt(
-      anilistApi.getProfile(id, id === undefined ? input : undefined)
-    );
-    if (fetchError) setError(fetchError.message);
-    else {
-      setProfiles((current) => ({ ...current, [profile.id]: profile }));
-      setSelectedId(profile.id);
-      onAdd(profile);
-      setQuery("");
+    try {
+      const [profile, fetchError] = await attempt(
+        anilistApi.getProfile(id, id === undefined ? input : undefined)
+      );
+      if (fetchError) setError(fetchError.message);
+      else {
+        setProfiles((current) => ({ ...current, [profile.id]: profile }));
+        setSelectedId(profile.id);
+        onAdd(profile);
+        setQuery("");
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const selectedProfile = selectedId != null ? profiles[selectedId] : undefined;

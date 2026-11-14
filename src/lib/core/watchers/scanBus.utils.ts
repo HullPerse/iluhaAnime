@@ -1,7 +1,7 @@
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { FileEntryListSchema } from "@/api/fileIndex.schema";
+import { FileEntryListSchema } from "@/schemas/fileIndex.schema";
 import { isSameOrInside, normalizePath } from "@/lib/core/watchers/pathsWatcher.utils";
 import type { VideoFileEntry } from "@/types/core/fs";
 import type {

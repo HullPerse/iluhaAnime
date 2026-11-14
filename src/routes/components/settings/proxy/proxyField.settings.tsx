@@ -85,6 +85,7 @@ export function ProxyField({
             }}
             onBlur={() => commit(value)}
             onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing) return;
               if (event.key === "Enter") event.currentTarget.blur();
             }}
             placeholder={presets[0] ?? "socks5://127.0.0.1:10808"}

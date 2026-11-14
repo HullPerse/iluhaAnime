@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import ImageComponent from "@/components/ui/image.component";
 import { Button } from "@/components/ui/button.component";
 import { useBinderColumns } from "@/hooks/cards/binderColumns.hook";
 import { useCardsAnimeCollection, useCardsCollectionRoster } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionItem, RosterCharacter } from "@/types/api/cards";
+import type { CollectionSlot } from "@/types/ui/collection";
 
-import BinderPocket from "@/routes/components/collection/pocket.cards";
 import CollectionSilhouette from "@/routes/components/collection/silhouette.cards";
+import MissingMediaCard from "@/routes/components/collection/missingMediaCard.cards";
+import BinderPocket from "@/routes/components/collection/pocket.cards";
+import RosterFooter from "@/routes/components/collection/rosterFooter.cards";
 
 const PREFETCH_PAGES = 2;
-
-type CollectionSlot =
-  | { kind: "owned"; card: CollectionItem }
-  | { kind: "missing"; entityId: number };
 
 function mergeRoster(base: RosterCharacter[], extra: RosterCharacter[]): RosterCharacter[] {
   const seen = new Set<number>();
@@ -23,84 +21,6 @@ function mergeRoster(base: RosterCharacter[], extra: RosterCharacter[]): RosterC
     seen.add(character.entityId);
     return true;
   });
-}
-
-function MissingMediaCard({
-  title,
-  coverUrl,
-  kind,
-}: {
-  title: string;
-  coverUrl: string | null;
-  kind: "anime" | "manga";
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="cards-window cards-missing-media" data-testid="collection-main-missing">
-      <div className="cards-window-bar" title={title}>
-        <span>{title}</span>
-      </div>
-      <div className="cards-inner">
-        <div className="cards-art">
-          <ImageComponent
-            src={coverUrl ?? ""}
-            alt={title}
-            type="cover"
-            className="h-full w-full"
-          />
-        </div>
-        <div className="cards-meta">
-          <span className="cards-kind">{t(`collection.kind.${kind}`)}</span>
-          <span className="cards-missing-label">{t("collection.silhouette.unknown")}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RosterFooter({
-  hasMore,
-  failed,
-  loading,
-  disabled,
-  onRetry,
-  onMore,
-}: {
-  hasMore: boolean;
-  failed: boolean;
-  loading: boolean;
-  disabled: boolean;
-  onRetry: () => void;
-  onMore: () => void;
-}) {
-  const { t } = useI18n();
-  if (!hasMore) return null;
-
-  if (failed) {
-    return (
-      <div className="mt-2 flex flex-col items-center gap-1">
-        <span className="windows95-text text-destructive" role="alert">
-          {t("collection.error")}
-        </span>
-        <Button className="h-6 px-2 text-xs" onClick={onRetry}>
-          {t("collection.retry")}
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-2 flex flex-col items-center gap-1">
-      {loading && (
-        <span className="windows95-text text-hint" role="status">
-          {t("collection.collection.roster.loading")}
-        </span>
-      )}
-      <Button className="h-6 px-2 text-xs" disabled={disabled} onClick={onMore}>
-        {t("collection.collection.roster.more")}
-      </Button>
-    </div>
-  );
 }
 
 export default function CollectionPageCards({
@@ -237,7 +157,11 @@ export default function CollectionPageCards({
       <div className="cards-collection-hero">
         <div data-testid="collection-main" className="cards-collection-main-grid">
           {mediaCards.length === 0 ? (
-            <MissingMediaCard title={title} coverUrl={data.coverUrl} kind={data.kind as "anime" | "manga"} />
+            <MissingMediaCard
+              title={title}
+              coverUrl={data.coverUrl}
+              kind={data.kind === "manga" ? "manga" : "anime"}
+            />
           ) : (
             mediaCards.map((card) => (
               <BinderPocket

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
+import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import {
   cancelRemoteImageQueue,
   prefetchRemoteImages,
@@ -12,13 +13,12 @@ import {
 import { useI18n } from "@/hooks/i18n.hook";
 import { settingsAtoms } from "@/store/settings.store";
 import type { OpenedCard } from "@/types/api/cards";
+import type { PackOpeningPhase } from "@/types/ui/collection";
 
 import PackArt from "@/routes/components/collection/packArt.cards";
 import Reveal from "@/routes/components/collection/reveal.cards";
 
 const INTRO_MS = 3_200;
-
-type Phase = "intro" | "reveal";
 
 function packImageUrls(cards: readonly OpenedCard[]): string[] {
   const urls: string[] = [];
@@ -46,8 +46,9 @@ export default function PackOpen({
   introMs?: number;
 }) {
   const { t } = useI18n();
+  const imageProxy = useCardsImageProxy();
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
-  const [phase, setPhase] = useState<Phase>("intro");
+  const [phase, setPhase] = useState<PackOpeningPhase>("intro");
   const [introFinished, setIntroFinished] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
   const [flipped, setFlipped] = useState<ReadonlySet<number>>(() => new Set());
@@ -58,7 +59,7 @@ export default function PackOpen({
     setImagesReady(false);
     setRemoteImageScope(images);
     let cancelled = false;
-    prefetchRemoteImages(images)
+    prefetchRemoteImages(images, imageProxy)
       .then(() => {
         if (!cancelled) setImagesReady(true);
         return null;
@@ -69,7 +70,7 @@ export default function PackOpen({
       setRemoteImageScope(null);
       cancelRemoteImageQueue();
     };
-  }, [images]);
+  }, [imageProxy, images]);
 
   useEffect(() => {
     setIntroFinished(false);

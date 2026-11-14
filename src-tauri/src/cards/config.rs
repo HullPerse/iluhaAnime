@@ -4,10 +4,10 @@ use super::types::{
     ShopPackConfig, VariantMultipliers, VariantWeights,
 };
 
-/// Automatic grants stay off until the user's final command.
-pub const CARDS_GRANT_ENABLED: bool = false;
-/// Test tools stay available until the release checklist hides them.
-pub const CARDS_TEST_TOOLS_ENABLED: bool = true;
+/// Final release: completed titles grant packs automatically.
+pub const CARDS_GRANT_ENABLED: bool = true;
+/// The test controls left the UI, so the bootstrap no longer advertises them.
+pub const CARDS_TEST_TOOLS_ENABLED: bool = false;
 
 /// A pack holds seven cards; their kinds come from `SHOP_PACKS`.
 pub const CARD_PACK_SIZE: usize = 7;

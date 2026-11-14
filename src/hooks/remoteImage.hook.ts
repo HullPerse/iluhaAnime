@@ -251,8 +251,11 @@ export function cancelRemoteImageQueue(): void {
  * path, never the 336 px display thumbnail. Save and copy must export the
  * original bytes, so they ask the command for the export copy explicitly.
  */
-export function fetchRemoteImageSource(remoteUrl: string): Promise<string | null> {
-  const proxy = activeProxy();
+export function fetchRemoteImageSource(
+  remoteUrl: string,
+  proxyUrl?: string | null
+): Promise<string | null> {
+  const proxy = proxyUrl === undefined ? activeProxy() : proxyUrl;
   return invokeTyped<UserImageFile>("fetch_remote_image", {
     url: remoteUrl,
     full: true,
@@ -339,7 +342,10 @@ export function prefetchRemoteImages(
   return Promise.all(pending).then(() => undefined);
 }
 
-export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
+export function useRemoteImageStatus(
+  remoteUrl: string | null | undefined,
+  proxyUrl?: string | null
+): {
   src: string | null;
   failed: boolean;
 } {
@@ -354,7 +360,7 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
     }
     let cancelled = false;
     setState({ src: resolvedUrls.get(remoteUrl) ?? null, failed: false });
-    fetchCachedImage(remoteUrl, undefined, "high")
+    fetchCachedImage(remoteUrl, proxyUrl, "high")
       .then((url) => {
         if (!cancelled) setState({ src: url, failed: url === null });
         return null;
@@ -363,10 +369,13 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
     return () => {
       cancelled = true;
     };
-  }, [remoteUrl]);
+  }, [remoteUrl, proxyUrl]);
   return state;
 }
 
-export function useRemoteImage(remoteUrl: string | null | undefined): string | null {
-  return useRemoteImageStatus(remoteUrl).src;
+export function useRemoteImage(
+  remoteUrl: string | null | undefined,
+  proxyUrl?: string | null
+): string | null {
+  return useRemoteImageStatus(remoteUrl, proxyUrl).src;
 }

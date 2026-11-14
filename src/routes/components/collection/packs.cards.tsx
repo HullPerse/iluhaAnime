@@ -32,9 +32,6 @@ export default function PacksCards() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-2">
-      {unopened.length === 0 && (
-        <p className="windows95-text text-hint m-0">{t("collection.packs.empty")}</p>
-      )}
       {unopened.length > 0 && (
         <div className="grid auto-rows-fr grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] items-stretch gap-2">
           {unopened.map((pack) => (

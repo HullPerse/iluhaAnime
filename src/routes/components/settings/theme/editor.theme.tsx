@@ -45,6 +45,7 @@ export default function ThemeEditor({
   const { t } = useI18n();
   const isEdit = !!theme && !patchMode;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [paletteFile, setPaletteFile] = useState<File | null>(null);
 
   const [name, setName] = useState<string>(theme?.label ?? "");
   const [radius, setRadius] = useState<NonNullable<ThemeDefinition["radius"]>>(
@@ -74,6 +75,27 @@ export default function ThemeEditor({
   );
 
   useEffect(() => {
+    if (paletteFile === null) return;
+    const url = URL.createObjectURL(paletteFile);
+    const image = new window.Image();
+    image.onload = () => {
+      const found = readImagePalette(image);
+      setPalette(found);
+      setPaletteFailed(found.length === 0);
+    };
+    image.onerror = () => {
+      setPalette([]);
+      setPaletteFailed(true);
+    };
+    image.src = url;
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+      URL.revokeObjectURL(url);
+    };
+  }, [paletteFile]);
+
+  useEffect(() => {
     if (!theme || currentTheme !== theme.name) return;
     previewTheme({
       ...theme,
@@ -100,20 +122,7 @@ export default function ThemeEditor({
     });
 
   const handleFile = (file: File) => {
-    const url = URL.createObjectURL(file);
-    const image = new window.Image();
-    image.onload = () => {
-      URL.revokeObjectURL(url);
-      const found = readImagePalette(image);
-      setPalette(found);
-      setPaletteFailed(found.length === 0);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      setPalette([]);
-      setPaletteFailed(true);
-    };
-    image.src = url;
+    setPaletteFile(file);
   };
 
   const handleSave = () => {

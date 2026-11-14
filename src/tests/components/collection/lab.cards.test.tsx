@@ -84,7 +84,7 @@ describe("cards design lab", () => {
       ],
       { query: "?raw", import: "default", eager: true }
     );
-    expect(Object.keys(files)).toHaveLength(6);
+    expect(Object.keys(files)).toHaveLength(9);
     for (const source of Object.values(files)) {
       expect(source).not.toMatch(/@\/api\/cards\.api/u);
       expect(source).not.toMatch(/@\/hooks\/cards/u);

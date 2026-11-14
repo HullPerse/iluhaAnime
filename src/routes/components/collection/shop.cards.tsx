@@ -37,9 +37,7 @@ export default function ShopCards() {
           </p>
         )}
 
-        {packs.length === 0 ? (
-          <p className="windows95-text text-hint m-0">{t("collection.shop.empty")}</p>
-        ) : (
+        {packs.length > 0 && (
           <div className="cards-shop-grid">
             {packs.map((pack) => (
               <ShopPack

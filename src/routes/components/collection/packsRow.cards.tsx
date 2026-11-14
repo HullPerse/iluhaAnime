@@ -27,7 +27,7 @@ export default function PacksRowCards({
 
   return (
     <article className="windows95-border bg-field relative flex h-full min-w-0 flex-col gap-1 p-2">
-      <div className="cards-pack-tilt mx-auto mb-1 w-full max-w-[9.5rem]" {...tilt}>
+      <div className="cards-pack-tilt mx-auto mb-1 w-full max-w-38" {...tilt}>
         <PackArt packKind={pack.packKind} size={pack.size} />
       </div>
       {pack.createdAt > newSince && (
@@ -36,9 +36,15 @@ export default function PacksRowCards({
         </span>
       )}
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <h3 className="windows95-text min-w-0 truncate font-bold">{t(packLabelKey(pack.packKind))}</h3>
+        <h3 className="windows95-text min-w-0 truncate font-bold">
+          {t(packLabelKey(pack.packKind))}
+        </h3>
         <span className="windows95-text text-hint shrink-0 text-xs">
-          {t(cardSourceLabelKey(pack.source))}
+          {t(
+            pack.id.startsWith("daily-")
+              ? "collection.source.daily"
+              : cardSourceLabelKey(pack.source)
+          )}
         </span>
       </div>
       <span className="windows95-text text-hint">

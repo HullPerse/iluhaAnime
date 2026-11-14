@@ -119,48 +119,51 @@ function AniListActionControls({
     });
     setSaving(true);
     setSaveError("");
-    const previousStatus = readListStatus(queryClient, anime.id);
-    const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-    if (previousStatus !== null) {
-      patchListEntry(queryClient, anime.id, values);
-    } else {
-      insertListEntry(queryClient, anime, values);
-    }
-    const startedAt = performance.now();
-    const [saved, error] = await attempt(
-      anilistApi.saveEntry({
-        mediaId: anime.id,
-        status: values.list_status,
-        progress: values.progress,
-        score: values.score,
-        notes: values.notes,
-        repeat: values.repeat,
-        private: values.private,
-        hiddenFromStatusLists: values.hidden_from_status_lists,
-        startedAt: values.started_at,
-        completedAt: values.completed_at,
-        customLists: (customLists ?? []).length > 0 ? values.custom_lists : undefined,
-      })
-    );
-    if (error) {
-      if (previous !== undefined) queryClient.setQueryData(queryKeys.anilistData(), previous);
-      const message = error instanceof Error ? error.message : String(error);
-      const reason = message.length > 300 ? `${message.slice(0, 300)}...` : message;
-      console.warn("anilist.save.failed", {
-        elapsedMs: Math.round(performance.now() - startedAt),
-        mediaId: anime.id,
-        progress: values.progress,
-        status: values.list_status,
-        error: reason,
-      });
-      setSaveError(t("anilist.controls.save.error.detail", { error: reason }));
+    try {
+      const previousStatus = readListStatus(queryClient, anime.id);
+      const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
+      if (previousStatus !== null) {
+        patchListEntry(queryClient, anime.id, values);
+      } else {
+        insertListEntry(queryClient, anime, values);
+      }
+      const startedAt = performance.now();
+      const [saved, error] = await attempt(
+        anilistApi.saveEntry({
+          mediaId: anime.id,
+          status: values.list_status,
+          progress: values.progress,
+          score: values.score,
+          notes: values.notes,
+          repeat: values.repeat,
+          private: values.private,
+          hiddenFromStatusLists: values.hidden_from_status_lists,
+          startedAt: values.started_at,
+          completedAt: values.completed_at,
+          customLists: (customLists ?? []).length > 0 ? values.custom_lists : undefined,
+        })
+      );
+      if (error) {
+        if (previous !== undefined) queryClient.setQueryData(queryKeys.anilistData(), previous);
+        const message = error instanceof Error ? error.message : String(error);
+        const reason = message.length > 300 ? `${message.slice(0, 300)}...` : message;
+        console.warn("anilist.save.failed", {
+          elapsedMs: Math.round(performance.now() - startedAt),
+          mediaId: anime.id,
+          progress: values.progress,
+          status: values.list_status,
+          error: reason,
+        });
+        setSaveError(t("anilist.controls.save.error.detail", { error: reason }));
+        return;
+      }
+      const reconciled = reconcileSavedEntry(queryClient, anime.id, previousStatus, values, saved);
+      markOwnAnilistListStatus(anime.id, reconciled.status);
+      if (reconciled.bucketChanged) onSaved?.();
+      onClose?.();
+    } finally {
       setSaving(false);
-      return;
     }
-    const reconciled = reconcileSavedEntry(queryClient, anime.id, previousStatus, values, saved);
-    markOwnAnilistListStatus(anime.id, reconciled.status);
-    if (reconciled.bucketChanged) onSaved?.();
-    onClose?.();
   };
 
   return (

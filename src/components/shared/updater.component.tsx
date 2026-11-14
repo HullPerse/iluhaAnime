@@ -48,11 +48,14 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
             onClick={async () => {
               setLoading(true);
               setInstallError(null);
-              const [, error] = await attempt(installUpdate(update));
-              if (error) {
-                setInstallError(error instanceof Error ? error.message : String(error));
+              try {
+                const [, error] = await attempt(installUpdate(update));
+                if (error) {
+                  setInstallError(error instanceof Error ? error.message : String(error));
+                }
+              } finally {
+                setLoading(false);
               }
-              setLoading(false);
             }}
             loading={loading}
           >

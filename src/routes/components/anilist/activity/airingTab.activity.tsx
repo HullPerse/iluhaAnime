@@ -23,6 +23,7 @@ import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { createInterval } from "@hullperse/hp_utils/interval";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
+import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
 import type { AniListCollection, AniMedia } from "@/types/anilist/anilist";
 
 type AiringMode = "list" | "season";
@@ -170,6 +171,7 @@ export function AiringTab({
                 weekday: "long",
                 day: "numeric",
                 month: "short",
+                timeZone: LOCAL_TIME_ZONE,
               })}
             </span>
             <div className="flex flex-col gap-0.5">

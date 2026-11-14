@@ -209,7 +209,7 @@ const TERM_MATCHERS: Partial<
     target.endsWith(term.text) ? 900 - Math.min(120, target.length - term.text.length) : null,
 };
 
-export function matchOperatorTerm(term: OperatorTerm, target: string): number | null {
+function matchOperatorTerm(term: OperatorTerm, target: string): number | null {
   const matcher = TERM_MATCHERS[term.mode];
   return matcher
     ? matcher(term, target)
@@ -233,14 +233,6 @@ export function matchOperatorTerms(terms: OperatorTerm[], target: string): numbe
   return 350 + total / positives;
 }
 
-export function operatorTextLength(query: string): number {
-  const terms = parseOperatorTerms(query);
-  if (!terms) return query.trim().length;
-  return terms
-    .map((term) => term.text)
-    .join(" ")
-    .trim().length;
-}
 
 export function fuzzyMatchScorePreNormalized(
   normalizedQuery: string,

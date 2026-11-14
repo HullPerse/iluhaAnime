@@ -35,7 +35,7 @@ import {
   FollowingPageSchema,
   FranchiseGraphSchema,
   PrefetchSummarySchema,
-} from "@/api/anilist.schema";
+} from "@/schemas/anilist.schema";
 import type {
   ActivityLikeState,
   AniActivity,
@@ -91,7 +91,7 @@ export class AnilistApi {
 
   private async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
     const [value, error] = await attempt(
-      this.transport.call<T>(command, { ...args, ...this.proxy() })
+      this.transport.call<T>(command, { ...this.proxy(), ...args })
     );
     if (error !== null) {
       noteNetworkFailure(error);
@@ -326,8 +326,11 @@ export class AnilistApi {
     return deleted;
   }
 
-  testConnection(): Promise<string> {
-    return this.call("test_anilist_connection");
+  testConnection(proxyUrl?: string | null): Promise<string> {
+    return this.call(
+      "test_anilist_connection",
+      proxyUrl === undefined ? {} : anilistProxyArgs(proxyUrl)
+    );
   }
 
   async getActivity(userIds: number[]): Promise<AniActivity[]> {

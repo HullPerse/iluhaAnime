@@ -32,14 +32,17 @@ export default function AnimelibSettings() {
     setSaving(true);
     setSaved(false);
     setError(null);
-    const [, failure] = await attempt(streamApi.tokenSave(token));
-    if (failure) setError(failure.message);
-    else {
-      setInput("");
-      setSaved(true);
-      await refresh();
+    try {
+      const [, failure] = await attempt(streamApi.tokenSave(token));
+      if (failure) setError(failure.message);
+      else {
+        setInput("");
+        setSaved(true);
+        await refresh();
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const clear = async () => {

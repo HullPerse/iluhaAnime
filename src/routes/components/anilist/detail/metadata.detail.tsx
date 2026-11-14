@@ -14,6 +14,7 @@ import {
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { createInterval } from "@hullperse/hp_utils/interval";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
+import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
 import type { AniMedia } from "@/types/anilist/anilist";
 
 function AniListMetadata({
@@ -103,7 +104,7 @@ function AniListMetadata({
         {anime.next_episode != null && airingAt != null && airingLocal != null && (
           <span
             className="windows95-text text-success font-bold"
-            title={new Date(airingAt * 1000).toLocaleString(locale)}
+            title={new Date(airingAt * 1000).toLocaleString(locale, { timeZone: LOCAL_TIME_ZONE })}
           >
             {t("anilist.metadata.next.episode", { n: anime.next_episode })} - {airingLocal}
             {airingCountdown ? ` (${t("anilist.airing.in", { time: airingCountdown })})` : ""}

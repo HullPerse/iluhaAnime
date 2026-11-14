@@ -4,7 +4,7 @@ import { isRecord } from "@/lib/core/text/record.utils";
 import type { Cell } from "@/types/core/signal";
 import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { WatchStateSchema } from "@/api/player.schema";
+import { WatchStateSchema } from "@/schemas/player.schema";
 import type { MediaSignalOptions, MediaSignalStore } from "@/types/store/media";
 import type { MediaEntry, WatchState } from "@/types/player/videoPlayer";
 

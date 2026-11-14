@@ -1,0 +1,6 @@
+export const CARD_GRID_GAP = 8;
+export const CARD_GRID_HORIZONTAL_PADDING = 16;
+export const CARD_GRID_SMALL_WIDTH = 144;
+export const CARD_GRID_LARGE_WIDTH = 176;
+export const CARD_GRID_FALLBACK_COLUMNS = 2;
+export const CARD_GRID_FALLBACK_ROW_HEIGHT = 280;

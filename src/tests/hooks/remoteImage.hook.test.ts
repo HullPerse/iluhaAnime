@@ -2,6 +2,7 @@ import { mockInvoke as invokeMock } from "@/tests/mocks";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import {
   prefetchRemoteImages,
   resetRemoteImageCache,
@@ -20,7 +21,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 beforeEach(() => {
   invokeMock.mockReset();
-  patchSettings({ anilistProxyUrl: null });
+  patchSettings({ anilistProxyUrl: null, cardsImageProxyUrl: null, dailyProxyUrl: null });
   resetRemoteImageCache();
 });
 
@@ -84,6 +85,35 @@ describe("prefetchRemoteImages", () => {
     expect(invokeMock).toHaveBeenCalledWith("fetch_remote_image", {
       url: "https://s4.anilist.co/file/anilistcdn/card.jpg",
       proxyUrl: "socks5://127.0.0.1:10808",
+    });
+    unmount();
+  });
+
+  it("inherits the AniList proxy for card art until a card image proxy is set", () => {
+    patchSettings({ anilistProxyUrl: "socks5://127.0.0.1:10808", cardsImageProxyUrl: null });
+    const inherited = renderHook(() => useCardsImageProxy());
+    expect(inherited.result.current).toBe("socks5://127.0.0.1:10808");
+    inherited.unmount();
+
+    patchSettings({ cardsImageProxyUrl: "http://127.0.0.1:7890" });
+    const overridden = renderHook(() => useCardsImageProxy());
+    expect(overridden.result.current).toBe("http://127.0.0.1:7890");
+    overridden.unmount();
+  });
+
+  it("uses the card image proxy passed to a visible card", async () => {
+    patchSettings({ anilistProxyUrl: "socks5://127.0.0.1:10808" });
+    invokeMock.mockResolvedValue({ id: "card-2", path: "C:/images/card-2.jpg" });
+    const { result, unmount } = renderHook(() =>
+      useRemoteImageStatus("https://s4.anilist.co/file/anilistcdn/card-2.jpg", "http://127.0.0.1:7890")
+    );
+
+    await waitFor(() => {
+      expect(result.current.src).toBe(assetUrl("C:/images/card-2.jpg"));
+    });
+    expect(invokeMock).toHaveBeenCalledWith("fetch_remote_image", {
+      url: "https://s4.anilist.co/file/anilistcdn/card-2.jpg",
+      proxyUrl: "http://127.0.0.1:7890",
     });
     unmount();
   });

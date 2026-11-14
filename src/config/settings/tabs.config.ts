@@ -46,7 +46,6 @@ export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey 
   { id: "theme", key: "settings.theme" },
   { id: "keybinds", key: "settings.keybinds" },
   { id: "changelog", key: "settings.changelog" },
-  { id: "sqlite", key: "settings.sqlite" },
 ] as const;
 
 export const SETTINGS_TAB_GROUPS: readonly SettingsTabGroup[] = [
@@ -57,7 +56,7 @@ export const SETTINGS_TAB_GROUPS: readonly SettingsTabGroup[] = [
   },
   { id: "data", titleKey: "settings.group.data", tabs: ["search", "torrent"] },
   { id: "integrations", titleKey: "settings.group.integrations", tabs: ["proxy"] },
-  { id: "advanced", titleKey: "settings.group.advanced", tabs: ["sqlite", "changelog"] },
+  { id: "advanced", titleKey: "settings.group.advanced", tabs: ["changelog"] },
 ];
 
 const SETTINGS_TABS = new Set<SettingsTab>([
@@ -67,7 +66,6 @@ const SETTINGS_TABS = new Set<SettingsTab>([
   "torrent",
   "proxy",
   "theme",
-  "sqlite",
   "keybinds",
   "changelog",
 ]);

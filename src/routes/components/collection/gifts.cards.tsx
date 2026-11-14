@@ -36,13 +36,6 @@ export default function GiftsCards() {
   }
 
   const items = gifts.data ?? [];
-  if (items.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <p className="windows95-text text-hint m-0">{t("collection.gifts.empty")}</p>
-      </div>
-    );
-  }
 
   return (
     <div className="cards-gifts">

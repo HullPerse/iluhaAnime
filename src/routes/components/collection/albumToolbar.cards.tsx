@@ -16,6 +16,7 @@ import {
 } from "@/config/cards/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
+import { isCardKind, isCardRarity } from "@/lib/cards/guards.utils";
 import type { CardKind, CardRarity } from "@/types/api/cards";
 import type { SearchSuggestion } from "@/types/search/search";
 import type { CardsAlbumMode, CardsSortDir } from "@/types/store/cards";
@@ -183,14 +184,20 @@ export default function AlbumToolbar({
                 label={t("collection.filters.kind")}
                 value={kind ?? "all"}
                 options={kindOptions}
-                onChange={(value) => onKind(value === "all" ? null : (value as CardKind))}
+                onChange={(value) => {
+                  if (value === "all") onKind(null);
+                  else if (isCardKind(value)) onKind(value);
+                }}
               />
               <Select
                 className="w-28"
                 label={t("collection.filters.rarity")}
                 value={rarity ?? "all"}
                 options={rarityOptions}
-                onChange={(value) => onRarity(value === "all" ? null : (value as CardRarity))}
+                onChange={(value) => {
+                  if (value === "all") onRarity(null);
+                  else if (isCardRarity(value)) onRarity(value);
+                }}
               />
               <Button
                 size="icon"

@@ -1,5 +1,5 @@
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { SidecarTrackListSchema } from "@/api/fileIndex.schema";
+import { SidecarTrackListSchema } from "@/schemas/fileIndex.schema";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { fileNameFromPath, mediaFileExtension } from "@hullperse/hp_utils/media/parse";
 import { addExternalAudioAuto, addExternalSubtitleAuto } from "@/lib/player/playback.utils";

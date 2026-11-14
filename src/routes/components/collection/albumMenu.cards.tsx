@@ -1,18 +1,9 @@
-import {
-  Hash,
-  Infinity as InfinityIcon,
-  MoreHorizontal,
-  PackagePlus,
-  Palette,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
+import { Hash, Infinity as InfinityIcon, MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { DropdownMenuContent } from "@/components/ui/dropdown/content.dropdown";
-import { DropdownMenuGroup } from "@/components/ui/dropdown/group.dropdown";
 import { DropdownMenuItem } from "@/components/ui/dropdown/item.dropdown";
 import { DropdownMenu } from "@/components/ui/dropdown/menu.dropdown";
 import { DropdownMenuRadioGroup } from "@/components/ui/dropdown/radioGroup.dropdown";
@@ -20,11 +11,9 @@ import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdo
 import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
 import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
 import { useCardsMutations } from "@/hooks/cards/mutations.hook";
-import { useCardsBootstrap } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { setCardsBinderPage } from "@/store/cards.store";
-
-type ConfirmStep = 0 | 1 | 2;
+import type { ConfirmStep } from "@/types/ui/collection";
 
 export default function AlbumMenu({
   view,
@@ -36,11 +25,8 @@ export default function AlbumMenu({
   onInfinite: (infinite: boolean) => void;
 }) {
   const { t } = useI18n();
-  const bootstrap = useCardsBootstrap();
-  const { grantTestPack, grantTestLegendaryPack, grantTestEffectsPack, resetCollection } =
-    useCardsMutations();
+  const { resetCollection } = useCardsMutations();
   const [confirmStep, setConfirmStep] = useState<ConfirmStep>(0);
-  const testTools = bootstrap.data?.testToolsEnabled === true;
   const closeConfirm = () => setConfirmStep(0);
   const applyReset = () => {
     resetCollection.mutate(undefined, { onSuccess: () => setCardsBinderPage(0) });
@@ -77,37 +63,6 @@ export default function AlbumMenu({
                 {t("collection.grid.infinite")}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-          )}
-          {testTools && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  disabled={grantTestPack.isPending}
-                  title={t("collection.testTools.hint")}
-                  onClick={() => grantTestPack.mutate()}
-                >
-                  <PackagePlus className="size-4" />
-                  {t("collection.testTools")}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={grantTestLegendaryPack.isPending}
-                  title={t("collection.testTools.legendary.hint")}
-                  onClick={() => grantTestLegendaryPack.mutate()}
-                >
-                  <Sparkles className="size-4" />
-                  {t("collection.testTools.legendary")}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={grantTestEffectsPack.isPending}
-                  title={t("collection.testTools.effects.hint")}
-                  onClick={() => grantTestEffectsPack.mutate()}
-                >
-                  <Palette className="size-4" />
-                  {t("collection.testTools.effects")}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem

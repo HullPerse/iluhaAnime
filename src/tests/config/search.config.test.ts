@@ -57,8 +57,7 @@ describe("settingsSearchSchema", () => {
     expect(settingsSearchSchema.parse({ tab: "bogus" })).toEqual({ tab: "general" });
   });
 
-  it("keeps a known tab including sqlite", () => {
+  it("keeps a known tab", () => {
     expect(settingsSearchSchema.parse({ tab: "theme" })).toEqual({ tab: "theme" });
-    expect(settingsSearchSchema.parse({ tab: "sqlite" })).toEqual({ tab: "sqlite" });
   });
 });

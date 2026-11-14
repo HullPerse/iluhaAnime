@@ -77,7 +77,6 @@ export const CONFIG_REGISTRY: readonly ConfigRegistryEntry[] = [
     keys: ["ANNOTATION_*", "CROP_*", "SCREENSHOT_*"],
   },
   { domain: "graphics", file: "graphics/sizes.config.ts", keys: ["SIZE_MULTIPLIERS"] },
-  { domain: "graphics", file: "graphics/tags.config.ts", keys: ["TAG_*"] },
   {
     domain: "graphics",
     file: "graphics/themes.config.ts",

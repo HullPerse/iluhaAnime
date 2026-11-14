@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import CardFace from "@/routes/components/collection/cardFace.cards";
-import type { CardFaceItem } from "@/routes/components/collection/cardFace.cards";
+import type { CardFaceItem } from "@/types/ui/collection";
 
 vi.mock("@/hooks/remoteImage.hook", () => ({
   useRemoteImageStatus: (url: string | null | undefined) => ({ src: url ?? null, failed: false }),

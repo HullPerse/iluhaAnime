@@ -107,16 +107,19 @@ export function TorrentDiagnosticsSettings() {
     if (loading) return;
     setLoading(true);
     setError(null);
-    const [result, failure] = await attempt(
-      systemApi.diagnoseNetwork(RUTRACKER_DIAGNOSTICS_URL, proxyUrl || null)
-    );
-    setLoading(false);
-    if (failure) {
-      setReport(null);
-      setError(failure.message);
-      return;
+    try {
+      const [result, failure] = await attempt(
+        systemApi.diagnoseNetwork(RUTRACKER_DIAGNOSTICS_URL, proxyUrl || null)
+      );
+      if (failure) {
+        setReport(null);
+        setError(failure.message);
+        return;
+      }
+      setReport(result);
+    } finally {
+      setLoading(false);
     }
-    setReport(result);
   };
 
   const actionLabel =

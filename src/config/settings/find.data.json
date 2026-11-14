@@ -8,8 +8,7 @@
         "settings.collection.tab",
         "settings.anilist.tab",
         "settings.stream.tab",
-        "settings.news.tab",
-        "settings.sqlite"
+        "settings.news.tab"
       ]
     },
     {
@@ -97,8 +96,18 @@
       "titleKey": "settings.news.proxy.title",
       "keys": [
         "settings.news.proxy.title",
-        "settings.news.proxy.description",
         "settings.news.proxy.url"
+      ]
+    },
+    {
+      "tab": "proxy",
+      "section": "collection",
+      "titleKey": "settings.collection.proxy.title",
+      "keys": [
+        "settings.collection.proxy.title",
+        "settings.collection.proxy.images",
+        "settings.collection.proxy.daily",
+        "settings.collection.proxy.description"
       ]
     },
     {
@@ -555,6 +564,10 @@
       "section": "effects",
       "titleKey": "settings.theme.effects",
       "keys": [
+        "settings.theme.effects.cards",
+        "settings.theme.effects.cards.full",
+        "settings.theme.effects.cards.subtle",
+        "settings.theme.effects.cards.off",
         "settings.theme.3d.borders",
         "settings.theme.button.press",
         "settings.theme.scrollbar",
@@ -652,7 +665,6 @@
     }
   ],
   "SETTINGS_FIND_EXCLUDED_PREFIXES": [
-    "settings.sqlite",
     "settings.changelog",
     "settings.summary",
     "settings.find",

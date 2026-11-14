@@ -13,7 +13,6 @@ import "../src/config/graphics/graph.config";
 import "../src/config/graphics/icons.config";
 import "../src/config/graphics/screenshot.config";
 import "../src/config/graphics/sizes.config";
-import "../src/config/graphics/tags.config";
 import "../src/config/graphics/themes.config";
 import "@hullperse/hp_utils/tokens";
 import "../src/config/graphics/wallpaper.config";

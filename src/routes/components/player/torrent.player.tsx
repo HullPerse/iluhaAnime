@@ -12,7 +12,7 @@ import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { isCheckingFiles } from "@/lib/torrent/torrentCommon.utils";
 import { invokeValidated } from "@/lib/core/system/invoke.utils";
-import { FileEntryListSchema } from "@/api/fileIndex.schema";
+import { FileEntryListSchema } from "@/schemas/fileIndex.schema";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentPlayerProps as Props } from "@/types/player/player";
 

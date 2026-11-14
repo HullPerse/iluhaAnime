@@ -11,7 +11,7 @@ import {
   PlaylistEntryListSchema,
   VideoCardInfoSchema,
   WatchStateSchema,
-} from "@/api/player.schema";
+} from "@/schemas/player.schema";
 import { clamp } from "@hullperse/hp_utils/math";
 import { joinMediaPath } from "@/lib/player/media.utils";
 import type {

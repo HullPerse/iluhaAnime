@@ -1,14 +1,17 @@
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::ceilings::{fetch_pages, page_ceiling};
+use super::ceilings::{batch_page_ceilings, fetch_pages, page_ceiling};
 use super::config::{pick_variant, shop_pack, CARD_PACK_SIZE};
 use super::metadata::refresh_metadata;
 use super::rarity::{card_value, score_for, tier_for};
 use super::rng::{seed_now, Rng};
-use super::sampling::{ensure_rare_plus, merge_distinct, pick_distinct, CardNode};
+use super::sampling::{
+    batch_page_query, ensure_rare_plus, merge_distinct, parse_batch_page, pick_distinct, CardNode,
+};
 use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
 use crate::app_db::cards::{
     acknowledge_ready_packs, add_wallet, get_meta, get_pack, get_user_card, insert_ledger,
@@ -21,6 +24,7 @@ use crate::app_db::cards::{
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
 };
+use crate::anilist::client::graphql_request;
 use crate::scrapers::clients::resolve_proxy;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -46,6 +50,15 @@ const TEST_EFFECTS_PREFIX: &str = "effects-test-";
 const PREPARE_BATCH: i64 = 5;
 const PREPARE_MAX_ATTEMPTS: i64 = 5;
 const PREPARE_IMAGE_LIMIT: usize = 24;
+/// Image warmup is a cache fill, never a reason to keep a pack unready, so the
+/// whole batch shares one bounded queue instead of waiting per pack.
+const PREPARE_IMAGE_BATCH_LIMIT: usize = PREPARE_IMAGE_LIMIT * 5;
+/// Pages fetched per kind for a whole prepare batch. One aliased request holds
+/// every page, so five starter packs cost the same three requests as one pack.
+const PREPARE_POOL_PAGES: u32 = 3;
+
+/// Merged page nodes per kind, shared by every pack of one prepare run.
+type PoolCache = HashMap<CardKind, Vec<CardNode>>;
 
 static PACK_PREPARE_RUNNING: AtomicBool = AtomicBool::new(false);
 
@@ -251,18 +264,28 @@ async fn sample_pool(
     count: usize,
     rng: &mut Rng,
     proxy: Option<&str>,
+    pools: &mut PoolCache,
 ) -> Result<Vec<CardNode>, String> {
-    let ceiling = page_ceiling(app, kind, 25, None, proxy).await?;
-    let mut pages = vec![1 + rng.next_below(u64::from(ceiling)) as u32];
-    if ceiling > 1 {
-        let mut second = 1 + rng.next_below(u64::from(ceiling)) as u32;
-        if second == pages[0] {
-            second = if pages[0] == 1 { 2 } else { 1 };
+    let pool = match pools.get(&kind) {
+        Some(cached) if cached.len() >= count => cached.clone(),
+        _ => {
+            let ceiling = page_ceiling(app, kind, 25, None, proxy).await?;
+            let mut pages: Vec<u32> = Vec::new();
+            for _ in 0..PREPARE_POOL_PAGES {
+                let page = 1 + rng.next_below(u64::from(ceiling)) as u32;
+                if !pages.contains(&page) {
+                    pages.push(page);
+                }
+            }
+            if pages.len() == 1 && ceiling > 1 {
+                pages.push(if pages[0] == 1 { 2 } else { 1 });
+            }
+            let fetched = fetch_pages(kind, &pages, 25, None, proxy).await?;
+            let merged = merge_distinct(&fetched);
+            pools.insert(kind, merged.clone());
+            merged
         }
-        pages.push(second);
-    }
-    let fetched = fetch_pages(kind, &pages, 25, None, proxy).await?;
-    let pool = merge_distinct(&fetched);
+    };
     let picked = pick_distinct(&pool, count, rng);
     if picked.len() < count {
         return Err(format!(
@@ -279,12 +302,13 @@ async fn sample_cards(
     needs: &[(CardKind, usize)],
     seed: u64,
     proxy: Option<&str>,
+    pools: &mut PoolCache,
 ) -> Result<Vec<CardNode>, String> {
     let mut rng = Rng::new(seed);
     let mut selected = Vec::new();
     let mut pool = Vec::new();
     for (kind, count) in needs {
-        let picked = sample_pool(app, *kind, *count, &mut rng, proxy).await?;
+        let picked = sample_pool(app, *kind, *count, &mut rng, proxy, pools).await?;
         pool.extend(picked.iter().cloned());
         selected.extend(picked);
     }
@@ -452,21 +476,27 @@ fn arrange_effects_showcase(cards: &mut [GeneratedCard]) {
     }
 }
 
+/// The composition of a pack, derived from its seed. Kept separate from
+/// generation so a prepare batch can prefetch every kind it will need.
+fn planned_needs(pack: &CardPackRow) -> Result<Vec<(CardKind, usize)>, String> {
+    let mut plan_rng = Rng::new(pack.seed as u64 ^ 0x9E37_79B9_7F4A_7C15);
+    if is_test_effects_pack(&pack.id) {
+        return Ok(vec![
+            (CardKind::Anime, 1),
+            (CardKind::Character, pack.size.saturating_sub(1) as usize),
+        ]);
+    }
+    pack_needs(&pack.pack_kind, pack.size as usize, &mut plan_rng)
+}
+
 async fn generate_pack_contents(
     app: &AppHandle,
     pack: &CardPackRow,
     proxy: Option<&str>,
+    pools: &mut PoolCache,
 ) -> Result<Vec<GeneratedCard>, String> {
-    let mut plan_rng = Rng::new(pack.seed as u64 ^ 0x9E37_79B9_7F4A_7C15);
-    let needs = if is_test_effects_pack(&pack.id) {
-        vec![
-            (CardKind::Anime, 1),
-            (CardKind::Character, pack.size.saturating_sub(1) as usize),
-        ]
-    } else {
-        pack_needs(&pack.pack_kind, pack.size as usize, &mut plan_rng)?
-    };
-    let nodes = sample_cards(app, &needs, pack.seed as u64, proxy).await?;
+    let needs = planned_needs(pack)?;
+    let nodes = sample_cards(app, &needs, pack.seed as u64, proxy, pools).await?;
     let mut generated = generate_cards(nodes, pack.seed as u64);
     if is_test_legendary_pack(&pack.id) {
         guarantee_minimum_rarity(&mut generated, CardRarity::Legendary);
@@ -480,17 +510,32 @@ async fn generate_pack_contents(
     if generated.len() != pack.size as usize {
         return Err("card pack size changed while preparing".into());
     }
-    let meta_keys: Vec<(CardKind, i64)> = generated
+    Ok(generated)
+}
+
+/// Fills the metadata cache for generated cards. The caller batches every
+/// pack of a prepare run into a single pass so five packs share one set of
+/// AniList requests instead of repeating them per pack.
+async fn refresh_generated_metadata(
+    app: &AppHandle,
+    generated: &[GeneratedCard],
+    proxy: Option<&str>,
+) {
+    let mut meta_keys: Vec<(CardKind, i64)> = generated
         .iter()
         .map(|item| (item.card.kind, item.card.entity_id))
         .collect();
+    if meta_keys.is_empty() {
+        return;
+    }
+    meta_keys.sort_unstable_by_key(|(kind, entity_id)| (kind.as_str(), *entity_id));
+    meta_keys.dedup();
     if let Err(error) = refresh_metadata(app, &meta_keys, proxy).await {
         tracing::warn!(
             error = error.as_str(),
             "card metadata refresh after prepare failed"
         );
     }
-    Ok(generated)
 }
 
 fn prepare_generated(
@@ -540,7 +585,9 @@ async fn prepare_pack(
     pack: &CardPackRow,
     proxy: Option<&str>,
 ) -> Result<Vec<PreparedCard>, String> {
-    let generated = generate_pack_contents(app, pack, proxy).await?;
+    let mut pools = PoolCache::new();
+    let generated = generate_pack_contents(app, pack, proxy, &mut pools).await?;
+    refresh_generated_metadata(app, &generated, proxy).await;
     let connection = open_database(app)?;
     let prepared = prepare_generated(&connection, generated)?;
     drop(connection);
@@ -657,8 +704,8 @@ fn open_prepared(
     })
 }
 
-async fn warm_pack_images(app: &AppHandle, prepared: &[PreparedCard], proxy: Option<&str>) {
-    let mut urls: Vec<String> = prepared
+fn prepared_image_urls(prepared: &[PreparedCard]) -> Vec<String> {
+    prepared
         .iter()
         .flat_map(|item| {
             std::iter::once(item.card.image_url.clone())
@@ -667,10 +714,11 @@ async fn warm_pack_images(app: &AppHandle, prepared: &[PreparedCard], proxy: Opt
         })
         .flatten()
         .filter(|url| !url.trim().is_empty())
-        .collect();
-    urls.sort();
-    urls.dedup();
-    for url in urls.into_iter().take(PREPARE_IMAGE_LIMIT) {
+        .collect()
+}
+
+async fn warm_images(app: &AppHandle, urls: Vec<String>, proxy: Option<&str>) {
+    for url in urls {
         if let Err(error) = crate::user_assets::fetch_remote_image(
             app.clone(),
             url,
@@ -761,6 +809,82 @@ pub fn cards_packs(app: AppHandle) -> Result<Vec<CardPackRow>, String> {
     list_packs(&connection, LOCAL_USER_ID, 50)
 }
 
+/// Warms the shared pool for every kind the batch will sample, using two
+/// batched AniList requests (ceilings, then pages) instead of two per kind.
+/// A failed batch leaves the cache empty and `sample_pool` falls back to the
+/// per-kind path, so functionality never depends on the optimization.
+async fn prefill_pools(
+    app: &AppHandle,
+    packs: &[CardPackRow],
+    proxy: Option<&str>,
+    pools: &mut PoolCache,
+) {
+    let mut kinds: Vec<CardKind> = Vec::new();
+    for pack in packs {
+        let Ok(needs) = planned_needs(pack) else {
+            continue;
+        };
+        for (kind, _) in needs {
+            if !kinds.contains(&kind) && !pools.contains_key(&kind) {
+                kinds.push(kind);
+            }
+        }
+    }
+    if kinds.is_empty() {
+        return;
+    }
+    let ceilings = match batch_page_ceilings(app, &kinds, 25, proxy).await {
+        Ok(ceilings) => ceilings,
+        Err(error) => {
+            tracing::warn!(error = error.as_str(), "card ceiling batch failed");
+            return;
+        }
+    };
+    let mut rng = Rng::new(
+        packs.first().map_or(1, |pack| pack.seed as u64) ^ 0xC0FF_EE00_1234_5678,
+    );
+    let mut entries: Vec<(CardKind, u32)> = Vec::new();
+    for kind in &kinds {
+        let ceiling = ceilings.get(kind).copied().unwrap_or(1).max(1);
+        let mut pages: Vec<u32> = Vec::new();
+        for _ in 0..PREPARE_POOL_PAGES {
+            let page = 1 + rng.next_below(u64::from(ceiling)) as u32;
+            if !pages.contains(&page) {
+                pages.push(page);
+            }
+        }
+        if pages.len() == 1 && ceiling > 1 {
+            pages.push(if pages[0] == 1 { 2 } else { 1 });
+        }
+        entries.extend(pages.into_iter().map(|page| (*kind, page)));
+    }
+    let response = match graphql_request(batch_page_query(&entries, 25), None, proxy).await {
+        Ok(response) => response,
+        Err(error) => {
+            tracing::warn!(
+                error = error.as_str(),
+                "card page batch failed, falling back to per-kind fetches"
+            );
+            return;
+        }
+    };
+    for kind in kinds {
+        let mut pages = Vec::new();
+        for (entry_kind, page) in &entries {
+            if *entry_kind != kind {
+                continue;
+            }
+            if let Ok(parsed) = parse_batch_page(kind, *page, &response) {
+                pages.push(parsed);
+            }
+        }
+        let merged = merge_distinct(&pages);
+        if !merged.is_empty() {
+            pools.insert(kind, merged);
+        }
+    }
+}
+
 async fn prepare_packs_inner(
     app: &AppHandle,
     proxy: Option<&str>,
@@ -774,34 +898,23 @@ async fn prepare_packs_inner(
             PREPARE_MAX_ATTEMPTS,
         )?
     };
-    let mut prepared = 0;
-    let mut failed = 0;
+    let mut claimed_packs: Vec<CardPackRow> = Vec::new();
     for pack in packs {
         let claimed = {
             let connection = open_database(app)?;
             mark_pack_prepare_started(&connection, LOCAL_USER_ID, &pack.id, PREPARE_MAX_ATTEMPTS)?
         };
-        if !claimed {
-            continue;
+        if claimed {
+            claimed_packs.push(pack);
         }
-        match prepare_pack(app, &pack, proxy).await {
-            Ok(cards) => match save_prepared(app, &pack.id, &cards) {
-                Ok(true) => {
-                    prepared += 1;
-                    warm_pack_images(app, &cards, proxy).await;
-                }
-                Ok(false) => {}
-                Err(error) => {
-                    failed += 1;
-                    tracing::warn!(
-                        pack_id = pack.id,
-                        error = error.as_str(),
-                        "card pack save failed"
-                    );
-                    let connection = open_database(app)?;
-                    mark_pack_prepare_failed(&connection, LOCAL_USER_ID, &pack.id, &error)?;
-                }
-            },
+    }
+    let mut pools = PoolCache::new();
+    prefill_pools(app, &claimed_packs, proxy, &mut pools).await;
+    let mut staged: Vec<(CardPackRow, Vec<GeneratedCard>)> = Vec::new();
+    let mut failed = 0;
+    for pack in claimed_packs {
+        match generate_pack_contents(app, &pack, proxy, &mut pools).await {
+            Ok(cards) => staged.push((pack, cards)),
             Err(error) => {
                 failed += 1;
                 tracing::warn!(
@@ -813,6 +926,78 @@ async fn prepare_packs_inner(
                 mark_pack_prepare_failed(&connection, LOCAL_USER_ID, &pack.id, &error)?;
             }
         }
+    }
+
+    // One metadata pass for the whole batch: the same five starter packs share
+    // three card kinds and would otherwise repeat the same AniList requests.
+    let batch_keys: Vec<(CardKind, i64)> = staged
+        .iter()
+        .flat_map(|(_, cards)| {
+            cards
+                .iter()
+                .map(|item| (item.card.kind, item.card.entity_id))
+        })
+        .collect();
+    if !batch_keys.is_empty() {
+        let mut keys = batch_keys;
+        keys.sort_unstable_by_key(|(kind, entity_id)| (kind.as_str(), *entity_id));
+        keys.dedup();
+        if let Err(error) = refresh_metadata(app, &keys, proxy).await {
+            tracing::warn!(
+                error = error.as_str(),
+                "card batch metadata refresh failed"
+            );
+        }
+    }
+
+    let mut prepared = 0;
+    let mut images: Vec<String> = Vec::new();
+    for (pack, generated) in staged {
+        let cards = {
+            let connection = open_database(app)?;
+            prepare_generated(&connection, generated)
+        };
+        let cards = match cards {
+            Ok(cards) => cards,
+            Err(error) => {
+                failed += 1;
+                tracing::warn!(
+                    pack_id = pack.id,
+                    error = error.as_str(),
+                    "card pack contents failed"
+                );
+                let connection = open_database(app)?;
+                mark_pack_prepare_failed(&connection, LOCAL_USER_ID, &pack.id, &error)?;
+                continue;
+            }
+        };
+        match save_prepared(app, &pack.id, &cards) {
+            Ok(true) => {
+                prepared += 1;
+                images.extend(prepared_image_urls(&cards));
+            }
+            Ok(false) => {}
+            Err(error) => {
+                failed += 1;
+                tracing::warn!(
+                    pack_id = pack.id,
+                    error = error.as_str(),
+                    "card pack save failed"
+                );
+                let connection = open_database(app)?;
+                mark_pack_prepare_failed(&connection, LOCAL_USER_ID, &pack.id, &error)?;
+            }
+        }
+    }
+    images.sort_unstable();
+    images.dedup();
+    images.truncate(PREPARE_IMAGE_BATCH_LIMIT);
+    if !images.is_empty() {
+        let warm_app = app.clone();
+        let warm_proxy = proxy.map(str::to_string);
+        tauri::async_runtime::spawn(async move {
+            warm_images(&warm_app, images, warm_proxy.as_deref()).await;
+        });
     }
     let connection = open_database(app)?;
     Ok(PackPreparation {

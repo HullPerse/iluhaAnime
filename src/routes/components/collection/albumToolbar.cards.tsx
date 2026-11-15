@@ -8,16 +8,18 @@ import {
   CARD_KINDS,
   CARD_RARITIES,
   CARD_SORTS,
+  CARD_VARIANTS,
   COLLECTION_SORTS,
   cardKindLabelKeys,
   cardRarityLabelKeys,
+  cardVariantLabelKeys,
   cardsSortLabelKeys,
   collectionSortLabelKeys,
 } from "@/config/cards/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
-import { isCardKind, isCardRarity } from "@/lib/cards/guards.utils";
-import type { CardKind, CardRarity } from "@/types/api/cards";
+import { isCardKind, isCardRarity, isCardVariant } from "@/lib/cards/guards.utils";
+import type { CardKind, CardRarity, CardVariant } from "@/types/api/cards";
 import type { SearchSuggestion } from "@/types/search/search";
 import type { CardsAlbumMode, CardsSortDir } from "@/types/store/cards";
 
@@ -30,6 +32,7 @@ export default function AlbumToolbar({
   view,
   kind,
   rarity,
+  variant,
   sort,
   sortDir,
   infinite,
@@ -37,6 +40,7 @@ export default function AlbumToolbar({
   suggestions,
   onKind,
   onRarity,
+  onVariant,
   onSort,
   onSortDir,
   onReset,
@@ -49,12 +53,14 @@ export default function AlbumToolbar({
   infinite: boolean;
   kind: CardKind | null;
   rarity: CardRarity | null;
+  variant: CardVariant | null;
   sort: string;
   sortDir: CardsSortDir;
   search: string;
   suggestions: readonly string[];
   onKind: (kind: CardKind | null) => void;
   onRarity: (rarity: CardRarity | null) => void;
+  onVariant: (variant: CardVariant | null) => void;
   onSort: (sort: string) => void;
   onSortDir: (dir: CardsSortDir) => void;
   onReset: () => void;
@@ -75,6 +81,15 @@ export default function AlbumToolbar({
   const rarityOptions: { value: "all" | CardRarity; label: string }[] = [
     { value: "all", label: t("collection.filters.all") },
     ...CARD_RARITIES.map((value) => ({ value, label: t(cardRarityLabelKeys[value]) })),
+  ];
+  // Normal cards are the default finish; the filter exists to isolate the
+  // finishes that carry an effect.
+  const variantOptions: { value: "all" | CardVariant; label: string }[] = [
+    { value: "all", label: t("collection.filters.all") },
+    ...CARD_VARIANTS.filter((value) => value !== "normal").map((value) => ({
+      value,
+      label: t(cardVariantLabelKeys[value]),
+    })),
   ];
   const sortOptions =
     mode === "collections"
@@ -197,6 +212,16 @@ export default function AlbumToolbar({
                 onChange={(value) => {
                   if (value === "all") onRarity(null);
                   else if (isCardRarity(value)) onRarity(value);
+                }}
+              />
+              <Select
+                className="w-32"
+                label={t("collection.filters.variant")}
+                value={variant ?? "all"}
+                options={variantOptions}
+                onChange={(value) => {
+                  if (value === "all") onVariant(null);
+                  else if (isCardVariant(value)) onVariant(value);
                 }}
               />
               <Button

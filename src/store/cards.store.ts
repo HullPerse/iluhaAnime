@@ -11,7 +11,7 @@ import type {
   CardsSortDir,
   CardsTab,
 } from "@/types/store/cards";
-import type { CardKind, CardRarity } from "@/types/api/cards";
+import type { CardKind, CardRarity, CardVariant } from "@/types/api/cards";
 
 const SORT_STORAGE_KEY = "iluha.v1.cards-sort";
 const SEEN_STORAGE_KEY = "iluha.v1.cards-seen";
@@ -20,6 +20,7 @@ const DEFAULT_SORT_DIR: Record<CardsSort, CardsSortDir> = {
   recent: "desc",
   value: "desc",
   rarity: "desc",
+  variant: "desc",
   title: "asc",
   kind: "asc",
 };
@@ -87,6 +88,7 @@ const DEFAULT_STATE = {
   tab: "packs" as CardsTab,
   kind: null as CardKind | null,
   rarity: null as CardRarity | null,
+  variant: null as CardVariant | null,
   sort: persisted.sort ?? ("recent" as CardsSort),
   sortDir: persisted.sortDir ?? DEFAULT_SORT_DIR[persisted.sort ?? "recent"],
   collectionSort: persisted.collectionSort ?? ("recent" as CardsCollectionSort),
@@ -107,6 +109,7 @@ function createCardsSignalStore(): CardsSignalStore {
   const tab = store.atom<CardsTab>("cardsTab", DEFAULT_STATE.tab);
   const kind = store.atom<CardKind | null>("cardsKind", DEFAULT_STATE.kind);
   const rarity = store.atom<CardRarity | null>("cardsRarity", DEFAULT_STATE.rarity);
+  const variant = store.atom<CardVariant | null>("cardsVariant", DEFAULT_STATE.variant);
   const sort = store.atom<CardsSort>("cardsSort", DEFAULT_STATE.sort);
   const sortDir = store.atom<CardsSortDir>("cardsSortDir", DEFAULT_STATE.sortDir);
   const collectionSort = store.atom<CardsCollectionSort>(
@@ -148,6 +151,7 @@ function createCardsSignalStore(): CardsSignalStore {
       tab,
       kind,
       rarity,
+      variant,
       sort,
       sortDir,
       collectionSort,
@@ -167,6 +171,10 @@ function createCardsSignalStore(): CardsSignalStore {
     },
     setRarity: (value) => {
       rarity.set(value);
+      binderPage.set(0);
+    },
+    setVariant: (value) => {
+      variant.set(value);
       binderPage.set(0);
     },
     setSort: (value) => {
@@ -212,6 +220,7 @@ function createCardsSignalStore(): CardsSignalStore {
       tab.set(DEFAULT_STATE.tab);
       kind.set(DEFAULT_STATE.kind);
       rarity.set(DEFAULT_STATE.rarity);
+      variant.set(DEFAULT_STATE.variant);
       sort.set("recent");
       sortDir.set(DEFAULT_SORT_DIR.recent);
       collectionSort.set("recent");
@@ -235,6 +244,7 @@ export const cardsAtoms = cards.atoms;
 export const setCardsTab = cards.setTab;
 export const setCardsKind = cards.setKind;
 export const setCardsRarity = cards.setRarity;
+export const setCardsVariant = cards.setVariant;
 export const setCardsSort = cards.setSort;
 export const setCardsSortDir = cards.setSortDir;
 export const setCardsCollectionSort = cards.setCollectionSort;

@@ -18,7 +18,7 @@ import type {
 function dailyProxy(): string | null {
   return effectiveProxyUrl(
     settingsAtoms.dailyProxyUrl.get(),
-    dailyProxy()
+    settingsAtoms.anilistProxyUrl.get()
   );
 }
 

@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
 use tauri::AppHandle;
 
-use super::sampling::{page_query, parse_aliased_page, SampledPage, PER_PAGE};
+use super::sampling::{
+    batch_page_query, page_query, parse_aliased_page, parse_batch_page, SampledPage, PER_PAGE,
+};
 use super::types::CardKind;
 use crate::anilist::client::graphql_request;
 use crate::app_db::cache::{put_app_cache, read_cached_payload};
@@ -18,6 +22,23 @@ fn cache_key(kind: CardKind) -> String {
     format!("ceiling:{}", kind.as_str())
 }
 
+fn cached_ceiling(app: &AppHandle, kind: CardKind, per_page: u32) -> Option<u32> {
+    let payload = read_cached_payload(app, CACHE_NAMESPACE, &cache_key(kind)).ok()??;
+    let value = serde_json::from_str::<serde_json::Value>(&payload).ok()?;
+    let last_page = value["lastPage"].as_u64().filter(|page| *page > 0)?;
+    Some((last_page.min(u64::from(u32::MAX)) as u32).min(max_page_for(per_page)))
+}
+
+fn store_ceiling(app: &AppHandle, kind: CardKind, last_page: u32) -> Result<(), String> {
+    put_app_cache(
+        app.clone(),
+        CACHE_NAMESPACE.to_string(),
+        cache_key(kind),
+        serde_json::json!({ "lastPage": last_page }).to_string(),
+        Some(CEILING_TTL_SECONDS),
+    )
+}
+
 /// Last page for a kind, cached for seven days. `pageInfo.lastPage` is the
 /// authoritative bound; `total` is only a hint for the payload.
 pub async fn page_ceiling(
@@ -27,25 +48,51 @@ pub async fn page_ceiling(
     token: Option<&str>,
     proxy: Option<&str>,
 ) -> Result<u32, String> {
-    let depth_cap = max_page_for(per_page);
-    if let Ok(Some(payload)) = read_cached_payload(app, CACHE_NAMESPACE, &cache_key(kind)) {
-        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&payload) {
-            if let Some(last_page) = value["lastPage"].as_u64().filter(|page| *page > 0) {
-                return Ok((last_page.min(u64::from(u32::MAX)) as u32).min(depth_cap));
-            }
-        }
+    if let Some(cached) = cached_ceiling(app, kind, per_page) {
+        return Ok(cached);
     }
     let response = graphql_request(page_query(kind, &[1], 1), token, proxy).await?;
     let page = parse_aliased_page(kind, 1, &response)?;
     let last_page = page.last_page.max(1);
-    put_app_cache(
-        app.clone(),
-        CACHE_NAMESPACE.to_string(),
-        cache_key(kind),
-        serde_json::json!({ "lastPage": last_page, "total": page.total }).to_string(),
-        Some(CEILING_TTL_SECONDS),
-    )?;
-    Ok(last_page)
+    store_ceiling(app, kind, last_page)?;
+    Ok(last_page.min(max_page_for(per_page)))
+}
+
+/// Resolves several kind ceilings with one aliased request and refills the
+/// seven-day cache. Only cache misses are fetched in the batch.
+pub async fn batch_page_ceilings(
+    app: &AppHandle,
+    kinds: &[CardKind],
+    per_page: u32,
+    proxy: Option<&str>,
+) -> Result<HashMap<CardKind, u32>, String> {
+    let depth_cap = max_page_for(per_page);
+    let mut ceilings: HashMap<CardKind, u32> = HashMap::new();
+    let mut missing: Vec<CardKind> = Vec::new();
+    for kind in kinds {
+        match cached_ceiling(app, *kind, per_page) {
+            Some(value) => {
+                ceilings.insert(*kind, value);
+            }
+            None => {
+                if !missing.contains(kind) {
+                    missing.push(*kind);
+                }
+            }
+        }
+    }
+    if missing.is_empty() {
+        return Ok(ceilings);
+    }
+    let entries: Vec<(CardKind, u32)> = missing.iter().map(|kind| (*kind, 1)).collect();
+    let response = graphql_request(batch_page_query(&entries, 1), None, proxy).await?;
+    for kind in missing {
+        let page = parse_batch_page(kind, 1, &response)?;
+        let last_page = page.last_page.max(1);
+        store_ceiling(app, kind, last_page)?;
+        ceilings.insert(kind, last_page.min(depth_cap).max(1));
+    }
+    Ok(ceilings)
 }
 
 async fn fetch_single(

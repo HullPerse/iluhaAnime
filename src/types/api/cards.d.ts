@@ -299,7 +299,8 @@ export interface CardsCollectionParams {
   kind?: CardKind | null;
   rarity?: CardRarity | null;
   variant?: CardVariant | null;
-  sort?: CollectionShelfSort;
+  /// Card pages accept the finish sort; the shelf only uses `CollectionShelfSort`.
+  sort?: CollectionShelfSort | "variant";
   sortDir?: "asc" | "desc";
   query?: string | null;
   page?: number;

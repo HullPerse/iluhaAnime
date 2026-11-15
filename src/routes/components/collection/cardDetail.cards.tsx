@@ -1,6 +1,8 @@
+import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
+import { Button } from "@/components/ui/button.component";
 import { anilistApi } from "@/api/anilist.api";
 import { animeSourceLabelKeys } from "@/config/cards/labels.config";
 import { useAnilistSignedIn } from "@/hooks/anilist/session.hook";
@@ -46,7 +48,15 @@ export default function CardDetail({
   const [giftOpen, setGiftOpen] = useState<boolean>(false);
 
   const ownedVariants = variants.data ?? [];
-  const card = ownedVariants.find((entry) => entry.variant === pickedVariant) ?? item;
+  // One finish can exist at several rarities. Keep the rarity of the card that
+  // was opened, otherwise a holo pull resolves to its junk/common row and the
+  // finish gate hides the holo effect in the preview.
+  const card =
+    ownedVariants.find(
+      (entry) => entry.variant === pickedVariant && entry.rarity === item.rarity
+    ) ??
+    ownedVariants.find((entry) => entry.variant === pickedVariant) ??
+    item;
   const animeId = animeIdOf(card);
   // Anime cards carry no collection title, so their source line asks AniList
   // for the adaptation source (original, manga, light novel, ...).
@@ -105,6 +115,17 @@ export default function CardDetail({
       onClose={onClose}
       headerActions={
         <>
+          {animeId !== null && (
+            <Button
+              size="icon"
+              className="size-5"
+              aria-label={t("collection.detail.open.anime")}
+              title={t("collection.detail.open.anime")}
+              onClick={() => setOpenAnimeId(animeId)}
+            >
+              <ExternalLink className="size-3" />
+            </Button>
+          )}
           <FavHeartButton
             isFavorite={isFavorite}
             loading={favorite.isPending || setCardFavorite.isPending}
@@ -142,8 +163,6 @@ export default function CardDetail({
           card={card}
           variants={ownedVariants}
           source={source}
-          animeId={animeId}
-          onOpenAnime={setOpenAnimeId}
           onVariantChange={changeVariant}
         />
       </div>

@@ -13,6 +13,7 @@ import {
   setCardsSort,
   setCardsSortDir,
   setCardsTab,
+  setCardsVariant,
 } from "@/store/cards.store";
 
 beforeEach(() => {
@@ -24,6 +25,7 @@ describe("cards store", () => {
     expect(cardsAtoms.tab.get()).toBe("packs");
     expect(cardsAtoms.kind.get()).toBeNull();
     expect(cardsAtoms.rarity.get()).toBeNull();
+    expect(cardsAtoms.variant.get()).toBeNull();
     expect(cardsAtoms.sort.get()).toBe("recent");
     expect(cardsAtoms.sortDir.get()).toBe("desc");
     expect(cardsAtoms.collectionSort.get()).toBe("recent");
@@ -41,6 +43,7 @@ describe("cards store", () => {
     setCardsBinderPage(3);
     setCardsRarity("legendary");
     setCardsBinderPage(2);
+    setCardsVariant("holo");
     setCardsSort("value");
     setCardsSortDir("asc");
     setCardsCollectionSort("completion");
@@ -49,6 +52,7 @@ describe("cards store", () => {
     expect(cardsAtoms.tab.get()).toBe("album");
     expect(cardsAtoms.kind.get()).toBe("studio");
     expect(cardsAtoms.rarity.get()).toBe("legendary");
+    expect(cardsAtoms.variant.get()).toBe("holo");
     expect(cardsAtoms.sort.get()).toBe("value");
     expect(cardsAtoms.sortDir.get()).toBe("asc");
     expect(cardsAtoms.collectionSort.get()).toBe("completion");
@@ -63,7 +67,8 @@ describe("cards store", () => {
     setCardsTab("shop");
     setCardsKind("anime");
     setCardsRarity("epic");
-    setCardsSort("rarity");
+    setCardsVariant("foil");
+    setCardsSort("variant");
     setCardsBinderPage(5);
     setCardsRevealOpen(true);
     setCardsPacksNewSince(42);
@@ -73,6 +78,7 @@ describe("cards store", () => {
     expect(cardsAtoms.tab.get()).toBe("packs");
     expect(cardsAtoms.kind.get()).toBeNull();
     expect(cardsAtoms.rarity.get()).toBeNull();
+    expect(cardsAtoms.variant.get()).toBeNull();
     expect(cardsAtoms.sort.get()).toBe("recent");
     expect(cardsAtoms.sortDir.get()).toBe("desc");
     expect(cardsAtoms.collectionSort.get()).toBe("recent");
@@ -95,6 +101,11 @@ describe("cards store", () => {
       collectionSort: "completion",
       collectionSortDir: "asc",
     });
+  });
+
+  it("defaults the finish sort to holo, foil, then plain", () => {
+    setCardsSort("variant");
+    expect(cardsAtoms.sortDir.get()).toBe("desc");
   });
 
   it("resets the direction to the natural one when the sort key changes", () => {

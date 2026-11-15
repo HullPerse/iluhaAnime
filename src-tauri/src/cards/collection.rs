@@ -306,6 +306,12 @@ fn collection_order(sort: &str, ascending: bool) -> Option<&'static str> {
                 WHEN 'legendary' THEN 5 WHEN 'epic' THEN 4 WHEN 'rare' THEN 3
                 WHEN 'common' THEN 2 ELSE 1 END DESC, c.value DESC"
         }
+        ("variant", true) => {
+            "CASE c.variant WHEN 'holo' THEN 0 WHEN 'foil' THEN 1 ELSE 2 END ASC, c.value ASC"
+        }
+        ("variant", false) => {
+            "CASE c.variant WHEN 'holo' THEN 3 WHEN 'foil' THEN 2 ELSE 1 END DESC, c.value DESC"
+        }
         ("title", true) => "COALESCE(m.title, '') COLLATE NOCASE ASC, c.entity_id",
         ("title", false) => "COALESCE(m.title, '') COLLATE NOCASE DESC, c.entity_id",
         ("kind", true) => {
@@ -1622,6 +1628,16 @@ mod tests {
     fn an_unknown_sort_is_rejected() {
         assert!(collection_order("title", false).is_some());
         assert!(collection_order("bogus", true).is_none());
+    }
+
+    #[test]
+    fn the_variant_sort_ranks_holo_above_foil_and_plain() {
+        let descending = collection_order("variant", false).expect("variant desc");
+        assert!(descending.contains("WHEN 'holo' THEN 3"));
+        assert!(descending.contains("WHEN 'foil' THEN 2"));
+        let ascending = collection_order("variant", true).expect("variant asc");
+        assert!(ascending.contains("WHEN 'holo' THEN 0"));
+        assert!(ascending.contains("WHEN 'foil' THEN 1"));
     }
 
     #[test]

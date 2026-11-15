@@ -64,24 +64,56 @@ fn selection_for(kind: CardKind) -> &'static str {
     }
 }
 
-/// Builds one request with one aliased `Page` object per page number.
-pub fn page_query(kind: CardKind, pages: &[u32], per_page: u32) -> Value {
+fn page_field(kind: CardKind, page: u32, per_page: u32) -> String {
     let field = key_for(kind);
     let sort = sort_for(kind);
     let filter = filter_for(kind);
     let selection = selection_for(kind);
+    format!(
+        "Page(page: {page}, perPage: {per_page}) {{ \
+         pageInfo {{ total lastPage hasNextPage }} \
+         {field}(sort: {sort}{filter}) {{ {selection} }} }}"
+    )
+}
+
+/// Builds one request with one aliased `Page` object per page number.
+pub fn page_query(kind: CardKind, pages: &[u32], per_page: u32) -> Value {
     let parts = pages
         .iter()
-        .map(|page| {
-            format!(
-                "p{page}: Page(page: {page}, perPage: {per_page}) {{ \
-                 pageInfo {{ total lastPage hasNextPage }} \
-                 {field}(sort: {sort}{filter}) {{ {selection} }} }}"
-            )
-        })
+        .map(|page| format!("p{page}: {}", page_field(kind, *page, per_page)))
         .collect::<Vec<_>>()
         .join(" ");
     json!({ "query": format!("query {{ {parts} }}") })
+}
+
+fn batch_alias(kind: CardKind, page: u32) -> String {
+    format!("card_{}_{}", kind.as_str(), page)
+}
+
+/// Samples several kinds in one aliased request. A starter batch needs
+/// characters, anime and manga, and three aliases cost one request instead of
+/// three separate page requests.
+pub fn batch_page_query(entries: &[(CardKind, u32)], per_page: u32) -> Value {
+    let parts = entries
+        .iter()
+        .map(|(kind, page)| format!("{}: {}", batch_alias(*kind, *page), page_field(*kind, *page, per_page)))
+        .collect::<Vec<_>>()
+        .join(" ");
+    json!({ "query": format!("query {{ {parts} }}") })
+}
+
+/// Parses one alias of [`batch_page_query`].
+pub fn parse_batch_page(
+    kind: CardKind,
+    page: u32,
+    response: &Value,
+) -> Result<SampledPage, String> {
+    let alias = batch_alias(kind, page);
+    let value = response
+        .get("data")
+        .and_then(|data| data.get(&alias))
+        .ok_or_else(|| format!("AniList response has no page alias {alias}"))?;
+    parse_page(kind, page, value)
 }
 
 fn number(value: &Value) -> u32 {
@@ -273,6 +305,21 @@ mod tests {
             "pageInfo": { "total": 1000, "lastPage": 20, "hasNextPage": true },
             "characters": nodes,
         })
+    }
+
+    #[test]
+    fn a_batch_query_aliases_every_kind_and_page() {
+        let query = batch_page_query(&[(CardKind::Character, 2), (CardKind::Anime, 3)], 10);
+        let source = query["query"].as_str().unwrap();
+        assert!(source.contains("card_character_2: Page(page: 2, perPage: 10)"));
+        assert!(source.contains("card_anime_3: Page(page: 3, perPage: 10)"));
+
+        let response = json!({
+            "data": { "card_character_2": fixture_cards(&[(1, Some(1), None)]) }
+        });
+        let page = parse_batch_page(CardKind::Character, 2, &response).unwrap();
+        assert_eq!(page.nodes[0].entity_id, 1);
+        assert!(parse_batch_page(CardKind::Anime, 3, &response).is_err());
     }
 
     #[test]

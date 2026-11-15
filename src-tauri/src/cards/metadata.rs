@@ -33,56 +33,74 @@ fn ids_array(ids: &[i64]) -> String {
     ids.iter().map(i64::to_string).collect::<Vec<_>>().join(",")
 }
 
+fn media_fragment(ids: &[i64], media_type: &str) -> String {
+    format!(
+        "Page(page: 1, perPage: {META_CHUNK}) {{ media(id_in: [{}], type: {media_type}) {{ \
+         id title {{ romaji english }} coverImage {{ large }} favourites popularity }} }}",
+        ids_array(ids)
+    )
+}
+
+fn character_fragment(ids: &[i64]) -> String {
+    format!(
+        "Page(page: 1, perPage: {META_CHUNK}) {{ characters(id_in: [{}]) {{ \
+         id name {{ full }} image {{ large }} favourites \
+         media(sort: [POPULARITY_DESC], perPage: 1, type: ANIME) {{ nodes {{ \
+         id title {{ romaji }} coverImage {{ large }} popularity }} }} \
+         manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA) {{ nodes {{ \
+         title {{ romaji }} coverImage {{ large }} }} }} }} }}",
+        ids_array(ids)
+    )
+}
+
+fn staff_fragment(ids: &[i64]) -> String {
+    format!(
+        "Page(page: 1, perPage: {META_CHUNK}) {{ staff(id_in: [{}]) {{ \
+         id name {{ full }} image {{ large }} favourites }} }}",
+        ids_array(ids)
+    )
+}
+
+fn studio_fragment(id: i64) -> String {
+    format!(
+        "Studio(id: {id}) {{ id name favourites \
+         media(sort: [POPULARITY_DESC], perPage: {STUDIO_COLLAGE_SIZE}, type: ANIME) {{ \
+         nodes {{ coverImage {{ large }} }} }} }}"
+    )
+}
+
+fn single_query(fragment: String) -> Value {
+    json!({ "query": format!("query {{ {fragment} }}") })
+}
+
+fn page_fragment(kind: CardKind, ids: &[i64]) -> String {
+    match kind {
+        CardKind::Anime => media_fragment(ids, "ANIME"),
+        CardKind::Manga => media_fragment(ids, "MANGA"),
+        CardKind::Character => character_fragment(ids),
+        CardKind::Staff => staff_fragment(ids),
+        CardKind::Studio => String::new(),
+    }
+}
+
 pub fn anime_query(ids: &[i64]) -> Value {
-    media_query(ids, "ANIME")
+    single_query(media_fragment(ids, "ANIME"))
 }
 
 pub fn manga_query(ids: &[i64]) -> Value {
-    media_query(ids, "MANGA")
-}
-
-fn media_query(ids: &[i64], media_type: &str) -> Value {
-    json!({
-        "query": format!(
-            "query {{ Page(page: 1, perPage: {META_CHUNK}) {{ media(id_in: [{}], type: {media_type}) {{ \
-             id title {{ romaji english }} coverImage {{ large }} favourites popularity }} }} }}",
-            ids_array(ids)
-        )
-    })
+    single_query(media_fragment(ids, "MANGA"))
 }
 
 pub fn character_query(ids: &[i64]) -> Value {
-    json!({
-        "query": format!(
-            "query {{ Page(page: 1, perPage: {META_CHUNK}) {{ characters(id_in: [{}]) {{ \
-             id name {{ full }} image {{ large }} favourites \
-             media(sort: [POPULARITY_DESC], perPage: 1, type: ANIME) {{ nodes {{ \
-             id title {{ romaji }} coverImage {{ large }} popularity }} }} \
-             manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA) {{ nodes {{ \
-             title {{ romaji }} coverImage {{ large }} }} }} }} }} }}",
-            ids_array(ids)
-        )
-    })
+    single_query(character_fragment(ids))
 }
 
 pub fn staff_query(ids: &[i64]) -> Value {
-    json!({
-        "query": format!(
-            "query {{ Page(page: 1, perPage: {META_CHUNK}) {{ staff(id_in: [{}]) {{ \
-             id name {{ full }} image {{ large }} favourites }} }} }}",
-            ids_array(ids)
-        )
-    })
+    single_query(staff_fragment(ids))
 }
 
 pub fn studio_query(id: i64) -> Value {
-    json!({
-        "query": format!(
-            "query {{ Studio(id: {id}) {{ id name favourites \
-             media(sort: [POPULARITY_DESC], perPage: {STUDIO_COLLAGE_SIZE}, type: ANIME) {{ \
-             nodes {{ coverImage {{ large }} }} }} }} }}"
-        )
-    })
+    single_query(studio_fragment(id))
 }
 
 fn text(value: &Value) -> Option<String> {
@@ -211,40 +229,9 @@ pub fn parse_meta(kind: CardKind, node: &Value, fetched_at: i64) -> Option<CardM
     })
 }
 
-async fn refresh_chunk(
-    kind: CardKind,
-    ids: &[i64],
-    token: Option<&str>,
-    proxy: Option<&str>,
-    now: i64,
-    rows: &mut Vec<CardMetaRow>,
-) -> Result<(), String> {
-    let body = match kind {
-        CardKind::Anime => anime_query(ids),
-        CardKind::Manga => manga_query(ids),
-        CardKind::Character => character_query(ids),
-        CardKind::Staff => staff_query(ids),
-        CardKind::Studio => return Ok(()),
-    };
-    let response = graphql_request(body, token, proxy).await?;
-    let key = match kind {
-        CardKind::Anime | CardKind::Manga => "media",
-        CardKind::Character => "characters",
-        CardKind::Staff => "staff",
-        CardKind::Studio => return Ok(()),
-    };
-    if let Some(nodes) = response["data"]["Page"][key].as_array() {
-        for node in nodes {
-            if let Some(meta) = parse_meta(kind, node, now) {
-                rows.push(meta);
-            }
-        }
-    }
-    Ok(())
-}
-
-/// Fetches missing or stale metadata. Studios are fetched one by one because
-/// `Studio(id:)` is the only query that returns the top media covers.
+/// Fetches missing or stale metadata. One request carries every kind chunk and
+/// every studio alias of the batch, so five starter packs cost one metadata
+/// round trip instead of one per kind (and one per studio).
 pub async fn refresh_metadata(
     app: &AppHandle,
     cards: &[(CardKind, i64)],
@@ -269,24 +256,58 @@ pub async fn refresh_metadata(
         return Ok(0);
     }
     let token = optional_token(app);
-    let mut rows: Vec<CardMetaRow> = Vec::new();
+    let mut parts: Vec<String> = Vec::new();
+    let mut page_aliases: Vec<(String, CardKind)> = Vec::new();
+    let mut studio_aliases: Vec<String> = Vec::new();
     for kind in CardKind::ALL {
         let ids: Vec<i64> = stale
             .iter()
             .filter(|(stale_kind, _)| *stale_kind == kind)
             .map(|(_, id)| *id)
             .collect();
+        if ids.is_empty() {
+            continue;
+        }
         if kind == CardKind::Studio {
             for id in ids {
-                let response = graphql_request(studio_query(id), token.as_deref(), proxy).await?;
-                if let Some(meta) = parse_meta(kind, &response["data"]["Studio"], now) {
-                    rows.push(meta);
-                }
+                let alias = format!("studio_{id}");
+                parts.push(format!("{alias}: {}", studio_fragment(id)));
+                studio_aliases.push(alias);
             }
             continue;
         }
-        for chunk in chunks(&ids) {
-            refresh_chunk(kind, &chunk, token.as_deref(), proxy, now, &mut rows).await?;
+        for (index, chunk) in chunks(&ids).into_iter().enumerate() {
+            let alias = format!("{}_{index}", kind.as_str());
+            parts.push(format!("{alias}: {}", page_fragment(kind, &chunk)));
+            page_aliases.push((alias, kind));
+        }
+    }
+    let response = graphql_request(
+        json!({ "query": format!("query {{ {} }}", parts.join(" ")) }),
+        token.as_deref(),
+        proxy,
+    )
+    .await?;
+    let mut rows: Vec<CardMetaRow> = Vec::new();
+    for (alias, kind) in page_aliases {
+        let value = &response["data"][alias.as_str()];
+        let key = match kind {
+            CardKind::Anime | CardKind::Manga => "media",
+            CardKind::Character => "characters",
+            CardKind::Staff => "staff",
+            CardKind::Studio => continue,
+        };
+        if let Some(nodes) = value[key].as_array() {
+            for node in nodes {
+                if let Some(meta) = parse_meta(kind, node, now) {
+                    rows.push(meta);
+                }
+            }
+        }
+    }
+    for alias in studio_aliases {
+        if let Some(meta) = parse_meta(CardKind::Studio, &response["data"][alias.as_str()], now) {
+            rows.push(meta);
         }
     }
     if rows.is_empty() {

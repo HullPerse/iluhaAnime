@@ -97,6 +97,81 @@ describe("collection album", () => {
     expect(screen.getByText("Страница 1")).toBeTruthy();
   });
 
+  it("narrows the album to foil and holo cards from the toolbar", async () => {
+    renderWithCardsClient(<AlbumCards />);
+    await screen.findByText("Levi");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("combobox", { name: "Вариант" }));
+    await user.click(await screen.findByRole("option", { name: "Голографическая" }));
+
+    await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ variant: "holo" }));
+  });
+
+  it("sorts by finish in the requested direction", async () => {
+    renderWithCardsClient(<AlbumCards />);
+    await screen.findByText("Levi");
+
+    act(() => setCardsSort("variant"));
+
+    await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ sort: "variant" }));
+    expect(lastCollectionArgs()?.sortDir).toBe("desc");
+  });
+
+  it("keeps the opened rarity when the same finish exists at several rarities", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images: [], preferredUrl: null });
+      }
+      if (command === "cards_collection") {
+        return Promise.resolve(
+          makeCollectionPage({
+            total: 1,
+            pageSize: 36,
+            items: [
+              makeCollectionItem({
+                entityId: 45_627,
+                title: "Levi",
+                rarity: "epic",
+                variant: "holo",
+                value: 20,
+              }),
+            ],
+          })
+        );
+      }
+      if (command === "cards_card_variants") {
+        return Promise.resolve([
+          makeCollectionItem({
+            entityId: 45_627,
+            title: "Levi",
+            rarity: "common",
+            variant: "holo",
+            value: 3,
+          }),
+          makeCollectionItem({
+            entityId: 45_627,
+            title: "Levi",
+            rarity: "epic",
+            variant: "holo",
+            value: 20,
+          }),
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    renderWithCardsClient(<AlbumCards />);
+    fireEvent.click(await screen.findByRole("button", { name: /Levi/ }));
+
+    await waitFor(() =>
+      expect(document.querySelector(".cards-detail-art .cards-inner")?.className).toContain(
+        "cards-variant-holo"
+      )
+    );
+    expect(document.querySelector(".cards-detail-value span")?.textContent).toBe("20");
+  });
+
   it("loads the next grid page without pagination", async () => {
     mockInvoke.mockImplementation((command: unknown, args: unknown) => {
       if (command !== "cards_collection") return Promise.resolve(null);
@@ -331,6 +406,77 @@ describe("collection album", () => {
 
     expect(screen.queryByRole("button", { name: "Разобрать" })).toBeNull();
     expect(mockInvoke).not.toHaveBeenCalledWith("cards_dust", expect.anything());
+  });
+
+  it("offers a header action to open the anime of an anime card", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images: [], preferredUrl: null });
+      }
+      if (command === "cards_collection") {
+        return Promise.resolve(
+          makeCollectionPage({
+            total: 1,
+            pageSize: 36,
+            items: [
+              makeCollectionItem({
+                kind: "anime",
+                entityId: 16_498,
+                title: "Shingeki no Kyojin",
+                rarity: "rare",
+                variant: "normal",
+                collectionAnimeId: null,
+                collectionTitle: null,
+              }),
+            ],
+          })
+        );
+      }
+      return Promise.resolve(null);
+    });
+
+    renderWithCardsClient(<AlbumCards />);
+    fireEvent.click(await screen.findByRole("button", { name: /Shingeki no Kyojin/ }));
+
+    expect(await screen.findByRole("button", { name: "Открыть аниме" })).toBeTruthy();
+  });
+
+  it("offers the anime action for characters with an anime source", async () => {
+    renderWithCardsClient(<AlbumCards />);
+    fireEvent.click(await screen.findByRole("button", { name: /Levi/ }));
+
+    expect(await screen.findByRole("button", { name: "Открыть аниме" })).toBeTruthy();
+  });
+
+  it("hides the anime action for manga-only characters", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images: [], preferredUrl: null });
+      }
+      if (command === "cards_collection") {
+        return Promise.resolve(
+          makeCollectionPage({
+            total: 1,
+            pageSize: 36,
+            items: [
+              makeCollectionItem({
+                entityId: 270_493,
+                title: "Manga-only character",
+                collectionAnimeId: null,
+                collectionTitle: "One Piece",
+              }),
+            ],
+          })
+        );
+      }
+      return Promise.resolve(null);
+    });
+
+    renderWithCardsClient(<AlbumCards />);
+    fireEvent.click(await screen.findByRole("button", { name: /Manga-only character/ }));
+
+    expect(await screen.findByRole("heading", { name: "Manga-only character" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Открыть аниме" })).toBeNull();
   });
 
   it("marks favorite cards in the album", async () => {

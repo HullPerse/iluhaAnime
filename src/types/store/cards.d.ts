@@ -1,8 +1,8 @@
 import type { Cell } from "@/types/core/signal";
-import type { CardKind, CardRarity, CollectionShelfSort } from "@/types/api/cards";
+import type { CardKind, CardRarity, CardVariant, CollectionShelfSort } from "@/types/api/cards";
 
 export type CardsTab = "packs" | "album" | "shop" | "gifts" | "game";
-export type CardsSort = "recent" | "value" | "rarity" | "title" | "kind";
+export type CardsSort = "recent" | "value" | "rarity" | "variant" | "title" | "kind";
 export type CardsSortDir = "asc" | "desc";
 export type CardsCollectionSort = CollectionShelfSort;
 export type CardsAlbumMode = "all" | "collections";
@@ -11,6 +11,7 @@ export interface CardsUiState {
   tab: CardsTab;
   kind: CardKind | null;
   rarity: CardRarity | null;
+  variant: CardVariant | null;
   sort: CardsSort;
   sortDir: CardsSortDir;
   collectionSort: CardsCollectionSort;
@@ -28,6 +29,7 @@ export interface CardsUiAtoms {
   tab: Cell<CardsTab>;
   kind: Cell<CardKind | null>;
   rarity: Cell<CardRarity | null>;
+  variant: Cell<CardVariant | null>;
   sort: Cell<CardsSort>;
   sortDir: Cell<CardsSortDir>;
   collectionSort: Cell<CardsCollectionSort>;
@@ -46,6 +48,7 @@ export interface CardsSignalStore {
   setTab: (tab: CardsTab) => void;
   setKind: (kind: CardKind | null) => void;
   setRarity: (rarity: CardRarity | null) => void;
+  setVariant: (variant: CardVariant | null) => void;
   setSort: (sort: CardsSort) => void;
   setSortDir: (dir: CardsSortDir) => void;
   setCollectionSort: (sort: CardsCollectionSort) => void;

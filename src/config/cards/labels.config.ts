@@ -4,8 +4,18 @@ import type { CardsCollectionSort, CardsSort, CardsTab } from "@/types/store/car
 
 export const CARD_KINDS = ["anime", "manga", "character", "staff", "studio"] as const;
 export const CARD_RARITIES = ["junk", "common", "rare", "epic", "legendary"] as const;
-export const CARD_SORTS = ["recent", "value", "rarity", "title", "kind"] as const;
-export const COLLECTION_SORTS = [...CARD_SORTS, "completion", "owned"] as const;
+export const CARD_VARIANTS = ["normal", "foil", "holo"] as const;
+export const CARD_SORTS = ["recent", "value", "rarity", "variant", "title", "kind"] as const;
+// The collection shelf groups anime, so it has no per-card finish to sort by.
+export const COLLECTION_SORTS = [
+  "recent",
+  "value",
+  "rarity",
+  "title",
+  "kind",
+  "completion",
+  "owned",
+] as const;
 
 export const cardsTabLabelKeys = {
   packs: "collection.tabs.packs",
@@ -41,12 +51,17 @@ export const cardsSortLabelKeys = {
   recent: "collection.sort.recent",
   value: "collection.sort.value",
   rarity: "collection.sort.rarity",
+  variant: "collection.sort.variant",
   title: "collection.sort.title",
   kind: "collection.sort.kind",
 } satisfies Record<CardsSort, TranslationKey>;
 
 export const collectionSortLabelKeys = {
-  ...cardsSortLabelKeys,
+  recent: "collection.sort.recent",
+  value: "collection.sort.value",
+  rarity: "collection.sort.rarity",
+  title: "collection.sort.title",
+  kind: "collection.sort.kind",
   completion: "collection.sort.completion",
   owned: "collection.sort.owned",
 } satisfies Record<CardsCollectionSort, TranslationKey>;

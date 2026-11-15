@@ -14,19 +14,20 @@ export default function CardFacts({
   card,
   variants,
   source,
-  animeId,
-  onOpenAnime,
   onVariantChange,
 }: {
   card: CollectionItem;
   variants: CollectionItem[];
   source: string;
-  animeId: number | null;
-  onOpenAnime: (animeId: number) => void;
   onVariantChange: (variant: CardVariant) => void;
 }) {
   const { t } = useI18n();
   const title = card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
+  // The same finish may be owned at several rarities; the switch should list
+  // each finish once.
+  const variantChoices = variants.filter(
+    (entry, index) => variants.findIndex((other) => other.variant === entry.variant) === index
+  );
   // Dates describe the card, not the finish, so switching the variant never
   // changes the "obtained" age shown here.
   const cardFirstAt = variants.reduce(
@@ -43,28 +44,17 @@ export default function CardFacts({
       <header className="cards-detail-head">
         <span className="cards-detail-kicker">{t(cardKindLabelKeys[card.kind])}</span>
         <h2 className="cards-detail-title">{title}</h2>
-        {animeId === null ? (
-          <p className="cards-detail-source">{source}</p>
-        ) : (
-          <button
-            type="button"
-            className="cards-detail-source cards-detail-source-link"
-            onClick={() => onOpenAnime(animeId)}
-            title={t("collection.detail.open.anime")}
-          >
-            {source}
-          </button>
-        )}
+        <p className="cards-detail-source">{source}</p>
       </header>
 
-      {variants.length > 1 && (
+      {variantChoices.length > 1 && (
         <div className="cards-detail-variant-select">
           <span className="windows95-text text-hint text-xs">{t("collection.detail.variant")}</span>
           <Select
             className="w-40"
             label={t("collection.detail.variant")}
             value={card.variant}
-            options={variants.map((entry) => ({
+            options={variantChoices.map((entry) => ({
               value: entry.variant,
               label: t(cardVariantLabelKeys[entry.variant]),
             }))}

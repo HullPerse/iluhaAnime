@@ -22,8 +22,9 @@ import {
   setCardsRarity,
   setCardsSort,
   setCardsSortDir,
+  setCardsVariant,
 } from "@/store/cards.store";
-import type { CardKind, CardRarity, CollectionItem } from "@/types/api/cards";
+import type { CardKind, CardRarity, CardVariant, CollectionItem } from "@/types/api/cards";
 import type { CardsCollectionSort, CardsSortDir } from "@/types/store/cards";
 
 import AlbumBody from "@/routes/components/collection/albumBody.cards";
@@ -124,6 +125,7 @@ export default function AlbumCards() {
   } | null>(null);
   const kind = useCell(cardsAtoms.kind);
   const rarity = useCell(cardsAtoms.rarity);
+  const variant = useCell(cardsAtoms.variant);
   const sort = useCell(cardsAtoms.sort);
   const sortDir = useCell(cardsAtoms.sortDir);
   const collectionSort = useCell(cardsAtoms.collectionSort);
@@ -140,6 +142,7 @@ export default function AlbumCards() {
     {
       kind: queryKind,
       rarity,
+      variant,
       sort,
       sortDir,
       query,
@@ -152,6 +155,7 @@ export default function AlbumCards() {
     {
       kind: queryKind,
       rarity,
+      variant,
       sort,
       sortDir,
       query,
@@ -163,7 +167,7 @@ export default function AlbumCards() {
     () => grid.data?.pages.flatMap((page) => page.items) ?? [],
     [grid.data]
   );
-  const gridResetKey = `${queryKind ?? ""}:${rarity ?? ""}:${sort}:${sortDir}:${query}`;
+  const gridResetKey = `${queryKind ?? ""}:${rarity ?? ""}:${variant ?? ""}:${sort}:${sortDir}:${query}`;
   const gridTotal = grid.data?.pages[0]?.total ?? 0;
   const loadMoreGrid = () => grid.fetchNextPage();
   const retryGrid = () => grid.refetch();
@@ -174,6 +178,7 @@ export default function AlbumCards() {
   const resetFilters = () => {
     setCardsKind(null);
     setCardsRarity(null);
+    setCardsVariant(null);
     setCardsSort("recent");
     resetScroll();
   };
@@ -211,6 +216,11 @@ export default function AlbumCards() {
 
   const changeRarity = (next: CardRarity | null) => {
     setCardsRarity(next);
+    resetScroll();
+  };
+
+  const changeVariant = (next: CardVariant | null) => {
+    setCardsVariant(next);
     resetScroll();
   };
 
@@ -290,6 +300,7 @@ export default function AlbumCards() {
         view={view}
         kind={kind}
         rarity={rarity}
+        variant={variant}
         sort={activeSort.sort}
         sortDir={activeSort.sortDir}
         search={search}
@@ -297,6 +308,7 @@ export default function AlbumCards() {
         onSearch={changeSearch}
         onKind={changeKind}
         onRarity={changeRarity}
+        onVariant={changeVariant}
         onSort={changeSort}
         onSortDir={changeSortDir}
         onReset={resetFilters}

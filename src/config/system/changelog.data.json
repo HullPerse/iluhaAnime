@@ -1,6 +1,39 @@
 {
   "changelog": [
     {
+      "version": "5.2.2",
+      "added": [
+        {
+          "key": "changelog.5_2_2.added.collection.variant_filter",
+          "scope": "collection"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_2_2.changed.collection.pack_prepare",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_2.changed.collection.open_anime",
+          "scope": "collection"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_2_2.fixed.game.daily_crash",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_2_2.fixed.collection.holo_effect",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_2.fixed.collection.variant_dupes",
+          "scope": "collection"
+        }
+      ]
+    },
+    {
       "version": "5.2.0",
       "added": [
         {

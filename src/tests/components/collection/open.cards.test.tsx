@@ -1,9 +1,11 @@
-import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import OpenCards from "@/routes/components/collection/open.cards";
 import { patchSettings } from "@/store/settings.store";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 
 import { makeOpenedCards, makeOpening, makePack } from "@/tests/fixtures/cards/cards.fixture";
 import { mockInvoke } from "@/tests/mocks";
@@ -19,6 +21,37 @@ afterEach(() => {
 });
 
 describe("collection pack opening", () => {
+  it("keeps the dialog open while the pack is being opened", async () => {
+    mockInvoke.mockImplementation(() => new Promise(() => {}));
+    const onClose = vi.fn();
+    renderWithCardsClient(<OpenCards pack={makePack()} onClose={onClose} />);
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText("Закрыть")).toHaveProperty("disabled", true);
+  });
+  it("invalidates cached packs if opening finishes after the dialog unmounts", async () => {
+    let finish!: (value: unknown) => void;
+    mockInvoke.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const key = queryKeys.cardsPacksScope();
+    client.setQueryData(key, [makePack()]);
+    const view = render(
+      <QueryClientProvider client={client}>
+        <OpenCards pack={makePack()} onClose={vi.fn()} />
+      </QueryClientProvider>
+    );
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalled());
+    view.unmount();
+    await act(async () => {
+      finish(makeOpening());
+    });
+    await waitFor(() => expect(client.getQueryState(key)?.isInvalidated).toBe(true));
+  });
   it("flips only on click, ignores a rapid second flip and enables Take after all cards", async () => {
     mockInvoke.mockResolvedValue(makeOpening());
     const onClose = vi.fn();
@@ -100,7 +133,7 @@ describe("collection pack opening", () => {
     const onClose = vi.fn();
     renderWithCardsClient(<OpenCards pack={makePack()} onClose={onClose} />);
 
-    await screen.findByRole("dialog");
+    await screen.findByTestId("card-flip-0");
     await userEvent.keyboard("{Escape}");
 
     expect(onClose).toHaveBeenCalled();

@@ -506,10 +506,17 @@ async fn fetch_roster_totals(
 
 fn shelf_rows(app: &AppHandle) -> Result<Vec<ShelfRow>, String> {
     let connection = open_database(app)?;
+    shelf_rows_in(&connection)
+}
+
+fn shelf_rows_in(connection: &rusqlite::Connection) -> Result<Vec<ShelfRow>, String> {
     let mut statement = connection
         .prepare(
             "SELECT collection_kind, collection_id, MAX(title), MAX(cover_url), kind,
-                    entity_id, rarity, value, copies, last_obtained_at
+                    entity_id,
+                    CASE MAX(CASE rarity WHEN 'legendary' THEN 4 WHEN 'epic' THEN 3 WHEN 'rare' THEN 2 WHEN 'common' THEN 1 ELSE 0 END)
+                      WHEN 4 THEN 'legendary' WHEN 3 THEN 'epic' WHEN 2 THEN 'rare' WHEN 1 THEN 'common' ELSE 'junk' END,
+                    SUM(value * copies), 1, MAX(last_obtained_at)
              FROM (
                 SELECT 'anime' AS collection_kind, c.entity_id AS collection_id,
                        COALESCE(m.title, '') AS title,
@@ -542,7 +549,7 @@ fn shelf_rows(app: &AppHandle) -> Result<Vec<ShelfRow>, String> {
                 WHERE c.user_id = ?1 AND c.kind = 'character'
                   AND m.collection_manga_id IS NOT NULL
              )
-             GROUP BY collection_kind, collection_id, kind, entity_id, rarity
+             GROUP BY collection_kind, collection_id, kind, entity_id
              ORDER BY collection_kind, collection_id",
         )
         .map_err(|error| format!("prepare card collections: {error}"))?;
@@ -895,6 +902,21 @@ mod tests {
         assert_eq!(shelf[0].rarity.epic, 1);
         assert_eq!(shelf[0].total_value, 35);
         assert_eq!(shelf[0].last_obtained_at, 20);
+    }
+
+    #[test]
+    fn shelf_groups_legacy_variant_rows_and_preserves_total_value() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        connection.execute("INSERT INTO card_meta (kind, entity_id, title, collection_anime_id, fetched_at) VALUES ('character', 45627, 'Levi', 16498, 1)", []).unwrap();
+        connection.execute("INSERT INTO user_cards (user_id,kind,entity_id,rarity,variant,copies,value,first_obtained_at,last_obtained_at) VALUES (?1,'character',45627,'rare','normal',2,8,10,20), (?1,'character',45627,'epic','foil',1,20,30,40)", [LOCAL_USER_ID]).unwrap();
+        let rows = shelf_rows_in(&connection).unwrap();
+        let shelf = shelf_from_rows(rows.into_iter(), "owned", None).unwrap();
+        assert_eq!(shelf.len(), 1);
+        assert_eq!(shelf[0].owned, 1);
+        assert_eq!(shelf[0].total_value, 36);
+        assert_eq!(shelf[0].rarity.epic, 1);
+        assert_eq!(shelf[0].last_obtained_at, 40);
     }
 
     #[test]

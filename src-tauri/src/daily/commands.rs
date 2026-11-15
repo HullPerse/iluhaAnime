@@ -14,6 +14,46 @@ use super::types::{
     DailyOpView,
 };
 
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn daily_test_proxy(
+    mode: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<String, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let mut builder = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .user_agent("iluhaAnime daily proxy test");
+    if let Some(proxy) = proxy {
+        builder =
+            builder.proxy(reqwest::Proxy::all(&proxy).map_err(|e| format!("invalid proxy: {e}"))?);
+    }
+    let client = builder.build().map_err(|e| e.to_string())?;
+    let request = match mode.as_str() {
+        "frames" => client.get("https://shikimori.io/api/animes/1/screenshots"),
+        "op" => client
+            .post("https://graphql.animethemes.moe/")
+            .json(&serde_json::json!({"query":"query { __typename }"})),
+        _ => return Err("unknown daily proxy mode".into()),
+    };
+    let response = request
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?;
+    Ok(format!(
+        "{} HTTP {}",
+        if mode == "frames" {
+            "Shikimori"
+        } else {
+            "AnimeThemes"
+        },
+        response.status()
+    ))
+}
+
 const PREPARE_TIMEOUT: Duration = Duration::from_secs(45);
 const OP_PREPARE_TIMEOUT: Duration = Duration::from_secs(240);
 const REVEAL_TIMEOUT: Duration = Duration::from_secs(150);

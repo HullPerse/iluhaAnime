@@ -19,6 +19,12 @@ const LIST_SORT_KEY_SET: ReadonlySet<string> = new Set(listSortKeys);
 
 const SETTINGS_TRANSFORMS: MigrationTransform[] = [
   {
+    from: 63,
+    migrate: (state) => {
+      state.dailyOpeningProxyUrl ??= state.dailyProxyUrl;
+    },
+  },
+  {
     migrate: (state) => {
       const inlineOff = state.inlineAutocompleteEnabled === false;
       delete state.inlineAutocompleteEnabled;

@@ -1980,7 +1980,8 @@ html[data-theme="yorha"] .yorha-grid {
     transform 160ms ease-out;
 }
 
-.cards-flip[data-hover-ready="true"] .cards-reveal-source {
+.cards-flip[data-hover-ready="true"] .cards-reveal-source,
+.cards-flip[data-flipped="true"]:focus-visible .cards-reveal-source {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 300ms;

@@ -144,6 +144,7 @@ export interface SettingsStore {
   animelibProxyUrl: string | null;
   cardsImageProxyUrl: string | null;
   dailyProxyUrl: string | null;
+  dailyOpeningProxyUrl: string | null;
   anilistTitleLanguage: AniTitlePreference;
   anilistAdultContent: boolean;
   ffmpegSource: "essentials" | "github" | "github-mirror";

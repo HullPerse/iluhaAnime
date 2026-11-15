@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 
 import { cardsApi } from "@/api/cards.api";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
@@ -17,6 +18,13 @@ function anilistProxy(): string | null {
 
 export function useCardsMutations() {
   const queryClient = useQueryClient();
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const invalidate = () => {
     for (const queryKey of [
@@ -78,6 +86,9 @@ export function useCardsMutations() {
   // oxlint-disable-next-line react-doctor/query-mutation-missing-invalidation
   const openPack = useMutation({
     mutationFn: (packId: string) => cardsApi.openPack(packId, anilistProxy()),
+    onSuccess: () => {
+      if (!mounted.current) invalidate();
+    },
   });
 
   const dust = useMutation({

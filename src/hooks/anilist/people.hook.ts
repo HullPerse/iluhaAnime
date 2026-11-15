@@ -6,7 +6,18 @@ import { tr } from "@/lib/locale/i18n.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
-import type { AnilistRouteData } from "@/types/anilist/anilist";
+import type { AnilistRouteData, FavouritePerson } from "@/types/anilist/anilist";
+
+function replacePerson(
+  people: FavouritePerson[],
+  id: number,
+  person: FavouritePerson | undefined
+): FavouritePerson[] {
+  const index = people.findIndex((item) => item.id === id);
+  if (index === -1) return person ? [...people, person] : people;
+  if (!person) return people.filter((item) => item.id !== id);
+  return people.map((item) => (item.id === id ? person : item));
+}
 
 export function useFavouritePeopleToggles() {
   const queryClient = useQueryClient();
@@ -15,7 +26,8 @@ export function useFavouritePeopleToggles() {
     if (staffPendingRef.current.has(staffId)) return;
     staffPendingRef.current.add(staffId);
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-    const wasFavourite = previous?.people.staff.some((p) => p.id === staffId) ?? false;
+    const person = previous?.people.staff.find((p) => p.id === staffId);
+    const wasFavourite = person !== undefined;
     if (wasFavourite) {
       queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
         old
@@ -32,11 +44,31 @@ export function useFavouritePeopleToggles() {
     const [updated, error] = await attempt(anilistApi.toggleFavouriteStaff(staffId));
     staffPendingRef.current.delete(staffId);
     if (error) {
-      if (wasFavourite) queryClient.setQueryData(queryKeys.anilistData(), previous);
+      if (person)
+        queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
+          old
+            ? {
+                ...old,
+                people: { ...old.people, staff: replacePerson(old.people.staff, staffId, person) },
+              }
+            : old
+        );
       addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
-        old ? { ...old, people: { ...old.people, staff: updated } } : old
+        old
+          ? {
+              ...old,
+              people: {
+                ...old.people,
+                staff: replacePerson(
+                  old.people.staff,
+                  staffId,
+                  updated.find((p) => p.id === staffId)
+                ),
+              },
+            }
+          : old
       );
     }
   };
@@ -45,7 +77,8 @@ export function useFavouritePeopleToggles() {
     if (characterPendingRef.current.has(characterId)) return;
     characterPendingRef.current.add(characterId);
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
-    const wasFavourite = previous?.people.characters.some((p) => p.id === characterId) ?? false;
+    const person = previous?.people.characters.find((p) => p.id === characterId);
+    const wasFavourite = person !== undefined;
     if (wasFavourite) {
       queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
         old
@@ -62,11 +95,34 @@ export function useFavouritePeopleToggles() {
     const [updated, error] = await attempt(anilistApi.toggleFavouriteCharacter(characterId));
     characterPendingRef.current.delete(characterId);
     if (error) {
-      if (wasFavourite) queryClient.setQueryData(queryKeys.anilistData(), previous);
+      if (person)
+        queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
+          old
+            ? {
+                ...old,
+                people: {
+                  ...old.people,
+                  characters: replacePerson(old.people.characters, characterId, person),
+                },
+              }
+            : old
+        );
       addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
-        old ? { ...old, people: { ...old.people, characters: updated } } : old
+        old
+          ? {
+              ...old,
+              people: {
+                ...old.people,
+                characters: replacePerson(
+                  old.people.characters,
+                  characterId,
+                  updated.find((p) => p.id === characterId)
+                ),
+              },
+            }
+          : old
       );
     }
   };

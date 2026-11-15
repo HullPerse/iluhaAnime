@@ -78,7 +78,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   "proxy.anilist": ["anilistProxyUrl", "anilistTitleLanguage", "anilistAdultContent"],
   "proxy.news": ["newsProxyUrl"],
   "proxy.animelib": ["animelibProxyUrl"],
-  "proxy.collection": ["cardsImageProxyUrl", "dailyProxyUrl"],
+  "proxy.collection": ["cardsImageProxyUrl", "dailyProxyUrl", "dailyOpeningProxyUrl"],
   "proxy.torrent": ["torrentProxyUrl"],
   "proxy.sources": ["searchProxyUrls", "webviewProxyEnabled"],
   "theme.schedule": ["themeSchedule"],

@@ -356,7 +356,11 @@ export function prefetchRemoteImages(
     if (!raw) continue;
     if (resolvedUrls.has(raw)) continue;
     const key = remoteKey(raw, proxy);
-    if (inflight.has(key)) continue;
+    const existing = inflight.get(key);
+    if (existing) {
+      pending.push(existing);
+      continue;
+    }
     // Queue the whole burst before pumping so prefetch fills batches of eight
     // instead of starting one single-image batch per URL.
     pending.push(fetchCachedImage(raw, proxy, "low", true));

@@ -140,6 +140,7 @@
     "animelibProxyUrl": null,
     "cardsImageProxyUrl": null,
     "dailyProxyUrl": null,
+    "dailyOpeningProxyUrl": null,
     "anilistTitleLanguage": "account",
     "anilistAdultContent": false,
     "torrentProxyUrl": null,

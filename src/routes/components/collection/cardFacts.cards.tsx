@@ -85,7 +85,9 @@ export default function CardFacts({
         </div>
         <div>
           <dt>{t("collection.copies")}</dt>
-          <dd className="tabular-nums">{card.copies}</dd>
+          <dd className="tabular-nums">
+            {variants.reduce((total, entry) => total + entry.copies, 0) || card.copies}
+          </dd>
         </div>
         <div>
           <dt>{t("collection.detail.first")}</dt>

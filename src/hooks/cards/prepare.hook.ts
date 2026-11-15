@@ -6,6 +6,7 @@ import { useOnlineStatus } from "@/hooks/network.hook";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 
 /**
  * One background preparation pass per app session. The backend keeps the
@@ -19,24 +20,37 @@ export function usePrepareCardsPacks(enabled: boolean) {
   useEffect(() => {
     if (!enabled || !online || started.current) return;
     started.current = true;
-    const proxy = settingsAtoms.anilistProxyUrl.get() ?? null;
-    cardsApi
-      .preparePacks(proxy)
-      .then(async (result) => {
-        if (result.unnotified > 0) {
-          addNotification(
-            t("collection.packs.ready.title"),
-            "success",
-            t("collection.packs.ready.body", { count: result.unnotified }),
-            "cards-packs-ready"
-          );
-          await cardsApi.acknowledgePreparedPacks();
-        }
-        return null;
-      })
-      .catch((error: unknown) => {
-        started.current = false;
-        reportBackgroundError("cards.prepare-packs", error);
-      });
+    let cancelled = false;
+    let completed = false;
+    let retry: ReturnType<typeof scheduleTask> | undefined;
+    const prepare = () => {
+      const proxy = settingsAtoms.anilistProxyUrl.get() ?? null;
+      cardsApi
+        .preparePacks(proxy)
+        .then(async (result) => {
+          if (cancelled) return null;
+          if (result.unnotified > 0) {
+            addNotification(
+              t("collection.packs.ready.title"),
+              "success",
+              t("collection.packs.ready.body", { count: result.unnotified }),
+              "cards-packs-ready"
+            );
+            await cardsApi.acknowledgePreparedPacks();
+          }
+          completed = true;
+          return null;
+        })
+        .catch((error: unknown) => {
+          reportBackgroundError("cards.prepare-packs", error);
+          if (!cancelled) retry = scheduleTask("timeout", 30_000, prepare);
+        });
+    };
+    prepare();
+    return () => {
+      cancelled = true;
+      retry?.cancel();
+      if (!completed) started.current = false;
+    };
   }, [enabled, online, t]);
 }

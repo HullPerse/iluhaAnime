@@ -16,6 +16,12 @@ beforeAll(async () => {
 });
 
 describe("settings signal migration", () => {
+  it("copies the old daily proxy into the opening setting during migration", () => {
+    const result = settings.migrateSettingsData({ dailyProxyUrl: "http://127.0.0.1:7890" }, 62);
+    expect(result.dailyProxyUrl).toBe("http://127.0.0.1:7890");
+    expect(result.dailyOpeningProxyUrl).toBe("http://127.0.0.1:7890");
+  });
+
   it("forces the persisted English locale to Russian", () => {
     expect(settings.migrateSettingsData({ language: "en" }, 1).language).toBe("ru");
   });

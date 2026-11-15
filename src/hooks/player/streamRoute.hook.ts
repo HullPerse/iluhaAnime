@@ -83,6 +83,7 @@ export function useStreamRouteGuard({
     retriedAt: 0,
   });
   const sessionRef = useRef<StreamOpen | null>(session);
+  const retryRef = useRef(0);
   const ioRef = useRef({ setLoadingFile, setFailed });
 
   useEffect(() => {
@@ -94,6 +95,7 @@ export function useStreamRouteGuard({
     sessionRef.current = session;
     const current = stateRef.current;
     if (current.key === key) return;
+    retryRef.current += 1;
     stateRef.current = freshState(key, session?.proxyUrl ?? null);
   }, [session]);
 
@@ -102,6 +104,7 @@ export function useStreamRouteGuard({
     if (state.gaveUp) return;
     state.gaveUp = true;
     state.playing = false;
+    retryRef.current += 1;
     ioRef.current.setLoadingFile(false);
     ioRef.current.setFailed(true);
   }, []);
@@ -136,12 +139,21 @@ export function useStreamRouteGuard({
     state.retriedAt = now;
     state.startedAt = now;
     state.playing = false;
+    const retryId = ++retryRef.current;
     if (resume !== undefined) playbackAtoms.streamResume.set(resume);
     ioRef.current.setFailed(false);
     ioRef.current.setLoadingFile(true);
     ignore(
       openStream(next)
         .then(() => {
+          const latest = streamSession.get();
+          if (
+            retryRef.current !== retryId ||
+            latest === null ||
+            streamRouteKey(latest) !== state.key ||
+            latest.mediaUrl !== current.mediaUrl
+          )
+            return undefined;
           sessionRef.current = next;
           streamSession.set(next);
           return undefined;
@@ -161,7 +173,10 @@ export function useStreamRouteGuard({
       if (!stalled) return;
       retry();
     }, CHECK_MS);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      retryRef.current += 1;
+    };
   }, [retry]);
 
   const markPlaying = useCallback(() => {

@@ -39,7 +39,8 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
   return (
     <Modal
       header={t("collection.open.title")}
-      onClose={onClose}
+      onClose={close}
+      canClose={() => isError}
       className="w-[min(64rem,calc(100vw-1rem))]"
     >
       {isPending && <TabLoader className="min-h-48 w-full" />}
@@ -52,7 +53,9 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
         </div>
       )}
       <div className="flex justify-end">
-        <Button onClick={close}>{t("common.close")}</Button>
+        <Button disabled={!isError} onClick={close}>
+          {t("common.close")}
+        </Button>
       </div>
     </Modal>
   );

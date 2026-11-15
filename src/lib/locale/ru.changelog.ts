@@ -21,8 +21,10 @@ import changelog516 from "@/lib/locale/changelog/v5_1_6.ru";
 import changelog520 from "@/lib/locale/changelog/v5_2_0.ru";
 import changelog522 from "@/lib/locale/changelog/v5_2_2.ru";
 import changelog523 from "@/lib/locale/changelog/v5_2_3.ru";
+import changelog525 from "@/lib/locale/changelog/v5_2_5.ru";
 
 export const ruChangelog = {
+  ...changelog525,
   ...changelog523,
   ...changelog522,
   ...changelog520,

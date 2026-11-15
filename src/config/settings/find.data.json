@@ -95,7 +95,8 @@
       "keys": [
         "settings.collection.proxy.title",
         "settings.collection.proxy.images",
-        "settings.collection.proxy.daily"
+        "settings.collection.proxy.daily",
+        "settings.collection.proxy.opening"
       ]
     },
     {

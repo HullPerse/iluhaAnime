@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { withTimeout } from "@hullperse/hp_utils/result";
 
 import { dailyApi } from "@/api/daily.api";
@@ -16,13 +17,32 @@ import type {
   DailySearchEntry,
 } from "@/types/api/daily";
 
-function dailyProxy(): string | null {
-  return effectiveProxyUrl(settingsAtoms.dailyProxyUrl.get(), settingsAtoms.anilistProxyUrl.get());
+function dailyProxy(mode: DailyMode): string | null {
+  const proxy =
+    mode === "frames"
+      ? settingsAtoms.dailyProxyUrl.get()
+      : settingsAtoms.dailyOpeningProxyUrl.get();
+  return effectiveProxyUrl(proxy, settingsAtoms.anilistProxyUrl.get());
 }
 
 const PREPARE_TIMEOUT_MS = 50_000;
 const OP_PREPARE_TIMEOUT_MS = 200_000;
 const REVEAL_TIMEOUT_MS = 160_000;
+
+/// A win mints the reward pack on the backend, but the packs tab and the tab
+/// badges keep their own caches. Invalidating them here makes the new pack
+/// appear on the next packs visit instead of after the five-minute stale time.
+function invalidateDailyResult(
+  queryClient: QueryClient,
+  day: string,
+  rewardPackId: string | null | undefined
+): void {
+  queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.dailyHistory() });
+  if (rewardPackId === null || rewardPackId === undefined) return;
+  queryClient.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.cardsUnreadScope() });
+}
 
 export function useDailyGame(day: string) {
   return useAppQuery<DailyBootstrap>("static", {
@@ -52,7 +72,7 @@ export function usePrepareDailyGame(day: string) {
   return useMutation({
     mutationFn: async (mode: DailyMode) => {
       const result = await withTimeout(
-        dailyApi.prepare(day, mode, dailyProxy()),
+        dailyApi.prepare(day, mode, dailyProxy(mode)),
         PREPARE_TIMEOUT_MS,
         "preparing daily frames timed out"
       );
@@ -74,7 +94,7 @@ export function useRevealDailyFrames(day: string) {
   return useMutation({
     mutationFn: async (): Promise<DailyFramesView> => {
       const result = await withTimeout(
-        dailyApi.revealFrames(day, dailyProxy()),
+        dailyApi.revealFrames(day, dailyProxy("frames")),
         REVEAL_TIMEOUT_MS,
         "revealing daily frames timed out"
       );
@@ -92,7 +112,7 @@ export function useRevealDailyFrames(day: string) {
 export function useWarmDailyOp(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (): Promise<DailyOpView> => dailyApi.prepareOp(day, dailyProxy()),
+    mutationFn: (): Promise<DailyOpView> => dailyApi.prepareOp(day, dailyProxy("op")),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
     },
@@ -104,7 +124,7 @@ export function useWarmDailyOp(day: string) {
 export function useWarmDailyAudio(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (): Promise<DailyOpView> => dailyApi.prepareAudio(day, dailyProxy()),
+    mutationFn: (): Promise<DailyOpView> => dailyApi.prepareAudio(day, dailyProxy("audio")),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
     },
@@ -116,7 +136,7 @@ export function usePrepareDailyOp(day: string) {
   return useMutation({
     mutationFn: async (): Promise<DailyOpView> => {
       const result = await withTimeout(
-        dailyApi.prepareOp(day, dailyProxy()),
+        dailyApi.prepareOp(day, dailyProxy("op")),
         OP_PREPARE_TIMEOUT_MS,
         "preparing the daily opening timed out"
       );
@@ -134,7 +154,7 @@ export function usePrepareDailyAudio(day: string) {
   return useMutation({
     mutationFn: async (): Promise<DailyOpView> => {
       const result = await withTimeout(
-        dailyApi.prepareAudio(day, dailyProxy()),
+        dailyApi.prepareAudio(day, dailyProxy("audio")),
         OP_PREPARE_TIMEOUT_MS,
         "preparing the daily audio clip timed out"
       );
@@ -152,9 +172,8 @@ export function useGuessDailyAudio(day: string) {
   return useMutation({
     mutationFn: (vars: { mediaId: number; guessedTitles: string[] }): Promise<DailyOpGuessView> =>
       dailyApi.guessAudio(day, vars.mediaId, vars.guessedTitles),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dailyHistory() });
+    onSuccess: (view) => {
+      invalidateDailyResult(queryClient, day, view.state.result?.rewardPackId);
     },
   });
 }
@@ -174,9 +193,8 @@ export function useGuessDailyOp(day: string) {
   return useMutation({
     mutationFn: (vars: { mediaId: number; guessedTitles: string[] }): Promise<DailyOpGuessView> =>
       dailyApi.guessOp(day, vars.mediaId, vars.guessedTitles),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dailyHistory() });
+    onSuccess: (view) => {
+      invalidateDailyResult(queryClient, day, view.state.result?.rewardPackId);
     },
   });
 }
@@ -195,10 +213,9 @@ export function useGuessDailyGame(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (vars: { mode: DailyMode; mediaId: number; guessedTitles: string[] }) =>
-      dailyApi.guess(day, vars.mode, vars.mediaId, vars.guessedTitles, dailyProxy()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dailyHistory() });
+      dailyApi.guess(day, vars.mode, vars.mediaId, vars.guessedTitles, dailyProxy(vars.mode)),
+    onSuccess: (view) => {
+      invalidateDailyResult(queryClient, day, view.result?.rewardPackId);
     },
   });
 }
@@ -206,7 +223,7 @@ export function useGuessDailyGame(day: string) {
 export function useSkipDailyGame(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (mode: DailyMode) => dailyApi.skip(day, mode, dailyProxy()),
+    mutationFn: (mode: DailyMode) => dailyApi.skip(day, mode, dailyProxy(mode)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
     },

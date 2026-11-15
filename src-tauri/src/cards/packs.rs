@@ -11,17 +11,18 @@ use super::metadata::refresh_metadata;
 use super::rarity::{card_value, score_for, tier_for};
 use super::rng::Rng;
 use super::sampling::{
-    batch_page_query, ensure_rare_plus, merge_distinct, parse_batch_page, pick_distinct, CardNode,
+    batch_page_query, batch_page_query_with_max, max_id_query, merge_distinct, parse_batch_page,
+    parse_id_response, parse_max_id, pick_distinct, random_id_query, CardNode,
 };
 use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
 use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
     acknowledge_ready_packs, add_wallet, get_meta, get_pack, get_user_card, insert_ledger,
     insert_opening, list_openings_for_pack, list_pack_cards, list_packs, list_packs_to_prepare,
-    mark_pack_opened, mark_pack_prepare_failed, mark_pack_prepare_started, ready_unnotified_count,
-    save_pack_cards, trim_ledger, trim_openings, upsert_card, upsert_meta, CardMetaRow,
-    CardOpeningRow, CardPackCardRow, CardPackRow, ChubrikLedgerRow, UserCardRow, LEDGER_RETENTION,
-    LOCAL_USER_ID, OPENINGS_RETENTION,
+    list_user_card_stacks, list_user_cards, mark_pack_opened, mark_pack_prepare_failed,
+    mark_pack_prepare_started, ready_unnotified_count, save_pack_cards, trim_ledger, trim_openings,
+    upsert_card, upsert_meta, CardMetaRow, CardOpeningRow, CardPackCardRow, CardPackRow,
+    ChubrikLedgerRow, UserCardRow, LEDGER_RETENTION, LOCAL_USER_ID, OPENINGS_RETENTION,
 };
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -52,9 +53,31 @@ const PREPARE_IMAGE_LIMIT: usize = 24;
 /// Image warmup is a cache fill, never a reason to keep a pack unready, so the
 /// whole batch shares one bounded queue instead of waiting per pack.
 const PREPARE_IMAGE_BATCH_LIMIT: usize = PREPARE_IMAGE_LIMIT * 5;
-/// Pages fetched per kind for a whole prepare batch. One aliased request holds
-/// every page, so five starter packs cost the same three requests as one pack.
-const PREPARE_POOL_PAGES: u32 = 3;
+/// Sample one page from each popularity band so rare tiers remain available.
+fn sampled_pages(kind: CardKind, ceiling: u32, rng: &mut Rng) -> Vec<u32> {
+    let ceiling = ceiling.max(1);
+    let mut pages = Vec::new();
+    if kind == CardKind::Studio {
+        for (low, high) in [(1_u32, 4_u32), (6, 14), (15, 27), (30, 58), (60, 100)] {
+            let start = low.min(ceiling);
+            let end = high.clamp(start, ceiling);
+            let page = start + rng.next_below(u64::from(end - start + 1)) as u32;
+            if !pages.contains(&page) {
+                pages.push(page);
+            }
+        }
+        return pages;
+    }
+    for (low, high) in [(0_u32, 2_u32), (2, 11), (11, 30), (30, 65), (65, 100)] {
+        let start = (ceiling * low / 100 + 1).min(ceiling);
+        let end = (ceiling * high).div_ceil(100).clamp(start, ceiling);
+        let page = start + rng.next_below(u64::from(end - start + 1)) as u32;
+        if !pages.contains(&page) {
+            pages.push(page);
+        }
+    }
+    pages
+}
 
 /// Merged page nodes per kind, shared by every pack of one prepare run.
 type PoolCache = HashMap<CardKind, Vec<CardNode>>;
@@ -88,7 +111,7 @@ fn payout_for(value: i64, copies_before: i64) -> i64 {
     let multiplier = (1.0
         + DUPLICATE_PAYOUT_GROWTH * copies / (copies + DUPLICATE_PAYOUT_SOFTNESS))
         .min(DUPLICATE_PAYOUT_MAX);
-    (value as f64 * multiplier).round() as i64
+    (value as f64 * multiplier * 0.9).round().max(1.0) as i64
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -261,16 +284,7 @@ async fn sample_pool(
         Some(cached) if cached.len() >= count => cached.clone(),
         _ => {
             let ceiling = page_ceiling(app, kind, 25, None, proxy).await?;
-            let mut pages: Vec<u32> = Vec::new();
-            for _ in 0..PREPARE_POOL_PAGES {
-                let page = 1 + rng.next_below(u64::from(ceiling)) as u32;
-                if !pages.contains(&page) {
-                    pages.push(page);
-                }
-            }
-            if pages.len() == 1 && ceiling > 1 {
-                pages.push(if pages[0] == 1 { 2 } else { 1 });
-            }
+            let pages = sampled_pages(kind, ceiling, rng);
             let fetched = fetch_pages(kind, &pages, 25, None, proxy).await?;
             let merged = merge_distinct(&fetched);
             pools.insert(kind, merged.clone());
@@ -288,6 +302,109 @@ async fn sample_pool(
     Ok(picked)
 }
 
+const RANDOM_ID_BATCH: usize = 200;
+const RANDOM_ID_ROUNDS: usize = 5;
+
+fn guaranteed_rarity(rng: &mut Rng) -> CardRarity {
+    if rng.next_below(100) < 2 {
+        CardRarity::Legendary
+    } else {
+        CardRarity::Rare
+    }
+}
+
+fn cached_max_id(app: &AppHandle, kind: CardKind) -> Option<u32> {
+    let key = format!("max-id:{}", kind.as_str());
+    crate::app_db::cache::read_cached_payload(app, "cards", &key)
+        .ok()
+        .flatten()?
+        .parse::<u32>()
+        .ok()
+        .filter(|id| *id > 0)
+}
+
+fn store_max_id(app: &AppHandle, kind: CardKind, id: u32) {
+    let key = format!("max-id:{}", kind.as_str());
+    if let Err(error) = crate::app_db::cache::put_app_cache(
+        app.clone(),
+        "cards".into(),
+        key,
+        id.to_string(),
+        Some(24 * 60 * 60),
+    ) {
+        tracing::warn!(error = error.as_str(), "card ID ceiling cache failed");
+    }
+}
+
+async fn maximum_entity_id(
+    app: &AppHandle,
+    kind: CardKind,
+    proxy: Option<&str>,
+) -> Result<u32, String> {
+    if let Some(id) = cached_max_id(app, kind) {
+        return Ok(id);
+    }
+    let response = graphql_request(max_id_query(kind), None, proxy).await?;
+    let nodes = parse_id_response(kind, &response, 1)?;
+    let id = nodes
+        .first()
+        .and_then(|node| u32::try_from(node.entity_id).ok())
+        .filter(|id| *id > 0)
+        .ok_or("AniList returned no maximum card ID")?;
+    store_max_id(app, kind, id);
+    Ok(id)
+}
+
+async fn sample_random_ids(
+    app: &AppHandle,
+    kind: CardKind,
+    count: usize,
+    rng: &mut Rng,
+    proxy: Option<&str>,
+    excluded: &[CardNode],
+) -> Result<Vec<CardNode>, String> {
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+    let maximum = maximum_entity_id(app, kind, proxy).await?;
+    let mut result = Vec::new();
+    let mut attempted = std::collections::HashSet::new();
+    for _ in 0..RANDOM_ID_ROUNDS {
+        let limit = RANDOM_ID_BATCH.min(maximum as usize - attempted.len());
+        if limit == 0 {
+            break;
+        }
+        let mut ids = Vec::with_capacity(limit);
+        while ids.len() < limit {
+            let id = 1 + rng.next_below(u64::from(maximum)) as u32;
+            if attempted.insert(id) {
+                ids.push(id);
+            }
+        }
+        let response = graphql_request(random_id_query(kind, &ids), None, proxy).await?;
+        let mut nodes = parse_id_response(kind, &response, ids.len().div_ceil(50))?;
+        rng.shuffle(&mut nodes);
+        for card in nodes {
+            if excluded
+                .iter()
+                .chain(result.iter())
+                .any(|old: &CardNode| old.kind == card.kind && old.entity_id == card.entity_id)
+            {
+                continue;
+            }
+            result.push(card);
+            if result.len() == count {
+                return Ok(result);
+            }
+        }
+    }
+    Err(format!(
+        "AniList returned {} of {count} random {} cards",
+        result.len(),
+        kind.as_str()
+    ))
+}
+
 async fn sample_cards(
     app: &AppHandle,
     needs: &[(CardKind, usize)],
@@ -296,14 +413,55 @@ async fn sample_cards(
     pools: &mut PoolCache,
 ) -> Result<Vec<CardNode>, String> {
     let mut rng = Rng::new(seed);
-    let mut selected = Vec::new();
-    let mut pool = Vec::new();
+    let target = guaranteed_rarity(&mut rng);
+    let connection = open_database(app)?;
+    let owned = list_user_cards(&connection, LOCAL_USER_ID)?;
+    drop(connection);
+    let mut selected: Vec<CardNode> = Vec::new();
     for (kind, count) in needs {
-        let picked = sample_pool(app, *kind, *count, &mut rng, proxy, pools).await?;
-        pool.extend(picked.iter().cloned());
-        selected.extend(picked);
+        let mut random_count = *count;
+        if selected.is_empty() && random_count > 0 {
+            let mut guaranteed = None;
+            for attempt in 0..3 {
+                if attempt > 0 {
+                    pools.remove(kind);
+                }
+                sample_pool(app, *kind, 1, &mut rng, proxy, pools).await?;
+                let candidates = pools.get(kind).ok_or("card pool missing")?;
+                let eligible: Vec<&CardNode> = candidates
+                    .iter()
+                    .filter(|card| {
+                        let rarity = owned
+                            .iter()
+                            .filter(|row| row.kind == card.kind && row.entity_id == card.entity_id)
+                            .min_by_key(|row| row.first_obtained_at)
+                            .map_or_else(|| tier_for(card.kind, card.score), |row| row.rarity);
+                        rarity == target
+                    })
+                    .collect();
+                if !eligible.is_empty() {
+                    guaranteed =
+                        Some(eligible[rng.next_below(eligible.len() as u64) as usize].clone());
+                    break;
+                }
+            }
+            selected.push(guaranteed.ok_or_else(|| {
+                format!(
+                    "no {} candidates of required rarity {}",
+                    kind.as_str(),
+                    target.as_str()
+                )
+            })?);
+            random_count -= 1;
+        }
+        let cards = sample_random_ids(app, *kind, random_count, &mut rng, proxy, &selected).await?;
+        selected.extend(cards);
     }
-    ensure_rare_plus(&mut selected, &pool);
+    if let Some(card) = selected.first() {
+        if let Some(pool) = pools.get_mut(&card.kind) {
+            pool.retain(|node| node.entity_id != card.entity_id);
+        }
+    }
     Ok(selected)
 }
 
@@ -327,6 +485,7 @@ fn replace_with_guaranteed(
     generated: &mut [GeneratedCard],
     node: CardNode,
     seed: u64,
+    protected: Option<(CardKind, i64)>,
 ) -> Result<(), String> {
     if generated
         .iter()
@@ -341,9 +500,12 @@ fn replace_with_guaranteed(
     let Some(card) = replacement.pop() else {
         return Err("could not generate the daily answer card".into());
     };
-    if let Some(slot) = generated.last_mut() {
-        *slot = card;
-    }
+    let slot = generated
+        .iter_mut()
+        .rev()
+        .find(|slot| protected != Some((slot.card.kind, slot.card.entity_id)))
+        .ok_or("daily reward has no replaceable slot")?;
+    *slot = card;
     let mut rng = Rng::new(seed ^ 0xD1A1_1E55);
     rng.shuffle(generated);
     Ok(())
@@ -353,6 +515,7 @@ async fn ensure_daily_guarantee(
     app: &AppHandle,
     pack: &CardPackRow,
     generated: &mut Vec<GeneratedCard>,
+    protected: (CardKind, i64),
     proxy: Option<&str>,
 ) -> Result<(), String> {
     if pack.source != "daily" {
@@ -372,7 +535,12 @@ async fn ensure_daily_guarantee(
     let meta = get_meta(&connection, CardKind::Anime, media_id)?
         .ok_or_else(|| format!("daily answer metadata missing for {media_id}"))?;
     drop(connection);
-    replace_with_guaranteed(generated, card_node_from_meta(&meta), pack.seed as u64)
+    replace_with_guaranteed(
+        generated,
+        card_node_from_meta(&meta),
+        pack.seed as u64,
+        Some(protected),
+    )
 }
 
 fn generate_cards(nodes: Vec<CardNode>, seed: u64) -> Vec<GeneratedCard> {
@@ -425,9 +593,13 @@ async fn generate_pack_contents(
 ) -> Result<Vec<GeneratedCard>, String> {
     let needs = planned_needs(pack)?;
     let nodes = sample_cards(app, &needs, pack.seed as u64, proxy, pools).await?;
+    let protected = nodes
+        .first()
+        .map(|node| (node.kind, node.entity_id))
+        .ok_or("card pack has no guarantee")?;
     let mut generated = generate_cards(nodes, pack.seed as u64);
     if pack.source == "daily" {
-        ensure_daily_guarantee(app, pack, &mut generated, proxy).await?;
+        ensure_daily_guarantee(app, pack, &mut generated, protected, proxy).await?;
     }
     if generated.len() != pack.size as usize {
         return Err("card pack size changed while preparing".into());
@@ -468,6 +640,15 @@ fn prepare_generated(
         .into_iter()
         .map(|generated| {
             let GeneratedCard { node, mut card } = generated;
+            if let Some(existing) =
+                list_user_card_stacks(connection, LOCAL_USER_ID, card.kind, card.entity_id)?
+                    .into_iter()
+                    .min_by_key(|row| row.first_obtained_at)
+            {
+                card.rarity = existing.rarity;
+                card.value =
+                    i64::from(card_value(card.kind, card.rarity, card.variant, node.score));
+            }
             let meta = get_meta(connection, card.kind, card.entity_id)?;
             let meta_image_url = meta
                 .as_ref()
@@ -557,7 +738,31 @@ fn open_prepared(
     }
     let mut value = 0i64;
     for (index, prepared) in prepared.iter().enumerate() {
-        let card = &prepared.card;
+        let mut opened_card = prepared.card.clone();
+        if let Some(existing) = list_user_card_stacks(
+            &transaction,
+            LOCAL_USER_ID,
+            opened_card.kind,
+            opened_card.entity_id,
+        )?
+        .into_iter()
+        .min_by_key(|row| row.first_obtained_at)
+        {
+            if opened_card.rarity != existing.rarity {
+                opened_card.rarity = existing.rarity;
+                opened_card.value = i64::from(card_value(
+                    opened_card.kind,
+                    opened_card.rarity,
+                    opened_card.variant,
+                    prepared.score,
+                ));
+                transaction.execute(
+                    "UPDATE card_pack_cards SET rarity = ?1, value = ?2 WHERE pack_id = ?3 AND slot = ?4",
+                    rusqlite::params![opened_card.rarity.as_str(), opened_card.value, pack_id, index as i64],
+                ).map_err(|error| format!("update card rarity: {error}"))?;
+            }
+        }
+        let card = &opened_card;
         let copies_before = get_user_card(
             &transaction,
             LOCAL_USER_ID,
@@ -772,20 +977,37 @@ async fn prefill_pools(
     let mut entries: Vec<(CardKind, u32)> = Vec::new();
     for kind in &kinds {
         let ceiling = ceilings.get(kind).copied().unwrap_or(1).max(1);
-        let mut pages: Vec<u32> = Vec::new();
-        for _ in 0..PREPARE_POOL_PAGES {
-            let page = 1 + rng.next_below(u64::from(ceiling)) as u32;
-            if !pages.contains(&page) {
-                pages.push(page);
-            }
-        }
-        if pages.len() == 1 && ceiling > 1 {
-            pages.push(if pages[0] == 1 { 2 } else { 1 });
-        }
+        let pages = sampled_pages(*kind, ceiling, &mut rng);
         entries.extend(pages.into_iter().map(|page| (*kind, page)));
     }
-    let response = match graphql_request(batch_page_query(&entries, 25), None, proxy).await {
+    let missing_max: Vec<CardKind> = kinds
+        .iter()
+        .copied()
+        .filter(|kind| cached_max_id(app, *kind).is_none())
+        .collect();
+    let query = if missing_max.is_empty() {
+        batch_page_query(&entries, 25)
+    } else {
+        batch_page_query_with_max(&entries, &missing_max)
+    };
+    let response = match graphql_request(query, None, proxy).await {
         Ok(response) => response,
+        Err(error) if !missing_max.is_empty() => {
+            tracing::warn!(
+                error = error.as_str(),
+                "combined card page and max ID request failed, retrying pages only"
+            );
+            match graphql_request(batch_page_query(&entries, 25), None, proxy).await {
+                Ok(response) => response,
+                Err(error) => {
+                    tracing::warn!(
+                        error = error.as_str(),
+                        "card page batch failed, falling back to per-kind fetches"
+                    );
+                    return;
+                }
+            }
+        }
         Err(error) => {
             tracing::warn!(
                 error = error.as_str(),
@@ -794,6 +1016,11 @@ async fn prefill_pools(
             return;
         }
     };
+    for kind in missing_max {
+        if let Some(id) = parse_max_id(kind, &response) {
+            store_max_id(app, kind, id);
+        }
+    }
     for kind in kinds {
         let mut pages = Vec::new();
         for (entry_kind, page) in &entries {
@@ -1121,7 +1348,7 @@ mod tests {
     #[test]
     fn daily_answer_replaces_a_missing_slot() {
         let mut cards = generate_cards(vec![node(1, 1.0), node(2, 2.0), node(3, 3.0)], 7);
-        replace_with_guaranteed(&mut cards, anime_node(16498), 11).expect("guarantee");
+        replace_with_guaranteed(&mut cards, anime_node(16498), 11, None).expect("guarantee");
         assert_eq!(cards.len(), 3);
         assert_eq!(
             cards
@@ -1133,6 +1360,24 @@ mod tests {
     }
 
     #[test]
+    fn daily_answer_does_not_replace_the_guaranteed_card() {
+        let mut cards = generate_cards(vec![node(1, 9.0), node(2, 1.0)], 7);
+        replace_with_guaranteed(
+            &mut cards,
+            anime_node(16498),
+            11,
+            Some((CardKind::Character, 1)),
+        )
+        .unwrap();
+        assert!(cards
+            .iter()
+            .any(|item| item.card.kind == CardKind::Character && item.card.entity_id == 1));
+        assert!(cards
+            .iter()
+            .any(|item| item.card.kind == CardKind::Anime && item.card.entity_id == 16498));
+    }
+
+    #[test]
     fn daily_answer_is_not_duplicated_when_already_present() {
         let answer = anime_node(16498);
         let mut cards = generate_cards(vec![answer.clone(), node(1, 1.0)], 7);
@@ -1140,7 +1385,7 @@ mod tests {
             .iter()
             .map(|item| (item.card.kind, item.card.entity_id))
             .collect();
-        replace_with_guaranteed(&mut cards, answer, 11).expect("guarantee");
+        replace_with_guaranteed(&mut cards, answer, 11, None).expect("guarantee");
         let after: Vec<(CardKind, i64)> = cards
             .iter()
             .map(|item| (item.card.kind, item.card.entity_id))
@@ -1164,6 +1409,52 @@ mod tests {
                 .map(|item| &item.card)
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn prepared_duplicate_keeps_earliest_owned_rarity() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        upsert_card(
+            &connection,
+            LOCAL_USER_ID,
+            &UserCardRow {
+                kind: CardKind::Character,
+                entity_id: 1,
+                rarity: CardRarity::Legendary,
+                variant: CardVariant::Normal,
+                copies: 1,
+                value: 40,
+                first_obtained_at: 1,
+                last_obtained_at: 1,
+            },
+        )
+        .unwrap();
+        let prepared =
+            prepare_generated(&connection, generate_cards(vec![node(1, 0.0)], 7)).unwrap();
+        assert_eq!(prepared[0].card.rarity, CardRarity::Legendary);
+    }
+
+    #[test]
+    fn sample_pages_cover_each_popularity_band() {
+        let pages = sampled_pages(CardKind::Character, 200, &mut Rng::new(42));
+        assert_eq!(pages.len(), 5);
+        for (page, (start, end)) in
+            pages
+                .into_iter()
+                .zip([(1, 4), (5, 22), (23, 60), (61, 130), (131, 200)])
+        {
+            assert!((start..=end).contains(&page));
+        }
+    }
+
+    #[test]
+    fn guaranteed_roll_is_only_rare_or_legendary() {
+        let mut rng = Rng::new(42);
+        let legendary = (0..100_000)
+            .filter(|_| guaranteed_rarity(&mut rng) == CardRarity::Legendary)
+            .count();
+        assert!((1800..2200).contains(&legendary));
     }
 
     #[test]
@@ -1191,14 +1482,14 @@ mod tests {
 
     #[test]
     fn duplicate_payout_grows_from_one_x_to_the_cap() {
-        assert_eq!(payout_for(20, 0), 20);
-        assert_eq!(payout_for(20, 1), 27);
-        assert_eq!(payout_for(20, 5), 36);
-        assert_eq!(payout_for(20, 10), 40);
-        assert_eq!(payout_for(20, 100), 45);
-        assert_eq!(payout_for(40, 1), 53);
-        assert_eq!(payout_for(120, 1), 159);
-        assert_eq!(payout_for(120, 1_000), 276);
+        assert_eq!(payout_for(20, 0), 18);
+        assert_eq!(payout_for(20, 1), 24);
+        assert_eq!(payout_for(20, 5), 33);
+        assert_eq!(payout_for(20, 10), 36);
+        assert_eq!(payout_for(20, 100), 41);
+        assert_eq!(payout_for(40, 1), 48);
+        assert_eq!(payout_for(120, 1), 143);
+        assert_eq!(payout_for(120, 1_000), 248);
         assert_eq!(payout_for(1, 0), 1);
         assert_eq!(payout_for(1, 1), 1);
     }

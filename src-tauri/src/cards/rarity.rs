@@ -1,7 +1,7 @@
 use super::config::{base_value, variant_multiplier};
 use super::types::{CardKind, CardRarity, CardVariant};
 
-/// Score boundaries per kind. Calibrated 2026-11-12 from ten AniList pages
+/// Score boundaries calibrated 2026-11-15 from 20 spaced AniList pages
 /// per kind (500 samples, 250 for studios) at the 35/35/19/9/2 quantiles.
 pub struct TierThresholds {
     pub common: f64,
@@ -11,42 +11,41 @@ pub struct TierThresholds {
 }
 
 pub const ANIME_THRESHOLDS: TierThresholds = TierThresholds {
-    common: 7.31,
-    rare: 8.39,
-    epic: 9.90,
-    legendary: 11.67,
+    common: 6.90,
+    rare: 8.19,
+    epic: 9.37,
+    legendary: 10.68,
 };
 
-/// Manga uses the same favourites/popularity mix as anime until a separate
-/// manga/manhwa sample set is calibrated.
+/// Manga thresholds are calibrated independently from anime.
 pub const MANGA_THRESHOLDS: TierThresholds = TierThresholds {
-    common: 7.31,
-    rare: 8.39,
-    epic: 9.90,
-    legendary: 11.67,
+    common: 5.81,
+    rare: 6.65,
+    epic: 7.69,
+    legendary: 9.10,
 };
 
 pub const CHARACTER_THRESHOLDS: TierThresholds = TierThresholds {
-    common: 5.99,
-    rare: 7.29,
-    epic: 8.02,
-    legendary: 10.18,
+    common: 6.16,
+    rare: 7.11,
+    epic: 8.18,
+    legendary: 9.53,
 };
 
 pub const STAFF_THRESHOLDS: TierThresholds = TierThresholds {
-    common: 3.83,
-    rare: 5.20,
-    epic: 6.07,
-    legendary: 9.47,
+    common: 3.89,
+    rare: 4.98,
+    epic: 5.97,
+    legendary: 7.81,
 };
 
 /// Studio favourites include a large zero spike; the common boundary sits just
 /// above zero so studios with no favourites stay junk.
 pub const STUDIO_THRESHOLDS: TierThresholds = TierThresholds {
     common: 0.69,
-    rare: 1.79,
-    epic: 7.19,
-    legendary: 9.58,
+    rare: 1.61,
+    epic: 2.77,
+    legendary: 4.93,
 };
 
 fn thresholds_for(kind: CardKind) -> &'static TierThresholds {
@@ -72,12 +71,13 @@ pub fn entity_score(favourites: u32) -> f64 {
 /// A character gets a deliberately small bonus from the popularity of the
 /// anime they appear in. The anime term is capped in practice by AniList's
 /// popularity distribution, so this nudges a character by roughly 0.4-0.6
-/// points instead of replacing their own favourites signal.
+/// points before the explicit caps below; the character signal stays primary.
 const CHARACTER_ANIME_POPULARITY_WEIGHT: f64 = 0.04;
 
 pub fn character_score(favourites: u32, anime_popularity: u32) -> f64 {
-    entity_score(favourites)
-        + CHARACTER_ANIME_POPULARITY_WEIGHT * f64::from(anime_popularity + 1).ln()
+    let own = entity_score(favourites);
+    let bonus = CHARACTER_ANIME_POPULARITY_WEIGHT * f64::from(anime_popularity + 1).ln();
+    own + bonus.min(0.25).min(own * 0.03)
 }
 
 /// For characters, `popularity` is the popularity of their primary anime.
@@ -176,11 +176,11 @@ mod tests {
     #[test]
     fn character_score_adds_a_small_anime_popularity_bonus() {
         let uta = character_score(2_041, 754_505);
-        assert!((uta - 8.16).abs() < 0.01);
-        assert_eq!(tier_for(CardKind::Character, uta), CardRarity::Epic);
+        assert!((uta - 7.85).abs() < 0.01);
+        assert_eq!(tier_for(CardKind::Character, uta), CardRarity::Rare);
 
         let nadia = character_score(142, 26_082);
-        assert!((nadia - 5.36).abs() < 0.01);
+        assert!((nadia - 5.11).abs() < 0.01);
         assert_eq!(tier_for(CardKind::Character, nadia), CardRarity::Junk);
 
         let one_piece_uta = character_score(1_150, 769_142);
@@ -200,6 +200,16 @@ mod tests {
             tier_for(CardKind::Character, character_score(10, 1_000_000)),
             CardRarity::Junk
         );
+    }
+
+    #[test]
+    fn famous_anime_cannot_make_an_unpopular_character_rare() {
+        assert_eq!(character_score(0, u32::MAX - 1), 0.0);
+        assert_eq!(
+            tier_for(CardKind::Character, character_score(10, u32::MAX - 1)),
+            CardRarity::Junk
+        );
+        assert!(character_score(2_041, u32::MAX - 1) - entity_score(2_041) <= 0.25);
     }
 
     #[test]

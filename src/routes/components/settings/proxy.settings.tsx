@@ -1,5 +1,6 @@
 import { anilistApi } from "@/api/anilist.api";
 import { newsApi } from "@/api/news.api";
+import { tauriTransport } from "@/api/transport.api";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -21,6 +22,7 @@ export default function SettingsProxy() {
   const newsProxyUrl = useCell(settingsAtoms.newsProxyUrl);
   const cardsImageProxyUrl = useCell(settingsAtoms.cardsImageProxyUrl);
   const dailyProxyUrl = useCell(settingsAtoms.dailyProxyUrl);
+  const dailyOpeningProxyUrl = useCell(settingsAtoms.dailyOpeningProxyUrl);
   const anilistTitleLanguage = useCell(settingsAtoms.anilistTitleLanguage);
   const anilistAdultContent = useCell(settingsAtoms.anilistAdultContent);
 
@@ -114,10 +116,29 @@ export default function SettingsProxy() {
             testDisabled={!isOnline}
           />
           <ProxyField
+            label={t("settings.collection.proxy.opening")}
+            value={dailyOpeningProxyUrl}
+            onChange={(next) => patchSettings({ dailyOpeningProxyUrl: next })}
+            test={() =>
+              tauriTransport.call<string>("daily_test_proxy", {
+                mode: "op",
+                proxyUrl: dailyOpeningProxyUrl ?? anilistProxyUrl,
+              })
+            }
+            testOkLabel={t("settings.anilist.proxy.test.ok")}
+            testFailLabel={t("settings.anilist.proxy.test.fail")}
+            testDisabled={!isOnline}
+          />
+          <ProxyField
             label={t("settings.collection.proxy.daily")}
             value={dailyProxyUrl}
             onChange={(next) => patchSettings({ dailyProxyUrl: next })}
-            test={() => anilistApi.testConnection(dailyProxyUrl ?? anilistProxyUrl)}
+            test={() =>
+              tauriTransport.call<string>("daily_test_proxy", {
+                mode: "frames",
+                proxyUrl: dailyProxyUrl ?? anilistProxyUrl,
+              })
+            }
             testOkLabel={t("settings.anilist.proxy.test.ok")}
             testFailLabel={t("settings.anilist.proxy.test.fail")}
             testDisabled={!isOnline}

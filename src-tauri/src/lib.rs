@@ -2134,6 +2134,7 @@ pub fn run() {
             cards::shop::cards_buy_pack,
             cards::grant::cards_grant_starter,
             cards::grant::cards_starter_status,
+            daily::commands::daily_test_proxy,
             daily::commands::daily_game_bootstrap,
             daily::commands::daily_game_search_index,
             daily::commands::daily_game_prepare,

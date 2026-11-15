@@ -76,6 +76,49 @@ fn page_field(kind: CardKind, page: u32, per_page: u32) -> String {
     )
 }
 
+/// Fetch the current largest ID without relying on PageInfo totals.
+pub fn max_id_query(kind: CardKind) -> Value {
+    let field = key_for(kind);
+    let filter = filter_for(kind);
+    json!({ "query": format!("query {{ p0: Page(page: 1, perPage: 1) {{ pageInfo {{ hasNextPage }} {field}(sort: [ID_DESC]{filter}) {{ id }} }} }}") })
+}
+
+/// Every alias contains at most 50 requested IDs, so no matches are truncated.
+pub fn random_id_query(kind: CardKind, ids: &[u32]) -> Value {
+    let field = key_for(kind);
+    let filter = filter_for(kind);
+    let selection = selection_for(kind);
+    let parts = ids.chunks(50).enumerate().map(|(i, ids)| {
+        let ids = ids.iter().map(u32::to_string).collect::<Vec<_>>().join(",");
+        format!("p{i}: Page(page: 1, perPage: 50) {{ pageInfo {{ hasNextPage }} {field}(id_in: [{ids}]{filter}) {{ {selection} }} }}")
+    }).collect::<Vec<_>>().join(" ");
+    json!({ "query": format!("query {{ {parts} }}") })
+}
+
+pub fn parse_id_response(
+    kind: CardKind,
+    response: &Value,
+    pages: usize,
+) -> Result<Vec<CardNode>, String> {
+    let mut cards = Vec::new();
+    for index in 0..pages {
+        let page = &response["data"][format!("p{index}")];
+        if page.is_null() {
+            return Err(format!("AniList response is missing ID batch {index}"));
+        }
+        let parsed = parse_page(kind, 1, page)?;
+        for card in parsed.nodes {
+            if !cards
+                .iter()
+                .any(|other: &CardNode| other.entity_id == card.entity_id)
+            {
+                cards.push(card);
+            }
+        }
+    }
+    Ok(cards)
+}
+
 /// Builds one request with one aliased `Page` object per page number.
 pub fn page_query(kind: CardKind, pages: &[u32], per_page: u32) -> Value {
     let parts = pages
@@ -106,6 +149,33 @@ pub fn batch_page_query(entries: &[(CardKind, u32)], per_page: u32) -> Value {
         .collect::<Vec<_>>()
         .join(" ");
     json!({ "query": format!("query {{ {parts} }}") })
+}
+
+/// Adds independent maximum-ID aliases to an existing page request.
+pub fn batch_page_query_with_max(entries: &[(CardKind, u32)], kinds: &[CardKind]) -> Value {
+    let mut query = batch_page_query(entries, 25)["query"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    if let Some(index) = query.rfind('}') {
+        let parts = kinds.iter().map(|kind| {
+            let field = key_for(*kind);
+            let filter = filter_for(*kind);
+            format!("max_{}: Page(page: 1, perPage: 1) {{ pageInfo {{ hasNextPage }} {field}(sort: [ID_DESC]{filter}) {{ id }} }}", kind.as_str())
+        }).collect::<Vec<_>>().join(" ");
+        query.insert_str(index, &format!(" {parts} "));
+    }
+    json!({ "query": query })
+}
+
+pub fn parse_max_id(kind: CardKind, response: &Value) -> Option<u32> {
+    let page = &response["data"][format!("max_{}", kind.as_str())];
+    parse_page(kind, 1, page)
+        .ok()?
+        .nodes
+        .first()
+        .and_then(|node| u32::try_from(node.entity_id).ok())
+        .filter(|id| *id > 0)
 }
 
 /// Parses one alias of [`batch_page_query`].
@@ -256,7 +326,7 @@ pub fn pick_distinct(pool: &[CardNode], count: usize, rng: &mut Rng) -> Vec<Card
     picked
 }
 
-/// Replaces the weakest pick with the best available Rare+ candidate when the
+/// Replaces the weakest pick with the lowest-tier available Rare+ candidate when the
 /// random draw produced no guaranteed slot.
 pub fn ensure_rare_plus(selected: &mut [CardNode], pool: &[CardNode]) {
     if selected
@@ -273,10 +343,14 @@ pub fn ensure_rare_plus(selected: &mut [CardNode], pool: &[CardNode]) {
                     .iter()
                     .any(|picked| picked.kind == card.kind && picked.entity_id == card.entity_id)
         })
-        .max_by(|left, right| {
-            left.score
-                .partial_cmp(&right.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+        .min_by(|left, right| {
+            tier_for(left.kind, left.score)
+                .cmp(&tier_for(right.kind, right.score))
+                .then_with(|| {
+                    left.score
+                        .partial_cmp(&right.score)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
         })
         .cloned();
     let Some(best) = best else {
@@ -311,6 +385,54 @@ mod tests {
             "pageInfo": { "total": 1000, "lastPage": 20, "hasNextPage": true },
             "characters": nodes,
         })
+    }
+
+    #[test]
+    fn combined_page_and_max_query_keeps_original_page_aliases() {
+        let entries = [(CardKind::Character, 5), (CardKind::Anime, 7)];
+        let plain = batch_page_query(&entries, 25);
+        let combined = batch_page_query_with_max(&entries, &[CardKind::Character, CardKind::Anime]);
+        let plain = plain["query"].as_str().unwrap();
+        let combined = combined["query"].as_str().unwrap();
+        assert!(combined.contains(plain.trim_end_matches('}').trim_end()));
+        assert!(combined.contains("max_character: Page"));
+        assert!(combined.contains("max_anime: Page"));
+        assert!(combined.contains("type: ANIME"));
+    }
+
+    #[test]
+    fn combined_max_parser_handles_missing_and_empty_aliases() {
+        let response = json!({"data": {
+            "max_character": {"pageInfo": {"hasNextPage": false}, "characters": [{"id": 99}]},
+            "max_anime": {"pageInfo": {"hasNextPage": false}, "media": []}
+        }});
+        assert_eq!(parse_max_id(CardKind::Character, &response), Some(99));
+        assert_eq!(parse_max_id(CardKind::Anime, &response), None);
+        assert_eq!(parse_max_id(CardKind::Manga, &response), None);
+    }
+
+    #[test]
+    fn random_id_query_batches_fifty_and_keeps_kind_filter() {
+        let ids: Vec<u32> = (1..=101).collect();
+        let query = random_id_query(CardKind::Anime, &ids);
+        let query = query["query"].as_str().unwrap();
+        assert_eq!(query.matches("perPage: 50").count(), 3);
+        assert_eq!(query.matches("type: ANIME").count(), 3);
+        assert!(query.contains("p2: Page"));
+    }
+
+    #[test]
+    fn id_response_skips_missing_ids_and_deduplicates_results() {
+        let response = json!({"data": {
+            "p0": fixture_cards(&[(1, Some(2), None), (2, Some(3), None)]),
+            "p1": fixture_cards(&[(2, Some(3), None), (4, Some(5), None)])
+        }});
+        let cards = parse_id_response(CardKind::Character, &response, 2).unwrap();
+        assert_eq!(
+            cards.iter().map(|card| card.entity_id).collect::<Vec<_>>(),
+            vec![1, 2, 4]
+        );
+        assert!(parse_id_response(CardKind::Character, &response, 3).is_err());
     }
 
     #[test]
@@ -391,7 +513,7 @@ mod tests {
         });
         let page = parse_page(CardKind::Character, 1, &fixture).unwrap();
         assert_eq!(page.nodes[0].popularity, 754_505);
-        assert!((page.nodes[0].score - 8.16).abs() < 0.01);
+        assert!((page.nodes[0].score - 7.85).abs() < 0.01);
     }
 
     #[test]
@@ -531,6 +653,28 @@ mod tests {
         assert!(selected
             .iter()
             .any(|card| tier_for(card.kind, card.score) >= CardRarity::Rare));
+    }
+
+    #[test]
+    fn the_guarantee_prefers_rare_over_legendary() {
+        let weak = parse_page(
+            CardKind::Character,
+            1,
+            &fixture_cards(&[(1, Some(0), None)]),
+        )
+        .unwrap();
+        let candidates = parse_page(
+            CardKind::Character,
+            2,
+            &fixture_cards(&[(2, Some(2_000), None), (3, Some(2_000_000), None)]),
+        )
+        .unwrap();
+        let mut selected = weak.nodes;
+        ensure_rare_plus(&mut selected, &candidates.nodes);
+        assert_eq!(
+            tier_for(selected[0].kind, selected[0].score),
+            CardRarity::Rare
+        );
     }
 
     #[test]

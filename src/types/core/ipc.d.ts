@@ -64,6 +64,7 @@ export type CommandName =
   | "convert_video"
   | "copy_screenshot"
   | "create_torrent_from_folder"
+  | "daily_test_proxy"
   | "daily_game_bootstrap"
   | "daily_game_search_index"
   | "daily_game_guess"

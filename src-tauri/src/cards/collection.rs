@@ -266,12 +266,18 @@ pub(crate) fn list_media_collection_items(
 ) -> Result<Vec<CollectionItem>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT c.kind, c.entity_id, c.rarity, c.variant, c.copies, c.value,
-                    c.first_obtained_at, c.last_obtained_at, m.title, COALESCE(m.preferred_image_url, m.image_url),
+            "SELECT c.kind, c.entity_id, c.rarity, c.variant,
+                    (SELECT SUM(u.copies) FROM user_cards u WHERE u.user_id = c.user_id AND u.kind = c.kind AND u.entity_id = c.entity_id), c.value,
+                    (SELECT MIN(u.first_obtained_at) FROM user_cards u WHERE u.user_id = c.user_id AND u.kind = c.kind AND u.entity_id = c.entity_id),
+                    (SELECT MAX(u.last_obtained_at) FROM user_cards u WHERE u.user_id = c.user_id AND u.kind = c.kind AND u.entity_id = c.entity_id), m.title, COALESCE(m.preferred_image_url, m.image_url),
                     m.collection_anime_id, m.collection_title, m.collage_json, c.is_favorite
              FROM user_cards c
              LEFT JOIN card_meta m ON m.kind = c.kind AND m.entity_id = c.entity_id
              WHERE c.user_id = ?1
+               AND c.rowid = (SELECT u.rowid FROM user_cards u
+                   LEFT JOIN card_preferred_variant p ON p.kind = u.kind AND p.entity_id = u.entity_id
+                   WHERE u.user_id = c.user_id AND u.kind = c.kind AND u.entity_id = c.entity_id
+                   ORDER BY (u.variant = p.variant) DESC, u.rarity DESC, u.variant ASC LIMIT 1)
                AND ((?3 = 'anime' AND ((c.kind = 'anime' AND c.entity_id = ?2)
                     OR (c.kind = 'character' AND m.collection_anime_id = ?2)))
                  OR (?3 = 'manga' AND ((c.kind = 'manga' AND c.entity_id = ?2)
@@ -350,9 +356,13 @@ const COLLECTION_SEARCH: &str = "(?5 IS NULL OR m.title LIKE ?5 ESCAPE '\\'\n   
 
 /// Keeps one row per card: when a preferred variant exists, the other rows of
 /// the same card drop out of the album page and its total.
-const COLLECTION_VISIBLE_VARIANT: &str = "NOT EXISTS (
-    SELECT 1 FROM card_preferred_variant p
-     WHERE p.kind = c.kind AND p.entity_id = c.entity_id AND p.variant <> c.variant
+const COLLECTION_VISIBLE_VARIANT: &str = "c.rowid = (
+    SELECT u.rowid FROM user_cards u
+    LEFT JOIN card_preferred_variant p ON p.kind = u.kind AND p.entity_id = u.entity_id
+    WHERE u.user_id = c.user_id AND u.kind = c.kind AND u.entity_id = c.entity_id
+      AND (?3 IS NULL OR u.rarity = ?3) AND (?4 IS NULL OR u.variant = ?4)
+    ORDER BY (u.variant = p.variant) DESC, u.rarity DESC, u.variant ASC
+    LIMIT 1
   )";
 
 fn collection_page(
@@ -366,7 +376,8 @@ fn collection_page(
     offset: i64,
 ) -> Result<Vec<CollectionItem>, String> {
     let sql = format!(
-        "SELECT c.kind, c.entity_id, c.rarity, c.variant, c.copies, c.value,
+        "SELECT c.kind, c.entity_id, c.rarity, c.variant,
+                (SELECT SUM(u.copies) FROM user_cards u WHERE u.user_id = c.user_id AND u.kind = c.kind AND u.entity_id = c.entity_id), c.value,
                 (SELECT MIN(u.first_obtained_at) FROM user_cards u
                   WHERE u.user_id = c.user_id AND u.kind = c.kind
                     AND u.entity_id = c.entity_id) AS first_at,
@@ -592,7 +603,11 @@ pub fn cards_unread(
 pub fn cards_stats(app: AppHandle) -> Result<CardsStats, String> {
     let connection = open_database(&app)?;
     let cards = list_user_cards(&connection, LOCAL_USER_ID)?;
-    let unique_cards = cards.len() as i64;
+    let unique_cards = cards
+        .iter()
+        .map(|card| (card.kind, card.entity_id))
+        .collect::<std::collections::HashSet<_>>()
+        .len() as i64;
     let total_cards: i64 = cards.iter().map(|card| card.copies).sum();
     let total_value: i64 = cards
         .iter()
@@ -1182,6 +1197,20 @@ mod tests {
     }
 
     #[test]
+    fn media_collection_groups_existing_finishes_as_copies() {
+        let connection = memory_db();
+        upsert_meta(&connection, &levi_meta()).unwrap();
+        upsert_card(&connection, LOCAL_USER_ID, &normal_card()).unwrap();
+        upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).unwrap();
+        let items = list_media_collection_items(&connection, LOCAL_USER_ID, CardKind::Anime, 16498)
+            .unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].copies, 3);
+        assert_eq!(items[0].first_obtained_at, 100);
+        assert_eq!(items[0].last_obtained_at, 180);
+    }
+
+    #[test]
     fn a_gift_transfers_every_variant_and_copy() {
         let mut connection = memory_db();
         upsert_card(&connection, LOCAL_USER_ID, &duplicate_card()).expect("card");
@@ -1564,7 +1593,8 @@ mod tests {
         let order = collection_order("recent", true).expect("order");
         let listed =
             collection_page(&connection, None, None, None, None, order, 10, 0).expect("page");
-        assert_eq!(listed.len(), 2);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].copies, 2);
 
         store_preferred_variant(&connection, CardKind::Character, 60_001, CardVariant::Foil)
             .expect("preference");
@@ -1602,7 +1632,7 @@ mod tests {
         let order = collection_order("recent", false).expect("order");
         let listed =
             collection_page(&connection, None, None, None, None, order, 10, 0).expect("page");
-        assert_eq!(listed.len(), 2);
+        assert_eq!(listed.len(), 1);
         for item in &listed {
             assert_eq!(item.first_obtained_at, 100);
             assert_eq!(item.last_obtained_at, 900);

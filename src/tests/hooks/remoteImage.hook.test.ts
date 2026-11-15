@@ -26,6 +26,26 @@ beforeEach(() => {
 });
 
 describe("prefetchRemoteImages", () => {
+  it("waits for an already running request for the same image", async () => {
+    let resolveBatch!: (value: unknown) => void;
+    invokeMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveBatch = resolve;
+        })
+    );
+    const first = prefetchRemoteImages(["https://example.com/shared.jpg"]);
+    let finished = false;
+    const second = prefetchRemoteImages(["https://example.com/shared.jpg"]).then(() => {
+      finished = true;
+      return undefined;
+    });
+    await Promise.resolve();
+    expect(finished).toBe(false);
+    resolveBatch([{ id: "shared", path: "C:/images/shared.jpg" }]);
+    await Promise.all([first, second]);
+    expect(finished).toBe(true);
+  });
   it("warms the memory cache with one batch call so a later hook mount needs no invoke", async () => {
     invokeMock.mockResolvedValue([{ id: "blob-1", path: "C:/images/blob-1.jpg" }]);
     await prefetchRemoteImages(["https://example.com/dune.jpg"]);

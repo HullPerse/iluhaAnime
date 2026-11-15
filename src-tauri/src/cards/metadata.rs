@@ -69,10 +69,6 @@ fn studio_fragment(id: i64) -> String {
     )
 }
 
-fn single_query(fragment: String) -> Value {
-    json!({ "query": format!("query {{ {fragment} }}") })
-}
-
 fn page_fragment(kind: CardKind, ids: &[i64]) -> String {
     match kind {
         CardKind::Anime => media_fragment(ids, "ANIME"),
@@ -81,26 +77,6 @@ fn page_fragment(kind: CardKind, ids: &[i64]) -> String {
         CardKind::Staff => staff_fragment(ids),
         CardKind::Studio => String::new(),
     }
-}
-
-pub fn anime_query(ids: &[i64]) -> Value {
-    single_query(media_fragment(ids, "ANIME"))
-}
-
-pub fn manga_query(ids: &[i64]) -> Value {
-    single_query(media_fragment(ids, "MANGA"))
-}
-
-pub fn character_query(ids: &[i64]) -> Value {
-    single_query(character_fragment(ids))
-}
-
-pub fn staff_query(ids: &[i64]) -> Value {
-    single_query(staff_fragment(ids))
-}
-
-pub fn studio_query(id: i64) -> Value {
-    single_query(studio_fragment(id))
 }
 
 fn text(value: &Value) -> Option<String> {
@@ -433,17 +409,17 @@ mod tests {
     }
 
     #[test]
-    fn queries_send_the_expected_id_filter() {
-        let query = anime_query(&[1, 2]).to_string();
-        assert!(query.contains("media(id_in: [1,2], type: ANIME)"));
-        let query = manga_query(&[3]).to_string();
-        assert!(query.contains("media(id_in: [3], type: MANGA)"));
-        let query = character_query(&[45627]).to_string();
-        assert!(query.contains("characters(id_in: [45627])"));
-        assert!(query.contains("type: ANIME"));
-        assert!(query.contains("manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA)"));
-        let query = studio_query(2).to_string();
-        assert!(query.contains("Studio(id: 2)"));
-        assert!(query.contains("perPage: 4, type: ANIME"));
+    fn fragments_send_the_expected_id_filter() {
+        let anime = media_fragment(&[1, 2], "ANIME");
+        assert!(anime.contains("media(id_in: [1,2], type: ANIME)"));
+        let manga = media_fragment(&[3], "MANGA");
+        assert!(manga.contains("media(id_in: [3], type: MANGA)"));
+        let character = character_fragment(&[45627]);
+        assert!(character.contains("characters(id_in: [45627])"));
+        assert!(character.contains("type: ANIME"));
+        assert!(character.contains("manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA)"));
+        let studio = studio_fragment(2);
+        assert!(studio.contains("Studio(id: 2)"));
+        assert!(studio.contains("perPage: 4, type: ANIME"));
     }
 }

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use futures::{stream, StreamExt};
 use serde::Serialize;
 use tauri::AppHandle;
 
@@ -13,6 +14,7 @@ use super::sampling::{
     batch_page_query, ensure_rare_plus, merge_distinct, parse_batch_page, pick_distinct, CardNode,
 };
 use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
+use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
     acknowledge_ready_packs, add_wallet, get_meta, get_pack, get_user_card, insert_ledger,
     insert_opening, insert_pack, list_openings_for_pack, list_pack_cards, list_packs,
@@ -24,7 +26,6 @@ use crate::app_db::cards::{
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
 };
-use crate::anilist::client::graphql_request;
 use crate::scrapers::clients::resolve_proxy;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -717,18 +718,23 @@ fn prepared_image_urls(prepared: &[PreparedCard]) -> Vec<String> {
         .collect()
 }
 
+const WARM_IMAGE_CONCURRENCY: usize = 4;
+
 async fn warm_images(app: &AppHandle, urls: Vec<String>, proxy: Option<&str>) {
-    for url in urls {
-        if let Err(error) = crate::user_assets::fetch_remote_image(
-            app.clone(),
-            url,
-            proxy.map(str::to_string),
-            None,
-            None,
-            None,
-        )
-        .await
-        {
+    let proxy = proxy.map(str::to_string);
+    let results = stream::iter(urls)
+        .map(|url| {
+            let app = app.clone();
+            let proxy = proxy.clone();
+            async move {
+                crate::user_assets::fetch_remote_image(app, url, proxy, None, None, None).await
+            }
+        })
+        .buffer_unordered(WARM_IMAGE_CONCURRENCY)
+        .collect::<Vec<_>>()
+        .await;
+    for result in results {
+        if let Err(error) = result {
             tracing::debug!(error = error.as_str(), "card pack image warmup failed");
         }
     }
@@ -840,9 +846,8 @@ async fn prefill_pools(
             return;
         }
     };
-    let mut rng = Rng::new(
-        packs.first().map_or(1, |pack| pack.seed as u64) ^ 0xC0FF_EE00_1234_5678,
-    );
+    let mut rng =
+        Rng::new(packs.first().map_or(1, |pack| pack.seed as u64) ^ 0xC0FF_EE00_1234_5678);
     let mut entries: Vec<(CardKind, u32)> = Vec::new();
     for kind in &kinds {
         let ceiling = ceilings.get(kind).copied().unwrap_or(1).max(1);
@@ -943,10 +948,7 @@ async fn prepare_packs_inner(
         keys.sort_unstable_by_key(|(kind, entity_id)| (kind.as_str(), *entity_id));
         keys.dedup();
         if let Err(error) = refresh_metadata(app, &keys, proxy).await {
-            tracing::warn!(
-                error = error.as_str(),
-                "card batch metadata refresh failed"
-            );
+            tracing::warn!(error = error.as_str(), "card batch metadata refresh failed");
         }
     }
 

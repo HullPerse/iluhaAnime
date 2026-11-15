@@ -143,3 +143,7 @@ export function resolveDitherPreset(id: DitherPresetId): DitherEffectOptions {
   const found = DITHER_PRESETS.find((preset) => preset.id === id);
   return (found?.options ?? DITHER_PRESETS[0]?.options) as DitherEffectOptions;
 }
+
+export function resolveDitherPresetScale(id: DitherPresetId): number | undefined {
+  return DITHER_PRESETS.find((preset) => preset.id === id)?.scale;
+}

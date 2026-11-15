@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -30,6 +30,19 @@ vi.mock("@/hooks/daily/queries.hook", () => {
       isPending: false,
       isError: false,
       refetch: vi.fn(),
+    }),
+    useDailySearchIndex: () => ({
+      data: [
+        {
+          mediaId: 16498,
+          title: "Shingeki no Kyojin",
+          year: 2013,
+          format: "TV",
+          popularity: 1078603,
+        },
+      ],
+      isPending: false,
+      isError: false,
     }),
   };
 });
@@ -73,6 +86,20 @@ const opView = {
 };
 
 describe("daily game screens", () => {
+  it("selects a local suggestion with the keyboard", async () => {
+    render(<GameFrames day={day} initial={framesView} onClose={() => {}} />);
+    const input = screen.getByPlaceholderText("Название аниме");
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "shingeki" } });
+    await waitFor(() => expect(screen.getByRole("option")).toBeTruthy());
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(screen.getByText("Выбранный ответ")).toBeTruthy();
+    expect(screen.getByDisplayValue("Shingeki no Kyojin")).toBeTruthy();
+  });
+
   it("renders the frames screen with search and skip controls", () => {
     render(<GameFrames day={day} initial={framesView} onClose={() => {}} />);
 

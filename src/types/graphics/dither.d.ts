@@ -100,11 +100,15 @@ export type DitherPresetId =
   | "print"
   | "crt"
   | "glyphs"
+  | "onebit"
+  | "onebitAtkinson"
+  | "newsprint"
   | "photo";
 
 export interface DitherPreset {
   id: DitherPresetId;
   options: DitherEffectOptions;
+  scale?: number;
 }
 
 export type DitherSliderField = Exclude<

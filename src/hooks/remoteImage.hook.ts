@@ -27,6 +27,8 @@ const inflight = new Map<string, Promise<string | null>>();
 const remoteTasks = new Map<string, RemoteTask>();
 const highPriority: RemoteTask[] = [];
 const lowPriority: RemoteTask[] = [];
+const activeTasks = new Set<RemoteTask>();
+const HIGH_PRIORITY_LIMIT = 32;
 let activeRemoteFetches = 0;
 let remoteScope: Set<string> | null = null;
 
@@ -115,6 +117,7 @@ function pumpRemoteQueue(): void {
 }
 
 function runSingleRemoteTask(task: RemoteTask): void {
+  activeTasks.add(task);
   invokeTyped<UserImageFile>("fetch_remote_image", {
     url: task.url,
     proxyUrl: task.proxy ?? undefined,
@@ -125,6 +128,7 @@ function runSingleRemoteTask(task: RemoteTask): void {
     })
     .catch(() => task.settle(null))
     .finally(() => {
+      activeTasks.delete(task);
       activeRemoteFetches -= 1;
       pumpRemoteQueue();
     })
@@ -132,6 +136,7 @@ function runSingleRemoteTask(task: RemoteTask): void {
 }
 
 function runRemoteBatch(tasks: RemoteTask[]): void {
+  for (const task of tasks) activeTasks.add(task);
   invokeTyped<Array<UserImageFile | null>>("fetch_remote_images", {
     urls: tasks.map((task) => task.url),
     proxyUrl: (tasks[0] as RemoteTask).proxy ?? undefined,
@@ -148,6 +153,7 @@ function runRemoteBatch(tasks: RemoteTask[]): void {
       tasks.forEach((task) => task.settle(null));
     })
     .finally(() => {
+      for (const task of tasks) activeTasks.delete(task);
       activeRemoteFetches -= 1;
       pumpRemoteQueue();
     })
@@ -203,8 +209,14 @@ function fetchCachedImage(
   };
   remoteTasks.set(key, task);
   inflight.set(key, promise);
-  if (priority === "high") highPriority.push(task);
-  else lowPriority.push(task);
+  if (priority === "high") {
+    highPriority.push(task);
+    while (highPriority.length > HIGH_PRIORITY_LIMIT) {
+      (highPriority.shift() as RemoteTask).cancel();
+    }
+  } else {
+    lowPriority.push(task);
+  }
   if (!deferPump) pumpRemoteQueue();
   return promise;
 }
@@ -235,6 +247,17 @@ export function setRemoteImageScope(urls: Iterable<string> | null): void {
       queue.splice(index, 1);
       task.cancel();
     }
+  }
+}
+
+export function cancelRemoteImage(remoteUrl: string): void {
+  for (const task of remoteTasks.values()) {
+    if (task.url !== remoteUrl || activeTasks.has(task)) continue;
+    const queue = task.priority === "high" ? highPriority : lowPriority;
+    const index = queue.indexOf(task);
+    if (index === -1) continue;
+    queue.splice(index, 1);
+    task.cancel();
   }
 }
 
@@ -368,6 +391,7 @@ export function useRemoteImageStatus(
       .catch((error: unknown) => reportBackgroundError("srchooksremoteImage", error));
     return () => {
       cancelled = true;
+      cancelRemoteImage(remoteUrl);
     };
   }, [remoteUrl, proxyUrl]);
   return state;

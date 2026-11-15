@@ -85,6 +85,16 @@ const opGuessView = {
   state: opView("op"),
 };
 
+const searchIndex = [
+  {
+    mediaId: 16498,
+    title: "Shingeki no Kyojin",
+    year: 2013,
+    format: "TV",
+    popularity: 1078603,
+  },
+];
+
 const history = [
   {
     day: "2026-11-13",
@@ -113,6 +123,7 @@ describe("DailyApi", () => {
   it("maps bootstrap, frames, guesses, history and reset", async () => {
     const { calls, transport } = fakeTransport({
       daily_game_bootstrap: bootstrap,
+      daily_game_search_index: searchIndex,
       daily_game_prepare: framesView,
       daily_game_reveal_frames: framesView,
       daily_game_guess: guessView,
@@ -123,6 +134,7 @@ describe("DailyApi", () => {
     const api = new DailyApi(transport);
 
     const daily = await api.bootstrap(day);
+    const index = await api.searchIndex();
     const prepared = await api.prepare(day, "frames", proxy);
     const revealed = await api.revealFrames(day, proxy);
     const guessed = await api.guess(day, "frames", 16498, ["Shingeki no Kyojin"], proxy);
@@ -131,6 +143,7 @@ describe("DailyApi", () => {
     await api.reset();
 
     expect(daily.streak).toBe(3);
+    expect(index[0]?.title).toBe("Shingeki no Kyojin");
     expect(prepared.revealed).toBe(2);
     expect(revealed.frames).toHaveLength(1);
     expect(guessed.correct).toBe(true);
@@ -139,6 +152,7 @@ describe("DailyApi", () => {
 
     expect(calls).toEqual([
       { command: "daily_game_bootstrap", args: { day } },
+      { command: "daily_game_search_index", args: undefined },
       { command: "daily_game_prepare", args: { day, mode: "frames", proxyUrl: proxy } },
       { command: "daily_game_reveal_frames", args: { day, proxyUrl: proxy } },
       {

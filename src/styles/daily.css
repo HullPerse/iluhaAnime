@@ -631,9 +631,17 @@ button.daily-pip:not(:disabled):hover {
 }
 
 .daily-suggestion:hover,
-.daily-suggestion:focus-visible {
+.daily-suggestion:focus-visible,
+.daily-suggestion[aria-selected="true"] {
   color: var(--color-title-text);
   background: var(--color-secondary);
+}
+
+.daily-suggestions-state {
+  padding: 0.45rem 0.55rem;
+  color: var(--color-hint);
+  font-family: var(--font-family);
+  font-size: 10px;
 }
 
 .daily-suggestion-cover {

@@ -20,6 +20,8 @@ const MEDIA_CACHE_VERSION: u32 = 1;
 const MEDIA_CACHE_TTL_SECS: i64 = 6 * 60 * 60;
 const MEDIA_CACHE_SCREEN: &str = "anilist_media_screen";
 pub const MEDIA_CACHE_DETAIL: &str = "anilist_media_detail";
+const MAL_LOOKUP_CACHE_NAMESPACE: &str = "anilist_mal_lookup_v1";
+const MAL_LOOKUP_CACHE_TTL_SECS: i64 = 24 * 60 * 60;
 pub static ANILIST_MEDIA_CACHE_HITS: AtomicU64 = AtomicU64::new(0);
 pub static ANILIST_MEDIA_CACHE_MISSES: AtomicU64 = AtomicU64::new(0);
 
@@ -1121,13 +1123,35 @@ pub async fn get_anime_by_id(
 }
 
 /// Resolves a MyAnimeList id to the AniList id; `None` when AniList has no such title.
-pub async fn anime_id_by_mal(mal_id: u64, proxy: Option<String>) -> Result<Option<u64>, String> {
+pub async fn anime_id_by_mal(
+    app: &tauri::AppHandle,
+    mal_id: u64,
+    proxy: Option<String>,
+) -> Result<Option<u64>, String> {
+    let key = format!("v1:{mal_id}");
+    if let Ok(Some(payload)) =
+        crate::app_db::read_cached_payload(app, MAL_LOOKUP_CACHE_NAMESPACE, &key)
+    {
+        if let Ok(cached) = serde_json::from_str::<Option<u64>>(&payload) {
+            return Ok(cached);
+        }
+    }
     let body = serde_json::json!({
         "query": ANIME_ID_BY_MAL_QUERY,
         "variables": { "idMal": mal_id }
     });
     let json = graphql_request(body, None, proxy.as_deref()).await?;
-    Ok(json["data"]["Media"]["id"].as_u64())
+    let value = json["data"]["Media"]["id"].as_u64();
+    if let Ok(payload) = serde_json::to_string(&value) {
+        let _ = crate::app_db::put_app_cache(
+            app.clone(),
+            MAL_LOOKUP_CACHE_NAMESPACE.to_string(),
+            key,
+            payload,
+            Some(MAL_LOOKUP_CACHE_TTL_SECS),
+        );
+    }
+    Ok(value)
 }
 
 #[tauri::command]

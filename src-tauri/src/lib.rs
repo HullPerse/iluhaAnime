@@ -15,7 +15,9 @@ use tauri_plugin_opener::OpenerExt;
 
 mod anilist;
 mod app_db;
+mod command_ctx;
 mod discord;
+pub mod ipc_bindings;
 mod netdiag;
 mod network;
 mod news;
@@ -2136,6 +2138,7 @@ pub fn run() {
             cards::grant::cards_grant_starter,
             cards::grant::cards_starter_status,
             daily::commands::daily_game_bootstrap,
+            daily::commands::daily_game_search_index,
             daily::commands::daily_game_prepare,
             daily::commands::daily_game_prepare_op,
             daily::commands::daily_game_prepare_audio,

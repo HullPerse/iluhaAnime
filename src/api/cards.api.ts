@@ -1,6 +1,5 @@
 import * as z from "zod/mini";
 
-import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
 import { assertSchema } from "@/lib/core/system/invoke.utils";
 import {
   AnimeCollectionPageSchema,
@@ -58,13 +57,17 @@ import type {
   PurchaseResult,
 } from "@/types/api/cards";
 import type { ApiTransport } from "@/types/core/transport";
+import { createCardsClient } from "@/types/core/ipc.generated";
+import type { CardsClient } from "@/types/core/ipc.generated";
 import { tauriTransport } from "@/api/transport.api";
 
 export class CardsApi {
   private readonly transport: ApiTransport;
+  private readonly cardsClient: CardsClient;
 
   constructor(config: CardsApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
+    this.cardsClient = createCardsClient((command, args) => this.call(command, args));
   }
 
   private call<T>(command: string, args?: Record<string, unknown>): Promise<Awaited<T>> {
@@ -72,39 +75,42 @@ export class CardsApi {
   }
 
   async bootstrap(): Promise<CardsBootstrap> {
-    return assertSchema(await this.call("cards_bootstrap"), CardsBootstrapSchema);
+    return assertSchema(await this.cardsClient.cardsBootstrap(), CardsBootstrapSchema);
   }
 
   async packs(): Promise<CardPackRow[]> {
-    return assertSchema(await this.call("cards_packs"), CardPackListSchema);
+    return assertSchema(await this.cardsClient.cardsPacks(), CardPackListSchema);
   }
 
   async grantTestPack(): Promise<CardPackRow> {
-    return assertSchema(await this.call("cards_grant_test_pack"), CardPackSchema);
+    return assertSchema(await this.cardsClient.cardsGrantTestPack(), CardPackSchema);
   }
 
   async grantTestLegendaryPack(): Promise<CardPackRow> {
-    return assertSchema(await this.call("cards_grant_test_legendary_pack"), CardPackSchema);
+    return assertSchema(
+      await this.cardsClient.cardsGrantTestLegendaryPack(),
+      CardPackSchema
+    );
   }
 
   async grantTestEffectsPack(): Promise<CardPackRow> {
-    return assertSchema(await this.call("cards_grant_test_effects_pack"), CardPackSchema);
+    return assertSchema(await this.cardsClient.cardsGrantTestEffectsPack(), CardPackSchema);
   }
 
   async preparePacks(proxy: string | null = null): Promise<PackPreparation> {
     return assertSchema(
-      await this.call("cards_prepare_packs", anilistProxyArgs(proxy)),
+      await this.cardsClient.cardsPreparePacks({ proxyUrl: proxy }),
       PackPreparationSchema
     );
   }
 
   async acknowledgePreparedPacks(): Promise<number> {
-    return assertSchema(await this.call("cards_ack_prepared_packs"), z.number());
+    return assertSchema(await this.cardsClient.cardsAckPreparedPacks(), z.number());
   }
 
   async openPack(packId: string, proxy: string | null = null): Promise<PackOpening> {
     return assertSchema(
-      await this.call("cards_open_pack", { packId, ...anilistProxyArgs(proxy) }),
+      await this.cardsClient.cardsOpenPack({ packId, proxyUrl: proxy }),
       PackOpeningSchema
     );
   }
@@ -114,7 +120,7 @@ export class CardsApi {
     proxy: string | null = null
   ): Promise<CollectionPage> {
     return assertSchema(
-      await this.call("cards_collection", {
+      await this.cardsClient.cardsCollection({
         kind: params.kind ?? null,
         rarity: params.rarity ?? null,
         variant: params.variant ?? null,
@@ -123,14 +129,14 @@ export class CardsApi {
         query: params.query ?? null,
         page: params.page ?? 1,
         pageSize: params.pageSize ?? 24,
-        ...anilistProxyArgs(proxy),
+        proxyUrl: proxy,
       }),
       CollectionPageSchema
     );
   }
 
   async resetCollection(): Promise<number> {
-    return assertSchema(await this.call("cards_reset_collection"), ResetCollectionSchema);
+    return assertSchema(await this.cardsClient.cardsResetCollection(), ResetCollectionSchema);
   }
 
   async collections(
@@ -139,18 +145,14 @@ export class CardsApi {
     proxy: string | null = null
   ): Promise<CollectionShelfItem[]> {
     return assertSchema(
-      await this.call("cards_collections", {
-        sort,
-        sortDir,
-        ...anilistProxyArgs(proxy),
-      }),
+      await this.cardsClient.cardsCollections({ sort, sortDir, proxyUrl: proxy }),
       CollectionShelfSchema
     );
   }
 
   async cardVariants(kind: CollectionItem["kind"], entityId: number): Promise<CollectionItem[]> {
     return assertSchema(
-      await this.call("cards_card_variants", { kind, entityId }),
+      await this.cardsClient.cardsCardVariants({ kind, entityId }),
       CardVariantsSchema
     );
   }
@@ -161,11 +163,7 @@ export class CardsApi {
     proxy: string | null = null
   ): Promise<CardGallery> {
     return assertSchema(
-      await this.call("cards_gallery", {
-        kind,
-        entityId,
-        ...anilistProxyArgs(proxy),
-      }),
+      await this.cardsClient.cardsGallery({ kind, entityId, proxyUrl: proxy }),
       CardGallerySchema
     );
   }
@@ -176,7 +174,7 @@ export class CardsApi {
     imageUrl: string | null
   ): Promise<number> {
     return assertSchema(
-      await this.call("cards_set_preferred_image", { kind, entityId, imageUrl }),
+      await this.cardsClient.cardsSetPreferredImage({ kind, entityId, imageUrl }),
       z.number()
     );
   }
@@ -187,14 +185,14 @@ export class CardsApi {
     variant: CollectionItem["variant"]
   ): Promise<number> {
     return assertSchema(
-      await this.call("cards_set_card_variant", { kind, entityId, variant }),
+      await this.cardsClient.cardsSetCardVariant({ kind, entityId, variant }),
       SetCardVariantSchema
     );
   }
 
   async isCardFavorite(kind: CollectionItem["kind"], entityId: number): Promise<boolean> {
     return assertSchema(
-      await this.call("cards_card_favorite", { kind, entityId }),
+      await this.cardsClient.cardsCardFavorite({ kind, entityId }),
       CardFavoriteSchema
     );
   }
@@ -205,7 +203,7 @@ export class CardsApi {
     favorite: boolean
   ): Promise<boolean> {
     return assertSchema(
-      await this.call("cards_set_card_favorite", { kind, entityId, favorite }),
+      await this.cardsClient.cardsSetCardFavorite({ kind, entityId, favorite }),
       CardFavoriteSchema
     );
   }
@@ -216,11 +214,7 @@ export class CardsApi {
     proxy: string | null = null
   ): Promise<AnimeCollectionPage> {
     return assertSchema(
-      await this.call("cards_anime_collection", {
-        animeId,
-        kind,
-        ...anilistProxyArgs(proxy),
-      }),
+      await this.cardsClient.cardsAnimeCollection({ animeId, kind, proxyUrl: proxy }),
       AnimeCollectionPageSchema
     );
   }
@@ -232,11 +226,11 @@ export class CardsApi {
     proxy: string | null = null
   ): Promise<CollectionRosterPage> {
     return assertSchema(
-      await this.call("cards_collection_roster", {
+      await this.cardsClient.cardsCollectionRoster({
         mediaId,
         kind,
         page,
-        ...anilistProxyArgs(proxy),
+        proxyUrl: proxy,
       }),
       CollectionRosterPageSchema
     );
@@ -244,90 +238,64 @@ export class CardsApi {
 
   async unread(packsSince: number, cardsSince: number): Promise<CardsUnread> {
     return assertSchema(
-      await this.call("cards_unread", { packsSince, cardsSince }),
+      await this.cardsClient.cardsUnread({ packsSince, cardsSince }),
       CardsUnreadSchema
     );
   }
 
   async stats(): Promise<CardsStats> {
-    return assertSchema(await this.call("cards_stats"), CardsStatsSchema);
+    return assertSchema(await this.cardsClient.cardsStats(), CardsStatsSchema);
   }
 
   async dust(input: DustCardInput): Promise<DustResult> {
-    return assertSchema(
-      await this.call("cards_dust", {
-        kind: input.kind,
-        entityId: input.entityId,
-        rarity: input.rarity,
-        variant: input.variant,
-      }),
-      DustResultSchema
-    );
+    return assertSchema(await this.cardsClient.cardsDust(input), DustResultSchema);
   }
 
   async buyPack(packKind: string): Promise<PurchaseResult> {
-    return assertSchema(await this.call("cards_buy_pack", { packKind }), PurchaseResultSchema);
+    return assertSchema(
+      await this.cardsClient.cardsBuyPack({ packKind }),
+      PurchaseResultSchema
+    );
   }
 
   async starterStatus(proxy: string | null = null): Promise<StarterStatus> {
     return assertSchema(
-      await this.call("cards_starter_status", {
-        ...anilistProxyArgs(proxy),
-      }),
+      await this.cardsClient.cardsStarterStatus({ proxyUrl: proxy }),
       StarterStatusSchema
     );
   }
 
   async grantStarter(userId: number, proxy: string | null = null): Promise<GrantResult> {
     return assertSchema(
-      await this.call("cards_grant_starter", {
-        userId,
-        ...anilistProxyArgs(proxy),
-      }),
+      await this.cardsClient.cardsGrantStarter({ userId, proxyUrl: proxy }),
       GrantResultSchema
     );
   }
 
   async createGift(input: CreateGiftInput): Promise<CreatedGift> {
-    return assertSchema(
-      await this.call("cards_create_gift", {
-        kind: input.kind,
-        entityId: input.entityId,
-      }),
-      CreatedGiftSchema
-    );
+    return assertSchema(await this.cardsClient.cardsCreateGift(input), CreatedGiftSchema);
   }
 
   async claimGift(input: CardGiftClaimInput): Promise<GiftCard[]> {
-    const payload =
-      input.cards && input.cards.length > 0
-        ? {
-            giftId: input.giftId,
-            kind: input.kind,
-            entityId: input.entityId,
-            cards: input.cards,
-          }
-        : {
-            giftId: input.giftId,
-            kind: input.kind,
-            entityId: input.entityId,
-            rarity: input.rarity,
-            variant: input.variant,
-            value: input.value,
-          };
-    return assertSchema(await this.call("cards_claim_gift", payload), GiftCardsSchema);
+    return assertSchema(await this.cardsClient.cardsClaimGift(input), GiftCardsSchema);
   }
 
   async gifts(): Promise<GiftItem[]> {
-    return assertSchema(await this.call("cards_gifts"), GiftListSchema);
+    return assertSchema(await this.cardsClient.cardsGifts(), GiftListSchema);
   }
 
   async markGiftClaimed(giftId: string): Promise<GiftItem> {
-    return assertSchema(await this.call("cards_mark_gift_claimed", { giftId }), GiftItemSchema);
+    return assertSchema(
+      await this.cardsClient.cardsMarkGiftClaimed({ giftId }),
+      GiftItemSchema
+    );
   }
 
   async deleteGift(giftId: string): Promise<GiftDeleteResult> {
-    return assertSchema(await this.call("cards_delete_gift", { giftId }), GiftDeleteResultSchema);
+    return assertSchema(
+      await this.cardsClient.cardsDeleteGift({ giftId }),
+      GiftDeleteResultSchema
+    );
   }
 }
 

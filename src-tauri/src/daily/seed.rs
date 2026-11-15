@@ -102,6 +102,8 @@ mod tests {
         let base = day_seed("2026-11-14", DailyMode::Frames, 1);
         assert_eq!(base, day_seed("2026-11-14", DailyMode::Frames, 1));
         assert_ne!(base, day_seed("2026-11-15", DailyMode::Frames, 1));
+        assert_ne!(base, day_seed("2026-12-14", DailyMode::Frames, 1));
+        assert_ne!(base, day_seed("2027-11-14", DailyMode::Frames, 1));
         assert_ne!(base, day_seed("2026-11-14", DailyMode::Op, 1));
         assert_ne!(base, day_seed("2026-11-14", DailyMode::Frames, 2));
     }

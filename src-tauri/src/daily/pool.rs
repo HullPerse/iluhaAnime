@@ -21,6 +21,22 @@ pub struct PoolEntry {
     pub source: Option<String>,
     pub popularity: i64,
     pub tier: DailyTier,
+    #[serde(default = "all_modes")]
+    pub modes: Vec<DailyMode>,
+}
+
+fn all_modes() -> Vec<DailyMode> {
+    DailyMode::ALL.to_vec()
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DailySearchEntry {
+    pub media_id: i64,
+    pub title: String,
+    pub year: Option<i32>,
+    pub format: Option<String>,
+    pub popularity: i64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,6 +46,30 @@ struct PoolFile {
 }
 
 static POOL: OnceLock<Result<PoolFile, String>> = OnceLock::new();
+
+/// Lightweight title index for instant local autocomplete. It deliberately
+/// omits the tier: showing the current day's tier would narrow the answer.
+pub fn search_index() -> Result<Vec<DailySearchEntry>, String> {
+    let file = pool()?;
+    let mut entries: Vec<DailySearchEntry> = file
+        .entries
+        .iter()
+        .map(|entry| DailySearchEntry {
+            media_id: entry.media_id,
+            title: entry.title.clone(),
+            year: entry.year,
+            format: entry.format.clone(),
+            popularity: entry.popularity,
+        })
+        .collect();
+    entries.sort_by(|left, right| {
+        right
+            .popularity
+            .cmp(&left.popularity)
+            .then_with(|| left.title.cmp(&right.title))
+    });
+    Ok(entries)
+}
 
 fn pool() -> Result<&'static PoolFile, String> {
     POOL.get_or_init(|| {
@@ -61,6 +101,7 @@ pub fn candidates(
         .entries
         .iter()
         .filter(|entry| entry.tier == tier)
+        .filter(|entry| entry.modes.contains(&mode))
         .collect();
     candidates_in_seed_order(seed, &mut entries, exclude)
 }
@@ -131,6 +172,14 @@ mod tests {
             assert!(entry.mal_id > 0);
             assert!(entry.popularity > 0);
             assert!(ids.insert(entry.media_id), "duplicate {}", entry.media_id);
+        }
+        for mode in DailyMode::ALL {
+            let candidates = candidates("2026-11-14", mode, None).expect("mode candidates");
+            assert!(!candidates.is_empty(), "no {mode:?} candidates");
+            assert!(
+                candidates.iter().all(|entry| entry.modes.contains(&mode)),
+                "{mode:?} candidates must support the mode"
+            );
         }
     }
 

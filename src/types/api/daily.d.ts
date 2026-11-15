@@ -59,6 +59,14 @@ export interface DailyFramesView {
   result: DailyResultView | null;
 }
 
+export interface DailySearchEntry {
+  mediaId: number;
+  title: string;
+  year: number | null;
+  format: string | null;
+  popularity: number;
+}
+
 export interface DailyHintView {
   slot: number;
   hintKind: string;

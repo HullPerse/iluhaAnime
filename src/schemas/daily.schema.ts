@@ -58,6 +58,16 @@ export const DailyFramesViewSchema = z.compile(
   })
 );
 
+const DailySearchEntrySchema = z.object({
+  mediaId: z.number(),
+  title: z.string(),
+  year: z.nullable(z.number()),
+  format: z.nullable(z.string()),
+  popularity: z.number(),
+});
+
+export const DailySearchIndexSchema = z.compile(z.array(DailySearchEntrySchema));
+
 const DailyHintViewSchema = z.object({
   slot: z.number(),
   hintKind: z.string(),

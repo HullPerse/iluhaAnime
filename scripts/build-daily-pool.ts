@@ -12,9 +12,15 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const ENDPOINT = "https://graphql.anilist.co";
-const PAGES = 24;
+const PAGES = 40;
+const POOL_VERSION = 5;
+const POOL_SIZE = 1024;
+const EASY_COUNT = 64;
+const MEDIUM_COUNT = 320;
+const HARD_COUNT = 640;
 const OUTPUT = join("src-tauri", "data", "daily-pool-v1.json");
-const REQUEST_DELAY_MS = 800;
+const REQUEST_DELAY_MS = 2_000;
+const PAGE_ATTEMPTS = 8;
 
 const QUERY = `query($page: Int) {
   Page(page: $page, perPage: 50) {
@@ -22,6 +28,7 @@ const QUERY = `query($page: Int) {
       type: ANIME
       sort: POPULARITY_DESC
       isAdult: false
+      status_in: [FINISHED, RELEASING]
       format_in: [TV, MOVIE, ONA, TV_SHORT]
     ) {
       id
@@ -66,6 +73,7 @@ interface Entry {
   source: string | null;
   popularity: number;
   tier: "easy" | "medium" | "hard";
+  modes: ("frames" | "op" | "audio")[];
 }
 
 function log(message: string): void {
@@ -77,7 +85,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function fetchPage(page: number): Promise<Media[]> {
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  for (let attempt = 0; attempt < PAGE_ATTEMPTS; attempt += 1) {
     const response = await fetch(ENDPOINT, {
       method: "POST",
       headers: {
@@ -88,7 +96,9 @@ async function fetchPage(page: number): Promise<Media[]> {
       body: JSON.stringify({ query: QUERY, variables: { page } }),
     });
     if (response.status === 429) {
-      await sleep(3_000 * (attempt + 1));
+      const reset = Number(response.headers.get("x-ratelimit-reset"));
+      const untilReset = Number.isFinite(reset) ? reset * 1000 - Date.now() : 0;
+      await sleep(Math.min(60_000, Math.max(5_000, untilReset, 5_000 * (attempt + 1))));
       continue;
     }
     if (!response.ok) throw new Error(`AniList page ${page}: HTTP ${response.status}`);
@@ -127,6 +137,7 @@ function toEntry(media: Media, tier: Entry["tier"]): Entry {
     source: media.source,
     popularity: media.popularity,
     tier,
+    modes: ["frames", "op", "audio"],
   };
 }
 
@@ -144,13 +155,15 @@ async function main(): Promise<void> {
       item.title.romaji !== null &&
       item.genres.every((genre) => genre.toLowerCase() !== "hentai")
   );
-  if (eligible.length < 700) {
-    throw new Error(`only ${eligible.length} eligible titles, expected at least 700`);
+  if (eligible.length < POOL_SIZE + 200) {
+    throw new Error(
+      `only ${eligible.length} eligible titles, expected at least ${POOL_SIZE + 200}`
+    );
   }
 
-  const easy = eligible.slice(0, 40);
-  const medium = spread(eligible.slice(60, 400), 80);
-  const hard = spread(eligible.slice(400, 1200), 120);
+  const easy = eligible.slice(0, EASY_COUNT);
+  const medium = spread(eligible.slice(EASY_COUNT + 32, 480), MEDIUM_COUNT);
+  const hard = spread(eligible.slice(480, 1600), HARD_COUNT);
   const seen = new Set<number>();
   const entries: Entry[] = [];
   for (const [tier, list] of [
@@ -170,11 +183,13 @@ async function main(): Promise<void> {
     medium: entries.filter((entry) => entry.tier === "medium").length,
     hard: entries.filter((entry) => entry.tier === "hard").length,
   };
-  if (counts.easy < 30 || counts.medium < 60 || counts.hard < 80) {
-    throw new Error(`pool is too small: ${JSON.stringify(counts)}`);
+  if (entries.length !== POOL_SIZE) {
+    throw new Error(
+      `pool has ${entries.length} entries, expected ${POOL_SIZE}: ${JSON.stringify(counts)}`
+    );
   }
 
-  const body = `{\n  "version": 2,\n  "entries": [\n${entries
+  const body = `{\n  "version": ${POOL_VERSION},\n  "entries": [\n${entries
     .map((entry) => `    ${JSON.stringify(entry)}`)
     .join(",\n")}\n  ]\n}\n`;
   await writeFile(OUTPUT, body);
@@ -182,7 +197,7 @@ async function main(): Promise<void> {
   const popularity = entries.map((entry) => entry.popularity).sort((left, right) => left - right);
   log(
     [
-      `[daily-pool] ${entries.length} entries: easy ${counts.easy}, medium ${counts.medium}, hard ${counts.hard}`,
+      `[daily-pool] ${entries.length}/${POOL_SIZE} entries: easy ${counts.easy}, medium ${counts.medium}, hard ${counts.hard}`,
       `[daily-pool] popularity ${popularity[0]}..${popularity.at(-1)}`,
       `[daily-pool] written to ${OUTPUT}`,
     ].join("\n")

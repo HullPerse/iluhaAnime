@@ -6,6 +6,14 @@
         {
           "key": "changelog.5_2_2.added.collection.variant_filter",
           "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_2.added.game.daily_modes",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_2_2.added.collection.anilist_people",
+          "scope": "collection"
         }
       ],
       "changed": [
@@ -16,6 +24,14 @@
         {
           "key": "changelog.5_2_2.changed.collection.open_anime",
           "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_2.changed.game.daily_pool",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_2_2.changed.app.ipc_clients",
+          "scope": "app"
         }
       ],
       "fixed": [
@@ -30,6 +46,10 @@
         {
           "key": "changelog.5_2_2.fixed.collection.variant_dupes",
           "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_2.fixed.game.daily_empty",
+          "scope": "game"
         }
       ]
     },

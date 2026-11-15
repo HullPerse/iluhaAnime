@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 const API_HOST: &str = "https://api.tenrai.org/v1";
 const REQUEST_INTERVAL: Duration = Duration::from_millis(400);
@@ -72,7 +72,7 @@ pub struct TenraiPicture {
     pub thumb_url: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TenraiCharacter {
     pub mal_id: i64,
     pub name: String,

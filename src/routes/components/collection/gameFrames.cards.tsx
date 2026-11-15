@@ -1,13 +1,9 @@
-import { ArrowLeft, Lightbulb, Search, X } from "lucide-react";
+import { ArrowLeft, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
 
-import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
-import Image from "@/components/ui/image.component";
-import { Input } from "@/components/ui/input.component";
-import { useAppQuery } from "@/hooks/appQuery.hook";
 import {
   useGuessDailyGame,
   useRevealDailyFrames,
@@ -15,14 +11,11 @@ import {
 } from "@/hooks/daily/queries.hook";
 import { useDailyRewardNotice } from "@/hooks/daily/reward.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { hintLabelFor } from "@/lib/daily/hints.utils";
-import { matchingAlias, rankSuggestions } from "@/lib/daily/search.utils";
-import type { AniMedia } from "@/types/anilist/anilist";
 import type { DailyFrameView, DailyFramesView, DailyResultView } from "@/types/api/daily";
-import type { GuessHistoryItem } from "@/types/ui/daily";
+import type { DailyGuessSuggestion, GuessHistoryItem } from "@/types/ui/daily";
 
+import DailyGuessField from "@/routes/components/collection/dailyGuessField.cards";
 import FramesReveal from "@/routes/components/collection/framesReveal.cards";
 import { FramePips } from "@/routes/components/collection/framePips.cards";
 import { Result } from "@/routes/components/collection/gameResult.cards";
@@ -37,10 +30,6 @@ export { HintsRail } from "@/routes/components/collection/hintsRail.cards";
 function mergeFrame(frames: DailyFrameView[], next: DailyFrameView): DailyFrameView[] {
   if (frames.some((frame) => frame.slot === next.slot)) return frames;
   return [...frames, next].sort((left, right) => left.slot - right.slot);
-}
-
-export function canSearchDaily(result: DailyResultView | null, query: string): boolean {
-  return result === null && query.length >= 2;
 }
 
 export default function GameFrames({
@@ -61,24 +50,15 @@ export default function GameFrames({
   const [result, setResult] = useState<DailyResultView | null>(initial.result);
   const [showReveal, setShowReveal] = useState(false);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<AniMedia | null>(null);
+  const [selected, setSelected] = useState<DailyGuessSuggestion | null>(null);
   const [history, setHistory] = useState<GuessHistoryItem[]>([]);
   const [viewSlot, setViewSlot] = useState<number | null>(null);
-  const [debouncedQuery] = useDebouncedValue(query.trim(), { wait: 250 });
   useDailyRewardNotice(result, t);
-
-  const canSearch = canSearchDaily(result, debouncedQuery);
-  const search = useAppQuery<AniMedia[]>("static", {
-    queryKey: queryKeys.dailySearch(debouncedQuery),
-    queryFn: () => anilistApi.search({ query: debouncedQuery, perPage: 8 }),
-    enabled: canSearch,
-  });
 
   const current = frames.find((frame) => frame.slot === viewSlot) ?? frames.at(-1);
   const currentHint = current !== undefined && current.slot > 0 ? hintLabelFor(current, t) : null;
   const hints = frames.filter((frame) => frame.slot > 0);
   const remaining = Math.max(0, initial.maxAttempts - attempts);
-  const suggestions = rankSuggestions(search.data ?? [], debouncedQuery).slice(0, 6);
   const pending = guess.isPending || skip.isPending;
 
   const loadAllFrames = () =>
@@ -114,7 +94,7 @@ export default function GameFrames({
       {
         mode: "frames",
         mediaId: guessed.id,
-        guessedTitles: [guessed.title, ...guessed.titles],
+        guessedTitles: guessed.titles,
       },
       {
         onSuccess: (view) => {
@@ -203,78 +183,14 @@ export default function GameFrames({
             </div>
 
             <form className="daily-answer-panel" onSubmit={submit}>
-              <div className="daily-search">
-                <Search />
-                <Input
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setSelected(null);
-                  }}
-                  className="daily-search-input"
-                  placeholder={t("collection.game.guess.placeholder")}
-                  aria-label={t("collection.game.guess.placeholder")}
-                  autoFocus
-                  disabled={pending}
-                />
-              </div>
-
-              {selected !== null && (
-                <div className="windows95-border daily-selected">
-                  {selected.cover_url !== null && (
-                    <Image
-                      src={selected.cover_url}
-                      alt={selected.title}
-                      className="daily-selected-cover"
-                    />
-                  )}
-                  <div className="daily-selected-copy">
-                    <strong>{selected.title}</strong>
-                    <span>{t("collection.game.selected")}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    size="icon"
-                    className="daily-mini-btn"
-                    aria-label={t("collection.game.clearAnswer")}
-                    title={t("collection.game.clearAnswer")}
-                    onClick={() => {
-                      setSelected(null);
-                      setQuery("");
-                    }}
-                  >
-                    <X className="size-3" />
-                  </Button>
-                </div>
-              )}
-
-              {selected === null && suggestions.length > 0 && (
-                <div className="windows95-border daily-suggestions">
-                  {suggestions.map((media) => (
-                    <button
-                      key={media.id}
-                      type="button"
-                      className="daily-suggestion"
-                      onClick={() => {
-                        setSelected(media);
-                        setQuery(media.title);
-                      }}
-                    >
-                      {media.cover_url !== null && (
-                        <Image src={media.cover_url} alt="" className="daily-suggestion-cover" />
-                      )}
-                      <span className="daily-suggestion-copy">
-                        <strong>{media.title}</strong>
-                        <span className="daily-suggestion-meta">
-                          {[matchingAlias(media, debouncedQuery), media.season_year, media.format]
-                            .filter((value) => value !== null)
-                            .join(" / ")}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <DailyGuessField
+                enabled={result === null}
+                pending={pending}
+                query={query}
+                selected={selected}
+                onQueryChange={setQuery}
+                onSelect={setSelected}
+              />
 
               {guess.error !== null && (
                 <p className="daily-form-error" role="alert">

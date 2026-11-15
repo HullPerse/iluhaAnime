@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { Heart } from "lucide-react";
+import { memo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
@@ -29,7 +30,7 @@ const RARITY_RANK: Record<CardRarity, number> = {
   legendary: 4,
 };
 
-export default function CardFace({
+function CardFace({
   card,
   className,
   tilt = "restrained",
@@ -117,3 +118,5 @@ export default function CardFace({
     </div>
   );
 }
+
+export default memo(CardFace);

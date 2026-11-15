@@ -19,6 +19,7 @@ export function VirtualCardGrid<T extends CardTileItem>({
   onLoadMore,
   resetKey,
   onOpen,
+  onVisibleCardsChange,
 }: {
   cards: readonly T[];
   total: number;
@@ -28,6 +29,7 @@ export function VirtualCardGrid<T extends CardTileItem>({
   onLoadMore: () => void;
   resetKey: string;
   onOpen?: (card: T) => void;
+  onVisibleCardsChange?: (cards: readonly T[]) => void;
 }) {
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
   const tilt = useCardTilt(enableAnimations);
@@ -50,6 +52,15 @@ export function VirtualCardGrid<T extends CardTileItem>({
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const lastIndex = virtualRows.at(-1)?.index ?? -1;
+
+  useEffect(() => {
+    if (onVisibleCardsChange === undefined || virtualRows.length === 0) return;
+    const first = virtualRows[0]?.index ?? 0;
+    const last = virtualRows.at(-1)?.index ?? first;
+    onVisibleCardsChange(
+      cards.slice(first * columns, Math.min(cards.length, (last + 1) * columns))
+    );
+  }, [cards, columns, onVisibleCardsChange, virtualRows]);
 
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage || loadedRows === 0) return;
@@ -105,7 +116,7 @@ export function VirtualCardGrid<T extends CardTileItem>({
                 <CardTile
                   key={`${card.kind}:${card.entityId}:${card.rarity}:${card.variant}:${index}`}
                   card={card}
-                  onOpen={onOpen === undefined ? undefined : () => onOpen(card)}
+                  onOpen={onOpen === undefined ? undefined : (item) => onOpen(item as T)}
                 />
               );
             })}

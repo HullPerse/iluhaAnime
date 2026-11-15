@@ -26,6 +26,7 @@ pub struct NewsAnimeLink {
 #[allow(non_snake_case)]
 #[tauri::command]
 pub async fn news_anime_link(
+    app: tauri::AppHandle,
     shikimori_id: u64,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
@@ -37,6 +38,6 @@ pub async fn news_anime_link(
         return Ok(None);
     };
     let anilist_proxy = resolve_proxy(anilist_proxy_url, anilistProxyUrl);
-    let anilist_id = crate::anilist::media::anime_id_by_mal(mal_id, anilist_proxy).await?;
+    let anilist_id = crate::anilist::media::anime_id_by_mal(&app, mal_id, anilist_proxy).await?;
     Ok(anilist_id.map(|anilist_id| NewsAnimeLink { anilist_id, mal_id }))
 }

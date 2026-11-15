@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { localGuessSuggestions } from "@/lib/daily/localSearch.utils";
 import { matchingAlias, rankSuggestions, titleMatchRank } from "@/lib/daily/search.utils";
 import type { AniMedia } from "@/types/anilist/anilist";
+import type { DailySearchEntry } from "@/types/api/daily";
 
 function media(title: string, titles: string[] = [], extra: Partial<AniMedia> = {}): AniMedia {
   return { id: 1, title, titles, ...extra } as AniMedia;
@@ -44,6 +46,25 @@ describe("titleMatchRank", () => {
   it("returns zero for an empty or missing query", () => {
     expect(titleMatchRank(target, "")).toBe(0);
     expect(titleMatchRank(target, "nonexistent")).toBe(0);
+  });
+});
+
+describe("localGuessSuggestions", () => {
+  const entries: DailySearchEntry[] = [
+    { mediaId: 1, title: "Shingeki no Kyojin", year: 2013, format: "TV", popularity: 100 },
+    { mediaId: 2, title: "Shingeki no Kyojin: Chronicle", year: 2020, format: "MOVIE", popularity: 80 },
+    { mediaId: 3, title: "Kimetsu no Yaiba", year: 2019, format: "TV", popularity: 90 },
+  ];
+
+  it("returns prefix matches before contains matches and respects the limit", () => {
+    expect(localGuessSuggestions(entries, "shingeki", 1).map((item) => item.title)).toEqual([
+      "Shingeki no Kyojin",
+    ]);
+    expect(localGuessSuggestions(entries, "kyojin", 2)).toHaveLength(2);
+  });
+
+  it("requires at least two normalized characters", () => {
+    expect(localGuessSuggestions(entries, "s", 6)).toEqual([]);
   });
 });
 

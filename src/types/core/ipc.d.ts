@@ -68,6 +68,7 @@ export type CommandName =
   | "copy_screenshot"
   | "create_torrent_from_folder"
   | "daily_game_bootstrap"
+  | "daily_game_search_index"
   | "daily_game_guess"
   | "daily_game_guess_op"
   | "daily_game_history"

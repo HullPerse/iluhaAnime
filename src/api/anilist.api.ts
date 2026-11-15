@@ -166,6 +166,18 @@ export class AnilistApi {
     return media;
   }
 
+  async searchWithProxy<T = AniMedia>(
+    params: AnilistSearchParams,
+    proxyUrl: string | null
+  ): Promise<T[]> {
+    const media = await this.call<T[]>("search_anilist", {
+      ...params,
+      ...anilistProxyArgs(proxyUrl),
+    });
+    assertSchema(media, AniMediaListSchema);
+    return media;
+  }
+
   async searchByStudio(studioId: number): Promise<AniMedia[]> {
     const media = await this.call<AniMedia[]>("search_anilist_by_studio", { studioId });
     assertSchema(media, AniMediaListSchema);

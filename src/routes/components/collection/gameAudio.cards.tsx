@@ -1,23 +1,15 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { ArrowLeft, Search, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 
-import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
-import Image from "@/components/ui/image.component";
-import { Input } from "@/components/ui/input.component";
-import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useGuessDailyAudio, useSkipDailyAudio } from "@/hooks/daily/queries.hook";
 import { useDailyRewardNotice } from "@/hooks/daily/reward.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useDebouncedValue } from "@/hooks/pacer.hook";
-import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { clipStart } from "@/lib/daily/clip.utils";
 import { audioStage, canOpenAudioStage, shownAudioStage } from "@/lib/daily/stage.utils";
-import { matchingAlias, rankSuggestions } from "@/lib/daily/search.utils";
-import type { AniMedia } from "@/types/anilist/anilist";
 import type { DailyOpGuessView, DailyOpView, DailyResultView } from "@/types/api/daily";
 import AudioBlank from "@/routes/components/collection/audioBlank.cards";
 import AudioCover from "@/routes/components/collection/audioCover.cards";
@@ -27,9 +19,9 @@ import {
   FramePips,
   GuessHistory,
   Result,
-  canSearchDaily,
 } from "@/routes/components/collection/gameFrames.cards";
-import type { GuessHistoryItem } from "@/types/ui/daily";
+import DailyGuessField from "@/routes/components/collection/dailyGuessField.cards";
+import type { DailyGuessSuggestion, GuessHistoryItem } from "@/types/ui/daily";
 
 const AUDIO_SECONDS = 15;
 
@@ -52,23 +44,15 @@ export default function GameAudio({
   const [attempts, setAttempts] = useState(initial.attempts);
   const [result, setResult] = useState<DailyResultView | null>(initial.result);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<AniMedia | null>(null);
+  const [selected, setSelected] = useState<DailyGuessSuggestion | null>(null);
   const [history, setHistory] = useState<GuessHistoryItem[]>([]);
   const [fullPath, setFullPath] = useState(initial.fullPath);
   const [viewStage, setViewStage] = useState<number | null>(null);
-  const [debouncedQuery] = useDebouncedValue(query.trim(), { wait: 250 });
   const videoRef = useRef<HTMLVideoElement>(null);
   const startRef = useRef(0);
   const clipUrl = convertFileSrc(initial.clipPath);
   const resultClipUrl = convertFileSrc(fullPath.length > 0 ? fullPath : initial.clipPath);
   useDailyRewardNotice(result, t);
-
-  const canSearch = canSearchDaily(result, debouncedQuery);
-  const search = useAppQuery<AniMedia[]>("static", {
-    queryKey: queryKeys.dailySearch(debouncedQuery),
-    queryFn: () => anilistApi.search({ query: debouncedQuery, perPage: 8 }),
-    enabled: canSearch,
-  });
 
   const remaining = Math.max(0, initial.maxAttempts - attempts);
   // Three looks at the same 15-second excerpt: blackout, mosaic, plain clip.
@@ -81,7 +65,6 @@ export default function GameAudio({
         ? "collection.game.audio.mosaic"
         : "collection.game.audio.video";
   const pending = guess.isPending || skip.isPending;
-  const suggestions = rankSuggestions(search.data ?? [], debouncedQuery).slice(0, 6);
 
   const handleLoadedMetadata = (duration: number) => {
     startRef.current = audioStart(duration, initial.startFraction);
@@ -130,7 +113,7 @@ export default function GameAudio({
     guess.mutate(
       {
         mediaId: guessed.id,
-        guessedTitles: [guessed.title, ...guessed.titles],
+        guessedTitles: guessed.titles,
       },
       {
         onSuccess: (view) => {
@@ -239,78 +222,14 @@ export default function GameAudio({
           </div>
 
           <form className="daily-answer-panel" onSubmit={submit}>
-            <div className="daily-search">
-              <Search />
-              <Input
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setSelected(null);
-                }}
-                className="daily-search-input"
-                placeholder={t("collection.game.guess.placeholder")}
-                aria-label={t("collection.game.guess.placeholder")}
-                autoFocus
-                disabled={pending}
-              />
-            </div>
-
-            {selected !== null && (
-              <div className="windows95-border daily-selected">
-                {selected.cover_url !== null && (
-                  <Image
-                    src={selected.cover_url}
-                    alt={selected.title}
-                    className="daily-selected-cover"
-                  />
-                )}
-                <div className="daily-selected-copy">
-                  <strong>{selected.title}</strong>
-                  <span>{t("collection.game.selected")}</span>
-                </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  className="daily-mini-btn"
-                  aria-label={t("collection.game.clearAnswer")}
-                  title={t("collection.game.clearAnswer")}
-                  onClick={() => {
-                    setSelected(null);
-                    setQuery("");
-                  }}
-                >
-                  <X className="size-3" />
-                </Button>
-              </div>
-            )}
-
-            {selected === null && suggestions.length > 0 && (
-              <div className="windows95-border daily-suggestions">
-                {suggestions.map((media) => (
-                  <button
-                    key={media.id}
-                    type="button"
-                    className="daily-suggestion"
-                    onClick={() => {
-                      setSelected(media);
-                      setQuery(media.title);
-                    }}
-                  >
-                    {media.cover_url !== null && (
-                      <Image src={media.cover_url} alt="" className="daily-suggestion-cover" />
-                    )}
-                    <span className="daily-suggestion-copy">
-                      <strong>{media.title}</strong>
-                      <span className="daily-suggestion-meta">
-                        {[matchingAlias(media, debouncedQuery), media.season_year, media.format]
-                          .filter((value) => value !== null)
-                          .join(" / ")}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <DailyGuessField
+              enabled={result === null}
+              pending={pending}
+              query={query}
+              selected={selected}
+              onQueryChange={setQuery}
+              onSelect={setSelected}
+            />
 
             {guess.error !== null && (
               <p className="daily-form-error" role="alert">

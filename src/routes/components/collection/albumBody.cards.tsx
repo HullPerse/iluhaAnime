@@ -27,6 +27,7 @@ export default function AlbumBody({
   onRetry,
   onOpen,
   onOpenCollection,
+  onVisibleCardsChange,
 }: {
   mode: AlbumMode;
   view: "grid" | "binder";
@@ -57,6 +58,7 @@ export default function AlbumBody({
   onRetry: () => void;
   onOpen: (card: CollectionItem) => void;
   onOpenCollection: (animeId: number, kind: "anime" | "manga") => void;
+  onVisibleCardsChange?: (cards: readonly CollectionItem[]) => void;
 }) {
   const { t } = useI18n();
   const handleGridRetry = () => {
@@ -101,6 +103,7 @@ export default function AlbumBody({
         onLoadMore={handleLoadMore}
         resetKey={grid.resetKey}
         onOpen={onOpen}
+        onVisibleCardsChange={onVisibleCardsChange}
       />
     );
   }

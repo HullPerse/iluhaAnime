@@ -1,6 +1,6 @@
 {
   "name": "iluhaaime",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "private": true,
   "author": "HullPerse",
   "type": "module",
@@ -20,6 +20,10 @@
     "data:geoip": "bun scripts/build-geoip.ts",
     "data:chip8": "bun scripts/build-chip8-store.ts",
     "data:daily": "bun scripts/build-daily-pool.ts",
+    "check:daily-pool": "bun scripts/check-daily-pool.ts",
+    "pool:apply-quality": "bun scripts/apply-daily-pool-quality.ts",
+    "codegen:ipc": "bun scripts/build-ipc-bindings.ts",
+    "codegen:ipc:check": "bun scripts/build-ipc-bindings.ts --check",
     "lint": "oxlint --config oxlint.config.ts --type-aware",
     "lint:knip": "knip",
     "check:cleanup": "bun scripts/cleanup-inventory.ts --check-code",

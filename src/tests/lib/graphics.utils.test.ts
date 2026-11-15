@@ -4,6 +4,7 @@ import {
   DITHER_DEFAULTS,
   DITHER_RENDER_CACHE_CAPACITY,
   resolveDitherPreset,
+  resolveDitherPresetScale,
 } from "@/config/graphics/dither.config";
 import {
   applyGlyphOverlay,
@@ -773,6 +774,21 @@ describe("utils/dither", () => {
       expect(sum / (input.length / 4) / 3).toBeGreaterThan(3);
     });
 
+    it("ships 1-bit presets and a newsprint scale", () => {
+      expect(resolveDitherPresetScale("onebit")).toBe(1);
+      expect(resolveDitherPresetScale("onebitAtkinson")).toBe(1);
+      expect(resolveDitherPresetScale("newsprint")).toBe(0.6);
+      expect(resolveDitherPreset("photo").monochrome).toBe(true);
+    });
+
+    it("keeps the photo preset monochrome", () => {
+      const output = renderDitherImage(gradientFixture(16, 16), 16, 16, resolveDitherPreset("photo"));
+      for (let i = 0; i < output.length; i += 4) {
+        expect(output[i]).toBe(output[i + 1]);
+        expect(output[i + 1]).toBe(output[i + 2]);
+      }
+    });
+
     it("ships a distinct look for every preset and a bypass for none", () => {
       const input = gradientFixture(48, 48);
       const none = renderDitherImage(input, 48, 48, resolveDitherPreset("none"));
@@ -785,6 +801,9 @@ describe("utils/dither", () => {
         "print",
         "crt",
         "glyphs",
+        "onebit",
+        "onebitAtkinson",
+        "newsprint",
         "photo",
       ] as const;
       const rendered = looks.map((id) => renderDitherImage(input, 48, 48, resolveDitherPreset(id)));

@@ -6,6 +6,7 @@ use crate::app_db::db::{lock_app_data_write_timeout, open_database, APP_DATA_WRI
 use crate::scrapers::clients::resolve_proxy;
 
 use super::game;
+use super::pool::{self, DailySearchEntry};
 use super::seed::validate_day;
 use super::store;
 use super::types::{
@@ -26,6 +27,12 @@ pub fn daily_game_bootstrap(app: AppHandle, day: String) -> Result<DailyBootstra
     let connection = open_database(&app)?;
     store::ensure_games(&connection, &day)?;
     store::bootstrap(&connection, &day)
+}
+
+/// A tiny, tier-free title index used by the local guess autocomplete.
+#[tauri::command]
+pub fn daily_game_search_index() -> Result<Vec<DailySearchEntry>, String> {
+    pool::search_index()
 }
 
 /// Fetches and crops today's six frames lazily. Repeated calls only read the

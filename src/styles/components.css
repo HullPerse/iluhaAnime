@@ -646,9 +646,30 @@ html[data-theme="yorha"] .yorha-grid {
     var(--color-win-highlight);
   background: var(--color-primary);
   box-shadow: 2px 2px 0 var(--color-win-shadow);
+}
+
+/* Only the hovered card and the detail view pay for a 3D layer. */
+.cards-window:hover,
+.cards-window[data-tilt="full"],
+.cards-detail-art .cards-window {
   transform: perspective(900px) rotateX(var(--cards-tilt-x, 0deg))
     rotateY(var(--cards-tilt-y, 0deg));
   transition: transform 120ms ease-out;
+}
+
+.cards-window[data-tilt="restrained"] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 18rem;
+}
+
+/* The album is a grid of many cards; the costly finish layers stay in the
+   detail view, where only one card is on screen. */
+.cards-window[data-tilt="restrained"] .cards-variant-foil::before,
+.cards-window[data-tilt="restrained"] .cards-variant-foil::after,
+.cards-window[data-tilt="restrained"] .cards-variant-holo::before,
+.cards-window[data-tilt="restrained"] .cards-variant-holo::after,
+.cards-window[data-tilt="restrained"] .cards-variant-holo .cards-art::before {
+  display: none;
 }
 
 .cards-window-bar {

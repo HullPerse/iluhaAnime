@@ -1,5 +1,5 @@
 import { useCell } from "@hullperse/hp_utils/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Pagination from "@/components/shared/pagination.component";
 import { isCardsCollectionSort, isCardsSort } from "@/lib/cards/guards.utils";
@@ -244,6 +244,9 @@ export default function AlbumCards() {
     [data?.items, gridCards, infinite, view]
   );
   const suggestions = suggestionTitles(loadedCards);
+  const onVisibleCardsChange = useCallback((visible: readonly CollectionItem[]) => {
+    setRemoteImageScope(cardImageUrls(visible));
+  }, []);
   const activeSort = activeSortState(mode, sort, sortDir, collectionSort, collectionSortDir);
   const showPagination = paginationVisible(mode, view, infinite, total, data !== undefined);
 
@@ -253,9 +256,9 @@ export default function AlbumCards() {
       return;
     }
     const urls = cardImageUrls(loadedCards);
-    setRemoteImageScope(urls);
+    if (!infinite || view !== "grid") setRemoteImageScope(urls);
     prefetchRemoteImages(urls, imageProxy).catch(() => undefined);
-  }, [imageProxy, loadedCards, mode]);
+  }, [imageProxy, infinite, loadedCards, mode, view]);
 
   useEffect(
     () => () => {
@@ -343,6 +346,7 @@ export default function AlbumCards() {
           onRetry={() => collection.refetch()}
           onOpen={setSelected}
           onOpenCollection={openCollectionPage}
+          onVisibleCardsChange={onVisibleCardsChange}
         />
       </div>
       {showPagination && (

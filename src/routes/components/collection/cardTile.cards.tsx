@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { memo } from "react";
 import { useCell } from "@hullperse/hp_utils/react";
 
 import { useI18n } from "@/hooks/i18n.hook";
@@ -8,7 +9,7 @@ import type { CardTileItem } from "@/types/ui/collection";
 
 import CardFace from "@/routes/components/collection/cardFace.cards";
 
-export default function CardTile({ card, onOpen }: { card: CardTileItem; onOpen?: () => void }) {
+function CardTile({ card, onOpen }: { card: CardTileItem; onOpen?: (card: CardTileItem) => void }) {
   const { t } = useI18n();
   const newSince = useCell(cardsAtoms.albumNewSince);
   const isNew = card.firstObtainedAt !== undefined && card.firstObtainedAt > newSince;
@@ -37,9 +38,11 @@ export default function CardTile({ card, onOpen }: { card: CardTileItem; onOpen?
         "block w-full cursor-pointer border-0 bg-transparent p-0 text-left",
         "hover:brightness-110 focus-visible:outline-1 focus-visible:outline-offset-2"
       )}
-      onClick={onOpen}
+      onClick={() => onOpen(card)}
     >
       {content}
     </button>
   );
 }
+
+export default memo(CardTile);

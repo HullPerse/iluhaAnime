@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::AppHandle;
@@ -11,6 +12,7 @@ use crate::anilist::client::graphql_request;
 use crate::app_db::cache::{put_app_cache, read_cached_payload};
 use crate::app_db::cards::LOCAL_USER_ID;
 use crate::app_db::db::open_database;
+use crate::command_ctx::CommandTrace;
 use crate::scrapers::clients::resolve_proxy;
 
 pub const ROSTER_TTL_SECONDS: i64 = 7 * 24 * 60 * 60;
@@ -19,6 +21,7 @@ pub const ROSTER_INITIAL_PAGES: usize = 3;
 const ROSTER_PAGE_NAMESPACE: &str = "cards_roster_page_v2";
 const ROSTER_TOTALS_NAMESPACE: &str = "cards_roster_totals";
 const ROSTER_TOTALS_BATCH: usize = 25;
+const ROSTER_TOTALS_CONCURRENCY: usize = 3;
 
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -256,33 +259,57 @@ async fn initial_roster(
     media_id: i64,
     proxy: Option<&str>,
 ) -> Result<(Vec<RosterMeta>, usize, bool, Option<usize>), String> {
-    let mut characters = Vec::new();
-    let mut last_page = 0;
-    let mut has_more = false;
-    let mut total = None;
-    for page in 1..=ROSTER_INITIAL_PAGES {
-        let cache = match cached_roster_page(app, media_id, page, proxy).await {
-            Ok(cache) => cache,
-            Err(error) if page == 1 => return Err(error),
+    let first = cached_roster_page(app, media_id, 1, proxy).await?;
+    let RosterPageCache {
+        characters: first_characters,
+        has_next: first_has_next,
+        total: first_total,
+    } = first;
+    let mut characters = first_characters;
+    let mut last_page = 1;
+    let mut has_more = first_has_next;
+    let mut total = first_total;
+    if !first_has_next {
+        return Ok((characters, last_page, has_more, total));
+    }
+
+    // Page one is the only request that must finish before the rest: it
+    // carries the total and hasNextPage that bound the initial prefetch.
+    let page_count = first_total
+        .map(|total| total.div_ceil(ROSTER_PAGE_SIZE))
+        .unwrap_or(ROSTER_INITIAL_PAGES)
+        .clamp(1, ROSTER_INITIAL_PAGES);
+    if page_count <= 1 {
+        return Ok((characters, last_page, has_more, total));
+    }
+
+    let pages = futures::future::join_all(
+        (2..=page_count).map(|page| cached_roster_page(app, media_id, page, proxy)),
+    )
+    .await;
+    for (index, page) in (2..=page_count).zip(pages) {
+        match page {
+            Ok(cache) => {
+                if total.is_none() {
+                    total = cache.total;
+                }
+                has_more = cache.has_next;
+                last_page = index;
+                characters.extend(cache.characters);
+                if !cache.has_next {
+                    break;
+                }
+            }
             Err(error) => {
                 tracing::warn!(
                     error = error.as_str(),
                     media_id,
-                    page,
+                    page = index,
                     "card roster page unavailable; keeping earlier pages"
                 );
                 has_more = true;
                 break;
             }
-        };
-        if total.is_none() {
-            total = cache.total;
-        }
-        has_more = cache.has_next;
-        last_page = page;
-        characters.extend(cache.characters);
-        if !cache.has_next {
-            break;
         }
     }
     Ok((characters, last_page, has_more, total))
@@ -413,26 +440,52 @@ async fn fetch_roster_totals(
     proxy: Option<&str>,
 ) -> HashMap<i64, i64> {
     let token = optional_token(app);
-    let mut totals = HashMap::new();
-    for chunk in ids.chunks(ROSTER_TOTALS_BATCH) {
-        let fields = chunk
-            .iter()
-            .enumerate()
-            .map(|(index, id)| {
-                format!(
-                    "a{index}: Media(id: {id}) {{ characters(perPage: 1) {{ pageInfo {{ total }} }} }}"
+    let chunks: Vec<Vec<i64>> = ids
+        .chunks(ROSTER_TOTALS_BATCH)
+        .map(<[i64]>::to_vec)
+        .collect();
+    if chunks.is_empty() {
+        return HashMap::new();
+    }
+
+    let mut requests = futures::stream::iter(chunks)
+        .map(|chunk| {
+            let token = token.clone();
+            let proxy = proxy.map(str::to_string);
+            async move {
+                let fields = chunk
+                    .iter()
+                    .enumerate()
+                    .map(|(index, id)| {
+                        format!(
+                            "a{index}: Media(id: {id}) {{ characters(perPage: 1) {{ pageInfo {{ total }} }} }}"
+                        )
+                    })
+                    .collect::<String>();
+                let query = format!("query {{ {fields} }}");
+                let response = graphql_request(
+                    json!({ "query": query }),
+                    token.as_deref(),
+                    proxy.as_deref(),
                 )
-            })
-            .collect::<String>();
-        let query = format!("query {{ {fields} }}");
-        let response =
-            match graphql_request(json!({ "query": query }), token.as_deref(), proxy).await {
-                Ok(response) => response,
-                Err(error) => {
-                    tracing::warn!(error = error.as_str(), "card roster totals unavailable");
-                    continue;
-                }
-            };
+                .await;
+                (chunk, response)
+            }
+        })
+        .buffer_unordered(ROSTER_TOTALS_CONCURRENCY);
+
+    let mut totals = HashMap::new();
+    while let Some((chunk, response)) = requests.next().await {
+        let response = match response {
+            Ok(response) => response,
+            Err(error) => {
+                tracing::warn!(
+                    error = error.as_str(),
+                    "card roster totals chunk unavailable"
+                );
+                continue;
+            }
+        };
         for (index, id) in chunk.iter().enumerate() {
             let total =
                 response["data"][format!("a{index}")]["characters"]["pageInfo"]["total"].as_i64();
@@ -530,12 +583,14 @@ pub async fn cards_collections(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<CollectionShelfItem>, String> {
+    let mut trace = CommandTrace::start("cards_collections");
     let rows = shelf_rows(&app)?;
     let mut shelf = shelf_from_rows(
         rows.into_iter(),
         sort.as_deref().unwrap_or("owned"),
         sort_dir.as_deref(),
     )?;
+    trace.mark("shelf");
     let ids: Vec<i64> = shelf.iter().map(|item| item.anime_id).collect();
     let mut totals = cached_roster_totals(&app, &ids);
     let missing: Vec<i64> = ids
@@ -550,10 +605,13 @@ pub async fn cards_collections(
     for item in &mut shelf {
         item.total = totals.get(&item.anime_id).map(|total| 1 + *total);
     }
+    trace.mark("totals");
     if sort.as_deref() == Some("completion") {
         sort_by_completion(&mut shelf, sort_dir.as_deref() == Some("asc"));
     }
-    Ok(shelf)
+    let result = Ok(shelf);
+    trace.finish(&result);
+    result
 }
 
 #[tauri::command]

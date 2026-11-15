@@ -4,6 +4,7 @@ use tauri::Manager;
 
 use crate::app_db;
 use crate::auth::{delete_secret, load_secret, save_secret};
+use crate::command_ctx::{CommandCtx, CommandTrace};
 
 use super::batch::{execute_alias_batches, MAX_ALIASES_PER_CHUNK};
 use super::client::graphql_request;
@@ -545,24 +546,24 @@ pub async fn get_anilist_lists(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<AniListCollection>, String> {
-    let token = load_token(&app_handle)?;
-    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let trace = CommandTrace::start("get_anilist_lists");
+    let ctx = CommandCtx::new(&app_handle, proxy_url, proxyUrl);
+    let token = ctx.require_token()?;
+    let proxy = ctx.proxy();
     let minimal = minimal.unwrap_or(false);
     let mut merged: Vec<AniListCollection> = Vec::new();
     for chunk in 1..=LIST_MAX_CHUNKS {
-        let json = graphql_request(
-            collection_body(user_id, chunk, minimal),
-            Some(&token),
-            proxy.as_deref(),
-        )
-        .await?;
+        let json =
+            graphql_request(collection_body(user_id, chunk, minimal), Some(token), proxy).await?;
         let collection = &json["data"]["MediaListCollection"];
         merge_list_chunk(&mut merged, parse_collection_lists(&collection["lists"]));
         if !collection["hasNextChunk"].as_bool().unwrap_or(false) {
             break;
         }
     }
-    Ok(merged)
+    let result = Ok(merged);
+    trace.finish(&result);
+    result
 }
 #[derive(Debug, Serialize)]
 pub struct AniListCollection {

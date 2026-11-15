@@ -17,6 +17,7 @@ import {
   DITHER_PRESETS,
   DITHER_PRESET_LABELS,
   resolveDitherPreset,
+  resolveDitherPresetScale,
 } from "@/config/graphics/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDebouncedValue } from "@/hooks/pacer.hook";
@@ -66,6 +67,7 @@ export default function DitherPreviewModal({
   const applyPreset = (id: DitherPresetId) => {
     setPresetId(id);
     setOptions(resolveDitherPreset(id));
+    setScale(resolveDitherPresetScale(id) ?? DITHER_DEFAULTS.scale);
     setCanSave(false);
   };
 

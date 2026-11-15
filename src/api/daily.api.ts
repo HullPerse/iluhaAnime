@@ -1,4 +1,3 @@
-import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
 import { assertSchema } from "@/lib/core/system/invoke.utils";
 import {
   DailyBootstrapSchema,
@@ -7,6 +6,7 @@ import {
   DailyHistorySchema,
   DailyOpGuessViewSchema,
   DailyOpViewSchema,
+  DailySearchIndexSchema,
 } from "@/schemas/daily.schema";
 import { tauriTransport } from "@/api/transport.api";
 import type {
@@ -17,19 +17,25 @@ import type {
   DailyMode,
   DailyOpGuessView,
   DailyOpView,
+  DailySearchEntry,
 } from "@/types/api/daily";
 import type { ApiTransport } from "@/types/core/transport";
+import { createDailyClient } from "@/types/core/ipc.generated";
+import type { DailyClient } from "@/types/core/ipc.generated";
 
 export class DailyApi {
-  private readonly transport: ApiTransport;
+  private readonly dailyClient: DailyClient;
 
   constructor(transport: ApiTransport = tauriTransport) {
-    this.transport = transport;
+    this.dailyClient = createDailyClient((command, args) => transport.call(command, args));
   }
 
   async bootstrap(day: string): Promise<DailyBootstrap> {
-    const payload = await this.transport.call<unknown>("daily_game_bootstrap", { day });
-    return assertSchema(payload, DailyBootstrapSchema);
+    return assertSchema(await this.dailyClient.bootstrap({ day }), DailyBootstrapSchema);
+  }
+
+  async searchIndex(): Promise<DailySearchEntry[]> {
+    return assertSchema(await this.dailyClient.searchIndex(), DailySearchIndexSchema);
   }
 
   async prepare(
@@ -37,36 +43,31 @@ export class DailyApi {
     mode: DailyMode,
     proxyUrl: string | null = null
   ): Promise<DailyFramesView> {
-    const payload = await this.transport.call<unknown>("daily_game_prepare", {
-      day,
-      mode,
-      ...anilistProxyArgs(proxyUrl),
-    });
-    return assertSchema(payload, DailyFramesViewSchema);
+    return assertSchema(
+      await this.dailyClient.prepare({ day, mode, proxyUrl }),
+      DailyFramesViewSchema
+    );
   }
 
   async revealFrames(day: string, proxyUrl: string | null = null): Promise<DailyFramesView> {
-    const payload = await this.transport.call<unknown>("daily_game_reveal_frames", {
-      day,
-      ...anilistProxyArgs(proxyUrl),
-    });
-    return assertSchema(payload, DailyFramesViewSchema);
+    return assertSchema(
+      await this.dailyClient.revealFrames({ day, proxyUrl }),
+      DailyFramesViewSchema
+    );
   }
 
   async prepareOp(day: string, proxyUrl: string | null = null): Promise<DailyOpView> {
-    const payload = await this.transport.call<unknown>("daily_game_prepare_op", {
-      day,
-      ...anilistProxyArgs(proxyUrl),
-    });
-    return assertSchema(payload, DailyOpViewSchema);
+    return assertSchema(
+      await this.dailyClient.prepareOp({ day, proxyUrl }),
+      DailyOpViewSchema
+    );
   }
 
   async prepareAudio(day: string, proxyUrl: string | null = null): Promise<DailyOpView> {
-    const payload = await this.transport.call<unknown>("daily_game_prepare_audio", {
-      day,
-      ...anilistProxyArgs(proxyUrl),
-    });
-    return assertSchema(payload, DailyOpViewSchema);
+    return assertSchema(
+      await this.dailyClient.prepareAudio({ day, proxyUrl }),
+      DailyOpViewSchema
+    );
   }
 
   async guessAudio(
@@ -74,31 +75,25 @@ export class DailyApi {
     mediaId: number,
     guessedTitles: string[]
   ): Promise<DailyOpGuessView> {
-    const payload = await this.transport.call<unknown>("daily_game_guess_audio", {
-      day,
-      mediaId,
-      guessedTitles,
-    });
-    return assertSchema(payload, DailyOpGuessViewSchema);
+    return assertSchema(
+      await this.dailyClient.guessAudio({ day, mediaId, guessedTitles }),
+      DailyOpGuessViewSchema
+    );
   }
 
   async skipAudio(day: string): Promise<DailyOpGuessView> {
-    const payload = await this.transport.call<unknown>("daily_game_skip_audio", { day });
-    return assertSchema(payload, DailyOpGuessViewSchema);
+    return assertSchema(await this.dailyClient.skipAudio({ day }), DailyOpGuessViewSchema);
   }
 
   async guessOp(day: string, mediaId: number, guessedTitles: string[]): Promise<DailyOpGuessView> {
-    const payload = await this.transport.call<unknown>("daily_game_guess_op", {
-      day,
-      mediaId,
-      guessedTitles,
-    });
-    return assertSchema(payload, DailyOpGuessViewSchema);
+    return assertSchema(
+      await this.dailyClient.guessOp({ day, mediaId, guessedTitles }),
+      DailyOpGuessViewSchema
+    );
   }
 
   async skipOp(day: string): Promise<DailyOpGuessView> {
-    const payload = await this.transport.call<unknown>("daily_game_skip_op", { day });
-    return assertSchema(payload, DailyOpGuessViewSchema);
+    return assertSchema(await this.dailyClient.skipOp({ day }), DailyOpGuessViewSchema);
   }
 
   async guess(
@@ -108,14 +103,10 @@ export class DailyApi {
     guessedTitles: string[],
     proxyUrl: string | null = null
   ): Promise<DailyGuessView> {
-    const payload = await this.transport.call<unknown>("daily_game_guess", {
-      day,
-      mode,
-      mediaId,
-      guessedTitles,
-      ...anilistProxyArgs(proxyUrl),
-    });
-    return assertSchema(payload, DailyGuessViewSchema);
+    return assertSchema(
+      await this.dailyClient.guess({ day, mode, mediaId, guessedTitles, proxyUrl }),
+      DailyGuessViewSchema
+    );
   }
 
   async skip(
@@ -123,25 +114,21 @@ export class DailyApi {
     mode: DailyMode,
     proxyUrl: string | null = null
   ): Promise<DailyGuessView> {
-    const payload = await this.transport.call<unknown>("daily_game_skip", {
-      day,
-      mode,
-      ...anilistProxyArgs(proxyUrl),
-    });
-    return assertSchema(payload, DailyGuessViewSchema);
+    return assertSchema(
+      await this.dailyClient.skip({ day, mode, proxyUrl }),
+      DailyGuessViewSchema
+    );
   }
 
   async history(day: string, mode: string, limit = 20): Promise<DailyHistoryItem[]> {
-    const payload = await this.transport.call<unknown>("daily_game_history", {
-      day,
-      mode,
-      limit,
-    });
-    return assertSchema(payload, DailyHistorySchema);
+    return assertSchema(
+      await this.dailyClient.history({ day, mode, limit }),
+      DailyHistorySchema
+    );
   }
 
   async reset(): Promise<void> {
-    await this.transport.call("daily_game_reset");
+    await this.dailyClient.reset();
   }
 }
 

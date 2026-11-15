@@ -13,6 +13,7 @@ import type {
   DailyMode,
   DailyOpGuessView,
   DailyOpView,
+  DailySearchEntry,
 } from "@/types/api/daily";
 
 function dailyProxy(): string | null {
@@ -30,6 +31,14 @@ export function useDailyGame(day: string) {
   return useAppQuery<DailyBootstrap>("static", {
     queryKey: queryKeys.dailyGame(day),
     queryFn: () => dailyApi.bootstrap(day),
+  });
+}
+
+export function useDailySearchIndex() {
+  return useAppQuery<DailySearchEntry[]>("static", {
+    queryKey: queryKeys.dailySearchIndex(),
+    queryFn: () => dailyApi.searchIndex(),
+    retry: false,
   });
 }
 

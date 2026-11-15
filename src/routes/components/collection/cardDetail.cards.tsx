@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
@@ -14,6 +15,7 @@ import {
   useCardsGallery,
 } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { anilistCardUrl } from "@/lib/cards/links.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type { CardVariant, CollectionItem } from "@/types/api/cards";
 
@@ -58,6 +60,7 @@ export default function CardDetail({
     ownedVariants.find((entry) => entry.variant === pickedVariant) ??
     item;
   const animeId = animeIdOf(card);
+  const anilistUrl = anilistCardUrl(card);
   // Anime cards carry no collection title, so their source line asks AniList
   // for the adaptation source (original, manga, light novel, ...).
   const animeQuery = useAppQuery("static", {
@@ -122,6 +125,17 @@ export default function CardDetail({
               aria-label={t("collection.detail.open.anime")}
               title={t("collection.detail.open.anime")}
               onClick={() => setOpenAnimeId(animeId)}
+            >
+              <ExternalLink className="size-3" />
+            </Button>
+          )}
+          {anilistUrl !== null && (
+            <Button
+              size="icon"
+              className="size-5"
+              aria-label={t("collection.detail.open.anilist")}
+              title={t("collection.detail.open.anilist")}
+              onClick={() => void openUrl(anilistUrl)}
             >
               <ExternalLink className="size-3" />
             </Button>

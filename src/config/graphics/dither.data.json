@@ -363,6 +363,87 @@
       }
     },
     {
+      "id": "onebit",
+      "scale": 1,
+      "options": {
+        "mode": "floyd",
+        "matrix": "bayer4",
+        "strength": 1,
+        "levels": 2,
+        "palette": [
+          [0, 0, 0],
+          [255, 255, 255]
+        ],
+        "paletteMix": 1,
+        "monochrome": true,
+        "contrast": 0.2,
+        "grain": 0,
+        "halftone": 0,
+        "dotSize": 4,
+        "dotSoftness": 0,
+        "glyphs": 0,
+        "glyphSize": 10,
+        "scanlines": 0,
+        "chromatic": 0,
+        "barrel": 0,
+        "vignette": 0
+      }
+    },
+    {
+      "id": "onebitAtkinson",
+      "scale": 1,
+      "options": {
+        "mode": "atkinson",
+        "matrix": "bayer4",
+        "strength": 1,
+        "levels": 2,
+        "palette": [
+          [0, 0, 0],
+          [255, 255, 255]
+        ],
+        "paletteMix": 1,
+        "monochrome": true,
+        "contrast": 0.2,
+        "grain": 0,
+        "halftone": 0,
+        "dotSize": 4,
+        "dotSoftness": 0,
+        "glyphs": 0,
+        "glyphSize": 10,
+        "scanlines": 0,
+        "chromatic": 0,
+        "barrel": 0,
+        "vignette": 0
+      }
+    },
+    {
+      "id": "newsprint",
+      "scale": 0.6,
+      "options": {
+        "mode": "ordered",
+        "matrix": "bayer8",
+        "strength": 1,
+        "levels": 2,
+        "palette": [
+          [0, 0, 0],
+          [255, 255, 255]
+        ],
+        "paletteMix": 1,
+        "monochrome": true,
+        "contrast": 0.2,
+        "grain": 0,
+        "halftone": 0,
+        "dotSize": 4,
+        "dotSoftness": 0,
+        "glyphs": 0,
+        "glyphSize": 10,
+        "scanlines": 0,
+        "chromatic": 0,
+        "barrel": 0,
+        "vignette": 0
+      }
+    },
+    {
       "id": "photo",
       "options": {
         "mode": "floyd",
@@ -371,7 +452,7 @@
         "levels": 6,
         "palette": [],
         "paletteMix": 1,
-        "monochrome": false,
+        "monochrome": true,
         "contrast": 0.05,
         "grain": 0.01,
         "halftone": 0,
@@ -395,6 +476,9 @@
     "print": "search.dither.preset.print",
     "crt": "search.dither.preset.crt",
     "glyphs": "search.dither.preset.glyphs",
+    "onebit": "search.dither.preset.onebit",
+    "onebitAtkinson": "search.dither.preset.onebitAtkinson",
+    "newsprint": "search.dither.preset.newsprint",
     "photo": "search.dither.preset.photo"
   },
   "DITHER_RENDER_CACHE_CAPACITY": 30,

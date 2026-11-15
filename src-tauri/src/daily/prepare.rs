@@ -181,6 +181,11 @@ mod tests {
             source: Some("MANGA".into()),
             popularity: 100,
             tier: super::super::types::DailyTier::Easy,
+            modes: vec![
+                super::super::types::DailyMode::Frames,
+                super::super::types::DailyMode::Op,
+                super::super::types::DailyMode::Audio,
+            ],
         }
     }
 

@@ -32,7 +32,7 @@ afterEach(() => {
 
 describe("modal-scoped hints", () => {
   const openModal = (): { dialog: HTMLElement; inside: HTMLElement; behind: HTMLElement } => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const behind = box(document.createElement("button"));
     document.body.append(behind);
     render(

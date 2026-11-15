@@ -53,19 +53,19 @@ const pressKey = (code: string, options: { ctrlKey?: boolean } = {}): void => {
 };
 
 const headerVisible = (): boolean => {
-  return screen.queryByRole("button", { name: "Settings" }) !== null;
+  return screen.queryByRole("button", { name: "Настройки" }) !== null;
 };
 
 const fullBarVisible = (): boolean => {
-  return screen.queryByRole("button", { name: /previous (file|chapter)/i }) !== null;
+  return screen.queryByRole("button", { name: /предыдущ(ий файл|ая глава)/iu }) !== null;
 };
 
 const slimBarVisible = (): boolean => {
-  return screen.queryAllByRole("button", { name: "Play / pause" }).length === 1;
+  return screen.queryAllByRole("button", { name: "Воспроизведение / пауза" }).length === 1;
 };
 
 const slimBarHidden = (): boolean => {
-  const button = screen.queryByRole("button", { name: "Play / pause" });
+  const button = screen.queryByRole("button", { name: "Воспроизведение / пауза" });
   if (!button) return true;
   return button.closest(".transition-opacity")?.classList.contains("opacity-0") ?? false;
 };
@@ -86,7 +86,7 @@ beforeEach(() => {
   mockSetAlwaysOnTop.mockResolvedValue(undefined);
   mockStartDragging.mockReset();
   mockStartDragging.mockResolvedValue(undefined);
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   patchPlayerSettings({ ...DEFAULT_PLAYER_SETTINGS });
   setAlwaysOnTop(false);
   resetPlayback();
@@ -196,12 +196,12 @@ describe("player view modes", () => {
 
   it("switches cinema off when a reduced preset takes over", async () => {
     await mountPlayer();
-    const cinemaButton = screen.getByRole("button", { name: "Cinema mode" });
-    expect(cinemaButton.getAttribute("title")).toBe("Cinema mode");
+    const cinemaButton = screen.getByRole("button", { name: "Кинорежим" });
+    expect(cinemaButton.getAttribute("title")).toBe("Кинорежим");
 
     fireEvent.click(cinemaButton);
-    expect(screen.getByRole("button", { name: "Cinema mode" }).getAttribute("title")).toBe(
-      "Exit cinema mode"
+    expect(screen.getByRole("button", { name: "Кинорежим" }).getAttribute("title")).toBe(
+      "Выйти из кинорежима"
     );
 
     act(() => {
@@ -210,8 +210,8 @@ describe("player view modes", () => {
     act(() => {
       pressKey("Digit3");
     });
-    expect(screen.getByRole("button", { name: "Cinema mode" }).getAttribute("title")).toBe(
-      "Cinema mode"
+    expect(screen.getByRole("button", { name: "Кинорежим" }).getAttribute("title")).toBe(
+      "Кинорежим"
     );
   });
 

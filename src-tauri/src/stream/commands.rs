@@ -85,6 +85,9 @@ pub async fn animelib_token_save(
 #[serde(rename_all = "camelCase")]
 pub struct AnimeLibAccount {
     pub token_saved: bool,
+    /// The API accepted the stored token. Kept apart from `login`, because a
+    /// valid session can carry no display name.
+    pub authorized: bool,
     pub login: Option<String>,
 }
 
@@ -100,6 +103,7 @@ pub async fn animelib_account(
     let Some(token) = stored_token() else {
         return Ok(AnimeLibAccount {
             token_saved: false,
+            authorized: false,
             login: None,
         });
     };
@@ -107,10 +111,12 @@ pub async fn animelib_account(
     match client.auth_me_login().await {
         Ok(login) => Ok(AnimeLibAccount {
             token_saved: true,
+            authorized: true,
             login,
         }),
         Err(_) => Ok(AnimeLibAccount {
             token_saved: true,
+            authorized: false,
             login: None,
         }),
     }

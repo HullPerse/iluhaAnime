@@ -45,9 +45,7 @@ function AniListAuthModal({
         >
           {t("anilist.auth.browser")}
         </Button>
-        <span className="windows95-text text-hint text-xs">{t("anilist.auth.browser.hint")}</span>
         <span className="windows95-text text-xs font-bold">{t("anilist.auth.manual")}</span>
-        <span className="windows95-text">{t("anilist.auth.intro")}</span>
         <ul className="windows95-text list-disc pl-4 text-xs">
           <li className="flex flex-row gap-1">
             {t("anilist.auth.step1")}{" "}

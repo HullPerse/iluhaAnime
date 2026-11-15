@@ -1216,43 +1216,57 @@ pub async fn erai_finish_webview_login(_app_handle: tauri::AppHandle) -> Result<
 }
 
 /// Reads the session the site writes after a successful login. Only the
-/// animelib.org origin is inspected, and only a JWT-shaped access token is
-/// returned. The token travels from the page to Rust, never to the frontend.
+/// animelib.org origin is inspected. The site persists its auth store as JSON,
+/// sometimes nested or double encoded and under a field name that has changed
+/// between builds, so every stored value is walked instead of one key. The
+/// token travels from the page to Rust, never to the frontend.
 #[cfg(target_os = "windows")]
 const ANIMELIB_LOGIN_SCRIPT: &str = r#"(() => {
-  const readAuth = (store) => {
-    if (!store) return null;
-    try {
-      const raw = store.getItem("auth");
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      const token =
-        (parsed && parsed.token && parsed.token.access_token) ||
-        (parsed && parsed.state && parsed.state.token && parsed.state.token.access_token);
-      return typeof token === "string" ? token : null;
-    } catch (error) {
-      return null;
+  const accessKeys = /^access[_-]?token$/i;
+  const genericKeys = /^token$/i;
+  const jwt = /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+  const found = { access: [], token: [], jwt: [] };
+  const collect = (value, depth) => {
+    if (typeof value === "string") {
+      if (value.length >= 20 && jwt.test(value)) found.jwt.push(value);
+      else if (depth < 4 && value.length <= 200000) {
+        const trimmed = value.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+          try { collect(JSON.parse(trimmed), depth + 1); } catch (error) {}
+        }
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) collect(item, depth);
+      return;
+    }
+    if (value && typeof value === "object") {
+      for (const [key, item] of Object.entries(value)) {
+        if (typeof item === "string" && item.length >= 20 && accessKeys.test(key)) {
+          found.access.push(item);
+        } else if (typeof item === "string" && item.length >= 20 && genericKeys.test(key)) {
+          found.token.push(item);
+        } else {
+          collect(item, depth);
+        }
+      }
     }
   };
   try {
     if (!location.hostname.endsWith("animelib.org")) return { ready: false };
-    let token = readAuth(localStorage) || readAuth(sessionStorage);
-    if (!token) {
-      for (const store of [localStorage, sessionStorage]) {
-        if (!store) continue;
-        for (let index = 0; index < store.length; index += 1) {
-          const raw = store.getItem(store.key(index));
-          if (!raw || raw.length > 200000) continue;
-          const match = raw.match(/"access_token"\s*:\s*"([^\"]{20,})"/);
-          if (match) {
-            token = match[1];
-            break;
-          }
-        }
-        if (token) break;
+    for (const store of [localStorage, sessionStorage]) {
+      if (!store) continue;
+      for (let index = 0; index < store.length; index += 1) {
+        const raw = store.getItem(store.key(index));
+        if (!raw || raw.length > 200000) continue;
+        let value = raw;
+        try { value = JSON.parse(raw); } catch (error) {}
+        collect(value, 0);
       }
     }
-    if (!token || token.split(".").length !== 3) return { ready: false };
+    const token = found.access[0] || found.token[0] || found.jwt[0];
+    if (!token) return { ready: false };
     return { ready: true, token: token };
   } catch (error) {
     return { ready: false, error: String(error) };
@@ -1352,9 +1366,12 @@ pub async fn animelib_finish_webview_login(
 
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(240);
+    // The site can publish a stale token before its own refresh replaces it,
+    // so a rejected token keeps the poll alive instead of ending the sign-in.
+    let mut rejection: Option<String> = None;
     loop {
         if std::time::Instant::now() > deadline {
-            return Err("login_timeout".to_string());
+            return Err(rejection.unwrap_or_else(|| "login_timeout".to_string()));
         }
         let Some(window) = app_handle.get_webview_window(ANIMELIB_WEBVIEW_LABEL) else {
             return Err("webview_closed".to_string());
@@ -1379,18 +1396,21 @@ pub async fn animelib_finish_webview_login(
                 token.clone(),
                 proxy.clone(),
             )?;
-            client
-                .auth_me()
-                .await
-                .map_err(|error| format!("AnimeLib rejected the session: {error}"))?;
-            save_secret(crate::stream::commands::ANIMELIB_TOKEN_ACCOUNT, &token)
-                .map_err(|error| error.to_string())?;
-            let _ = window.hide();
-            let _ = window.close();
-            if let Ok(mut stored) = ANIMELIB_WEBVIEW_PROXY.lock() {
-                *stored = None;
+            match client.auth_me().await {
+                Ok(()) => {
+                    save_secret(crate::stream::commands::ANIMELIB_TOKEN_ACCOUNT, &token)
+                        .map_err(|error| error.to_string())?;
+                    let _ = window.hide();
+                    let _ = window.close();
+                    if let Ok(mut stored) = ANIMELIB_WEBVIEW_PROXY.lock() {
+                        *stored = None;
+                    }
+                    return Ok("ok".to_string());
+                }
+                Err(error) => {
+                    rejection = Some(format!("AnimeLib rejected the session: {error}"));
+                }
             }
-            return Ok("ok".to_string());
         }
         tokio::time::sleep(std::time::Duration::from_millis(700)).await;
     }

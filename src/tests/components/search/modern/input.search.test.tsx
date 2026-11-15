@@ -46,11 +46,11 @@ const pendingSearches = () => {
 };
 
 const submitButton = () => {
-  return screen.getByRole("button", { name: "Search" }) as HTMLButtonElement;
+  return screen.getByRole("button", { name: "Найти" }) as HTMLButtonElement;
 };
 
 const submitQuery = async (query: string, button: HTMLButtonElement) => {
-  fireEvent.change(screen.getByPlaceholderText("Search anime..."), { target: { value: query } });
+  fireEvent.change(screen.getByPlaceholderText("Найти аниме..."), { target: { value: query } });
   await waitFor(() => expect(button.disabled).toBe(false));
   fireEvent.click(button);
 };
@@ -58,7 +58,7 @@ const submitQuery = async (query: string, button: HTMLButtonElement) => {
 afterEach(cleanup);
 
 beforeEach(() => {
-  patchSettings({ language: "en", torrentCoverMode: "off" });
+  patchSettings({ language: "ru", torrentCoverMode: "off" });
   mockInvoke.mockReset();
   mockInvoke.mockImplementation(async () => null);
 });

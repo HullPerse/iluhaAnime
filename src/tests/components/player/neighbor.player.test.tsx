@@ -25,8 +25,8 @@ const renderButton = (direction: "prev" | "next", onActivate = () => undefined) 
     <NeighborFileButton
       direction={direction}
       hasTarget
-      title={direction === "prev" ? "Previous file" : "Next file"}
-      ariaLabel={direction === "prev" ? "Previous file" : "Next file"}
+      title={direction === "prev" ? "Предыдущий файл" : "Следующий файл"}
+      ariaLabel={direction === "prev" ? "Предыдущий файл" : "Следующий файл"}
       onActivate={onActivate}
     />
   );
@@ -42,7 +42,7 @@ beforeEach(() => {
       return Promise.resolve({ path: "thumb.jpg", duration: 65, size: 10 });
     return Promise.resolve(undefined);
   });
-  patchSettings({ language: "en", parseTitlesPlayer: false });
+  patchSettings({ language: "ru", parseTitlesPlayer: false });
   playbackAtoms.path.set("D:/b.mkv");
   playbackAtoms.playlistIndex.set(-1);
 });
@@ -54,7 +54,7 @@ afterEach(() => {
 describe("NeighborFileButton", () => {
   it("shows the next file card with thumbnail on focus", async () => {
     const { container } = renderButton("next");
-    fireEvent.focus(screen.getByRole("button", { name: "Next file" }));
+    fireEvent.focus(screen.getByRole("button", { name: "Следующий файл" }));
     await vi.waitFor(() => {
       expect(container.querySelector('img[src*="thumb"]')).not.toBeNull();
     });
@@ -64,7 +64,7 @@ describe("NeighborFileButton", () => {
 
   it("shows the previous file card on focus", async () => {
     const { container } = renderButton("prev");
-    fireEvent.focus(screen.getByRole("button", { name: "Previous file" }));
+    fireEvent.focus(screen.getByRole("button", { name: "Предыдущий файл" }));
     await vi.waitFor(() => {
       expect(container.querySelector('img[src*="thumb"]')).not.toBeNull();
     });
@@ -73,7 +73,7 @@ describe("NeighborFileButton", () => {
 
   it("shows the card on mouse over without a second entries fetch", async () => {
     const { container } = renderButton("next");
-    const wrapper = screen.getByRole("button", { name: "Next file" }).parentElement;
+    const wrapper = screen.getByRole("button", { name: "Следующий файл" }).parentElement;
     if (!wrapper) throw new Error("neighbor button wrapper is missing");
     fireEvent.mouseOver(wrapper);
     await vi.waitFor(() => {
@@ -84,7 +84,7 @@ describe("NeighborFileButton", () => {
 
   it("closes the card on blur", async () => {
     const { container } = renderButton("next");
-    const button = screen.getByRole("button", { name: "Next file" });
+    const button = screen.getByRole("button", { name: "Следующий файл" });
     fireEvent.focus(button);
     await vi.waitFor(() => {
       expect(screen.getByText("c.mkv")).toBeTruthy();
@@ -97,7 +97,7 @@ describe("NeighborFileButton", () => {
   it("activates the navigation callback on click", () => {
     const onActivate = vi.fn();
     renderButton("next", onActivate);
-    fireEvent.click(screen.getByRole("button", { name: "Next file" }));
+    fireEvent.click(screen.getByRole("button", { name: "Следующий файл" }));
     expect(onActivate).toHaveBeenCalledTimes(1);
   });
 
@@ -106,12 +106,12 @@ describe("NeighborFileButton", () => {
       <NeighborFileButton
         direction="next"
         hasTarget={false}
-        title="Next file"
-        ariaLabel="Next file"
+        title="Следующий файл"
+        ariaLabel="Следующий файл"
         onActivate={() => undefined}
       />
     );
-    fireEvent.focus(screen.getByRole("button", { name: "Next file" }));
+    fireEvent.focus(screen.getByRole("button", { name: "Следующий файл" }));
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(invokeMock).not.toHaveBeenCalled();
     expect(screen.queryByText("c.mkv")).toBeNull();
@@ -126,7 +126,7 @@ describe("NeighborFileButton", () => {
     playbackAtoms.path.set("D:/x.mkv");
     playbackAtoms.playlistIndex.set(2);
     renderButton("prev");
-    fireEvent.focus(screen.getByRole("button", { name: "Previous file" }));
+    fireEvent.focus(screen.getByRole("button", { name: "Предыдущий файл" }));
     await vi.waitFor(() => {
       expect(screen.getByText("a.mkv")).toBeTruthy();
     });
@@ -136,7 +136,7 @@ describe("NeighborFileButton", () => {
     playbackAtoms.path.set("D:/c.mkv");
     playbackAtoms.playlistIndex.set(0);
     renderButton("prev");
-    fireEvent.focus(screen.getByRole("button", { name: "Previous file" }));
+    fireEvent.focus(screen.getByRole("button", { name: "Предыдущий файл" }));
     await vi.waitFor(() => {
       expect(screen.getByText("b.mkv")).toBeTruthy();
     });

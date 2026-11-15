@@ -32,7 +32,7 @@ const renderAt = (href: string) => {
 
 beforeEach(() => {
   patchSettings({
-    language: "en",
+    language: "ru",
     searchTabEnabled: true,
     torrentTabEnabled: true,
     playerTabEnabled: true,
@@ -66,22 +66,22 @@ afterEach(() => {
 
 describe("route surfaces", () => {
   const surfaces: readonly [string, () => HTMLElement][] = [
-    ["/", () => screen.getByPlaceholderText("Search anime...")],
-    ["/torrent", () => screen.getByText("0 torrents")],
-    ["/player", () => screen.getByText("Add folder")],
-    ["/anilist", () => screen.getByText("Log in to your profile")],
+    ["/", () => screen.getByPlaceholderText("Найти аниме...")],
+    ["/torrent", () => screen.getByText("Торрентов: 0")],
+    ["/player", () => screen.getByText("Добавить папку")],
+    ["/anilist", () => screen.getByText("Войдите в профиль")],
     ["/collection", () => screen.getByRole("tab", { name: "iluhaGuesser" })],
-    ["/stream", () => screen.getByRole("button", { name: "Filters" })],
-    ["/settings?tab=general", () => screen.getByText("General")],
-    ["/game", () => screen.getByText("ROM library")],
-    ["/news", () => screen.getByRole("button", { name: "Refresh" })],
+    ["/stream", () => screen.getByRole("button", { name: "Фильтры" })],
+    ["/settings?tab=general", () => screen.getByText("Общие")],
+    ["/game", () => screen.getByText("Библиотека ROM")],
+    ["/news", () => screen.getByRole("button", { name: "Обновить" })],
   ];
 
   it.each(surfaces)("mounts the real %s surface", async (href, findSurface) => {
     renderAt(href);
 
     await waitFor(() => expect(findSurface()).toBeTruthy(), { timeout: 12_000 });
-    expect(screen.queryByText("Page not found")).toBeNull();
+    expect(screen.queryByText("Страница не найдена")).toBeNull();
   });
 });
 
@@ -89,15 +89,15 @@ describe("route modules", () => {
   it("mounts the real torrent route instead of the mocked surface", async () => {
     renderAt("/torrent");
 
-    await waitFor(() => expect(screen.getByText("0 torrents")).toBeTruthy());
-    expect(screen.queryByText("Page not found")).toBeNull();
+    await waitFor(() => expect(screen.getByText("Торрентов: 0")).toBeTruthy());
+    expect(screen.queryByText("Страница не найдена")).toBeNull();
   });
 
   it("mounts the real settings route with its navigation", async () => {
     renderAt("/settings?tab=general");
 
-    await waitFor(() => expect(screen.getByText("General")).toBeTruthy());
-    expect(screen.getByRole("navigation", { name: "Sections" })).toBeTruthy();
-    expect(screen.queryByText("Page not found")).toBeNull();
+    await waitFor(() => expect(screen.getByText("Общие")).toBeTruthy());
+    expect(screen.getByRole("navigation", { name: "Разделы" })).toBeTruthy();
+    expect(screen.queryByText("Страница не найдена")).toBeNull();
   });
 });

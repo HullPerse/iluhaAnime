@@ -57,7 +57,7 @@ const props = (playerType: "default" | "modern") => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   playbackAtoms.timePos.set(754);
 });
 
@@ -69,17 +69,17 @@ describe("PlayerBottomBar", () => {
   it("renders only the slim bar for the compact variant", () => {
     const slim = props("default");
     render(<PlayerBottomBar {...slim} variant="slim" />);
-    expect(screen.getByRole("button", { name: "Play / pause" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Previous file" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Playlist" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Воспроизведение / пауза" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Предыдущий файл" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Плейлист" })).toBeNull();
   });
 
   it("renders frame controls in modern mode only", () => {
     const modern = render(<PlayerBottomBar {...props("modern")} />);
-    expect(screen.getByRole("button", { name: "Previous frame" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Предыдущий кадр" })).toBeTruthy();
     modern.unmount();
     render(<PlayerBottomBar {...props("default")} />);
-    expect(screen.queryByRole("button", { name: "Previous frame" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Предыдущий кадр" })).toBeNull();
   });
 
   it("hides the default track selects when asked", () => {
@@ -87,9 +87,9 @@ describe("PlayerBottomBar", () => {
     const shown = render(
       <PlayerBottomBar {...props("default")} hideTracks={false} tracks={[audio]} />
     );
-    expect(screen.getByRole("button", { name: "Audio:" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Аудио:/ })).toBeTruthy();
     shown.unmount();
     render(<PlayerBottomBar {...props("default")} hideTracks tracks={[audio]} />);
-    expect(screen.queryByRole("button", { name: "Audio:" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Аудио:/ })).toBeNull();
   });
 });

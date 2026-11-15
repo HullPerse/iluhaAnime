@@ -25,7 +25,7 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 
 describe("AnimeDetailShell transport", () => {
   beforeEach(() => {
-    patchSettings({ language: "en", modalAnimation: false, anilistProxyUrl: null });
+    patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
     invokeMock.mockReset();
     resetTransportInflight();
     invokeMock.mockImplementation((command: string) => {

@@ -11,14 +11,14 @@ const OPTIONS: readonly { value: "a" | "b" | "c"; label: string }[] = [
 ];
 
 const openSearchable = (onChange: (value: string) => void = () => undefined) => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   render(<Select<"a" | "b" | "c"> value="a" onChange={onChange} options={OPTIONS} searchable />);
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
   return onChange;
 };
 
 const searchInput = (): HTMLInputElement => {
-  return screen.getByPlaceholderText("Search...") as HTMLInputElement;
+  return screen.getByPlaceholderText("Поиск...") as HTMLInputElement;
 };
 
 afterEach(() => {

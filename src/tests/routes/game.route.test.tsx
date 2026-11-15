@@ -40,7 +40,7 @@ const renderRoute = () => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en", gameVolume: 1 });
+  patchSettings({ language: "ru", gameVolume: 1 });
   vi.stubGlobal("requestAnimationFrame", () => 0);
   vi.stubGlobal("cancelAnimationFrame", () => undefined);
   mockListen.mockImplementation(() => Promise.resolve(() => undefined));
@@ -78,20 +78,20 @@ describe("game route", () => {
 
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
     expect(screen.getByText("Imported")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Удалить" })).toHaveLength(1);
   });
 
   it("starts the selected ROM through the backend", async () => {
     renderRoute();
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Play" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Играть" })[0]);
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("game_start", { id: "builtin:snake" })
     );
     await waitFor(() => expect(screen.getByText("Snake - SUPER-CHIP 1.0")).toBeTruthy());
-    expect(screen.getByText(`Controls: ${SNAKE_HOWTO}`)).toBeTruthy();
+    expect(screen.getByText(`Управление: ${SNAKE_HOWTO}`)).toBeTruthy();
   });
 
   it("deletes a user ROM after confirmation", async () => {
@@ -99,7 +99,7 @@ describe("game route", () => {
     renderRoute();
     await waitFor(() => expect(screen.getByText("Imported")).toBeTruthy());
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
 
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("game_rom_delete", { id: "sha1" }));
   });
@@ -108,18 +108,18 @@ describe("game route", () => {
     renderRoute();
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
 
-    fireEvent.click(screen.getByRole("button", { name: "Store" }));
+    fireEvent.click(screen.getByRole("button", { name: "Магазин" }));
 
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("game_store_list", undefined));
-    expect(screen.getByText("ROM store")).toBeTruthy();
-    await waitFor(() => expect(screen.getByText("Nothing found.")).toBeTruthy());
+    expect(screen.getByText("Магазин ROM")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Ничего не найдено.")).toBeTruthy());
   });
 
   it("sends keypad clicks to the running session", async () => {
     renderRoute();
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Play" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Играть" })[0]);
     await waitFor(() => expect(screen.getByText("Snake - SUPER-CHIP 1.0")).toBeTruthy());
 
     fireEvent.pointerDown(screen.getByTitle("5"));
@@ -136,9 +136,9 @@ describe("game route", () => {
     renderRoute();
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
 
-    fireEvent.click(screen.getByRole("button", { name: "Expand the screen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Развернуть экран" }));
     expect(screen.queryByText("Snake")).toBeNull();
-    expect(screen.getByRole("button", { name: "Collapse the screen" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Свернуть экран" })).toBeTruthy();
 
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
@@ -150,7 +150,7 @@ describe("game route", () => {
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
 
     expect(screen.getByText("50%")).toBeTruthy();
-    fireEvent.keyDown(screen.getByRole("slider", { name: "Volume" }), { key: "ArrowRight" });
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Громкость" }), { key: "ArrowRight" });
     expect(settingsAtoms.gameVolume.get()).toBeCloseTo(0.55);
     expect(screen.getByText("55%")).toBeTruthy();
   });
@@ -183,11 +183,11 @@ describe("game route", () => {
     renderRoute();
     await waitFor(() => expect(screen.getByText("Snake")).toBeTruthy());
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Play" })[0]);
-    await waitFor(() => expect(screen.getByText("The session failed.")).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("button", { name: "Играть" })[0]);
+    await waitFor(() => expect(screen.getByText("Сессия прервана.")).toBeTruthy());
     expect(screen.getByText("boom")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Попробовать снова" }));
     await waitFor(() => expect(screen.getByText("Snake - SUPER-CHIP 1.0")).toBeTruthy());
     expect(starts).toBe(2);
   });

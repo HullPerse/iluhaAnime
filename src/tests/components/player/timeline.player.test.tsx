@@ -7,7 +7,7 @@ import { patchSettings } from "@/store/settings.store";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   playbackAtoms.timePos.set(0);
   playbackAtoms.cacheDuration.set(undefined);
   playbackAtoms.cacheStart.set(undefined);
@@ -164,7 +164,7 @@ describe("Timeline scrub", () => {
 });
 
 describe("Timeline remaining toggle", () => {
-  const toggleName = "Toggle elapsed / remaining time";
+  const toggleName = "Переключить прошедшее / оставшееся время";
 
   it("toggles between elapsed and remaining on click", () => {
     const { getByRole } = renderTimeline();

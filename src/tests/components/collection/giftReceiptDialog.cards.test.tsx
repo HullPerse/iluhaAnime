@@ -33,14 +33,14 @@ describe("collection gift receipt", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Card 1" })).toBeTruthy();
-    expect(screen.getByText("Gift contents")).toBeTruthy();
+    expect(screen.getByText("Содержимое подарка")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_mark_gift_claimed", { giftId: GIFT.id })
     );
-    expect(await screen.findByText("Gift receipt confirmed.")).toBeTruthy();
-    expect(screen.getByText("Gift removed from the list.")).toBeTruthy();
+    expect(await screen.findByText("Получение подарка подтверждено.")).toBeTruthy();
+    expect(screen.getByText("Подарок убран из списка.")).toBeTruthy();
   });
 });

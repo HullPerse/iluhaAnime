@@ -114,12 +114,12 @@ describe("SearchResultItem keyboard surface", () => {
       { timeout: 5000 }
     );
 
-    const refresh = screen.getByRole("button", { name: "Refresh cover" });
+    const refresh = screen.getByRole("button", { name: "Обновить обложку" });
     expect(refresh.dataset.vimContextmenu).toBe("cover");
     expect(refresh.querySelector("img")).not.toBeNull();
 
     fireEvent.contextMenu(refresh);
-    expect(screen.getByText("Wrong cover?")).toBeDefined();
+    expect(screen.getByText("Не та обложка?")).toBeDefined();
   });
 });
 
@@ -202,7 +202,7 @@ describe("SearchResultItem covers", () => {
     expect(onOpenDetails).toHaveBeenCalledTimes(1);
     expect(container.querySelector('button[aria-label="More"]')).toBeNull();
     mockInvoke.mockClear();
-    await user.click(screen.getByRole("button", { name: "Refresh cover" }));
+    await user.click(screen.getByRole("button", { name: "Обновить обложку" }));
     await waitFor(() => {
       expect(mockInvoke.mock.calls.some(([command]) => command === "search_anilist")).toBe(true);
     });

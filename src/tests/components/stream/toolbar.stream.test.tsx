@@ -12,7 +12,7 @@ const filters = DEFAULT_STREAM_FILTERS;
 const noop = () => undefined;
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   submitStreamSearch("");
 });
 
@@ -30,7 +30,7 @@ describe("StreamToolbar", () => {
         onFiltersOpen={noop}
       />
     );
-    const input = screen.getByRole("textbox", { name: "Search AnimeLib..." });
+    const input = screen.getByRole("textbox", { name: "Поиск в AnimeLib..." });
 
     fireEvent.change(input, { target: { value: "  naruto  " } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -48,10 +48,10 @@ describe("StreamToolbar", () => {
         onFiltersOpen={noop}
       />
     );
-    const button = screen.getByRole("button", { name: "Search" }) as HTMLButtonElement;
+    const button = screen.getByRole("button", { name: "Поиск" }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Search AnimeLib..." }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Поиск в AnimeLib..." }), {
       target: { value: "naruto" },
     });
     expect(button.disabled).toBe(false);
@@ -69,14 +69,14 @@ describe("StreamToolbar", () => {
       />
     );
 
-    const clear = screen.getByRole("button", { name: "Clear" });
+    const clear = screen.getByRole("button", { name: "Сбросить" });
     await waitFor(() => expect((clear as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(clear);
 
     await waitFor(() => expect(streamQuery.get()).toBe(""));
     expect(streamPage.get()).toBe(1);
     expect(
-      (screen.getByRole("textbox", { name: "Search AnimeLib..." }) as HTMLInputElement).value
+      (screen.getByRole("textbox", { name: "Поиск в AnimeLib..." }) as HTMLInputElement).value
     ).toBe("");
   });
 
@@ -90,14 +90,14 @@ describe("StreamToolbar", () => {
         onFiltersOpen={noop}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    fireEvent.click(screen.getByRole("button", { name: "Обновить" }));
     expect(onRefetch).toHaveBeenCalledTimes(1);
     expect(streamQuery.get()).toBe("");
   });
 
   it("shows progress and blocks the refresh while fetching", () => {
     render(<StreamToolbar isFetching filters={filters} onRefetch={vi.fn()} onFiltersOpen={noop} />);
-    const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
+    const refresh = screen.getByRole("button", { name: "Обновить" }) as HTMLButtonElement;
     expect(refresh.disabled).toBe(true);
     expect(refresh.getAttribute("aria-busy")).toBe("true");
   });
@@ -113,7 +113,7 @@ describe("StreamToolbar", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    fireEvent.click(screen.getByRole("button", { name: "Фильтры" }));
     expect(onFiltersOpen).toHaveBeenCalledTimes(1);
   });
 
@@ -122,7 +122,9 @@ describe("StreamToolbar", () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
         return Promise.resolve(
-          signedIn ? { tokenSaved: true, login: "milky" } : { tokenSaved: false, login: null }
+          signedIn
+            ? { tokenSaved: true, authorized: true, login: "milky" }
+            : { tokenSaved: false, authorized: false, login: null }
         );
       }
       if (command === "animelib_webview_login") return Promise.resolve("ok");
@@ -143,8 +145,8 @@ describe("StreamToolbar", () => {
       />
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
-    await screen.findByRole("button", { name: "Sign out: milky" });
+    fireEvent.click(await screen.findByRole("button", { name: "Войти" }));
+    await screen.findByRole("button", { name: "Выйти из аккаунта: milky" });
     expect(onRefetch).toHaveBeenCalledTimes(1);
   });
 
@@ -153,7 +155,9 @@ describe("StreamToolbar", () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
         return Promise.resolve(
-          signedIn ? { tokenSaved: true, login: "milky" } : { tokenSaved: false, login: null }
+          signedIn
+            ? { tokenSaved: true, authorized: true, login: "milky" }
+            : { tokenSaved: false, authorized: false, login: null }
         );
       }
       if (command === "animelib_token_clear") {
@@ -173,11 +177,11 @@ describe("StreamToolbar", () => {
       />
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Sign out: milky" }));
-    await screen.findByText("Sign out of AnimeLib?");
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Выйти из аккаунта: milky" }));
+    await screen.findByText("Выйти из AnimeLib?");
+    fireEvent.click(screen.getByRole("button", { name: "Выйти из аккаунта" }));
 
-    await screen.findByRole("button", { name: "Sign in" });
+    await screen.findByRole("button", { name: "Войти" });
     expect(mockInvoke).toHaveBeenCalledWith("animelib_token_clear", undefined);
     expect(onRefetch).toHaveBeenCalledTimes(1);
   });
@@ -192,6 +196,6 @@ describe("StreamToolbar", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Filters" }).textContent).toContain("3");
+    expect(screen.getByRole("button", { name: "Фильтры" }).textContent).toContain("3");
   });
 });

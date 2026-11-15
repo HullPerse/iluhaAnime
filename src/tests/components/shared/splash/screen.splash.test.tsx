@@ -29,10 +29,10 @@ describe("SplashScreen", () => {
     render(<SplashScreen {...props()} />);
     expect(screen.getByRole("status")).toBeDefined();
     expect(screen.getByText("iluhaAnime")).toBeDefined();
-    expect(screen.getByText((_content, el) => el?.textContent === "[x] Theme")).toBeDefined();
-    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Cache...")).toBeDefined();
-    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Tabs")).toBeDefined();
-    expect(screen.getByRole("checkbox", { name: "Skip splash on startup" })).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[x] Тема")).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Кэш...")).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Вкладки")).toBeDefined();
+    expect(screen.getByRole("checkbox", { name: "Не показывать заставку" })).toBeDefined();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("33");
   });
 
@@ -48,8 +48,8 @@ describe("SplashScreen", () => {
         })}
       />
     );
-    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Spelling")).toBeDefined();
-    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Anime index")).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Орфография")).toBeDefined();
+    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Индекс аниме")).toBeDefined();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("20");
   });
 
@@ -57,7 +57,7 @@ describe("SplashScreen", () => {
     const user = userEvent.setup();
     const onToggleFastLaunch = vi.fn();
     render(<SplashScreen {...props({ onToggleFastLaunch })} />);
-    await user.click(screen.getByRole("checkbox", { name: "Skip splash on startup" }));
+    await user.click(screen.getByRole("checkbox", { name: "Не показывать заставку" }));
     expect(onToggleFastLaunch).toHaveBeenCalledTimes(1);
   });
 });

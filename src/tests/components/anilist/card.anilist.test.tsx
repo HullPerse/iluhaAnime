@@ -97,35 +97,35 @@ beforeEach(() => {
       ? Promise.resolve({ id: 1, status: null, progress: null, customLists: [] })
       : Promise.resolve(null)
   );
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 describe("AniListCard score badge", () => {
   it("shows the 100 point score with its denominator", () => {
     renderCard("POINT_100", 55);
-    expect(screen.getByTitle("My score: 55/100")).toBeTruthy();
+    expect(screen.getByTitle("Моя оценка: 55/100")).toBeTruthy();
   });
 
   it("shows a plain ten point score with its denominator", () => {
     renderCard("POINT_10", 8);
-    expect(screen.getByTitle("My score: 8/10")).toBeTruthy();
+    expect(screen.getByTitle("Моя оценка: 8/10")).toBeTruthy();
   });
 
   it("shows a decimal score as entered", () => {
     renderCard("POINT_10_DECIMAL", 8.5);
-    expect(screen.getByTitle("My score: 8.5/10")).toBeTruthy();
+    expect(screen.getByTitle("Моя оценка: 8.5/10")).toBeTruthy();
   });
 
   it("swaps the number for a smiley icon on the three point format", () => {
     renderCard("POINT_3", 3);
-    const badge = screen.getByLabelText("My score: :)");
+    const badge = screen.getByLabelText("Моя оценка: :)");
     expect(badge.querySelector("svg")).not.toBeNull();
     expect(badge.textContent).not.toMatch(/[0-9]/u);
   });
 
   it("renders nothing without a score", () => {
     renderCard("POINT_100", null);
-    expect(screen.queryByTitle(/My score/u)).toBeNull();
+    expect(screen.queryByTitle(/Моя оценка/u)).toBeNull();
   });
 });
 
@@ -175,9 +175,9 @@ describe("ProgressStepper", () => {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
       renderWithData();
-      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
       expect(vi.mocked(invoke)).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
-      expect(screen.getByRole("button", { name: "Watch one more episode" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Посмотрена еще одна серия" })).toBeTruthy();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
       });
@@ -185,11 +185,11 @@ describe("ProgressStepper", () => {
         "save_anilist_entry",
         expect.objectContaining({ mediaId: MEDIA_ID, progress: 21, status: "COMPLETED" })
       );
-      expect(screen.getByLabelText("Progress saved")).toBeTruthy();
+      expect(screen.getByLabelText("Прогресс сохранен")).toBeTruthy();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(1500);
       });
-      expect(screen.queryByLabelText("Progress saved")).toBeNull();
+      expect(screen.queryByLabelText("Прогресс сохранен")).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -199,7 +199,7 @@ describe("ProgressStepper", () => {
     const { invoke } = await import("@tauri-apps/api/core");
     vi.mocked(invoke).mockClear();
     const view = renderWithData();
-    fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+    fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
     view.unmount();
     await waitFor(() =>
       expect(vi.mocked(invoke)).toHaveBeenCalledWith(
@@ -261,7 +261,7 @@ describe("ProgressStepper coalescing", () => {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
       const client = renderCoalescing();
-      const plus = screen.getByRole("button", { name: "Watch one more episode" });
+      const plus = screen.getByRole("button", { name: "Посмотрена еще одна серия" });
       fireEvent.click(plus);
       fireEvent.click(plus);
       fireEvent.click(plus);
@@ -284,7 +284,7 @@ describe("ProgressStepper coalescing", () => {
     vi.useFakeTimers();
     try {
       const client = renderCoalescing();
-      const plus = screen.getByRole("button", { name: "Watch one more episode" });
+      const plus = screen.getByRole("button", { name: "Посмотрена еще одна серия" });
       fireEvent.click(plus);
       fireEvent.click(plus);
       expect(screen.getByText("22/28")).toBeTruthy();
@@ -315,7 +315,7 @@ describe("ProgressStepper coalescing", () => {
         return Promise.resolve(null);
       });
       const client = renderCoalescing();
-      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
       });
@@ -345,7 +345,7 @@ describe("ProgressStepper coalescing", () => {
         });
       });
       const client = renderCoalescing();
-      const plus = screen.getByRole("button", { name: "Watch one more episode" });
+      const plus = screen.getByRole("button", { name: "Посмотрена еще одна серия" });
       fireEvent.click(plus);
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
@@ -358,7 +358,7 @@ describe("ProgressStepper coalescing", () => {
         await Promise.resolve();
       });
       expect(screen.getByText("22/28")).toBeTruthy();
-      expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Повторить" })).toBeNull();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
       });
@@ -383,23 +383,23 @@ describe("ProgressStepper coalescing", () => {
       vi.mocked(invoke).mockClear();
       vi.mocked(invoke).mockRejectedValueOnce(new Error("429 Too Many Requests"));
       const client = renderCoalescing();
-      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
       });
-      expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Повторить" })).toBeTruthy();
       const data = client.getQueryData<{ lists: { entries: { progress: number }[] }[] }>([
         "anilist_data",
       ]);
       expect(data?.lists[0].entries[0].progress).toBe(20);
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
       });
       const calls = saveCalls(vi.mocked(invoke));
       expect(calls.length).toBe(2);
       expect(calls[1]?.[1]).toEqual(expect.objectContaining({ mediaId: MEDIA_ID, progress: 21 }));
-      expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Повторить" })).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -460,8 +460,8 @@ describe("ProgressStepper completion", () => {
       );
       const client = renderProgress("CURRENT", 27);
       const invalidate = vi.spyOn(client, "invalidateQueries");
-      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
-      expect(screen.getByTitle("Completed")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
+      expect(screen.getByTitle("Просмотрено")).toBeTruthy();
       expect(screen.getByText("28/28")).toBeTruthy();
       expect(vi.mocked(invoke)).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
       await act(async () => {
@@ -488,8 +488,8 @@ describe("ProgressStepper completion", () => {
       vi.mocked(invoke).mockClear();
       const client = renderProgress("CURRENT", 20);
       const invalidate = vi.spyOn(client, "invalidateQueries");
-      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
-      expect(screen.getByTitle("Watching")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
+      expect(screen.getByTitle("Смотрю")).toBeTruthy();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
       });
@@ -507,13 +507,13 @@ describe("ProgressStepper completion", () => {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockRejectedValueOnce(new Error("429 Too Many Requests"));
       renderProgress("CURRENT", 27);
-      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
-      expect(screen.getByTitle("Completed")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
+      expect(screen.getByTitle("Просмотрено")).toBeTruthy();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);
       });
-      expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
-      expect(screen.getByTitle("Watching")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Повторить" })).toBeTruthy();
+      expect(screen.getByTitle("Смотрю")).toBeTruthy();
       expect(screen.getByText("27/28")).toBeTruthy();
       expect(anilistProgressOverride.get(MEDIA_ID)).toBeNull();
     } finally {
@@ -535,7 +535,7 @@ describe("ProgressStepper completion", () => {
           />
         </QueryClientProvider>
       );
-      fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+      fireEvent.click(screen.getByRole("button", { name: "Посмотрена еще одна серия" }));
       expect(anilistProgressOverride.get(MEDIA_ID)?.status ?? null).toBeNull();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(650);

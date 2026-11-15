@@ -4,7 +4,6 @@ import { CHANGELOG } from "@/config/system/changelog.config";
 import {
   isChangelogLocaleLoaded,
   loadChangelogLocale,
-  registerLocale,
   translate,
 } from "@/lib/locale/i18n.utils";
 import ru from "@/lib/locale/ru";
@@ -16,7 +15,6 @@ describe("locale dictionary", () => {
   const keys = new Set(Object.keys(RU));
 
   beforeEach(() => {
-    registerLocale("ru", RU);
     patchSettings({ language: "ru" });
   });
 
@@ -28,9 +26,6 @@ describe("locale dictionary", () => {
     ])[0]?.key;
     if (entryKey === undefined) throw new Error("no changelog entries");
 
-    const ruOnly: Record<string, string> = ru;
-    registerLocale("ru", ruOnly);
-    patchSettings({ language: "ru" });
     expect(translate(entryKey)).toBe(entryKey);
     expect(isChangelogLocaleLoaded()).toBe(false);
 

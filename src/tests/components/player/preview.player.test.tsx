@@ -84,7 +84,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  patchSettings({ language: "en", modalAnimation: false });
+  patchSettings({ language: "ru", modalAnimation: false });
   mockInvoke.mockReset();
 });
 
@@ -94,7 +94,7 @@ describe("PreviewZoom", () => {
     const { container } = render(<PreviewZoom frame={FRAME} />);
     const srcOf = () => container.querySelector("img")?.getAttribute("src");
     expect(srcOf()).toBe("http://img/after.png");
-    await user.click(screen.getByRole("button", { name: "Before" }));
+    await user.click(screen.getByRole("button", { name: "До" }));
     expect(srcOf()).toBe("http://img/before.png");
   });
 });
@@ -144,28 +144,29 @@ describe("Upscale player frame paging", () => {
     mockPreviewInvoke([FRAME, SECOND_FRAME]);
     renderUpscalePlayer();
 
-    await user.click(screen.getByRole("button", { name: /Improve quality/ }));
+    await user.click(screen.getByRole("button", { name: /Улучшить качество/ }));
     await selectAnime4k();
-    await user.click(await screen.findByRole("button", { name: "Preview frames" }));
+    await user.click(await screen.findByRole("button", { name: "Проверить кадры" }));
 
     const firstThumb = await screen.findByTitle("12s");
     expect(screen.getByTitle("30s")).not.toBeNull();
     await user.click(firstThumb);
 
-    expect(screen.getByRole("group", { name: "Frames" })).not.toBeNull();
+    expect(screen.getByRole("group", { name: "Кадры" })).not.toBeNull();
     expect(screen.getByText("1 / 2")).not.toBeNull();
     expect(document.querySelector('img[src="http://img/after.png"]')).not.toBeNull();
 
-    const before = screen.getByRole("button", { name: "Before" });
+    const before = screen.getByRole("button", { name: "До" });
     await user.click(before);
 
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Далее" }));
 
     expect(screen.getByText("2 / 2")).not.toBeNull();
     expect(document.querySelector('img[src="http://img2/before.png"]')).not.toBeNull();
     expect(document.querySelector('img[src="http://img2/after.png"]')).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    const backs = screen.getAllByRole("button", { name: "Назад" });
+    await user.click(backs[0] as HTMLElement);
 
     await waitFor(() => expect(screen.getByTitle("12s")).not.toBeNull());
     expect(screen.getByTitle("30s")).not.toBeNull();

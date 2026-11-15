@@ -17,7 +17,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
   openPath: mockOpenPath,
 }));
 
-const SEQUENTIAL_NAME = /Sequential download/;
+const SEQUENTIAL_NAME = /Последовательная загрузка/;
 
 const info = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
   return {
@@ -78,7 +78,7 @@ afterEach(() => cleanup());
 
 beforeEach(() => {
   mockInvoke.mockResolvedValue(null);
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 describe("TorrentHeader sequential toggle", () => {
@@ -118,11 +118,11 @@ describe("TorrentHeader rename", () => {
     invokeMock.mockClear();
     renderHeader(info({ name: "Old Name" }));
     await user.click(screen.getByRole("button", { name: "Old Name" }));
-    expect((screen.getByLabelText("Rename torrent and folder") as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText("Переименовать торрент и папку") as HTMLInputElement).value).toBe(
       "Old Name"
     );
     await user.keyboard("{Escape}");
-    expect(screen.queryByLabelText("Rename torrent and folder")).toBeNull();
+    expect(screen.queryByLabelText("Переименовать торрент и папку")).toBeNull();
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
@@ -133,7 +133,7 @@ describe("TorrentHeader rename", () => {
     invokeMock.mockClear();
     renderHeader(info({ name: "Old Name" }));
     await user.click(screen.getByRole("button", { name: "Old Name" }));
-    const input = screen.getByLabelText("Rename torrent and folder");
+    const input = screen.getByLabelText("Переименовать торрент и папку");
     await user.clear(input);
     await user.type(input, "  New Name  ");
     await user.keyboard("{Enter}");

@@ -53,8 +53,8 @@ describe("daily result history", () => {
     expect(screen.getByRole("heading", { name: "Shingeki no Kyojin" })).toBeTruthy();
     const table = screen.getByRole("table");
     expect(within(table).getByText("13.11")).toBeTruthy();
-    expect(within(table).getByText("Frames")).toBeTruthy();
+    expect(within(table).getByText("Кадры")).toBeTruthy();
     expect(within(table).getByText("Shingeki no Kyojin")).toBeTruthy();
-    expect(within(table).getByText("Won")).toBeTruthy();
+    expect(within(table).getByText("Победа")).toBeTruthy();
   });
 });

@@ -115,7 +115,7 @@ const openImage = async (user: ReturnType<typeof userEvent.setup>, src: string) 
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en", modalAnimation: false });
+  patchSettings({ language: "ru", modalAnimation: false });
   mockInvoke.mockReset();
   vi.mocked(torrentApi.getTorrentDetails).mockReset();
   vi.mocked(torrentApi.getTorrentDetails).mockResolvedValue(DETAILS);
@@ -135,7 +135,7 @@ describe("Torrent details image lightbox", () => {
 
     expect(imageAt(DESC_ONE)).not.toBeNull();
     expect(screen.getByText("1 / 2")).not.toBeNull();
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Далее" }));
 
     expect(imageAt(DESC_TWO)).not.toBeNull();
     expect(imageAt(SHOT_TWO)).toBeNull();
@@ -146,11 +146,12 @@ describe("Torrent details image lightbox", () => {
     const user = userEvent.setup();
     renderDetails();
 
-    await user.click(await screen.findByRole("tab", { name: /Screenshots/ }));
+    await user.click(await screen.findByRole("tab", { name: /Скриншоты/ }));
     await openImage(user, SHOT_ONE);
 
     expect(screen.getByText("1 / 2")).not.toBeNull();
-    await user.click(screen.getByRole("button", { name: "Previous" }));
+    const backs = screen.getAllByRole("button", { name: "Назад" });
+    await user.click(backs[backs.length - 1] as HTMLElement);
 
     expect(imageAt(SHOT_TWO)).not.toBeNull();
     expect(imageAt(SHOT_ONE)).toBeNull();
@@ -169,6 +170,6 @@ describe("Torrent details image lightbox", () => {
     await openImage(user, DESC_ONE);
 
     expect(screen.queryByText("1 / 1")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Далее" })).toBeNull();
   });
 });

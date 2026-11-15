@@ -67,7 +67,7 @@ const streamSessionValue = (): StreamOpen => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   streamNext.current = { hasNext: true, episodes: EPISODES, episodesLoading: false };
   streamNext.goTo.mockClear();
 });
@@ -87,7 +87,7 @@ describe("PlayerSidePanel", () => {
       />
     );
 
-    expect(screen.getByText("Playlist")).toBeTruthy();
+    expect(screen.getByText("Плейлист")).toBeTruthy();
     expect(screen.getByTestId("playlist-body")).toBeTruthy();
   });
 
@@ -115,10 +115,10 @@ describe("PlayerSidePanel", () => {
       />
     );
 
-    expect(screen.getByText("Episodes")).toBeTruthy();
+    expect(screen.getByText("Эпизоды")).toBeTruthy();
     expect(screen.queryByTestId("playlist-body")).toBeNull();
     expect(screen.getByText("1. The journey")).toBeTruthy();
-    expect(screen.getByText("Episode 3")).toBeTruthy();
+    expect(screen.getByText("Эпизод 3")).toBeTruthy();
   });
 
   it("opens a stream episode picked from the season", () => {

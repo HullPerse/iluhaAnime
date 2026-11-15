@@ -18,7 +18,7 @@ const showAt = (timePos: number) => {
 
 beforeEach(() => {
   vi.useFakeTimers();
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   showAt(10);
 });
 
@@ -39,11 +39,11 @@ describe("SkipButton auto-hide", () => {
       />
     );
 
-    expect(screen.getByText("Skip")).toBeTruthy();
+    expect(screen.getByText("Пропустить")).toBeTruthy();
     act(() => {
       vi.advanceTimersByTime(8000);
     });
-    expect(screen.queryByText("Skip")).toBeNull();
+    expect(screen.queryByText("Пропустить")).toBeNull();
   });
 
   it("shows the button again after seeking back into the same chapter", () => {
@@ -60,12 +60,12 @@ describe("SkipButton auto-hide", () => {
     act(() => {
       vi.advanceTimersByTime(8000);
     });
-    expect(screen.queryByText("Skip")).toBeNull();
+    expect(screen.queryByText("Пропустить")).toBeNull();
 
     act(() => {
       showAt(5);
     });
-    expect(screen.getByText("Skip")).toBeTruthy();
+    expect(screen.getByText("Пропустить")).toBeTruthy();
   });
 
   it("shows the button again at the next skippable chapter", () => {
@@ -82,12 +82,12 @@ describe("SkipButton auto-hide", () => {
     act(() => {
       vi.advanceTimersByTime(8000);
     });
-    expect(screen.queryByText("Skip")).toBeNull();
+    expect(screen.queryByText("Пропустить")).toBeNull();
 
     act(() => {
       showAt(1350);
     });
-    expect(screen.getByText("Skip")).toBeTruthy();
+    expect(screen.getByText("Пропустить")).toBeTruthy();
   });
 
   it("renders nothing for chapters without a skippable title", () => {
@@ -102,6 +102,6 @@ describe("SkipButton auto-hide", () => {
       />
     );
 
-    expect(screen.queryByText("Skip")).toBeNull();
+    expect(screen.queryByText("Пропустить")).toBeNull();
   });
 });

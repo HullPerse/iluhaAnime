@@ -35,7 +35,6 @@ export function SourceProxySettings() {
         <SectionResetButton sectionId="proxy.sources" />
       </div>
       <div className="flex flex-col gap-2 p-2">
-        <span className="text-hint text-xs">{t("settings.proxy.sources.description")}</span>
         <div className="flex items-center justify-between gap-2">
           <span className="windows95-text text-text text-xs font-bold">
             {t("settings.search.proxy.per.source")}

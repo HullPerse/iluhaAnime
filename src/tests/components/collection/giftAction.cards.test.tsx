@@ -23,7 +23,7 @@ describe("collection gift action", () => {
     const onOpen = vi.fn();
     renderWithCardsClient(<GiftAction onOpen={onOpen} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Create gift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Создать подарок" }));
 
     expect(onOpen).toHaveBeenCalledOnce();
   });
@@ -32,7 +32,7 @@ describe("collection gift action", () => {
     renderWithCardsClient(<GiftAction onOpen={() => undefined} />);
 
     expect(
-      (screen.getByRole("button", { name: "Create gift" }) as HTMLButtonElement).disabled
+      (screen.getByRole("button", { name: "Создать подарок" }) as HTMLButtonElement).disabled
     ).toBe(false);
   });
 });
@@ -45,9 +45,9 @@ describe("collection gift flow", () => {
       <GiftFlow item={makeCollectionItem()} onBack={onBack} onClose={onClose} />
     );
 
-    expect(await screen.findByText(/Gift all of/)).toBeTruthy();
+    expect(await screen.findByText(/Передать карточку/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Gift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Подарить" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_create_gift", {
@@ -55,18 +55,18 @@ describe("collection gift flow", () => {
         entityId: 45627,
       })
     );
-    const input = (await screen.findByLabelText("Gift link")) as HTMLInputElement;
+    const input = (await screen.findByLabelText("Ссылка подарка")) as HTMLInputElement;
     const parsed = parseCardGiftLink(input.value);
     expect(parsed?.cards).toHaveLength(2);
     expect(parsed?.cards[0]?.copies).toBe(2);
     expect(parsed?.preview?.title).toBe("Card 1");
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    fireEvent.click(screen.getByRole("button", { name: "Копировать" }));
     await waitFor(() => expect(mockWriteText).toHaveBeenCalledWith(input.value));
-    expect(await screen.findByRole("button", { name: "Link copied." })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Ссылка скопирована." })).toBeTruthy();
     expect(onBack).not.toHaveBeenCalled();
 
-    const closeButtons = screen.getAllByRole("button", { name: "Close" });
+    const closeButtons = screen.getAllByRole("button", { name: "Закрыть" });
     const footerClose = closeButtons.at(-1);
     if (footerClose === undefined) throw new Error("close button is missing");
     fireEvent.click(footerClose);

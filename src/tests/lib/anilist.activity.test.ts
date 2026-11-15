@@ -95,8 +95,8 @@ describe("anilist/activity", () => {
 
   describe("monthLabel", () => {
     it("returns short month name for locale", () => {
-      expect(monthLabel(0, "en")).toBe("Jan");
-      expect(monthLabel(11, "en")).toBe("Dec");
+      expect(monthLabel(0, "ru")).toBe("янв.");
+      expect(monthLabel(11, "ru")).toBe("дек.");
     });
   });
 
@@ -106,7 +106,6 @@ describe("anilist/activity", () => {
       try {
         vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
         const twoHoursAgo = Math.floor(Date.now() / 1000) - 7200;
-        expect(formatActivityTime(twoHoursAgo, "en")).toBe("about 2 hours ago");
         expect(formatActivityTime(twoHoursAgo, "ru")).toBe("около 2 часов назад");
       } finally {
         vi.useRealTimers();
@@ -118,14 +117,14 @@ describe("anilist/activity", () => {
     const now = Date.now() / 1000;
     const t = makeT();
     it("returns today for the same day", () => {
-      expect(groupLabel(now, t, "en")).toBe("anilist.activity.today");
+      expect(groupLabel(now, t, "ru")).toBe("anilist.activity.today");
     });
     it("returns yesterday for the previous day", () => {
-      expect(groupLabel(now - 86_400, t, "en")).toBe("anilist.activity.yesterday");
+      expect(groupLabel(now - 86_400, t, "ru")).toBe("anilist.activity.yesterday");
     });
     it("returns absolute date for older", () => {
-      const result = groupLabel(now - 3 * 86_400, t, "en");
-      expect(result).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+      const result = groupLabel(now - 3 * 86_400, t, "ru");
+      expect(result).toMatch(/^\d{1,2}\.\d{1,2}\.\d{4}$/);
     });
   });
 

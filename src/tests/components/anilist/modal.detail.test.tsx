@@ -92,7 +92,7 @@ afterEach(() => {
 
 beforeEach(() => {
   patchSettings({
-    language: "en",
+    language: "ru",
     modalAnimation: false,
     anilistProxyUrl: null,
     animeDetailWidth: "default",
@@ -178,9 +178,9 @@ describe("AniListDetailModal signed-in list entry", () => {
     );
 
     await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "T" })).toBeDefined());
-    expect(screen.getByText("Manage list")).toBeTruthy();
-    expect(screen.getByText("Completed")).toBeTruthy();
-    expect((screen.getByLabelText("Progress:") as HTMLInputElement).value).toBe("28");
+    expect(screen.getByText("Управление списком")).toBeTruthy();
+    expect(screen.getByText("Просмотрено")).toBeTruthy();
+    expect((screen.getByLabelText("Прогресс:") as HTMLInputElement).value).toBe("28");
   });
 });
 
@@ -202,7 +202,7 @@ describe("AniListDetailModal width", () => {
 
 const openCharacter = async (user: ReturnType<typeof userEvent.setup>) => {
   await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "T" })).toBeDefined());
-  const expanders = screen.getAllByRole("button", { name: "Expand section" });
+  const expanders = screen.getAllByRole("button", { name: "Развернуть раздел" });
   await user.click(expanders[0]);
   await user.click(await screen.findByText("Char One"));
   await waitFor(() =>
@@ -218,15 +218,15 @@ describe("AniListDetailModal content stack", () => {
 
     await openCharacter(user);
 
-    expect(screen.getByRole("button", { name: "Back" })).toBeDefined();
-    expect(screen.queryAllByRole("button", { name: "Expand section" })).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Назад" })).toBeDefined();
+    expect(screen.queryAllByRole("button", { name: "Развернуть раздел" })).toHaveLength(0);
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
 
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("button", { name: "Назад" }));
 
     await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "T" })).toBeDefined());
-    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
-    expect(screen.getAllByRole("button", { name: "Expand section" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Назад" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Развернуть раздел" }).length).toBeGreaterThan(0);
   });
 
   it("pushes the anime preview and opens it through the shell stack", async () => {
@@ -239,10 +239,10 @@ describe("AniListDetailModal content stack", () => {
       expect(screen.getByRole("heading", { level: 2, name: "Anime X" })).toBeDefined()
     );
 
-    await user.click(screen.getByRole("button", { name: "Open full details" }));
+    await user.click(screen.getByRole("button", { name: "Открыть полностью" }));
 
     expect(onRelated).toHaveBeenCalledWith(31);
     await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "T" })).toBeDefined());
-    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Назад" })).toBeNull();
   });
 });

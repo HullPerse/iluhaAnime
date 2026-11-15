@@ -68,8 +68,8 @@ describe("anime collections", () => {
     const tiles = await screen.findAllByTestId("collection-shelf-tile");
     expect(tiles).toHaveLength(2);
     expect(screen.getByText("Shingeki no Kyojin")).toBeTruthy();
-    expect(screen.getByText("2 of 8")).toBeTruthy();
-    expect(screen.getByText("1 of 8")).toBeTruthy();
+    expect(screen.getByText("2 из 8")).toBeTruthy();
+    expect(screen.getByText("1 из 8")).toBeTruthy();
     fireEvent.click(tiles[0] as HTMLElement);
     expect(onOpen).toHaveBeenCalledWith(16498, "anime");
   });
@@ -91,7 +91,7 @@ describe("anime collections", () => {
     expect(screen.getAllByTestId("collection-silhouette")).toHaveLength(2);
     expect(screen.getByText("Eren")).toBeTruthy();
     expect(screen.getByText("Mikasa")).toBeTruthy();
-    expect(screen.getByTestId("collection-progress").textContent).toBe("Characters: 1 of 3");
+    expect(screen.getByTestId("collection-progress").textContent).toBe("Персонажи: 1 из 3");
   });
 
   it("requests the next roster page as soon as a collection opens", async () => {
@@ -192,7 +192,7 @@ describe("anime collections", () => {
     await screen.findByText("Levi");
 
     expect(screen.queryByRole("button", { name: "Staff" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Studios" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Студии" })).toBeNull();
     act(() => setCardsAlbumMode("collections"));
 
     await waitFor(() =>

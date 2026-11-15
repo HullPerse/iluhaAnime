@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   mockInvoke.mockReset();
 });
 
@@ -132,7 +132,7 @@ describe("useUpscalePreview", () => {
 
     act(() => result.current.load());
 
-    expect(result.current.error).toBe("Preview failed");
+    expect(result.current.error).toBe("Не удалось сделать превью");
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 });

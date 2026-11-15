@@ -77,7 +77,7 @@ const renderItem = (overrides: Partial<TorrentItemProps> = {}) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "get_torrent_limits") {
       return Promise.resolve({ downloadBps: null, uploadBps: null });
@@ -94,7 +94,7 @@ describe("TorrentItem sparse warning", () => {
     renderItem({ item: info({ disk_sparse: false }) });
 
     expect(screen.getByTestId("torrent-sparse-warning").textContent).toMatch(
-      /does not support sparse files/
+      /не поддерживает разреженные файлы/
     );
   });
 
@@ -102,7 +102,7 @@ describe("TorrentItem sparse warning", () => {
     renderItem({ item: info({ disk_sparse: false }), isExpanded: true });
 
     expect(screen.queryByTestId("torrent-sparse-warning")).toBeNull();
-    expect(screen.getByText(/does not support sparse files/)).toBeDefined();
+    expect(screen.getByText(/не поддерживает разреженные файлы/)).toBeDefined();
   });
 
   it("stays quiet on a volume that supports sparse files", () => {

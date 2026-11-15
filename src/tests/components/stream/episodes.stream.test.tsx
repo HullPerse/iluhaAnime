@@ -33,7 +33,7 @@ const renderEpisodes = (overrides: Partial<React.ComponentProps<typeof StreamEpi
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -64,7 +64,7 @@ describe("episode preview placement", () => {
 describe("StreamEpisodes", () => {
   it("renders a 220 episode season as dense rows", () => {
     renderEpisodes();
-    expect(screen.getByText("220 episodes")).toBeDefined();
+    expect(screen.getByText("220 эпизодов")).toBeDefined();
     expect(screen.getByText("Episode 1")).toBeDefined();
     expect(screen.getByText("Episode 220")).toBeDefined();
     expect(screen.getAllByText("2002-10-03")).toHaveLength(EPISODES.length);
@@ -72,7 +72,7 @@ describe("StreamEpisodes", () => {
 
   it("filters a long season by number or title", () => {
     renderEpisodes();
-    const filter = screen.getByRole("textbox", { name: "Find an episode" });
+    const filter = screen.getByRole("textbox", { name: "Найти эпизод" });
 
     fireEvent.change(filter, { target: { value: "100" } });
     expect(screen.getByText("Episode 100")).toBeDefined();
@@ -110,7 +110,7 @@ describe("StreamEpisodes", () => {
     ]);
     renderEpisodes({ episodes: EPISODES.slice(0, 3), history });
 
-    expect(screen.getByLabelText("Watched")).toBeDefined();
+    expect(screen.getByLabelText("Просмотрено")).toBeDefined();
     expect(screen.getByText("10:00")).toBeDefined();
     expect(screen.getByText("Episode 1").closest("[role='button']")?.className).toContain(
       "text-hint"
@@ -165,7 +165,7 @@ describe("StreamEpisodes", () => {
 
   it("shows an empty season without crashing", () => {
     renderEpisodes({ episodes: [] });
-    expect(screen.getByText("This title has no episodes.")).toBeDefined();
+    expect(screen.getByText("У этого тайтла нет эпизодов.")).toBeDefined();
   });
 
   it("shows the AniList preview while a row is hovered", () => {
@@ -196,7 +196,7 @@ describe("StreamEpisodes", () => {
     renderEpisodes({ error: new Error("episode list failed"), onRetry });
 
     expect(screen.getByRole("alert")).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

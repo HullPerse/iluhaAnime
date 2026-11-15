@@ -91,7 +91,7 @@ const renderFiles = (
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "get_torrent_limits") {
       return Promise.resolve({ downloadBps: null, uploadBps: null });
@@ -113,7 +113,7 @@ describe("TorrentFiles disk usage", () => {
     });
 
     expect(screen.getByTestId("torrent-disk-usage").textContent).toBe(
-      "On disk: 100.0 KB of 2.00 GB"
+      "На диске: 100.0 KB из 2.00 GB"
     );
   });
 
@@ -126,7 +126,7 @@ describe("TorrentFiles disk usage", () => {
     });
 
     expect(screen.getByTestId("torrent-disk-usage").textContent).toBe(
-      "On disk: 512.0 KB of 1.00 GB"
+      "На диске: 512.0 KB из 1.00 GB"
     );
   });
 
@@ -145,6 +145,6 @@ describe("TorrentFiles disk usage", () => {
       item: item({ disk_sparse: false }),
     });
 
-    expect(screen.getByText(/does not support sparse files/)).toBeDefined();
+    expect(screen.getByText(/не поддерживает разреженные файлы/)).toBeDefined();
   });
 });

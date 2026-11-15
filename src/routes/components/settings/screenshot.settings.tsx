@@ -26,7 +26,6 @@ export default function ScreenshotSettings() {
           <Input
             value={screenshotDir ?? ""}
             onChange={(e) => patchSettings({ screenshotDir: e.target.value || null })}
-            placeholder={t("settings.screenshot.folder.hint")}
             className="flex-1"
           />
         </label>

@@ -95,7 +95,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  patchSettings({ language: "en", modalAnimation: false, anilistProxyUrl: null });
+  patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
   invokeMock.mockReset();
   resetTransportInflight();
   invokeMock.mockImplementation((command: string) => {
@@ -123,7 +123,7 @@ describe("AniListDetailView character navigation", () => {
     const user = userEvent.setup();
     const onPushScreen = vi.fn();
     renderView(false, onPushScreen);
-    const expanders = screen.getAllByRole("button", { name: "Expand section" });
+    const expanders = screen.getAllByRole("button", { name: "Развернуть раздел" });
     await user.click(expanders[0]);
     await user.click(await screen.findByText("Char One"));
     expect(onPushScreen).toHaveBeenCalledWith({

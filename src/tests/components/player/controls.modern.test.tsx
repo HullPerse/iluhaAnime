@@ -52,7 +52,7 @@ const props = (overrides: Record<string, unknown> = {}) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   playbackAtoms.timePos.set(754);
 });
 
@@ -69,24 +69,24 @@ describe("ModernControls", () => {
   it("fires play and file navigation", () => {
     const owned = props();
     render(<ModernControls {...owned} />);
-    const transport = screen.getAllByRole("button", { name: "Play / pause" });
+    const transport = screen.getAllByRole("button", { name: "Воспроизведение / пауза" });
     const play = transport.find((button) => !(button as HTMLButtonElement).disabled);
     if (!play) throw new Error("enabled play button not found");
     fireEvent.click(play);
     expect(owned.onPlay).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: /next chapter/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Следующая глава/ }));
     expect(owned.onFileNext).toHaveBeenCalledTimes(1);
   });
 
   it("disables the subtitle cycle without sub tracks and fires it with tracks", () => {
     const empty = render(<ModernControls {...props()} />);
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Subtitles" }).disabled).toBe(
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Субтитры" }).disabled).toBe(
       true
     );
     empty.unmount();
     const owned = props({ tracks: [subTrack(1)] });
     render(<ModernControls {...owned} />);
-    const button = screen.getByRole<HTMLButtonElement>("button", { name: "Subtitles" });
+    const button = screen.getByRole<HTMLButtonElement>("button", { name: "Субтитры" });
     expect(button.disabled).toBe(false);
     fireEvent.click(button);
     expect(owned.onCycleSub).toHaveBeenCalledTimes(1);
@@ -97,12 +97,12 @@ describe("ModernControls", () => {
     const { container } = render(<ModernControls {...owned} />);
     const buttons = screen.getAllByRole("button");
     const frameBack = buttons.find((button) =>
-      button.getAttribute("aria-label")?.includes("Previous frame")
+      button.getAttribute("aria-label")?.includes("Предыдущий кадр")
     );
     if (!frameBack) throw new Error("frame back button not found");
     fireEvent.click(frameBack);
     expect(owned.onFrameStep).toHaveBeenCalledWith(false);
-    fireEvent.click(screen.getByRole("button", { name: "Playlist" }));
+    fireEvent.click(screen.getByRole("button", { name: "Плейлист" }));
     expect(owned.onTogglePlaylist).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("12:34 / 23:41");
   });

@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   mockInvoke.mockReset();
   mockInvoke.mockResolvedValue(null);
   vi.useFakeTimers();
@@ -59,31 +59,31 @@ describe("AniListMetadata airing line", () => {
   it("shows the local date, time, and countdown for the next episode", () => {
     const airingAt = NOW / 1000 + 2 * 86_400 + 3600;
     render(<AniListMetadata anime={makeAnime({ next_episode: 13, next_airing_at: airingAt })} />);
-    const line = screen.getByText(/Episode 13/u);
+    const line = screen.getByText(/Серия 13/u);
     expect(line.textContent).toContain(
-      new Date(airingAt * 1000).toLocaleString("en", {
+      new Date(airingAt * 1000).toLocaleString("ru", {
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         month: "short",
       })
     );
-    expect(line.textContent).toContain("in 2 d 1 h");
-    expect(line.title).toBe(new Date(airingAt * 1000).toLocaleString("en"));
+    expect(line.textContent).toContain("через 2 д 1 ч");
+    expect(line.title).toBe(new Date(airingAt * 1000).toLocaleString("ru"));
   });
 
   it("hides the line without airing data", () => {
     render(<AniListMetadata anime={makeAnime()} />);
-    expect(screen.queryByText(/Episode/u)).toBeNull();
+    expect(screen.queryByText(/Серия/u)).toBeNull();
   });
 
   it("refreshes the countdown on the tick", () => {
     const airingAt = NOW / 1000 + 125;
     render(<AniListMetadata anime={makeAnime({ next_episode: 13, next_airing_at: airingAt })} />);
-    expect(screen.getByText(/Episode 13/u).textContent).toContain("in 2 min 5 sec");
+    expect(screen.getByText(/Серия 13/u).textContent).toContain("через 2 мин 5 сек");
     act(() => {
       vi.advanceTimersByTime(65_000);
     });
-    expect(screen.getByText(/Episode 13/u).textContent).toContain("in 1 min");
+    expect(screen.getByText(/Серия 13/u).textContent).toContain("через 1 мин");
   });
 });

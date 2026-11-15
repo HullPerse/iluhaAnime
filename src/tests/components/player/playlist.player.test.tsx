@@ -39,7 +39,7 @@ beforeEach(() => {
     return Promise.resolve(undefined);
   });
   mockDialogOpen.mockResolvedValue(null);
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -158,7 +158,7 @@ describe("PlaylistBody mutations", () => {
   it("does not refetch entries after remove (count subscriber covers it)", async () => {
     const onRemove = vi.fn(() => Promise.resolve());
     render(<PlaylistBody {...props()} onRemove={onRemove} />);
-    const [remove] = await screen.findAllByRole("button", { name: "Remove from queue" });
+    const [remove] = await screen.findAllByRole("button", { name: "Убрать из очереди" });
     fireEvent.click(remove);
     await vi.waitFor(() => {
       expect(onRemove).toHaveBeenCalledTimes(1);
@@ -173,7 +173,7 @@ describe("PlaylistBody mutations", () => {
   it("still refetches entries after move (count is unchanged)", async () => {
     const onMove = vi.fn(() => Promise.resolve());
     render(<PlaylistBody {...props()} onMove={onMove} />);
-    const [moveDown] = await screen.findAllByRole("button", { name: "Move down" });
+    const [moveDown] = await screen.findAllByRole("button", { name: "Ниже" });
     fireEvent.click(moveDown);
     await vi.waitFor(() => {
       expect(onMove).toHaveBeenCalledTimes(1);

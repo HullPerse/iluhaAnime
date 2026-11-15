@@ -29,45 +29,45 @@ const renderBar = (overrides: Partial<AniSortProps> = {}) => {
 
 const openMenu = async () => {
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "More actions" }));
-  await screen.findByRole("menuitem", { name: "Activity history" });
+  await user.click(screen.getByRole("button", { name: "Еще действия" }));
+  await screen.findByRole("menuitem", { name: "История активности" });
   return user;
 };
 
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 describe("AniListSortBar more menu", () => {
   it("calls activity and spotlight actions from shared dropdown items", async () => {
     const props = renderBar();
     const user = await openMenu();
-    await user.click(screen.getByRole("menuitem", { name: "Activity history" }));
+    await user.click(screen.getByRole("menuitem", { name: "История активности" }));
     expect(props.onActivityOpen).toHaveBeenCalledTimes(1);
 
     await openMenu();
-    await user.click(screen.getByRole("menuitem", { name: "Spotlight" }));
+    await user.click(screen.getByRole("menuitem", { name: "Витрина" }));
     expect(props.onSpotlight).toHaveBeenCalledTimes(1);
   });
 
   it("toggles group by status through the checkbox item", async () => {
     const props = renderBar();
     const user = await openMenu();
-    await user.click(screen.getByRole("menuitemcheckbox", { name: "Group by status" }));
+    await user.click(screen.getByRole("menuitemcheckbox", { name: "Группировать по статусу" }));
     expect(props.onGroupChange).toHaveBeenCalledWith(true);
   });
 
   it("switches display mode through radio items", async () => {
     const props = renderBar();
     await openMenu();
-    await screen.findByRole("menuitemradio", { name: "Pagination" });
+    await screen.findByRole("menuitemradio", { name: "Пагинация" });
     expect(
-      screen.getByRole("menuitemradio", { name: "Infinite scroll" }).getAttribute("aria-checked")
+      screen.getByRole("menuitemradio", { name: "Бесконечная прокрутка" }).getAttribute("aria-checked")
     ).toBe("true");
     const user = userEvent.setup();
-    await user.click(screen.getByRole("menuitemradio", { name: "Pagination" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Пагинация" }));
     expect(props.onDisplayChange).toHaveBeenCalledWith("pagination");
   });
 });

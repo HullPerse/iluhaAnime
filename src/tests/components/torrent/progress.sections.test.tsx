@@ -47,9 +47,9 @@ describe("TorrentProgress", () => {
       />
     );
 
-    expect(screen.getByText("Checking files")).toBeDefined();
+    expect(screen.getByText("Проверка файлов")).toBeDefined();
     expect(screen.getByText(/\(25\.0%\)/)).toBeDefined();
-    expect(screen.getByTitle("Show/E01.mkv").textContent).toBe("Checking: Show/E01.mkv");
+    expect(screen.getByTitle("Show/E01.mkv").textContent).toBe("Проверяется: Show/E01.mkv");
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("250");
     expect(screen.getByRole("progressbar").getAttribute("aria-valuemax")).toBe("1000");
   });
@@ -57,7 +57,7 @@ describe("TorrentProgress", () => {
   it("keeps the indeterminate bar while metadata is unresolved", () => {
     render(<TorrentProgress item={info({ state: "initializing", total_bytes: 0 })} />);
 
-    expect(screen.getByText("Initializing")).toBeDefined();
+    expect(screen.getByText("Инициализация")).toBeDefined();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBeNull();
   });
 });

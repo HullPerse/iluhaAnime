@@ -90,7 +90,7 @@ beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) =>
     command === "scan_extra_files" ? Promise.resolve([]) : Promise.resolve(undefined)
   );
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -101,14 +101,14 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
   it("shows download progress instead of an empty file list", () => {
     renderSection({ files: [] });
 
-    expect(screen.getByText("Downloading")).toBeDefined();
+    expect(screen.getByText("Загружается")).toBeDefined();
     expect(screen.getByText("42%")).toBeDefined();
     expect(screen.getByText("1.0 MB/s")).toBeDefined();
-    expect(screen.getByText("No files ready to play")).toBeDefined();
-    expect(screen.queryByText(/^Files:/)).toBeNull();
+    expect(screen.getByText("Готовых к проигрыванию файлов нет")).toBeDefined();
+    expect(screen.queryByText(/^Файла:/)).toBeNull();
     expect(screen.queryByText(/^File:/)).toBeNull();
     expect(
-      screen.getByRole("progressbar", { name: "Downloading" }).getAttribute("aria-valuenow")
+      screen.getByRole("progressbar", { name: "Загружается" }).getAttribute("aria-valuenow")
     ).toBe("420");
   });
 
@@ -118,9 +118,9 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
       item: torrent({ state: "paused", download_speed: 0, progress: 0.5, progress_bytes: 500 }),
     });
 
-    expect(screen.getByText("Paused")).toBeDefined();
+    expect(screen.getByText("Пауза")).toBeDefined();
     expect(screen.getByText("50%")).toBeDefined();
-    expect(screen.getByText("No files ready to play")).toBeDefined();
+    expect(screen.getByText("Готовых к проигрыванию файлов нет")).toBeDefined();
     expect(screen.queryByText("1.0 MB/s")).toBeNull();
   });
 
@@ -130,21 +130,21 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    fireEvent.click(screen.getByTitle("Open in folder"));
+    fireEvent.click(screen.getByTitle("Открыть в папке"));
     expect(mockOpenPath).toHaveBeenCalledWith(SAVE_DIR);
 
     const countCalls = () =>
       mockInvoke.mock.calls.filter(([command]) => command === "scan_extra_files").length;
     const callsBefore = countCalls();
-    fireEvent.click(screen.getByTitle("Refresh upscales"));
+    fireEvent.click(screen.getByTitle("Обновить апскейлы"));
     await waitFor(() => expect(countCalls()).toBe(callsBefore + 1));
   });
 
   it("still shows the loader while torrent files are pending", () => {
     renderSection({ files: undefined, torrentLoading: true });
 
-    expect(screen.getByText("Loading files...")).toBeDefined();
-    expect(screen.queryByText("No files ready to play")).toBeNull();
+    expect(screen.getByText("Загрузка файлов...")).toBeDefined();
+    expect(screen.queryByText("Готовых к проигрыванию файлов нет")).toBeNull();
   });
 
   it("reports the initial check and the file being hashed", () => {
@@ -159,11 +159,11 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
       }),
     });
 
-    expect(screen.getByText("Checking files")).toBeDefined();
+    expect(screen.getByText("Проверка файлов")).toBeDefined();
     expect(screen.getByText("25%")).toBeDefined();
-    expect(screen.getByTitle("Show/E01.mkv").textContent).toBe("Checking: Show/E01.mkv");
+    expect(screen.getByTitle("Show/E01.mkv").textContent).toBe("Проверяется: Show/E01.mkv");
     expect(
-      screen.getByRole("progressbar", { name: "Checking files" }).getAttribute("aria-valuenow")
+      screen.getByRole("progressbar", { name: "Проверка файлов" }).getAttribute("aria-valuenow")
     ).toBe("250");
   });
 
@@ -179,8 +179,8 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
       }),
     });
 
-    expect(screen.getByText("Checking files...")).toBeDefined();
-    expect(screen.queryByText("Loading files...")).toBeNull();
+    expect(screen.getByText("Проверка файлов...")).toBeDefined();
+    expect(screen.queryByText("Загрузка файлов...")).toBeNull();
   });
 
   it("explains missing files without drawing a progress bar", () => {
@@ -189,10 +189,9 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
       item: torrent({ missing_files: true, finished: true, state: "paused", error: "not found" }),
     });
 
-    expect(screen.getByText("Files gone")).toBeDefined();
+    expect(screen.getByText("Файлов нет")).toBeDefined();
     expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.queryByText("No files ready to play")).toBeNull();
-    expect(screen.getByText("not found")).toBeDefined();
+    expect(screen.queryByText("Готовых к проигрыванию файлов нет")).toBeNull();
   });
 
   it("shows an indeterminate bar while the torrent initializes", () => {
@@ -207,10 +206,10 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
       }),
     });
 
-    expect(screen.getByText("Initializing")).toBeDefined();
+    expect(screen.getByText("Инициализация")).toBeDefined();
     expect(screen.queryByText("0%")).toBeNull();
     expect(
-      screen.getByRole("progressbar", { name: "Initializing" }).getAttribute("aria-valuenow")
+      screen.getByRole("progressbar", { name: "Инициализация" }).getAttribute("aria-valuenow")
     ).toBeNull();
   });
 });
@@ -221,10 +220,10 @@ describe("TorrentFilesPlayerSection with content", () => {
       files: [file(0, "A/a.mkv"), file(1, "A/b.mkv"), file(2, "A/c.mkv", false)],
     });
 
-    expect(screen.getByText("Files: (2)")).toBeDefined();
-    expect(screen.queryByText("No files ready to play")).toBeNull();
+    expect(screen.getByText("Файла: (2)")).toBeDefined();
+    expect(screen.queryByText("Готовых к проигрыванию файлов нет")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Files: (2)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Файла: (2)" }));
     expect(onToggleExpand).toHaveBeenCalledTimes(1);
   });
 
@@ -237,9 +236,9 @@ describe("TorrentFilesPlayerSection with content", () => {
 
     renderSection({ files: [] });
 
-    await waitFor(() => expect(screen.getByText("+ 1 upscale")).toBeDefined());
-    expect(screen.queryByText(/^Files:/)).toBeNull();
-    expect(screen.queryByText("No files ready to play")).toBeNull();
+    await waitFor(() => expect(screen.getByText("+ 1 апскейл")).toBeDefined());
+    expect(screen.queryByText(/^Файла:/)).toBeNull();
+    expect(screen.queryByText("Готовых к проигрыванию файлов нет")).toBeNull();
   });
 
   it("resizes the list and remembers the height", () => {

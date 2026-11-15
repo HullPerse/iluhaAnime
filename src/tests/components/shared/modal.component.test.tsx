@@ -11,7 +11,7 @@ afterEach(() => {
 
 describe("Modal stacking guard", () => {
   it("stays silent with a single dialog", async () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     render(
       <Modal header="Test" onClose={() => undefined}>
@@ -24,7 +24,7 @@ describe("Modal stacking guard", () => {
   });
 
   it("warns when a second dialog mounts on top", async () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     render(
       <Modal header="First" onClose={() => undefined}>
@@ -43,7 +43,7 @@ describe("Modal stacking guard", () => {
 
 describe("Modal close guard", () => {
   it("keeps the dialog open when canClose refuses", () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const onClose = vi.fn();
     render(
       <Modal header="Test" onClose={onClose} canClose={() => false}>
@@ -51,14 +51,14 @@ describe("Modal close guard", () => {
       </Modal>
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeDefined();
   });
 
   it("closes when canClose allows it", () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const onClose = vi.fn();
     render(
       <Modal header="Test" onClose={onClose} canClose={() => true}>
@@ -66,7 +66,7 @@ describe("Modal close guard", () => {
       </Modal>
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -74,7 +74,7 @@ describe("Modal close guard", () => {
 
 describe("Modal pager", () => {
   it("shows the position and jumps between images", () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const onPrevious = vi.fn();
     const onNext = vi.fn();
     render(
@@ -88,15 +88,15 @@ describe("Modal pager", () => {
     );
 
     expect(screen.getByText("2 / 4")).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Назад" }));
+    fireEvent.click(screen.getByRole("button", { name: "Далее" }));
 
     expect(onPrevious).toHaveBeenCalledTimes(1);
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
   it("hides the controls for a single image", () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     render(
       <Modal
         header="Images"
@@ -107,12 +107,12 @@ describe("Modal pager", () => {
       </Modal>
     );
 
-    expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
-    expect(screen.queryByRole("group", { name: "Images" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Далее" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Изображения" })).toBeNull();
   });
 
   it("pages with the arrow keys", () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const onPrevious = vi.fn();
     const onNext = vi.fn();
     render(
@@ -133,7 +133,7 @@ describe("Modal pager", () => {
   });
 
   it("leaves arrow keys alone inside a text field", () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const onNext = vi.fn();
     render(
       <Modal

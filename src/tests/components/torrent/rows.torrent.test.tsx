@@ -74,7 +74,7 @@ const VISIBLE_RECT = {
 let realRect: typeof Element.prototype.getBoundingClientRect;
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   realRect = Element.prototype.getBoundingClientRect;
   Element.prototype.getBoundingClientRect = () => VISIBLE_RECT;
 });
@@ -88,22 +88,22 @@ describe("TorrentFileRow disk usage", () => {
   it("reports the allocated size of an unfinished selected file, even at zero", () => {
     renderFileRow({ file: treeFile({ on_disk_bytes: 0, progress_bytes: 0 }) });
 
-    expect(screen.getByTitle("On disk: 0 B")).toBeDefined();
+    expect(screen.getByTitle("На диске: 0 B")).toBeDefined();
   });
 
   it("reports the bytes a sparse partial actually occupies", () => {
     renderFileRow({ file: treeFile({ on_disk_bytes: 2048, progress_bytes: 1024 }) });
 
-    expect(screen.getByTitle("On disk: 2.0 KB")).toBeDefined();
+    expect(screen.getByTitle("На диске: 2.0 KB")).toBeDefined();
   });
 
   it("stays quiet for finished and unselected files", () => {
     const finished = renderFileRow({ file: treeFile({ completed: true, on_disk_bytes: 0 }) });
-    expect(screen.queryByTitle(/^On disk:/)).toBeNull();
+    expect(screen.queryByTitle(/^На диске:/)).toBeNull();
 
     finished.view.unmount();
     renderFileRow({ file: treeFile({ selected: false, on_disk_bytes: 0 }) });
-    expect(screen.queryByTitle(/^On disk:/)).toBeNull();
+    expect(screen.queryByTitle(/^На диске:/)).toBeNull();
   });
 });
 

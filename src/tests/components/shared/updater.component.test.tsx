@@ -24,7 +24,7 @@ afterEach(() => {
 
 describe("passive update prompt", () => {
   it("does not register itself into the overlay stack it waits on", async () => {
-    patchSettings({ language: "en", modalAnimation: false });
+    patchSettings({ language: "ru", modalAnimation: false });
     const start = overlayAtoms.entries.get().length;
     render(<PassivePromptGate />);
 

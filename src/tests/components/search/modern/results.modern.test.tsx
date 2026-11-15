@@ -72,7 +72,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  patchSettings({ language: "en", torrentCoverMode: "off" });
+  patchSettings({ language: "ru", torrentCoverMode: "off" });
   mockInvoke.mockReset();
   mockInvoke.mockImplementation(async () => null);
 });
@@ -108,11 +108,11 @@ describe("ModernResults pager state", () => {
       pageFull: false,
       resultsPerPage: 20,
     });
-    expect((screen.getByRole("button", { name: "Next page" }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole("button", { name: "Следующая страница" }) as HTMLButtonElement).disabled).toBe(
       true
     );
     expect(
-      (screen.getByRole("button", { name: "Previous page" }) as HTMLButtonElement).disabled
+      (screen.getByRole("button", { name: "Предыдущая страница" }) as HTMLButtonElement).disabled
     ).toBe(false);
   });
 
@@ -128,7 +128,7 @@ describe("ModernResults pager state", () => {
       isFetching: true,
       setNyaaPage,
     });
-    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    fireEvent.click(screen.getByRole("button", { name: "Следующая страница" }));
     expect(setNyaaPage).not.toHaveBeenCalled();
   });
 });

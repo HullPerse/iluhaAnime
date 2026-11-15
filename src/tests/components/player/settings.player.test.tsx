@@ -56,7 +56,7 @@ const rootCheckboxes = (): HTMLElement[] => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -67,7 +67,7 @@ afterEach(() => {
 describe("SettingsPanel selects", () => {
   it("hides the local playback profile for a stream", () => {
     renderPanel(PANEL_DEFAULTS, true);
-    expect(screen.queryByText("Playback profile (local files)")).toBeNull();
+    expect(screen.queryByText("Профиль воспроизведения (локальные файлы)")).toBeNull();
   });
 
   it.each([
@@ -92,41 +92,41 @@ describe("SettingsPanel screen modes", () => {
   it("switches the player mode", async () => {
     const user = userEvent.setup();
     const spies = renderPanel();
-    await chooseOption(screen.getByRole("combobox", { name: "Player mode" }), 1, user);
+    await chooseOption(screen.getByRole("combobox", { name: "Режим плеера" }), 1, user);
     expect(spies.onPatchSettings).toHaveBeenCalledWith({ playerMode: "tv" });
   });
 
   it("keeps the cabinet and hides curvature in the normal mode", () => {
     renderPanel();
-    expect(screen.queryByRole("combobox", { name: "Cabinet" })).not.toBeNull();
-    expect(screen.queryByRole("combobox", { name: "Curvature" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Корпус" })).not.toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Кривизна" })).toBeNull();
   });
 
   it("shows cabinet and curvature for the television mode", () => {
     renderPanel({ ...DEFAULT_PLAYER_SETTINGS, playerMode: "tv" });
-    expect(screen.queryByRole("combobox", { name: "Cabinet" })).not.toBeNull();
-    expect(screen.queryByRole("combobox", { name: "Curvature" })).not.toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Корпус" })).not.toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Кривизна" })).not.toBeNull();
   });
 
   it("shows the cabinet without curvature for the monitor mode", () => {
     renderPanel({ ...DEFAULT_PLAYER_SETTINGS, playerMode: "monitor" });
-    expect(screen.queryByRole("combobox", { name: "Cabinet" })).not.toBeNull();
-    expect(screen.queryByRole("combobox", { name: "Curvature" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Корпус" })).not.toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Кривизна" })).toBeNull();
   });
 
   it("applies cabinet and curvature selections", async () => {
     const user = userEvent.setup();
     const spies = renderPanel({ ...DEFAULT_PLAYER_SETTINGS, playerMode: "tv" });
-    await chooseOption(screen.getByRole("combobox", { name: "Cabinet" }), 2, user);
+    await chooseOption(screen.getByRole("combobox", { name: "Корпус" }), 2, user);
     expect(spies.onPatchSettings).toHaveBeenCalledWith({ cabinet: "wood" });
-    await chooseOption(screen.getByRole("combobox", { name: "Curvature" }), 2, user);
+    await chooseOption(screen.getByRole("combobox", { name: "Кривизна" }), 2, user);
     expect(spies.onPatchSettings).toHaveBeenCalledWith({ crtCurvature: 0.07 });
   });
 
   it("turns the cabinet off again", async () => {
     const user = userEvent.setup();
     const spies = renderPanel({ ...DEFAULT_PLAYER_SETTINGS, cabinet: "wood" });
-    await chooseOption(screen.getByRole("combobox", { name: "Cabinet" }), 0, user);
+    await chooseOption(screen.getByRole("combobox", { name: "Корпус" }), 0, user);
     expect(spies.onPatchSettings).toHaveBeenCalledWith({ cabinet: "none" });
   });
 });
@@ -189,12 +189,12 @@ describe("SettingsPanel colors and reset", () => {
 describe("SettingsPanel conditional HDR controls", () => {
   it("hides manual HDR controls in auto mode", () => {
     renderPanel({ ...DEFAULT_PLAYER_SETTINGS, toneMap: "auto" });
-    expect(screen.queryByRole("slider", { name: /peak/i })).toBeNull();
+    expect(screen.queryByRole("slider", { name: /Пик дисплея/ })).toBeNull();
   });
 
   it("shows manual HDR controls and wires the peak slider", () => {
     const spies = renderPanel({ ...DEFAULT_PLAYER_SETTINGS, toneMap: "manual" });
-    const peak = screen.getByRole("slider", { name: /peak/i });
+    const peak = screen.getByRole("slider", { name: /Пик дисплея/ });
     fireEvent.keyDown(peak, { key: "ArrowRight" });
     expect(spies.onPatchSettings).toHaveBeenCalledWith({ targetPeak: 1050 });
   });

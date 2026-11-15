@@ -86,7 +86,7 @@ beforeEach(() => {
     }
     return Promise.resolve(null);
   });
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 describe("AniListFavouritesModal tabs", () => {
@@ -106,16 +106,16 @@ describe("AniListFavouritesModal tabs", () => {
 
   it("shows the anime tab first with counts on every tab", () => {
     renderOpen();
-    expect(screen.getByRole("tab", { name: "Anime (1)" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Characters (1)" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Staff (1)" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Аниме (1)" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Персонажи (1)" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Люди (1)" })).toBeTruthy();
     expect(screen.getByText("Anime One")).toBeTruthy();
     expect(screen.queryByText("Char One")).toBeNull();
   });
 
   it("switches to the characters tab on click", () => {
     renderOpen();
-    fireEvent.click(screen.getByRole("tab", { name: "Characters (1)" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Персонажи (1)" }));
     expect(screen.getByText("Char One")).toBeTruthy();
     expect(screen.queryByText("Anime One")).toBeNull();
   });
@@ -128,8 +128,8 @@ describe("AniListFavouritesModal tabs", () => {
 
   it("shows a per-tab empty state", () => {
     renderOpen({ people: EMPTY_PEOPLE });
-    fireEvent.click(screen.getByRole("tab", { name: "Staff (0)" }));
-    expect(screen.getByText("No favourite staff")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Люди (0)" }));
+    expect(screen.getByText("Нет избранного персонала")).toBeTruthy();
   });
 
   it("opens anime details through close plus click", () => {
@@ -141,29 +141,29 @@ describe("AniListFavouritesModal tabs", () => {
 
   it("opens the character inside the same dialog with a back button", async () => {
     const { onClose } = renderOpen();
-    fireEvent.click(screen.getByRole("tab", { name: "Characters (1)" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Персонажи (1)" }));
     fireEvent.click(screen.getByText("Char One"));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toBeDefined());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Назад" })).toBeDefined());
     expect(screen.getByRole("heading", { name: "Char One" })).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Favourites" })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Назад" }));
+    expect(screen.queryByRole("button", { name: "Назад" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Избранное" })).toBeDefined();
     expect(screen.getByText("Char One")).toBeDefined();
   });
 
   it("opens the staff view inside the same dialog with a back button", async () => {
     const { onClose } = renderOpen();
-    fireEvent.click(screen.getByRole("tab", { name: "Staff (1)" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Люди (1)" }));
     fireEvent.click(screen.getByText("Staff One"));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toBeDefined());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Назад" })).toBeDefined());
     expect(screen.getByRole("heading", { name: "Staff One" })).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Favourites" })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Назад" }));
+    expect(screen.queryByRole("button", { name: "Назад" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Избранное" })).toBeDefined();
     expect(screen.getByText("Staff One")).toBeDefined();
   });
 });

@@ -292,8 +292,7 @@ const settings = {
   "settings.torrent.leftovers.none": "Недокачанных файлов не осталось.",
   "settings.torrent.leftovers.count":
     "Торрентов с недокачанными файлами: {{count}}, занято {{size}}.",
-  "settings.torrent.leftovers.hint":
-    "Файлы, оставленные при удалении незавершённого торрента. Плеер их не откроет; удалите, чтобы вернуть место.",
+  "settings.torrent.leftovers.hint": "Плеер их не откроет; удалите, чтобы вернуть место.",
   "settings.torrent.leftovers.clear": "Удалить недокачанное",
   "settings.torrent.leftovers.confirm": "Удалить записанные недокачанные файлы с диска?",
   "settings.torrent.leftovers.clear.failed": "Не удалось удалить недокачанные файлы",
@@ -319,7 +318,6 @@ const settings = {
   "settings.torrent.diagnostics.unavailable": "недоступен",
   "settings.torrent.diagnostics.no.proxy": "без прокси",
   "settings.torrent.diagnostics.verdict.ok": "RuTracker доступен",
-  "settings.torrent.diagnostics.description": "Проверка DNS, TCP, TLS и HTTP-доступа к трекеру.",
   "settings.torrent.diagnostics.verdict.ok.detail": "Все стадии пройдены.",
   "settings.torrent.diagnostics.verdict.http.detail": "Хост ответил HTTP {{status}}.",
   "settings.torrent.diagnostics.verdict.antibot.detail": "В ответе страница проверки, а не форум.",
@@ -370,7 +368,6 @@ const settings = {
   "settings.torrent.schedule.night.limits": "Ночные лимиты (КБ/с)",
   "settings.torrent.defaults": "Настройки торрентов по умолчанию",
   "settings.torrent.default.download.dir": "Папка загрузки по умолчанию",
-  "settings.torrent.default.download.dir.hint": "Папка, куда сохранять новые торренты",
   "settings.torrent.default.concurrent": "Макс. одновременных скачиваний",
   "settings.theme.schedule": "Тема день/ночь",
   "settings.theme.schedule.enable": "Переключать тему по времени суток",
@@ -416,8 +413,6 @@ const settings = {
   "settings.collection.proxy.title": "Коллекция и Daily",
   "settings.collection.proxy.images": "Прокси картинок карточек",
   "settings.collection.proxy.daily": "Прокси Daily-игр",
-  "settings.collection.proxy.description":
-    "Пустые поля используют прокси AniList. Картинки и эндпоинты Daily можно направить через свой прокси.",
   "settings.stream.tab": "Стриминг",
   "settings.ffmpeg.source.essentials": "gyan.dev (essentials, ~30 МБ)",
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 МБ)",
@@ -471,7 +466,7 @@ const settings = {
   "settings.find.placeholder": "Найти параметр (Ctrl+K)",
   "settings.proxy": "Прокси",
   "settings.proxy.description":
-    "Прокси для интеграций и источников. Проверка не прерывается автоматически; если она идёт дольше {{seconds}} с, индикатор краснеет.",
+    "Проверка не прерывается автоматически: если она идёт дольше {{seconds}} с, индикатор краснеет.",
   "settings.proxy.invalid": "Некорректный адрес прокси. Пример: socks5://127.0.0.1:10808",
   "settings.proxy.no": "Без прокси",
   "settings.proxy.custom": "Свой",
@@ -483,14 +478,12 @@ const settings = {
   "settings.proxy.test.fail": "Ошибка",
   "settings.proxy.torrent.title": "Торрент-прокси",
   "settings.proxy.torrent.description":
-    "SOCKS5 или HTTP для peer-соединений и HTTP(S)-трекеров. Применяется после перезапуска приложения.",
+    "SOCKS5 или HTTP для пиров и HTTP(S)-трекеров. Применяется после перезапуска.",
   "settings.proxy.torrent.coverage":
-    "Через прокси идут TCP-пиры и HTTP(S)-трекеры. DHT, UDP-трекеры, uTP и входящие подключения - напрямую.",
+    "Через прокси: TCP-пиры и HTTP(S)-трекеры. DHT, UDP, uTP и входящие - напрямую.",
   "settings.proxy.torrent.active": "Активная сессия: {{proxy}}",
   "settings.proxy.torrent.inactive": "Активная сессия: без прокси",
   "settings.proxy.sources.title": "Прокси источников",
-  "settings.proxy.sources.description":
-    "Отдельный прокси для каждого источника поиска. Можно проверить один источник или сразу все.",
   "settings.torrent.port.invalid": "Порт должен быть числом от 0 до 65535",
   "settings.torrent.timeout.invalid": "Значение должно быть от 1 до 3600",
   "settings.group.main": "Основное",
@@ -507,25 +500,23 @@ const settings = {
   "settings.reset.section": "Сбросить секцию к значениям по умолчанию",
   "settings.screenshot": "Скриншоты",
   "settings.screenshot.folder": "Папка для скриншотов",
-  "settings.screenshot.folder.hint": "Куда сохранять скриншоты",
   "settings.screenshot.format": "Формат по умолчанию",
   "settings.screenshot.open.folder": "Открывать папку после сохранения",
   "settings.animelib.title": "Аккаунт AnimeLib",
   "settings.animelib.token": "Токен сессии",
   "settings.animelib.token.description":
-    "Вставьте токен Authorization из сетевых запросов сайта или токен из его localStorage.",
+    "Токен Authorization из сетевых запросов сайта или из его localStorage.",
   "settings.animelib.token.placeholder": "Вставьте токен AnimeLib",
   "settings.animelib.token.save": "Сохранить токен",
   "settings.animelib.token.clear": "Удалить токен",
   "settings.animelib.account.loading": "Проверяем сессию...",
   "settings.animelib.account.login": "Вы вошли как {{login}}",
+  "settings.animelib.account.signedIn": "Вы вошли в аккаунт AnimeLib",
   "settings.animelib.account.invalid": "Токен сохранён, но сессия отклонена",
   "settings.animelib.account.none": "Вход не выполнен",
   "settings.animelib.token.saved": "Токен проверен и сохранён",
   "settings.animelib.login": "Войти через AnimeLib",
   "settings.animelib.login.waiting": "Ждём вход в окне браузера...",
-  "settings.animelib.login.hint":
-    "Откроется страница сайта через настроенный прокси. Войдите как обычно, токен сохранится сам.",
   "settings.animelib.login.closed": "Окно входа закрыто до сохранения сессии.",
   "settings.animelib.login.timeout": "Вход не завершён. Попробуйте ещё раз.",
   "settings.animelib.login.proxy.socks5.auth":

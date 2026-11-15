@@ -136,7 +136,7 @@ vi.mock("@/routes/components/anilist/detail/modal.detail", () => ({
 }));
 
 beforeEach(() => {
-  patchSettings({ language: "en", playerPrewarmEnabled: true });
+  patchSettings({ language: "ru", playerPrewarmEnabled: true });
   api.prefsGet.mockReset().mockResolvedValue(DEFAULT_PREFS);
   api.prefsSave.mockReset().mockResolvedValue(undefined);
   api.players.mockReset().mockImplementation(async () => DEFAULT_PLAYERS);
@@ -168,7 +168,7 @@ describe("StreamDetail AniList button", () => {
   it("copies the sharing link of this title from the modal header", async () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Скопировать ссылку" }));
 
     await waitFor(() =>
       expect(clipboard.writeText).toHaveBeenCalledWith(
@@ -180,8 +180,8 @@ describe("StreamDetail AniList button", () => {
   it("keeps the AniList action in the modal header next to the close button", () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    const anilist = screen.getByRole("button", { name: "AniList details" });
-    const close = screen.getByRole("button", { name: "Close" });
+    const anilist = screen.getByRole("button", { name: "Детали в AniList" });
+    const close = screen.getByRole("button", { name: "Закрыть" });
 
     expect(anilist.parentElement).toBe(close.parentElement);
     expect(anilist.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -190,7 +190,7 @@ describe("StreamDetail AniList button", () => {
   it("opens the AniList details in the app instead of the browser", () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "AniList details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Детали в AniList" }));
 
     expect(screen.getByTestId("anilist-detail").textContent).toContain("AniList 154587");
     expect(screen.queryByText("The Journey's End")).toBeNull();
@@ -253,7 +253,7 @@ describe("StreamDetail AniList button", () => {
   it("returns to the episode list from the AniList details", () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "AniList details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Детали в AniList" }));
     fireEvent.click(screen.getByRole("button", { name: "detail back" }));
 
     expect(screen.queryByTestId("anilist-detail")).toBeNull();

@@ -15,7 +15,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   mockOpenPath.mockReset();
   mockOpenPath.mockResolvedValue(undefined);
-  patchSettings({ language: "en", notificationPopups: "inapp" });
+  patchSettings({ language: "ru", notificationPopups: "inapp" });
 });
 
 afterEach(() => {
@@ -64,7 +64,7 @@ describe("NotificationToasts", () => {
   it("marks the notification read when the user closes the toast", () => {
     render(<NotificationToasts />);
     addInfo();
-    fireEvent.click(screen.getByLabelText("Dismiss notification"));
+    fireEvent.click(screen.getByLabelText("Скрыть уведомление"));
     expect(screen.queryByText("Hello")).toBeNull();
     expect(notificationAtoms.items.get()).toHaveLength(1);
     expect(notificationAtoms.items.get()[0].read).toBe(true);
@@ -163,7 +163,7 @@ describe("NotificationToasts", () => {
       });
     });
     expect(id).toBeGreaterThan(0);
-    fireEvent.keyDown(screen.getByRole("button", { name: "Open anime details" }), {
+    fireEvent.keyDown(screen.getByRole("button", { name: "Открыть карточку аниме" }), {
       key: "Enter",
     });
     expect(mockOpenPath).toHaveBeenCalledWith("D:\\Anime");

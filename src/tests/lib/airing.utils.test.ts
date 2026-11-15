@@ -10,14 +10,10 @@ import {
   groupAiringByDay,
   seasonAiringRows,
 } from "@/lib/core/anilist/airing.utils";
-import { translateFor } from "@/lib/locale/i18n.utils";
+import { translate } from "@/lib/locale/i18n.utils";
 import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist/anilist";
 
-const ru = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
-  translateFor("ru", key, vars);
-
-const en = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
-  translateFor("en", key, vars);
+const ru = translate;
 
 describe("anilist/airing", () => {
   describe("airingCountdownSecs", () => {
@@ -42,27 +38,21 @@ describe("anilist/airing", () => {
     it.each([[null], [0], [-5], [Number.NaN], [Infinity]] as const)(
       "returns empty for secs %s",
       (secs) => {
-        expect(formatAiringCountdown(secs, en)).toBe("");
+        expect(formatAiringCountdown(secs, ru)).toBe("");
       }
     );
 
     it.each([
       { secs: 45, t: ru, expected: "45 сек" },
-      { secs: 45, t: en, expected: "45 sec" },
       { secs: 125, t: ru, expected: "2 мин 5 сек" },
       { secs: 3661, t: ru, expected: "1 ч 1 мин" },
-      { secs: 3661, t: en, expected: "1 h 1 min" },
-      { secs: 86_399, t: en, expected: "23 h 59 min" },
     ])("delegates sub-day $secs to clock units as $expected", ({ secs, t, expected }) => {
       expect(formatAiringCountdown(secs, t)).toBe(expected);
     });
 
     it.each([
-      { secs: 86_400, t: en, expected: "1 d" },
       { secs: 86_400, t: ru, expected: "1 д" },
-      { secs: 90_000, t: en, expected: "1 d 1 h" },
       { secs: 90_000, t: ru, expected: "1 д 1 ч" },
-      { secs: 180_000, t: en, expected: "2 d 2 h" },
       { secs: 259_200, t: ru, expected: "3 д" },
     ])("formats $secs as $expected", ({ secs, t, expected }) => {
       expect(formatAiringCountdown(secs, t)).toBe(expected);
@@ -73,15 +63,15 @@ describe("anilist/airing", () => {
     it.each([[null], [0], [-5], [Number.NaN]] as const)(
       "returns null for airingAt %s",
       (airingAt) => {
-        expect(formatAiringLocal(airingAt, "en")).toBeNull();
+        expect(formatAiringLocal(airingAt, "ru")).toBeNull();
       }
     );
 
     it("includes the local time of day, not just the date", () => {
       const airingAt = 1_728_000_000;
-      const result = formatAiringLocal(airingAt, "en");
+      const result = formatAiringLocal(airingAt, "ru");
       expect(typeof result).toBe("string");
-      expect(result).not.toBe(new Date(airingAt * 1000).toLocaleDateString("en"));
+      expect(result).not.toBe(new Date(airingAt * 1000).toLocaleDateString("ru"));
     });
   });
 

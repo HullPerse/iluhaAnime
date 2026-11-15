@@ -64,7 +64,7 @@ beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) =>
     command === "scan_extra_files" ? Promise.resolve([]) : Promise.resolve(undefined)
   );
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -75,9 +75,9 @@ describe("TorrentCategoryEntry", () => {
   it("shows a progress state instead of nothing while no file is finished", () => {
     renderEntry({ 1: [] });
 
-    expect(screen.getByText("Downloading")).toBeDefined();
+    expect(screen.getByText("Загружается")).toBeDefined();
     expect(screen.getByText("10%")).toBeDefined();
-    expect(screen.getByText("No files ready to play")).toBeDefined();
+    expect(screen.getByText("Готовых к проигрыванию файлов нет")).toBeDefined();
   });
 
   it("stays hidden until the file list is known", () => {
@@ -89,7 +89,7 @@ describe("TorrentCategoryEntry", () => {
   it("renders the finished files list when a file is ready", () => {
     renderEntry({ 1: [file(0, "A/a.mkv")] });
 
-    expect(screen.queryByText("No files ready to play")).toBeNull();
+    expect(screen.queryByText("Готовых к проигрыванию файлов нет")).toBeNull();
     expect(document.querySelector("[data-tree-root]")).not.toBeNull();
   });
 });

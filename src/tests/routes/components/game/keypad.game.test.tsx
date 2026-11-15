@@ -5,7 +5,7 @@ import GameKeypad from "@/routes/components/game/keypad.game";
 import { patchSettings } from "@/store/settings.store";
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -48,6 +48,6 @@ describe("GameKeypad", () => {
 
   it("labels the pad for assistive tech", () => {
     render(<GameKeypad pressedKeys={new Set()} enabled onPress={() => undefined} />);
-    expect(screen.getByRole("group", { name: "Keypad" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Клавиатура" })).toBeTruthy();
   });
 });

@@ -18,7 +18,7 @@ function setOnline(value: boolean): void {
 }
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   noteNetworkSuccess();
   probeNetwork.mockClear();
   vi.spyOn(systemApi, "probeNetwork").mockImplementation(probeNetwork);
@@ -37,10 +37,10 @@ describe("OfflineBanner", () => {
 
     expect(screen.getByTestId("offline-banner")).toBeDefined();
     expect(
-      screen.getByText(/Collection, Torrents, Player and Settings work offline/)
+      screen.getByText(/Коллекция, Торренты, Плеер и Параметры работают без сети/)
     ).toBeDefined();
-    expect(screen.getByText(/Search, AniList and streaming/)).toBeDefined();
-    expect(screen.queryByRole("button", { name: /Check again/ })).toBeNull();
+    expect(screen.getByText(/Поиск, AniList и стриминг/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Проверить снова/ })).toBeNull();
   });
 
   it("stays out of the shell while the app is online", () => {
@@ -55,10 +55,10 @@ describe("OfflineBanner", () => {
     networkAtoms.reachable.set(false);
     render(<OfflineBanner />);
 
-    expect(screen.getByText("The network is not answering")).toBeDefined();
-    expect(screen.getByText(/Check the VPN or the proxy/)).toBeDefined();
+    expect(screen.getByText("Сеть не отвечает")).toBeDefined();
+    expect(screen.getByText(/Проверьте VPN или прокси/)).toBeDefined();
 
-    fireEvent.click(screen.getByRole("button", { name: /Check again/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Проверить снова/ }));
 
     await waitFor(() => expect(screen.queryByTestId("offline-banner")).toBeNull());
     expect(probeNetwork).toHaveBeenCalledTimes(1);
@@ -70,7 +70,7 @@ describe("OfflineBanner", () => {
     networkAtoms.reachable.set(false);
     render(<OfflineBanner />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Check again/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Проверить снова/ }));
 
     await waitFor(() => expect(probeNetwork).toHaveBeenCalledTimes(1));
     expect(screen.getByTestId("offline-banner")).toBeDefined();

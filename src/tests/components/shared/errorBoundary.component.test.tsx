@@ -35,7 +35,7 @@ describe("ErrorBoundary fatal contract", () => {
         <Bomb blow />
       </ErrorBoundary>
     );
-    expect(screen.getByText("Render error")).toBeDefined();
+    expect(screen.getByText("Ошибка отрисовки")).toBeDefined();
     expect(screen.getByText("kaboom render")).toBeDefined();
   });
 
@@ -46,8 +46,8 @@ describe("ErrorBoundary fatal contract", () => {
         <Bomb blow />
       </ErrorBoundary>
     );
-    await user.click(screen.getByRole("button", { name: "Try again" }));
-    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Попробовать снова" }));
+    expect(screen.queryByRole("button", { name: "Попробовать снова" })).toBeNull();
     expect(screen.getByText("kaboom render")).toBeDefined();
   });
 
@@ -60,7 +60,7 @@ describe("ErrorBoundary fatal contract", () => {
         <Bomb blow />
       </ErrorBoundary>
     );
-    await user.click(screen.getByRole("button", { name: "Reload app" }));
+    await user.click(screen.getByRole("button", { name: "Перезапустить" }));
     expect(onResetCache).toHaveBeenCalledTimes(1);
     expect(reload).toHaveBeenCalledTimes(1);
   });
@@ -75,7 +75,7 @@ describe("ErrorBoundary fatal contract", () => {
     act(() => {
       reportFatal(liveInfo());
     });
-    expect(screen.getByText("Repeated errors")).toBeDefined();
+    expect(screen.getByText("Повторяющиеся ошибки")).toBeDefined();
     expect(screen.getByText("repeated unhandled rejection")).toBeDefined();
   });
 

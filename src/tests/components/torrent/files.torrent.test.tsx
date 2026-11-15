@@ -82,7 +82,7 @@ const pressKey = (code: string, target: EventTarget): void => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -413,8 +413,8 @@ describe("TorrentFilesSection file menu", () => {
     const spy = vi.fn();
     holder.addEventListener("click", spy);
 
-    await waitFor(() => menuitem("Open in iluhaAnime player"));
-    await userEvent.click(menuitem("Open in iluhaAnime player"));
+    await waitFor(() => menuitem("Открыть в плеере iluhaAnime"));
+    await userEvent.click(menuitem("Открыть в плеере iluhaAnime"));
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(onPlay).toHaveBeenCalledTimes(1);
@@ -424,8 +424,8 @@ describe("TorrentFilesSection file menu", () => {
     renderSection();
     openMenu(0);
 
-    await waitFor(() => menuitem("Open in folder"));
-    await userEvent.click(menuitem("Open in folder"));
+    await waitFor(() => menuitem("Открыть в папке"));
+    await userEvent.click(menuitem("Открыть в папке"));
 
     expect(mockOpenPath).toHaveBeenCalledWith("D:/media");
   });

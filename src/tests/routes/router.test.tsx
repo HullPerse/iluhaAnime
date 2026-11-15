@@ -53,7 +53,7 @@ const renderAt = (href: string) => {
 
 beforeEach(() => {
   patchSettings({
-    language: "en",
+    language: "ru",
     collectionTabEnabled: true,
     anilistTabEnabled: true,
     searchTabEnabled: true,
@@ -73,7 +73,7 @@ describe("router", () => {
     const router = renderAt("/definitely-not-a-route");
 
     await waitFor(() => {
-      expect(screen.getByText("Page not found")).toBeTruthy();
+      expect(screen.getByText("Страница не найдена")).toBeTruthy();
     });
     expect(router.state.location.pathname).toBe("/definitely-not-a-route");
   });
@@ -95,7 +95,7 @@ describe("router", () => {
     await waitFor(() => {
       expect(screen.getByTestId("player-window")).toBeTruthy();
     });
-    expect(screen.queryByText("Page not found")).toBeNull();
+    expect(screen.queryByText("Страница не найдена")).toBeNull();
   });
 
   it("renders the search surface inside the app shell for the index path", async () => {
@@ -138,7 +138,7 @@ describe("router", () => {
     await waitFor(() => {
       expect(screen.getByTestId("route-torrent")).toBeTruthy();
     });
-    expect(screen.queryByText("Page not found")).toBeNull();
+    expect(screen.queryByText("Страница не найдена")).toBeNull();
   });
 
   it("redirects a settings-disabled tab to the first enabled tab", async () => {

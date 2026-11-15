@@ -27,11 +27,11 @@ const renderPager = (props?: {
 describe("SearchPager", () => {
   it("disables next on a short page", () => {
     renderPager({ pageFull: false });
-    expect((screen.getByRole("button", { name: "Next page" }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole("button", { name: "Следующая страница" }) as HTMLButtonElement).disabled).toBe(
       true
     );
     expect(
-      (screen.getByRole("button", { name: "Previous page" }) as HTMLButtonElement).disabled
+      (screen.getByRole("button", { name: "Предыдущая страница" }) as HTMLButtonElement).disabled
     ).toBe(false);
   });
 
@@ -39,9 +39,9 @@ describe("SearchPager", () => {
     const user = userEvent.setup();
     const onPageChange = vi.fn();
     renderPager({ onPageChange });
-    await user.click(screen.getByRole("button", { name: "Next page" }));
+    await user.click(screen.getByRole("button", { name: "Следующая страница" }));
     expect(onPageChange).toHaveBeenCalledWith(3);
-    await user.click(screen.getByRole("button", { name: "Previous page" }));
+    await user.click(screen.getByRole("button", { name: "Предыдущая страница" }));
     expect(onPageChange).toHaveBeenCalledWith(1);
   });
 
@@ -49,7 +49,7 @@ describe("SearchPager", () => {
     const user = userEvent.setup();
     const onPageChange = vi.fn();
     renderPager({ isLoading: true, onPageChange });
-    await user.click(screen.getByRole("button", { name: "Next page" }));
+    await user.click(screen.getByRole("button", { name: "Следующая страница" }));
     expect(onPageChange).not.toHaveBeenCalled();
   });
 });

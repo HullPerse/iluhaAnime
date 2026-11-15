@@ -108,9 +108,6 @@ export default function SettingsProxy() {
           <SectionResetButton sectionId="proxy.collection" />
         </div>
         <div className="flex flex-col gap-2 p-2">
-          <p className="text-hint windows95-text px-1 text-xs">
-            {t("settings.collection.proxy.description")}
-          </p>
           <ProxyField
             label={t("settings.collection.proxy.images")}
             value={cardsImageProxyUrl}

@@ -58,9 +58,7 @@ const anilist = {
   "anilist.airing.season.error": "Не удалось загрузить сезон",
   "anilist.airing.empty": "На этой неделе из ваших списков ничего не выходит",
   "anilist.airing.aired": "Вышло",
-  "anilist.auth.intro": "Вставьте ваш токен доступа AniList",
   "anilist.auth.browser": "Войти через браузер",
-  "anilist.auth.browser.hint": "Подтвердите в браузере, токен подхватится сам",
   "anilist.auth.manual": "Или вставьте токен вручную",
   "anilist.auth.save": "Сохранить",
   "anilist.auth.step1": "Зайдите на",
@@ -147,7 +145,7 @@ const anilist = {
   "anilist.details.load.error": "Не удалось загрузить данные",
   "anilist.details.loading": "Загрузка...",
   "anilist.details.login.required":
-    "AniList теперь требует вход для просмотра деталей. Войдите во вкладке AniList и повторите.",
+    "AniList требует вход: войдите во вкладке AniList и повторите.",
   "anilist.details.rating": "Рейтинг",
   "anilist.details.remove.fav": "Убрать из избранного",
   "anilist.details.retry": "Повторить",
@@ -188,7 +186,7 @@ const anilist = {
   "anilist.filters.genre.placeholder": "Выберите жанр...",
   "anilist.filters.genres": "Жанры",
   "anilist.filters.local.note":
-    "Фильтруем ваш список. Сортировка, источник, страна и NSFW работают только в глобальном поиске.",
+    "Сортировка, источник, страна и NSFW работают только в глобальном поиске.",
   "anilist.filters.nsfw.placeholder": "Выберите NSFW тэг...",
   "anilist.filters.nsfw.tags": "NSFW тэги",
   "anilist.filters.random": "Случайное",
@@ -483,8 +481,7 @@ const anilist = {
   "anilist.list.status.PAUSED": "На паузе",
   "anilist.list.status.PLANNING": "Запланировано",
   "anilist.list.status.REPEATING": "Пересматриваю",
-  "anilist.loading.slow":
-    "Загрузка затянулась - может помочь прокси (Настройки > Общие > Прокси AniList)",
+  "anilist.loading.slow": "Загрузка затянулась - может помочь прокси в настройках.",
 } as const;
 
 export default anilist;

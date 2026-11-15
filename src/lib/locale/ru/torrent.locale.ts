@@ -18,7 +18,7 @@ const torrent = {
   "torrent.bulk.limits.title": "Лимиты для выбранных",
   "torrent.bulk.apply": "Применить",
   "torrent.bulk.recreate.message":
-    "У {{count}} из них всё ещё нет файлов. Пересоздание удаляет торрент и добавляет его заново по magnet: ручные трекеры, выбранные файлы и приоритеты теряются. Если файлы могут вернуться, проверьте позже ещё раз.",
+    "У {{count}} из них всё ещё нет файлов. Пересоздание добавит торрент заново по magnet и потеряет трекеры, выбранные файлы и приоритеты; если файлы могут вернуться, проверьте позже.",
   "torrent.bulk.title": "Массовое действие",
   "torrent.checking.file": "Проверяется: {{name}}",
   "torrent.checking.files": "Проверка файлов...",
@@ -42,7 +42,7 @@ const torrent = {
   "torrent.delete.message": "Удалить скачанные файлы вместе с торрентом?",
   "torrent.delete.message.many": "Удалить выбранные торренты?",
   "torrent.delete.unfinished":
-    "Не докачано: {{size}} на диске. Если оставить файлы, останется частичный файл, который плеер не откроет; его можно удалить позже в Настройки → Торренты.",
+    "Не докачано: {{size}} на диске. Если оставить файлы, плеер их не откроет; удалить можно позже в Настройки → Торренты.",
   "torrent.delete.title": "Удаление торрента",
   "torrent.delete.with.files": "Удалить с файлами",
   "torrent.diagnostics.trackers": "Трекеры",
@@ -75,7 +75,7 @@ const torrent = {
   "torrent.files.error": "Не удалось загрузить файлы",
   "torrent.files.on.disk": "На диске: {{size}}",
   "torrent.files.sparse.unsupported":
-    "Этот диск не поддерживает разреженные файлы: незавершённая загрузка сразу занимает полный размер. Выберите папку на NTFS.",
+    "Диск не поддерживает разреженные файлы: загрузка сразу занимает полный размер. Выберите папку на NTFS.",
   "torrent.filter.placeholder": "Фильтр...",
   "torrent.keep.files": "Оставить файлы",
   "torrent.keep.unfinished": "Оставить недокачанное",
@@ -130,7 +130,7 @@ const torrent = {
   "torrent.paused.external.hint": "Другой клиент менял файлы, продолжение их перепроверит.",
   "torrent.paused.recheck": "Проверить сейчас",
   "torrent.external.changed": "Файлы изменены на диске",
-  "torrent.external.hint": "Изменены вне приложения, перепроверьте с диска",
+  "torrent.external.hint": "Изменены вне приложения",
   "torrent.external.recheck": "Проверить сейчас",
   "torrent.problem.missing": "Файлы пропали с диска",
   "torrent.problem.noAccess": "Нет записи в папку сохранения",
@@ -143,7 +143,7 @@ const torrent = {
   "torrent.recreate": "Пересоздать торрент",
   "torrent.recreate.confirm": "Пересоздать",
   "torrent.recreate.message":
-    "Пересоздание удаляет торрент и добавляет его заново по magnet - ручные трекеры, выбранные файлы и порядок приоритетов теряются.",
+    "Пересоздание добавит торрент заново по magnet: трекеры, выбранные файлы и приоритеты потеряются.",
   "torrent.recreate.title": "Пересоздание торрента",
   "torrent.redownload": "Загрузить заново",
   "torrent.resume": "Продолжить скачивание",
@@ -164,7 +164,7 @@ const torrent = {
   "torrent.queue.drag": "Перетащите, чтобы изменить порядок",
   "torrent.queue.title": "Очередь скачивания",
   "torrent.queue.button": "Очередь",
-  "torrent.queue.empty": "Не выбрано ни одного файла. Сначала отметьте то, что нужно скачать.",
+  "torrent.queue.empty": "Отметьте файлы, которые нужно скачать.",
   "torrent.queue.reset": "Сбросить порядок",
   "torrent.queue.save": "Сохранить порядок",
   "torrent.queue.current": "Качается сейчас",

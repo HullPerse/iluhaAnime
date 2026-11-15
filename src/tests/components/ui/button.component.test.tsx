@@ -11,23 +11,23 @@ afterEach(() => {
 
 describe("Button loading", () => {
   it("renders children when not loading", () => {
-    patchSettings({ language: "en" });
-    render(<Button>Save</Button>);
-    const button = screen.getByRole("button", { name: "Save" });
+    patchSettings({ language: "ru" });
+    render(<Button>Сохранить</Button>);
+    const button = screen.getByRole("button", { name: "Сохранить" });
     expect((button as HTMLButtonElement).disabled).toBe(false);
     expect(button.getAttribute("aria-busy")).toBeNull();
   });
 
   it("replaces children with a spinner and locks the button when loading", () => {
-    patchSettings({ language: "en" });
+    patchSettings({ language: "ru" });
     const onClick = vi.fn();
     const { container } = render(
       <Button loading onClick={onClick}>
-        Save
+        Сохранить
       </Button>
     );
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    const button = screen.getByRole("button", { name: "Loading" });
+    expect(screen.queryByRole("button", { name: "Сохранить" })).toBeNull();
+    const button = screen.getByRole("button", { name: "Загрузка" });
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(button.getAttribute("aria-busy")).toBe("true");
     expect(container.querySelector(".ui-loading-spinner")).not.toBeNull();
@@ -36,16 +36,16 @@ describe("Button loading", () => {
   });
 
   it("keeps an explicit disabled when not loading", () => {
-    patchSettings({ language: "en" });
-    render(<Button disabled>Save</Button>);
-    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+    patchSettings({ language: "ru" });
+    render(<Button disabled>Сохранить</Button>);
+    expect((screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("renders nothing when rendered is false even while loading", () => {
-    patchSettings({ language: "en" });
+    patchSettings({ language: "ru" });
     const { container } = render(
       <Button rendered={false} loading>
-        Save
+        Сохранить
       </Button>
     );
     expect(container.firstChild).toBeNull();

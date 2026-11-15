@@ -48,7 +48,7 @@ const renderLibrary = (overrides: Partial<GameLibraryProps> = {}): GameLibraryPr
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -59,13 +59,13 @@ describe("GameLibrary", () => {
   it("shows the platform, source and size of every ROM", () => {
     renderLibrary();
 
-    expect(screen.getByText("SUPER-CHIP 1.0 - bundled - 2 KB")).toBeTruthy();
-    expect(screen.getByText("SUPER-CHIP 1.0 - imported - 4 KB")).toBeTruthy();
+    expect(screen.getByText("SUPER-CHIP 1.0 - в комплекте - 2 КБ")).toBeTruthy();
+    expect(screen.getByText("SUPER-CHIP 1.0 - импортированный - 4 КБ")).toBeTruthy();
   });
 
   it("plays the focused ROM from the keyboard", () => {
     const props = renderLibrary();
-    const list = screen.getByRole("list", { name: "ROM library" });
+    const list = screen.getByRole("list", { name: "Библиотека ROM" });
 
     fireEvent.keyDown(list, { key: "ArrowDown" });
     const rows = screen.getAllByRole("listitem");
@@ -81,14 +81,14 @@ describe("GameLibrary", () => {
   it("leaves Enter on row action buttons to the buttons", () => {
     const props = renderLibrary();
 
-    fireEvent.keyDown(screen.getAllByRole("button", { name: "Play" })[0], { key: "Enter" });
+    fireEvent.keyDown(screen.getAllByRole("button", { name: "Играть" })[0], { key: "Enter" });
     expect(props.onPlay).not.toHaveBeenCalled();
   });
 
   it("marks the starting ROM with a busy Play button", () => {
     renderLibrary({ startingId: "sha1" });
 
-    const playButtons = screen.getAllByRole("button", { name: "Play" });
+    const playButtons = screen.getAllByRole("button", { name: "Играть" });
     expect(playButtons[0].getAttribute("aria-busy")).toBeNull();
     expect(playButtons[1].getAttribute("aria-busy")).toBe("true");
   });
@@ -96,9 +96,9 @@ describe("GameLibrary", () => {
   it("explains an empty library", () => {
     renderLibrary({ roms: [] });
 
-    expect(screen.getByText("No ROMs yet")).toBeTruthy();
+    expect(screen.getByText("ROM'ов пока нет")).toBeTruthy();
     expect(
-      screen.getByText("Import a Chip-8 ROM file (.ch8) or open the store to download one.")
+      screen.getByText("Импортируйте файл ROM (.ch8) или откройте магазин и скачайте игру.")
     ).toBeTruthy();
   });
 
@@ -106,7 +106,7 @@ describe("GameLibrary", () => {
     const props = renderLibrary({ error: "boom" });
 
     expect(screen.getByText("boom")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Попробовать снова" }));
     expect(props.onReload).toHaveBeenCalledTimes(1);
   });
 });

@@ -228,7 +228,6 @@ describe("formatRelativeTime", () => {
     try {
       vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
       const twoHoursAgo = Date.now() - 2 * 3_600_000;
-      expect(formatRelativeTime(twoHoursAgo, "en")).toBe("about 2 hours ago");
       expect(formatRelativeTime(twoHoursAgo, "ru")).toBe("около 2 часов назад");
     } finally {
       vi.useRealTimers();
@@ -240,7 +239,6 @@ describe("formatRelativeTime", () => {
     try {
       vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
       const inTwoHours = Date.now() + 2 * 3_600_000;
-      expect(formatRelativeTime(inTwoHours, "en")).toBe("in about 2 hours");
       expect(formatRelativeTime(inTwoHours, "ru")).toBe("приблизительно через 2 часа");
     } finally {
       vi.useRealTimers();

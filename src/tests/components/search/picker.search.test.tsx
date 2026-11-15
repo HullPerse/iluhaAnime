@@ -61,7 +61,7 @@ afterEach(cleanup);
 describe("TorrentFilePicker files", () => {
   it("shows per-type icons and the selected count", () => {
     renderPicker();
-    expect(document.body.textContent).toContain("2 files");
+    expect(document.body.textContent).toContain("2 файла");
     const icons = document.querySelectorAll('img[src$=".ico"]');
     expect(icons.length).toBeGreaterThanOrEqual(3);
   });
@@ -72,7 +72,7 @@ describe("TorrentFilePicker files", () => {
     const folder = screen.getByRole("button", { name: /Season 1/ });
     expect(folder.getAttribute("aria-pressed")).toBe("true");
     await user.click(folder);
-    expect(document.body.textContent).toContain("0 files");
+    expect(document.body.textContent).toContain("0 файлов");
     expect(folder.getAttribute("aria-pressed")).toBe("false");
   });
 
@@ -80,7 +80,7 @@ describe("TorrentFilePicker files", () => {
     const user = userEvent.setup();
     renderPicker();
     await user.click(screen.getByRole("checkbox", { name: "ep01.mkv" }));
-    expect(document.body.textContent).toContain("1 file");
+    expect(document.body.textContent).toContain("1 файл");
   });
 });
 
@@ -131,7 +131,7 @@ describe("TorrentFilePicker duplicate guard", () => {
   it("blocks the download when the magnet hash is already registered", () => {
     renderDuplicate(`magnet:?xt=urn:btih:${HASH}`, existing());
     expect(screen.getByRole("alert").textContent).toContain("Already Here");
-    expect((screen.getByRole("button", { name: "Download" }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole("button", { name: "Скачать" }) as HTMLButtonElement).disabled).toBe(
       true
     );
   });
@@ -139,7 +139,7 @@ describe("TorrentFilePicker duplicate guard", () => {
   it("allows a different hash with the same name", () => {
     renderDuplicate("magnet:?xt=urn:btih:ffffffffffffffffffffffffffffffffffffffff", existing());
     expect(screen.queryByRole("alert")).toBeNull();
-    expect((screen.getByRole("button", { name: "Download" }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole("button", { name: "Скачать" }) as HTMLButtonElement).disabled).toBe(
       false
     );
   });

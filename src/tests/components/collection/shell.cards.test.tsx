@@ -41,15 +41,15 @@ describe("collection shell", () => {
   it("shows the tabs and the wallet", async () => {
     renderWithCardsClient(<CollectionShell />);
 
-    expect(await screen.findByRole("tab", { name: "Packs" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Album" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Shop" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Gifts" })).toBeTruthy();
+    expect(await screen.findByRole("tab", { name: "Паки" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Альбом" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Магазин" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Подарки" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "iluhaGuesser" })).toBeTruthy();
     expect(screen.getByTestId("daily-reset-timer")).toBeTruthy();
     const count = await screen.findByTestId("collection-card-count");
     expect(count.textContent).toBe("2");
-    const wallet = await screen.findByTitle("Chubriks");
+    const wallet = await screen.findByTitle("Чубрики");
     expect(wallet.textContent).toContain("500");
   });
 
@@ -68,7 +68,7 @@ describe("collection shell", () => {
 
     const badge = await screen.findByTestId("collection-active-gifts");
     expect(badge.textContent).toBe("2");
-    expect(badge.title).toBe("Active gifts: 2");
+    expect(badge.title).toBe("Действующих подарков: 2");
   });
 
   it("shows unread badges on the packs and album tabs", async () => {
@@ -90,11 +90,11 @@ describe("collection shell", () => {
 
   it("switches to the album and renders its empty state", async () => {
     renderWithCardsClient(<CollectionShell />);
-    await screen.findByRole("tab", { name: "Album" });
+    await screen.findByRole("tab", { name: "Альбом" });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Album" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Альбом" }));
 
-    expect(await screen.findByText("No cards in the album yet.")).toBeTruthy();
+    expect(await screen.findByText("В альбоме пока нет карточек.")).toBeTruthy();
   });
 
   it("keeps the removed pack and daily test buttons out of the UI", async () => {
@@ -108,9 +108,9 @@ describe("collection shell", () => {
     });
     renderWithCardsClient(<CollectionShell />);
 
-    fireEvent.click(await screen.findByRole("tab", { name: "Album" }));
-    fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
-    expect(await screen.findByRole("menuitem", { name: "Clear collection" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("tab", { name: "Альбом" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ещё действия" }));
+    expect(await screen.findByRole("menuitem", { name: "Очистить коллекцию" })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: "Test pack" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Legendary pack" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Effects pack" })).toBeNull();
@@ -122,16 +122,16 @@ describe("collection shell", () => {
     renderWithCardsClient(<CollectionShell />);
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toBe("Could not load the collection.");
+    expect(alert.textContent).toBe("Не удалось загрузить коллекцию.");
 
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
       return Promise.resolve(null);
     });
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
 
-    await waitFor(() => expect(screen.getByTitle("Chubriks").textContent).toContain("500"));
+    await waitFor(() => expect(screen.getByTitle("Чубрики").textContent).toContain("500"));
   });
 
   it("hides the starter claim when the profile has no completed anime", async () => {
@@ -152,8 +152,8 @@ describe("collection shell", () => {
     });
     renderWithCardsClient(<CollectionShell />);
 
-    await screen.findByRole("tab", { name: "Packs" });
-    expect(screen.queryByRole("button", { name: "Claim packs" })).toBeNull();
+    await screen.findByRole("tab", { name: "Паки" });
+    expect(screen.queryByRole("button", { name: "Забрать паки" })).toBeNull();
   });
 
   it("claims the profile starter once and hides the button", async () => {
@@ -181,10 +181,10 @@ describe("collection shell", () => {
     });
     renderWithCardsClient(<CollectionShell />);
 
-    const button = await screen.findByRole("button", { name: "Claim packs" });
+    const button = await screen.findByRole("button", { name: "Забрать паки" });
     fireEvent.click(button);
 
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Claim packs" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Забрать паки" })).toBeNull());
     expect(mockInvoke).toHaveBeenCalledWith(
       "cards_grant_starter",
       expect.objectContaining({ userId: 7 })

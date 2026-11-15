@@ -35,7 +35,7 @@ const renderBars = (onActivate = vi.fn()) => {
   render(
     <BarChart
       data={DATA}
-      ariaLabel="Genres"
+      ariaLabel="Жанры"
       formatValue={(value) => `${value} titles`}
       tooltip={(datum) => ({
         title: datum.label,
@@ -61,7 +61,7 @@ describe("BarChart", () => {
 
   it("moves the cursor with the keyboard and announces the tooltip", async () => {
     renderBars();
-    const group = screen.getByRole("application", { name: "Genres" });
+    const group = screen.getByRole("application", { name: "Жанры" });
     fireEvent.focus(group);
 
     expect(screen.getByText("Alpha: Titles 10")).toBeDefined();
@@ -71,7 +71,7 @@ describe("BarChart", () => {
 
   it("activates the selected row on Enter", async () => {
     const onActivate = renderBars();
-    const group = screen.getByRole("application", { name: "Genres" });
+    const group = screen.getByRole("application", { name: "Жанры" });
     fireEvent.focus(group);
     fireEvent.keyDown(group, { key: "End" });
     fireEvent.keyDown(group, { key: "Enter" });

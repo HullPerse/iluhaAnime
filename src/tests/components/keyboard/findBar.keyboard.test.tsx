@@ -22,7 +22,7 @@ const content = (text: string): HTMLElement => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   closeFindBar();
   if (typeof Element.prototype.scrollIntoView !== "function") {
     (Element.prototype as unknown as Record<string, unknown>).scrollIntoView = () => undefined;
@@ -53,7 +53,7 @@ describe("PageFindBar", () => {
 
   it("opens with a focused input and an empty counter", async () => {
     openBar();
-    const input = await screen.findByPlaceholderText("Find on page...");
+    const input = await screen.findByPlaceholderText("Найти на странице...");
     expect(document.activeElement).toBe(input);
     expect(screen.getByText("0 / 0")).toBeTruthy();
   });
@@ -62,7 +62,7 @@ describe("PageFindBar", () => {
     content("alpha beta alpha");
     const user = userEvent.setup();
     openBar();
-    await user.type(await screen.findByPlaceholderText("Find on page..."), "alpha");
+    await user.type(await screen.findByPlaceholderText("Найти на странице..."), "alpha");
     expect(await screen.findByText("1 / 2")).toBeTruthy();
   });
 
@@ -70,7 +70,7 @@ describe("PageFindBar", () => {
     content("alpha beta alpha");
     const user = userEvent.setup();
     openBar();
-    const input = await screen.findByPlaceholderText("Find on page...");
+    const input = await screen.findByPlaceholderText("Найти на странице...");
     await user.type(input, "alpha");
     await screen.findByText("1 / 2");
     await user.keyboard("{Enter}");
@@ -83,12 +83,12 @@ describe("PageFindBar", () => {
     render(<PageFindBar />);
     expect(screen.queryByRole("search")).toBeNull();
     fireEvent.keyDown(window, { key: "f", code: "KeyF", ctrlKey: true });
-    expect(await screen.findByPlaceholderText("Find on page...")).toBeTruthy();
+    expect(await screen.findByPlaceholderText("Найти на странице...")).toBeTruthy();
   });
 
   it("closes on Escape through the overlay stack", async () => {
     openBar();
-    const input = await screen.findByPlaceholderText("Find on page...");
+    const input = await screen.findByPlaceholderText("Найти на странице...");
     fireEvent.keyDown(input, { key: "Escape", code: "Escape" });
     expect(screen.queryByRole("search")).toBeNull();
   });
@@ -104,24 +104,24 @@ describe("PageFindBar", () => {
     render(<PageFindBar />);
     button.focus();
     fireEvent.keyDown(button, { key: "f", code: "KeyF", ctrlKey: true });
-    expect(await screen.findByText("Searches visible content only")).toBeTruthy();
+    expect(await screen.findByText("Ищет только по видимому содержимому")).toBeTruthy();
   });
 
   it("hides the virtual marker outside virtualized lists", async () => {
     openBar();
-    await screen.findByPlaceholderText("Find on page...");
-    expect(screen.queryByText("Searches visible content only")).toBeNull();
+    await screen.findByPlaceholderText("Найти на странице...");
+    expect(screen.queryByText("Ищет только по видимому содержимому")).toBeNull();
   });
 
   it("steps with the arrow buttons", async () => {
     content("alpha beta alpha");
     const user = userEvent.setup();
     openBar();
-    await user.type(await screen.findByPlaceholderText("Find on page..."), "alpha");
+    await user.type(await screen.findByPlaceholderText("Найти на странице..."), "alpha");
     await screen.findByText("1 / 2");
-    await user.click(screen.getByRole("button", { name: "Next match" }));
+    await user.click(screen.getByRole("button", { name: "Следующее совпадение" }));
     expect(await screen.findByText("2 / 2")).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Previous match" }));
+    await user.click(screen.getByRole("button", { name: "Предыдущее совпадение" }));
     expect(await screen.findByText("1 / 2")).toBeTruthy();
   });
 
@@ -129,7 +129,7 @@ describe("PageFindBar", () => {
     content("alpha beta alpha");
     const user = userEvent.setup();
     openBar();
-    await user.type(await screen.findByPlaceholderText("Find on page..."), "alpha");
+    await user.type(await screen.findByPlaceholderText("Найти на странице..."), "alpha");
     await screen.findByText("1 / 2");
     const button = document.createElement("button");
     button.textContent = "row";
@@ -146,12 +146,12 @@ describe("PageFindBar", () => {
     content("alphabet alpha");
     const user = userEvent.setup();
     openBar();
-    await user.type(await screen.findByPlaceholderText("Find on page..."), "alpha");
+    await user.type(await screen.findByPlaceholderText("Найти на странице..."), "alpha");
     await screen.findByText("1 / 2");
-    await user.click(screen.getByRole("button", { name: "Whole words only" }));
+    await user.click(screen.getByRole("button", { name: "Только целые слова" }));
     expect(await screen.findByText("1 / 1")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Whole words only" }).getAttribute("aria-pressed")
+      screen.getByRole("button", { name: "Только целые слова" }).getAttribute("aria-pressed")
     ).toBe("true");
   });
 
@@ -159,9 +159,9 @@ describe("PageFindBar", () => {
     content("Alpha ALPHA");
     const user = userEvent.setup();
     openBar();
-    await user.type(await screen.findByPlaceholderText("Find on page..."), "Alpha");
+    await user.type(await screen.findByPlaceholderText("Найти на странице..."), "Alpha");
     await screen.findByText("1 / 2");
-    await user.click(screen.getByRole("button", { name: "Match case" }));
+    await user.click(screen.getByRole("button", { name: "Учитывать регистр" }));
     expect(await screen.findByText("1 / 1")).toBeTruthy();
   });
 });

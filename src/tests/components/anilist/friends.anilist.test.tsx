@@ -63,7 +63,7 @@ const renderModal = (friends: AniFriend[], onAddMany: (friends: unknown[]) => vo
 };
 
 const openImport = async () => {
-  await userEvent.click(screen.getByRole("button", { name: "From AniList" }));
+  await userEvent.click(screen.getByRole("button", { name: "Из AniList" }));
   await waitFor(() => {
     expect(screen.getByText("B")).toBeDefined();
   });
@@ -73,7 +73,7 @@ afterEach(() => cleanup());
 
 beforeEach(() => {
   invokeMock.mockReset();
-  patchSettings({ language: "en", anilistProxyUrl: null });
+  patchSettings({ language: "ru", anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anilist_following") {
       return Promise.resolve({
@@ -108,7 +108,7 @@ describe("AniListFriendsModal following import", () => {
     await openImport();
 
     await userEvent.click(screen.getByRole("checkbox", { name: "B" }));
-    await userEvent.click(screen.getByRole("button", { name: "Add selected" }));
+    await userEvent.click(screen.getByRole("button", { name: "Добавить выбранных" }));
 
     expect(onAddMany).toHaveBeenCalledTimes(1);
     expect(onAddMany).toHaveBeenCalledWith([{ id: 9, name: "B", avatar: null }]);
@@ -119,9 +119,9 @@ describe("AniListFriendsModal following import", () => {
     renderModal([ADDED], onAddMany);
     await openImport();
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "Select all" }));
-    expect(screen.getByText("Selected: 1")).toBeDefined();
-    await userEvent.click(screen.getByRole("button", { name: "Add selected" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Выбрать всех" }));
+    expect(screen.getByText("Выбрано: 1")).toBeDefined();
+    await userEvent.click(screen.getByRole("button", { name: "Добавить выбранных" }));
 
     expect(onAddMany).toHaveBeenCalledWith([{ id: 9, name: "B", avatar: null }]);
   });

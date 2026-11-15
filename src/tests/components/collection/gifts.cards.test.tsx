@@ -32,15 +32,15 @@ describe("collection gifts tab", () => {
     expect(screen.queryByText("Outgoing gifts")).toBeNull();
     expect(screen.queryByText("Waiting")).toBeNull();
     expect(screen.getByText("×2")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Копировать" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_delete_gift", { giftId: "gift-1" })
     );
     expect(
-      await screen.findByText("Gift deleted; every variant and copy is back in the collection.")
+      await screen.findByText("Подарок удалён, все варианты и копии возвращены в коллекцию.")
     ).toBeTruthy();
   });
 });

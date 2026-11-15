@@ -60,12 +60,12 @@
         "settings.animelib.token.clear",
         "settings.animelib.account.loading",
         "settings.animelib.account.login",
+        "settings.animelib.account.signedIn",
         "settings.animelib.account.invalid",
         "settings.animelib.account.none",
         "settings.animelib.token.saved",
         "settings.animelib.login",
         "settings.animelib.login.waiting",
-        "settings.animelib.login.hint",
         "settings.animelib.proxy.url",
         "settings.animelib.proxy.no",
         "settings.animelib.proxy.custom",
@@ -106,8 +106,7 @@
       "keys": [
         "settings.collection.proxy.title",
         "settings.collection.proxy.images",
-        "settings.collection.proxy.daily",
-        "settings.collection.proxy.description"
+        "settings.collection.proxy.daily"
       ]
     },
     {
@@ -131,7 +130,6 @@
       "titleKey": "settings.proxy.sources.title",
       "keys": [
         "settings.proxy.sources.title",
-        "settings.proxy.sources.description",
         "settings.search.proxy.per.source",
         "settings.search.proxy.webview",
         "settings.search.proxy.test.all",
@@ -167,7 +165,6 @@
       "titleKey": "settings.screenshot",
       "keys": [
         "settings.screenshot.folder",
-        "settings.screenshot.folder.hint",
         "settings.screenshot.format",
         "settings.screenshot.open.folder"
       ]
@@ -334,7 +331,6 @@
       "titleKey": "settings.torrent.defaults",
       "keys": [
         "settings.torrent.default.download.dir",
-        "settings.torrent.default.download.dir.hint",
         "settings.torrent.default.concurrent"
       ]
     },
@@ -414,7 +410,6 @@
       "section": "diagnostics",
       "titleKey": "settings.torrent.diagnostics",
       "keys": [
-        "settings.torrent.diagnostics.description",
         "settings.torrent.diagnostics.action",
         "settings.torrent.diagnostics.verdict.ok",
         "settings.torrent.diagnostics.verdict.dns",

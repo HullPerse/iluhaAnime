@@ -66,7 +66,7 @@ const renderStore = () => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en", modalAnimation: false });
+  patchSettings({ language: "ru", modalAnimation: false });
   listener.handler = null;
   mockListen.mockImplementation(
     (_event: string, handler: (event: { payload: GameStoreProgress }) => void) => {
@@ -92,23 +92,23 @@ describe("GameStoreModal", () => {
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
     expect(screen.getByText("Snake")).toBeTruthy();
     expect(screen.getByText("Party Mix")).toBeTruthy();
-    expect(screen.getByText("CHIP-8 - by Author One - 1 KB")).toBeTruthy();
-    expect(screen.getByText("3 of 3")).toBeTruthy();
-    expect(screen.getByText("Controls: Keys 4 and 6 move the paddles.")).toBeTruthy();
-    expect(screen.getByText("Installed")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Download" })).toHaveLength(2);
+    expect(screen.getByText("CHIP-8 - Author One - 1 КБ")).toBeTruthy();
+    expect(screen.getByText("3 из 3")).toBeTruthy();
+    expect(screen.getByText("Управление: Keys 4 and 6 move the paddles.")).toBeTruthy();
+    expect(screen.getByText("Установлено")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Скачать" })).toHaveLength(2);
   });
 
   it("filters by title and by author", async () => {
     renderStore();
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
 
-    fireEvent.change(screen.getByPlaceholderText("Search"), { target: { value: "pong" } });
+    fireEvent.change(screen.getByPlaceholderText("Поиск"), { target: { value: "pong" } });
     expect(screen.queryByText("Snake")).toBeNull();
     expect(screen.getByText("Pong")).toBeTruthy();
-    expect(screen.getByText("1 of 3")).toBeTruthy();
+    expect(screen.getByText("1 из 3")).toBeTruthy();
 
-    fireEvent.change(screen.getByPlaceholderText("Search"), { target: { value: "timotriisa" } });
+    fireEvent.change(screen.getByPlaceholderText("Поиск"), { target: { value: "timotriisa" } });
     expect(screen.queryByText("Pong")).toBeNull();
     expect(screen.getByText("Snake")).toBeTruthy();
   });
@@ -117,7 +117,7 @@ describe("GameStoreModal", () => {
     renderStore();
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Скачать" })[0]);
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("game_store_install", { key: "pong" })
@@ -138,10 +138,10 @@ describe("GameStoreModal", () => {
     renderStore();
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Скачать" })[0]);
 
     const bar = await screen.findByRole("progressbar");
-    expect(bar.getAttribute("aria-label")).toBe("Downloading");
+    expect(bar.getAttribute("aria-label")).toBe("Загрузка");
     expect(bar.getAttribute("aria-valuenow")).toBeNull();
 
     act(() => {
@@ -165,8 +165,8 @@ describe("GameStoreModal", () => {
     renderStore();
 
     await waitFor(() => expect(screen.getByText("Pong")).toBeTruthy());
-    expect(screen.getByText("Downloading needs an internet connection.")).toBeTruthy();
-    const buttons = screen.getAllByRole("button", { name: "Download" }) as HTMLButtonElement[];
+    expect(screen.getByText("Для скачивания нужен интернет.")).toBeTruthy();
+    const buttons = screen.getAllByRole("button", { name: "Скачать" }) as HTMLButtonElement[];
     expect(buttons).toHaveLength(2);
     expect(buttons.every((button) => button.disabled)).toBe(true);
 

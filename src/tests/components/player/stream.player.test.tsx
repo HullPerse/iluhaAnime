@@ -86,7 +86,7 @@ const session = (patch: Partial<StreamOpen> = {}): StreamOpen => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   state.session = session();
   state.variants = [VOICE, SUBTITLE, OTHER_VOICE];
   state.switching = false;
@@ -113,33 +113,33 @@ describe("StreamControl", () => {
   it("renders the active voice-over and keeps the subtitle select at None", () => {
     render(<StreamControl stream={playerStream()} />);
 
-    expect(screen.getByRole("button", { name: "Voice-over: AniDUB" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Subs: None" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Quality: 1080p" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Озвучка: AniDUB" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Сабы: Нет" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Качество: 1080p" })).toBeTruthy();
   });
 
   it("moves the active row to the subtitle select", () => {
     state.session = session({ variantId: "Kodik:2" });
     render(<StreamControl stream={playerStream()} />);
 
-    expect(screen.getByRole("button", { name: "Voice-over: None" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Subs: Crunchyroll" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Озвучка: Нет" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Сабы: Crunchyroll" })).toBeTruthy();
   });
 
   it("switches the voice-over from the menu", async () => {
     render(<StreamControl stream={playerStream()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Voice-over: AniDUB" }));
+    fireEvent.click(screen.getByRole("button", { name: "Озвучка: AniDUB" }));
     fireEvent.click(screen.getByRole("option", { name: /Other/ }));
 
-    expect(await screen.findByRole("button", { name: "Voice-over: Other" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Озвучка: Other" })).toBeTruthy();
     expect(state.switchVariant).toHaveBeenCalledWith(OTHER_VOICE);
   });
 
   it("warms a voice-over while the pointer is still over the option", () => {
     render(<StreamControl stream={playerStream()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Voice-over: AniDUB" }));
+    fireEvent.click(screen.getByRole("button", { name: "Озвучка: AniDUB" }));
     fireEvent.pointerEnter(screen.getByRole("option", { name: /Other/ }));
 
     expect(cache.loadSources).toHaveBeenCalledWith("10", "Kodik:9");
@@ -148,10 +148,10 @@ describe("StreamControl", () => {
   it("switches quality from the source list", async () => {
     render(<StreamControl stream={playerStream()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Quality: 1080p" }));
+    fireEvent.click(screen.getByRole("button", { name: "Качество: 1080p" }));
     fireEvent.click(screen.getByRole("option", { name: "720p" }));
 
-    expect(await screen.findByRole("button", { name: "Quality: 720p" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Качество: 720p" })).toBeTruthy();
     expect(state.switchQuality).toHaveBeenCalledWith("720p");
   });
 
@@ -159,9 +159,9 @@ describe("StreamControl", () => {
     render(<StreamControl stream={playerStream()} />);
     expect(screen.queryByText("1920x1080")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Stream stats" }));
+    fireEvent.click(screen.getByRole("button", { name: "Статистика стрима" }));
 
-    expect(screen.getByText("Resolution")).toBeTruthy();
+    expect(screen.getByText("Разрешение")).toBeTruthy();
     expect(screen.getByText("1920x1080")).toBeTruthy();
     expect(screen.getByText("23.98")).toBeTruthy();
     expect(screen.getByText("0:12")).toBeTruthy();
@@ -178,7 +178,7 @@ describe("StreamControl", () => {
 
     const buffering = screen.getByTestId("stream-status");
     expect(buffering).toBe(idle);
-    expect(buffering.textContent).toContain("Buffering");
+    expect(buffering.textContent).toContain("Буферизация");
     expect(buffering.className).toContain("w-24");
   });
 

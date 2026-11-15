@@ -7,7 +7,7 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { mockInvoke } from "@/tests/mocks";
 
 beforeEach(() => {
-  patchSettings({ language: "en", animelibProxyUrl: null });
+  patchSettings({ language: "ru", animelibProxyUrl: null });
 });
 
 afterEach(() => {
@@ -20,7 +20,9 @@ describe("AnimelibSettings", () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
         return Promise.resolve(
-          stored ? { tokenSaved: true, login: "milky" } : { tokenSaved: false, login: null }
+          stored
+            ? { tokenSaved: true, authorized: true, login: "milky" }
+            : { tokenSaved: false, authorized: false, login: null }
         );
       }
       if (command === "animelib_token_clear") {
@@ -32,10 +34,10 @@ describe("AnimelibSettings", () => {
 
     render(<AnimelibSettings />);
 
-    await screen.findByText("Signed in as milky");
-    fireEvent.click(screen.getByRole("button", { name: "Remove token" }));
+    await screen.findByText("Вы вошли как milky");
+    fireEvent.click(screen.getByRole("button", { name: "Удалить токен" }));
 
-    await screen.findByText("Not signed in");
+    await screen.findByText("Вход не выполнен");
     expect(mockInvoke).toHaveBeenCalledWith("animelib_token_clear", undefined);
   });
 
@@ -44,7 +46,9 @@ describe("AnimelibSettings", () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
         return Promise.resolve(
-          saved ? { tokenSaved: true, login: "milky" } : { tokenSaved: false, login: null }
+          saved
+            ? { tokenSaved: true, authorized: true, login: "milky" }
+            : { tokenSaved: false, authorized: false, login: null }
         );
       }
       if (command === "animelib_token_save") {
@@ -56,28 +60,42 @@ describe("AnimelibSettings", () => {
 
     render(<AnimelibSettings />);
 
-    const input = await screen.findByLabelText("Session token");
+    const input = await screen.findByLabelText("Токен сессии");
     fireEvent.change(input, { target: { value: "  token.value  " } });
-    fireEvent.click(screen.getByRole("button", { name: "Save token" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить токен" }));
 
-    await screen.findByText("Token verified and saved");
+    await screen.findByText("Токен проверен и сохранён");
     expect(mockInvoke).toHaveBeenCalledWith("animelib_token_save", {
       token: "token.value",
     });
-    expect(await screen.findByText("Signed in as milky")).toBeDefined();
+    expect(await screen.findByText("Вы вошли как milky")).toBeDefined();
   });
 
-  it("marks a saved token that the session check rejects", async () => {
+  it("shows a valid session that has no display name", async () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
-        return Promise.resolve({ tokenSaved: true, login: null });
+        return Promise.resolve({ tokenSaved: true, authorized: true, login: null });
       }
       return Promise.resolve(null);
     });
 
     render(<AnimelibSettings />);
 
-    await screen.findByText("Token saved, but the session was rejected");
+    await screen.findByText("Вы вошли в аккаунт AnimeLib");
+    expect(screen.queryByText("Токен сохранён, но сессия отклонена")).toBeNull();
+  });
+
+  it("marks a saved token that the session check rejects", async () => {
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === "animelib_account") {
+        return Promise.resolve({ tokenSaved: true, authorized: false, login: null });
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<AnimelibSettings />);
+
+    await screen.findByText("Токен сохранён, но сессия отклонена");
   });
 
   it("logs in through the site window and refreshes the account", async () => {
@@ -85,7 +103,9 @@ describe("AnimelibSettings", () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
         return Promise.resolve(
-          done ? { tokenSaved: true, login: "milky" } : { tokenSaved: false, login: null }
+          done
+            ? { tokenSaved: true, authorized: true, login: "milky" }
+            : { tokenSaved: false, authorized: false, login: null }
         );
       }
       if (command === "animelib_webview_login") return Promise.resolve("ok");
@@ -98,10 +118,10 @@ describe("AnimelibSettings", () => {
 
     render(<AnimelibSettings />);
 
-    await screen.findByText("Not signed in");
-    fireEvent.click(screen.getByRole("button", { name: "Sign in through AnimeLib" }));
+    await screen.findByText("Вход не выполнен");
+    fireEvent.click(screen.getByRole("button", { name: "Войти через AnimeLib" }));
 
-    await screen.findByText("Signed in as milky");
+    await screen.findByText("Вы вошли как milky");
     expect(mockInvoke).toHaveBeenCalledWith("animelib_webview_login", {});
     expect(mockInvoke).toHaveBeenCalledWith("animelib_finish_webview_login", {});
   });
@@ -109,14 +129,14 @@ describe("AnimelibSettings", () => {
   it("stores and clears the AnimeLib proxy", async () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
-        return Promise.resolve({ tokenSaved: false, login: null });
+        return Promise.resolve({ tokenSaved: false, authorized: false, login: null });
       }
       return Promise.resolve(null);
     });
 
     render(<AnimelibSettings />);
 
-    const input = screen.getByRole("textbox", { name: "Proxy" });
+    const input = screen.getByRole("textbox", { name: "Прокси" });
     fireEvent.change(input, { target: { value: "socks5://127.0.0.1:10808" } });
     expect(settingsAtoms.animelibProxyUrl.get()).toBe("socks5://127.0.0.1:10808");
 
@@ -127,7 +147,7 @@ describe("AnimelibSettings", () => {
   it("shows the backend refusal and keeps the account signed out", async () => {
     mockInvoke.mockImplementation((command: string) => {
       if (command === "animelib_account") {
-        return Promise.resolve({ tokenSaved: false, login: null });
+        return Promise.resolve({ tokenSaved: false, authorized: false, login: null });
       }
       if (command === "animelib_token_save") {
         return Promise.reject(new Error("AnimeLib rejected the token"));
@@ -137,12 +157,12 @@ describe("AnimelibSettings", () => {
 
     render(<AnimelibSettings />);
 
-    fireEvent.change(await screen.findByLabelText("Session token"), {
+    fireEvent.change(await screen.findByLabelText("Токен сессии"), {
       target: { value: "expired" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save token" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить токен" }));
 
     await screen.findByText("AnimeLib rejected the token");
-    expect(screen.getByText("Not signed in")).toBeDefined();
+    expect(screen.getByText("Вход не выполнен")).toBeDefined();
   });
 });

@@ -79,7 +79,7 @@ const renderFlat = (): void => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -261,8 +261,8 @@ describe("FolderView folder menu", () => {
     renderTree();
     const season = row("D:/Anime/Season 1");
     fireEvent.contextMenu(season);
-    await waitFor(() => screen.getByRole("menuitem", { name: "Open in folder" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Open in folder" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Открыть в папке" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Открыть в папке" }));
 
     expect(mockOpenPath).toHaveBeenCalledWith("D:/Anime/Season 1");
   });
@@ -272,8 +272,8 @@ describe("FolderView folder menu", () => {
     await userEvent.click(row("D:/Anime/Season 1"));
     const extras = row("Extras");
     fireEvent.contextMenu(extras);
-    await waitFor(() => screen.getByRole("menuitem", { name: "Open in folder" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Open in folder" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Открыть в папке" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Открыть в папке" }));
 
     expect(mockOpenPath).toHaveBeenCalledWith("D:/Anime/Season 1/Extras");
   });
@@ -481,8 +481,8 @@ describe("FolderView file menu", () => {
     const spy = vi.fn();
     holder.addEventListener("click", spy);
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Open in iluhaAnime player" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Open in iluhaAnime player" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Открыть в плеере iluhaAnime" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Открыть в плеере iluhaAnime" }));
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -491,8 +491,8 @@ describe("FolderView file menu", () => {
     renderTree();
     openMenu("ep1.mkv");
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Open in folder" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Open in folder" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Открыть в папке" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Открыть в папке" }));
 
     expect(mockOpenPath).toHaveBeenCalledWith("D:/Anime/");
   });

@@ -48,7 +48,7 @@ const tabLoaderShown = (container: HTMLElement) => {
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  patchSettings({ language: "en", selectedDitherId: null });
+  patchSettings({ language: "ru", selectedDitherId: null });
   notificationAtoms.items.set([]);
   notificationAtoms.unreadCount.set(0);
   notificationAtoms.dismissed.set([]);
@@ -60,7 +60,7 @@ describe("SearchModern wallpaper gate", () => {
     patchSettings({ selectedDitherId: "placeholder" });
     mockInvoke.mockImplementation(async () => false);
     const { container } = renderModern();
-    await waitFor(() => expect(screen.getByPlaceholderText("Search anime...")).toBeTruthy());
+    await waitFor(() => expect(screen.getByPlaceholderText("Найти аниме...")).toBeTruthy());
     expect(tabLoaderShown(container)).toBe(false);
     expect(mockInvoke).not.toHaveBeenCalledWith("get_dither_image", expect.anything());
   });
@@ -77,9 +77,9 @@ describe("SearchModern wallpaper gate", () => {
     });
     const { container } = renderModern();
     await waitFor(() => expect(tabLoaderShown(container)).toBe(true));
-    expect(screen.queryByPlaceholderText("Search anime...")).toBeNull();
+    expect(screen.queryByPlaceholderText("Найти аниме...")).toBeNull();
     resolveFetch(WALLPAPER);
-    await waitFor(() => expect(screen.getByPlaceholderText("Search anime...")).toBeTruthy());
+    await waitFor(() => expect(screen.getByPlaceholderText("Найти аниме...")).toBeTruthy());
     expect(tabLoaderShown(container)).toBe(false);
   });
 
@@ -90,7 +90,7 @@ describe("SearchModern wallpaper gate", () => {
       return false;
     });
     const { container } = renderModern();
-    await waitFor(() => expect(screen.getByPlaceholderText("Search anime...")).toBeTruthy());
+    await waitFor(() => expect(screen.getByPlaceholderText("Найти аниме...")).toBeTruthy());
     expect(tabLoaderShown(container)).toBe(false);
     await waitFor(() => expect(settingsAtoms.selectedDitherId.get()).toBeNull());
     expect(errorMessages()).toEqual([]);

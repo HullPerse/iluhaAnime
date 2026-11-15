@@ -36,8 +36,8 @@ function lastCollectionArgs(): Record<string, unknown> | undefined {
 }
 
 async function enableInfiniteScroll() {
-  fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-  fireEvent.click(await screen.findByRole("menuitemradio", { name: "Infinite scroll" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ещё действия" }));
+  fireEvent.click(await screen.findByRole("menuitemradio", { name: "Бесконечный скролл" }));
 }
 
 beforeEach(() => {
@@ -94,7 +94,7 @@ describe("collection album", () => {
         pageSize: 36,
       })
     );
-    expect(screen.getByText("Page 1")).toBeTruthy();
+    expect(screen.getByText("Страница 1")).toBeTruthy();
   });
 
   it("loads the next grid page without pagination", async () => {
@@ -128,7 +128,7 @@ describe("collection album", () => {
       )
     );
     expect(await screen.findByText("Card 2-0")).toBeTruthy();
-    expect(screen.queryByText("Page 1")).toBeNull();
+    expect(screen.queryByText("Страница 1")).toBeNull();
   });
 
   it("returns the album to page-one pagination when the binder is selected", async () => {
@@ -137,26 +137,26 @@ describe("collection album", () => {
 
     await enableInfiniteScroll();
     await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ pageSize: 48 }));
-    expect(screen.queryByText("Page 1")).toBeNull();
+    expect(screen.queryByText("Страница 1")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Binder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Биндер" }));
 
     expect(await screen.findByTestId("binder")).toBeTruthy();
     await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ page: 1, pageSize: 12 }));
-    expect(screen.getByText("Page 1")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Infinite scroll" })).toBeNull();
+    expect(screen.getByText("Страница 1")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Бесконечный скролл" })).toBeNull();
   });
 
   it("pages the binder through the pagination control state", async () => {
     renderWithCardsClient(<AlbumCards />);
     await screen.findByText("Levi");
-    fireEvent.click(screen.getByRole("button", { name: "Binder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Биндер" }));
     await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ pageSize: 12 }));
 
     act(() => setCardsBinderPage(1));
 
     await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ page: 2 }));
-    expect(await screen.findByText("Page 2")).toBeTruthy();
+    expect(await screen.findByText("Страница 2")).toBeTruthy();
   });
 
   it("keeps the current page rendered while the next uncached page loads", async () => {
@@ -174,7 +174,7 @@ describe("collection album", () => {
 
     renderWithCardsClient(<AlbumCards />);
     await screen.findByText("Levi");
-    fireEvent.click(screen.getByRole("button", { name: "Binder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Биндер" }));
     await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ pageSize: 12 }));
 
     act(() => setCardsBinderPage(1));
@@ -182,14 +182,14 @@ describe("collection album", () => {
     expect(screen.getByText("Levi")).toBeTruthy();
 
     await act(async () => resolvePage(makeCollectionPage({ total: 48, page: 2 })));
-    expect(await screen.findByText("Page 2")).toBeTruthy();
+    expect(await screen.findByText("Страница 2")).toBeTruthy();
   });
 
   it("switches to a twelve-pocket binder page", async () => {
     renderWithCardsClient(<AlbumCards />);
     await screen.findByText("Levi");
 
-    fireEvent.click(screen.getByRole("button", { name: "Binder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Биндер" }));
 
     expect(await screen.findByTestId("binder")).toBeTruthy();
     await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ pageSize: 12, page: 1 }));
@@ -242,11 +242,11 @@ describe("collection album", () => {
     renderWithCardsClient(<AlbumCards />);
     const user = userEvent.setup();
     fireEvent.click(await screen.findByRole("button", { name: /Levi/ }));
-    await user.click(await screen.findByRole("combobox", { name: "Variant" }));
-    await user.click(await screen.findByRole("option", { name: "Foil" }));
+    await user.click(await screen.findByRole("combobox", { name: "Вариант" }));
+    await user.click(await screen.findByRole("option", { name: "Фольгированная" }));
 
     const labels = Array.from(document.querySelectorAll("dt")).map((node) => node.textContent);
-    expect(labels).toContain("Variant");
+    expect(labels).toContain("Вариант");
     expect(document.querySelector(".cards-detail-value span")?.textContent).toBe("30");
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_set_card_variant", {
@@ -261,15 +261,15 @@ describe("collection album", () => {
     renderWithCardsClient(<AlbumCards />);
     await screen.findByText("Levi");
 
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Clear collection" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ещё действия" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Очистить коллекцию" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Продолжить" }));
 
     const called = () =>
       mockInvoke.mock.calls.some(([command]) => command === "cards_reset_collection");
     expect(called()).toBe(false);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Clear" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Очистить" }));
     await waitFor(() => expect(called()).toBe(true));
   });
 
@@ -297,12 +297,12 @@ describe("collection album", () => {
 
     renderWithCardsClient(<AlbumCards />);
     fireEvent.click(await screen.findByRole("button", { name: /Levi/ }));
-    expect(await screen.findByRole("button", { name: "Next art" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Следующий арт" })).toBeTruthy();
     expect(document.querySelector(".cards-detail-gallery-counter")?.textContent).toBe("1 / 2");
 
-    fireEvent.click(screen.getByRole("button", { name: "Next art" }));
+    fireEvent.click(screen.getByRole("button", { name: "Следующий арт" }));
     expect(document.querySelector(".cards-detail-gallery-counter")?.textContent).toBe("2 / 2");
-    fireEvent.click(screen.getByRole("button", { name: "Use this art" }));
+    fireEvent.click(screen.getByRole("button", { name: "Выбрать этот арт" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_set_preferred_image", {
@@ -320,16 +320,16 @@ describe("collection album", () => {
     fireEvent.click(screen.getByRole("button", { name: /Levi/ }));
     expect(await screen.findByText("Shingeki no Kyojin")).toBeTruthy();
     const labels = Array.from(document.querySelectorAll("dt")).map((node) => node.textContent);
-    expect(labels).toEqual(["Rarity", "Value", "Copies", "Obtained", "Latest"]);
+    expect(labels).toEqual(["Редкость", "Ценность", "Копии", "Получена", "Последняя"]);
     const facts = Array.from(document.querySelectorAll(".cards-detail-grid dd"));
-    expect(facts[0]?.textContent).toBe("Common");
-    expect(screen.queryByText("Normal")).toBeNull();
+    expect(facts[0]?.textContent).toBe("Обычная");
+    expect(screen.queryAllByText("Обычная").length).toBeGreaterThan(0);
     const dates = document.querySelectorAll("time");
     expect(dates).toHaveLength(2);
     expect(dates[0]?.getAttribute("title")).not.toBe("");
-    expect(dates[0]?.textContent).toMatch(/ago$/);
+    expect(dates[0]?.textContent).toMatch(/назад$/);
 
-    expect(screen.queryByRole("button", { name: "Dust" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Разобрать" })).toBeNull();
     expect(mockInvoke).not.toHaveBeenCalledWith("cards_dust", expect.anything());
   });
 

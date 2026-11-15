@@ -70,8 +70,6 @@ beforeEach(async () => {
   const { resetSymSpellCache } = await import("@/lib/core/anilist/suggestions.utils");
   const { resetNotificationAtoms } = await import("@/store/notification.store");
   const { resetSettingsAtoms, patchSettings } = await import("@/store/settings.store");
-  const { registerLocale } = await import("@/lib/locale/i18n.utils");
-  const { default: en } = await import("@/tests/fixtures/locale/en");
   const { resetUpdateAtoms } = await import("@/store/update.store");
   resetAllSharedMocks();
   resetTransportInflight();
@@ -82,8 +80,7 @@ beforeEach(async () => {
   resetSymSpellCache();
   resetNotificationAtoms();
   resetSettingsAtoms();
-  registerLocale("en", en);
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   resetUpdateAtoms();
   streamSlug.set(null);
   streamPage.set(1);

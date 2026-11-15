@@ -78,11 +78,11 @@ const folder = (dir: string): HTMLElement => {
 };
 
 const saveButton = (): HTMLElement => {
-  return screen.getByRole("button", { name: "Turn on and save" });
+  return screen.getByRole("button", { name: "Включить и сохранить" });
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en", modalAnimation: false });
+  patchSettings({ language: "ru", modalAnimation: false });
 });
 
 afterEach(() => {
@@ -103,7 +103,7 @@ describe("TorrentQueueModal list", () => {
   it("collapses a folder without losing the other rows", () => {
     renderQueue();
 
-    fireEvent.click(within(folder("S1")).getByRole("button", { name: "Collapse section" }));
+    fireEvent.click(within(folder("S1")).getByRole("button", { name: "Свернуть раздел" }));
 
     expect(document.querySelector('[data-queue-index="0"]')).toBeNull();
     expect(document.querySelector('[data-queue-index="1"]')).toBeNull();
@@ -114,7 +114,7 @@ describe("TorrentQueueModal list", () => {
   it("shows an empty state when nothing is downloading", () => {
     renderQueue({ files: [file(0, "S1/01.mkv", { completed: true })] });
 
-    expect(screen.getByTestId("torrent-queue-empty").textContent).toBe("Nothing left to download.");
+    expect(screen.getByTestId("torrent-queue-empty").textContent).toBe("Скачивать больше нечего.");
     expect(saveButton().hasAttribute("disabled")).toBe(true);
   });
 
@@ -197,7 +197,7 @@ describe("TorrentQueueModal apply", () => {
   it("saves without enabling sequential mode when it is already on", async () => {
     const queue = renderQueue({ sequential: true });
 
-    fireEvent.click(screen.getByRole("button", { name: "Save order" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить порядок" }));
 
     await waitFor(() =>
       expect(queue.onApply).toHaveBeenCalledWith({
@@ -212,7 +212,7 @@ describe("TorrentQueueModal apply", () => {
   it("drops an unchecked file from the order and reports it as deselected", async () => {
     const queue = renderQueue();
 
-    fireEvent.click(screen.getByLabelText("Download S1/01.mkv"));
+    fireEvent.click(screen.getByLabelText("Скачивать S1/01.mkv"));
     expect(row(0).textContent).toContain("-");
     fireEvent.click(saveButton());
 
@@ -232,7 +232,7 @@ describe("TorrentQueueModal apply", () => {
     });
 
     expect(row(0).textContent).toContain("-");
-    fireEvent.click(screen.getByLabelText("Download S1/01.mkv"));
+    fireEvent.click(screen.getByLabelText("Скачивать S1/01.mkv"));
     fireEvent.click(saveButton());
 
     await waitFor(() =>
@@ -249,7 +249,7 @@ describe("TorrentQueueModal apply", () => {
     const queue = renderQueue();
     queue.rerender({ files: [file(0, "S1/01.mkv", { completed: true }), ...FILES.slice(1)] });
 
-    expect(within(row(0)).getByText("Done")).toBeDefined();
+    expect(within(row(0)).getByText("Готово")).toBeDefined();
     fireEvent.click(saveButton());
 
     await waitFor(() =>
@@ -272,7 +272,7 @@ describe("TorrentQueueModal keyboard", () => {
     fireEvent.keyDown(first, { key: "ArrowDown", altKey: true });
 
     expect(rowOrder()).toEqual(["0", "1", "2"]);
-    expect(screen.getByText("02.mkv: position 2 of 3")).toBeDefined();
+    expect(screen.getByText("02.mkv: позиция 2 из 3")).toBeDefined();
     fireEvent.click(saveButton());
     await waitFor(() =>
       expect(queue.onApply).toHaveBeenCalledWith(expect.objectContaining({ order: [0, 1, 2] }))
@@ -299,7 +299,7 @@ describe("TorrentQueueModal keyboard", () => {
     s2.focus();
     fireEvent.keyDown(s2, { key: "ArrowUp", altKey: true });
 
-    fireEvent.click(screen.getByRole("button", { name: "Reset order" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить порядок" }));
 
     expect(rowOrder()).toEqual(["0", "1", "2"]);
   });
@@ -309,7 +309,7 @@ describe("TorrentQueueModal close guard", () => {
   it("closes without asking when nothing changed", () => {
     const queue = renderQueue();
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
     expect(queue.onClose).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId("torrent-queue-confirm")).toBeNull();
@@ -321,7 +321,7 @@ describe("TorrentQueueModal close guard", () => {
     s2.focus();
     fireEvent.keyDown(s2, { key: "ArrowUp", altKey: true });
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
     expect(queue.onClose).not.toHaveBeenCalled();
     expect(screen.getByTestId("torrent-queue-confirm")).toBeDefined();
@@ -332,9 +332,9 @@ describe("TorrentQueueModal close guard", () => {
     const s2 = folder("S2");
     s2.focus();
     fireEvent.keyDown(s2, { key: "ArrowUp", altKey: true });
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Do not save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Не сохранять" }));
 
     expect(queue.onClose).toHaveBeenCalledTimes(1);
   });
@@ -344,9 +344,9 @@ describe("TorrentQueueModal close guard", () => {
     const s2 = folder("S2");
     s2.focus();
     fireEvent.keyDown(s2, { key: "ArrowUp", altKey: true });
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Save order" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить порядок" }));
 
     await waitFor(() =>
       expect(queue.onApply).toHaveBeenCalledWith(expect.objectContaining({ order: [2, 1, 0] }))

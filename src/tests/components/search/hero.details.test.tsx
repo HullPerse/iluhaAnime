@@ -72,7 +72,7 @@ const renderHero = (poster: string) => {
 };
 
 const posterButton = (): HTMLElement => {
-  const button = screen.getByRole("button", { name: "Open image" });
+  const button = screen.getByRole("button", { name: "Открыть изображение" });
   return button;
 };
 
@@ -113,7 +113,7 @@ const stubImagePipeline = (blob: Blob = pngBlob()) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -128,9 +128,9 @@ describe("DetailsHero poster menu", () => {
     fireEvent.contextMenu(posterButton());
 
     await waitFor(() => expect(screen.getAllByRole("menuitem")).toHaveLength(3));
-    expect(screen.getByRole("menuitem", { name: "Save image as..." })).not.toBeNull();
-    expect(screen.getByRole("menuitem", { name: "Copy image" })).not.toBeNull();
-    expect(screen.getByRole("menuitem", { name: "Copy image URL" })).not.toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Сохранить картинку как..." })).not.toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Копировать картинку" })).not.toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Копировать URL картинки" })).not.toBeNull();
   });
 
   it("hides the URL copy on an asset poster", async () => {
@@ -138,15 +138,15 @@ describe("DetailsHero poster menu", () => {
     fireEvent.contextMenu(posterButton());
 
     await waitFor(() => expect(screen.getAllByRole("menuitem")).toHaveLength(2));
-    expect(screen.queryByRole("menuitem", { name: "Copy image URL" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Копировать URL картинки" })).toBeNull();
   });
 
   it("copies the poster URL", async () => {
     renderHero(REMOTE_POSTER);
     fireEvent.contextMenu(posterButton());
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Copy image URL" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Copy image URL" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Копировать URL картинки" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Копировать URL картинки" }));
 
     expect(mockWriteText).toHaveBeenCalledWith(REMOTE_POSTER);
   });
@@ -156,8 +156,8 @@ describe("DetailsHero poster menu", () => {
     renderHero(REMOTE_POSTER);
     fireEvent.contextMenu(posterButton());
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Copy image" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Copy image" }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Копировать картинку" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Копировать картинку" }));
 
     await waitFor(() => expect(navigator.clipboard.write).toHaveBeenCalledTimes(1));
   });
@@ -169,8 +169,8 @@ describe("DetailsHero poster menu", () => {
     renderHero(REMOTE_POSTER);
     fireEvent.contextMenu(posterButton());
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Save image as..." }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Save image as..." }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Сохранить картинку как..." }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Сохранить картинку как..." }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
@@ -188,8 +188,8 @@ describe("DetailsHero poster menu", () => {
     renderHero(REMOTE_POSTER);
     fireEvent.contextMenu(posterButton());
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Save image as..." }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Save image as..." }));
+    await waitFor(() => screen.getByRole("menuitem", { name: "Сохранить картинку как..." }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Сохранить картинку как..." }));
 
     await waitFor(() => expect(screen.queryAllByRole("menuitem")).toHaveLength(0));
     expect(mockInvoke).not.toHaveBeenCalled();

@@ -82,7 +82,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   notificationAtoms.items.set([]);
   notificationAtoms.unreadCount.set(0);
   notificationAtoms.dismissed.set([]);
@@ -111,7 +111,7 @@ describe("DitherPreviewModal save wiring", () => {
     await act(async () => {
       images[0].fireLoad();
     });
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Сохранить" });
     await waitFor(() => expect((saveButton as HTMLButtonElement).disabled).toBe(false));
     await user.click(saveButton);
     await waitFor(() =>
@@ -150,7 +150,7 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
     await act(async () => {
       for (const image of images) image.fireLoad();
     });
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Сохранить" });
     await waitFor(() => expect((saveButton as HTMLButtonElement).disabled).toBe(false));
     await user.click(saveButton);
     await waitFor(() =>
@@ -187,7 +187,7 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
       await act(async () => {
         images[0].fireLoad();
       });
-      const saveButton = screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+      const saveButton = screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement;
       expect(saveButton.disabled).toBe(false);
       ditherRenderCache.clear();
       fireEvent.click(saveButton);
@@ -201,8 +201,8 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
         .get()
         .filter((item) => item.type === "error")
         .map((item) => item.message);
-      expect(messages).toContain("The database did not answer within 30 seconds.");
-      expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(
+      expect(messages).toContain("База данных не ответила за 30 секунд.");
+      expect((screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement).disabled).toBe(
         false
       );
       await act(async () => {

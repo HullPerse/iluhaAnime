@@ -19,7 +19,7 @@ const baseProps = {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -30,12 +30,12 @@ describe("PlayerStatus", () => {
   it("hides the finished overlay while a file is loading", () => {
     render(<PlayerStatus {...baseProps} finished loading hasNext />);
 
-    expect(screen.queryByText("Playback finished")).toBeNull();
+    expect(screen.queryByText("Воспроизведение завершено")).toBeNull();
   });
 
   it("still shows the failed overlay while a file is loading", () => {
     render(<PlayerStatus {...baseProps} failed loading />);
 
-    expect(screen.getByText("Playback error")).toBeDefined();
+    expect(screen.getByText("Ошибка воспроизведения")).toBeDefined();
   });
 });

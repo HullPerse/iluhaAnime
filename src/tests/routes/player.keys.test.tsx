@@ -70,7 +70,7 @@ beforeEach(() => {
   listenMock.mockReset();
   listenMock.mockResolvedValue(() => undefined);
   mockDialogOpen.mockResolvedValue(null);
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   upscaleItems.set([queueItem()]);
 });
 

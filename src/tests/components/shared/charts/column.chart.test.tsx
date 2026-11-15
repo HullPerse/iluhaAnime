@@ -42,14 +42,14 @@ const renderColumns = ({
   render(
     <ColumnChart
       data={DATA}
-      ariaLabel="Watched by year"
+      ariaLabel="Просмотр по годам"
       formatValue={String}
       tooltip={(datum) => ({
         title: datum.label,
-        rows: [{ label: "Titles", value: String(datum.value) }],
+        rows: [{ label: "Тайтлы", value: String(datum.value) }],
       })}
       onActivate={onActivate}
-      reference={withReference ? { value: 1.5, label: "mean" } : undefined}
+      reference={withReference ? { value: 1.5, label: "средний" } : undefined}
       band={withReference ? { from: 0.5, to: 2.5 } : undefined}
       xDomain={[0, 3]}
     />
@@ -72,24 +72,24 @@ describe("ColumnChart", () => {
   it("draws the mean line and the sigma band", async () => {
     renderColumns({ withReference: true });
 
-    await waitFor(() => expect(screen.getByText("mean")).toBeDefined());
+    await waitFor(() => expect(screen.getByText("средний")).toBeDefined());
     expect(document.querySelector('line[stroke-dasharray="3 2"]')).not.toBeNull();
     expect(document.querySelector('rect[fill-opacity="0.1"]')).not.toBeNull();
   });
 
   it("moves with arrow keys and announces the active year", async () => {
     renderColumns();
-    const group = screen.getByRole("application", { name: "Watched by year" });
+    const group = screen.getByRole("application", { name: "Просмотр по годам" });
     fireEvent.focus(group);
 
-    expect(screen.getByText("2021: Titles 2")).toBeDefined();
+    expect(screen.getByText("2021: Тайтлы 2")).toBeDefined();
     fireEvent.keyDown(group, { key: "ArrowRight" });
-    expect(screen.getByText("2022: Titles 4")).toBeDefined();
+    expect(screen.getByText("2022: Тайтлы 4")).toBeDefined();
   });
 
   it("activates the active column on Enter", async () => {
     const onActivate = renderColumns();
-    const group = screen.getByRole("application", { name: "Watched by year" });
+    const group = screen.getByRole("application", { name: "Просмотр по годам" });
     fireEvent.focus(group);
     fireEvent.keyDown(group, { key: "End" });
     fireEvent.keyDown(group, { key: "Enter" });
@@ -103,6 +103,6 @@ describe("ColumnChart", () => {
     vi.spyOn(overlay, "getBoundingClientRect").mockReturnValue(rect(604, 150));
 
     fireEvent.pointerMove(overlay, { clientX: 300 });
-    expect(screen.getByText(/Titles 4/)).toBeDefined();
+    expect(screen.getByText(/Тайтлы 4/)).toBeDefined();
   });
 });

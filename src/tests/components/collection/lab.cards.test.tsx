@@ -45,18 +45,18 @@ describe("cards design lab", () => {
     for (let index = 0; index < 7; index += 1) {
       fireEvent.click(screen.getByTestId(`card-flip-${index}`));
     }
-    fireEvent.click(screen.getByRole("button", { name: "Take" }));
+    fireEvent.click(screen.getByRole("button", { name: "Забрать" }));
     expect(screen.queryByRole("dialog")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
     expect(await screen.findByTestId("card-flip-0")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Reveal all" }));
+    fireEvent.click(screen.getByRole("button", { name: "Раскрыть все" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
     for (let index = 0; index < 7; index += 1) {
       expect(screen.getByTestId(`card-flip-${index}`).dataset.flipped).toBe("true");
     }
-    fireEvent.click(screen.getByRole("button", { name: "Take" }));
+    fireEvent.click(screen.getByRole("button", { name: "Забрать" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 

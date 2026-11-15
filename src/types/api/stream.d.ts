@@ -7,5 +7,7 @@ export interface StreamApiConfig {
 
 export interface AnimeLibAccount {
   tokenSaved: boolean;
+  /** The API accepted the stored token; `login` may still be missing. */
+  authorized: boolean;
   login: string | null;
 }

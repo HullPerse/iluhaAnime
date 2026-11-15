@@ -39,7 +39,7 @@ const renderResults = (overrides: Partial<React.ComponentProps<typeof StreamResu
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   submitStreamSearch("");
 });
 
@@ -60,14 +60,14 @@ describe("StreamResults states", () => {
   it("names the query when nothing matches", () => {
     submitStreamSearch("naruto");
     renderResults({ data: { items: [], page: 1 } });
-    expect(screen.getByText("Nothing found for naruto.")).toBeDefined();
+    expect(screen.getByText("По запросу naruto ничего не найдено.")).toBeDefined();
   });
 
   it("clears the search from the empty state", async () => {
     submitStreamSearch("naruto");
     renderResults({ data: { items: [], page: 1 } });
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить" }));
     await waitFor(() => expect(streamQuery.get()).toBe(""));
   });
 
@@ -76,10 +76,10 @@ describe("StreamResults states", () => {
     renderResults({ error: new Error("connection refused"), onRetry });
 
     expect(screen.getByRole("alert")).toBeDefined();
-    expect(screen.getByText("The catalog request failed")).toBeDefined();
+    expect(screen.getByText("Запрос к каталогу не удался")).toBeDefined();
     expect(screen.getByText(/connection refused/)).toBeDefined();
 
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });
@@ -122,13 +122,13 @@ describe("StreamResults grid", () => {
   it("takes the last page and the total from the API meta", () => {
     renderResults({ data: { items: [NARUTO], page: 2, lastPage: 5, total: 250 } });
 
-    expect(screen.getByRole("spinbutton", { name: "Page 2 of 5" })).toBeDefined();
-    expect(screen.getByText("Rating - Page 2 - 60 per page")).toBeDefined();
-    expect(screen.getByText("Showing 61 to 61 of 250")).toBeDefined();
+    expect(screen.getByRole("spinbutton", { name: "Страница 2 из 5" })).toBeDefined();
+    expect(screen.getByText("Рейтинг - Страница 2 - 60 на страницу")).toBeDefined();
+    expect(screen.getByText("Показано с 61 по 61 из 250")).toBeDefined();
   });
 
   it("falls back to a short page as the last page", () => {
     renderResults({ data: { items: [NARUTO], page: 1 } });
-    expect(screen.getByRole("spinbutton", { name: "Page 1 of 1" })).toBeDefined();
+    expect(screen.getByRole("spinbutton", { name: "Страница 1 из 1" })).toBeDefined();
   });
 });

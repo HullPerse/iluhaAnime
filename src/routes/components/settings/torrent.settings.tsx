@@ -121,7 +121,6 @@ export default function SettingsTorrent() {
             <Input
               value={defaultDownloadDir ?? ""}
               onChange={(e) => patchSettings({ defaultDownloadDir: e.target.value || null })}
-              placeholder={t("settings.torrent.default.download.dir.hint")}
               className="flex-1"
             />
           </label>

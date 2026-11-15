@@ -40,10 +40,10 @@ describe("collection packs", () => {
   it("keeps the test pack grants out of the album menu", async () => {
     renderWithCardsClient(<CollectionShell />);
 
-    fireEvent.click(await screen.findByRole("tab", { name: "Album" }));
-    fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "Альбом" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ещё действия" }));
 
-    expect(await screen.findByRole("menuitem", { name: "Clear collection" })).toBeTruthy();
+    expect(await screen.findByRole("menuitem", { name: "Очистить коллекцию" })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: "Test pack" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Legendary pack" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Effects pack" })).toBeNull();

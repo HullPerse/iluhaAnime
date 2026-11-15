@@ -20,22 +20,22 @@ describe("RouteErrorScreen", () => {
       />
     );
     expect(screen.getByRole("alert")).toBeDefined();
-    expect(screen.getByText("Chunk load error")).toBeDefined();
+    expect(screen.getByText("Ошибка загрузки модуля")).toBeDefined();
     expect(
       screen.getByText("Failed to fetch dynamically imported module: ./assets/x.js")
     ).toBeDefined();
-    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await user.click(screen.getByRole("button", { name: "Попробовать снова" }));
     expect(reset).toHaveBeenCalledTimes(1);
   });
 
   it("offers reload, safe reload, and copy", async () => {
     const user = userEvent.setup();
     render(<RouteErrorScreen error={new Error("boom")} reset={() => {}} />);
-    expect(screen.getByText("Render error")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Reload app" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Safe reload" })).toBeDefined();
-    await user.click(screen.getByRole("button", { name: "+ Details" }));
-    await user.click(screen.getByRole("button", { name: "Copy details" }));
-    expect(await screen.findByRole("button", { name: "Copied" })).toBeDefined();
+    expect(screen.getByText("Ошибка отрисовки")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Перезапустить" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Безопасный перезапуск" })).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /Подробности/ }));
+    await user.click(screen.getByRole("button", { name: "Скопировать детали" }));
+    expect(await screen.findByRole("button", { name: "Скопировано" })).toBeDefined();
   });
 });

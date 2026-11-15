@@ -7,7 +7,7 @@ import { patchSettings } from "@/store/settings.store";
 const NAMES = ["Naruto", "Naruto Shippuden", "Bleach"] as const;
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {
@@ -19,7 +19,7 @@ const renderFilter = (query: string) => {
   const { container } = render(
     <TorrentNameFilter names={NAMES} query={query} onQueryChange={onQueryChange} />
   );
-  const input = screen.getByPlaceholderText("Filter...") as HTMLInputElement;
+  const input = screen.getByPlaceholderText("Фильтр...") as HTMLInputElement;
   return { container, onQueryChange, input };
 };
 

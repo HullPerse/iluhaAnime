@@ -9,7 +9,7 @@ import PlayerModal from "@/routes/components/player/media/modal.player";
 import { patchSettings } from "@/store/settings.store";
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 afterEach(() => {

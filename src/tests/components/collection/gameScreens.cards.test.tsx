@@ -76,17 +76,17 @@ describe("daily game screens", () => {
   it("renders the frames screen with search and skip controls", () => {
     render(<GameFrames day={day} initial={framesView} onClose={() => {}} />);
 
-    expect(screen.getByPlaceholderText("Anime title")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Skip" })).toBeTruthy();
-    expect(screen.getByText("Round 2 / 6")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Название аниме")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Пропустить" })).toBeTruthy();
+    expect(screen.getByText("Раунд 2 / 6")).toBeTruthy();
   });
 
   it("renders the opening screen with the clip player and search", () => {
     render(<GameOp day={day} initial={opView} onClose={() => {}} />);
 
     expect(screen.getByTestId("clip-player")).toBeTruthy();
-    expect(screen.getByPlaceholderText("Anime title")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Skip" })).toBeTruthy();
+    expect(screen.getByPlaceholderText("Название аниме")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Пропустить" })).toBeTruthy();
   });
 
   it("renders the audio screen with the first audio-only stage", () => {
@@ -99,7 +99,7 @@ describe("daily game screens", () => {
     );
 
     expect(screen.getByTestId("clip-player")).toBeTruthy();
-    expect(screen.getByText("Audio only")).toBeTruthy();
-    expect(screen.getByPlaceholderText("Anime title")).toBeTruthy();
+    expect(screen.getByText("Только звук")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Название аниме")).toBeTruthy();
   });
 });

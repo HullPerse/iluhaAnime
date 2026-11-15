@@ -37,7 +37,7 @@ const queueToggle = (): HTMLElement => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   upscaleItems.set([]);
 });
 

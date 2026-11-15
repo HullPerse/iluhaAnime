@@ -39,7 +39,7 @@ afterEach(() => {
 
 beforeEach(() => {
   invokeMock.mockReset();
-  patchSettings({ language: "en", modalAnimation: false, anilistProxyUrl: null });
+  patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anime_full") return new Promise(() => undefined);
     return Promise.reject(new Error(`unexpected command ${command}`));
@@ -51,9 +51,9 @@ describe("InlineDetail single slot", () => {
     render(<InlineDetail initialId={21} detail={DETAIL} onBack={vi.fn()} onClose={vi.fn()} />, {
       wrapper,
     });
-    expect(await screen.findByText("Loading...")).toBeDefined();
+    expect(await screen.findByText("Загрузка...")).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "Back" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Назад" })).toBeDefined();
   });
 
   it("calls onBack instead of onClose at the root of the stack", async () => {
@@ -63,8 +63,8 @@ describe("InlineDetail single slot", () => {
     render(<InlineDetail initialId={21} detail={DETAIL} onBack={onBack} onClose={onClose} />, {
       wrapper,
     });
-    await screen.findByText("Loading...");
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await screen.findByText("Загрузка...");
+    await user.click(screen.getByRole("button", { name: "Назад" }));
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
   });

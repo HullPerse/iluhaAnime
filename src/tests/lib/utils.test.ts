@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { translateFor } from "@/lib/locale/i18n.utils";
+import { translate } from "@/lib/locale/i18n.utils";
 import { uniqueById } from "@hullperse/hp_utils/array";
 import {
   attempt,
@@ -760,11 +760,7 @@ describe("utils/result", () => {
 });
 
 describe("utils/time", () => {
-  const ru = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
-    translateFor("ru", key, vars);
-
-  const en = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
-    translateFor("en", key, vars);
+  const ru = translate;
 
   describe("formatClock", () => {
     it.each([
@@ -791,9 +787,6 @@ describe("utils/time", () => {
       { secs: 125, mode: undefined, t: ru, expected: "2 мин 5 сек" },
       { secs: 90, mode: "minute", t: ru, expected: "1 мин 30 сек" },
       { secs: 3661, mode: undefined, t: ru, expected: "1 ч 1 мин" },
-      { secs: 45, mode: undefined, t: en, expected: "45 sec" },
-      { secs: 125, mode: undefined, t: en, expected: "2 min 5 sec" },
-      { secs: 3661, mode: undefined, t: en, expected: "1 h 1 min" },
       { secs: 59.6, mode: undefined, t: ru, expected: "60 сек" },
       { secs: 3600, mode: undefined, t: ru, expected: "1 ч 0 мин" },
       { secs: -5, mode: undefined, t: ru, expected: "" },
@@ -811,8 +804,6 @@ describe("utils/time", () => {
       { secs: Number.NaN, t: ru, expected: "0 сек" },
       { secs: -5, t: ru, expected: "0 сек" },
       { secs: 0, t: ru, expected: "0 сек" },
-      { secs: 45, t: en, expected: "45 sec" },
-      { secs: 125, t: en, expected: "2 min 5 sec" },
     ] as const)("formats %s as %s", ({ secs, t, expected }) => {
       expect(formatElapsed(secs, t)).toBe(expected);
     });

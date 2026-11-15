@@ -75,7 +75,7 @@ afterEach(() => {
 
 beforeEach(() => {
   invokeMock.mockReset();
-  patchSettings({ language: "en", modalAnimation: false, anilistProxyUrl: null });
+  patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anime_full") return new Promise(() => undefined);
     return Promise.reject(new Error(`unexpected command ${command}`));
@@ -95,13 +95,13 @@ describe("StatsModal inline detail", () => {
       />,
       { wrapper }
     );
-    expect(screen.getByText("Statistics")).toBeDefined();
-    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    expect(screen.getByText("Статистика")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Календарь" }));
     await user.click(screen.getByRole("button", { name: "Frieren" }));
-    expect(await screen.findByText("Loading...")).toBeDefined();
+    expect(await screen.findByText("Загрузка...")).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByText("Statistics")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Назад" }));
+    expect(await screen.findByText("Статистика")).toBeDefined();
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
   });
 
@@ -132,10 +132,10 @@ describe("StatsModal inline detail", () => {
       { wrapper }
     );
 
-    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    await user.click(screen.getByRole("button", { name: "Календарь" }));
     expect(await screen.findByRole("button", { name: "Frieren" })).toBeDefined();
 
-    await user.click(screen.getByRole("button", { name: "Season" }));
+    await user.click(screen.getByRole("button", { name: "Сезон" }));
     expect(await screen.findByRole("button", { name: "Season Show" })).toBeDefined();
     expect(screen.queryByRole("button", { name: "Frieren" })).toBeNull();
     expect(anilistApi.search).toHaveBeenCalledWith(
@@ -155,11 +155,10 @@ describe("StatsModal inline detail", () => {
       />,
       { wrapper }
     );
-    await user.click(screen.getByRole("button", { name: "Calendar" }));
-    await user.click(await screen.findByRole("button", { name: /releases on/ }));
+    await user.click(screen.getByRole("button", { name: "Календарь" }));
+    await user.click(await screen.findByRole("button", { name: /Релиз[a-я]* в/ }));
     expect(await screen.findByRole("heading", { name: /^15 / })).toBeDefined();
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByRole("heading", { name: "Statistics" })).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Назад" }));
+    expect(await screen.findByRole("heading", { name: "Статистика" })).toBeDefined();
   });
 });

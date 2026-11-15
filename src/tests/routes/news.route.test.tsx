@@ -139,7 +139,7 @@ beforeEach(() => {
       ? Promise.reject(new Error("unreachable: no such page"))
       : Promise.resolve(page);
   });
-  patchSettings({ language: "en", newsTabEnabled: true, newsProxyUrl: "" });
+  patchSettings({ language: "ru", newsTabEnabled: true, newsProxyUrl: "" });
 });
 
 describe("news route", () => {
@@ -148,7 +148,7 @@ describe("news route", () => {
 
     expect(await screen.findByRole("button", { name: first.title })).toBeTruthy();
     expect(screen.getByRole("button", { name: withYoutube.title })).toBeTruthy();
-    expect(screen.getAllByText("Page 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Страница 1").length).toBeGreaterThan(0);
     expect(mockInvoke).toHaveBeenCalledWith("news_feed", { page: 1 });
   });
 
@@ -157,9 +157,9 @@ describe("news route", () => {
     renderRoute();
 
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByText(/Shikimori blocked the request/)).toBeTruthy();
+    expect(screen.getByText(/Shikimori заблокировал запрос/)).toBeTruthy();
     const before = mockInvoke.mock.calls.length;
-    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await userEvent.click(screen.getByRole("button", { name: "Повторить" }));
 
     await waitFor(() => expect(mockInvoke.mock.calls.length).toBeGreaterThan(before));
   });
@@ -177,7 +177,7 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Open image" })[0]);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
 
     expect(document.querySelector('img[src="https://shikimori.io/a/full.jpg"]')).not.toBeNull();
     expect(mockOpenUrl).not.toHaveBeenCalled();
@@ -187,7 +187,7 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(withYoutube.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Play video" })[0]);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Воспроизвести видео" })[0]);
 
     const player = document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]');
     expect(player).not.toBeNull();
@@ -200,7 +200,7 @@ describe("news route", () => {
     const vk = first.attachments.find((attachment) => attachment.kind === "vk");
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Play VK video" })[0]);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Воспроизвести видео VK" })[0]);
 
     const frame = document.querySelector("iframe");
     expect(frame?.getAttribute("src")).toBe(vk?.embedUrl);
@@ -211,11 +211,11 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Open image" })[0]);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
     fireEvent.contextMenu(openImageMenu());
 
-    await waitFor(() => screen.getByRole("menuitem", { name: "Copy image" }));
-    expect(screen.getByRole("menuitem", { name: "Save image as..." })).toBeTruthy();
+    await waitFor(() => screen.getByRole("menuitem", { name: "Копировать картинку" }));
+    expect(screen.getByRole("menuitem", { name: "Сохранить картинку как..." })).toBeTruthy();
   });
 
   it("copies the full-size cached attachment instead of the preview", async () => {
@@ -224,9 +224,9 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Open image" })[0]);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
     fireEvent.contextMenu(openImageMenu());
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Copy image" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Копировать картинку" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("fetch_remote_image", {
@@ -243,9 +243,9 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Open image" })[0]);
+    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
     fireEvent.contextMenu(openImageMenu());
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Save image as..." }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Сохранить картинку как..." }));
 
     await waitFor(() =>
       expect(mockDialogSave).toHaveBeenCalledWith(
@@ -264,7 +264,7 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getByRole("button", { name: "Open on site" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Открыть на сайте" }));
 
     expect(mockOpenUrl).toHaveBeenCalledWith(first.siteUrl);
   });
@@ -280,7 +280,7 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getByRole("button", { name: "AniList details" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Детали в AniList" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("anilist-detail").textContent).toBe("194213")
@@ -293,14 +293,14 @@ describe("news route", () => {
 
     const dialog = await openReader(withYoutube.title);
 
-    expect(within(dialog).queryByRole("button", { name: "AniList details" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Детали в AniList" })).toBeNull();
   });
 
   it("copies a deep link that points at the post page", async () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getByRole("button", { name: "Copy link" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Копировать ссылку" }));
 
     expect(mockWriteText).toHaveBeenCalledWith("iluhaanime://news/101?page=1");
   });

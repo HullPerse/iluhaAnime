@@ -79,7 +79,7 @@ const renderList = (searchMatchIds: Set<number> | null = null) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   Element.prototype.scrollIntoView = vi.fn();
 });
 
@@ -91,10 +91,10 @@ describe("FranchiseList watch order", () => {
   it("summarizes the franchise and numbers the main line", () => {
     renderList();
 
-    expect(screen.getByText("Titles: 3, aired episodes: 25")).toBeDefined();
-    expect(screen.getByText("Watched 18 (72%)")).toBeDefined();
-    expect(screen.getByText("Main line")).toBeDefined();
-    expect(screen.getByText("Side stories")).toBeDefined();
+    expect(screen.getByText("Тайтлов: 3, вышло эпизодов: 25")).toBeDefined();
+    expect(screen.getByText("Просмотрено 18 (72%)")).toBeDefined();
+    expect(screen.getByText("Основная линия")).toBeDefined();
+    expect(screen.getByText("Сайд-стори")).toBeDefined();
     expect(screen.getByText("1")).toBeDefined();
     expect(screen.getByText("2")).toBeDefined();
   });
@@ -102,11 +102,11 @@ describe("FranchiseList watch order", () => {
   it("marks the current title and the next unwatched one", () => {
     renderList();
 
-    expect(screen.getByText("Current")).toBeDefined();
-    expect(screen.getByText("Next")).toBeDefined();
-    expect(screen.getByRole("button", { name: "First Season. Watching. 6/12" })).toBeDefined();
-    expect(screen.getByText(/My 8\/10/)).toBeDefined();
-    expect(screen.getByRole("progressbar", { name: "Watched 6 of 12" })).toBeDefined();
+    expect(screen.getByText("Текущий")).toBeDefined();
+    expect(screen.getByText("Дальше")).toBeDefined();
+    expect(screen.getByRole("button", { name: "First Season. Смотрю. 6/12" })).toBeDefined();
+    expect(screen.getByText(/Моя 8\/10/)).toBeDefined();
+    expect(screen.getByRole("progressbar", { name: "Просмотрено 6 из 12" })).toBeDefined();
   });
 
   it("dims non-matching rows and scrolls to the first match", () => {
@@ -148,11 +148,11 @@ describe("FranchiseList watch order", () => {
       />
     );
 
-    expect(screen.getByText("Titles: 2, aired episodes: 5")).toBeDefined();
-    expect(screen.getByText("Watched 5 (100%)")).toBeDefined();
+    expect(screen.getByText("Тайтлов: 2, вышло эпизодов: 5")).toBeDefined();
+    expect(screen.getByText("Просмотрено 5 (100%)")).toBeDefined();
     expect(screen.getByText("5/5")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Announced. Not aired" })).toBeDefined();
-    expect(screen.queryByText("Next")).toBeNull();
+    expect(screen.getByRole("button", { name: "Announced. Не вышло" })).toBeDefined();
+    expect(screen.queryByText("Дальше")).toBeNull();
   });
 
   it("does not navigate when the current row is clicked", () => {
@@ -170,7 +170,7 @@ describe("FranchiseList watch order", () => {
         onNodeClick={onOpen}
       />
     );
-    const current = screen.getByRole("button", { name: "First Season. Watching. 6/12" });
+    const current = screen.getByRole("button", { name: "First Season. Смотрю. 6/12" });
     fireEvent.click(current);
     expect(onOpen).not.toHaveBeenCalled();
     expect(current.className).toContain("cursor-default");
@@ -191,7 +191,7 @@ describe("FranchiseList watch order", () => {
         onNodeClick={onOpen}
       />
     );
-    const nonCurrent = screen.getByRole("button", { name: "Second Season. Completed. 12/12" });
+    const nonCurrent = screen.getByRole("button", { name: "Second Season. Просмотрено. 12/12" });
     fireEvent.click(nonCurrent);
     expect(onOpen).toHaveBeenCalledWith(2);
     expect(nonCurrent.className).toContain("cursor-pointer");

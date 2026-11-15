@@ -8,8 +8,8 @@ import { truncateLabel } from "@/lib/graphics/chartTicks.utils";
 const DATA = {
   title: "Drama",
   rows: [
-    { label: "Titles", value: "90" },
-    { label: "Mean score", value: "7.9" },
+    { label: "Тайтлы", value: "90" },
+    { label: "Средний балл", value: "7.9" },
   ],
 };
 
@@ -26,9 +26,9 @@ describe("SvgChartTooltip", () => {
     );
 
     expect(screen.getByText("Drama")).toBeDefined();
-    expect(screen.getByText("Titles")).toBeDefined();
+    expect(screen.getByText("Тайтлы")).toBeDefined();
     expect(screen.getByText("90")).toBeDefined();
-    expect(screen.getByText("Mean score")).toBeDefined();
+    expect(screen.getByText("Средний балл")).toBeDefined();
     expect(screen.getByText("7.9")).toBeDefined();
     expect(container.querySelector("foreignObject")).not.toBeNull();
     expect(container.querySelector("[aria-hidden='true']")).not.toBeNull();

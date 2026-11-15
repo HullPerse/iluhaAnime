@@ -18,10 +18,10 @@ describe("collection shop", () => {
     mockInvoke.mockResolvedValue(makeBootstrap({ wallet: 90 }));
     renderWithCardsClient(<ShopCards />);
 
-    expect(await screen.findAllByText("7 cards")).toHaveLength(6);
-    expect(screen.queryByText("Pack shop")).toBeNull();
+    expect(await screen.findAllByText("7 карт")).toHaveLength(6);
+    expect(screen.queryByText("Магазин паков")).toBeNull();
     expect(screen.queryByText(/Odds:/)).toBeNull();
-    const short = screen.getAllByRole("button", { name: "10 chubriks short" });
+    const short = screen.getAllByRole("button", { name: /Не хватает 10/ });
     expect(short).toHaveLength(6);
     expect((short[0] as HTMLButtonElement).disabled).toBe(true);
   });
@@ -34,7 +34,7 @@ describe("collection shop", () => {
     });
     renderWithCardsClient(<ShopCards />);
 
-    const buy = await screen.findAllByRole("button", { name: "Buy" });
+    const buy = await screen.findAllByRole("button", { name: "Купить" });
     fireEvent.click(buy[0] as HTMLButtonElement);
 
     await waitFor(() =>

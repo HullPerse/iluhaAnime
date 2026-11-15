@@ -57,7 +57,7 @@ beforeEach(() => {
   listenMock.mockReset();
   listenMock.mockResolvedValue(() => undefined);
   mockDialogOpen.mockResolvedValue(null);
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   patchPlayerSettings({ ...DEFAULT_PLAYER_SETTINGS });
   notificationAtoms.items.set([]);
   notificationAtoms.unreadCount.set(0);

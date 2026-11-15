@@ -146,7 +146,7 @@ afterEach(() => {
 beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(rect(640, 200));
   invokeMock.mockReset();
-  patchSettings({ language: "en", modalAnimation: false, anilistProxyUrl: null });
+  patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anilist_statistics") return Promise.resolve(statisticsFixture());
     return Promise.reject(new Error(`unexpected command ${command}`));
@@ -160,13 +160,13 @@ describe("StatsModal overview", () => {
     expect(screen.getAllByText("3")).toHaveLength(3);
     expect(screen.getByText("120")).toBeDefined();
     expect(screen.getByText("50")).toBeDefined();
-    expect(screen.getByText("67%")).toBeDefined();
-    expect(screen.getByText("Score distribution")).toBeDefined();
+    expect(screen.getByText(/67\s*%/)).toBeDefined();
+    expect(screen.getByText("Распределение оценок")).toBeDefined();
   });
 
   it("does not double count titles that also sit in a custom list", async () => {
     renderModal("POINT_10");
-    expect(await screen.findByText("83%")).toBeDefined();
+    expect(await screen.findByText(/83\s*%/)).toBeDefined();
   });
 
   it("shows the empty state for an empty account", async () => {
@@ -178,7 +178,7 @@ describe("StatsModal overview", () => {
     renderModal("POINT_10");
     expect(
       await screen.findByText(
-        "No tracked titles yet. Add titles to your list and statistics will appear here."
+        "Отслеживаемых тайтлов пока нет. Добавьте их в список, и статистика появится здесь."
       )
     ).toBeDefined();
   });
@@ -198,7 +198,7 @@ describe("StatsModal overview", () => {
       { timeout: 10000 }
     );
     const before = invokeMock.mock.calls.length;
-    await user.click(screen.getByRole("button", { name: "Refresh" }));
+    await user.click(screen.getByRole("button", { name: "Обновить" }));
     await vi.waitFor(() => {
       expect(invokeMock.mock.calls.length).toBeGreaterThan(before);
     });
@@ -207,10 +207,10 @@ describe("StatsModal overview", () => {
   it("widens the dialog on the Overview tab only", async () => {
     const user = userEvent.setup();
     renderModal("POINT_10");
-    expect(await screen.findByText("Score distribution")).toBeDefined();
+    expect(await screen.findByText("Распределение оценок")).toBeDefined();
     const dialog = document.querySelector('[role="dialog"]');
     expect(dialog?.className).toContain("w-7xl");
-    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    await user.click(screen.getByRole("button", { name: "Календарь" }));
     expect(dialog?.className).not.toContain("w-7xl");
     expect(dialog?.className).toContain("w-3xl");
   });
@@ -218,13 +218,13 @@ describe("StatsModal overview", () => {
   it("opens the genre drill-down with Enter and returns on back", async () => {
     const user = userEvent.setup();
     renderModal("POINT_10");
-    const genres = await screen.findByRole("application", { name: "Top genres" });
+    const genres = await screen.findByRole("application", { name: "Топ жанров" });
     fireEvent.focus(genres);
     fireEvent.keyDown(genres, { key: "Enter" });
     expect(await screen.findByText("Drama (3)")).toBeDefined();
     expect(screen.getByText("Title 1")).toBeDefined();
     expect(screen.getByText("Title 3")).toBeDefined();
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByRole("application", { name: "Top genres" })).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Назад" }));
+    expect(await screen.findByRole("application", { name: "Топ жанров" })).toBeDefined();
   });
 });

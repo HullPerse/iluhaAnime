@@ -41,10 +41,10 @@ describe("collection gift dialog", () => {
     renderWithCardsClient(<GiftDialog gift={GIFT} onClose={onClose} />);
 
     expect(await screen.findByRole("heading", { name: "Preview card" })).toBeTruthy();
-    expect(screen.getAllByText(/Rare/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Редкая/).length).toBeGreaterThan(0);
     expect(document.querySelector(".cards-gift-detail [data-kind]")).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+    fireEvent.click(screen.getByRole("button", { name: "Принять" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("cards_claim_gift", {
@@ -54,7 +54,7 @@ describe("collection gift dialog", () => {
         cards: GIFT.cards,
       })
     );
-    expect(await screen.findByText("Gift claimed.")).toBeTruthy();
+    expect(await screen.findByText("Подарок получен.")).toBeTruthy();
     expect(screen.getAllByText("Card 1")).toHaveLength(2);
     expect(document.querySelector(".cards-gift-detail [data-kind]")).not.toBeNull();
     expect(screen.getByDisplayValue("iluhaanime://card/gift/receipt/gift-123-456")).toBeTruthy();

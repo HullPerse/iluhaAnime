@@ -47,6 +47,7 @@ export default function StreamToolbar({
     submitStreamSearch("");
   };
   const activeFilters = countActiveStreamFilters(filters);
+  const accountLabel = account?.login ?? t("stream.account.title");
 
   return (
     <div className="ui-toolbar ui-panel w-full flex-row">
@@ -105,16 +106,16 @@ export default function StreamToolbar({
       </Button>
 
       <span className="ui-toolbar-separator" aria-hidden />
-      {account?.login ? (
+      {account?.authorized ? (
         <Button
           variant="ghost"
           className="text-hint h-7 gap-1 px-1 text-xs"
           title={t("stream.account.logout")}
-          aria-label={`${t("stream.account.logout")}: ${account.login}`}
+          aria-label={`${t("stream.account.logout")}: ${accountLabel}`}
           onClick={() => setLogoutOpen(true)}
         >
           <User className="size-3.5" />
-          {account.login}
+          {accountLabel}
           <LogOut className="size-3.5" />
         </Button>
       ) : (

@@ -18,8 +18,8 @@ const rect = (width: number, height: number): DOMRect => {
 };
 
 const DATA = [
-  { key: "tv", label: "TV", value: 10 },
-  { key: "movie", label: "Movie", value: 20 },
+  { key: "tv", label: "ТВ", value: 10 },
+  { key: "movie", label: "Фильм", value: 20 },
   { key: "ova", label: "OVA", value: 30 },
 ];
 
@@ -52,8 +52,8 @@ describe("RatioChart", () => {
   it("fills the plot and lists every part in the legend", async () => {
     renderRatio();
 
-    await waitFor(() => expect(screen.getByText("TV")).toBeDefined());
-    expect(screen.getByText("Movie")).toBeDefined();
+    await waitFor(() => expect(screen.getByText("ТВ")).toBeDefined());
+    expect(screen.getByText("Фильм")).toBeDefined();
     expect(screen.getByText("OVA")).toBeDefined();
     expect(screen.getByText("10 titles")).toBeDefined();
 
@@ -69,9 +69,9 @@ describe("RatioChart", () => {
     const group = screen.getByRole("application", { name: "Formats" });
     fireEvent.focus(group);
 
-    expect(screen.getByText("TV: Titles 10")).toBeDefined();
+    expect(screen.getByText("ТВ: Titles 10")).toBeDefined();
     fireEvent.keyDown(group, { key: "ArrowRight" });
-    expect(screen.getByText("Movie: Titles 20")).toBeDefined();
+    expect(screen.getByText("Фильм: Titles 20")).toBeDefined();
   });
 
   it("activates a part on Enter", async () => {

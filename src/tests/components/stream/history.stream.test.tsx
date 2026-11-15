@@ -46,7 +46,7 @@ const renderHistory = (open = true) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   history.rows = [ROW];
   history.refetch.mockClear();
   history.clear.mockClear();
@@ -61,8 +61,8 @@ describe("StreamHistoryModal", () => {
     const { onOpen } = renderHistory();
 
     expect(screen.getByText("Sousou no Frieren")).toBeDefined();
-    expect(screen.getByText("Episode 3, Killing Magic")).toBeDefined();
-    expect(screen.getByText("Resume at 10:00")).toBeDefined();
+    expect(screen.getByText("Серия 3, Killing Magic")).toBeDefined();
+    expect(screen.getByText("Продолжить с 10:00")).toBeDefined();
 
     const row = screen.getByText("Sousou no Frieren").closest("[role='button']");
     expect(row).not.toBeNull();
@@ -74,22 +74,22 @@ describe("StreamHistoryModal", () => {
     history.rows = [{ ...ROW, position: 1440 }];
     renderHistory();
 
-    expect(screen.getByText("Watched")).toBeDefined();
-    expect(screen.queryByText("Resume at 10:00")).toBeNull();
+    expect(screen.getByText("Просмотрено")).toBeDefined();
+    expect(screen.queryByText("Продолжить с 10:00")).toBeNull();
   });
 
   it("explains an empty history", () => {
     history.rows = [];
     renderHistory();
 
-    expect(screen.getByText("Nothing watched yet.")).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Clear history" })).toBeNull();
+    expect(screen.getByText("Пока ничего не просмотрено.")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Очистить историю" })).toBeNull();
   });
 
   it("clears the history from the header and reloads the list", async () => {
     renderHistory();
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear history" }));
+    fireEvent.click(screen.getByRole("button", { name: "Очистить историю" }));
 
     await waitFor(() => expect(history.clear).toHaveBeenCalledTimes(1));
     expect(history.refetch).toHaveBeenCalledTimes(1);

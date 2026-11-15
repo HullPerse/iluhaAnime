@@ -13,7 +13,7 @@ const deleteButton = (): HTMLElement => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
 });
 
 describe("FFMPEG panel", () => {

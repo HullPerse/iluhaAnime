@@ -39,7 +39,7 @@ describe("FatalScreen", () => {
   it("shows the kind label and the raw message on the win95 screen", () => {
     render(<FatalScreen info={baseInfo()} {...handlers()} />);
     expect(screen.getByRole("alert")).toBeDefined();
-    expect(screen.getByText("Chunk load error")).toBeDefined();
+    expect(screen.getByText("Ошибка загрузки модуля")).toBeDefined();
     expect(screen.getByText("Failed to fetch dynamically imported module")).toBeDefined();
   });
 
@@ -50,7 +50,7 @@ describe("FatalScreen", () => {
     expect(screen.getByRole("alert").style.backgroundColor).toBe("rgb(0, 51, 153)");
     unmount();
     render(<FatalScreen info={baseInfo({ themeName: "gruvbox-dark" })} {...handlers()} />);
-    expect(screen.getByText("Chunk load error")).toBeDefined();
+    expect(screen.getByText("Ошибка загрузки модуля")).toBeDefined();
     expect(screen.getByText("Failed to fetch dynamically imported module")).toBeDefined();
   });
 
@@ -58,28 +58,28 @@ describe("FatalScreen", () => {
     render(<FatalScreen info={baseInfo({ themeName: "xp" })} safe {...handlers()} />);
     expect(screen.getByRole("alert").style.backgroundColor).toBe("rgb(0, 0, 170)");
     expect(
-      screen.getByText((_content, el) => el?.textContent === "* Safe mode: default theme")
+      screen.getByText((_content, el) => el?.textContent === "* Безопасный режим: тема по умолчанию")
     ).toBeDefined();
   });
 
   it("offers retry once and reports it as used after a repeat crash", () => {
     const first = render(<FatalScreen info={baseInfo()} {...handlers()} />);
-    expect(screen.getByRole("button", { name: "Try again" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Попробовать снова" })).toBeDefined();
     first.unmount();
     render(<FatalScreen info={baseInfo({ retryCount: 1 })} {...handlers()} />);
-    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Попробовать снова" })).toBeNull();
     expect(
-      screen.getByText((_content, el) => el?.textContent === "* Retry already used")
+      screen.getByText((_content, el) => el?.textContent === "* Повтор уже использован")
     ).toBeDefined();
   });
 
   it("reveals error details and copies them to the clipboard", async () => {
     const user = userEvent.setup();
     render(<FatalScreen info={baseInfo()} {...handlers()} />);
-    await user.click(screen.getByRole("button", { name: "+ Details" }));
+    await user.click(screen.getByRole("button", { name: /Подробности/ }));
     expect(screen.getByText(/scope=render/)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: "Copy details" }));
-    expect(await screen.findByRole("button", { name: "Copied" })).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Скопировать детали" }));
+    expect(await screen.findByRole("button", { name: "Скопировано" })).toBeDefined();
     expect(mockWriteText).toHaveBeenCalled();
     const copied = String((mockWriteText.mock.calls[0] as unknown[])[0] ?? "");
     expect(copied).toContain("fatal.chunk");
@@ -90,10 +90,10 @@ describe("FatalScreen", () => {
     const user = userEvent.setup();
     const props = handlers();
     render(<FatalScreen info={baseInfo()} {...props} />);
-    expect(document.activeElement?.textContent).toBe("Reload app");
-    await user.click(screen.getByRole("button", { name: "Reload app" }));
+    expect(document.activeElement?.textContent).toBe("Перезапустить");
+    await user.click(screen.getByRole("button", { name: "Перезапустить" }));
     expect(props.onReload).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole("button", { name: "Safe reload" }));
+    await user.click(screen.getByRole("button", { name: "Безопасный перезапуск" }));
     expect(props.onSafeReload).toHaveBeenCalledTimes(1);
   });
 
@@ -131,7 +131,7 @@ describe("FatalScreen", () => {
     } as unknown as Update);
     render(<FatalScreen info={baseInfo()} {...handlers()} />);
 
-    await user.click(screen.getByRole("button", { name: "Check for update" }));
+    await user.click(screen.getByRole("button", { name: "Проверить обновление" }));
 
     await waitFor(() => expect(downloadAndInstall).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -142,9 +142,9 @@ describe("FatalScreen", () => {
     mockUpdaterCheck.mockResolvedValue(null);
     render(<FatalScreen info={baseInfo()} {...handlers()} />);
 
-    await user.click(screen.getByRole("button", { name: "Check for update" }));
+    await user.click(screen.getByRole("button", { name: "Проверить обновление" }));
 
-    expect(await screen.findByText("No updates available")).toBeDefined();
+    expect(await screen.findByText("Обновлений нет")).toBeDefined();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
@@ -153,10 +153,10 @@ describe("FatalScreen", () => {
     mockUpdaterCheck.mockRejectedValue(new Error("updater offline"));
     render(<FatalScreen info={baseInfo()} {...handlers()} />);
 
-    await user.click(screen.getByRole("button", { name: "Check for update" }));
+    await user.click(screen.getByRole("button", { name: "Проверить обновление" }));
 
-    expect(await screen.findByText("Update failed: updater offline")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Check for update" })).toBeDefined();
+    expect(await screen.findByText("Ошибка обновления: updater offline")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Проверить обновление" })).toBeDefined();
   });
 
   it("uses the terminal and retroism screens for their themes", () => {

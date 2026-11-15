@@ -29,7 +29,7 @@ describe("collection pack opening", () => {
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.queryByRole("button", { name: "Flip all" })).toBeNull();
 
-    const finish = screen.getByRole("button", { name: "Take" });
+    const finish = screen.getByRole("button", { name: "Забрать" });
     expect(finish).toHaveProperty("disabled", true);
     const first = screen.getByTestId("card-flip-0");
     expect(first.dataset.flipped).toBe("false");
@@ -74,7 +74,7 @@ describe("collection pack opening", () => {
     fireEvent.click(first);
 
     const source = screen.getByTestId("card-source");
-    expect(source.textContent).toContain("From manga");
+    expect(source.textContent).toContain("Из манги");
     expect(source.textContent).toContain("One Piece");
   });
 
@@ -84,14 +84,14 @@ describe("collection pack opening", () => {
     renderWithCardsClient(<OpenCards pack={makePack()} onClose={onClose} />);
 
     await screen.findByTestId("card-flip-0");
-    fireEvent.click(screen.getByRole("button", { name: "Reveal all" }));
+    fireEvent.click(screen.getByRole("button", { name: "Раскрыть все" }));
 
     for (let index = 0; index < 7; index += 1) {
       expect(screen.getByTestId(`card-flip-${index}`).dataset.flipped).toBe("true");
     }
     expect(onClose).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Take" }));
+    fireEvent.click(screen.getByRole("button", { name: "Забрать" }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -114,9 +114,9 @@ describe("collection pack opening", () => {
     renderWithCardsClient(<OpenCards pack={makePack()} onClose={vi.fn()} />);
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toBe("Could not open the pack. It was not spent.");
+    expect(alert.textContent).toBe("Не удалось открыть пак. Пак не потрачен.");
 
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
 
     expect(await screen.findByTestId("card-flip-0")).toBeTruthy();
     const opens = mockInvoke.mock.calls.filter((call) => call[0] === "cards_open_pack");

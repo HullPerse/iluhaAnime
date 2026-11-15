@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  patchSettings({ language: "en", anilistProxyUrl: null });
+  patchSettings({ language: "ru", anilistProxyUrl: null });
   invokeMock.mockReset();
   resetTransportInflight();
 });
@@ -71,8 +71,8 @@ describe("AniListCharactersPanel seeding", () => {
       return Promise.reject(new Error(`unexpected command ${command}`));
     });
     renderPanel(seeded);
-    fireEvent.click(await screen.findByRole("button", { name: "Expand section" }));
-    const more = await screen.findByRole("button", { name: "Show more" });
+    fireEvent.click(await screen.findByRole("button", { name: "Развернуть раздел" }));
+    const more = await screen.findByRole("button", { name: "Показать ещё" });
     fireEvent.click(more);
     await waitFor(() =>
       expect(

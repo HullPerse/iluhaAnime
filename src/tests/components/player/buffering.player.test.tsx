@@ -9,7 +9,7 @@ import type { StreamOpen } from "@/types/player/videoPlayer";
 const SHOW_DELAY_MS = 400;
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   vi.useFakeTimers();
   streamSession.set({} as StreamOpen);
   playbackAtoms.cacheDuration.set(12);
@@ -46,7 +46,7 @@ describe("BufferingOverlay", () => {
 
     advance(1);
     expect(screen.getByRole("status")).toBeTruthy();
-    expect(screen.getByText("Buffering")).toBeTruthy();
+    expect(screen.getByText("Буферизация")).toBeTruthy();
   });
 
   it("reports the loaded span and the fill rate instead of a fake percentage", () => {
@@ -54,7 +54,7 @@ describe("BufferingOverlay", () => {
     advance(SHOW_DELAY_MS);
 
     const detail = screen.getByRole("status").textContent ?? "";
-    expect(detail).toContain("0:12 ahead");
+    expect(detail).toContain("0:12 впереди");
     expect(detail).toContain("2.0 MB/s");
     expect(screen.queryByText(/%$/)).toBeNull();
   });
@@ -64,8 +64,8 @@ describe("BufferingOverlay", () => {
     render(<BufferingOverlay visible />);
     advance(SHOW_DELAY_MS);
 
-    expect(screen.getByText("Reading file")).toBeTruthy();
-    expect(screen.queryByText(/ahead/)).toBeNull();
+    expect(screen.getByText("Чтение файла")).toBeTruthy();
+    expect(screen.queryByText(/впереди/)).toBeNull();
   });
 
   it("calls a long wait a stall and names its length", () => {
@@ -73,7 +73,7 @@ describe("BufferingOverlay", () => {
     advance(SHOW_DELAY_MS);
     advance(12_000);
 
-    expect(screen.getByText("No data for 12 s")).toBeTruthy();
+    expect(screen.getByText("Нет данных 12 с")).toBeTruthy();
   });
 
   it("keeps the overlay up long enough not to blink", () => {

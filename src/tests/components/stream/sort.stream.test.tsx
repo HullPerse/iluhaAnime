@@ -16,7 +16,7 @@ const setMeasuredWidth = (width: number) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   applyStreamFilters({ ...DEFAULT_STREAM_FILTERS });
   setMeasuredWidth(600);
 });
@@ -30,29 +30,29 @@ describe("StreamSortBar", () => {
   it("starts a picked key in its own direction", () => {
     render(<StreamSortBar onHistoryOpen={noop} />);
 
-    expect(screen.getByRole("button", { name: "Rating" }).getAttribute("aria-current")).toBe(
+    expect(screen.getByRole("button", { name: "Рейтинг" }).getAttribute("aria-current")).toBe(
       "true"
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Title" }));
+    fireEvent.click(screen.getByRole("button", { name: "Название" }));
     expect(streamFilters.get().sortBy).toBe("name");
     expect(streamFilters.get().sortType).toBe("asc");
-    expect(screen.getByRole("button", { name: "Title" }).getAttribute("aria-current")).toBe("true");
+    expect(screen.getByRole("button", { name: "Название" }).getAttribute("aria-current")).toBe("true");
 
-    fireEvent.click(screen.getByRole("button", { name: "Popular" }));
+    fireEvent.click(screen.getByRole("button", { name: "Популярное" }));
     expect(streamFilters.get().sortBy).toBe("views");
     expect(streamFilters.get().sortType).toBe("desc");
-    expect(screen.getByRole("button", { name: "Rating" }).getAttribute("aria-current")).toBe(null);
+    expect(screen.getByRole("button", { name: "Рейтинг" }).getAttribute("aria-current")).toBe(null);
   });
 
   it("flips the direction when the active key is picked again", () => {
     render(<StreamSortBar onHistoryOpen={noop} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Rating" }));
+    fireEvent.click(screen.getByRole("button", { name: "Рейтинг" }));
     expect(streamFilters.get().sortBy).toBe("rating_score");
     expect(streamFilters.get().sortType).toBe("asc");
 
-    fireEvent.click(screen.getByRole("button", { name: "Rating" }));
+    fireEvent.click(screen.getByRole("button", { name: "Рейтинг" }));
     expect(streamFilters.get().sortType).toBe("desc");
   });
 
@@ -60,7 +60,7 @@ describe("StreamSortBar", () => {
     streamPage.set(4);
     render(<StreamSortBar onHistoryOpen={noop} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "New" }));
+    fireEvent.click(screen.getByRole("button", { name: "Новое" }));
 
     expect(streamPage.get()).toBe(1);
     expect(streamFilters.get().sortBy).toBe("created_at");
@@ -70,7 +70,7 @@ describe("StreamSortBar", () => {
     const onHistoryOpen = vi.fn();
     render(<StreamSortBar onHistoryOpen={onHistoryOpen} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "History" }));
+    fireEvent.click(screen.getByRole("button", { name: "История" }));
 
     expect(onHistoryOpen).toHaveBeenCalledTimes(1);
   });
@@ -79,11 +79,11 @@ describe("StreamSortBar", () => {
     setMeasuredWidth(100);
     render(<StreamSortBar onHistoryOpen={noop} />);
 
-    expect(screen.queryByRole("button", { name: "Title" })).toBe(null);
+    expect(screen.queryByRole("button", { name: "Название" })).toBe(null);
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Далее" }));
 
-    expect(screen.queryByRole("button", { name: "Rating" })).toBe(null);
-    expect(screen.queryByRole("button", { name: "Title" })).not.toBe(null);
+    expect(screen.queryByRole("button", { name: "Рейтинг" })).toBe(null);
+    expect(screen.queryByRole("button", { name: "Название" })).not.toBe(null);
   });
 });

@@ -85,7 +85,7 @@ const errorMessages = () => {
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   notificationAtoms.items.set([]);
   notificationAtoms.unreadCount.set(0);
   notificationAtoms.dismissed.set([]);
@@ -100,9 +100,9 @@ describe("DitherPreviewModal", () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Classic" }));
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Classic" }).disabled).toBe(true);
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "None" }).disabled).toBe(false);
+    await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Классика" }));
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Классика" }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Без эффекта" }).disabled).toBe(false);
   });
 
   it("bakes the canvas into the database and goes back", async () => {
@@ -112,7 +112,7 @@ describe("DitherPreviewModal", () => {
     const onBack = vi.fn();
     const onSaved = vi.fn();
     render(<DitherPreviewModal image={IMAGE} onBack={onBack} onSaved={onSaved} />);
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("update_dither_image_data", {
         id: "aaa",
@@ -130,8 +130,8 @@ describe("DitherPreviewModal", () => {
     const onBack = vi.fn();
     const onSaved = vi.fn();
     render(<DitherPreviewModal image={IMAGE} onBack={onBack} onSaved={onSaved} />);
-    await user.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(errorMessages()).toContain("Could not save the edited image."));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(errorMessages()).toContain("Не удалось сохранить изменённое изображение."));
     expect(onSaved).not.toHaveBeenCalled();
     expect(onBack).not.toHaveBeenCalled();
   });
@@ -139,8 +139,8 @@ describe("DitherPreviewModal", () => {
   it("switches the threshold matrix", async () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
-    const bayer = screen.getByRole("button", { name: "Bayer 4" });
-    const blue = screen.getByRole("button", { name: "Blue 64" });
+    const bayer = screen.getByRole("button", { name: "Байер 4" });
+    const blue = screen.getByRole("button", { name: "Синий 64" });
     expect((bayer as HTMLButtonElement).disabled).toBe(true);
     await user.click(blue);
     expect((blue as HTMLButtonElement).disabled).toBe(true);
@@ -149,8 +149,8 @@ describe("DitherPreviewModal", () => {
   it("switches between color and grayscale output", async () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
-    const color = screen.getByRole("button", { name: "Color" });
-    const gray = screen.getByRole("button", { name: "Grayscale" });
+    const color = screen.getByRole("button", { name: "Цвет" });
+    const gray = screen.getByRole("button", { name: "Оттенки серого" });
     expect((color as HTMLButtonElement).disabled).toBe(true);
     await user.click(gray);
     expect((gray as HTMLButtonElement).disabled).toBe(true);
@@ -161,7 +161,7 @@ describe("DitherPreviewModal", () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: "Amber" }));
+    await user.click(screen.getByRole("button", { name: "Янтарь" }));
     const swatches = screen.getAllByTitle(/#[0-9A-F]{6}/i);
     const initial = swatches.length;
     expect(initial).toBeGreaterThanOrEqual(2);
@@ -176,7 +176,7 @@ describe("DitherPreviewModal", () => {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       const initial = lastCanvasLevels;
       expect(initial).toBeGreaterThan(0);
-      const levelsSlider = screen.getByRole("slider", { name: "Levels" });
+      const levelsSlider = screen.getByRole("slider", { name: "Уровни" });
       fireEvent.keyDown(levelsSlider, { key: "ArrowRight" });
       const live = Number(levelsSlider.getAttribute("aria-valuenow"));
       expect(lastCanvasLevels).toBe(initial);
@@ -192,7 +192,7 @@ describe("DitherPreviewModal", () => {
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       expect(lastCanvasScale).toBe(1);
-      const scaleSlider = screen.getByRole("slider", { name: "Canvas scale" });
+      const scaleSlider = screen.getByRole("slider", { name: "Масштаб канваса" });
       fireEvent.keyDown(scaleSlider, { key: "ArrowLeft" });
       const live = Number(scaleSlider.getAttribute("aria-valuenow"));
       expect(live).toBeCloseTo(0.95, 5);
@@ -218,9 +218,9 @@ describe("DitherPreviewModal", () => {
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
     await user.click(screen.getByRole("button", { name: "Game Boy" }));
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
-    await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Original" }));
+    await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Исходные цвета" }));
     expect(screen.queryAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(0);
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Original" }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Исходные цвета" }).disabled).toBe(true);
   });
 
   it("extracts the palette from the image on demand", async () => {
@@ -236,7 +236,7 @@ describe("DitherPreviewModal", () => {
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-      await user.click(screen.getByRole("button", { name: "From image" }));
+      await user.click(screen.getByRole("button", { name: "Из изображения" }));
       await waitFor(() => expect(screen.getByTitle("#FF0000")).toBeTruthy());
     } finally {
       vi.unstubAllGlobals();
@@ -251,11 +251,11 @@ describe("DitherPreviewModal", () => {
     const pick = (name: string) => user.click(screen.getByRole("button", { name }));
     await pick("PICO-8");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(16);
-    await pick("Gray ramp");
+    await pick("Серая шкала");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(8);
-    await pick("Vapor");
+    await pick("Вейпор");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(6);
-    await pick("Black & white");
+    await pick("Чёрно-белый");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(2);
   });
   it("re-applies a preset over an extracted palette", async () => {
@@ -271,7 +271,7 @@ describe("DitherPreviewModal", () => {
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-      await user.click(screen.getByRole("button", { name: "From image" }));
+      await user.click(screen.getByRole("button", { name: "Из изображения" }));
       await waitFor(() => expect(screen.getByTitle("#FF0000")).toBeTruthy());
       await user.click(screen.getByRole("button", { name: "Game Boy" }));
       expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
@@ -289,12 +289,12 @@ describe("DitherPreviewModal", () => {
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-      await user.click(screen.getByRole("button", { name: "From image" }));
+      await user.click(screen.getByRole("button", { name: "Из изображения" }));
       await waitFor(() =>
         expect(
           notificationAtoms.items
             .get()
-            .some((item) => item.message === "Could not read image colors.")
+            .some((item) => item.message === "Не удалось прочитать цвета изображения.")
         ).toBe(true)
       );
     } finally {

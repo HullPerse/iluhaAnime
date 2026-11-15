@@ -41,11 +41,11 @@ const serve = (report: NetworkDiagnosis) => {
 };
 
 const runCheck = () => {
-  fireEvent.click(screen.getByRole("button", { name: "Run check" }));
+  fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en", searchProxyUrls: {} });
+  patchSettings({ language: "ru", searchProxyUrls: {} });
 });
 
 afterEach(() => {
@@ -59,12 +59,12 @@ describe("TorrentDiagnosticsSettings", () => {
 
     runCheck();
 
-    expect(await screen.findByText("RuTracker is reachable")).not.toBeNull();
-    expect(screen.getByText("All stages passed.")).not.toBeNull();
+    expect(await screen.findByText("RuTracker доступен")).not.toBeNull();
+    expect(screen.getByText("Все стадии пройдены.")).not.toBeNull();
     expect(screen.getByText("104.21.32.39, 172.67.182.196")).not.toBeNull();
-    expect(screen.getByText("104.21.32.39: 24 ms")).not.toBeNull();
-    expect(screen.getByText("HTTP 200, HTTP/1.1, 505 ms")).not.toBeNull();
-    expect(screen.getByText("remote 104.21.32.39")).not.toBeNull();
+    expect(screen.getByText("104.21.32.39: 24 мс")).not.toBeNull();
+    expect(screen.getByText("HTTP 200, HTTP/1.1, 505 мс")).not.toBeNull();
+    expect(screen.getByText("удалённый адрес: 104.21.32.39")).not.toBeNull();
     expect(mockInvoke).toHaveBeenCalledWith("network_diagnose", {
       url: "https://rutracker.org/forum/index.php",
       proxyUrl: null,
@@ -81,10 +81,10 @@ describe("TorrentDiagnosticsSettings", () => {
 
     runCheck();
 
-    expect(await screen.findByText("Anti-bot challenge")).not.toBeNull();
-    expect(screen.getByText("The response is a challenge page, not the forum.")).not.toBeNull();
-    expect(screen.getByText("The response contains an anti-bot challenge.")).not.toBeNull();
-    expect(screen.queryByText("RuTracker is reachable")).toBeNull();
+    expect(await screen.findByText("Anti-bot защита")).not.toBeNull();
+    expect(screen.getByText("В ответе страница проверки, а не форум.")).not.toBeNull();
+    expect(screen.getByText("В ответе есть anti-bot проверка.")).not.toBeNull();
+    expect(screen.queryByText("RuTracker доступен")).toBeNull();
   });
 
   it("uses the RuTracker source proxy without exposing its credentials", async () => {
@@ -111,6 +111,6 @@ describe("TorrentDiagnosticsSettings", () => {
     runCheck();
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Check failed: dns lookup failed");
+    expect(alert.textContent).toContain("Проверка не удалась: dns lookup failed");
   });
 });

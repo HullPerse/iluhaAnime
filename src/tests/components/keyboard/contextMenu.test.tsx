@@ -103,10 +103,10 @@ describe("ContextMenu", () => {
         <button type="button">row</button>
       </ContextMenu>
     );
-    const parent = screen.getByRole("menuitem", { name: "Close" });
+    const parent = screen.getByRole("menuitem", { name: "Закрыть" });
     await userEvent.hover(parent);
-    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Cancel" })));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Cancel" }));
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Отмена" })));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Отмена" }));
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 

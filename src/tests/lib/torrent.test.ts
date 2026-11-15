@@ -1,7 +1,7 @@
 import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { translateFor } from "@/lib/locale/i18n.utils";
+import { translate } from "@/lib/locale/i18n.utils";
 import {
   applyBulkAction,
   pruneSelection,
@@ -187,8 +187,7 @@ describe("torrent/bulk", () => {
 });
 
 describe("torrent/common", () => {
-  const ru = (key: Parameters<typeof translateFor>[1], vars?: Parameters<typeof translateFor>[2]) =>
-    translateFor("ru", key, vars);
+  const ru = translate;
 
   function makeInfo(id: number, overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     return {

@@ -1,20 +1,12 @@
 import ru from "@/lib/locale/ru";
-import { settingsAtoms } from "@/store/settings.store";
-import type { Locale, TranslationKey, TranslationVariables } from "@/types/core/i18n";
+import type { TranslationKey, TranslationVariables } from "@/types/core/i18n";
 
-export type { Locale, TranslationVariables };
+export type { TranslationVariables };
 export type { TranslationKey };
 
 const RU_DICTIONARY: Record<string, string> = ru;
-const dictionaries: Partial<Record<Locale, Record<string, string>>> = { ru };
-const PLURAL_RULES: Record<Locale, Intl.PluralRules> = {
-  ru: new Intl.PluralRules("ru"),
-  en: new Intl.PluralRules("en"),
-};
-
-export function registerLocale(locale: Locale, dictionary: Record<string, string>): void {
-  dictionaries[locale] = dictionary;
-}
+let dictionary: Record<string, string> = RU_DICTIONARY;
+const RU_PLURAL = new Intl.PluralRules("ru");
 
 let changelogState: "idle" | "loading" | "ready" = "idle";
 let changelogLoading: Promise<void> | null = null;
@@ -30,7 +22,7 @@ export function loadChangelogLocale(): Promise<void> {
   changelogState = "loading";
   changelogLoading = (async (): Promise<void> => {
     const { ruChangelog } = await import("@/lib/locale/ru.changelog");
-    dictionaries.ru = { ...(dictionaries.ru ?? RU_DICTIONARY), ...ruChangelog };
+    dictionary = { ...RU_DICTIONARY, ...ruChangelog };
     changelogState = "ready";
   })().catch((error: unknown) => {
     changelogState = "idle";
@@ -58,28 +50,16 @@ function repairLegacyCyrillic(value: string): string {
   return repaired;
 }
 
-function resolvePluralKey(
-  locale: Locale,
-  dictionary: Record<string, string>,
-  key: string,
-  count: number
-): string {
-  const category = PLURAL_RULES[locale].select(count);
+function resolvePluralKey(key: string, count: number): string {
+  const category = RU_PLURAL.select(count);
   if (category === "other") return key;
   const suffixed = `${key}.${category}`;
   return suffixed in dictionary ? suffixed : key;
 }
 
-export function translateFor(
-  locale: Locale,
-  key: TranslationKey,
-  variables?: TranslationVariables
-): string {
-  const dictionary = dictionaries[locale] ?? RU_DICTIONARY;
+export function translate(key: TranslationKey, variables?: TranslationVariables): string {
   const resolvedKey =
-    variables && typeof variables.count === "number"
-      ? resolvePluralKey(locale, dictionary, key, variables.count)
-      : key;
+    variables && typeof variables.count === "number" ? resolvePluralKey(key, variables.count) : key;
   const template = repairLegacyCyrillic(dictionary[resolvedKey] ?? key);
 
   if (!variables) return template;
@@ -87,10 +67,6 @@ export function translateFor(
   return template.replaceAll(/\{\{(\w+)\}\}/gu, (_match: string, name: string) =>
     String(variables[name] ?? `{{${name}}}`)
   );
-}
-
-export function translate(key: TranslationKey, variables?: TranslationVariables): string {
-  return translateFor(settingsAtoms.language.get(), key, variables);
 }
 
 export function tr(key: TranslationKey, vars?: TranslationVariables): string {

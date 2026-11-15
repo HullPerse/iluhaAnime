@@ -19,7 +19,7 @@ const props = (paused: boolean) => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   playbackAtoms.timePos.set(754);
 });
 
@@ -31,13 +31,13 @@ describe("PlayerSlimBar", () => {
   it("fires the play/pause action from the single button", () => {
     const paused = props(true);
     render(<PlayerSlimBar {...paused} />);
-    fireEvent.click(screen.getByRole("button", { name: "Play / pause" }));
+    fireEvent.click(screen.getByRole("button", { name: "Воспроизведение / пауза" }));
     expect(paused.onPlayPause).toHaveBeenCalledTimes(1);
   });
 
   it("disables the button while no file is loaded", () => {
     render(<PlayerSlimBar {...props(true)} hasFile={false} />);
-    const button = screen.getByRole("button", { name: "Play / pause" });
+    const button = screen.getByRole("button", { name: "Воспроизведение / пауза" });
     expect(button.hasAttribute("disabled")).toBe(true);
   });
 });

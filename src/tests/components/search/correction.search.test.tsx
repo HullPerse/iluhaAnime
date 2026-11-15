@@ -57,7 +57,7 @@ describe("CoverCorrectionModal", () => {
     const user = userEvent.setup();
     renderModal(coverState(), vi.fn());
     await user.click(screen.getByText("NARUTO: Shippuuden"));
-    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(screen.getByRole("button", { name: "Применить" }));
     await waitFor(() => {
       expect(coverCorrectionsAtoms.overrides.get()[KEY]?.id).toBe(1735);
     });
@@ -84,7 +84,7 @@ describe("CoverCorrectionModal", () => {
       return null;
     });
     renderModal(coverState(), vi.fn());
-    await user.type(screen.getByPlaceholderText("Find another anime..."), "bleach");
+    await user.type(screen.getByPlaceholderText("Найти другое аниме..."), "bleach");
     await waitFor(() => expect(screen.getByText("BLEACH")).toBeDefined());
   });
 
@@ -92,7 +92,7 @@ describe("CoverCorrectionModal", () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     renderModal({ ...coverState(), status: "override" }, onClose);
-    await user.click(screen.getByRole("button", { name: "Use auto cover" }));
+    await user.click(screen.getByRole("button", { name: "Автообложка" }));
     expect(coverCorrectionsAtoms.overrides.get()[KEY]).toBeUndefined();
     expect(onClose).toHaveBeenCalled();
   });
@@ -100,9 +100,9 @@ describe("CoverCorrectionModal", () => {
   it("shows the torrent context and candidate sections", () => {
     renderModal(coverState(), vi.fn());
     expect(screen.getByTitle("Modal Test Show")).toBeDefined();
-    expect(screen.getByText("Suggested")).toBeDefined();
-    expect(screen.getByText("Current")).toBeDefined();
-    expect(screen.getByText("Current").parentElement?.className).toContain("text-title-text");
+    expect(screen.getByText("Подобрано")).toBeDefined();
+    expect(screen.getByText("Текущая")).toBeDefined();
+    expect(screen.getByText("Текущая").parentElement?.className).toContain("text-title-text");
   });
 
   it("applies the double-clicked candidate at once", async () => {
@@ -120,7 +120,7 @@ describe("CoverCorrectionModal", () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     renderModal(coverState(), onClose);
-    await user.click(screen.getByPlaceholderText("Find another anime..."));
+    await user.click(screen.getByPlaceholderText("Найти другое аниме..."));
     await user.keyboard("{Enter}");
     await waitFor(() => {
       expect(coverCorrectionsAtoms.overrides.get()[KEY]?.id).toBe(20);

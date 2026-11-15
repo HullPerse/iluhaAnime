@@ -64,7 +64,7 @@ const renderControls = (scoreFormat: string, score: number | null = null) => {
 };
 
 const saveButton = () => {
-  return screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+  return screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement;
 };
 
 const renderEditable = (
@@ -140,7 +140,7 @@ const cachedEntry = (client: QueryClient) => {
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   mockInvoke.mockReset();
   mockInvoke.mockImplementation((command: unknown) =>
     command === "save_anilist_entry"
@@ -152,7 +152,7 @@ beforeEach(() => {
 describe("AniListActionControls score formats", () => {
   it("offers a 0-100 field on the hundred point format", () => {
     renderControls("POINT_100");
-    const input = screen.getByLabelText("Score:") as HTMLInputElement;
+    const input = screen.getByLabelText("Оценка:") as HTMLInputElement;
     expect(input.type).toBe("number");
     expect(input.max).toBe("100");
     expect(screen.getByText("/100")).toBeTruthy();
@@ -161,10 +161,10 @@ describe("AniListActionControls score formats", () => {
   it("names the expected range for a hundred point score that is out of bounds", async () => {
     const user = userEvent.setup();
     renderControls("POINT_100");
-    const input = screen.getByLabelText("Score:");
+    const input = screen.getByLabelText("Оценка:");
     await user.clear(input);
     await user.type(input, "101");
-    expect(await screen.findByText("Whole number from 0 to 100")).toBeTruthy();
+    expect(await screen.findByText("Нужно целое 0-100")).toBeTruthy();
     await user.click(saveButton());
     expect(mockInvoke).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
   });
@@ -172,10 +172,10 @@ describe("AniListActionControls score formats", () => {
   it("blocks a fractional score on a whole number format", async () => {
     const user = userEvent.setup();
     renderControls("POINT_100");
-    const input = screen.getByLabelText("Score:");
+    const input = screen.getByLabelText("Оценка:");
     await user.clear(input);
     await user.type(input, "5.5");
-    expect(await screen.findByText("Whole number from 0 to 100")).toBeTruthy();
+    expect(await screen.findByText("Нужно целое 0-100")).toBeTruthy();
     await user.click(saveButton());
     expect(mockInvoke).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
   });
@@ -183,7 +183,7 @@ describe("AniListActionControls score formats", () => {
   it("clears the score by emptying the field and saves zero", async () => {
     const user = userEvent.setup();
     renderControls("POINT_100", 85);
-    await user.clear(screen.getByLabelText("Score:"));
+    await user.clear(screen.getByLabelText("Оценка:"));
     expect(screen.queryByText(/Whole number/u)).toBeNull();
     await user.click(saveButton());
     await waitFor(() =>
@@ -196,14 +196,14 @@ describe("AniListActionControls score formats", () => {
 
   it("picks a whole ten point score from a list instead of typing", () => {
     renderControls("POINT_10", 8);
-    expect(screen.queryByLabelText("Score:")).toBeNull();
+    expect(screen.queryByLabelText("Оценка:")).toBeNull();
     expect(screen.getByText("8")).toBeTruthy();
   });
 
   it("keeps the entered decimal and saves it on a decimal format", async () => {
     const user = userEvent.setup();
     renderControls("POINT_10_DECIMAL", 8);
-    const input = screen.getByLabelText("Score:") as HTMLInputElement;
+    const input = screen.getByLabelText("Оценка:") as HTMLInputElement;
     expect(input.step).toBe("0.1");
     await user.clear(input);
     await user.type(input, "5.5");
@@ -219,14 +219,14 @@ describe("AniListActionControls score formats", () => {
 
   it("shows the smiley option instead of a field on the three point format", () => {
     renderControls("POINT_3", 3);
-    expect(screen.queryByLabelText("Score:")).toBeNull();
+    expect(screen.queryByLabelText("Оценка:")).toBeNull();
     expect(screen.getByText(":)")).toBeTruthy();
   });
 
   it("saves the score of the hundred point format as entered", async () => {
     const user = userEvent.setup();
     renderControls("POINT_100", 85);
-    expect((screen.getByLabelText("Score:") as HTMLInputElement).value).toBe("85");
+    expect((screen.getByLabelText("Оценка:") as HTMLInputElement).value).toBe("85");
     await user.click(saveButton());
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
@@ -247,7 +247,7 @@ describe("AniListActionControls save diagnostics", () => {
     });
     renderControls("POINT_10");
     await user.click(saveButton());
-    expect(await screen.findByText("Failed to save: 429 Too Many Requests")).toBeTruthy();
+    expect(await screen.findByText("Не удалось сохранить: 429 Too Many Requests")).toBeTruthy();
   });
 
   it("shows no error text on a successful save", async () => {
@@ -287,7 +287,7 @@ describe("AniListActionControls server response", () => {
       { id: 1, status: "CURRENT", progress: 6, customLists: [] },
       onSaved
     );
-    const progressInput = screen.getByLabelText("Progress:");
+    const progressInput = screen.getByLabelText("Прогресс:");
     await user.clear(progressInput);
     await user.type(progressInput, "6");
     await user.click(saveButton());
@@ -297,9 +297,9 @@ describe("AniListActionControls server response", () => {
 
   it("starts a new entry with a dash status and blocks the save", () => {
     renderEditable(null, { id: 1, status: "CURRENT", progress: 1, customLists: [] }, vi.fn());
-    const status = screen.getByRole("combobox", { name: "Status:" });
+    const status = screen.getByRole("combobox", { name: "Статус:" });
     expect(status.textContent).toBe("-");
-    expect(screen.getByText("Choose a status to save")).toBeTruthy();
+    expect(screen.getByText("Выберите статус, чтобы сохранить")).toBeTruthy();
     expect(saveButton().disabled).toBe(true);
   });
 
@@ -310,7 +310,7 @@ describe("AniListActionControls server response", () => {
     const client = new QueryClient();
     client.setQueryData(["anilist_data"], {
       user: { id: 7 },
-      lists: [{ name: "Planning", entries: [] }],
+      lists: [{ name: "Запланировано", entries: [] }],
       favourites: [],
       people: { staff: [], characters: [] },
     });
@@ -331,9 +331,9 @@ describe("AniListActionControls server response", () => {
         />
       </QueryClientProvider>
     );
-    await user.click(screen.getByRole("combobox", { name: "Status:" }));
-    await user.click(await screen.findByRole("option", { name: "Planning" }));
-    expect(screen.queryByText("Choose a status to save")).toBeNull();
+    await user.click(screen.getByRole("combobox", { name: "Статус:" }));
+    await user.click(await screen.findByRole("option", { name: "Запланировано" }));
+    expect(screen.queryByText("Выберите статус, чтобы сохранить")).toBeNull();
     fireEvent.click(saveButton());
     expect(cachedEntry(client)?.list_status).toBe("PLANNING");
     await act(async () => {
@@ -348,10 +348,10 @@ describe("AniListActionControls entry fields", () => {
   it("sends repeat, dates and privacy flags with the save", async () => {
     const user = userEvent.setup();
     renderControls("POINT_10");
-    await user.type(screen.getByLabelText("Repeats:"), "2");
-    await user.type(screen.getByLabelText("Started:"), "2023-05-02");
-    await user.type(screen.getByLabelText("Completed:"), "2024-03-09");
-    await user.click(screen.getByRole("checkbox", { name: "Private" }));
+    await user.type(screen.getByLabelText("Повторы:"), "2");
+    await user.type(screen.getByLabelText("Начато:"), "2023-05-02");
+    await user.type(screen.getByLabelText("Завершено:"), "2024-03-09");
+    await user.click(screen.getByRole("checkbox", { name: "Приватно" }));
     await user.click(saveButton());
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
@@ -370,9 +370,9 @@ describe("AniListActionControls entry fields", () => {
   it("blocks the save on a malformed date", async () => {
     const user = userEvent.setup();
     renderControls("POINT_10");
-    await user.type(screen.getByLabelText("Started:"), "2023-02-30");
+    await user.type(screen.getByLabelText("Начато:"), "2023-02-30");
     await user.click(saveButton());
-    expect(await screen.findByText("Dates must be YYYY-MM-DD")).toBeTruthy();
+    expect(await screen.findByText("Даты в формате ГГГГ-ММ-ДД")).toBeTruthy();
     expect(mockInvoke).not.toHaveBeenCalledWith("save_anilist_entry", expect.anything());
   });
 
@@ -420,7 +420,7 @@ describe("AniListActionControls delete", () => {
   it("deletes the entry with both id casings", async () => {
     const user = userEvent.setup();
     renderWithUser();
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Удалить" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith(
         "delete_anilist_entry",

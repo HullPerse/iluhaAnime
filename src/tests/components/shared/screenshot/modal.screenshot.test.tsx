@@ -129,7 +129,7 @@ const renderModal = (onClose = vi.fn(), capture: ScreenshotCapture = CAPTURE) =>
 };
 
 const folderValue = (): string => {
-  return screen.getByLabelText<HTMLInputElement>("Folder").value;
+  return screen.getByLabelText<HTMLInputElement>("Папка").value;
 };
 
 const isDisabled = (element: HTMLElement): boolean => {
@@ -137,7 +137,7 @@ const isDisabled = (element: HTMLElement): boolean => {
 };
 
 const selection = (): HTMLElement | null => {
-  return screen.queryByRole("button", { name: /Selection/ });
+  return screen.queryByRole("button", { name: /Выделение/ });
 };
 
 const overlay = (): HTMLElement => {
@@ -172,7 +172,7 @@ const stubStageBox = (width: number, height: number) => {
 };
 
 const picture = (): HTMLElement => {
-  return screen.getByAltText("Screenshot");
+  return screen.getByAltText("Скриншот");
 };
 
 const zoomLabel = (): string => {
@@ -239,7 +239,7 @@ beforeEach(() => {
   notificationAtoms.items.set([]);
   notificationAtoms.unreadCount.set(0);
   patchSettings({
-    language: "en",
+    language: "ru",
     screenshotDir: null,
     screenshotFormat: "png",
     screenshotOpenFolder: true,
@@ -257,7 +257,7 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     renderModal();
     mockOpen.mockResolvedValue("E:/Shots");
-    await user.click(screen.getByRole("button", { name: "Browse" }));
+    await user.click(screen.getByRole("button", { name: "Обзор" }));
     expect(mockOpen).toHaveBeenCalledWith(
       expect.objectContaining({ directory: true, multiple: false })
     );
@@ -268,7 +268,7 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     renderModal();
     mockOpen.mockResolvedValue(null);
-    await user.click(screen.getByRole("button", { name: "Browse" }));
+    await user.click(screen.getByRole("button", { name: "Обзор" }));
     expect(folderValue()).toBe("D:/Pictures");
   });
 
@@ -276,10 +276,10 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     serveCommands();
     const { onClose } = renderModal();
-    const nameField = screen.getByLabelText("File name");
+    const nameField = screen.getByLabelText("Имя файла");
     await user.clear(nameField);
     await user.type(nameField, "  page  ");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", {
@@ -298,9 +298,9 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     serveCommands();
     const { onClose } = renderModal();
-    await user.click(screen.getByRole("combobox", { name: "Format" }));
+    await user.click(screen.getByRole("combobox", { name: "Формат" }));
     await user.click(await screen.findByRole("option", { name: "JPEG" }));
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(mockInvoke).toHaveBeenCalledWith(
@@ -314,7 +314,7 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(mockOpenPath).toHaveBeenCalledWith("D:/Pictures"));
   });
 
@@ -322,10 +322,10 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    const checkbox = screen.getByRole("checkbox", { name: "Open the folder after saving" });
+    const checkbox = screen.getByRole("checkbox", { name: "Открыть папку после сохранения" });
     expect(checkbox.getAttribute("aria-checked")).toBe("true");
     await user.click(checkbox);
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => expect(mockInvoke).toHaveBeenCalled());
     expect(mockOpenPath).not.toHaveBeenCalled();
@@ -336,14 +336,14 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Копировать" }));
     expect(mockInvoke).toHaveBeenCalledWith("copy_screenshot", {
       sourcePath: CAPTURE.path,
       crop: null,
     });
     await waitFor(() => expect(mockWriteImage).toHaveBeenCalledWith(CAPTURE.path));
     expect(mockInvoke).not.toHaveBeenCalledWith("save_screenshot", expect.anything());
-    const copied = await screen.findByRole("button", { name: "Copied" });
+    const copied = await screen.findByRole("button", { name: "Скопировано" });
     expect(isDisabled(copied)).toBe(true);
   });
 
@@ -352,17 +352,17 @@ describe("ScreenshotModal", () => {
     serveCommands();
     mockWriteImage.mockRejectedValue(new Error("clipboard busy"));
     renderModal();
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Копировать" }));
     await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
     expect(notificationAtoms.items.get()[0]?.type).toBe("error");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Копировать" })).toBeTruthy());
   });
 
   it("keeps the modal open and reports a failed save", async () => {
     const user = userEvent.setup();
     serveCommands({ failSave: true });
     const { onClose } = renderModal();
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
     expect(onClose).not.toHaveBeenCalled();
     expect(mockOpenPath).not.toHaveBeenCalled();
@@ -523,9 +523,9 @@ describe("ScreenshotModal", () => {
   it("turns a diagonal drag into a selection", () => {
     renderModal();
     dragSelection(100, 100, 500, 400);
-    expect(selection()?.getAttribute("aria-label")).toBe("Selection 400 x 300 px at 100, 100");
+    expect(selection()?.getAttribute("aria-label")).toBe("Выделение 400 x 300 px в 100, 100");
     expect(readout()).toBe("400 x 300 px");
-    expect(isDisabled(screen.getByRole("button", { name: "Reset selection" }))).toBe(false);
+    expect(isDisabled(screen.getByRole("button", { name: "Сбросить выделение" }))).toBe(false);
   });
 
   it("holds a square while Shift is down during the drag", () => {
@@ -550,7 +550,7 @@ describe("ScreenshotModal", () => {
     renderModal();
     dragSelection(100, 100, 500, 400);
     await cropOnce(user, "{ArrowLeft}");
-    expect(selection()?.getAttribute("aria-label")).toBe("Selection 400 x 300 px at 99, 100");
+    expect(selection()?.getAttribute("aria-label")).toBe("Выделение 400 x 300 px в 99, 100");
     expect(readout()).toBe("400 x 300 px");
   });
 
@@ -620,10 +620,10 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     renderModal();
     dragSelection(100, 100, 500, 400);
-    await user.click(screen.getByRole("button", { name: "Reset selection" }));
+    await user.click(screen.getByRole("button", { name: "Сбросить выделение" }));
     expect(selection()).toBeNull();
     expect(readout()).toBe("1280 x 720 px");
-    expect(isDisabled(screen.getByRole("button", { name: "Reset selection" }))).toBe(true);
+    expect(isDisabled(screen.getByRole("button", { name: "Сбросить выделение" }))).toBe(true);
   });
 
   it("saves only the selected area", async () => {
@@ -631,7 +631,7 @@ describe("ScreenshotModal", () => {
     serveCommands();
     renderModal();
     dragSelection(100, 100, 500, 400);
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", expect.anything())
@@ -647,7 +647,7 @@ describe("ScreenshotModal", () => {
     serveCommands({ copyPath: CROPPED_PATH });
     renderModal();
     dragSelection(100, 100, 500, 400);
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Копировать" }));
 
     expect(mockInvoke).toHaveBeenCalledWith("copy_screenshot", {
       sourcePath: CAPTURE.path,
@@ -666,7 +666,7 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Копировать" }));
     await waitFor(() => expect(mockWriteImage).toHaveBeenCalled());
     expect(mockInvoke).not.toHaveBeenCalledWith("discard_screenshot", expect.anything());
   });
@@ -675,11 +675,11 @@ describe("ScreenshotModal", () => {
     const user = userEvent.setup();
     serveCommands({ failCopy: true });
     renderModal();
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Копировать" }));
     await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
     expect(notificationAtoms.items.get()[0]?.type).toBe("error");
     expect(mockWriteImage).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Копировать" })).toBeTruthy());
   });
 });
 
@@ -696,26 +696,26 @@ describe("ScreenshotModal annotations", () => {
   it("offers only the controls the active tool can use", async () => {
     const user = userEvent.setup();
     renderModal();
-    expect(screen.queryByRole("button", { name: "Custom color" })).toBeNull();
-    expect(screen.queryByRole("group", { name: "Brush size" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Свой цвет" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Размер кисти" })).toBeNull();
 
-    await user.click(tool("Pencil"));
-    expect(screen.getByRole("button", { name: "Custom color" })).toBeTruthy();
-    expect(screen.getByRole("group", { name: "Brush size" })).toBeTruthy();
-    expect(tool("Pencil").getAttribute("aria-pressed")).toBe("true");
+    await user.click(tool("Карандаш"));
+    expect(screen.getByRole("button", { name: "Свой цвет" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Размер кисти" })).toBeTruthy();
+    expect(tool("Карандаш").getAttribute("aria-pressed")).toBe("true");
     expect(tool("6 px").getAttribute("aria-pressed")).toBe("true");
 
-    await user.click(tool("Text"));
-    expect(screen.queryByRole("group", { name: "Brush size" })).toBeNull();
-    expect(screen.getByRole("group", { name: "Text size" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Custom color" })).toBeTruthy();
+    await user.click(tool("Текст"));
+    expect(screen.queryByRole("group", { name: "Размер кисти" })).toBeNull();
+    expect(screen.getByRole("group", { name: "Размер текста" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Свой цвет" })).toBeTruthy();
     expect(tool("28 px").getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText("Click, type the text, press Enter")).toBeTruthy();
+    expect(screen.getByText("Кликните и напишите текст, затем Enter")).toBeTruthy();
 
-    await user.click(tool("Select an area"));
-    expect(screen.queryByRole("button", { name: "Custom color" })).toBeNull();
+    await user.click(tool("Выделить область"));
+    expect(screen.queryByRole("button", { name: "Свой цвет" })).toBeNull();
     expect(
-      screen.getByText("Drag across the image to select an area, hold Shift for a square")
+      screen.getByText("Обведите мышью нужную область, Shift - ровный квадрат")
     ).toBeTruthy();
   });
 
@@ -723,24 +723,24 @@ describe("ScreenshotModal annotations", () => {
     const user = userEvent.setup();
     const captured = installPointerCapture();
     renderModal();
-    await user.click(tool("Pencil"));
+    await user.click(tool("Карандаш"));
     const surface = overlay();
     fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
     expect(captured.element).toBe(surface);
     fireEvent.pointerMove(captured.element as Element, { clientX: 300, clientY: 200 });
     fireEvent.pointerUp(captured.element as Element, { clientX: 300, clientY: 200 });
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
   });
 
   it("draws with the pencil without touching the selection", async () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(tool("Pencil"));
+    await user.click(tool("Карандаш"));
     drawStroke(100, 100, 400, 250);
     expect(selection()).toBeNull();
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", expect.anything())
     );
@@ -751,7 +751,7 @@ describe("ScreenshotModal annotations", () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", expect.anything())
     );
@@ -761,54 +761,54 @@ describe("ScreenshotModal annotations", () => {
   it("walks the strokes back and forward again", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Pencil"));
+    await user.click(tool("Карандаш"));
     drawStroke(100, 100, 400, 250);
-    expect(isDisabled(tool(/^Undo/))).toBe(false);
-    expect(isDisabled(tool(/^Redo/))).toBe(true);
+    expect(isDisabled(tool(/^Отменить/))).toBe(false);
+    expect(isDisabled(tool(/^Повторить/))).toBe(true);
 
-    await user.click(tool(/^Undo/));
-    expect(isDisabled(tool(/^Undo/))).toBe(true);
-    expect(isDisabled(tool("Clear the drawings"))).toBe(true);
+    await user.click(tool(/^Отменить/));
+    expect(isDisabled(tool(/^Отменить/))).toBe(true);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(true);
 
-    await user.click(tool(/^Redo/));
-    expect(isDisabled(tool(/^Undo/))).toBe(false);
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
+    await user.click(tool(/^Повторить/));
+    expect(isDisabled(tool(/^Отменить/))).toBe(false);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
   });
 
   it("undoes and redoes from the keyboard", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Pencil"));
+    await user.click(tool("Карандаш"));
     drawStroke(100, 100, 400, 250);
 
     await user.keyboard("{Control>}z{/Control}");
-    expect(isDisabled(tool("Clear the drawings"))).toBe(true);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(true);
 
     await user.keyboard("{Control>}y{/Control}");
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
 
     await user.keyboard("{Control>}z{/Control}");
     await user.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
   });
 
   it("wipes every stroke with one clear and can undo it", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Pencil"));
+    await user.click(tool("Карандаш"));
     drawStroke(100, 100, 400, 250);
     drawStroke(120, 130, 300, 200);
-    await user.click(tool("Clear the drawings"));
-    expect(isDisabled(tool("Clear the drawings"))).toBe(true);
-    await user.click(tool(/^Undo/));
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
+    await user.click(tool("Стереть рисунки"));
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(true);
+    await user.click(tool(/^Отменить/));
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
   });
 
   it("typing on the picture writes at the click point", async () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
 
     const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
@@ -816,9 +816,9 @@ describe("ScreenshotModal annotations", () => {
     expect(editor.style.fontSize).toBe("28px");
     await user.type(editor, "look here{Enter}");
     expect(screen.queryByTestId("screenshot-text-editor")).toBeNull();
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
 
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", expect.anything())
     );
@@ -828,18 +828,18 @@ describe("ScreenshotModal annotations", () => {
   it("drops the text again on Escape", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "nope{Escape}");
     expect(screen.queryByTestId("screenshot-text-editor")).toBeNull();
-    expect(isDisabled(tool("Clear the drawings"))).toBe(true);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(true);
   });
 
   it("follows the picked colour and size on the next text", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Text"));
-    await user.click(tool("Custom color"));
+    await user.click(tool("Текст"));
+    await user.click(tool("Свой цвет"));
     const hexInput = screen.getByPlaceholderText("000000");
     await user.clear(hexInput);
     await user.type(hexInput, "2e9e4f");
@@ -855,7 +855,7 @@ describe("ScreenshotModal annotations", () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(tool("Blur"));
+    await user.click(tool("Блюр"));
     drawStroke(100, 100, 300, 200);
 
     const preview = await screen.findByTestId("screenshot-blur");
@@ -863,7 +863,7 @@ describe("ScreenshotModal annotations", () => {
     expect(preview.style.maskImage).toContain(LAYER_DATA_URL);
     expect(canvas?.moveTo).toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", expect.anything())
     );
@@ -875,11 +875,11 @@ describe("ScreenshotModal annotations", () => {
   it("drags a text that sits inside the selected area, not the frame under it", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    await user.click(tool("Select an area"));
+    await user.click(tool("Выделить область"));
     dragSelection(50, 50, 400, 300);
     expect(readout()).toBe("350 x 250 px");
 
@@ -900,11 +900,11 @@ describe("ScreenshotModal annotations", () => {
   it("shows a text cursor over wording inside the selected area", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    await user.click(tool("Select an area"));
+    await user.click(tool("Выделить область"));
     dragSelection(50, 50, 400, 300);
     expect(selection()?.className).toContain("cursor-move");
 
@@ -918,11 +918,11 @@ describe("ScreenshotModal annotations", () => {
   it("leaves the wording to the editor while it is being edited", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    await user.click(tool("Select an area"));
+    await user.click(tool("Выделить область"));
     canvas?.fillText.mockClear();
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
     expect(screen.getByTestId("screenshot-text-editor")).toBeTruthy();
@@ -933,15 +933,15 @@ describe("ScreenshotModal annotations", () => {
     const user = userEvent.setup();
     serveCommands();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    await user.click(tool("Select an area"));
+    await user.click(tool("Выделить область"));
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
     canvas?.fillText.mockClear();
 
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", expect.anything())
     );
@@ -952,11 +952,11 @@ describe("ScreenshotModal annotations", () => {
   it("reopens a text at its own size, not at the size of the tool that reopens it", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    await user.click(tool("Select an area"));
+    await user.click(tool("Выделить область"));
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
     const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
     expect(editor.style.fontSize).toBe("28px");
@@ -966,7 +966,7 @@ describe("ScreenshotModal annotations", () => {
     const user = userEvent.setup();
     stubStageBox(640, 360);
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 50, clientY: 50 });
 
     const editor = screen.getByTestId<HTMLInputElement>("screenshot-text-editor");
@@ -984,11 +984,11 @@ describe("ScreenshotModal annotations", () => {
   it("drags a text to a new spot and reopens it with a double click", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Text"));
+    await user.click(tool("Текст"));
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    await user.click(tool("Select an area"));
+    await user.click(tool("Выделить область"));
     const surface = overlay();
     fireEvent.pointerDown(surface, { clientX: 125, clientY: 95 });
     fireEvent.pointerMove(surface, { clientX: 225, clientY: 195 });
@@ -1005,15 +1005,15 @@ describe("ScreenshotModal annotations", () => {
   it("paints with the eraser as a cut", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Eraser"));
+    await user.click(tool("Ластик"));
     drawStroke(100, 100, 300, 200);
-    expect(isDisabled(tool("Clear the drawings"))).toBe(false);
+    expect(isDisabled(tool("Стереть рисунки"))).toBe(false);
   });
 
   it("wipes a blur patch out with the eraser", async () => {
     const user = userEvent.setup();
     renderModal();
-    await user.click(tool("Blur"));
+    await user.click(tool("Блюр"));
     drawStroke(100, 100, 300, 200);
 
     const painted: string[][] = [];
@@ -1021,7 +1021,7 @@ describe("ScreenshotModal annotations", () => {
     context.stroke.mockImplementation(() => {
       painted.push([context.strokeStyle, context.globalCompositeOperation]);
     });
-    await user.click(tool("Eraser"));
+    await user.click(tool("Ластик"));
     drawStroke(150, 150, 250, 180);
 
     expect(painted).toContainEqual(["#ffffff", "destination-out"]);

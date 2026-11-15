@@ -37,7 +37,7 @@ const checkButton = (): HTMLElement => {
 };
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  patchSettings({ language: "ru" });
   mockUpdaterCheck.mockResolvedValue(null);
 });
 
@@ -55,7 +55,7 @@ describe("SettingsSummary", () => {
       await screen.findByText(translate("settings.summary.ffmpeg.installed"))
     ).not.toBeNull();
     expect(await screen.findByText(translate("settings.summary.images"))).not.toBeNull();
-    expect(screen.queryByText("Theme")).toBeNull();
+    expect(screen.queryByText("Тема")).toBeNull();
     expect(screen.queryByText("Learning")).toBeNull();
   });
 

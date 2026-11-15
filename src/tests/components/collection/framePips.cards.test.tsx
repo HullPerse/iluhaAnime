@@ -29,9 +29,9 @@ describe("FramePips", () => {
     const onSelect = vi.fn();
     render(<FramePips attempts={1} result={null} total={3} onSelect={onSelect} />);
 
-    const first = screen.getByRole("button", { name: "Open frame 1" });
-    const second = screen.getByRole("button", { name: "Open frame 2" });
-    const third = screen.getByRole("button", { name: "Open frame 3" });
+    const first = screen.getByRole("button", { name: "Открыть кадр 1" });
+    const second = screen.getByRole("button", { name: "Открыть кадр 2" });
+    const third = screen.getByRole("button", { name: "Открыть кадр 3" });
 
     expect((first as HTMLButtonElement).disabled).toBe(false);
     expect((second as HTMLButtonElement).disabled).toBe(false);
@@ -55,8 +55,8 @@ describe("FramePips", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Open stage 1" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Open stage 3" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Открыть стадию 1" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Открыть стадию 3" })).toBeTruthy();
   });
 
   it("renders static pips once the result exists", () => {

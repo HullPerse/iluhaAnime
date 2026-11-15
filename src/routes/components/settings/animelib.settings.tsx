@@ -72,7 +72,6 @@ export default function AnimelibSettings() {
               <Button onClick={login} disabled={waiting || !isOnline || proxyInvalid}>
                 {waiting ? t("settings.animelib.login.waiting") : t("settings.animelib.login")}
               </Button>
-              <span className="text-hint text-xs">{t("settings.animelib.login.hint")}</span>
             </div>
             <PasswordInput
               value={input}

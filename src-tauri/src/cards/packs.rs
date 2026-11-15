@@ -6,10 +6,10 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::ceilings::{batch_page_ceilings, fetch_pages, page_ceiling};
-use super::config::{pick_variant, shop_pack, CARD_PACK_SIZE};
+use super::config::{pick_variant, shop_pack};
 use super::metadata::refresh_metadata;
 use super::rarity::{card_value, score_for, tier_for};
-use super::rng::{seed_now, Rng};
+use super::rng::Rng;
 use super::sampling::{
     batch_page_query, ensure_rare_plus, merge_distinct, parse_batch_page, pick_distinct, CardNode,
 };
@@ -1045,6 +1045,7 @@ pub async fn cards_open_pack(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cards::config::CARD_PACK_SIZE;
 
     #[test]
     fn the_default_pack_rolls_characters_anime_and_manga_per_card() {

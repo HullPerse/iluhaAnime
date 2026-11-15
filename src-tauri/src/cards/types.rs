@@ -119,16 +119,23 @@ pub enum CardVariant {
     Normal,
     Foil,
     Holo,
+    Cursed,
 }
 
 impl CardVariant {
-    pub const ALL: [CardVariant; 3] = [CardVariant::Normal, CardVariant::Foil, CardVariant::Holo];
+    pub const ALL: [CardVariant; 4] = [
+        CardVariant::Normal,
+        CardVariant::Foil,
+        CardVariant::Holo,
+        CardVariant::Cursed,
+    ];
 
     pub fn as_str(self) -> &'static str {
         match self {
             CardVariant::Normal => "normal",
             CardVariant::Foil => "foil",
             CardVariant::Holo => "holo",
+            CardVariant::Cursed => "cursed",
         }
     }
 
@@ -137,6 +144,7 @@ impl CardVariant {
             "normal" => Some(CardVariant::Normal),
             "foil" => Some(CardVariant::Foil),
             "holo" => Some(CardVariant::Holo),
+            "cursed" => Some(CardVariant::Cursed),
             _ => None,
         }
     }
@@ -158,6 +166,7 @@ pub struct VariantMultipliers {
     pub normal: f64,
     pub foil: f64,
     pub holo: f64,
+    pub cursed: f64,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -166,6 +175,7 @@ pub struct VariantWeights {
     pub normal: u32,
     pub foil: u32,
     pub holo: u32,
+    pub cursed: u32,
 }
 
 /// One kind/count pair inside a pack. Editing this list is the only change
@@ -218,7 +228,6 @@ pub struct CardsConfig {
 pub struct CardsBootstrap {
     pub config: CardsConfig,
     pub grant_enabled: bool,
-    pub test_tools_enabled: bool,
     pub wallet: i64,
     pub unopened_packs: i64,
     pub starter_granted: bool,

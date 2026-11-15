@@ -2,12 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { TabId } from "@/types/ui/settings";
 
-const OFFLINE_DISABLED_TABS: ReadonlySet<TabId> = new Set([
-  "anilist",
-  "search",
-  "stream",
-  "news",
-]);
+const OFFLINE_DISABLED_TABS: ReadonlySet<TabId> = new Set(["anilist", "search", "stream", "news"]);
 
 export function isOfflineDisabledTab(id: TabId): boolean {
   return OFFLINE_DISABLED_TABS.has(id);

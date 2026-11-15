@@ -124,7 +124,6 @@ const ANIME_INDEX: SearchAnimeSuggestion[] = [
   { aliases: [], favourite: false, id: 4, score: 70, status: "RELEASING", title: "Frieren" },
 ];
 
-
 describe("determinism", () => {
   it("parses the same media path identically on every run", () => {
     const first = MEDIA_PATHS.map(parseMediaPath).map(canonicalJson);
@@ -149,5 +148,4 @@ describe("determinism", () => {
       expect(canonicalJson(getSearchSuggestions("fri", options))).toBe(reference);
     }
   });
-
 });

@@ -1,7 +1,4 @@
-import type {
-  AniListOverlayContext,
-  AniListOverlayScreen,
-} from "@/types/anilist/anilistUi";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilistUi";
 
 import { AnimeScreen } from "@/routes/components/anilist/detail/animeScreen.detail";
 import { CharacterScreen } from "@/routes/components/anilist/detail/characterScreen.detail";

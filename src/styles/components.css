@@ -648,10 +648,9 @@ html[data-theme="yorha"] .yorha-grid {
   box-shadow: 2px 2px 0 var(--color-win-shadow);
 }
 
-/* Only the hovered card and the detail view pay for a 3D layer. */
+/* Only hovered and full-tilt cards pay for a 3D layer. */
 .cards-window:hover,
-.cards-window[data-tilt="full"],
-.cards-detail-art .cards-window {
+.cards-window[data-tilt="full"] {
   transform: perspective(900px) rotateX(var(--cards-tilt-x, 0deg))
     rotateY(var(--cards-tilt-y, 0deg));
   transition: transform 120ms ease-out;
@@ -660,16 +659,6 @@ html[data-theme="yorha"] .yorha-grid {
 .cards-window[data-tilt="restrained"] {
   content-visibility: auto;
   contain-intrinsic-size: auto 18rem;
-}
-
-/* The album is a grid of many cards; the costly finish layers stay in the
-   detail view, where only one card is on screen. */
-.cards-window[data-tilt="restrained"] .cards-variant-foil::before,
-.cards-window[data-tilt="restrained"] .cards-variant-foil::after,
-.cards-window[data-tilt="restrained"] .cards-variant-holo::before,
-.cards-window[data-tilt="restrained"] .cards-variant-holo::after,
-.cards-window[data-tilt="restrained"] .cards-variant-holo .cards-art::before {
-  display: none;
 }
 
 .cards-window-bar {
@@ -684,7 +673,7 @@ html[data-theme="yorha"] .yorha-grid {
   background: color-mix(in srgb, var(--cards-rarity) 48%, #0b1120);
   border-bottom: 1px solid var(--color-win-shadow);
   box-shadow: inset 0 -1px 0 var(--color-win-highlight);
-  color: var(--color-title-text);
+  color: #ffffff;
   text-shadow: 1px 1px 0 color-mix(in srgb, #000000 55%, transparent);
   font-family: var(--font-family);
   font-size: var(--ui-font-size, 12px);
@@ -866,7 +855,9 @@ html[data-theme="yorha"] .yorha-grid {
 [data-card-effects="off"] .cards-variant-foil::after,
 [data-card-effects="off"] .cards-variant-holo::before,
 [data-card-effects="off"] .cards-variant-holo::after,
-[data-card-effects="off"] .cards-variant-holo .cards-art::before {
+[data-card-effects="off"] .cards-variant-holo .cards-art::before,
+[data-card-effects="off"] .cards-variant-cursed .cards-art::before,
+[data-card-effects="off"] .cards-variant-cursed .cards-art::after {
   display: none;
 }
 
@@ -886,16 +877,16 @@ html[data-theme="yorha"] .yorha-grid {
 /* Finishes scale by rarity: common foil reads as matte steel, legendary as
    warm gold. Same layers, different variables, no extra DOM. */
 .cards-inner {
-  --foil-band-alpha: 0.85;
-  --foil-flake-alpha: 0.6;
+  --foil-band-alpha: 0.95;
+  --foil-flake-alpha: 0.72;
   /* 4x4 Bayer thresholds, alpha-baked into a 4 px tile: ordered dither reads
      as brushed metal grain, where round sparkles read as polka dots. */
   --foil-dither: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23fff' fill-opacity='.03'/%3E%3Crect x='1' y='0' width='1' height='1' fill='%23fff' fill-opacity='.15'/%3E%3Crect x='2' y='0' width='1' height='1' fill='%23fff' fill-opacity='.06'/%3E%3Crect x='3' y='0' width='1' height='1' fill='%23fff' fill-opacity='.18'/%3E%3Crect x='0' y='1' width='1' height='1' fill='%23fff' fill-opacity='.21'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23fff' fill-opacity='.09'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%23fff' fill-opacity='.24'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23fff' fill-opacity='.12'/%3E%3Crect x='0' y='2' width='1' height='1' fill='%23fff' fill-opacity='.07'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%23fff' fill-opacity='.19'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23fff' fill-opacity='.04'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%23fff' fill-opacity='.16'/%3E%3Crect x='0' y='3' width='1' height='1' fill='%23fff' fill-opacity='.26'/%3E%3Crect x='1' y='3' width='1' height='1' fill='%23fff' fill-opacity='.13'/%3E%3Crect x='2' y='3' width='1' height='1' fill='%23fff' fill-opacity='.22'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23fff' fill-opacity='.10'/%3E%3C/svg%3E");
 }
 
 .cards-window.cards-rarity-common .cards-inner {
-  --foil-band-alpha: 0.5;
-  --foil-flake-alpha: 0.32;
+  --foil-band-alpha: 0.72;
+  --foil-flake-alpha: 0.48;
 }
 
 .cards-window.cards-rarity-epic .cards-inner {
@@ -915,19 +906,23 @@ html[data-theme="yorha"] .yorha-grid {
   background: linear-gradient(
     108deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.08) 34%,
-    rgba(255, 255, 255, 0.18) 46%,
-    rgba(255, 255, 255, 0.27) 50%,
-    rgba(255, 255, 255, 0.18) 54%,
-    rgba(255, 255, 255, 0.08) 66%,
+    rgba(255, 255, 255, 0.11) 34%,
+    rgba(255, 255, 255, 0.29) 46%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0.29) 54%,
+    rgba(255, 255, 255, 0.11) 66%,
     transparent 100%
   );
   background-size: 220% 220%;
-  background-position: calc(50% + var(--cards-tilt-deg-y, 0) * 3%)
-    calc(50% + var(--cards-tilt-deg-x, 0) * 3%);
+  background-repeat: no-repeat;
+  background-position: calc(50% + var(--cards-foil-offset-y, var(--cards-tilt-deg-y, 0) * 3%))
+    calc(50% + var(--cards-foil-offset-x, var(--cards-tilt-deg-x, 0) * 3%));
   mix-blend-mode: screen;
+  box-shadow:
+    inset 2px 0 0 rgba(255, 255, 255, calc(var(--cards-tilt-strength, 0) * 0.4)),
+    inset -2px 0 0 rgba(255, 255, 255, calc(var(--cards-tilt-strength, 0) * 0.4));
   opacity: calc(
-    var(--foil-band-alpha, 0.8) * (0.55 + var(--cards-tilt-strength, 0) * 0.45) *
+    var(--foil-band-alpha, 0.8) * (0.7 + var(--cards-tilt-strength, 0) * 0.3) *
       var(--cards-effect-opacity, 1)
   );
 }
@@ -954,11 +949,12 @@ html[data-theme="yorha"] .yorha-grid {
     auto,
     auto;
   background-position:
-    calc(50% + var(--cards-tilt-deg-y, 0) * 1.1%) calc(50% + var(--cards-tilt-deg-x, 0) * 1.1%),
+    calc(50% + var(--cards-foil-offset-y, var(--cards-tilt-deg-y, 0) * 1.1%))
+      calc(50% + var(--cards-foil-offset-x, var(--cards-tilt-deg-x, 0) * 1.1%)),
     0 0,
     0 0;
   mix-blend-mode: overlay;
-  opacity: calc(0.7 * var(--foil-flake-alpha, 0.6) * var(--cards-effect-opacity, 1));
+  opacity: calc(0.85 * var(--foil-flake-alpha, 0.6) * var(--cards-effect-opacity, 1));
 }
 
 .cards-window:hover .cards-variant-foil::after,
@@ -1104,6 +1100,80 @@ html[data-theme="yorha"] .yorha-grid {
   .cards-detail-art .cards-variant-holo::before,
   .cards-detail-art .cards-variant-holo::after {
     animation: none;
+  }
+}
+
+.cards-variant-cursed {
+  border-color: oklch(0.54 0.12 316);
+  box-shadow: inset 0 0 0 1px oklch(0.27 0.08 310);
+}
+
+.cards-variant-cursed .cards-art {
+  background: oklch(0.12 0.03 310);
+}
+
+.cards-variant-cursed .cards-art::before,
+.cards-variant-cursed .cards-art::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cards-variant-cursed .cards-art::before {
+  inset: 0;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 3px, oklch(0.04 0.02 310 / 0.3) 3px 4px),
+    linear-gradient(
+      90deg,
+      oklch(0.68 0.19 210 / 0.22),
+      transparent 22% 78%,
+      oklch(0.7 0.2 340 / 0.22)
+    );
+  opacity: calc((0.5 + var(--cards-tilt-strength, 0) * 0.4) * var(--cards-effect-opacity, 1));
+}
+
+.cards-variant-cursed .cards-art::after {
+  inset-inline: 0;
+  inset-block-start: var(--cards-tilt-shift-y, 50%);
+  block-size: 7%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    oklch(0.8 0.15 210 / 0.45) 38%,
+    oklch(0.78 0.18 340 / 0.48) 62%,
+    transparent
+  );
+  transform: translateY(-50%) translateX(calc(var(--cards-tilt-deg-y, 0) * 0.18px));
+  opacity: calc((0.2 + var(--cards-tilt-strength, 0) * 0.4) * var(--cards-effect-opacity, 1));
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .cards-window:hover .cards-variant-cursed .cards-art::before,
+  .cards-detail-art .cards-variant-cursed .cards-art::before,
+  .cards-window:hover .cards-variant-cursed .cards-art canvas,
+  .cards-detail-art .cards-variant-cursed .cards-art canvas {
+    animation: cards-cursed-glitch 5s steps(1, end) infinite;
+  }
+
+  [data-card-effects="off"] .cards-window:hover .cards-variant-cursed .cards-art canvas,
+  [data-card-effects="off"] .cards-detail-art .cards-variant-cursed .cards-art canvas {
+    animation: none;
+  }
+}
+
+@keyframes cards-cursed-glitch {
+  0%,
+  94%,
+  98%,
+  100% {
+    transform: translateX(0);
+  }
+  95% {
+    transform: translateX(-3px);
+  }
+  96% {
+    transform: translateX(2px);
   }
 }
 

@@ -96,7 +96,13 @@ fn batch_alias(kind: CardKind, page: u32) -> String {
 pub fn batch_page_query(entries: &[(CardKind, u32)], per_page: u32) -> Value {
     let parts = entries
         .iter()
-        .map(|(kind, page)| format!("{}: {}", batch_alias(*kind, *page), page_field(*kind, *page, per_page)))
+        .map(|(kind, page)| {
+            format!(
+                "{}: {}",
+                batch_alias(*kind, *page),
+                page_field(*kind, *page, per_page)
+            )
+        })
         .collect::<Vec<_>>()
         .join(" ");
     json!({ "query": format!("query {{ {parts} }}") })

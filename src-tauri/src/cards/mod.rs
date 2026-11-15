@@ -42,7 +42,6 @@ pub fn cards_bootstrap(app: AppHandle) -> Result<CardsBootstrap, String> {
     Ok(CardsBootstrap {
         config: config::cards_config(),
         grant_enabled: config::CARDS_GRANT_ENABLED,
-        test_tools_enabled: config::CARDS_TEST_TOOLS_ENABLED,
         wallet: wallet_balance(&connection, LOCAL_USER_ID)?,
         unopened_packs: unopened_pack_count(&connection, LOCAL_USER_ID)?,
         starter_granted: starter.is_some(),
@@ -78,11 +77,10 @@ mod tests {
     }
 
     #[test]
-    fn bootstrap_serializes_camel_case_and_keeps_grants_off() {
+    fn bootstrap_serializes_camel_case() {
         let bootstrap = CardsBootstrap {
             config: config::cards_config(),
             grant_enabled: false,
-            test_tools_enabled: true,
             wallet: 0,
             unopened_packs: 0,
             starter_granted: false,
@@ -90,7 +88,6 @@ mod tests {
         };
         let value = serde_json::to_value(&bootstrap).expect("bootstrap");
         assert_eq!(value["grantEnabled"], false);
-        assert_eq!(value["testToolsEnabled"], true);
         assert_eq!(value["unopenedPacks"], 0);
         assert_eq!(value["config"]["packSize"], 7);
     }

@@ -33,21 +33,6 @@ export function useCardsMutations() {
     }
   };
 
-  const grantTestPack = useMutation({
-    mutationFn: () => cardsApi.grantTestPack(),
-    onSuccess: invalidate,
-  });
-
-  const grantTestLegendaryPack = useMutation({
-    mutationFn: () => cardsApi.grantTestLegendaryPack(),
-    onSuccess: invalidate,
-  });
-
-  const grantTestEffectsPack = useMutation({
-    mutationFn: () => cardsApi.grantTestEffectsPack(),
-    onSuccess: invalidate,
-  });
-
   const resetCollection = useMutation({
     mutationFn: () => cardsApi.resetCollection(),
     onSuccess: invalidate,
@@ -131,9 +116,6 @@ export function useCardsMutations() {
   });
 
   return {
-    grantTestPack,
-    grantTestLegendaryPack,
-    grantTestEffectsPack,
     resetCollection,
     setPreferredImage,
     setCardVariant,

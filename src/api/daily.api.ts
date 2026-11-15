@@ -57,17 +57,11 @@ export class DailyApi {
   }
 
   async prepareOp(day: string, proxyUrl: string | null = null): Promise<DailyOpView> {
-    return assertSchema(
-      await this.dailyClient.prepareOp({ day, proxyUrl }),
-      DailyOpViewSchema
-    );
+    return assertSchema(await this.dailyClient.prepareOp({ day, proxyUrl }), DailyOpViewSchema);
   }
 
   async prepareAudio(day: string, proxyUrl: string | null = null): Promise<DailyOpView> {
-    return assertSchema(
-      await this.dailyClient.prepareAudio({ day, proxyUrl }),
-      DailyOpViewSchema
-    );
+    return assertSchema(await this.dailyClient.prepareAudio({ day, proxyUrl }), DailyOpViewSchema);
   }
 
   async guessAudio(
@@ -114,17 +108,11 @@ export class DailyApi {
     mode: DailyMode,
     proxyUrl: string | null = null
   ): Promise<DailyGuessView> {
-    return assertSchema(
-      await this.dailyClient.skip({ day, mode, proxyUrl }),
-      DailyGuessViewSchema
-    );
+    return assertSchema(await this.dailyClient.skip({ day, mode, proxyUrl }), DailyGuessViewSchema);
   }
 
   async history(day: string, mode: string, limit = 20): Promise<DailyHistoryItem[]> {
-    return assertSchema(
-      await this.dailyClient.history({ day, mode, limit }),
-      DailyHistorySchema
-    );
+    return assertSchema(await this.dailyClient.history({ day, mode, limit }), DailyHistorySchema);
   }
 
   async reset(): Promise<void> {

@@ -8,22 +8,15 @@ import {
 } from "@/config/anilist/list.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
-import type {
-  EntryLookup } from "@/types/anilist/entries";
+import type { EntryLookup } from "@/types/anilist/entries";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import { GroupHeaderCollection } from "@/routes/components/anilist/groupHeader.anilist";
 import { settingsAtoms } from "@/store/settings.store";
-import type {
-  AniListAnime,
-  AniListGroup,
-  AniMedia,
-} from "@/types/anilist/anilist";
-import type {
-  AniListScrollRow,
-} from "@/types/anilist/anilistUi";
+import type { AniListAnime, AniListGroup, AniMedia } from "@/types/anilist/anilist";
+import type { AniListScrollRow } from "@/types/anilist/anilistUi";
 
 export default function AniListScrollView({
   items,

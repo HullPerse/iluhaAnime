@@ -48,32 +48,32 @@ import type {
   DailySearchEntry,
 } from "@/types/api/daily";
 
-export interface CardsGalleryArgs {
+interface CardsGalleryArgs {
   kind: CollectionItem["kind"];
   entityId: number;
   proxyUrl?: string | null;
 }
 
-export interface CardsSetPreferredImageArgs {
+interface CardsSetPreferredImageArgs {
   kind: CollectionItem["kind"];
   entityId: number;
   imageUrl?: string | null;
 }
 
-export interface CardsCardArgs {
+interface CardsCardArgs {
   kind: CollectionItem["kind"];
   entityId: number;
 }
 
-export interface CardsSetCardFavoriteArgs extends CardsCardArgs {
+interface CardsSetCardFavoriteArgs extends CardsCardArgs {
   favorite: boolean;
 }
 
-export interface CardsSetCardVariantArgs extends CardsCardArgs {
+interface CardsSetCardVariantArgs extends CardsCardArgs {
   variant: CollectionItem["variant"];
 }
 
-export interface CardsCollectionArgs {
+interface CardsCollectionArgs {
   kind: CollectionItem["kind"] | null;
   rarity: CollectionItem["rarity"] | null;
   variant: CollectionItem["variant"] | null;
@@ -85,53 +85,50 @@ export interface CardsCollectionArgs {
   proxyUrl?: string | null;
 }
 
-export interface CardsProxyArgs {
+interface CardsProxyArgs {
   proxyUrl?: string | null;
 }
 
-export interface CardsOpenPackArgs extends CardsProxyArgs {
+interface CardsOpenPackArgs extends CardsProxyArgs {
   packId: string;
 }
 
-export interface CardsCollectionsArgs extends CardsProxyArgs {
+interface CardsCollectionsArgs extends CardsProxyArgs {
   sort: CollectionShelfSort;
   sortDir: "asc" | "desc";
 }
 
-export interface CardsAnimeCollectionArgs extends CardsProxyArgs {
+interface CardsAnimeCollectionArgs extends CardsProxyArgs {
   animeId: number;
   kind: "anime" | "manga";
 }
 
-export interface CardsCollectionRosterArgs extends CardsProxyArgs {
+interface CardsCollectionRosterArgs extends CardsProxyArgs {
   mediaId: number;
   kind: "anime" | "manga";
   page: number;
 }
 
-export interface CardsUnreadArgs {
+interface CardsUnreadArgs {
   packsSince: number;
   cardsSince: number;
 }
 
-export interface CardsBuyPackArgs {
+interface CardsBuyPackArgs {
   packKind: string;
 }
 
-export interface CardsGrantStarterArgs extends CardsProxyArgs {
+interface CardsGrantStarterArgs extends CardsProxyArgs {
   userId: number;
 }
 
-export interface CardsGiftArgs {
+interface CardsGiftArgs {
   giftId: string;
 }
 
 export interface CardsClient {
   cardsBootstrap(): Promise<CardsBootstrap>;
   cardsPacks(): Promise<CardPackRow[]>;
-  cardsGrantTestPack(): Promise<CardPackRow>;
-  cardsGrantTestLegendaryPack(): Promise<CardPackRow>;
-  cardsGrantTestEffectsPack(): Promise<CardPackRow>;
   cardsPreparePacks(args: CardsProxyArgs): Promise<PackPreparation>;
   cardsAckPreparedPacks(): Promise<number>;
   cardsOpenPack(args: CardsOpenPackArgs): Promise<PackOpening>;
@@ -159,30 +156,30 @@ export interface CardsClient {
   cardsDeleteGift(args: CardsGiftArgs): Promise<GiftDeleteResult>;
 }
 
-export interface DailyPrepareArgs {
+interface DailyPrepareArgs {
   day: string;
   mode: DailyMode;
   proxyUrl?: string | null;
 }
 
-export interface DailyDayArgs {
+interface DailyDayArgs {
   day: string;
 }
 
-export interface DailyClipArgs {
+interface DailyClipArgs {
   day: string;
   mediaId: number;
   guessedTitles: string[];
 }
 
-export interface DailyGuessArgs extends DailyPrepareArgs {
+interface DailyGuessArgs extends DailyPrepareArgs {
   mediaId: number;
   guessedTitles: string[];
 }
 
-export interface DailySkipArgs extends DailyPrepareArgs {}
+interface DailySkipArgs extends DailyPrepareArgs {}
 
-export interface DailyHistoryArgs {
+interface DailyHistoryArgs {
   day: string;
   mode: string;
   limit: number;
@@ -214,10 +211,6 @@ export function createCardsClient(
   return {
     cardsBootstrap: () => call<CardsBootstrap>("cards_bootstrap"),
     cardsPacks: () => call<CardPackRow[]>("cards_packs"),
-    cardsGrantTestPack: () => call<CardPackRow>("cards_grant_test_pack"),
-    cardsGrantTestLegendaryPack: () =>
-      call<CardPackRow>("cards_grant_test_legendary_pack"),
-    cardsGrantTestEffectsPack: () => call<CardPackRow>("cards_grant_test_effects_pack"),
     cardsPreparePacks: (args) =>
       call<PackPreparation>("cards_prepare_packs", proxy(args.proxyUrl)),
     cardsAckPreparedPacks: () => call<number>("cards_ack_prepared_packs"),
@@ -413,7 +406,7 @@ export function createDailyClient(
 `;
 
 if (CHECK_ONLY) {
-  const existing = await readFile(OUTPUT, "utf8").catch(() => null);
+  const existing = await readFile(OUTPUT, "utf-8").catch(() => null);
   if (existing !== body) {
     console.error(`[ipc] ${OUTPUT} is stale; run bun run codegen:ipc`);
     process.exit(1);

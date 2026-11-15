@@ -27,9 +27,9 @@ const renderPager = (props?: {
 describe("SearchPager", () => {
   it("disables next on a short page", () => {
     renderPager({ pageFull: false });
-    expect((screen.getByRole("button", { name: "Следующая страница" }) as HTMLButtonElement).disabled).toBe(
-      true
-    );
+    expect(
+      (screen.getByRole("button", { name: "Следующая страница" }) as HTMLButtonElement).disabled
+    ).toBe(true);
     expect(
       (screen.getByRole("button", { name: "Предыдущая страница" }) as HTMLButtonElement).disabled
     ).toBe(false);

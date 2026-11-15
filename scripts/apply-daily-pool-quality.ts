@@ -38,13 +38,13 @@ const reportPaths = paths.length > 0 ? paths : [DEFAULT_REPORT];
 const byMedia = new Map<number, CheckMode[]>();
 
 for (const path of reportPaths) {
-  const report = JSON.parse(await readFile(path, "utf8")) as QualityReport;
+  const report = JSON.parse(await readFile(path, "utf-8")) as QualityReport;
   for (const result of report.results) {
     byMedia.set(result.mediaId, result.ok ? result.modes : []);
   }
 }
 
-const pool = JSON.parse(await readFile(POOL_PATH, "utf8")) as PoolFile;
+const pool = JSON.parse(await readFile(POOL_PATH, "utf-8")) as PoolFile;
 let changed = 0;
 for (const entry of pool.entries) {
   const modes = byMedia.get(entry.mediaId);

@@ -9,16 +9,9 @@ import { formatProgressLog } from "@/lib/core/system/prefetch.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/core/system/cache.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { addNotification } from "@/store/notification.store";
-import type {
-  PrefetchProgressPayload,
-  PrefetchSummary,
-} from "@/types/anilist/anilist";
-import type {
-  PrefetchSnapshot,
-} from "@/types/anilist/anilistUi";
-import type {
-  AniPrefetchProps as Props,
-} from "@/types/anilist/anilistUi";
+import type { PrefetchProgressPayload, PrefetchSummary } from "@/types/anilist/anilist";
+import type { PrefetchSnapshot } from "@/types/anilist/anilistUi";
+import type { AniPrefetchProps as Props } from "@/types/anilist/anilistUi";
 
 import { CacheSummary } from "@/routes/components/anilist/prefetch/cache.prefetch";
 import { RunningSummary } from "@/routes/components/anilist/prefetch/running.prefetch";

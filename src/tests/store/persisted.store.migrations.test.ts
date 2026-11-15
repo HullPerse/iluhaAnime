@@ -30,7 +30,6 @@ function envelope(store: string, sv: number, data: Record<string, unknown>): str
 }
 
 describe("persisted store migrations", () => {
-
   it("sanitizes malformed cache payloads instead of trusting casts", () => {
     const backing = new Map<string, string>([
       [

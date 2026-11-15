@@ -16,8 +16,8 @@ const CONFIG: CardsBootstrap["config"] = {
   packSize: 7,
   guaranteedRarePlus: true,
   baseValues: { junk: 1, common: 2, rare: 5, epic: 15, legendary: 40 },
-  variantMultipliers: { normal: 1, foil: 1.5, holo: 3 },
-  variantWeights: { normal: 85, foil: 12, holo: 3 },
+  variantMultipliers: { normal: 1, foil: 1.5, holo: 3, cursed: 3 },
+  variantWeights: { normal: 84, foil: 12, holo: 3, cursed: 1 },
   shopPacks: [
     {
       packKind: "default",
@@ -39,7 +39,6 @@ const CONFIG: CardsBootstrap["config"] = {
 const BOOTSTRAP: CardsBootstrap = {
   config: CONFIG,
   grantEnabled: false,
-  testToolsEnabled: true,
   wallet: 15,
   unopenedPacks: 2,
   starterGranted: false,

@@ -17,11 +17,11 @@ use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
 use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
     acknowledge_ready_packs, add_wallet, get_meta, get_pack, get_user_card, insert_ledger,
-    insert_opening, insert_pack, list_openings_for_pack, list_pack_cards, list_packs,
-    list_packs_to_prepare, mark_pack_opened, mark_pack_prepare_failed, mark_pack_prepare_started,
-    ready_unnotified_count, save_pack_cards, trim_ledger, trim_openings, upsert_card, upsert_meta,
-    CardMetaRow, CardOpeningRow, CardPackCardRow, CardPackRow, ChubrikLedgerRow, UserCardRow,
-    LEDGER_RETENTION, LOCAL_USER_ID, OPENINGS_RETENTION,
+    insert_opening, list_openings_for_pack, list_pack_cards, list_packs, list_packs_to_prepare,
+    mark_pack_opened, mark_pack_prepare_failed, mark_pack_prepare_started, ready_unnotified_count,
+    save_pack_cards, trim_ledger, trim_openings, upsert_card, upsert_meta, CardMetaRow,
+    CardOpeningRow, CardPackCardRow, CardPackRow, ChubrikLedgerRow, UserCardRow, LEDGER_RETENTION,
+    LOCAL_USER_ID, OPENINGS_RETENTION,
 };
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -44,10 +44,8 @@ pub struct OpenedCard {
     pub collection_cover_url: Option<String>,
 }
 
-/// Test packs use an id prefix as their guarantee marker; the pack row stays
-/// exactly the same shape as every other pack.
-const TEST_LEGENDARY_PREFIX: &str = "legendary-test-";
-const TEST_EFFECTS_PREFIX: &str = "effects-test-";
+/// Packs use an id prefix as their guarantee marker; the pack row stays exactly
+/// the same shape as every other pack.
 const PREPARE_BATCH: i64 = 5;
 const PREPARE_MAX_ATTEMPTS: i64 = 5;
 const PREPARE_IMAGE_LIMIT: usize = 24;
@@ -75,14 +73,6 @@ impl Drop for PrepareRunningGuard {
     fn drop(&mut self) {
         PACK_PREPARE_RUNNING.store(false, Ordering::Release);
     }
-}
-
-fn is_test_legendary_pack(pack_id: &str) -> bool {
-    pack_id.starts_with(TEST_LEGENDARY_PREFIX)
-}
-
-fn is_test_effects_pack(pack_id: &str) -> bool {
-    pack_id.starts_with(TEST_EFFECTS_PREFIX)
 }
 
 /// Duplicate payouts grow with the number of copies already owned, from 1x on
@@ -420,73 +410,10 @@ fn generate_cards(nodes: Vec<CardNode>, seed: u64) -> Vec<GeneratedCard> {
     generated
 }
 
-/// Test-only pity. It upgrades the highest-tier card in place and rebuilds its
-/// salvage value from the same frozen score used by the normal generator.
-fn guarantee_minimum_rarity(cards: &mut [GeneratedCard], minimum: CardRarity) {
-    if cards.iter().any(|card| card.card.rarity >= minimum) {
-        return;
-    }
-    let Some(index) = cards
-        .iter()
-        .enumerate()
-        .max_by(|(_, left), (_, right)| {
-            left.card.rarity.cmp(&right.card.rarity).then_with(|| {
-                left.node
-                    .score
-                    .partial_cmp(&right.node.score)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
-        })
-        .map(|(index, _)| index)
-    else {
-        return;
-    };
-    let card = &mut cards[index];
-    card.card.rarity = minimum;
-    card.card.value = i64::from(card_value(
-        card.card.kind,
-        minimum,
-        card.card.variant,
-        card.node.score,
-    ));
-}
-
-/// Test-only: lay the new finishes out across the pack instead of leaving them
-/// to the random variant roll. The anime card moves to slot 0 so the frosted
-/// art edge is visible without hunting for it.
-fn arrange_effects_showcase(cards: &mut [GeneratedCard]) {
-    if let Some(index) = cards
-        .iter()
-        .position(|card| card.card.kind == CardKind::Anime)
-    {
-        cards.swap(0, index);
-    }
-    const SHOWCASE: [(CardRarity, CardVariant); 7] = [
-        (CardRarity::Common, CardVariant::Foil),
-        (CardRarity::Epic, CardVariant::Foil),
-        (CardRarity::Legendary, CardVariant::Foil),
-        (CardRarity::Rare, CardVariant::Holo),
-        (CardRarity::Epic, CardVariant::Holo),
-        (CardRarity::Legendary, CardVariant::Holo),
-        (CardRarity::Legendary, CardVariant::Normal),
-    ];
-    for (card, (rarity, variant)) in cards.iter_mut().zip(SHOWCASE.into_iter()) {
-        card.card.rarity = rarity;
-        card.card.variant = variant;
-        card.card.value = i64::from(card_value(card.card.kind, rarity, variant, card.node.score));
-    }
-}
-
 /// The composition of a pack, derived from its seed. Kept separate from
 /// generation so a prepare batch can prefetch every kind it will need.
 fn planned_needs(pack: &CardPackRow) -> Result<Vec<(CardKind, usize)>, String> {
     let mut plan_rng = Rng::new(pack.seed as u64 ^ 0x9E37_79B9_7F4A_7C15);
-    if is_test_effects_pack(&pack.id) {
-        return Ok(vec![
-            (CardKind::Anime, 1),
-            (CardKind::Character, pack.size.saturating_sub(1) as usize),
-        ]);
-    }
     pack_needs(&pack.pack_kind, pack.size as usize, &mut plan_rng)
 }
 
@@ -499,12 +426,6 @@ async fn generate_pack_contents(
     let needs = planned_needs(pack)?;
     let nodes = sample_cards(app, &needs, pack.seed as u64, proxy, pools).await?;
     let mut generated = generate_cards(nodes, pack.seed as u64);
-    if is_test_legendary_pack(&pack.id) {
-        guarantee_minimum_rarity(&mut generated, CardRarity::Legendary);
-    }
-    if is_test_effects_pack(&pack.id) {
-        arrange_effects_showcase(&mut generated);
-    }
     if pack.source == "daily" {
         ensure_daily_guarantee(app, pack, &mut generated, proxy).await?;
     }
@@ -1057,52 +978,6 @@ pub fn cards_ack_prepared_packs(app: AppHandle) -> Result<usize, String> {
     acknowledge_ready_packs(&connection, LOCAL_USER_ID, now_seconds())
 }
 
-fn grant_test_pack(app: AppHandle, id_prefix: &str) -> Result<CardPackRow, String> {
-    crate::cards::require_anilist_account(&app)?;
-    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
-    let connection = open_database(&app)?;
-    let seed = seed_now();
-    let now = now_seconds();
-    let pack = CardPackRow {
-        id: format!("{id_prefix}{seed}"),
-        source: "test".into(),
-        pack_kind: "default".into(),
-        media_id: None,
-        seed: seed as i64,
-        size: CARD_PACK_SIZE as i64,
-        created_at: now,
-        opened_at: None,
-        contents_state: CardPackContentsState::Pending,
-    };
-    insert_pack(&connection, LOCAL_USER_ID, &pack)?;
-    Ok(pack)
-}
-
-/// Test tools grant exactly one pack, never the episode count.
-#[tauri::command]
-pub fn cards_grant_test_pack(app: AppHandle) -> Result<CardPackRow, String> {
-    let pack = grant_test_pack(app.clone(), "test-")?;
-    spawn_prepare_packs(app);
-    Ok(pack)
-}
-
-/// A test pack that always contains a legendary card.
-#[tauri::command]
-pub fn cards_grant_test_legendary_pack(app: AppHandle) -> Result<CardPackRow, String> {
-    let pack = grant_test_pack(app.clone(), TEST_LEGENDARY_PREFIX)?;
-    spawn_prepare_packs(app);
-    Ok(pack)
-}
-
-/// A test pack that always shows every new finish: matte and gold foil, holo,
-/// pressed legendary text and frosted anime art.
-#[tauri::command]
-pub fn cards_grant_test_effects_pack(app: AppHandle) -> Result<CardPackRow, String> {
-    let pack = grant_test_pack(app.clone(), TEST_EFFECTS_PREFIX)?;
-    spawn_prepare_packs(app);
-    Ok(pack)
-}
-
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn cards_open_pack(
@@ -1325,56 +1200,6 @@ mod tests {
         assert_eq!(payout_for(120, 1_000), 276);
         assert_eq!(payout_for(1, 0), 1);
         assert_eq!(payout_for(1, 1), 1);
-    }
-
-    #[test]
-    fn the_legendary_test_pack_id_is_recognisable() {
-        assert!(is_test_legendary_pack("legendary-test-123"));
-        assert!(!is_test_legendary_pack("test-123"));
-        assert!(!is_test_legendary_pack("buy-123"));
-    }
-
-    #[test]
-    fn the_effects_test_pack_id_is_recognisable() {
-        assert!(is_test_effects_pack("effects-test-123"));
-        assert!(!is_test_effects_pack("test-123"));
-        assert!(!is_test_effects_pack("legendary-test-123"));
-    }
-
-    #[test]
-    fn the_effects_test_pack_shows_every_finish() {
-        let nodes = (1..=7).map(|id| node(id, 5.0)).collect();
-        let mut cards = generate_cards(nodes, 7);
-        arrange_effects_showcase(&mut cards);
-
-        assert_eq!(cards[0].card.rarity, CardRarity::Common);
-        assert_eq!(cards[0].card.variant, CardVariant::Foil);
-        assert_eq!(cards[2].card.variant, CardVariant::Foil);
-        assert_eq!(cards[2].card.rarity, CardRarity::Legendary);
-        assert_eq!(cards[3].card.variant, CardVariant::Holo);
-        assert_eq!(cards[5].card.rarity, CardRarity::Legendary);
-        assert_eq!(cards[5].card.variant, CardVariant::Holo);
-        assert_eq!(cards[6].card.rarity, CardRarity::Legendary);
-        assert_eq!(cards[6].card.variant, CardVariant::Normal);
-        assert!(cards.iter().all(|card| card.card.value >= 1));
-        assert!(
-            cards[5].card.value > cards[3].card.value,
-            "holo value must follow its new rarity"
-        );
-    }
-
-    #[test]
-    fn the_legendary_test_pack_upgrades_exactly_one_card() {
-        let mut cards = generate_cards(vec![node(1, 0.0), node(2, 1.0), node(3, 2.0)], 7);
-        guarantee_minimum_rarity(&mut cards, CardRarity::Legendary);
-        assert_eq!(
-            cards
-                .iter()
-                .filter(|card| card.card.rarity == CardRarity::Legendary)
-                .count(),
-            1
-        );
-        assert!(cards.iter().any(|card| card.card.value >= 40));
     }
 
     #[test]

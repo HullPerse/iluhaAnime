@@ -8,9 +8,7 @@ import {
   franchiseSummary,
   pickNextToWatch,
 } from "@/lib/anilist/franchise.utils";
-import type {
-  FranchiseListProps,
-} from "@/types/anilist/anilistUi";
+import type { FranchiseListProps } from "@/types/anilist/anilistUi";
 
 import { FranchiseRow } from "@/routes/components/anilist/franchise/row.franchise";
 

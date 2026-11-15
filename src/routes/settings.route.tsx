@@ -65,10 +65,7 @@ export default function SettingsRoute() {
     }
     return counts;
   }, [findHits, trimmedQuery]);
-  const navGroups = useMemo(
-    () => SETTINGS_TAB_GROUPS.filter((group) => group.tabs.length > 0),
-    []
-  );
+  const navGroups = useMemo(() => SETTINGS_TAB_GROUPS.filter((group) => group.tabs.length > 0), []);
   const navTabs = useMemo(() => navGroups.flatMap((group) => group.tabs), [navGroups]);
   const changedKeys = useMemo(() => {
     const keys = new Set<string>();

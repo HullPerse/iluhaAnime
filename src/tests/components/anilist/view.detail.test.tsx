@@ -136,10 +136,7 @@ describe("AniListDetailView character navigation", () => {
 });
 
 describe("AniListDetailView mount inventory", () => {
-  const EXPECTED_COMMANDS = [
-    "get_anime_franchise",
-    "get_anime_recommendations",
-  ];
+  const EXPECTED_COMMANDS = ["get_anime_franchise", "get_anime_recommendations"];
 
   it("issues exactly one call per expected command and skips custom lists when logged out", async () => {
     renderView(false);

@@ -17,10 +17,7 @@ import type {
 } from "@/types/api/daily";
 
 function dailyProxy(): string | null {
-  return effectiveProxyUrl(
-    settingsAtoms.dailyProxyUrl.get(),
-    settingsAtoms.anilistProxyUrl.get()
-  );
+  return effectiveProxyUrl(settingsAtoms.dailyProxyUrl.get(), settingsAtoms.anilistProxyUrl.get());
 }
 
 const PREPARE_TIMEOUT_MS = 50_000;
@@ -95,8 +92,7 @@ export function useRevealDailyFrames(day: string) {
 export function useWarmDailyOp(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (): Promise<DailyOpView> =>
-      dailyApi.prepareOp(day, dailyProxy()),
+    mutationFn: (): Promise<DailyOpView> => dailyApi.prepareOp(day, dailyProxy()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
     },
@@ -108,8 +104,7 @@ export function useWarmDailyOp(day: string) {
 export function useWarmDailyAudio(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (): Promise<DailyOpView> =>
-      dailyApi.prepareAudio(day, dailyProxy()),
+    mutationFn: (): Promise<DailyOpView> => dailyApi.prepareAudio(day, dailyProxy()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
     },
@@ -200,20 +195,13 @@ export function useGuessDailyGame(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (vars: { mode: DailyMode; mediaId: number; guessedTitles: string[] }) =>
-      dailyApi.guess(
-        day,
-        vars.mode,
-        vars.mediaId,
-        vars.guessedTitles,
-        dailyProxy()
-      ),
+      dailyApi.guess(day, vars.mode, vars.mediaId, vars.guessedTitles, dailyProxy()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyHistory() });
     },
   });
 }
-
 
 export function useSkipDailyGame(day: string) {
   const queryClient = useQueryClient();

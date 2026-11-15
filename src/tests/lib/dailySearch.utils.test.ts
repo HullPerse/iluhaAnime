@@ -52,7 +52,13 @@ describe("titleMatchRank", () => {
 describe("localGuessSuggestions", () => {
   const entries: DailySearchEntry[] = [
     { mediaId: 1, title: "Shingeki no Kyojin", year: 2013, format: "TV", popularity: 100 },
-    { mediaId: 2, title: "Shingeki no Kyojin: Chronicle", year: 2020, format: "MOVIE", popularity: 80 },
+    {
+      mediaId: 2,
+      title: "Shingeki no Kyojin: Chronicle",
+      year: 2020,
+      format: "MOVIE",
+      popularity: 80,
+    },
     { mediaId: 3, title: "Kimetsu no Yaiba", year: 2019, format: "TV", popularity: 90 },
   ];
 

@@ -19,10 +19,6 @@ export const HostStatsSchema = z.compile(
   })
 );
 
-export const RemoteImageStatsSchema = z.compile(
-  z.object({ bytes: z.number(), count: z.number() })
-);
+export const RemoteImageStatsSchema = z.compile(z.object({ bytes: z.number(), count: z.number() }));
 
-export const VideoCacheStatsSchema = z.compile(
-  z.object({ hits: z.number(), misses: z.number() })
-);
+export const VideoCacheStatsSchema = z.compile(z.object({ hits: z.number(), misses: z.number() }));

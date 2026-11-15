@@ -3,7 +3,8 @@ import type { RosterCharacter } from "@/types/api/cards";
 
 export default function CollectionSilhouette({ character }: { character: RosterCharacter }) {
   const { t } = useI18n();
-  const title = character.title.trim() === "" ? `Character #${character.entityId}` : character.title;
+  const title =
+    character.title.trim() === "" ? `Character #${character.entityId}` : character.title;
 
   return (
     <div

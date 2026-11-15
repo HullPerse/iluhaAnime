@@ -23,7 +23,10 @@ export function useGridMetrics(scrollRef: RefObject<HTMLDivElement | null>) {
       const width = element.clientWidth - CARD_GRID_HORIZONTAL_PADDING;
       if (width <= 0) return;
       const minCardWidth = width >= 640 ? CARD_GRID_LARGE_WIDTH : CARD_GRID_SMALL_WIDTH;
-      const columns = Math.max(1, Math.floor((width + CARD_GRID_GAP) / (minCardWidth + CARD_GRID_GAP)));
+      const columns = Math.max(
+        1,
+        Math.floor((width + CARD_GRID_GAP) / (minCardWidth + CARD_GRID_GAP))
+      );
       const cardWidth = (width - CARD_GRID_GAP * (columns - 1)) / columns;
       const rowHeight = cardWidth * 1.5 + CARD_GRID_GAP;
       setMetrics((current) =>

@@ -237,7 +237,6 @@ function PlayerComponent() {
   usePlayerFileDrop();
   usePlayerSettingsSync();
 
-
   usePlayerEvents({
     onOpenRequest: (request) => {
       if (request.files.length === 0) return;

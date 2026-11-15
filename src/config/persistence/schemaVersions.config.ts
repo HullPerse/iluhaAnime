@@ -1,5 +1,5 @@
 export const SCHEMA_VERSIONS = {
-  settings: 61,
+  settings: 62,
   theme: 1,
   cache: 5,
   search: 4,

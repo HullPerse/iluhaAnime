@@ -22,9 +22,7 @@ export function TorrentPendingState({ item, actions }: { item: TorrentInfo; acti
   const showProgress = display !== "missing" && (hasSize || display === "initializing");
   const percent = Math.round(item.progress * 100);
   const speed =
-    display === "downloading" && item.download_speed > 0
-      ? formatSpeed(item.download_speed)
-      : "";
+    display === "downloading" && item.download_speed > 0 ? formatSpeed(item.download_speed) : "";
   const eta = display === "downloading" ? formatETA(item.eta_secs, t) : "";
 
   return (

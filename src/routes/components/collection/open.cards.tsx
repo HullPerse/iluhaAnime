@@ -9,13 +9,7 @@ import type { CardPackRow } from "@/types/api/cards";
 
 import PackOpen from "@/routes/components/collection/packOpen.cards";
 
-export default function OpenCards({
-  pack,
-  onClose,
-}: {
-  pack: CardPackRow;
-  onClose: () => void;
-}) {
+export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClose: () => void }) {
   const { t } = useI18n();
   const mutations = useCardsMutations();
   const { mutate, reset, data, isPending, isError } = mutations.openPack;
@@ -38,12 +32,7 @@ export default function OpenCards({
 
   if (data !== undefined) {
     return (
-      <PackOpen
-        cards={data.cards}
-        packKind={pack.packKind}
-        value={data.value}
-        onClose={close}
-      />
+      <PackOpen cards={data.cards} packKind={pack.packKind} value={data.value} onClose={close} />
     );
   }
 

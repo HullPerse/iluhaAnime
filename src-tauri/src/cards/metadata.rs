@@ -417,7 +417,9 @@ mod tests {
         let character = character_fragment(&[45627]);
         assert!(character.contains("characters(id_in: [45627])"));
         assert!(character.contains("type: ANIME"));
-        assert!(character.contains("manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA)"));
+        assert!(
+            character.contains("manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA)")
+        );
         let studio = studio_fragment(2);
         assert!(studio.contains("Studio(id: 2)"));
         assert!(studio.contains("perPage: 4, type: ANIME"));

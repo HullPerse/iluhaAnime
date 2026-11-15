@@ -2,7 +2,7 @@ import * as z from "zod/mini";
 
 const CardKindSchema = z.enum(["anime", "manga", "character", "staff", "studio"]);
 const CardRaritySchema = z.enum(["junk", "common", "rare", "epic", "legendary"]);
-const CardVariantSchema = z.enum(["normal", "foil", "holo"]);
+const CardVariantSchema = z.enum(["normal", "foil", "holo", "cursed"]);
 
 const RarityBaseValuesSchema = z.object({
   junk: z.number(),
@@ -16,6 +16,7 @@ const VariantMultipliersSchema = z.object({
   normal: z.number(),
   foil: z.number(),
   holo: z.number(),
+  cursed: z.number(),
 });
 
 const VariantWeightsSchema = VariantMultipliersSchema;
@@ -54,7 +55,6 @@ export const CardsBootstrapSchema = z.compile(
   z.object({
     config: CardsConfigSchema,
     grantEnabled: z.boolean(),
-    testToolsEnabled: z.boolean(),
     wallet: z.number(),
     unopenedPacks: z.number(),
     starterGranted: z.boolean(),
@@ -62,7 +62,7 @@ export const CardsBootstrapSchema = z.compile(
   })
 );
 
-export const CardPackSchema = z.compile(
+const CardPackSchema = z.compile(
   z.object({
     id: z.string(),
     source: z.string(),

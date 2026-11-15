@@ -27,11 +27,15 @@ import type {
 
 import ImageComponent from "@/components/ui/image.component";
 
+let nextDitherJobId = 0;
+
 function DitherCanvas({
   src,
   className,
+  imageFit = "cover",
   ariaLabel,
   capToDisplay,
+  displayScale = 1,
   maxLongSide,
   onError,
   onReady,
@@ -150,7 +154,10 @@ function DitherCanvas({
         const boxWidth = canvas.clientWidth;
         const boxHeight = canvas.clientHeight;
         if (boxWidth > 0 && boxHeight > 0 && sourceWidth > 0 && sourceHeight > 0) {
-          scale = Math.min(scale, Math.max(boxWidth / sourceWidth, boxHeight / sourceHeight));
+          scale = Math.min(
+            scale,
+            Math.max(boxWidth / sourceWidth, boxHeight / sourceHeight) * displayScale
+          );
         }
       }
       if (maxLongSide !== undefined && sourceWidth > 0 && sourceHeight > 0) {
@@ -187,7 +194,7 @@ function DitherCanvas({
         workCtx.imageSmoothingEnabled = true;
         workCtx.drawImage(source, 0, 0, width, height);
         const pixels = workCtx.getImageData(0, 0, width, height).data;
-        const jobId = jobRef.current + 1;
+        const jobId = ++nextDitherJobId;
         jobRef.current = jobId;
         const worker = getDitherWorker();
         if (worker) {
@@ -304,7 +311,7 @@ function DitherCanvas({
       image.onerror = null;
       unsubscribeJob?.();
     };
-  }, [src, capToDisplay, maxLongSide, effectScale, effectOptions]);
+  }, [src, capToDisplay, displayScale, maxLongSide, effectScale, effectOptions]);
 
   return (
     <div className={cn("relative", className)}>
@@ -312,11 +319,15 @@ function DitherCanvas({
         src={src}
         alt=""
         aria-hidden="true"
+        type={imageFit}
         className="absolute inset-0 h-full w-full object-cover"
       />
       <canvas
         ref={setCanvasRefs}
-        className="absolute inset-0 h-full w-full object-cover"
+        className={cn(
+          "absolute inset-0 h-full w-full",
+          imageFit === "cover" ? "object-cover" : "object-contain"
+        )}
         style={{ imageRendering: "pixelated" }}
         role={ariaLabel ? "img" : undefined}
         aria-label={ariaLabel}

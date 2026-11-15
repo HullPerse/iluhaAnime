@@ -4,9 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
 import { patchSettings } from "@/store/settings.store";
-import type {
-  AniSortProps,
-} from "@/types/anilist/anilistUi";
+import type { AniSortProps } from "@/types/anilist/anilistUi";
 
 const renderBar = (overrides: Partial<AniSortProps> = {}) => {
   const props: AniSortProps = {
@@ -64,7 +62,9 @@ describe("AniListSortBar more menu", () => {
     await openMenu();
     await screen.findByRole("menuitemradio", { name: "Пагинация" });
     expect(
-      screen.getByRole("menuitemradio", { name: "Бесконечная прокрутка" }).getAttribute("aria-checked")
+      screen
+        .getByRole("menuitemradio", { name: "Бесконечная прокрутка" })
+        .getAttribute("aria-checked")
     ).toBe("true");
     const user = userEvent.setup();
     await user.click(screen.getByRole("menuitemradio", { name: "Пагинация" }));

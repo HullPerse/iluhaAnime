@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  isChangelogLocaleLoaded,
-  loadChangelogLocale,
-  translate,
-} from "@/lib/locale/i18n.utils";
+import { isChangelogLocaleLoaded, loadChangelogLocale, translate } from "@/lib/locale/i18n.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey, TranslationVariables } from "@/types/core/i18n";
@@ -32,8 +28,7 @@ export function useI18n() {
   return useMemo(
     () => ({
       locale,
-      t: (key: TranslationKey, variables?: TranslationVariables) =>
-        translate(key, variables),
+      t: (key: TranslationKey, variables?: TranslationVariables) => translate(key, variables),
     }),
     [locale]
   );

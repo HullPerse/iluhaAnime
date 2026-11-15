@@ -110,12 +110,18 @@ describe("SimilarSection view switch", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Развернуть раздел" }));
     expect(screen.getByRole("button", { name: "Далее" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Витрина" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("button", { name: "Список" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: "Витрина" }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
+    expect(screen.getByRole("button", { name: "Список" }).getAttribute("aria-pressed")).toBe(
+      "false"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Список" }));
     expect(screen.queryByRole("button", { name: "Далее" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Список" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Список" }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
     expect(screen.getByText("#1")).toBeDefined();
     expect(screen.getByText("#2")).toBeDefined();
     expect(screen.getByText("100%")).toBeDefined();
@@ -125,7 +131,9 @@ describe("SimilarSection view switch", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Витрина" }));
     expect(screen.getByRole("button", { name: "Далее" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Витрина" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Витрина" }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
     expect(settingsAtoms.similarView.get()).toBe("rail");
   });
 });

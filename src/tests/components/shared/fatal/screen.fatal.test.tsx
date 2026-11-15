@@ -58,7 +58,9 @@ describe("FatalScreen", () => {
     render(<FatalScreen info={baseInfo({ themeName: "xp" })} safe {...handlers()} />);
     expect(screen.getByRole("alert").style.backgroundColor).toBe("rgb(0, 0, 170)");
     expect(
-      screen.getByText((_content, el) => el?.textContent === "* Безопасный режим: тема по умолчанию")
+      screen.getByText(
+        (_content, el) => el?.textContent === "* Безопасный режим: тема по умолчанию"
+      )
     ).toBeDefined();
   });
 

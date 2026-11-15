@@ -1,9 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type {
-  ReactNode } from "react";
-import { useEffect,
-  useMemo,
-  useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";

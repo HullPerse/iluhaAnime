@@ -1,5 +1,7 @@
+import DitherCanvas from "@/components/shared/dither.component";
 import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import { useRemoteImageStatus } from "@/hooks/remoteImage.hook";
+import type { DitherPreset } from "@/types/graphics/dither";
 
 function monogram(title: string): string {
   const parts = title
@@ -10,7 +12,15 @@ function monogram(title: string): string {
   return letters.join("") || "?";
 }
 
-export default function StudioCover({ cover, title }: { cover: string; title: string }) {
+export default function StudioCover({
+  cover,
+  title,
+  ditherPreset,
+}: {
+  cover: string;
+  title: string;
+  ditherPreset?: DitherPreset;
+}) {
   const imageProxy = useCardsImageProxy();
   const { src, failed } = useRemoteImageStatus(cover === "" ? null : cover, imageProxy);
   if (cover === "") {
@@ -26,6 +36,18 @@ export default function StudioCover({ cover, title }: { cover: string; title: st
       <div
         className="bg-surface h-full w-full animate-pulse motion-reduce:animate-none"
         aria-hidden
+      />
+    );
+  }
+  if (ditherPreset && ditherPreset.id !== "none") {
+    return (
+      <DitherCanvas
+        src={imageSrc}
+        className="h-full w-full"
+        capToDisplay
+        displayScale={0.6}
+        scale={ditherPreset.scale}
+        {...ditherPreset.options}
       />
     );
   }

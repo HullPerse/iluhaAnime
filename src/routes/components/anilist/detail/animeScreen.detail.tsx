@@ -4,10 +4,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { flattenMarkup } from "@hullperse/hp_utils/text";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
-import type {
-  AniListOverlayContext,
-  AniListOverlayScreen,
-} from "@/types/anilist/anilistUi";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist/anilistUi";
 
 import AniListMetadata from "@/routes/components/anilist/detail/metadata.detail";
 import { DetailError } from "@/routes/components/anilist/detail/state/error.state";

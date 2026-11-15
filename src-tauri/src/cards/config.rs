@@ -6,14 +6,12 @@ use super::types::{
 
 /// Final release: completed titles grant packs automatically.
 pub const CARDS_GRANT_ENABLED: bool = true;
-/// The test controls left the UI, so the bootstrap no longer advertises them.
-pub const CARDS_TEST_TOOLS_ENABLED: bool = false;
 
 /// A pack holds seven cards; their kinds come from `SHOP_PACKS`.
 pub const CARD_PACK_SIZE: usize = 7;
 pub const CARD_GUARANTEED_RARE_PLUS: bool = true;
 
-/// Salvage value base per rarity. Calibrate after the first 100 test packs.
+/// Salvage value base per rarity.
 pub const CARD_RARITY_BASE_VALUES: RarityBaseValues = RarityBaseValues {
     junk: 1,
     common: 2,
@@ -27,6 +25,7 @@ pub const CARD_VARIANT_MULTIPLIERS: VariantMultipliers = VariantMultipliers {
     normal: 1.0,
     foil: 1.5,
     holo: 3.0,
+    cursed: 3.0,
 };
 
 /// Completed titles grant one pack per twelve episodes, capped at five.
@@ -35,9 +34,10 @@ pub const MAX_PACKS_PER_COMPLETION: u32 = 5;
 
 /// Variant odds for a freshly generated card.
 pub const CARD_VARIANT_WEIGHTS: VariantWeights = VariantWeights {
-    normal: 85,
+    normal: 84,
     foil: 12,
     holo: 3,
+    cursed: 1,
 };
 
 /// Every card in the standard pack independently rolls one of these kinds.
@@ -135,8 +135,12 @@ pub fn pick_variant(rng: &mut Rng) -> CardVariant {
         CardVariant::Normal
     } else if roll < CARD_VARIANT_WEIGHTS.normal + CARD_VARIANT_WEIGHTS.foil {
         CardVariant::Foil
-    } else {
+    } else if roll
+        < CARD_VARIANT_WEIGHTS.normal + CARD_VARIANT_WEIGHTS.foil + CARD_VARIANT_WEIGHTS.holo
+    {
         CardVariant::Holo
+    } else {
+        CardVariant::Cursed
     }
 }
 
@@ -167,6 +171,7 @@ pub fn variant_multiplier(variant: CardVariant) -> f64 {
         CardVariant::Normal => CARD_VARIANT_MULTIPLIERS.normal,
         CardVariant::Foil => CARD_VARIANT_MULTIPLIERS.foil,
         CardVariant::Holo => CARD_VARIANT_MULTIPLIERS.holo,
+        CardVariant::Cursed => CARD_VARIANT_MULTIPLIERS.cursed,
     }
 }
 
@@ -239,6 +244,7 @@ mod tests {
         assert!((variant_multiplier(CardVariant::Normal) - 1.0).abs() < 1e-9);
         assert!((variant_multiplier(CardVariant::Foil) - 1.5).abs() < 1e-9);
         assert!((variant_multiplier(CardVariant::Holo) - 3.0).abs() < 1e-9);
+        assert!((variant_multiplier(CardVariant::Cursed) - 3.0).abs() < 1e-9);
     }
 
     #[test]
@@ -246,10 +252,11 @@ mod tests {
         let config = cards_config();
         assert_eq!(config.kinds.len(), 5);
         assert_eq!(config.rarities.len(), 5);
-        assert_eq!(config.variants.len(), 3);
+        assert_eq!(config.variants.len(), 4);
         assert_eq!(config.pack_size, 7);
         assert_eq!(config.shop_packs.len(), 6);
-        assert_eq!(config.variant_weights.normal, 85);
+        assert_eq!(config.variant_weights.normal, 84);
+        assert_eq!(config.variant_weights.cursed, 1);
     }
 
     #[test]

@@ -1,4 +1,12 @@
-import { ChevronLeft, ChevronRight, BookOpen, LayoutGrid, RotateCcw, SortAsc, SortDesc } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  LayoutGrid,
+  RotateCcw,
+  SortAsc,
+  SortDesc,
+} from "lucide-react";
 import { useMemo } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
@@ -97,10 +105,12 @@ export default function AlbumToolbar({
       : CARD_SORTS.map((value) => ({ value, label: t(cardsSortLabelKeys[value]) }));
 
   const activeSortIndex = sortOptions.findIndex((option) => option.value === sort);
-  const { rowRef: sortRowRef, start, end, stepPage } = usePagedRow(
-    sortOptions.length,
-    Math.max(0, activeSortIndex)
-  );
+  const {
+    rowRef: sortRowRef,
+    start,
+    end,
+    stepPage,
+  } = usePagedRow(sortOptions.length, Math.max(0, activeSortIndex));
 
   const titleSuggestions = useMemo<SearchSuggestion[]>(
     () =>

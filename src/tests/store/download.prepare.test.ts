@@ -131,10 +131,7 @@ describe("download prepare picker", () => {
       title: tr("download.select.folder"),
     });
     expect(cacheAtoms.lastSaveDir.get()).toBe("D:/picked");
-    expect(api.getTorrentInfo).toHaveBeenCalledWith(
-      "magnet:?xt=urn:btih:picked",
-      "D:/picked"
-    );
+    expect(api.getTorrentInfo).toHaveBeenCalledWith("magnet:?xt=urn:btih:picked", "D:/picked");
     expect(torrentAtoms.pendingTorrent.get()?.name).toBe("Show");
   });
 });

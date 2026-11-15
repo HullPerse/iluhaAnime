@@ -38,7 +38,9 @@ describe("Button loading", () => {
   it("keeps an explicit disabled when not loading", () => {
     patchSettings({ language: "ru" });
     render(<Button disabled>Сохранить</Button>);
-    expect((screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
   });
 
   it("renders nothing when rendered is false even while loading", () => {

@@ -113,7 +113,6 @@ describe("useCoverCache", () => {
   });
 });
 
-
 describe("useCoverCache previous id", () => {
   it("passes the persisted blob id as previousId when re-downloading", async () => {
     setCoverBlob("https://example.com/refresh.jpg", "blob-old");

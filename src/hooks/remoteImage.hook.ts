@@ -250,7 +250,7 @@ export function setRemoteImageScope(urls: Iterable<string> | null): void {
   }
 }
 
-export function cancelRemoteImage(remoteUrl: string): void {
+function cancelRemoteImage(remoteUrl: string): void {
   for (const task of remoteTasks.values()) {
     if (task.url !== remoteUrl || activeTasks.has(task)) continue;
     const queue = task.priority === "high" ? highPriority : lowPriority;

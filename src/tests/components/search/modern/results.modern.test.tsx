@@ -108,9 +108,9 @@ describe("ModernResults pager state", () => {
       pageFull: false,
       resultsPerPage: 20,
     });
-    expect((screen.getByRole("button", { name: "Следующая страница" }) as HTMLButtonElement).disabled).toBe(
-      true
-    );
+    expect(
+      (screen.getByRole("button", { name: "Следующая страница" }) as HTMLButtonElement).disabled
+    ).toBe(true);
     expect(
       (screen.getByRole("button", { name: "Предыдущая страница" }) as HTMLButtonElement).disabled
     ).toBe(false);

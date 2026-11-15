@@ -90,6 +90,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
     "enable3dBorders",
     "buttonPressEffect",
     "customScrollbar",
+    "cardImageFill",
     "modalBackdropOpacity",
   ],
   "theme.animation": [

@@ -16,7 +16,6 @@
   box-sizing: border-box;
 }
 
-
 .daily-form-error {
   margin: 0;
   color: var(--color-destructive);
@@ -41,7 +40,6 @@
   font-weight: 700;
   letter-spacing: 0.04em;
 }
-
 
 .daily-state-window {
   display: flex;
@@ -196,7 +194,6 @@
   white-space: nowrap;
 }
 
-
 .daily-play {
   display: flex;
   min-height: 0;
@@ -234,9 +231,11 @@
   content: "";
   pointer-events: none;
   background:
-    repeating-linear-gradient(0deg,
+    repeating-linear-gradient(
+      0deg,
       color-mix(in srgb, #ffffff 6%, transparent) 0 1px,
-      transparent 1px 3px),
+      transparent 1px 3px
+    ),
     radial-gradient(circle at 50% 45%, transparent 34%, rgba(2, 5, 9, 0.82) 100%);
 }
 
@@ -407,7 +406,8 @@
   padding: 3px;
   background: #0a0a12;
   border: 2px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
+    var(--color-win-shadow);
   box-shadow: 3px 3px 0 color-mix(in srgb, var(--color-win-shadow) 70%, transparent);
 }
 
@@ -477,7 +477,7 @@
   white-space: nowrap;
 }
 
-.daily-frame-hint>span:last-child {
+.daily-frame-hint > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -503,7 +503,8 @@
   color: var(--color-hint);
   background: var(--color-field);
   border: 2px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
+    var(--color-win-shadow);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
@@ -543,7 +544,8 @@ button.daily-pip:not(:disabled):hover {
 .daily-pip[data-state="current"] {
   color: var(--color-title-text);
   background: var(--color-secondary);
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
+    var(--color-win-highlight);
 }
 
 .daily-pip[data-state="correct"] {
@@ -569,7 +571,6 @@ button.daily-pip:not(:disabled):hover {
   font-weight: 700;
 }
 
-
 .daily-answer-panel {
   display: flex;
   flex-direction: column;
@@ -583,7 +584,7 @@ button.daily-pip:not(:disabled):hover {
   position: relative;
 }
 
-.daily-search>svg {
+.daily-search > svg {
   position: absolute;
   top: 50%;
   left: 0.5rem;
@@ -608,7 +609,8 @@ button.daily-pip:not(:disabled):hover {
   overflow-y: auto;
   background: var(--color-field);
   border: 2px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
+    var(--color-win-shadow);
 }
 
 .daily-suggestion {
@@ -759,7 +761,6 @@ button.daily-pip:not(:disabled):hover {
   margin-top: 0;
 }
 
-
 .daily-rail {
   display: flex;
   min-width: 0;
@@ -770,7 +771,8 @@ button.daily-pip:not(:disabled):hover {
 .daily-rail-box {
   background: var(--color-primary);
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
+    var(--color-win-highlight);
   box-shadow: 2px 2px 0 var(--color-win-shadow);
 }
 
@@ -837,7 +839,6 @@ button.daily-pip:not(:disabled):hover {
   line-height: 1.4;
 }
 
-
 .daily-guess-history {
   display: flex;
   flex-direction: column;
@@ -903,7 +904,6 @@ button.daily-pip:not(:disabled):hover {
   white-space: nowrap;
 }
 
-
 .daily-result {
   position: relative;
   min-height: 30rem;
@@ -913,7 +913,8 @@ button.daily-pip:not(:disabled):hover {
   color: var(--color-title-text);
   background: #060810;
   border: 3px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
+    var(--color-win-highlight);
   box-shadow: 4px 4px 0 var(--color-win-shadow);
 }
 
@@ -932,13 +933,17 @@ button.daily-pip:not(:disabled):hover {
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(0deg,
+    repeating-linear-gradient(
+      0deg,
       color-mix(in srgb, #ffffff 3.5%, transparent) 0 1px,
-      transparent 1px 3px),
-    linear-gradient(100deg,
+      transparent 1px 3px
+    ),
+    linear-gradient(
+      100deg,
       color-mix(in srgb, #04050a 94%, transparent) 0 34%,
       color-mix(in srgb, #04050a 68%, transparent) 68%,
-      color-mix(in srgb, #04050a 88%, transparent));
+      color-mix(in srgb, #04050a 88%, transparent)
+    );
 }
 
 .daily-result-stage {
@@ -1136,7 +1141,8 @@ button.daily-pip:not(:disabled):hover {
   color: var(--color-text);
   background: var(--color-primary);
   border: 1px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
+    var(--color-win-highlight);
   box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
 }
 

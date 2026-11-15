@@ -273,10 +273,7 @@ export async function setMpvProperty(name: string, value: unknown): Promise<void
 type MpvPropertyFormat = "double" | "flag" | "int64" | "string";
 type MpvPropertyValue = string | number | boolean | null;
 
-async function getMpvProperty(
-  name: string,
-  format: "double" | "int64"
-): Promise<number | null>;
+async function getMpvProperty(name: string, format: "double" | "int64"): Promise<number | null>;
 async function getMpvProperty(name: string, format: "flag"): Promise<boolean | null>;
 async function getMpvProperty(name: string, format: "string"): Promise<string | null>;
 async function getMpvProperty(name: string, format: MpvPropertyFormat): Promise<MpvPropertyValue> {

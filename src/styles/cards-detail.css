@@ -70,9 +70,13 @@
   transition: transform 180ms ease-out;
 }
 
-.cards-detail-art[data-spinning="true"] .cards-detail-rotator,
-.cards-detail-art[data-spinning="true"] .cards-window {
+.cards-detail-art[data-spinning="true"] .cards-detail-rotator {
   transition: none;
+}
+
+.cards-detail-art .cards-window {
+  content-visibility: visible;
+  transform: none;
 }
 
 .cards-detail-art img {

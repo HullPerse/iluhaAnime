@@ -53,12 +53,8 @@ function readSortState(): Partial<SortState> {
   const [parsed] = attemptSync((): unknown => JSON.parse(raw));
   if (!isRecord(parsed)) return {};
   return {
-    sort: CARD_SORT_VALUES.has(String(parsed.sort))
-      ? (parsed.sort as CardsSort)
-      : undefined,
-    sortDir: DIR_VALUES.has(String(parsed.sortDir))
-      ? (parsed.sortDir as CardsSortDir)
-      : undefined,
+    sort: CARD_SORT_VALUES.has(String(parsed.sort)) ? (parsed.sort as CardsSort) : undefined,
+    sortDir: DIR_VALUES.has(String(parsed.sortDir)) ? (parsed.sortDir as CardsSortDir) : undefined,
     collectionSort: COLLECTION_SORT_VALUES.has(String(parsed.collectionSort))
       ? (parsed.collectionSort as CardsCollectionSort)
       : undefined,

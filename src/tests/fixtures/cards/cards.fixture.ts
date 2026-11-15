@@ -17,8 +17,8 @@ const CONFIG: CardsConfig = {
   packSize: 7,
   guaranteedRarePlus: true,
   baseValues: { junk: 1, common: 2, rare: 5, epic: 15, legendary: 40 },
-  variantMultipliers: { normal: 1, foil: 1.5, holo: 3 },
-  variantWeights: { normal: 85, foil: 12, holo: 3 },
+  variantMultipliers: { normal: 1, foil: 1.5, holo: 3, cursed: 3 },
+  variantWeights: { normal: 84, foil: 12, holo: 3, cursed: 1 },
   shopPacks: [
     {
       packKind: "default",
@@ -76,7 +76,6 @@ export function makeBootstrap(overrides: Partial<CardsBootstrap> = {}): CardsBoo
   return {
     config: CONFIG,
     grantEnabled: false,
-    testToolsEnabled: true,
     wallet: 500,
     unopenedPacks: 0,
     starterGranted: false,

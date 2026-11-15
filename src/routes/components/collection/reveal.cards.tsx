@@ -25,8 +25,7 @@ export default function Reveal({
   // the album, only the click flip moves.
   const [hoverReady, setHoverReady] = useState(false);
 
-  const title =
-    card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
+  const title = card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
   const sourceTitle = card.collectionTitle?.trim() ?? "";
   const hasSource = flipped && card.kind === "character" && sourceTitle !== "";
   const imageProxy = useCardsImageProxy();
@@ -34,8 +33,7 @@ export default function Reveal({
     card.kind === "character" ? card.collectionCoverUrl : null,
     imageProxy
   );
-  const sourceCoverSrc =
-    sourceCover.src ?? (sourceCover.failed ? card.collectionCoverUrl : null);
+  const sourceCoverSrc = sourceCover.src ?? (sourceCover.failed ? card.collectionCoverUrl : null);
   const sourceLabel =
     card.collectionAnimeId === null
       ? t("collection.reveal.source.manga")

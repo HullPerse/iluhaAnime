@@ -51,9 +51,7 @@ describe("SettingsSummary", () => {
     renderSummary();
 
     expect(await screen.findByText("5.0.0")).not.toBeNull();
-    expect(
-      await screen.findByText(translate("settings.summary.ffmpeg.installed"))
-    ).not.toBeNull();
+    expect(await screen.findByText(translate("settings.summary.ffmpeg.installed"))).not.toBeNull();
     expect(await screen.findByText(translate("settings.summary.images"))).not.toBeNull();
     expect(screen.queryByText("Тема")).toBeNull();
     expect(screen.queryByText("Learning")).toBeNull();

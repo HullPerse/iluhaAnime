@@ -369,9 +369,7 @@ export function useApp() {
       goToTab("collection");
       openGiftDeepLink(link);
     };
-    const openGiftReceipt = (
-      link: Parameters<typeof openGiftReceiptDeepLink>[0]
-    ): void => {
+    const openGiftReceipt = (link: Parameters<typeof openGiftReceiptDeepLink>[0]): void => {
       if (!settingsAtoms.collectionTabEnabled.get()) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
         return;
@@ -379,9 +377,7 @@ export function useApp() {
       openGiftReceiptDeepLink(link);
       goToTab("collection");
     };
-    const openGiftPasted = (
-      link: Extract<PastedLink, { kind: "gift" | "gift-receipt" }>
-    ): void => {
+    const openGiftPasted = (link: Extract<PastedLink, { kind: "gift" | "gift-receipt" }>): void => {
       if (link.kind === "gift") openGift(link.link);
       else openGiftReceipt(link.link);
     };
@@ -395,10 +391,11 @@ export function useApp() {
       if (isEditablePasteTarget(event.target)) return;
       const text = event.clipboardData?.getData("text") ?? "";
       const parsed = parsePastedLink(text);
-      if (!parsed) return;        if (parsed === "invalid") {
-          rejectInvalidPaste(event);
-          return;
-        }
+      if (!parsed) return;
+      if (parsed === "invalid") {
+        rejectInvalidPaste(event);
+        return;
+      }
       event.preventDefault();
       if (parsed.kind === "anime") {
         if (!ensureTab(settingsAtoms.anilistTabEnabled.get())) return;

@@ -9,7 +9,11 @@ import { monthLabel } from "@/lib/core/anilist/activity.utils";
 import { currentAnimeSeason } from "@/lib/core/anilist/airing.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { buildMediaRows } from "@/lib/anilist/anilistStats.utils";
-import { buildAiringEntries, buildCalendarCells, buildSeasonAiringEntries } from "@/lib/anilist/statsCalendar.utils";
+import {
+  buildAiringEntries,
+  buildCalendarCells,
+  buildSeasonAiringEntries,
+} from "@/lib/anilist/statsCalendar.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ActivityDetailBundle, AniListCollection, AniMedia } from "@/types/anilist/anilist";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";

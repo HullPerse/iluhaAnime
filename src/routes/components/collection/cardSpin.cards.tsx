@@ -67,6 +67,14 @@ export default function CardSpin({
     rotator.style.setProperty("--cards-tilt-deg-x", rotateX.toFixed(2));
     rotator.style.setProperty("--cards-tilt-deg-y", rotateY.toFixed(2));
     rotator.style.setProperty(
+      "--cards-foil-offset-x",
+      `${(Math.sin((rotateX * Math.PI) / 180) * 25).toFixed(2)}%`
+    );
+    rotator.style.setProperty(
+      "--cards-foil-offset-y",
+      `${(Math.sin((rotateY * Math.PI) / 180) * 45).toFixed(2)}%`
+    );
+    rotator.style.setProperty(
       "--cards-tilt-strength",
       Math.min(
         1,

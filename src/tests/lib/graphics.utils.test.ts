@@ -782,7 +782,12 @@ describe("utils/dither", () => {
     });
 
     it("keeps the photo preset monochrome", () => {
-      const output = renderDitherImage(gradientFixture(16, 16), 16, 16, resolveDitherPreset("photo"));
+      const output = renderDitherImage(
+        gradientFixture(16, 16),
+        16,
+        16,
+        resolveDitherPreset("photo")
+      );
       for (let i = 0; i < output.length; i += 4) {
         expect(output[i]).toBe(output[i + 1]);
         expect(output[i + 1]).toBe(output[i + 2]);

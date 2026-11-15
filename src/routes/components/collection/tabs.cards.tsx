@@ -54,7 +54,7 @@ export default function TabsCards() {
                 aria-current={groupActive ? "page" : undefined}
                 className={cn(
                   "flex h-6 w-full justify-start text-xs",
-                  groupActive && "bg-highlight border-transparent text-white"
+                  groupActive && "bg-secondary text-title-text border-transparent"
                 )}
                 disabled={groupActive}
                 onClick={() => setCardsTab(single)}
@@ -71,7 +71,7 @@ export default function TabsCards() {
             <Button
               className={cn(
                 "flex h-6 w-full justify-start text-xs",
-                groupActive && "bg-secondary font-bold text-white"
+                groupActive && "bg-secondary text-title-text font-bold"
               )}
               disabled={groupActive}
               onClick={() => {
@@ -108,7 +108,7 @@ export default function TabsCards() {
                       aria-label={value === "game" ? t(cardsTabLabelKeys[value]) : undefined}
                       className={cn(
                         "flex h-6 w-full justify-start text-xs",
-                        active && "bg-highlight border-transparent text-white"
+                        active && "bg-secondary text-title-text border-transparent"
                       )}
                       disabled={active}
                       onClick={() => setCardsTab(value)}
@@ -145,7 +145,7 @@ export default function TabsCards() {
                             className={cn(
                               "h-5 w-full justify-start px-1 text-[11px]",
                               albumMode === item.value &&
-                                "bg-highlight border-transparent text-white"
+                                "bg-secondary text-title-text border-transparent"
                             )}
                             aria-pressed={albumMode === item.value}
                             onClick={() => setCardsAlbumMode(item.value)}

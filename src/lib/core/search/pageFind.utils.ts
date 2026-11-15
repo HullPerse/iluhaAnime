@@ -110,10 +110,7 @@ function toRawRange(
   };
 }
 
-function asciiMatchRanges(
-  haystack: string,
-  needle: string
-): Array<{ start: number; end: number }> {
+function asciiMatchRanges(haystack: string, needle: string): Array<{ start: number; end: number }> {
   const found: Array<{ start: number; end: number }> = [];
   let from = 0;
   while (from + needle.length <= haystack.length) {

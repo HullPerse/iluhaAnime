@@ -14,9 +14,7 @@ interface RouteEntry {
 type RouteMemory = Record<string, RouteEntry>;
 
 function storage(): Storage | null {
-  const [store] = attemptSync(() =>
-    typeof localStorage === "undefined" ? null : localStorage
-  );
+  const [store] = attemptSync(() => (typeof localStorage === "undefined" ? null : localStorage));
   return store;
 }
 

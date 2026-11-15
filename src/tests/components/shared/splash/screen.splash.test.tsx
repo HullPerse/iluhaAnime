@@ -49,7 +49,9 @@ describe("SplashScreen", () => {
       />
     );
     expect(screen.getByText((_content, el) => el?.textContent === "[ ] Орфография")).toBeDefined();
-    expect(screen.getByText((_content, el) => el?.textContent === "[ ] Индекс аниме")).toBeDefined();
+    expect(
+      screen.getByText((_content, el) => el?.textContent === "[ ] Индекс аниме")
+    ).toBeDefined();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("20");
   });
 

@@ -307,10 +307,10 @@ fn collection_order(sort: &str, ascending: bool) -> Option<&'static str> {
                 WHEN 'common' THEN 2 ELSE 1 END DESC, c.value DESC"
         }
         ("variant", true) => {
-            "CASE c.variant WHEN 'holo' THEN 0 WHEN 'foil' THEN 1 ELSE 2 END ASC, c.value ASC"
+            "CASE c.variant WHEN 'cursed' THEN -1 WHEN 'holo' THEN 0 WHEN 'foil' THEN 1 ELSE 2 END ASC, c.value ASC"
         }
         ("variant", false) => {
-            "CASE c.variant WHEN 'holo' THEN 3 WHEN 'foil' THEN 2 ELSE 1 END DESC, c.value DESC"
+            "CASE c.variant WHEN 'cursed' THEN 4 WHEN 'holo' THEN 3 WHEN 'foil' THEN 2 ELSE 1 END DESC, c.value DESC"
         }
         ("title", true) => "COALESCE(m.title, '') COLLATE NOCASE ASC, c.entity_id",
         ("title", false) => "COALESCE(m.title, '') COLLATE NOCASE DESC, c.entity_id",

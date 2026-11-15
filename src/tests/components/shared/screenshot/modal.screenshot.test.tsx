@@ -714,9 +714,7 @@ describe("ScreenshotModal annotations", () => {
 
     await user.click(tool("Выделить область"));
     expect(screen.queryByRole("button", { name: "Свой цвет" })).toBeNull();
-    expect(
-      screen.getByText("Обведите мышью нужную область, Shift - ровный квадрат")
-    ).toBeTruthy();
+    expect(screen.getByText("Обведите мышью нужную область, Shift - ровный квадрат")).toBeTruthy();
   });
 
   it("finishes a drawn stroke that the browser retargets to the captured element", async () => {

@@ -64,9 +64,7 @@ export function useCardTilt(enabled: boolean) {
       if (activeCard.current === target) activeCard.current = null;
       return;
     }
-    event.currentTarget
-      .querySelectorAll<HTMLElement>("[data-card-face]")
-      .forEach(resetTilt);
+    event.currentTarget.querySelectorAll<HTMLElement>("[data-card-face]").forEach(resetTilt);
     activeCard.current = null;
   };
 

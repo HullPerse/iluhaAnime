@@ -28,12 +28,10 @@ describe("cards design lab", () => {
     render(<CardsLab />);
 
     const matrix = screen.getByTestId("lab-matrix");
-    const combinations = Array.from(
-      matrix.querySelectorAll<HTMLElement>("[data-lab-combination]")
-    );
-    expect(combinations).toHaveLength(75);
-    expect(new Set(combinations.map((node) => node.dataset.labCombination)).size).toBe(75);
-    expect(LAB_CARDS).toHaveLength(75);
+    const combinations = Array.from(matrix.querySelectorAll<HTMLElement>("[data-lab-combination]"));
+    expect(combinations).toHaveLength(100);
+    expect(new Set(combinations.map((node) => node.dataset.labCombination)).size).toBe(100);
+    expect(LAB_CARDS).toHaveLength(100);
   });
 
   it("runs the pack flow, closes after the reveal and skips out", async () => {

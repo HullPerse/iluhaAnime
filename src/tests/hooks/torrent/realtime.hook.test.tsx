@@ -73,10 +73,9 @@ describe("useTorrentRealtime", () => {
     const stop = vi.fn();
     mockListen.mockResolvedValue(stop);
 
-    const { unmount } = renderHook(
-      () => useTorrentRealtime({ data: [], error: null }),
-      { wrapper }
-    );
+    const { unmount } = renderHook(() => useTorrentRealtime({ data: [], error: null }), {
+      wrapper,
+    });
 
     await waitFor(() => expect(mockListen).toHaveBeenCalledTimes(1));
     expect(mockListen).toHaveBeenCalledWith("torrents-update", expect.any(Function));
@@ -94,10 +93,9 @@ describe("useTorrentRealtime", () => {
       });
     });
 
-    const { unmount } = renderHook(
-      () => useTorrentRealtime({ data: [], error: null }),
-      { wrapper: strictWrapper }
-    );
+    const { unmount } = renderHook(() => useTorrentRealtime({ data: [], error: null }), {
+      wrapper: strictWrapper,
+    });
 
     await waitFor(() => expect(active).toBe(1));
     unmount();
@@ -142,10 +140,9 @@ describe("useTorrentRealtime", () => {
   it("primes the seed pause from the first query result", async () => {
     const pause = vi.spyOn(torrentApi, "pauseTorrent").mockResolvedValue(undefined);
 
-    renderHook(
-      () => useTorrentRealtime({ data: [torrent(7, { finished: true })], error: null }),
-      { wrapper }
-    );
+    renderHook(() => useTorrentRealtime({ data: [torrent(7, { finished: true })], error: null }), {
+      wrapper,
+    });
 
     await waitFor(() => expect(pause).toHaveBeenCalledWith(7));
   });

@@ -19,13 +19,8 @@ import { readAppCache, writeAppCache } from "@/lib/core/system/cache.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { formatETA } from "@/lib/core/text/time.utils";
 import type { ActivityDetailBundle } from "@/types/anilist/anilist";
-import type {
-  AniMedia,
-} from "@/types/anilist/anilist";
-import type {
-  SpotlightKind,
-  SpotlightRowState,
-} from "@/types/anilist/anilistUi";
+import type { AniMedia } from "@/types/anilist/anilist";
+import type { SpotlightKind, SpotlightRowState } from "@/types/anilist/anilistUi";
 
 import { InlineDetail } from "@/routes/components/anilist/detail/inline.detail";
 import { SpotlightRow } from "@/routes/components/anilist/spotlight/spotlightRow.spotlight";
@@ -143,11 +138,7 @@ export default function SpotlightModal({
                   </div>
                 )}
                 {row.status === "ready" && (
-                  <SpotlightRow
-                    media={row.media}
-                    countdown={countdown}
-                    onDetails={setDetailId}
-                  />
+                  <SpotlightRow media={row.media} countdown={countdown} onDetails={setDetailId} />
                 )}
               </div>
             );

@@ -10,7 +10,6 @@ import {
   CardsUnreadSchema,
   CollectionRosterPageSchema,
   CardPackListSchema,
-  CardPackSchema,
   CreatedGiftSchema,
   GiftCardsSchema,
   GiftDeleteResultSchema,
@@ -80,21 +79,6 @@ export class CardsApi {
 
   async packs(): Promise<CardPackRow[]> {
     return assertSchema(await this.cardsClient.cardsPacks(), CardPackListSchema);
-  }
-
-  async grantTestPack(): Promise<CardPackRow> {
-    return assertSchema(await this.cardsClient.cardsGrantTestPack(), CardPackSchema);
-  }
-
-  async grantTestLegendaryPack(): Promise<CardPackRow> {
-    return assertSchema(
-      await this.cardsClient.cardsGrantTestLegendaryPack(),
-      CardPackSchema
-    );
-  }
-
-  async grantTestEffectsPack(): Promise<CardPackRow> {
-    return assertSchema(await this.cardsClient.cardsGrantTestEffectsPack(), CardPackSchema);
   }
 
   async preparePacks(proxy: string | null = null): Promise<PackPreparation> {
@@ -252,10 +236,7 @@ export class CardsApi {
   }
 
   async buyPack(packKind: string): Promise<PurchaseResult> {
-    return assertSchema(
-      await this.cardsClient.cardsBuyPack({ packKind }),
-      PurchaseResultSchema
-    );
+    return assertSchema(await this.cardsClient.cardsBuyPack({ packKind }), PurchaseResultSchema);
   }
 
   async starterStatus(proxy: string | null = null): Promise<StarterStatus> {
@@ -285,17 +266,11 @@ export class CardsApi {
   }
 
   async markGiftClaimed(giftId: string): Promise<GiftItem> {
-    return assertSchema(
-      await this.cardsClient.cardsMarkGiftClaimed({ giftId }),
-      GiftItemSchema
-    );
+    return assertSchema(await this.cardsClient.cardsMarkGiftClaimed({ giftId }), GiftItemSchema);
   }
 
   async deleteGift(giftId: string): Promise<GiftDeleteResult> {
-    return assertSchema(
-      await this.cardsClient.cardsDeleteGift({ giftId }),
-      GiftDeleteResultSchema
-    );
+    return assertSchema(await this.cardsClient.cardsDeleteGift({ giftId }), GiftDeleteResultSchema);
   }
 }
 

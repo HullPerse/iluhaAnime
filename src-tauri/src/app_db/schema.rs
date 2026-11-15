@@ -765,10 +765,10 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
                 );
                 CREATE TABLE IF NOT EXISTS user_cards (
                     user_id INTEGER NOT NULL,
-                    kind TEXT NOT NULL CHECK(kind IN ('anime','character','staff','studio')),
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
                     entity_id INTEGER NOT NULL,
                     rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
-                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
                     copies INTEGER NOT NULL DEFAULT 1,
                     value INTEGER NOT NULL,
                     first_obtained_at INTEGER NOT NULL,
@@ -858,7 +858,7 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
                     kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
                     entity_id INTEGER NOT NULL,
                     rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
-                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
                     copies INTEGER NOT NULL DEFAULT 1,
                     value INTEGER NOT NULL,
                     first_obtained_at INTEGER NOT NULL,
@@ -921,7 +921,7 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
                     title TEXT NOT NULL,
                     image_url TEXT,
                     rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
-                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
                     value INTEGER NOT NULL,
                     favourites INTEGER NOT NULL DEFAULT 0,
                     popularity INTEGER NOT NULL DEFAULT 0,
@@ -984,7 +984,7 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
                 CREATE TABLE IF NOT EXISTS card_preferred_variant (
                     kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
                     entity_id INTEGER NOT NULL,
-                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
                     PRIMARY KEY (kind, entity_id)
                 );
                 PRAGMA user_version = 30;
@@ -1023,7 +1023,7 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
                     kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
                     entity_id INTEGER NOT NULL,
                     rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
-                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
                     value INTEGER NOT NULL,
                     claimed_at INTEGER NOT NULL
                 );
@@ -1518,6 +1518,94 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database daily audio commit: {error}"))?;
     }
 
+    let has_cards: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'user_cards'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| format!("check cards table: {error}"))?;
+    if version < 43 && has_cards > 0 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database cursed cards transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE user_cards_v43 (
+                    user_id INTEGER NOT NULL,
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
+                    copies INTEGER NOT NULL DEFAULT 1,
+                    value INTEGER NOT NULL,
+                    first_obtained_at INTEGER NOT NULL,
+                    last_obtained_at INTEGER NOT NULL,
+                    is_favorite INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (user_id, kind, entity_id, rarity, variant)
+                );
+                INSERT INTO user_cards_v43 SELECT user_id, kind, entity_id, rarity, variant,
+                    copies, value, first_obtained_at, last_obtained_at, is_favorite FROM user_cards;
+                DROP TABLE user_cards;
+                ALTER TABLE user_cards_v43 RENAME TO user_cards;
+                CREATE INDEX idx_user_cards_user ON user_cards(user_id, kind, rarity);
+                CREATE INDEX idx_user_cards_favorite ON user_cards(user_id, is_favorite);
+
+                CREATE TABLE card_pack_cards_v43 (
+                    pack_id TEXT NOT NULL REFERENCES card_packs(id) ON DELETE CASCADE,
+                    slot INTEGER NOT NULL,
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    title TEXT NOT NULL,
+                    image_url TEXT,
+                    rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
+                    value INTEGER NOT NULL,
+                    favourites INTEGER NOT NULL DEFAULT 0,
+                    popularity INTEGER NOT NULL DEFAULT 0,
+                    score REAL NOT NULL DEFAULT 0,
+                    collage_json TEXT NOT NULL DEFAULT '[]',
+                    collection_anime_id INTEGER,
+                    collection_title TEXT,
+                    collection_cover_url TEXT,
+                    PRIMARY KEY (pack_id, slot)
+                );
+                INSERT INTO card_pack_cards_v43 SELECT * FROM card_pack_cards;
+                DROP TABLE card_pack_cards;
+                ALTER TABLE card_pack_cards_v43 RENAME TO card_pack_cards;
+
+                CREATE TABLE card_preferred_variant_v43 (
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
+                    PRIMARY KEY (kind, entity_id)
+                );
+                INSERT INTO card_preferred_variant_v43 SELECT * FROM card_preferred_variant;
+                DROP TABLE card_preferred_variant;
+                ALTER TABLE card_preferred_variant_v43 RENAME TO card_preferred_variant;
+
+                CREATE TABLE card_gift_claims_v43 (
+                    gift_id TEXT PRIMARY KEY,
+                    kind TEXT NOT NULL CHECK(kind IN ('anime','manga','character','staff','studio')),
+                    entity_id INTEGER NOT NULL,
+                    rarity TEXT NOT NULL CHECK(rarity IN ('junk','common','rare','epic','legendary')),
+                    variant TEXT NOT NULL CHECK(variant IN ('normal','foil','holo','cursed')),
+                    value INTEGER NOT NULL,
+                    claimed_at INTEGER NOT NULL
+                );
+                INSERT INTO card_gift_claims_v43 SELECT * FROM card_gift_claims;
+                DROP TABLE card_gift_claims;
+                ALTER TABLE card_gift_claims_v43 RENAME TO card_gift_claims;
+                PRAGMA user_version = 43;
+                ",
+            )
+            .map_err(|error| format!("app database cursed cards schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database cursed cards commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -1551,6 +1639,35 @@ mod tests {
             )
             .expect("vault table gone");
         assert_eq!(vault_gone, 0);
+    }
+
+    #[test]
+    fn cursed_cards_can_be_owned_and_preferred() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        connection
+            .execute(
+                "INSERT INTO user_cards
+                    (user_id, kind, entity_id, rarity, variant, copies, value, first_obtained_at, last_obtained_at)
+                 VALUES (0, 'anime', 42, 'junk', 'cursed', 1, 3, 1, 1)",
+                [],
+            )
+            .expect("own cursed card");
+        connection
+            .execute(
+                "INSERT INTO card_preferred_variant (kind, entity_id, variant)
+                 VALUES ('anime', 42, 'cursed')",
+                [],
+            )
+            .expect("prefer cursed card");
+        let variant: String = connection
+            .query_row(
+                "SELECT variant FROM user_cards WHERE user_id = 0 AND entity_id = 42",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read cursed card");
+        assert_eq!(variant, "cursed");
     }
     #[test]
     fn media_records_table_is_dropped() {

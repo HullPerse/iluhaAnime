@@ -10,9 +10,7 @@ import { cardListEntry } from "@/lib/anilist/card.utils";
 import { formatEntryScore, hasRating, parseScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
-import type {
-  AniCardProps as Props,
-} from "@/types/anilist/anilistUi";
+import type { AniCardProps as Props } from "@/types/anilist/anilistUi";
 
 import CardListDate from "@/routes/components/anilist/date.anilist";
 import CardAiredCount from "@/routes/components/anilist/episode.anilist";

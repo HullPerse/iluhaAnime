@@ -139,8 +139,7 @@ const collection = {
   "collection.gift.claim": "Принять",
   "collection.gift.claimed": "Подарок получен.",
   "collection.gift.claim.error": "Не удалось принять подарок.",
-  "collection.gift.receipt.hint":
-    "Передай отправителю, чтобы он увидел, что подарок получен.",
+  "collection.gift.receipt.hint": "Передай отправителю, чтобы он увидел, что подарок получен.",
   "collection.gift.receipt.link": "Ссылка-квитанция",
   "collection.gift.receipt.copied": "Квитанция скопирована.",
   "collection.gift.receipt.title": "Подтверждение подарка",
@@ -209,6 +208,7 @@ const collection = {
   "collection.variant.normal": "Обычная",
   "collection.variant.foil": "Фольгированная",
   "collection.variant.holo": "Голографическая",
+  "collection.variant.cursed": "Проклятая",
   "collection.filters.kind": "Тип",
   "collection.filters.rarity": "Редкость",
   "collection.filters.variant": "Вариант",

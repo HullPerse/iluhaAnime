@@ -5,9 +5,7 @@ import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { getSortingLabel } from "@/lib/anilist/entries.utils";
-import type {
-  AniSortProps as Props,
-} from "@/types/anilist/anilistUi";
+import type { AniSortProps as Props } from "@/types/anilist/anilistUi";
 
 import { SortMoreMenu } from "@/routes/components/anilist/sort/sortMoreMenu.sort";
 

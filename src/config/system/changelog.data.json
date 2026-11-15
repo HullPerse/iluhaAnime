@@ -1,6 +1,55 @@
 {
   "changelog": [
     {
+      "version": "5.2.3",
+      "added": [
+        {
+          "key": "changelog.5_2_3.added.collection.cursed_variant",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_3.added.settings.card_art_fill",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_2_3.added.game.guess_hints",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_2_3.added.search.dither_presets",
+          "scope": "search"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_2_3.changed.collection.foil",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_3.changed.collection.contrast",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_3.changed.app.news_hover",
+          "scope": "app"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_2_3.fixed.collection.detail_spin",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_3.fixed.collection.dither_routing",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_3.fixed.collection.dither_scale",
+          "scope": "collection"
+        }
+      ]
+    },
+    {
       "version": "5.2.2",
       "added": [
         {

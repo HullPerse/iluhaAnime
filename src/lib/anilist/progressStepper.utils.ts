@@ -61,7 +61,6 @@ const REASON_MAX_CHARS = 300;
 export function shortReason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 
-  if (message.length > REASON_MAX_CHARS) return `${message.slice(0, REASON_MAX_CHARS)}...`
-  return message
-
+  if (message.length > REASON_MAX_CHARS) return `${message.slice(0, REASON_MAX_CHARS)}...`;
+  return message;
 }

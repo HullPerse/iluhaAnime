@@ -9,10 +9,7 @@ import type {
   StreamDeepLink,
   TorrentDeepLink,
 } from "@/types/core/deeplink";
-import {
-  parseCardGiftLink,
-  parseCardGiftReceiptLink,
-} from "@/lib/cards/gift.utils";
+import { parseCardGiftLink, parseCardGiftReceiptLink } from "@/lib/cards/gift.utils";
 import type { AniListId, TorrentHash } from "@/types/core/types";
 
 export type {

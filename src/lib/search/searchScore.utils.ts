@@ -233,7 +233,6 @@ export function matchOperatorTerms(terms: OperatorTerm[], target: string): numbe
   return 350 + total / positives;
 }
 
-
 export function fuzzyMatchScorePreNormalized(
   normalizedQuery: string,
   normalizedCandidate: string,

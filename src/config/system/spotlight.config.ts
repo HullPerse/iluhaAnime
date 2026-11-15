@@ -1,6 +1,4 @@
-import type {
-  SpotlightKind,
-} from "@/types/anilist/anilistUi";
+import type { SpotlightKind } from "@/types/anilist/anilistUi";
 import type { TranslationKey } from "@/types/core/i18n";
 
 export const SPOTLIGHT_KINDS: SpotlightKind[] = ["day", "week", "month"];

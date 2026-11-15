@@ -188,11 +188,11 @@ mod poster;
 mod progress;
 mod realcugan;
 mod repro;
+mod reset;
 mod rife;
 mod scrapers;
 mod screenshot;
 mod shaders;
-mod reset;
 mod stream;
 mod tenrai;
 mod toast;
@@ -2113,9 +2113,6 @@ pub fn run() {
             cards::packs::cards_packs,
             cards::packs::cards_prepare_packs,
             cards::packs::cards_ack_prepared_packs,
-            cards::packs::cards_grant_test_pack,
-            cards::packs::cards_grant_test_legendary_pack,
-            cards::packs::cards_grant_test_effects_pack,
             cards::packs::cards_open_pack,
             cards::collection::cards_collection,
             cards::collections::cards_collections,

@@ -56,7 +56,7 @@ export default function CardNews({
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-2">
         <button
           type="button"
-          className="windows95-text text-text hover:text-highlight line-clamp-2 cursor-pointer text-left text-[13px] leading-tight font-bold hover:underline"
+          className="windows95-text text-text line-clamp-2 cursor-pointer text-left text-[13px] leading-tight font-bold hover:underline"
           title={item.title}
           onClick={() => onOpen(item)}
         >
@@ -65,7 +65,7 @@ export default function CardNews({
         <div className="windows95-text text-hint">{stamp}</div>
         <button
           type="button"
-          className="windows95-text text-text hover:text-highlight line-clamp-4 cursor-pointer text-left leading-relaxed"
+          className="windows95-text text-text line-clamp-4 cursor-pointer text-left leading-relaxed hover:underline"
           onClick={() => onOpen(item)}
         >
           {excerpt}

@@ -15,11 +15,7 @@ import AudioBlank from "@/routes/components/collection/audioBlank.cards";
 import AudioCover from "@/routes/components/collection/audioCover.cards";
 import { ClipPlayer } from "@/routes/components/collection/gameClip.cards";
 
-import {
-  FramePips,
-  GuessHistory,
-  Result,
-} from "@/routes/components/collection/gameFrames.cards";
+import { FramePips, GuessHistory, Result } from "@/routes/components/collection/gameFrames.cards";
 import DailyGuessField from "@/routes/components/collection/dailyGuessField.cards";
 import type { DailyGuessSuggestion, GuessHistoryItem } from "@/types/ui/daily";
 

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type {
-  AniListOverlayScreen,
-} from "@/types/anilist/anilistUi";
+import type { AniListOverlayScreen } from "@/types/anilist/anilistUi";
 
 export function useDetailScreens(animeId: number, onRelated: ((id: number) => void) | undefined) {
   const [screens, setScreens] = useState<AniListOverlayScreen[]>([]);

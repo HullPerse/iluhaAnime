@@ -66,10 +66,24 @@ describe("useAnilistIdentity", () => {
     const first = media(1, "Alpha");
     const second = media(2, "Beta");
     const data: AnilistRouteData = {
-      user: { id: 7, name: "me", avatar: null, anime_count: 0, episodes_watched: 0, mean_score: null, score_format: null },
+      user: {
+        id: 7,
+        name: "me",
+        avatar: null,
+        anime_count: 0,
+        episodes_watched: 0,
+        mean_score: null,
+        score_format: null,
+      },
       lists: [collection("Watching", [entry(first)]), collection("Completed", [entry(second)])],
       favourites: [
-        { id: 1, title: { romaji: "Alpha", english: null }, cover_image: null, mean_score: null, format: null },
+        {
+          id: 1,
+          title: { romaji: "Alpha", english: null },
+          cover_image: null,
+          mean_score: null,
+          format: null,
+        },
       ],
       people: {
         staff: [{ id: 10, name: "Director", image: null }],

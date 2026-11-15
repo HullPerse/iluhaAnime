@@ -232,7 +232,6 @@ export interface AniSortProps {
   showActions?: boolean;
 }
 
-
 export type SpotlightKind = "day" | "week" | "month";
 
 export interface FriendScore {

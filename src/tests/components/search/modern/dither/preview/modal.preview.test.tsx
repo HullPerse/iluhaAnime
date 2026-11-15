@@ -102,7 +102,9 @@ describe("DitherPreviewModal", () => {
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
     await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Классика" }));
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Классика" }).disabled).toBe(true);
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Без эффекта" }).disabled).toBe(false);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Без эффекта" }).disabled).toBe(
+      false
+    );
   });
 
   it("bakes the canvas into the database and goes back", async () => {
@@ -131,7 +133,9 @@ describe("DitherPreviewModal", () => {
     const onSaved = vi.fn();
     render(<DitherPreviewModal image={IMAGE} onBack={onBack} onSaved={onSaved} />);
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
-    await waitFor(() => expect(errorMessages()).toContain("Не удалось сохранить изменённое изображение."));
+    await waitFor(() =>
+      expect(errorMessages()).toContain("Не удалось сохранить изменённое изображение.")
+    );
     expect(onSaved).not.toHaveBeenCalled();
     expect(onBack).not.toHaveBeenCalled();
   });
@@ -220,7 +224,9 @@ describe("DitherPreviewModal", () => {
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
     await user.click(screen.getByRole<HTMLButtonElement>("button", { name: "Исходные цвета" }));
     expect(screen.queryAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(0);
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Исходные цвета" }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Исходные цвета" }).disabled).toBe(
+      true
+    );
   });
 
   it("extracts the palette from the image on demand", async () => {

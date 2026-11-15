@@ -41,9 +41,6 @@ export type CommandName =
   | "cards_dust"
   | "cards_grant_starter"
   | "cards_starter_status"
-  | "cards_grant_test_pack"
-  | "cards_grant_test_legendary_pack"
-  | "cards_grant_test_effects_pack"
   | "cards_open_pack"
   | "cards_packs"
   | "cards_prepare_packs"
@@ -293,7 +290,7 @@ export type CommandName =
   | "update_file_index_paths"
   | "update_torrent_only_files"
   | "upscale_video"
-  | "upsert_unified_index"
+  | "upsert_unified_index";
 
 export interface HostStats {
   cpuUsage: number;

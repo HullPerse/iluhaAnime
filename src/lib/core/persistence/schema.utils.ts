@@ -1,8 +1,4 @@
-import {
-  catch as catchSchema,
-  type output,
-  type ZodMiniType,
-} from "zod/mini";
+import { catch as catchSchema, type output, type ZodMiniType } from "zod/mini";
 
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { err, ok } from "@hullperse/hp_utils/result";

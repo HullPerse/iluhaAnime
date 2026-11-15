@@ -5,11 +5,7 @@ const MOSAIC_WIDTH = 48;
 const MOSAIC_HEIGHT = 27;
 const MOSAIC_FRAME_MS = 90;
 
-export default function AudioCover({
-  videoRef,
-}: {
-  videoRef: RefObject<HTMLVideoElement | null>;
-}) {
+export default function AudioCover({ videoRef }: { videoRef: RefObject<HTMLVideoElement | null> }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

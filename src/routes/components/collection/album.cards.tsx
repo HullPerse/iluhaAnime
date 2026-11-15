@@ -59,20 +59,12 @@ function suggestionTitles(cards: readonly CollectionItem[]): string[] {
   return titles;
 }
 
-function collectionQueryEnabled(
-  mode: AlbumMode,
-  view: "grid" | "binder",
-  infinite: boolean
-) {
+function collectionQueryEnabled(mode: AlbumMode, view: "grid" | "binder", infinite: boolean) {
   if (mode === "collections") return false;
   return view === "binder" || !infinite;
 }
 
-function infiniteQueryEnabled(
-  mode: AlbumMode,
-  view: "grid" | "binder",
-  infinite: boolean
-) {
+function infiniteQueryEnabled(mode: AlbumMode, view: "grid" | "binder", infinite: boolean) {
   return mode !== "collections" && view === "grid" && infinite;
 }
 
@@ -275,9 +267,7 @@ export default function AlbumCards() {
   };
 
   const detail =
-    selected === null ? null : (
-      <CardDetail item={selected} onClose={() => setSelected(null)} />
-    );
+    selected === null ? null : <CardDetail item={selected} onClose={() => setSelected(null)} />;
 
   if (openCollection !== null) {
     return (

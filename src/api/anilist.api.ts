@@ -60,9 +60,7 @@ import type {
   FranchiseGraph,
   PrefetchSummary,
 } from "@/types/anilist/anilist";
-import type {
-  AniFriendScore,
-} from "@/types/anilist/anilistUi";
+import type { AniFriendScore } from "@/types/anilist/anilistUi";
 import type { FilterPage, SpotlightPage } from "@/types/core/ipc";
 
 import { tauriTransport } from "@/api/transport.api";
@@ -252,11 +250,7 @@ export class AnilistApi {
     return detail;
   }
 
-  async getStaffCharacters(
-    id: number,
-    page: number,
-    charPage?: number
-  ): Promise<AniStaffDetail> {
+  async getStaffCharacters(id: number, page: number, charPage?: number): Promise<AniStaffDetail> {
     const detail = await this.call<AniStaffDetail>("get_staff_characters", {
       id,
       page,
@@ -393,11 +387,7 @@ export class AnilistApi {
     return this.call("sync_franchise_to_index");
   }
 
-  async getSpotlightPage(
-    page: number,
-    perPage: number,
-    scoreFrom: number
-  ): Promise<SpotlightPage> {
+  async getSpotlightPage(page: number, perPage: number, scoreFrom: number): Promise<SpotlightPage> {
     const result = await this.call<SpotlightPage>("get_spotlight_page", {
       page,
       perPage,

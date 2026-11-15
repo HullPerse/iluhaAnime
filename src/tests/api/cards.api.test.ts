@@ -8,8 +8,8 @@ const config: CardsBootstrap["config"] = {
   packSize: 7,
   guaranteedRarePlus: true,
   baseValues: { junk: 1, common: 2, rare: 5, epic: 15, legendary: 40 },
-  variantMultipliers: { normal: 1, foil: 1.5, holo: 3 },
-  variantWeights: { normal: 85, foil: 12, holo: 3 },
+  variantMultipliers: { normal: 1, foil: 1.5, holo: 3, cursed: 3 },
+  variantWeights: { normal: 84, foil: 12, holo: 3, cursed: 1 },
   shopPacks: [
     {
       packKind: "default",
@@ -30,7 +30,6 @@ const config: CardsBootstrap["config"] = {
 const bootstrap: CardsBootstrap = {
   config,
   grantEnabled: false,
-  testToolsEnabled: true,
   wallet: 0,
   unopenedPacks: 1,
   starterGranted: false,
@@ -93,30 +92,21 @@ function fakeTransport(responses: Record<string, unknown>) {
 }
 
 describe("CardsApi", () => {
-  it("maps bootstrap, packs and both test grants", async () => {
-    const legendaryPack = { ...pack, id: "legendary-test-1" };
+  it("maps bootstrap and packs", async () => {
     const { calls, transport } = fakeTransport({
       cards_bootstrap: bootstrap,
       cards_packs: [pack],
-      cards_grant_test_pack: pack,
-      cards_grant_test_legendary_pack: legendaryPack,
     });
     const api = new CardsApi({ transport });
 
     const bootstrapValue = await api.bootstrap();
     const packs = await api.packs();
-    const grantedPack = await api.grantTestPack();
-    const legendary = await api.grantTestLegendaryPack();
     expect(bootstrapValue.wallet).toBe(0);
     expect(packs).toHaveLength(1);
-    expect(grantedPack.id).toBe("test-1");
-    expect(legendary.id).toBe("legendary-test-1");
 
     expect(calls).toEqual([
       { command: "cards_bootstrap", args: undefined },
       { command: "cards_packs", args: undefined },
-      { command: "cards_grant_test_pack", args: undefined },
-      { command: "cards_grant_test_legendary_pack", args: undefined },
     ]);
   });
 

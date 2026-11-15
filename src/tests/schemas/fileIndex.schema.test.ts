@@ -5,11 +5,7 @@ import {
   FolderScanResultListSchema,
   SidecarTrackListSchema,
 } from "@/schemas/fileIndex.schema";
-import {
-  PendingOpenSchema,
-  SavedFrameSchema,
-  WatchStateSchema,
-} from "@/schemas/player.schema";
+import { PendingOpenSchema, SavedFrameSchema, WatchStateSchema } from "@/schemas/player.schema";
 
 describe("player and file-index schemas", () => {
   it("accepts file entries and rejects a missing size", () => {
@@ -38,9 +34,9 @@ describe("player and file-index schemas", () => {
 
   it("accepts a missing watch state or a complete one", () => {
     expect(WatchStateSchema.safeParse(null).success).toBe(true);
-    expect(
-      WatchStateSchema.safeParse({ position: 1, duration: 2, updatedAt: 3 }).success
-    ).toBe(true);
+    expect(WatchStateSchema.safeParse({ position: 1, duration: 2, updatedAt: 3 }).success).toBe(
+      true
+    );
     expect(WatchStateSchema.safeParse({ position: 1, duration: 2 }).success).toBe(false);
   });
 

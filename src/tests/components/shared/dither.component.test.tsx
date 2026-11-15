@@ -186,6 +186,38 @@ describe("DitherCanvas worker", () => {
     expect(container.querySelector("canvas")?.getAttribute("aria-busy")).toBe("false");
   });
 
+  it("routes shared worker results to the matching card canvas", async () => {
+    const source = new Uint8ClampedArray(2 * 1 * 4).fill(200);
+    installCanvasHarness(source);
+    const images = installImageHarness(4, 2);
+    const worker = installWorkerHarness();
+    installFrameHarness();
+    const { container } = render(
+      <>
+        <DitherCanvas src="/first.jpg" />
+        <DitherCanvas src="/second.jpg" />
+      </>
+    );
+    await act(async () => {
+      images[0].fireLoad();
+      images[1].fireLoad();
+    });
+    const [first, second] = worker.posted as DitherWorkerRequest[];
+    expect(first.id).not.toBe(second.id);
+    const canvases = container.querySelectorAll("canvas");
+    await act(async () => {
+      worker.respond({
+        type: "result",
+        id: first.id,
+        width: 2,
+        height: 1,
+        pixels: source.buffer.slice(0),
+      });
+    });
+    expect(canvases[0].getAttribute("aria-busy")).toBe("false");
+    expect(canvases[1].getAttribute("aria-busy")).toBe("true");
+  });
+
   it("ignores stale worker responses", async () => {
     const source = new Uint8ClampedArray(2 * 1 * 4).fill(200);
     const { putImageData } = installCanvasHarness(source);
@@ -223,7 +255,12 @@ describe("DitherCanvas worker", () => {
       images[0].fireLoad();
     });
     await act(async () => {
-      worker.respond({ type: "progress", id: 1, done: 1, total: 2 });
+      worker.respond({
+        type: "progress",
+        id: (worker.posted[0] as DitherWorkerRequest).id,
+        done: 1,
+        total: 2,
+      });
     });
     expect(onProgress).toHaveBeenCalledWith(1, 2);
     await act(async () => {
@@ -282,7 +319,13 @@ describe("DitherCanvas offscreen", () => {
     expect(visiblePut).not.toHaveBeenCalled();
     const workerBytes = new Uint8ClampedArray([40, 40, 40, 255, 40, 40, 40, 255]);
     await act(async () => {
-      worker.respond({ type: "result", id: 1, width: 2, height: 1, pixels: workerBytes.buffer });
+      worker.respond({
+        type: "result",
+        id: (worker.posted[0] as DitherWorkerRequest).id,
+        width: 2,
+        height: 1,
+        pixels: workerBytes.buffer,
+      });
     });
     expect(visiblePut).toHaveBeenCalledTimes(1);
     expect(Array.from(visiblePut.mock.calls[0][0].data)).toEqual(Array.from(workerBytes));
@@ -321,13 +364,15 @@ describe("DitherCanvas display cap", () => {
     resetDitherWorker();
   });
 
-  const renderCapped = (capToDisplay: boolean) => {
+  const renderCapped = (capToDisplay: boolean, displayScale = 1) => {
     const source = new Uint8ClampedArray(2 * 1 * 4).fill(200);
     installCanvasHarness(source);
     const images = installImageHarness(3840, 2160);
     const worker = installWorkerHarness();
     installFrameHarness();
-    const { container } = render(<DitherCanvas src="/capped.jpg" capToDisplay={capToDisplay} />);
+    const { container } = render(
+      <DitherCanvas src="/capped.jpg" capToDisplay={capToDisplay} displayScale={displayScale} />
+    );
     const canvas = container.querySelector("canvas") as HTMLCanvasElement;
     Object.defineProperty(canvas, "clientWidth", { value: 672 });
     Object.defineProperty(canvas, "clientHeight", { value: 256 });
@@ -343,6 +388,16 @@ describe("DitherCanvas display cap", () => {
     const request = worker.posted[0] as DitherWorkerRequest;
     expect(request.width).toBe(672);
     expect(request.height).toBe(378);
+  });
+
+  it("renders card art below display resolution for visible dithering", async () => {
+    const { images, worker } = renderCapped(true, 0.6);
+    await act(async () => {
+      images[0].fireLoad();
+    });
+    const request = worker.posted[0] as DitherWorkerRequest;
+    expect(request.width).toBe(403);
+    expect(request.height).toBe(227);
   });
 
   it("renders at full scale without the cap", async () => {

@@ -5,10 +5,7 @@ const MAX_COLUMNS = 6;
 const MIN_CARD_WIDTH = 108;
 const GAP = 8;
 
-export function useBinderColumns(
-  externalRef?: RefObject<HTMLDivElement | null>,
-  ready = true
-) {
+export function useBinderColumns(externalRef?: RefObject<HTMLDivElement | null>, ready = true) {
   const ownRef = useRef<HTMLDivElement | null>(null);
   const ref = externalRef ?? ownRef;
   const [columns, setColumns] = useState(MIN_COLUMNS);

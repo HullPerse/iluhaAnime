@@ -144,8 +144,7 @@ const anilist = {
   "anilist.details.genres.tags": "Жанры и теги",
   "anilist.details.load.error": "Не удалось загрузить данные",
   "anilist.details.loading": "Загрузка...",
-  "anilist.details.login.required":
-    "AniList требует вход: войдите во вкладке AniList и повторите.",
+  "anilist.details.login.required": "AniList требует вход: войдите во вкладке AniList и повторите.",
   "anilist.details.rating": "Рейтинг",
   "anilist.details.remove.fav": "Убрать из избранного",
   "anilist.details.retry": "Повторить",

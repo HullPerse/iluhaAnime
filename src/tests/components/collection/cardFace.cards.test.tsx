@@ -2,11 +2,19 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import CardFace from "@/routes/components/collection/cardFace.cards";
+import { resetCardsStore } from "@/store/cards.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { CardFaceItem } from "@/types/ui/collection";
 
 vi.mock("@/hooks/remoteImage.hook", () => ({
   useRemoteImageStatus: (url: string | null | undefined) => ({ src: url ?? null, failed: false }),
   resetRemoteImageCache: () => undefined,
+}));
+
+vi.mock("@/components/shared/dither.component", () => ({
+  default: ({ src, imageFit }: { src: string; imageFit: string }) => (
+    <canvas data-dither-src={src} data-image-fit={imageFit} />
+  ),
 }));
 
 const STUDIO: CardFaceItem = {
@@ -39,7 +47,11 @@ const MANGA: CardFaceItem = {
   imageUrl: "https://img/berserk.jpg",
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  resetCardsStore();
+  settingsAtoms.cardImageFill.set(false);
+});
 
 describe("CardFace", () => {
   it("renders the studio collage with a monogram for the missing cell", () => {
@@ -64,13 +76,11 @@ describe("CardFace", () => {
     expect(container.querySelector(".cards-inner")?.className).toContain("cards-variant-foil");
 
     const manga = render(<CardFace card={MANGA} />);
-    expect(manga.container.querySelector("img[src='https://img/berserk.jpg']")?.className).toContain(
-      "object-cover"
-    );
+    expect(
+      manga.container.querySelector("img[src='https://img/berserk.jpg']")?.className
+    ).toContain("object-cover");
 
-    const junkHolo = render(
-      <CardFace card={{ ...ANIME, rarity: "junk", variant: "holo" }} />
-    );
+    const junkHolo = render(<CardFace card={{ ...ANIME, rarity: "junk", variant: "holo" }} />);
     expect(junkHolo.container.querySelector(".cards-inner")?.className).not.toContain(
       "cards-variant-holo"
     );
@@ -81,5 +91,30 @@ describe("CardFace", () => {
     const pips = container.querySelectorAll(".cards-pip");
     expect(pips).toHaveLength(5);
     expect(container.querySelectorAll('.cards-pip[data-on="true"]')).toHaveLength(3);
+  });
+
+  it("applies the CRT finish to cursed art and studio collages", () => {
+    const anime = render(<CardFace card={{ ...ANIME, variant: "cursed" }} />);
+    expect(
+      anime.container.querySelector('canvas[data-dither-src="https://img/aot.jpg"]')
+    ).not.toBeNull();
+
+    expect(anime.container.querySelector(".cards-variant-cursed")).not.toBeNull();
+    const studio = render(<CardFace card={{ ...STUDIO, variant: "cursed" }} />);
+    expect(studio.container.querySelectorAll(".cards-studio-cell canvas")).toHaveLength(3);
+    expect(studio.container.querySelector(".cards-studio-letter")).not.toBeNull();
+  });
+
+  it("fills character art when the appearance checkbox is enabled", () => {
+    const character: CardFaceItem = { ...ANIME, kind: "character", entityId: 7 };
+    const { container, rerender } = render(<CardFace card={character} />);
+    expect(container.querySelector(".cards-art img")?.className).toContain("object-contain");
+    settingsAtoms.cardImageFill.set(true);
+    rerender(<CardFace card={character} />);
+    expect(container.querySelector(".cards-art img")?.className).toContain("object-cover");
+    rerender(<CardFace card={{ ...character, variant: "cursed" }} />);
+    expect(container.querySelector<HTMLCanvasElement>(".cards-art canvas")?.dataset.imageFit).toBe(
+      "cover"
+    );
   });
 });

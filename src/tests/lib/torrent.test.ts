@@ -2,11 +2,7 @@ import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import {
-  applyBulkAction,
-  pruneSelection,
-  splitRecheckOutcome,
-} from "@/lib/torrent/bulk.utils";
+import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
@@ -347,7 +343,9 @@ describe("torrent/common", () => {
         total_bytes: 0,
         checking_file: "Show/E01.mkv",
       });
-      expect(reduceTorrentEvent(makeState(current), makeEvent([next]))).toEqual({ torrents: [next] });
+      expect(reduceTorrentEvent(makeState(current), makeEvent([next]))).toEqual({
+        torrents: [next],
+      });
     });
 
     it("returns a patch when upload speed changes", () => {

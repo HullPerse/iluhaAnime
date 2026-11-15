@@ -57,6 +57,8 @@ export function VirtualCardGrid<T extends CardTileItem>({
     if (onVisibleCardsChange === undefined || virtualRows.length === 0) return;
     const first = virtualRows[0]?.index ?? 0;
     const last = virtualRows.at(-1)?.index ?? first;
+    // The parent callback narrows the module-level image queue, not React state.
+    // oxlint-disable-next-line react-doctor/no-pass-live-state-to-parent
     onVisibleCardsChange(
       cards.slice(first * columns, Math.min(cards.length, (last + 1) * columns))
     );
@@ -68,15 +70,7 @@ export function VirtualCardGrid<T extends CardTileItem>({
     if (requestedLength.current === cards.length) return;
     requestedLength.current = cards.length;
     onLoadMore();
-  }, [
-    cards.length,
-    hasNextPage,
-    isFetchingNextPage,
-    lastIndex,
-    loadedRows,
-    onLoadMore,
-    resetKey,
-  ]);
+  }, [cards.length, hasNextPage, isFetchingNextPage, lastIndex, loadedRows, onLoadMore, resetKey]);
 
   return (
     <div

@@ -119,11 +119,7 @@ export function usePlayerSession({
       sessionStart = null;
       if (disposed) return;
       setFailed(true);
-      addNotification(
-        translate("player.media.error.title"),
-        "error",
-        String(error)
-      );
+      addNotification(translate("player.media.error.title"), "error", String(error));
     });
 
     return () => {

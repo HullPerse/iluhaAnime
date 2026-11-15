@@ -18,6 +18,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { anilistCardUrl } from "@/lib/cards/links.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type { CardVariant, CollectionItem } from "@/types/api/cards";
+import type { TranslationKey } from "@/types/core/i18n";
 
 import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
 import { FavHeartButton } from "@/routes/components/anilist/detail/favHeartButton.detail";
@@ -30,6 +31,36 @@ function animeIdOf(card: CollectionItem): number | null {
   if (card.kind === "anime") return card.entityId;
   if (card.kind === "character") return card.collectionAnimeId;
   return null;
+}
+
+// One finish can exist at several rarities. Keep the rarity of the card that
+// was opened, otherwise a holo pull resolves to its junk/common row and the
+// finish gate hides the holo effect in the preview.
+function pickOwnedCard(
+  owned: readonly CollectionItem[],
+  pickedVariant: CardVariant,
+  item: CollectionItem
+): CollectionItem {
+  const sameRarity = owned.find(
+    (entry) => entry.variant === pickedVariant && entry.rarity === item.rarity
+  );
+  return sameRarity ?? owned.find((entry) => entry.variant === pickedVariant) ?? item;
+}
+
+// Anime cards carry no collection title, so their source line asks AniList
+// for the adaptation source (original, manga, light novel, ...).
+function sourceLine(
+  card: CollectionItem,
+  sourceMaterial: string | null,
+  translate: (key: TranslationKey) => string
+): string {
+  if (sourceMaterial !== null) {
+    const labelKey = animeSourceLabelKeys[sourceMaterial];
+    return labelKey === undefined
+      ? sourceMaterial.replaceAll("_", " ").toLowerCase()
+      : translate(labelKey);
+  }
+  return card.collectionTitle?.trim() || translate("collection.detail.no.source");
 }
 
 export default function CardDetail({
@@ -50,32 +81,16 @@ export default function CardDetail({
   const [giftOpen, setGiftOpen] = useState<boolean>(false);
 
   const ownedVariants = variants.data ?? [];
-  // One finish can exist at several rarities. Keep the rarity of the card that
-  // was opened, otherwise a holo pull resolves to its junk/common row and the
-  // finish gate hides the holo effect in the preview.
-  const card =
-    ownedVariants.find(
-      (entry) => entry.variant === pickedVariant && entry.rarity === item.rarity
-    ) ??
-    ownedVariants.find((entry) => entry.variant === pickedVariant) ??
-    item;
+  const card = pickOwnedCard(ownedVariants, pickedVariant, item);
   const animeId = animeIdOf(card);
   const anilistUrl = anilistCardUrl(card);
-  // Anime cards carry no collection title, so their source line asks AniList
-  // for the adaptation source (original, manga, light novel, ...).
   const animeQuery = useAppQuery("static", {
     queryKey: queryKeys.animeScreen(animeId ?? 0),
     queryFn: () => anilistApi.getAnimeById(animeId ?? 0),
     enabled: card.kind === "anime" && animeId !== null,
   });
   const sourceMaterial = card.kind === "anime" ? (animeQuery.data?.source ?? null) : null;
-  const sourceLabelKey = sourceMaterial === null ? undefined : animeSourceLabelKeys[sourceMaterial];
-  const source =
-    sourceLabelKey !== undefined
-      ? t(sourceLabelKey)
-      : sourceMaterial !== null
-        ? sourceMaterial.replaceAll("_", " ").toLowerCase()
-        : card.collectionTitle?.trim() || t("collection.detail.no.source");
+  const source = sourceLine(card, sourceMaterial, t);
   const isFavorite = favorite.data === true;
 
   const toggleFavorite = () => {
@@ -135,7 +150,9 @@ export default function CardDetail({
               className="size-5"
               aria-label={t("collection.detail.open.anilist")}
               title={t("collection.detail.open.anilist")}
-              onClick={() => void openUrl(anilistUrl)}
+              onClick={() => {
+                openUrl(anilistUrl).catch(() => undefined);
+              }}
             >
               <ExternalLink className="size-3" />
             </Button>

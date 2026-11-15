@@ -261,7 +261,10 @@ const DISTANCE_BUCKETS: readonly DistanceBucket[] = [
         ? { token: "lessThanXMinutes", count: 1 }
         : { token: "xMinutes", count: minutes },
   },
-  { limit: APPROX_HOURS_FROM_MINUTES, resolve: (minutes) => ({ token: "xMinutes", count: minutes }) },
+  {
+    limit: APPROX_HOURS_FROM_MINUTES,
+    resolve: (minutes) => ({ token: "xMinutes", count: minutes }),
+  },
   { limit: APPROX_ONE_HOUR_UNTIL_MINUTES, resolve: () => ({ token: "aboutXHours", count: 1 }) },
   {
     limit: MINUTES_IN_DAY,
@@ -277,7 +280,10 @@ const DISTANCE_BUCKETS: readonly DistanceBucket[] = [
   },
   {
     limit: MINUTES_IN_MONTH * 2,
-    resolve: (minutes) => ({ token: "aboutXMonths", count: Math.round(minutes / MINUTES_IN_MONTH) }),
+    resolve: (minutes) => ({
+      token: "aboutXMonths",
+      count: Math.round(minutes / MINUTES_IN_MONTH),
+    }),
   },
 ];
 

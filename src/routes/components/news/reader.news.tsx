@@ -102,22 +102,22 @@ export default function ReaderNews({
     if (linkedAnimeId === null || animeLinkPending) return;
     setAnimeLinkPending(true);
     ignore(
-      attempt(
-        newsApi.animeLink(linkedAnimeId, newsProxyUrl || null, anilistProxyUrl || null)
-      ).then(([link, error]) => {
-        setAnimeLinkPending(false);
-        if (error !== null) {
-          reportBackgroundError("news.anilist-link", error);
-          showError(t("common.error"), t("news.anilist.error"));
+      attempt(newsApi.animeLink(linkedAnimeId, newsProxyUrl || null, anilistProxyUrl || null)).then(
+        ([link, error]) => {
+          setAnimeLinkPending(false);
+          if (error !== null) {
+            reportBackgroundError("news.anilist-link", error);
+            showError(t("common.error"), t("news.anilist.error"));
+            return null;
+          }
+          if (link === null) {
+            showError(t("common.error"), t("news.anilist.missing"));
+            return null;
+          }
+          setAnimeDetailId(link.anilistId);
           return null;
         }
-        if (link === null) {
-          showError(t("common.error"), t("news.anilist.missing"));
-          return null;
-        }
-        setAnimeDetailId(link.anilistId);
-        return null;
-      })
+      )
     );
   }, [anilistProxyUrl, animeLinkPending, linkedAnimeId, newsProxyUrl, t]);
   const back = () => setMode({ kind: "post" });
@@ -291,7 +291,6 @@ export default function ReaderNews({
           />
         </Section>
       )}
-
     </Modal>
   );
 }

@@ -4,7 +4,7 @@ import type { CardsCollectionSort, CardsSort, CardsTab } from "@/types/store/car
 
 export const CARD_KINDS = ["anime", "manga", "character", "staff", "studio"] as const;
 export const CARD_RARITIES = ["junk", "common", "rare", "epic", "legendary"] as const;
-export const CARD_VARIANTS = ["normal", "foil", "holo"] as const;
+export const CARD_VARIANTS = ["normal", "foil", "holo", "cursed"] as const;
 export const CARD_SORTS = ["recent", "value", "rarity", "variant", "title", "kind"] as const;
 // The collection shelf groups anime, so it has no per-card finish to sort by.
 export const COLLECTION_SORTS = [
@@ -45,6 +45,7 @@ export const cardVariantLabelKeys = {
   normal: "collection.variant.normal",
   foil: "collection.variant.foil",
   holo: "collection.variant.holo",
+  cursed: "collection.variant.cursed",
 } satisfies Record<CardVariant, TranslationKey>;
 
 export const cardsSortLabelKeys = {

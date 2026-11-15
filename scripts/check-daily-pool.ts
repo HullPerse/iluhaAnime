@@ -68,7 +68,7 @@ const args = process.argv.slice(2);
 
 function argument(flag: string): string | undefined {
   const index = args.indexOf(flag);
-  return index >= 0 ? args[index + 1] : undefined;
+  return index === -1 ? undefined : args[index + 1];
 }
 
 function numericArgument(flag: string, fallback: number, max: number): number {
@@ -116,9 +116,7 @@ async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
         lastError = `HTTP ${response.status} (${new URL(url).host})`;
         const retryAfter = Number(response.headers.get("retry-after"));
         await sleep(
-          Number.isFinite(retryAfter) && retryAfter > 0
-            ? retryAfter * 1_000
-            : 2_000 * (attempt + 1)
+          Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1_000 : 2_000 * (attempt + 1)
         );
         continue;
       }
@@ -133,9 +131,7 @@ async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
 }
 
 function object(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : null;
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
 }
 
 function array(value: unknown): unknown[] {
@@ -171,8 +167,7 @@ function isImageUrl(raw: string): boolean {
   try {
     const url = new URL(raw);
     return (
-      url.protocol === "https:" &&
-      /\.(?:jpe?g|png|webp)(?:[?#]|$)/i.test(url.pathname + url.search)
+      url.protocol === "https:" && /\.(?:jpe?g|png|webp)(?:[?#]|$)/i.test(url.pathname + url.search)
     );
   } catch {
     return false;
@@ -193,10 +188,7 @@ function videoUrl(raw: string, size: unknown, mimetype: unknown): boolean {
       return false;
     }
     if (!/\.(?:webm|mp4)$/i.test(url.pathname)) return false;
-    if (
-      typeof mimetype === "string" &&
-      !mimetype.toLowerCase().startsWith("video/")
-    ) {
+    if (typeof mimetype === "string" && !mimetype.toLowerCase().startsWith("video/")) {
       return false;
     }
     return typeof size === "number" && size > 0 && size <= MAX_VIDEO_BYTES;
@@ -250,6 +242,16 @@ function malIdOfAnime(anime: unknown): number | null {
   return null;
 }
 
+function playableVideo(entryRecord: unknown): boolean {
+  const entryObject = object(entryRecord);
+  if (entryObject?.nsfw === true || entryObject?.spoiler === true) return false;
+  return array(object(entryObject?.videos)?.nodes).some((video) => {
+    const videoObject = object(video);
+    const link = string(videoObject?.link);
+    return link !== null && videoUrl(link, videoObject?.size, videoObject?.mimetype);
+  });
+}
+
 function themeCheckOfAnime(anime: unknown): ThemeCheck {
   let hasOp = false;
   let hasTheme = false;
@@ -258,19 +260,9 @@ function themeCheckOfAnime(anime: unknown): ThemeCheck {
     const type = string(themeRecord?.type);
     if (type !== "OP" && type !== "ED") continue;
     for (const entryRecord of array(themeRecord?.animethemeentries)) {
-      const entryObject = object(entryRecord);
-      if (entryObject?.nsfw === true || entryObject?.spoiler === true) continue;
-      for (const video of array(object(entryObject?.videos)?.nodes)) {
-        const videoObject = object(video);
-        const link = string(videoObject?.link);
-        if (
-          link !== null &&
-          videoUrl(link, videoObject?.size, videoObject?.mimetype)
-        ) {
-          hasTheme = true;
-          if (type === "OP") hasOp = true;
-        }
-      }
+      if (!playableVideo(entryRecord)) continue;
+      hasTheme = true;
+      if (type === "OP") hasOp = true;
     }
   }
   return { hasOp, hasTheme };
@@ -294,10 +286,7 @@ async function checkThemes(malIds: number[]): Promise<Map<number, ThemeCheck>> {
   return result;
 }
 
-async function checkEntry(
-  entry: PoolEntry,
-  themes: ThemeCheck
-): Promise<CheckResult> {
+async function checkEntry(entry: PoolEntry, themes: ThemeCheck): Promise<CheckResult> {
   try {
     const frames = await checkFrames(entry);
     const modes: CheckMode[] = [];
@@ -335,7 +324,7 @@ async function checkEntry(
 }
 
 async function main(): Promise<void> {
-  const pool = JSON.parse(await readFile(POOL_PATH, "utf8")) as PoolFile;
+  const pool = JSON.parse(await readFile(POOL_PATH, "utf-8")) as PoolFile;
   const offset = Math.max(
     0,
     Math.min(pool.entries.length, Math.floor(Number(argument("--offset") ?? 0)))
@@ -345,7 +334,7 @@ async function main(): Promise<void> {
   const concurrency = numericArgument("--concurrency", 12, 12);
   const entries = pool.entries.slice(offset, offset + limit);
   const themesByMal = await checkThemes(entries.map((entry) => entry.malId));
-  const results: CheckResult[] = new Array(entries.length);
+  const results: CheckResult[] = Array.from<CheckResult>({ length: entries.length });
   let next = 0;
   let completed = 0;
 
@@ -354,17 +343,15 @@ async function main(): Promise<void> {
       for (;;) {
         const index = next;
         next += 1;
-        if (index >= entries.length) return;
-        const entry = entries[index]!;
+        const entry = entries[index];
+        if (entry === undefined) return;
         results[index] = await checkEntry(
           entry,
           themesByMal.get(entry.malId) ?? { hasOp: false, hasTheme: false }
         );
         completed += 1;
         if (completed % 25 === 0 || completed === entries.length) {
-          process.stdout.write(
-            `[daily-quality] ${completed}/${entries.length} checked\n`
-          );
+          process.stdout.write(`[daily-quality] ${completed}/${entries.length} checked\n`);
         }
       }
     })

@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import {
-  resolveFatalTexts,
-  resolveSplashTexts,
-} from "@/lib/core/fatal/fatalTexts.utils";
+import { resolveFatalTexts, resolveSplashTexts } from "@/lib/core/fatal/fatalTexts.utils";
 import { patchSettings } from "@/store/settings.store";
 
 describe("fatal texts contract", () => {

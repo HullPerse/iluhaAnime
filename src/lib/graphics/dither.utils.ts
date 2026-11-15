@@ -38,7 +38,7 @@ export function getDitherWorker(): Worker | null {
   if (!sharedWorker) {
     const [worker, error] = attemptSync(
       () =>
-        new Worker(new URL("@/lib/workers/dither.worker", import.meta.url), {
+        new Worker(new URL("../workers/dither.worker.ts", import.meta.url), {
           type: "module",
         })
     );

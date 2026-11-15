@@ -202,9 +202,9 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
         .filter((item) => item.type === "error")
         .map((item) => item.message);
       expect(messages).toContain("База данных не ответила за 30 секунд.");
-      expect((screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement).disabled).toBe(
-        false
-      );
+      expect(
+        (screen.getByRole("button", { name: "Сохранить" }) as HTMLButtonElement).disabled
+      ).toBe(false);
       await act(async () => {
         resolveUpdate(UPDATED_FILE);
       });

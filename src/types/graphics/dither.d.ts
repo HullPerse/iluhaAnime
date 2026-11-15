@@ -36,8 +36,10 @@ export interface DitherEffectOptions {
 export interface DitherCanvasProps extends Partial<DitherEffectOptions> {
   src: string;
   className?: string;
+  imageFit?: "cover" | "contain";
   ariaLabel?: string;
   capToDisplay?: boolean;
+  displayScale?: number;
   maxLongSide?: number;
   onError?: (message: string) => void;
   onReady?: () => void;

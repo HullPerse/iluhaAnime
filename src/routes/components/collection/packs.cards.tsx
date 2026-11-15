@@ -39,9 +39,7 @@ export default function PacksCards() {
           ))}
         </div>
       )}
-      {selected !== null && (
-        <OpenCards pack={selected} onClose={() => setSelected(null)} />
-      )}
+      {selected !== null && <OpenCards pack={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

@@ -12,7 +12,6 @@ import { SearchResultListSchema } from "@/schemas/search.schema";
 import { SessionConfigSchema } from "@/schemas/settings.schema";
 import { TorrentDetailsSchema, TorrentInfoListSchema } from "@/schemas/torrent.schema";
 
-
 const TORRENT_INFO = {
   id: 1,
   name: "episode",
@@ -35,9 +34,9 @@ describe("IPC response schemas", () => {
   });
 
   it("rejects a torrent without an info hash", () => {
-    expect(TorrentInfoListSchema.safeParse([{ ...TORRENT_INFO, info_hash: undefined }]).success).toBe(
-      false
-    );
+    expect(
+      TorrentInfoListSchema.safeParse([{ ...TORRENT_INFO, info_hash: undefined }]).success
+    ).toBe(false);
   });
 
   it("validates torrent details, search rows, and session config", () => {
@@ -82,7 +81,9 @@ describe("IPC response schemas", () => {
   });
 
   it("validates AniList list, media page, user, and following reads", () => {
-    expect(AniMediaListSchema.safeParse([{ id: 1, title: "A", status: "FINISHED", genres: [] }]).success).toBe(true);
+    expect(
+      AniMediaListSchema.safeParse([{ id: 1, title: "A", status: "FINISHED", genres: [] }]).success
+    ).toBe(true);
     expect(
       AniListCollectionListSchema.safeParse([
         {
@@ -99,14 +100,13 @@ describe("IPC response schemas", () => {
     ).toBe(true);
     expect(AniMediaPageSchema.safeParse({ media: [], total: 0 }).success).toBe(true);
     expect(AniUserSchema.safeParse({ id: 1, name: "u" }).success).toBe(true);
-    expect(
-      FollowingPageSchema.safeParse({ users: [], has_next_page: false }).success
-    ).toBe(true);
+    expect(FollowingPageSchema.safeParse({ users: [], has_next_page: false }).success).toBe(true);
   });
 
   it("validates system reads", () => {
     expect(
-      DatabaseStatusSchema.safeParse({ ok: true, version: 1, dataDir: "C:/app", error: null }).success
+      DatabaseStatusSchema.safeParse({ ok: true, version: 1, dataDir: "C:/app", error: null })
+        .success
     ).toBe(true);
     expect(
       HostStatsSchema.safeParse({

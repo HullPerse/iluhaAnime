@@ -1,9 +1,9 @@
 // Collection scenario: enables the card tab in the isolated e2e profile and
 // walks the current surface (packs, album, shop, daily game, gifts).
 //
-// It runs signed out, so cards cannot be seeded through the test grant
-// (`cards_grant_test_pack` requires an AniList account). The scenario therefore
-// checks the empty states and the surfaces that do not need an account.
+// It runs signed out, so cards cannot be seeded: packs and rewards require an
+// AniList account. The scenario therefore checks the empty states and the
+// surfaces that do not need an account.
 
 import type { Page } from "playwright-core";
 
@@ -79,10 +79,7 @@ export const collection: Scenario = {
 
     await step("album shows the empty state and toolbar", async () => {
       await clickTab(page, "Альбом");
-      await page
-        .getByPlaceholder("Поиск по карточкам")
-        .first()
-        .waitFor({ timeout: 10_000 });
+      await page.getByPlaceholder("Поиск по карточкам").first().waitFor({ timeout: 10_000 });
       await expectVisible(page, "В альбоме пока нет карточек.");
     });
 

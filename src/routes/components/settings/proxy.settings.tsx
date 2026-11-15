@@ -1,4 +1,3 @@
-
 import { anilistApi } from "@/api/anilist.api";
 import { newsApi } from "@/api/news.api";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -30,7 +29,6 @@ export default function SettingsProxy() {
       <p className="text-hint windows95-text px-1 text-xs">
         {t("settings.proxy.description", { seconds: PROXY_TEST_SLOW_MS / 1000 })}
       </p>
-
 
       <section className="ui-panel" data-find-section="proxy.anilist">
         <div className="ui-titlebar group flex items-center justify-between gap-1">
@@ -102,9 +100,7 @@ export default function SettingsProxy() {
 
       <section className="ui-panel" data-find-section="proxy.collection">
         <div className="ui-titlebar group flex items-center justify-between gap-1">
-          <span className="text-title-text font-bold">
-            {t("settings.collection.proxy.title")}
-          </span>
+          <span className="text-title-text font-bold">{t("settings.collection.proxy.title")}</span>
           <SectionResetButton sectionId="proxy.collection" />
         </div>
         <div className="flex flex-col gap-2 p-2">

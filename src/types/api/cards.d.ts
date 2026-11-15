@@ -2,7 +2,7 @@ import type { ApiTransport } from "@/types/core/transport";
 
 export type CardKind = "anime" | "manga" | "character" | "staff" | "studio";
 export type CardRarity = "junk" | "common" | "rare" | "epic" | "legendary";
-export type CardVariant = "normal" | "foil" | "holo";
+export type CardVariant = "normal" | "foil" | "holo" | "cursed";
 
 export interface RarityBaseValues {
   junk: number;
@@ -16,12 +16,14 @@ export interface VariantMultipliers {
   normal: number;
   foil: number;
   holo: number;
+  cursed: number;
 }
 
 export interface VariantWeights {
   normal: number;
   foil: number;
   holo: number;
+  cursed: number;
 }
 
 export interface PackSlot {
@@ -57,7 +59,6 @@ export interface CardsConfig {
 export interface CardsBootstrap {
   config: CardsConfig;
   grantEnabled: boolean;
-  testToolsEnabled: boolean;
   wallet: number;
   unopenedPacks: number;
   starterGranted: boolean;

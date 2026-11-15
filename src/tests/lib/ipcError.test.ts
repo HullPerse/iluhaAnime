@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  IpcError,
-  ipcErrorCode,
-  normalizeIpcError,
-} from "@/lib/core/system/ipcError.utils";
+import { IpcError, ipcErrorCode, normalizeIpcError } from "@/lib/core/system/ipcError.utils";
 
 describe("ipc error envelope", () => {
   it("keeps the stable code from an object envelope", () => {

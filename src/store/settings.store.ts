@@ -65,7 +65,6 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
 
   const snapshot = (): SettingsData => ({ ...mirror }) as SettingsData;
 
-
   const handle: SettingsSignalStore = {
     atoms,
     persistor,

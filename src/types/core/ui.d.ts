@@ -70,7 +70,6 @@ export interface ConfirmDialogProps {
   onClose?: () => void;
 }
 
-
 export interface ErrorBoundaryProps {
   children: ReactNode;
   onResetCache?: () => void;

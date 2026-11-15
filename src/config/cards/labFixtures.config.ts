@@ -8,7 +8,7 @@ import type {
 
 const KINDS: CardKind[] = ["anime", "manga", "character", "staff", "studio"];
 const RARITIES: CardRarity[] = ["junk", "common", "rare", "epic", "legendary"];
-const VARIANTS: CardVariant[] = ["normal", "foil", "holo"];
+const VARIANTS: CardVariant[] = ["normal", "foil", "holo", "cursed"];
 
 const BASE_VALUES: Record<CardRarity, number> = {
   junk: 1,
@@ -22,16 +22,11 @@ const VARIANT_MULTIPLIERS: Record<CardVariant, number> = {
   normal: 1,
   foil: 1.5,
   holo: 3,
+  cursed: 3,
 };
 
 const TITLES: Record<CardKind, string[]> = {
-  anime: [
-    "Shingeki no Kyojin",
-    "Steins;Gate",
-    "Frieren",
-    "Mushishi",
-    "Cowboy Bebop",
-  ],
+  anime: ["Shingeki no Kyojin", "Steins;Gate", "Frieren", "Mushishi", "Cowboy Bebop"],
   manga: ["Berserk", "One Piece", "Solo Leveling", "Oyasumi Punpun", "Vagabond"],
   character: ["Levi Ackermann", "Makise Kurisu", "Frieren", "Ginko", "Spike Spiegel"],
   staff: ["Hiroyuki Imaishi", "Yuki Kajiura", "Evan Call", "Yoshiyuki Tomino", "Satoshi Kon"],

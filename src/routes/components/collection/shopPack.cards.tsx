@@ -52,9 +52,7 @@ export default function ShopPack({
           title={!affordable ? t("collection.shop.notEnough") : undefined}
           onClick={onBuy}
         >
-          {affordable
-            ? t("collection.shop.buy")
-            : t("collection.shop.short", { amount: missing })}
+          {affordable ? t("collection.shop.buy") : t("collection.shop.short", { amount: missing })}
         </Button>
       </div>
     </article>

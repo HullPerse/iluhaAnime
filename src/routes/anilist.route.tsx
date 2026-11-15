@@ -24,7 +24,11 @@ import { useAnilistAuth } from "@/hooks/anilist/auth.hook";
 import { useAnilistFavouriteToggle } from "@/hooks/anilist/favourite.hook";
 import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { ALL_LISTS_ID } from "@/lib/anilist/anilistGroup.utils";
-import { buildAnilistSourceKey, resolveAniListView, resolveFriendState } from "@/lib/anilist/anilistRoute.utils";
+import {
+  buildAnilistSourceKey,
+  resolveAniListView,
+  resolveFriendState,
+} from "@/lib/anilist/anilistRoute.utils";
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/anilistScore.utils";
 import { focusMainSearch } from "@/lib/ui/focusHotkeys.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
@@ -33,11 +37,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showErrorOnce } from "@/lib/core/ui/notification.utils";
 import { paginate } from "@/lib/core/text/pagination.utils";
-import {
-  addAnilistFriend,
-  cacheAnilistProfile,
-  removeAnilistFriend,
-} from "@/store/anilist.store";
+import { addAnilistFriend, cacheAnilistProfile, removeAnilistFriend } from "@/store/anilist.store";
 import { searchAtoms, setAnilistSearchQuery, subscribeSearch } from "@/store/search.store";
 import { patchSettings, settingsAtoms, syncCoverModeWithAnilistAuth } from "@/store/settings.store";
 import type {

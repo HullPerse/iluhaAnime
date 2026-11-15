@@ -4,7 +4,12 @@ import { anilistFriendsAtoms } from "@/store/anilist.store";
 import { useCell } from "@hullperse/hp_utils/react";
 import { buildAniListSource } from "@/routes/components/anilist/source.anilist";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/anilistGroup.utils";
-import { hasAnyFavourites, isLocalSearch, pickDisplayEntries, routePeople } from "@/lib/anilist/anilistRoute.utils";
+import {
+  hasAnyFavourites,
+  isLocalSearch,
+  pickDisplayEntries,
+  routePeople,
+} from "@/lib/anilist/anilistRoute.utils";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
 import type { LocalMediaFilter } from "@/lib/anilist/entries.utils";
 import type { EntryLookup } from "@/types/anilist/entries";
@@ -46,7 +51,10 @@ export function useAnilistIdentity({
     [lists]
   );
   const listIds = useMemo(
-    () => [ALL_LISTS_ID, ...lists.filter((list) => list.entries.length > 0).map((list) => list.name)],
+    () => [
+      ALL_LISTS_ID,
+      ...lists.filter((list) => list.entries.length > 0).map((list) => list.name),
+    ],
     [lists]
   );
   const hasFavourites = hasAnyFavourites(favourites, people);
@@ -119,10 +127,7 @@ export function useAnilistEntries({
   searchResults: AniMedia[];
   globalSort: GlobalSort;
 }) {
-  const activeEntries = useMemo(
-    () => activeListEntries(lists, currentList),
-    [lists, currentList]
-  );
+  const activeEntries = useMemo(() => activeListEntries(lists, currentList), [lists, currentList]);
   const filteredEntries = useMemo(
     () => filterEntries(activeEntries, filterTerms, global, filters, localFilter),
     [activeEntries, filterTerms, global, filters, localFilter]

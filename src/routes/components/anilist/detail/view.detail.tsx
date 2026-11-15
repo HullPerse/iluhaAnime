@@ -5,9 +5,7 @@ import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { setCrossSearchQuery } from "@/store/search.store";
-import type {
-  AniDetailViewProps as ViewProps,
-} from "@/types/anilist/anilistUi";
+import type { AniDetailViewProps as ViewProps } from "@/types/anilist/anilistUi";
 import { detailErrorText } from "@/lib/anilist/detailError.utils";
 
 import { DetailHeaderActions } from "@/routes/components/anilist/detail/actions.detail";

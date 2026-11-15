@@ -105,9 +105,7 @@ export const insertListEntry = (
     }
     const target =
       old.lists.find((list) => list.name === LIST_NAME_BY_STATUS[draft.list_status]) ??
-      old.lists.find((list) =>
-        list.entries.some((item) => item.list_status === draft.list_status)
-      );
+      old.lists.find((list) => list.entries.some((item) => item.list_status === draft.list_status));
     if (!target) {
       const name = LIST_NAME_BY_STATUS[draft.list_status] ?? draft.list_status;
       return { ...old, lists: [...old.lists, { name, entries: [entry] }] };

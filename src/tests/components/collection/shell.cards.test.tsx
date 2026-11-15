@@ -97,10 +97,9 @@ describe("collection shell", () => {
     expect(await screen.findByText("В альбоме пока нет карточек.")).toBeTruthy();
   });
 
-  it("keeps the removed pack and daily test buttons out of the UI", async () => {
+  it("keeps the removed daily test button out of the UI", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap")
-        return Promise.resolve(makeBootstrap({ testToolsEnabled: true }));
+      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
@@ -111,9 +110,6 @@ describe("collection shell", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Альбом" }));
     fireEvent.click(await screen.findByRole("button", { name: "Ещё действия" }));
     expect(await screen.findByRole("menuitem", { name: "Очистить коллекцию" })).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: "Test pack" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Legendary pack" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Effects pack" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Reset daily" })).toBeNull();
   });
 

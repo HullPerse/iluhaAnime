@@ -91,7 +91,8 @@ export class TorrentApi {
     if (source === "rutracker") result = await this.call("search_rutracker", base);
     else if (source === "nyaa") result = await this.call("search_nyaa", paged);
     else if (source === "sukebei") result = await this.call("search_sukebei", paged);
-    else if (source === "nekobt") result = await this.call("search_nekobt", { ...base, page: args.page });
+    else if (source === "nekobt")
+      result = await this.call("search_nekobt", { ...base, page: args.page });
     else result = await this.call("search_erairaws", base);
     assertSchema(result, SearchResultListSchema);
     return result;
@@ -191,11 +192,7 @@ export class TorrentApi {
     return this.call("fetch_torrent_bytes", { url, proxyUrl: proxy });
   }
 
-  async getTorrentDetails(
-    source: string,
-    url: string,
-    proxyUrl?: string
-  ): Promise<TorrentDetails> {
+  async getTorrentDetails(source: string, url: string, proxyUrl?: string): Promise<TorrentDetails> {
     const proxy = proxyUrl ?? this.proxyFor(source);
     const details = await this.call<TorrentDetails>("get_torrent_details", {
       source,

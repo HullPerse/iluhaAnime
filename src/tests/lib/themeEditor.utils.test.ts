@@ -12,9 +12,7 @@ describe("editorHeaderKey", () => {
   });
 
   it("distinguishes editing an existing theme from creating one", () => {
-    expect(editorHeaderKey({ patchMode: false, isEdit: true })).toBe(
-      "settings.theme.edit.title"
-    );
+    expect(editorHeaderKey({ patchMode: false, isEdit: true })).toBe("settings.theme.edit.title");
     expect(editorHeaderKey({ patchMode: false, isEdit: false })).toBe(
       "settings.theme.create.title"
     );

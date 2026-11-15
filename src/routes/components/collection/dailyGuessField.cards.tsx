@@ -10,6 +10,30 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { createListNavigationHandler } from "@/lib/ui/keyboard.utils";
 import type { DailyGuessSuggestion } from "@/types/ui/daily";
 
+function fieldVisibility({
+  dismissed,
+  focused,
+  loading,
+  query,
+  selected,
+  suggestionCount,
+}: {
+  dismissed: boolean;
+  focused: boolean;
+  loading: boolean;
+  query: string;
+  selected: DailyGuessSuggestion | null;
+  suggestionCount: number;
+}): { showList: boolean; showLoading: boolean; showState: boolean } {
+  const open = focused && !dismissed && selected === null;
+  const typing = query.trim().length >= 2;
+  return {
+    showList: open && suggestionCount > 0,
+    showLoading: open && typing && loading,
+    showState: open && typing && !loading && suggestionCount === 0,
+  };
+}
+
 export default function DailyGuessField({
   enabled,
   onQueryChange,
@@ -33,16 +57,14 @@ export default function DailyGuessField({
   const listRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
   const { suggestions, loading } = useDailyGuessSuggestions(query, enabled && selected === null);
-  const showList = focused && !dismissed && selected === null && suggestions.length > 0;
-  const showState =
-    focused &&
-    !dismissed &&
-    selected === null &&
-    query.trim().length >= 2 &&
-    !loading &&
-    suggestions.length === 0;
-  const showLoading =
-    focused && !dismissed && selected === null && query.trim().length >= 2 && loading;
+  const { showList, showLoading, showState } = fieldVisibility({
+    dismissed,
+    focused,
+    loading,
+    query,
+    selected,
+    suggestionCount: suggestions.length,
+  });
 
   useEffect(() => {
     setActiveIndex(suggestions.length > 0 ? 0 : -1);
@@ -60,7 +82,6 @@ export default function DailyGuessField({
     onQueryChange(suggestion.title);
     setDismissed(true);
     setActiveIndex(-1);
-    inputRef.current?.focus();
   };
 
   const navigation = createListNavigationHandler<HTMLInputElement>({
@@ -82,8 +103,7 @@ export default function DailyGuessField({
     navigation(event);
   };
 
-  const activeId =
-    showList && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
+  const activeId = showList && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
 
   return (
     <>
@@ -164,7 +184,10 @@ export default function DailyGuessField({
               className="daily-suggestion"
               onMouseDown={(event) => event.preventDefault()}
               onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => choose(suggestion)}
+              onClick={() => {
+                choose(suggestion);
+                inputRef.current?.focus();
+              }}
             >
               {suggestion.coverUrl !== null && (
                 <Image src={suggestion.coverUrl} alt="" className="daily-suggestion-cover" />

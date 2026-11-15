@@ -151,7 +151,7 @@ describe("Torrent details image lightbox", () => {
 
     expect(screen.getByText("1 / 2")).not.toBeNull();
     const backs = screen.getAllByRole("button", { name: "Назад" });
-    await user.click(backs[backs.length - 1] as HTMLElement);
+    await user.click(backs.at(-1) as HTMLElement);
 
     expect(imageAt(SHOT_TWO)).not.toBeNull();
     expect(imageAt(SHOT_ONE)).toBeNull();

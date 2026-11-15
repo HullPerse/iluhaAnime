@@ -121,11 +121,7 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
           hwdecReloadRef.current = null;
           setLoadingFile(false);
           reportBackgroundError("player.hwdec.reload", error);
-          addNotification(
-            translate("player.media.error.title"),
-            "error",
-            String(error)
-          );
+          addNotification(translate("player.media.error.title"), "error", String(error));
         });
     },
     [hwdecReloadRef, setLoadingFile]

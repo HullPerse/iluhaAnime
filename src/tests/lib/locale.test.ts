@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { CHANGELOG } from "@/config/system/changelog.config";
-import {
-  isChangelogLocaleLoaded,
-  loadChangelogLocale,
-  translate,
-} from "@/lib/locale/i18n.utils";
+import { isChangelogLocaleLoaded, loadChangelogLocale, translate } from "@/lib/locale/i18n.utils";
 import ru from "@/lib/locale/ru";
 import { ruChangelog } from "@/lib/locale/ru.changelog";
 import { patchSettings } from "@/store/settings.store";

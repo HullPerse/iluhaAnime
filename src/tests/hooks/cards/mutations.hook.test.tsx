@@ -35,28 +35,17 @@ afterEach(() => {
 });
 
 describe("cards mutations", () => {
-  it("grants a test pack and invalidates every card query", async () => {
-    vi.spyOn(cardsApi, "grantTestPack").mockResolvedValue(PACK);
+  it("invalidates every card query after a mutation", async () => {
+    vi.spyOn(cardsApi, "resetCollection").mockResolvedValue(1);
     const { client, wrapper } = setup();
     client.setQueryData(queryKeys.cardsPacks(""), []);
     const { result } = renderHook(() => useCardsMutations(), { wrapper });
 
-    act(() => result.current.grantTestPack.mutate());
+    act(() => result.current.resetCollection.mutate());
 
-    await waitFor(() => expect(result.current.grantTestPack.isSuccess).toBe(true));
-    expect(cardsApi.grantTestPack).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.resetCollection.isSuccess).toBe(true));
+    expect(cardsApi.resetCollection).toHaveBeenCalledTimes(1);
     expect(client.getQueryState(queryKeys.cardsPacks(""))?.isInvalidated).toBe(true);
-  });
-
-  it("grants the legendary test pack", async () => {
-    const spy = vi.spyOn(cardsApi, "grantTestLegendaryPack").mockResolvedValue(PACK);
-    const { wrapper } = setup();
-    const { result } = renderHook(() => useCardsMutations(), { wrapper });
-
-    act(() => result.current.grantTestLegendaryPack.mutate());
-
-    await waitFor(() => expect(result.current.grantTestLegendaryPack.isSuccess).toBe(true));
-    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it("buys the themed pack and invalidates the wallet", async () => {

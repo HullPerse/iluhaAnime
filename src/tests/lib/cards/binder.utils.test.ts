@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  BINDER_PAGE_SIZE,
-  binderPocketIndex,
-  buildBinderPage,
-} from "@/lib/cards/binder.utils";
+import { BINDER_PAGE_SIZE, binderPocketIndex, buildBinderPage } from "@/lib/cards/binder.utils";
 
 describe("binder utils", () => {
   it("keeps twelve pockets and clamps an empty collection to page zero", () => {
@@ -24,7 +20,10 @@ describe("binder utils", () => {
     expect(one.from).toBe(1);
     expect(one.to).toBe(1);
 
-    const full = buildBinderPage(Array.from({ length: 12 }, (_, index) => index), 0);
+    const full = buildBinderPage(
+      Array.from({ length: 12 }, (_, index) => index),
+      0
+    );
     expect(full.slots).toEqual(Array.from({ length: 12 }, (_, index) => index));
     expect(full.pageCount).toBe(1);
     expect(full.to).toBe(12);

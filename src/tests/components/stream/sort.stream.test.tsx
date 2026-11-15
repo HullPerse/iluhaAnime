@@ -37,7 +37,9 @@ describe("StreamSortBar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Название" }));
     expect(streamFilters.get().sortBy).toBe("name");
     expect(streamFilters.get().sortType).toBe("asc");
-    expect(screen.getByRole("button", { name: "Название" }).getAttribute("aria-current")).toBe("true");
+    expect(screen.getByRole("button", { name: "Название" }).getAttribute("aria-current")).toBe(
+      "true"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Популярное" }));
     expect(streamFilters.get().sortBy).toBe("views");

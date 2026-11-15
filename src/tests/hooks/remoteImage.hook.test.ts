@@ -105,7 +105,10 @@ describe("prefetchRemoteImages", () => {
     patchSettings({ anilistProxyUrl: "socks5://127.0.0.1:10808" });
     invokeMock.mockResolvedValue({ id: "card-2", path: "C:/images/card-2.jpg" });
     const { result, unmount } = renderHook(() =>
-      useRemoteImageStatus("https://s4.anilist.co/file/anilistcdn/card-2.jpg", "http://127.0.0.1:7890")
+      useRemoteImageStatus(
+        "https://s4.anilist.co/file/anilistcdn/card-2.jpg",
+        "http://127.0.0.1:7890"
+      )
     );
 
     await waitFor(() => {
@@ -147,7 +150,10 @@ describe("prefetchRemoteImages", () => {
       }
       return Promise.resolve({ id: "high", path: "C:/images/high.jpg" });
     });
-    const urls = Array.from({ length: 32 }, (_, index) => `https://example.com/priority-${index}.jpg`);
+    const urls = Array.from(
+      { length: 32 },
+      (_, index) => `https://example.com/priority-${index}.jpg`
+    );
     const prefetching = prefetchRemoteImages(urls);
     expect(invokeMock).toHaveBeenCalledTimes(4);
 

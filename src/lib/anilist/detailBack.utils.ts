@@ -1,6 +1,4 @@
-import type {
-  AniListOverlayScreen,
-} from "@/types/anilist/anilistUi";
+import type { AniListOverlayScreen } from "@/types/anilist/anilistUi";
 
 export function resolveDetailBack(
   screenTop: AniListOverlayScreen | null,

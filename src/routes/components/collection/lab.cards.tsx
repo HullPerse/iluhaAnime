@@ -46,7 +46,6 @@ export default function CardsLab() {
   const [dustOpen, setDustOpen] = useState<boolean>(false);
   const [giftOpen, setGiftOpen] = useState<boolean>(false);
 
-
   return (
     <main className="bg-background text-text min-h-screen w-full p-2">
       <header className="windows95-active-border bg-secondary flex flex-wrap items-center gap-2 px-2 py-1">

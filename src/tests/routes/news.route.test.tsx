@@ -17,9 +17,7 @@ import type { UserImageFile } from "@/types/core/userimage";
 import type { NewsItem, NewsPage } from "@/types/news/news";
 
 vi.mock("@/routes/components/anilist/detail/modal.detail", () => ({
-  default: ({ animeId }: { animeId: number }) => (
-    <div data-testid="anilist-detail">{animeId}</div>
-  ),
+  default: ({ animeId }: { animeId: number }) => <div data-testid="anilist-detail">{animeId}</div>,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -177,7 +175,9 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
+    await userEvent.click(
+      within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]
+    );
 
     expect(document.querySelector('img[src="https://shikimori.io/a/full.jpg"]')).not.toBeNull();
     expect(mockOpenUrl).not.toHaveBeenCalled();
@@ -187,7 +187,9 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(withYoutube.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Воспроизвести видео" })[0]);
+    await userEvent.click(
+      within(dialog).getAllByRole("button", { name: "Воспроизвести видео" })[0]
+    );
 
     const player = document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]');
     expect(player).not.toBeNull();
@@ -200,7 +202,9 @@ describe("news route", () => {
     const vk = first.attachments.find((attachment) => attachment.kind === "vk");
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Воспроизвести видео VK" })[0]);
+    await userEvent.click(
+      within(dialog).getAllByRole("button", { name: "Воспроизвести видео VK" })[0]
+    );
 
     const frame = document.querySelector("iframe");
     expect(frame?.getAttribute("src")).toBe(vk?.embedUrl);
@@ -211,7 +215,9 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
+    await userEvent.click(
+      within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]
+    );
     fireEvent.contextMenu(openImageMenu());
 
     await waitFor(() => screen.getByRole("menuitem", { name: "Копировать картинку" }));
@@ -224,7 +230,9 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
+    await userEvent.click(
+      within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]
+    );
     fireEvent.contextMenu(openImageMenu());
     await userEvent.click(await screen.findByRole("menuitem", { name: "Копировать картинку" }));
 
@@ -243,9 +251,13 @@ describe("news route", () => {
     renderRoute();
 
     const dialog = await openReader(first.title);
-    await userEvent.click(within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]);
+    await userEvent.click(
+      within(dialog).getAllByRole("button", { name: "Открыть изображение" })[0]
+    );
     fireEvent.contextMenu(openImageMenu());
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Сохранить картинку как..." }));
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Сохранить картинку как..." })
+    );
 
     await waitFor(() =>
       expect(mockDialogSave).toHaveBeenCalledWith(
@@ -282,9 +294,7 @@ describe("news route", () => {
     const dialog = await openReader(first.title);
     await userEvent.click(within(dialog).getByRole("button", { name: "Детали в AniList" }));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("anilist-detail").textContent).toBe("194213")
-    );
+    await waitFor(() => expect(screen.getByTestId("anilist-detail").textContent).toBe("194213"));
     expect(mockInvoke).toHaveBeenCalledWith("news_anime_link", { shikimoriId: 61813 });
   });
 

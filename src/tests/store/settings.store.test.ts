@@ -34,6 +34,11 @@ describe("settings signal migration", () => {
     expect(result.anilistPageSize).toBe(10);
   });
 
+  it("defaults card art fill off and preserves an enabled choice", () => {
+    expect(settings.migrateSettingsData({}, 61).cardImageFill).toBe(false);
+    expect(settings.migrateSettingsData({ cardImageFill: true }, 61).cardImageFill).toBe(true);
+  });
+
   it("defaults fastLaunch to false on v45 and keeps an explicit opt-out", () => {
     expect(settings.migrateSettingsData({ language: "en" }, 44).fastLaunch).toBe(false);
     expect(settings.migrateSettingsData({ language: "en", fastLaunch: true }, 44).fastLaunch).toBe(

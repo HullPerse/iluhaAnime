@@ -1,13 +1,12 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useCallback } from "react";
 
-import { streamApi } from "@/api/stream.api";
 import { AUDIO_FILTERS, SUBTITLE_FILTERS } from "@/config/player/fileFilters.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, reportBackgroundError, withFallback } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { addExternalAudio, addExternalSubtitle, selectTrack } from "@/lib/player/playback.utils";
-import { emptyPrefs, withTrack } from "@/lib/player/streamPrefs.utils";
+import { rememberStreamPrefs } from "@/lib/player/streamPreferences.utils";
 import { nextTrackId } from "@/lib/torrent/tracks.utils";
 import { setMediaTrack } from "@/store/media.store";
 import { markTrackSelected, playbackAtoms, streamSession } from "@/store/player.store";
@@ -18,10 +17,12 @@ export function usePlayerTracks() {
 
   const rememberStreamTrack = useCallback(
     async (session: StreamOpen, kind: "audio" | "sub", language: string) => {
-      const [loaded] = await attempt(streamApi.prefsGet(session.sourceId, session.mediaId));
-      const base = loaded ?? emptyPrefs(session.sourceId, session.mediaId);
-      const [failure] = await attempt(streamApi.prefsSave(withTrack(base, kind, language)));
-      if (failure) reportBackgroundError("player.stream.prefs", failure);
+      await rememberStreamPrefs(
+        session,
+        kind === "audio"
+          ? { audioLang: language }
+          : { subLang: language, subEnabled: language !== "no" }
+      );
     },
     []
   );
@@ -41,18 +42,30 @@ export function usePlayerTracks() {
   );
 
   const onSelectTrack = useCallback(
-    (kind: "audio" | "sub") => (id: number | "no") => {
+    (kind: "audio" | "sub") => async (id: number | "no") => {
       const previous = playbackAtoms.tracks.get();
+      const path = playbackAtoms.path.get();
+      const session = streamSession.get();
       markTrackSelected(kind, id);
-      selectTrack(kind, id).catch(() => playbackAtoms.tracks.set(previous));
+      const optimistic = playbackAtoms.tracks.get();
+      const [, failure] = await attempt(selectTrack(kind, id));
+      const current = playbackAtoms.path.get() === path && streamSession.get() === session;
+      if (failure) {
+        if (current && playbackAtoms.tracks.get() === optimistic) {
+          playbackAtoms.tracks.set(previous);
+        }
+        reportBackgroundError("player.track.select", failure);
+        return;
+      }
+      if (!current) return;
       if (typeof id === "number") {
-        const track = playbackAtoms.tracks.get().find((entry) => entry.id === id);
+        const track = previous.find((entry) => entry.type === kind && entry.id === id);
         if (track) persistTrack(track, kind);
         return;
       }
       if (id === "no" && kind === "sub") {
-        const session = streamSession.get();
         if (session) ignore(rememberStreamTrack(session, "sub", "no"));
+        else if (path) setMediaTrack(path, "sub", "no");
       }
     },
     [persistTrack, rememberStreamTrack]
@@ -62,7 +75,7 @@ export function usePlayerTracks() {
     (kind: "audio" | "sub") => {
       const id = nextTrackId(playbackAtoms.tracks.get(), kind);
       if (id === null) return;
-      onSelectTrack(kind)(id);
+      ignore(onSelectTrack(kind)(id));
     },
     [onSelectTrack]
   );

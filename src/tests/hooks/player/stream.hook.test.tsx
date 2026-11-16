@@ -82,6 +82,64 @@ afterEach(() => {
 });
 
 describe("usePlayerStream", () => {
+  it("does not open an obsolete voice-over after another episode was selected", async () => {
+    let finish!: (value: StreamSource[]) => void;
+    cache.loadSources.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    streamSession.set(session());
+    const { result } = renderHook(() => usePlayerStream());
+    const pending = result.current.switchVariant(KODIK);
+    const newer = { ...session(), episodeId: "99", mediaUrl: "https://cdn/new.mp4" };
+    streamSession.set(newer);
+    finish([
+      {
+        variantId: "Kodik:9",
+        url: "https://cdn/old.mp4",
+        type: "mp4",
+        quality: "720",
+        label: "720p",
+        headers: {},
+        subtitles: [],
+        audioTracks: [],
+      },
+    ]);
+    await pending;
+    expect(openStream).not.toHaveBeenCalled();
+    expect(streamSession.get()).toEqual(newer);
+  });
+
+  it("does not open a resolved voice-over after its owner unmounts", async () => {
+    let finish!: (value: StreamSource[]) => void;
+    cache.loadSources.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    streamSession.set(session());
+    const { result, unmount } = renderHook(() => usePlayerStream());
+    const pending = result.current.switchVariant(KODIK);
+    unmount();
+    finish([
+      {
+        variantId: "Kodik:9",
+        url: "https://cdn/old.mp4",
+        type: "mp4",
+        quality: "720",
+        label: "720p",
+        headers: {},
+        subtitles: [],
+        audioTracks: [],
+      },
+    ]);
+    await pending;
+    expect(openStream).not.toHaveBeenCalled();
+  });
+
   it("uses the rows carried by the open request instead of fetching them again", async () => {
     streamSession.set(session([KODIK, NATIVE]));
 

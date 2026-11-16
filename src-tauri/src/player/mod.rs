@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod core;
 pub mod state;
+mod validation;
 pub mod watch;
 
 #[cfg(debug_assertions)]

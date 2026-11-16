@@ -17,6 +17,7 @@ use crate::app_db;
 const PREFS_NAMESPACE: &str = "stream";
 const PREFS_KEY_PREFIX: &str = "prefs:";
 const MAX_FIELD_LEN: usize = 256;
+static PREFS_WRITE: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -93,22 +94,88 @@ pub fn save(app: &AppHandle, mut prefs: StreamPrefs) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn stream_prefs_get(
+pub async fn stream_prefs_get(
     app: AppHandle,
     source_id: String,
     media_id: String,
 ) -> Result<Option<StreamPrefs>, String> {
-    Ok(load(&app, &source_id, &media_id))
+    tauri::async_runtime::spawn_blocking(move || load(&app, &source_id, &media_id))
+        .await
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-pub fn stream_prefs_save(app: AppHandle, prefs: StreamPrefs) -> Result<(), String> {
-    save(&app, prefs)
+pub async fn stream_prefs_save(
+    app: AppHandle,
+    prefs: StreamPrefs,
+    fields: Option<Vec<String>>,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let _write = PREFS_WRITE
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let next = if let Some(fields) = fields {
+            let payload = app_db::read_cached_payload(
+                &app,
+                PREFS_NAMESPACE,
+                &prefs_key(&prefs.source_id, &prefs.media_id),
+            )?;
+            let base = payload
+                .map(|text| {
+                    serde_json::from_str(&text)
+                        .map_err(|error| format!("invalid stream preferences: {error}"))
+                })
+                .transpose()?
+                .unwrap_or_else(|| prefs.clone());
+            merge_fields(base, &prefs, &fields)?
+        } else {
+            prefs
+        };
+        save(&app, next)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+fn merge_fields(
+    mut base: StreamPrefs,
+    patch: &StreamPrefs,
+    fields: &[String],
+) -> Result<StreamPrefs, String> {
+    for field in fields {
+        match field.as_str() {
+            "variantId" => base.variant_id.clone_from(&patch.variant_id),
+            "quality" => base.quality.clone_from(&patch.quality),
+            "audioLang" => base.audio_lang.clone_from(&patch.audio_lang),
+            "subLang" => base.sub_lang.clone_from(&patch.sub_lang),
+            "subEnabled" => base.sub_enabled = patch.sub_enabled,
+            _ => return Err(format!("unknown stream preference field: {field}")),
+        }
+    }
+    Ok(base)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_quality_patch_preserves_a_concurrent_language_selection() {
+        let base = StreamPrefs {
+            audio_lang: "ja".into(),
+            sub_lang: "ru".into(),
+            ..Default::default()
+        };
+        let patch = StreamPrefs {
+            quality: "1080p".into(),
+            ..Default::default()
+        };
+        let merged = merge_fields(base, &patch, &["quality".into()]).unwrap();
+        assert_eq!(merged.audio_lang, "ja");
+        assert_eq!(merged.sub_lang, "ru");
+        assert_eq!(merged.quality, "1080p");
+        assert!(merge_fields(merged, &patch, &["sourceId".into()]).is_err());
+    }
 
     #[test]
     fn the_key_is_scoped_to_source_and_title() {

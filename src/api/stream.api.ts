@@ -163,8 +163,11 @@ export class StreamApi {
     });
   }
 
-  async prefsSave(prefs: StreamPrefs): Promise<void> {
-    await this.transport.call<null>("stream_prefs_save", { prefs });
+  async prefsSave(prefs: StreamPrefs, fields?: string[]): Promise<void> {
+    await this.transport.call<null>("stream_prefs_save", {
+      prefs,
+      ...(fields === undefined ? {} : { fields }),
+    });
   }
 
   async historyRecent(limit = 50): Promise<StreamHistoryEntry[]> {

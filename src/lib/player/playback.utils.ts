@@ -14,6 +14,8 @@ import {
 } from "@/schemas/player.schema";
 import { clamp } from "@hullperse/hp_utils/math";
 import { joinMediaPath } from "@/lib/player/media.utils";
+import { translate } from "@/lib/locale/i18n.utils";
+import { addNotification } from "@/store/notification.store";
 import type {
   EndOfFileMode,
   PlayerOpenRequest,
@@ -249,13 +251,29 @@ export async function closePlayerWindow(): Promise<void> {
 export async function loadQueue(
   files: string[],
   resume?: number,
-  startIndex?: number
+  startIndex?: number,
+  requestId?: number
 ): Promise<void> {
-  await invokeTyped("player_load", { files, resume, startIndex });
+  await invokeTyped("player_load", { files, resume, startIndex, requestId });
 }
 
-async function runMpvCommand(name: string, args: unknown[] = []): Promise<void> {
-  await invokeTyped("player_command", { name, args });
+async function runMpvCommand(
+  name: string,
+  args: unknown[] = [],
+  expectedPath?: string
+): Promise<void> {
+  const [, error] = await attempt(
+    invokeTyped("player_command", {
+      name,
+      args,
+      ...(expectedPath === undefined ? {} : { expectedPath }),
+    })
+  );
+  if (error !== null) {
+    reportBackgroundError(`player.command.${name}`, error);
+    addNotification(translate("player.media.error.title"), "error", error.message);
+    throw error;
+  }
 }
 
 export async function runPlayerCommand(name: string, args: string[] = []): Promise<void> {
@@ -267,7 +285,11 @@ export async function playerShaderPath(id: string): Promise<string> {
 }
 
 export async function setMpvProperty(name: string, value: unknown): Promise<void> {
-  await invokeTyped("player_set_property", { name, value });
+  const [, error] = await attempt(invokeTyped("player_set_property", { name, value }));
+  if (error !== null) {
+    reportBackgroundError(`player.property.${name}`, error);
+    throw error;
+  }
 }
 
 type MpvPropertyFormat = "double" | "flag" | "int64" | "string";
@@ -331,13 +353,17 @@ export function selectTrack(kind: "audio" | "sub", id: number | "no" | "auto"): 
   return setMpvProperty(kind === "audio" ? "aid" : "sid", String(id));
 }
 
-export async function applyFileState(state: FilePlaybackState): Promise<void> {
+export async function applyFileState(
+  state: FilePlaybackState,
+  expectedPath?: string
+): Promise<void> {
   await invokeTyped("player_apply_file_state", {
     speed: state.speed,
     subDelay: state.subDelay,
     audioDelay: state.audioDelay,
     audioTrack: state.audioTrack ?? null,
     subtitleTrack: state.subtitleTrack ?? null,
+    ...(expectedPath === undefined ? {} : { expectedPath }),
   });
 }
 
@@ -396,12 +422,12 @@ export function addExternalAudio(path: string): Promise<void> {
   return runMpvCommand("audio-add", [path, "select"]);
 }
 
-export function addExternalSubtitleAuto(path: string): Promise<void> {
-  return runMpvCommand("sub-add", [path, "auto"]);
+export function addExternalSubtitleAuto(path: string, expectedPath?: string): Promise<void> {
+  return runMpvCommand("sub-add", [path, "auto"], expectedPath);
 }
 
-export function addExternalAudioAuto(path: string): Promise<void> {
-  return runMpvCommand("audio-add", [path, "auto"]);
+export function addExternalAudioAuto(path: string, expectedPath?: string): Promise<void> {
+  return runMpvCommand("audio-add", [path, "auto"], expectedPath);
 }
 
 export async function readPath(): Promise<string> {

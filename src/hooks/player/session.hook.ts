@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { RefObject } from "react";
 
 import { EOF_MODE_MPV_PROPS } from "@/config/player/eofMode.config";
@@ -32,14 +32,17 @@ import type { PlaylistWatch } from "@/types/player/videoPlayer";
  * and taking the pending open request twice (a duplicate `loadfile`).
  */
 let sessionStart: Promise<void> | null = null;
+let destroyTask: ScheduledTask | null = null;
 
 function startPlayerSession(initialOptions: Record<string, unknown>): Promise<void> {
   if (sessionStart !== null) return sessionStart;
 
   const started = (async () => {
-    const store = getPlayerSnapshot();
     await initPlayer(initialOptions);
+    const store = getPlayerSnapshot();
     const batchProps: Record<string, unknown> = {
+      hwdec: store.hwdec,
+      volume: Math.round(store.volume * 100),
       ...hdrOptions(store.settings),
       ...colorOptions(store.settings),
       ...audioOptions(store.settings),
@@ -69,17 +72,18 @@ export function usePlayerSession({
   syncMarginsRef: RefObject<(force?: boolean) => void>;
   resumeRef: RefObject<number | undefined>;
 }) {
-  const destroyTaskRef = useRef<ScheduledTask | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState<boolean>(false);
   const [loadingFile, setLoadingFile] = useState<boolean>(false);
   const [liveWatch, setLiveWatch] = useState<PlaylistWatch | null>(null);
 
   useEffect(() => {
-    if (destroyTaskRef.current !== null) {
-      destroyTaskRef.current.cancel();
-      destroyTaskRef.current = null;
+    if (destroyTask !== null) {
+      destroyTask.cancel();
+      destroyTask = null;
     }
     let disposed = false;
+    if (attempt > 0) sessionStart = null;
 
     const start = async () => {
       const store = getPlayerSnapshot();
@@ -109,7 +113,7 @@ export function usePlayerSession({
         resumeRef.current = request.resume;
         setLiveWatch(request.watch ?? null);
         setLoadingFile(true);
-        await loadQueue(request.files, request.resume, request.startIndex);
+        await loadQueue(request.files, request.resume, request.startIndex, request.requestId);
       }
     };
 
@@ -124,15 +128,21 @@ export function usePlayerSession({
 
     return () => {
       disposed = true;
-      destroyTaskRef.current = scheduleTask("timeout", 0, () => {
-        destroyTaskRef.current = null;
+      destroyTask = scheduleTask("timeout", 0, () => {
+        destroyTask = null;
         // The instance is torn down with the window, so the next real mount
         // has to initialize a fresh session instead of reusing this cache.
         sessionStart = null;
         ignore(destroyPlayer());
       });
     };
-  }, [resumeRef, syncMarginsRef, videoRef]);
+  }, [attempt, resumeRef, syncMarginsRef, videoRef]);
 
-  return { failed, loadingFile, liveWatch, setFailed, setLoadingFile, setLiveWatch };
+  const retrySession = useCallback(() => {
+    setFailed(false);
+    setLoadingFile(true);
+    setAttempt((value) => value + 1);
+  }, []);
+
+  return { failed, loadingFile, liveWatch, setFailed, setLoadingFile, setLiveWatch, retrySession };
 }

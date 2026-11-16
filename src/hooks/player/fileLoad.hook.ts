@@ -1,7 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import type { RefObject } from "react";
 
-import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { StreamRouteGuard } from "@/hooks/player/streamRoute.hook";
 import {
   applyFileState,
@@ -48,6 +48,12 @@ export function usePlayerFileLoad({
   setLoadingFile,
   setFailed,
 }: PlayerFileLoadDeps) {
+  useEffect(
+    () => () => {
+      loadEpochRef.current += 1;
+    },
+    [loadEpochRef]
+  );
   const reloadPlayingFile = useCallback(() => {
     const playlistIndex = playbackAtoms.playlistIndex.get();
     if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
@@ -87,9 +93,12 @@ export function usePlayerFileLoad({
     const entry = await hydrateMediaEntry(loaded);
     if (!isCurrent()) return;
 
-    await applyFileState(fileStatePatch(entry, playbackAtoms.speed.get() || 1));
+    await loadSidecarTracks(loaded, isCurrent);
     if (!isCurrent()) return;
-    await loadSidecarTracks(loaded);
+    const [, stateFailure] = await attempt(
+      applyFileState(fileStatePatch(entry, playbackAtoms.speed.get() || 1), loaded)
+    );
+    if (stateFailure) reportBackgroundError("player.file-state", stateFailure);
     if (!isCurrent()) return;
     hwdecReloadRef.current = null;
 

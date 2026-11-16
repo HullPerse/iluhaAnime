@@ -28,9 +28,11 @@ function readMediaEntry(value: unknown): MediaEntry | null {
     ...(optionalNumber(value.audioTrack) === undefined
       ? {}
       : { audioTrack: optionalNumber(value.audioTrack) }),
-    ...(optionalNumber(value.subtitleTrack) === undefined
-      ? {}
-      : { subtitleTrack: optionalNumber(value.subtitleTrack) }),
+    ...(value.subtitleTrack === "no"
+      ? { subtitleTrack: "no" as const }
+      : optionalNumber(value.subtitleTrack) === undefined
+        ? {}
+        : { subtitleTrack: optionalNumber(value.subtitleTrack) }),
   };
 }
 
@@ -129,7 +131,8 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
         })
       ),
     setTrack: (path, type, index) => {
-      const patch = type === "audio" ? { audioTrack: index } : { subtitleTrack: index };
+      if (type === "audio" && index === "no") return;
+      const patch = type === "audio" ? { audioTrack: index as number } : { subtitleTrack: index };
       entries.set(patchEntry(entries.get(), path, patch));
     },
     setSubOffset: (path, offset) =>

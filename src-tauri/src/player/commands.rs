@@ -5,13 +5,10 @@ use tauri::{
     AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
 };
-use tauri_plugin_libmpv::{MpvConfig, VideoMarginRatio};
+use tauri_plugin_libmpv::{MpvConfig, MpvExt, VideoMarginRatio};
 
 use super::core::{LibmpvCore, PlayerCore};
-use super::state::{
-    current_watch_snapshot, save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch,
-    StreamOpen,
-};
+use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest, PlaylistWatch, StreamOpen};
 use super::watch::{self, WatchState};
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
 use crate::app_db;
@@ -21,6 +18,64 @@ fn clear_player_presence(app: &AppHandle) {
     if let Some(presence) = app.try_state::<crate::discord::DiscordPresence>() {
         presence.clear_player_now();
     }
+}
+
+fn install_close_handler(window: &WebviewWindow) {
+    let app = window.app_handle().clone();
+    window.on_window_event(move |event| {
+        if let WindowEvent::CloseRequested { api, .. } = event {
+            let host = app.state::<PlayerHost>();
+            if host.close_phase.load(std::sync::atomic::Ordering::Acquire) >= 2 {
+                return;
+            }
+            api.prevent_close();
+            if host
+                .close_phase
+                .compare_exchange(
+                    0,
+                    1,
+                    std::sync::atomic::Ordering::AcqRel,
+                    std::sync::atomic::Ordering::Acquire,
+                )
+                .is_ok()
+            {
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Some(window) = handle.get_webview_window(PLAYER_WINDOW_LABEL) {
+                        if let Err(error) = player_close_window(handle.clone(), window).await {
+                            handle
+                                .state::<PlayerHost>()
+                                .close_phase
+                                .store(0, std::sync::atomic::Ordering::Release);
+                            tracing::warn!("player window close failed: {error}");
+                        }
+                    }
+                });
+            }
+        }
+        if matches!(event, WindowEvent::Destroyed)
+            && app.get_webview_window(PLAYER_WINDOW_LABEL).is_none()
+        {
+            clear_player_presence(&app);
+            let id = app
+                .state::<PlayerHost>()
+                .instance_id
+                .load(std::sync::atomic::Ordering::Acquire);
+            let handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let host = handle.state::<PlayerHost>();
+                let _window = host.window_operation.lock().await;
+                let _operation = host.operation.lock().await;
+                if id != 0 && host.instance_id.load(std::sync::atomic::Ordering::Acquire) == id {
+                    if let Err(error) =
+                        destroy_instance(handle.clone(), PLAYER_WINDOW_LABEL.into()).await
+                    {
+                        tracing::warn!("player teardown failed: {error}");
+                    }
+                }
+            });
+        }
+    });
 }
 
 fn cached_player_decorations(app: &AppHandle) -> bool {
@@ -120,6 +175,18 @@ fn core(app: &AppHandle) -> LibmpvCore {
     LibmpvCore::new(app.clone())
 }
 
+async fn on_player<T: Send + 'static>(
+    app: AppHandle,
+    task: impl FnOnce(AppHandle) -> Result<T, String> + Send + 'static,
+) -> Result<T, String> {
+    let host = app.state::<PlayerHost>();
+    let _operation = host.operation.lock().await;
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || task(handle))
+        .await
+        .map_err(|error| format!("player task failed: {error}"))?
+}
+
 /// Drops the legacy hover-frame/sprite cache. The spritemap pipeline was
 /// removed, so frames already on disk would otherwise sit there forever.
 fn drop_legacy_hover_cache(app: &AppHandle) {
@@ -140,6 +207,10 @@ fn load_queue(
         return Err("no file to play".to_string());
     }
     let backend = core(app);
+    flush_watch(app);
+    backend.set_property("http-header-fields", &json!(""), window)?;
+    backend.set_property("http-proxy", &json!(""), window)?;
+    app.state::<PlayerHost>().reset_stream_options();
     // A stream leaves its cache profile on the instance, so a local file has
     // to put its own readahead and packet caps back before it loads.
     let readahead = app.state::<PlayerHost>().readahead();
@@ -156,6 +227,10 @@ fn load_queue(
     // the queue, which reordered the whole playlist (e.g. 9..12 then 1..8).
     let start = start_index.unwrap_or(0).min(files.len() - 1);
     let start_file = &files[start];
+    *app.state::<PlayerHost>()
+        .pending_stream
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
     let mut args: Vec<Value> = vec![json!(start_file), json!("replace")];
     if let Some(position) = resume {
         if position > 0.0 {
@@ -189,10 +264,6 @@ fn load_queue(
     }
     if window == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
-        host.invalidate_stream_pause();
-        host.set_current_path(start_file.clone());
-        host.set_stream_watch_key(None);
-        host.clear_pending_open();
         host.mark_dirty();
     }
     Ok(())
@@ -206,11 +277,21 @@ pub async fn player_open(
     start_index: Option<usize>,
     watch: Option<PlaylistWatch>,
 ) -> Result<(), String> {
+    let window_owner = app.clone();
+    let window_host = window_owner.state::<PlayerHost>();
+    let _window_operation = window_host.window_operation.lock().await;
+    window_host
+        .close_phase
+        .store(0, std::sync::atomic::Ordering::Release);
     drop_legacy_hover_cache(&app);
-    if files.iter().any(std::string::String::is_empty) {
+    if files.is_empty() || files.iter().any(std::string::String::is_empty) {
         return Err("player_open received an empty file path".to_string());
     }
     let request = PlayerOpenRequest {
+        request_id: window_host
+            .request_serial
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
+            + 1,
         files,
         resume,
         start_index,
@@ -270,17 +351,7 @@ pub async fn player_open(
             return Err(format!("create player window: {error}"));
         }
     };
-    window.on_window_event(move |event| {
-        if matches!(event, WindowEvent::Destroyed) {
-            clear_player_presence(&app);
-            let backend = LibmpvCore::new(app.clone());
-            let host = app.state::<PlayerHost>();
-            host.set_active(false);
-            drop(tauri::async_runtime::spawn_blocking(move || {
-                backend.destroy(PLAYER_WINDOW_LABEL)
-            }));
-        }
-    });
+    install_close_handler(&window);
     let _ = window.set_focus();
     Ok(())
 }
@@ -289,15 +360,7 @@ pub async fn player_open(
 /// task. The snapshot is taken before the media is replaced; the SQLite write
 /// must not sit in front of a switch.
 fn flush_watch(app: &AppHandle) {
-    let Some((path, state)) = current_watch_snapshot(app) else {
-        return;
-    };
-    let app = app.clone();
-    drop(tauri::async_runtime::spawn_blocking(move || {
-        if let Err(error) = watch::save(&app, &path, &state) {
-            tracing::debug!("watch position not saved: {error}");
-        }
-    }));
+    save_current_watch(app);
 }
 
 /// Open a stream media URL in the existing libmpv player.
@@ -308,14 +371,20 @@ fn flush_watch(app: &AppHandle) {
 /// capture session state (position, pause) before the replacement.
 #[tauri::command]
 pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<(), String> {
+    super::validation::stream(&stream)?;
+    let window_owner = app.clone();
+    let window_host = window_owner.state::<PlayerHost>();
+    let _window_operation = window_host.window_operation.lock().await;
+    window_host
+        .close_phase
+        .store(0, std::sync::atomic::Ordering::Release);
     drop_legacy_hover_cache(&app);
 
-    // Flush the position of whatever is playing before the file is replaced.
-    // The periodic watch save runs every ten seconds; without this a switch
-    // made right after the last tick would lose that window on a crash.
-    flush_watch(&app);
-
     let request = PlayerOpenRequest {
+        request_id: window_host
+            .request_serial
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
+            + 1,
         files: vec![stream.media_url.clone()],
         resume: stream.resume,
         start_index: Some(0),
@@ -343,7 +412,10 @@ pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<()
         if !host.is_active() {
             return Ok(());
         }
-        return load_stream_queue(&app, PLAYER_WINDOW_LABEL, &request);
+        return on_player(app.clone(), move |app| {
+            load_stream_queue(&app, PLAYER_WINDOW_LABEL, &request)
+        })
+        .await;
     }
 
     app.state::<PlayerHost>().set_pending_open(Some(request));
@@ -367,17 +439,7 @@ pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<()
             return Err(format!("create player window: {error}"));
         }
     };
-    window.on_window_event(move |event| {
-        if matches!(event, WindowEvent::Destroyed) {
-            clear_player_presence(&app);
-            let backend = LibmpvCore::new(app.clone());
-            let host = app.state::<PlayerHost>();
-            host.set_active(false);
-            drop(tauri::async_runtime::spawn_blocking(move || {
-                backend.destroy(PLAYER_WINDOW_LABEL)
-            }));
-        }
-    });
+    install_close_handler(&window);
     let _ = window.set_focus();
     Ok(())
 }
@@ -405,11 +467,9 @@ fn header_fields(headers: &BTreeMap<String, String>) -> String {
         .join(",")
 }
 
-/// mpv knows `socks5`/`socks4`, not the remote-DNS spellings reqwest uses.
+/// Preserve the proxy's DNS policy for the libcurl network backend.
 fn mpv_proxy(url: &str) -> String {
-    url.trim()
-        .replacen("socks5h://", "socks5://", 1)
-        .replacen("socks4a://", "socks4://", 1)
+    url.trim().to_string()
 }
 
 /// mpv's cache settings for a stream source.
@@ -502,6 +562,7 @@ fn load_stream_media(
 
     let backend = core(app);
     let host = app.state::<PlayerHost>();
+    flush_watch(app);
 
     // A quality or voice-over switch usually keeps the same route, the same
     // headers and the same cache profile. mpv keeps those options on the
@@ -512,7 +573,25 @@ fn load_stream_media(
         .map(mpv_proxy)
         .unwrap_or_default();
     let header_string = header_fields(&stream.headers);
-    let writes = host.stream_option_writes(&proxy, &header_string, stream.paused);
+    if !proxy.is_empty() {
+        let parsed = reqwest::Url::parse(&proxy).map_err(|_| "invalid playback proxy URL")?;
+        if !["http", "https", "socks4", "socks4a", "socks5", "socks5h"].contains(&parsed.scheme()) {
+            return Err("unsupported playback proxy scheme".into());
+        }
+        let requires_curl = parsed.scheme() != "http" || stream.media_url.starts_with("https://");
+        if requires_curl
+            && backend
+                .get_property("options/curl-enabled", "flag", window)
+                .ok()
+                .and_then(|value| value.as_bool())
+                != Some(true)
+        {
+            return Err(
+                "this mpv build cannot use the selected playback proxy for this media URL".into(),
+            );
+        }
+    }
+    let writes = host.stream_option_writes(&proxy, &header_string);
 
     let applied = (|| -> Result<(), String> {
         // An empty value is a real write: a previous source's route and
@@ -545,11 +624,9 @@ fn load_stream_media(
         }
         // `pause` is set before the file loads: mpv keeps the player paused
         // while it opens, which is what a switch from a paused stream needs.
-        if writes.pause {
-            backend
-                .set_property("pause", &json!(stream.paused), window)
-                .map_err(|error| format!("set pause for stream: {error}"))?;
-        }
+        backend
+            .set_property("pause", &json!(stream.paused), window)
+            .map_err(|error| format!("set pause for stream: {error}"))?;
         Ok(())
     })();
     if let Err(error) = applied {
@@ -560,6 +637,10 @@ fn load_stream_media(
     }
 
     let mut args: Vec<Value> = vec![json!(stream.media_url), json!("replace")];
+    *host
+        .pending_stream
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(stream.clone());
     if let Some(position) = request.resume {
         if position > 0.0 {
             args.push(json!(-1));
@@ -584,44 +665,6 @@ fn load_stream_queue(
 
     if window == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
-        if let Some(stream) = &request.stream {
-            host.set_current_path(stream.media_url.clone());
-            host.set_stream_watch_key(Some(stream.watch_key.clone()));
-            // The opening request is the only place that knows the catalog
-            // identity, so it also writes the first history row; the ticking
-            // watch save only updates the position afterwards.
-            if !stream.slug.is_empty() {
-                host.set_stream_identity(Some(crate::player::state::StreamIdentity {
-                    anime_id: stream.media_id.clone(),
-                    slug: stream.slug.clone(),
-                    title: stream.media_title.clone(),
-                    cover: stream.cover.clone(),
-                    anilist_id: stream.anilist_id,
-                    episode_id: stream.episode_id.clone(),
-                    episode_number: stream.episode_number,
-                    episode_title: Some(stream.episode_title.clone())
-                        .filter(|title| !title.is_empty()),
-                }));
-                let entry = crate::app_db::stream_history::StreamHistoryEntry {
-                    anime_id: stream.media_id.clone(),
-                    episode_id: stream.episode_id.clone(),
-                    slug: stream.slug.clone(),
-                    title: stream.media_title.clone(),
-                    cover: stream.cover.clone(),
-                    anilist_id: stream.anilist_id,
-                    episode_number: stream.episode_number,
-                    episode_title: Some(stream.episode_title.clone())
-                        .filter(|title| !title.is_empty()),
-                    episode_cover: None,
-                    position: request.resume.unwrap_or_default().max(0.0),
-                    duration: 0.0,
-                    updated_at: crate::app_db::now_seconds(),
-                };
-                if let Err(error) = crate::app_db::stream_history::record(app, entry) {
-                    tracing::debug!("stream history not opened: {error}");
-                }
-            }
-        }
         host.clear_pending_open();
         host.mark_dirty();
     }
@@ -630,7 +673,7 @@ fn load_stream_queue(
 
 #[tauri::command]
 pub fn player_take_pending_open(host: State<'_, PlayerHost>) -> Option<PlayerOpenRequest> {
-    let request = host.pending_open();
+    let request = host.take_pending_open();
     tracing::debug!(
         "player_take_pending_open: {:?}",
         request.as_ref().map(|request| request.files.len())
@@ -640,6 +683,16 @@ pub fn player_take_pending_open(host: State<'_, PlayerHost>) -> Option<PlayerOpe
 
 #[tauri::command]
 pub async fn player_init(
+    app: AppHandle,
+    window: WebviewWindow,
+    initial_options: Value,
+) -> Result<String, String> {
+    let host = app.state::<PlayerHost>();
+    let _operation = host.operation.lock().await;
+    initialize_player(app.clone(), window, initial_options).await
+}
+
+async fn initialize_player(
     app: AppHandle,
     window: WebviewWindow,
     initial_options: Value,
@@ -676,6 +729,10 @@ pub async fn player_init(
 
     if label == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
+        host.instance_id.store(
+            app.mpv().instance_id(&label).unwrap_or(0),
+            std::sync::atomic::Ordering::Release,
+        );
         // A fresh instance has none of the previous stream's options.
         host.reset_stream_options();
         host.set_active(true);
@@ -684,7 +741,12 @@ pub async fn player_init(
         // take it and restore the session identity.
         if let Some(request) = host.pending_open() {
             if request.stream.is_some() {
-                load_stream_media(&app, PLAYER_WINDOW_LABEL, &request)?;
+                let handle = app.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    load_stream_media(&handle, PLAYER_WINDOW_LABEL, &request)
+                })
+                .await
+                .map_err(|error| error.to_string())??;
             }
         }
     }
@@ -693,13 +755,18 @@ pub async fn player_init(
 
 #[tauri::command]
 pub async fn player_destroy(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    let host = app.state::<PlayerHost>();
+    let _operation = host.operation.lock().await;
     let label = window.label().to_string();
     tracing::debug!("player_destroy: tearing down mpv instance for {label}");
     if label == PLAYER_WINDOW_LABEL {
-        save_current_watch(&app);
+        let handle = app.clone();
+        tauri::async_runtime::spawn_blocking(move || save_current_watch(&handle))
+            .await
+            .map_err(|error| error.to_string())?;
         app.state::<PlayerHost>().set_active(false);
     }
-    let result = destroy_instance(app, label).await;
+    let result = destroy_instance(app.clone(), label).await;
     match &result {
         Ok(()) => tracing::debug!("player_destroy: instance torn down"),
         Err(error) => tracing::warn!("player_destroy: instance teardown failed: {error}"),
@@ -716,30 +783,51 @@ pub async fn player_restart(
     window: WebviewWindow,
     initial_options: Value,
 ) -> Result<String, String> {
+    let host = app.state::<PlayerHost>();
+    let _operation = host.operation.lock().await;
     let label = window.label().to_string();
     tracing::debug!("player_restart: rebuilding mpv instance for {label}");
     if let Err(error) = destroy_instance(app.clone(), label).await {
         tracing::debug!("player_restart: previous instance was already gone: {error}");
     }
-    player_init(app, window, initial_options).await
+    initialize_player(app.clone(), window, initial_options).await
 }
 
 async fn destroy_instance(app: AppHandle, label: String) -> Result<(), String> {
+    if label == PLAYER_WINDOW_LABEL {
+        let host = app.state::<PlayerHost>();
+        host.instance_id
+            .store(0, std::sync::atomic::Ordering::Release);
+        host.set_active(false);
+    }
     let backend = core(&app);
+    let reset = label == PLAYER_WINDOW_LABEL;
     tauri::async_runtime::spawn_blocking(move || backend.destroy(&label))
         .await
-        .map_err(|error| format!("player destroy task failed: {error}"))?
+        .map_err(|error| format!("player destroy task failed: {error}"))??;
+    if reset {
+        app.state::<PlayerHost>().reset_native_state();
+    }
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn player_close_window(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    let host = app.state::<PlayerHost>();
+    let _window_operation = host.window_operation.lock().await;
+    let _operation = host.operation.lock().await;
     let label = window.label().to_string();
     if label == PLAYER_WINDOW_LABEL {
-        save_current_watch(&app);
+        let handle = app.clone();
+        tauri::async_runtime::spawn_blocking(move || save_current_watch(&handle))
+            .await
+            .map_err(|error| error.to_string())?;
         app.state::<PlayerHost>().set_active(false);
     }
     let handle = app.get_webview_window(&label);
-    destroy_instance(app, label).await?;
+    destroy_instance(app.clone(), label).await?;
+    host.close_phase
+        .store(2, std::sync::atomic::Ordering::Release);
     if let Some(window) = handle {
         return window.close().map_err(|error| error.to_string());
     }
@@ -753,13 +841,29 @@ pub async fn player_load(
     files: Vec<String>,
     resume: Option<f64>,
     start_index: Option<usize>,
+    request_id: Option<u64>,
 ) -> Result<(), String> {
     let label = window.label().to_string();
     tracing::debug!(
         "player_load: {} file(s) resume={resume:?} start={start_index:?}",
         files.len()
     );
-    load_queue(&app, &label, &files, resume, start_index)
+    on_player(app, move |app| {
+        if request_id.is_some_and(|id| {
+            id != app
+                .state::<PlayerHost>()
+                .request_serial
+                .load(std::sync::atomic::Ordering::Acquire)
+        }) {
+            return Ok(());
+        }
+        load_queue(&app, &label, &files, resume, start_index)?;
+        if let Some(id) = request_id {
+            app.state::<PlayerHost>().clear_pending_request(id);
+        }
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
@@ -773,11 +877,14 @@ pub async fn player_append_files(
         return Err(format!("unknown append mode: {mode}"));
     }
     let label = window.label().to_string();
-    let backend = core(&app);
-    for file in &files {
-        backend.command("loadfile", &[json!(file), json!(mode)], &label)?;
-    }
-    Ok(())
+    on_player(app, move |app| {
+        let backend = core(&app);
+        for file in &files {
+            backend.command("loadfile", &[json!(file), json!(mode)], &label)?;
+        }
+        Ok(())
+    })
+    .await
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -797,22 +904,25 @@ pub async fn player_insert_files(
     if label != PLAYER_WINDOW_LABEL {
         return Err("playlist inserts only work in the player window".to_string());
     }
-    let backend = core(&app);
-    for item in &items {
-        if item.path.is_empty() {
-            return Err("player_insert_files received an empty file path".to_string());
+    on_player(app, move |app| {
+        let backend = core(&app);
+        for item in &items {
+            if item.path.is_empty() {
+                return Err("player_insert_files received an empty file path".to_string());
+            }
+            backend.command("loadfile", &[json!(item.path), json!("append")], &label)?;
+            // Move straight after appending: playlist-move keeps the entry count,
+            // so no intermediate playlist-count sample can expose the tail slot.
+            let count = scalar_int(&app, &label, "playlist-count").unwrap_or(0);
+            let from = count - 1;
+            if from < 0 {
+                return Err(format!("playlist is empty after appending {}", item.path));
+            }
+            backend.command("playlist-move", &[json!(from), json!(item.index)], &label)?;
         }
-        backend.command("loadfile", &[json!(item.path), json!("append")], &label)?;
-        // Move straight after appending: playlist-move keeps the entry count,
-        // so no intermediate playlist-count sample can expose the tail slot.
-        let count = scalar_int(&app, &label, "playlist-count").unwrap_or(0);
-        let from = count - 1;
-        if from < 0 {
-            return Err(format!("playlist is empty after appending {}", item.path));
-        }
-        backend.command("playlist-move", &[json!(from), json!(item.index)], &label)?;
-    }
-    Ok(())
+        Ok(())
+    })
+    .await
 }
 
 /// Grabs the frame mpv is currently showing so an app screenshot can put it
@@ -886,9 +996,24 @@ pub async fn player_command(
     window: WebviewWindow,
     name: String,
     args: Vec<Value>,
+    expected_path: Option<String>,
 ) -> Result<(), String> {
     let label = window.label().to_string();
-    core(&app).command(&name, &args, &label)
+    super::validation::command(&name, &args)?;
+    on_player(app, move |app| {
+        if let Some(expected) = expected_path {
+            if core(&app).get_property("path", "string", &label)?.as_str()
+                != Some(expected.as_str())
+            {
+                return Ok(());
+            }
+        }
+        if ["playlist-next", "playlist-prev", "playlist-play-index"].contains(&name.as_str()) {
+            flush_watch(&app);
+        }
+        core(&app).command(&name, &args, &label)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -899,7 +1024,11 @@ pub async fn player_set_property(
     value: Value,
 ) -> Result<(), String> {
     let label = window.label().to_string();
-    core(&app).set_property(&name, &value, &label)
+    super::validation::property(&name, &value)?;
+    on_player(app, move |app| {
+        core(&app).set_property(&name, &value, &label)
+    })
+    .await
 }
 
 /// Apply the playback profile's local readahead.
@@ -916,12 +1045,15 @@ pub async fn player_set_readahead(
 ) -> Result<(), String> {
     let label = window.label().to_string();
     let seconds = seconds.clamp(0.1, 30.0);
-    let backend = core(&app);
-    backend.set_property("demuxer-readahead-secs", &json!(seconds), &label)?;
-    if label == PLAYER_WINDOW_LABEL {
-        app.state::<PlayerHost>().set_readahead(seconds);
-    }
-    Ok(())
+    on_player(app, move |app| {
+        let backend = core(&app);
+        backend.set_property("demuxer-readahead-secs", &json!(seconds), &label)?;
+        if label == PLAYER_WINDOW_LABEL {
+            app.state::<PlayerHost>().set_readahead(seconds);
+        }
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
@@ -935,7 +1067,13 @@ pub async fn player_get_property(
         return Err("node property format is disabled: it crashes the bundled wrapper".to_string());
     }
     let label = window.label().to_string();
-    core(&app).get_property(&name, &format, &label)
+    if !["double", "flag", "int64", "string", "json"].contains(&format.as_str()) {
+        return Err("unsupported mpv property format".into());
+    }
+    on_player(app, move |app| {
+        core(&app).get_property(&name, &format, &label)
+    })
+    .await
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -953,36 +1091,46 @@ fn scalar_int(app: &AppHandle, label: &str, name: &str) -> Option<i64> {
         .and_then(|value| value.as_i64())
 }
 
-fn scalar_string(app: &AppHandle, label: &str, name: &str) -> Option<String> {
-    core(app)
-        .get_property(name, "string", label)
-        .ok()
-        .and_then(|value| value.as_str().map(str::to_string))
-}
-
 #[tauri::command]
 pub async fn player_playlist_entries(
     app: AppHandle,
     window: WebviewWindow,
 ) -> Result<Vec<PlaylistEntry>, String> {
     let label = window.label().to_string();
-    let count = scalar_int(&app, &label, "playlist-count").unwrap_or(0);
-    if count <= 0 {
-        return Ok(Vec::new());
-    }
-    let mut entries = Vec::with_capacity(count as usize);
-    for index in 0..count {
-        let filename =
-            scalar_string(&app, &label, &format!("playlist/{index}/filename")).unwrap_or_default();
-        let title =
-            scalar_string(&app, &label, &format!("playlist/{index}/title")).unwrap_or_default();
-        entries.push(PlaylistEntry {
-            index,
-            filename,
-            title,
-        });
-    }
-    Ok(entries)
+    on_player(app, move |app| {
+        parse_playlist_entries(core(&app).get_property("playlist", "json", &label)?)
+    })
+    .await
+}
+
+fn parse_playlist_entries(value: Value) -> Result<Vec<PlaylistEntry>, String> {
+    let decoded = match value {
+        Value::String(text) => {
+            serde_json::from_str(&text).map_err(|error| format!("invalid playlist: {error}"))?
+        }
+        other => other,
+    };
+    decoded
+        .as_array()
+        .ok_or("invalid playlist list".to_string())?
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| {
+            let filename = entry
+                .get("filename")
+                .and_then(Value::as_str)
+                .ok_or("playlist entry has no filename")?;
+            Ok(PlaylistEntry {
+                index: index as i64,
+                filename: filename.to_string(),
+                title: entry
+                    .get("title")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+            })
+        })
+        .collect()
 }
 
 #[tauri::command]
@@ -995,15 +1143,18 @@ pub async fn player_set_video_margin_ratio(
     bottom: Option<f64>,
 ) -> Result<(), String> {
     let label = window.label().to_string();
-    core(&app).set_video_margin_ratio(
-        VideoMarginRatio {
-            left,
-            right,
-            top,
-            bottom,
-        },
-        &label,
-    )
+    on_player(app, move |app| {
+        core(&app).set_video_margin_ratio(
+            VideoMarginRatio {
+                left,
+                right,
+                top,
+                bottom,
+            },
+            &label,
+        )
+    })
+    .await
 }
 
 /// Absolute path of a bundled player shader, in the forward-slash form mpv
@@ -1043,52 +1194,78 @@ pub async fn player_eof_mode(
     window: WebviewWindow,
     mode: String,
 ) -> Result<(), String> {
-    let backend = core(&app);
     let label = window.label().to_string();
     let Some((keep_open, loop_file, loop_playlist)) = eof_properties(&mode) else {
         return Err(format!("unknown end-of-file mode: {mode}"));
     };
     tracing::debug!("player_eof_mode: {mode}");
-    backend.set_property("keep-open", &json!(keep_open), &label)?;
-    backend.set_property("loop-file", &json!(loop_file), &label)?;
-    backend.set_property("loop-playlist", &json!(loop_playlist), &label)?;
-    Ok(())
+    on_player(app, move |app| {
+        let backend = core(&app);
+        backend.set_property("keep-open", &json!(keep_open), &label)?;
+        backend.set_property("loop-file", &json!(loop_file), &label)?;
+        backend.set_property("loop-playlist", &json!(loop_playlist), &label)?;
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn player_save_watch(app: AppHandle, path: String, state: WatchState) -> Result<(), String> {
-    watch::save(&app, &path, &state)
+pub async fn player_save_watch(
+    app: AppHandle,
+    path: String,
+    state: WatchState,
+) -> Result<(), String> {
+    on_player(app, move |app| watch::save(&app, &path, &state)).await
 }
 
 #[tauri::command]
-pub fn player_load_watch(app: AppHandle, path: String) -> Option<WatchState> {
-    watch::load(&app, &path)
+pub async fn player_load_watch(app: AppHandle, path: String) -> Option<WatchState> {
+    tauri::async_runtime::spawn_blocking(move || watch::load(&app, &path))
+        .await
+        .ok()
+        .flatten()
 }
 
 /// Applies the whole per-file playback state in one IPC roundtrip instead of
 /// 4-5 sequential property commands (speed, delays, persisted tracks).
 #[tauri::command]
-pub fn player_apply_file_state(
+pub async fn player_apply_file_state(
     app: AppHandle,
     window: WebviewWindow,
     speed: f64,
     sub_delay: f64,
     audio_delay: f64,
     audio_track: Option<i64>,
-    subtitle_track: Option<i64>,
+    subtitle_track: Option<Value>,
+    expected_path: Option<String>,
 ) -> Result<(), String> {
-    let backend = core(&app);
     let label = window.label().to_string();
-    backend.set_property("speed", &json!(speed), &label)?;
-    backend.set_property("sub-delay", &json!(sub_delay), &label)?;
-    backend.set_property("audio-delay", &json!(audio_delay), &label)?;
-    if let Some(id) = audio_track {
-        backend.set_property("aid", &json!(id.to_string()), &label)?;
-    }
-    if let Some(id) = subtitle_track {
-        backend.set_property("sid", &json!(id.to_string()), &label)?;
-    }
-    Ok(())
+    on_player(app, move |app| {
+        let backend = core(&app);
+        if let Some(expected) = expected_path {
+            if backend.get_property("path", "string", &label)?.as_str() != Some(expected.as_str()) {
+                return Ok(());
+            }
+        }
+        backend.set_property("speed", &json!(speed), &label)?;
+        backend.set_property("sub-delay", &json!(sub_delay), &label)?;
+        backend.set_property("audio-delay", &json!(audio_delay), &label)?;
+        if let Some(id) = audio_track {
+            backend.set_property("aid", &json!(id.to_string()), &label)?;
+        }
+        if let Some(id) = subtitle_track {
+            if id != json!("no") && id.as_i64().is_none() {
+                return Err("invalid subtitle track".into());
+            }
+            let selected = id
+                .as_str()
+                .map(str::to_string)
+                .unwrap_or_else(|| id.to_string());
+            backend.set_property("sid", &json!(selected), &label)?;
+        }
+        Ok(())
+    })
+    .await
 }
 
 /// Build the hidden player window ahead of the click that needs it.
@@ -1120,6 +1297,9 @@ fn prewarm_is_releasable(visible: bool, pending_open: bool, loaded_path: &str) -
 /// files, and the ~160 MB renderer goes away as soon as they are elsewhere.
 #[tauri::command]
 pub async fn player_release_prewarm(app: AppHandle) -> Result<bool, String> {
+    let host = app.state::<PlayerHost>();
+    let _window_operation = host.window_operation.lock().await;
+    let _operation = host.operation.lock().await;
     let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) else {
         return Ok(false);
     };
@@ -1139,16 +1319,23 @@ pub async fn player_release_prewarm(app: AppHandle) -> Result<bool, String> {
     tracing::info!("releasing idle player prewarm");
     app.state::<PlayerHost>().set_active(false);
     destroy_instance(app.clone(), PLAYER_WINDOW_LABEL.to_string()).await?;
+    host.close_phase
+        .store(2, std::sync::atomic::Ordering::Release);
     window.close().map_err(|error| error.to_string())?;
     Ok(true)
 }
 
 pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
+    let window_owner = app.clone();
+    let host = window_owner.state::<PlayerHost>();
+    let _window_operation = host.window_operation.lock().await;
     let label = PLAYER_WINDOW_LABEL.to_string();
 
     if app.get_webview_window(&label).is_some() {
         return Ok(());
     }
+    host.close_phase
+        .store(0, std::sync::atomic::Ordering::Release);
 
     let window = match WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(PLAYER_ROUTE.into()))
         .title("iluhaAnime")
@@ -1166,20 +1353,7 @@ pub async fn prewarm_player(app: AppHandle) -> Result<(), String> {
 
     let _ = window.set_focus();
 
-    let app_for_event = app;
-    let label_for_event = label;
-    window.on_window_event(move |event| {
-        if matches!(event, WindowEvent::Destroyed) {
-            clear_player_presence(&app_for_event);
-            let backend = LibmpvCore::new(app_for_event.clone());
-            let host = app_for_event.state::<PlayerHost>();
-            host.set_active(false);
-            let label_for_destroy = label_for_event.clone();
-            drop(tauri::async_runtime::spawn_blocking(move || {
-                backend.destroy(&label_for_destroy)
-            }));
-        }
-    });
+    install_close_handler(&window);
 
     // The window's own `player_init` creates mpv with the stored volume,
     // hwdec and video options. Initializing it here with an empty option set
@@ -1199,28 +1373,47 @@ pub async fn player_apply_batch(
     properties: Vec<(String, Value)>,
 ) -> Result<(), String> {
     let label = window.label().to_string();
-    let backend = core(&app);
-    let results: Vec<Result<(), String>> = properties
-        .into_iter()
-        .map(|(name, value)| backend.set_property(&name, &value, &label))
-        .collect();
+    for (name, value) in &properties {
+        super::validation::property(name, value)?;
+    }
+    on_player(app, move |app| {
+        let backend = core(&app);
+        let results: Vec<Result<(), String>> = properties
+            .into_iter()
+            .map(|(name, value)| backend.set_property(&name, &value, &label))
+            .collect();
 
-    let mut failed: Vec<String> = Vec::new();
-    for (i, result) in results.into_iter().enumerate() {
-        if let Err(error) = result {
-            failed.push(format!("{i}: {error}"));
+        let mut failed: Vec<String> = Vec::new();
+        for (i, result) in results.into_iter().enumerate() {
+            if let Err(error) = result {
+                failed.push(format!("{i}: {error}"));
+            }
         }
-    }
 
-    if !failed.is_empty() {
-        return Err(format!("player_apply_batch: {}", failed.join(", ")));
-    }
+        if !failed.is_empty() {
+            return Err(format!("player_apply_batch: {}", failed.join(", ")));
+        }
 
-    Ok(())
+        Ok(())
+    })
+    .await
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn playlist_json_preserves_order_titles_and_rejects_malformed_rows() {
+        let entries = super::parse_playlist_entries(
+            serde_json::json!([{ "filename": "a.mkv", "title": "A" }, { "filename": "b.mkv" }]),
+        )
+        .unwrap();
+        assert_eq!(entries[0].filename, "a.mkv");
+        assert_eq!(entries[1].index, 1);
+        assert_eq!(entries[1].title, "");
+        assert!(super::parse_playlist_entries(serde_json::json!([{}])).is_err());
+        assert!(super::parse_playlist_entries(serde_json::json!("not-json")).is_err());
+    }
+
     use super::{
         eof_properties, header_fields, local_cache_options, mpv_proxy, observed_properties,
         prewarm_is_releasable, stream_cache_options, PlayerOpenRequest, PlaylistWatch,
@@ -1228,14 +1421,14 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
-    fn mpv_proxy_uses_the_scheme_mpv_understands() {
+    fn mpv_proxy_preserves_remote_dns_schemes() {
         assert_eq!(
             mpv_proxy("socks5h://127.0.0.1:10808"),
-            "socks5://127.0.0.1:10808"
+            "socks5h://127.0.0.1:10808"
         );
         assert_eq!(
             mpv_proxy("socks4a://127.0.0.1:1080"),
-            "socks4://127.0.0.1:1080"
+            "socks4a://127.0.0.1:1080"
         );
         assert_eq!(
             mpv_proxy(" http://127.0.0.1:7890 "),
@@ -1379,6 +1572,7 @@ mod tests {
     fn open_request_watch_roundtrips_as_camel_case() {
         use super::super::state::TorrentWatch;
         let request = PlayerOpenRequest {
+            request_id: 1,
             files: vec!["C:/T/ep1.mkv".to_string()],
             resume: None,
             start_index: Some(0),

@@ -1,6 +1,7 @@
 import type { StreamVariant } from "@/types/player/stream";
 
 export interface PlayerOpenRequest {
+  requestId?: number;
   files: string[];
   resume?: number;
   startIndex?: number;
@@ -149,6 +150,7 @@ type PlaybackEventKind =
 
 export interface PlaybackEvent {
   kind: PlaybackEventKind;
+  path?: string;
   reason?: string;
   data?: unknown;
 }
@@ -198,7 +200,7 @@ export interface MediaEntry {
   subOffset: number;
   audioOffset: number;
   audioTrack?: number;
-  subtitleTrack?: number;
+  subtitleTrack?: number | "no";
   lastPlayed: number;
 }
 

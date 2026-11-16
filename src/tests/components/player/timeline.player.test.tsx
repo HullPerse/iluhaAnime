@@ -7,6 +7,7 @@ import { patchSettings } from "@/store/settings.store";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
 beforeEach(() => {
+  vi.stubGlobal("PointerEvent", MouseEvent);
   patchSettings({ language: "ru" });
   playbackAtoms.timePos.set(0);
   playbackAtoms.cacheDuration.set(undefined);
@@ -16,6 +17,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   cleanup();
   streamSession.set(null);
 });
@@ -153,12 +155,26 @@ describe("Timeline buffered span", () => {
 });
 
 describe("Timeline scrub", () => {
+  it("exposes keyboard seeking and cancels a drag when focus is lost", () => {
+    const { bar, getByRole, onCommitSeek, onScrub } = renderTimeline(100);
+    expect(getByRole("slider").getAttribute("aria-valuemax")).toBe("100");
+    fireEvent.keyDown(bar, { key: "End" });
+    expect(onCommitSeek).toHaveBeenLastCalledWith(100);
+    fireEvent.pointerDown(bar, { clientX: 10, button: 0 });
+    fireEvent.blur(window);
+    fireEvent.pointerMove(window, { clientX: 30 });
+    fireEvent.pointerUp(window, { clientX: 30 });
+    expect(onScrub).not.toHaveBeenCalled();
+    expect(onCommitSeek).toHaveBeenCalledTimes(1);
+    expect(document.body.style.userSelect).toBe("");
+  });
+
   it("scrubs live and commits on release", () => {
     const { bar, onScrub, onCommitSeek } = renderTimeline();
-    fireEvent.mouseDown(bar, { clientX: 100 });
-    fireEvent.mouseMove(document, { clientX: 150 });
+    fireEvent.pointerDown(bar, { clientX: 100, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 150 });
     expect(onScrub).toHaveBeenCalled();
-    fireEvent.mouseUp(document, { clientX: 150 });
+    fireEvent.pointerUp(window, { clientX: 150 });
     expect(onCommitSeek).toHaveBeenCalledTimes(1);
   });
 });

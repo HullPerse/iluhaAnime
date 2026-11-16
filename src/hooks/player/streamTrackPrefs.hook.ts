@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { streamApi } from "@/api/stream.api";
-import { attempt } from "@hullperse/hp_utils/attempt";
+import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { findTrackByPreference } from "@/lib/torrent/tracks.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { markTrackSelected } from "@/store/player.store";
@@ -16,31 +16,43 @@ export function useStreamTrackPrefs(stream: StreamOpen | null, tracks: MpvTrack[
     if (!stream || tracks.length === 0) return;
     const key = `${stream.mediaId}:${stream.episodeId}:${stream.variantId}:${stream.quality}`;
     if (appliedRef.current === key) return;
-    appliedRef.current = key;
     let cancelled = false;
     const apply = async () => {
-      const [prefs] = await attempt(streamApi.prefsGet(stream.sourceId, stream.mediaId));
-      if (cancelled || !prefs) return;
+      const prefs = await streamApi.prefsGet(stream.sourceId, stream.mediaId);
+      if (cancelled) return;
+      if (!prefs) {
+        appliedRef.current = key;
+        return;
+      }
+      const selected: Array<["audio" | "sub", number | "no"]> = [];
       if (prefs.audioLang) {
         const audio = findTrackByPreference(tracks, "audio", prefs.audioLang);
         if (audio) {
-          markTrackSelected("audio", audio.id);
           await selectTrack("audio", audio.id);
+          selected.push(["audio", audio.id]);
         }
       }
       if (cancelled) return;
       if (!prefs.subEnabled || prefs.subLang === "no") {
-        markTrackSelected("sub", "no");
         await selectTrack("sub", "no");
-        return;
+        selected.push(["sub", "no"]);
+      } else {
+        const sub = prefs.subLang ? findTrackByPreference(tracks, "sub", prefs.subLang) : null;
+        if (sub) {
+          await selectTrack("sub", sub.id);
+          selected.push(["sub", sub.id]);
+        }
       }
-      const sub = prefs.subLang ? findTrackByPreference(tracks, "sub", prefs.subLang) : null;
-      if (sub) {
-        markTrackSelected("sub", sub.id);
-        await selectTrack("sub", sub.id);
-      }
+      if (cancelled) return;
+      appliedRef.current = key;
+      for (const [kind, id] of selected) markTrackSelected(kind, id);
     };
-    ignore(apply());
+    ignore(
+      attempt(apply()).then(([, failure]) => {
+        if (failure) reportBackgroundError("player.track.restore", failure);
+        return undefined;
+      })
+    );
     return () => {
       cancelled = true;
     };

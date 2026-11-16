@@ -172,6 +172,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
   );
 
   const streamSession = store.atom<StreamOpen | null>("playback.streamSession", null);
+  const streamRequest = store.atom("playback.streamRequest", 0);
 
   let seekConfirm = 0;
   const seekReset = new Debouncer(
@@ -284,10 +285,17 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     setTracks: (tracks) => atoms.tracks.set(tracks),
     setChapters: (chapters) => atoms.chapters.set(chapters),
     resetPlayback: () => {
+      streamRequest.update((value) => value + 1);
       seekConfirm = 0;
       store.batch(() => applyAtomValues(atoms, INITIAL_PLAYBACK));
     },
     streamSession,
+    streamRequest,
+    beginStreamRequest: () => {
+      const next = streamRequest.get() + 1;
+      streamRequest.set(next);
+      return next;
+    },
   };
 }
 
@@ -325,3 +333,5 @@ export const setPlaybackTracks = playback.setTracks;
 export const setPlaybackChapters = playback.setChapters;
 export const resetPlayback = playback.resetPlayback;
 export const streamSession = playback.streamSession;
+export const streamRequest = playback.streamRequest;
+export const beginStreamRequest = playback.beginStreamRequest;

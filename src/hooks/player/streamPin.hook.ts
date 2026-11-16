@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { scheduleTask } from "@hullperse/hp_utils/shared";
 
 import { useCell } from "@hullperse/hp_utils/react";
 import { shouldReleaseStreamPin } from "@/lib/player/playerChrome.utils";
@@ -42,7 +43,9 @@ export function useStreamPin(stream: StreamOpen | null, loadingFile: boolean): v
 
   useEffect(() => {
     if (streamResume === null) return;
-    const timer = setTimeout(() => playbackAtoms.streamResume.set(null), STREAM_HOLD_TIMEOUT);
-    return () => clearTimeout(timer);
+    const task = scheduleTask("timeout", STREAM_HOLD_TIMEOUT, () =>
+      playbackAtoms.streamResume.set(null)
+    );
+    return () => task.cancel();
   }, [streamResume]);
 }

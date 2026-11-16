@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { createInterval } from "@hullperse/hp_utils/interval";
 
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
@@ -163,7 +164,7 @@ export function useStreamRouteGuard({
   }, [giveUp]);
 
   useEffect(() => {
-    const id = setInterval(() => {
+    const { cancel } = createInterval(() => {
       const state = stateRef.current;
       if (sessionRef.current === null || state.playing || state.gaveUp) return;
       const elapsed = Date.now() - state.startedAt;
@@ -174,7 +175,7 @@ export function useStreamRouteGuard({
       retry();
     }, CHECK_MS);
     return () => {
-      clearInterval(id);
+      cancel();
       retryRef.current += 1;
     };
   }, [retry]);

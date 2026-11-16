@@ -60,6 +60,8 @@ export interface PlaybackSignalStore {
   atStart: Derived<boolean>;
   atEnd: Derived<boolean>;
   streamSession: Cell<StreamOpen | null>;
+  streamRequest: Cell<number>;
+  beginStreamRequest: () => number;
   subscribeAll: (fn: () => void) => () => void;
   setSnapshot: (snapshot: PlaybackSnapshot) => void;
   setSeekTarget: (time: number) => void;

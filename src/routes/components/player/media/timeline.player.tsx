@@ -86,7 +86,7 @@ function Timeline({
   useEffect(() => {
     if (!dragging) return;
     let lastScrub = 0;
-    const onMove = (event: MouseEvent) => {
+    const onMove = (event: PointerEvent) => {
       const rawTime = timeFromClientX(event.clientX);
       const time = event.ctrlKey
         ? (nearestChapterEdge(chapters, duration, rawTime) ?? rawTime)
@@ -99,7 +99,7 @@ function Timeline({
         onScrub(time);
       }
     };
-    const onUp = (event: MouseEvent) => {
+    const onUp = (event: PointerEvent) => {
       setDragging(false);
       setScrubTime(null);
       const rawTime = timeFromClientX(event.clientX);
@@ -108,18 +108,29 @@ function Timeline({
         : rawTime;
       onCommitSeek(commitTime);
     };
+    const cancel = () => {
+      setDragging(false);
+      setScrubTime(null);
+    };
+    const previousSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("blur", cancel);
     return () => {
-      document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      document.body.style.userSelect = previousSelect;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("blur", cancel);
     };
   }, [dragging, describeHover, onCommitSeek, onScrub, timeFromClientX, chapters, duration]);
 
-  const handleBarDown = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleBarDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || duration <= 0) return;
     event.preventDefault();
+    event.currentTarget.focus();
     setDragging(true);
     const rawTime = timeFromClientX(event.clientX);
     const time = event.ctrlKey
@@ -167,8 +178,39 @@ function Timeline({
         )}
         <div
           ref={barRef}
+          role="slider"
+          tabIndex={duration > 0 ? 0 : -1}
+          aria-label={t("player.media.timeline.seek")}
+          aria-valuemin={0}
+          aria-valuemax={Math.max(0, duration)}
+          aria-valuenow={Math.max(0, Math.min(duration, displayTime))}
+          aria-valuetext={timeLabel}
+          aria-disabled={duration <= 0}
+          onKeyDown={(event) => {
+            if (duration <= 0) return;
+            const delta: Record<string, number> = {
+              ArrowLeft: -5,
+              ArrowDown: -5,
+              ArrowRight: 5,
+              ArrowUp: 5,
+              PageDown: -60,
+              PageUp: 60,
+            };
+            const target =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? duration
+                  : delta[event.key] === undefined
+                    ? undefined
+                    : displayTime + delta[event.key];
+            if (target === undefined) return;
+            event.preventDefault();
+            event.stopPropagation();
+            onCommitSeek(Math.max(0, Math.min(duration, target)));
+          }}
           className="windows95-border bg-field relative h-4 cursor-pointer"
-          onMouseDown={handleBarDown}
+          onPointerDown={handleBarDown}
           onMouseMove={handleBarMove}
           onMouseLeave={() => setHover(null)}
         >

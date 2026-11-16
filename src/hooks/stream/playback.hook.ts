@@ -50,7 +50,9 @@ export function useStreamPlayer({
       const { prefs, resume } = resolved;
       const base = prefs ?? emptyPrefs(SOURCE_ID, anime.id);
       const remembered = withQuality(withVariant(base, variant), source.label);
-      const [, prefsFailure] = await attempt(streamApi.prefsSave(remembered));
+      const [, prefsFailure] = await attempt(
+        streamApi.prefsSave(remembered, ["variantId", "quality"])
+      );
       if (prefsFailure) {
         addNotification(t("stream.playFailed"), "error", prefsFailure.message);
       }

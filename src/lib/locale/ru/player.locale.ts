@@ -183,6 +183,7 @@ const player = {
   "player.media.controls.mute": "Звук вкл/выкл",
   "player.media.controls.end.of.file": "Поведение в конце файла",
   "player.media.timeline.toggle": "Переключить прошедшее / оставшееся время",
+  "player.media.timeline.seek": "Позиция воспроизведения",
   "player.media.eof.none": "Ничего",
   "player.media.eof.pause": "Пауза в конце",
   "player.media.eof.next": "Следующий файл",

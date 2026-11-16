@@ -123,8 +123,6 @@ export function Result({
             <span>{t("collection.game.history.error")}</span>
             <Button onClick={() => ignore(history.refetch())}>{t("collection.retry")}</Button>
           </div>
-        ) : items.length === 0 ? (
-          <p className="daily-history-note">{t("collection.game.history.empty")}</p>
         ) : (
           <div className="daily-history-list windows95-active-border">
             <table className="daily-history-table">

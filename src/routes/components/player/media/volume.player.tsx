@@ -39,15 +39,20 @@ function VolumeControl({
 
   useEffect(() => {
     if (!dragging) return;
-    const onMove = (event: MouseEvent) => handleVolume(event.clientX);
+    const onMove = (event: PointerEvent) => handleVolume(event.clientX);
     const onUp = () => setDragging(false);
+    const previousSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    window.addEventListener("blur", onUp);
     return () => {
-      document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      document.body.style.userSelect = previousSelect;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("blur", onUp);
     };
   }, [dragging, handleVolume]);
 
@@ -81,13 +86,43 @@ function VolumeControl({
       </Button>
       <div
         ref={volumeRef}
+        role="slider"
+        tabIndex={0}
+        aria-label={t("player.media.osd.volume")}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(displayVolume * 100)}
+        onKeyDown={(event) => {
+          const delta: Record<string, number> = {
+            ArrowLeft: -0.05,
+            ArrowDown: -0.05,
+            ArrowRight: 0.05,
+            ArrowUp: 0.05,
+            PageDown: -0.1,
+            PageUp: 0.1,
+          };
+          const target =
+            event.key === "Home"
+              ? 0
+              : event.key === "End"
+                ? 1
+                : delta[event.key] === undefined
+                  ? undefined
+                  : volume + delta[event.key];
+          if (target === undefined) return;
+          event.preventDefault();
+          event.stopPropagation();
+          onVolume(clamp01(target));
+        }}
         className="windows95-border bg-field relative w-24 cursor-pointer items-center justify-center"
         onClick={(event) => {
           event.preventDefault();
           handleVolume(event.clientX);
         }}
-        onMouseDown={(event) => {
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
           event.preventDefault();
+          event.currentTarget.focus();
           setDragging(true);
           handleVolume(event.clientX);
         }}

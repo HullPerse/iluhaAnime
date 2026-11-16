@@ -3,7 +3,7 @@ import type { DroppedFramesData, PlayerOpenRequest } from "@/types/player/videoP
 export interface PlayerEventHandlers {
   onOpenRequest?: (request: PlayerOpenRequest) => void;
   onFileLoaded?: () => void;
-  onEndFile?: (reason: string) => void;
+  onEndFile?: (reason: string, path?: string) => void;
   onPlaybackRestart?: () => void;
   onIdle?: () => void;
   onShutdown?: () => void;

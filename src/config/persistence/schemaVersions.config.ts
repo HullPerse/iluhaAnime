@@ -7,7 +7,7 @@ export const SCHEMA_VERSIONS = {
   anilistFriends: 1,
   anilistReleaseObservations: 6,
   player: 3,
-  media: 0,
+  media: 1,
   categories: 1,
   coverCorrections: 3,
 } as const;

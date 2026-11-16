@@ -26,6 +26,27 @@ function memoryStorage(backing = new Map<string, string>()): Storage {
 }
 
 describe("media entries", () => {
+  it("preserves disabled subtitles and old numeric choices across persistence upgrades", () => {
+    const backing = new Map<string, string>([
+      [
+        "iluha.v1.media",
+        JSON.stringify({
+          f: 1,
+          store: "media",
+          sv: 0,
+          data: { entries: [{ path: "/b.mkv", subtitleTrack: 3 }] },
+        }),
+      ],
+    ]);
+    const storage = memoryStorage(backing);
+    const store = createMediaSignalStore({ getStorage: () => storage });
+    store.setTrack("/a.mkv", "sub", "no");
+    store.persistor.flush();
+    expect(backing.get("iluha.v1.media")).toContain('"sv":1');
+    const restored = createMediaSignalStore({ getStorage: () => storage });
+    expect(restored.getEntry("/a.mkv")?.subtitleTrack).toBe("no");
+    expect(restored.getEntry("/b.mkv")?.subtitleTrack).toBe(3);
+  });
   it("starts empty without storage", () => {
     const store = createMediaSignalStore({ getStorage: () => memoryStorage() });
     expect(store.getEntry("/a.mkv")).toBeUndefined();

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { streamApi } from "@/api/stream.api";
+import { useStreamOperation } from "@/hooks/player/streamOperation.hook";
+import { createInterval } from "@hullperse/hp_utils/interval";
 import { tr } from "@/lib/locale/i18n.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { buildVariantId } from "@/lib/player/streamHelpers.utils";
-import { emptyPrefs, preferNativeVariants } from "@/lib/player/streamPrefs.utils";
+import { preferNativeVariants } from "@/lib/player/streamPrefs.utils";
+import { rememberStreamPrefs as rememberPrefs } from "@/lib/player/streamPreferences.utils";
 import {
   loadEpisodes,
   loadPlayers,
@@ -12,20 +14,21 @@ import {
   prefetchNativeSources,
 } from "@/lib/core/player/sessionCache.utils";
 import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/search/sources.utils";
-import { openStream } from "@/lib/player/playback.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { lowerQualityLabel } from "@/lib/player/streamQuality.utils";
 import { resolveEpisodeStream, resolveNextStream } from "@/lib/player/playerStream.utils";
-import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
+import { attempt } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { StreamPrefs, StreamVariant, StreamingEpisode } from "@/types/player/stream";
+import type { StreamVariant, StreamingEpisode } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerStream, PlayerStreamNext } from "@/types/player/playerStream";
 
 function currentPosition(): number {
+  const current = streamSession.get();
+  if (current && playbackAtoms.path.get() !== current.mediaUrl) return current.resume ?? 0;
   return playbackAtoms.timePos.get();
 }
 
@@ -39,19 +42,11 @@ const AUTO_QUALITY_CHECK_MS = 1_000;
 
 /** The stream identity that keeps its "already downgraded" budget. */
 function logicalStreamKey(session: StreamOpen): string {
-  return `${session.mediaId}:${session.episodeId}:${session.variantId}`;
-}
-
-async function rememberPrefs(session: StreamOpen, patch: Partial<StreamPrefs>): Promise<void> {
-  const [loaded] = await attempt(streamApi.prefsGet(session.sourceId, session.mediaId));
-  const base = loaded ?? emptyPrefs(session.sourceId, session.mediaId);
-  const [failure] = await attempt(
-    streamApi.prefsSave({ ...base, ...patch, sourceId: session.sourceId, mediaId: session.mediaId })
-  );
-  if (failure) reportBackgroundError("player.stream.prefs", failure);
+  return `${session.sourceId}:${session.mediaId}:${session.episodeId}:${session.variantId}`;
 }
 
 export function usePlayerStream(): PlayerStream {
+  const runOperation = useStreamOperation();
   const session = useCell(streamSession);
   const [variants, setVariants] = useState<StreamVariant[]>([]);
   const [variantsLoading, setVariantsLoading] = useState<boolean>(false);
@@ -104,33 +99,28 @@ export function usePlayerStream(): PlayerStream {
     };
   }, [episodeId, seeded, variantAttempt]);
 
+  useEffect(() => {
+    if (!episodeId || !session?.mediaId) return;
+    manualQualityRef.current.clear();
+    autoQualityRef.current.clear();
+  }, [session?.mediaId, episodeId]);
+
   const reloadVariants = useCallback(() => {
     setVariantAttempt((attempt) => attempt + 1);
   }, []);
 
-  const runSwitch = useCallback(async (build: () => Promise<StreamOpen>): Promise<boolean> => {
-    if (switchingRef.current) return false;
-    switchingRef.current = true;
-    setSwitching(true);
-    const [next, buildFailure] = await attempt(build());
-    if (buildFailure !== null || !next) {
+  const runSwitch = useCallback(
+    async (build: () => Promise<StreamOpen>): Promise<boolean> => {
+      if (switchingRef.current) return false;
+      switchingRef.current = true;
+      setSwitching(true);
+      const opened = await runOperation(build);
       switchingRef.current = false;
       setSwitching(false);
-      reportBackgroundError("player.stream.switch", buildFailure ?? new Error("empty stream"));
-      return false;
-    }
-    playbackAtoms.streamResume.set(next.resume ?? currentPosition());
-    const [, openFailure] = await attempt(openStream(next));
-    switchingRef.current = false;
-    setSwitching(false);
-    if (openFailure) {
-      playbackAtoms.streamResume.set(null);
-      reportBackgroundError("player.stream.switch", openFailure);
-      return false;
-    }
-    streamSession.set(next);
-    return true;
-  }, []);
+      return opened;
+    },
+    [runOperation]
+  );
 
   const applyQuality = useCallback(
     async (label: string, automatic: boolean) => {
@@ -204,7 +194,7 @@ export function usePlayerStream(): PlayerStream {
   // quality instead of an endless buffering screen, while a manual pick is
   // never overridden and the user is told about the change.
   useEffect(() => {
-    const id = setInterval(() => {
+    const { cancel } = createInterval(() => {
       const current = streamSession.get();
       if (!current) {
         stalledSinceRef.current = null;
@@ -240,7 +230,7 @@ export function usePlayerStream(): PlayerStream {
         })
       );
     }, AUTO_QUALITY_CHECK_MS);
-    return () => clearInterval(id);
+    return cancel;
   }, [applyQuality]);
 
   return {
@@ -256,6 +246,7 @@ export function usePlayerStream(): PlayerStream {
 }
 
 export function useStreamNext(): PlayerStreamNext {
+  const runOperation = useStreamOperation();
   const session = useCell(streamSession);
   const mediaId = session?.mediaId;
   const episodeNumber = session?.episodeNumber ?? null;
@@ -264,7 +255,10 @@ export function useStreamNext(): PlayerStreamNext {
 
   useEffect(() => {
     setEpisodes([]);
-    if (!mediaId) return;
+    if (!mediaId) {
+      setEpisodesLoading(false);
+      return;
+    }
     let cancelled = false;
     setEpisodesLoading(true);
     const load = async () => {
@@ -282,29 +276,15 @@ export function useStreamNext(): PlayerStreamNext {
   const hasNext =
     episodeNumber !== null && episodes.some((episode) => episode.number > episodeNumber);
 
-  const open = useCallback(async (resolve: (current: StreamOpen) => Promise<StreamOpen | null>) => {
-    const current = streamSession.get();
-    if (!current) return;
-    const [next, failure] = await attempt(resolve(current));
-    if (failure || !next) {
-      addNotification(
-        tr("stream.playFailed"),
-        "error",
-        failure?.message ?? tr("stream.noNextEpisode")
-      );
-      return;
-    }
-    const [, openFailure] = await attempt(openStream(next));
-    if (openFailure) {
-      addNotification(tr("stream.playFailed"), "error", openFailure.message);
-      return;
-    }
-    streamSession.set(next);
-    await rememberPrefs(current, {
-      variantId: next.variantId,
-      quality: next.quality,
-    });
-  }, []);
+  const open = useCallback(
+    async (resolve: (current: StreamOpen) => Promise<StreamOpen | null>) => {
+      const opened = await runOperation(resolve);
+      const next = streamSession.get();
+      if (opened && next)
+        await rememberPrefs(next, { variantId: next.variantId, quality: next.quality });
+    },
+    [runOperation]
+  );
 
   const goNext = useCallback(async () => {
     await open((current) => resolveNextStream(current));

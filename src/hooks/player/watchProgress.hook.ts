@@ -4,8 +4,8 @@ import { WATCH_INTERVAL } from "@/config/player/playbackTiming.config";
 import { scheduleCardPrefetch, scheduleNeighborPrefetch } from "@/lib/core/player/cardCache.utils";
 import { createInterval } from "@hullperse/hp_utils/interval";
 import { ignore } from "@/lib/core/shared/promise.utils";
-import { readPlaylistEntries, saveWatch } from "@/lib/player/playback.utils";
-import { getMediaEntry, setMediaPosition } from "@/store/media.store";
+import { readPlaylistEntries } from "@/lib/player/playback.utils";
+import { setMediaPosition } from "@/store/media.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";
 
 export function usePlayerWatchProgress({ playlistOpen }: { playlistOpen: boolean }): void {
@@ -27,17 +27,7 @@ export function usePlayerWatchProgress({ playlistOpen }: { playlistOpen: boolean
         return;
       }
       lastSavedWatchRef.current = { path: watchPath, position: timePos };
-      const entry = session ? undefined : getMediaEntry(path);
       if (!session) setMediaPosition(path, timePos, duration);
-      ignore(
-        saveWatch(watchPath, {
-          position: timePos,
-          duration,
-          subDelay: entry?.subOffset ?? 0,
-          audioDelay: entry?.audioOffset ?? 0,
-          updatedAt: Math.floor(Date.now() / 1000),
-        })
-      );
     }, WATCH_INTERVAL);
     return cancel;
   }, []);

@@ -17,7 +17,12 @@ import {
   setMpvProperty,
   transformOptions,
 } from "@/lib/player/playback.utils";
-import { getPlayerSnapshot, streamSession, subscribePlayer } from "@/store/player.store";
+import {
+  getPlayerSnapshot,
+  playbackAtoms,
+  streamSession,
+  subscribePlayer,
+} from "@/store/player.store";
 import { addNotification } from "@/store/notification.store";
 import type { PlayerSettings } from "@/types/player/videoPlayer";
 
@@ -89,6 +94,9 @@ export function usePlayerSettingsSync(): void {
       const state = getPlayerSnapshot();
       if (state.volume !== previous.volume) {
         sendVolumeThrottled(state.volume);
+      }
+      if (state.hwdec !== previous.hwdec && !playbackAtoms.hasFile.get()) {
+        ignore(setMpvProperty("hwdec", state.hwdec));
       }
       if (state.profile !== previous.profile && streamSession.get() === null) {
         applyPlayerProfile(state.profile).catch((error: unknown) =>

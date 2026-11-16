@@ -2,13 +2,17 @@
   "changelog": [
     {
       "version": "5.2.5",
-      "added": [{ "key": "changelog.5_2_5.added.settings.daily_proxy", "scope": "settings" }],
+      "added": [
+        { "key": "changelog.5_2_5.added.settings.daily_proxy", "scope": "settings" },
+        { "key": "changelog.5_2_5.added.player.keyboard_sliders", "scope": "player" }
+      ],
       "changed": [
         { "key": "changelog.5_2_5.changed.collection.pack_draw", "scope": "collection" },
         { "key": "changelog.5_2_5.changed.collection.rarity", "scope": "collection" },
         { "key": "changelog.5_2_5.changed.collection.grouping", "scope": "collection" },
         { "key": "changelog.5_2_5.changed.collection.payout", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.collection.pack_prepare", "scope": "collection" }
+        { "key": "changelog.5_2_5.changed.collection.pack_prepare", "scope": "collection" },
+        { "key": "changelog.5_2_5.changed.player.loading", "scope": "player" }
       ],
       "fixed": [
         { "key": "changelog.5_2_5.fixed.game.reward_pack", "scope": "game" },
@@ -17,6 +21,12 @@
         { "key": "changelog.5_2_5.fixed.collection.source_keyboard", "scope": "collection" },
         { "key": "changelog.5_2_5.fixed.anilist.people_race", "scope": "anilist" },
         { "key": "changelog.5_2_5.fixed.player.stream_retry", "scope": "player" },
+        { "key": "changelog.5_2_5.fixed.player.lifecycle", "scope": "player" },
+        { "key": "changelog.5_2_5.fixed.player.episode_switch", "scope": "player" },
+        { "key": "changelog.5_2_5.fixed.player.watch_progress", "scope": "player" },
+        { "key": "changelog.5_2_5.fixed.player.tracks", "scope": "player" },
+        { "key": "changelog.5_2_5.fixed.player.recovery", "scope": "player" },
+        { "key": "changelog.5_2_5.fixed.player.network_state", "scope": "player" },
         { "key": "changelog.5_2_5.fixed.settings.proxy_search", "scope": "settings" }
       ]
     },

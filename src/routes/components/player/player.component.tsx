@@ -189,7 +189,7 @@ function PlayerComponent() {
     videoElement: () => videoRef.current,
   });
 
-  const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch } =
+  const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch, retrySession } =
     usePlayerSession({ videoRef, syncMarginsRef, resumeRef });
   const streamRoute = useStreamRouteGuard({ session: stream, setLoadingFile, setFailed });
   const { onSelectTrack, onCycleTrack, onAddExternalSubtitle, onAddExternalAudio } =
@@ -251,19 +251,35 @@ function PlayerComponent() {
       streamSession.set(null);
       resumeRef.current = request.resume;
       setLiveWatch(request.watch ?? null);
-      ignore(loadQueue(request.files, request.resume, request.startIndex));
+      ignore(
+        loadQueue(request.files, request.resume, request.startIndex, request.requestId).catch(
+          (error: unknown) => {
+            setLoadingFile(false);
+            setFailed(true);
+            return error;
+          }
+        )
+      );
     },
     onFileLoaded: () => {
       ignore(handleFileLoaded());
     },
-    onEndFile: (reason) => {
+    onEndFile: (reason, eventPath) => {
       setFinished(false);
       // mpv reports a failed open as end-file/error, not always as `error`.
-      if (reason === "error" && streamSession.get() !== null) {
+      if (reason === "error") {
         streamRoute.failNow();
         return;
       }
-      if (streamSession.get() !== null && eofMode === "next" && streamNext.hasNext) {
+      const activeStream = streamSession.get();
+      const belongsToStream = eventPath === undefined || eventPath === activeStream?.mediaUrl;
+      if (
+        reason === "eof" &&
+        belongsToStream &&
+        activeStream !== null &&
+        eofMode === "next" &&
+        streamNext.hasNext
+      ) {
         setLoadingFile(true);
         ignore(streamNext.goNext());
       }
@@ -513,7 +529,7 @@ function PlayerComponent() {
                 hasNext={hasNext}
                 streaming={stream !== null}
                 onRestart={restart}
-                onRetry={retryPlayback}
+                onRetry={hasFile ? retryPlayback : retrySession}
                 onNext={onFileNext}
                 onClose={close}
               />

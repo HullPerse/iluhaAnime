@@ -42,7 +42,6 @@
     "window-state:default",
     "core:tray:default",
     "core:menu:default",
-    "core:app:default",
-    "libmpv:default"
+    "core:app:default"
   ]
 }

@@ -53,9 +53,13 @@ export async function prefetchNativeSources(
   isCancelled: () => boolean = () => false
 ): Promise<void> {
   if (isCancelled()) return;
-  await Promise.all(
-    variants
-      .filter(isNativeVariant)
-      .map((variant) => attempt(loadSources(episodeId, buildVariantId(variant))))
-  );
+  const queue = variants.filter(isNativeVariant);
+  let cursor = 0;
+  const worker = async () => {
+    while (!isCancelled() && cursor < queue.length) {
+      const variant = queue[cursor++];
+      await attempt(loadSources(episodeId, buildVariantId(variant)));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, queue.length) }, worker));
 }

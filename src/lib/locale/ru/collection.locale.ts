@@ -39,7 +39,6 @@ const collection = {
   "collection.game.history.anime": "Аниме",
   "collection.game.history.attempts": "Попытки",
   "collection.game.history.result": "Итог",
-  "collection.game.history.empty": "Сыграй сегодня - результат появится здесь.",
   "collection.game.history.error": "Не удалось загрузить результаты.",
   "collection.game.history.unknown": "Без названия",
   "collection.game.retry": "Повторить",

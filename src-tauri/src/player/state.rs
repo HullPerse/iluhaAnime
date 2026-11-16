@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Listener, Manager};
@@ -183,6 +183,8 @@ pub struct StreamVariantSource {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerOpenRequest {
+    #[serde(default)]
+    pub request_id: u64,
     pub files: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resume: Option<f64>,
@@ -276,6 +278,7 @@ pub struct PlaybackSnapshot {
 #[serde(rename_all = "camelCase")]
 pub struct TypedEvent {
     pub kind: String,
+    pub path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -289,21 +292,27 @@ pub struct TypedEvent {
 pub struct StreamOptions {
     proxy: Option<String>,
     headers: Option<String>,
-    paused: Option<bool>,
 }
 
 /// Which stream options a request still has to write to mpv.
 pub struct StreamWrites {
     pub proxy: bool,
     pub headers: bool,
-    pub pause: bool,
 }
 
 #[derive(Default)]
 pub struct PlayerHost {
+    pub operation: tokio::sync::Mutex<()>,
+    pub window_operation: tokio::sync::Mutex<()>,
+    pub close_phase: AtomicU8,
+    pub instance_id: AtomicU64,
+    pub request_serial: AtomicU64,
+    property_revision: AtomicU64,
     pending_open: Mutex<Option<PlayerOpenRequest>>,
     stream_options: Mutex<StreamOptions>,
     current_path: Mutex<String>,
+    pub pending_stream: Mutex<Option<StreamOpen>>,
+    pub watch_operation: Mutex<()>,
     /// Watch key of the stream session, when one is playing. `current_path`
     /// carries the media URL for a stream, which must never become a watch key.
     stream_watch_key: Mutex<Option<String>>,
@@ -364,6 +373,34 @@ pub struct Metrics {
 }
 
 impl PlayerHost {
+    pub fn activate_file(&self, path: String) {
+        let _watch = self
+            .watch_operation
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let stream = self
+            .pending_stream
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+            .filter(|stream| stream.media_url == path);
+        self.set_current_path(path);
+        self.set_stream_watch_key(stream.as_ref().map(|stream| stream.watch_key.clone()));
+        self.set_stream_identity(
+            stream
+                .filter(|stream| !stream.slug.is_empty())
+                .map(|stream| StreamIdentity {
+                    anime_id: stream.media_id,
+                    slug: stream.slug,
+                    title: stream.media_title,
+                    cover: stream.cover,
+                    anilist_id: stream.anilist_id,
+                    episode_id: stream.episode_id,
+                    episode_number: stream.episode_number,
+                    episode_title: Some(stream.episode_title).filter(|value| !value.is_empty()),
+                }),
+        );
+    }
     pub fn set_pending_open(&self, request: Option<PlayerOpenRequest>) {
         *self
             .pending_open
@@ -376,6 +413,44 @@ impl PlayerHost {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
+    }
+
+    pub fn take_pending_open(&self) -> Option<PlayerOpenRequest> {
+        self.pending_open
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+    }
+
+    pub fn clear_pending_request(&self, id: u64) {
+        let mut pending = self
+            .pending_open
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if pending
+            .as_ref()
+            .is_some_and(|request| request.request_id == id)
+        {
+            *pending = None;
+        }
+    }
+
+    pub fn reset_native_state(&self) {
+        self.activate_file(String::new());
+        self.reset_file_state();
+        *self
+            .latest
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = (PlaybackSnapshot::default(), 0);
+        *self
+            .last_snapshot
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+        *self
+            .zero_streak
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = 0;
+        self.property_revision.fetch_add(1, Ordering::Release);
     }
 
     pub fn clear_pending_open(&self) {
@@ -481,12 +556,7 @@ impl PlayerHost {
 
     /// Diff a stream request against what mpv already has, and remember the
     /// new values so the next switch can skip them.
-    pub(crate) fn stream_option_writes(
-        &self,
-        proxy: &str,
-        headers: &str,
-        paused: bool,
-    ) -> StreamWrites {
+    pub(crate) fn stream_option_writes(&self, proxy: &str, headers: &str) -> StreamWrites {
         let mut state = self
             .stream_options
             .lock()
@@ -494,11 +564,9 @@ impl PlayerHost {
         let writes = StreamWrites {
             proxy: state.proxy.as_deref() != Some(proxy),
             headers: state.headers.as_deref() != Some(headers),
-            pause: state.paused != Some(paused),
         };
         state.proxy = Some(proxy.to_string());
         state.headers = Some(headers.to_string());
-        state.paused = Some(paused);
         writes
     }
 
@@ -525,14 +593,6 @@ impl PlayerHost {
             .stream_options
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = StreamOptions::default();
-    }
-
-    /// A local file load changes `pause` behind the stream cache's back.
-    pub(crate) fn invalidate_stream_pause(&self) {
-        self.stream_options
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .paused = None;
     }
 
     pub fn reset_file_state(&self) {
@@ -565,30 +625,46 @@ pub fn attach(app: &AppHandle) {
             if !host.is_active() {
                 continue;
             }
-            if ticks.is_multiple_of(METRICS_TICKS) {
-                host.set_metrics(read_metrics(&ticker));
-            }
-            if ticks.is_multiple_of(WATCHDOG_TICKS) {
-                watchdog_tick(&ticker);
-            }
-            if host.dirty.swap(false, Ordering::Relaxed) {
-                #[cfg(debug_assertions)]
-                DIRTY_TICKS.fetch_add(1, Ordering::Relaxed);
-                let snapshot = read_snapshot(&ticker);
-                let snapshot = smooth_snapshot(&ticker, snapshot);
-                #[cfg(debug_assertions)]
-                SNAPSHOTS_EMITTED.fetch_add(1, Ordering::Relaxed);
-                let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
-            }
+            let Ok(_operation) = host.operation.try_lock() else {
+                continue;
+            };
+            let handle = ticker.clone();
+            let tick = ticks;
+            let _ = tauri::async_runtime::spawn_blocking(move || player_tick(&handle, tick)).await;
             ticks = ticks.wrapping_add(1);
-            if ticks.is_multiple_of(WATCH_SAVE_TICKS) {
-                save_current_watch(&ticker);
-            }
         }
     });
 }
 
+fn player_tick(ticker: &AppHandle, ticks: u32) {
+    let host = ticker.state::<PlayerHost>();
+    if ticks.is_multiple_of(METRICS_TICKS) {
+        host.set_metrics(read_metrics(&ticker));
+    }
+    if ticks.is_multiple_of(WATCHDOG_TICKS) {
+        watchdog_tick(&ticker);
+    }
+    if host.dirty.swap(false, Ordering::Relaxed) {
+        #[cfg(debug_assertions)]
+        DIRTY_TICKS.fetch_add(1, Ordering::Relaxed);
+        let snapshot = read_snapshot(&ticker);
+        let snapshot = smooth_snapshot(&ticker, snapshot);
+        #[cfg(debug_assertions)]
+        SNAPSHOTS_EMITTED.fetch_add(1, Ordering::Relaxed);
+        let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
+    }
+    if ticks.wrapping_add(1).is_multiple_of(WATCH_SAVE_TICKS) {
+        save_current_watch(&ticker);
+    }
+}
+
 fn handle_mpv_event(app: &AppHandle, event: Value) {
+    let host = app.state::<PlayerHost>();
+    if event.get("_instanceId").and_then(Value::as_u64)
+        != Some(host.instance_id.load(Ordering::Acquire))
+    {
+        return;
+    }
     let name = event
         .get("event")
         .and_then(Value::as_str)
@@ -613,6 +689,7 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
                         .unwrap_or_else(std::sync::PoisonError::into_inner);
                     let (snapshot, mask) = &mut *guard;
                     apply_observed_property(snapshot, mask, name, data);
+                    host.property_revision.fetch_add(1, Ordering::Release);
                 }
                 match name {
                     "track-list" => {
@@ -636,7 +713,7 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
         }
         "file-loaded" => {
             if let Some(path) = string_property(app, "path") {
-                host.set_current_path(path);
+                host.activate_file(path);
             }
             host.reset_file_state();
             *host
@@ -644,17 +721,20 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner) =
                 (PlaybackSnapshot::default(), 0);
+            host.property_revision.fetch_add(1, Ordering::Release);
             host.mark_dirty();
             emit_typed(app, "file-loaded", None, None);
         }
         "end-file" => {
             host.mark_dirty();
-            save_current_watch(app);
             let reason = event
                 .get("reason")
                 .and_then(Value::as_str)
                 .map(str::to_string);
-            emit_typed(app, "end-file", reason, None);
+            if reason.as_deref() == Some("eof") {
+                save_current_watch(app);
+            }
+            emit_typed(app, "end-file", reason, event.get("file_error").cloned());
         }
         "video-reconfig" | "audio-reconfig" => {
             emit_typed(app, &name, None, event.get("params").cloned());
@@ -671,6 +751,7 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
 fn emit_typed(app: &AppHandle, kind: &str, reason: Option<String>, data: Option<Value>) {
     let payload = TypedEvent {
         kind: kind.to_string(),
+        path: app.state::<PlayerHost>().current_path(),
         reason,
         data,
     };
@@ -695,15 +776,6 @@ fn int_property(app: &AppHandle, name: &str) -> Option<i64> {
         .get_property(name, "int64", PLAYER_WINDOW_LABEL)
         .ok()
         .and_then(|value| value.as_i64())
-}
-
-fn flag_property(app: &AppHandle, name: &str) -> Option<bool> {
-    #[cfg(debug_assertions)]
-    PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
-    LibmpvCore::new(app.clone())
-        .get_property(name, "flag", PLAYER_WINDOW_LABEL)
-        .ok()
-        .and_then(|value| value.as_bool())
 }
 
 fn string_property(app: &AppHandle, name: &str) -> Option<String> {
@@ -909,12 +981,16 @@ pub fn apply_observed_property(
 fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
     let host = app.state::<PlayerHost>();
     let metrics = host.metrics();
-    let (mut snapshot, mask) = {
+    let (mut snapshot, mask, revision) = {
         let guard = host
             .latest
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        (guard.0.clone(), guard.1)
+        (
+            guard.0.clone(),
+            guard.1,
+            host.property_revision.load(Ordering::Acquire),
+        )
     };
 
     // mpv pushes these fields through property-change events. Poll only the
@@ -930,72 +1006,39 @@ fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
     } else {
         missing
     };
-    if missing != 0 {
-        if missing & OBS_TIME_POS != 0 {
-            if let Some(value) = number_property(app, "time-pos") {
-                snapshot.time_pos = value;
-                observed |= OBS_TIME_POS;
-            }
+    for (name, format, bit) in [
+        ("time-pos", "double", OBS_TIME_POS),
+        ("duration", "double", OBS_DURATION),
+        ("pause", "flag", OBS_PAUSE),
+        ("eof-reached", "flag", OBS_EOF_REACHED),
+        ("speed", "double", OBS_SPEED),
+        ("volume", "double", OBS_VOLUME),
+        ("mute", "flag", OBS_MUTED),
+        ("playlist-pos", "int64", OBS_PLAYLIST_INDEX),
+        ("playlist-count", "int64", OBS_PLAYLIST_COUNT),
+        ("path", "string", OBS_PATH),
+    ] {
+        if missing & bit == 0 {
+            continue;
         }
-        if missing & OBS_DURATION != 0 {
-            if let Some(value) = number_property(app, "duration") {
-                snapshot.duration = value;
-                observed |= OBS_DURATION;
-            }
+        #[cfg(debug_assertions)]
+        PROPERTY_READS.fetch_add(1, Ordering::Relaxed);
+        if let Ok(value) =
+            LibmpvCore::new(app.clone()).get_property(name, format, PLAYER_WINDOW_LABEL)
+        {
+            apply_observed_property(&mut snapshot, &mut observed, name, &value);
         }
-        if missing & OBS_PAUSE != 0 {
-            if let Some(value) = flag_property(app, "pause") {
-                snapshot.pause = value;
-                observed |= OBS_PAUSE;
-            }
-        }
-        if missing & OBS_EOF_REACHED != 0 {
-            if let Some(value) = flag_property(app, "eof-reached") {
-                snapshot.eof_reached = value;
-                observed |= OBS_EOF_REACHED;
-            }
-        }
-        if missing & OBS_SPEED != 0 {
-            if let Some(value) = number_property(app, "speed") {
-                snapshot.speed = value;
-                observed |= OBS_SPEED;
-            }
-        }
-        if missing & OBS_VOLUME != 0 {
-            if let Some(value) = number_property(app, "volume") {
-                snapshot.volume = value;
-                observed |= OBS_VOLUME;
-            }
-        }
-        if missing & OBS_MUTED != 0 {
-            if let Some(value) = flag_property(app, "mute") {
-                snapshot.muted = value;
-                observed |= OBS_MUTED;
-            }
-        }
-        if missing & OBS_PLAYLIST_INDEX != 0 {
-            if let Some(value) = int_property(app, "playlist-pos") {
-                snapshot.playlist_index = value;
-                observed |= OBS_PLAYLIST_INDEX;
-            }
-        }
-        if missing & OBS_PLAYLIST_COUNT != 0 {
-            if let Some(value) = int_property(app, "playlist-count") {
-                snapshot.playlist_count = value;
-                observed |= OBS_PLAYLIST_COUNT;
-            }
-        }
-        if missing & OBS_PATH != 0 {
-            if let Some(value) = string_property(app, "path") {
-                snapshot.path = value;
-                observed |= OBS_PATH;
-            }
-        }
-        if observed != mask {
-            *host
-                .latest
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner) = (snapshot.clone(), observed);
+    }
+    if observed != mask {
+        let mut latest = host
+            .latest
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if host.property_revision.load(Ordering::Acquire) == revision {
+            *latest = (snapshot.clone(), observed);
+        } else {
+            host.mark_dirty();
+            return latest.0.clone();
         }
     }
 
@@ -1163,6 +1206,14 @@ fn watchdog_tick(app: &AppHandle) {
 /// position is cheap; writing it is not, so the two are separate.
 pub fn current_watch_snapshot(app: &AppHandle) -> Option<(String, WatchState)> {
     let host = app.state::<PlayerHost>();
+    let latest = host
+        .latest
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let needed = OBS_PATH | OBS_TIME_POS | OBS_DURATION;
+    if latest.1 & needed != needed || latest.0.path != host.current_path() {
+        return None;
+    }
     let path = host
         .stream_watch_key()
         .filter(|key| !key.is_empty())
@@ -1170,12 +1221,15 @@ pub fn current_watch_snapshot(app: &AppHandle) -> Option<(String, WatchState)> {
     if path.is_empty() {
         return None;
     }
-    let position = number_property(app, "time-pos")?;
+    let position = latest.0.time_pos;
+    if !position.is_finite() || position < 0.0 || latest.0.duration <= 0.0 {
+        return None;
+    }
     Some((
         path,
         WatchState {
             position,
-            duration: number_property(app, "duration").unwrap_or_default(),
+            duration: latest.0.duration,
             audio_delay: number_property(app, "audio-delay"),
             sub_delay: number_property(app, "sub-delay"),
             updated_at: crate::app_db::now_seconds(),
@@ -1184,6 +1238,11 @@ pub fn current_watch_snapshot(app: &AppHandle) -> Option<(String, WatchState)> {
 }
 
 pub fn save_current_watch(app: &AppHandle) {
+    let host = app.state::<PlayerHost>();
+    let _watch = host
+        .watch_operation
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let Some((path, state)) = current_watch_snapshot(app) else {
         return;
     };
@@ -1216,6 +1275,35 @@ pub fn save_current_watch(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn obsolete_loads_cannot_consume_a_newer_pending_request() {
+        let host = super::PlayerHost::default();
+        let request =
+            serde_json::from_value(serde_json::json!({ "requestId": 9, "files": ["a.mkv"] }))
+                .unwrap();
+        host.set_pending_open(Some(request));
+        host.clear_pending_request(8);
+        assert_eq!(host.pending_open().unwrap().request_id, 9);
+        assert_eq!(host.take_pending_open().unwrap().request_id, 9);
+        assert!(host.take_pending_open().is_none());
+    }
+
+    #[test]
+    fn a_file_without_stream_metadata_cannot_reuse_the_previous_history_identity() {
+        let host = super::PlayerHost::default();
+        let stream = serde_json::from_value(serde_json::json!({
+            "sourceId": "s", "sourceName": "S", "mediaId": "1", "mediaTitle": "T", "slug": "title", "episodeId": "1", "episodeNumber": 1, "episodeTitle": "", "watchKey": "stream:1", "headers": {}, "quality": "720p", "variantId": "v", "sources": [], "mediaUrl": "https://example.com/one"
+        })).unwrap();
+        *host.pending_stream.lock().unwrap() = Some(stream);
+        host.activate_file("https://example.com/one".into());
+        assert_eq!(host.stream_identity().unwrap().episode_id, "1");
+        host.activate_file("local.mkv".into());
+        assert!(host.stream_identity().is_none());
+        assert!(host.stream_watch_key().is_none());
+        host.reset_native_state();
+        assert!(host.current_path().is_empty());
+    }
+
     use super::*;
 
     fn snapshot(

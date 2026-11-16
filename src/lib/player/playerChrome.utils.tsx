@@ -100,7 +100,7 @@ export const fileStatePatch = (entry: MediaEntry | undefined, speed: number): Fi
     subDelay: entry?.subOffset ?? 0,
     audioDelay: entry?.audioOffset ?? 0,
     audioTrack: typeof entry?.audioTrack === "number" ? entry.audioTrack : undefined,
-    subtitleTrack: typeof entry?.subtitleTrack === "number" ? entry.subtitleTrack : undefined,
+    subtitleTrack: entry?.subtitleTrack,
   };
 };
 

@@ -16,7 +16,10 @@ function normalizePath(path: string): string {
   return path.replaceAll("\\", "/").toLowerCase();
 }
 
-export async function loadSidecarTracks(videoPath: string): Promise<void> {
+export async function loadSidecarTracks(
+  videoPath: string,
+  isCurrent: () => boolean = () => playbackAtoms.path.get() === videoPath
+): Promise<void> {
   if (!settingsAtoms.autoLoadSidecarTracks.get()) return;
   if (!mediaFileExtension(fileNameFromPath(videoPath))) return;
 
@@ -32,6 +35,7 @@ export async function loadSidecarTracks(videoPath: string): Promise<void> {
     reportBackgroundError("player.sidecar.scan", error);
     return;
   }
+  if (!isCurrent()) return;
 
   const loaded = new Set(
     playbackAtoms.tracks
@@ -41,11 +45,14 @@ export async function loadSidecarTracks(videoPath: string): Promise<void> {
       .map(normalizePath)
   );
   for (const track of tracks) {
+    if (!isCurrent()) return;
     const key = normalizePath(track.path);
     if (loaded.has(key)) continue;
     loaded.add(key);
     const [, addError] = await attempt(
-      track.kind === "sub" ? addExternalSubtitleAuto(track.path) : addExternalAudioAuto(track.path)
+      track.kind === "sub"
+        ? addExternalSubtitleAuto(track.path, videoPath)
+        : addExternalAudioAuto(track.path, videoPath)
     );
     if (addError) reportBackgroundError("player.sidecar.add", addError);
   }

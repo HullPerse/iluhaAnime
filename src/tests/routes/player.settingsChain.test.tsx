@@ -37,6 +37,7 @@ import {
   setVolume,
 } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
+import { getMediaEntry } from "@/store/media.store";
 
 const setPropertyCalls = (name: string): unknown[] => {
   return invokeMock.mock.calls
@@ -161,7 +162,7 @@ describe("player settings chain store -> debounce -> mpv", () => {
     expect(setPropertyCalls("volume")).toEqual([50, 70]);
   });
 
-  it("skips watch saves when the position is unchanged", async () => {
+  it("keeps native watch persistence owned by the backend while mirroring UI progress", async () => {
     await mountPlayer();
     invokeMock.mockClear();
     const saves = (): number =>
@@ -176,18 +177,20 @@ describe("player settings chain store -> debounce -> mpv", () => {
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
-    expect(saves()).toBe(1);
+    expect(saves()).toBe(0);
+    expect(getMediaEntry("/a.mkv")?.position).toBe(42);
     await act(async () => {
       vi.advanceTimersByTime(10000);
     });
-    expect(saves()).toBe(1);
+    expect(saves()).toBe(0);
     act(() => {
       playbackAtoms.timePos.set(43);
     });
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
-    expect(saves()).toBe(2);
+    expect(saves()).toBe(0);
+    expect(getMediaEntry("/a.mkv")?.position).toBe(43);
   });
 });
 

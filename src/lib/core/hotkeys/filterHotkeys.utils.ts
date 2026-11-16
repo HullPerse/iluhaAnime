@@ -1,5 +1,5 @@
 const HOTKEY_IGNORE_SELECTOR =
-  'input, textarea, select, button, [contenteditable="true"], [data-no-hotkeys], [data-hotkeys-disabled], [data-no-wheel]';
+  'input, textarea, select, button, [role="slider"], [contenteditable="true"], [data-no-hotkeys], [data-hotkeys-disabled], [data-no-wheel]';
 
 export function shouldIgnoreHotkeys(target: EventTarget | null): boolean {
   const element = target instanceof HTMLElement ? target : null;
@@ -26,6 +26,11 @@ const PLAYER_ACTIVATION_CODES = new Set(["Space", "Enter", "NumpadEnter"]);
 export function shouldIgnorePlayerHotkeys(event: KeyboardEvent): boolean {
   const element = event.target instanceof HTMLElement ? event.target : null;
   if (!element) return false;
+  if (
+    element.closest('[role="slider"]') &&
+    /^(Arrow|Home$|End$|PageUp$|PageDown$)/.test(event.code)
+  )
+    return true;
   const inRange = element.closest('input[type="range"]');
   if (inRange && event.code.startsWith("Arrow")) return false;
   if (isTextEntryTarget(event.target)) return true;

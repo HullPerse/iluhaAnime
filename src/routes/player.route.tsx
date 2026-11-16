@@ -26,12 +26,12 @@ import { buildTree, filterTreeByPaths } from "@/lib/player/playerTree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/core/ui/visibility.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
+import { isCurrentDownload } from "@/lib/torrent/torrentCommon.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { attempt, attemptRetry, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { invokeTyped, invokeValidated } from "@/lib/core/system/invoke.utils";
 import { FileEntryListSchema, FolderScanResultListSchema } from "@/schemas/fileIndex.schema";
 import { showError, showErrorOnce } from "@/lib/core/ui/notification.utils";
-import { createCoalescedRunner } from "@/lib/core/shared/promise.utils";
 import { unwrapOr } from "@hullperse/hp_utils/result";
 import { parseValue } from "@/lib/core/persistence/schema.utils";
 import { WATCHER_DEBOUNCE_MS } from "@/lib/core/watchers/delayWatcher.utils";
@@ -43,7 +43,7 @@ import {
   removeEntriesByFolderPath,
 } from "@/store/category.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import type { FolderScanResult, VideoFileEntry } from "@/types/core/fs";
+import type { FolderScanResult } from "@/types/core/fs";
 import type { ScanType, FileSearchResult } from "@/types/player/player";
 import type { FFMPEGStatus } from "@/types/ui/settings";
 import type { FolderNode } from "@/types/torrent/torrent";
@@ -222,9 +222,19 @@ function PlayerRoute() {
   const ffmpegStatus: FFMPEGStatus = ffmpegOverride ?? probeStatus;
 
   const allTorrentIds = useMemo(() => torrents.map((t) => t.id), [torrents]);
+  const pollingTorrentIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const torrent of torrents) {
+      if (isCurrentDownload(torrent) || expanded.has(torrent.id)) ids.add(torrent.id);
+    }
+    return ids;
+  }, [expanded, torrents]);
   const { files: torrentFilesMap, pendingIds: torrentPendingIds } = useTorrentFilesMap(
     allTorrentIds,
-    10000
+    10000,
+    undefined,
+    true,
+    pollingTorrentIds
   );
   useEffect(() => {
     setTorrentLoading((prev) => {
@@ -234,44 +244,10 @@ function PlayerRoute() {
     });
   }, [torrentPendingIds]);
 
-  const rebuildRunnerRef = useRef<((task: () => Promise<void>) => Promise<void>) | null>(null);
-  if (rebuildRunnerRef.current === null) {
-    rebuildRunnerRef.current = createCoalescedRunner();
-  }
-  const rebuildFileIndex = useCallback(
-    async (paths: string[]) => {
-      const [, error] = await attempt(
-        invokeTyped("rebuild_file_index", {
-          paths,
-          extensions: videoExtensions,
-          threads: scanThreads,
-        })
-      );
-      if (error) {
-        reportBackgroundError("folders.rebuild", error);
-        if (settingsAtoms.notifyScanErrors.get())
-          showErrorOnce("folders-scan", t("notification.scan.failed"), error.message);
-      }
-    },
-    [t, videoExtensions, scanThreads]
-  );
-  const rebuildFileIndexRef = useRef<(paths: string[]) => Promise<void>>(rebuildFileIndex);
-  useEffect(() => {
-    rebuildFileIndexRef.current = rebuildFileIndex;
-  }, [rebuildFileIndex]);
-  const rebuildIndex = useCallback((paths: string[]) => {
-    const runner = rebuildRunnerRef.current;
-    if (!runner) return Promise.resolve();
-    return runner(() => rebuildFileIndexRef.current(paths));
-  }, []);
-
   useEffect(() => {
     const cached = cacheAtoms.folderTrees.get();
-    if (cached.length > 0) {
-      setFolderTrees(cached.map((c) => c.tree));
-      rebuildIndex(cached.map((c) => c.path));
-    }
-  }, [rebuildIndex]);
+    if (cached.length > 0) setFolderTrees(cached.map((c) => c.tree));
+  }, []);
 
   useEffect(() => {
     if (savedFolderPaths.length === 0) return;
@@ -286,11 +262,15 @@ function PlayerRoute() {
       const done = new Set<string>();
       const runScan = (): Promise<[FolderScanResult[], null] | [null, Error]> =>
         attempt(
-          invokeValidated<FolderScanResult[]>("scan_video_folders", FolderScanResultListSchema, {
-            paths: savedFolderPaths,
-            extensions: videoExtensions,
-            threads: scanThreads,
-          })
+          invokeValidated<FolderScanResult[]>(
+            "scan_video_folders_indexed",
+            FolderScanResultListSchema,
+            {
+              paths: savedFolderPaths,
+              extensions: videoExtensions,
+              threads: scanThreads,
+            }
+          )
         );
       const scan = listen<{
         path: string;
@@ -326,7 +306,6 @@ function PlayerRoute() {
       setFolderTrees(trees);
       setScanProgress(null);
       scannedFingerprint.current = print;
-      await rebuildIndex(savedFolderPaths);
       if (cancelled) return;
       setCachedFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
     })();
@@ -334,7 +313,7 @@ function PlayerRoute() {
     return () => {
       cancelled = true;
     };
-  }, [savedFolderPaths, t, videoExtensions, scanThreads, rebuildIndex]);
+  }, [savedFolderPaths, t, videoExtensions, scanThreads]);
 
   const torrentSaveDirsKey = useMemo(
     () =>
@@ -399,23 +378,33 @@ function PlayerRoute() {
         setScanProgress({ current: e.payload.current, total: e.payload.total });
       });
 
-      const [entries, scanError] = await attempt(
-        invokeValidated<VideoFileEntry[]>("scan_video_folder", FileEntryListSchema, {
-          path: folder,
-          extensions: videoExtensions,
-          threads: scanThreads,
-        })
+      const [results, scanError] = await attempt(
+        invokeValidated<FolderScanResult[]>(
+          "scan_video_folders_indexed",
+          FolderScanResultListSchema,
+          {
+            paths: [folder],
+            extensions: videoExtensions,
+            threads: scanThreads,
+            merge: true,
+          }
+        )
       );
+      const entries = results?.[0]?.entries ?? [];
       if (scanError) {
         reportBackgroundError("folders.scan", scanError);
         if (settingsAtoms.notifyScanErrors.get())
           showError(t("notification.scan.failed"), scanError.message);
-      } else if (entries && entries.length > 0) {
+      } else if (entries.length > 0) {
         const tree = buildTree(entries, folder);
         const next = [...folderTrees, tree];
         setFolderTrees(next);
         patchSettings({ savedFolderPaths: next.map((t) => t.path) });
-        rebuildIndex(next.map((t) => t.path));
+        if (scannedFingerprint.current !== null)
+          scannedFingerprint.current = fingerprint(
+            next.map((t) => t.path),
+            videoExtensions
+          );
         setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
       }
       const unlisten = await unlistenPromise.catch((error) =>
@@ -426,20 +415,27 @@ function PlayerRoute() {
       setLoading(false);
       setScanProgress(null);
     }
-  }, [folderTrees, t, videoExtensions, scanThreads, rebuildIndex]);
+  }, [folderTrees, t, videoExtensions, scanThreads]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
       removeEntriesByFolderPath(path);
       playerVisibility.unhidePlayerFolder(path);
+      invokeTyped("remove_file_index_root", { root: path }).catch((error: unknown) =>
+        reportBackgroundError("folders.index.remove", error)
+      );
       const next = folderTrees.filter((t) => t.path !== path);
       setFolderTrees(next);
       patchSettings({ savedFolderPaths: next.map((t) => t.path) });
+      if (scannedFingerprint.current !== null)
+        scannedFingerprint.current = fingerprint(
+          next.map((t) => t.path),
+          videoExtensions
+        );
       playerVisibility.setPlayerFolderHeight(path, null);
-      rebuildIndex(next.map((t) => t.path));
       setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
     },
-    [folderTrees, rebuildIndex]
+    [folderTrees, videoExtensions]
   );
 
   const toggleExpanded = useCallback((id: number) => {

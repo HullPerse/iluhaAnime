@@ -5,7 +5,12 @@ import { resolveChapterJump } from "@/lib/core/player/chapter.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { resolveSkipTarget } from "@/lib/core/player/skip.utils";
 import { seekTo, setPaused } from "@/lib/player/playback.utils";
-import { playbackAtoms, playerAtoms, setSeekTarget } from "@/store/player.store";
+import {
+  effectivePlaybackDuration,
+  playbackAtoms,
+  playerAtoms,
+  setSeekTarget,
+} from "@/store/player.store";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
 
 interface SeekDeps {
@@ -32,7 +37,7 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
   }, []);
 
   const onSeekBy = useCallback((seconds: number) => {
-    const duration = playbackAtoms.duration.get();
+    const duration = effectivePlaybackDuration();
     const timePos = playbackAtoms.timePos.get();
     const mode = playerAtoms.seekMode.get();
     const target = Math.max(0, Math.min(duration || Number.MAX_SAFE_INTEGER, timePos + seconds));
@@ -54,7 +59,7 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
 
   const onSeekPercent = useCallback(
     (percent: number) => {
-      const total = playbackAtoms.duration.get();
+      const total = effectivePlaybackDuration();
       if (total <= 0) return;
       onSeekTo(total * (percent / 10));
     },
@@ -65,7 +70,7 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
     const skip = resolveSkipTarget(
       playbackAtoms.chapters.get(),
       playbackAtoms.timePos.get(),
-      playbackAtoms.duration.get(),
+      effectivePlaybackDuration(),
       hasNext
     );
     if (!skip) return;
@@ -78,7 +83,7 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
       const jump = resolveChapterJump({
         chapters: playbackAtoms.chapters.get(),
         timePos: playbackAtoms.timePos.get(),
-        duration: playbackAtoms.duration.get(),
+        duration: effectivePlaybackDuration(),
         hasPrev,
         hasNext,
         direction,

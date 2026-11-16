@@ -63,11 +63,12 @@ describe("media entries", () => {
 
   it("patches tracks and offsets per path", () => {
     const store = createMediaSignalStore({ getStorage: () => memoryStorage() });
-    store.setTrack("/a.mkv", "audio", 2);
+    store.setTrack("/a.mkv", "audio", 2, "audio:rus");
     store.setSubOffset("/a.mkv", 0.5);
     store.setAudioOffset("/a.mkv", -0.25);
     expect(store.getEntry("/a.mkv")).toMatchObject({
       audioTrack: 2,
+      audioTrackKey: "audio:rus",
       subOffset: 0.5,
       audioOffset: -0.25,
     });

@@ -19,6 +19,13 @@ use crate::app_db::cards::{starter_grant, unopened_pack_count, wallet_balance, L
 use crate::app_db::db::open_database;
 use types::CardsBootstrap;
 
+#[derive(serde::Serialize)]
+pub struct CardsShell {
+    pub bootstrap: CardsBootstrap,
+    pub stats: collection::CardsStats,
+    pub unread: collection::CardsUnread,
+}
+
 /// Card ownership is a single local profile, so every path that can add cards
 /// first has to prove that an AniList account is connected.
 pub(crate) fn require_anilist_token(token: Option<&str>) -> Result<(), String> {
@@ -46,6 +53,24 @@ pub fn cards_bootstrap(app: AppHandle) -> Result<CardsBootstrap, String> {
         unopened_packs: unopened_pack_count(&connection, LOCAL_USER_ID)?,
         starter_granted: starter.is_some(),
         starter_packs: starter.map_or(0, |row| row.packs),
+    })
+}
+
+/// Header data for the Collection tab in one local IPC: bootstrap, stats and
+/// unread counts all come from the same SQLite connection anyway.
+#[tauri::command]
+pub fn cards_shell(
+    app: AppHandle,
+    packs_since: i64,
+    cards_since: i64,
+) -> Result<CardsShell, String> {
+    let bootstrap = cards_bootstrap(app.clone())?;
+    let stats = collection::cards_stats(app.clone())?;
+    let unread = collection::cards_unread(app, packs_since, cards_since)?;
+    Ok(CardsShell {
+        bootstrap,
+        stats,
+        unread,
     })
 }
 

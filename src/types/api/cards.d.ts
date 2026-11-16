@@ -65,6 +65,12 @@ export interface CardsBootstrap {
   starterPacks: number;
 }
 
+export interface CardsShell {
+  bootstrap: CardsBootstrap;
+  stats: CardsStats;
+  unread: CardsUnread;
+}
+
 export interface CardPackRow {
   id: string;
   source: string;

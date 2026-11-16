@@ -81,6 +81,12 @@ export interface FolderNode {
   children: FolderNode[];
 }
 
+export interface TorrentUpdatePayload {
+  updates: TorrentInfo[];
+  removed: number[];
+  reset: boolean;
+}
+
 export interface TorrentInfo {
   id: number;
   name: string;

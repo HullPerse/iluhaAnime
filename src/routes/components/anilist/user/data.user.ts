@@ -12,13 +12,14 @@ export function useUserAnilistData(options: { enabled?: boolean } = {}) {
     queryKey: queryKeys.anilistData(),
     enabled: options.enabled ?? true,
     queryFn: async () => {
-      const user = await anilistApi.checkAuth();
-      if (!user) return { user: null, lists: [], favourites: [], people: NO_PEOPLE };
-      const [lists, overview] = await Promise.all([
-        anilistApi.getLists(user.id),
-        anilistApi.getFavouriteOverview(user.id),
-      ]);
-      return { user, lists, favourites: overview.anime, people: overview.people };
+      const bundle = await anilistApi.getBootstrap();
+      if (!bundle) return { user: null, lists: [], favourites: [], people: NO_PEOPLE };
+      return {
+        user: bundle.user,
+        lists: bundle.lists,
+        favourites: bundle.favourites.anime,
+        people: bundle.favourites.people,
+      };
     },
     placeholderData: (previous) => previous,
   });

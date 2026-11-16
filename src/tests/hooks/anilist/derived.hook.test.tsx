@@ -178,4 +178,10 @@ describe("useAnilistEntries", () => {
     expect(result.current.isLocal).toBe(false);
     expect(result.current.displayEntries.map((item) => item.id)).toEqual([2, 1]);
   });
+
+  it("leaves display sorting to the grouped scroll view", () => {
+    const { result } = mount({ grouped: true, sort: { key: "title", dir: "desc" } });
+
+    expect(result.current.displayEntries.map((item) => item.title)).toEqual(["Alpha", "Beta"]);
+  });
 });

@@ -11,38 +11,39 @@ import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/ui/notification.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import {
+  mergeTorrentDelta,
   reduceTorrentEvent,
   TORRENT_WATCHDOG_MS,
   findJustFinished,
   findNewErrors,
   pendingRemoveIds,
   shouldHealTorrentChannel,
-  withoutPendingRemoved,
 } from "@/lib/torrent/torrentCommon.utils";
 import { cacheAtoms } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";
-import type { TorrentInfo } from "@/types/torrent/torrent";
+import type { TorrentInfo, TorrentUpdatePayload } from "@/types/torrent/torrent";
 
 interface TorrentRealtimeQuery {
   data?: TorrentInfo[];
   error: unknown;
 }
 
-function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentInfo[]>): void {
+function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentUpdatePayload>): void {
   const lastActiveAt = torrentAtoms.lastActiveAt.get();
   const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY) ?? [];
-  const payload = withoutPendingRemoved(
+  const next = mergeTorrentDelta(
+    prev,
     event.payload,
     pendingRemoveIds(torrentAtoms.opInFlight.get())
   );
-  const patch = reduceTorrentEvent({ torrents: prev, lastActiveAt }, { ...event, payload });
+  const patch = reduceTorrentEvent({ torrents: prev, lastActiveAt }, { ...event, payload: next });
   if (patch.torrents !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, patch.torrents);
   if (patch.lastActiveAt !== undefined) torrentAtoms.lastActiveAt.set(patch.lastActiveAt);
-  for (const t of findNewErrors(prev, payload)) {
+  for (const t of findNewErrors(prev, next)) {
     showError(tr("torrent.state.error"), `${t.name}: ${t.error}`);
   }
   const prefs = cacheAtoms.seedPreferences.get();
-  for (const t of findJustFinished(prev, payload, prefs)) {
+  for (const t of findJustFinished(prev, next, prefs)) {
     torrentApi
       .pauseTorrent(t.id)
       .catch((error) => reportBackgroundError("torrent.autopause.push", error));
@@ -80,7 +81,7 @@ export function useTorrentRealtime(query: TorrentRealtimeQuery): void {
     let lastHealAt = 0;
     const watchStartedAt = Date.now();
 
-    const onEvent = (event: Event<TorrentInfo[]>) => {
+    const onEvent = (event: Event<TorrentUpdatePayload>) => {
       if (disposed) return;
       lastEventAt = Date.now();
       applyTorrentEvent(queryClient, event);
@@ -90,7 +91,7 @@ export function useTorrentRealtime(query: TorrentRealtimeQuery): void {
       if (disposed || stopListening || listenPending) return;
       listenPending = true;
       (async () => {
-        const [stop] = await attempt(listen<TorrentInfo[]>("torrents-update", onEvent));
+        const [stop] = await attempt(listen<TorrentUpdatePayload>("torrents-update", onEvent));
         listenPending = false;
         if (!stop) return;
         if (disposed) {

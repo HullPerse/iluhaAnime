@@ -262,12 +262,70 @@ describe("playback atoms", () => {
     expect(playback.atoms.tracks.get().map((track) => track.selected)).toEqual([false, true]);
   });
 
+  it("seeds the persisted choice over mpv's default track list", () => {
+    const playback = setup();
+    playback.seedTrackSelection({ audioTrack: 2, subtitleTrack: "no" });
+    playback.setTracks([
+      { id: 1, type: "audio", selected: true },
+      { id: 2, type: "audio", selected: false },
+      { id: 5, type: "sub", selected: true },
+    ]);
+    expect(playback.atoms.tracks.get().map((track) => track.selected)).toEqual([
+      false,
+      true,
+      false,
+    ]);
+  });
+
+  it("prefers the stable track key over a stale numeric id", () => {
+    const playback = setup();
+    playback.seedTrackSelection({ audioTrack: 1, audioTrackKey: "audio:rus" });
+    playback.setTracks([
+      { id: 1, type: "audio", lang: "eng", selected: true },
+      { id: 2, type: "audio", lang: "rus", selected: false },
+    ]);
+    expect(playback.atoms.tracks.get().map((track) => track.selected)).toEqual([false, true]);
+  });
+
+  it("keeps mpv's selection when the stored track id is missing", () => {
+    const playback = setup();
+    playback.seedTrackSelection({ audioTrack: 9 });
+    playback.setTracks([{ id: 1, type: "audio", selected: true }]);
+    expect(playback.atoms.tracks.get()[0]?.selected).toBe(true);
+  });
+
+  it("keeps a manual track choice when a later track list arrives", () => {
+    const playback = setup();
+    playback.seedTrackSelection({ audioTrack: 1 });
+    playback.setTracks([
+      { id: 1, type: "audio", selected: true },
+      { id: 2, type: "audio", selected: false },
+    ]);
+    playback.markTrackSelected("audio", 2);
+    playback.setTracks([
+      { id: 1, type: "audio", selected: true },
+      { id: 2, type: "audio", selected: false },
+    ]);
+    expect(playback.atoms.tracks.get().map((track) => track.selected)).toEqual([false, true]);
+  });
+
+  it("keeps a close duration hint instead of jolting to mpv's value", () => {
+    const playback = setup();
+    playback.atoms.durationHint.set(1400);
+    playback.setSnapshot({ ...SNAPSHOT, duration: 1400.6 });
+    expect(playback.atoms.duration.get()).toBe(1400);
+    playback.setSnapshot({ ...SNAPSHOT, duration: 1410 });
+    expect(playback.atoms.duration.get()).toBe(1410);
+  });
+
   it("resets to the initial playback state", () => {
     const playback = setup();
     playback.setSnapshot(SNAPSHOT);
+    playback.atoms.durationHint.set(1400);
     playback.resetPlayback();
     expect(playback.atoms.timePos.get()).toBe(0);
     expect(playback.atoms.path.get()).toBe("");
+    expect(playback.atoms.durationHint.get()).toBe(0);
     expect(playback.atoms.paused.get()).toBe(true);
   });
 });

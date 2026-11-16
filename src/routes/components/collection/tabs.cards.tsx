@@ -3,7 +3,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 
 import { Button } from "@/components/ui/button.component";
 import { cardsTabLabelKeys } from "@/config/cards/labels.config";
-import { useCardsStats, useCardsUnread } from "@/hooks/cards/queries.hook";
+import { useCardsShell } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { cardsAtoms, setCardsAlbumMode, setCardsTab } from "@/store/cards.store";
 import type { CardsAlbumMode, CardsTab } from "@/types/store/cards";
@@ -31,14 +31,11 @@ export default function TabsCards() {
   const { t } = useI18n();
   const tab = useCell(cardsAtoms.tab);
   const albumMode = useCell(cardsAtoms.albumMode);
-  const stats = useCardsStats();
-  const totalCards = stats.data?.totalCards;
-  const activeGifts = stats.data?.activeGifts;
-  const packsReadAt = useCell(cardsAtoms.packsReadAt);
-  const albumReadAt = useCell(cardsAtoms.albumReadAt);
-  const unread = useCardsUnread(packsReadAt, albumReadAt);
-  const unreadPacks = unread.data?.packs ?? 0;
-  const unreadCards = unread.data?.cards ?? 0;
+  const shell = useCardsShell();
+  const totalCards = shell.data?.stats.totalCards;
+  const activeGifts = shell.data?.stats.activeGifts;
+  const unreadPacks = shell.data?.unread.packs ?? 0;
+  const unreadCards = shell.data?.unread.cards ?? 0;
 
   return (
     <nav className="flex min-h-0 flex-col gap-1">

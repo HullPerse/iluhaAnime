@@ -275,6 +275,9 @@ function CategoryView({
                             queryClient.invalidateQueries({
                               queryKey: torrentFilesKey(entry.torrentId),
                             });
+                            queryClient.invalidateQueries({
+                              queryKey: torrentFilesKey(entry.torrentId, true),
+                            });
                           }
                         }}
                       >

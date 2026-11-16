@@ -18,7 +18,9 @@ export interface FilePlaybackState {
   subDelay: number;
   audioDelay: number;
   audioTrack?: number;
+  audioTrackKey?: string;
   subtitleTrack?: number | "no";
+  subtitleTrackKey?: string;
 }
 
 export interface PlaylistEntry {

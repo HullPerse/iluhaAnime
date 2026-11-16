@@ -4,7 +4,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
-import type { AniListCollection, FavouriteAnime } from "@/types/anilist/anilist";
+import type { AniFriendBundle } from "@/types/anilist/anilist";
 
 function messageOf(error: unknown): string | null {
   if (error == null) return null;
@@ -12,27 +12,20 @@ function messageOf(error: unknown): string | null {
 }
 
 export function useFriendCompare(friendId: number | null, enabled: boolean) {
-  const listsQuery = useAppQuery<AniListCollection[]>("slow", {
-    queryKey: queryKeys.friendLists(friendId),
+  const query = useAppQuery<AniFriendBundle>("slow", {
+    queryKey: queryKeys.friendBundle(friendId),
     enabled: enabled && friendId != null,
     retry: 1,
-    queryFn: () => anilistApi.getLists(friendId as number),
-  });
-  const favouritesQuery = useAppQuery<FavouriteAnime[]>("slow", {
-    queryKey: queryKeys.friendFavourites(friendId),
-    enabled: enabled && friendId != null,
-    retry: 1,
-    queryFn: () => anilistApi.getFavourites(friendId as number),
+    queryFn: () => anilistApi.getFriendBundle(friendId as number),
   });
   const retry = useCallback(() => {
-    ignore(listsQuery.refetch());
-    ignore(favouritesQuery.refetch());
-  }, [listsQuery, favouritesQuery]);
+    ignore(query.refetch());
+  }, [query]);
   return {
-    friendLists: listsQuery.data ?? [],
-    friendFavourites: favouritesQuery.data ?? [],
-    listsLoading: listsQuery.isLoading,
-    listsError: messageOf(listsQuery.error),
+    friendLists: query.data?.lists ?? [],
+    friendFavourites: query.data?.favourites ?? [],
+    listsLoading: query.isLoading,
+    listsError: messageOf(query.error),
     retry,
   };
 }

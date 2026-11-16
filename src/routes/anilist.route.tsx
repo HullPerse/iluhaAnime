@@ -368,19 +368,6 @@ function AnilistRoute() {
     [source.friendProfile, source.mode, source.user]
   );
   const viewerScoreFormat = useMemo(() => parseScoreFormat(user?.score_format), [user]);
-  const { activeEntries, filteredEntries, displayEntries, isLocal, localSearchActive } =
-    useAnilistEntries({
-      lists: source.lists,
-      currentList,
-      sort,
-      searchTerms,
-      filterTerms: deferredSearchTerms,
-      global,
-      filters: searchFilters,
-      localFilter,
-      searchResults,
-      globalSort,
-    });
   const { grouped, collapsedLists, useScrollView, effectiveDisplayMode } = useAnilistListView({
     lists: source.lists,
     sort,
@@ -393,6 +380,20 @@ function AnilistRoute() {
     filters: searchFilters,
     mediaFilter: localFilter,
   });
+  const { activeEntries, filteredEntries, displayEntries, isLocal, localSearchActive } =
+    useAnilistEntries({
+      lists: source.lists,
+      currentList,
+      sort,
+      searchTerms,
+      filterTerms: deferredSearchTerms,
+      global,
+      filters: searchFilters,
+      localFilter,
+      searchResults,
+      globalSort,
+      grouped: grouped !== null,
+    });
   const { total, from, to, lastPage } = usePagination(
     displayEntries.length,
     pageSize,

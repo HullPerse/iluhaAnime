@@ -6,7 +6,7 @@ import { createInterval } from "@hullperse/hp_utils/interval";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { readPlaylistEntries } from "@/lib/player/playback.utils";
 import { setMediaPosition } from "@/store/media.store";
-import { playbackAtoms, streamSession } from "@/store/player.store";
+import { effectivePlaybackDuration, playbackAtoms, streamSession } from "@/store/player.store";
 
 export function usePlayerWatchProgress({ playlistOpen }: { playlistOpen: boolean }): void {
   const lastSavedWatchRef = useRef<{ path: string; position: number } | null>(null);
@@ -15,7 +15,7 @@ export function usePlayerWatchProgress({ playlistOpen }: { playlistOpen: boolean
     const { cancel } = createInterval(() => {
       const path = playbackAtoms.path.get();
       const eofReached = playbackAtoms.eofReached.get();
-      const duration = playbackAtoms.duration.get();
+      const duration = effectivePlaybackDuration();
       if (!path || eofReached || duration <= 0) {
         return;
       }

@@ -22,7 +22,7 @@ import {
 import { getPlayerSnapshot, streamSession } from "@/store/player.store";
 import { addNotification } from "@/store/notification.store";
 import type { ScheduledTask } from "@/types/core/shared";
-import type { PlaylistWatch } from "@/types/player/videoPlayer";
+import type { PlaylistWatch, WatchState } from "@/types/player/videoPlayer";
 
 /**
  * One mpv instance belongs to the player window, not to a React mount.
@@ -67,10 +67,12 @@ export function usePlayerSession({
   videoRef,
   syncMarginsRef,
   resumeRef,
+  initialWatchRef,
 }: {
   videoRef: RefObject<HTMLDivElement | null>;
   syncMarginsRef: RefObject<(force?: boolean) => void>;
   resumeRef: RefObject<number | undefined>;
+  initialWatchRef: RefObject<WatchState | null | undefined>;
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState<boolean>(false);
@@ -105,6 +107,7 @@ export function usePlayerSession({
       syncMarginsRef.current();
       const request = await takePendingOpen();
       if (disposed) return;
+      if (request) initialWatchRef.current = request.initialWatch;
       if (request && request.stream) {
         streamSession.set(request.stream);
         setLoadingFile(true);
@@ -136,7 +139,7 @@ export function usePlayerSession({
         ignore(destroyPlayer());
       });
     };
-  }, [attempt, resumeRef, syncMarginsRef, videoRef]);
+  }, [attempt, initialWatchRef, resumeRef, syncMarginsRef, videoRef]);
 
   const retrySession = useCallback(() => {
     setFailed(false);

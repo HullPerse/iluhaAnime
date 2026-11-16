@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
 import { useCardsMutations } from "@/hooks/cards/mutations.hook";
-import { useCardsBootstrap, useCardsStarterStatus } from "@/hooks/cards/queries.hook";
+import { useCardsShell, useCardsStarterStatus } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { ignore } from "@/lib/core/shared/promise.utils";
@@ -56,7 +56,7 @@ export default function CollectionShell() {
   const gift = useCell(deeplinkAtoms.giftTarget);
   const giftReceipt = useCell(deeplinkAtoms.giftReceiptTarget);
   const online = useOnlineStatus();
-  const bootstrap = useCardsBootstrap();
+  const bootstrap = useCardsShell();
   const starterStatus = useCardsStarterStatus();
   const { grantStarter } = useCardsMutations();
   const [starterClaimed, setStarterClaimed] = useState(false);
@@ -110,7 +110,7 @@ export default function CollectionShell() {
   const starter = starterStatus.data;
   const starterEligible = isStarterEligible(
     starterClaimed,
-    bootstrap.data?.starterGranted,
+    bootstrap.data?.bootstrap.starterGranted,
     starter
   );
 
@@ -152,14 +152,14 @@ export default function CollectionShell() {
             <div
               className="windows95-border bg-primary flex items-center justify-between gap-2 px-2 py-1"
               title={t("collection.wallet")}
-              aria-label={`${t("collection.wallet")}: ${bootstrap.data.wallet}`}
+              aria-label={`${t("collection.wallet")}: ${bootstrap.data.bootstrap.wallet}`}
             >
               <span className="windows95-text text-hint min-w-0 truncate">
                 {t("collection.wallet")}
               </span>
               <span className="windows95-text flex shrink-0 items-center gap-1 font-bold">
                 <img src="/money.png" alt="" className="chubrik-icon" />
-                <span className="tabular-nums">{bootstrap.data.wallet}</span>
+                <span className="tabular-nums">{bootstrap.data.bootstrap.wallet}</span>
               </span>
             </div>
           )}

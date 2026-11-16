@@ -10,7 +10,7 @@ import { TORRENTS_QUERY_KEY, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useTorrentRealtime } from "@/hooks/torrent/realtime.hook";
 import { torrentAtoms } from "@/store/download.store";
 import { mockInvoke, mockListen } from "@/tests/mocks";
-import type { TorrentInfo } from "@/types/torrent/torrent";
+import type { TorrentInfo, TorrentUpdatePayload } from "@/types/torrent/torrent";
 
 const torrent = (id: number, overrides: Partial<TorrentInfo> = {}): TorrentInfo => ({
   download_order: [],
@@ -50,10 +50,10 @@ const strictWrapper = ({ children }: { children: ReactNode }) => (
   </StrictMode>
 );
 
-const event = (payload: TorrentInfo[]): Event<TorrentInfo[]> => ({
+const event = (updates: TorrentInfo[], reset = true): Event<TorrentUpdatePayload> => ({
   event: "torrents-update",
   id: 1,
-  payload,
+  payload: { updates, removed: [], reset },
 });
 
 beforeEach(() => {
@@ -103,7 +103,7 @@ describe("useTorrentRealtime", () => {
   });
 
   it("applies the event payload to the query cache without pending removals", async () => {
-    let handler: ((payload: Event<TorrentInfo[]>) => void) | undefined;
+    let handler: ((payload: Event<TorrentUpdatePayload>) => void) | undefined;
     mockListen.mockImplementation(async (_name: string, callback: typeof handler) => {
       handler = callback;
       return vi.fn();
@@ -122,7 +122,7 @@ describe("useTorrentRealtime", () => {
 
   it("pauses a torrent that just finished in the event payload", async () => {
     const pause = vi.spyOn(torrentApi, "pauseTorrent").mockResolvedValue(undefined);
-    let handler: ((payload: Event<TorrentInfo[]>) => void) | undefined;
+    let handler: ((payload: Event<TorrentUpdatePayload>) => void) | undefined;
     mockListen.mockImplementation(async (_name: string, callback: typeof handler) => {
       handler = callback;
       return vi.fn();

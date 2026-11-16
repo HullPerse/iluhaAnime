@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AniFriendBundleSchema,
   AniListCollectionListSchema,
   AniMediaListSchema,
   AniMediaPageSchema,
+  AniUserBundleSchema,
   AniUserSchema,
   FollowingPageSchema,
 } from "@/schemas/anilist.schema";
@@ -101,6 +103,18 @@ describe("IPC response schemas", () => {
     expect(AniMediaPageSchema.safeParse({ media: [], total: 0 }).success).toBe(true);
     expect(AniUserSchema.safeParse({ id: 1, name: "u" }).success).toBe(true);
     expect(FollowingPageSchema.safeParse({ users: [], has_next_page: false }).success).toBe(true);
+    const favourites = { anime: [], people: { staff: [], characters: [] } };
+    expect(
+      AniUserBundleSchema.safeParse({ user: { id: 1, name: "u" }, lists: [], favourites })
+        .success
+    ).toBe(true);
+    expect(
+      AniFriendBundleSchema.safeParse({
+        profile: { id: 1, name: "u", banner_image: null, about: null },
+        lists: [],
+        favourites: [],
+      }).success
+    ).toBe(true);
   });
 
   it("validates system reads", () => {

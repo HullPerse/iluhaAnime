@@ -66,6 +66,7 @@ const renderCover = (
     url?: string | null;
     pageUrl?: string | null;
     mode?: TorrentCoverMode;
+    forceCascade?: boolean;
   }
 ) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -173,6 +174,23 @@ describe("useTorrentCover", () => {
     await waitFor(() => expect(result.current.status).toBe("page"));
     expect(result.current.anilistId).toBeNull();
     expect(result.current.coverUrl).toContain("http://asset.localhost/");
+    expect(mockInvoke).not.toHaveBeenCalledWith("search_anilist", expect.anything());
+  });
+
+  it("loads cascade candidates on demand for the correction dialog", async () => {
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (command === "get_torrent_poster") return "https://img.rutracker.org/f/009/poster.jpg";
+      if (command === "search_anilist") return [NARUTO];
+      if (command === "download_remote_image") return { id: "blob-force", path: "covers/force.jpg" };
+      return null;
+    });
+    const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
+      source: "rutracker",
+      url: "https://rutracker.org/forum/viewtopic.php?t=9",
+      forceCascade: true,
+    });
+    await waitFor(() => expect(result.current.status).toBe("page"));
+    await waitFor(() => expect(result.current.candidates.map((c) => c.id)).toContain(20));
   });
 
   it("fires no queries when the mode is off", async () => {

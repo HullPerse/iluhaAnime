@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -288,6 +290,23 @@ pub fn progress_in(
     }))
 }
 
+/// Hover badges for a whole catalog page in one IPC. The database connection
+/// and prepared statements are reused instead of opening the file per card.
+pub fn progress_many(
+    app: &AppHandle,
+    anime_ids: &[String],
+) -> Result<HashMap<String, Option<StreamHistoryProgress>>, String> {
+    let connection = open_database(app)?;
+    let mut result = HashMap::with_capacity(anime_ids.len());
+    for anime_id in anime_ids {
+        let Some(id) = clean_id(anime_id) else {
+            continue;
+        };
+        result.insert(id.to_string(), progress_in(&connection, id)?);
+    }
+    Ok(result)
+}
+
 pub fn clear(app: &AppHandle) -> Result<(), String> {
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(app)?;
@@ -324,6 +343,14 @@ pub fn stream_history_progress(
     anime_id: String,
 ) -> Result<Option<StreamHistoryProgress>, String> {
     progress(&app, &anime_id)
+}
+
+#[tauri::command]
+pub fn stream_history_progress_many(
+    app: AppHandle,
+    anime_ids: Vec<String>,
+) -> Result<HashMap<String, Option<StreamHistoryProgress>>, String> {
+    progress_many(&app, &anime_ids)
 }
 
 #[tauri::command]

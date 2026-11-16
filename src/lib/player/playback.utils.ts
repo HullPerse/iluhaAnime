@@ -208,13 +208,15 @@ export async function openPlayer(
   files: string[],
   resume?: number,
   startIndex?: number,
-  watch?: PlaylistWatch
+  watch?: PlaylistWatch,
+  initialWatch?: WatchState | null
 ): Promise<void> {
   await invokeTyped("player_open", {
     files,
     resume,
     startIndex,
     watch,
+    ...(initialWatch === undefined ? {} : { initialWatch }),
   });
 }
 
@@ -361,6 +363,17 @@ export async function applyFileState(
     speed: state.speed,
     subDelay: state.subDelay,
     audioDelay: state.audioDelay,
+    audioTrack: state.audioTrack ?? null,
+    subtitleTrack: state.subtitleTrack ?? null,
+    ...(expectedPath === undefined ? {} : { expectedPath }),
+  });
+}
+
+export async function applyFileTracks(
+  state: Pick<FilePlaybackState, "audioTrack" | "subtitleTrack">,
+  expectedPath?: string
+): Promise<void> {
+  await invokeTyped("player_apply_file_tracks", {
     audioTrack: state.audioTrack ?? null,
     subtitleTrack: state.subtitleTrack ?? null,
     ...(expectedPath === undefined ? {} : { expectedPath }),

@@ -244,8 +244,19 @@ pub struct TorrentManager {
     pub peer_hints: std::sync::Mutex<Vec<std::net::SocketAddr>>,
     pub rewrites_in_flight: std::sync::atomic::AtomicUsize,
     pub files_cache: DashMap<usize, Vec<TorrentFileInfo>>,
+    /// Full file rows and the progress sum they were built from. The full
+    /// list costs two syscalls per file, so an idle/seeding torrent can reuse
+    /// it for a few seconds; a progress change invalidates it immediately.
+    files_cache_at: DashMap<usize, (Instant, u64)>,
     pub metadata_slots: Arc<tokio::sync::Semaphore>,
 }
+
+#[cfg(not(test))]
+const FILES_CACHE_TTL: Duration = Duration::from_secs(6);
+// Tests mutate payloads on disk and expect the next read to observe it; keep
+// the production cache out of those assertions.
+#[cfg(test)]
+const FILES_CACHE_TTL: Duration = Duration::ZERO;
 const fn session_listener_mode(proxy_active: bool) -> ListenerMode {
     if proxy_active {
         ListenerMode::TcpOnly
@@ -381,6 +392,7 @@ impl TorrentManager {
             peer_hints: std::sync::Mutex::new(Vec::new()),
             rewrites_in_flight: std::sync::atomic::AtomicUsize::new(0),
             files_cache: DashMap::new(),
+            files_cache_at: DashMap::new(),
             metadata_slots: Arc::new(tokio::sync::Semaphore::new(METADATA_SLOTS)),
         };
         manager.reconcile_file_visibility();
@@ -921,6 +933,7 @@ impl TorrentManager {
 
         self.reconcile_file_visibility();
         if let (Some(ref files), Some(handle), Some(key)) = (&only_files, &handle, &key) {
+            self.files_cache_at.remove(&id);
             self.pending_selections.insert(id, files.clone());
             self.materialize_priorities(handle, key, files);
         }
@@ -1700,6 +1713,7 @@ impl TorrentManager {
         self.peer_counts.remove(&id);
         self.missing_files.remove(&id);
         self.files_cache.remove(&id);
+        self.files_cache_at.remove(&id);
         self.hidden_files.remove(&id);
         self.part_twins.remove(&id);
         if hidden_changed {
@@ -2036,6 +2050,7 @@ impl TorrentManager {
         self.peer_counts.remove(&id);
         self.missing_files.remove(&id);
         self.files_cache.remove(&id);
+        self.files_cache_at.remove(&id);
         self.hidden_files.remove(&id);
         self.part_twins.remove(&id);
         self.registry.save_dirs.remove(&id);
@@ -2078,13 +2093,43 @@ impl TorrentManager {
         })
     }
 
-    #[allow(clippy::too_many_lines)]
     pub fn get_running_torrent_files(&self, id: usize) -> Result<Vec<TorrentFileInfo>, String> {
+        self.get_running_torrent_files_inner(id, true)
+    }
+
+    /// File rows for the Player tab: no `exists` stat and no allocated-size
+    /// syscall per file. `completed/selected/size` are still exact, `exists`
+    /// is treated as true and `on_disk_bytes` is left at zero.
+    pub fn get_running_torrent_files_lite(
+        &self,
+        id: usize,
+    ) -> Result<Vec<TorrentFileInfo>, String> {
+        self.get_running_torrent_files_inner(id, false)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn get_running_torrent_files_inner(
+        &self,
+        id: usize,
+        include_disk: bool,
+    ) -> Result<Vec<TorrentFileInfo>, String> {
         let result = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
                     let h = handle.clone();
                     let stats = h.stats();
+                    let progress_signature: u64 = stats.file_progress.iter().copied().sum();
+                    if include_disk {
+                        if let Some(cached) = self.files_cache.get(&id) {
+                            if let Some(stamp) = self.files_cache_at.get(&id) {
+                                if stamp.0.elapsed() < FILES_CACHE_TTL
+                                    && stamp.1 == progress_signature
+                                {
+                                    return Some(cached.clone());
+                                }
+                            }
+                        }
+                    }
                     let only_files = h.only_files();
                     let key = h.info_hash().as_string();
                     return h
@@ -2155,14 +2200,31 @@ impl TorrentManager {
                                                 &Path::new(d.value()).join(&f.relative_filename),
                                             )
                                         });
-                                        let exists = full_path.as_deref().is_some_and(|path| {
-                                            std::fs::metadata(path)
-                                                .is_ok_and(|m| m.is_file() && m.len() > 0)
-                                        });
-                                        let on_disk_bytes = full_path
-                                            .as_deref()
-                                            .and_then(disk::allocated_bytes)
-                                            .unwrap_or(0);
+                                        let (exists, on_disk_bytes) = if include_disk {
+                                            let exists = full_path.as_deref().is_some_and(|path| {
+                                                std::fs::metadata(path)
+                                                    .is_ok_and(|m| m.is_file() && m.len() > 0)
+                                            });
+                                            // A file with no downloaded bytes has
+                                            // no allocated payload to stat; this
+                                            // is the common case for unselected
+                                            // files in a large torrent.
+                                            let on_disk_bytes = if progress == 0 {
+                                                0
+                                            } else {
+                                                full_path
+                                                    .as_deref()
+                                                    .and_then(disk::allocated_bytes)
+                                                    .unwrap_or(0)
+                                            };
+                                            (exists, on_disk_bytes)
+                                        } else {
+                                            // The Player tab only needs the
+                                            // playlist rows; disk stats are for
+                                            // the torrent details UI and cost
+                                            // two syscalls per file.
+                                            (true, 0)
+                                        };
                                         TorrentFileInfo {
                                             index: i,
                                             name: f.relative_filename.to_string_lossy().to_string(),
@@ -2184,7 +2246,13 @@ impl TorrentManager {
             None
         });
         if let Some(files) = result {
-            self.files_cache.insert(id, files.clone());
+            if include_disk {
+                let progress_signature: u64 =
+                    files.iter().map(|file| file.progress_bytes).sum();
+                self.files_cache.insert(id, files.clone());
+                self.files_cache_at
+                    .insert(id, (Instant::now(), progress_signature));
+            }
             Ok(files)
         } else {
             if self.is_rewriting() {
@@ -2194,6 +2262,7 @@ impl TorrentManager {
                 return Err("torrent not found or no metadata".to_string());
             }
             self.files_cache.remove(&id);
+            self.files_cache_at.remove(&id);
             Err("torrent not found or no metadata".to_string())
         }
     }

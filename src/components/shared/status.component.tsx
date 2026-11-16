@@ -1,5 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
+import { useMemo } from "react";
 
 import { PROJECT_GITHUB_URL } from "@/config/system/links.config";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -10,15 +11,21 @@ import { isCurrentDownload } from "@/lib/torrent/torrentCommon.utils";
 import { notificationAtoms } from "@/store/notification.store";
 import { vimAtoms } from "@/store/vim.store";
 
+function DownloadsStatus() {
+  const { t } = useI18n();
+  const { data: torrents = [] } = useTorrents();
+  const activeDownloads = useMemo(
+    () => torrents.reduce((n, torrent) => n + (isCurrentDownload(torrent) ? 1 : 0), 0),
+    [torrents]
+  );
+  return (
+    <div className="ui-statusbar-cell">{t("status.downloads", { count: activeDownloads })}</div>
+  );
+}
+
 export default function StatusBar({ tabLabel }: { tabLabel: string }) {
   const { t } = useI18n();
   const online = useOnlineStatus();
-
-  const { data: torrents = [] } = useTorrents();
-  const activeDownloads = torrents.reduce(
-    (n, torrent) => n + (isCurrentDownload(torrent) ? 1 : 0),
-    0
-  );
   const unreadCount = useCell(notificationAtoms.unreadCount);
   const vimCount = useCell(vimAtoms.count);
 
@@ -28,7 +35,7 @@ export default function StatusBar({ tabLabel }: { tabLabel: string }) {
         <span className="truncate">{tabLabel}</span>
       </div>
       {vimCount !== "" && <div className="ui-statusbar-cell tabular-nums">{vimCount}</div>}
-      <div className="ui-statusbar-cell">{t("status.downloads", { count: activeDownloads })}</div>
+      <DownloadsStatus />
       <div className="ui-statusbar-cell">{t("status.unread", { count: unreadCount })}</div>
       <div className="ui-statusbar-cell">{online ? t("status.online") : t("status.offline")}</div>
       <div className="ui-statusbar-cell">

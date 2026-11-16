@@ -18,6 +18,8 @@ function readMediaEntry(value: unknown): MediaEntry | null {
     typeof entry === "number" && Number.isFinite(entry) ? entry : 0;
   const optionalNumber = (entry: unknown): number | undefined =>
     typeof entry === "number" && Number.isFinite(entry) ? entry : undefined;
+  const optionalString = (entry: unknown): string | undefined =>
+    typeof entry === "string" && entry.length > 0 ? entry : undefined;
   return {
     path: value.path,
     position: number(value.position),
@@ -28,6 +30,12 @@ function readMediaEntry(value: unknown): MediaEntry | null {
     ...(optionalNumber(value.audioTrack) === undefined
       ? {}
       : { audioTrack: optionalNumber(value.audioTrack) }),
+    ...(optionalString(value.audioTrackKey) === undefined
+      ? {}
+      : { audioTrackKey: optionalString(value.audioTrackKey) }),
+    ...(optionalString(value.subtitleTrackKey) === undefined
+      ? {}
+      : { subtitleTrackKey: optionalString(value.subtitleTrackKey) }),
     ...(value.subtitleTrack === "no"
       ? { subtitleTrack: "no" as const }
       : optionalNumber(value.subtitleTrack) === undefined
@@ -130,19 +138,28 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
           position: time,
         })
       ),
-    setTrack: (path, type, index) => {
+    setTrack: (path, type, index, identity) => {
       if (type === "audio" && index === "no") return;
-      const patch = type === "audio" ? { audioTrack: index as number } : { subtitleTrack: index };
+      const patch =
+        type === "audio"
+          ? { audioTrack: index as number, audioTrackKey: identity }
+          : index === "no"
+            ? { subtitleTrack: "no" as const, subtitleTrackKey: undefined }
+            : { subtitleTrack: index, subtitleTrackKey: identity };
       entries.set(patchEntry(entries.get(), path, patch));
     },
     setSubOffset: (path, offset) =>
       entries.set(patchEntry(entries.get(), path, { subOffset: offset })),
     setAudioOffset: (path, offset) =>
       entries.set(patchEntry(entries.get(), path, { audioOffset: offset })),
-    hydrate: async (path) => {
-      const [stored] = await attempt(
-        invokeValidated<WatchState | null>("player_load_watch", WatchStateSchema, { path })
-      );
+    hydrate: async (path, storedOverride) => {
+      let stored = storedOverride;
+      if (stored === undefined) {
+        const [loaded] = await attempt(
+          invokeValidated<WatchState | null>("player_load_watch", WatchStateSchema, { path })
+        );
+        stored = loaded;
+      }
       const entry = getEntry(path);
       if (!stored) return entry;
       const merged: MediaEntry = {
@@ -152,7 +169,9 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
         subOffset: stored.subDelay ?? entry?.subOffset ?? 0,
         audioOffset: stored.audioDelay ?? entry?.audioOffset ?? 0,
         audioTrack: entry?.audioTrack,
+        audioTrackKey: entry?.audioTrackKey,
         subtitleTrack: entry?.subtitleTrack,
+        subtitleTrackKey: entry?.subtitleTrackKey,
         lastPlayed: entry?.lastPlayed ?? Date.now(),
       };
       entries.set(patchEntry(entries.get(), path, merged));

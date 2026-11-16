@@ -1,6 +1,6 @@
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
-import { useCardsBootstrap } from "@/hooks/cards/queries.hook";
+import { useCardsShell } from "@/hooks/cards/queries.hook";
 import { useCardsMutations } from "@/hooks/cards/mutations.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { ignore } from "@/lib/core/shared/promise.utils";
@@ -9,7 +9,7 @@ import ShopPack from "@/routes/components/collection/shopPack.cards";
 
 export default function ShopCards() {
   const { t } = useI18n();
-  const bootstrap = useCardsBootstrap();
+  const bootstrap = useCardsShell();
   const buyPack = useCardsMutations().buyPack;
 
   if (bootstrap.isPending) return <TabLoader className="min-h-48 flex-1" />;
@@ -25,7 +25,7 @@ export default function ShopCards() {
     );
   }
 
-  const { config, wallet } = bootstrap.data;
+  const { config, wallet } = bootstrap.data.bootstrap;
   const packs = config.shopPacks;
 
   return (

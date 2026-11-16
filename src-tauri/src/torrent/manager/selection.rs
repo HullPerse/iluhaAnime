@@ -27,6 +27,7 @@ impl TorrentManager {
             .await
             .map_err(|e| format!("{e}"));
         if result.is_ok() {
+            self.files_cache_at.remove(&id);
             self.file_priorities.remove(&key);
             self.materialize_priorities(&handle, &key, &only_files);
             self.reconcile_file_visibility();
@@ -54,6 +55,7 @@ impl TorrentManager {
                 }
             }
         }
+        self.files_cache_at.remove(&id);
         self.save_preferences();
 
         if priority == FilePriority::DoNotDownload || priority == FilePriority::Normal {
@@ -112,6 +114,7 @@ impl TorrentManager {
             .ok_or_else(|| "Torrent not found".to_string())?;
         let key = handle.info_hash().as_string();
 
+        self.files_cache_at.remove(&id);
         if enabled {
             self.sequential_torrents.insert(key);
             self.save_preferences();
@@ -227,6 +230,7 @@ impl TorrentManager {
     }
 
     pub async fn advance_sequential(self: &Arc<Self>, id: usize) -> Result<(), String> {
+        self.files_cache_at.remove(&id);
         let handle = self
             .torrent_handle(id)
             .ok_or_else(|| "Torrent not found".to_string())?;

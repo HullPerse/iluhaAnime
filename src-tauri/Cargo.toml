@@ -180,6 +180,31 @@ harness = false
 required-features = ["bench-api"]
 
 [[bench]]
+name = "player_scan_latency"
+harness = false
+required-features = ["bench-api"]
+
+[[bench]]
+name = "player_real_scan"
+harness = false
+required-features = ["bench-api"]
+
+[[bench]]
+name = "player_watch_latency"
+harness = false
+required-features = ["bench-api"]
+
+[[bench]]
+name = "player_torrent_files"
+harness = false
+required-features = ["bench-api"]
+
+[[bench]]
+name = "player_sidecar_scan"
+harness = false
+required-features = ["bench-api"]
+
+[[bench]]
 name = "details_parse"
 harness = false
 required-features = ["bench-api"]

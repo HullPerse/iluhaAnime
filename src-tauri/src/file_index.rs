@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -16,6 +16,12 @@ pub struct FileEntry {
     pub path: Box<str>,
     name_lower: Box<str>,
     pub size: u64,
+}
+
+#[derive(Debug, Default)]
+pub struct IndexDiff {
+    pub upserts: Vec<FileEntry>,
+    pub removals: Vec<String>,
 }
 
 impl FileEntry {
@@ -529,6 +535,116 @@ impl FileIndexer {
         self.index.read().await.clone()
     }
 
+    pub async fn is_empty(&self) -> bool {
+        self.index.read().await.is_empty()
+    }
+
+    /// Replaces the index with entries produced by a folder scan.
+    ///
+    /// The entries are sorted by path so a follow-up scan compares equal even
+    /// when jwalk returned them in a different order. Returns whether the
+    /// index actually changed; callers persist only on `true`.
+    pub async fn replace_entries(&self, entries: Vec<FileEntry>) -> bool {
+        self.replace_entries_with_diff(entries).await.is_some()
+    }
+
+    /// Replaces the index and returns only the rows that differ from it.
+    /// Startup loads the persisted index first, so a scan that finds no changes
+    /// writes nothing and a scan with a few changes writes only those rows.
+    pub async fn replace_entries_with_diff(
+        &self,
+        mut entries: Vec<FileEntry>,
+    ) -> Option<IndexDiff> {
+        let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        entries.sort_unstable_by(|left, right| left.path.cmp(&right.path));
+        let mut current = self.index.write().await;
+        if self.rebuild_generation.load(Ordering::Acquire) != generation {
+            return None;
+        }
+        let old_sizes: HashMap<&str, u64> = current
+            .iter()
+            .map(|entry| (entry.path.as_ref(), entry.size))
+            .collect();
+        let new_paths: HashSet<&str> =
+            entries.iter().map(|entry| entry.path.as_ref()).collect();
+        let upserts: Vec<FileEntry> = entries
+            .iter()
+            .filter(|entry| old_sizes.get(entry.path.as_ref()).copied() != Some(entry.size))
+            .cloned()
+            .collect();
+        let removals: Vec<String> = current
+            .iter()
+            .filter(|entry| !new_paths.contains(entry.path.as_ref()))
+            .map(|entry| entry.path.to_string())
+            .collect();
+        drop(old_sizes);
+        drop(new_paths);
+        if upserts.is_empty() && removals.is_empty() {
+            return None;
+        }
+        *current = entries;
+        Some(IndexDiff { upserts, removals })
+    }
+
+    /// Merges a newly scanned root into the index without dropping entries
+    /// from the other roots. Rows for the same paths are replaced.
+    pub async fn append_entries(&self, entries: Vec<FileEntry>) -> bool {
+        if entries.is_empty() {
+            return false;
+        }
+        let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        let mut current = self.index.write().await;
+        if self.rebuild_generation.load(Ordering::Acquire) != generation {
+            return false;
+        }
+        let incoming: HashSet<&str> = entries.iter().map(|entry| entry.path.as_ref()).collect();
+        current.retain(|entry| !incoming.contains(entry.path.as_ref()));
+        drop(incoming);
+        current.extend(entries);
+        current.sort_unstable_by(|left, right| left.path.cmp(&right.path));
+        true
+    }
+
+    /// Removes every entry under `root` in one pass and returns the removed
+    /// paths for the database delete. Used when a whole folder is removed.
+    pub async fn remove_root(&self, root: &str) -> Vec<String> {
+        let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        let prefix = format!("{}/", index_key(root).trim_end_matches('/'));
+        let mut current = self.index.write().await;
+        if self.rebuild_generation.load(Ordering::Acquire) != generation {
+            return Vec::new();
+        }
+        let mut removed = Vec::new();
+        current.retain(|entry| {
+            let key = index_key(&entry.path);
+            if key.len() > prefix.len() && key.starts_with(&prefix) {
+                removed.push(entry.path.to_string());
+                false
+            } else {
+                true
+            }
+        });
+        removed
+    }
+
+    /// Drops a batch of paths in one pass. Used when a whole folder is
+    /// removed; unlike [`Self::apply_paths`] it hashes the batch once instead
+    /// of comparing every index row against every removed path.
+    pub async fn remove_paths(&self, paths: Vec<String>) -> bool {
+        if paths.is_empty() {
+            return false;
+        }
+        let generation = self.rebuild_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        let keys: HashSet<String> = paths.iter().map(|path| index_key(path)).collect();
+        let mut current = self.index.write().await;
+        if self.rebuild_generation.load(Ordering::Acquire) != generation {
+            return false;
+        }
+        let before = current.len();
+        current.retain(|entry| !keys.contains(&index_key(&entry.path)));
+        before != current.len()
+    }
+
     pub async fn search(&self, query: &str, extensions: &[String], limit: usize) -> Vec<FileEntry> {
         let parsed = parse_file_query(query);
         let text = parsed.text.trim().to_lowercase();
@@ -687,6 +803,7 @@ fn fuzzy_file_score(query: &str, target: &str, scratch: &mut SearchScratch) -> O
 
 #[cfg(test)]
 mod tests {
+    use super::FileEntry;
     use super::FileIndexer;
     use super::{fuzzy_file_score, index_key, parse_file_query, substring_score, SearchScratch};
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -935,6 +1052,100 @@ mod tests {
     /// A point update landing mid-walk supersedes it: the index keeps the
     /// newer state, but the walk result must still be handed back instead of
     /// an empty list (that would drop the folder tree and empty the playlist).
+    #[tokio::test]
+    async fn remove_root_matches_case_and_separator_insensitively() {
+        let indexer = FileIndexer::new();
+        indexer
+            .replace_entries(vec![
+                FileEntry::new(r"C:\Media\Season 1\a.mkv", 1),
+                FileEntry::new(r"C:\Media2\b.mkv", 2),
+            ])
+            .await;
+
+        let removed = indexer.remove_root("c:/media").await;
+        assert_eq!(removed, vec![r"C:\Media\Season 1\a.mkv".to_string()]);
+        let left = indexer.snapshot().await;
+        assert_eq!(left.len(), 1);
+        assert_eq!(left[0].path.as_ref(), r"C:\Media2\b.mkv");
+    }
+
+    #[tokio::test]
+    async fn replace_entries_reports_only_changed_rows() {
+        let indexer = FileIndexer::new();
+        indexer
+            .replace_entries(vec![
+                FileEntry::new("old.mkv", 1),
+                FileEntry::new("same.mkv", 2),
+            ])
+            .await;
+
+        let diff = indexer
+            .replace_entries_with_diff(vec![
+                FileEntry::new("same.mkv", 2),
+                FileEntry::new("new.mkv", 3),
+            ])
+            .await
+            .expect("changed set must produce a diff");
+        assert_eq!(diff.upserts.len(), 1);
+        assert_eq!(diff.upserts[0].path.as_ref(), "new.mkv");
+        assert_eq!(diff.removals, vec!["old.mkv".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn remove_paths_drops_the_batch() {
+        let indexer = FileIndexer::new();
+        indexer
+            .replace_entries(vec![
+                FileEntry::new("a.mkv", 1),
+                FileEntry::new("b.mkv", 2),
+            ])
+            .await;
+
+        assert!(indexer.remove_paths(vec!["a.mkv".to_string()]).await);
+        let paths = indexer
+            .snapshot()
+            .await
+            .into_iter()
+            .map(|entry| entry.path.to_string())
+            .collect::<Vec<_>>();
+        assert_eq!(paths, vec!["b.mkv".to_string()]);
+        assert!(!indexer.remove_paths(vec!["missing.mkv".to_string()]).await);
+    }
+
+    #[tokio::test]
+    async fn append_entries_keeps_other_roots() {
+        let indexer = FileIndexer::new();
+        indexer
+            .replace_entries(vec![FileEntry::new("old/a.mkv", 1)])
+            .await;
+        indexer
+            .append_entries(vec![FileEntry::new("new/b.mkv", 2)])
+            .await;
+
+        let paths = indexer
+            .snapshot()
+            .await
+            .into_iter()
+            .map(|entry| entry.path.to_string())
+            .collect::<Vec<_>>();
+        assert_eq!(paths, vec!["new/b.mkv".to_string(), "old/a.mkv".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn replace_entries_skips_an_unchanged_rescan() {
+        let indexer = FileIndexer::new();
+        let first = vec![FileEntry::new("b.mkv", 2), FileEntry::new("a.mkv", 1)];
+        assert!(indexer.replace_entries(first).await);
+
+        // jwalk order is not stable, so a reordered copy of the same set is
+        // still unchanged and must not trigger a persist.
+        let reordered = vec![FileEntry::new("a.mkv", 1), FileEntry::new("b.mkv", 2)];
+        assert!(!indexer.replace_entries(reordered).await);
+
+        let changed = vec![FileEntry::new("a.mkv", 5), FileEntry::new("b.mkv", 2)];
+        assert!(indexer.replace_entries(changed).await);
+    }
+
     #[tokio::test]
     async fn refresh_returns_its_walk_when_a_point_update_supersedes_it() {
         let root = fixture_root("supersede");

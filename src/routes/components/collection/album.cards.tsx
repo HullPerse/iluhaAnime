@@ -236,9 +236,18 @@ export default function AlbumCards() {
     [data?.items, gridCards, infinite, view]
   );
   const suggestions = suggestionTitles(loadedCards);
-  const onVisibleCardsChange = useCallback((visible: readonly CollectionItem[]) => {
-    setRemoteImageScope(cardImageUrls(visible));
-  }, []);
+  const onVisibleCardsChange = useCallback(
+    (visible: readonly CollectionItem[]) => {
+      const urls = cardImageUrls(visible);
+      setRemoteImageScope(urls);
+      // The infinite grid can hold many loaded pages; prefetch only what the
+      // virtualizer actually renders instead of every card fetched so far.
+      if (infinite && view === "grid") {
+        prefetchRemoteImages(urls, imageProxy).catch(() => undefined);
+      }
+    },
+    [imageProxy, infinite, view]
+  );
   const activeSort = activeSortState(mode, sort, sortDir, collectionSort, collectionSortDir);
   const showPagination = paginationVisible(mode, view, infinite, total, data !== undefined);
 
@@ -248,8 +257,10 @@ export default function AlbumCards() {
       return;
     }
     const urls = cardImageUrls(loadedCards);
-    if (!infinite || view !== "grid") setRemoteImageScope(urls);
-    prefetchRemoteImages(urls, imageProxy).catch(() => undefined);
+    if (!infinite || view !== "grid") {
+      setRemoteImageScope(urls);
+      prefetchRemoteImages(urls, imageProxy).catch(() => undefined);
+    }
   }, [imageProxy, infinite, loadedCards, mode, view]);
 
   useEffect(

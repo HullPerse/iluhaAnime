@@ -1,32 +1,31 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamCover } from "@/hooks/remoteImage.hook";
-import { useStreamHistoryProgress } from "@/hooks/stream/catalog.hook";
 import { formatResume } from "@/lib/core/anilist/history.utils";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
-import type { StreamingAnime } from "@/types/player/stream";
+import type { StreamHistoryProgress, StreamingAnime } from "@/types/player/stream";
 
 function StreamCardView({
   anime,
   onOpen,
   tabIndex = 0,
   onFocus,
+  progress = null,
 }: {
   anime: StreamingAnime;
   onOpen: () => void;
   tabIndex?: number;
   onFocus?: () => void;
+  progress?: StreamHistoryProgress | null;
 }) {
   const { t } = useI18n();
   const cover = useStreamCover(anime.cover);
-  const [hovered, setHovered] = useState<boolean>(false);
-  const progress = useStreamHistoryProgress(anime.id, hovered);
-  const watched = progress.data?.watched ?? 0;
-  const lastPosition = progress.data?.lastPosition ?? 0;
+  const watched = progress?.watched ?? 0;
+  const lastPosition = progress?.lastPosition ?? 0;
   let watchLabel: string | null = null;
-  if (progress.data) {
+  if (progress) {
     if (watched > 0) watchLabel = `${watched} ${t("stream.history.watched")}`;
     else if (lastPosition > 0) watchLabel = formatResume(lastPosition);
   }
@@ -41,8 +40,6 @@ function StreamCardView({
         tabIndex={tabIndex}
         data-stream-card
         onFocus={onFocus}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         onClick={onOpen}
         onKeyDown={enterOrSpace(onOpen)}
         aria-label={anime.title}
@@ -65,7 +62,7 @@ function StreamCardView({
         {watchLabel && (
           <span
             className="bg-primary text-text windows95-small-border absolute top-1 left-1 px-1 py-0.5 text-xs leading-none font-bold"
-            title={progress.data?.title}
+            title={progress?.title}
           >
             {watchLabel}
           </span>
@@ -107,6 +104,7 @@ export const StreamCard = memo(
     previous.anime.status === next.anime.status &&
     previous.anime.mediaType === next.anime.mediaType &&
     previous.anime.rating === next.anime.rating &&
+    previous.progress === next.progress &&
     previous.tabIndex === next.tabIndex &&
     previous.onFocus === next.onFocus
 );

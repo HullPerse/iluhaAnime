@@ -7,6 +7,7 @@ import {
   CardGallerySchema,
   CardVariantsSchema,
   CardsBootstrapSchema,
+  CardsShellSchema,
   CardsUnreadSchema,
   CollectionRosterPageSchema,
   CardPackListSchema,
@@ -35,6 +36,7 @@ import type {
   CardsApiConfig,
   CardsBootstrap,
   CardsCollectionParams,
+  CardsShell,
   CardsStats,
   CollectionItem,
   CardsUnread,
@@ -75,6 +77,13 @@ export class CardsApi {
 
   async bootstrap(): Promise<CardsBootstrap> {
     return assertSchema(await this.cardsClient.cardsBootstrap(), CardsBootstrapSchema);
+  }
+
+  async shell(packsSince: number, cardsSince: number): Promise<CardsShell> {
+    return assertSchema(
+      await this.cardsClient.cardsShell({ packsSince, cardsSince }),
+      CardsShellSchema
+    );
   }
 
   async packs(): Promise<CardPackRow[]> {

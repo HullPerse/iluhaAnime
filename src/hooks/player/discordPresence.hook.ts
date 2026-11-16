@@ -20,7 +20,9 @@ export function usePlayerDiscordPresence(): void {
   const hasFile = useCell(playbackAtoms.hasFile);
   const paused = useCell(playbackAtoms.paused);
   const eofReached = useCell(playbackAtoms.eofReached);
-  const duration = useCell(playbackAtoms.duration);
+  const liveDuration = useCell(playbackAtoms.duration);
+  const durationHint = useCell(playbackAtoms.durationHint);
+  const duration = liveDuration > 0 ? liveDuration : durationHint;
   const timePos = useCell(playbackAtoms.timePos);
   const stream = useCell(streamSession);
   const { t } = useI18n();

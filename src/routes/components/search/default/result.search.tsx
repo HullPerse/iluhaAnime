@@ -44,6 +44,7 @@ export default function SearchResultItem({
     url: item.link,
     pageUrl: item.website,
     mode: coverMode,
+    forceCascade: correcting,
   });
   const visual = coverVisual(cover, coverMode);
   const coverTitle: Record<string, string> = {

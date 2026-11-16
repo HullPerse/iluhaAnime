@@ -79,6 +79,15 @@ async function timePos(page: Page): Promise<number> {
   return (await prop<number>(page, "time-pos", "double")) ?? 0;
 }
 
+// The local-file handler restores the saved position and track selection
+// before it marks the file ready. Starting playback earlier lets the handler
+// pause the file again after the test has already pressed play.
+async function waitForFileReady(player: Page): Promise<void> {
+  await player
+    .locator('[data-player-video][data-player-ready="true"]')
+    .waitFor({ timeout: 120_000 });
+}
+
 async function setProperty(page: Page, name: string, value: unknown): Promise<void> {
   await invoke(page, "player_set_property", { name, value });
 }
@@ -144,6 +153,7 @@ async function openMedia(
 }
 
 async function startPlayback(player: Page): Promise<number> {
+  await waitForFileReady(player);
   const before = await timePos(player);
   await setProperty(player, "pause", false);
   await waitFor(
@@ -165,9 +175,19 @@ async function pauseAndVerify(player: Page): Promise<void> {
   }
 }
 
+// The player exposes seeking through `player_command`; `time-pos` is not a
+// writable property in the command allow-list, and the real UI seeks the same
+// way (`runMpvCommand("seek", [seconds, ...])`).
+async function seek(player: Page, target: number): Promise<void> {
+  await invoke(player, "player_command", {
+    name: "seek",
+    args: [target, "absolute+exact"],
+  });
+}
+
 async function seekTo(player: Page, target: number, tolerance: number): Promise<number> {
   const started = Date.now();
-  await setProperty(player, "time-pos", target);
+  await seek(player, target);
   await waitFor(
     () => timePos(player),
     (value) => Math.abs(value - target) <= tolerance,
@@ -361,7 +381,7 @@ export const playerMedia: Scenario = {
             measurement.seekMs.push(await seekTo(current.page, duration * fraction, tolerance));
           }
           for (const fraction of [0.3, 0.6, 0.8, 0.4]) {
-            await setProperty(current.page, "time-pos", duration * fraction);
+            await seek(current.page, duration * fraction);
             await sleep(120);
           }
           await seekTo(current.page, duration * 0.4, tolerance);
@@ -386,6 +406,49 @@ export const playerMedia: Scenario = {
           measurements.push(measurement);
         });
       }
+
+      await step("player restart rebuilds mpv", async () => {
+        const media = candidates[0]?.file;
+        if (!media) throw new Error("no media candidate for restart");
+        const opened = await openMedia(browser, page, media);
+        await startPlayback(opened.page);
+        const before = await timePos(opened.page);
+
+        // `player_restart` tears the instance down and creates a new one with
+        // the same initial options a fresh mount would pass. The page itself
+        // survives, so every probe below runs against the rebuilt instance.
+        await invoke(opened.page, "player_restart", { initialOptions: { volume: 55 } });
+        await waitFor(
+          () => prop<number>(opened.page, "volume", "double"),
+          (value) => Math.abs(value - 55) < 0.5,
+          "volume after restart",
+          60_000
+        );
+        const idlePath = await prop<string>(opened.page, "path", "string");
+        if (idlePath !== null && idlePath !== "") {
+          throw new Error(`restart left the previous file loaded: ${idlePath}`);
+        }
+
+        // A rebuilt instance must accept a load and report the new file.
+        await invoke(opened.page, "player_load", {
+          files: [media.path],
+          resume: before,
+          startIndex: 0,
+        });
+        await waitFor(
+          () => prop<string>(opened.page, "path", "string"),
+          (value) => samePath(value, media.path),
+          "mpv path after restart",
+          120_000
+        );
+        await waitFor(
+          () => prop<number>(opened.page, "duration", "double"),
+          (value) => value > 0,
+          "media duration after restart",
+          120_000
+        );
+        await closePlayer(browser);
+      });
 
       await step("repeated player cycles", async () => {
         const media = candidates[0]?.file;

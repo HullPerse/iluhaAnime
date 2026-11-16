@@ -68,18 +68,26 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
       ignore(streamNext.goNext());
       return;
     }
+    // Silence the current file before mpv swaps it. The new file is restored
+    // paused, so no default audio plays while state is applied.
+    setPlaybackPaused(true);
+    ignore(setPaused(true));
     ignore(nextFile());
   }, [setFinished, setLoadingFile, streamNext, streaming]);
 
   const onFilePrev = useCallback(() => {
     setFinished(false);
     setLoadingFile(true);
+    setPlaybackPaused(true);
+    ignore(setPaused(true));
     ignore(previousFile());
   }, [setFinished, setLoadingFile]);
 
   const onPlayIndex = useCallback(
     async (index: number) => {
       setLoadingFile(true);
+      setPlaybackPaused(true);
+      await setPaused(true);
       await playPlaylistIndex(index);
     },
     [setLoadingFile]
@@ -115,6 +123,8 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
       if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
       hwdecReloadRef.current = { position: timePos, paused };
       setLoadingFile(true);
+      setPlaybackPaused(true);
+      ignore(setPaused(true));
       setMpvProperty("hwdec", mode)
         .then(() => playPlaylistIndex(playlistIndex))
         .catch((error: unknown) => {

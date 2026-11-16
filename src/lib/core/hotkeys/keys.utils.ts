@@ -2,7 +2,8 @@ export const queryKeys = {
   newsFeed: (page: number, proxy: string) => ["news_feed", page, proxy] as const,
   customEmoji: () => ["custom-emoji"] as const,
   torrents: () => ["torrents"] as const,
-  torrentFiles: (id: number) => ["torrent-files", id] as const,
+  torrentFiles: (id: number, lite = false) =>
+    ["torrent-files", id, lite ? "lite" : "full"] as const,
   torrentDiagnostics: (id: number) => ["torrent_diagnostics", id] as const,
   torrentListenPort: () => ["torrent-listen-port"] as const,
   torrentActiveProxy: () => ["torrent-active-proxy"] as const,
@@ -17,6 +18,8 @@ export const queryKeys = {
   streamHistoryRecent: () => ["stream_history_recent"] as const,
   streamHistoryForAnime: (animeId: string) => ["stream_history_anime", animeId] as const,
   streamHistoryProgress: (animeId: string) => ["stream_history_progress", animeId] as const,
+  streamHistoryProgressMany: (idsKey: string) =>
+    ["stream_history_progress_many", idsKey] as const,
   streamPlayers: (episodeId: string) => ["stream_players", episodeId] as const,
   streamSources: (episodeId: string, variantId: string) =>
     ["stream_sources", episodeId, variantId] as const,
@@ -45,6 +48,7 @@ export const queryKeys = {
   anilistSeasonAiring: (season: string, year: number, adult: boolean) =>
     ["anilist_season_airing", season, year, adult ? 1 : 0] as const,
   anilistSearchPages: (request: unknown) => ["anilist_search_pages", request] as const,
+  friendBundle: (id: number | null) => ["anilist_friend_bundle", id] as const,
   friendLists: (id: number | null) => ["anilist_friend_lists", id] as const,
   friendFavourites: (id: number | null) => ["anilist_friend_favourites", id] as const,
   friendProfile: (id: number | null) => ["anilist_friend_profile", id] as const,
@@ -77,8 +81,8 @@ export const queryKeys = {
     localTitle: string | null
   ) => ["cover_resolve", key, rejectedIds, learnedTitle, localTitle] as const,
   coverResolveScope: (coverKey: string) => ["cover_resolve", coverKey] as const,
-  searchSessions: (rutracker: string, nekobt: string, erai: string) =>
-    ["search_sessions", rutracker, nekobt, erai] as const,
+  searchSessions: (source: string, rutracker: string, nekobt: string, erai: string) =>
+    ["search_sessions", source, rutracker, nekobt, erai] as const,
   searchSessionsScope: () => ["search_sessions"] as const,
   hostStats: () => ["host-stats"] as const,
   dhtStats: () => ["dht-stats"] as const,
@@ -107,6 +111,8 @@ export const queryKeys = {
   checkFfprobe: () => ["check-ffprobe"] as const,
   collectionData: () => ["collection-data"] as const,
   cardsBootstrap: () => ["cards-bootstrap"] as const,
+  cardsShell: (packsSince: number, cardsSince: number) =>
+    ["cards-shell", packsSince, cardsSince] as const,
   dailyGame: (day: string) => ["daily-game", day] as const,
   dailyGameScope: () => ["daily-game"] as const,
   dailyAnswer: (id: number) => ["daily-answer", id] as const,

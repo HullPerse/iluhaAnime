@@ -8,8 +8,8 @@ import { hasFreshCachedProfile } from "@/lib/core/anilist/friends.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type {
   AniFriend,
+  AniFriendBundle,
   AniListCollection,
-  AniUserProfile,
   FavouriteAnime,
 } from "@/types/anilist/anilist";
 
@@ -18,30 +18,21 @@ const EMPTY_FAVOURITES: FavouriteAnime[] = [];
 
 export function useFriendAnilistData(friend: AniFriend | null) {
   const id = friend?.id ?? null;
+  const cachedProfile = hasFreshCachedProfile(friend ?? undefined) ? friend?.profile : undefined;
 
-  const listsQuery = useAppQuery<AniListCollection[]>("slow", {
-    queryKey: queryKeys.friendLists(id),
-    enabled: id != null,
-    queryFn: () => anilistApi.getLists(id as number),
-  });
-
-  const favouritesQuery = useAppQuery<FavouriteAnime[]>("slow", {
-    queryKey: queryKeys.friendFavourites(id),
-    enabled: id != null,
-    queryFn: () => anilistApi.getFavourites(id as number),
-  });
-
-  const profileQuery = useAppQuery<AniUserProfile>("slow", {
-    queryKey: queryKeys.friendProfile(id),
+  const query = useAppQuery<AniFriendBundle>("slow", {
+    queryKey: queryKeys.friendBundle(id),
     enabled: id != null,
     staleTime: PROFILE_CACHE_TTL_MS,
     retry: 1,
-    initialData: hasFreshCachedProfile(friend ?? undefined) ? friend?.profile : undefined,
-    queryFn: () => anilistApi.getProfile(id as number),
+    placeholderData: cachedProfile
+      ? { profile: cachedProfile, lists: EMPTY_LISTS, favourites: EMPTY_FAVOURITES }
+      : undefined,
+    queryFn: () => anilistApi.getFriendBundle(id as number),
   });
 
-  const lists = listsQuery.data ?? EMPTY_LISTS;
-  const favourites = favouritesQuery.data ?? EMPTY_FAVOURITES;
+  const lists = query.data?.lists ?? EMPTY_LISTS;
+  const favourites = query.data?.favourites ?? EMPTY_FAVOURITES;
   const entryLookup = useMemo(() => buildEntryLookup(lists), [lists]);
   const displayFavouriteIds = useMemo(
     () => new Set(favourites.map((item) => item.id)),
@@ -51,11 +42,11 @@ export function useFriendAnilistData(friend: AniFriend | null) {
   return {
     displayFavouriteIds,
     entryLookup,
-    error: listsQuery.error,
+    error: query.error,
     favourites,
-    isError: listsQuery.isError,
-    isLoading: id != null && listsQuery.isLoading,
+    isError: query.isError,
+    isLoading: id != null && (query.isLoading || query.isPlaceholderData),
     lists,
-    profile: profileQuery.data ?? null,
+    profile: query.data?.profile ?? cachedProfile ?? null,
   };
 }

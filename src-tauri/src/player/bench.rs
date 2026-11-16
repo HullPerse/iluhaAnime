@@ -410,7 +410,7 @@ async fn run_one(
         config.decode_secs
     );
     let (reads_before, snapshots_before, events_before, time_pos_before, dirty_before) =
-        super::state::poll_stats();
+        super::snapshot::poll_stats();
     let time_pos_start = num(app, "time-pos");
     let mut render_fps: Vec<f64> = Vec::new();
     let mut cache_min = f64::MAX;
@@ -438,7 +438,7 @@ async fn run_one(
     let time_pos_end = num(app, "time-pos");
     let paused_end = flag(app, "pause");
     let (reads_after, snapshots_after, events_after, time_pos_after, dirty_after) =
-        super::state::poll_stats();
+        super::snapshot::poll_stats();
     let property_reads = reads_after.saturating_sub(reads_before);
     let player_snapshots = snapshots_after.saturating_sub(snapshots_before);
     let property_events = events_after.saturating_sub(events_before);

@@ -226,8 +226,11 @@ export class TorrentApi {
     return this.call("get_running_torrent_files", { id });
   }
 
-  runningTorrentFilesBatch(ids: readonly number[]): Promise<TorrentFilesBatchEntry[]> {
-    return this.call("get_running_torrent_files_batch", { ids });
+  runningTorrentFilesBatch(
+    ids: readonly number[],
+    lite = false
+  ): Promise<TorrentFilesBatchEntry[]> {
+    return this.call("get_running_torrent_files_batch", { ids, lite });
   }
 
   pauseTorrent(id: number, infoHash?: string): Promise<void> {

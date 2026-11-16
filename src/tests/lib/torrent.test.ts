@@ -14,6 +14,7 @@ import {
   getDisplayState,
   getLifecycleLabel,
   getTorrentLifecycle,
+  mergeTorrentDelta,
   sameDownloadOrder,
   shouldHealTorrentChannel,
   shouldHealTorrentPoll,
@@ -304,6 +305,47 @@ describe("torrent/common", () => {
       expect(getLifecycleLabel("paused", ru)).toBe("Пауза");
       expect(getLifecycleLabel("seeding", ru)).toBe("Раздаётся");
       expect(getLifecycleLabel("completed", ru)).toBe("Завершено");
+    });
+  });
+
+  describe("mergeTorrentDelta", () => {
+    it("replaces the whole list on reset", () => {
+      expect(
+        mergeTorrentDelta([makeInfo(1)], {
+          updates: [makeInfo(2), makeInfo(3)],
+          removed: [],
+          reset: true,
+        })
+      ).toEqual([makeInfo(2), makeInfo(3)]);
+    });
+
+    it("keeps the order and replaces only updated rows", () => {
+      const prev = [makeInfo(1), makeInfo(2), makeInfo(3)];
+      const changed = makeInfo(2, { progress_bytes: 500 });
+      const next = mergeTorrentDelta(prev, {
+        updates: [changed],
+        removed: [],
+        reset: false,
+      });
+      expect(next.map((t) => t.id)).toEqual([1, 2, 3]);
+      expect(next[1]).toBe(changed);
+      expect(next[0]).toBe(prev[0]);
+    });
+
+    it("applies removals and ignores pending removes", () => {
+      const prev = [makeInfo(1), makeInfo(2)];
+      expect(
+        mergeTorrentDelta(
+          prev,
+          { updates: [makeInfo(2)], removed: [1], reset: false },
+          new Set([2])
+        )
+      ).toEqual([]);
+    });
+
+    it("returns the same array for an empty heartbeat", () => {
+      const prev = [makeInfo(1)];
+      expect(mergeTorrentDelta(prev, { updates: [], removed: [], reset: false })).toBe(prev);
     });
   });
 

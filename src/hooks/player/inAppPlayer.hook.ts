@@ -40,7 +40,7 @@ export function useTorrentInAppPlayer(
             torrentId === undefined
               ? undefined
               : { kind: "torrent", torrentId, saveDir, anchor: clickedFullPath };
-          await openPlayer(playlist.files, resume, playlist.startIndex, watch).catch(
+          await openPlayer(playlist.files, resume, playlist.startIndex, watch, stored).catch(
             (error: unknown) => {
               showError(t("player.folder.open.failed.player"), String(error));
             }

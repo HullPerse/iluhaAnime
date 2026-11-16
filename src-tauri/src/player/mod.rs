@@ -1,5 +1,10 @@
 pub mod commands;
 pub mod core;
+pub mod lifecycle;
+pub mod load;
+mod options;
+mod session;
+pub mod snapshot;
 pub mod state;
 mod validation;
 pub mod watch;
@@ -8,6 +13,8 @@ pub mod watch;
 pub mod bench;
 
 pub use commands::*;
+pub use lifecycle::*;
+pub use load::*;
 pub use state::PlayerHost;
 
 pub const PLAYER_WINDOW_LABEL: &str = "player";

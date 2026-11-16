@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import ShopCards from "@/routes/components/collection/shop.cards";
 import { resetCardsStore } from "@/store/cards.store";
 
-import { makeBootstrap, makePurchase } from "@/tests/fixtures/cards/cards.fixture";
+import { makeBootstrap, makeCardsStats, makePurchase } from "@/tests/fixtures/cards/cards.fixture";
 import { mockInvoke } from "@/tests/mocks";
 import { renderWithCardsClient } from "@/tests/components/collection/render.cards";
 
@@ -15,7 +15,15 @@ afterEach(() => {
 
 describe("collection shop", () => {
   it("shows pack sizes without repeated odds and disables unaffordable packs", async () => {
-    mockInvoke.mockResolvedValue(makeBootstrap({ wallet: 90 }));
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_shell")
+        return Promise.resolve({
+          bootstrap: makeBootstrap({ wallet: 90 }),
+          stats: makeCardsStats(),
+          unread: { packs: 0, cards: 0 },
+        });
+      return Promise.resolve(null);
+    });
     renderWithCardsClient(<ShopCards />);
 
     expect(await screen.findAllByText("7 карт")).toHaveLength(6);
@@ -28,7 +36,12 @@ describe("collection shop", () => {
 
   it("buys a themed pack without a success banner", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap({ wallet: 200 }));
+      if (command === "cards_shell")
+        return Promise.resolve({
+          bootstrap: makeBootstrap({ wallet: 200 }),
+          stats: makeCardsStats(),
+          unread: { packs: 0, cards: 0 },
+        });
       if (command === "cards_buy_pack") return Promise.resolve(makePurchase());
       return Promise.resolve(null);
     });

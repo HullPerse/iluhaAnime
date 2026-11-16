@@ -6,7 +6,10 @@
 
 use serde::Serialize;
 
-use super::auth::{load_token, optional_token};
+use super::auth::{
+    get_anilist_lists, load_token, optional_token, parse_ani_profile, parse_ani_user,
+    AniListCollection, AniUser, AniUserProfile,
+};
 use super::client::graphql_request;
 use super::media::{
     cached_media_json, media_detail_selection, parse_animedia, store_media_json, AniAnimeStaffEdge,
@@ -102,6 +105,26 @@ const FAVOURITE_ANIME_NODES: &str = r"
                                 format
 ";
 
+fn parse_favourite_overview(user: &serde_json::Value) -> Result<FavouriteOverview, String> {
+    let favs = &user["favourites"];
+    let anime = favs["anime"]["nodes"]
+        .as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
+    let staff = favs["staff"]["nodes"]
+        .as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
+    let characters = favs["characters"]["nodes"]
+        .as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
+    Ok(FavouriteOverview {
+        anime: parse_favourite_nodes(anime),
+        people: FavouritePeople {
+            staff: parse_favourite_people(staff),
+            characters: parse_favourite_people(characters),
+        },
+    })
+}
+
 #[derive(Debug, Serialize)]
 pub struct FavouriteOverview {
     pub anime: Vec<FavouriteAnime>,
@@ -143,22 +166,121 @@ pub async fn get_favourite_overview(
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    let favs = &json["data"]["User"]["favourites"];
-    let anime = favs["anime"]["nodes"]
+    parse_favourite_overview(&json["data"]["User"])
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniUserBundle {
+    pub user: AniUser,
+    pub lists: Vec<AniListCollection>,
+    pub favourites: FavouriteOverview,
+}
+
+/// One IPC for the signed-in AniList tab: viewer, favourites and lists.
+/// The viewer query answers before the id is known, so the list chunk is the
+/// only second HTTP call; it was already needed for large collections.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anilist_bootstrap(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Option<AniUserBundle>, String> {
+    let Ok(token) = load_token(&app_handle) else {
+        return Ok(None);
+    };
+    let body = serde_json::json!({
+        "query": format!(
+            r"
+            query {{
+                Viewer {{
+                    id name avatar {{ medium }}
+                    mediaListOptions {{ scoreFormat }}
+                    options {{ titleLanguage }}
+                    statistics {{ anime {{ count episodesWatched meanScore }} }}
+                    favourites {{
+                        anime {{ nodes {{ {anime} }} }}
+                        staff {{ nodes {{ {people} }} }}
+                        characters {{ nodes {{ {people} }} }}
+                    }}
+                }}
+            }}
+        ",
+            anime = FAVOURITE_ANIME_NODES,
+            people = FAVOURITE_PERSON_NODES
+        )
+    });
+    let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
+    let Ok(json) = graphql_request(body, Some(&token), proxy.as_deref()).await else {
+        return Ok(None);
+    };
+    let viewer = &json["data"]["Viewer"];
+    if viewer.is_null() {
+        return Ok(None);
+    }
+    let user = parse_ani_user(viewer);
+    let favourites = parse_favourite_overview(viewer)?;
+    let lists = get_anilist_lists(app_handle, user.id, None, proxy_url, proxyUrl).await?;
+    Ok(Some(AniUserBundle {
+        user,
+        lists,
+        favourites,
+    }))
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniFriendBundle {
+    pub profile: AniUserProfile,
+    pub lists: Vec<AniListCollection>,
+    pub favourites: Vec<FavouriteAnime>,
+}
+
+/// The friend card, compare panel and favourites shelf open together, so one
+/// command loads the profile, favourites and lists instead of three IPCs.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anilist_friend_bundle(
+    app_handle: tauri::AppHandle,
+    user_id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<AniFriendBundle, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": format!(
+            r"
+            query ($userId: Int) {{
+                User(id: $userId) {{
+                    id name about bannerImage avatar {{ large medium }}
+                    isFollowing isFollower
+                    mediaListOptions {{ scoreFormat }}
+                    statistics {{ anime {{ count episodesWatched meanScore }} }}
+                    favourites {{
+                        anime {{ nodes {{ {anime} }} }}
+                    }}
+                }}
+            }}
+        ",
+            anime = FAVOURITE_ANIME_NODES
+        ),
+        "variables": { "userId": user_id }
+    });
+    let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    let user = &json["data"]["User"];
+    if user.is_null() {
+        return Err("AniList user was not found".to_string());
+    }
+    let profile = parse_ani_profile(user);
+    let favourites = user["favourites"]["anime"]["nodes"]
         .as_array()
-        .ok_or_else(|| "Unexpected response".to_string())?;
-    let staff = favs["staff"]["nodes"]
-        .as_array()
-        .ok_or_else(|| "Unexpected response".to_string())?;
-    let characters = favs["characters"]["nodes"]
-        .as_array()
-        .ok_or_else(|| "Unexpected response".to_string())?;
-    Ok(FavouriteOverview {
-        anime: parse_favourite_nodes(anime),
-        people: FavouritePeople {
-            staff: parse_favourite_people(staff),
-            characters: parse_favourite_people(characters),
-        },
+        .map(|nodes| parse_favourite_nodes(nodes))
+        .unwrap_or_default();
+    let lists = get_anilist_lists(app_handle, user_id, None, proxy_url, proxyUrl).await?;
+    Ok(AniFriendBundle {
+        profile,
+        lists,
+        favourites,
     })
 }
 

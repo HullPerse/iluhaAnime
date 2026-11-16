@@ -12,6 +12,7 @@ import { createSignalStore } from "@hullperse/hp_utils/signal";
 import type { Cell } from "@/types/core/signal";
 import { resolveWithDefaults } from "@/lib/core/persistence/migrate.utils";
 import { attemptSync } from "@hullperse/hp_utils/attempt";
+import { resolveTrackId } from "@/lib/player/trackIdentity.utils";
 import type { SignalStoreOptions } from "@/types/store/options";
 import type {
   PlaybackData,
@@ -19,7 +20,13 @@ import type {
   PlayerData,
   PlayerSignalStore,
 } from "@/types/store/player";
-import type { PlaybackSnapshot, PlayerSettings, StreamOpen } from "@/types/player/videoPlayer";
+import type {
+  MpvTrack,
+  PlaybackSnapshot,
+  PlayerSettings,
+  StreamOpen,
+  TrackSeed,
+} from "@/types/player/videoPlayer";
 
 export const PLAYER_SCHEMA_VERSION = SCHEMA_VERSIONS.player;
 
@@ -49,6 +56,7 @@ const INITIAL_PLAYBACK: PlaybackData = {
   hasFile: false,
   timePos: 0,
   duration: 0,
+  durationHint: 0,
   paused: true,
   eofReached: false,
   speed: 1,
@@ -81,6 +89,9 @@ const INITIAL_PLAYBACK: PlaybackData = {
 const SEEK_TARGET_TOLERANCE = 0.4;
 const SEEK_TARGET_CONFIRMATIONS = 2;
 const SEEK_TARGET_RESET_MS = 2500;
+// Watch metadata and mpv often disagree by a frame or two. Keeping the
+// metadata value in that window avoids a visible jolt when duration arrives.
+const DURATION_HINT_TOLERANCE = 1.5;
 
 const DEFAULT_PLAYER_DATA: PlayerData = {
   volume: DEFAULT_VOLUME,
@@ -167,9 +178,36 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
   const atoms = buildSignalAtoms(store, { ...INITIAL_PLAYBACK });
   const atStart = store.derive([atoms.timePos], ([timePos]) => (timePos as number) === 0);
   const atEnd = store.derive(
-    [atoms.timePos, atoms.duration],
-    ([timePos, duration]) => (duration as number) > 0 && timePos === duration
+    [atoms.timePos, atoms.duration, atoms.durationHint],
+    ([timePos, duration, hint]) => {
+      const total = (duration as number) > 0 ? (duration as number) : (hint as number);
+      return total > 0 && timePos === total;
+    }
   );
+
+  let trackSeed: TrackSeed | null = null;
+  const seededTracks = (tracks: MpvTrack[]): MpvTrack[] => {
+    if (!trackSeed) return tracks;
+    const { audioTrack, audioTrackKey, subtitleTrack, subtitleTrackKey } = trackSeed;
+    // If the stored id is absent (for example external sidecar ids moved),
+    // leave mpv's choice alone instead of showing every row unselected.
+    const audioId = resolveTrackId(tracks, "audio", audioTrack, audioTrackKey);
+    const subId = resolveTrackId(tracks, "sub", subtitleTrack === "no" ? undefined : subtitleTrack, subtitleTrackKey);
+    const audioExists =
+      audioId !== undefined && tracks.some((track) => track.type === "audio" && track.id === audioId);
+    const subExists =
+      subId !== undefined && tracks.some((track) => track.type === "sub" && track.id === subId);
+    return tracks.map((track) => {
+      if (track.type === "audio" && audioExists) {
+        return { ...track, selected: track.id === audioId };
+      }
+      if (track.type === "sub") {
+        if (subtitleTrack === "no") return { ...track, selected: false };
+        if (subExists) return { ...track, selected: track.id === subId };
+      }
+      return track;
+    });
+  };
 
   const streamSession = store.atom<StreamOpen | null>("playback.streamSession", null);
   const streamRequest = store.atom("playback.streamRequest", 0);
@@ -222,8 +260,17 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
       const seekTarget = nextSeekTarget(snapshot);
 
       const pinned = atoms.streamResume.get() !== null;
+      const hint = atoms.durationHint.get();
+      const keepHint =
+        snapshot.duration > 0 &&
+        hint > 0 &&
+        Math.abs(snapshot.duration - hint) <= DURATION_HINT_TOLERANCE;
       const nextDuration =
-        pinned && snapshot.duration <= 0 ? atoms.duration.get() : snapshot.duration;
+        pinned && snapshot.duration <= 0
+          ? atoms.duration.get()
+          : keepHint
+            ? hint
+            : snapshot.duration;
       const nextSeekSettle = seekTarget === null ? false : atoms.seekSettle.get();
       store.batch(() => {
         if (!atoms.ready.get()) atoms.ready.set(true);
@@ -272,7 +319,15 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     setPaused: (paused) => atoms.paused.set(paused),
     setMuted: (muted) => atoms.muted.set(muted),
     setPlaybackSpeed: (speed) => atoms.speed.set(speed),
-    markTrackSelected: (kind, id) => {
+    markTrackSelected: (kind, id, identity) => {
+      trackSeed ??= {};
+      if (kind === "audio") {
+        trackSeed.audioTrack = id === "no" ? undefined : id;
+        trackSeed.audioTrackKey = id === "no" ? undefined : identity;
+      } else {
+        trackSeed.subtitleTrack = id;
+        trackSeed.subtitleTrackKey = id === "no" ? undefined : identity;
+      }
       const tracks = atoms.tracks.get();
       atoms.tracks.set(
         tracks.map((track) =>
@@ -282,11 +337,21 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
         )
       );
     },
-    setTracks: (tracks) => atoms.tracks.set(tracks),
+    seedTrackSelection: (seed) => {
+      const empty =
+        seed.audioTrack === undefined &&
+        seed.audioTrackKey === undefined &&
+        seed.subtitleTrack === undefined &&
+        seed.subtitleTrackKey === undefined;
+      trackSeed = empty ? null : { ...seed };
+      atoms.tracks.set(seededTracks(atoms.tracks.get()));
+    },
+    setTracks: (tracks) => atoms.tracks.set(seededTracks(tracks)),
     setChapters: (chapters) => atoms.chapters.set(chapters),
     resetPlayback: () => {
       streamRequest.update((value) => value + 1);
       seekConfirm = 0;
+      trackSeed = null;
       store.batch(() => applyAtomValues(atoms, INITIAL_PLAYBACK));
     },
     streamSession,
@@ -329,9 +394,17 @@ export const setPlaybackPaused = playback.setPaused;
 export const setPlaybackMuted = playback.setMuted;
 export const setPlaybackSpeed = playback.setPlaybackSpeed;
 export const markTrackSelected = playback.markTrackSelected;
+export const seedTrackSelection = playback.seedTrackSelection;
 export const setPlaybackTracks = playback.setTracks;
 export const setPlaybackChapters = playback.setChapters;
 export const resetPlayback = playback.resetPlayback;
 export const streamSession = playback.streamSession;
 export const streamRequest = playback.streamRequest;
 export const beginStreamRequest = playback.beginStreamRequest;
+
+/// Duration used for timeline bounds. mpv's duration wins once it is known;
+/// until then the watch-database hint keeps seeking and the timeline usable.
+export function effectivePlaybackDuration(): number {
+  const live = playbackAtoms.duration.get();
+  return live > 0 ? live : playbackAtoms.durationHint.get();
+}

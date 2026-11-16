@@ -69,6 +69,33 @@ const TAB_WARM: Partial<Record<TabId, (client: QueryClient) => Promise<unknown>>
   stream: (client) => prefetchStreamConstants(client),
 };
 
+// Kept out of App so a torrent progress event re-renders this leaf instead of
+// the whole shell and the active tab.
+function TorrentRuntime() {
+  const queryClient = useQueryClient();
+  const pendingTorrent = useCell(torrentAtoms.pendingTorrent);
+  const preparingTorrent = useCell(torrentAtoms.preparingTorrent);
+  const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
+  const torrentsQuery = useTorrents();
+  useTorrentRealtime(torrentsQuery);
+
+  if (!preparingTorrent && !pendingTorrent) return null;
+
+  return (
+    <TorrentFilePicker
+      torrent={pendingTorrent}
+      loading={!!preparingTorrent && !pendingTorrent}
+      defaultSaveDir={lastSaveDir}
+      existingTorrents={torrentsQuery.data}
+      onConfirm={async (selectedIndices, saveDir, subFolder, sequential) => {
+        await confirmDownload(selectedIndices, saveDir, subFolder, sequential);
+        queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+      }}
+      onCancel={cancelDownload}
+    />
+  );
+}
+
 export default function App() {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -77,12 +104,6 @@ export default function App() {
   const activeTab = tabIdFromPath(pathname) ?? "search";
 
   const queryClient = useQueryClient();
-  const pendingTorrent = useCell(torrentAtoms.pendingTorrent);
-  const preparingTorrent = useCell(torrentAtoms.preparingTorrent);
-  const torrentsQuery = useTorrents();
-  const { data: existingTorrents } = torrentsQuery;
-  useTorrentRealtime(torrentsQuery);
-  const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
   const customTitleBarEnabled = useCell(settingsAtoms.customTitleBarEnabled);
   const statusBarEnabled = useCell(settingsAtoms.statusBarEnabled);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
@@ -191,19 +212,7 @@ export default function App() {
       {update && updatePromptOpen && overlays.length === 0 && (
         <Updater update={update} onClose={closeUpdatePrompt} />
       )}
-      {(preparingTorrent || pendingTorrent) && (
-        <TorrentFilePicker
-          torrent={pendingTorrent}
-          loading={!!preparingTorrent && !pendingTorrent}
-          defaultSaveDir={lastSaveDir}
-          existingTorrents={existingTorrents}
-          onConfirm={async (selectedIndices, saveDir, subFolder, sequential) => {
-            await confirmDownload(selectedIndices, saveDir, subFolder, sequential);
-            queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
-          }}
-          onCancel={cancelDownload}
-        />
-      )}
+      <TorrentRuntime />
       {screenshot && <ScreenshotModal capture={screenshot} onClose={closeScreenshot} />}
       <KeyboardHintOverlay />
       <PageFindBar />

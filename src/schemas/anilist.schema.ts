@@ -215,6 +215,25 @@ export const FavouriteOverviewSchema = z.compile(
     people: FavouritePeopleSchema,
   })
 );
+export const AniUserBundleSchema = z.compile(
+  z.looseObject({
+    user: AniUserShape,
+    lists: z.array(AniListCollectionSchema),
+    favourites: z.looseObject({
+      anime: z.array(FavouriteAnimeSchema),
+      people: FavouritePeopleSchema,
+    }),
+  })
+);
+
+export const AniFriendBundleSchema = z.compile(
+  z.looseObject({
+    profile: AniUserProfileSchema,
+    lists: z.array(AniListCollectionSchema),
+    favourites: z.array(FavouriteAnimeSchema),
+  })
+);
+
 export const FranchiseGraphSchema = z.compile(
   z.looseObject({
     root_id: z.number(),

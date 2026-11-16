@@ -6,6 +6,7 @@ export interface PlayerOpenRequest {
   resume?: number;
   startIndex?: number;
   watch?: PlaylistWatch | null;
+  initialWatch?: WatchState | null;
   stream?: StreamOpen | null;
 }
 
@@ -179,6 +180,13 @@ export interface MpvTrack {
   "external-filename"?: string;
 }
 
+export interface TrackSeed {
+  audioTrack?: number;
+  audioTrackKey?: string;
+  subtitleTrack?: number | "no";
+  subtitleTrackKey?: string;
+}
+
 export interface MpvChapter {
   title: string;
   time: number;
@@ -200,7 +208,9 @@ export interface MediaEntry {
   subOffset: number;
   audioOffset: number;
   audioTrack?: number;
+  audioTrackKey?: string;
   subtitleTrack?: number | "no";
+  subtitleTrackKey?: string;
   lastPlayed: number;
 }
 
@@ -284,6 +294,7 @@ export interface PlaybackStore {
   hasFile: boolean;
   timePos: number;
   duration: number;
+  durationHint: number;
   paused: boolean;
   eofReached: boolean;
   speed: number;
@@ -319,6 +330,7 @@ export interface PlaybackStore {
   setPaused: (paused: boolean) => void;
   setMuted: (muted: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
-  markTrackSelected: (kind: "audio" | "sub", id: number | "no") => void;
+  markTrackSelected: (kind: "audio" | "sub", id: number | "no", identity?: string) => void;
+  seedTrackSelection: (seed: TrackSeed) => void;
   reset: () => void;
 }

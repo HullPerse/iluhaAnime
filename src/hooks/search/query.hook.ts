@@ -93,7 +93,7 @@ export function useSearchQuery(): SearchQueryController {
 
   const crossSearchQuery = useCell(searchAtoms.crossSearchQuery);
 
-  const { rutrackerAuth, nekobtAuth, eraiAuth } = useSearchSessions();
+  const { rutrackerAuth, nekobtAuth, eraiAuth } = useSearchSessions(source);
 
   useEffect(() => {
     if (!visibleSources.includes(source) && visibleSources.length > 0) {

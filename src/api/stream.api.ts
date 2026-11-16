@@ -184,6 +184,15 @@ export class StreamApi {
     });
   }
 
+  async historyProgressMany(
+    animeIds: string[]
+  ): Promise<Record<string, StreamHistoryProgress | null>> {
+    return this.transport.call<Record<string, StreamHistoryProgress | null>>(
+      "stream_history_progress_many",
+      { animeIds }
+    );
+  }
+
   async historyClear(): Promise<void> {
     await this.transport.call<null>("stream_history_clear");
   }

@@ -36,47 +36,76 @@ export const STREAM_COVER_REFERER = "https://animelib.org/";
 
 const streamCovers = createLruCache<string, string>(300);
 const streamInflight = new Map<string, Promise<string | null>>();
+let streamCoverScope: Set<string> | null = null;
 
 const STREAM_COVER_CONCURRENCY = 6;
 
+interface FetchQueueEntry {
+  key: string;
+  start: () => void;
+  cancel: () => void;
+}
+
 interface FetchQueue {
-  run: <T>(task: () => Promise<T>) => Promise<T>;
+  run: (task: () => Promise<string | null>, key: string) => Promise<string | null>;
+  cancelQueued: (keep: ReadonlySet<string> | null) => void;
   reset: () => void;
 }
 
 function createFetchQueue(concurrency: number): FetchQueue {
   let active = 0;
-  const queue: Array<() => void> = [];
+  const queue: FetchQueueEntry[] = [];
 
   const pump = (): void => {
     while (active < concurrency) {
-      const task = queue.shift();
-      if (!task) return;
+      const entry = queue.shift();
+      if (!entry) return;
       active += 1;
-      task();
+      entry.start();
     }
   };
 
   return {
-    run: <T>(task: () => Promise<T>) =>
-      new Promise<T>((resolve, reject) => {
-        queue.push(() => {
-          task()
-            .then((value) => {
-              active -= 1;
-              pump();
-              resolve(value);
-              return null;
-            })
-            .catch((error: unknown) => {
-              active -= 1;
-              pump();
-              reject(error instanceof Error ? error : new Error("Remote fetch failed"));
-            });
+    run: (task, key) =>
+      new Promise<string | null>((resolve, reject) => {
+        let settled = false;
+        const settle = (value: string | null): void => {
+          if (settled) return;
+          settled = true;
+          resolve(value);
+        };
+        queue.push({
+          key,
+          cancel: () => settle(null),
+          start: () => {
+            task()
+              .then((value) => {
+                active -= 1;
+                pump();
+                settle(value);
+                return null;
+              })
+              .catch((error: unknown) => {
+                active -= 1;
+                pump();
+                if (settled) return;
+                settled = true;
+                reject(error instanceof Error ? error : new Error("Remote fetch failed"));
+              });
+          },
         });
         pump();
       }),
+    cancelQueued: (keep) => {
+      for (let index = queue.length - 1; index >= 0; index -= 1) {
+        const entry = queue[index] as FetchQueueEntry;
+        if (keep !== null && keep.has(entry.key)) continue;
+        queue.splice(index, 1);
+        entry.cancel();
+      }
+    },
     reset: () => {
+      for (const entry of queue) entry.cancel();
       queue.length = 0;
       active = 0;
     },
@@ -229,6 +258,7 @@ export function resetRemoteImageCache(): void {
   remoteScope = null;
   streamCovers.clear();
   streamInflight.clear();
+  streamCoverScope = null;
   streamCoverQueue.reset();
 }
 
@@ -296,17 +326,29 @@ function fetchStreamCover(remoteUrl: string): Promise<string | null> {
     ? { url: remoteUrl, referer: STREAM_COVER_REFERER }
     : { url: remoteUrl, proxyUrl: settingsAtoms.anilistProxyUrl.get() ?? undefined };
   return streamInFlight(remoteUrl, () =>
-    streamCoverQueue.run(() =>
-      invokeTyped<UserImageFile>("fetch_remote_image", request)
-        .then((image) => {
-          if (!image) return null;
-          const url = assetUrl(image.path);
-          streamCovers.set(remoteUrl, url);
-          return url;
-        })
-        .catch(() => null)
+    streamCoverQueue.run(
+      () =>
+        invokeTyped<UserImageFile>("fetch_remote_image", request)
+          .then((image) => {
+            if (!image) return null;
+            const url = assetUrl(image.path);
+            streamCovers.set(remoteUrl, url);
+            return url;
+          })
+          .catch(() => null),
+      remoteUrl
     )
   );
+}
+
+/**
+ * Drops queued stream covers outside the page that is on screen. Active
+ * requests (at most six) are allowed to finish; a null scope also clears the
+ * queue, which is what unmounting the Stream tab wants.
+ */
+export function setStreamCoverScope(urls: Iterable<string> | null): void {
+  streamCoverScope = urls === null ? null : new Set(urls);
+  streamCoverQueue.cancelQueued(streamCoverScope);
 }
 
 function streamInFlight(

@@ -8,7 +8,7 @@ import { SavedFrameSchema } from "@/schemas/player.schema";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import { addNotification } from "@/store/notification.store";
-import { playbackAtoms, playerAtoms } from "@/store/player.store";
+import { effectivePlaybackDuration, playerAtoms } from "@/store/player.store";
 import type { ChapterJumpDirection } from "@/types/core/chapter";
 import type { PlayerViewMode } from "@/types/player/videoPlayer";
 import type { KeybindAction } from "@/types/ui/keybinds";
@@ -128,7 +128,7 @@ export function usePlayerKeyboardActions(
         cycleSubtitle: () => onCycleTrack("sub"),
         cycleAudio: () => onCycleTrack("audio"),
         seekToStart: () => onSeekTo(0),
-        seekToEnd: () => onSeekTo(playbackAtoms.duration.get()),
+        seekToEnd: () => onSeekTo(effectivePlaybackDuration()),
         seekPercent0: () => onSeekPercent(0),
         seekPercent1: () => onSeekPercent(1),
         seekPercent2: () => onSeekPercent(2),

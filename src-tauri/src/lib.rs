@@ -37,7 +37,7 @@ pub mod benchmark_api {
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
     pub use crate::file_index::{parse_file_query, FileIndexer};
     pub use crate::game::chip8::{Chip8, Quirks, MAX_PROGRAM_BYTES};
-    pub use crate::player::state::{apply_observed_property, PlaybackSnapshot};
+    pub use crate::player::snapshot::{apply_observed_property, PlaybackSnapshot};
     pub use crate::scrapers::clients::{
         acquire_scraper_slot, build_client, build_client_inner, build_nekobt_client,
         build_rutracker_client_with_ua, decode_rutracker_page, is_rutracker_challenge,
@@ -112,6 +112,9 @@ pub mod benchmark_api {
     pub mod unified_index {
         use rusqlite::Connection;
 
+        pub use crate::app_db::unified_index::{
+            prune_unified_index_scope_inner, upsert_unified_index_batch,
+        };
         pub use crate::app_db::{LearningStatRow, UnifiedIndexEntry, UnifiedIndexEntryInput};
 
         pub fn open_fixture() -> Result<Connection, String> {
@@ -167,6 +170,76 @@ pub mod benchmark_api {
             now: i64,
         ) -> Result<usize, String> {
             crate::app_db::record_value_action_inner(connection, normalized, scope, column, now)
+        }
+    }
+
+    pub use crate::app_db::schema::initialize_schema;
+    pub use crate::file_index::FileEntry;
+
+    /// Exact sidecar scan used after `file-loaded`, exposed for the latency
+    /// bench. The real command walks the same directories on the blocking
+    /// pool; this wrapper only counts the result.
+    pub mod player_sidecar {
+        #[derive(Debug, Clone, Copy)]
+        pub struct SidecarScanOutcome {
+            pub tracks: usize,
+        }
+
+        pub async fn scan(
+            path: String,
+            audio_extensions: Vec<String>,
+            subtitle_extensions: Vec<String>,
+            subfolders: bool,
+        ) -> SidecarScanOutcome {
+            let tracks = crate::scan_sidecar_tracks(
+                path,
+                audio_extensions,
+                subtitle_extensions,
+                subfolders,
+            )
+            .await
+            .expect("bench sidecar scan");
+            SidecarScanOutcome {
+                tracks: tracks.len(),
+            }
+        }
+    }
+    pub use crate::torrent::disk::allocated_bytes;
+    pub use crate::torrent::types::{FilePriority, TorrentFileInfo};
+    pub use crate::TorrentFilesBatchEntry;
+
+    /// Exact player folder walk used by `scan_video_folder` and
+    /// `scan_video_folders`, exposed so the scan-latency bench measures the
+    /// production loop instead of a copy of it.
+    pub mod player_scan {
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        #[derive(Debug, Clone, Copy)]
+        pub struct PlayerScanOutcome {
+            pub files: usize,
+            pub skipped: u64,
+            pub bytes: u64,
+            pub progress_events: u64,
+        }
+
+        #[must_use]
+        pub fn walk_player_folder(
+            path: &str,
+            extensions: Vec<String>,
+            threads: usize,
+        ) -> PlayerScanOutcome {
+            let ext_list = crate::video_ext_list(extensions);
+            let progress = AtomicU64::new(0);
+            let result = crate::walk_video_folder(path, &ext_list, threads, &|_| {
+                progress.fetch_add(1, Ordering::Relaxed);
+            })
+            .expect("bench player folder walk");
+            PlayerScanOutcome {
+                files: result.entries.len(),
+                skipped: result.skipped,
+                bytes: result.entries.iter().map(|entry| entry.size).sum(),
+                progress_events: progress.load(Ordering::Relaxed),
+            }
         }
     }
 }
@@ -229,6 +302,13 @@ impl Default for NotificationConfig {
             on_health: true,
         }
     }
+}
+
+#[derive(serde::Serialize)]
+struct TorrentUpdatePayload {
+    updates: Vec<TorrentInfo>,
+    removed: Vec<usize>,
+    reset: bool,
 }
 
 #[derive(PartialEq)]
@@ -328,11 +408,44 @@ async fn run_torrent_update_tick(
             external_changed_files: t.external_changed_files.clone(),
         })
         .collect();
-    if state.first_run
-        || state.ticks_since_emit >= TORRENT_HEARTBEAT_TICKS
-        || signature != state.last_emitted
-    {
-        let _ = app.emit("torrents-update", &torrents);
+    // The UI already keeps the full list. Sending every torrent on every tick
+    // duplicates hundreds of KiB while one or two downloads move. Only a
+    // changed order or the first frame needs a full reset; otherwise send the
+    // rows whose signature changed. A heartbeat keeps the channel observable
+    // without carrying the snapshot again.
+    let order_changed = state.first_run
+        || torrents.len() != state.last_emitted.len()
+        || torrents
+            .iter()
+            .zip(state.last_emitted.iter())
+            .any(|(torrent, last)| torrent.id != last.id);
+    let previous: HashMap<usize, &TorrentUpdateSignature> = state
+        .last_emitted
+        .iter()
+        .map(|item| (item.id, item))
+        .collect();
+    let updates: Vec<TorrentInfo> = if order_changed {
+        torrents.clone()
+    } else {
+        torrents
+            .iter()
+            .zip(signature.iter())
+            .filter_map(|(torrent, current)| {
+                previous
+                    .get(&current.id)
+                    .is_none_or(|last| *last != current)
+                    .then(|| torrent.clone())
+            })
+            .collect()
+    };
+    let heartbeat_due = state.ticks_since_emit >= TORRENT_HEARTBEAT_TICKS;
+    if state.first_run || order_changed || heartbeat_due || !updates.is_empty() {
+        let payload = TorrentUpdatePayload {
+            updates,
+            removed: Vec::new(),
+            reset: state.first_run || order_changed,
+        };
+        let _ = app.emit("torrents-update", &payload);
         state.last_emitted = signature;
         state.ticks_since_emit = 0;
     } else {
@@ -1088,6 +1201,121 @@ async fn scan_video_folders(
     .map_err(|e| format!("scan task failed: {e}"))?
 }
 
+/// One-pass variant of [`scan_video_folders`]: the same walk fills the
+/// in-memory index, and the index is persisted only when the file set actually
+/// changed. The Player tab uses it so a startup scan no longer walks every
+/// root twice.
+#[tauri::command]
+async fn scan_video_folders_indexed(
+    app_handle: tauri::AppHandle,
+    paths: Vec<String>,
+    extensions: Vec<String>,
+    threads: Option<usize>,
+    merge: Option<bool>,
+    indexer: tauri::State<'_, file_index::FileIndexer>,
+) -> Result<Vec<FolderScanResult>, String> {
+    let ext_list = video_ext_list(extensions);
+    let threads = threads.unwrap_or(0);
+    let merge = merge.unwrap_or(false);
+    let index_loaded = if indexer.is_empty().await {
+        match load_persisted_file_index(&app_handle).await {
+            Ok(entries) => {
+                indexer.replace_entries(entries).await;
+                true
+            }
+            Err(error) => {
+                tracing::warn!("scan_video_folders_indexed: loading saved index: {error}");
+                false
+            }
+        }
+    } else {
+        true
+    };
+    let walker = app_handle.clone();
+    let (out, entries, complete) = tokio::task::spawn_blocking(move || {
+        let started = std::time::Instant::now();
+        let mut out = Vec::with_capacity(paths.len());
+        let mut entries = Vec::new();
+        let mut complete = true;
+        for root in &paths {
+            match file_index::FileIndexer::retry_scan_blocking(|| {
+                walk_video_folder(root, &ext_list, threads, &|walked| {
+                    let _ = walker.emit(
+                        "folder-scan-progress",
+                        serde_json::json!({
+                            "path": root,
+                            "current": walked,
+                            "total": 0,
+                        }),
+                    );
+                })
+            }) {
+                Ok(result) => {
+                    let _ = walker.emit(
+                        "folder-scan-progress",
+                        serde_json::json!({
+                            "path": root,
+                            "current": result.entries.len(),
+                            "total": result.entries.len(),
+                            "done": true,
+                        }),
+                    );
+                    entries.extend(result.entries.iter().map(|entry| {
+                        file_index::FileEntry::new(entry.path.clone(), entry.size)
+                    }));
+                    out.push(result);
+                }
+                Err(busy) => {
+                    complete = false;
+                    tracing::error!(
+                        "scan_video_folders_indexed: giving up on {root} after retries: {busy}"
+                    );
+                    out.push(FolderScanResult {
+                        path: root.clone(),
+                        entries: Vec::new(),
+                        skipped: 0,
+                    });
+                }
+            }
+        }
+        tracing::info!(
+            folders = out.len(),
+            files = entries.len(),
+            elapsed_ms = started.elapsed().as_millis(),
+            "scan_video_folders_indexed done"
+        );
+        Ok::<_, String>((out, entries, complete))
+    })
+    .await
+    .map_err(|e| format!("scan task failed: {e}"))??;
+
+    if complete {
+        if merge {
+            let appended = entries.clone();
+            let changed = indexer.append_entries(entries).await;
+            if changed {
+                if let Err(error) = persist_file_index_paths(&app_handle, &appended, &[]).await {
+                    tracing::warn!("scan_video_folders_indexed: index persisted later: {error}");
+                }
+            }
+        } else if let Some(diff) = indexer.replace_entries_with_diff(entries).await {
+            let persisted = if index_loaded {
+                persist_file_index_paths(&app_handle, &diff.upserts, &diff.removals).await
+            } else {
+                persist_file_index(&app_handle, indexer.inner()).await
+            };
+            if let Err(error) = persisted {
+                tracing::warn!("scan_video_folders_indexed: index persisted later: {error}");
+            }
+        }
+    } else {
+        tracing::warn!(
+            "scan_video_folders_indexed: keeping previous index because a root stayed busy"
+        );
+    }
+    Ok(out)
+}
+
 #[tauri::command]
 async fn delete_extra_file(path: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
@@ -1327,21 +1555,30 @@ pub struct TorrentFilesBatchEntry {
 #[tauri::command]
 async fn get_running_torrent_files_batch(
     ids: Vec<usize>,
+    lite: Option<bool>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Vec<TorrentFilesBatchEntry>, String> {
+    let lite = lite.unwrap_or(false);
     backend_manager(&manager).await.map(|manager| {
         ids.into_iter()
-            .map(|id| match manager.get_running_torrent_files(id) {
-                Ok(files) => TorrentFilesBatchEntry {
-                    id,
-                    files: Some(files),
-                    error: None,
-                },
-                Err(error) => TorrentFilesBatchEntry {
-                    id,
-                    files: None,
-                    error: Some(error),
-                },
+            .map(|id| {
+                let files = if lite {
+                    manager.get_running_torrent_files_lite(id)
+                } else {
+                    manager.get_running_torrent_files(id)
+                };
+                match files {
+                    Ok(files) => TorrentFilesBatchEntry {
+                        id,
+                        files: Some(files),
+                        error: None,
+                    },
+                    Err(error) => TorrentFilesBatchEntry {
+                        id,
+                        files: None,
+                        error: Some(error),
+                    },
+                }
             })
             .collect()
     })
@@ -1620,6 +1857,43 @@ async fn get_torrent_limits(
     Ok(backend_manager(&manager).await?.get_torrent_limits(id))
 }
 
+async fn load_persisted_file_index(
+    app_handle: &tauri::AppHandle,
+) -> Result<Vec<file_index::FileEntry>, String> {
+    let app = app_handle.clone();
+    tokio::task::spawn_blocking(move || {
+        let connection = app_db::open_database(&app)?;
+        let mut statement = connection
+            .prepare(
+                "SELECT id, subtitle, metadata_json FROM unified_index
+                 WHERE scope = 'player' AND kind = 'local_file'",
+            )
+            .map_err(|error| format!("load file index query: {error}"))?;
+        let rows = statement
+            .query_map([], |row| {
+                let id: String = row.get(0)?;
+                let subtitle: Option<String> = row.get(1)?;
+                let metadata_text: String = row.get(2)?;
+                let path = subtitle.or_else(|| id.strip_prefix("local:").map(str::to_string));
+                let size = serde_json::from_str::<serde_json::Value>(&metadata_text)
+                    .ok()
+                    .and_then(|value| value.get("size").and_then(serde_json::Value::as_u64))
+                    .unwrap_or(0);
+                Ok(path.map(|path| file_index::FileEntry::new(path, size)))
+            })
+            .map_err(|error| format!("load file index rows: {error}"))?;
+        let mut entries = Vec::new();
+        for row in rows {
+            if let Some(entry) = row.map_err(|error| format!("read file index row: {error}"))? {
+                entries.push(entry);
+            }
+        }
+        Ok(entries)
+    })
+    .await
+    .map_err(|error| format!("load file index task failed: {error}"))?
+}
+
 async fn persist_file_index(
     app_handle: &tauri::AppHandle,
     indexer: &file_index::FileIndexer,
@@ -1694,6 +1968,20 @@ async fn persist_file_index_paths(
     Ok(())
 }
 
+/// Removes every indexed file under a saved root and deletes those rows.
+#[tauri::command]
+async fn remove_file_index_root(
+    app_handle: tauri::AppHandle,
+    root: String,
+    indexer: tauri::State<'_, file_index::FileIndexer>,
+) -> Result<(), String> {
+    let removed = indexer.remove_root(&root).await;
+    if removed.is_empty() {
+        return Ok(());
+    }
+    persist_file_index_paths(&app_handle, &[], &removed).await
+}
+
 /// Point update for a watched folder: only the paths the watcher reported are
 /// re-read, so one finished download no longer rescans its whole root. Returns
 /// the entries that still exist, ready to patch into the caller's tree.
@@ -1705,6 +1993,14 @@ async fn update_file_index_paths(
     extensions: Vec<String>,
     indexer: tauri::State<'_, file_index::FileIndexer>,
 ) -> Result<Vec<VideoFileEntry>, String> {
+    if upserts.is_empty() {
+        if removals.is_empty() {
+            return Ok(Vec::new());
+        }
+        indexer.remove_paths(removals.clone()).await;
+        persist_file_index_paths(&app_handle, &[], &removals).await?;
+        return Ok(Vec::new());
+    }
     let fresh = indexer
         .apply_paths(upserts.clone(), removals.clone(), extensions)
         .await;
@@ -2027,6 +2323,7 @@ pub fn run() {
                             None,
                             None,
                             None,
+                            None,
                         )
                         .await
                         {
@@ -2110,6 +2407,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             startup::report_startup,
             cards::cards_bootstrap,
+            cards::cards_shell,
             cards::packs::cards_packs,
             cards::packs::cards_prepare_packs,
             cards::packs::cards_ack_prepared_packs,
@@ -2228,6 +2526,8 @@ pub fn run() {
             anilist::toggle_favourite,
             anilist::get_favourites,
             anilist::get_favourite_overview,
+            anilist::get_anilist_bootstrap,
+            anilist::get_anilist_friend_bundle,
             anilist::toggle_favourite_staff,
             anilist::toggle_favourite_character,
             anilist::get_anime_characters,
@@ -2284,6 +2584,7 @@ pub fn run() {
             player::player_save_watch,
             player::player_load_watch,
             player::player_apply_file_state,
+            player::player_apply_file_tracks,
             player::player_apply_batch,
             discord::commands::discord_presence_configure,
             discord::commands::discord_presence_set,
@@ -2310,6 +2611,7 @@ pub fn run() {
             app_db::stream_history::stream_history_recent,
             app_db::stream_history::stream_history_for_anime,
             app_db::stream_history::stream_history_progress,
+            app_db::stream_history::stream_history_progress_many,
             app_db::stream_history::stream_history_clear,
             app_db::db::get_database_status,
             app_db::unified_index::upsert_unified_index,
@@ -2337,6 +2639,7 @@ pub fn run() {
             host_stats::ping,
             scan_video_folder,
             scan_video_folders,
+            scan_video_folders_indexed,
             scan_extra_files,
             scan_sidecar_tracks,
             open_magnet,
@@ -2376,6 +2679,7 @@ pub fn run() {
             rebuild_file_index,
             refresh_file_index,
             update_file_index_paths,
+            remove_file_index_root,
             set_notification_settings,
             toast::show_toast,
             set_window_chrome,

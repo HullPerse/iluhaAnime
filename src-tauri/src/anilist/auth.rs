@@ -156,8 +156,12 @@ pub async fn get_anilist_profile(
     if user.is_null() {
         return Err("AniList user was not found".to_string());
     }
+    Ok(parse_ani_profile(user))
+}
+
+pub(crate) fn parse_ani_profile(user: &serde_json::Value) -> AniUserProfile {
     let stats = &user["statistics"]["anime"];
-    Ok(AniUserProfile {
+    AniUserProfile {
         id: user["id"].as_u64().unwrap_or(0),
         name: user["name"].as_str().unwrap_or("User").to_string(),
         avatar: user["avatar"]["large"]
@@ -172,7 +176,7 @@ pub async fn get_anilist_profile(
         score_format: parse_score_format(user),
         is_following: user["isFollowing"].as_bool(),
         is_follower: user["isFollower"].as_bool(),
-    })
+    }
 }
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -344,8 +348,12 @@ pub async fn check_anilist_auth(
     if v.is_null() {
         return Ok(None);
     }
+    Ok(Some(parse_ani_user(v)))
+}
+
+pub(crate) fn parse_ani_user(v: &serde_json::Value) -> AniUser {
     let stats = &v["statistics"]["anime"];
-    Ok(Some(AniUser {
+    AniUser {
         id: v["id"].as_u64().unwrap_or(0),
         name: v["name"].as_str().unwrap_or("User").to_string(),
         avatar: v["avatar"]["medium"].as_str().map(String::from),
@@ -354,7 +362,7 @@ pub async fn check_anilist_auth(
         mean_score: stats["meanScore"].as_i64().map(|n| n as i32),
         score_format: parse_score_format(v),
         title_language: parse_title_language(v),
-    }))
+    }
 }
 fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
     let m = &entry["media"];

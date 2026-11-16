@@ -26,7 +26,7 @@ import type {
 import type { RemoveTorrentVars } from "@/types/torrent/torrentQueries";
 
 export const TORRENTS_QUERY_KEY = queryKeys.torrents();
-export const torrentFilesKey = (id: number) => queryKeys.torrentFiles(id);
+export const torrentFilesKey = (id: number, lite = false) => queryKeys.torrentFiles(id, lite);
 export const TORRENT_LISTEN_PORT_KEY = queryKeys.torrentListenPort();
 
 export function useTorrents(enabled = true) {
@@ -107,7 +107,9 @@ async function fetchTorrentFiles(queryClient: QueryClient, id: number): Promise<
 export function useTorrentFilesMap(
   ids: number[],
   refetchMs: number | false = false,
-  enabledIds?: Set<number>
+  enabledIds?: Set<number>,
+  lite = false,
+  pollIds?: ReadonlySet<number>
 ): {
   files: Record<number, TorrentFileInfo[] | undefined>;
   pendingIds: Set<number>;
@@ -115,45 +117,65 @@ export function useTorrentFilesMap(
   requestRefresh: (ids: number[]) => void;
 } {
   const queryClient = useQueryClient();
+  // The torrent list is rebuilt on every progress event. Keying the effects by
+  // the id string keeps a new array identity from restarting the poll loop.
+  const idsKey = ids.join(",");
+  const stableIds = useMemo(
+    () => (idsKey.length > 0 ? idsKey.split(",").map(Number) : []),
+    [idsKey]
+  );
+  const hasPollScope = pollIds !== undefined;
+  const enabledFilterKey = enabledIds
+    ? stableIds.filter((id) => enabledIds.has(id)).join(",")
+    : "";
+  const scopedPollKey = pollIds ? stableIds.filter((id) => pollIds.has(id)).join(",") : "";
   const queriesInput = useMemo(
     () =>
-      ids.map((id) => {
+      stableIds.map((id) => {
         const enabled = refetchMs === false && (enabledIds?.has(id) ?? true);
         return {
-          queryKey: queryKeys.torrentFiles(id),
+          queryKey: queryKeys.torrentFiles(id, lite),
           queryFn: () => fetchTorrentFiles(queryClient, id),
           staleTime: 5000,
           enabled,
           retry: false,
         };
       }),
-    [ids, queryClient, enabledIds, refetchMs]
+    [stableIds, lite, queryClient, enabledIds, refetchMs]
   );
   const results = useQueries({ queries: queriesInput });
 
-  const pollIds = useMemo(() => {
+  const pollingIdKeys = useMemo(() => {
     if (refetchMs === false) return [];
-    const wanted = (enabledIds ? ids.filter((id) => enabledIds.has(id)) : ids).map(String);
-    return wanted.sort();
-  }, [enabledIds, ids, refetchMs]);
+    if (hasPollScope) return scopedPollKey.length > 0 ? scopedPollKey.split(",") : [];
+    if (enabledIds) return enabledFilterKey.length > 0 ? enabledFilterKey.split(",") : [];
+    return stableIds.map(String).sort();
+  }, [enabledFilterKey, enabledIds, hasPollScope, refetchMs, scopedPollKey, stableIds]);
+  // A caller that polls only active rows still needs every row once, so the
+  // collapsed/completed cards have a file list without an individual request.
+  const initialIdKeys = useMemo(() => {
+    if (refetchMs === false) return [];
+    if (!hasPollScope) return pollingIdKeys;
+    return stableIds.map(String).sort();
+  }, [hasPollScope, pollingIdKeys, refetchMs, stableIds]);
   const [pollingIds, setPollingIds] = useState<Set<string>>(new Set());
   const [pollErrors, setPollErrors] = useState<Record<number, string>>({});
   const pokeRef = useRef<(ids: number[]) => void>(() => {});
 
   useEffect(() => {
-    if (refetchMs === false || pollIds.length === 0) return;
+    if (refetchMs === false || initialIdKeys.length === 0) return;
     let disposed = false;
     const sweep = async (wanted: string[]) => {
       const idsToFetch = wanted.map(Number);
       setPollingIds(new Set(wanted));
-      const [entries] = await attempt(torrentApi.runningTorrentFilesBatch(idsToFetch));
+      const [entries] = await attempt(torrentApi.runningTorrentFilesBatch(idsToFetch, lite));
       if (disposed) return;
       setPollingIds(new Set());
       const batch = entries ?? [];
       for (const entry of batch) {
         if (entry.error !== null) continue;
         const files = entry.files ?? [];
-        const key = queryKeys.torrentFiles(entry.id);
+        const key = queryKeys.torrentFiles(entry.id, lite);
         const cached = queryClient.getQueryData<TorrentFileInfo[]>(key);
         queryClient.setQueryData(
           key,
@@ -173,22 +195,25 @@ export function useTorrentFilesMap(
         return next;
       });
     };
-    ignore(sweep(pollIds));
+    ignore(sweep(initialIdKeys));
     pokeRef.current = (ids: number[]) => {
       if (ids.length > 0) ignore(sweep(ids.map(String)));
     };
-    const { cancel } = createInterval(() => ignore(sweep(pollIds)), refetchMs);
+    const timer =
+      pollingIdKeys.length > 0
+        ? createInterval(() => ignore(sweep(pollingIdKeys)), refetchMs)
+        : null;
     return () => {
       disposed = true;
-      cancel();
+      timer?.cancel();
     };
-  }, [pollIds, queryClient, refetchMs]);
+  }, [initialIdKeys, lite, pollingIdKeys, queryClient, refetchMs]);
 
   return useMemo(() => {
     const files: Record<number, TorrentFileInfo[] | undefined> = {};
     const pendingIds = new Set<number>();
     const errors: Record<number, string> = {};
-    ids.forEach((id, index) => {
+    stableIds.forEach((id, index) => {
       files[id] = results[index]?.data;
       if (results[index]?.isFetching || pollingIds.has(String(id))) pendingIds.add(id);
       const failure = results[index]?.error;
@@ -202,7 +227,7 @@ export function useTorrentFilesMap(
       pendingIds,
       requestRefresh: (refreshIds: number[]) => pokeRef.current(refreshIds),
     };
-  }, [ids, pollErrors, pollingIds, results]);
+  }, [pollErrors, pollingIds, results, stableIds]);
 }
 
 function setOpInFlight(id: number, op: "pause" | "resume" | "remove" | null): void {

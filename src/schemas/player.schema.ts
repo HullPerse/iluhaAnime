@@ -77,6 +77,7 @@ export const OpenRequestSchema = z.compile(
         ])
       )
     ),
+    initialWatch: z.optional(WatchStateSchema),
   })
 );
 export const PendingOpenSchema = z.compile(z.nullable(OpenRequestSchema));

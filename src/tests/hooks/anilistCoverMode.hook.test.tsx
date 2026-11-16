@@ -24,11 +24,10 @@ beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockResolvedValue(undefined);
   patchSettings({ torrentCoverMode: "off", torrentCoverModeManual: false });
-  vi.spyOn(anilistApi, "checkAuth").mockResolvedValue({ id: 7 } as never);
-  vi.spyOn(anilistApi, "getLists").mockResolvedValue([]);
-  vi.spyOn(anilistApi, "getFavouriteOverview").mockResolvedValue({
-    anime: [],
-    people: { characters: [], staff: [] },
+  vi.spyOn(anilistApi, "getBootstrap").mockResolvedValue({
+    user: { id: 7 } as never,
+    lists: [],
+    favourites: { anime: [], people: { characters: [], staff: [] } },
   });
 });
 
@@ -49,15 +48,15 @@ describe("useAnilistCoverModeSync", () => {
     patchSettings({ torrentCoverMode: "pages", torrentCoverModeManual: true });
     renderHook(() => useAnilistCoverModeSync(), { wrapper });
 
-    await waitFor(() => expect(anilistApi.checkAuth).toHaveBeenCalled());
+    await waitFor(() => expect(anilistApi.getBootstrap).toHaveBeenCalled());
     expect(settingsAtoms.torrentCoverMode.get()).toBe("pages");
   });
 
   it("leaves covers off when there is no saved session", async () => {
-    vi.spyOn(anilistApi, "checkAuth").mockResolvedValue(null);
+    vi.spyOn(anilistApi, "getBootstrap").mockResolvedValue(null);
     renderHook(() => useAnilistCoverModeSync(), { wrapper });
 
-    await waitFor(() => expect(anilistApi.checkAuth).toHaveBeenCalled());
+    await waitFor(() => expect(anilistApi.getBootstrap).toHaveBeenCalled());
     expect(settingsAtoms.torrentCoverMode.get()).toBe("off");
   });
 });

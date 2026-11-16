@@ -4,7 +4,9 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { cardsApi } from "@/api/cards.api";
 import { useAppInfiniteQuery, useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { cardsAtoms } from "@/store/cards.store";
 import { settingsAtoms } from "@/store/settings.store";
+import { useCell } from "@hullperse/hp_utils/react";
 import type { CardsCollectionSort, CardsSortDir } from "@/types/store/cards";
 import type {
   AnimeCollectionPage,
@@ -12,6 +14,7 @@ import type {
   CardPackRow,
   CardsBootstrap,
   CardsCollectionParams,
+  CardsShell,
   CardsStats,
   CardsUnread,
   CollectionPage,
@@ -30,6 +33,15 @@ export function useCardsBootstrap() {
   return useAppQuery<CardsBootstrap>("static", {
     queryKey: queryKeys.cardsBootstrap(),
     queryFn: () => cardsApi.bootstrap(),
+  });
+}
+
+export function useCardsShell() {
+  const packsSince = useCell(cardsAtoms.packsReadAt);
+  const cardsSince = useCell(cardsAtoms.albumReadAt);
+  return useAppQuery<CardsShell>("static", {
+    queryKey: queryKeys.cardsShell(packsSince, cardsSince),
+    queryFn: () => cardsApi.shell(packsSince, cardsSince),
   });
 }
 

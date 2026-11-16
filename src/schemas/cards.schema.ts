@@ -284,6 +284,14 @@ export const CardsStatsSchema = z.compile(
   })
 );
 
+export const CardsShellSchema = z.compile(
+  z.object({
+    bootstrap: CardsBootstrapSchema,
+    stats: CardsStatsSchema,
+    unread: CardsUnreadSchema,
+  })
+);
+
 export const SetCardVariantSchema = z.compile(z.number());
 
 export const CardFavoriteSchema = z.compile(z.boolean());

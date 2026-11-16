@@ -8,6 +8,7 @@ import type {
   PlayerSettings,
   PlayerStore,
   StreamOpen,
+  TrackSeed,
 } from "@/types/player/videoPlayer";
 
 type PlayerActionKeys =
@@ -32,6 +33,7 @@ type PlaybackActionKeys =
   | "setMuted"
   | "setPlaybackSpeed"
   | "markTrackSelected"
+  | "seedTrackSelection"
   | "setTracks"
   | "setChapters"
   | "reset";
@@ -69,7 +71,8 @@ export interface PlaybackSignalStore {
   setPaused: (paused: boolean) => void;
   setMuted: (muted: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
-  markTrackSelected: (kind: "audio" | "sub", id: number | "no") => void;
+  markTrackSelected: (kind: "audio" | "sub", id: number | "no", identity?: string) => void;
+  seedTrackSelection: (seed: TrackSeed) => void;
   setTracks: (tracks: MpvTrack[]) => void;
   setChapters: (chapters: MpvChapter[]) => void;
   resetPlayback: () => void;

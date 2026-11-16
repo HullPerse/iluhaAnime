@@ -8,6 +8,7 @@ import { ignore } from "@/lib/core/shared/promise.utils";
 import { addExternalAudio, addExternalSubtitle, selectTrack } from "@/lib/player/playback.utils";
 import { rememberStreamPrefs } from "@/lib/player/streamPreferences.utils";
 import { nextTrackId } from "@/lib/torrent/tracks.utils";
+import { trackIdentity } from "@/lib/player/trackIdentity.utils";
 import { setMediaTrack } from "@/store/media.store";
 import { markTrackSelected, playbackAtoms, streamSession } from "@/store/player.store";
 import type { MpvTrack, StreamOpen } from "@/types/player/videoPlayer";
@@ -36,7 +37,7 @@ export function usePlayerTracks() {
         return;
       }
       const current = playbackAtoms.path.get();
-      if (current) setMediaTrack(current, kind, track.id);
+      if (current) setMediaTrack(current, kind, track.id, trackIdentity(track) || undefined);
     },
     [rememberStreamTrack]
   );
@@ -46,7 +47,8 @@ export function usePlayerTracks() {
       const previous = playbackAtoms.tracks.get();
       const path = playbackAtoms.path.get();
       const session = streamSession.get();
-      markTrackSelected(kind, id);
+      const selected = typeof id === "number" ? previous.find((track) => track.type === kind && track.id === id) : undefined;
+      markTrackSelected(kind, id, selected ? trackIdentity(selected) || undefined : undefined);
       const optimistic = playbackAtoms.tracks.get();
       const [, failure] = await attempt(selectTrack(kind, id));
       const current = playbackAtoms.path.get() === path && streamSession.get() === session;

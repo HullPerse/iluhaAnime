@@ -173,7 +173,8 @@ function FolderView({
         paths.length > 0 ? paths : [path],
         resume,
         Math.max(index, 0),
-        folder ? { kind: "folder", root: folder.path, anchor: path } : undefined
+        folder ? { kind: "folder", root: folder.path, anchor: path } : undefined,
+        stored
       ).catch((error: unknown) => {
         showError(t("player.folder.open.failed.player"), String(error));
       });

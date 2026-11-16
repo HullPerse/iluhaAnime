@@ -115,6 +115,7 @@ export function useAnilistEntries({
   localFilter,
   searchResults,
   globalSort,
+  grouped = false,
 }: {
   lists: AniListCollection[];
   currentList: string;
@@ -126,19 +127,25 @@ export function useAnilistEntries({
   localFilter: LocalMediaFilter | null;
   searchResults: AniMedia[];
   globalSort: GlobalSort;
+  grouped?: boolean;
 }) {
   const activeEntries = useMemo(() => activeListEntries(lists, currentList), [lists, currentList]);
   const filteredEntries = useMemo(
     () => filterEntries(activeEntries, filterTerms, global, filters, localFilter),
     [activeEntries, filterTerms, global, filters, localFilter]
   );
+  // The grouped scroll view renders its own sorted groups, so the active-list
+  // display pipeline would be discarded work on large collections.
   const sortedEntries = useMemo(
-    () => sortEntries(filteredEntries, sort.dir, sort.key),
-    [filteredEntries, sort.dir, sort.key]
+    () => (grouped ? filteredEntries : sortEntries(filteredEntries, sort.dir, sort.key)),
+    [filteredEntries, grouped, sort.dir, sort.key]
   );
   const displayEntries = useMemo(
-    () => pickDisplayEntries(global, searchResults, sortedEntries, globalSort),
-    [global, searchResults, sortedEntries, globalSort]
+    () =>
+      grouped
+        ? filteredEntries.map((entry) => entry.media)
+        : pickDisplayEntries(global, searchResults, sortedEntries, globalSort),
+    [filteredEntries, global, grouped, searchResults, sortedEntries, globalSort]
   );
   const isLocal = isLocalSearch(searchTerms, global);
   const localSearchActive = isLocal || localFilter !== null;

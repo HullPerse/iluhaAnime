@@ -43,6 +43,15 @@ describe("openPlayer", () => {
     ]);
   });
 
+  it("forwards the watch state already read by the launcher", async () => {
+    const initialWatch = { position: 42, duration: 100, updatedAt: 1 };
+    await openPlayer(["D:/a.mkv"], 42, 0, undefined, initialWatch);
+
+    expect(playerOpenArgs()).toEqual([
+      { files: ["D:/a.mkv"], resume: 42, startIndex: 0, initialWatch },
+    ]);
+  });
+
   it("forwards the live-sync watch metadata", async () => {
     const watch = {
       kind: "torrent",

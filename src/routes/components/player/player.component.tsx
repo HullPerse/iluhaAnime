@@ -20,6 +20,7 @@ import { usePlayerOverlayState } from "@/hooks/player/overlayState.hook";
 import { usePlayerPlaylistFocus } from "@/hooks/player/playlistFocus.hook";
 import { usePlayerTransport } from "@/hooks/player/transport.hook";
 import { useLivePlaylistSync } from "@/hooks/player/liveSync.hook";
+import { useDisplayDuration } from "@/hooks/player/displayDuration.hook";
 import { usePlayerFileLoad } from "@/hooks/player/fileLoad.hook";
 import { usePlayerModernMenu } from "@/hooks/player/modernMenu.hook";
 import { usePlayerScreen } from "@/hooks/player/screen.hook";
@@ -37,6 +38,7 @@ import { useStreamTrackPrefs } from "@/hooks/player/streamTrackPrefs.hook";
 import { usePlayerTracks } from "@/hooks/player/tracks.hook";
 import { usePlayerWatchProgress } from "@/hooks/player/watchProgress.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
+import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
 import {
@@ -71,7 +73,7 @@ import {
 } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { HwdecReload } from "@/types/player/resume";
-import type { PlayerSettings } from "@/types/player/videoPlayer";
+import type { PlayerSettings, WatchState } from "@/types/player/videoPlayer";
 
 import PlayerBezel from "@/routes/components/player/bezel.player";
 import BufferingOverlay from "@/routes/components/player/media/buffering.player";
@@ -87,13 +89,17 @@ import PlayerBottomBar from "@/routes/components/player/modern/bottom.modern";
 import { PlayerPanel } from "@/routes/components/player/media/panel.player";
 import PlayerSidePanel from "@/routes/components/player/side.player";
 
+const STREAM_TRACK_RESTORE_TIMEOUT_MS = 3000;
+
 function PlayerComponent() {
   const { t } = useI18n();
 
   const path = useCell(playbackAtoms.path);
   const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
   const hasFile = useCell(playbackAtoms.hasFile);
-  const duration = useCell(playbackAtoms.duration);
+  const liveDuration = useCell(playbackAtoms.duration);
+  const durationHint = useCell(playbackAtoms.durationHint);
+  const duration = useDisplayDuration(liveDuration, durationHint);
   const paused = useCell(playbackAtoms.paused);
   const muted = useCell(playbackAtoms.muted);
   const speed = useCell(playbackAtoms.speed);
@@ -139,10 +145,15 @@ function PlayerComponent() {
   } = usePlayerOverlayState();
   const [finished, setFinished] = useState<boolean>(false);
   const [hasShownFrame, setHasShownFrame] = useState<boolean>(false);
+  const [streamTracksPending, setStreamTracksPending] = useState<boolean>(false);
 
   const resumeRef = useRef<number | undefined>(undefined);
+  const initialWatchRef = useRef<WatchState | null | undefined>(undefined);
   const hwdecReloadRef = useRef<HwdecReload | null>(null);
   const loadEpochRef = useRef<number>(0);
+  const frameReadyRef = useRef<boolean>(false);
+  const fileReadyRef = useRef<boolean>(false);
+  const [fileReady, setFileReady] = useState<boolean>(false);
 
   const {
     cinema,
@@ -190,7 +201,21 @@ function PlayerComponent() {
   });
 
   const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch, retrySession } =
-    usePlayerSession({ videoRef, syncMarginsRef, resumeRef });
+    usePlayerSession({ videoRef, syncMarginsRef, resumeRef, initialWatchRef });
+  // Do not call the file initialized until both the first frame exists and the
+  // restored timing/tracks are applied. `playback-restart` can arrive first.
+  const markFileReady = useCallback(
+    (ready: boolean) => {
+      fileReadyRef.current = ready;
+      setFileReady(ready);
+      if (ready && frameReadyRef.current) setLoadingFile(false);
+    },
+    [setLoadingFile]
+  );
+  const restoreStreamTracks = useCallback(() => {
+    setStreamTracksPending(false);
+    markFileReady(true);
+  }, [markFileReady]);
   const streamRoute = useStreamRouteGuard({ session: stream, setLoadingFile, setFailed });
   const { onSelectTrack, onCycleTrack, onAddExternalSubtitle, onAddExternalAudio } =
     usePlayerTracks();
@@ -224,16 +249,21 @@ function PlayerComponent() {
     streamRoute,
     syncMarginsRef,
     resumeRef,
+    initialWatchRef,
     hwdecReloadRef,
     loadEpochRef,
     setFinished,
     setLoadingFile,
     setFailed,
+    setFileReady: markFileReady,
   });
 
   useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
   useStreamPin(stream, loadingFile);
-  useStreamTrackPrefs(stream, tracks);
+  useStreamTrackPrefs(stream, tracks, {
+    enabled: streamTracksPending,
+    onRestored: restoreStreamTracks,
+  });
   usePlayerFileDrop();
   usePlayerSettingsSync();
 
@@ -241,9 +271,13 @@ function PlayerComponent() {
     onOpenRequest: (request) => {
       if (request.files.length === 0) return;
       loadEpochRef.current += 1;
+      frameReadyRef.current = false;
+      markFileReady(false);
       setFinished(false);
       setFailed(false);
       setLoadingFile(true);
+      initialWatchRef.current = request.initialWatch;
+      setStreamTracksPending(false);
       if (request.stream) {
         streamSession.set(request.stream);
         return;
@@ -262,7 +296,16 @@ function PlayerComponent() {
       );
     },
     onFileLoaded: () => {
-      ignore(handleFileLoaded());
+      frameReadyRef.current = false;
+      markFileReady(false);
+      setStreamTracksPending(streamSession.get() !== null);
+      ignore(
+        handleFileLoaded().catch((error: unknown) => {
+          reportBackgroundError("player.file-load", error);
+          setLoadingFile(false);
+          setFailed(true);
+        })
+      );
     },
     onEndFile: (reason, eventPath) => {
       setFinished(false);
@@ -290,8 +333,9 @@ function PlayerComponent() {
     onPlaybackRestart: () => {
       settleSeek();
       streamRoute.markPlaying();
+      frameReadyRef.current = true;
       setHasShownFrame(true);
-      setLoadingFile(false);
+      if (fileReadyRef.current) setLoadingFile(false);
       syncMargins(true);
     },
     onShutdown: () => {
@@ -309,9 +353,21 @@ function PlayerComponent() {
 
   useEffect(() => {
     if (!loadingFile) return;
-    const task = scheduleTask("timeout", LOADING_TIMEOUT_MS, () => setLoadingFile(false));
+    const task = scheduleTask("timeout", LOADING_TIMEOUT_MS, () => {
+      // The timeout is a missing-`playback-restart` failsafe, not permission to
+      // reveal a half-restored file. Never drop the overlay before file-ready.
+      if (fileReadyRef.current) setLoadingFile(false);
+    });
     return () => task.cancel();
   }, [loadingFile, setLoadingFile]);
+
+  useEffect(() => {
+    if (!streamTracksPending) return;
+    // A stream without a usable track list must not hold the player forever.
+    // Normal streams restore in milliseconds; this only covers the broken case.
+    const task = scheduleTask("timeout", STREAM_TRACK_RESTORE_TIMEOUT_MS, restoreStreamTracks);
+    return () => task.cancel();
+  }, [restoreStreamTracks, streamTracksPending]);
 
   usePlayerWatchProgress({ playlistOpen });
 
@@ -468,6 +524,7 @@ function PlayerComponent() {
             <div
               ref={videoRef}
               data-player-video=""
+              data-player-ready={fileReady ? "true" : "false"}
               className="relative min-h-0 flex-1 overflow-hidden"
               onClick={onVideoClick}
               onMouseDown={onVideoMouseDown}

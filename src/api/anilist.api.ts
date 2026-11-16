@@ -1,3 +1,5 @@
+import * as z from "zod/mini";
+
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
 import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/system/networkHealth.utils";
@@ -12,6 +14,7 @@ import {
   AniCacheStatsSchema,
   AniCharacterDetailSchema,
   AniCharacterEdgeListSchema,
+  AniFriendBundleSchema,
   AniFriendScoreListSchema,
   AniListCollectionListSchema,
   AniListStatisticsSchema,
@@ -26,6 +29,7 @@ import {
   AniStreamingEpisodeListSchema,
   AniStringListSchema,
   AniTrailerSchema,
+  AniUserBundleSchema,
   AniUserOrNullSchema,
   AniUserProfileSchemaCompiled,
   AniUserSchema,
@@ -51,7 +55,9 @@ import type {
   AniSavedEntry,
   AniStaffDetail,
   AniStreamingEpisode,
+  AniFriendBundle,
   AniUser,
+  AniUserBundle,
   AniUserProfile,
   FavouriteAnime,
   FavouriteOverview,
@@ -113,6 +119,18 @@ export class AnilistApi {
     const user = await this.call<AniUser | null>("check_anilist_auth");
     assertSchema(user, AniUserOrNullSchema);
     return user;
+  }
+
+  async getBootstrap(): Promise<AniUserBundle | null> {
+    const bundle = await this.call<AniUserBundle | null>("get_anilist_bootstrap");
+    assertSchema(bundle, z.nullable(AniUserBundleSchema));
+    return bundle;
+  }
+
+  async getFriendBundle(userId: number): Promise<AniFriendBundle> {
+    const bundle = await this.call<AniFriendBundle>("get_anilist_friend_bundle", { userId });
+    assertSchema(bundle, AniFriendBundleSchema);
+    return bundle;
   }
 
   async getProfile(userId?: number, userName?: string): Promise<AniUserProfile> {

@@ -20,12 +20,18 @@ const NO_STARTER = {
   packs: 0,
 };
 
+const NO_UNREAD = { packs: 0, cards: 0 };
+
+const shell = (
+  stats = makeCardsStats({ totalCards: 2 }),
+  unread = NO_UNREAD,
+  bootstrap = makeBootstrap()
+) => ({ bootstrap, stats, unread });
+
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) => {
-    if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+    if (command === "cards_shell") return Promise.resolve(shell());
     if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
-    if (command === "cards_stats") return Promise.resolve(makeCardsStats({ totalCards: 2 }));
-    if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
     if (command === "cards_collection")
       return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
     return Promise.resolve(null);
@@ -55,11 +61,9 @@ describe("collection shell", () => {
 
   it("shows the active gift count next to the gifts tab", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_shell")
+        return Promise.resolve(shell(makeCardsStats({ totalCards: 2, activeGifts: 2 })));
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
-      if (command === "cards_stats")
-        return Promise.resolve(makeCardsStats({ totalCards: 2, activeGifts: 2 }));
-      if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
       return Promise.resolve(null);
@@ -73,10 +77,9 @@ describe("collection shell", () => {
 
   it("shows unread badges on the packs and album tabs", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_shell")
+        return Promise.resolve(shell(makeCardsStats({ totalCards: 2 }), { packs: 3, cards: 2 }));
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
-      if (command === "cards_stats") return Promise.resolve(makeCardsStats({ totalCards: 2 }));
-      if (command === "cards_unread") return Promise.resolve({ packs: 3, cards: 2 });
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
       return Promise.resolve(null);
@@ -99,7 +102,7 @@ describe("collection shell", () => {
 
   it("keeps the removed daily test button out of the UI", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_shell") return Promise.resolve(shell());
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
@@ -121,7 +124,7 @@ describe("collection shell", () => {
     expect(alert.textContent).toBe("Не удалось загрузить коллекцию.");
 
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_shell") return Promise.resolve(shell());
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
       return Promise.resolve(null);
     });
@@ -132,7 +135,7 @@ describe("collection shell", () => {
 
   it("hides the starter claim when the profile has no completed anime", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap") return Promise.resolve(makeBootstrap());
+      if (command === "cards_shell") return Promise.resolve(shell(makeCardsStats()));
       if (command === "cards_starter_status")
         return Promise.resolve({
           connected: true,
@@ -141,7 +144,6 @@ describe("collection shell", () => {
           granted: false,
           packs: 0,
         });
-      if (command === "cards_stats") return Promise.resolve(makeCardsStats());
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
       return Promise.resolve(null);
@@ -155,8 +157,10 @@ describe("collection shell", () => {
   it("claims the profile starter once and hides the button", async () => {
     let claimed = false;
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_bootstrap")
-        return Promise.resolve(makeBootstrap({ starterGranted: claimed }));
+      if (command === "cards_shell")
+        return Promise.resolve(
+          shell(makeCardsStats(), { packs: 0, cards: 0 }, makeBootstrap({ starterGranted: claimed }))
+        );
       if (command === "cards_starter_status")
         return Promise.resolve({
           connected: true,
@@ -169,8 +173,6 @@ describe("collection shell", () => {
         claimed = true;
         return Promise.resolve({ granted: true, packs: 3 });
       }
-      if (command === "cards_stats") return Promise.resolve(makeCardsStats());
-      if (command === "cards_unread") return Promise.resolve({ packs: 0, cards: 0 });
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
       return Promise.resolve(null);

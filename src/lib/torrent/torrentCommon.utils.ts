@@ -2,7 +2,12 @@ import type { Event } from "@tauri-apps/api/event";
 
 import { formatRate } from "@hullperse/hp_utils/bytes";
 import type { TFunc, TranslationKey } from "@/types/core/i18n";
-import type { TorrentDisplayState, TorrentLifecycle, TorrentInfo } from "@/types/torrent/torrent";
+import type {
+  TorrentDisplayState,
+  TorrentLifecycle,
+  TorrentInfo,
+  TorrentUpdatePayload,
+} from "@/types/torrent/torrent";
 import type { TorrentListState } from "@/types/torrent/torrentCommon";
 
 export function sameDownloadOrder(prev: number[] | undefined, next: number[] | undefined): boolean {
@@ -196,6 +201,29 @@ export function withoutPendingRemoved(
   return torrents.filter((t) => !pendingIds.has(t.id));
 }
 
+export function mergeTorrentDelta(
+  prev: TorrentInfo[],
+  payload: TorrentUpdatePayload,
+  pendingIds: ReadonlySet<number> = new Set<number>()
+): TorrentInfo[] {
+  if (payload.reset) return withoutPendingRemoved(payload.updates, pendingIds);
+  if (payload.updates.length === 0 && payload.removed.length === 0) return prev;
+
+  const updates = new Map(payload.updates.map((torrent) => [torrent.id, torrent]));
+  const removed = new Set(payload.removed);
+  for (const id of pendingIds) removed.add(id);
+  const next: TorrentInfo[] = [];
+  for (const torrent of prev) {
+    if (removed.has(torrent.id)) continue;
+    next.push(updates.get(torrent.id) ?? torrent);
+    updates.delete(torrent.id);
+  }
+  for (const torrent of payload.updates) {
+    if (updates.has(torrent.id) && !removed.has(torrent.id)) next.push(torrent);
+  }
+  return next;
+}
+
 export function pendingRemoveIds(
   opInFlight: Readonly<Record<number, "pause" | "resume" | "remove">>
 ): Set<number> {
@@ -217,7 +245,9 @@ export function reduceTorrentEvent(
   const stamps: Record<number, number> = { ...state.lastActiveAt };
   let stampsChanged = false;
   const prevById = new Map(prev.map((t) => [t.id, t]));
+  const nextIds = new Set<number>();
   for (const t of next) {
+    nextIds.add(t.id);
     const p = prevById.get(t.id);
     const activeNow =
       t.download_speed > 0 || (p !== undefined && t.progress_bytes !== p.progress_bytes);
@@ -226,9 +256,10 @@ export function reduceTorrentEvent(
       stampsChanged = true;
     }
   }
-  for (const id of Object.keys(stamps)) {
-    if (!next.some((t) => t.id === Number(id))) {
-      delete stamps[Number(id)];
+  for (const key of Object.keys(stamps)) {
+    const id = Number(key);
+    if (!nextIds.has(id)) {
+      delete stamps[id];
       stampsChanged = true;
     }
   }

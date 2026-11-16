@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { streamApi } from "@/api/stream.api";
@@ -89,4 +89,20 @@ export function useStreamHistoryProgress(animeId: string, enabled: boolean) {
     queryFn: () => streamApi.historyProgress(animeId),
     enabled: enabled && animeId.length > 0,
   });
+}
+
+/** One request for the visible catalog page instead of one per hovered card. */
+export function useStreamHistoryProgressMap(animeIds: string[]) {
+  const idsKey = animeIds.join(",");
+  const ids = useMemo(
+    () => (idsKey.length > 0 ? idsKey.split(",") : []),
+    [idsKey]
+  );
+  const query = useAppQuery("slow", {
+    queryKey: queryKeys.streamHistoryProgressMany(idsKey),
+    queryFn: () => streamApi.historyProgressMany(ids),
+    enabled: ids.length > 0,
+  });
+  const data = query.data;
+  return useMemo(() => new Map(data ? Object.entries(data) : []), [data]);
 }

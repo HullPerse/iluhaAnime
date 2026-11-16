@@ -333,6 +333,19 @@ function toCoverState(
   return { ...base, status: "empty", coverUrl: null, anilistId: null };
 }
 
+function shouldUseCascade(
+  anilistEnabled: boolean,
+  parsedTitle: string,
+  force: boolean,
+  override: boolean,
+  posterData: unknown,
+  posterLoading: boolean
+): boolean {
+  if (!anilistEnabled || parsedTitle.length === 0) return false;
+  if (force) return true;
+  return !override && posterData == null && !posterLoading;
+}
+
 function firstCoverUrl(
   override: { coverUrl: string | null } | undefined,
   poster: string | null,
@@ -350,9 +363,17 @@ export function useTorrentCover(
     url?: string | null;
     pageUrl?: string | null;
     mode?: TorrentCoverMode;
+    /** The correction dialog needs candidates even when the page already won. */
+    forceCascade?: boolean;
   } = {}
 ): TorrentCoverState {
-  const { mode = "full", source = "", url = null, pageUrl = null } = options;
+  const {
+    mode = "full",
+    source = "",
+    url = null,
+    pageUrl = null,
+    forceCascade = false,
+  } = options;
   const pageEnabled = mode !== "off";
   const anilistEnabled = mode === "full";
   const sourceProxies = useCell(settingsAtoms.searchProxyUrls);
@@ -369,7 +390,14 @@ export function useTorrentCover(
     ctx.trustedIds,
     ctx.profileById,
     torrentTitle,
-    anilistEnabled && !ctx.override && ctx.parsedTitle.length > 0
+    shouldUseCascade(
+      anilistEnabled,
+      ctx.parsedTitle,
+      forceCascade,
+      ctx.override !== undefined,
+      poster.data,
+      poster.isLoading
+    )
   );
 
   const remoteUrl = firstCoverUrl(ctx.override, poster.data ?? null, resolved.data);

@@ -12,7 +12,15 @@
         { "key": "changelog.5_2_5.changed.collection.grouping", "scope": "collection" },
         { "key": "changelog.5_2_5.changed.collection.payout", "scope": "collection" },
         { "key": "changelog.5_2_5.changed.collection.pack_prepare", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.player.loading", "scope": "player" }
+        { "key": "changelog.5_2_5.changed.collection.cards_shell", "scope": "collection" },
+        { "key": "changelog.5_2_5.changed.player.loading", "scope": "player" },
+        { "key": "changelog.5_2_5.changed.player.file_polling", "scope": "player" },
+        { "key": "changelog.5_2_5.changed.torrents.delta_updates", "scope": "torrents" },
+        { "key": "changelog.5_2_5.changed.search.cover_cascade", "scope": "search" },
+        { "key": "changelog.5_2_5.changed.search.session_check", "scope": "search" },
+        { "key": "changelog.5_2_5.changed.anilist.bundles", "scope": "anilist" },
+        { "key": "changelog.5_2_5.changed.streaming.history_batch", "scope": "streaming" },
+        { "key": "changelog.5_2_5.changed.app.ipc_payloads", "scope": "app" }
       ],
       "fixed": [
         { "key": "changelog.5_2_5.fixed.game.reward_pack", "scope": "game" },

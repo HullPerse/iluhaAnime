@@ -1,6 +1,6 @@
 import type { Persistor } from "@/types/core/persist";
 import type { Cell } from "@/types/core/signal";
-import type { MediaEntry } from "@/types/player/videoPlayer";
+import type { MediaEntry, WatchState } from "@/types/player/videoPlayer";
 
 export interface MediaSignalOptions {
   getStorage?: () => Storage | undefined;
@@ -12,9 +12,17 @@ export interface MediaSignalStore {
   persistor: Persistor;
   getEntry: (path: string) => MediaEntry | undefined;
   setPosition: (path: string, time: number, duration?: number) => void;
-  setTrack: (path: string, type: "audio" | "sub", index: number | "no") => void;
+  setTrack: (
+    path: string,
+    type: "audio" | "sub",
+    index: number | "no",
+    identity?: string
+  ) => void;
   setSubOffset: (path: string, offset: number) => void;
   setAudioOffset: (path: string, offset: number) => void;
-  hydrate: (path: string) => Promise<MediaEntry | undefined>;
+  hydrate: (
+    path: string,
+    storedOverride?: WatchState | null
+  ) => Promise<MediaEntry | undefined>;
   clearEntries: () => void;
 }

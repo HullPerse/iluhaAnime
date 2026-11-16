@@ -32,8 +32,9 @@ const wrapper = (client: QueryClient) => {
 afterEach(() => cleanup());
 
 describe("useTorrentFilesMap batching", () => {
-  it("loads every torrent through one batch and never per torrent", async () => {
+  it("loads every torrent through one lite batch and never per torrent", async () => {
     const calls: string[] = [];
+    const liteFlags: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
       if (command === "get_running_torrent_files") {
         calls.push("single");
@@ -41,6 +42,7 @@ describe("useTorrentFilesMap batching", () => {
       }
       if (command === "get_running_torrent_files_batch") {
         calls.push("batch");
+        liteFlags.push(args?.lite);
         const ids = (args?.ids as number[]) ?? [];
         return ids.map((id) => ({ id, error: null, files: [torrentFile(`ep${id}.mkv`)] }));
       }
@@ -48,13 +50,39 @@ describe("useTorrentFilesMap batching", () => {
     });
 
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const { result } = renderHook(() => useTorrentFilesMap(TWO_IDS, 10_000), {
+    const { result } = renderHook(() => useTorrentFilesMap(TWO_IDS, 10_000, undefined, true), {
       wrapper: wrapper(client),
     });
 
     await waitFor(() => expect(result.current.files[1]?.length).toBe(1));
     await waitFor(() => expect(result.current.files[2]?.length).toBe(1));
     expect(calls).toEqual(["batch"]);
+    expect(liteFlags).toEqual([true]);
+  });
+
+  it("primes every torrent once but polls only the scoped ids", async () => {
+    const batches: unknown[] = [];
+    mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
+      if (command === "get_running_torrent_files_batch") {
+        batches.push(args?.ids);
+        return ((args?.ids ?? []) as number[]).map((id) => ({
+          id,
+          error: null,
+          files: [torrentFile(`ep${id}.mkv`)],
+        }));
+      }
+      return null;
+    });
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(
+      () => useTorrentFilesMap(TWO_IDS, 10_000, undefined, true, new Set([2])),
+      { wrapper: wrapper(client) }
+    );
+
+    await waitFor(() => expect(result.current.files[1]?.length).toBe(1));
+    await waitFor(() => expect(result.current.files[2]?.length).toBe(1));
+    expect(batches).toEqual([[1, 2]]);
   });
 
   it("falls back to a per-torrent fetch when polling is off", async () => {

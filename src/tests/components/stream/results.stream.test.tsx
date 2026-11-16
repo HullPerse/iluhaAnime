@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/stream/catalog.hook", () => ({
-  useStreamHistoryProgress: () => ({ data: null }),
+  useStreamHistoryProgressMap: () => new Map(),
 }));
 
 import StreamResults from "@/routes/components/stream/results.stream";

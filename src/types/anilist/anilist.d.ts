@@ -133,6 +133,18 @@ export interface FavouriteOverview {
   people: FavouritePeople;
 }
 
+export interface AniUserBundle {
+  user: AniUser;
+  lists: AniListCollection[];
+  favourites: FavouriteOverview;
+}
+
+export interface AniFriendBundle {
+  profile: AniUserProfile;
+  lists: AniListCollection[];
+  favourites: FavouriteAnime[];
+}
+
 export interface AniListEntry {
   media: AniMedia;
   progress: number | null;

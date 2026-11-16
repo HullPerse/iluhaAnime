@@ -17,6 +17,7 @@ import type {
   CardGiftClaimInput,
   CardPackRow,
   CardsBootstrap,
+  CardsShell,
   CardsStats,
   CardsUnread,
   CollectionItem,
@@ -114,6 +115,8 @@ interface CardsUnreadArgs {
   cardsSince: number;
 }
 
+type CardsShellArgs = CardsUnreadArgs;
+
 interface CardsBuyPackArgs {
   packKind: string;
 }
@@ -128,6 +131,7 @@ interface CardsGiftArgs {
 
 export interface CardsClient {
   cardsBootstrap(): Promise<CardsBootstrap>;
+  cardsShell(args: CardsShellArgs): Promise<CardsShell>;
   cardsPacks(): Promise<CardPackRow[]>;
   cardsPreparePacks(args: CardsProxyArgs): Promise<PackPreparation>;
   cardsAckPreparedPacks(): Promise<number>;
@@ -210,6 +214,11 @@ export function createCardsClient(
 ): CardsClient {
   return {
     cardsBootstrap: () => call<CardsBootstrap>("cards_bootstrap"),
+    cardsShell: (args) =>
+      call<CardsShell>("cards_shell", {
+        packsSince: args.packsSince,
+        cardsSince: args.cardsSince,
+      }),
     cardsPacks: () => call<CardPackRow[]>("cards_packs"),
     cardsPreparePacks: (args) =>
       call<PackPreparation>("cards_prepare_packs", proxy(args.proxyUrl)),

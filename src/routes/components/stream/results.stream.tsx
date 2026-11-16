@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button.component";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
+import { setStreamCoverScope } from "@/hooks/remoteImage.hook";
+import { useStreamHistoryProgressMap } from "@/hooks/stream/catalog.hook";
 import { STREAM_ORDER_LABELS } from "@/config/player/streamFilters.config";
 import { isTextEntryTarget } from "@/lib/core/hotkeys/filterHotkeys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
@@ -24,6 +26,7 @@ import { StreamError } from "@/routes/components/stream/states/error.states";
 import { StreamLoadingGrid } from "@/routes/components/stream/states/loadingGrid.states";
 
 const PAGE_SIZE = 60;
+const NO_ITEMS: StreamingAnime[] = [];
 
 type GridKeyAction = "grid-left" | "grid-right" | "grid-up" | "grid-down";
 
@@ -63,11 +66,17 @@ export default function StreamResults({
   const scrollRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number>(0);
-  const items = data?.items ?? [];
+  const items = data?.items ?? NO_ITEMS;
+  const progressById = useStreamHistoryProgressMap(items.map((anime) => anime.id));
 
   useEffect(() => {
     if (activeIndex >= items.length) setActiveIndex(0);
   }, [activeIndex, items.length]);
+
+  useEffect(() => {
+    setStreamCoverScope(items.flatMap((anime) => (anime.cover ? [anime.cover] : [])));
+    return () => setStreamCoverScope(null);
+  }, [items]);
 
   const focusTile = useCallback(
     (index: number) => {
@@ -143,6 +152,7 @@ export default function StreamResults({
             <StreamCard
               key={anime.id}
               anime={anime}
+              progress={progressById.get(anime.id) ?? null}
               onOpen={() => onOpen(anime)}
               tabIndex={index === activeIndex ? 0 : -1}
               onFocus={() => setActiveIndex(index)}

@@ -26,6 +26,10 @@
         { "key": "changelog.5_2_5.fixed.game.reward_pack", "scope": "game" },
         { "key": "changelog.5_2_5.fixed.collection.open_pending", "scope": "collection" },
         { "key": "changelog.5_2_5.fixed.collection.reveal_images", "scope": "collection" },
+        {
+          "key": "changelog.5_2_5.fixed.collection.studio_collage",
+          "scope": "collection"
+        },
         { "key": "changelog.5_2_5.fixed.collection.source_keyboard", "scope": "collection" },
         { "key": "changelog.5_2_5.fixed.anilist.people_race", "scope": "anilist" },
         { "key": "changelog.5_2_5.fixed.player.stream_retry", "scope": "player" },

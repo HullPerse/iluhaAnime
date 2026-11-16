@@ -18,8 +18,7 @@ export const queryKeys = {
   streamHistoryRecent: () => ["stream_history_recent"] as const,
   streamHistoryForAnime: (animeId: string) => ["stream_history_anime", animeId] as const,
   streamHistoryProgress: (animeId: string) => ["stream_history_progress", animeId] as const,
-  streamHistoryProgressMany: (idsKey: string) =>
-    ["stream_history_progress_many", idsKey] as const,
+  streamHistoryProgressMany: (idsKey: string) => ["stream_history_progress_many", idsKey] as const,
   streamPlayers: (episodeId: string) => ["stream_players", episodeId] as const,
   streamSources: (episodeId: string, variantId: string) =>
     ["stream_sources", episodeId, variantId] as const,
@@ -98,6 +97,7 @@ export const queryKeys = {
   animeCharacters: (id: number) => ["anime_characters", id] as const,
   characterDetail: (id: number) => ["character_detail", id] as const,
   staffDetail: (id: number, key: string) => ["staff_detail", id, key] as const,
+  studioWorks: (id: number) => ["anilist_studio_works", id] as const,
   shaders: () => ["anime4k_shaders"] as const,
   upscaleConfig: () => ["upscale_config"] as const,
   upscaleSuggest: (filePath: string) => ["upscale_suggest", filePath] as const,

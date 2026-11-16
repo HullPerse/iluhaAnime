@@ -1606,6 +1606,34 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database cursed cards commit: {error}"))?;
     }
 
+    if version < 44 && has_cards > 0 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database collage metadata transaction: {error}"))?;
+        let has_collage_expected: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('card_meta')
+                 WHERE name = 'collage_expected'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("read collage expected column: {error}"))?;
+        if has_collage_expected == 0 {
+            transaction
+                .execute(
+                    "ALTER TABLE card_meta ADD COLUMN collage_expected INTEGER",
+                    [],
+                )
+                .map_err(|error| format!("add collage expected column: {error}"))?;
+        }
+        transaction
+            .execute_batch("PRAGMA user_version = 44;")
+            .map_err(|error| format!("app database collage metadata schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database collage metadata commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"

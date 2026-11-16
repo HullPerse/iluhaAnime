@@ -68,62 +68,66 @@ export default function CardPreview({
         back={<CardBack rarity={card.rarity} />}
       />
 
-      {slides.length > 1 && (
-        <div className="cards-detail-gallery">
-          <Button
-            size="icon"
-            variant="outline"
-            className="size-6"
-            aria-label={t("collection.detail.gallery.prev")}
-            title={t("collection.detail.gallery.prev")}
-            disabled={activeIndex === 0}
-            onClick={() => setPreviewIndex(activeIndex - 1)}
-          >
-            <ChevronLeft className="size-3.5" />
-          </Button>
-          <span className="cards-detail-gallery-counter" aria-live="polite">
-            {activeIndex + 1} / {slides.length}
-          </span>
-          <Button
-            size="icon"
-            variant="outline"
-            className="size-6"
-            aria-label={t("collection.detail.gallery.next")}
-            title={t("collection.detail.gallery.next")}
-            disabled={activeIndex === slides.length - 1}
-            onClick={() => setPreviewIndex(activeIndex + 1)}
-          >
-            <ChevronRight className="size-3.5" />
-          </Button>
-          <div className="cards-detail-gallery-actions">
+      {/* The gallery resolves after the modal opens. Reserve its strip so the
+          centered dialog does not grow and shift the card when it arrives. */}
+      <div className="cards-detail-gallery-slot">
+        {slides.length > 1 && (
+          <div className="cards-detail-gallery">
             <Button
               size="icon"
               variant="outline"
               className="size-6"
-              aria-label={t("collection.detail.gallery.apply")}
-              title={t("collection.detail.gallery.apply")}
-              disabled={!canSave || saving}
-              onClick={() => {
-                if (!currentImageUrl) return;
-                onSaveImage(currentImageUrl);
-              }}
+              aria-label={t("collection.detail.gallery.prev")}
+              title={t("collection.detail.gallery.prev")}
+              disabled={activeIndex === 0}
+              onClick={() => setPreviewIndex(activeIndex - 1)}
             >
-              <Check className="size-3.5" />
+              <ChevronLeft className="size-3.5" />
             </Button>
+            <span className="cards-detail-gallery-counter" aria-live="polite">
+              {activeIndex + 1} / {slides.length}
+            </span>
             <Button
               size="icon"
               variant="outline"
               className="size-6"
-              aria-label={t("collection.detail.gallery.cancel")}
-              title={t("collection.detail.gallery.cancel")}
-              disabled={!canCancel}
-              onClick={() => setPreviewIndex(savedIndex)}
+              aria-label={t("collection.detail.gallery.next")}
+              title={t("collection.detail.gallery.next")}
+              disabled={activeIndex === slides.length - 1}
+              onClick={() => setPreviewIndex(activeIndex + 1)}
             >
-              <X className="size-3.5" />
+              <ChevronRight className="size-3.5" />
             </Button>
+            <div className="cards-detail-gallery-actions">
+              <Button
+                size="icon"
+                variant="outline"
+                className="size-6"
+                aria-label={t("collection.detail.gallery.apply")}
+                title={t("collection.detail.gallery.apply")}
+                disabled={!canSave || saving}
+                onClick={() => {
+                  if (!currentImageUrl) return;
+                  onSaveImage(currentImageUrl);
+                }}
+              >
+                <Check className="size-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                className="size-6"
+                aria-label={t("collection.detail.gallery.cancel")}
+                title={t("collection.detail.gallery.cancel")}
+                disabled={!canCancel}
+                onClick={() => setPreviewIndex(savedIndex)}
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       {saveFailed && (
         <span className="cards-detail-gallery-error">{t("collection.detail.gallery.error")}</span>
       )}

@@ -18,6 +18,33 @@ pub fn is_fresh(fetched_at: i64, now: i64) -> bool {
     fetched_at >= now.saturating_sub(META_TTL_SECONDS)
 }
 
+/// Studios store their 2x2 collage in the shared metadata row. A cached row
+/// with an empty or legacy collage is not usable, even when its timestamp is
+/// fresh. `expected` records how many covers a successful fetch returned, so
+/// studios with fewer than four works are cached as complete instead of being
+/// refreshed on every preparation pass.
+pub fn studio_collage_missing(
+    kind: CardKind,
+    collage_json: Option<&str>,
+    expected: Option<i64>,
+) -> bool {
+    if kind != CardKind::Studio {
+        return false;
+    }
+    let Some(expected) = expected.filter(|count| *count >= 0) else {
+        return true;
+    };
+    let Some(covers) = collage_json.and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
+    else {
+        return true;
+    };
+    let covers = covers
+        .iter()
+        .filter(|cover| !cover.trim().is_empty())
+        .count();
+    covers as i64 != expected
+}
+
 /// Deduplicated id chunks of at most 25.
 pub fn chunks(ids: &[i64]) -> Vec<Vec<i64>> {
     let mut unique: Vec<i64> = Vec::new();
@@ -64,7 +91,7 @@ fn staff_fragment(ids: &[i64]) -> String {
 fn studio_fragment(id: i64) -> String {
     format!(
         "Studio(id: {id}) {{ id name favourites \
-         media(sort: [POPULARITY_DESC], perPage: {STUDIO_COLLAGE_SIZE}, type: ANIME) {{ \
+         media(sort: [POPULARITY_DESC], perPage: {STUDIO_COLLAGE_SIZE}) {{ \
          nodes {{ coverImage {{ large }} }} }} }}"
     )
 }
@@ -172,7 +199,7 @@ pub fn parse_meta(kind: CardKind, node: &Value, fetched_at: i64) -> Option<CardM
             }
             _ => (None, None, None, None),
         };
-    let collage_json = if kind == CardKind::Studio {
+    let (collage_json, collage_expected) = if kind == CardKind::Studio {
         let covers: Vec<String> = node["media"]["nodes"]
             .as_array()
             .map(|nodes| {
@@ -183,9 +210,12 @@ pub fn parse_meta(kind: CardKind, node: &Value, fetched_at: i64) -> Option<CardM
                     .collect()
             })
             .unwrap_or_default();
-        Some(serde_json::to_string(&covers).ok()?)
+        (
+            Some(serde_json::to_string(&covers).ok()?),
+            Some(covers.len() as i64),
+        )
     } else {
-        None
+        (None, None)
     };
     Some(CardMetaRow {
         kind,
@@ -200,6 +230,7 @@ pub fn parse_meta(kind: CardKind, node: &Value, fetched_at: i64) -> Option<CardM
         collection_title,
         collection_cover_url,
         collage_json,
+        collage_expected,
         fetched_at,
         preferred_image_url: None,
     })
@@ -221,7 +252,9 @@ pub async fn refresh_metadata(
             let source_missing = *kind == CardKind::Character
                 && meta.collection_anime_id.is_none()
                 && meta.collection_manga_id.is_none();
-            is_fresh(meta.fetched_at, now) && !source_missing
+            let collage_missing =
+                studio_collage_missing(*kind, meta.collage_json.as_deref(), meta.collage_expected);
+            is_fresh(meta.fetched_at, now) && !source_missing && !collage_missing
         });
         if !fresh {
             stale.push((*kind, *entity_id));
@@ -406,6 +439,30 @@ mod tests {
             serde_json::from_str(meta.collage_json.as_deref().unwrap()).unwrap();
         assert_eq!(covers.len(), 4);
         assert_eq!(covers[0], "https://img/1.jpg");
+        assert_eq!(meta.collage_expected, Some(4));
+    }
+
+    #[test]
+    fn studio_metadata_keeps_fewer_than_four_covers() {
+        let node = json!({
+            "id": 123,
+            "name": "Small Studio",
+            "favourites": 10,
+            "media": { "nodes": [
+                { "coverImage": { "large": "https://img/1.jpg" } },
+                { "coverImage": { "large": "https://img/2.jpg" } }
+            ] }
+        });
+        let meta = parse_meta(CardKind::Studio, &node, 100).unwrap();
+        let covers: Vec<String> =
+            serde_json::from_str(meta.collage_json.as_deref().unwrap()).unwrap();
+        assert_eq!(covers, vec!["https://img/1.jpg", "https://img/2.jpg"]);
+        assert_eq!(meta.collage_expected, Some(2));
+        assert!(!studio_collage_missing(
+            meta.kind,
+            meta.collage_json.as_deref(),
+            meta.collage_expected
+        ));
     }
 
     #[test]
@@ -422,6 +479,40 @@ mod tests {
         );
         let studio = studio_fragment(2);
         assert!(studio.contains("Studio(id: 2)"));
-        assert!(studio.contains("perPage: 4, type: ANIME"));
+        assert!(studio.contains("media(sort: [POPULARITY_DESC], perPage: 4)"));
+        // Studio.media accepts sort/isMain/onList/page/perPage, not MediaType.
+        assert!(!studio.contains("type: ANIME"));
+    }
+
+    #[test]
+    fn studio_collage_completeness_uses_the_expected_count() {
+        assert!(!studio_collage_missing(CardKind::Anime, Some("[]"), None));
+        assert!(studio_collage_missing(CardKind::Studio, None, Some(0)));
+        assert!(studio_collage_missing(CardKind::Studio, Some("[]"), None));
+        assert!(studio_collage_missing(
+            CardKind::Studio,
+            Some("[]"),
+            Some(1)
+        ));
+        assert!(!studio_collage_missing(
+            CardKind::Studio,
+            Some("[]"),
+            Some(0)
+        ));
+        assert!(studio_collage_missing(
+            CardKind::Studio,
+            Some("[\"https://img/1.jpg\"]"),
+            Some(4)
+        ));
+        assert!(!studio_collage_missing(
+            CardKind::Studio,
+            Some("[\"https://img/1.jpg\"]"),
+            Some(1)
+        ));
+        assert!(!studio_collage_missing(
+            CardKind::Studio,
+            Some("[\"https://img/1.jpg\",\"\"]"),
+            Some(1)
+        ));
     }
 }

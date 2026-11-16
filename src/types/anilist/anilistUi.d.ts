@@ -112,6 +112,7 @@ export type AniDetailViewProps = AniDetailProps & {
 export type AniListOverlayScreen =
   | { kind: "character"; id: number; name: string; role?: string; voiceActors: AniVoiceActor[] }
   | { kind: "staff"; id: number; name: string }
+  | { kind: "studio"; id: number; name: string; image?: string | null }
   | { kind: "anime"; id: number; name: string };
 
 export interface AniListOverlayContext {

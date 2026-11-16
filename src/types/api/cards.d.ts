@@ -86,6 +86,7 @@ export interface CardPackRow {
 export interface PackPreparation {
   prepared: number;
   failed: number;
+  repaired: number;
   unnotified: number;
 }
 

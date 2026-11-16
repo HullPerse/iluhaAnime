@@ -13,11 +13,13 @@ export default function Reveal({
   index,
   flipped,
   onFlip,
+  sourcePlacement = "below",
 }: {
   card: OpenedCard;
   index: number;
   flipped: boolean;
   onFlip: (index: number) => void;
+  sourcePlacement?: "above" | "below";
 }) {
   const { t } = useI18n();
   // The reveal keeps the cards still: seven tilted, animated finishes on one
@@ -45,6 +47,7 @@ export default function Reveal({
       className="cards-flip"
       data-flipped={flipped}
       data-hover-ready={hoverReady}
+      data-source-placement={sourcePlacement}
       data-testid={`card-flip-${index}`}
       aria-label={`${t("collection.reveal.card")}: ${title}`}
       aria-pressed={flipped}

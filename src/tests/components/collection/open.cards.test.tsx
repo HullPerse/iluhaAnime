@@ -59,6 +59,8 @@ describe("collection pack opening", () => {
 
     expect(await screen.findByTestId("card-flip-0")).toBeTruthy();
     expect(screen.getAllByTestId("reveal-row")).toHaveLength(2);
+    expect(screen.getByTestId("card-flip-0").dataset.sourcePlacement).toBe("below");
+    expect(screen.getByTestId("card-flip-4").dataset.sourcePlacement).toBe("above");
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.queryByRole("button", { name: "Flip all" })).toBeNull();
 

@@ -169,7 +169,7 @@ function Modal({
           <section
             ref={contentElement}
             className={cn(
-              "bg-primary flex w-full flex-1 flex-col gap-2 overflow-y-auto p-3",
+              "bg-primary flex w-full flex-1 flex-col gap-2 overflow-y-auto p-3 [scrollbar-gutter:stable]",
               contentClassName
             )}
           >

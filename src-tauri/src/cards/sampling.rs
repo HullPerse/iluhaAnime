@@ -1,8 +1,8 @@
 use serde_json::{json, Value};
 
-use super::rarity::{score_for, tier_for};
+use super::rarity::score_for;
 use super::rng::Rng;
-use super::types::{CardKind, CardRarity};
+use super::types::CardKind;
 
 pub const PER_PAGE: u32 = 50;
 
@@ -326,45 +326,6 @@ pub fn pick_distinct(pool: &[CardNode], count: usize, rng: &mut Rng) -> Vec<Card
     picked
 }
 
-/// Replaces the weakest pick with the lowest-tier available Rare+ candidate when the
-/// random draw produced no guaranteed slot.
-pub fn ensure_rare_plus(selected: &mut [CardNode], pool: &[CardNode]) {
-    if selected
-        .iter()
-        .any(|card| tier_for(card.kind, card.score) >= CardRarity::Rare)
-    {
-        return;
-    }
-    let best = pool
-        .iter()
-        .filter(|card| {
-            tier_for(card.kind, card.score) >= CardRarity::Rare
-                && !selected
-                    .iter()
-                    .any(|picked| picked.kind == card.kind && picked.entity_id == card.entity_id)
-        })
-        .min_by(|left, right| {
-            tier_for(left.kind, left.score)
-                .cmp(&tier_for(right.kind, right.score))
-                .then_with(|| {
-                    left.score
-                        .partial_cmp(&right.score)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
-        })
-        .cloned();
-    let Some(best) = best else {
-        return;
-    };
-    if let Some((index, _)) = selected.iter().enumerate().min_by(|(_, left), (_, right)| {
-        left.score
-            .partial_cmp(&right.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    }) {
-        selected[index] = best;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -630,63 +591,5 @@ mod tests {
         let mut ids: Vec<i64> = picked.iter().map(|card| card.entity_id).collect();
         ids.sort_unstable();
         assert_eq!(ids, vec![1, 2, 3]);
-    }
-
-    #[test]
-    fn the_guarantee_replaces_the_weakest_pick_when_needed() {
-        let weak = parse_page(
-            CardKind::Character,
-            1,
-            &fixture_cards(&[(1, Some(0), None), (2, Some(1), None)]),
-        )
-        .unwrap();
-        let strong = parse_page(
-            CardKind::Character,
-            1,
-            &fixture_cards(&[(3, Some(2_000_000), None)]),
-        )
-        .unwrap();
-        let mut selected = weak.nodes.clone();
-        let mut pool = weak.nodes.clone();
-        pool.extend(strong.nodes.clone());
-        ensure_rare_plus(&mut selected, &pool);
-        assert!(selected
-            .iter()
-            .any(|card| tier_for(card.kind, card.score) >= CardRarity::Rare));
-    }
-
-    #[test]
-    fn the_guarantee_prefers_rare_over_legendary() {
-        let weak = parse_page(
-            CardKind::Character,
-            1,
-            &fixture_cards(&[(1, Some(0), None)]),
-        )
-        .unwrap();
-        let candidates = parse_page(
-            CardKind::Character,
-            2,
-            &fixture_cards(&[(2, Some(2_000), None), (3, Some(2_000_000), None)]),
-        )
-        .unwrap();
-        let mut selected = weak.nodes;
-        ensure_rare_plus(&mut selected, &candidates.nodes);
-        assert_eq!(
-            tier_for(selected[0].kind, selected[0].score),
-            CardRarity::Rare
-        );
-    }
-
-    #[test]
-    fn the_guarantee_leaves_an_existing_rare_pick_alone() {
-        let strong = parse_page(
-            CardKind::Character,
-            1,
-            &fixture_cards(&[(3, Some(2_000_000), None)]),
-        )
-        .unwrap();
-        let mut selected = strong.nodes.clone();
-        ensure_rare_plus(&mut selected, &strong.nodes);
-        assert_eq!(selected.len(), 1);
     }
 }

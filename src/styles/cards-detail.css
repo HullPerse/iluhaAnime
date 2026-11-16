@@ -24,8 +24,13 @@
   user-select: none;
 }
 
+.cards-detail-gallery-slot {
+  min-height: 1.95rem;
+}
+
 .cards-detail-gallery {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 0.15rem;

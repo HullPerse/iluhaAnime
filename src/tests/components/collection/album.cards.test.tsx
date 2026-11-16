@@ -479,6 +479,89 @@ describe("collection album", () => {
     expect(screen.queryByRole("button", { name: "Открыть аниме" })).toBeNull();
   });
 
+  it("opens a staff card in the in-app AniList profile", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images: [], preferredUrl: null });
+      }
+      if (command === "cards_collection") {
+        return Promise.resolve(
+          makeCollectionPage({
+            total: 1,
+            items: [
+              makeCollectionItem({
+                kind: "staff",
+                entityId: 42,
+                title: "Hayao Miyazaki",
+                collectionAnimeId: null,
+                collectionTitle: null,
+              }),
+            ],
+          })
+        );
+      }
+      if (command === "get_staff_characters") {
+        return Promise.resolve({
+          id: 42,
+          name: "Hayao Miyazaki",
+          native_name: null,
+          image: null,
+          about: "Director",
+          favourites: 10,
+          site_url: null,
+          character_count: 0,
+          media_count: 0,
+          characters: [],
+          media: [],
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    renderWithCardsClient(<AlbumCards />);
+    fireEvent.click(await screen.findByRole("button", { name: /Hayao Miyazaki/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть на AniList" }));
+
+    expect(await screen.findByText("О себе")).toBeTruthy();
+    expect(await screen.findByText(/Персонаж/)).toBeTruthy();
+  });
+
+  it("opens a studio card in the in-app AniList profile", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_gallery") {
+        return Promise.resolve({ images: [], preferredUrl: null });
+      }
+      if (command === "cards_collection") {
+        return Promise.resolve(
+          makeCollectionPage({
+            total: 1,
+            items: [
+              makeCollectionItem({
+                kind: "studio",
+                entityId: 2,
+                title: "Studio Ghibli",
+                collage: ["https://cdn/ghibli.jpg"],
+                collectionAnimeId: null,
+                collectionTitle: null,
+              }),
+            ],
+          })
+        );
+      }
+      if (command === "search_anilist_by_studio") {
+        return Promise.resolve([{ id: 21, title: "Work A" }]);
+      }
+      return Promise.resolve(null);
+    });
+
+    renderWithCardsClient(<AlbumCards />);
+    fireEvent.click(await screen.findByRole("button", { name: /Studio Ghibli/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть на AniList" }));
+
+    expect(await screen.findByText("Работы студии")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Work A" })).toBeTruthy();
+  });
+
   it("marks favorite cards in the album", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_gallery") {

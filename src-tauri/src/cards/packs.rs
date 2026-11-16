@@ -7,7 +7,7 @@ use tauri::AppHandle;
 
 use super::ceilings::{batch_page_ceilings, fetch_pages, page_ceiling};
 use super::config::{pick_variant, shop_pack};
-use super::metadata::refresh_metadata;
+use super::metadata::{refresh_metadata, studio_collage_missing};
 use super::rarity::{card_value, score_for, tier_for};
 use super::rng::Rng;
 use super::sampling::{
@@ -127,6 +127,8 @@ pub struct PackOpening {
 pub struct PackPreparation {
     pub prepared: usize,
     pub failed: usize,
+    /// Studio collages refreshed for cards the user already owns.
+    pub repaired: usize,
     pub unnotified: i64,
 }
 
@@ -146,6 +148,7 @@ struct PreparedCard {
     /// never rewrites the metadata default with the user's MAL choice.
     meta_image_url: Option<String>,
     meta_fetched_at: i64,
+    collage_expected: Option<i64>,
 }
 
 impl PreparedCard {
@@ -170,6 +173,7 @@ impl PreparedCard {
             score: row.score,
             meta_image_url: None,
             meta_fetched_at: 1,
+            collage_expected: None,
         }
     }
 
@@ -213,6 +217,7 @@ impl PreparedCard {
             ),
             fetched_at: if self.meta_fetched_at > 0 { now } else { 0 },
             preferred_image_url: None,
+            collage_expected: self.collage_expected,
         }
     }
 }
@@ -659,6 +664,7 @@ fn prepare_generated(
                 .and_then(|row| row.collage_json.as_deref())
                 .and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
                 .unwrap_or_default();
+            let collage_expected = meta.as_ref().and_then(|row| row.collage_expected);
             if let Some(row) = &meta {
                 if !row.title.trim().is_empty() {
                     card.title = row.title.clone();
@@ -678,6 +684,7 @@ fn prepare_generated(
                 score: node.score,
                 meta_image_url,
                 meta_fetched_at: meta.as_ref().map_or(0, |row| row.fetched_at),
+                collage_expected,
             })
         })
         .collect()
@@ -842,6 +849,85 @@ fn prepared_image_urls(prepared: &[PreparedCard]) -> Vec<String> {
         .flatten()
         .filter(|url| !url.trim().is_empty())
         .collect()
+}
+
+fn studio_card_keys<I>(cards: I) -> Vec<(CardKind, i64)>
+where
+    I: IntoIterator<Item = (CardKind, i64)>,
+{
+    let mut keys: Vec<(CardKind, i64)> = cards
+        .into_iter()
+        .filter(|(kind, _)| *kind == CardKind::Studio)
+        .collect();
+    keys.sort_unstable_by_key(|(_, entity_id)| *entity_id);
+    keys.dedup();
+    keys
+}
+
+async fn repair_pack_studio_metadata(
+    app: &AppHandle,
+    keys: &[(CardKind, i64)],
+    proxy: Option<&str>,
+) {
+    if keys.is_empty() {
+        return;
+    }
+    if let Err(error) = refresh_metadata(app, keys, proxy).await {
+        tracing::warn!(
+            error = error.as_str(),
+            "pack studio collage metadata refresh failed"
+        );
+    }
+}
+
+/// Refreshes studio metadata with an empty collage for cards the user already
+/// owns. The old studio query was rejected by AniList, so those rows can stay
+/// broken after the query fix; once healed this is only a database read.
+async fn repair_owned_studio_metadata(app: &AppHandle, proxy: Option<&str>) -> usize {
+    let keys = {
+        let Ok(connection) = open_database(app) else {
+            return 0;
+        };
+        let Ok(owned) = list_user_cards(&connection, LOCAL_USER_ID) else {
+            return 0;
+        };
+        let mut keys: Vec<(CardKind, i64)> = Vec::new();
+        for card in owned {
+            if card.kind != CardKind::Studio {
+                continue;
+            }
+            let missing = get_meta(&connection, card.kind, card.entity_id)
+                .ok()
+                .flatten()
+                .map_or(true, |meta| {
+                    studio_collage_missing(
+                        meta.kind,
+                        meta.collage_json.as_deref(),
+                        meta.collage_expected,
+                    )
+                });
+            if missing {
+                keys.push((card.kind, card.entity_id));
+            }
+        }
+        keys.sort_unstable_by_key(|(_, entity_id)| *entity_id);
+        keys.dedup();
+        keys
+    };
+    let mut repaired = 0;
+    // One alias per studio id: keep each request small enough for AniList.
+    for batch in keys.chunks(25) {
+        match refresh_metadata(app, batch, proxy).await {
+            Ok(count) => repaired += count,
+            Err(error) => {
+                tracing::warn!(
+                    error = error.as_str(),
+                    "owned studio collage metadata refresh failed"
+                );
+            }
+        }
+    }
+    repaired
 }
 
 const WARM_IMAGE_CONCURRENCY: usize = 4;
@@ -1042,6 +1128,9 @@ async fn prepare_packs_inner(
     app: &AppHandle,
     proxy: Option<&str>,
 ) -> Result<PackPreparation, String> {
+    // Old studio rows keep an empty collage until they are explicitly
+    // refreshed; do that before preparing new packs so the album heals too.
+    let repaired = repair_owned_studio_metadata(app, proxy).await;
     let packs = {
         let connection = open_database(app)?;
         list_packs_to_prepare(
@@ -1153,6 +1242,7 @@ async fn prepare_packs_inner(
     Ok(PackPreparation {
         prepared,
         failed,
+        repaired,
         unnotified: ready_unnotified_count(&connection, LOCAL_USER_ID)?,
     })
 }
@@ -1224,6 +1314,14 @@ pub async fn cards_open_pack(
         return Err("card pack not found".into());
     };
     if pack.opened_at.is_some() {
+        let keys = studio_card_keys(
+            list_openings_for_pack(&connection, LOCAL_USER_ID, &pack_id)?
+                .into_iter()
+                .map(|opening| (opening.kind, opening.entity_id)),
+        );
+        drop(connection);
+        repair_pack_studio_metadata(&app, &keys, proxy.as_deref()).await;
+        let connection = open_database(&app)?;
         let cards = opened_from_db(&connection, &pack_id)?;
         return Ok(PackOpening {
             pack_id,
@@ -1266,6 +1364,15 @@ pub async fn cards_open_pack(
     if prepared.len() != pack.size as usize {
         return Err("card pack size changed while opening".into());
     }
+    // A ready pack was frozen while the studio query could still fail. Repair
+    // its studio metadata before open_prepared reads the cards back for the
+    // reveal, otherwise the collage stays empty even after the query fix.
+    let studio_keys = studio_card_keys(
+        prepared
+            .iter()
+            .map(|card| (card.card.kind, card.card.entity_id)),
+    );
+    repair_pack_studio_metadata(&app, &studio_keys, proxy.as_deref()).await;
     open_prepared(&app, &pack_id, &prepared)
 }
 
@@ -1515,6 +1622,7 @@ mod tests {
             score: 8.16,
             meta_image_url: Some("https://img/uta.jpg".into()),
             meta_fetched_at: 100,
+            collage_expected: None,
         };
         assert_eq!(
             card.meta_row(100).image_url.as_deref(),

@@ -141,11 +141,17 @@ export default function PackOpen({
 
   const allFlipped = cards.length > 0 && flipped.size === cards.length;
   const skipLabel = phase === "intro" ? t("collection.skip") : t("collection.open.revealAll");
-  const rows = [cards.slice(0, 4), cards.slice(4)];
+  const rows = [cards.slice(0, 4), cards.slice(4)].filter((row) => row.length > 0);
 
-  const card = (item: OpenedCard, index: number) => (
+  const card = (item: OpenedCard, index: number, sourcePlacement: "above" | "below") => (
     <div className="cards-reveal-card" key={`${item.kind}:${item.entityId}:${index}`}>
-      <Reveal card={item} index={index} flipped={flipped.has(index)} onFlip={flip} />
+      <Reveal
+        card={item}
+        index={index}
+        flipped={flipped.has(index)}
+        onFlip={flip}
+        sourcePlacement={sourcePlacement}
+      />
     </div>
   );
 
@@ -192,7 +198,13 @@ export default function PackOpen({
           <div className="cards-reveal-stage">
             {rows.map((row, rowIndex) => (
               <div className="cards-reveal-row" data-testid="reveal-row" key={rowIndex}>
-                {row.map((item, columnIndex) => card(item, rowIndex * 4 + columnIndex))}
+                {row.map((item, columnIndex) =>
+                  card(
+                    item,
+                    rowIndex * 4 + columnIndex,
+                    rowIndex < rows.length - 1 ? "below" : "above"
+                  )
+                )}
               </div>
             ))}
           </div>

@@ -29,7 +29,7 @@ export default function ShopCards() {
   const packs = config.shopPacks;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-2">
+    <div className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-x-clip overflow-y-auto p-2">
       <div className="cards-shop">
         {buyPack.isError && (
           <p className="windows95-text text-destructive m-0" role="alert">

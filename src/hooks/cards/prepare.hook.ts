@@ -1,8 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
 import { cardsApi } from "@/api/cards.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
@@ -14,6 +16,7 @@ import { scheduleTask } from "@hullperse/hp_utils/shared";
  */
 export function usePrepareCardsPacks(enabled: boolean) {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const started = useRef(false);
 
@@ -29,6 +32,12 @@ export function usePrepareCardsPacks(enabled: boolean) {
         .preparePacks(proxy)
         .then(async (result) => {
           if (cancelled) return null;
+          if (result.repaired > 0) {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.cardsCollectionScope() });
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.cardsCollectionsScope(),
+            });
+          }
           if (result.unnotified > 0) {
             addNotification(
               t("collection.packs.ready.title"),
@@ -52,5 +61,5 @@ export function usePrepareCardsPacks(enabled: boolean) {
       retry?.cancel();
       if (!completed) started.current = false;
     };
-  }, [enabled, online, t]);
+  }, [enabled, online, queryClient, t]);
 }

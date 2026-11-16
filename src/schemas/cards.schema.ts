@@ -80,6 +80,7 @@ export const PackPreparationSchema = z.compile(
   z.object({
     prepared: z.number(),
     failed: z.number(),
+    repaired: z.number(),
     unnotified: z.number(),
   })
 );

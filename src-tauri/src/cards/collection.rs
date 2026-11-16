@@ -1193,6 +1193,7 @@ mod tests {
             collage_json: None,
             fetched_at: 100,
             preferred_image_url: None,
+            collage_expected: None,
         }
     }
 
@@ -1429,6 +1430,7 @@ mod tests {
                     collage_json: None,
                     fetched_at: 100,
                     preferred_image_url: None,
+                    collage_expected: None,
                 },
             )
             .expect("meta");
@@ -1502,6 +1504,7 @@ mod tests {
                     collage_json: None,
                     fetched_at: 100,
                     preferred_image_url: None,
+                    collage_expected: None,
                 },
             )
             .expect("meta");

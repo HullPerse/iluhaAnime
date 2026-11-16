@@ -320,7 +320,10 @@ export default function AlbumCards() {
         infinite={infinite}
         onInfinite={changeInfinite}
       />
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-x-clip overflow-y-auto p-2"
+      >
         <AlbumBody
           mode={mode}
           view={view}

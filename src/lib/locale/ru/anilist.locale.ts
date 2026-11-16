@@ -99,6 +99,8 @@ const anilist = {
   "anilist.characters.role.supporting": "Второстепенные",
   "anilist.characters.show.more": "Показать ещё",
   "anilist.staff.about": "О себе",
+  "anilist.studio.works": "Работы студии",
+  "anilist.studio.works.empty": "Работ нет",
   "anilist.controls.add.to.list": "Добавить в список",
   "anilist.controls.edit.list": "Управление списком",
   "anilist.controls.open.site": "Открыть на сайте",

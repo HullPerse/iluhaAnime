@@ -116,7 +116,7 @@ export default function CollectionShell() {
 
   return (
     <div className="flex h-full w-full gap-1 overflow-hidden">
-      <aside className="windows95-border bg-field flex w-44 shrink-0 flex-col gap-1 overflow-y-auto p-1">
+      <aside className="windows95-border bg-field flex w-44 shrink-0 [scrollbar-gutter:stable] flex-col gap-1 overflow-y-auto p-1">
         <TabsCards />
         <div className="border-muted mt-auto flex flex-col gap-1 border-t pt-1">
           {starterEligible && (

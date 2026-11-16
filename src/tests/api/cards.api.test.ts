@@ -283,7 +283,7 @@ describe("CardsApi", () => {
 
   it("prepares and acknowledges ready packs", async () => {
     const { calls, transport } = fakeTransport({
-      cards_prepare_packs: { prepared: 2, failed: 0, unnotified: 2 },
+      cards_prepare_packs: { prepared: 2, failed: 0, repaired: 0, unnotified: 2 },
       cards_ack_prepared_packs: 2,
     });
     const api = new CardsApi({ transport });
@@ -291,7 +291,7 @@ describe("CardsApi", () => {
     const result = await api.preparePacks("http://127.0.0.1:7890");
     await api.acknowledgePreparedPacks();
 
-    expect(result).toEqual({ prepared: 2, failed: 0, unnotified: 2 });
+    expect(result).toEqual({ prepared: 2, failed: 0, repaired: 0, unnotified: 2 });
     expect(calls).toEqual([
       {
         command: "cards_prepare_packs",

@@ -76,6 +76,9 @@ pub struct CardMetaRow {
     pub collage_json: Option<String>,
     pub fetched_at: i64,
     pub preferred_image_url: Option<String>,
+    /// Number of covers a complete studio collage should contain. Legacy
+    /// studio rows have no value and are refreshed once on the next pass.
+    pub collage_expected: Option<i64>,
 }
 
 impl CardMetaRow {
@@ -258,6 +261,7 @@ fn meta_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CardMetaRow> {
         collage_json: row.get(11)?,
         fetched_at: row.get(12)?,
         preferred_image_url: row.get(13)?,
+        collage_expected: row.get(14)?,
     })
 }
 
@@ -771,8 +775,9 @@ pub fn upsert_meta(connection: &Connection, meta: &CardMetaRow) -> Result<(), St
             "INSERT INTO card_meta (
                 kind, entity_id, title, image_url, score, popularity, favourites,
                 collection_anime_id, collection_manga_id, collection_title,
-                collection_cover_url, collage_json, fetched_at, preferred_image_url
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                collection_cover_url, collage_json, fetched_at, preferred_image_url,
+                collage_expected
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
              ON CONFLICT(kind, entity_id) DO UPDATE SET
                 title = excluded.title,
                 image_url = excluded.image_url,
@@ -785,7 +790,8 @@ pub fn upsert_meta(connection: &Connection, meta: &CardMetaRow) -> Result<(), St
                 collection_cover_url = excluded.collection_cover_url,
                 collage_json = excluded.collage_json,
                 fetched_at = excluded.fetched_at,
-                preferred_image_url = COALESCE(card_meta.preferred_image_url, excluded.preferred_image_url)",
+                preferred_image_url = COALESCE(card_meta.preferred_image_url, excluded.preferred_image_url),
+                collage_expected = excluded.collage_expected",
             params![
                 meta.kind.as_str(),
                 meta.entity_id,
@@ -800,7 +806,8 @@ pub fn upsert_meta(connection: &Connection, meta: &CardMetaRow) -> Result<(), St
                 meta.collection_cover_url,
                 meta.collage_json,
                 meta.fetched_at,
-                meta.preferred_image_url
+                meta.preferred_image_url,
+                meta.collage_expected
             ],
         )
         .map_err(|error| format!("upsert card meta: {error}"))?;
@@ -816,7 +823,8 @@ pub fn get_meta(
         .query_row(
             "SELECT kind, entity_id, title, image_url, score, popularity, favourites,
                     collection_anime_id, collection_manga_id, collection_title,
-                    collection_cover_url, collage_json, fetched_at, preferred_image_url
+                    collection_cover_url, collage_json, fetched_at, preferred_image_url,
+                    collage_expected
              FROM card_meta WHERE kind = ?1 AND entity_id = ?2",
             params![kind.as_str(), entity_id],
             meta_from_row,
@@ -1352,6 +1360,7 @@ mod tests {
             collage_json: None,
             fetched_at: 100,
             preferred_image_url: None,
+            collage_expected: None,
         }
     }
 
@@ -1577,6 +1586,7 @@ mod tests {
         let mut updated = meta(1);
         updated.title = "Levi Ackerman".into();
         updated.fetched_at = 200;
+        updated.collage_expected = Some(2);
         upsert_meta(&connection, &updated).expect("update meta");
         let stored = get_meta(&connection, CardKind::Character, 1)
             .unwrap()
@@ -1584,6 +1594,7 @@ mod tests {
         assert_eq!(stored.title, "Levi Ackerman");
         assert_eq!(stored.collection_anime_id, Some(16498));
         assert_eq!(stored.fetched_at, 200);
+        assert_eq!(stored.collage_expected, Some(2));
     }
 
     #[test]

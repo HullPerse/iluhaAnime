@@ -31,7 +31,7 @@ export default function PacksCards() {
   const unopened = (packs.data ?? []).filter((pack) => pack.openedAt === null);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-2">
+    <div className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-x-clip overflow-y-auto p-2">
       {unopened.length > 0 && (
         <div className="grid auto-rows-fr grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] items-stretch gap-2">
           {unopened.map((pack) => (

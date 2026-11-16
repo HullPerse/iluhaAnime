@@ -1959,10 +1959,15 @@ html[data-theme="yorha"] .yorha-grid {
   min-width: 0;
 }
 
+/* The source card is a tooltip. Keep both its hidden and visible position in
+   the band above or below its own row: hanging the hidden copy below the last
+   row used to extend the modal's scrollable overflow and toggle a scrollbar
+   whenever a flipped character card was hovered. */
 .cards-reveal-source {
   position: absolute;
+  top: calc(100% + 8px);
   right: 4px;
-  bottom: 4px;
+  bottom: auto;
   left: 4px;
   z-index: 6;
   display: flex;
@@ -1974,10 +1979,16 @@ html[data-theme="yorha"] .yorha-grid {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   opacity: 0;
   pointer-events: none;
-  transform: translateY(calc(100% + 8px));
+  transform: translateY(-6px);
   transition:
     opacity 140ms ease-out,
     transform 160ms ease-out;
+}
+
+.cards-flip[data-source-placement="above"] .cards-reveal-source {
+  top: auto;
+  bottom: calc(100% + 8px);
+  transform: translateY(6px);
 }
 
 .cards-flip[data-hover-ready="true"] .cards-reveal-source,

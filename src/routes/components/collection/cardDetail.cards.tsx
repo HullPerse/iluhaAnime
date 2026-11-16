@@ -1,4 +1,3 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
@@ -15,12 +14,13 @@ import {
   useCardsGallery,
 } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { anilistCardUrl } from "@/lib/cards/links.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import type { CardVariant, CollectionItem } from "@/types/api/cards";
+import type { AniListOverlayScreen } from "@/types/anilist/anilistUi";
 import type { TranslationKey } from "@/types/core/i18n";
 
 import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
+import AniListProfileModal from "@/routes/components/anilist/detail/profileModal.detail";
 import { FavHeartButton } from "@/routes/components/anilist/detail/favHeartButton.detail";
 import CardFacts from "@/routes/components/collection/cardFacts.cards";
 import CardPreview from "@/routes/components/collection/cardPreview.cards";
@@ -30,6 +30,15 @@ import GiftFlow from "@/routes/components/collection/giftFlow.cards";
 function animeIdOf(card: CollectionItem): number | null {
   if (card.kind === "anime") return card.entityId;
   if (card.kind === "character") return card.collectionAnimeId;
+  return null;
+}
+
+function anilistProfileOf(card: CollectionItem, fallbackName: string): AniListOverlayScreen | null {
+  const name = card.title.trim() || fallbackName;
+  if (card.kind === "staff") return { kind: "staff", id: card.entityId, name };
+  if (card.kind === "studio") {
+    return { kind: "studio", id: card.entityId, name, image: card.collage[0] ?? null };
+  }
   return null;
 }
 
@@ -78,12 +87,13 @@ export default function CardDetail({
   const { setCardVariant, setCardFavorite, setPreferredImage } = useCardsMutations();
   const [pickedVariant, setPickedVariant] = useState<CardVariant>(item.variant);
   const [openAnimeId, setOpenAnimeId] = useState<number | null>(null);
+  const [openProfile, setOpenProfile] = useState<AniListOverlayScreen | null>(null);
   const [giftOpen, setGiftOpen] = useState<boolean>(false);
 
   const ownedVariants = variants.data ?? [];
   const card = pickOwnedCard(ownedVariants, pickedVariant, item);
   const animeId = animeIdOf(card);
-  const anilistUrl = anilistCardUrl(card);
+  const anilistProfile = anilistProfileOf(card, t("collection.detail.unknown.title"));
   const animeQuery = useAppQuery("static", {
     queryKey: queryKeys.animeScreen(animeId ?? 0),
     queryFn: () => anilistApi.getAnimeById(animeId ?? 0),
@@ -123,6 +133,20 @@ export default function CardDetail({
     );
   }
 
+  if (openProfile !== null) {
+    return (
+      <AniListProfileModal
+        key={`${openProfile.kind}-${openProfile.id}`}
+        initialScreen={openProfile}
+        onOpenAnime={(id) => {
+          setOpenProfile(null);
+          setOpenAnimeId(id);
+        }}
+        onClose={() => setOpenProfile(null)}
+      />
+    );
+  }
+
   if (giftOpen) {
     return <GiftFlow item={card} onBack={() => setGiftOpen(false)} onClose={onClose} />;
   }
@@ -144,15 +168,13 @@ export default function CardDetail({
               <ExternalLink className="size-3" />
             </Button>
           )}
-          {anilistUrl !== null && (
+          {anilistProfile !== null && (
             <Button
               size="icon"
               className="size-5"
               aria-label={t("collection.detail.open.anilist")}
               title={t("collection.detail.open.anilist")}
-              onClick={() => {
-                openUrl(anilistUrl).catch(() => undefined);
-              }}
+              onClick={() => setOpenProfile(anilistProfile)}
             >
               <ExternalLink className="size-3" />
             </Button>

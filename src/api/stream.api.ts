@@ -7,7 +7,7 @@ import {
   normalizeVariant,
 } from "@/lib/player/streamHelpers.utils";
 import { streamProxyArgs } from "@/lib/player/streamProxy.utils";
-import { settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl } from "@/store/settings.store";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import type {
   StreamCatalogFilters,
@@ -199,5 +199,5 @@ export class StreamApi {
 }
 
 export const streamApi = new StreamApi({
-  proxyUrl: () => settingsAtoms.animelibProxyUrl.get(),
+  proxyUrl: getAnimelibProxyUrl,
 });

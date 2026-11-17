@@ -67,10 +67,10 @@ export class DailyApi {
   async guessAudio(
     day: string,
     mediaId: number,
-    guessedTitles: string[]
+    proxyUrl: string | null = null
   ): Promise<DailyOpGuessView> {
     return assertSchema(
-      await this.dailyClient.guessAudio({ day, mediaId, guessedTitles }),
+      await this.dailyClient.guessAudio({ day, mediaId, proxyUrl }),
       DailyOpGuessViewSchema
     );
   }
@@ -79,9 +79,13 @@ export class DailyApi {
     return assertSchema(await this.dailyClient.skipAudio({ day }), DailyOpGuessViewSchema);
   }
 
-  async guessOp(day: string, mediaId: number, guessedTitles: string[]): Promise<DailyOpGuessView> {
+  async guessOp(
+    day: string,
+    mediaId: number,
+    proxyUrl: string | null = null
+  ): Promise<DailyOpGuessView> {
     return assertSchema(
-      await this.dailyClient.guessOp({ day, mediaId, guessedTitles }),
+      await this.dailyClient.guessOp({ day, mediaId, proxyUrl }),
       DailyOpGuessViewSchema
     );
   }
@@ -94,11 +98,10 @@ export class DailyApi {
     day: string,
     mode: DailyMode,
     mediaId: number,
-    guessedTitles: string[],
     proxyUrl: string | null = null
   ): Promise<DailyGuessView> {
     return assertSchema(
-      await this.dailyClient.guess({ day, mode, mediaId, guessedTitles, proxyUrl }),
+      await this.dailyClient.guess({ day, mode, mediaId, proxyUrl }),
       DailyGuessViewSchema
     );
   }

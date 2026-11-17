@@ -33,9 +33,11 @@ export function usePrepareCardsPacks(enabled: boolean) {
         .then(async (result) => {
           if (cancelled) return null;
           if (result.repaired > 0) {
-            void queryClient.invalidateQueries({ queryKey: queryKeys.cardsCollectionScope() });
-            void queryClient.invalidateQueries({
-              queryKey: queryKeys.cardsCollectionsScope(),
+            Promise.all([
+              queryClient.invalidateQueries({ queryKey: queryKeys.cardsCollectionScope() }),
+              queryClient.invalidateQueries({ queryKey: queryKeys.cardsCollectionsScope() }),
+            ]).catch((error: unknown) => {
+              reportBackgroundError("cards.prepare-packs.invalidate", error);
             });
           }
           if (result.unnotified > 0) {

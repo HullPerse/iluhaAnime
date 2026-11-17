@@ -78,7 +78,6 @@ function opGuessView(rewardPackId: string | null): DailyOpGuessView {
       fullPath: "",
       startFraction: 0,
       themeType: "",
-      themeTitle: "",
       hints: [],
       result: {
         won: rewardPackId !== null,
@@ -162,7 +161,7 @@ describe("daily reward cache", () => {
     seedCardsCache();
     const { result } = renderHook(() => useGuessDailyGame(DAY), { wrapper });
 
-    act(() => result.current.mutate({ mode: "frames", mediaId: 1, guessedTitles: ["Test"] }));
+    act(() => result.current.mutate({ mode: "frames", mediaId: 1 }));
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expectInvalidated(true);
@@ -173,7 +172,7 @@ describe("daily reward cache", () => {
     seedCardsCache();
     const { result } = renderHook(() => useGuessDailyOp(DAY), { wrapper });
 
-    act(() => result.current.mutate({ mediaId: 1, guessedTitles: ["Test"] }));
+    act(() => result.current.mutate({ mediaId: 1 }));
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expectInvalidated(true);
@@ -184,7 +183,7 @@ describe("daily reward cache", () => {
     seedCardsCache();
     const { result } = renderHook(() => useGuessDailyGame(DAY), { wrapper });
 
-    act(() => result.current.mutate({ mode: "frames", mediaId: 1, guessedTitles: ["Test"] }));
+    act(() => result.current.mutate({ mode: "frames", mediaId: 1 }));
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expectInvalidated(false);

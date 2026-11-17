@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "entries": [
     {
       "mediaId": 16498,
@@ -1357,8 +1357,7 @@
       "popularity": 489915,
       "tier": "easy",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -2530,8 +2529,7 @@
       "popularity": 308112,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -2859,8 +2857,7 @@
       "popularity": 292041,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -3449,8 +3446,7 @@
       "popularity": 266375,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -3665,8 +3661,7 @@
       "popularity": 258897,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -3758,8 +3753,7 @@
       "popularity": 253788,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -3804,8 +3798,7 @@
       "popularity": 252128,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -3919,8 +3912,7 @@
       "popularity": 250863,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -4040,8 +4032,7 @@
       "popularity": 247573,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -5870,8 +5861,7 @@
       "popularity": 196802,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -5916,8 +5906,7 @@
       "popularity": 194991,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -6716,8 +6705,7 @@
       "popularity": 181154,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -6738,8 +6726,7 @@
       "popularity": 180882,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -6859,8 +6846,7 @@
       "popularity": 179536,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -6952,8 +6938,7 @@
       "popularity": 177729,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -8599,8 +8584,7 @@
       "popularity": 150155,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -8781,8 +8765,7 @@
       "popularity": 148167,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -8826,8 +8809,7 @@
       "popularity": 147929,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -8897,8 +8879,7 @@
       "popularity": 147312,
       "tier": "medium",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -9423,8 +9404,7 @@
       "popularity": 139442,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -9612,8 +9592,7 @@
       "popularity": 136471,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -9849,8 +9828,7 @@
       "popularity": 134181,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -9920,8 +9898,7 @@
       "popularity": 132774,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -9968,8 +9945,7 @@
       "popularity": 131705,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -10177,8 +10153,7 @@
       "popularity": 129580,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -10737,8 +10712,7 @@
       "popularity": 122118,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -11224,8 +11198,7 @@
       "popularity": 115040,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -11459,8 +11432,7 @@
       "popularity": 112484,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -11597,8 +11569,7 @@
       "popularity": 111118,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -11898,8 +11869,7 @@
       "popularity": 107263,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -12035,8 +12005,7 @@
       "popularity": 105405,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -12267,8 +12236,7 @@
       "popularity": 103658,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -12591,8 +12559,7 @@
       "popularity": 101588,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -12781,8 +12748,7 @@
       "popularity": 100071,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -12873,8 +12839,7 @@
       "popularity": 99333,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -13277,8 +13242,7 @@
       "popularity": 96009,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -13582,8 +13546,7 @@
       "popularity": 92592,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -13995,8 +13958,7 @@
       "popularity": 89627,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -14438,8 +14400,7 @@
       "popularity": 87161,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -15120,8 +15081,7 @@
       "popularity": 82505,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -15562,8 +15522,7 @@
       "popularity": 79179,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -15937,8 +15896,7 @@
       "popularity": 76508,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -16306,8 +16264,7 @@
       "popularity": 74673,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -16747,8 +16704,7 @@
       "popularity": 72264,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -16862,8 +16818,7 @@
       "popularity": 71574,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -17209,8 +17164,7 @@
       "popularity": 69858,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -17444,8 +17398,7 @@
       "popularity": 68488,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -17927,8 +17880,7 @@
       "popularity": 65829,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -18157,8 +18109,7 @@
       "popularity": 64416,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -18179,8 +18130,7 @@
       "popularity": 64363,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -18435,8 +18385,7 @@
       "popularity": 63386,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -18600,8 +18549,7 @@
       "popularity": 62857,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -18690,8 +18638,7 @@
       "popularity": 62505,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -18827,8 +18774,7 @@
       "popularity": 62115,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -19199,8 +19145,7 @@
       "popularity": 60391,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -19498,8 +19443,7 @@
       "popularity": 59618,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -19821,8 +19765,7 @@
       "popularity": 58108,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -20172,8 +20115,7 @@
       "popularity": 56942,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -20356,8 +20298,7 @@
       "popularity": 56378,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -20495,8 +20436,7 @@
       "popularity": 55756,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -20653,8 +20593,7 @@
       "popularity": 55136,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -20951,8 +20890,7 @@
       "popularity": 54561,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -21244,8 +21182,7 @@
       "popularity": 53512,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -21624,8 +21561,7 @@
       "popularity": 52370,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -22157,8 +22093,7 @@
       "popularity": 50725,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -22391,8 +22326,7 @@
       "popularity": 49983,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -22436,8 +22370,7 @@
       "popularity": 49893,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -22603,8 +22536,7 @@
       "popularity": 49636,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -22903,8 +22835,7 @@
       "popularity": 48978,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -23462,8 +23393,7 @@
       "popularity": 46685,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {
@@ -23668,8 +23598,7 @@
       "popularity": 46028,
       "tier": "hard",
       "modes": [
-        "frames",
-        "audio"
+        "frames"
       ]
     },
     {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { StreamApi } from "@/api/stream.api";
 import type { ApiTransport } from "@/types/core/transport";
-import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl, patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];
@@ -37,6 +37,22 @@ describe("StreamApi", () => {
         },
       },
     ]);
+  });
+
+  it("inherits the AniList proxy when the AnimeLib proxy is empty", async () => {
+    patchSettings({
+      animelibProxyUrl: null,
+      anilistProxyUrl: "socks5h://127.0.0.1:10808",
+    });
+    const { calls, transport } = fakeTransport(() => EMPTY_SEARCH);
+    const api = new StreamApi({ transport, proxyUrl: getAnimelibProxyUrl });
+
+    await api.search("naruto");
+
+    expect(calls[0]?.args).toEqual({
+      input: { query: "naruto", page: 1 },
+      proxyUrl: "socks5h://127.0.0.1:10808",
+    });
   });
 
   it("sends no proxy keys for a direct connection", async () => {

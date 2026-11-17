@@ -27,8 +27,10 @@ import SettingsGeneral from "@/routes/components/settings/general.settings";
 import { SettingsKeybinds } from "@/routes/components/settings/keybinds.settings";
 import SettingsNotifications from "@/routes/components/settings/notifications.settings";
 import SettingsSearch from "@/routes/components/settings/search.settings";
+import SettingsDiagnostics from "@/routes/components/settings/diagnostics.settings";
 import SettingsProxy from "@/routes/components/settings/proxy.settings";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
+import SettingsZapret from "@/routes/components/settings/zapret.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
 import type { TranslationKey } from "@/types/core/i18n";
@@ -44,7 +46,9 @@ export default function SettingsRoute() {
   const { t } = useI18n();
   const animateTabSwitch = useCell(settingsAtoms.animateTabSwitch);
   const navigate = settingsRoute.useNavigate();
-  const activeTab = settingsRoute.useSearch().tab;
+  const search = settingsRoute.useSearch();
+  const activeTab = search.tab;
+  const section = search.section;
   const [findQuery, setFindQuery] = useState<string>("");
   const [findOpen, setFindOpen] = useState<boolean>(false);
   const [findActive, setFindActive] = useState<number>(0);
@@ -96,7 +100,14 @@ export default function SettingsRoute() {
   };
 
   const handleFindJump = (hit: SettingsFindHit) => {
-    navigate({ search: (prev) => ({ ...prev, tab: hit.entry.tab }) });
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        tab: hit.entry.tab,
+        probe: undefined,
+        section: undefined,
+      }),
+    });
     setFindOpen(false);
     setFlashRequest({ sectionId: hit.entry.sectionId });
     setExpandedSectionIds((prev) => new Set(prev).add(hit.entry.sectionId));
@@ -109,7 +120,7 @@ export default function SettingsRoute() {
 
   const handleTabSelect = (tab: SettingsTab) => {
     setLastSettingsTab(tab);
-    navigate({ search: (prev) => ({ ...prev, tab }) });
+    navigate({ search: (prev) => ({ ...prev, tab, probe: undefined, section: undefined }) });
     setFindOpen(false);
   };
 
@@ -179,6 +190,11 @@ export default function SettingsRoute() {
   }, [activeTab, changedKeys, changedOnly, findOpen]);
 
   useEffect(() => {
+    if (section === undefined) return;
+    setFlashRequest({ sectionId: section });
+  }, [section]);
+
+  useEffect(() => {
     const panel = contentRef.current?.querySelector(`[data-active-tab="${CSS.escape(activeTab)}"]`);
     if (!(panel instanceof HTMLElement) || findOpen || flashRequest === null) return;
     const target = panel.querySelector(
@@ -194,6 +210,8 @@ export default function SettingsRoute() {
     notifications: <SettingsNotifications />,
     torrent: <SettingsTorrent />,
     proxy: <SettingsProxy />,
+    zapret: <SettingsZapret />,
+    diagnostics: <SettingsDiagnostics />,
     search: <SettingsSearch />,
     theme: <SettingsTheme />,
     keybinds: <SettingsKeybinds expandedSectionIds={expandedSectionIds} />,

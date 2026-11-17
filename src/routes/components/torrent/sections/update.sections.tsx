@@ -12,6 +12,7 @@ import { attempt } from "@hullperse/hp_utils/attempt";
 import { showError } from "@/lib/core/ui/notification.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
+import { searchProxyUrl } from "@/lib/core/system/proxy.utils";
 import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/torrentUpdate.utils";
 import type {
   TorrentInfo,
@@ -49,7 +50,7 @@ export default function UpdateCheck({
   const check = async () => {
     if (checking) return;
     setChecking(true);
-    const proxy = settingsAtoms.searchProxyUrls.get()[origin.source] || undefined;
+    const proxy = searchProxyUrl(settingsAtoms.searchProxyUrls.get(), origin.source);
     const [details, error] = await attempt(
       torrentApi.getTorrentDetails(origin.source, origin.url, proxy)
     );

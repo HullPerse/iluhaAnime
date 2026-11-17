@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::time::Duration;
 
 use tauri::AppHandle;
@@ -18,7 +17,7 @@ use super::types::{
 
 const FRAME_COUNT: u32 = 6;
 const REROLL_LIMIT: usize = 8;
-const CANDIDATE_TIMEOUT: Duration = Duration::from_secs(25);
+const CANDIDATE_TIMEOUT: Duration = Duration::from_secs(45);
 const NEXT_FRAME_TIMEOUT: Duration = Duration::from_secs(25);
 const OP_CANDIDATE_TIMEOUT: Duration = Duration::from_secs(150);
 const REVEAL_FRAME_TIMEOUT: Duration = Duration::from_secs(20);
@@ -75,11 +74,7 @@ pub async fn prepare_frames(
     let mut last_error = String::new();
     for candidate in candidates {
         let frame_seed = stored.seed ^ (candidate.media_id as u64).rotate_left(17);
-        tracing::info!(
-            media_id = candidate.media_id,
-            title = candidate.title.as_str(),
-            "preparing daily frames"
-        );
+        tracing::info!(media_id = candidate.media_id, "preparing daily frames");
         let prepared = tokio::time::timeout(CANDIDATE_TIMEOUT, async {
             let plan = prepare::build_plan(&candidate, frame_seed, proxy).await?;
             let (frame, source_index) = prepare::first_frame(&plan, frame_seed, proxy).await?;
@@ -106,15 +101,15 @@ pub async fn prepare_frames(
                 return frames_view(app, day, attempts, &candidate);
             }
             Ok(Err(error)) => {
-                last_error = format!("{}: {error}", candidate.title);
+                last_error = error;
                 tracing::warn!(
                     media_id = candidate.media_id,
-                    error = error.as_str(),
+                    error = last_error.as_str(),
                     "daily frames candidate failed"
                 );
             }
             Err(_) => {
-                last_error = format!("{}: preparing frames timed out", candidate.title);
+                last_error = "preparing frames timed out".to_string();
                 tracing::warn!(
                     media_id = candidate.media_id,
                     "daily frames candidate timed out"
@@ -330,7 +325,6 @@ async fn prepare_clip_game(
         let clip_seed = stored.seed ^ (candidate.media_id as u64).rotate_left(19);
         tracing::info!(
             media_id = candidate.media_id,
-            title = candidate.title.as_str(),
             mode = mode.as_str(),
             "preparing daily clip"
         );
@@ -379,16 +373,16 @@ async fn prepare_clip_game(
                 );
             }
             Ok(Err(error)) => {
-                last_error = format!("{}: {error}", candidate.title);
+                last_error = error;
                 tracing::warn!(
                     media_id = candidate.media_id,
                     mode = mode.as_str(),
-                    error = error.as_str(),
+                    error = last_error.as_str(),
                     "daily clip candidate failed"
                 );
             }
             Err(_) => {
-                last_error = format!("{}: preparing clip timed out", candidate.title);
+                last_error = "preparing clip timed out".to_string();
                 tracing::warn!(
                     media_id = candidate.media_id,
                     mode = mode.as_str(),
@@ -416,7 +410,6 @@ pub async fn guess(
     day: &str,
     mode: DailyMode,
     media_id: i64,
-    guessed_titles: &[String],
     proxy: Option<&str>,
 ) -> Result<DailyGuessView, String> {
     if mode != DailyMode::Frames {
@@ -451,7 +444,7 @@ pub async fn guess(
     let attempts = game.attempts + 1;
     let max_attempts = mode.max_attempts();
     let correct = media_id == game.entry.media_id;
-    let same_franchise = !correct && title_is_same_franchise(&game.entry.title, guessed_titles);
+    let same_franchise = !correct && guessed_same_franchise(app, game.entry.media_id, media_id, proxy).await;
     let finished = correct || attempts >= max_attempts;
     let mut guesses = game.guesses.clone();
     guesses.push(media_id);
@@ -628,18 +621,18 @@ pub async fn guess_op(
     app: &AppHandle,
     day: &str,
     media_id: i64,
-    guessed_titles: &[String],
+    proxy: Option<&str>,
 ) -> Result<DailyOpGuessView, String> {
-    guess_clip_game(app, day, DailyMode::Op, media_id, guessed_titles).await
+    guess_clip_game(app, day, DailyMode::Op, media_id, proxy).await
 }
 
 pub async fn guess_audio(
     app: &AppHandle,
     day: &str,
     media_id: i64,
-    guessed_titles: &[String],
+    proxy: Option<&str>,
 ) -> Result<DailyOpGuessView, String> {
-    guess_clip_game(app, day, DailyMode::Audio, media_id, guessed_titles).await
+    guess_clip_game(app, day, DailyMode::Audio, media_id, proxy).await
 }
 
 async fn guess_clip_game(
@@ -647,7 +640,7 @@ async fn guess_clip_game(
     day: &str,
     mode: DailyMode,
     media_id: i64,
-    guessed_titles: &[String],
+    proxy: Option<&str>,
 ) -> Result<DailyOpGuessView, String> {
     if media_id <= 0 {
         return Err("invalid guess media id".into());
@@ -686,7 +679,7 @@ async fn guess_clip_game(
     let attempts = game.attempts + 1;
     let max_attempts = mode.max_attempts();
     let correct = media_id == game.entry.media_id;
-    let same_franchise = !correct && title_is_same_franchise(&game.entry.title, guessed_titles);
+    let same_franchise = !correct && guessed_same_franchise(app, game.entry.media_id, media_id, proxy).await;
     let finished = correct || attempts >= max_attempts;
     let mut guesses = game.guesses.clone();
     guesses.push(media_id);
@@ -806,54 +799,23 @@ async fn skip_clip_game(
     })
 }
 
-const FRANCHISE_STOPWORDS: &[&str] = &[
-    "the", "and", "of", "no", "to", "wa", "ga", "in", "on", "for", "with", "new", "season", "part",
-    "movie", "film", "special", "ova", "ona", "series", "final", "first", "second", "third",
-    "fourth",
-];
-
-fn normalized_title(title: &str) -> String {
-    title
-        .to_lowercase()
-        .split(|character: char| !character.is_alphanumeric())
-        .filter(|token| !token.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-fn significant_title_tokens(title: &str) -> HashSet<String> {
-    title
-        .to_lowercase()
-        .split(|character: char| !character.is_alphanumeric())
-        .filter(|token| token.len() >= 4 && !FRANCHISE_STOPWORDS.contains(token))
-        .map(str::to_string)
-        .collect()
-}
-
-/// A cheap, offline franchise check. It compares distinctive title words and
-/// catches sequels such as `Naruto: Shippuden` or `Attack on Titan Season 2`
-/// without leaking the answer through an extra API request.
-fn title_is_same_franchise(answer_title: &str, guessed_titles: &[String]) -> bool {
-    let answer_normalized = normalized_title(answer_title);
-    let answer = significant_title_tokens(answer_title);
-    guessed_titles.iter().any(|title| {
-        if normalized_title(title) == answer_normalized {
-            return true;
+async fn guessed_same_franchise(
+    app: &AppHandle,
+    answer_id: i64,
+    guessed_id: i64,
+    proxy: Option<&str>,
+) -> bool {
+    let (Ok(answer_id), Ok(guessed_id)) = (u64::try_from(answer_id), u64::try_from(guessed_id))
+    else {
+        return false;
+    };
+    match crate::anilist::franchise::are_same_franchise(app, answer_id, guessed_id, proxy).await {
+        Ok(same) => same,
+        Err(error) => {
+            tracing::warn!(error = error.as_str(), "daily franchise check failed");
+            false
         }
-        if answer.is_empty() {
-            return false;
-        }
-        let guessed = significant_title_tokens(title);
-        let shared = answer.intersection(&guessed).count();
-        if shared >= 2 || (shared == 1 && (answer.len() == 1 || guessed.len() == 1)) {
-            return true;
-        }
-        answer.iter().any(|left| {
-            guessed
-                .iter()
-                .any(|right| left.len() >= 6 && right.ends_with(left.as_str()))
-        })
-    })
+    }
 }
 
 async fn ensure_next_frame(
@@ -890,29 +852,4 @@ async fn ensure_next_frame(
         },
         source_index,
     ))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn same(answer: &str, guesses: &[&str]) -> bool {
-        title_is_same_franchise(
-            answer,
-            &guesses
-                .iter()
-                .map(|title| (*title).to_string())
-                .collect::<Vec<_>>(),
-        )
-    }
-
-    #[test]
-    fn franchise_check_catches_sequels_without_matching_unrelated_titles() {
-        assert!(same("Naruto", &["Naruto: Shippuden"]));
-        assert!(same("Attack on Titan", &["Attack on Titan Season 2"]));
-        assert!(same("Monogatari Series", &["Bakemonogatari"]));
-        assert!(same("K-On!", &["K-On!!"]));
-        assert!(!same("Tokyo Ghoul", &["Tokyo Revengers"]));
-        assert!(!same("Death Note", &["Code Geass"]));
-    }
 }

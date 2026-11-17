@@ -292,7 +292,8 @@ async function checkEntry(entry: PoolEntry, themes: ThemeCheck): Promise<CheckRe
     const modes: CheckMode[] = [];
     if (frames.frames >= MIN_FRAMES) modes.push("frames");
     if (themes.hasOp && themes.hasTheme) modes.push("op");
-    if (themes.hasTheme) modes.push("audio");
+    // Audio-only plays an opening, so an ending alone is not enough.
+    if (themes.hasOp) modes.push("audio");
     return {
       mediaId: entry.mediaId,
       malId: entry.malId,

@@ -2,6 +2,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::Arc;
 use std::time::Duration;
 
 use futures::StreamExt;
@@ -11,7 +12,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
-use crate::scrapers::clients::read_body_capped;
+use crate::scrapers::clients::{read_body_capped, Ipv4FirstResolver};
 
 use super::pool::PoolEntry;
 use super::types::DailyMode;
@@ -145,7 +146,9 @@ fn client(proxy: Option<&str>) -> Result<Client, String> {
             "iluhaAnime/{} (desktop client)",
             env!("CARGO_PKG_VERSION")
         ))
-        .timeout(REQUEST_TIMEOUT);
+        .timeout(REQUEST_TIMEOUT)
+        .connect_timeout(Duration::from_secs(10))
+        .dns_resolver(Arc::new(Ipv4FirstResolver));
     if let Some(proxy) = proxy {
         builder = builder
             .proxy(reqwest::Proxy::all(proxy).map_err(|error| format!("themes proxy: {error}"))?);
@@ -598,13 +601,13 @@ async fn cut_audio_segment(
     }
 }
 
-fn spawn_full_clip(url: String, target: PathBuf) {
+fn spawn_full_clip(url: String, target: PathBuf, proxy: Option<String>) {
     tokio::spawn(async move {
         if target.is_file() {
             return;
         }
         let part = target.with_extension("part");
-        match download_video(&url, None, 0, |_, _| {}).await {
+        match download_video(&url, proxy.as_deref(), 0, |_, _| {}).await {
             Ok(bytes) => {
                 if let Err(error) = tokio::fs::write(&part, &bytes).await {
                     tracing::warn!(error = %error, "daily full clip write failed");
@@ -640,10 +643,9 @@ pub async fn prepare_clip(
     let opening_only = mode == DailyMode::Audio;
     let found = fetch_anime(entry.mal_id, proxy).await?;
     let theme = select_theme(&found, seed, opening_only)
-        .ok_or_else(|| format!("no usable theme for {}", entry.title))?;
+        .ok_or_else(|| "no usable theme for this candidate".to_string())?;
     tracing::info!(
         media_id = entry.media_id,
-        theme = theme.slug.as_str(),
         resolution = theme.resolution,
         size = theme.size,
         "preparing daily op clip"
@@ -674,7 +676,11 @@ pub async fn prepare_clip(
         .await
         {
             Ok(()) => {
-                spawn_full_clip(theme.video_link.clone(), full_clip_pathbuf(&target));
+                spawn_full_clip(
+                    theme.video_link.clone(),
+                    full_clip_pathbuf(&target),
+                    proxy.map(str::to_string),
+                );
                 return Ok(ThemeClip {
                     theme_type: theme.theme_type,
                     theme_title: theme.title,

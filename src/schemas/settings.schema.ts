@@ -10,7 +10,6 @@ export const SessionConfigSchema = z.compile(
     enableUpnp: z.boolean(),
     dhtEnabled: z.boolean(),
     disablePersistence: z.boolean(),
-    proxyUrl: z.nullable(z.string()),
     fileOrder: z.enum(["list", "torrent"]),
   })
 );

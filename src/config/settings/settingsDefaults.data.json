@@ -143,7 +143,6 @@
     "dailyOpeningProxyUrl": null,
     "anilistTitleLanguage": "account",
     "anilistAdultContent": false,
-    "torrentProxyUrl": null,
     "torrentCoverMode": "off",
     "torrentCoverModeManual": false,
     "collectionTabEnabled": false,

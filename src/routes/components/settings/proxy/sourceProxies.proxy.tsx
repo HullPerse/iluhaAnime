@@ -3,11 +3,15 @@ import { useState } from "react";
 import { torrentApi } from "@/api/torrent.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { SOURCE_INFOS } from "@/config/search/searchSources.config";
+import {
+  SOURCE_DIAGNOSTIC_PROBE,
+  SOURCE_INFOS,
+} from "@/config/search/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import { searchProxyUrl } from "@/lib/core/system/proxy.utils";
 
 import { ProxyField } from "@/routes/components/settings/proxy/proxyField.settings";
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
@@ -57,17 +61,23 @@ export function SourceProxySettings() {
                 <ProxyField
                   key={source.value}
                   label={source.label}
+                  description={
+                    source.value === "sukebei"
+                      ? t("settings.search.proxy.sukebei.inherit")
+                      : undefined
+                  }
                   value={current}
                   onChange={(next) => setProxy(source.value, next)}
                   test={() =>
                     torrentApi.testSourceConnection(
                       source.value,
-                      searchProxyUrls[source.value] ?? ""
+                      searchProxyUrl(searchProxyUrls, source.value) ?? ""
                     )
                   }
                   testOkLabel={t("settings.search.proxy.test.ok")}
                   testFailLabel={t("settings.search.proxy.test.fail")}
                   testDisabled={!isOnline}
+                  diagnosticProbe={SOURCE_DIAGNOSTIC_PROBE[source.value]}
                   runToken={runAllToken}
                 />
               );

@@ -110,7 +110,6 @@ export default function GameOp({
     guess.mutate(
       {
         mediaId: guessed.id,
-        guessedTitles: guessed.titles,
       },
       {
         onSuccess: (view) => {

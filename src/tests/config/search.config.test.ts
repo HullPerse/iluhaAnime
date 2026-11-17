@@ -60,4 +60,16 @@ describe("settingsSearchSchema", () => {
   it("keeps a known tab", () => {
     expect(settingsSearchSchema.parse({ tab: "theme" })).toEqual({ tab: "theme" });
   });
+
+  it("keeps an optional diagnostic probe", () => {
+    expect(
+      settingsSearchSchema.parse({ tab: "diagnostics", probe: "anilist-graphql" })
+    ).toEqual({ tab: "diagnostics", probe: "anilist-graphql" });
+  });
+
+  it("keeps an optional settings section target", () => {
+    expect(
+      settingsSearchSchema.parse({ tab: "proxy", section: "proxy.sources" })
+    ).toEqual({ tab: "proxy", section: "proxy.sources" });
+  });
 });

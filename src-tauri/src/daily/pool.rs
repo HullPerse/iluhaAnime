@@ -102,6 +102,7 @@ pub fn candidates(
         .iter()
         .filter(|entry| entry.tier == tier)
         .filter(|entry| entry.modes.contains(&mode))
+        .filter(|entry| mode != DailyMode::Audio || entry.modes.contains(&DailyMode::Op))
         .collect();
     candidates_in_seed_order(seed, &mut entries, exclude)
 }
@@ -196,6 +197,24 @@ mod tests {
         let frames = pick("2026-11-14", DailyMode::Frames, None).expect("frames");
         let op = pick("2026-11-14", DailyMode::Op, Some(frames.entry.media_id)).expect("op");
         assert_ne!(op.entry.media_id, frames.entry.media_id);
+    }
+
+    #[test]
+    fn audio_candidates_always_have_an_opening() {
+        for entry in &pool().expect("pool").entries {
+            if entry.modes.contains(&DailyMode::Audio) {
+                assert!(
+                    entry.modes.contains(&DailyMode::Op),
+                    "audio candidate {} has no opening",
+                    entry.media_id
+                );
+            }
+        }
+        for day in ["2026-11-14", "2026-11-15"] {
+            for entry in candidates(day, DailyMode::Audio, None).expect("audio candidates") {
+                assert!(entry.modes.contains(&DailyMode::Op));
+            }
+        }
     }
 
     #[test]

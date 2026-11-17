@@ -1,16 +1,23 @@
 use std::collections::HashSet;
 use std::io::Cursor;
+use std::sync::Arc;
 use std::time::Duration;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::{imageops::FilterType, DynamicImage, GenericImageView, RgbImage};
 use serde::Deserialize;
 
-use crate::scrapers::clients::read_body_capped;
+use crate::scrapers::clients::{read_body_capped, Ipv4FirstResolver};
 
 use super::pool::PoolEntry;
 
-const SHIKIMORI_API: &str = "https://shikimori.io/api/animes";
+pub(crate) const SHIKIMORI_API_BASES: &[&str] = &[
+    "https://shikimori.io/api/animes",
+    "https://shikimori.one/api/animes",
+    "https://shikimori.tv/api/animes",
+];
+pub(crate) const SHIKIMORI_IMAGE_HOSTS: &[&str] =
+    &["shikimori.one", "shikimori.tv", "shikimori.io"];
 const MAX_BODY_BYTES: usize = 4 * 1024 * 1024;
 const MAX_IMAGE_BYTES: usize = 12 * 1024 * 1024;
 const DISPLAY_WIDTH: u32 = 960;
@@ -41,7 +48,9 @@ fn client(proxy: Option<&str>) -> Result<reqwest::Client, String> {
             "iluhaAnime/{} (desktop client)",
             env!("CARGO_PKG_VERSION")
         ))
-        .timeout(Duration::from_secs(20));
+        .timeout(Duration::from_secs(20))
+        .connect_timeout(Duration::from_secs(10))
+        .dns_resolver(Arc::new(Ipv4FirstResolver));
     if let Some(proxy) = proxy {
         builder = builder
             .proxy(reqwest::Proxy::all(proxy).map_err(|error| format!("image proxy: {error}"))?);
@@ -61,15 +70,28 @@ pub async fn screenshot_urls(
         return Err("daily candidate has no MAL id".into());
     }
     let mut urls = Vec::new();
+    let mut shikimori_usable = false;
     match shikimori_screenshots(entry.mal_id, proxy).await {
-        Ok(mut shots) => urls.append(&mut shots),
+        Ok(mut shots) => {
+            shikimori_usable = shots.len() >= MIN_SCREENSHOTS;
+            urls.append(&mut shots);
+        }
         Err(error) => tracing::warn!(
             mal_id = entry.mal_id,
             error = error.as_str(),
             "shikimori screenshots unavailable"
         ),
     }
-    if urls.len() < MIN_SCREENSHOTS {
+    if shikimori_usable && !urls.is_empty() {
+        shikimori_usable = image_host_reachable(&urls[0], proxy).await;
+        if !shikimori_usable {
+            tracing::warn!(
+                mal_id = entry.mal_id,
+                "shikimori image host is unreachable, adding tenrai stills"
+            );
+        }
+    }
+    if !shikimori_usable {
         match crate::tenrai::episode_images(entry.mal_id, proxy).await {
             Ok(extra) => urls.extend(extra),
             Err(error) => tracing::warn!(
@@ -89,8 +111,63 @@ pub async fn screenshot_urls(
 
 async fn shikimori_screenshots(mal_id: i64, proxy: Option<&str>) -> Result<Vec<String>, String> {
     let client = client(proxy)?;
+    let mut last_error = String::from("shikimori request failed");
+    for base in SHIKIMORI_API_BASES {
+        match shikimori_host_screenshots(&client, base, mal_id).await {
+            Ok(urls) => return Ok(urls),
+            Err(error) => {
+                tracing::warn!(
+                    host = *base,
+                    error = error.as_str(),
+                    "shikimori screenshot host unavailable"
+                );
+                last_error = error;
+            }
+        }
+    }
+    Err(last_error)
+}
+
+/// A URL list is not enough: the API can answer while the image host is
+/// blocked. Probe the first screenshot before trusting the whole list, so the
+/// Tenrai stills are still tried when the host is filtered.
+async fn image_host_reachable(url: &str, proxy: Option<&str>) -> bool {
+    let Ok(client) = client(proxy) else {
+        return false;
+    };
+    let referer_host = reqwest::Url::parse(url)
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_string))
+        .unwrap_or_else(|| "shikimori.one".to_string());
+    let request = client
+        .head(url)
+        .header(reqwest::header::REFERER, format!("https://{referer_host}/"));
+    match tokio::time::timeout(Duration::from_secs(6), request.send()).await {
+        Ok(Ok(response)) => {
+            let status = response.status();
+            if status == reqwest::StatusCode::METHOD_NOT_ALLOWED {
+                return true;
+            }
+            if status == reqwest::StatusCode::FORBIDDEN || status.is_server_error() {
+                return false;
+            }
+            response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok())
+                .map_or(true, |kind| kind.to_ascii_lowercase().starts_with("image/"))
+        }
+        _ => false,
+    }
+}
+
+async fn shikimori_host_screenshots(
+    client: &reqwest::Client,
+    base: &str,
+    mal_id: i64,
+) -> Result<Vec<String>, String> {
     let response = client
-        .get(format!("{SHIKIMORI_API}/{mal_id}/screenshots"))
+        .get(format!("{base}/{mal_id}/screenshots"))
         .send()
         .await
         .map_err(|error| format!("shikimori request: {error}"))?;
@@ -129,6 +206,33 @@ fn normalize_url(raw: &str) -> String {
     }
 }
 
+/// Shikimori mirrors the same screenshot paths on several hosts. When one
+/// host is blocked by the ISP, the download retries the same path on another
+/// host instead of failing the whole candidate.
+fn image_url_variants(raw: &str) -> Vec<String> {
+    let Ok(url) = reqwest::Url::parse(raw.trim()) else {
+        return vec![raw.to_string()];
+    };
+    let Some(host) = url.host_str() else {
+        return vec![raw.to_string()];
+    };
+    if !SHIKIMORI_IMAGE_HOSTS.contains(&host) {
+        return vec![raw.to_string()];
+    }
+    SHIKIMORI_IMAGE_HOSTS
+        .iter()
+        .map(|candidate| {
+            if *candidate == host {
+                raw.to_string()
+            } else {
+                let mut copy = url.clone();
+                let _ = copy.set_host(Some(*candidate));
+                copy.to_string()
+            }
+        })
+        .collect()
+}
+
 fn is_image_url(raw: &str) -> bool {
     let Ok(url) = reqwest::Url::parse(raw.trim()) else {
         return false;
@@ -144,9 +248,31 @@ fn is_image_url(raw: &str) -> bool {
 
 async fn download_bytes(url: &str, proxy: Option<&str>) -> Result<Vec<u8>, String> {
     let client = client(proxy)?;
+    let mut last_error = String::from("frame download failed");
+    for candidate in image_url_variants(url) {
+        let referer_host = reqwest::Url::parse(&candidate)
+            .ok()
+            .and_then(|url| url.host_str().map(str::to_string))
+            .unwrap_or_else(|| "shikimori.one".to_string());
+        match download_one(&client, &candidate, &referer_host).await {
+            Ok(bytes) => return Ok(bytes),
+            Err(error) => {
+                tracing::debug!(error = error.as_str(), "daily frame host unavailable");
+                last_error = error;
+            }
+        }
+    }
+    Err(last_error)
+}
+
+async fn download_one(
+    client: &reqwest::Client,
+    url: &str,
+    referer_host: &str,
+) -> Result<Vec<u8>, String> {
     let response = client
         .get(url)
-        .header(reqwest::header::REFERER, "https://shikimori.one/")
+        .header(reqwest::header::REFERER, format!("https://{referer_host}/"))
         .send()
         .await
         .map_err(|error| format!("frame download: {error}"))?;
@@ -452,6 +578,19 @@ mod tests {
         assert_eq!(
             normalize_url("https://cdn.example/a.jpg"),
             "https://cdn.example/a.jpg"
+        );
+    }
+
+    #[test]
+    fn blocked_shikimori_hosts_have_image_mirrors() {
+        let variants = image_url_variants("https://shikimori.one/system/screenshots/a.jpg");
+        assert_eq!(variants.len(), SHIKIMORI_IMAGE_HOSTS.len());
+        assert!(variants
+            .iter()
+            .any(|url| url.starts_with("https://shikimori.tv/")));
+        assert_eq!(
+            image_url_variants("https://cdn.example/a.jpg"),
+            vec!["https://cdn.example/a.jpg"]
         );
     }
 

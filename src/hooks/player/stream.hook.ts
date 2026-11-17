@@ -21,7 +21,7 @@ import { attempt } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";
-import { settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl, settingsAtoms } from "@/store/settings.store";
 import type { StreamVariant, StreamingEpisode } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerStream, PlayerStreamNext } from "@/types/player/playerStream";
@@ -165,7 +165,7 @@ export function usePlayerStream(): PlayerStream {
           // The route depends on the target player, not on the one that is
           // playing: a Kodik voice-over plays from its CDN directly, an
           // AnimeLib one keeps the catalog proxy.
-          proxyUrl: playbackProxyUrl(nextVariantId, settingsAtoms.animelibProxyUrl.get()),
+          proxyUrl: playbackProxyUrl(nextVariantId, getAnimelibProxyUrl()),
           quality: source.label,
           mediaUrl: source.url,
           headers: source.headers,

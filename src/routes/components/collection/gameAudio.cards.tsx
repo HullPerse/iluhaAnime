@@ -43,6 +43,7 @@ export default function GameAudio({
   const [selected, setSelected] = useState<DailyGuessSuggestion | null>(null);
   const [history, setHistory] = useState<GuessHistoryItem[]>([]);
   const [fullPath, setFullPath] = useState(initial.fullPath);
+  const [showFullClip, setShowFullClip] = useState(false);
   const [viewStage, setViewStage] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const startRef = useRef(0);
@@ -88,7 +89,10 @@ export default function GameAudio({
     setAttempts(view.state.attempts);
     setFullPath(view.state.fullPath);
     setViewStage(null);
-    if (view.state.result !== null) setResult(view.state.result);
+    if (view.state.result !== null) {
+      setResult(view.state.result);
+      setShowFullClip(true);
+    }
     setQuery("");
     setSelected(null);
   };
@@ -109,7 +113,6 @@ export default function GameAudio({
     guess.mutate(
       {
         mediaId: guessed.id,
-        guessedTitles: guessed.titles,
       },
       {
         onSuccess: (view) => {
@@ -131,17 +134,28 @@ export default function GameAudio({
   if (result !== null) {
     return (
       <div className="daily-play">
-        <div className="daily-audio-result">
-          <ClipPlayer
-            key={resultClipUrl}
-            clipUrl={resultClipUrl}
-            videoRef={videoRef}
-            startFraction={initial.startFraction}
-            timeLabel={t("collection.game.op.full")}
-            startAtZero
-            showTimeline
-            onLoadedMetadata={() => undefined}
-          />
+        {showFullClip ? (
+          <section className="daily-reveal">
+            <ClipPlayer
+              key={resultClipUrl}
+              clipUrl={resultClipUrl}
+              videoRef={videoRef}
+              startFraction={initial.startFraction}
+              timeLabel={t("collection.game.op.full")}
+              startAtZero
+              showTimeline
+              onLoadedMetadata={() => undefined}
+            />
+            <div className="daily-reveal-actions">
+              <Button
+                className="daily-submit bg-secondary text-title-text"
+                onClick={() => setShowFullClip(false)}
+              >
+                {t("collection.game.toResult")}
+              </Button>
+            </div>
+          </section>
+        ) : (
           <Result
             result={result}
             frame={null}
@@ -150,7 +164,7 @@ export default function GameAudio({
             maxAttempts={initial.maxAttempts}
             onClose={onClose}
           />
-        </div>
+        )}
       </div>
     );
   }

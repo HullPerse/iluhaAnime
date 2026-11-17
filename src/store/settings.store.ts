@@ -10,6 +10,7 @@ import {
 import { isRecord } from "@/lib/core/text/record.utils";
 import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { applyFontFamily } from "@/lib/graphics/font.utils";
+import { effectiveProxyUrl } from "@/lib/core/system/proxy.utils";
 import type { SettingsData, SettingsSignalStore } from "@/types/store/settings";
 import type { SignalStoreOptions } from "@/types/store/options";
 import { migrateSettingsData } from "@/store/settings/settings.migrations";
@@ -108,6 +109,14 @@ export const settingsPersistor = settings.persistor;
 export const getSettingsSnapshot = settings.snapshot;
 export const rehydrateSettings = settings.rehydrate;
 export const patchSettings = settings.patch;
+
+/** AnimeLib and its CDN/player hosts follow the AniList proxy when unset. */
+export function getAnimelibProxyUrl(): string | null {
+  return effectiveProxyUrl(
+    settingsAtoms.animelibProxyUrl.get(),
+    settingsAtoms.anilistProxyUrl.get()
+  );
+}
 export function syncCoverModeWithAnilistAuth(loggedIn: boolean): void {
   if (settingsAtoms.torrentCoverModeManual.get()) return;
   const mode = loggedIn ? "full" : "off";

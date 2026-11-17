@@ -167,12 +167,11 @@ interface DailyDayArgs {
 interface DailyClipArgs {
   day: string;
   mediaId: number;
-  guessedTitles: string[];
+  proxyUrl?: string | null;
 }
 
 interface DailyGuessArgs extends DailyPrepareArgs {
   mediaId: number;
-  guessedTitles: string[];
 }
 
 interface DailySkipArgs extends DailyPrepareArgs {}
@@ -373,14 +372,14 @@ export function createDailyClient(
       call<DailyOpGuessView>("daily_game_guess_audio", {
         day: args.day,
         mediaId: args.mediaId,
-        guessedTitles: args.guessedTitles,
+        ...proxy(args.proxyUrl),
       }),
     skipAudio: (args) => call<DailyOpGuessView>("daily_game_skip_audio", { day: args.day }),
     guessOp: (args) =>
       call<DailyOpGuessView>("daily_game_guess_op", {
         day: args.day,
         mediaId: args.mediaId,
-        guessedTitles: args.guessedTitles,
+        ...proxy(args.proxyUrl),
       }),
     skipOp: (args) => call<DailyOpGuessView>("daily_game_skip_op", { day: args.day }),
     guess: (args) =>
@@ -388,7 +387,6 @@ export function createDailyClient(
         day: args.day,
         mode: args.mode,
         mediaId: args.mediaId,
-        guessedTitles: args.guessedTitles,
         ...proxy(args.proxyUrl),
       }),
     skip: (args) =>

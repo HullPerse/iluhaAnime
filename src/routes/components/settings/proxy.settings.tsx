@@ -12,7 +12,6 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import AnimelibSettings from "@/routes/components/settings/animelib.settings";
 import { ProxyField } from "@/routes/components/settings/proxy/proxyField.settings";
 import { SourceProxySettings } from "@/routes/components/settings/proxy/sourceProxies.proxy";
-import { TorrentProxySettings } from "@/routes/components/settings/proxy/torrentProxy.proxy";
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
 export default function SettingsProxy() {
@@ -46,6 +45,7 @@ export default function SettingsProxy() {
             testOkLabel={t("settings.anilist.proxy.test.ok")}
             testFailLabel={t("settings.anilist.proxy.test.fail")}
             testDisabled={!isOnline}
+            diagnosticProbe="anilist-graphql"
           />
 
           <div className="grid grid-cols-1 gap-x-3 gap-y-0.5 min-[560px]:grid-cols-[140px_1fr]">
@@ -96,6 +96,7 @@ export default function SettingsProxy() {
             testOkLabel={t("settings.anilist.proxy.test.ok")}
             testFailLabel={t("settings.anilist.proxy.test.fail")}
             testDisabled={!isOnline}
+            diagnosticProbe="news-shikimori"
           />
         </div>
       </section>
@@ -114,6 +115,7 @@ export default function SettingsProxy() {
             testOkLabel={t("settings.anilist.proxy.test.ok")}
             testFailLabel={t("settings.anilist.proxy.test.fail")}
             testDisabled={!isOnline}
+            diagnosticProbe="images-anilist-cdn"
           />
           <ProxyField
             label={t("settings.collection.proxy.opening")}
@@ -128,6 +130,7 @@ export default function SettingsProxy() {
             testOkLabel={t("settings.anilist.proxy.test.ok")}
             testFailLabel={t("settings.anilist.proxy.test.fail")}
             testDisabled={!isOnline}
+            diagnosticProbe="openings-graphql"
           />
           <ProxyField
             label={t("settings.collection.proxy.daily")}
@@ -142,12 +145,12 @@ export default function SettingsProxy() {
             testOkLabel={t("settings.anilist.proxy.test.ok")}
             testFailLabel={t("settings.anilist.proxy.test.fail")}
             testDisabled={!isOnline}
+            diagnosticProbe="daily-shikimori-io"
           />
         </div>
       </section>
 
       <AnimelibSettings />
-      <TorrentProxySettings />
       <SourceProxySettings />
     </div>
   );

@@ -35,6 +35,7 @@ import {
 } from "@/store/search.store";
 import { setPresenceSearching } from "@/store/presence.store";
 import { settingsAtoms } from "@/store/settings.store";
+import { searchProxyUrl } from "@/lib/core/system/proxy.utils";
 import type {
   SearchSessionsData,
   SelectedSearchTorrent,
@@ -113,7 +114,7 @@ export function useSearchQuery(): SearchQueryController {
         nyaaPage,
         serverSideSort ? sortBy : null,
         serverSideSort ? sortDirection : null,
-        searchProxyUrls[source]
+        searchProxyUrl(searchProxyUrls, source)
       ),
     [
       source,

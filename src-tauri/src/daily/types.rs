@@ -176,7 +176,6 @@ pub struct DailyOpView {
     pub full_path: String,
     pub start_fraction: f64,
     pub theme_type: String,
-    pub theme_title: String,
     pub hints: Vec<DailyHintView>,
     pub result: Option<DailyResultView>,
 }

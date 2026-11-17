@@ -26,6 +26,7 @@ import {
 } from "./harness";
 import { boot } from "./scenarios/boot";
 import { collection } from "./scenarios/collection";
+import { diagnostics } from "./scenarios/diagnostics";
 import { livePlaylist } from "./scenarios/livePlaylist";
 import { navigation } from "./scenarios/navigation";
 import { player } from "./scenarios/player";
@@ -36,6 +37,7 @@ import { torrent } from "./scenarios/torrent";
 const SMOKE: Scenario[] = [boot, collection, torrent, player, livePlaylist, repro];
 const SUITES: Record<string, Scenario[]> = {
   smoke: SMOKE,
+  diagnostics: [diagnostics],
   media: [playerMedia],
   perf: [navigation, playerMedia],
   all: [...SMOKE, navigation, playerMedia],

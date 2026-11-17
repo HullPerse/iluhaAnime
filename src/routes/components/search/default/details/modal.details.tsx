@@ -21,6 +21,7 @@ import {
 } from "@/lib/torrent/torrentDetailsModal.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { settingsAtoms } from "@/store/settings.store";
+import { searchProxyUrl } from "@/lib/core/system/proxy.utils";
 import type { ImageLightbox } from "@/types/core/detailsModal";
 import type { DetailsTab } from "@/types/core/panels.details";
 import type { TorrentDetailsProps as Props } from "@/types/search/search";
@@ -44,7 +45,8 @@ export default function TorrentDetailsModal({
   onDownload,
 }: Props) {
   const { t } = useI18n();
-  const sourceProxy = useCell(settingsAtoms.searchProxyUrls)[source] ?? "";
+  const sourceProxies = useCell(settingsAtoms.searchProxyUrls);
+  const sourceProxy = searchProxyUrl(sourceProxies, source) ?? "";
   const [tab, setTab] = useState<DetailsTab>("description");
   const [lightbox, setLightbox] = useState<ImageLightbox | null>(null);
 

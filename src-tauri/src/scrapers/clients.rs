@@ -47,7 +47,7 @@ pub struct NyaaItem {
 }
 
 #[derive(Clone, Debug)]
-struct Ipv4FirstResolver;
+pub(crate) struct Ipv4FirstResolver;
 
 impl reqwest::dns::Resolve for Ipv4FirstResolver {
     fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {

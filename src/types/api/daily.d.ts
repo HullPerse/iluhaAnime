@@ -83,7 +83,6 @@ export interface DailyOpView {
   fullPath: string;
   startFraction: number;
   themeType: string;
-  themeTitle: string;
   hints: DailyHintView[];
   result: DailyResultView | null;
 }

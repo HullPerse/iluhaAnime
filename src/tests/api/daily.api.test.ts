@@ -61,7 +61,6 @@ function opView(mode: "op" | "audio") {
     fullPath: "/clips/full.mp4",
     startFraction: 0.12,
     themeType: "OP",
-    themeTitle: "Guren no Yumiya",
     hints: [{ slot: 0, hintKind: "year", hintValue: "2013" }],
     result: null,
   };
@@ -137,7 +136,7 @@ describe("DailyApi", () => {
     const index = await api.searchIndex();
     const prepared = await api.prepare(day, "frames", proxy);
     const revealed = await api.revealFrames(day, proxy);
-    const guessed = await api.guess(day, "frames", 16498, ["Shingeki no Kyojin"], proxy);
+    const guessed = await api.guess(day, "frames", 16498, proxy);
     const skipped = await api.skip(day, "frames", proxy);
     const historyItems = await api.history(day, "frames");
     await api.reset();
@@ -161,7 +160,6 @@ describe("DailyApi", () => {
           day,
           mode: "frames",
           mediaId: 16498,
-          guessedTitles: ["Shingeki no Kyojin"],
           proxyUrl: proxy,
         },
       },
@@ -171,7 +169,7 @@ describe("DailyApi", () => {
     ]);
   });
 
-  it("maps the OP and audio commands without the AniList proxy", async () => {
+  it("maps the OP and audio commands with the AniList proxy", async () => {
     const op = opView("op");
     const audio = opView("audio");
     const { calls, transport } = fakeTransport({
@@ -186,9 +184,9 @@ describe("DailyApi", () => {
 
     await api.prepareOp(day, proxy);
     await api.prepareAudio(day, proxy);
-    await api.guessOp(day, 16498, ["Shingeki no Kyojin"]);
+    await api.guessOp(day, 16498, proxy);
     await api.skipOp(day);
-    await api.guessAudio(day, 16498, ["Shingeki no Kyojin"]);
+    await api.guessAudio(day, 16498, proxy);
     await api.skipAudio(day);
 
     expect(calls).toEqual([
@@ -196,12 +194,12 @@ describe("DailyApi", () => {
       { command: "daily_game_prepare_audio", args: { day, proxyUrl: proxy } },
       {
         command: "daily_game_guess_op",
-        args: { day, mediaId: 16498, guessedTitles: ["Shingeki no Kyojin"] },
+        args: { day, mediaId: 16498, proxyUrl: proxy },
       },
       { command: "daily_game_skip_op", args: { day } },
       {
         command: "daily_game_guess_audio",
-        args: { day, mediaId: 16498, guessedTitles: ["Shingeki no Kyojin"] },
+        args: { day, mediaId: 16498, proxyUrl: proxy },
       },
       { command: "daily_game_skip_audio", args: { day } },
     ]);

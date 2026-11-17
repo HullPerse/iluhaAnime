@@ -94,7 +94,6 @@ export default function GameFrames({
       {
         mode: "frames",
         mediaId: guessed.id,
-        guessedTitles: guessed.titles,
       },
       {
         onSuccess: (view) => {

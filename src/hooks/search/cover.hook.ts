@@ -21,6 +21,7 @@ import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils
 import { coverCorrectionsAtoms, coverKey, setResolvedCover } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
 import { settingsAtoms } from "@/store/settings.store";
+import { searchProxyUrl } from "@/lib/core/system/proxy.utils";
 import type { AniMedia } from "@/types/anilist/anilist";
 import type { TorrentCoverMode } from "@/types/ui/settings";
 import type { TorrentCoverState } from "@/types/search/searchCover";
@@ -377,7 +378,7 @@ export function useTorrentCover(
   const pageEnabled = mode !== "off";
   const anilistEnabled = mode === "full";
   const sourceProxies = useCell(settingsAtoms.searchProxyUrls);
-  const sourceProxy = sourceProxies[source] ?? "";
+  const sourceProxy = searchProxyUrl(sourceProxies, source) ?? "";
   const ctx = useCoverContext(torrentTitle, { source, url, pageUrl });
   const poster = useCoverPoster(source, ctx.pageUrl, sourceProxy, !ctx.override && pageEnabled);
   const resolved = useCoverCascade(

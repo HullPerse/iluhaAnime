@@ -5,14 +5,6 @@ use super::super::types::FilePriority;
 use super::*;
 use librqbit::{create_torrent, torrent_from_bytes, CreateTorrentOptions};
 
-#[test]
-fn utp_listener_is_enabled_only_without_a_proxy() {
-    assert!(session_listener_mode(false).tcp_enabled());
-    assert!(session_listener_mode(false).utp_enabled());
-    assert!(session_listener_mode(true).tcp_enabled());
-    assert!(!session_listener_mode(true).utp_enabled());
-}
-
 #[tokio::test(flavor = "multi_thread")]
 async fn diagnostics_rejects_unknown_id() {
     let dir = std::env::temp_dir().join(format!("iluha-diag-{}", std::process::id()));

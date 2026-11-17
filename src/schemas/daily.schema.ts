@@ -84,7 +84,6 @@ const DailyOpViewShape = z.object({
   fullPath: z.string(),
   startFraction: z.number(),
   themeType: z.string(),
-  themeTitle: z.string(),
   hints: z.array(DailyHintViewSchema),
   result: z.nullable(DailyResultViewSchema),
 });

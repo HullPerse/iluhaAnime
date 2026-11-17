@@ -5,7 +5,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { warmStreamUrl } from "@/lib/player/streamWarm.utils";
-import { settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl } from "@/store/settings.store";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerStream } from "@/types/player/playerStream";
 
@@ -47,7 +47,7 @@ export function StreamQualitySelect({
       warmStreamUrl(
         source.url,
         session.headers,
-        playbackProxyUrl(session.variantId, settingsAtoms.animelibProxyUrl.get(), source.url)
+        playbackProxyUrl(session.variantId, getAnimelibProxyUrl(), source.url)
       )
     );
   };

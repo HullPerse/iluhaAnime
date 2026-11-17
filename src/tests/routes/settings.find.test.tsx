@@ -111,7 +111,7 @@ describe("settings find results", () => {
       0
     );
     expect(view.container.querySelectorAll(".text-highlight").length).toBe(0);
-    expect(view.container.textContent).toContain("Торрент-прокси");
+    expect(view.container.textContent).toContain("Прокси источников");
   });
 
   it("marks the controlled active option and follows hover", async () => {

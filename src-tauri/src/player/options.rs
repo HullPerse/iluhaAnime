@@ -7,6 +7,8 @@
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
+use crate::scrapers::clients::proxy_with_remote_dns;
+
 use super::core::{LibmpvCore, PlayerCore};
 
 pub(crate) fn observed_properties() -> Value {
@@ -117,8 +119,11 @@ pub(crate) fn header_fields(headers: &BTreeMap<String, String>) -> String {
 }
 
 /// Preserve the proxy's DNS policy for the libcurl network backend.
+/// `socks5` must become `socks5h` so hostnames are resolved by the proxy, not
+/// by mpv's local resolver. Otherwise an HTTP client and the player can behave
+/// differently on the same setting.
 pub(crate) fn mpv_proxy(url: &str) -> String {
-    url.trim().to_string()
+    proxy_with_remote_dns(url.trim().to_string())
 }
 
 /// mpv's cache settings for a stream source.
@@ -223,7 +228,15 @@ mod tests {
             "socks5h://127.0.0.1:10808"
         );
         assert_eq!(
+            mpv_proxy("socks5://127.0.0.1:10808"),
+            "socks5h://127.0.0.1:10808"
+        );
+        assert_eq!(
             mpv_proxy("socks4a://127.0.0.1:1080"),
+            "socks4a://127.0.0.1:1080"
+        );
+        assert_eq!(
+            mpv_proxy("socks4://127.0.0.1:1080"),
             "socks4a://127.0.0.1:1080"
         );
         assert_eq!(

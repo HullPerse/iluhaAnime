@@ -16,7 +16,7 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
 }
 
 beforeEach(() => {
-  patchSettings({ searchProxyUrls: {}, torrentProxyUrl: null });
+  patchSettings({ searchProxyUrls: {} });
 });
 
 describe("TorrentApi", () => {
@@ -86,6 +86,14 @@ describe("TorrentApi", () => {
     expect(api.proxyFor("nyaa")).toBeUndefined();
   });
 
+  it("inherits the Nyaa proxy for Sukebei when it has none", () => {
+    const api = new TorrentApi({
+      proxies: { nyaa: "http://127.0.0.1:7890" },
+    });
+    expect(api.proxyFor("sukebei")).toBe("http://127.0.0.1:7890");
+    expect(api.proxyFor("rutracker")).toBeUndefined();
+  });
+
   it("prefers constructor proxies over the store", () => {
     const api = new TorrentApi({ proxies: { nyaa: "http://127.0.0.1:7890" } });
     expect(api.proxyFor("nyaa")).toBe("http://127.0.0.1:7890");
@@ -127,28 +135,6 @@ describe("TorrentApi", () => {
 
     expect(calls[0]?.args).toMatchObject({ username: "user", password: "pass" });
     expect(calls[1]?.args).toMatchObject({ apiKey: "key" });
-  });
-
-  it("falls back to the torrent proxy for the rutracker login window", () => {
-    const api = new TorrentApi({
-      torrentProxyUrl: "socks5://127.0.0.1:10808",
-      webviewProxyEnabled: true,
-    });
-    expect(api.webviewProxyFor("rutracker")).toBe("socks5://127.0.0.1:10808");
-    expect(api.webviewProxyFor("nyaa")).toBeUndefined();
-  });
-
-  it("probes the torrent proxy with the camelCase argument", async () => {
-    const { calls, transport } = fakeTransport(() => ({ latencyMs: 12 }));
-    const api = new TorrentApi({ transport });
-
-    expect(await api.testTorrentProxy("socks5://127.0.0.1:10808")).toEqual({ latencyMs: 12 });
-    expect(calls[0]).toEqual({
-      command: "test_torrent_proxy",
-      args: {
-        proxyUrl: "socks5://127.0.0.1:10808",
-      },
-    });
   });
 
   it("gates the webview proxy on the toggle", () => {

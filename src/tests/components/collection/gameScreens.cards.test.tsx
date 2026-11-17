@@ -80,7 +80,6 @@ const opView = {
   fullPath: "/clips/full.mp4",
   startFraction: 0.12,
   themeType: "OP",
-  themeTitle: "Guren no Yumiya",
   hints: [{ slot: 0, hintKind: "year", hintValue: "2013" }],
   result: null,
 };
@@ -129,4 +128,5 @@ describe("daily game screens", () => {
     expect(screen.getByText("Только звук")).toBeTruthy();
     expect(screen.getByPlaceholderText("Название аниме")).toBeTruthy();
   });
+
 });

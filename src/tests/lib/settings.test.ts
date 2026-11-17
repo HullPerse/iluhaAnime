@@ -938,7 +938,6 @@ describe("settings/session", () => {
         listenPort: 51413,
         peerConnectTimeout: 45,
         peerReadWriteTimeout: 20,
-        torrentProxyUrl: "socks5://127.0.0.1:10808",
         fileOrder: "torrent",
       });
 
@@ -952,14 +951,7 @@ describe("settings/session", () => {
         listenPort: 51413,
         peerConnectTimeout: 45,
         peerReadWriteTimeout: 20,
-        proxyUrl: "socks5://127.0.0.1:10808",
       });
-    });
-
-    it("sends a null proxy when the setting is unset", () => {
-      patchSettings({ torrentProxyUrl: null });
-
-      expect(toSessionConfig().proxyUrl).toBe(null);
     });
   });
 });

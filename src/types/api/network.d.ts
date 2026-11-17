@@ -7,6 +7,14 @@ export type NetworkVerdict =
   | "anti_bot"
   | "request_failed";
 
+export type NetworkDiagnoseMethod = "GET" | "HEAD" | "POST";
+
+export interface NetworkDiagnoseOptions {
+  method?: NetworkDiagnoseMethod;
+  body?: string;
+  expectedStatus?: number[];
+}
+
 interface NetworkDnsAnswer {
   address: string;
   family: "ipv4" | "ipv6";

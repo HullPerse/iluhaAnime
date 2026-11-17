@@ -11,7 +11,7 @@ import { buildWatchKey } from "@/lib/player/streamHelpers.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { isEpisodeWatched } from "@/lib/core/anilist/history.utils";
 import { addNotification } from "@/store/notification.store";
-import { settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl, settingsAtoms } from "@/store/settings.store";
 import type { StreamHistoryEntry, StreamingEpisode } from "@/types/player/stream";
 import type { AnimeLibAnime } from "@/types/player/videoPlayer";
 
@@ -74,7 +74,7 @@ export function useStreamPlayer({
           headers: source.headers,
           proxyUrl: playbackProxyUrl(
             source.variantId,
-            settingsAtoms.animelibProxyUrl.get(),
+            getAnimelibProxyUrl(),
             source.url
           ),
           quality: source.label,

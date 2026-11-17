@@ -167,6 +167,21 @@ export default defineConfig({
   ],
 
   resolve: {
+    dedupe: [
+      "react",
+      "react-dom",
+      "@base-ui/react",
+      "@base-ui/utils",
+      "@floating-ui/react",
+      "@floating-ui/react-dom",
+      "@hullperse/hp_utils",
+      "@tanstack/react-query",
+      "@tanstack/react-router",
+      "@tanstack/react-virtual",
+      "@testing-library/react",
+      "lucide-react",
+      "use-sync-external-store",
+    ],
     alias: {
       "@": resolve(import.meta.dirname, "./src"),
     },

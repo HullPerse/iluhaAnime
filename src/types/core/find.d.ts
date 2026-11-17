@@ -7,6 +7,8 @@ export type SettingsFindTab =
   | "search"
   | "torrent"
   | "proxy"
+  | "zapret"
+  | "diagnostics"
   | "theme"
   | "keybinds";
 

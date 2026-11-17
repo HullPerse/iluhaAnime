@@ -168,8 +168,6 @@ pub struct SessionConfig {
     pub dht_enabled: bool,
     #[serde(rename = "disablePersistence")]
     pub disable_persistence: bool,
-    #[serde(default, rename = "proxyUrl")]
-    pub proxy_url: Option<String>,
     #[serde(default, rename = "fileOrder")]
     pub file_order: FileOrder,
 }
@@ -185,7 +183,6 @@ impl Default for SessionConfig {
             enable_upnp: true,
             dht_enabled: true,
             disable_persistence: false,
-            proxy_url: None,
             file_order: FileOrder::default(),
         }
     }

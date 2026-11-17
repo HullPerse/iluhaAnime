@@ -25,8 +25,8 @@ function dailyProxy(mode: DailyMode): string | null {
   return effectiveProxyUrl(proxy, settingsAtoms.anilistProxyUrl.get());
 }
 
-const PREPARE_TIMEOUT_MS = 50_000;
-const OP_PREPARE_TIMEOUT_MS = 200_000;
+const PREPARE_TIMEOUT_MS = 90_000;
+const OP_PREPARE_TIMEOUT_MS = 260_000;
 const REVEAL_TIMEOUT_MS = 160_000;
 
 /// A win mints the reward pack on the backend, but the packs tab and the tab
@@ -170,8 +170,8 @@ export function usePrepareDailyAudio(day: string) {
 export function useGuessDailyAudio(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { mediaId: number; guessedTitles: string[] }): Promise<DailyOpGuessView> =>
-      dailyApi.guessAudio(day, vars.mediaId, vars.guessedTitles),
+    mutationFn: (vars: { mediaId: number }): Promise<DailyOpGuessView> =>
+      dailyApi.guessAudio(day, vars.mediaId, dailyProxy("audio")),
     onSuccess: (view) => {
       invalidateDailyResult(queryClient, day, view.state.result?.rewardPackId);
     },
@@ -191,8 +191,8 @@ export function useSkipDailyAudio(day: string) {
 export function useGuessDailyOp(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { mediaId: number; guessedTitles: string[] }): Promise<DailyOpGuessView> =>
-      dailyApi.guessOp(day, vars.mediaId, vars.guessedTitles),
+    mutationFn: (vars: { mediaId: number }): Promise<DailyOpGuessView> =>
+      dailyApi.guessOp(day, vars.mediaId, dailyProxy("op")),
     onSuccess: (view) => {
       invalidateDailyResult(queryClient, day, view.state.result?.rewardPackId);
     },
@@ -212,8 +212,8 @@ export function useSkipDailyOp(day: string) {
 export function useGuessDailyGame(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { mode: DailyMode; mediaId: number; guessedTitles: string[] }) =>
-      dailyApi.guess(day, vars.mode, vars.mediaId, vars.guessedTitles, dailyProxy(vars.mode)),
+    mutationFn: (vars: { mode: DailyMode; mediaId: number }) =>
+      dailyApi.guess(day, vars.mode, vars.mediaId, dailyProxy(vars.mode)),
     onSuccess: (view) => {
       invalidateDailyResult(queryClient, day, view.result?.rewardPackId);
     },

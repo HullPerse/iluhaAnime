@@ -64,15 +64,6 @@ export function useTorrentListenPort(enabled = true) {
   });
 }
 
-export function useTorrentActiveProxy(enabled = true) {
-  return useAppQuery("live", {
-    queryKey: queryKeys.torrentActiveProxy(),
-    queryFn: () => torrentApi.activeProxy(),
-    enabled,
-    retry: false,
-  });
-}
-
 export function useDhtStats() {
   return useAppQuery("slow", {
     queryKey: queryKeys.dhtStats(),

@@ -35,3 +35,14 @@ export function effectiveProxyUrl(
   const secondary = fallback?.trim() ?? "";
   return secondary !== "" ? secondary : null;
 }
+
+/** Sukebei shares Nyaa's host family, so an empty Sukebei proxy follows Nyaa. */
+export function searchProxyUrl(
+  proxies: Record<string, string>,
+  source: string
+): string | undefined {
+  const direct = proxies[source]?.trim();
+  if (direct) return direct;
+  if (source !== "sukebei") return undefined;
+  return proxies.nyaa?.trim() || undefined;
+}

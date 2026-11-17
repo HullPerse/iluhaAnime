@@ -1,9 +1,11 @@
 use std::collections::HashMap;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+
+use crate::scrapers::clients::Ipv4FirstResolver;
 
 const API_HOST: &str = "https://api.tenrai.org/v1";
 const REQUEST_INTERVAL: Duration = Duration::from_millis(400);
@@ -45,7 +47,9 @@ fn client_for(proxy: Option<&str>) -> Result<Client, String> {
     }
     let mut builder = Client::builder()
         .user_agent("iluhaAnime/3.0 (https://github.com/iluhanime)")
-        .timeout(Duration::from_secs(15));
+        .timeout(Duration::from_secs(15))
+        .connect_timeout(Duration::from_secs(10))
+        .dns_resolver(Arc::new(Ipv4FirstResolver));
     if let Some(proxy) = proxy {
         builder = builder
             .proxy(reqwest::Proxy::all(proxy).map_err(|error| format!("Tenrai proxy: {error}"))?);

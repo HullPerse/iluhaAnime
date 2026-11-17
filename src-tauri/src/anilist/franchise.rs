@@ -724,6 +724,116 @@ pub async fn get_anime_franchise(
         edges,
     })
 }
+
+const FRANCHISE_CHECK_MAX_NODES: usize = 80;
+const FRANCHISE_CHECK_MAX_DEPTH: u8 = 10;
+
+/// Whether two AniList media ids are connected in the relation graph. This is
+/// the daily game's franchise check: it follows real PREQUEL/SEQUEL/... edges
+/// instead of guessing from titles.
+///
+/// The walk is bidirectional in effect because AniList relation edges are
+/// reciprocal in practice, and it stops as soon as the guessed id appears.
+/// Cached nodes are reused for seven days, so repeat guesses are cheap.
+pub async fn are_same_franchise(
+    app: &AppHandle,
+    first_id: u64,
+    second_id: u64,
+    proxy: Option<&str>,
+) -> Result<bool, String> {
+    if first_id == 0 || second_id == 0 {
+        return Ok(false);
+    }
+    if first_id == second_id {
+        return Ok(true);
+    }
+
+    load_franchise_cache(app);
+    let token = optional_token(app);
+    let mut visited = HashSet::from([first_id]);
+    let mut frontier: VecDeque<(u64, u8)> = VecDeque::from([(first_id, 0)]);
+    let mut pending_persist: Vec<CachedFranchiseNode> = Vec::new();
+
+    while !frontier.is_empty() && visited.len() <= FRANCHISE_CHECK_MAX_NODES {
+        let mut batch: Vec<(u64, u8)> = Vec::new();
+        while batch.len() < FRANCHISE_BATCH_SIZE {
+            let Some(entry) = frontier.pop_front() else {
+                break;
+            };
+            batch.push(entry);
+        }
+
+        let mut cached: Vec<(u8, CachedFranchiseNode)> = Vec::new();
+        let mut fetch_ids: Vec<(u64, u8)> = Vec::new();
+        {
+            let guard = FRANCHISE_CACHE
+                .lock()
+                .map_err(|_| "cache lock".to_string())?;
+            for &(id, depth) in &batch {
+                match guard.get(&id) {
+                    Some(node) if is_fresh(node) => cached.push((depth, node.clone())),
+                    _ => fetch_ids.push((id, depth)),
+                }
+            }
+        }
+
+        if !fetch_ids.is_empty() {
+            let ids: Vec<u64> = fetch_ids.iter().map(|(id, _)| *id).collect();
+            let depths: HashMap<u64, u8> = fetch_ids.iter().copied().collect();
+            let fresh = match fetch_franchise_batch(&ids, token.as_deref(), proxy).await {
+                Ok(fresh) => fresh,
+                Err(error) => {
+                    flush_pending_franchise_cache(app, &mut pending_persist);
+                    return Err(error);
+                }
+            };
+            let fetched_at = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_secs() as i64);
+            let mut guard = FRANCHISE_CACHE
+                .lock()
+                .map_err(|_| "cache lock".to_string())?;
+            for data in fresh {
+                let depth = depths.get(&data.node.id).copied().unwrap_or(0);
+                let node = CachedFranchiseNode {
+                    node: data.node,
+                    targets: data.targets,
+                    fetched_at,
+                };
+                guard.insert(node.node.id, node.clone());
+                cached.push((depth, node.clone()));
+                pending_persist.push(node);
+            }
+        }
+
+        for (depth, node) in cached {
+            if depth >= FRANCHISE_CHECK_MAX_DEPTH {
+                continue;
+            }
+            for (target_id, _relation, media_type, _year) in node.targets {
+                if !is_anime_media(media_type.as_deref()) {
+                    continue;
+                }
+                if target_id == second_id {
+                    flush_pending_franchise_cache(app, &mut pending_persist);
+                    return Ok(true);
+                }
+                if visited.len() >= FRANCHISE_CHECK_MAX_NODES {
+                    break;
+                }
+                if visited.insert(target_id) {
+                    frontier.push_back((target_id, depth + 1));
+                }
+            }
+        }
+
+        flush_pending_franchise_cache(app, &mut pending_persist);
+    }
+
+    flush_pending_franchise_cache(app, &mut pending_persist);
+    Ok(false)
+}
+
 fn relation_line(rel_type: &str, title: &str, year: Option<i32>) -> String {
     year.map_or_else(
         || format!("{rel_type} - {title}"),

@@ -23,7 +23,6 @@ export function TorrentNetworkSettings({
   const listenPort = useCell(settingsAtoms.listenPort);
   const enableUpnp = useCell(settingsAtoms.enableUpnp);
   const dhtEnabled = useCell(settingsAtoms.dhtEnabled);
-  const torrentProxyUrl = useCell(settingsAtoms.torrentProxyUrl);
   const ipv4Only = useCell(settingsAtoms.ipv4Only);
   const peerConnectTimeout = useCell(settingsAtoms.peerConnectTimeout);
   const peerReadWriteTimeout = useCell(settingsAtoms.peerReadWriteTimeout);
@@ -84,9 +83,6 @@ export function TorrentNetworkSettings({
           />
           <span>{t("settings.torrent.dht.enabled")}</span>
         </label>
-        {torrentProxyUrl && (
-          <span className="text-hint pl-2 text-xs">{t("settings.torrent.proxy.forces.off")}</span>
-        )}
         <label className="group windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={ipv4Only}

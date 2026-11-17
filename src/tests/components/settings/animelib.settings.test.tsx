@@ -122,8 +122,8 @@ describe("AnimelibSettings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Войти через AnimeLib" }));
 
     await screen.findByText("Вы вошли как milky");
-    expect(mockInvoke).toHaveBeenCalledWith("animelib_webview_login", {});
-    expect(mockInvoke).toHaveBeenCalledWith("animelib_finish_webview_login", {});
+    expect(mockInvoke).toHaveBeenCalledWith("animelib_webview_login", undefined);
+    expect(mockInvoke).toHaveBeenCalledWith("animelib_finish_webview_login", undefined);
   });
 
   it("stores and clears the AnimeLib proxy", async () => {

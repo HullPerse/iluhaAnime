@@ -10,7 +10,7 @@ import { ignore } from "@/lib/core/shared/promise.utils";
 import { pickSource } from "@/lib/search/sources.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { warmStreamUrl } from "@/lib/player/streamWarm.utils";
-import { settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl } from "@/store/settings.store";
 import type { StreamVariant } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerStream } from "@/types/player/playerStream";
@@ -56,7 +56,7 @@ export function StreamVariantSelects({
           source.headers,
           playbackProxyUrl(
             source.variantId || variantId,
-            settingsAtoms.animelibProxyUrl.get(),
+            getAnimelibProxyUrl(),
             source.url
           )
         );

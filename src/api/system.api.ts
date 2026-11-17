@@ -1,4 +1,4 @@
-import type { NetworkDiagnosis } from "@/types/api/network";
+import type { NetworkDiagnoseOptions, NetworkDiagnosis } from "@/types/api/network";
 import type { HostStats } from "@/types/core/ipc";
 import type { NotificationTarget } from "@/types/core/notification";
 import type {
@@ -215,8 +215,16 @@ export class SystemApi {
     return this.call("network_probe", { anilistProxyUrl, animelibProxyUrl });
   }
 
-  diagnoseNetwork(url: string, proxyUrl: string | null): Promise<NetworkDiagnosis> {
-    return this.call("network_diagnose", { url, proxyUrl });
+  diagnoseNetwork(
+    url: string,
+    proxyUrl: string | null,
+    options?: NetworkDiagnoseOptions
+  ): Promise<NetworkDiagnosis> {
+    const args: Record<string, unknown> = { url, proxyUrl };
+    if (options?.method !== undefined) args.method = options.method;
+    if (options?.body !== undefined) args.body = options.body;
+    if (options?.expectedStatus !== undefined) args.expectedStatus = options.expectedStatus;
+    return this.call("network_diagnose", args);
   }
 }
 

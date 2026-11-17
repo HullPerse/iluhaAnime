@@ -3,6 +3,23 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useProxyTest } from "@/hooks/proxyTest.hook";
+import { settingsRoute } from "@/routes/__root.defs";
+
+function DiagnosticButton({ probe }: { probe: string | undefined }) {
+  const { t } = useI18n();
+  const navigate = settingsRoute.useNavigate();
+  if (probe === undefined) return null;
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      className="h-6 px-2 text-xs"
+      onClick={() => navigate({ search: { tab: "diagnostics", probe } })}
+    >
+      {t("settings.proxy.test.diagnostics")}
+    </Button>
+  );
+}
 
 export function ProxyCheck({
   test,
@@ -12,6 +29,7 @@ export function ProxyCheck({
   disabled = false,
   okLabel,
   failLabel,
+  diagnosticProbe,
   className = "",
 }: {
   test: () => Promise<string>;
@@ -21,6 +39,7 @@ export function ProxyCheck({
   disabled?: boolean;
   okLabel?: string;
   failLabel?: string;
+  diagnosticProbe?: string;
   className?: string;
 }) {
   const { t } = useI18n();
@@ -93,6 +112,7 @@ export function ProxyCheck({
             {status}
           </span>
         )}
+        {state.kind === "fail" && <DiagnosticButton probe={diagnosticProbe} />}
       </div>
     </div>
   );

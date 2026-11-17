@@ -12,7 +12,6 @@ export function toSessionConfig(): SessionConfigPayload {
     enableUpnp: s.enableUpnp,
     dhtEnabled: s.dhtEnabled,
     disablePersistence: s.disablePersistence,
-    proxyUrl: s.torrentProxyUrl,
     fileOrder: s.fileOrder,
   };
 }

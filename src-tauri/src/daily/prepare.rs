@@ -24,11 +24,7 @@ pub async fn build_plan(
 ) -> Result<FramePlan, String> {
     let urls = sources::screenshot_urls(entry, proxy).await?;
     if urls.len() < FRAME_COUNT as usize {
-        return Err(format!(
-            "only {} screenshots available for {}",
-            urls.len(),
-            entry.title
-        ));
+        return Err(format!("only {} screenshots available", urls.len()));
     }
     Ok(FramePlan {
         urls,

@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
+use reqwest::Method;
 use serde::Serialize;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
@@ -81,6 +82,45 @@ pub struct NetworkDiagnosis {
     pub ipv6_reachable: Option<bool>,
     pub https: HttpsProbe,
     pub verdict: DiagVerdict,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DiagMethod {
+    Get,
+    Head,
+    Post,
+}
+
+impl DiagMethod {
+    fn parse(raw: Option<&str>) -> Result<Self, String> {
+        match raw
+            .map(|value| value.trim().to_ascii_uppercase())
+            .as_deref()
+        {
+            None | Some("") | Some("GET") => Ok(Self::Get),
+            Some("HEAD") => Ok(Self::Head),
+            Some("POST") => Ok(Self::Post),
+            Some(other) => Err(format!("unsupported method: {other}")),
+        }
+    }
+
+    fn reqwest(self) -> Method {
+        match self {
+            Self::Get => Method::GET,
+            Self::Head => Method::HEAD,
+            Self::Post => Method::POST,
+        }
+    }
+
+    const fn reads_body(self) -> bool {
+        !matches!(self, Self::Head)
+    }
+}
+
+struct DiagRequest<'a> {
+    method: DiagMethod,
+    body: Option<&'a str>,
+    expected_status: &'a [u16],
 }
 
 pub fn classify_request_error(error: &str) -> &'static str {
@@ -200,7 +240,20 @@ fn challenge_for(host: &str, body: &str) -> bool {
     }
 }
 
-async fn probe_https(parsed: &Url, host: &str, proxy: Option<&str>) -> HttpsProbe {
+fn status_ok(status: u16, expected: &[u16]) -> bool {
+    if expected.is_empty() {
+        (200..400).contains(&status)
+    } else {
+        expected.contains(&status)
+    }
+}
+
+async fn probe_https(
+    parsed: &Url,
+    host: &str,
+    proxy: Option<&str>,
+    request: &DiagRequest<'_>,
+) -> HttpsProbe {
     let http1_only = host == "rutracker.org" || host.ends_with(".rutracker.org");
     let client = match build_client_inner(
         HTTPS_TIMEOUT_SECS,
@@ -224,18 +277,29 @@ async fn probe_https(parsed: &Url, host: &str, proxy: Option<&str>) -> HttpsProb
         }
     };
 
+    let mut builder = client.request(request.method.reqwest(), parsed.clone());
+    if let Some(body) = request.body {
+        builder = builder
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body.to_string());
+    }
+
     let started = Instant::now();
-    match client.get(parsed.clone()).send().await {
+    match builder.send().await {
         Ok(response) => {
             let status = response.status().as_u16();
             let http_version = format!("{:?}", response.version());
             let remote_address = response.remote_addr().map(|addr| addr.to_string());
-            let body = read_body_capped(response, MAX_BODY_BYTES)
-                .await
-                .unwrap_or_default();
+            let body = if request.method.reads_body() {
+                read_body_capped(response, MAX_BODY_BYTES)
+                    .await
+                    .unwrap_or_default()
+            } else {
+                Vec::new()
+            };
             let text = String::from_utf8_lossy(&body);
             HttpsProbe {
-                ok: (200..400).contains(&status),
+                ok: status_ok(status, request.expected_status),
                 status: Some(status),
                 http_version: Some(http_version),
                 remote_address,
@@ -285,7 +349,22 @@ fn verdict(https: &HttpsProbe, dns_empty: bool, proxy_configured: bool) -> DiagV
     DiagVerdict::RequestFailed
 }
 
-pub async fn diagnose(url: &str, proxy: Option<&str>) -> Result<NetworkDiagnosis, String> {
+pub async fn diagnose_with(
+    url: &str,
+    proxy: Option<&str>,
+    method: Option<&str>,
+    body: Option<&str>,
+    expected_status: &[u16],
+) -> Result<NetworkDiagnosis, String> {
+    let method = DiagMethod::parse(method)?;
+    if body.is_some() && method != DiagMethod::Post {
+        return Err("request body is only supported for POST".to_string());
+    }
+    let request = DiagRequest {
+        method,
+        body,
+        expected_status,
+    };
     let (parsed, host, port) = target(url)?;
     let (addresses, dns_error) = resolve(&host, port).await;
     let dns: Vec<DnsAnswer> = addresses
@@ -307,7 +386,7 @@ pub async fn diagnose(url: &str, proxy: Option<&str>) -> Result<NetworkDiagnosis
         }
         seen.then_some(ok)
     };
-    let https = probe_https(&parsed, &host, proxy).await;
+    let https = probe_https(&parsed, &host, proxy, &request).await;
     let verdict = verdict(&https, dns.is_empty(), proxy.is_some());
     Ok(NetworkDiagnosis {
         host,
@@ -328,9 +407,20 @@ pub async fn network_diagnose(
     url: String,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
+    method: Option<String>,
+    body: Option<String>,
+    expectedStatus: Option<Vec<u16>>,
 ) -> Result<NetworkDiagnosis, String> {
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    diagnose(&url, proxy.as_deref()).await
+    let expected = expectedStatus.unwrap_or_default();
+    diagnose_with(
+        &url,
+        proxy.as_deref(),
+        method.as_deref(),
+        body.as_deref(),
+        &expected,
+    )
+    .await
 }
 
 #[cfg(test)]
@@ -352,6 +442,24 @@ mod tests {
         assert!(target("ftp://rutracker.org/file").is_err());
         assert!(target("https://user:secret@rutracker.org/").is_err());
         assert!(target("not a url").is_err());
+    }
+
+    #[test]
+    fn parses_diagnostic_methods() {
+        assert_eq!(DiagMethod::parse(None).unwrap(), DiagMethod::Get);
+        assert_eq!(DiagMethod::parse(Some("get")).unwrap(), DiagMethod::Get);
+        assert_eq!(DiagMethod::parse(Some("HEAD")).unwrap(), DiagMethod::Head);
+        assert_eq!(DiagMethod::parse(Some(" post ")).unwrap(), DiagMethod::Post);
+        assert!(DiagMethod::parse(Some("PUT")).is_err());
+    }
+
+    #[test]
+    fn expected_statuses_override_the_default_success_range() {
+        assert!(status_ok(204, &[]));
+        assert!(!status_ok(404, &[]));
+        assert!(status_ok(401, &[200, 401]));
+        assert!(!status_ok(401, &[200]));
+        assert!(!status_ok(500, &[401]));
     }
 
     #[test]
@@ -401,9 +509,15 @@ mod tests {
     #[tokio::test]
     #[ignore = "live network: prints a real staged report"]
     async fn live_rutracker_diagnosis() {
-        let report = diagnose("https://rutracker.org/forum/index.php", None)
-            .await
-            .expect("diagnosis");
+        let report = diagnose_with(
+            "https://rutracker.org/forum/index.php",
+            None,
+            None,
+            None,
+            &[],
+        )
+        .await
+        .expect("diagnosis");
         println!(
             "{}",
             serde_json::to_string_pretty(&report).expect("serialize report")

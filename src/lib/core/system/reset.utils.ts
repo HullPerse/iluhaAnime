@@ -79,7 +79,6 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   "proxy.news": ["newsProxyUrl"],
   "proxy.animelib": ["animelibProxyUrl"],
   "proxy.collection": ["cardsImageProxyUrl", "dailyProxyUrl", "dailyOpeningProxyUrl"],
-  "proxy.torrent": ["torrentProxyUrl"],
   "proxy.sources": ["searchProxyUrls", "webviewProxyEnabled"],
   "theme.schedule": ["themeSchedule"],
   "theme.retro": ["retroStyle", "uiDensity"],

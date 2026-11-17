@@ -211,12 +211,6 @@
   width: min(100%, 52rem);
 }
 
-.daily-audio-result {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
 .daily-audio-cover {
   position: absolute;
   inset: 0;

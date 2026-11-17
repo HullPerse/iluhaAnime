@@ -1,4 +1,5 @@
-import { Loader2, RefreshCw, WifiOff } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Activity, Loader2, RefreshCw, WifiOff } from "lucide-react";
 import { useCallback } from "react";
 
 import { systemApi } from "@/api/system.api";
@@ -7,7 +8,7 @@ import { useOnlineStatus } from "@/hooks/network.hook";
 import { networkAtoms, probeNetwork } from "@/lib/core/system/networkHealth.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl, settingsAtoms } from "@/store/settings.store";
 
 /**
  * The shell stays usable without internet: the library, torrents, the local
@@ -21,6 +22,7 @@ import { settingsAtoms } from "@/store/settings.store";
  */
 export default function OfflineBanner() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const online = useOnlineStatus();
   const reachable = useCell(networkAtoms.reachable);
   const checking = useCell(networkAtoms.checking);
@@ -30,7 +32,7 @@ export default function OfflineBanner() {
       probeNetwork(() =>
         systemApi.probeNetwork(
           settingsAtoms.anilistProxyUrl.get(),
-          settingsAtoms.animelibProxyUrl.get()
+          getAnimelibProxyUrl()
         )
       )
     );
@@ -52,6 +54,14 @@ export default function OfflineBanner() {
           ? t("network.degraded.hint")
           : `${t("network.offline.local")} ${t("network.offline.blocked")}`}
       </span>
+      <button
+        type="button"
+        className="windows95-border bg-primary text-text flex shrink-0 items-center gap-1 px-1.5 py-0.5 hover:cursor-pointer hover:brightness-110"
+        onClick={() => navigate({ to: "/settings", search: { tab: "diagnostics" } })}
+      >
+        <Activity className="size-3" aria-hidden />
+        {t("network.diagnostics")}
+      </button>
       {online && (
         <button
           type="button"

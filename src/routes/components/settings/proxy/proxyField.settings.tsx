@@ -18,6 +18,7 @@ export function ProxyField({
   testOkLabel,
   testFailLabel,
   testDisabled = false,
+  diagnosticProbe,
   schemes,
   runToken = 0,
   description,
@@ -31,6 +32,7 @@ export function ProxyField({
   testOkLabel?: string;
   testFailLabel?: string;
   testDisabled?: boolean;
+  diagnosticProbe?: string;
   schemes?: readonly ProxyScheme[];
   runToken?: number;
   description?: string;
@@ -108,6 +110,7 @@ export function ProxyField({
           disabled={testDisabled}
           okLabel={testOkLabel}
           failLabel={testFailLabel}
+          diagnosticProbe={diagnosticProbe}
         />
       </div>
     </div>

@@ -43,6 +43,8 @@ export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey 
   { id: "search", key: "settings.search" },
   { id: "torrent", key: "settings.torrent" },
   { id: "proxy", key: "settings.proxy" },
+  { id: "zapret", key: "settings.zapret" },
+  { id: "diagnostics", key: "settings.diagnostics" },
   { id: "theme", key: "settings.theme" },
   { id: "keybinds", key: "settings.keybinds" },
   { id: "changelog", key: "settings.changelog" },
@@ -55,7 +57,11 @@ export const SETTINGS_TAB_GROUPS: readonly SettingsTabGroup[] = [
     tabs: ["general", "theme", "notifications", "keybinds"],
   },
   { id: "data", titleKey: "settings.group.data", tabs: ["search", "torrent"] },
-  { id: "integrations", titleKey: "settings.group.integrations", tabs: ["proxy"] },
+  {
+    id: "integrations",
+    titleKey: "settings.group.integrations",
+    tabs: ["proxy", "zapret", "diagnostics"],
+  },
   { id: "advanced", titleKey: "settings.group.advanced", tabs: ["changelog"] },
 ];
 
@@ -65,6 +71,8 @@ const SETTINGS_TABS = new Set<SettingsTab>([
   "search",
   "torrent",
   "proxy",
+  "zapret",
+  "diagnostics",
   "theme",
   "keybinds",
   "changelog",
@@ -72,4 +80,6 @@ const SETTINGS_TABS = new Set<SettingsTab>([
 
 export const settingsSearchSchema = z.object({
   tab: withFallback(z.enum([...SETTINGS_TABS]), "general"),
+  probe: z.optional(z.string()),
+  section: z.optional(z.string()),
 });

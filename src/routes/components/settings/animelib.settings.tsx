@@ -118,12 +118,14 @@ export default function AnimelibSettings() {
           <ProxyField
             className="col-span-full"
             label={t("settings.animelib.proxy.url")}
+            description={t("settings.animelib.proxy.inherit")}
             value={proxyUrl}
             onChange={(next) => patchSettings({ animelibProxyUrl: next })}
             test={() => streamApi.testConnection()}
             testOkLabel={t("settings.animelib.proxy.test.ok")}
             testFailLabel={t("settings.animelib.proxy.test.fail")}
             testDisabled={!isOnline}
+            diagnosticProbe="stream-animelib"
           />
         </div>
       </div>

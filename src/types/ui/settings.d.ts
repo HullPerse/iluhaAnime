@@ -10,6 +10,8 @@ export type SettingsTab =
   | "search"
   | "torrent"
   | "proxy"
+  | "zapret"
+  | "diagnostics"
   | "theme"
   | "notifications"
   | "keybinds"
@@ -101,7 +103,6 @@ export interface SettingsStore {
   enableUpnp: boolean;
   dhtEnabled: boolean;
   pexEnabled: boolean;
-  torrentProxyUrl: string | null;
   fileOrder: FileOrder;
   fastresumeEnabled: boolean;
   disablePersistence: boolean;
@@ -206,7 +207,6 @@ export interface SessionConfigPayload {
   enableUpnp: boolean;
   dhtEnabled: boolean;
   disablePersistence: boolean;
-  proxyUrl: string | null;
   fileOrder: FileOrder;
 }
 

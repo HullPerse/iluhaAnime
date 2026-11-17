@@ -11,7 +11,7 @@ import {
 } from "@/lib/player/streamRoute.utils";
 import { rememberStreamRoute } from "@/lib/player/streamRouteMemory.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
-import { settingsAtoms } from "@/store/settings.store";
+import { getAnimelibProxyUrl } from "@/store/settings.store";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
 /** How often the guard looks at a load that has not produced a frame yet. */
@@ -123,7 +123,7 @@ export function useStreamRouteGuard({
 
     let nextProxy: string | null | undefined;
     if (state.attempts === 0) {
-      nextProxy = alternateProxyUrl(state.baseProxy, settingsAtoms.animelibProxyUrl.get());
+      nextProxy = alternateProxyUrl(state.baseProxy, getAnimelibProxyUrl());
     }
     // The original route is retried once by itself, because a CDN hiccup often
     // clears in a couple of seconds while the other route can be much slower.

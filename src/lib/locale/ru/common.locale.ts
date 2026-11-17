@@ -93,6 +93,7 @@ const common = {
   "network.degraded.title": "Сеть не отвечает",
   "network.degraded.hint": "Запросы не доходят до сервера. Проверьте VPN или прокси в параметрах.",
   "network.retry": "Проверить снова",
+  "network.diagnostics": "Диагностика",
   "common.on": "Вкл.",
   "common.previous": "Назад",
   "common.search": "Поиск...",

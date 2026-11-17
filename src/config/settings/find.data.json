@@ -59,9 +59,11 @@
         "settings.animelib.login",
         "settings.animelib.login.waiting",
         "settings.animelib.proxy.url",
+        "settings.animelib.proxy.inherit",
         "settings.animelib.proxy.no",
         "settings.animelib.proxy.custom",
-        "settings.animelib.proxy.test"
+        "settings.animelib.proxy.test",
+        "settings.animelib.login.proxy.socks5.auth"
       ]
     },
     {
@@ -101,26 +103,12 @@
     },
     {
       "tab": "proxy",
-      "section": "torrent",
-      "titleKey": "settings.proxy.torrent.title",
-      "keys": [
-        "settings.proxy.torrent.title",
-        "settings.proxy.torrent.description",
-        "settings.proxy.torrent.coverage",
-        "settings.proxy.torrent.active",
-        "settings.proxy.torrent.inactive",
-        "settings.torrent.proxy.url",
-        "settings.torrent.proxy.forces.off",
-        "settings.torrent.proxy.test"
-      ]
-    },
-    {
-      "tab": "proxy",
       "section": "sources",
       "titleKey": "settings.proxy.sources.title",
       "keys": [
         "settings.proxy.sources.title",
         "settings.search.proxy.per.source",
+        "settings.search.proxy.sukebei.inherit",
         "settings.search.proxy.webview",
         "settings.search.proxy.test.all",
         "settings.search.no.visible.sources"
@@ -356,7 +344,6 @@
       "titleKey": "settings.torrent.session",
       "keys": [
         "settings.torrent.session.restart.note",
-        "settings.torrent.session.restart.now",
         "settings.torrent.fastresume",
         "settings.torrent.disable.persistence"
       ]
@@ -633,6 +620,8 @@
     "settings.changelog",
     "settings.summary",
     "settings.find",
+    "settings.zapret",
+    "settings.diagnostics",
     "settings.torrent.diagnostics.stage",
     "settings.torrent.diagnostics.tcp",
     "settings.torrent.diagnostics.https",
@@ -659,15 +648,13 @@
     "settings.torrent.diagnostics.available",
     "settings.torrent.diagnostics.unavailable",
     "settings.torrent.diagnostics.no.proxy",
-    "settings.torrent.proxy.testing",
-    "settings.torrent.proxy.test.ok",
-    "settings.torrent.proxy.test.fail",
     "settings.proxy.test.action",
     "settings.proxy.test.cancel",
     "settings.proxy.test.retest",
     "settings.proxy.test.running",
     "settings.proxy.test.ok",
     "settings.proxy.test.fail",
+    "settings.proxy.test.diagnostics",
     "settings.proxy.description",
     "settings.proxy.no",
     "settings.proxy.custom",
@@ -692,8 +679,7 @@
     "settings.animelib.proxy.test.ok",
     "settings.animelib.proxy.test.fail",
     "settings.animelib.login.closed",
-    "settings.animelib.login.timeout",
-    "settings.animelib.login.proxy.socks5.auth"
+    "settings.animelib.login.timeout"
   ],
   "SETTINGS_FIND_TAB_ORDER": [
     "general",
@@ -701,6 +687,8 @@
     "search",
     "torrent",
     "proxy",
+    "zapret",
+    "diagnostics",
     "theme",
     "keybinds"
   ],
@@ -710,6 +698,8 @@
     "search": "settings.search",
     "torrent": "settings.torrent",
     "proxy": "settings.proxy",
+    "zapret": "settings.zapret",
+    "diagnostics": "settings.diagnostics",
     "theme": "settings.theme",
     "keybinds": "settings.keybinds"
   }

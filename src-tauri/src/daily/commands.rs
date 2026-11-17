@@ -1,9 +1,10 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use tauri::AppHandle;
 
 use crate::app_db::db::{lock_app_data_write_timeout, open_database, APP_DATA_WRITE_TIMEOUT};
-use crate::scrapers::clients::resolve_proxy;
+use crate::scrapers::clients::{resolve_proxy, Ipv4FirstResolver};
 
 use super::game;
 use super::pool::{self, DailySearchEntry};
@@ -24,37 +25,98 @@ pub async fn daily_test_proxy(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let mut builder = reqwest::Client::builder()
         .timeout(Duration::from_secs(20))
+        .connect_timeout(Duration::from_secs(10))
+        .dns_resolver(Arc::new(Ipv4FirstResolver))
         .user_agent("iluhaAnime daily proxy test");
     if let Some(proxy) = proxy {
         builder =
             builder.proxy(reqwest::Proxy::all(&proxy).map_err(|e| format!("invalid proxy: {e}"))?);
     }
     let client = builder.build().map_err(|e| e.to_string())?;
-    let request = match mode.as_str() {
-        "frames" => client.get("https://shikimori.io/api/animes/1/screenshots"),
-        "op" => client
-            .post("https://graphql.animethemes.moe/")
-            .json(&serde_json::json!({"query":"query { __typename }"})),
-        _ => return Err("unknown daily proxy mode".into()),
-    };
-    let response = request
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .error_for_status()
-        .map_err(|e| e.to_string())?;
-    Ok(format!(
-        "{} HTTP {}",
-        if mode == "frames" {
-            "Shikimori"
-        } else {
-            "AnimeThemes"
-        },
-        response.status()
-    ))
+    match mode.as_str() {
+        "frames" => {
+            let api_urls: Vec<String> = super::sources::SHIKIMORI_API_BASES
+                .iter()
+                .map(|base| format!("{base}/1/screenshots"))
+                .collect();
+            let api = first_reachable(&client, "Shikimori API", &api_urls).await?;
+            let image_urls: Vec<String> = super::sources::SHIKIMORI_IMAGE_HOSTS
+                .iter()
+                .map(|host| format!("https://{host}/"))
+                .collect();
+            let images = first_reachable(&client, "Shikimori image host", &image_urls).await?;
+            Ok(format!("{api}; {images}"))
+        }
+        "op" => {
+            let api = client
+                .post("https://graphql.animethemes.moe/")
+                .json(&serde_json::json!({"query":"query { __typename }"}))
+                .send()
+                .await
+                .map_err(|e| format!("AnimeThemes API: {e}"))?
+                .status();
+            require_reachable("AnimeThemes API", api)?;
+            let cdn = probe_status(&client, "https://v.animethemes.moe/").await?;
+            require_reachable("AnimeThemes CDN", cdn)?;
+            Ok(format!("AnimeThemes API HTTP {api}; CDN HTTP {cdn}"))
+        }
+        _ => Err("unknown daily proxy mode".into()),
+    }
 }
 
-const PREPARE_TIMEOUT: Duration = Duration::from_secs(45);
+async fn probe_status(client: &reqwest::Client, url: &str) -> Result<reqwest::StatusCode, String> {
+    client
+        .get(url)
+        .send()
+        .await
+        .map(|response| response.status())
+        .map_err(|error| format!("{url}: {error}"))
+}
+
+fn require_reachable(host: &str, status: reqwest::StatusCode) -> Result<(), String> {
+    if blocked_status(status) {
+        return Err(format!("{host} blocked with HTTP {status}"));
+    }
+    Ok(())
+}
+
+fn blocked_status(status: reqwest::StatusCode) -> bool {
+    status.is_server_error()
+        || status == reqwest::StatusCode::FORBIDDEN
+        || status == reqwest::StatusCode::TOO_MANY_REQUESTS
+}
+
+/// The daily prepare walks the same mirror list. The proxy test must do the
+/// same, otherwise a working `.tv` mirror looks like a broken proxy.
+async fn first_reachable(
+    client: &reqwest::Client,
+    label: &str,
+    urls: &[String],
+) -> Result<String, String> {
+    let mut last_error = format!("{label} did not answer");
+    for url in urls {
+        match probe_status(client, url).await {
+            Ok(status) if !blocked_status(status) => {
+                return Ok(format!("{label} HTTP {status}"));
+            }
+            Ok(status) => last_error = format!("{label} blocked with HTTP {status}"),
+            Err(error) => last_error = error,
+        }
+    }
+    Err(last_error)
+}
+
+const PREPARE_TIMEOUT: Duration = Duration::from_secs(75);
+
+fn mark_prepare_failure(app: &AppHandle, day: &str, mode: DailyMode) {
+    let Ok(_write) = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT) else {
+        return;
+    };
+    let Ok(connection) = open_database(app) else {
+        return;
+    };
+    let _ = store::set_failure(&connection, day, mode, "daily source is unavailable");
+}
 const OP_PREPARE_TIMEOUT: Duration = Duration::from_secs(240);
 const REVEAL_TIMEOUT: Duration = Duration::from_secs(150);
 
@@ -100,6 +162,7 @@ pub async fn daily_game_prepare(
         Ok(result) => result,
         Err(_) => {
             tracing::warn!(day = day.as_str(), "daily frames preparation timed out");
+            mark_prepare_failure(&app, &day, DailyMode::Frames);
             Err("preparing daily frames timed out; try again".into())
         }
     }
@@ -152,6 +215,7 @@ pub async fn daily_game_prepare_op(
         Ok(result) => result,
         Err(_) => {
             tracing::warn!(day = day.as_str(), "daily op preparation timed out");
+            mark_prepare_failure(&app, &day, DailyMode::Op);
             Err("preparing the daily opening timed out; try again".into())
         }
     }
@@ -178,6 +242,7 @@ pub async fn daily_game_prepare_audio(
         Ok(result) => result,
         Err(_) => {
             tracing::warn!(day = day.as_str(), "daily audio preparation timed out");
+            mark_prepare_failure(&app, &day, DailyMode::Audio);
             Err("preparing the daily audio clip timed out; try again".into())
         }
     }
@@ -186,15 +251,17 @@ pub async fn daily_game_prepare_audio(
 /// OP/ED guesses use the same answer check as frames, but the state returns
 /// the growing video window instead of the next screenshot.
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn daily_game_guess_op(
     app: AppHandle,
     day: String,
     media_id: i64,
-    guessed_titles: Option<Vec<String>>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<DailyOpGuessView, String> {
     validate_day(&day)?;
-    let guessed_titles = guessed_titles.unwrap_or_default();
-    game::guess_op(&app, &day, media_id, &guessed_titles).await
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    game::guess_op(&app, &day, media_id, proxy.as_deref()).await
 }
 
 #[tauri::command]
@@ -204,15 +271,17 @@ pub async fn daily_game_skip_op(app: AppHandle, day: String) -> Result<DailyOpGu
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn daily_game_guess_audio(
     app: AppHandle,
     day: String,
     media_id: i64,
-    guessed_titles: Option<Vec<String>>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<DailyOpGuessView, String> {
     validate_day(&day)?;
-    let guessed_titles = guessed_titles.unwrap_or_default();
-    game::guess_audio(&app, &day, media_id, &guessed_titles).await
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    game::guess_audio(&app, &day, media_id, proxy.as_deref()).await
 }
 
 #[tauri::command]
@@ -233,23 +302,13 @@ pub async fn daily_game_guess(
     day: String,
     mode: String,
     media_id: i64,
-    guessed_titles: Option<Vec<String>>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<DailyGuessView, String> {
     validate_day(&day)?;
     let mode = DailyMode::parse(&mode)?;
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let guessed_titles = guessed_titles.unwrap_or_default();
-    game::guess(
-        &app,
-        &day,
-        mode,
-        media_id,
-        &guessed_titles,
-        proxy.as_deref(),
-    )
-    .await
+    game::guess(&app, &day, mode, media_id, proxy.as_deref()).await
 }
 
 /// Skip reveals the next frame and spends one attempt, without recording a

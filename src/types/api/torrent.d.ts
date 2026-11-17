@@ -5,11 +5,6 @@ export interface TorrentApiConfig {
   transport?: ApiTransport;
   proxies?: Record<string, string> | null | (() => Record<string, string> | null);
   webviewProxyEnabled?: boolean | (() => boolean);
-  torrentProxyUrl?: string | null | (() => string | null);
-}
-
-export interface ProxyProbe {
-  latencyMs: number;
 }
 
 export interface TorrentFilesBatchEntry {

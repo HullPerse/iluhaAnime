@@ -843,11 +843,11 @@ describe("utils/repro", () => {
       expect(out.authToken).toBe("[redacted]");
     });
     it("redacts proxy userinfo", () => {
-      const out = sanitizeReproValue({ torrentProxyUrl: "socks5://u:p@h:1080" }) as Record<
+      const out = sanitizeReproValue({ proxyUrl: "socks5://u:p@h:1080" }) as Record<
         string,
         unknown
       >;
-      expect(out.torrentProxyUrl).toBe("socks5://***@h:1080");
+      expect(out.proxyUrl).toBe("socks5://***@h:1080");
     });
     it("truncates long strings and caps arrays", () => {
       const out = sanitizeReproValue({

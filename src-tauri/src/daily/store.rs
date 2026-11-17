@@ -29,7 +29,6 @@ pub struct StoredGame {
     pub guesses: Vec<i64>,
     pub sources: Vec<String>,
     pub theme_type: String,
-    pub theme_title: String,
     pub clip_path: String,
     pub start_fraction: f64,
 }
@@ -91,7 +90,6 @@ pub fn load_game(
         guesses_json,
         sources_json,
         theme_type,
-        theme_title,
         clip_path,
         start_fraction,
     ): (
@@ -103,12 +101,11 @@ pub fn load_game(
         String,
         String,
         String,
-        String,
         f64,
     ) = connection
         .query_row(
             "SELECT state, payload_json, seed, attempts, guesses_json, sources_json,
-                    theme_type, theme_title, clip_path, clip_start
+                    theme_type, clip_path, clip_start
                FROM daily_games WHERE day = ?1 AND mode = ?2",
             params![day, mode.as_str()],
             |row| {
@@ -122,7 +119,6 @@ pub fn load_game(
                     row.get(6)?,
                     row.get(7)?,
                     row.get(8)?,
-                    row.get(9)?,
                 ))
             },
         )
@@ -141,7 +137,6 @@ pub fn load_game(
         guesses,
         sources,
         theme_type,
-        theme_title,
         clip_path,
         start_fraction,
     })
@@ -624,7 +619,6 @@ pub fn op_view(
         full_path,
         start_fraction: game.start_fraction,
         theme_type: game.theme_type.clone(),
-        theme_title: game.theme_title.clone(),
         hints,
         result,
     })
@@ -838,6 +832,19 @@ pub fn streak(connection: &Connection, day: &str) -> i64 {
     count
 }
 
+/// Old rows may still carry an error from before the source messages became
+/// generic. Keep the stored detail for logs but never return it to the
+/// renderer when it names the answer.
+fn sanitized_error(error: Option<String>, entry: &PoolEntry) -> Option<String> {
+    error.map(|message| {
+        if message.contains(entry.title.as_str()) {
+            "daily source is unavailable".to_string()
+        } else {
+            message
+        }
+    })
+}
+
 pub fn bootstrap(connection: &Connection, day: &str) -> Result<DailyBootstrap, String> {
     let mut game_statement = connection
         .prepare(
@@ -921,7 +928,7 @@ pub fn bootstrap(connection: &Connection, day: &str) -> Result<DailyBootstrap, S
             state,
             attempts,
             max_attempts: mode.max_attempts(),
-            error,
+            error: sanitized_error(error, &entry),
             result,
         });
     }
@@ -1009,7 +1016,14 @@ mod tests {
         let stored = load_game(&connection, "2026-11-14", DailyMode::Op).expect("stored game");
         assert_eq!(stored.state, DailyGameState::Ready);
         assert_eq!(stored.theme_type, "OP");
-        assert_eq!(stored.theme_title, "Guren no Yumiya");
+        let stored_title: String = connection
+            .query_row(
+                "SELECT theme_title FROM daily_games WHERE day = ?1 AND mode = ?2",
+                params!["2026-11-14", DailyMode::Op.as_str()],
+                |row| row.get(0),
+            )
+            .expect("stored theme title");
+        assert_eq!(stored_title, "Guren no Yumiya");
         assert_eq!(stored.clip_path, "/tmp/daily-clip.webm");
         assert!((stored.start_fraction - 0.42).abs() < f64::EPSILON);
 
@@ -1280,6 +1294,27 @@ mod tests {
         assert_eq!(without_current.len(), 1);
         assert_eq!(without_current[0].day, "2026-11-13");
         assert_eq!(without_current[0].mode, DailyMode::Frames);
+    }
+
+    #[test]
+    fn bootstrap_never_returns_the_answer_title_in_an_error() {
+        let connection = memory_db();
+        ensure_games(&connection, "2026-11-14").expect("ensure");
+        let game = load_game(&connection, "2026-11-14", DailyMode::Frames).expect("frames game");
+        set_failure(
+            &connection,
+            "2026-11-14",
+            DailyMode::Frames,
+            &format!("blocked: {}", game.entry.title),
+        )
+        .expect("failure");
+        let bootstrap = bootstrap(&connection, "2026-11-14").expect("bootstrap");
+        let frames = bootstrap
+            .modes
+            .iter()
+            .find(|view| view.mode == DailyMode::Frames)
+            .expect("frames view");
+        assert_eq!(frames.error.as_deref(), Some("daily source is unavailable"));
     }
 
     #[test]

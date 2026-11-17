@@ -1,6 +1,30 @@
 {
   "changelog": [
     {
+      "version": "5.3.0",
+      "added": [
+        { "key": "changelog.5_3_0.added.settings.diagnostics", "scope": "settings" },
+        { "key": "changelog.5_3_0.added.settings.zapret", "scope": "settings" }
+      ],
+      "changed": [
+        { "key": "changelog.5_3_0.changed.settings.proxy_inheritance", "scope": "settings" },
+        { "key": "changelog.5_3_0.changed.settings.find", "scope": "settings" },
+        { "key": "changelog.5_3_0.changed.search.sukebei_proxy", "scope": "search" },
+        { "key": "changelog.5_3_0.changed.torrents.proxy_removed", "scope": "torrents" },
+        { "key": "changelog.5_3_0.changed.player.remote_dns", "scope": "player" },
+        { "key": "changelog.5_3_0.changed.game.franchise_check", "scope": "game" },
+        { "key": "changelog.5_3_0.changed.game.audio_candidates", "scope": "game" },
+        { "key": "changelog.5_3_0.changed.game.proxy_test", "scope": "game" },
+        { "key": "changelog.5_3_0.changed.game.mirrors", "scope": "game" },
+        { "key": "changelog.5_3_0.changed.game.prepare_timeouts", "scope": "game" }
+      ],
+      "fixed": [
+        { "key": "changelog.5_3_0.fixed.game.answer_leak", "scope": "game" },
+        { "key": "changelog.5_3_0.fixed.game.audio_result", "scope": "game" },
+        { "key": "changelog.5_3_0.fixed.game.clip_proxy", "scope": "game" }
+      ]
+    },
+    {
       "version": "5.2.5",
       "added": [
         { "key": "changelog.5_2_5.added.settings.daily_proxy", "scope": "settings" },

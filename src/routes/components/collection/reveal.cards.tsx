@@ -22,9 +22,7 @@ export default function Reveal({
   sourcePlacement?: "above" | "below";
 }) {
   const { t } = useI18n();
-  // The reveal keeps the cards still: seven tilted, animated finishes on one
-  // screen made the flip and the intro noticeably janky. Same static face as
-  // the album, only the click flip moves.
+
   const [hoverReady, setHoverReady] = useState(false);
 
   const title = card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;

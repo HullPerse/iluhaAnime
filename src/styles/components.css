@@ -1,13 +1,11 @@
 .windows95-border {
   border: 2px solid;
-  border-color: var(--color-muted) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-muted);
+  border-color: var(--color-muted) var(--color-win-highlight) var(--color-win-highlight) var(--color-muted);
 }
 
 .windows95-active-border {
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-muted) var(--color-muted)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-muted) var(--color-muted) var(--color-win-highlight);
 }
 
 .windows95-fav-border {
@@ -16,8 +14,7 @@
 
 .windows95-small-border {
   border: 1px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
 }
 
 .windows95-3d-border {
@@ -56,13 +53,11 @@
 }
 
 .wallpaper-scanlines {
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.22) 0px,
-    rgba(0, 0, 0, 0.22) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+  background: repeating-linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.22) 0px,
+      rgba(0, 0, 0, 0.22) 1px,
+      transparent 1px,
+      transparent 3px);
 }
 
 .yorha-glitch {
@@ -80,6 +75,7 @@
 }
 
 @keyframes yorha-blink {
+
   from,
   to {
     color: transparent;
@@ -115,8 +111,7 @@
   padding: 0 0.375rem;
   min-height: calc(var(--ui-control-height) - 8px);
   border: 1px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   font-family: var(--font-family);
   font-size: var(--ui-font-size);
   white-space: nowrap;
@@ -133,8 +128,7 @@
 .ui-panel {
   background: var(--color-primary);
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   box-shadow: var(--ui-panel-shadow);
 }
 
@@ -299,13 +293,12 @@
   overflow: clip;
 }
 
-[data-radius="frame"] :is(.ui-panel, .windows95-3d-border) > .ui-titlebar:first-child,
-[data-radius="all"] :is(.ui-panel, .windows95-3d-border) > .ui-titlebar:first-child {
+[data-radius="frame"] :is(.ui-panel, .windows95-3d-border)>.ui-titlebar:first-child,
+[data-radius="all"] :is(.ui-panel, .windows95-3d-border)>.ui-titlebar:first-child {
   border-radius: var(--ui-radius) var(--ui-radius) 0 0;
 }
 
-[data-radius="all"]
-  :is(.windows95-border, .windows95-active-border, .windows95-small-border, .windows95-3d-border) {
+[data-radius="all"] :is(.windows95-border, .windows95-active-border, .windows95-small-border, .windows95-3d-border) {
   border-radius: var(--ui-radius-control);
 }
 
@@ -318,11 +311,9 @@
 }
 
 [data-window-effect]:not([data-window-effect="none"]) .ui-titlebar {
-  background-image: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--titlebar-from) var(--ui-window-opacity), transparent),
-    color-mix(in srgb, var(--titlebar-to) var(--ui-window-opacity), transparent)
-  );
+  background-image: linear-gradient(to bottom,
+      color-mix(in srgb, var(--titlebar-from) var(--ui-window-opacity), transparent),
+      color-mix(in srgb, var(--titlebar-to) var(--ui-window-opacity), transparent));
 }
 
 [data-window-effect]:not([data-window-effect="none"]) .ui-statusbar {
@@ -369,8 +360,7 @@
 :root:not(.native-scrollbar) ::-webkit-scrollbar-thumb {
   background: var(--color-primary);
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
 }
 
 :root:not(.native-scrollbar) ::-webkit-scrollbar-button {
@@ -384,21 +374,18 @@
 :root:not(.native-scrollbar) ::-webkit-resizer {
   background-color: var(--color-primary);
   border: 1px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   box-shadow:
     inset 1px 1px 0 var(--color-win-highlight),
     inset -1px -1px 0 var(--color-win-shadow);
-  background-image: linear-gradient(
-    135deg,
-    transparent 0 22%,
-    var(--color-win-shadow) 22% 30%,
-    transparent 30% 38%,
-    var(--color-win-shadow) 38% 46%,
-    transparent 46% 54%,
-    var(--color-win-shadow) 54% 62%,
-    transparent 62% 100%
-  );
+  background-image: linear-gradient(135deg,
+      transparent 0 22%,
+      var(--color-win-shadow) 22% 30%,
+      transparent 30% 38%,
+      var(--color-win-shadow) 38% 46%,
+      transparent 46% 54%,
+      var(--color-win-shadow) 54% 62%,
+      transparent 62% 100%);
   background-repeat: no-repeat;
   background-position: center;
   background-size: 10px 10px;
@@ -411,6 +398,7 @@ input::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 input[type="password"]::-ms-reveal,
@@ -481,13 +469,11 @@ html[data-theme-overlay="scanlines"] body::after {
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.22) 0px,
-    rgba(0, 0, 0, 0.22) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+  background: repeating-linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.22) 0px,
+      rgba(0, 0, 0, 0.22) 1px,
+      transparent 1px,
+      transparent 3px);
 }
 
 html[data-theme-titlebar-art="on"] .ui-titlebar {
@@ -585,6 +571,7 @@ html[data-theme="yorha"] .yorha-grid {
 }
 
 @keyframes win7-orb-pulse {
+
   0%,
   100% {
     opacity: 0.35;
@@ -604,7 +591,7 @@ html[data-theme="yorha"] .yorha-grid {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-.win7-static > div {
+.win7-static>div {
   height: 100%;
   background-color: #ffffff;
 }
@@ -642,8 +629,7 @@ html[data-theme="yorha"] .yorha-grid {
   flex-direction: column;
   overflow: hidden;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--color-primary);
   box-shadow: 2px 2px 0 var(--color-win-shadow);
 }
@@ -651,8 +637,7 @@ html[data-theme="yorha"] .yorha-grid {
 /* Only hovered and full-tilt cards pay for a 3D layer. */
 .cards-window:hover,
 .cards-window[data-tilt="full"] {
-  transform: perspective(900px) rotateX(var(--cards-tilt-x, 0deg))
-    rotateY(var(--cards-tilt-y, 0deg));
+  transform: perspective(900px) rotateX(var(--cards-tilt-x, 0deg)) rotateY(var(--cards-tilt-y, 0deg));
   transition: transform 120ms ease-out;
 }
 
@@ -682,7 +667,7 @@ html[data-theme="yorha"] .yorha-grid {
   white-space: nowrap;
 }
 
-.cards-window-bar > span {
+.cards-window-bar>span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -706,12 +691,11 @@ html[data-theme="yorha"] .yorha-grid {
   flex: 1;
   overflow: hidden;
   border: 1px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   background: color-mix(in srgb, var(--color-secondary) 18%, var(--color-background));
 }
 
-.cards-art > div {
+.cards-art>div {
   height: 100%;
   width: 100%;
 }
@@ -903,54 +887,43 @@ html[data-theme="yorha"] .yorha-grid {
    the sheen moves with the card's angle, its centre stays white, and the
    edges fade well before the card border so nothing reads as a scratch. */
 .cards-variant-foil::before {
-  background: linear-gradient(
-    108deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.11) 34%,
-    rgba(255, 255, 255, 0.29) 46%,
-    rgba(255, 255, 255, 0.42) 50%,
-    rgba(255, 255, 255, 0.29) 54%,
-    rgba(255, 255, 255, 0.11) 66%,
-    transparent 100%
-  );
+  background: linear-gradient(108deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.11) 34%,
+      rgba(255, 255, 255, 0.29) 46%,
+      rgba(255, 255, 255, 0.42) 50%,
+      rgba(255, 255, 255, 0.29) 54%,
+      rgba(255, 255, 255, 0.11) 66%,
+      transparent 100%);
   background-size: 220% 220%;
   background-repeat: no-repeat;
-  background-position: calc(50% + var(--cards-foil-offset-y, var(--cards-tilt-deg-y, 0) * 3%))
-    calc(50% + var(--cards-foil-offset-x, var(--cards-tilt-deg-x, 0) * 3%));
+  background-position: calc(50% + var(--cards-foil-offset-y, var(--cards-tilt-deg-y, 0) * 3%)) calc(50% + var(--cards-foil-offset-x, var(--cards-tilt-deg-x, 0) * 3%));
   mix-blend-mode: screen;
   box-shadow:
     inset 2px 0 0 rgba(255, 255, 255, calc(var(--cards-tilt-strength, 0) * 0.4)),
     inset -2px 0 0 rgba(255, 255, 255, calc(var(--cards-tilt-strength, 0) * 0.4));
-  opacity: calc(
-    var(--foil-band-alpha, 0.8) * (0.7 + var(--cards-tilt-strength, 0) * 0.3) *
-      var(--cards-effect-opacity, 1)
-  );
+  opacity: calc(var(--foil-band-alpha, 0.8) * (0.7 + var(--cards-tilt-strength, 0) * 0.3) * var(--cards-effect-opacity, 1));
 }
 
 .cards-variant-foil::after {
   background:
     var(--foil-dither, none),
-    repeating-linear-gradient(
-      78deg,
+    repeating-linear-gradient(78deg,
       rgba(255, 255, 255, 0.06) 0 1px,
       transparent 1px 4px,
       rgba(0, 0, 0, 0.05) 4px 5px,
-      transparent 5px 9px
-    ),
-    linear-gradient(
-      150deg,
+      transparent 5px 9px),
+    linear-gradient(150deg,
       color-mix(in srgb, var(--cards-rarity) 34%, transparent),
       transparent 42%,
       rgba(255, 255, 255, 0.1) 82%,
-      transparent 100%
-    );
+      transparent 100%);
   background-size:
     6px 6px,
     auto,
     auto;
   background-position:
-    calc(50% + var(--cards-foil-offset-y, var(--cards-tilt-deg-y, 0) * 1.1%))
-      calc(50% + var(--cards-foil-offset-x, var(--cards-tilt-deg-x, 0) * 1.1%)),
+    calc(50% + var(--cards-foil-offset-y, var(--cards-tilt-deg-y, 0) * 1.1%)) calc(50% + var(--cards-foil-offset-x, var(--cards-tilt-deg-x, 0) * 1.1%)),
     0 0,
     0 0;
   mix-blend-mode: overlay;
@@ -970,33 +943,27 @@ html[data-theme="yorha"] .yorha-grid {
 }
 
 .cards-variant-holo::before {
-  background: repeating-linear-gradient(
-    102deg,
-    rgba(255, 64, 160, 0.42) 0 7%,
-    rgba(255, 190, 60, 0.42) 7% 14%,
-    rgba(90, 255, 170, 0.42) 14% 21%,
-    rgba(70, 190, 255, 0.42) 21% 28%,
-    rgba(170, 90, 255, 0.42) 28% 35%,
-    rgba(255, 64, 160, 0.42) 35% 42%
-  );
+  background: repeating-linear-gradient(102deg,
+      rgba(255, 64, 160, 0.42) 0 7%,
+      rgba(255, 190, 60, 0.42) 7% 14%,
+      rgba(90, 255, 170, 0.42) 14% 21%,
+      rgba(70, 190, 255, 0.42) 21% 28%,
+      rgba(170, 90, 255, 0.42) 28% 35%,
+      rgba(255, 64, 160, 0.42) 35% 42%);
   background-size: 240% 240%;
-  background-position: calc(50% + var(--cards-tilt-deg-y, 0) * 1.8%)
-    calc(50% + var(--cards-tilt-deg-x, 0) * 1.8%);
+  background-position: calc(50% + var(--cards-tilt-deg-y, 0) * 1.8%) calc(50% + var(--cards-tilt-deg-x, 0) * 1.8%);
   mix-blend-mode: color-dodge;
   opacity: calc(0.24 * var(--cards-effect-opacity, 1));
-  filter: saturate(1.18)
-    hue-rotate(calc(var(--cards-holo-drift, 0deg) + var(--cards-tilt-deg-y, 0) * 2.6deg));
+  filter: saturate(1.18) hue-rotate(calc(var(--cards-holo-drift, 0deg) + var(--cards-tilt-deg-y, 0) * 2.6deg));
 }
 
 .cards-variant-holo::after {
-  background: linear-gradient(
-    100deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.42) 33%,
-    rgba(150, 255, 255, 0.3) 43%,
-    rgba(255, 190, 255, 0.3) 51%,
-    transparent 68%
-  );
+  background: linear-gradient(100deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.42) 33%,
+      rgba(150, 255, 255, 0.3) 43%,
+      rgba(255, 190, 255, 0.3) 51%,
+      transparent 68%);
   background-size: 250% 100%;
   background-position: 30% 50%;
   mix-blend-mode: screen;
@@ -1015,14 +982,12 @@ html[data-theme="yorha"] .yorha-grid {
   background-image:
     repeating-linear-gradient(113deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 5px),
     repeating-linear-gradient(67deg, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px 6px),
-    linear-gradient(
-      100deg,
+    linear-gradient(100deg,
       transparent 20%,
       rgba(255, 255, 255, 0.42) 33%,
       rgba(150, 255, 255, 0.3) 43%,
       rgba(255, 190, 255, 0.3) 51%,
-      transparent 68%
-    );
+      transparent 68%);
   background-size:
     auto,
     auto,
@@ -1039,15 +1004,13 @@ html[data-theme="yorha"] .yorha-grid {
   z-index: 2;
   pointer-events: none;
   padding: 1px;
-  background: conic-gradient(
-    from calc(var(--cards-tilt-deg-y, 0) * 1deg),
-    rgba(255, 79, 163, 0.9),
-    rgba(255, 210, 74, 0.9),
-    rgba(92, 255, 176, 0.9),
-    rgba(74, 182, 255, 0.9),
-    rgba(180, 92, 255, 0.9),
-    rgba(255, 79, 163, 0.9)
-  );
+  background: conic-gradient(from calc(var(--cards-tilt-deg-y, 0) * 1deg),
+      rgba(255, 79, 163, 0.9),
+      rgba(255, 210, 74, 0.9),
+      rgba(92, 255, 176, 0.9),
+      rgba(74, 182, 255, 0.9),
+      rgba(180, 92, 255, 0.9),
+      rgba(255, 79, 163, 0.9));
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -1082,6 +1045,7 @@ html[data-theme="yorha"] .yorha-grid {
 }
 
 @keyframes cards-holo-sweep {
+
   0%,
   100% {
     background-position: 0% 50%;
@@ -1093,6 +1057,7 @@ html[data-theme="yorha"] .yorha-grid {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .cards-variant-holo::before,
   .cards-variant-holo::after,
   .cards-window:hover .cards-variant-holo::before,
@@ -1124,12 +1089,10 @@ html[data-theme="yorha"] .yorha-grid {
   inset: 0;
   background:
     repeating-linear-gradient(to bottom, transparent 0 3px, oklch(0.04 0.02 310 / 0.3) 3px 4px),
-    linear-gradient(
-      90deg,
+    linear-gradient(90deg,
       oklch(0.68 0.19 210 / 0.22),
       transparent 22% 78%,
-      oklch(0.7 0.2 340 / 0.22)
-    );
+      oklch(0.7 0.2 340 / 0.22));
   opacity: calc((0.5 + var(--cards-tilt-strength, 0) * 0.4) * var(--cards-effect-opacity, 1));
 }
 
@@ -1137,18 +1100,17 @@ html[data-theme="yorha"] .yorha-grid {
   inset-inline: 0;
   inset-block-start: var(--cards-tilt-shift-y, 50%);
   block-size: 7%;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    oklch(0.8 0.15 210 / 0.45) 38%,
-    oklch(0.78 0.18 340 / 0.48) 62%,
-    transparent
-  );
+  background: linear-gradient(to bottom,
+      transparent,
+      oklch(0.8 0.15 210 / 0.45) 38%,
+      oklch(0.78 0.18 340 / 0.48) 62%,
+      transparent);
   transform: translateY(-50%) translateX(calc(var(--cards-tilt-deg-y, 0) * 0.18px));
   opacity: calc((0.2 + var(--cards-tilt-strength, 0) * 0.4) * var(--cards-effect-opacity, 1));
 }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+
   .cards-window:hover .cards-variant-cursed .cards-art::before,
   .cards-detail-art .cards-variant-cursed .cards-art::before,
   .cards-window:hover .cards-variant-cursed .cards-art canvas,
@@ -1163,15 +1125,18 @@ html[data-theme="yorha"] .yorha-grid {
 }
 
 @keyframes cards-cursed-glitch {
+
   0%,
   94%,
   98%,
   100% {
     transform: translateX(0);
   }
+
   95% {
     transform: translateX(-3px);
   }
+
   96% {
     transform: translateX(2px);
   }
@@ -1182,37 +1147,27 @@ html[data-theme="yorha"] .yorha-grid {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-color: var(--cards-rarity) var(--color-win-shadow) var(--color-win-shadow)
-    var(--cards-rarity);
+  border-color: var(--cards-rarity) var(--color-win-shadow) var(--color-win-shadow) var(--cards-rarity);
   background:
-    radial-gradient(
-      circle at 50% 36%,
+    radial-gradient(circle at 50% 36%,
       color-mix(in srgb, var(--cards-rarity) 32%, transparent),
-      transparent 62%
-    ),
-    linear-gradient(
-      160deg,
+      transparent 62%),
+    linear-gradient(160deg,
       color-mix(in srgb, var(--cards-rarity) 30%, #070b14),
-      var(--cards-back-base)
-    );
+      var(--cards-back-base));
 }
 
 .cards-back::after {
   content: "";
   position: absolute;
   inset: -30%;
-  background: linear-gradient(
-    105deg,
-    transparent 35%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 65%
-  );
-  transform: translate3d(
-      calc((var(--cards-tilt-shift-x, 50%) - 50%) * 0.25),
+  background: linear-gradient(105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 65%);
+  transform: translate3d(calc((var(--cards-tilt-shift-x, 50%) - 50%) * 0.25),
       calc((var(--cards-tilt-shift-y, 50%) - 50%) * 0.25),
-      0
-    )
-    rotate(6deg);
+      0) rotate(6deg);
   transition: transform 160ms ease-out;
   pointer-events: none;
 }
@@ -1291,6 +1246,7 @@ html[data-theme="yorha"] .yorha-grid {
 }
 
 @keyframes cards-unread-blink {
+
   0%,
   100% {
     opacity: 1;
@@ -1411,14 +1367,11 @@ html[data-theme="yorha"] .yorha-grid {
   gap: 8px;
   overflow: hidden;
   border: 3px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background:
-    repeating-linear-gradient(
-      135deg,
+    repeating-linear-gradient(135deg,
       transparent 0 10px,
-      color-mix(in srgb, var(--color-highlight) 26%, transparent) 10px 12px
-    ),
+      color-mix(in srgb, var(--color-highlight) 26%, transparent) 10px 12px),
     linear-gradient(160deg, var(--color-secondary), var(--color-highlight));
   box-shadow: 4px 4px 0 var(--color-win-shadow);
 }
@@ -1466,14 +1419,11 @@ html[data-theme="yorha"] .yorha-grid {
   gap: 0.55rem;
   overflow: hidden;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background-color: var(--pack-a);
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent 0 3px,
-    color-mix(in srgb, #ffffff 7%, transparent) 3px 4px
-  );
+  background-image: repeating-linear-gradient(0deg,
+      transparent 0 3px,
+      color-mix(in srgb, #ffffff 7%, transparent) 3px 4px);
   box-shadow: 2px 2px 0 var(--color-win-shadow);
   isolation: isolate;
   transition: filter 120ms ease-out;
@@ -1492,11 +1442,9 @@ html[data-theme="yorha"] .yorha-grid {
   content: "";
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    135deg,
-    transparent 0 8px,
-    color-mix(in srgb, var(--pack-b) 65%, transparent) 8px 12px
-  );
+  background: repeating-linear-gradient(135deg,
+      transparent 0 8px,
+      color-mix(in srgb, var(--pack-b) 65%, transparent) 8px 12px);
   opacity: 0.45;
   pointer-events: none;
 }
@@ -1543,8 +1491,7 @@ html[data-theme="yorha"] .yorha-grid {
   display: flex;
   padding: 2px 4px;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--color-field);
   color: var(--color-text);
   font-family: var(--font-family);
@@ -1571,8 +1518,7 @@ html[data-theme="yorha"] .yorha-grid {
   align-items: center;
   justify-content: center;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--pack-b);
   box-shadow: inset 1px 1px 0 color-mix(in srgb, #ffffff 28%, transparent);
   color: var(--pack-c);
@@ -1584,8 +1530,7 @@ html[data-theme="yorha"] .yorha-grid {
   max-width: 88%;
   padding: 2px 5px;
   border: 1px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   background: var(--pack-c);
   color: #000000;
   font-family: var(--font-family);
@@ -1602,8 +1547,7 @@ html[data-theme="yorha"] .yorha-grid {
   z-index: 2;
   padding: 1px 6px;
   border: 2px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   background: var(--color-field);
   color: var(--color-text);
   font-family: var(--font-family);
@@ -1703,60 +1647,58 @@ html[data-theme="yorha"] .yorha-grid {
   inset: 0;
   overflow: hidden;
   background: var(--pack-base);
-  clip-path: polygon(
-    0 3%,
-    4% 0,
-    8% 3%,
-    12% 0,
-    16% 3%,
-    20% 0,
-    24% 3%,
-    28% 0,
-    32% 3%,
-    36% 0,
-    40% 3%,
-    44% 0,
-    48% 3%,
-    52% 0,
-    56% 3%,
-    60% 0,
-    64% 3%,
-    68% 0,
-    72% 3%,
-    76% 0,
-    80% 3%,
-    84% 0,
-    88% 3%,
-    92% 0,
-    96% 3%,
-    100% 0,
-    100% 97%,
-    96% 100%,
-    92% 97%,
-    88% 100%,
-    84% 97%,
-    80% 100%,
-    76% 97%,
-    72% 100%,
-    68% 97%,
-    64% 100%,
-    60% 97%,
-    56% 100%,
-    52% 97%,
-    48% 100%,
-    44% 97%,
-    40% 100%,
-    36% 97%,
-    32% 100%,
-    28% 97%,
-    24% 100%,
-    20% 97%,
-    16% 100%,
-    12% 97%,
-    8% 100%,
-    4% 97%,
-    0 100%
-  );
+  clip-path: polygon(0 3%,
+      4% 0,
+      8% 3%,
+      12% 0,
+      16% 3%,
+      20% 0,
+      24% 3%,
+      28% 0,
+      32% 3%,
+      36% 0,
+      40% 3%,
+      44% 0,
+      48% 3%,
+      52% 0,
+      56% 3%,
+      60% 0,
+      64% 3%,
+      68% 0,
+      72% 3%,
+      76% 0,
+      80% 3%,
+      84% 0,
+      88% 3%,
+      92% 0,
+      96% 3%,
+      100% 0,
+      100% 97%,
+      96% 100%,
+      92% 97%,
+      88% 100%,
+      84% 97%,
+      80% 100%,
+      76% 97%,
+      72% 100%,
+      68% 97%,
+      64% 100%,
+      60% 97%,
+      56% 100%,
+      52% 97%,
+      48% 100%,
+      44% 97%,
+      40% 100%,
+      36% 97%,
+      32% 100%,
+      28% 97%,
+      24% 100%,
+      20% 97%,
+      16% 100%,
+      12% 97%,
+      8% 100%,
+      4% 97%,
+      0 100%);
 }
 
 .cards-booster::before {
@@ -1788,11 +1730,9 @@ html[data-theme="yorha"] .yorha-grid {
   z-index: 8;
   height: 11px;
   background:
-    repeating-linear-gradient(
-      90deg,
+    repeating-linear-gradient(90deg,
       color-mix(in srgb, #ffffff 30%, transparent) 0 4px,
-      transparent 4px 7px
-    ),
+      transparent 4px 7px),
     var(--pack-deep);
   box-shadow: 0 1px 0 color-mix(in srgb, #000000 55%, transparent);
 }
@@ -1814,8 +1754,7 @@ html[data-theme="yorha"] .yorha-grid {
   z-index: 6;
   padding: 2px 4px;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--color-secondary);
   color: var(--color-title-text);
   font-family: var(--font-family);
@@ -1843,8 +1782,7 @@ html[data-theme="yorha"] .yorha-grid {
   width: 42%;
   aspect-ratio: 2 / 3;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--pack-deep);
   box-shadow: 2px 2px 0 color-mix(in srgb, #000000 55%, transparent);
 }
@@ -1897,8 +1835,7 @@ html[data-theme="yorha"] .yorha-grid {
   overflow: hidden;
   padding: 2px 4px;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--color-field);
   color: var(--color-text);
   font-family: var(--font-family);
@@ -1925,8 +1862,7 @@ html[data-theme="yorha"] .yorha-grid {
 
 .cards-pack-tilt:hover .cards-booster-shell,
 .cards-shop-art:hover .cards-booster-shell {
-  transform: perspective(900px) rotateX(var(--cards-tilt-x, 0deg))
-    rotateY(var(--cards-tilt-y, 0deg));
+  transform: perspective(900px) rotateX(var(--cards-tilt-x, 0deg)) rotateY(var(--cards-tilt-y, 0deg));
 }
 
 .no-animations .cards-pack-tilt:hover .cards-booster-shell,
@@ -1957,6 +1893,13 @@ html[data-theme="yorha"] .yorha-grid {
   width: clamp(7.5rem, 15vw, 10.5rem);
   flex: 0 1 auto;
   min-width: 0;
+}
+
+
+.cards-flip:hover,
+.cards-flip[data-hover-ready="true"],
+.cards-flip[data-flipped="true"]:focus-visible {
+  z-index: 20;
 }
 
 /* The source card is a tooltip. Keep both its hidden and visible position in
@@ -2039,6 +1982,7 @@ html[data-theme="yorha"] .yorha-grid {
   line-height: 1.2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .no-animations .cards-reveal-source {
@@ -2092,8 +2036,7 @@ html[data-theme="yorha"] .yorha-grid {
   margin: 0 auto;
   padding: 0.35rem 0.35rem 0.35rem 1.65rem;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--color-field);
   box-shadow: 3px 3px 0 var(--color-win-shadow);
 }
@@ -2122,8 +2065,7 @@ html[data-theme="yorha"] .yorha-grid {
   min-width: 0;
   padding: 0.4rem;
   border: 2px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   background: var(--color-primary);
 }
 
@@ -2157,8 +2099,7 @@ html[data-theme="yorha"] .yorha-grid {
   overflow: hidden;
   padding: 0.18rem;
   border: 1px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   background: var(--color-field);
   box-shadow: inset 1px 1px 0 color-mix(in srgb, var(--color-win-shadow) 45%, transparent);
   cursor: pointer;
@@ -2207,8 +2148,7 @@ html[data-theme="yorha"] .yorha-grid {
 }
 
 .cards-shelf-tile:active .cards-shelf-window {
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
 }
 
 .cards-shelf-window {
@@ -2219,8 +2159,7 @@ html[data-theme="yorha"] .yorha-grid {
   flex-direction: column;
   overflow: hidden;
   border: 2px solid;
-  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
-    var(--color-win-highlight);
+  border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   background: var(--color-primary);
   box-shadow: 2px 2px 0 var(--color-win-shadow);
 }
@@ -2241,7 +2180,7 @@ html[data-theme="yorha"] .yorha-grid {
   white-space: nowrap;
 }
 
-.cards-shelf-bar > span {
+.cards-shelf-bar>span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2253,8 +2192,7 @@ html[data-theme="yorha"] .yorha-grid {
   flex: 1;
   overflow: hidden;
   border: 1px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   background: color-mix(in srgb, var(--color-secondary) 18%, var(--color-background));
 }
 
@@ -2359,8 +2297,7 @@ html[data-theme="yorha"] .yorha-grid {
   flex: 0 0 auto;
   overflow: hidden;
   border: 1px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
+  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight) var(--color-win-shadow);
   background: var(--color-field);
 }
 
@@ -2458,12 +2395,10 @@ html[data-theme="yorha"] .yorha-grid {
   position: absolute;
   inset: calc(var(--tv-band) + 2px);
   border-radius: calc(var(--tv-radius) * 0.66);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0.02) 34%,
-    transparent 52%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(255, 255, 255, 0.02) 34%,
+      transparent 52%);
 }
 
 .player-bezel-grain {

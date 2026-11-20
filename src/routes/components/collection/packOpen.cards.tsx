@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
+import { useCardTilt } from "@/hooks/cards/tilt.hook";
 import {
   cancelRemoteImageQueue,
   prefetchRemoteImages,
@@ -48,6 +49,7 @@ export default function PackOpen({
   const { t } = useI18n();
   const imageProxy = useCardsImageProxy();
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
+  const tilt = useCardTilt(enableAnimations);
   const [phase, setPhase] = useState<PackOpeningPhase>("intro");
   const [introFinished, setIntroFinished] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
@@ -195,7 +197,7 @@ export default function PackOpen({
 
       {phase === "reveal" && (
         <div className="flex w-full flex-col gap-3">
-          <div className="cards-reveal-stage">
+          <div className="cards-reveal-stage" {...tilt}>
             {rows.map((row, rowIndex) => (
               <div className="cards-reveal-row" data-testid="reveal-row" key={rowIndex}>
                 {row.map((item, columnIndex) =>

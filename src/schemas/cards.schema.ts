@@ -68,11 +68,14 @@ const CardPackSchema = z.compile(
     source: z.string(),
     packKind: z.string(),
     mediaId: z.nullable(z.number()),
+    mediaKind: z.nullable(z.enum(["anime", "manga"])),
     seed: z.number(),
     size: z.number(),
     createdAt: z.number(),
     openedAt: z.nullable(z.number()),
     contentsState: z.enum(["pending", "ready", "failed"]),
+    claimedAt: z.nullable(z.number()),
+    chosenSlot: z.nullable(z.number()),
   })
 );
 
@@ -108,6 +111,7 @@ export const PackOpeningSchema = z.compile(
     packId: z.string(),
     cards: z.array(OpenedCardSchema),
     value: z.number(),
+    chosenSlot: z.nullable(z.number()),
   })
 );
 
@@ -285,11 +289,19 @@ export const CardsStatsSchema = z.compile(
   })
 );
 
+export const CardsSeenSchema = z.compile(
+  z.object({
+    packsReadAt: z.number(),
+    albumReadAt: z.number(),
+  })
+);
+
 export const CardsShellSchema = z.compile(
   z.object({
     bootstrap: CardsBootstrapSchema,
     stats: CardsStatsSchema,
     unread: CardsUnreadSchema,
+    seen: CardsSeenSchema,
   })
 );
 

@@ -12,6 +12,61 @@ pub const LOCAL_USER_ID: i64 = 0;
 pub const OPENINGS_RETENTION: i64 = 500;
 pub const LEDGER_RETENTION: i64 = 1000;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct CardsSeen {
+    pub packs_read_at: i64,
+    pub album_read_at: i64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CardsSeenTab {
+    Packs,
+    Album,
+}
+
+pub fn read_cards_seen(connection: &Connection, user_id: i64) -> Result<CardsSeen, String> {
+    connection
+        .execute(
+            "INSERT OR IGNORE INTO cards_seen (user_id) VALUES (?1)",
+            params![user_id],
+        )
+        .map_err(|error| format!("prepare cards seen row: {error}"))?;
+    connection
+        .query_row(
+            "SELECT packs_read_at, album_read_at FROM cards_seen WHERE user_id = ?1",
+            params![user_id],
+            |row| {
+                Ok(CardsSeen {
+                    packs_read_at: row.get(0)?,
+                    album_read_at: row.get(1)?,
+                })
+            },
+        )
+        .map_err(|error| format!("read cards seen: {error}"))
+}
+
+pub fn mark_cards_seen(
+    connection: &Connection,
+    user_id: i64,
+    tab: CardsSeenTab,
+    at: i64,
+) -> Result<CardsSeen, String> {
+    read_cards_seen(connection, user_id)?;
+    let column = match tab {
+        CardsSeenTab::Packs => "packs_read_at",
+        CardsSeenTab::Album => "album_read_at",
+    };
+    connection
+        .execute(
+            &format!("UPDATE cards_seen SET {column} = MAX({column}, ?2) WHERE user_id = ?1"),
+            params![user_id, at],
+        )
+        .map_err(|error| format!("mark cards seen: {error}"))?;
+    read_cards_seen(connection, user_id)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CardPackRow {
@@ -19,11 +74,16 @@ pub struct CardPackRow {
     pub source: String,
     pub pack_kind: String,
     pub media_id: Option<i64>,
+    /// The anime or manga whose completion granted a choice pack.
+    pub media_kind: Option<CardKind>,
     pub seed: i64,
     pub size: i64,
     pub created_at: i64,
     pub opened_at: Option<i64>,
     pub contents_state: CardPackContentsState,
+    /// Choice packs pause after the reveal until one card is picked.
+    pub claimed_at: Option<i64>,
+    pub chosen_slot: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -195,19 +255,29 @@ fn pack_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CardPackRow> {
         source: row.get(1)?,
         pack_kind: row.get(2)?,
         media_id: row.get(3)?,
-        seed: row.get(4)?,
-        size: row.get(5)?,
-        created_at: row.get(6)?,
-        opened_at: row.get(7)?,
-        contents_state: CardPackContentsState::from_db(&row.get::<_, String>(8)?).ok_or_else(
+        media_kind: row
+            .get::<_, Option<String>>(4)?
+            .map(|value| {
+                CardKind::from_db(&value).ok_or_else(|| {
+                    rusqlite::Error::InvalidColumnType(4, value, rusqlite::types::Type::Text)
+                })
+            })
+            .transpose()?,
+        seed: row.get(5)?,
+        size: row.get(6)?,
+        created_at: row.get(7)?,
+        opened_at: row.get(8)?,
+        contents_state: CardPackContentsState::from_db(&row.get::<_, String>(9)?).ok_or_else(
             || {
                 rusqlite::Error::InvalidColumnType(
-                    8,
+                    9,
                     "unknown card pack contents state".into(),
                     rusqlite::types::Type::Text,
                 )
             },
         )?,
+        claimed_at: row.get(10)?,
+        chosen_slot: row.get(11)?,
     })
 }
 
@@ -318,20 +388,23 @@ pub fn insert_pack(
     connection
         .execute(
             "INSERT INTO card_packs (
-                id, user_id, source, pack_kind, media_id, seed, size, created_at, opened_at,
-                contents_state
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                id, user_id, source, pack_kind, media_id, media_kind, seed, size, created_at,
+                opened_at, contents_state, claimed_at, chosen_slot
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 pack.id,
                 user_id,
                 pack.source,
                 pack.pack_kind,
                 pack.media_id,
+                pack.media_kind.map(CardKind::as_str),
                 pack.seed,
                 pack.size,
                 pack.created_at,
                 pack.opened_at,
-                pack.contents_state.as_str()
+                pack.contents_state.as_str(),
+                pack.claimed_at,
+                pack.chosen_slot
             ],
         )
         .map_err(|error| format!("insert card pack: {error}"))?;
@@ -345,8 +418,8 @@ pub fn get_pack(
 ) -> Result<Option<CardPackRow>, String> {
     connection
         .query_row(
-            "SELECT id, source, pack_kind, media_id, seed, size, created_at, opened_at,
-                    contents_state
+            "SELECT id, source, pack_kind, media_id, media_kind, seed, size, created_at,
+                    opened_at, contents_state, claimed_at, chosen_slot
              FROM card_packs WHERE id = ?1 AND user_id = ?2",
             params![pack_id, user_id],
             pack_from_row,
@@ -362,8 +435,8 @@ pub fn list_packs(
 ) -> Result<Vec<CardPackRow>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT id, source, pack_kind, media_id, seed, size, created_at, opened_at,
-                    contents_state
+            "SELECT id, source, pack_kind, media_id, media_kind, seed, size, created_at,
+                    opened_at, contents_state, claimed_at, chosen_slot
              FROM card_packs WHERE user_id = ?1
              ORDER BY created_at DESC, id DESC LIMIT ?2",
         )
@@ -383,8 +456,8 @@ pub fn list_packs_to_prepare(
 ) -> Result<Vec<CardPackRow>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT id, source, pack_kind, media_id, seed, size, created_at, opened_at,
-                    contents_state
+            "SELECT id, source, pack_kind, media_id, media_kind, seed, size, created_at,
+                    opened_at, contents_state, claimed_at, chosen_slot
              FROM card_packs
              WHERE user_id = ?1 AND opened_at IS NULL
                AND contents_state IN ('pending','failed')
@@ -453,6 +526,28 @@ pub fn list_pack_cards(
         .map_err(|error| format!("query card pack cards: {error}"))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("collect card pack cards: {error}"))
+}
+
+/// Marks a choice pack as resolved. Only the first claim wins; the caller then
+/// grants exactly the picked card inside the same transaction.
+pub fn claim_pack_card(
+    connection: &Connection,
+    user_id: i64,
+    pack_id: &str,
+    slot: i64,
+    claimed_at: i64,
+) -> Result<bool, String> {
+    let changed = connection
+        .execute(
+            "UPDATE card_packs
+                SET claimed_at = ?4, chosen_slot = ?3,
+                    opened_at = COALESCE(opened_at, ?4), contents_state = 'ready'
+              WHERE id = ?1 AND user_id = ?2 AND pack_kind = 'choice'
+                AND claimed_at IS NULL AND opened_at IS NULL",
+            params![pack_id, user_id, slot, claimed_at],
+        )
+        .map_err(|error| format!("claim card pack: {error}"))?;
+    Ok(changed > 0)
 }
 
 /// Writes the frozen pack contents and marks the pack ready in one transaction.
@@ -1323,11 +1418,14 @@ mod tests {
             source: "test".into(),
             pack_kind: "default".into(),
             media_id: None,
+            media_kind: None,
             seed: 42,
             size: 7,
             created_at,
             opened_at: None,
             contents_state: CardPackContentsState::Pending,
+            claimed_at: None,
+            chosen_slot: None,
         }
     }
 
@@ -1362,6 +1460,29 @@ mod tests {
             preferred_image_url: None,
             collage_expected: None,
         }
+    }
+
+    #[test]
+    fn cards_seen_starts_empty_and_only_moves_forward() {
+        let connection = memory_db();
+        assert_eq!(
+            read_cards_seen(&connection, LOCAL_USER_ID).expect("initial cards seen"),
+            CardsSeen::default()
+        );
+
+        let after_packs = mark_cards_seen(&connection, LOCAL_USER_ID, CardsSeenTab::Packs, 50)
+            .expect("mark packs seen");
+        assert_eq!(after_packs.packs_read_at, 50);
+        assert_eq!(after_packs.album_read_at, 0);
+
+        let after_album = mark_cards_seen(&connection, LOCAL_USER_ID, CardsSeenTab::Album, 70)
+            .expect("mark album seen");
+        assert_eq!(after_album.packs_read_at, 50);
+        assert_eq!(after_album.album_read_at, 70);
+
+        let stale = mark_cards_seen(&connection, LOCAL_USER_ID, CardsSeenTab::Packs, 40)
+            .expect("stale packs seen");
+        assert_eq!(stale.packs_read_at, 50);
     }
 
     #[test]

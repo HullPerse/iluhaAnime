@@ -15,8 +15,11 @@ pub mod types;
 use tauri::AppHandle;
 
 use crate::anilist::auth::optional_token;
-use crate::app_db::cards::{starter_grant, unopened_pack_count, wallet_balance, LOCAL_USER_ID};
-use crate::app_db::db::open_database;
+use crate::app_db::cards::{
+    mark_cards_seen, read_cards_seen, starter_grant, unopened_pack_count, wallet_balance,
+    CardsSeen, CardsSeenTab, LOCAL_USER_ID,
+};
+use crate::app_db::db::{now_seconds, open_database};
 use types::CardsBootstrap;
 
 #[derive(serde::Serialize)]
@@ -24,6 +27,7 @@ pub struct CardsShell {
     pub bootstrap: CardsBootstrap,
     pub stats: collection::CardsStats,
     pub unread: collection::CardsUnread,
+    pub seen: CardsSeen,
 }
 
 /// Card ownership is a single local profile, so every path that can add cards
@@ -59,19 +63,28 @@ pub fn cards_bootstrap(app: AppHandle) -> Result<CardsBootstrap, String> {
 /// Header data for the Collection tab in one local IPC: bootstrap, stats and
 /// unread counts all come from the same SQLite connection anyway.
 #[tauri::command]
-pub fn cards_shell(
-    app: AppHandle,
-    packs_since: i64,
-    cards_since: i64,
-) -> Result<CardsShell, String> {
+pub fn cards_shell(app: AppHandle) -> Result<CardsShell, String> {
+    let seen = read_cards_seen(&open_database(&app)?, LOCAL_USER_ID)?;
     let bootstrap = cards_bootstrap(app.clone())?;
     let stats = collection::cards_stats(app.clone())?;
-    let unread = collection::cards_unread(app, packs_since, cards_since)?;
+    let unread = collection::cards_unread(app, seen.packs_read_at, seen.album_read_at)?;
     Ok(CardsShell {
         bootstrap,
         stats,
         unread,
+        seen,
     })
+}
+
+#[tauri::command]
+pub fn cards_mark_seen(
+    app: AppHandle,
+    tab: CardsSeenTab,
+    at: Option<i64>,
+) -> Result<CardsSeen, String> {
+    let now = now_seconds();
+    let at = at.map_or(now, |value| value.clamp(1, now));
+    mark_cards_seen(&open_database(&app)?, LOCAL_USER_ID, tab, at)
 }
 
 #[cfg(test)]

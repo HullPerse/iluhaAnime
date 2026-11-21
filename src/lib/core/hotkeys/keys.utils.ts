@@ -110,8 +110,8 @@ export const queryKeys = {
   checkFfprobe: () => ["check-ffprobe"] as const,
   collectionData: () => ["collection-data"] as const,
   cardsBootstrap: () => ["cards-bootstrap"] as const,
-  cardsShell: (packsSince: number, cardsSince: number) =>
-    ["cards-shell", packsSince, cardsSince] as const,
+  cardsShell: () => ["cards-shell"] as const,
+  cardsShellScope: () => ["cards-shell"] as const,
   dailyGame: (day: string) => ["daily-game", day] as const,
   dailyGameScope: () => ["daily-game"] as const,
   dailyAnswer: (id: number) => ["daily-answer", id] as const,

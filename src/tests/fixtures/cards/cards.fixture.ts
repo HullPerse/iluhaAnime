@@ -103,11 +103,14 @@ export function makePack(overrides: Partial<CardPackRow> = {}): CardPackRow {
     source: "test",
     packKind: "default",
     mediaId: null,
+    mediaKind: null,
     seed: 7,
     size: 7,
     createdAt: 1_760_000_000,
     openedAt: null,
     contentsState: "ready",
+    claimedAt: null,
+    chosenSlot: null,
     ...overrides,
   };
 }
@@ -143,6 +146,7 @@ export function makeOpening(cards = makeOpenedCards()): PackOpening {
     packId: "pack-1",
     cards,
     value: cards.reduce((sum, card) => sum + card.value, 0),
+    chosenSlot: null,
   };
 }
 

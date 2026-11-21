@@ -52,11 +52,14 @@ pub fn cards_buy_pack(app: AppHandle, pack_kind: String) -> Result<PurchaseResul
         source: "purchase".into(),
         pack_kind: entry.pack_kind.into(),
         media_id: None,
+        media_kind: None,
         seed: seed as i64,
         size: CARD_PACK_SIZE as i64,
         created_at: now,
         opened_at: None,
         contents_state: super::types::CardPackContentsState::Pending,
+        claimed_at: None,
+        chosen_slot: None,
     };
     insert_pack(&transaction, LOCAL_USER_ID, &pack)?;
     transaction

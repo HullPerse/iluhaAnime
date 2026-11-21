@@ -7,6 +7,7 @@ import { resetCardsStore } from "@/store/cards.store";
 import {
   makeBootstrap,
   makeCardsStats,
+  makeCollectionItem,
   makeCollectionPage,
 } from "@/tests/fixtures/cards/cards.fixture";
 import { mockInvoke } from "@/tests/mocks";
@@ -21,16 +22,19 @@ const NO_STARTER = {
 };
 
 const NO_UNREAD = { packs: 0, cards: 0 };
+const NO_SEEN = { packsReadAt: 0, albumReadAt: 0 };
 
 const shell = (
   stats = makeCardsStats({ totalCards: 2 }),
   unread = NO_UNREAD,
-  bootstrap = makeBootstrap()
-) => ({ bootstrap, stats, unread });
+  bootstrap = makeBootstrap(),
+  seen = NO_SEEN
+) => ({ bootstrap, stats, unread, seen });
 
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "cards_shell") return Promise.resolve(shell());
+    if (command === "cards_mark_seen") return Promise.resolve(NO_SEEN);
     if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
     if (command === "cards_collection")
       return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
@@ -89,6 +93,28 @@ describe("collection shell", () => {
     const packsBadge = await screen.findByTestId("collection-unread-packs");
     expect(packsBadge.textContent).toBe("[3]");
     expect(screen.getByTestId("collection-unread-album").textContent).toBe("[2]");
+  });
+
+  it("does not mark already read cards new on a cold mount", async () => {
+    const seen = { packsReadAt: 100, albumReadAt: 100 };
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_shell") return Promise.resolve(shell(undefined, undefined, undefined, seen));
+      if (command === "cards_mark_seen") return Promise.resolve(seen);
+      if (command === "cards_collection")
+        return Promise.resolve(
+          makeCollectionPage({
+            items: [makeCollectionItem({ title: "Levi", firstObtainedAt: 50 })],
+            total: 1,
+          })
+        );
+      return Promise.resolve(null);
+    });
+    renderWithCardsClient(<CollectionShell />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Альбом" }));
+
+    expect(await screen.findByText("Levi")).toBeTruthy();
+    expect(screen.queryByTestId("card-new")).toBeNull();
   });
 
   it("switches to the album and renders its empty state", async () => {

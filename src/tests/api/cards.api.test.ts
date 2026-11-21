@@ -41,11 +41,14 @@ const pack = {
   source: "test",
   packKind: "default",
   mediaId: null,
+  mediaKind: null,
   seed: 1,
   size: 7,
   createdAt: 1,
   openedAt: null,
   contentsState: "pending" as const,
+  claimedAt: null,
+  chosenSlot: null,
 };
 
 const openedCard = {
@@ -303,7 +306,12 @@ describe("CardsApi", () => {
 
   it("maps open, dust, buy, starter and gift commands", async () => {
     const { calls, transport } = fakeTransport({
-      cards_open_pack: { packId: "test-1", cards: [openedCard], value: openedCard.value },
+      cards_open_pack: {
+        packId: "test-1",
+        cards: [openedCard],
+        value: openedCard.value,
+        chosenSlot: null,
+      },
       cards_dust: { remaining: 1, amount: 8, wallet: 8 },
       cards_buy_pack: { pack, price: 120, wallet: 8 },
       cards_grant_starter: { granted: false, packs: 0 },

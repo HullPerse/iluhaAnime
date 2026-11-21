@@ -21,6 +21,7 @@ describe("collection shop", () => {
           bootstrap: makeBootstrap({ wallet: 90 }),
           stats: makeCardsStats(),
           unread: { packs: 0, cards: 0 },
+          seen: { packsReadAt: 0, albumReadAt: 0 },
         });
       return Promise.resolve(null);
     });
@@ -41,6 +42,7 @@ describe("collection shop", () => {
           bootstrap: makeBootstrap({ wallet: 200 }),
           stats: makeCardsStats(),
           unread: { packs: 0, cards: 0 },
+          seen: { packsReadAt: 0, albumReadAt: 0 },
         });
       if (command === "cards_buy_pack") return Promise.resolve(makePurchase());
       return Promise.resolve(null);

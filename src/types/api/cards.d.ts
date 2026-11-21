@@ -65,10 +65,18 @@ export interface CardsBootstrap {
   starterPacks: number;
 }
 
+export type CardsSeenTab = "packs" | "album";
+
+export interface CardsSeen {
+  packsReadAt: number;
+  albumReadAt: number;
+}
+
 export interface CardsShell {
   bootstrap: CardsBootstrap;
   stats: CardsStats;
   unread: CardsUnread;
+  seen: CardsSeen;
 }
 
 export interface CardPackRow {
@@ -76,11 +84,14 @@ export interface CardPackRow {
   source: string;
   packKind: string;
   mediaId: number | null;
+  mediaKind: "anime" | "manga" | null;
   seed: number;
   size: number;
   createdAt: number;
   openedAt: number | null;
   contentsState: "pending" | "ready" | "failed";
+  claimedAt: number | null;
+  chosenSlot: number | null;
 }
 
 export interface PackPreparation {
@@ -108,6 +119,7 @@ export interface PackOpening {
   packId: string;
   cards: OpenedCard[];
   value: number;
+  chosenSlot: number | null;
 }
 
 export interface GiftCard extends OpenedCard {

@@ -1,6 +1,7 @@
 import { useCell } from "@hullperse/hp_utils/react";
 import { SkipForward } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { RefObject } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -33,47 +34,12 @@ function packImageUrls(cards: readonly OpenedCard[]): string[] {
   return urls;
 }
 
-export default function PackOpen({
-  cards,
-  packKind = "default",
-  value = 0,
-  onClose,
-  introMs = INTRO_MS,
-}: {
-  cards: readonly OpenedCard[];
-  packKind?: string;
-  value?: number;
-  onClose: () => void;
-  introMs?: number;
-}) {
-  const { t } = useI18n();
-  const imageProxy = useCardsImageProxy();
-  const enableAnimations = useCell(settingsAtoms.enableAnimations);
-  const tilt = useCardTilt(enableAnimations);
-  const [phase, setPhase] = useState<PackOpeningPhase>("intro");
-  const [introFinished, setIntroFinished] = useState(false);
-  const [imagesReady, setImagesReady] = useState(false);
-  const [flipped, setFlipped] = useState<ReadonlySet<number>>(() => new Set());
-  const packRef = useRef<HTMLButtonElement>(null);
-  const images = useMemo(() => packImageUrls(cards), [cards]);
-
-  useEffect(() => {
-    setImagesReady(false);
-    setRemoteImageScope(images);
-    let cancelled = false;
-    prefetchRemoteImages(images, imageProxy)
-      .then(() => {
-        if (!cancelled) setImagesReady(true);
-        return null;
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-      setRemoteImageScope(null);
-      cancelRemoteImageQueue();
-    };
-  }, [imageProxy, images]);
-
+function usePackIntroAnimation(
+  enableAnimations: boolean,
+  introMs: number,
+  packRef: RefObject<HTMLButtonElement | null>,
+  setIntroFinished: (finished: boolean) => void
+) {
   useEffect(() => {
     setIntroFinished(false);
     if (!enableAnimations) {
@@ -112,13 +78,84 @@ export default function PackOpen({
       cancelled = true;
       animation.cancel();
     };
-  }, [enableAnimations, introMs]);
+  }, [enableAnimations, introMs, packRef, setIntroFinished]);
+}
+
+export default function PackOpen({
+  cards,
+  packKind = "default",
+  value = 0,
+  onClose,
+  introMs = INTRO_MS,
+  chosenSlot = null,
+  claiming = false,
+  choiceError = false,
+  onChoose,
+}: {
+  cards: readonly OpenedCard[];
+  packKind?: string;
+  value?: number;
+  onClose: () => void;
+  introMs?: number;
+  /** Choice packs: the picked slot, once the player has claimed a card. */
+  chosenSlot?: number | null;
+  claiming?: boolean;
+  choiceError?: boolean;
+  onChoose?: (slot: number) => void;
+}) {
+  const { t } = useI18n();
+  const imageProxy = useCardsImageProxy();
+  const enableAnimations = useCell(settingsAtoms.enableAnimations);
+  const tilt = useCardTilt(enableAnimations);
+  const [phase, setPhase] = useState<PackOpeningPhase>("intro");
+  const [introFinished, setIntroFinished] = useState(false);
+  const [imagesReady, setImagesReady] = useState(false);
+  const [flipped, setFlipped] = useState<ReadonlySet<number>>(() => new Set());
+  const [pendingChoice, setPendingChoice] = useState<number | null>(null);
+  const packRef = useRef<HTMLButtonElement>(null);
+  const images = useMemo(() => packImageUrls(cards), [cards]);
+
+  useEffect(() => {
+    setImagesReady(false);
+    setRemoteImageScope(images);
+    let cancelled = false;
+    prefetchRemoteImages(images, imageProxy)
+      .then(() => {
+        if (!cancelled) setImagesReady(true);
+        return null;
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      setRemoteImageScope(null);
+      cancelRemoteImageQueue();
+    };
+  }, [imageProxy, images]);
+
+  usePackIntroAnimation(enableAnimations, introMs, packRef, setIntroFinished);
 
   useEffect(() => {
     if (phase === "intro" && introFinished && imagesReady) setPhase("reveal");
   }, [phase, introFinished, imagesReady]);
 
+  useEffect(() => {
+    if (chosenSlot !== null) {
+      setFlipped(new Set(cards.map((_, index) => index)));
+    }
+  }, [cards, chosenSlot]);
+
+  useEffect(() => {
+    if (choiceError) setPendingChoice(null);
+  }, [choiceError]);
+
   const flip = (index: number) => {
+    if (choosing && chosenSlot === null) {
+      if (claiming) return;
+      setFlipped(new Set(cards.map((_, cardIndex) => cardIndex)));
+      setPendingChoice(index);
+      onChoose?.(index);
+      return;
+    }
     setFlipped((current) => {
       if (current.has(index)) return current;
       const next = new Set(current);
@@ -142,35 +179,49 @@ export default function PackOpen({
   };
 
   const allFlipped = cards.length > 0 && flipped.size === cards.length;
+  const choosing = onChoose !== undefined;
+  const activeChoice = chosenSlot ?? (choiceError ? null : pendingChoice);
   const skipLabel = phase === "intro" ? t("collection.skip") : t("collection.open.revealAll");
   const rows = [cards.slice(0, 4), cards.slice(4)].filter((row) => row.length > 0);
 
-  const card = (item: OpenedCard, index: number, sourcePlacement: "above" | "below") => (
-    <div className="cards-reveal-card" key={`${item.kind}:${item.entityId}:${index}`}>
-      <Reveal
-        card={item}
-        index={index}
-        flipped={flipped.has(index)}
-        onFlip={flip}
-        sourcePlacement={sourcePlacement}
-      />
-    </div>
-  );
+  const card = (item: OpenedCard, index: number, sourcePlacement: "above" | "below") => {
+    const discarded = activeChoice !== null && activeChoice !== index;
+    const picked = activeChoice === index;
+    return (
+      <div
+        className="cards-reveal-card"
+        key={`${item.kind}:${item.entityId}:${index}`}
+        data-choice={choosing ? "true" : undefined}
+        data-discarded={discarded ? "true" : undefined}
+        data-picked={picked ? "true" : undefined}
+      >
+        <Reveal
+          card={item}
+          index={index}
+          flipped={flipped.has(index)}
+          onFlip={flip}
+          sourcePlacement={sourcePlacement}
+        />
+      </div>
+    );
+  };
 
   return (
     <Modal
       header={t("collection.open.title")}
       headerActions={
-        <Button
-          size="icon"
-          className="size-5"
-          aria-label={skipLabel}
-          title={skipLabel}
-          disabled={phase === "reveal" && allFlipped}
-          onClick={skip}
-        >
-          <SkipForward className="size-3" />
-        </Button>
+        choosing ? undefined : (
+          <Button
+            size="icon"
+            className="size-5"
+            aria-label={skipLabel}
+            title={skipLabel}
+            disabled={phase === "reveal" && allFlipped}
+            onClick={skip}
+          >
+            <SkipForward className="size-3" />
+          </Button>
+        )
       }
       onClose={onClose}
       className="w-[min(76rem,calc(100vw-1rem))]"
@@ -217,6 +268,12 @@ export default function PackOpen({
                   <img src="/money.png" alt="" className="chubrik-icon" />
                   <span className="tabular-nums">+{value}</span>
                 </>
+              )}
+
+              {choosing && choiceError && (
+                <span className="text-destructive font-normal" role="alert">
+                  {t("collection.open.choice.error")}
+                </span>
               )}
             </span>
             <Button className="h-6 px-2 text-xs" disabled={!allFlipped} onClick={onClose}>

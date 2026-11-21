@@ -50,11 +50,14 @@ const PACK = {
   source: "test",
   packKind: "default",
   mediaId: null,
+  mediaKind: null,
   seed: 1,
   size: 7,
   createdAt: 1,
   openedAt: null,
   contentsState: "ready" as const,
+  claimedAt: null,
+  chosenSlot: null,
 };
 
 const PAGE: CollectionPage = {

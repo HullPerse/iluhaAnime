@@ -58,30 +58,47 @@ export default function CollectionShell() {
   const online = useOnlineStatus();
   const bootstrap = useCardsShell();
   const starterStatus = useCardsStarterStatus();
-  const { grantStarter } = useCardsMutations();
+  const { grantStarter, markSeen } = useCardsMutations();
   const [starterClaimed, setStarterClaimed] = useState(false);
+  const [seenReady, setSeenReady] = useState(false);
+  const markSeenMutate = markSeen.mutate;
 
   useEffect(() => {
+    const seen = bootstrap.data?.seen;
+    if (seen === undefined || seenReady) return;
     const now = Math.floor(Date.now() / 1000);
-    if (tab === "packs") {
-      setCardsPacksNewSince(cardsAtoms.packsReadAt.get());
-      setCardsPacksReadAt(now);
-      setCardsAlbumNewSince(0);
-    } else if (tab === "album") {
-      setCardsAlbumNewSince(cardsAtoms.albumReadAt.get());
-      setCardsAlbumReadAt(now);
-      setCardsPacksNewSince(0);
-    } else {
-      setCardsPacksNewSince(0);
-      setCardsAlbumNewSince(0);
-      return;
-    }
+    const packsSeen = Math.max(
+      seen.packsReadAt,
+      Math.min(cardsAtoms.packsReadAt.get(), now)
+    );
+    const albumSeen = Math.max(
+      seen.albumReadAt,
+      Math.min(cardsAtoms.albumReadAt.get(), now)
+    );
+    setCardsPacksReadAt(packsSeen);
+    setCardsAlbumReadAt(albumSeen);
+    setCardsPacksNewSince(packsSeen);
+    setCardsAlbumNewSince(albumSeen);
+    setSeenReady(true);
+    if (packsSeen > seen.packsReadAt) markSeenMutate({ tab: "packs", at: packsSeen });
+    if (albumSeen > seen.albumReadAt) markSeenMutate({ tab: "album", at: albumSeen });
+  }, [bootstrap.data?.seen, seenReady, markSeenMutate]);
+
+  useEffect(() => {
+    if (!seenReady) return;
+    if (tab !== "packs" && tab !== "album") return;
+    const now = Math.floor(Date.now() / 1000);
+    const previous =
+      tab === "packs" ? cardsAtoms.packsReadAt.get() : cardsAtoms.albumReadAt.get();
+    if (tab === "packs") setCardsPacksNewSince(previous);
+    else setCardsAlbumNewSince(previous);
+    markSeenMutate({ tab });
     const timer = window.setTimeout(() => {
       if (tab === "packs") setCardsPacksNewSince(now + 1);
       else setCardsAlbumNewSince(now + 1);
     }, NEW_BADGE_MS);
     return () => window.clearTimeout(timer);
-  }, [tab]);
+  }, [tab, seenReady, markSeenMutate]);
 
   let body;
   if (bootstrap.isPending) {
@@ -95,6 +112,8 @@ export default function CollectionShell() {
         <Button onClick={() => ignore(bootstrap.refetch())}>{t("collection.retry")}</Button>
       </section>
     );
+  } else if (!seenReady) {
+    body = <TabLoader className="min-h-48 flex-1" />;
   } else if (tab === "game") {
     body = <GameCards />;
   } else if (tab === "album") {

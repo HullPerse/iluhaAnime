@@ -17,6 +17,7 @@ import type {
   CardGiftClaimInput,
   CardPackRow,
   CardsBootstrap,
+  CardsSeen,
   CardsShell,
   CardsStats,
   CardsUnread,
@@ -94,6 +95,11 @@ interface CardsOpenPackArgs extends CardsProxyArgs {
   packId: string;
 }
 
+interface CardsClaimPackCardArgs {
+  packId: string;
+  slot: number;
+}
+
 interface CardsCollectionsArgs extends CardsProxyArgs {
   sort: CollectionShelfSort;
   sortDir: "asc" | "desc";
@@ -115,7 +121,10 @@ interface CardsUnreadArgs {
   cardsSince: number;
 }
 
-type CardsShellArgs = CardsUnreadArgs;
+interface CardsMarkSeenArgs {
+  tab: "packs" | "album";
+  at?: number;
+}
 
 interface CardsBuyPackArgs {
   packKind: string;
@@ -131,11 +140,13 @@ interface CardsGiftArgs {
 
 export interface CardsClient {
   cardsBootstrap(): Promise<CardsBootstrap>;
-  cardsShell(args: CardsShellArgs): Promise<CardsShell>;
+  cardsShell(): Promise<CardsShell>;
+  cardsMarkSeen(args: CardsMarkSeenArgs): Promise<CardsSeen>;
   cardsPacks(): Promise<CardPackRow[]>;
   cardsPreparePacks(args: CardsProxyArgs): Promise<PackPreparation>;
   cardsAckPreparedPacks(): Promise<number>;
   cardsOpenPack(args: CardsOpenPackArgs): Promise<PackOpening>;
+  cardsClaimPackCard(args: CardsClaimPackCardArgs): Promise<PackOpening>;
   cardsCollection(args: CardsCollectionArgs): Promise<CollectionPage>;
   cardsResetCollection(): Promise<number>;
   cardsCollections(args: CardsCollectionsArgs): Promise<CollectionShelfItem[]>;
@@ -213,11 +224,12 @@ export function createCardsClient(
 ): CardsClient {
   return {
     cardsBootstrap: () => call<CardsBootstrap>("cards_bootstrap"),
-    cardsShell: (args) =>
-      call<CardsShell>("cards_shell", {
-        packsSince: args.packsSince,
-        cardsSince: args.cardsSince,
-      }),
+    cardsShell: () => call<CardsShell>("cards_shell"),
+    cardsMarkSeen: (args) =>
+      call<CardsSeen>(
+        "cards_mark_seen",
+        args.at === undefined ? { tab: args.tab } : { tab: args.tab, at: args.at }
+      ),
     cardsPacks: () => call<CardPackRow[]>("cards_packs"),
     cardsPreparePacks: (args) =>
       call<PackPreparation>("cards_prepare_packs", proxy(args.proxyUrl)),
@@ -226,6 +238,11 @@ export function createCardsClient(
       call<PackOpening>("cards_open_pack", {
         packId: args.packId,
         ...proxy(args.proxyUrl),
+      }),
+    cardsClaimPackCard: (args) =>
+      call<PackOpening>("cards_claim_pack_card", {
+        packId: args.packId,
+        slot: args.slot,
       }),
     cardsCollection: (args) =>
       call<CollectionPage>("cards_collection", {

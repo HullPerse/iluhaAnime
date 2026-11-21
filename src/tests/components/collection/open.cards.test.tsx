@@ -141,6 +141,42 @@ describe("collection pack opening", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("keeps one of two choice cards and shrinks the other", async () => {
+    const cards = makeOpenedCards(2);
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === "cards_open_pack") {
+        return Promise.resolve({ packId: "pack-1", cards, value: 0, chosenSlot: null });
+      }
+      if (command === "cards_claim_pack_card") {
+        return Promise.resolve({ packId: "pack-1", cards, value: 12, chosenSlot: 0 });
+      }
+      return Promise.resolve(null);
+    });
+    renderWithCardsClient(
+      <OpenCards
+        pack={makePack({ packKind: "choice", size: 2, mediaKind: "anime", mediaId: 16498 })}
+        onClose={vi.fn()}
+      />
+    );
+
+    fireEvent.click(await screen.findByTestId("card-flip-0"));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("cards_claim_pack_card", {
+        packId: "pack-1",
+        slot: 0,
+      })
+    );
+    expect(screen.getByTestId("card-flip-0").dataset.flipped).toBe("true");
+    expect(screen.getByTestId("card-flip-1").dataset.flipped).toBe("true");
+    const discarded = screen
+      .getByTestId("card-flip-1")
+      .closest("[data-discarded]") as HTMLElement | null;
+    expect(discarded?.dataset.discarded).toBe("true");
+    expect(screen.getByTestId("card-flip-0").closest("[data-picked]")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Оставить" })).toBeNull();
+  });
+
   it("keeps the pack and retries with the same id after a failure", async () => {
     mockInvoke
       .mockRejectedValueOnce(new Error("AniList is unavailable"))

@@ -6,7 +6,7 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::ceilings::{batch_page_ceilings, fetch_pages, page_ceiling};
-use super::config::{pick_variant, shop_pack};
+use super::config::{pick_variant, shop_pack, CHOICE_PACK_KIND};
 use super::metadata::{refresh_metadata, studio_collage_missing};
 use super::rarity::{card_value, score_for, tier_for};
 use super::rng::Rng;
@@ -17,12 +17,13 @@ use super::sampling::{
 use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
 use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
-    acknowledge_ready_packs, add_wallet, get_meta, get_pack, get_user_card, insert_ledger,
-    insert_opening, list_openings_for_pack, list_pack_cards, list_packs, list_packs_to_prepare,
-    list_user_card_stacks, list_user_cards, mark_pack_opened, mark_pack_prepare_failed,
-    mark_pack_prepare_started, ready_unnotified_count, save_pack_cards, trim_ledger, trim_openings,
-    upsert_card, upsert_meta, CardMetaRow, CardOpeningRow, CardPackCardRow, CardPackRow,
-    ChubrikLedgerRow, UserCardRow, LEDGER_RETENTION, LOCAL_USER_ID, OPENINGS_RETENTION,
+    acknowledge_ready_packs, add_wallet, claim_pack_card, get_meta, get_pack, get_user_card,
+    insert_ledger, insert_opening, list_openings_for_pack, list_pack_cards, list_packs,
+    list_packs_to_prepare, list_user_card_stacks, list_user_cards, mark_pack_opened,
+    mark_pack_prepare_failed, mark_pack_prepare_started, ready_unnotified_count, save_pack_cards,
+    trim_ledger, trim_openings, upsert_card, upsert_meta, CardMetaRow, CardOpeningRow,
+    CardPackCardRow, CardPackRow, ChubrikLedgerRow, UserCardRow, LEDGER_RETENTION, LOCAL_USER_ID,
+    OPENINGS_RETENTION,
 };
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -120,6 +121,8 @@ pub struct PackOpening {
     pub pack_id: String,
     pub cards: Vec<OpenedCard>,
     pub value: i64,
+    /// Set for choice packs once a card has been picked.
+    pub chosen_slot: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -586,8 +589,72 @@ fn generate_cards(nodes: Vec<CardNode>, seed: u64) -> Vec<GeneratedCard> {
 /// The composition of a pack, derived from its seed. Kept separate from
 /// generation so a prepare batch can prefetch every kind it will need.
 fn planned_needs(pack: &CardPackRow) -> Result<Vec<(CardKind, usize)>, String> {
+    // The choice pack draws its media card and character from one title, so it
+    // has no kind mix to prefetch ahead of time.
+    if pack.pack_kind == CHOICE_PACK_KIND {
+        return Ok(Vec::new());
+    }
     let mut plan_rng = Rng::new(pack.seed as u64 ^ 0x9E37_79B9_7F4A_7C15);
     pack_needs(&pack.pack_kind, pack.size as usize, &mut plan_rng)
+}
+
+/// The featured card is the completed title itself; the second card is a
+/// character from that same title. Both roll the standard rarity formula.
+async fn generate_choice_contents(
+    app: &AppHandle,
+    pack: &CardPackRow,
+    proxy: Option<&str>,
+    pools: &mut PoolCache,
+) -> Result<Vec<GeneratedCard>, String> {
+    let media_id = pack
+        .media_id
+        .filter(|id| *id > 0)
+        .ok_or("choice pack has no media id")?;
+    let media_kind = match pack.media_kind {
+        Some(kind @ (CardKind::Anime | CardKind::Manga)) => kind,
+        _ => return Err("choice pack has no anime or manga kind".into()),
+    };
+    refresh_metadata(app, &[(media_kind, media_id)], proxy).await?;
+    let media = {
+        let connection = open_database(app)?;
+        let meta = get_meta(&connection, media_kind, media_id)?;
+        drop(connection);
+        meta.map(|meta| card_node_from_meta(&meta))
+            .ok_or_else(|| format!("choice pack media metadata missing for {media_id}"))?
+    };
+    let node = crate::cards::collections::roster_choice_character(
+        app,
+        media_id,
+        media.popularity,
+        pack.seed as u64,
+        proxy,
+    )
+    .await?;
+    let mut nodes = vec![media];
+    match node {
+        Some(character) => nodes.push(character),
+        None => {
+            // A title with no roster is rare; keep the pack deliverable with a
+            // random character rather than leaving an unfinished reward.
+            tracing::warn!(
+                media_id,
+                "choice pack title has no roster; falling back to a random card"
+            );
+            let fallback = sample_cards(
+                app,
+                &[(CardKind::Character, 1)],
+                pack.seed as u64 ^ 0xC401_CE11,
+                proxy,
+                pools,
+            )
+            .await?;
+            nodes.extend(fallback);
+        }
+    }
+    if nodes.len() != pack.size as usize {
+        return Err("choice pack size does not match its contents".into());
+    }
+    Ok(generate_cards(nodes, pack.seed as u64))
 }
 
 async fn generate_pack_contents(
@@ -596,6 +663,9 @@ async fn generate_pack_contents(
     proxy: Option<&str>,
     pools: &mut PoolCache,
 ) -> Result<Vec<GeneratedCard>, String> {
+    if pack.pack_kind == CHOICE_PACK_KIND {
+        return generate_choice_contents(app, pack, proxy, pools).await;
+    }
     let needs = planned_needs(pack)?;
     let nodes = sample_cards(app, &needs, pack.seed as u64, proxy, pools).await?;
     let protected = nodes
@@ -723,6 +793,75 @@ fn save_prepared(
     save_pack_cards(&mut connection, LOCAL_USER_ID, pack_id, &rows, now)
 }
 
+/// Adds one pack card to the collection and returns its chubrik payout.
+fn grant_pack_card(
+    connection: &rusqlite::Connection,
+    pack_id: &str,
+    slot: usize,
+    card: &mut OpenedCard,
+    score: f64,
+    now: i64,
+) -> Result<i64, String> {
+    if let Some(existing) =
+        list_user_card_stacks(connection, LOCAL_USER_ID, card.kind, card.entity_id)?
+            .into_iter()
+            .min_by_key(|row| row.first_obtained_at)
+    {
+        if card.rarity != existing.rarity {
+            card.rarity = existing.rarity;
+            card.value = i64::from(card_value(card.kind, card.rarity, card.variant, score));
+            connection
+                .execute(
+                    "UPDATE card_pack_cards SET rarity = ?1, value = ?2 WHERE pack_id = ?3 AND slot = ?4",
+                    rusqlite::params![card.rarity.as_str(), card.value, pack_id, slot as i64],
+                )
+                .map_err(|error| format!("update card rarity: {error}"))?;
+        }
+    }
+    let copies_before = get_user_card(
+        connection,
+        LOCAL_USER_ID,
+        card.kind,
+        card.entity_id,
+        card.rarity,
+        card.variant,
+    )?
+    .map_or(0, |row| row.copies);
+    let payout = payout_for(card.value, copies_before);
+    upsert_card(
+        connection,
+        LOCAL_USER_ID,
+        &UserCardRow {
+            kind: card.kind,
+            entity_id: card.entity_id,
+            rarity: card.rarity,
+            variant: card.variant,
+            copies: 1,
+            value: card.value,
+            first_obtained_at: now,
+            last_obtained_at: now,
+        },
+    )?;
+    // Do not overwrite shared metadata with the frozen pack row here: an old
+    // pack may carry a stale source, and opening must not undo a newer
+    // metadata refresh. `save_prepared` already writes metadata when the pack
+    // is prepared.
+    insert_opening(
+        connection,
+        LOCAL_USER_ID,
+        &CardOpeningRow {
+            id: format!("{pack_id}:{slot:02}"),
+            pack_id: pack_id.to_string(),
+            kind: card.kind,
+            entity_id: card.entity_id,
+            rarity: card.rarity,
+            variant: card.variant,
+            at: now,
+        },
+    )?;
+    Ok(payout)
+}
+
 fn open_prepared(
     app: &AppHandle,
     pack_id: &str,
@@ -741,76 +880,20 @@ fn open_prepared(
             pack_id: pack_id.to_string(),
             cards,
             value: 0,
+            chosen_slot: None,
         });
     }
     let mut value = 0i64;
     for (index, prepared) in prepared.iter().enumerate() {
         let mut opened_card = prepared.card.clone();
-        if let Some(existing) = list_user_card_stacks(
+        value = value.saturating_add(grant_pack_card(
             &transaction,
-            LOCAL_USER_ID,
-            opened_card.kind,
-            opened_card.entity_id,
-        )?
-        .into_iter()
-        .min_by_key(|row| row.first_obtained_at)
-        {
-            if opened_card.rarity != existing.rarity {
-                opened_card.rarity = existing.rarity;
-                opened_card.value = i64::from(card_value(
-                    opened_card.kind,
-                    opened_card.rarity,
-                    opened_card.variant,
-                    prepared.score,
-                ));
-                transaction.execute(
-                    "UPDATE card_pack_cards SET rarity = ?1, value = ?2 WHERE pack_id = ?3 AND slot = ?4",
-                    rusqlite::params![opened_card.rarity.as_str(), opened_card.value, pack_id, index as i64],
-                ).map_err(|error| format!("update card rarity: {error}"))?;
-            }
-        }
-        let card = &opened_card;
-        let copies_before = get_user_card(
-            &transaction,
-            LOCAL_USER_ID,
-            card.kind,
-            card.entity_id,
-            card.rarity,
-            card.variant,
-        )?
-        .map_or(0, |row| row.copies);
-        value = value.saturating_add(payout_for(card.value, copies_before));
-        upsert_card(
-            &transaction,
-            LOCAL_USER_ID,
-            &UserCardRow {
-                kind: card.kind,
-                entity_id: card.entity_id,
-                rarity: card.rarity,
-                variant: card.variant,
-                copies: 1,
-                value: card.value,
-                first_obtained_at: now,
-                last_obtained_at: now,
-            },
-        )?;
-        // Do not overwrite shared metadata with the frozen pack row here: an
-        // old pack may carry a stale source, and opening must not undo a newer
-        // metadata refresh. `save_prepared` already writes metadata when the
-        // pack is prepared.
-        insert_opening(
-            &transaction,
-            LOCAL_USER_ID,
-            &CardOpeningRow {
-                id: format!("{pack_id}:{index:02}"),
-                pack_id: pack_id.to_string(),
-                kind: card.kind,
-                entity_id: card.entity_id,
-                rarity: card.rarity,
-                variant: card.variant,
-                at: now,
-            },
-        )?;
+            pack_id,
+            index,
+            &mut opened_card,
+            prepared.score,
+            now,
+        )?);
     }
     trim_openings(&transaction, LOCAL_USER_ID, OPENINGS_RETENTION)?;
     if value > 0 {
@@ -835,6 +918,7 @@ fn open_prepared(
         pack_id: pack_id.to_string(),
         cards,
         value,
+        chosen_slot: None,
     })
 }
 
@@ -1314,6 +1398,18 @@ pub async fn cards_open_pack(
         return Err("card pack not found".into());
     };
     if pack.opened_at.is_some() {
+        if pack.pack_kind == CHOICE_PACK_KIND {
+            let cards = list_pack_cards(&connection, &pack_id)?
+                .into_iter()
+                .map(|row| PreparedCard::from_row(row).card)
+                .collect();
+            return Ok(PackOpening {
+                pack_id,
+                cards,
+                value: 0,
+                chosen_slot: pack.chosen_slot,
+            });
+        }
         let keys = studio_card_keys(
             list_openings_for_pack(&connection, LOCAL_USER_ID, &pack_id)?
                 .into_iter()
@@ -1327,6 +1423,7 @@ pub async fn cards_open_pack(
             pack_id,
             cards,
             value: 0,
+            chosen_slot: None,
         });
     }
     let ready_cards = if pack.contents_state == CardPackContentsState::Ready {
@@ -1356,6 +1453,7 @@ pub async fn cards_open_pack(
                     pack_id,
                     cards,
                     value: 0,
+                    chosen_slot: None,
                 });
             }
             cards
@@ -1363,6 +1461,16 @@ pub async fn cards_open_pack(
     };
     if prepared.len() != pack.size as usize {
         return Err("card pack size changed while opening".into());
+    }
+    // A choice pack stops at the reveal: nothing is granted until the user
+    // picks one of the two cards.
+    if pack.pack_kind == CHOICE_PACK_KIND {
+        return Ok(PackOpening {
+            pack_id,
+            cards: prepared.into_iter().map(|card| card.card).collect(),
+            value: 0,
+            chosen_slot: None,
+        });
     }
     // A ready pack was frozen while the studio query could still fail. Repair
     // its studio metadata before open_prepared reads the cards back for the
@@ -1376,9 +1484,116 @@ pub async fn cards_open_pack(
     open_prepared(&app, &pack_id, &prepared)
 }
 
+/// Grants exactly the picked card of a choice pack. The other card stays in
+/// the frozen pack contents but never enters the collection.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub fn cards_claim_pack_card(
+    app: AppHandle,
+    pack_id: String,
+    slot: i64,
+) -> Result<PackOpening, String> {
+    let pack_id = pack_id.trim().to_string();
+    if pack_id.is_empty() || pack_id.len() > 128 {
+        return Err("invalid card pack id".into());
+    }
+    crate::cards::require_anilist_account(&app)?;
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let mut connection = open_database(&app)?;
+    claim_choice_pack_in(&mut connection, &pack_id, slot)
+}
+
+fn claim_choice_pack_in(
+    connection: &mut rusqlite::Connection,
+    pack_id: &str,
+    slot: i64,
+) -> Result<PackOpening, String> {
+    let Some(pack) = get_pack(connection, LOCAL_USER_ID, pack_id)? else {
+        return Err("card pack not found".into());
+    };
+    if pack.pack_kind != CHOICE_PACK_KIND {
+        return Err("card pack has no choice".into());
+    }
+    let pack_id = pack_id.to_string();
+    if pack.claimed_at.is_some() {
+        let cards = list_pack_cards(connection, &pack_id)?
+            .into_iter()
+            .map(|row| PreparedCard::from_row(row).card)
+            .collect();
+        return Ok(PackOpening {
+            pack_id,
+            cards,
+            value: 0,
+            chosen_slot: pack.chosen_slot,
+        });
+    }
+    let row = list_pack_cards(connection, &pack_id)?
+        .into_iter()
+        .find(|row| row.slot == slot)
+        .ok_or("invalid choice slot")?;
+    let prepared = PreparedCard::from_row(row);
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("claim card pack transaction: {error}"))?;
+    let now = now_seconds();
+    if !claim_pack_card(&transaction, LOCAL_USER_ID, &pack_id, slot, now)? {
+        drop(transaction);
+        let cards = list_pack_cards(connection, &pack_id)?
+            .into_iter()
+            .map(|row| PreparedCard::from_row(row).card)
+            .collect();
+        let chosen_slot =
+            get_pack(connection, LOCAL_USER_ID, &pack_id)?.and_then(|pack| pack.chosen_slot);
+        return Ok(PackOpening {
+            pack_id,
+            cards,
+            value: 0,
+            chosen_slot,
+        });
+    }
+    let mut card = prepared.card.clone();
+    let value = grant_pack_card(
+        &transaction,
+        &pack_id,
+        slot as usize,
+        &mut card,
+        prepared.score,
+        now,
+    )?;
+    trim_openings(&transaction, LOCAL_USER_ID, OPENINGS_RETENTION)?;
+    if value > 0 {
+        add_wallet(&transaction, LOCAL_USER_ID, value)?;
+        insert_ledger(
+            &transaction,
+            LOCAL_USER_ID,
+            &ChubrikLedgerRow {
+                id: format!("pack-{pack_id}-{now}"),
+                amount: value,
+                reason: "pack".into(),
+                at: now,
+            },
+        )?;
+        trim_ledger(&transaction, LOCAL_USER_ID, LEDGER_RETENTION)?;
+    }
+    transaction
+        .commit()
+        .map_err(|error| format!("commit card pack claim: {error}"))?;
+    let cards = list_pack_cards(connection, &pack_id)?
+        .into_iter()
+        .map(|row| PreparedCard::from_row(row).card)
+        .collect();
+    Ok(PackOpening {
+        pack_id,
+        cards,
+        value,
+        chosen_slot: Some(slot),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app_db::cards::insert_pack;
     use crate::cards::config::CARD_PACK_SIZE;
 
     #[test]
@@ -1498,6 +1713,104 @@ mod tests {
             .map(|item| (item.card.kind, item.card.entity_id))
             .collect();
         assert_eq!(before, after);
+    }
+
+    fn choice_pack_row() -> CardPackRow {
+        CardPackRow {
+            id: "status-choice".into(),
+            source: "status".into(),
+            pack_kind: CHOICE_PACK_KIND.into(),
+            media_id: Some(16498),
+            media_kind: Some(CardKind::Anime),
+            seed: 1,
+            size: 2,
+            created_at: 1,
+            opened_at: None,
+            contents_state: CardPackContentsState::Ready,
+            claimed_at: None,
+            chosen_slot: None,
+        }
+    }
+
+    fn choice_frozen_card(slot: i64, kind: CardKind, entity_id: i64) -> CardPackCardRow {
+        CardPackCardRow {
+            pack_id: "status-choice".into(),
+            slot,
+            kind,
+            entity_id,
+            title: format!("Card {entity_id}"),
+            image_url: None,
+            rarity: CardRarity::Rare,
+            variant: CardVariant::Normal,
+            value: 5,
+            favourites: 10,
+            popularity: 1000,
+            score: 7.0,
+            collage_json: "[]".into(),
+            collection_anime_id: None,
+            collection_title: None,
+            collection_cover_url: None,
+        }
+    }
+
+    #[test]
+    fn claiming_a_choice_pack_grants_only_the_picked_card() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        insert_pack(&connection, LOCAL_USER_ID, &choice_pack_row()).unwrap();
+        save_pack_cards(
+            &mut connection,
+            LOCAL_USER_ID,
+            "status-choice",
+            &[
+                choice_frozen_card(0, CardKind::Anime, 16498),
+                choice_frozen_card(1, CardKind::Character, 500),
+            ],
+            2,
+        )
+        .unwrap();
+
+        let opening = claim_choice_pack_in(&mut connection, "status-choice", 1).unwrap();
+        assert_eq!(opening.chosen_slot, Some(1));
+        assert_eq!(opening.cards.len(), 2);
+        assert!(opening.value > 0);
+
+        let owned: Vec<(String, i64)> = connection
+            .prepare("SELECT kind, entity_id FROM user_cards ORDER BY entity_id")
+            .unwrap()
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(owned, vec![("character".to_string(), 500)]);
+
+        let repeat = claim_choice_pack_in(&mut connection, "status-choice", 0).unwrap();
+        assert_eq!(repeat.chosen_slot, Some(1));
+        assert_eq!(repeat.value, 0);
+        let openings: i64 = connection
+            .query_row("SELECT COUNT(*) FROM card_openings", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(openings, 1);
+    }
+
+    #[test]
+    fn a_choice_pack_rejects_an_unknown_slot() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        insert_pack(&connection, LOCAL_USER_ID, &choice_pack_row()).unwrap();
+        save_pack_cards(
+            &mut connection,
+            LOCAL_USER_ID,
+            "status-choice",
+            &[choice_frozen_card(0, CardKind::Anime, 16498)],
+            2,
+        )
+        .unwrap();
+        assert!(claim_choice_pack_in(&mut connection, "status-choice", 3).is_err());
+        let owned: i64 = connection
+            .query_row("SELECT COUNT(*) FROM user_cards", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(owned, 0);
     }
 
     #[test]

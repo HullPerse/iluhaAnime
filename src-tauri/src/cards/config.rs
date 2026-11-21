@@ -28,6 +28,16 @@ pub const CARD_VARIANT_MULTIPLIERS: VariantMultipliers = VariantMultipliers {
     cursed: 3.0,
 };
 
+/// The choice pack: two cards from the completed title, only one is kept.
+/// It is granted alongside the regular packs and never sold in the shop.
+pub const CHOICE_PACK_KIND: &str = "choice";
+pub const CHOICE_PACK_SIZE: usize = 2;
+/// Completed anime grant one choice pack per 12 episodes, always at least one.
+pub const CHOICE_EPISODES_PER_PACK: u32 = 12;
+/// Completed manga grant one choice pack per 25 chapters, always at least one.
+pub const CHOICE_CHAPTERS_PER_PACK: u32 = 25;
+pub const MAX_CHOICE_PACKS_PER_COMPLETION: u32 = 5;
+
 /// Completed titles grant one pack per twelve episodes, capped at five.
 pub const EPISODES_PER_PACK: u32 = 12;
 /// Completed manga grant one pack per twelve chapters, capped the same way.
@@ -156,6 +166,19 @@ pub fn packs_for_completed(episodes: Option<u32>) -> u32 {
 pub fn packs_for_completed_manga(chapters: Option<u32>) -> u32 {
     let count = chapters.map_or(1, |total| total.div_ceil(CHAPTERS_PER_PACK));
     count.clamp(1, MAX_PACKS_PER_COMPLETION)
+}
+
+/// Choice packs earned by one completed anime: one per 12 episodes, and a
+/// short show still gets the first pick.
+pub fn choice_packs_for_completed(episodes: Option<u32>) -> u32 {
+    let count = episodes.map_or(1, |total| total.div_ceil(CHOICE_EPISODES_PER_PACK));
+    count.clamp(1, MAX_CHOICE_PACKS_PER_COMPLETION)
+}
+
+/// Choice packs earned by one completed manga, one per 25 chapters.
+pub fn choice_packs_for_completed_manga(chapters: Option<u32>) -> u32 {
+    let count = chapters.map_or(1, |total| total.div_ceil(CHOICE_CHAPTERS_PER_PACK));
+    count.clamp(1, MAX_CHOICE_PACKS_PER_COMPLETION)
 }
 
 /// Starter packs for the completed count on the AniList profile.

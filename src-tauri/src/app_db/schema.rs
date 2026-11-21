@@ -1722,6 +1722,100 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
         transaction.commit().map_err(|error| error.to_string())?;
     }
 
+    if version < 48 {
+        connection
+            .execute_batch("PRAGMA foreign_keys = OFF;")
+            .map_err(|error| format!("app database choice pack foreign keys: {error}"))?;
+        let migration = (|| -> Result<(), String> {
+            let transaction = connection
+                .unchecked_transaction()
+                .map_err(|error| format!("app database choice pack transaction: {error}"))?;
+            // Older partial databases (and migration tests that start from a
+            // single slice) may not have the cards tables at all.
+            let has_packs: i64 = transaction
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'card_packs'",
+                    [],
+                    |row| row.get(0),
+                )
+                .map_err(|error| format!("read choice pack table: {error}"))?;
+            if has_packs == 0 {
+                transaction
+                    .execute_batch("PRAGMA user_version = 48;")
+                    .map_err(|error| format!("app database choice pack schema: {error}"))?;
+                transaction
+                    .commit()
+                    .map_err(|error| format!("app database choice pack commit: {error}"))?;
+                return Ok(());
+            }
+            transaction
+                .execute_batch(
+                    "
+                    DROP TABLE IF EXISTS card_packs_v48;
+                    CREATE TABLE card_packs_v48 (
+                        id TEXT PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        source TEXT NOT NULL CHECK(source IN ('status','starter','test','purchase','daily')),
+                        pack_kind TEXT NOT NULL CHECK(pack_kind IN ('default','character','anime','manga','staff','studio','choice')),
+                        media_id INTEGER,
+                        media_kind TEXT CHECK(media_kind IN ('anime','manga')),
+                        seed INTEGER NOT NULL,
+                        size INTEGER NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        opened_at INTEGER,
+                        contents_state TEXT NOT NULL DEFAULT 'pending',
+                        content_ready_at INTEGER,
+                        prepare_attempts INTEGER NOT NULL DEFAULT 0,
+                        last_prepare_error TEXT,
+                        notified_at INTEGER,
+                        claimed_at INTEGER,
+                        chosen_slot INTEGER
+                    );
+                    INSERT INTO card_packs_v48 (
+                        id, user_id, source, pack_kind, media_id, seed, size, created_at, opened_at,
+                        contents_state, content_ready_at, prepare_attempts, last_prepare_error, notified_at
+                    )
+                    SELECT
+                        id, user_id, source, pack_kind, media_id, seed, size, created_at, opened_at,
+                        contents_state, content_ready_at, prepare_attempts, last_prepare_error, notified_at
+                    FROM card_packs;
+                    DROP TABLE card_packs;
+                    ALTER TABLE card_packs_v48 RENAME TO card_packs;
+                    CREATE INDEX IF NOT EXISTS idx_card_packs_user
+                        ON card_packs(user_id, opened_at);
+                    CREATE INDEX IF NOT EXISTS idx_card_packs_prepare
+                        ON card_packs(user_id, opened_at, contents_state, prepare_attempts);
+                    PRAGMA user_version = 48;
+                    ",
+                )
+                .map_err(|error| format!("app database choice pack schema: {error}"))?;
+            transaction
+                .commit()
+                .map_err(|error| format!("app database choice pack commit: {error}"))?;
+            Ok(())
+        })();
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .map_err(|error| format!("app database choice pack foreign keys restore: {error}"))?;
+        migration?;
+    }
+
+    if version < 49 {
+        connection
+            .execute_batch(
+                "
+                CREATE TABLE IF NOT EXISTS cards_seen (
+                    user_id INTEGER PRIMARY KEY,
+                    packs_read_at INTEGER NOT NULL DEFAULT 0,
+                    album_read_at INTEGER NOT NULL DEFAULT 0
+                );
+                INSERT OR IGNORE INTO cards_seen (user_id) VALUES (0);
+                PRAGMA user_version = 49;
+                ",
+            )
+            .map_err(|error| format!("app database cards seen schema: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"

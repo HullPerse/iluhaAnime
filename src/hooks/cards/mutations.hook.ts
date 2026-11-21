@@ -3,11 +3,13 @@ import { useEffect, useRef } from "react";
 
 import { cardsApi } from "@/api/cards.api";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { setCardsAlbumReadAt, setCardsPacksReadAt } from "@/store/cards.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type {
   CardGallery,
   CardGiftClaimInput,
   CardKind,
+  CardsSeenTab,
   CreateGiftInput,
   DustCardInput,
 } from "@/types/api/cards";
@@ -91,6 +93,14 @@ export function useCardsMutations() {
     },
   });
 
+  // Claiming keeps the same rule as opening: the reveal owns invalidation so
+  // the wallet and collection do not change while the choice is on screen.
+  // oxlint-disable-next-line react-doctor/query-mutation-missing-invalidation
+  const claimPack = useMutation({
+    mutationFn: (vars: { packId: string; slot: number }) =>
+      cardsApi.claimPack(vars.packId, vars.slot),
+  });
+
   const dust = useMutation({
     mutationFn: (input: DustCardInput) => cardsApi.dust(input),
     onSuccess: invalidate,
@@ -126,12 +136,23 @@ export function useCardsMutations() {
     onSuccess: invalidate,
   });
 
+  const markSeen = useMutation({
+    mutationFn: (vars: { tab: CardsSeenTab; at?: number }) => cardsApi.markSeen(vars.tab, vars.at),
+    onSuccess: (seen, vars) => {
+      if (vars.tab === "packs") setCardsPacksReadAt(seen.packsReadAt);
+      else setCardsAlbumReadAt(seen.albumReadAt);
+      queryClient.invalidateQueries({ queryKey: queryKeys.cardsShellScope() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cardsUnreadScope() });
+    },
+  });
+
   return {
     resetCollection,
     setPreferredImage,
     setCardVariant,
     setCardFavorite,
     openPack,
+    claimPack,
     dust,
     buyPack,
     createGift,
@@ -139,6 +160,7 @@ export function useCardsMutations() {
     markGiftClaimed,
     deleteGift,
     grantStarter,
+    markSeen,
     invalidate,
   };
 }

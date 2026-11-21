@@ -684,11 +684,14 @@ pub fn finish_guess(
                 source: "daily".into(),
                 pack_kind: "default".into(),
                 media_id: Some(entry.media_id),
+                media_kind: None,
                 seed: (entry.media_id as i64) ^ (attempts as i64) ^ 0x005D_A11E,
                 size: CARD_PACK_SIZE as i64,
                 created_at: now_seconds(),
                 opened_at: None,
                 contents_state: CardPackContentsState::Pending,
+                claimed_at: None,
+                chosen_slot: None,
             },
         )?;
     }
@@ -1340,11 +1343,14 @@ mod tests {
                 source: "daily".into(),
                 pack_kind: "default".into(),
                 media_id: Some(1),
+                media_kind: None,
                 seed: 1,
                 size: CARD_PACK_SIZE as i64,
                 created_at: 1,
                 opened_at: Some(2),
                 contents_state: CardPackContentsState::Ready,
+                claimed_at: None,
+                chosen_slot: None,
             },
         )
         .expect("opened daily pack");
@@ -1356,11 +1362,14 @@ mod tests {
                 source: "test".into(),
                 pack_kind: "default".into(),
                 media_id: None,
+                media_kind: None,
                 seed: 3,
                 size: CARD_PACK_SIZE as i64,
                 created_at: 3,
                 opened_at: None,
                 contents_state: CardPackContentsState::Pending,
+                claimed_at: None,
+                chosen_slot: None,
             },
         )
         .expect("unrelated pack");

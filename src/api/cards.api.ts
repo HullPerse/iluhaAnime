@@ -7,6 +7,7 @@ import {
   CardGallerySchema,
   CardVariantsSchema,
   CardsBootstrapSchema,
+  CardsSeenSchema,
   CardsShellSchema,
   CardsUnreadSchema,
   CollectionRosterPageSchema,
@@ -35,6 +36,8 @@ import type {
   CardPackRow,
   CardsApiConfig,
   CardsBootstrap,
+  CardsSeen,
+  CardsSeenTab,
   CardsCollectionParams,
   CardsShell,
   CardsStats,
@@ -79,11 +82,12 @@ export class CardsApi {
     return assertSchema(await this.cardsClient.cardsBootstrap(), CardsBootstrapSchema);
   }
 
-  async shell(packsSince: number, cardsSince: number): Promise<CardsShell> {
-    return assertSchema(
-      await this.cardsClient.cardsShell({ packsSince, cardsSince }),
-      CardsShellSchema
-    );
+  async shell(): Promise<CardsShell> {
+    return assertSchema(await this.cardsClient.cardsShell(), CardsShellSchema);
+  }
+
+  async markSeen(tab: CardsSeenTab, at?: number): Promise<CardsSeen> {
+    return assertSchema(await this.cardsClient.cardsMarkSeen({ tab, at }), CardsSeenSchema);
   }
 
   async packs(): Promise<CardPackRow[]> {
@@ -104,6 +108,13 @@ export class CardsApi {
   async openPack(packId: string, proxy: string | null = null): Promise<PackOpening> {
     return assertSchema(
       await this.cardsClient.cardsOpenPack({ packId, proxyUrl: proxy }),
+      PackOpeningSchema
+    );
+  }
+
+  async claimPack(packId: string, slot: number): Promise<PackOpening> {
+    return assertSchema(
+      await this.cardsClient.cardsClaimPackCard({ packId, slot }),
       PackOpeningSchema
     );
   }

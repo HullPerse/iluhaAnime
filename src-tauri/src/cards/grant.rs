@@ -5,11 +5,13 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::config::{
-    packs_for_completed, packs_for_completed_manga, starter_packs, CARDS_GRANT_ENABLED,
-    CARD_PACK_SIZE,
+    choice_packs_for_completed, choice_packs_for_completed_manga, packs_for_completed,
+    packs_for_completed_manga, starter_packs, CARDS_GRANT_ENABLED, CARD_PACK_SIZE,
+    CHOICE_PACK_KIND, CHOICE_PACK_SIZE,
 };
 use super::packs::spawn_prepare_packs_with_proxy;
 use super::rng::seed_now;
+use super::types::CardKind;
 use crate::anilist::auth::{check_anilist_auth, get_anilist_lists, AniListCollection};
 use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
@@ -42,7 +44,9 @@ fn grant_pack(
     source: &str,
     pack_kind: &str,
     media_id: Option<i64>,
+    media_kind: Option<CardKind>,
     seed: u64,
+    size: usize,
     now: i64,
 ) -> Result<(), String> {
     insert_pack(
@@ -53,11 +57,14 @@ fn grant_pack(
             source: source.into(),
             pack_kind: pack_kind.into(),
             media_id,
+            media_kind,
             seed: seed as i64,
-            size: CARD_PACK_SIZE as i64,
+            size: size as i64,
             created_at: now,
             opened_at: None,
             contents_state: super::types::CardPackContentsState::Pending,
+            claimed_at: None,
+            chosen_slot: None,
         },
     )
 }
@@ -74,7 +81,9 @@ pub fn grant_completion_in(
         connection,
         media_id,
         packs_for_completed(episodes),
+        choice_packs_for_completed(episodes),
         "default",
+        CardKind::Anime,
         enabled,
     )
 }
@@ -92,7 +101,9 @@ pub fn grant_manga_completion_in(
         connection,
         media_id,
         packs_for_completed_manga(chapters),
+        choice_packs_for_completed_manga(chapters),
         "default",
+        CardKind::Manga,
         enabled,
     )
 }
@@ -101,7 +112,9 @@ fn grant_completion_with_kind_in(
     connection: &Connection,
     media_id: i64,
     packs: u32,
+    choice_packs: u32,
     pack_kind: &str,
+    media_kind: CardKind,
     enabled: bool,
 ) -> Result<GrantResult, String> {
     if !enabled {
@@ -127,7 +140,21 @@ fn grant_completion_with_kind_in(
             "status",
             pack_kind,
             Some(media_id),
+            None,
             seed_now() ^ index as u64,
+            CARD_PACK_SIZE,
+            now,
+        )?;
+    }
+    for index in 0..choice_packs {
+        grant_pack(
+            &transaction,
+            "status",
+            CHOICE_PACK_KIND,
+            Some(media_id),
+            Some(media_kind),
+            seed_now() ^ 0x1000 ^ index as u64,
+            CHOICE_PACK_SIZE,
             now,
         )?;
     }
@@ -175,7 +202,9 @@ pub fn grant_starter_in(
             "starter",
             "default",
             None,
+            None,
             seed_now() ^ index as u64,
+            CARD_PACK_SIZE,
             now,
         )?;
     }
@@ -409,6 +438,16 @@ mod tests {
             .expect("count packs")
     }
 
+    fn pack_count_of(connection: &Connection, kind: &str) -> i64 {
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM card_packs WHERE pack_kind = ?1",
+                [kind],
+                |row| row.get(0),
+            )
+            .expect("count packs by kind")
+    }
+
     #[test]
     fn the_flag_off_inserts_nothing() {
         let connection = memory_db();
@@ -425,10 +464,11 @@ mod tests {
         let connection = memory_db();
         let first = grant_completion_in(&connection, 16498, Some(24), true).unwrap();
         assert_eq!(first.packs, 2);
-        assert_eq!(pack_count(&connection), 2);
+        assert_eq!(pack_count_of(&connection, "default"), 2);
+        assert_eq!(pack_count_of(&connection, "choice"), 2);
         let repeat = grant_completion_in(&connection, 16498, Some(24), true).unwrap();
         assert!(!repeat.granted);
-        assert_eq!(pack_count(&connection), 2);
+        assert_eq!(pack_count(&connection), 4);
     }
 
     #[test]
@@ -445,7 +485,7 @@ mod tests {
             let result = grant_completion_in(&connection, media_id, episodes, true).unwrap();
             assert_eq!(result.packs, expected, "media {media_id}");
         }
-        assert_eq!(pack_count(&connection), 15);
+        assert_eq!(pack_count_of(&connection, "default"), 15);
     }
 
     #[test]
@@ -457,7 +497,8 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM pack_grants", [], |row| row.get(0))
             .unwrap();
         assert_eq!(grants, 1);
-        assert_eq!(pack_count(&connection), 1);
+        assert_eq!(pack_count(&connection), 2);
+        assert_eq!(pack_count_of(&connection, "choice"), 1);
     }
 
     #[test]
@@ -466,17 +507,11 @@ mod tests {
         let first = grant_manga_completion_in(&connection, 30013, Some(60), true).unwrap();
         assert!(first.granted);
         assert_eq!(first.packs, 5);
-        let kinds: Vec<String> = connection
-            .prepare("SELECT pack_kind FROM card_packs ORDER BY seed")
-            .unwrap()
-            .query_map([], |row| row.get(0))
-            .unwrap()
-            .collect::<Result<_, _>>()
-            .unwrap();
-        assert_eq!(kinds, vec!["default"; 5]);
+        assert_eq!(pack_count_of(&connection, "default"), 5);
+        assert_eq!(pack_count_of(&connection, "choice"), 3);
         let repeat = grant_manga_completion_in(&connection, 30013, Some(60), true).unwrap();
         assert!(!repeat.granted);
-        assert_eq!(pack_count(&connection), 5);
+        assert_eq!(pack_count(&connection), 8);
     }
 
     #[test]
@@ -493,7 +528,45 @@ mod tests {
             let result = grant_manga_completion_in(&connection, media_id, chapters, true).unwrap();
             assert_eq!(result.packs, expected, "media {media_id}");
         }
-        assert_eq!(pack_count(&connection), 15);
+        assert_eq!(pack_count_of(&connection, "default"), 15);
+    }
+
+    #[test]
+    fn choice_pack_counts_scale_from_a_single_pack() {
+        for (episodes, expected) in [
+            (None, 1),
+            (Some(0), 1),
+            (Some(8), 1),
+            (Some(12), 1),
+            (Some(13), 2),
+            (Some(24), 2),
+            (Some(25), 3),
+            (Some(48), 4),
+            (Some(49), 5),
+            (Some(1000), 5),
+        ] {
+            assert_eq!(
+                choice_packs_for_completed(episodes),
+                expected,
+                "episodes {episodes:?}"
+            );
+        }
+        for (chapters, expected) in [
+            (None, 1),
+            (Some(0), 1),
+            (Some(1), 1),
+            (Some(25), 1),
+            (Some(26), 2),
+            (Some(50), 2),
+            (Some(51), 3),
+            (Some(5000), 5),
+        ] {
+            assert_eq!(
+                choice_packs_for_completed_manga(chapters),
+                expected,
+                "chapters {chapters:?}"
+            );
+        }
     }
 
     #[test]

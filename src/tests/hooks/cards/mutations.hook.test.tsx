@@ -12,11 +12,14 @@ const PACK = {
   source: "test",
   packKind: "default",
   mediaId: null,
+  mediaKind: null,
   seed: 1,
   size: 7,
   createdAt: 1,
   openedAt: null,
   contentsState: "pending" as const,
+  claimedAt: null,
+  chosenSlot: null,
 };
 
 function setup() {

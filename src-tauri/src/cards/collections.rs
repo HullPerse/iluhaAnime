@@ -6,6 +6,9 @@ use serde_json::{json, Value};
 use tauri::AppHandle;
 
 use super::collection::{list_media_collection_items, CollectionItem};
+use super::rarity::score_for;
+use super::rng::Rng;
+use super::sampling::CardNode;
 use super::types::{CardKind, CardRarity};
 use crate::anilist::auth::optional_token;
 use crate::anilist::client::graphql_request;
@@ -183,6 +186,44 @@ fn roster_page_is_valid(response: &Value) -> bool {
 
 fn roster_page_has_next_but_no_characters(characters: &[RosterMeta], has_next: bool) -> bool {
     characters.is_empty() && has_next
+}
+
+/// One character from the title's roster for a choice pack. Rarity follows the
+/// standard character formula, using the title's popularity as the bonus term.
+pub(crate) async fn roster_choice_character(
+    app: &AppHandle,
+    media_id: i64,
+    media_popularity: u32,
+    seed: u64,
+    proxy: Option<&str>,
+) -> Result<Option<CardNode>, String> {
+    let page = match cached_roster_page(app, media_id, 1, proxy).await {
+        Ok(page) => page,
+        Err(error) => {
+            tracing::warn!(
+                error = error.as_str(),
+                media_id,
+                "choice pack roster unavailable"
+            );
+            return Ok(None);
+        }
+    };
+    if page.characters.is_empty() {
+        return Ok(None);
+    }
+    let mut rng = Rng::new(seed ^ 0x5E1E_C7A1);
+    let index = rng.next_below(page.characters.len() as u64) as usize;
+    let character = &page.characters[index];
+    let favourites = u32::try_from(character.favourites.max(0)).unwrap_or(0);
+    Ok(Some(CardNode {
+        kind: CardKind::Character,
+        entity_id: character.entity_id,
+        title: character.title.clone(),
+        image_url: character.image_url.clone(),
+        favourites,
+        popularity: media_popularity,
+        score: score_for(CardKind::Character, favourites, media_popularity),
+    }))
 }
 
 async fn fetch_roster_page(

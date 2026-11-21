@@ -13,11 +13,13 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
   const { t } = useI18n();
   const mutations = useCardsMutations();
   const { mutate, reset, data, isPending, isError } = mutations.openPack;
+  const claim = mutations.claimPack;
   const started = useRef<string | null>(null);
   const close = () => {
     mutations.invalidate();
     onClose();
   };
+  const choose = (slot: number) => claim.mutate({ packId: pack.id, slot });
 
   useEffect(() => {
     if (started.current === pack.id) return;
@@ -27,12 +29,22 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
 
   const retry = () => {
     reset();
+    claim.reset();
     mutate(pack.id);
   };
 
   if (data !== undefined) {
     return (
-      <PackOpen cards={data.cards} packKind={pack.packKind} value={data.value} onClose={close} />
+      <PackOpen
+        cards={data.cards}
+        packKind={pack.packKind}
+        value={claim.data?.value ?? data.value}
+        chosenSlot={claim.data?.chosenSlot ?? data.chosenSlot}
+        claiming={claim.isPending}
+        choiceError={claim.isError}
+        onChoose={pack.packKind === "choice" ? choose : undefined}
+        onClose={close}
+      />
     );
   }
 

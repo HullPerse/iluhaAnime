@@ -96,8 +96,8 @@ const DEFAULT_STATE = {
   revealOpen: false,
   packsReadAt: persistedSeen.packsReadAt ?? 0,
   albumReadAt: persistedSeen.albumReadAt ?? 0,
-  packsNewSince: 0,
-  albumNewSince: 0,
+  packsNewSince: persistedSeen.packsReadAt ?? 0,
+  albumNewSince: persistedSeen.albumReadAt ?? 0,
 };
 
 function createCardsSignalStore(): CardsSignalStore {

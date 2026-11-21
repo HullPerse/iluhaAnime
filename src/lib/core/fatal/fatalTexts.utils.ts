@@ -20,6 +20,7 @@ export function resolveFatalTexts(kind: FatalInfo["kind"]): FatalTexts {
     safeNote: pick("fatal.safeNote"),
     checkUpdate: pick("fatal.checkUpdate"),
     checkingUpdate: pick("fatal.checkingUpdate"),
+    update: pick("fatal.update"),
     installingUpdate: pick("fatal.installingUpdate"),
     updateLatest: pick("fatal.updateLatest"),
     updateFailed: pick("fatal.updateFailed"),

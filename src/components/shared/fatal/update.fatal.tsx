@@ -31,10 +31,11 @@ export function FatalUpdateButton({
   let label = texts.checkUpdate;
   if (state === "checking") label = texts.checkingUpdate;
   else if (state === "installing") label = texts.installingUpdate;
+  else if (state === "available") label = texts.update;
 
   let note: string | null = null;
   if (state === "latest") note = texts.updateLatest;
-  else if (state === "error") note = `${texts.updateFailed}: ${trimmedError(error)}`;
+  else if (error) note = `${texts.updateFailed}: ${trimmedError(error)}`;
 
   return (
     <span className="inline-flex flex-wrap items-center gap-3">

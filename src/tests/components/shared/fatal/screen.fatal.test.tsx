@@ -123,7 +123,7 @@ describe("FatalScreen", () => {
     expect(screen.getByRole("alert").style.backgroundColor).toBe("rgb(31, 27, 24)");
   });
 
-  it("checks and installs an update without opening a dialog", async () => {
+  it("checks first and installs only from the update button", async () => {
     const user = userEvent.setup();
     const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
     mockUpdaterCheck.mockResolvedValue({
@@ -134,6 +134,11 @@ describe("FatalScreen", () => {
     render(<FatalScreen info={baseInfo()} {...handlers()} />);
 
     await user.click(screen.getByRole("button", { name: "Проверить обновление" }));
+
+    const updateButton = await screen.findByRole("button", { name: "Обновить" });
+    expect(downloadAndInstall).not.toHaveBeenCalled();
+
+    await user.click(updateButton);
 
     await waitFor(() => expect(downloadAndInstall).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("dialog")).toBeNull();

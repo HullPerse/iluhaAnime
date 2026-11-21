@@ -1,5 +1,5 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { check } from "@tauri-apps/plugin-updater";
+import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { resolveFatalVariant } from "@/config/settings/screens.config";
@@ -40,6 +40,7 @@ export function FatalScreen({
   const [copied, setCopied] = useState<boolean>(false);
   const [updateState, setUpdateState] = useState<FatalUpdateState>("idle");
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const availableUpdateRef = useRef<Update | null>(null);
   const reloadRef = useRef<HTMLButtonElement | null>(null);
   const canRetry = info.retryCount < 1;
   const variant = resolveFatalVariant(info.themeName, safe);
@@ -73,6 +74,18 @@ export function FatalScreen({
   const checkForUpdate = (): void => {
     if (updateState === "checking" || updateState === "installing") return;
     setUpdateError(null);
+    const update = availableUpdateRef.current;
+    if (update !== null) {
+      setUpdateState("installing");
+      (async () => {
+        const [, installError] = await attempt(update.downloadAndInstall());
+        if (installError !== null) {
+          setUpdateError(installError.message);
+          setUpdateState("available");
+        }
+      })();
+      return;
+    }
     setUpdateState("checking");
     (async () => {
       const [update, checkError] = await attempt(check());
@@ -85,12 +98,8 @@ export function FatalScreen({
         setUpdateState("latest");
         return;
       }
-      setUpdateState("installing");
-      const [, installError] = await attempt(update.downloadAndInstall());
-      if (installError !== null) {
-        setUpdateError(installError.message);
-        setUpdateState("error");
-      }
+      availableUpdateRef.current = update;
+      setUpdateState("available");
     })();
   };
 

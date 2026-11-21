@@ -58,6 +58,7 @@ const common = {
   "fatal.safeNote": "Безопасный режим: тема по умолчанию",
   "fatal.checkUpdate": "Проверить обновление",
   "fatal.checkingUpdate": "Проверка...",
+  "fatal.update": "Обновить",
   "fatal.installingUpdate": "Загрузка обновления...",
   "fatal.updateLatest": "Обновлений нет",
   "fatal.updateFailed": "Ошибка обновления",

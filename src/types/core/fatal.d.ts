@@ -27,6 +27,7 @@ export interface FatalTexts {
   safeNote: string;
   checkUpdate: string;
   checkingUpdate: string;
+  update: string;
   installingUpdate: string;
   updateLatest: string;
   updateFailed: string;

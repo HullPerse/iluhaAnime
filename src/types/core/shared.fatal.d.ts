@@ -1,7 +1,13 @@
 import type { FatalInfo, FatalTexts } from "@/types/core/fatal";
 import type { RefObject } from "react";
 
-export type FatalUpdateState = "idle" | "checking" | "installing" | "latest" | "error";
+export type FatalUpdateState =
+  | "idle"
+  | "checking"
+  | "available"
+  | "installing"
+  | "latest"
+  | "error";
 
 export interface FatalVariantProps {
   info: FatalInfo;

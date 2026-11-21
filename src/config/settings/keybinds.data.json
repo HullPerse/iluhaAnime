@@ -1,5 +1,12 @@
 {
   "DIGIT_KEYS": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "MANGA_READER_HOTKEYS": [
+    { "id": "left", "chord": "ArrowLeft", "repeat": "hold" },
+    { "id": "right", "chord": "ArrowRight", "repeat": "hold" },
+    { "id": "up", "chord": "ArrowUp", "repeat": "hold" },
+    { "id": "down", "chord": "ArrowDown", "repeat": "hold" },
+    { "id": "close", "chord": "Escape", "repeat": "once" }
+  ],
   "KEYBINDS": [
     {
       "action": "playPause",

@@ -1,4 +1,4 @@
-import { KEYBINDS } from "@/config/settings/keybinds.config";
+import { KEYBINDS, MANGA_READER_HOTKEYS } from "@/config/settings/keybinds.config";
 import { SCREENSHOT_HISTORY_DEFS } from "@/config/graphics/screenshot.config";
 import { TAB_KEYS } from "@/config/settings/tabs.config";
 import type { KeybindManifestEntry, KeybindScope } from "@/types/core/manifest";
@@ -354,6 +354,15 @@ export const KEYBIND_MANIFEST: readonly KeybindManifestEntry[] = [
   ...APP_ENTRIES,
   ...screenshotHistoryEntries(),
   ...playerEntries(),
+  ...MANGA_READER_HOTKEYS.map(({ id, chord, repeat, keybindId }): KeybindManifestEntry => ({
+    id: keybindId,
+    chord,
+    repeat,
+    scope: "manga-reader",
+    mode: "base",
+    description: `settings.keybinds.manga.${id}`,
+    category: "navigation",
+  })),
   ...VIM_ENTRIES,
   ...TREE_ENTRIES,
 ];

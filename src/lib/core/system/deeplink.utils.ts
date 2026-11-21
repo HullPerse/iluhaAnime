@@ -4,6 +4,7 @@ import type {
   AnilistAuthDeepLink,
   CardGiftDeepLink,
   CardGiftReceiptDeepLink,
+  MangaDeepLink,
   NewsDeepLink,
   PastedLink,
   StreamDeepLink,
@@ -78,6 +79,29 @@ export function parseTorrentLink(raw: string): TorrentDeepLink | null {
   if (parts.length !== 2 || parts[0] !== "torrent") return null;
   if (!/^[0-9a-fA-F]{40}$/.test(parts[1])) return null;
   return { infoHash: parts[1].toLowerCase() };
+}
+
+export function buildMangaLink({ source, id, chapterId }: MangaDeepLink): string {
+  const base = `${DEEP_LINK_SCHEME}://manga/${source}/${id}`;
+  return chapterId ? `${base}/${chapterId}` : base;
+}
+
+export function parseMangaLink(raw: string): MangaDeepLink | null {
+  const [, source, id, chapterId] =
+    raw
+      .trim()
+      .match(
+        /^iluhaanime:\/\/manga\/(mangalib|mangadex|readmanga|asurascans)\/([a-zA-Z0-9_-]{1,160})(?:\/([a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,159}))?$/
+      ) ?? [];
+  if (
+    (source !== "mangalib" &&
+      source !== "mangadex" &&
+      source !== "readmanga" &&
+      source !== "asurascans") ||
+    !id
+  )
+    return null;
+  return chapterId ? { source, id, chapterId } : { source, id };
 }
 
 export function parseStreamLink(raw: string): StreamDeepLink | null {
@@ -182,7 +206,8 @@ export function ingestDeepLinks(
   openStream?: (link: StreamDeepLink) => void,
   openNews?: (link: NewsDeepLink) => void,
   openGift?: (link: CardGiftDeepLink) => void,
-  openGiftReceipt?: (link: CardGiftReceiptDeepLink) => void
+  openGiftReceipt?: (link: CardGiftReceiptDeepLink) => void,
+  openManga?: (link: MangaDeepLink) => void
 ): void {
   if (!Array.isArray(urls)) return;
   const handlers: DeepLinkHandlers = {
@@ -196,7 +221,9 @@ export function ingestDeepLinks(
   };
   let bad = false;
   for (const raw of urls) {
-    if (typeof raw !== "string" || !routeDeepLink(raw, handlers)) {
+    const manga = openManga && typeof raw === "string" ? parseMangaLink(raw) : null;
+    if (manga) openManga?.(manga);
+    else if (typeof raw !== "string" || !routeDeepLink(raw, handlers)) {
       bad = true;
     }
   }
@@ -216,6 +243,8 @@ export function parsePastedLink(text: string): PastedLink | "invalid" | null {
   if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) === 0) {
     const anime = parseAnimeLink(trimmed);
     if (anime) return { kind: "anime", link: anime };
+    const manga = parseMangaLink(trimmed);
+    if (manga) return { kind: "manga", link: manga };
     const stream = parseStreamLink(trimmed);
     if (stream) return { kind: "stream", link: stream };
     const torrent = parseTorrentLink(trimmed);

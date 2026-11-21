@@ -220,7 +220,7 @@ pub async fn get_anilist_bootstrap(
     }
     let user = parse_ani_user(viewer);
     let favourites = parse_favourite_overview(viewer)?;
-    let lists = get_anilist_lists(app_handle, user.id, None, proxy_url, proxyUrl).await?;
+    let lists = get_anilist_lists(app_handle, user.id, None, None, proxy_url, proxyUrl).await?;
     Ok(Some(AniUserBundle {
         user,
         lists,
@@ -276,7 +276,7 @@ pub async fn get_anilist_friend_bundle(
         .as_array()
         .map(|nodes| parse_favourite_nodes(nodes))
         .unwrap_or_default();
-    let lists = get_anilist_lists(app_handle, user_id, None, proxy_url, proxyUrl).await?;
+    let lists = get_anilist_lists(app_handle, user_id, None, None, proxy_url, proxyUrl).await?;
     Ok(AniFriendBundle {
         profile,
         lists,
@@ -626,14 +626,17 @@ fn normalize_activity_status(raw: &str) -> String {
 pub async fn get_anilist_activity(
     app_handle: tauri::AppHandle,
     user_ids: Vec<u64>,
+    media_type: Option<super::media::AniMediaType>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<AniActivity>, String> {
+    let manga = matches!(media_type, Some(super::media::AniMediaType::Manga));
+    let requested_type = if manga { "MANGA" } else { "ANIME" };
     let body = serde_json::json!({
         "query": r"
-            query ($userIds: [Int], $page: Int) {
+            query ($userIds: [Int], $page: Int, $type: ActivityType) {
                 Page(page: $page, perPage: 50) {
-                    activities(userId_in: $userIds, sort: ID_DESC) {
+                    activities(userId_in: $userIds, type: $type, sort: ID_DESC) {
                         ... on ListActivity {
                             id
                             createdAt
@@ -656,7 +659,7 @@ pub async fn get_anilist_activity(
                 }
             }
         ",
-        "variables": { "userIds": user_ids, "page": 1 }
+        "variables": { "userIds": user_ids, "page": 1, "type": if manga { Some("MANGA_LIST") } else { None } }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
@@ -673,7 +676,7 @@ pub async fn get_anilist_activity(
             } else {
                 "text"
             };
-            if a_type == "list" && a["media"]["type"].as_str() != Some("ANIME") {
+            if a_type == "list" && a["media"]["type"].as_str() != Some(requested_type) {
                 return None;
             }
             Some(AniActivity {

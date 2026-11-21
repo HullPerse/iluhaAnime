@@ -32,6 +32,8 @@ export interface AniRelation {
   media: AniRelatedMedia;
 }
 
+export type AniMediaType = "ANIME" | "MANGA";
+
 export interface AniMedia {
   id: number;
   title: string;
@@ -40,6 +42,10 @@ export interface AniMedia {
   title_english?: string | null;
   title_native?: string | null;
   episodes: number | null;
+  chapters?: number | null;
+  volumes?: number | null;
+  country_of_origin?: string | null;
+  media_type?: AniMediaType | null;
   duration: number | null;
   format: string | null;
   source?: string | null;
@@ -146,6 +152,7 @@ export interface AniFriendBundle {
 }
 
 export interface AniListEntry {
+  progress_volumes?: number | null;
   media: AniMedia;
   progress: number | null;
   score: number | null;
@@ -172,6 +179,7 @@ export interface AniSavedEntry {
   id: number | null;
   status: string | null;
   progress: number | null;
+  progressVolumes?: number | null;
   repeat?: number | null;
   customLists: string[];
 }
@@ -179,6 +187,20 @@ export interface AniSavedEntry {
 export interface AniListCollection {
   name: string;
   entries: AniListEntry[];
+}
+
+export interface AniMangaOverview {
+  favourites: AniMedia[];
+  statistics: {
+    count: number;
+    chapters: number;
+    volumes: number;
+    meanScore: number;
+    genres: { label: string; count: number }[];
+    formats: { label: string; count: number }[];
+    statuses: { label: string; count: number }[];
+    years: { label: string; count: number }[];
+  };
 }
 
 export interface AniListGroup {

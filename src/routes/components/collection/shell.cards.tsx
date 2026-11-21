@@ -165,7 +165,7 @@ export default function CollectionShell() {
           )}
         </div>
       </aside>
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-hidden">
+      <section className="windows95-border bg-primary flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-hidden p-1">
         {!online && (
           <div className="windows95-border bg-field text-hint windows95-text shrink-0 px-2 py-1">
             {t("collection.offline")}

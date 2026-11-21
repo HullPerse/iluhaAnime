@@ -37,7 +37,7 @@ export interface SearchQueryStat {
 
 export type SearchSuggestionScope = "anilist" | "torrent" | "player" | "filter" | "stream";
 export type AutocompleteMode = "inline" | "dropdown" | "both" | "off";
-export type SearchSuggestionKind = "anime" | "history" | "local" | "torrent" | "spell";
+export type SearchSuggestionKind = "anime" | "manga" | "history" | "local" | "torrent" | "spell";
 export type AnilistSuggestionBoost = "off" | "subtle" | "strong";
 
 export interface SearchSuggestion {

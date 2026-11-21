@@ -79,6 +79,13 @@ describe("resolveKeybinds", () => {
 });
 
 describe("resolveScopeChords", () => {
+  it("keeps reader arrows independent from player and iluhium chords", () => {
+    const overrides = { "manga-reader.left": "KeyJ" };
+    expect([...resolveScopeChords("manga-reader", overrides).values()]).toContain("manga-reader.left");
+    expect(row("player.seekBackward").activeChord).toBe("ArrowLeft");
+    expect(row("tree.move.down").activeChord).toBe("KeyJ");
+  });
+
   it("maps owned chords to entry ids", () => {
     const map = resolveScopeChords("tree", { "tree.move.down": "KeyX" });
     const ids = [...map.values()];

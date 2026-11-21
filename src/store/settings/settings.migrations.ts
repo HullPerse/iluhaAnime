@@ -1,6 +1,7 @@
 import * as z from "zod/mini";
 
 import { listSortKeys } from "@/config/anilist/list.config";
+import { SCHEMA_VERSIONS } from "@/config/persistence/schemaVersions.config";
 import { SOURCE_INFOS } from "@/config/search/searchSources.config";
 import {
   DEFAULT_SETTINGS,
@@ -18,6 +19,33 @@ import type { SettingsData } from "@/types/store/settings";
 const LIST_SORT_KEY_SET: ReadonlySet<string> = new Set(listSortKeys);
 
 const SETTINGS_TRANSFORMS: MigrationTransform[] = [
+  {
+    migrate: (state) => {
+      if (state.mangaReaderFrame === "bevel") state.mangaReaderFrame = "win95";
+      const legacyMode = state.mangaReaderMode;
+      if (legacyMode === "stripGaps") state.mangaReaderDisplay = "strip";
+      else if (legacyMode === "strip" || legacyMode === "book") {
+        state.mangaReaderDisplay = legacyMode;
+      } else if (legacyMode === "rtl" || legacyMode === "ltr" || legacyMode === "vertical") {
+        state.mangaReaderDisplay = "paged";
+        state.mangaReaderDirection = legacyMode;
+      }
+      if (state.mangaReaderDisplay === "stripGaps") state.mangaReaderDisplay = "strip";
+      delete state.mangaReaderMode;
+      delete state.mangaReaderServer;
+      delete state.mangaReaderWallpaperId;
+      delete state.mangaReaderWallpaperFilters;
+      delete state.mangaReaderWallpaperDither;
+      delete state.mangaReaderWallpaperDitherStrength;
+      delete state.mangaReaderWallpaperShadow;
+    },
+  },
+  {
+    from: SCHEMA_VERSIONS.settings,
+    migrate: (state) => {
+      if (state.mangaReaderTurn === "edges") state.mangaReaderTurn = "buttons";
+    },
+  },
   {
     from: 63,
     migrate: (state) => {
@@ -275,7 +303,14 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
   },
 ];
 
+const isMangaLibDomain = (value: unknown) => value === "mangalib.me" || value === "mangalib.org";
+
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
+  mangaLibRequestDomain: isMangaLibDomain,
+  mangaLibBrowserDomain: isMangaLibDomain,
+  mangaHiddenStatuses: (value) =>
+    Array.isArray(value) &&
+    value.every((id: unknown) => typeof id === "string" && id.startsWith("custom:")),
   searchType: toValidator(z.enum(["default", "modern"])),
   playerType: toValidator(z.enum(["default", "modern"])),
   progressStyle: toValidator(z.enum(["blocks", "solid"])),
@@ -290,6 +325,13 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   scanThreads: (value) =>
     typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 64,
   gameVolume: (value) => typeof value === "number" && value >= 0 && value <= 1,
+  mangaReaderFrame: toValidator(
+    z.enum(["none", "dark", "light", "shadow", "win95", "gold", "inset"])
+  ),
+  mangaReaderDisplay: toValidator(z.enum(["paged", "strip", "book"])),
+  mangaReaderDirection: toValidator(z.enum(["rtl", "ltr", "vertical"])),
+  mangaReaderTurn: toValidator(z.enum(["edges", "buttons"])),
+  mangaReaderBackground: toValidator(z.enum(["black", "charcoal", "white", "sepia", "custom"])),
   searchProxyUrls: toValidator(z.record(z.string(), z.string())),
   playerFolderHeights: toValidator(z.record(z.string(), z.number())),
   playerTorrentHeights: toValidator(z.record(z.string(), z.number())),

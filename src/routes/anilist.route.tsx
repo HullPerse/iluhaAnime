@@ -38,6 +38,8 @@ import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { showErrorOnce } from "@/lib/core/ui/notification.utils";
 import { paginate } from "@/lib/core/text/pagination.utils";
 import { addAnilistFriend, cacheAnilistProfile, removeAnilistFriend } from "@/store/anilist.store";
+import { anilistMangaMode } from "@/store/anilistManga.store";
+import { AniListMediaMode } from "@/routes/components/anilist/mediaMode.anilist";
 import { searchAtoms, setAnilistSearchQuery, subscribeSearch } from "@/store/search.store";
 import { patchSettings, settingsAtoms, syncCoverModeWithAnilistAuth } from "@/store/settings.store";
 import type {
@@ -54,6 +56,7 @@ import AniListDetailModalHost from "@/routes/components/anilist/detail/host.deta
 import GlobalSearchFooter from "@/routes/components/anilist/globalSearchFooter.anilist";
 import { useFriendAnilistData } from "@/routes/components/anilist/friend/data.friend";
 import AniListGlobalSortBar from "@/routes/components/anilist/globalSortBar.anilist";
+import AniListMangaProfile from "@/routes/components/anilist/mangaProfile.anilist";
 import AniListProfileSections from "@/routes/components/anilist/profileSections.anilist";
 import AniListResultsHost from "@/routes/components/anilist/resultsHost.anilist";
 import AniListSearchToolbar from "@/routes/components/anilist/searchToolbar.anilist";
@@ -64,6 +67,7 @@ import { useUserAnilistData } from "@/routes/components/anilist/user/data.user";
 
 function AnilistRoute() {
   const { t } = useI18n();
+  const mangaMode = useCell(anilistMangaMode);
   useResolvedHotkeys<"focus-main">(
     [{ id: "focus-main", chord: "ctrl+KeyK", repeat: "once", keybindId: "focus.main" }],
     {
@@ -460,20 +464,27 @@ function AnilistRoute() {
     onSaved: handleDetailsSaved,
   };
 
+  if (mangaMode) return <AniListMangaProfile user={user} friends={friends} />;
+
   return (
     <div className="flex h-full w-full flex-col gap-1">
-      {user && !self.isLoading && source.caps.search && (
-        <AniListSearchToolbar
-          field={field}
-          global={global}
-          onGlobal={handleGlobalMode}
-          onReset={handleResetMode}
-          onClearSearch={handleClearSearch}
-          filters={searchFilters}
-          onFiltersOpen={() => handleOpenModal("filters")}
-          loadingSearch={loadingSearch}
-        />
-      )}
+      {!self.isLoading &&
+        (user && source.caps.search ? (
+          <AniListSearchToolbar
+            field={field}
+            global={global}
+            onGlobal={handleGlobalMode}
+            onReset={handleResetMode}
+            onClearSearch={handleClearSearch}
+            filters={searchFilters}
+            onFiltersOpen={() => handleOpenModal("filters")}
+            loadingSearch={loadingSearch}
+          />
+        ) : (
+          <div className="ui-toolbar ui-panel">
+            <AniListMediaMode />
+          </div>
+        ))}
 
       <AniListProfileSections
         source={source}

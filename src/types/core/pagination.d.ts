@@ -17,5 +17,6 @@ export interface PaginationProps {
   to: number;
   onPageChange: (page: number) => void;
   statusText?: string;
+  sequential?: boolean;
   scrollRef?: RefObject<HTMLElement | null>;
 }

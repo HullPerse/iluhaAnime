@@ -6,6 +6,12 @@ export interface AnimeDeepLink {
   readonly id: AniListId;
 }
 
+export interface MangaDeepLink {
+  source: "mangalib" | "mangadex" | "readmanga" | "asurascans";
+  id: string;
+  chapterId?: string;
+}
+
 export interface StreamDeepLink {
   readonly source: "animelib";
   readonly slug: string;
@@ -74,6 +80,7 @@ export interface DeepLinkStore {
 
 export type PastedLink =
   | { kind: "anime"; link: AnimeDeepLink }
+  | { kind: "manga"; link: MangaDeepLink }
   | { kind: "stream"; link: StreamDeepLink }
   | { kind: "torrent"; link: TorrentDeepLink }
   | { kind: "magnet"; magnet: string }

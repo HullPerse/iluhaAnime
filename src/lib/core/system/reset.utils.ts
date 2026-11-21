@@ -20,6 +20,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   "general.tabs": [
     "newsTabEnabled",
     "streamTabEnabled",
+    "mangaTabEnabled",
     "collectionTabEnabled",
     "anilistTabEnabled",
   ],
@@ -36,6 +37,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   ],
   "general.screenshot": ["screenshotDir", "screenshotFormat", "screenshotOpenFolder"],
   "notifications.system": ["notificationPopups"],
+  "notifications.manga": ["mangaBackgroundRefresh"],
   "notifications.anilist": [
     "anilistReleaseNotifications",
     "notifyNewEpisodes",
@@ -77,6 +79,12 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   ],
   "proxy.anilist": ["anilistProxyUrl", "anilistTitleLanguage", "anilistAdultContent"],
   "proxy.news": ["newsProxyUrl"],
+  "proxy.manga": [
+    "mangaProxyUrl",
+    "mangaSourceProxies",
+    "mangaLibRequestDomain",
+    "mangaLibBrowserDomain",
+  ],
   "proxy.animelib": ["animelibProxyUrl"],
   "proxy.collection": ["cardsImageProxyUrl", "dailyProxyUrl", "dailyOpeningProxyUrl"],
   "proxy.sources": ["searchProxyUrls", "webviewProxyEnabled"],
@@ -94,6 +102,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
   ],
   "theme.animation": [
     "modalAnimation",
+    "modalCloseOnOutsideClick",
     "enableAnimations",
     "animateCounters",
     "animateToasts",

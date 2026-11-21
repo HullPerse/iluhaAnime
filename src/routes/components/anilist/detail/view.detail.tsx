@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { setCrossSearchQuery } from "@/store/search.store";
+import { openTrackedManga } from "@/store/anilistManga.store";
 import type { AniDetailViewProps as ViewProps } from "@/types/anilist/anilistUi";
 import { detailErrorText } from "@/lib/anilist/detailError.utils";
 
@@ -61,6 +63,7 @@ export function AniListDetailView({
     );
   }
   if (!anime) return <TabLoader className="min-h-48 flex-1" />;
+  const relatedManga = anime.relations.filter(({ media }) => media.media_type === "MANGA");
   return (
     <section className="relative flex flex-col gap-2">
       <div className="flex items-start gap-2">
@@ -107,6 +110,32 @@ export function AniListDetailView({
           expanded={showFranchise}
         />
       </Section>
+
+      {relatedManga.length > 0 && (
+        <section aria-label={t("manga.tracking.related")} className="ui-panel grid gap-1 p-1">
+          <h2 className="text-xs font-bold">{t("manga.tracking.related")}</h2>
+          <ul className="divide-muted divide-y">
+            {relatedManga.map(({ media, relation_type }) => (
+              <li
+                key={`${media.id}:${relation_type}`}
+                className="flex flex-wrap items-center gap-1 py-1"
+              >
+                <span className="text-hint text-xs">{t("app.manga")}</span>
+                <Button
+                  render={<Link to="/anilist" />}
+                  nativeButton={false}
+                  onClick={() => {
+                    openTrackedManga(media.id, media.title);
+                    onClose();
+                  }}
+                >
+                  {media.title}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {anime.description && (
         <Section

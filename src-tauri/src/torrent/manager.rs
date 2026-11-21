@@ -2226,8 +2226,7 @@ impl TorrentManager {
         });
         if let Some(files) = result {
             if include_disk {
-                let progress_signature: u64 =
-                    files.iter().map(|file| file.progress_bytes).sum();
+                let progress_signature: u64 = files.iter().map(|file| file.progress_bytes).sum();
                 self.files_cache.insert(id, files.clone());
                 self.files_cache_at
                     .insert(id, (Instant::now(), progress_signature));

@@ -1,0 +1,78 @@
+{
+  "data": [
+    {
+      "id": 54644,
+      "index": 1,
+      "item_number": 1,
+      "volume": "1",
+      "number": "0",
+      "number_secondary": "1",
+      "name": "Рассвет романтики",
+      "branches_count": 1,
+      "bundle_id": null,
+      "branches": [
+        {
+          "id": 54644,
+          "branch_id": null,
+          "created_at": "2016-08-20T05:03:02.000000Z",
+          "teams": [
+            {
+              "id": 0,
+              "slug": "unknown",
+              "slug_url": "0--unknown",
+              "model": "team",
+              "name": "Неизвестный",
+              "cover": {
+                "filename": null,
+                "thumbnail": "https://cover.lib.social/static/images/placeholders/user_avatar.png",
+                "default": "https://cover.lib.social/static/images/placeholders/user_avatar.png",
+                "md": "https://cover.lib.social/static/images/placeholders/user_avatar.png"
+              }
+            }
+          ],
+          "expired_type": 0
+        }
+      ]
+    },
+    {
+      "id": 54643,
+      "index": 2,
+      "item_number": 2,
+      "volume": "1",
+      "number": "0.5",
+      "number_secondary": "1",
+      "name": "Strong World",
+      "branches_count": 1,
+      "bundle_id": null,
+      "branches": [
+        {
+          "id": 54643,
+          "branch_id": null,
+          "created_at": "2016-08-20T04:56:22.000000Z",
+          "teams": [],
+          "expired_type": 0
+        }
+      ]
+    },
+    {
+      "id": 54646,
+      "index": 3,
+      "item_number": 3,
+      "volume": "1",
+      "number": "1",
+      "number_secondary": "1",
+      "name": "На заре приключений",
+      "branches_count": 1,
+      "bundle_id": null,
+      "branches": [
+        {
+          "id": 54646,
+          "branch_id": null,
+          "created_at": "2016-08-20T05:26:15.000000Z",
+          "teams": [],
+          "expired_type": 0
+        }
+      ]
+    }
+  ]
+}

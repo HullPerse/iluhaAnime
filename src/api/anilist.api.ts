@@ -21,6 +21,7 @@ import {
   AniMediaListSchema,
   AniMediaPageSchema,
   AniMediaSchema,
+  AniMangaOverviewSchema,
   AniRecommendationListSchema,
   AniActivityListSchema,
   AniSavedEntrySchema,
@@ -50,7 +51,9 @@ import type {
   AniCharacterEdge,
   AniListCollection,
   AniListStatistics,
+  AniMangaOverview,
   AniMedia,
+  AniMediaType,
   AniRecommendation,
   AniSavedEntry,
   AniStaffDetail,
@@ -73,11 +76,13 @@ import { tauriTransport } from "@/api/transport.api";
 import type { ApiTransport } from "@/types/core/transport";
 import type { AnilistApiConfig, SaveAnilistEntryInput } from "@/types/api/anilist";
 
-export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParams>>;
+export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParams>> & {
+  mediaType?: AniMediaType;
+};
 
 export type AnilistFilterPageParams = AnilistSearchParams & { page: number };
 
-const OMIT_WHEN_NULL: ReadonlySet<string> = new Set(["progress", "score", "repeat"]);
+const OMIT_WHEN_NULL: ReadonlySet<string> = new Set(["progress", "progressVolumes", "score", "repeat"]);
 
 export class AnilistApi {
   private readonly transport: ApiTransport;
@@ -142,10 +147,11 @@ export class AnilistApi {
     return profile;
   }
 
-  async getLists(userId: number, minimal = false): Promise<AniListCollection[]> {
+  async getLists(userId: number, minimal = false, mediaType?: AniMediaType): Promise<AniListCollection[]> {
     const lists = await this.call<AniListCollection[]>("get_anilist_lists", {
       userId,
       minimal,
+      ...(mediaType ? { mediaType } : {}),
     });
     assertSchema(lists, AniListCollectionListSchema);
     return lists;
@@ -219,7 +225,11 @@ export class AnilistApi {
   }
 
   async getAnimeById<T = AniMedia>(id: number): Promise<T> {
-    const media = await this.call<T>("get_anime_by_id", { id });
+    return this.getMediaById<T>(id);
+  }
+
+  async getMediaById<T = AniMedia>(id: number, mediaType?: AniMediaType): Promise<T> {
+    const media = await this.call<T>("get_anime_by_id", { id, ...(mediaType ? { mediaType } : {}) });
     assertSchema(media, AniMediaSchema);
     return media;
   }
@@ -316,8 +326,8 @@ export class AnilistApi {
     return favourites;
   }
 
-  async getCustomLists(): Promise<string[]> {
-    const lists = await this.call<string[]>("get_anilist_custom_lists");
+  async getCustomLists(mediaType?: AniMediaType): Promise<string[]> {
+    const lists = await this.call<string[]>("get_anilist_custom_lists", mediaType ? { mediaType } : {});
     assertSchema(lists, AniStringListSchema);
     return lists;
   }
@@ -357,10 +367,20 @@ export class AnilistApi {
     );
   }
 
-  async getActivity(userIds: number[]): Promise<AniActivity[]> {
-    const activities = await this.call<AniActivity[]>("get_anilist_activity", { userIds });
+  async getActivity(userIds: number[], mediaType?: AniMediaType): Promise<AniActivity[]> {
+    const activities = await this.call<AniActivity[]>("get_anilist_activity", { userIds, ...(mediaType ? { mediaType } : {}) });
     assertSchema(activities, AniActivityListSchema);
     return activities;
+  }
+
+  async getMangaOverview(userId: number) {
+    const overview = await this.call<AniMangaOverview>("get_anilist_manga_overview", { userId });
+    assertSchema(overview, AniMangaOverviewSchema);
+    return overview;
+  }
+
+  async toggleMangaFavourite(mangaId: number) {
+    await this.call<unknown>("toggle_anilist_manga_favourite", { mangaId });
   }
 
   async toggleActivityLike(activityId: number): Promise<ActivityLikeState> {

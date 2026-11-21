@@ -13,6 +13,7 @@ export default function Pagination({
   to,
   onPageChange,
   statusText,
+  sequential = false,
   scrollRef,
 }: PaginationProps) {
   const { t } = useI18n();
@@ -42,23 +43,25 @@ export default function Pagination({
         >
           <ChevronLeft className="size-3" />
         </Button>
-        <Input
-          key={page}
-          defaultValue={String(page)}
-          onChange={(e) => {
-            const num = Number(e.target.value);
-            if (Number.isFinite(num) && num >= 1) {
-              handlePageChange(Math.min(num, lastPage));
-            }
-          }}
-          min={1}
-          max={lastPage}
-          type="number"
-          inputMode="numeric"
-          aria-label={t("common.pagination.page", { page, lastPage })}
-          aria-current="page"
-          className="windows95-text windows95-border flex h-6 w-10 items-center justify-center text-center font-bold"
-        />
+        {!sequential && (
+          <Input
+            key={page}
+            defaultValue={String(page)}
+            onChange={(e) => {
+              const num = Number(e.target.value);
+              if (Number.isFinite(num) && num >= 1) {
+                handlePageChange(Math.min(num, lastPage));
+              }
+            }}
+            min={1}
+            max={lastPage}
+            type="number"
+            inputMode="numeric"
+            aria-label={t("common.pagination.page", { page, lastPage })}
+            aria-current="page"
+            className="windows95-text windows95-border flex h-6 w-10 items-center justify-center text-center font-bold"
+          />
+        )}
         <Button
           size="icon"
           className="h-6 w-6"

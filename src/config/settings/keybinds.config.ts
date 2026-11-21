@@ -23,6 +23,13 @@ const ResolvedHotkeySchema = z.object({
 const KeybindsDataSchema = z.object({
   DIGIT_KEYS: z.array(z.number()),
   KEYBINDS: z.array(KeybindDefSchema),
+  MANGA_READER_HOTKEYS: z.array(
+    z.object({
+      id: z.enum(["left", "right", "up", "down", "close"]),
+      chord: z.string(),
+      repeat: z.enum(["hold", "once"]),
+    })
+  ),
   OFFSET_LIMIT: z.number(),
   OFFSET_STEP: z.number(),
   OFFSET_STEP_FINE: z.number(),
@@ -45,3 +52,8 @@ export const VIEW_MODE_DIGITS = parsed.VIEW_MODE_DIGITS as readonly number[];
 export const KEYBINDS = parsed.KEYBINDS as KeybindDef[];
 
 export const PLAYER_HOTKEYS = parsed.PLAYER_HOTKEYS as ResolvedHotkeyDef<KeybindAction>[];
+
+export const MANGA_READER_HOTKEYS = parsed.MANGA_READER_HOTKEYS.map((binding) => ({
+  ...binding,
+  keybindId: `manga-reader.${binding.id}`,
+}));

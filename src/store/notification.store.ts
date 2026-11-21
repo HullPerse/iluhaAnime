@@ -171,22 +171,22 @@ export function createNotificationSignalStore(
       const signature = notificationSignature(type, title, message, target);
       const prunedDismissed = pruneDismissed(dismissed.get(), now);
       if (
-        prunedDismissed.some(
-          (entry) => (eventKey && entry.eventKey === eventKey) || entry.signature === signature
+        prunedDismissed.some((entry) =>
+          eventKey && entry.eventKey ? entry.eventKey === eventKey : entry.signature === signature
         )
       ) {
         return -1;
       }
 
       const current = items.get();
-      const existing = current.find(
-        (item) =>
-          (eventKey && item.eventKey === eventKey) ||
-          (item.title === title &&
+      const existing = current.find((item) =>
+        eventKey && item.eventKey
+          ? item.eventKey === eventKey
+          : item.title === title &&
             item.message === message &&
             item.type === type &&
             targetKey(item.target) === targetKey(target) &&
-            (Boolean(eventKey) || now - item.timestamp < DEDUP_MS))
+            (Boolean(eventKey) || now - item.timestamp < DEDUP_MS)
       );
       if (existing) {
         if (eventKey) return existing.id;

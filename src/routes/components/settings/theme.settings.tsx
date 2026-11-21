@@ -416,6 +416,10 @@ export default function SettingsTheme() {
         </div>
         <div className="flex flex-col gap-1 p-2">
           <EffectsCheckbox label={t("settings.theme.modal.animation")} field="modalAnimation" />
+          <EffectsCheckbox
+            label={t("settings.theme.modal.close.outside")}
+            field="modalCloseOnOutsideClick"
+          />
           <EffectsCheckbox label={t("settings.theme.animation")} field="enableAnimations" />
           {showAdvancedAnimation && (
             <>

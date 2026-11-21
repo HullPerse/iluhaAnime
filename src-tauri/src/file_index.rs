@@ -565,8 +565,7 @@ impl FileIndexer {
             .iter()
             .map(|entry| (entry.path.as_ref(), entry.size))
             .collect();
-        let new_paths: HashSet<&str> =
-            entries.iter().map(|entry| entry.path.as_ref()).collect();
+        let new_paths: HashSet<&str> = entries.iter().map(|entry| entry.path.as_ref()).collect();
         let upserts: Vec<FileEntry> = entries
             .iter()
             .filter(|entry| old_sizes.get(entry.path.as_ref()).copied() != Some(entry.size))
@@ -1095,10 +1094,7 @@ mod tests {
     async fn remove_paths_drops_the_batch() {
         let indexer = FileIndexer::new();
         indexer
-            .replace_entries(vec![
-                FileEntry::new("a.mkv", 1),
-                FileEntry::new("b.mkv", 2),
-            ])
+            .replace_entries(vec![FileEntry::new("a.mkv", 1), FileEntry::new("b.mkv", 2)])
             .await;
 
         assert!(indexer.remove_paths(vec!["a.mkv".to_string()]).await);
@@ -1128,7 +1124,10 @@ mod tests {
             .into_iter()
             .map(|entry| entry.path.to_string())
             .collect::<Vec<_>>();
-        assert_eq!(paths, vec!["new/b.mkv".to_string(), "old/a.mkv".to_string()]);
+        assert_eq!(
+            paths,
+            vec!["new/b.mkv".to_string(), "old/a.mkv".to_string()]
+        );
     }
 
     #[tokio::test]

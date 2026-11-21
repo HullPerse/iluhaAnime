@@ -28,6 +28,7 @@ export default function SettingsGeneral() {
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
   const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
+  const mangaTabEnabled = useCell(settingsAtoms.mangaTabEnabled);
   const newsTabEnabled = useCell(settingsAtoms.newsTabEnabled);
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
@@ -105,6 +106,15 @@ export default function SettingsGeneral() {
                     onChange={(v) => patchSettings({ streamTabEnabled: v })}
                   />
                   <span className="text-xs">{t("settings.stream.tab")}</span>
+                </label>
+              </div>
+              <div className="group flex items-center gap-1">
+                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
+                  <Checkbox
+                    checked={mangaTabEnabled}
+                    onChange={(v) => patchSettings({ mangaTabEnabled: v })}
+                  />
+                  <span className="text-xs">{t("settings.manga.tab")}</span>
                 </label>
               </div>
               <div className="group flex items-center gap-1">

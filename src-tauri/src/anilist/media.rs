@@ -19,6 +19,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 const MEDIA_CACHE_VERSION: u32 = 1;
 const MEDIA_CACHE_TTL_SECS: i64 = 6 * 60 * 60;
 const MEDIA_CACHE_SCREEN: &str = "anilist_media_screen";
+const MANGA_CACHE_SCREEN: &str = "anilist_manga_screen";
 pub const MEDIA_CACHE_DETAIL: &str = "anilist_media_detail";
 const MAL_LOOKUP_CACHE_NAMESPACE: &str = "anilist_mal_lookup_v1";
 const MAL_LOOKUP_CACHE_TTL_SECS: i64 = 24 * 60 * 60;
@@ -114,6 +115,14 @@ pub struct AniRelation {
     pub media: AniRelatedMedia,
 }
 
+#[derive(Clone, Copy, Debug, Default, serde::Deserialize, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum AniMediaType {
+    #[default]
+    Anime,
+    Manga,
+}
+
 #[derive(Debug, Serialize)]
 pub struct AniMedia {
     pub id: u64,
@@ -123,6 +132,10 @@ pub struct AniMedia {
     pub title_english: Option<String>,
     pub title_native: Option<String>,
     pub episodes: Option<i32>,
+    pub chapters: Option<i32>,
+    pub volumes: Option<i32>,
+    pub country_of_origin: Option<String>,
+    pub media_type: Option<AniMediaType>,
     pub duration: Option<i32>,
     pub format: Option<String>,
     pub source: Option<String>,
@@ -151,6 +164,7 @@ pub struct AniMedia {
 pub struct AniListEntry {
     pub media: AniMedia,
     pub progress: Option<i32>,
+    pub progress_volumes: Option<i32>,
     pub score: Option<f64>,
     pub list_status: String,
     pub created_at: Option<i64>,
@@ -319,6 +333,10 @@ pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
         title_english: m["title"]["english"].as_str().map(String::from),
         title_native: m["title"]["native"].as_str().map(String::from),
         episodes: m["episodes"].as_i64().map(|n| n as i32),
+        chapters: m["chapters"].as_i64().map(|n| n as i32),
+        volumes: m["volumes"].as_i64().map(|n| n as i32),
+        country_of_origin: m["countryOfOrigin"].as_str().map(String::from),
+        media_type: media_type(m),
         duration: m["duration"].as_i64().map(|n| n as i32),
         format: m["format"].as_str().map(String::from),
         source: m["source"].as_str().map(String::from),
@@ -534,11 +552,22 @@ async fn fetch_paginated(
     )
     .await
 }
+pub(super) fn media_type(media: &serde_json::Value) -> Option<AniMediaType> {
+    match media["type"].as_str() {
+        Some("ANIME") => Some(AniMediaType::Anime),
+        Some("MANGA") => Some(AniMediaType::Manga),
+        _ => None,
+    }
+}
+
 pub const MEDIA_CORE_SELECTION: &str = r"
                 id
                 title { romaji english native }
                 coverImage { medium }
                 episodes
+                chapters
+                volumes
+                countryOfOrigin
                 averageScore
                 format
                 type
@@ -622,6 +651,7 @@ const SEARCH_MEDIA_QUERY_TEMPLATE: &str = r"
         $page: Int,
         $perPage: Int,
         $search: String,
+        $mediaType: MediaType = ANIME,
         $tag_in: [String],
         $genre_in: [String],
         $format: MediaFormat,
@@ -643,7 +673,7 @@ const SEARCH_MEDIA_QUERY_TEMPLATE: &str = r"
             pageInfo { total }
             media(
                 search: $search
-                type: ANIME
+                type: $mediaType
                 tag_in: $tag_in
                 genre_in: $genre_in
                 format: $format
@@ -869,6 +899,7 @@ fn filter_search_variables(
 pub async fn search_anilist(
     app_handle: tauri::AppHandle,
     query: Option<String>,
+    media_type: Option<AniMediaType>,
     tags: Option<Vec<String>>,
     genres: Option<Vec<String>>,
     format: Option<String>,
@@ -909,6 +940,7 @@ pub async fn search_anilist(
         score_from,
         score_to,
     );
+    variables["mediaType"] = serde_json::json!(media_type.unwrap_or_default());
     variables["page"] = serde_json::json!(1);
 
     let mp = max_pages.unwrap_or(3).clamp(1, 20);
@@ -976,6 +1008,7 @@ pub async fn get_anilist_filter_page(
     app_handle: tauri::AppHandle,
     page: u32,
     query: Option<String>,
+    media_type: Option<AniMediaType>,
     tags: Option<Vec<String>>,
     genres: Option<Vec<String>>,
     format: Option<String>,
@@ -1015,6 +1048,7 @@ pub async fn get_anilist_filter_page(
         score_from,
         score_to,
     );
+    variables["mediaType"] = serde_json::json!(media_type.unwrap_or_default());
     let (page, pp) = clamp_filter_paging(page, per_page);
     variables["page"] = serde_json::json!(page);
     variables["perPage"] = serde_json::json!(pp);
@@ -1101,14 +1135,25 @@ pub async fn search_anilist_by_studio(
 pub async fn get_anime_by_id(
     app_handle: tauri::AppHandle,
     id: u64,
+    media_type: Option<AniMediaType>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<AniMedia, String> {
-    if let Some(cached) = cached_media_json(&app_handle, MEDIA_CACHE_SCREEN, id) {
+    let (namespace, query) = match media_type.unwrap_or_default() {
+        AniMediaType::Anime => (MEDIA_CACHE_SCREEN, anime_by_id_query()),
+        AniMediaType::Manga => (
+            MANGA_CACHE_SCREEN,
+            with_selection(
+                "query ($id: Int) { Media(id: $id, type: MANGA) { {SELECTION} } }",
+                &media_screen_selection(),
+            ),
+        ),
+    };
+    if let Some(cached) = cached_media_json(&app_handle, namespace, id) {
         return Ok(parse_animedia(&cached));
     }
     let body = serde_json::json!({
-        "query": anime_by_id_query(),
+        "query": query,
         "variables": { "id": id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
@@ -1116,9 +1161,9 @@ pub async fn get_anime_by_id(
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
     let m = &json["data"]["Media"];
     if m.is_null() {
-        return Err(format!("Anime with id {id} not found"));
+        return Err(format!("AniList media with id {id} not found"));
     }
-    store_media_json(&app_handle, MEDIA_CACHE_SCREEN, id, m);
+    store_media_json(&app_handle, namespace, id, m);
     Ok(parse_animedia(m))
 }
 

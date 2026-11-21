@@ -131,7 +131,7 @@ function Slider({
         />
       </div>
       <span className="inline-flex w-10 items-center justify-end gap-0.5 text-right tabular-nums">
-        {Math.floor((100 * Number(clamped.toFixed(2))) / max)}
+        {Number(clamped.toFixed(2))}
         {suffix}
       </span>
     </div>

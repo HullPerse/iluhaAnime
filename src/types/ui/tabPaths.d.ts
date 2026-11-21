@@ -7,4 +7,5 @@ export type TabPath =
   | "/settings"
   | "/game"
   | "/stream"
+  | "/manga"
   | "/news";

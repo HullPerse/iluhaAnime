@@ -379,8 +379,14 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
             title_english: m["title"]["english"].as_str().map(String::from),
             title_native: m["title"]["native"].as_str().map(String::from),
             episodes: m["episodes"].as_i64().map(|n| n as i32),
+            chapters: m["chapters"].as_i64().map(|n| n as i32),
+            volumes: m["volumes"].as_i64().map(|n| n as i32),
+            country_of_origin: m["countryOfOrigin"].as_str().map(String::from),
+            media_type: super::media::media_type(m),
             duration: None,
-            format: None,
+            format: (m["type"] == "MANGA")
+                .then(|| m["format"].as_str().map(String::from))
+                .flatten(),
             source: None,
             status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
             score: m["averageScore"].as_f64().map(|n| n.round() as i32),
@@ -425,6 +431,7 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
             relations: vec![],
         },
         progress: entry["progress"].as_i64().map(|n| n as i32),
+        progress_volumes: entry["progressVolumes"].as_i64().map(|n| n as i32),
         score: entry["score"].as_f64(),
         list_status: entry["status"].as_str().unwrap_or("").to_string(),
         created_at: entry["createdAt"].as_i64(),
@@ -451,13 +458,14 @@ const LIST_CHUNK_SIZE: u32 = 500;
 const LIST_MAX_CHUNKS: u32 = 25;
 
 const COLLECTION_QUERY: &str = r"
-            query ($userId: Int, $chunk: Int, $perChunk: Int) {
-                MediaListCollection(userId: $userId, type: ANIME, chunk: $chunk, perChunk: $perChunk) {
+            query ($userId: Int, $chunk: Int, $perChunk: Int, $mediaType: MediaType = ANIME) {
+                MediaListCollection(userId: $userId, type: $mediaType, chunk: $chunk, perChunk: $perChunk) {
                     hasNextChunk
                     lists {
                         name
                         entries {
                             progress
+                            progressVolumes
                             score
                             status
                             notes
@@ -473,7 +481,10 @@ const COLLECTION_QUERY: &str = r"
                                 id
                                 title { romaji english native }
                                 synonyms
-                                episodes, averageScore, popularity
+                                episodes, chapters, volumes, averageScore, popularity
+                                type
+                                countryOfOrigin
+                                format
                                 startDate { year month day }
                                 genres
                                 tags { name }
@@ -489,8 +500,8 @@ const COLLECTION_QUERY: &str = r"
         ";
 
 const MINIMAL_COLLECTION_QUERY: &str = r"
-            query ($userId: Int, $chunk: Int, $perChunk: Int) {
-                MediaListCollection(userId: $userId, type: ANIME, chunk: $chunk, perChunk: $perChunk) {
+            query ($userId: Int, $chunk: Int, $perChunk: Int, $mediaType: MediaType = ANIME) {
+                MediaListCollection(userId: $userId, type: $mediaType, chunk: $chunk, perChunk: $perChunk) {
                     hasNextChunk
                     lists {
                         name
@@ -509,10 +520,15 @@ const MINIMAL_COLLECTION_QUERY: &str = r"
             }
         ";
 
-fn collection_body(user_id: u64, chunk: u32, minimal: bool) -> serde_json::Value {
+fn collection_body(
+    user_id: u64,
+    chunk: u32,
+    minimal: bool,
+    media_type: Option<super::media::AniMediaType>,
+) -> serde_json::Value {
     serde_json::json!({
         "query": if minimal { MINIMAL_COLLECTION_QUERY } else { COLLECTION_QUERY },
-        "variables": { "userId": user_id, "chunk": chunk, "perChunk": LIST_CHUNK_SIZE }
+        "variables": { "userId": user_id, "chunk": chunk, "perChunk": LIST_CHUNK_SIZE, "mediaType": media_type.unwrap_or_default() }
     })
 }
 
@@ -551,6 +567,7 @@ pub async fn get_anilist_lists(
     app_handle: tauri::AppHandle,
     user_id: u64,
     minimal: Option<bool>,
+    media_type: Option<super::media::AniMediaType>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<AniListCollection>, String> {
@@ -561,8 +578,12 @@ pub async fn get_anilist_lists(
     let minimal = minimal.unwrap_or(false);
     let mut merged: Vec<AniListCollection> = Vec::new();
     for chunk in 1..=LIST_MAX_CHUNKS {
-        let json =
-            graphql_request(collection_body(user_id, chunk, minimal), Some(token), proxy).await?;
+        let json = graphql_request(
+            collection_body(user_id, chunk, minimal, media_type),
+            Some(token),
+            proxy,
+        )
+        .await?;
         let collection = &json["data"]["MediaListCollection"];
         merge_list_chunk(&mut merged, parse_collection_lists(&collection["lists"]));
         if !collection["hasNextChunk"].as_bool().unwrap_or(false) {
@@ -583,25 +604,23 @@ pub struct AniListCollection {
 #[allow(non_snake_case)]
 pub async fn get_anilist_custom_lists(
     app_handle: tauri::AppHandle,
+    media_type: Option<super::media::AniMediaType>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<String>, String> {
     let token = load_token(&app_handle)?;
+    let list = if matches!(media_type, Some(super::media::AniMediaType::Manga)) {
+        "mangaList"
+    } else {
+        "animeList"
+    };
     let body = serde_json::json!({
-        "query": r"
-            query {
-                Viewer {
-                    mediaListOptions {
-                        animeList { customLists }
-                    }
-                }
-            }
-        ",
+        "query": format!("query {{ Viewer {{ mediaListOptions {{ {list} {{ customLists }} }} }} }}"),
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
     Ok(
-        json["data"]["Viewer"]["mediaListOptions"]["animeList"]["customLists"]
+        json["data"]["Viewer"]["mediaListOptions"][list]["customLists"]
             .as_array()
             .map(|items| {
                 items
@@ -760,6 +779,7 @@ pub struct SavedMediaListEntry {
     pub id: Option<i64>,
     pub status: Option<String>,
     pub progress: Option<i32>,
+    pub progress_volumes: Option<i32>,
     pub repeat: Option<i32>,
     pub custom_lists: Vec<String>,
 }
@@ -769,6 +789,7 @@ fn parse_saved_entry(node: &serde_json::Value) -> SavedMediaListEntry {
         id: node["id"].as_i64(),
         status: node["status"].as_str().map(String::from),
         progress: node["progress"].as_i64().map(|n| n as i32),
+        progress_volumes: node["progressVolumes"].as_i64().map(|n| n as i32),
         repeat: node["repeat"].as_i64().map(|n| n as i32),
         custom_lists: node["customLists"]
             .as_array()
@@ -791,6 +812,8 @@ pub async fn save_anilist_entry(
     media_id: u64,
     status: String,
     progress: Option<i32>,
+    progress_volumes: Option<i32>,
+    media_type: Option<super::media::AniMediaType>,
     score: Option<f64>,
     notes: Option<String>,
     customLists: Option<Vec<String>>,
@@ -805,13 +828,14 @@ pub async fn save_anilist_entry(
     let token = load_token(&app_handle)?;
     let started_at = parse_fuzzy_date_input(startedAt.as_deref(), "startedAt")?;
     let completed_at = parse_fuzzy_date_input(completedAt.as_deref(), "completedAt")?;
-    let body = serde_json::json!({
+    let mut body = serde_json::json!({
         "query": r"
-            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String, $customLists: [String], $repeat: Int, $private: Boolean, $hiddenFromStatusLists: Boolean, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput) {
-                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes, customLists: $customLists, repeat: $repeat, private: $private, hiddenFromStatusLists: $hiddenFromStatusLists, startedAt: $startedAt, completedAt: $completedAt) {
+            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $progressVolumes: Int, $score: Float, $notes: String, $customLists: [String], $repeat: Int, $private: Boolean, $hiddenFromStatusLists: Boolean, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput) {
+                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, progressVolumes: $progressVolumes, score: $score, notes: $notes, customLists: $customLists, repeat: $repeat, private: $private, hiddenFromStatusLists: $hiddenFromStatusLists, startedAt: $startedAt, completedAt: $completedAt) {
                     id
                     status
                     progress
+                    progressVolumes
                     repeat
                     customLists
                 }
@@ -831,6 +855,14 @@ pub async fn save_anilist_entry(
             completed_at,
         )
     });
+    if let Some(volumes) = progress_volumes {
+        body["variables"]["progressVolumes"] = serde_json::json!(volumes);
+    }
+    if matches!(media_type, Some(super::media::AniMediaType::Manga)) && customLists.is_none() {
+        if let Some(variables) = body["variables"].as_object_mut() {
+            variables.remove("customLists");
+        }
+    }
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let started = std::time::Instant::now();
     let outcome = graphql_request(body, Some(&token), proxy.as_deref()).await;
@@ -850,13 +882,23 @@ pub async fn save_anilist_entry(
     };
     let saved = parse_saved_entry(&json["data"]["SaveMediaListEntry"]);
     if status.eq_ignore_ascii_case("COMPLETED") && crate::cards::config::CARDS_GRANT_ENABLED {
-        crate::cards::grant::maybe_grant_for_completion(
-            &app_handle,
-            media_id,
-            &token,
-            proxy.as_deref(),
-        )
-        .await;
+        if matches!(media_type, Some(super::media::AniMediaType::Manga)) {
+            crate::cards::grant::maybe_grant_for_manga_completion(
+                &app_handle,
+                media_id,
+                &token,
+                proxy.as_deref(),
+            )
+            .await;
+        } else {
+            crate::cards::grant::maybe_grant_for_completion(
+                &app_handle,
+                media_id,
+                &token,
+                proxy.as_deref(),
+            )
+            .await;
+        }
     }
     Ok(saved)
 }
@@ -1244,12 +1286,12 @@ mod tests {
 
     #[test]
     fn minimal_collection_body_is_smaller_than_full() {
-        let full =
-            serde_json::to_vec(&collection_body(7, 1, false)).expect("full body should serialize");
-        let minimal = serde_json::to_vec(&collection_body(7, 1, true))
+        let full = serde_json::to_vec(&collection_body(7, 1, false, None))
+            .expect("full body should serialize");
+        let minimal = serde_json::to_vec(&collection_body(7, 1, true, None))
             .expect("minimal body should serialize");
         assert!(minimal.len() < full.len());
-        let minimal_body = collection_body(7, 1, true);
+        let minimal_body = collection_body(7, 1, true, None);
         let minimal_query = minimal_body["query"].as_str().unwrap_or_default();
         for heavy in [
             "synonyms",
@@ -1274,6 +1316,31 @@ mod tests {
                 "minimal query misses {needed}"
             );
         }
+    }
+
+    #[test]
+    fn collection_type_defaults_to_anime_and_parses_manga_progress() {
+        use super::super::media::AniMediaType;
+        assert_eq!(
+            collection_body(7, 1, false, None)["variables"]["mediaType"],
+            "ANIME"
+        );
+        let body = collection_body(7, 1, false, Some(AniMediaType::Manga));
+        assert_eq!(body["variables"]["mediaType"], "MANGA");
+        assert!(body["query"]
+            .as_str()
+            .expect("query")
+            .contains("type: $mediaType"));
+        let entry = parse_list_entry(&serde_json::json!({
+            "progress": 23, "progressVolumes": 3,
+            "media": { "type": "MANGA", "chapters": 30, "volumes": 4, "countryOfOrigin": "JP" }
+        }));
+        assert_eq!(entry.progress, Some(23));
+        assert_eq!(entry.progress_volumes, Some(3));
+        assert_eq!(entry.media.chapters, Some(30));
+        assert_eq!(entry.media.volumes, Some(4));
+        assert_eq!(entry.media.country_of_origin.as_deref(), Some("JP"));
+        assert!(matches!(entry.media.media_type, Some(AniMediaType::Manga)));
     }
 
     #[test]

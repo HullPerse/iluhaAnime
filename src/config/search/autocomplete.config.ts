@@ -1,4 +1,4 @@
-import { Film, HardDrive, History, Magnet, SpellCheck, type LucideIcon } from "lucide-react";
+import { BookOpen, Film, HardDrive, History, Magnet, SpellCheck, type LucideIcon } from "lucide-react";
 
 import type { TranslationKey } from "@/types/core/i18n";
 import type { SearchSuggestion } from "@/types/search/search";
@@ -8,6 +8,7 @@ export const SPELL_CORRECTION_LIMIT = 3;
 
 export const suggestionIcons: Record<SearchSuggestion["kind"], LucideIcon> = {
   anime: Film,
+  manga: BookOpen,
   history: History,
   local: HardDrive,
   torrent: Magnet,
@@ -16,6 +17,7 @@ export const suggestionIcons: Record<SearchSuggestion["kind"], LucideIcon> = {
 
 export const suggestionKindLabels: Record<SearchSuggestion["kind"], TranslationKey> = {
   anime: "search.suggestion.anime",
+  manga: "app.manga",
   history: "search.suggestion.history",
   local: "search.suggestion.local",
   torrent: "search.suggestion.torrent",
@@ -25,6 +27,7 @@ export const suggestionKindLabels: Record<SearchSuggestion["kind"], TranslationK
 export const KIND_ORDER: SearchSuggestion["kind"][] = [
   "spell",
   "anime",
+  "manga",
   "history",
   "local",
   "torrent",

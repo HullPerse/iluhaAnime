@@ -30,6 +30,8 @@ pub const CARD_VARIANT_MULTIPLIERS: VariantMultipliers = VariantMultipliers {
 
 /// Completed titles grant one pack per twelve episodes, capped at five.
 pub const EPISODES_PER_PACK: u32 = 12;
+/// Completed manga grant one pack per twelve chapters, capped the same way.
+pub const CHAPTERS_PER_PACK: u32 = 12;
 pub const MAX_PACKS_PER_COMPLETION: u32 = 5;
 
 /// Variant odds for a freshly generated card.
@@ -150,6 +152,12 @@ pub fn packs_for_completed(episodes: Option<u32>) -> u32 {
     count.clamp(1, MAX_PACKS_PER_COMPLETION)
 }
 
+/// Packs earned by one completed manga. A missing chapter count still grants one.
+pub fn packs_for_completed_manga(chapters: Option<u32>) -> u32 {
+    let count = chapters.map_or(1, |total| total.div_ceil(CHAPTERS_PER_PACK));
+    count.clamp(1, MAX_PACKS_PER_COMPLETION)
+}
+
 /// Starter packs for the completed count on the AniList profile.
 pub fn starter_packs(completed: u32) -> u32 {
     let bonus = completed.isqrt();
@@ -221,6 +229,16 @@ mod tests {
         assert_eq!(packs_for_completed(Some(25)), 3);
         assert_eq!(packs_for_completed(Some(49)), 5);
         assert_eq!(packs_for_completed(Some(1000)), 5);
+    }
+
+    #[test]
+    fn completed_manga_grant_one_pack_per_twelve_chapters() {
+        assert_eq!(packs_for_completed_manga(None), 1);
+        assert_eq!(packs_for_completed_manga(Some(0)), 1);
+        assert_eq!(packs_for_completed_manga(Some(12)), 1);
+        assert_eq!(packs_for_completed_manga(Some(13)), 2);
+        assert_eq!(packs_for_completed_manga(Some(60)), 5);
+        assert_eq!(packs_for_completed_manga(Some(5000)), 5);
     }
 
     #[test]

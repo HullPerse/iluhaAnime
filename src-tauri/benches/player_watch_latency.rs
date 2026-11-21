@@ -21,8 +21,7 @@ const INDEX_ROWS: usize = 20_000;
 const RUNS: usize = 200;
 const WATCH_NS: &str = "player";
 const WATCH_KEY: &str = "watch:C:/Anime/Show/ep001.mkv";
-const WATCH_PAYLOAD: &str =
-    r#"{"position":123.456,"duration":1440.0,"updatedAt":1700000000}"#;
+const WATCH_PAYLOAD: &str = r#"{"position":123.456,"duration":1440.0,"updatedAt":1700000000}"#;
 
 #[allow(dead_code)]
 #[derive(serde::Deserialize, Debug)]
@@ -38,7 +37,10 @@ struct WatchState {
 }
 
 fn fixture_path() -> PathBuf {
-    std::env::temp_dir().join(format!("iluha_player_watch_bench_{}.sqlite3", std::process::id()))
+    std::env::temp_dir().join(format!(
+        "iluha_player_watch_bench_{}.sqlite3",
+        std::process::id()
+    ))
 }
 
 fn now_seconds() -> i64 {
@@ -102,8 +104,7 @@ fn seed(path: &Path) {
     let transaction = connection.transaction().expect("index transaction");
     let now = now_seconds();
     for chunk in rows.chunks(5_000) {
-        unified_index::upsert_unified_index_batch(&transaction, chunk, now)
-            .expect("index seed");
+        unified_index::upsert_unified_index_batch(&transaction, chunk, now).expect("index seed");
     }
     transaction.commit().expect("index commit");
     connection
@@ -170,8 +171,8 @@ fn main() {
         seed_started.elapsed().as_secs_f64() * 1000.0
     );
     let db_bytes = std::fs::metadata(&path).map_or(0, |meta| meta.len());
-    let wal_bytes = std::fs::metadata(format!("{}-wal", path.to_string_lossy()))
-        .map_or(0, |meta| meta.len());
+    let wal_bytes =
+        std::fs::metadata(format!("{}-wal", path.to_string_lossy())).map_or(0, |meta| meta.len());
     println!(
         "fixture size: db={:.1} MiB wal={:.1} MiB",
         db_bytes as f64 / (1024.0 * 1024.0),
@@ -241,7 +242,10 @@ fn main() {
                 .expect("writer insert");
             for index in 0..5_000 {
                 statement
-                    .execute(params![format!("writer-{index}"), format!("writer {index}")])
+                    .execute(params![
+                        format!("writer-{index}"),
+                        format!("writer {index}")
+                    ])
                     .expect("writer row");
             }
         }

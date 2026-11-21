@@ -10,6 +10,10 @@ import type { UserImage } from "@/types/core/userimage";
 
 export function useWallpaperImage() {
   const selectedId = useCell(settingsAtoms.selectedDitherId);
+  return useWallpaperAt(selectedId, true);
+}
+
+export function useWallpaperAt(selectedId: string | null, keepPrevious = false) {
   const effectiveId = selectedId === DITHER_PLACEHOLDER_ID ? null : selectedId;
   const query = useAppQuery("slow", {
     queryKey: queryKeys.wallpaper(effectiveId),
@@ -33,7 +37,9 @@ export function useWallpaperImage() {
     enabled: effectiveId !== null,
     retry: false,
     placeholderData:
-      effectiveId === null ? undefined : (previous: UserImage | null | undefined) => previous,
+      keepPrevious && effectiveId !== null
+        ? (previous: UserImage | null | undefined) => previous
+        : undefined,
   });
   return query;
 }

@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { anilistApi } from "@/api/anilist.api";
+import { clearMangaPageCache, getMangaPageCacheStats } from "@/api/manga.api";
 import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
@@ -48,6 +49,7 @@ interface CacheStats {
 
 interface SummaryStorage {
   images: RemoteImageStats;
+  mangaCache: RemoteImageStats;
   anilistCache: CacheStats;
   videoCache: CacheStats;
 }
@@ -76,11 +78,12 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         bytes: 0,
         count: 0,
       })) ?? { bytes: 0, count: 0 };
-      const [anilistCache, videoCache] = await Promise.all([
+      const [anilistCache, mangaCache, videoCache] = await Promise.all([
         withFallback(anilistApi.getCacheStats(), { hits: 0, misses: 0 }),
+        withFallback(getMangaPageCacheStats(), { bytes: 0, count: 0 }),
         withFallback(systemApi.getVideoCacheStats(), { hits: 0, misses: 0 }),
       ]);
-      return { anilistCache, images, videoCache };
+      return { anilistCache, images, mangaCache, videoCache };
     },
     staleTime: 30_000,
   });
@@ -109,6 +112,20 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
 
   const handleClearImages = () => {
     clearImages().catch((error) => reportBackgroundError("summary.images.clear", error));
+  };
+
+  const clearMangaCache = async () => {
+    const ok = await confirm(t("settings.summary.mangaCache.confirm"));
+    if (!ok) return;
+    const error = await attemptSequence([
+      () => clearMangaPageCache(),
+      () => queryClient.invalidateQueries({ queryKey: STORAGE_QUERY_KEY }),
+    ]);
+    if (error !== null) reportBackgroundError("summary.manga-cache.clear", error);
+  };
+
+  const handleClearMangaCache = () => {
+    clearMangaCache().catch((error) => reportBackgroundError("summary.manga-cache.clear", error));
   };
 
   const refreshSummary = () => {
@@ -236,6 +253,22 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
           busy={data === undefined}
           actionLabel={t("settings.summary.images.clear")}
           onAction={handleClearImages}
+        />
+        <SummaryRow
+          label={t("settings.summary.mangaCache")}
+          value={
+            data === undefined ? (
+              "..."
+            ) : (
+              <>
+                <AnimatedNumber value={data.mangaCache.count} format={String} /> -{" "}
+                {formatBytes(data.mangaCache.bytes)}
+              </>
+            )
+          }
+          busy={data === undefined}
+          actionLabel={t("settings.summary.mangaCache.clear")}
+          onAction={handleClearMangaCache}
         />
         <SummaryRow
           label={t("settings.summary.anilistCache")}

@@ -1634,6 +1634,94 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database collage metadata commit: {error}"))?;
     }
 
+    if version < 45 {
+        let transaction = rusqlite::Transaction::new_unchecked(
+            connection,
+            rusqlite::TransactionBehavior::Immediate,
+        )
+        .map_err(|error| format!("app database manga transaction: {error}"))?;
+        let current: i64 = transaction
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|error| format!("app database manga version: {error}"))?;
+        if current < 45 {
+            transaction
+                .execute_batch(include_str!("manga_v45.sql"))
+                .map_err(|error| format!("app database manga schema: {error}"))?;
+            transaction
+                .pragma_update(None, "user_version", 45)
+                .map_err(|error| format!("app database write manga version: {error}"))?;
+        }
+        transaction
+            .commit()
+            .map_err(|error| format!("app database manga commit: {error}"))?;
+    }
+
+    if version < 46 {
+        let transaction = rusqlite::Transaction::new_unchecked(
+            connection,
+            rusqlite::TransactionBehavior::Immediate,
+        )
+        .map_err(|error| format!("manga notification migration: {error}"))?;
+        let current: i64 = transaction
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|error| error.to_string())?;
+        if current < 46 {
+            let has_snapshot: bool = transaction
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM pragma_table_info('manga_library_items')
+                     WHERE name = 'notification_snapshot')",
+                    [],
+                    |row| row.get(0),
+                )
+                .map_err(|error| error.to_string())?;
+            if !has_snapshot {
+                transaction
+                    .execute(
+                        "ALTER TABLE manga_library_items ADD COLUMN notification_snapshot TEXT",
+                        [],
+                    )
+                    .map_err(|error| error.to_string())?;
+            }
+            transaction
+                .pragma_update(None, "user_version", 46)
+                .map_err(|error| error.to_string())?;
+        }
+        transaction.commit().map_err(|error| error.to_string())?;
+    }
+
+    if version < 47 {
+        let transaction = rusqlite::Transaction::new_unchecked(
+            connection,
+            rusqlite::TransactionBehavior::Immediate,
+        )
+        .map_err(|error| format!("manga favourite migration: {error}"))?;
+        let current: i64 = transaction
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|error| error.to_string())?;
+        if current < 47 {
+            let has_favourite: bool = transaction
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM pragma_table_info('manga_library_items')
+                     WHERE name = 'favourite')",
+                    [],
+                    |row| row.get(0),
+                )
+                .map_err(|error| error.to_string())?;
+            if !has_favourite {
+                transaction
+                    .execute(
+                        "ALTER TABLE manga_library_items ADD COLUMN favourite INTEGER NOT NULL DEFAULT 0 CHECK (favourite IN (0, 1))",
+                        [],
+                    )
+                    .map_err(|error| error.to_string())?;
+            }
+            transaction
+                .pragma_update(None, "user_version", 47)
+                .map_err(|error| error.to_string())?;
+        }
+        transaction.commit().map_err(|error| error.to_string())?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -1647,6 +1735,63 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
 mod tests {
     use super::*;
     use rusqlite::Connection;
+
+    #[test]
+    fn manga_migration_from_v44_is_additive_and_can_be_reopened() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        connection
+            .execute_batch(
+                "CREATE TABLE existing_data (value TEXT);
+                 INSERT INTO existing_data VALUES ('preserved');
+                 PRAGMA user_version = 44;",
+            )
+            .expect("database at version 44");
+
+        initialize_schema(&connection).expect("migrate version 44");
+        initialize_schema(&connection).expect("reopen migrated database");
+
+        let version: i64 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("version");
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
+        let count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name GLOB 'manga_*'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("manga tables");
+        assert_eq!(count, 8);
+        let value: String = connection
+            .query_row("SELECT value FROM existing_data", [], |row| row.get(0))
+            .expect("existing data");
+        assert_eq!(value, "preserved");
+    }
+    #[test]
+    fn manga_notification_migration_preserves_existing_library_entries() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        connection
+            .execute_batch(include_str!("manga_v45.sql"))
+            .expect("v45 manga schema");
+        connection
+            .execute_batch(
+                "INSERT INTO manga_library_items
+                (id, source_id, source_manga_id, title, status_id, created_at, updated_at)
+             VALUES ('saved', 'mangadex', 'title', 'Saved title', 'planned', 0, 0);
+             PRAGMA user_version = 45;",
+            )
+            .expect("existing saved manga");
+
+        initialize_schema(&connection).expect("migrate version 45");
+        initialize_schema(&connection).expect("reopen migrated database");
+        let item: (String, Option<String>, bool) = connection.query_row(
+            "SELECT status_id, notification_snapshot, favourite FROM manga_library_items WHERE id = 'saved'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).expect("preserved library entry");
+        assert_eq!(item, ("planned".into(), None, false));
+    }
+
     #[test]
     fn migration_creates_cache_and_metadata_tables() {
         let connection = Connection::open_in_memory().expect("in-memory database");
@@ -1881,7 +2026,7 @@ mod tests {
         let version: i64 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("schema version");
-        assert_eq!(version, 42);
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
         let games: i64 = connection
             .query_row("SELECT COUNT(*) FROM daily_games", [], |row| row.get(0))
             .expect("game count");

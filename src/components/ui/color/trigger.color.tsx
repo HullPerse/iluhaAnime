@@ -7,10 +7,12 @@ export function ColorPickerTrigger({
   value,
   onChange,
   label,
+  container,
 }: {
   value: string;
   onChange: (hex: string) => void;
   label?: string;
+  container?: HTMLElement | null;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   return (
@@ -22,7 +24,7 @@ export function ColorPickerTrigger({
         className="windows95-border h-6 min-h-(--ui-control-height) w-10 cursor-pointer"
         style={{ background: value }}
       />
-      <Popover.Portal>
+      <Popover.Portal container={container ?? undefined}>
         <Popover.Positioner
           className="z-50 outline-none"
           side="bottom"

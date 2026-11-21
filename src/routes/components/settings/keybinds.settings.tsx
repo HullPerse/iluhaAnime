@@ -40,6 +40,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
       global: t("settings.keybinds.scope.global"),
       settings: t("settings.keybinds.scope.settings"),
       player: t("settings.keybinds.scope.player"),
+      "manga-reader": t("settings.keybinds.scope.manga-reader"),
       vim: t("settings.keybinds.scope.vim"),
       find: t("settings.keybinds.scope.find"),
       menu: t("settings.keybinds.scope.menu"),

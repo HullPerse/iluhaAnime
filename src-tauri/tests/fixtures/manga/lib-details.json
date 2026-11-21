@@ -1,0 +1,40 @@
+{
+  "data": {
+    "id": 206,
+    "name": "One Piece",
+    "rus_name": "Ван Пис",
+    "eng_name": "One Piece",
+    "model": "manga",
+    "slug": "one-piece",
+    "slug_url": "206--one-piece",
+    "cover": {
+      "filename": "d197bd65-b148-4ed1-a09e-9695a4461f1a",
+      "thumbnail": "https://cover.lib.social/uploads/cover/one-piece/cover/d197bd65-b148-4ed1-a09e-9695a4461f1a_thumb.jpg",
+      "default": "https://cover.lib.social/uploads/cover/one-piece/cover/d197bd65-b148-4ed1-a09e-9695a4461f1a.jpg",
+      "md": "https://cover.lib.social/uploads/cover/one-piece/cover/d197bd65-b148-4ed1-a09e-9695a4461f1a.jpg"
+    },
+    "ageRestriction": {
+      "id": 3,
+      "label": "16+"
+    },
+    "site": 1,
+    "type": {
+      "id": 1,
+      "label": "Манга"
+    },
+    "is_licensed": false,
+    "content_marking": [
+      {
+        "id": 2,
+        "label": "Содержит упоминание наркотиков",
+        "formulation": "Незаконное потребление наркотических средств, психотропных веществ, их аналогов причиняет вред здоровью, их незаконный оборот запрещен и влечет установленную законодательством ответственность"
+      }
+    ],
+    "status": {
+      "id": 1,
+      "label": "Онгоинг"
+    },
+    "releaseDateString": "1997 г."
+  },
+  "server": "debian-files3"
+}

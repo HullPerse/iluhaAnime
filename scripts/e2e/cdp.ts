@@ -52,12 +52,19 @@ export function createConsoleCollector(): ConsoleCollector {
 // rebuild triggered by a file change restarts it mid-run, so the window has to
 // cover a full compile rather than a warm start. Progress is logged so a long
 // wait reads as building instead of hanging.
-export async function connectCdp(waitMs = 900_000): Promise<Browser> {
+export async function connectCdp(
+  waitMs = 900_000,
+  appExitCode?: () => number | null
+): Promise<Browser> {
   const port = cdpPort();
   const started = Date.now();
   let lastError: unknown;
   let announced = 0;
   while (Date.now() - started < waitMs) {
+    const exitCode = appExitCode?.();
+    if (exitCode !== undefined && exitCode !== null) {
+      throw new Error(`Tauri exited before CDP became available (code ${exitCode})`);
+    }
     try {
       return await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
     } catch (error) {
@@ -199,6 +206,7 @@ export async function clickTabByAnyOf(page: Page, labels: readonly string[]): Pr
 export const TAB = {
   anilist: ["AniList", "АниЛіст", "АниList", "анилист"],
   collection: ["Collection", "Коллекция"],
+  manga: ["Manga", "Манга"],
   player: ["Player", "Плеер"],
   search: ["Search", "Поиск"],
   settings: ["Settings", "Parameters", "Параметры"],

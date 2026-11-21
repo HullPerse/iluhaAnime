@@ -30,8 +30,7 @@ fn build_fixture(root: &std::path::Path) {
             .expect("bench unrelated file");
     }
     for index in 0..SIDECARS {
-        std::fs::write(root.join(format!("episode {index:03}.srt")), b"x")
-            .expect("bench subtitle");
+        std::fs::write(root.join(format!("episode {index:03}.srt")), b"x").expect("bench subtitle");
     }
     let nested = root.join("Subs");
     std::fs::create_dir_all(&nested).expect("bench nested dir");
@@ -69,9 +68,7 @@ fn main() {
     let root = fixture_root();
     build_fixture(&root);
     let video = root.join("episode.mkv").to_string_lossy().to_string();
-    println!(
-        "fixture: other_files={OTHER_FILES} sidecars={SIDECARS} nested_sidecars={SIDECARS}"
-    );
+    println!("fixture: other_files={OTHER_FILES} sidecars={SIDECARS} nested_sidecars={SIDECARS}");
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)

@@ -16,6 +16,7 @@ beforeEach(() => {
     torrentTabEnabled: true,
     playerTabEnabled: true,
     streamTabEnabled: true,
+    mangaTabEnabled: false,
     newsTabEnabled: true,
     gameTabUnlocked: false,
   });
@@ -29,6 +30,7 @@ afterEach(() => {
     torrentTabEnabled: true,
     playerTabEnabled: true,
     streamTabEnabled: true,
+    mangaTabEnabled: false,
     newsTabEnabled: true,
     gameTabUnlocked: false,
   });
@@ -54,6 +56,12 @@ describe("tabs visibility", () => {
     expect(enabledTabPaths()).not.toContain("/torrent");
     expect(isEnabledTabPath("/torrent")).toBe(false);
     expect(isEnabledTabPath("/player")).toBe(true);
+  });
+
+  it("exposes the manga route only when the manga tab is enabled", () => {
+    expect(isEnabledTabPath("/manga")).toBe(false);
+    patchSettings({ mangaTabEnabled: true });
+    expect(isEnabledTabPath("/manga")).toBe(true);
   });
 
   it("treats unknown paths as enabled", () => {

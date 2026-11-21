@@ -56,6 +56,11 @@ export const streamRoute = createRoute({
   path: "/stream",
 });
 
+export const mangaRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/manga",
+});
+
 export const gameRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/game",

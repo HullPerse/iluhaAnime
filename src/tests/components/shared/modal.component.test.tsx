@@ -72,6 +72,52 @@ describe("Modal close guard", () => {
   });
 });
 
+describe("Modal backdrop click", () => {
+  const backdropOf = () => document.querySelector("[data-modal-backdrop]") as HTMLElement;
+
+  it("keeps the dialog open while the setting is off", () => {
+    patchSettings({ language: "ru", modalAnimation: false, modalCloseOnOutsideClick: false });
+    const onClose = vi.fn();
+    render(
+      <Modal header="Test" onClose={onClose}>
+        <span>body</span>
+      </Modal>
+    );
+
+    fireEvent.click(backdropOf());
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes the dialog when the setting is on", () => {
+    patchSettings({ language: "ru", modalAnimation: false, modalCloseOnOutsideClick: true });
+    const onClose = vi.fn();
+    render(
+      <Modal header="Test" onClose={onClose}>
+        <span>body</span>
+      </Modal>
+    );
+
+    fireEvent.click(backdropOf());
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects canClose when the setting is on", () => {
+    patchSettings({ language: "ru", modalAnimation: false, modalCloseOnOutsideClick: true });
+    const onClose = vi.fn();
+    render(
+      <Modal header="Test" onClose={onClose} canClose={() => false}>
+        <span>body</span>
+      </Modal>
+    );
+
+    fireEvent.click(backdropOf());
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
 describe("Modal pager", () => {
   it("shows the position and jumps between images", () => {
     patchSettings({ language: "ru", modalAnimation: false });

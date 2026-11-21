@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   FileText,
   Globe,
   Keyboard,
@@ -36,6 +37,7 @@ const SCOPE_ICONS: Record<KeybindScope, LucideIcon> = {
   global: Globe,
   settings: Settings,
   player: Play,
+  "manga-reader": BookOpen,
   vim: Keyboard,
   find: Search,
   menu: Menu,

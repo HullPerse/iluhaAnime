@@ -7,11 +7,16 @@ export const AniMediaSchema = z.looseObject({
   id: z.number(),
   title: z.string(),
   status: z.optional(z.string()),
+  chapters: z.optional(NullableNumberSchema),
+  volumes: z.optional(NullableNumberSchema),
+  country_of_origin: z.optional(NullableStringSchema),
+  media_type: z.optional(z.nullable(z.enum(["ANIME", "MANGA"]))),
   genres: z.optional(z.array(z.string())),
 });
 
 const AniListEntrySchema = z.looseObject({
   media: AniMediaSchema,
+  progress_volumes: z.optional(NullableNumberSchema),
   list_status: z.string(),
   custom_lists: z.array(z.string()),
 });
@@ -254,10 +259,26 @@ export const AniSavedEntrySchema = z.compile(
     id: NullableNumberSchema,
     status: NullableStringSchema,
     progress: NullableNumberSchema,
+    progressVolumes: z.optional(NullableNumberSchema),
     repeat: z.optional(NullableNumberSchema),
     customLists: z.array(z.string()),
   })
 );
+
+const mangaStatGroup = z.array(z.object({ label: z.string(), count: z.number() }));
+export const AniMangaOverviewSchema = z.object({
+  favourites: z.array(AniMediaSchema),
+  statistics: z.object({
+    count: z.number(),
+    chapters: z.number(),
+    volumes: z.number(),
+    meanScore: z.number(),
+    genres: mangaStatGroup,
+    formats: mangaStatGroup,
+    statuses: mangaStatGroup,
+    years: mangaStatGroup,
+  }),
+});
 export const AniFriendScoreListSchema = z.compile(
   z.array(
     z.looseObject({

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildAnimeLink,
+  buildMangaLink,
   buildNewsLink,
   buildStreamLink,
   buildTorrentLink,
@@ -31,6 +32,37 @@ vi.mock("@tauri-apps/api/core", async () => {
 });
 
 describe("utils/deeplink", () => {
+  it("opens an exact manga translation through paste and native link ingestion", () => {
+    const link = { source: "mangalib", id: "206--one-piece", chapterId: "987" } as const;
+    const raw = buildMangaLink(link);
+    expect(parsePastedLink(raw)).toEqual({ kind: "manga", link });
+    const open = vi.fn();
+    const invalid = vi.fn();
+    ingestDeepLinks(
+      [raw],
+      vi.fn(),
+      invalid,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      open
+    );
+    expect(open).toHaveBeenCalledWith(link);
+    expect(invalid).not.toHaveBeenCalled();
+    expect(parsePastedLink("iluhaanime://manga/mangalib/206--one-piece/%2F987")).toBe("invalid");
+    expect(parsePastedLink("iluhaanime://manga/unsupported/206--one-piece/987")).toBe("invalid");
+  });
+
+  it.each([
+    { source: "readmanga", id: "ecuba_i_", chapterId: "vol1-0.5" },
+    { source: "asurascans", id: "reincarnator-7ba78ec7", chapterId: "chapter-0" },
+  ] as const)("opens chapter links from $source", (link) => {
+    expect(parsePastedLink(buildMangaLink(link))).toEqual({ kind: "manga", link });
+  });
+
   describe("buildAnimeLink", () => {
     it("builds the exact anilist shape", () => {
       expect(buildAnimeLink(21 as AniListId)).toBe("iluhaanime://anime/anilist/21");

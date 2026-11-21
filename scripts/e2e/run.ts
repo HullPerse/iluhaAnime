@@ -15,6 +15,7 @@ import {
   ensureCdpFree,
   ensureVite,
   killE2eProcesses,
+  stopProcessTree,
   launchTauri,
   outRoot,
   stopVite,
@@ -28,16 +29,18 @@ import { boot } from "./scenarios/boot";
 import { collection } from "./scenarios/collection";
 import { diagnostics } from "./scenarios/diagnostics";
 import { livePlaylist } from "./scenarios/livePlaylist";
+import { manga } from "./scenarios/manga";
 import { navigation } from "./scenarios/navigation";
 import { player } from "./scenarios/player";
 import { playerMedia } from "./scenarios/playerMedia";
 import { repro } from "./scenarios/repro";
 import { torrent } from "./scenarios/torrent";
 
-const SMOKE: Scenario[] = [boot, collection, torrent, player, livePlaylist, repro];
+const SMOKE: Scenario[] = [boot, collection, torrent, player, livePlaylist, repro, manga];
 const SUITES: Record<string, Scenario[]> = {
   smoke: SMOKE,
   diagnostics: [diagnostics],
+  manga: [manga],
   media: [playerMedia],
   perf: [navigation, playerMedia],
   all: [...SMOKE, navigation, playerMedia],
@@ -68,9 +71,12 @@ async function main(): Promise<number> {
     return 2;
   }
   const only = (process.env.E2E_ONLY ?? "").split(",").filter(Boolean);
-  const scenarios = only.length > 0 ? suite.filter((scenario) => only.includes(scenario.name)) : suite;
+  const scenarios =
+    only.length > 0 ? suite.filter((scenario) => only.includes(scenario.name)) : suite;
   if (scenarios.length === 0) {
-    console.error(`no scenario matched E2E_ONLY=${process.env.E2E_ONLY ?? ""} in suite ${suiteName}`);
+    console.error(
+      `no scenario matched E2E_ONLY=${process.env.E2E_ONLY ?? ""} in suite ${suiteName}`
+    );
     return 2;
   }
   console.log(`[e2e] suite: ${suiteName}`);
@@ -108,7 +114,7 @@ async function main(): Promise<number> {
   let browser;
   try {
     console.log("[e2e] launching app (first run builds the e2e target dir)");
-    browser = await connectCdp();
+    browser = await connectCdp(undefined, () => child.exitCode);
     const page = await mainPage(browser);
     collector.attach(page);
     await waitForReady(page);
@@ -121,6 +127,17 @@ async function main(): Promise<number> {
       try {
         await scenario.run({ browser, page, outDir, ...runner });
       } catch (error) {
+        if (
+          !results.some((result) => result.scenario === scenario.name && result.status === "fail")
+        ) {
+          results.push({
+            scenario: scenario.name,
+            step: "scenario",
+            status: "fail",
+            ms: 0,
+            detail: String(error),
+          });
+        }
         console.log(`[e2e] scenario ${scenario.name} aborted: ${String(error)}`);
         dumpAppLogOnce(scenario.name, `after ${scenario.name} failed`);
       }
@@ -132,7 +149,7 @@ async function main(): Promise<number> {
     return 1;
   } finally {
     writeFileSync(join(outDir, "app.log"), appLog.text);
-    child.kill();
+    stopProcessTree(child);
     killE2eProcesses();
     stopVite(vite);
   }

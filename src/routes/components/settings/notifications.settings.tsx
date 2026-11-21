@@ -24,6 +24,7 @@ import NotifyRow from "@/routes/components/settings/notifyRow.settings";
 export default function SettingsNotifications() {
   const { t } = useI18n();
   const notificationPopups = useCell(settingsAtoms.notificationPopups);
+  const mangaBackgroundRefresh = useCell(settingsAtoms.mangaBackgroundRefresh);
   const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
   const notifyNewEpisodes = useCell(settingsAtoms.notifyNewEpisodes);
   const notifyStatusChanges = useCell(settingsAtoms.notifyStatusChanges);
@@ -91,6 +92,23 @@ export default function SettingsNotifications() {
               className="w-48"
             />
           </label>
+        </div>
+      </section>
+
+      <section className="ui-panel" data-find-section="notifications.manga">
+        <div className="ui-titlebar group flex items-center justify-between gap-1">
+          <span className="text-title-text font-bold">
+            {t("settings.manga.notifications.title")}
+          </span>
+          <SectionResetButton sectionId="notifications.manga" />
+        </div>
+        <div className="flex flex-col gap-0.5 p-2">
+          <NotifyRow
+            label={t("settings.manga.refresh")}
+            checked={mangaBackgroundRefresh}
+            field="mangaBackgroundRefresh"
+            onChange={(next) => patchSettings({ mangaBackgroundRefresh: next })}
+          />
         </div>
       </section>
 

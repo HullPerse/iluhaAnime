@@ -1,0 +1,119 @@
+{
+  "data": [
+    {
+      "id": "2d44b2ef-a293-4a82-84f1-6152ce0f88a2",
+      "type": "chapter",
+      "attributes": {
+        "volume": "9",
+        "chapter": "60",
+        "title": null,
+        "translatedLanguage": "ru",
+        "externalUrl": null,
+        "isUnavailable": false,
+        "publishAt": "2022-05-09T12:14:48+00:00",
+        "readableAt": "2022-05-09T12:14:48+00:00",
+        "createdAt": "2022-05-09T12:14:48+00:00",
+        "updatedAt": "2022-05-09T12:14:51+00:00",
+        "version": 3,
+        "pages": 29
+      },
+      "relationships": [
+        {
+          "id": "58be6aa6-06cb-4ca5-bd20-f1392ce451fb",
+          "type": "manga"
+        },
+        {
+          "id": "01425368-4799-433f-870f-9700569365f0",
+          "type": "user"
+        }
+      ]
+    },
+    {
+      "id": "2a31db8f-7d4d-40fe-bb17-b965f15164a6",
+      "type": "chapter",
+      "attributes": {
+        "volume": "15",
+        "chapter": "102",
+        "title": "Yotsuba & Watercolor",
+        "translatedLanguage": "en",
+        "externalUrl": null,
+        "isUnavailable": false,
+        "publishAt": "2020-02-20T20:49:04+00:00",
+        "readableAt": "2020-02-20T20:49:04+00:00",
+        "createdAt": "2020-02-20T20:49:04+00:00",
+        "updatedAt": "2021-12-16T21:56:22+00:00",
+        "version": 4,
+        "pages": 21
+      },
+      "relationships": [
+        {
+          "id": "58be6aa6-06cb-4ca5-bd20-f1392ce451fb",
+          "type": "manga"
+        },
+        {
+          "id": "03df99f9-098d-4dd9-bb47-7c4f263182b0",
+          "type": "user"
+        }
+      ]
+    },
+    {
+      "id": "0a36fd48-71c2-40e8-8e3f-280457d3c1bd",
+      "type": "chapter",
+      "attributes": {
+        "volume": "4",
+        "chapter": "26",
+        "title": null,
+        "translatedLanguage": "ru",
+        "externalUrl": null,
+        "isUnavailable": false,
+        "publishAt": "2022-05-08T19:20:46+00:00",
+        "readableAt": "2022-05-08T19:20:46+00:00",
+        "createdAt": "2022-05-08T19:20:46+00:00",
+        "updatedAt": "2022-05-08T19:20:50+00:00",
+        "version": 3,
+        "pages": 30
+      },
+      "relationships": [
+        {
+          "id": "58be6aa6-06cb-4ca5-bd20-f1392ce451fb",
+          "type": "manga"
+        },
+        {
+          "id": "01425368-4799-433f-870f-9700569365f0",
+          "type": "user"
+        }
+      ]
+    },
+    {
+      "id": "1bb3eb1b-4e00-49b3-bf9e-92274613853d",
+      "type": "chapter",
+      "attributes": {
+        "volume": "6",
+        "chapter": "38",
+        "title": null,
+        "translatedLanguage": "ru",
+        "externalUrl": null,
+        "isUnavailable": false,
+        "publishAt": "2022-05-08T19:27:02+00:00",
+        "readableAt": "2022-05-08T19:27:02+00:00",
+        "createdAt": "2022-05-08T19:27:01+00:00",
+        "updatedAt": "2022-05-08T19:27:07+00:00",
+        "version": 3,
+        "pages": 28
+      },
+      "relationships": [
+        {
+          "id": "58be6aa6-06cb-4ca5-bd20-f1392ce451fb",
+          "type": "manga"
+        },
+        {
+          "id": "01425368-4799-433f-870f-9700569365f0",
+          "type": "user"
+        }
+      ]
+    }
+  ],
+  "total": 249,
+  "limit": 10,
+  "offset": 0
+}

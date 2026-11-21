@@ -10,6 +10,7 @@ export const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
   { id: "player", key: "app.player" },
   { id: "anilist", key: "app.anilist" },
   { id: "stream", key: "app.stream" },
+  { id: "manga", key: "app.manga" },
   { id: "collection", key: "app.collection" },
   { id: "news", key: "app.news" },
   { id: "settings", key: "app.settings" },
@@ -22,6 +23,7 @@ const TAB_FLAGS: Partial<Record<TabId, keyof TabSettings>> = {
   player: "playerTabEnabled",
   search: "searchTabEnabled",
   stream: "streamTabEnabled",
+  manga: "mangaTabEnabled",
   torrent: "torrentTabEnabled",
 };
 

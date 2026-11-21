@@ -34,9 +34,7 @@ fn build_fixture(root: &Path) {
         return;
     }
     for torrent in 0..TORRENTS {
-        let dir = root
-            .join(format!("torrent-{torrent:02}"))
-            .join("Show S01");
+        let dir = root.join(format!("torrent-{torrent:02}")).join("Show S01");
         std::fs::create_dir_all(&dir).expect("bench torrent dir");
         for file in 0..FILES_PER_TORRENT {
             std::fs::write(dir.join(format!("Episode {file:03}.mkv")), b"x")
@@ -49,14 +47,18 @@ fn file_name(index: usize) -> String {
     format!("Show S01/Episode {index:03}.mkv")
 }
 
-fn build_files(dir: &Path, stat: bool, allocated: bool, clone_for_cache: bool) -> Vec<TorrentFileInfo> {
+fn build_files(
+    dir: &Path,
+    stat: bool,
+    allocated: bool,
+    clone_for_cache: bool,
+) -> Vec<TorrentFileInfo> {
     let files: Vec<TorrentFileInfo> = (0..FILES_PER_TORRENT)
         .map(|index| {
             let name = file_name(index);
             let full = dir.join(&name);
-            let exists = stat
-                && std::fs::metadata(&full)
-                    .is_ok_and(|meta| meta.is_file() && meta.len() > 0);
+            let exists =
+                stat && std::fs::metadata(&full).is_ok_and(|meta| meta.is_file() && meta.len() > 0);
             let on_disk_bytes = if allocated {
                 allocated_bytes(&full).unwrap_or(0)
             } else {
@@ -107,7 +109,9 @@ fn main() {
         .map(|torrent| root.join(format!("torrent-{torrent:02}")))
         .collect();
     let total_files = TORRENTS * FILES_PER_TORRENT;
-    println!("fixture: torrents={TORRENTS} files_per_torrent={FILES_PER_TORRENT} files={total_files}");
+    println!(
+        "fixture: torrents={TORRENTS} files_per_torrent={FILES_PER_TORRENT} files={total_files}"
+    );
 
     let warm = build_files(&dirs[0], true, true, true);
     println!(

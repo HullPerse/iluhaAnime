@@ -20,9 +20,7 @@ use std::hint::black_box;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use iluhaanime_lib::benchmark_api::{
-    initialize_schema, player_scan, unified_index, FileIndexer,
-};
+use iluhaanime_lib::benchmark_api::{initialize_schema, player_scan, unified_index, FileIndexer};
 
 const ROOTS: usize = 3;
 const SEASONS_PER_ROOT: usize = 30;
@@ -32,11 +30,17 @@ const EXTENSIONS: [&str; 5] = ["mkv", "mp4", "avi", "mov", "webm"];
 const RUNS: usize = 3;
 
 fn extension_list() -> Vec<String> {
-    EXTENSIONS.iter().map(|value| (*value).to_string()).collect()
+    EXTENSIONS
+        .iter()
+        .map(|value| (*value).to_string())
+        .collect()
 }
 
 fn extension_set() -> HashSet<String> {
-    EXTENSIONS.iter().map(|value| (*value).to_string()).collect()
+    EXTENSIONS
+        .iter()
+        .map(|value| (*value).to_string())
+        .collect()
 }
 
 fn fixture_root() -> PathBuf {
@@ -116,7 +120,10 @@ fn walk_optimized(root: &Path, ext_match: ExtMatch, size_source: SizeSource) -> 
     let set = extension_set();
     let mut hits = 0usize;
     let mut bytes = 0u64;
-    for entry in jwalk::WalkDir::new(root).follow_links(false).skip_hidden(true) {
+    for entry in jwalk::WalkDir::new(root)
+        .follow_links(false)
+        .skip_hidden(true)
+    {
         let entry = entry.expect("bench walk entry");
         if entry.file_type().is_dir() {
             continue;
@@ -170,7 +177,10 @@ fn main() {
         .collect();
     let expected_videos = ROOTS * SEASONS_PER_ROOT * VIDEOS_PER_SEASON;
     let expected_files = ROOTS * SEASONS_PER_ROOT * (VIDEOS_PER_SEASON + OTHER_PER_SEASON);
-    println!("fixture: roots={ROOTS} dirs={} files={expected_files} videos={expected_videos}", ROOTS * SEASONS_PER_ROOT);
+    println!(
+        "fixture: roots={ROOTS} dirs={} files={expected_files} videos={expected_videos}",
+        ROOTS * SEASONS_PER_ROOT
+    );
 
     // Warm the directory cache once, like a second app start.
     let warm = player_scan::walk_player_folder(&roots[0], extension_list(), 0);
@@ -240,9 +250,7 @@ fn main() {
         let started = Instant::now();
         let mut connection = rusqlite::Connection::open(&db_path).expect("bench index database");
         initialize_schema(&connection).expect("bench index schema");
-        let transaction = connection
-            .transaction()
-            .expect("bench index transaction");
+        let transaction = connection.transaction().expect("bench index transaction");
         let now = now_seconds();
         for chunk in rows.chunks(5_000) {
             unified_index::upsert_unified_index_batch(&transaction, chunk, now)

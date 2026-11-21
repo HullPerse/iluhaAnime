@@ -4,7 +4,10 @@ use rusqlite::Connection;
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::config::{packs_for_completed, starter_packs, CARDS_GRANT_ENABLED, CARD_PACK_SIZE};
+use super::config::{
+    packs_for_completed, packs_for_completed_manga, starter_packs, CARDS_GRANT_ENABLED,
+    CARD_PACK_SIZE,
+};
 use super::packs::spawn_prepare_packs_with_proxy;
 use super::rng::seed_now;
 use crate::anilist::auth::{check_anilist_auth, get_anilist_lists, AniListCollection};
@@ -67,6 +70,40 @@ pub fn grant_completion_in(
     episodes: Option<u32>,
     enabled: bool,
 ) -> Result<GrantResult, String> {
+    grant_completion_with_kind_in(
+        connection,
+        media_id,
+        packs_for_completed(episodes),
+        "default",
+        enabled,
+    )
+}
+
+/// Completed manga grant the same mixed pack as anime, scaled by chapters.
+/// AniList media ids are unique across anime and manga, so the shared grant
+/// ledger still dedupes correctly.
+pub fn grant_manga_completion_in(
+    connection: &Connection,
+    media_id: i64,
+    chapters: Option<u32>,
+    enabled: bool,
+) -> Result<GrantResult, String> {
+    grant_completion_with_kind_in(
+        connection,
+        media_id,
+        packs_for_completed_manga(chapters),
+        "default",
+        enabled,
+    )
+}
+
+fn grant_completion_with_kind_in(
+    connection: &Connection,
+    media_id: i64,
+    packs: u32,
+    pack_kind: &str,
+    enabled: bool,
+) -> Result<GrantResult, String> {
     if !enabled {
         return Ok(GrantResult {
             granted: false,
@@ -77,7 +114,7 @@ pub fn grant_completion_in(
         .unchecked_transaction()
         .map_err(|error| format!("card grant transaction: {error}"))?;
     let now = now_seconds();
-    let packs = i64::from(packs_for_completed(episodes));
+    let packs = i64::from(packs);
     if !insert_pack_grant(&transaction, LOCAL_USER_ID, media_id, now)? {
         return Ok(GrantResult {
             granted: false,
@@ -88,7 +125,7 @@ pub fn grant_completion_in(
         grant_pack(
             &transaction,
             "status",
-            "default",
+            pack_kind,
             Some(media_id),
             seed_now() ^ index as u64,
             now,
@@ -173,6 +210,28 @@ pub fn grant_for_completion(
     )
 }
 
+pub fn grant_for_manga_completion(
+    app: &AppHandle,
+    media_id: u64,
+    chapters: Option<i32>,
+    enabled: bool,
+) -> Result<GrantResult, String> {
+    if !enabled {
+        return Ok(GrantResult {
+            granted: false,
+            packs: 0,
+        });
+    }
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+    let connection = open_database(app)?;
+    grant_manga_completion_in(
+        &connection,
+        media_id as i64,
+        chapters.and_then(|value| u32::try_from(value).ok()),
+        enabled,
+    )
+}
+
 pub fn completed_media_ids(lists: &[AniListCollection]) -> HashSet<u64> {
     lists
         .iter()
@@ -182,23 +241,40 @@ pub fn completed_media_ids(lists: &[AniListCollection]) -> HashSet<u64> {
         .collect()
 }
 
-pub async fn fetch_episode_count(
+async fn fetch_media_total(
     token: &str,
     media_id: u64,
+    field: &str,
     proxy: Option<&str>,
 ) -> Result<Option<i32>, String> {
     let response = graphql_request(
         serde_json::json!({
-            "query": "query ($id: Int) { Media(id: $id) { episodes } }",
+            "query": format!("query ($id: Int) {{ Media(id: $id) {{ {field} }} }}"),
             "variables": { "id": media_id }
         }),
         Some(token),
         proxy,
     )
     .await?;
-    Ok(response["data"]["Media"]["episodes"]
+    Ok(response["data"]["Media"][field]
         .as_i64()
         .and_then(|value| i32::try_from(value).ok()))
+}
+
+pub async fn fetch_episode_count(
+    token: &str,
+    media_id: u64,
+    proxy: Option<&str>,
+) -> Result<Option<i32>, String> {
+    fetch_media_total(token, media_id, "episodes", proxy).await
+}
+
+pub async fn fetch_chapter_count(
+    token: &str,
+    media_id: u64,
+    proxy: Option<&str>,
+) -> Result<Option<i32>, String> {
+    fetch_media_total(token, media_id, "chapters", proxy).await
 }
 
 /// The profile state for the manual starter claim. It never grants anything.
@@ -219,7 +295,7 @@ pub async fn cards_starter_status(
             packs: 0,
         });
     };
-    let lists = get_anilist_lists(app.clone(), user.id, Some(true), proxy, None).await?;
+    let lists = get_anilist_lists(app.clone(), user.id, Some(true), None, proxy, None).await?;
     let completed = completed_media_ids(&lists).len() as u32;
     let connection = open_database(&app)?;
     let granted = starter_grant(&connection, LOCAL_USER_ID)?;
@@ -243,7 +319,8 @@ pub async fn cards_grant_starter(
     proxyUrl: Option<String>,
 ) -> Result<GrantResult, String> {
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let lists = get_anilist_lists(app.clone(), user_id, Some(true), proxy.clone(), None).await?;
+    let lists =
+        get_anilist_lists(app.clone(), user_id, Some(true), None, proxy.clone(), None).await?;
     let completed = completed_media_ids(&lists).len() as u32;
     if completed == 0 {
         return Ok(GrantResult {
@@ -284,6 +361,33 @@ pub async fn maybe_grant_for_completion(
             media_id,
             error = error.as_str(),
             "card completion grant failed"
+        ),
+    }
+}
+
+/// Called from `save_anilist_entry` for a completed manga when the flag is on.
+pub async fn maybe_grant_for_manga_completion(
+    app: &AppHandle,
+    media_id: u64,
+    token: &str,
+    proxy: Option<&str>,
+) {
+    if !CARDS_GRANT_ENABLED {
+        return;
+    }
+    let chapters = fetch_chapter_count(token, media_id, proxy)
+        .await
+        .ok()
+        .flatten();
+    match grant_for_manga_completion(app, media_id, chapters, CARDS_GRANT_ENABLED) {
+        Ok(result) if result.granted => {
+            spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_string))
+        }
+        Ok(_) => {}
+        Err(error) => tracing::warn!(
+            media_id,
+            error = error.as_str(),
+            "manga card completion grant failed"
         ),
     }
 }
@@ -354,6 +458,42 @@ mod tests {
             .unwrap();
         assert_eq!(grants, 1);
         assert_eq!(pack_count(&connection), 1);
+    }
+
+    #[test]
+    fn a_completed_manga_grants_default_packs_once() {
+        let connection = memory_db();
+        let first = grant_manga_completion_in(&connection, 30013, Some(60), true).unwrap();
+        assert!(first.granted);
+        assert_eq!(first.packs, 5);
+        let kinds: Vec<String> = connection
+            .prepare("SELECT pack_kind FROM card_packs ORDER BY seed")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(kinds, vec!["default"; 5]);
+        let repeat = grant_manga_completion_in(&connection, 30013, Some(60), true).unwrap();
+        assert!(!repeat.granted);
+        assert_eq!(pack_count(&connection), 5);
+    }
+
+    #[test]
+    fn manga_chapter_counts_scale_and_clamp() {
+        let connection = memory_db();
+        for (media_id, chapters, expected) in [
+            (1, None, 1),
+            (2, Some(0), 1),
+            (3, Some(12), 1),
+            (4, Some(13), 2),
+            (5, Some(49), 5),
+            (6, Some(5000), 5),
+        ] {
+            let result = grant_manga_completion_in(&connection, media_id, chapters, true).unwrap();
+            assert_eq!(result.packs, expected, "media {media_id}");
+        }
+        assert_eq!(pack_count(&connection), 15);
     }
 
     #[test]

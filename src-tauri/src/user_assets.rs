@@ -1212,8 +1212,14 @@ fn import_dither_bytes(
 }
 
 #[tauri::command]
-pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserImage, String> {
-    let source = Path::new(&path);
+pub async fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserImage, String> {
+    tauri::async_runtime::spawn_blocking(move || import_dither_file(app, &path))
+        .await
+        .map_err(|error| format!("import wallpaper task: {error}"))?
+}
+
+fn import_dither_file(app: tauri::AppHandle, path: &str) -> Result<UserImage, String> {
+    let source = Path::new(path);
     let metadata = fs::metadata(source).map_err(|e| format!("image metadata: {e}"))?;
     if !metadata.is_file() || metadata.len() == 0 {
         return Err("Image must be a non-empty file".to_string());

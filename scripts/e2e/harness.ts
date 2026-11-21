@@ -236,6 +236,10 @@ export async function ensureVite(): Promise<ChildProcess | null> {
 // Kills the dev-server tree, not just the bun wrapper, so the next run does not
 // find a stale server that answers the probe but serves a broken module graph.
 export function stopVite(child: ChildProcess | null): void {
+  stopProcessTree(child);
+}
+
+export function stopProcessTree(child: ChildProcess | null): void {
   if (!child || child.pid === undefined) return;
   if (process.platform === "win32") {
     spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
@@ -286,7 +290,7 @@ export function launchTauri(): ChildProcess {
     identifier: E2E_IDENTIFIER,
     build: { beforeDevCommand: "echo skip" },
   });
-  return spawn("bunx", ["tauri", "dev", "--no-dev-server-wait", "--config", config], {
+  return spawn("bunx", ["tauri", "dev", "--no-watch", "--no-dev-server-wait", "--config", config], {
     cwd: repoRoot(),
     env: {
       ...process.env,
@@ -322,11 +326,11 @@ export function createStepRunner(
         console.log(`  ok   ${name} (${Date.now() - started}ms)`);
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
-        await screenshot(`FAIL ${name}`);
-        const dom = await page.evaluate(() => document.documentElement.outerHTML).catch(() => "");
-        writeFileSync(join(shots, `${scenario}-FAIL-${slug(name)}.dom.html`), dom.slice(0, 40_000));
         results.push({ scenario, step: name, status: "fail", ms: Date.now() - started, detail });
         console.log(`  FAIL ${name} (${Date.now() - started}ms): ${detail}`);
+        await screenshot(`FAIL ${name}`).catch(() => undefined);
+        const dom = await page.evaluate(() => document.documentElement.outerHTML).catch(() => "");
+        writeFileSync(join(shots, `${scenario}-FAIL-${slug(name)}.dom.html`), dom.slice(0, 40_000));
         throw error;
       }
     },

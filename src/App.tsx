@@ -62,6 +62,7 @@ const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   search: () => import("@/routes/search.route"),
   settings: () => import("@/routes/settings.route"),
   stream: () => import("@/routes/stream.route"),
+  manga: () => import("@/routes/manga.route"),
   torrent: () => import("@/routes/torrent.route"),
 };
 

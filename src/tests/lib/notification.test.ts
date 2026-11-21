@@ -91,6 +91,17 @@ describe("notification restart persistence", () => {
     expect(after.atoms.items.get()).toHaveLength(0);
   });
 
+  it("allows a new keyed event with the same text as one that was dismissed", () => {
+    const storage = memoryStorage();
+    const store = createNotificationSignalStore({ getStorage: () => storage, debounceMs: 0 });
+    const initial = store.add("New chapters", "info", "1 chapter", "poll:1", { silent: true });
+    store.clear(initial);
+    store.add("New chapters", "info", "1 chapter", "poll:1", { silent: true });
+    store.add("New chapters", "info", "1 chapter", "poll:2", { silent: true });
+
+    expect(store.atoms.items.get().map((item) => item.eventKey)).toEqual(["poll:2"]);
+  });
+
   it("drops popup-only summaries but keeps panel items on rehydrate", () => {
     const now = Date.now();
     const panel = {

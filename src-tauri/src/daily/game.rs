@@ -444,7 +444,8 @@ pub async fn guess(
     let attempts = game.attempts + 1;
     let max_attempts = mode.max_attempts();
     let correct = media_id == game.entry.media_id;
-    let same_franchise = !correct && guessed_same_franchise(app, game.entry.media_id, media_id, proxy).await;
+    let same_franchise =
+        !correct && guessed_same_franchise(app, game.entry.media_id, media_id, proxy).await;
     let finished = correct || attempts >= max_attempts;
     let mut guesses = game.guesses.clone();
     guesses.push(media_id);
@@ -679,7 +680,8 @@ async fn guess_clip_game(
     let attempts = game.attempts + 1;
     let max_attempts = mode.max_attempts();
     let correct = media_id == game.entry.media_id;
-    let same_franchise = !correct && guessed_same_franchise(app, game.entry.media_id, media_id, proxy).await;
+    let same_franchise =
+        !correct && guessed_same_franchise(app, game.entry.media_id, media_id, proxy).await;
     let finished = correct || attempts >= max_attempts;
     let mut guesses = game.guesses.clone();
     guesses.push(media_id);

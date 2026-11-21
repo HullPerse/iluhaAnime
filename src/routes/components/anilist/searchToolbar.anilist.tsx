@@ -10,6 +10,7 @@ import {
   countLocalAnilistFilters,
 } from "@/lib/anilist/anilistFilters.utils";
 import { enterSubmit } from "@/lib/ui/keyboard.utils";
+import { AniListMediaMode } from "@/routes/components/anilist/mediaMode.anilist";
 import type { AniListFilters } from "@/types/anilist/anilist";
 import type { SearchField } from "@/types/search/search";
 
@@ -69,6 +70,7 @@ function AniListSearchToolbar({
         onKeyDown={handleKeyDown}
       />
       <span className="ui-toolbar-separator" aria-hidden />
+      <AniListMediaMode />
       <Button
         size="icon"
         title={t("anilist.route.filters")}

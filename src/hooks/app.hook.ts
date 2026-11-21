@@ -29,7 +29,7 @@ import {
   isEditablePasteTarget,
   parsePastedLink,
 } from "@/lib/core/system/deeplink.utils";
-import type { PastedLink } from "@/lib/core/system/deeplink.utils";
+import type { MangaDeepLink, PastedLink } from "@/types/core/deeplink";
 import {
   openNotificationTarget,
   resolveNotificationText,
@@ -48,6 +48,7 @@ import {
   openTorrentDeepLink,
   subscribeDeepLink,
 } from "@/store/deeplink.store";
+import { mangaDetail } from "@/store/manga.store";
 import { addNotification } from "@/store/notification.store";
 import {
   clearSearchAnimeIndex,
@@ -79,12 +80,14 @@ export function useApp() {
   );
 
   const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
+  useMangaBackgroundRefresh();
   usePrepareCardsPacks(collectionTabEnabled);
   const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
   const searchTabEnabled = useCell(settingsAtoms.searchTabEnabled);
   const torrentTabEnabled = useCell(settingsAtoms.torrentTabEnabled);
   const playerTabEnabled = useCell(settingsAtoms.playerTabEnabled);
   const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
+  const mangaTabEnabled = useCell(settingsAtoms.mangaTabEnabled);
   const newsTabEnabled = useCell(settingsAtoms.newsTabEnabled);
   const gameTabUnlocked = useCell(settingsAtoms.gameTabUnlocked);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
@@ -105,6 +108,7 @@ export function useApp() {
       torrentTabEnabled,
       playerTabEnabled,
       streamTabEnabled,
+      mangaTabEnabled,
       newsTabEnabled,
       gameTabUnlocked,
     }).map((tab) => ({
@@ -170,6 +174,7 @@ export function useApp() {
     torrentTabEnabled,
     playerTabEnabled,
     streamTabEnabled,
+    mangaTabEnabled,
     newsTabEnabled,
     gameTabUnlocked,
   }).map((tab, index) => ({
@@ -251,6 +256,22 @@ export function useApp() {
     { errorTag: "notification.activation" }
   );
 
+  const openManga = useCallback(
+    (link: MangaDeepLink) => {
+      if (!settingsAtoms.mangaTabEnabled.get()) {
+        showError(t("common.error"), t("anilist.details.link.invalid"));
+        return;
+      }
+      if (!isOnline) {
+        showWarning(t("network.offline.title"), t("network.action.unavailable"));
+        return;
+      }
+      mangaDetail.set({ ...link, title: t("app.manga") });
+      goToTab("manga");
+    },
+    [goToTab, isOnline, t]
+  );
+
   const ingest = useCallback(
     (urls: unknown) => {
       ingestDeepLinks(
@@ -313,10 +334,11 @@ export function useApp() {
           }
           openGiftReceiptDeepLink(link);
           goToTab("collection");
-        }
+        },
+        openManga
       );
     },
-    [isOnline, t, goToTab]
+    [isOnline, t, goToTab, openManga]
   );
 
   useEffect(() => {
@@ -400,6 +422,8 @@ export function useApp() {
       if (parsed.kind === "anime") {
         if (!ensureTab(settingsAtoms.anilistTabEnabled.get())) return;
         openAnimeDeepLink(parsed.link);
+      } else if (parsed.kind === "manga") {
+        openManga(parsed.link);
       } else if (parsed.kind === "stream") {
         if (!ensureTab(settingsAtoms.streamTabEnabled.get())) return;
         openStreamDeepLink(parsed.link);
@@ -420,7 +444,7 @@ export function useApp() {
     };
     window.addEventListener("paste", handler);
     return () => window.removeEventListener("paste", handler);
-  }, [isOnline, t, activeTab, goToTab]);
+  }, [isOnline, t, activeTab, goToTab, openManga]);
   useEffect(() => {
     const switchToAnilist = () => {
       if (!isOnline) return;
@@ -571,3 +595,5 @@ export function useApp() {
     closeUpdatePrompt,
   };
 }
+
+import { useMangaBackgroundRefresh } from "@/hooks/mangaRefresh.hook";

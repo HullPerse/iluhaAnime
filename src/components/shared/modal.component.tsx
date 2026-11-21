@@ -39,6 +39,7 @@ function Modal({
   const animateModalContent = useCell(settingsAtoms.animateModalContent);
   const enable3dBorders = useCell(settingsAtoms.enable3dBorders);
   const backdropOpacity = useCell(settingsAtoms.modalBackdropOpacity);
+  const closeOnOutsideClick = useCell(settingsAtoms.modalCloseOnOutsideClick);
   const [visible, setVisible] = useState<boolean>(false);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const contentElement = useRef<HTMLDivElement>(null);
@@ -86,6 +87,7 @@ function Modal({
     <Dialog.Root
       defaultOpen
       modal={modal}
+      disablePointerDismissal={!closeOnOutsideClick}
       onOpenChange={(open, details) => {
         if (open) return;
         if (canClose && !canClose()) {
@@ -98,13 +100,14 @@ function Modal({
       <Dialog.Portal className="z-9999">
         {!hideBackdrop && (
           <Dialog.Backdrop
+            data-modal-backdrop=""
             className={cn(
               "fixed inset-0 z-40",
               modalAnimation && "modal-motion transition-opacity duration-150 ease-out",
               visible ? "opacity-100" : "opacity-0"
             )}
             style={{ backgroundColor: `rgba(0,0,0,${backdropOpacity / 100})` }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           />
         )}

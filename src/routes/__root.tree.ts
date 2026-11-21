@@ -9,6 +9,7 @@ import {
   appLayoutRoute,
   collectionRoute,
   gameRoute,
+  mangaRoute,
   newsRoute,
   playerRoute,
   playerWindowRoute,
@@ -63,6 +64,11 @@ streamRoute.update({
   pendingComponent: TabLoader,
 });
 
+mangaRoute.update({
+  component: lazyRouteComponent(() => import("@/routes/manga.route")),
+  pendingComponent: TabLoader,
+});
+
 gameRoute.update({
   component: lazyRouteComponent(() => import("@/routes/game.route")),
   pendingComponent: TabLoader,
@@ -88,6 +94,7 @@ export const routeTree = rootRoute.addChildren([
     anilistRoute,
     collectionRoute,
     streamRoute,
+    mangaRoute,
     settingsRoute,
     gameRoute,
     newsRoute,

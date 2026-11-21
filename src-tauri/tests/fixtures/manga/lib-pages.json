@@ -1,0 +1,39 @@
+{
+  "data": {
+    "id": 54644,
+    "branch_id": null,
+    "volume": "1",
+    "number": "0",
+    "expired_type": 0,
+    "pages": [
+      {
+        "id": 1244258,
+        "image": "01.jpg",
+        "slug": 1,
+        "external": 0,
+        "chunks": 1,
+        "chapter_id": 54644,
+        "created_at": "2016-08-20T05:03:23.000000Z",
+        "updated_at": "2024-03-06T14:19:13.000000Z",
+        "height": 1100,
+        "width": 730,
+        "url": "//manga/one-piece/chapters/54644/01.jpg",
+        "ratio": "0.6636"
+      },
+      {
+        "id": 1244259,
+        "image": "02.jpg",
+        "slug": 2,
+        "external": 0,
+        "chunks": 1,
+        "chapter_id": 54644,
+        "created_at": "2016-08-20T05:03:27.000000Z",
+        "updated_at": "2024-03-06T14:19:13.000000Z",
+        "height": 1159,
+        "width": 728,
+        "url": "//manga/one-piece/chapters/54644/02.jpg",
+        "ratio": "0.6281"
+      }
+    ]
+  }
+}

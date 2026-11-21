@@ -1,4 +1,5 @@
 import type { ApiTransport } from "@/types/core/transport";
+import type { AniMediaType } from "@/types/anilist/anilist";
 
 export interface AnilistApiConfig {
   transport?: ApiTransport;
@@ -9,6 +10,8 @@ export interface SaveAnilistEntryInput {
   mediaId: number;
   status: string;
   progress: number | null;
+  progressVolumes?: number | null;
+  mediaType?: AniMediaType;
   score: number | null;
   notes: string | null;
   customLists?: string[] | null;

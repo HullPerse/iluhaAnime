@@ -22,13 +22,15 @@ export function ProxyField({
   schemes,
   runToken = 0,
   description,
+  placeholder,
+  stacked = false,
   className,
 }: {
   label: string;
   value: string | null;
   onChange: (value: string | null) => void;
   onCommit?: (value: string | null) => void;
-  test: () => Promise<string>;
+  test?: () => Promise<string>;
   testOkLabel?: string;
   testFailLabel?: string;
   testDisabled?: boolean;
@@ -36,6 +38,8 @@ export function ProxyField({
   schemes?: readonly ProxyScheme[];
   runToken?: number;
   description?: string;
+  placeholder?: string;
+  stacked?: boolean;
   className?: string;
 }) {
   const { t } = useI18n();
@@ -51,14 +55,22 @@ export function ProxyField({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-x-3 gap-y-0.5 min-[560px]:grid-cols-[140px_1fr]",
+        "gap-x-3",
+        stacked
+          ? "flex flex-col gap-y-1"
+          : "grid grid-cols-1 gap-y-0.5 min-[560px]:grid-cols-[140px_1fr]",
         className
       )}
     >
       <span className="windows95-text text-text flex items-start text-xs font-bold">{label}</span>
       <div className="flex min-w-0 flex-col gap-1">
         {description && <span className="text-hint text-xs">{description}</span>}
-        <div className="flex flex-col gap-1 min-[560px]:flex-row min-[560px]:items-center">
+        <div
+          className={cn(
+            "flex flex-col gap-1",
+            !stacked && "min-[560px]:flex-row min-[560px]:items-center"
+          )}
+        >
           <Select
             label={label}
             value={proxySelectValue(value, schemes)}
@@ -76,7 +88,7 @@ export function ProxyField({
               ...presets.map((url) => ({ value: url, label: url })),
               { value: "custom", label: t("settings.proxy.custom") },
             ]}
-            className="w-full min-[560px]:max-w-60"
+            className={cn("w-full", !stacked && "min-[560px]:max-w-60")}
           />
           <Input
             ref={inputRef}
@@ -90,9 +102,9 @@ export function ProxyField({
               if (event.nativeEvent.isComposing) return;
               if (event.key === "Enter") event.currentTarget.blur();
             }}
-            placeholder={presets[0] ?? "socks5://127.0.0.1:10808"}
+            placeholder={placeholder ?? presets[0] ?? "socks5://127.0.0.1:10808"}
             spellCheck={false}
-            className="w-full min-[560px]:max-w-70"
+            className={cn("w-full", !stacked && "min-[560px]:max-w-70")}
             aria-label={label}
             aria-invalid={invalid}
           />
@@ -102,16 +114,18 @@ export function ProxyField({
             {t("settings.proxy.invalid")}
           </span>
         )}
-        <ProxyCheck
-          test={test}
-          resetKey={value}
-          runToken={runToken}
-          invalid={invalid}
-          disabled={testDisabled}
-          okLabel={testOkLabel}
-          failLabel={testFailLabel}
-          diagnosticProbe={diagnosticProbe}
-        />
+        {test && (
+          <ProxyCheck
+            test={test}
+            resetKey={value}
+            runToken={runToken}
+            invalid={invalid}
+            disabled={testDisabled}
+            okLabel={testOkLabel}
+            failLabel={testFailLabel}
+            diagnosticProbe={diagnosticProbe}
+          />
+        )}
       </div>
     </div>
   );

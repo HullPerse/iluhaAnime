@@ -1,7 +1,15 @@
 import type { HotkeyRepeat } from "@/types/core/chordHotkeys";
 import type { TranslationKey } from "@/types/core/i18n";
 
-export type KeybindScope = "global" | "settings" | "player" | "vim" | "find" | "menu" | "tree";
+export type KeybindScope =
+  | "global"
+  | "settings"
+  | "player"
+  | "vim"
+  | "find"
+  | "menu"
+  | "tree"
+  | "manga-reader";
 
 type KeybindMode = "base" | "vim";
 

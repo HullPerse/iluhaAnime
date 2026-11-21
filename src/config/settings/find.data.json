@@ -8,6 +8,7 @@
         "settings.collection.tab",
         "settings.anilist.tab",
         "settings.stream.tab",
+        "settings.manga.tab",
         "settings.news.tab"
       ]
     },
@@ -89,6 +90,21 @@
       "section": "news",
       "titleKey": "settings.news.proxy.title",
       "keys": ["settings.news.proxy.title", "settings.news.proxy.url"]
+    },
+    {
+      "tab": "proxy",
+      "section": "manga",
+      "titleKey": "settings.manga.proxy.title",
+      "keys": [
+        "settings.manga.proxy.title",
+        "settings.manga.proxy.common",
+        "settings.manga.proxy.override",
+        "settings.manga.proxy.inherit",
+        "settings.manga.proxy.invalid",
+        "settings.manga.domains.title",
+        "settings.manga.domains.requests",
+        "settings.manga.domains.browser"
+      ]
     },
     {
       "tab": "proxy",
@@ -179,6 +195,12 @@
       "section": "reset",
       "titleKey": "settings.reset.data",
       "keys": ["settings.reset.button", "settings.reset.title", "settings.reset.message"]
+    },
+    {
+      "tab": "notifications",
+      "section": "manga",
+      "titleKey": "settings.manga.notifications.title",
+      "keys": ["settings.manga.refresh"]
     },
     {
       "tab": "notifications",
@@ -596,6 +618,12 @@
         "settings.keybinds.edit",
         "settings.keybinds.record.placeholder",
         "settings.keybinds.record.hint",
+        "settings.keybinds.scope.manga-reader",
+        "settings.keybinds.manga.left",
+        "settings.keybinds.manga.right",
+        "settings.keybinds.manga.up",
+        "settings.keybinds.manga.down",
+        "settings.keybinds.manga.close",
         "settings.keybinds.record.reserved",
         "settings.keybinds.record.reset",
         "settings.keybinds.record.clear",

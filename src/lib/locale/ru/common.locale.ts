@@ -5,6 +5,7 @@ const common = {
   "app.settings": "Параметры",
   "app.torrent": "Торрент",
   "app.collection": "Коллекция",
+  "app.manga": "Манга",
   "app.stream": "Стриминг",
   "app.news": "Новости",
   "common.close": "Закрыть",

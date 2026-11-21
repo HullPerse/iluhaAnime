@@ -18,6 +18,7 @@ mod app_db;
 mod command_ctx;
 mod discord;
 pub mod ipc_bindings;
+mod manga;
 mod netdiag;
 mod network;
 mod news;
@@ -191,14 +192,10 @@ pub mod benchmark_api {
             subtitle_extensions: Vec<String>,
             subfolders: bool,
         ) -> SidecarScanOutcome {
-            let tracks = crate::scan_sidecar_tracks(
-                path,
-                audio_extensions,
-                subtitle_extensions,
-                subfolders,
-            )
-            .await
-            .expect("bench sidecar scan");
+            let tracks =
+                crate::scan_sidecar_tracks(path, audio_extensions, subtitle_extensions, subfolders)
+                    .await
+                    .expect("bench sidecar scan");
             SidecarScanOutcome {
                 tracks: tracks.len(),
             }
@@ -1232,62 +1229,63 @@ async fn scan_video_folders_indexed(
         true
     };
     let walker = app_handle.clone();
-    let (out, entries, complete) = tokio::task::spawn_blocking(move || {
-        let started = std::time::Instant::now();
-        let mut out = Vec::with_capacity(paths.len());
-        let mut entries = Vec::new();
-        let mut complete = true;
-        for root in &paths {
-            match file_index::FileIndexer::retry_scan_blocking(|| {
-                walk_video_folder(root, &ext_list, threads, &|walked| {
-                    let _ = walker.emit(
-                        "folder-scan-progress",
-                        serde_json::json!({
-                            "path": root,
-                            "current": walked,
-                            "total": 0,
-                        }),
-                    );
-                })
-            }) {
-                Ok(result) => {
-                    let _ = walker.emit(
-                        "folder-scan-progress",
-                        serde_json::json!({
-                            "path": root,
-                            "current": result.entries.len(),
-                            "total": result.entries.len(),
-                            "done": true,
-                        }),
-                    );
-                    entries.extend(result.entries.iter().map(|entry| {
-                        file_index::FileEntry::new(entry.path.clone(), entry.size)
-                    }));
-                    out.push(result);
-                }
-                Err(busy) => {
-                    complete = false;
-                    tracing::error!(
-                        "scan_video_folders_indexed: giving up on {root} after retries: {busy}"
-                    );
-                    out.push(FolderScanResult {
-                        path: root.clone(),
-                        entries: Vec::new(),
-                        skipped: 0,
-                    });
+    let (out, entries, complete) =
+        tokio::task::spawn_blocking(move || {
+            let started = std::time::Instant::now();
+            let mut out = Vec::with_capacity(paths.len());
+            let mut entries = Vec::new();
+            let mut complete = true;
+            for root in &paths {
+                match file_index::FileIndexer::retry_scan_blocking(|| {
+                    walk_video_folder(root, &ext_list, threads, &|walked| {
+                        let _ = walker.emit(
+                            "folder-scan-progress",
+                            serde_json::json!({
+                                "path": root,
+                                "current": walked,
+                                "total": 0,
+                            }),
+                        );
+                    })
+                }) {
+                    Ok(result) => {
+                        let _ = walker.emit(
+                            "folder-scan-progress",
+                            serde_json::json!({
+                                "path": root,
+                                "current": result.entries.len(),
+                                "total": result.entries.len(),
+                                "done": true,
+                            }),
+                        );
+                        entries.extend(result.entries.iter().map(|entry| {
+                            file_index::FileEntry::new(entry.path.clone(), entry.size)
+                        }));
+                        out.push(result);
+                    }
+                    Err(busy) => {
+                        complete = false;
+                        tracing::error!(
+                            "scan_video_folders_indexed: giving up on {root} after retries: {busy}"
+                        );
+                        out.push(FolderScanResult {
+                            path: root.clone(),
+                            entries: Vec::new(),
+                            skipped: 0,
+                        });
+                    }
                 }
             }
-        }
-        tracing::info!(
-            folders = out.len(),
-            files = entries.len(),
-            elapsed_ms = started.elapsed().as_millis(),
-            "scan_video_folders_indexed done"
-        );
-        Ok::<_, String>((out, entries, complete))
-    })
-    .await
-    .map_err(|e| format!("scan task failed: {e}"))??;
+            tracing::info!(
+                folders = out.len(),
+                files = entries.len(),
+                elapsed_ms = started.elapsed().as_millis(),
+                "scan_video_folders_indexed done"
+            );
+            Ok::<_, String>((out, entries, complete))
+        })
+        .await
+        .map_err(|e| format!("scan task failed: {e}"))??;
 
     if complete {
         if merge {
@@ -2474,8 +2472,35 @@ pub fn run() {
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,
             anilist::search_anilist,
+            manga::manga_search,
+            manga::manga_search_meta,
+            manga::manga_details,
+            manga::manga_cached_details,
+            manga::manga_reader_open,
+            manga::manga_page_fetch,
+            manga::manga_page_cache_stats,
+            manga::clear_manga_page_cache,
+            manga::manga_cover_fetch,
+            manga::manga_library,
+            manga::manga_library_save,
+            manga::manga_library_remove,
+            manga::manga_library_favourite,
+            manga::manga_status_create,
+            manga::manga_status_manage,
+            manga::manga_history_list,
+            manga::manga_history_clear,
+            manga::manga_read_keys,
+            manga::manga_set_chapters_read,
+            manga::manga_track_open,
+            manga::manga_track_position,
+            manga::manga_sources_list,
+            manga::manga_source_enable,
+            manga::manga_source_test_proxy,
+            manga::manga_refresh_chapters,
             anilist::get_spotlight_page,
             anilist::get_anilist_filter_page,
+            anilist::get_anilist_manga_overview,
+            anilist::toggle_anilist_manga_favourite,
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,
             anilist::get_anime_recommendations,

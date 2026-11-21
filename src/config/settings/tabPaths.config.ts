@@ -11,6 +11,7 @@ export const TAB_PATHS: Record<TabId, TabPath> = {
   settings: "/settings",
   game: "/game",
   stream: "/stream",
+  manga: "/manga",
   news: "/news",
 };
 

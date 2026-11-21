@@ -1,6 +1,7 @@
 import type { AniListSort, AniTitlePreference } from "@/types/anilist/anilist";
 import type { Locale, TranslationKey } from "@/types/core/i18n";
 import type { ScreenshotFormat } from "@/types/core/screenshot";
+import type { DitherPresetId } from "@/types/graphics/dither";
 import type { AutocompleteMode, SearchType, TagToleranceKey } from "@/types/search/search";
 import type { StreamQuality } from "@/types/player/stream";
 import type { FileOrder, SpeedLimits } from "@/types/torrent/torrent";
@@ -66,6 +67,7 @@ export interface SettingsStore {
   cardEffects: "off" | "subtle" | "full";
   cardImageFill: boolean;
   modalBackdropOpacity: number;
+  modalCloseOnOutsideClick: boolean;
   animateCounters: boolean;
   animateToasts: boolean;
   animateSections: boolean;
@@ -136,6 +138,31 @@ export interface SettingsStore {
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
   streamTabEnabled: boolean;
+  mangaTabEnabled: boolean;
+  mangaSourceNsfw: Record<string, boolean>;
+  mangaReaderDisplay: "paged" | "strip" | "book";
+  mangaReaderDirection: "rtl" | "ltr" | "vertical";
+  mangaReaderTurn: "edges" | "buttons";
+  mangaReaderBackground: "black" | "charcoal" | "white" | "sepia" | "custom";
+  mangaReaderBackgroundCustom: string;
+  mangaReaderFrame: "none" | "dark" | "light" | "shadow" | "win95" | "gold" | "inset";
+  mangaReaderZoom: number;
+  mangaReaderWidth: number;
+  mangaReaderGap: number;
+  mangaReaderAnimated: boolean;
+  mangaBrightness: number;
+  mangaPreload: number;
+  mangaSplitWide: boolean;
+  mangaAutoMarkRead: boolean;
+  mangaLibraryView: "cards" | "list";
+  mangaLastStatus: string;
+  mangaHiddenStatuses: string[];
+  mangaBackgroundRefresh: boolean;
+  mangaTranslation: Record<string, string>;
+  mangaLibRequestDomain: MangaLibDomain;
+  mangaLibBrowserDomain: MangaLibDomain;
+  mangaProxyUrl: string;
+  mangaSourceProxies: Record<string, string>;
   newsTabEnabled: boolean;
   gameTabUnlocked: boolean;
   rememberLastTab: boolean;
@@ -219,6 +246,7 @@ export type TabId =
   | "settings"
   | "game"
   | "stream"
+  | "manga"
   | "news";
 
 export type TorrentCoverMode = "off" | "pages" | "full";
@@ -265,6 +293,7 @@ export type TabSettings = Pick<
   | "torrentTabEnabled"
   | "playerTabEnabled"
   | "streamTabEnabled"
+  | "mangaTabEnabled"
   | "newsTabEnabled"
   | "gameTabUnlocked"
 >;
@@ -285,3 +314,5 @@ export interface ChangelogEntry {
   key: TranslationKey;
   scope: ChangelogScope;
 }
+
+export type MangaLibDomain = "mangalib.me" | "mangalib.org";

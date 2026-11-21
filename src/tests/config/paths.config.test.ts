@@ -16,6 +16,7 @@ describe("tabs/paths", () => {
       "settings",
       "game",
       "stream",
+      "manga",
       "news",
     ]);
     for (const id of ids) {
@@ -28,6 +29,7 @@ describe("tabs/paths", () => {
     expect(tabIdFromPath("/torrent")).toBe("torrent");
     expect(tabIdFromPath("/settings")).toBe("settings");
     expect(tabIdFromPath("/game")).toBe("game");
+    expect(tabIdFromPath("/manga")).toBe("manga");
   });
 
   it("returns undefined for unknown and window-only paths", () => {

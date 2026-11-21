@@ -5,6 +5,7 @@ export const KEYBIND_SCOPES: readonly KeybindScope[] = [
   "global",
   "settings",
   "player",
+  "manga-reader",
   "vim",
   "find",
   "menu",

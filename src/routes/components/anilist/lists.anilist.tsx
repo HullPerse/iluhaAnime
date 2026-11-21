@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
@@ -10,10 +11,14 @@ export default function AniListListsRow({
   tabs,
   activeTab,
   onChange,
+  label,
+  leadingAction,
 }: {
   tabs: readonly { id: string; label: string; color?: string | null }[];
   activeTab: string;
   onChange: (id: string) => void;
+  label?: string;
+  leadingAction?: ReactNode;
 }) {
   const { t } = useI18n();
   const activeIndex = Math.max(
@@ -26,8 +31,10 @@ export default function AniListListsRow({
   return (
     <div
       className="windows95-active-border bg-primary flex items-center gap-1 p-1"
-      aria-label={t("anilist.lists.title")}
+      role="group"
+      aria-label={label ?? t("anilist.lists.title")}
     >
+      {leadingAction}
       <Button
         size="icon"
         className="size-6 shrink-0"

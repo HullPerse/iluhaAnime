@@ -18,7 +18,10 @@ use iluhaanime_lib::benchmark_api::player_scan;
 const EXTENSIONS: [&str; 5] = ["mkv", "mp4", "avi", "mov", "webm"];
 
 fn extensions() -> Vec<String> {
-    EXTENSIONS.iter().map(|value| (*value).to_string()).collect()
+    EXTENSIONS
+        .iter()
+        .map(|value| (*value).to_string())
+        .collect()
 }
 
 fn env_usize(name: &str, fallback: usize) -> usize {
@@ -72,9 +75,6 @@ fn main() {
             );
             samples.push(elapsed);
         }
-        println!(
-            "threads={threads:<2} median {:>8.2} ms",
-            median_ms(samples)
-        );
+        println!("threads={threads:<2} median {:>8.2} ms", median_ms(samples));
     }
 }

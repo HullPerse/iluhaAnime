@@ -8,7 +8,15 @@ const TABS = [
   { value: "released", label: "anilist.stats.released" },
 ] as const;
 
-export function TabButtons({ tab, onTab }: { tab: StatsTab; onTab: (next: StatsTab) => void }) {
+export function TabButtons({
+  tab,
+  onTab,
+  manga = false,
+}: {
+  tab: StatsTab;
+  onTab: (next: StatsTab) => void;
+  manga?: boolean;
+}) {
   const { t } = useI18n();
   return (
     <div className="mb-1 flex gap-1">
@@ -17,9 +25,10 @@ export function TabButtons({ tab, onTab }: { tab: StatsTab; onTab: (next: StatsT
           key={item.value}
           variant={tab === item.value ? "outline" : "default"}
           className="h-6 text-xs"
+          disabled={manga && item.value !== "overview"}
           onClick={() => onTab(item.value)}
         >
-          {t(item.label)}
+          {t(manga && item.value === "overview" ? "anilist.stats.title" : item.label)}
         </Button>
       ))}
     </div>

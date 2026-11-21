@@ -1,0 +1,139 @@
+{
+  "data": [
+    {
+      "id": 206,
+      "name": "One Piece",
+      "rus_name": "Ван Пис",
+      "eng_name": "One Piece",
+      "model": "manga",
+      "slug": "one-piece",
+      "slug_url": "206--one-piece",
+      "cover": {
+        "filename": "d197bd65-b148-4ed1-a09e-9695a4461f1a",
+        "thumbnail": "https://cover.lib.social/uploads/cover/one-piece/cover/d197bd65-b148-4ed1-a09e-9695a4461f1a_thumb.jpg",
+        "default": "https://cover.lib.social/uploads/cover/one-piece/cover/d197bd65-b148-4ed1-a09e-9695a4461f1a.jpg",
+        "md": "https://cover.lib.social/uploads/cover/one-piece/cover/d197bd65-b148-4ed1-a09e-9695a4461f1a.jpg"
+      },
+      "ageRestriction": {
+        "id": 3,
+        "label": "16+"
+      },
+      "site": 1,
+      "type": {
+        "id": 1,
+        "label": "Манга"
+      },
+      "rating": {
+        "average": "9.71",
+        "averageFormated": "9.7",
+        "votes": 36086,
+        "votesFormated": "36.1 K",
+        "user": 0
+      },
+      "is_licensed": false,
+      "content_marking": [
+        {
+          "id": 2,
+          "label": "Содержит упоминание наркотиков",
+          "formulation": "Незаконное потребление наркотических средств, психотропных веществ, их аналогов причиняет вред здоровью, их незаконный оборот запрещен и влечет установленную законодательством ответственность"
+        }
+      ],
+      "status": {
+        "id": 1,
+        "label": "Онгоинг"
+      },
+      "releaseDateString": "1997 г."
+    },
+    {
+      "id": 47182,
+      "name": "One Piece Episode A",
+      "rus_name": "Ван Пис Эпизод А",
+      "eng_name": "One Piece A",
+      "model": "manga",
+      "slug": "one-piece-episode-a",
+      "slug_url": "47182--one-piece-episode-a",
+      "cover": {
+        "filename": "478e42d6-75c0-4f1e-be8e-854fc344c452",
+        "thumbnail": "https://cover.lib.social/uploads/cover/one-piece-episode-a/cover/478e42d6-75c0-4f1e-be8e-854fc344c452_thumb.jpg",
+        "default": "https://cover.lib.social/uploads/cover/one-piece-episode-a/cover/478e42d6-75c0-4f1e-be8e-854fc344c452.jpg",
+        "md": "https://cover.lib.social/uploads/cover/one-piece-episode-a/cover/478e42d6-75c0-4f1e-be8e-854fc344c452.jpg"
+      },
+      "ageRestriction": {
+        "id": 3,
+        "label": "16+"
+      },
+      "site": 1,
+      "type": {
+        "id": 1,
+        "label": "Манга"
+      },
+      "rating": {
+        "average": "9.61",
+        "averageFormated": "9.6",
+        "votes": 1747,
+        "votesFormated": "1.7 K",
+        "user": 0
+      },
+      "is_licensed": false,
+      "content_marking": [
+        {
+          "id": 2,
+          "label": "Содержит упоминание наркотиков",
+          "formulation": "Незаконное потребление наркотических средств, психотропных веществ, их аналогов причиняет вред здоровью, их незаконный оборот запрещен и влечет установленную законодательством ответственность"
+        }
+      ],
+      "status": {
+        "id": 2,
+        "label": "Завершён"
+      },
+      "releaseDateString": "2020 г."
+    },
+    {
+      "id": 1400,
+      "name": "One Piece — Digital Colored Comics",
+      "rus_name": "Ван Пис — Цветное Издание",
+      "eng_name": "One Piece — Digital Colored Comics",
+      "model": "manga",
+      "slug": "one-piece-digital-colored-comics",
+      "slug_url": "1400--one-piece-digital-colored-comics",
+      "cover": {
+        "filename": "0760ff4d-2dd7-44d7-9388-0bd299cff1cc",
+        "thumbnail": "https://cover.lib.social/uploads/cover/one-piece-digital-colored-comics/cover/0760ff4d-2dd7-44d7-9388-0bd299cff1cc_thumb.jpg",
+        "default": "https://cover.lib.social/uploads/cover/one-piece-digital-colored-comics/cover/0760ff4d-2dd7-44d7-9388-0bd299cff1cc.jpg",
+        "md": "https://cover.lib.social/uploads/cover/one-piece-digital-colored-comics/cover/0760ff4d-2dd7-44d7-9388-0bd299cff1cc.jpg"
+      },
+      "ageRestriction": {
+        "id": 3,
+        "label": "16+"
+      },
+      "site": 1,
+      "type": {
+        "id": 1,
+        "label": "Манга"
+      },
+      "rating": {
+        "average": "9.49",
+        "averageFormated": "9.5",
+        "votes": 1442,
+        "votesFormated": "1.4 K",
+        "user": 0
+      },
+      "is_licensed": false,
+      "content_marking": [
+        {
+          "id": 2,
+          "label": "Содержит упоминание наркотиков",
+          "formulation": "Незаконное потребление наркотических средств, психотропных веществ, их аналогов причиняет вред здоровью, их незаконный оборот запрещен и влечет установленную законодательством ответственность"
+        }
+      ],
+      "status": {
+        "id": 1,
+        "label": "Онгоинг"
+      },
+      "releaseDateString": "2012 г."
+    }
+  ],
+  "meta": {
+    "has_next_page": true
+  }
+}

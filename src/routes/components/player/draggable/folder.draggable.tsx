@@ -1,7 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { EyeOff, FolderOpen, X } from "lucide-react";
-import { useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
 import { Button } from "@/components/ui/button.component";
@@ -10,6 +10,7 @@ import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/system/folders.c
 import { useBottomResize, resolveResizeMultiplier } from "@/hooks/folderResize.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useRecordValue } from "@/hooks/settingsRecord.hook";
 import { useKeybindChord } from "@/hooks/keybindTitle.hook";
 import { maxFolderHeight } from "@/lib/ui/folder.utils";
 import { summarizeTree } from "@/lib/player/playerTree.utils";
@@ -25,7 +26,7 @@ import type { FolderNode } from "@/types/torrent/torrent";
 
 import FolderView from "@/routes/components/player/folder.player";
 
-export function DraggableFolder({
+function DraggableFolderView({
   tree,
   onRemove,
   onHide,
@@ -55,7 +56,10 @@ export function DraggableFolder({
   const disabledExtensions = useMemo(() => new Set(audioExtensions), [audioExtensions]);
   const { t } = useI18n();
 
-  const savedHeight = useCell(settingsAtoms.playerFolderHeights)[normalizePlayerPath(tree.path)];
+  const savedHeight = useRecordValue(
+    settingsAtoms.playerFolderHeights,
+    normalizePlayerPath(tree.path)
+  );
   const saveHeight = useCallback(
     (path: string) => (height: number) => playerVisibility.setPlayerFolderHeight(path, height),
     []
@@ -203,3 +207,5 @@ export function DraggableFolder({
     </div>
   );
 }
+
+export const DraggableFolder = memo(DraggableFolderView);

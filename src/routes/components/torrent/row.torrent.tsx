@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 import { useTorrentItemActions } from "@/hooks/torrent/actions.hook";
 import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent/torrent";
@@ -16,8 +16,8 @@ interface TorrentRowProps {
   queueTotal: number;
   queueEnabled: boolean;
   onMoveQueue: (id: number, delta: -1 | 1) => void;
-  onToggleExpand: () => void;
-  onSelectChange: (selected: boolean) => void;
+  onToggleExpand: (id: number) => void;
+  onSelectChange: (id: number, selected: boolean) => void;
 }
 
 export const TorrentRow = memo(
@@ -62,6 +62,14 @@ export const TorrentRow = memo(
           : null,
       [queueEnabled, queueIndex, queueTotal, onMoveQueue, item.id]
     );
+    const handleToggleExpand = useCallback(
+      () => onToggleExpand(item.id),
+      [item.id, onToggleExpand]
+    );
+    const handleSelectChange = useCallback(
+      (value: boolean) => onSelectChange(item.id, value),
+      [item.id, onSelectChange]
+    );
     return (
       <TorrentItem
         item={item}
@@ -71,8 +79,8 @@ export const TorrentRow = memo(
         selected={selected}
         busy={busy}
         queue={queue}
-        onToggleExpand={onToggleExpand}
-        onSelectChange={onSelectChange}
+        onToggleExpand={handleToggleExpand}
+        onSelectChange={handleSelectChange}
         onPause={handlePause}
         onResume={handleResume}
         onSeedChange={handleSeedChange}

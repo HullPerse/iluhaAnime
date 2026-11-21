@@ -73,7 +73,7 @@ import {
 } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { HwdecReload } from "@/types/player/resume";
-import type { PlayerSettings, WatchState } from "@/types/player/videoPlayer";
+import type { PlayerSettings, StreamOpen, WatchState } from "@/types/player/videoPlayer";
 
 import PlayerBezel from "@/routes/components/player/bezel.player";
 import BufferingOverlay from "@/routes/components/player/media/buffering.player";
@@ -90,6 +90,21 @@ import { PlayerPanel } from "@/routes/components/player/media/panel.player";
 import PlayerSidePanel from "@/routes/components/player/side.player";
 
 const STREAM_TRACK_RESTORE_TIMEOUT_MS = 3000;
+
+// The presence and stream-pin hooks follow timePos, which changes up to ten
+// times per second. Keeping them in a null-rendering leaf stops that tick from
+// reconciling the whole player shell.
+function PlayerRuntime({
+  stream,
+  loadingFile,
+}: {
+  stream: StreamOpen | null;
+  loadingFile: boolean;
+}) {
+  usePlayerDiscordPresence();
+  useStreamPin(stream, loadingFile);
+  return null;
+}
 
 function PlayerComponent() {
   const { t } = useI18n();
@@ -174,7 +189,6 @@ function PlayerComponent() {
     consumeVideoDrag,
   } = usePlayerViewChrome({ autoHide, menuOpen, closeOverlay });
   const stream = useCell(streamSession);
-  usePlayerDiscordPresence();
   const streamNext = useStreamNext();
   const playerStream = usePlayerStream();
   const { hasNext, hasPrev } = navigationAvailability({
@@ -259,7 +273,6 @@ function PlayerComponent() {
   });
 
   useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
-  useStreamPin(stream, loadingFile);
   useStreamTrackPrefs(stream, tracks, {
     enabled: streamTracksPending,
     onRestored: restoreStreamTracks,
@@ -503,6 +516,7 @@ function PlayerComponent() {
         onWheel={(direction) => onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)}
         onFullscreenKey={onFullscreenKey}
       />
+      <PlayerRuntime stream={stream} loadingFile={loadingFile} />
 
       {chrome.showHeader && (
         <div className={barClass({ position: "top", immersive, hidden: barsHidden })}>

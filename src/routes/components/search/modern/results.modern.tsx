@@ -1,4 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { useCallback } from "react";
 
 import { attempt } from "@hullperse/hp_utils/attempt";
 import type { Anime } from "@/types/torrent/torrent";
@@ -37,21 +38,26 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
     downloadMagnetFor,
     setSelectedTorrent,
   } = controller;
+  const openLink = useCallback(async (item: Anime) => {
+    const [, error] = await attempt(openUrl(item.link));
+    if (error) console.warn("openUrl failed", error);
+  }, []);
+  const openDetails = useCallback(
+    (item: Anime) => setSelectedTorrent({ item, source: resultSource ?? source }),
+    [resultSource, source, setSelectedTorrent]
+  );
 
   const renderResult = (item: Anime, index: number) => (
     <SearchResultItem
       key={`${item.link}-${index}`}
       item={item}
       source={resultSource ?? source}
-      loadingMagnet={loadingMagnet}
-      onCopyMagnet={(i) => copyMagnetFor(i)}
-      onOpenMagnet={(i) => openMagnetFor(i)}
-      onDownload={(i) => downloadMagnetFor(i)}
-      onOpenLink={async (i) => {
-        const [, error] = await attempt(openUrl(i.link));
-        if (error) return console.warn("openUrl failed", error);
-      }}
-      onOpenDetails={(i) => setSelectedTorrent({ item: i, source: resultSource ?? source })}
+      busy={loadingMagnet[item.link] ?? false}
+      onCopyMagnet={copyMagnetFor}
+      onOpenMagnet={openMagnetFor}
+      onDownload={downloadMagnetFor}
+      onOpenLink={openLink}
+      onOpenDetails={openDetails}
     />
   );
 

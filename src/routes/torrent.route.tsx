@@ -530,8 +530,8 @@ function TorrentRoute() {
                 queueTotal={filteredTorrents.length}
                 queueEnabled={sortBy === "custom"}
                 onMoveQueue={moveQueueItem}
-                onToggleExpand={() => toggleExpanded(item.id)}
-                onSelectChange={(value) => toggleSelected(item.id, value)}
+                onToggleExpand={toggleExpanded}
+                onSelectChange={toggleSelected}
               />
             ))}
           </section>

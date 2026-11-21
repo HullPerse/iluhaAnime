@@ -3,18 +3,15 @@ import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { INTERNAL_SETTING_KEYS } from "@/config/settings/internalKeys.config";
-import { DEFAULT_SETTINGS } from "@/config/settings/settingsDefaults.config";
 import { SETTINGS_TAB_GROUPS, SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
+import { useChangedSettingsKeys } from "@/hooks/settingsChangedKeys.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useSettingsSnapshot } from "@/hooks/settingsSnapshot.hook";
 import { flashTarget } from "@/lib/core/ui/flash.utils";
 import { getLastSettingsTab, setLastSettingsTab } from "@/lib/ui/settingsTab.utils";
 import { ignoreTabCycle, stepTabId } from "@/lib/ui/tabsHotkeys.utils";
 
 import { searchSettingsFind } from "@/lib/core/search/find.utils";
-import { keysOf } from "@/lib/core/hotkeys/keysOf.utils";
 import { sectionSettingKeys } from "@/lib/core/system/reset.utils";
 import type { SettingsFindHit, SettingsFindTab } from "@/types/core/find";
 import { useCell } from "@hullperse/hp_utils/react";
@@ -37,7 +34,6 @@ import type { TranslationKey } from "@/types/core/i18n";
 import type { SettingsTab } from "@/types/ui/settings";
 
 const FIND_LIST_ID = "settings-find-listbox";
-const INTERNAL_KEYS = new Set<string>(INTERNAL_SETTING_KEYS);
 const TAB_TITLE_KEYS = new Map<SettingsTab, TranslationKey>(
   SETTINGS_TAB_KEYS.map((entry) => [entry.id, entry.key])
 );
@@ -55,7 +51,7 @@ export default function SettingsRoute() {
   const [flashRequest, setFlashRequest] = useState<{ sectionId: string } | null>(null);
   const [expandedSectionIds, setExpandedSectionIds] = useState<Set<string>>(new Set());
   const [changedOnly, setChangedOnly] = useState<boolean>(false);
-  const settingsSnapshot = useSettingsSnapshot();
+  const changedKeys = useChangedSettingsKeys();
   const contentRef = useRef<HTMLDivElement>(null);
   const findInputRef = useRef<HTMLInputElement>(null);
   const deferredQuery = useDeferredValue(findQuery);
@@ -71,16 +67,6 @@ export default function SettingsRoute() {
   }, [findHits, trimmedQuery]);
   const navGroups = useMemo(() => SETTINGS_TAB_GROUPS.filter((group) => group.tabs.length > 0), []);
   const navTabs = useMemo(() => navGroups.flatMap((group) => group.tabs), [navGroups]);
-  const changedKeys = useMemo(() => {
-    const keys = new Set<string>();
-    for (const key of keysOf(DEFAULT_SETTINGS)) {
-      if (INTERNAL_KEYS.has(key)) continue;
-      if (JSON.stringify(settingsSnapshot[key]) !== JSON.stringify(DEFAULT_SETTINGS[key])) {
-        keys.add(key);
-      }
-    }
-    return keys;
-  }, [settingsSnapshot]);
   const tabContentRef = useRef<HTMLDivElement>(null);
   const prevTabRef = useRef<SettingsTab | null>(null);
   useEffect(() => {

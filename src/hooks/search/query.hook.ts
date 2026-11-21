@@ -71,6 +71,14 @@ export function useSearchQuery(): SearchQueryController {
   const [showApiModal, setShowApiModal] = useState<boolean>(false);
   const [magnets, setMagnets] = useState<Record<string, string>>({});
   const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>({});
+  const magnetsRef = useRef<Record<string, string>>(magnets);
+  const sourceRef = useRef<Source>(source);
+  const resultSourceRef = useRef<Source | null>(resultSource);
+  useEffect(() => {
+    magnetsRef.current = magnets;
+    sourceRef.current = source;
+    resultSourceRef.current = resultSource;
+  }, [magnets, source, resultSource]);
   const [nyaaPage, setNyaaPage] = useState<number>(1);
   const [maxPage, setMaxPage] = useState<number>(Number.POSITIVE_INFINITY);
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -253,10 +261,25 @@ export function useSearchQuery(): SearchQueryController {
 
   const toggleSortDirection = () => setSortDirection(sortDirection === "desc" ? "asc" : "desc");
 
-  const copyMagnetFor = (item: Anime) => copyMagnet(item, magnets, setMagnets, setLoadingMagnet);
-  const openMagnetFor = (item: Anime) => openMagnet(item, magnets, setMagnets, setLoadingMagnet);
-  const downloadMagnetFor = (item: Anime) =>
-    downloadMagnet(item, magnets, setMagnets, setLoadingMagnet, resultSource ?? source);
+  const copyMagnetFor = useCallback(
+    (item: Anime) => copyMagnet(item, magnetsRef.current, setMagnets, setLoadingMagnet),
+    []
+  );
+  const openMagnetFor = useCallback(
+    (item: Anime) => openMagnet(item, magnetsRef.current, setMagnets, setLoadingMagnet),
+    []
+  );
+  const downloadMagnetFor = useCallback(
+    (item: Anime) =>
+      downloadMagnet(
+        item,
+        magnetsRef.current,
+        setMagnets,
+        setLoadingMagnet,
+        resultSourceRef.current ?? sourceRef.current
+      ),
+    []
+  );
 
   const field = useSearchField({
     scope: "torrent",

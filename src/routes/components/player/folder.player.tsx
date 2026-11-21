@@ -13,7 +13,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import { useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
+import { memo, useRef, useMemo, useCallback, useEffect, type RefObject } from "react";
 
 import ContextMenu from "@/components/shared/contextMenu.component";
 import type { ContextMenuEntry } from "@/types/ui/contextMenu";
@@ -607,4 +607,4 @@ function FolderView({
   );
 }
 
-export default FolderView;
+export default memo(FolderView);

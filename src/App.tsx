@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ComponentProps } from "react";
 
 import { DbScreen } from "@/components/shared/db/screen.db";
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
@@ -97,6 +97,25 @@ function TorrentRuntime() {
   );
 }
 
+function ShellOverlays({
+  update,
+  updatePromptOpen,
+  closeUpdatePrompt,
+}: {
+  update: ComponentProps<typeof Updater>["update"] | null | undefined;
+  updatePromptOpen: boolean;
+  closeUpdatePrompt: () => void;
+}) {
+  const overlays = useCell(overlayAtoms.entries);
+  if (!update || !updatePromptOpen || overlays.length > 0) return null;
+  return <Updater update={update} onClose={closeUpdatePrompt} />;
+}
+
+function ScreenshotHost() {
+  const { capture, close } = useScreenshot();
+  return capture ? <ScreenshotModal capture={capture} onClose={close} /> : null;
+}
+
 export default function App() {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -110,7 +129,6 @@ export default function App() {
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
   const playerPrewarmEnabled = useCell(settingsAtoms.playerPrewarmEnabled);
   const currentTheme = useCell(themeAtoms.currentTheme);
-  const overlays = useCell(overlayAtoms.entries);
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
 
   const goToTab = (id: TabId) => {
@@ -161,7 +179,6 @@ export default function App() {
   useDiscordPresence(activeTab);
   usePlayerPrewarm(activeTab, playerPrewarmEnabled);
   usePrewarmSpellIndex();
-  const { capture: screenshot, close: closeScreenshot } = useScreenshot();
 
   const openDataFolder = (dir: string) => {
     if (!dir) return;
@@ -210,11 +227,13 @@ export default function App() {
       className="relative h-screen w-screen overflow-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
-      {update && updatePromptOpen && overlays.length === 0 && (
-        <Updater update={update} onClose={closeUpdatePrompt} />
-      )}
+      <ShellOverlays
+        update={update}
+        updatePromptOpen={updatePromptOpen}
+        closeUpdatePrompt={closeUpdatePrompt}
+      />
       <TorrentRuntime />
-      {screenshot && <ScreenshotModal capture={screenshot} onClose={closeScreenshot} />}
+      <ScreenshotHost />
       <KeyboardHintOverlay />
       <PageFindBar />
       <NotificationToasts />

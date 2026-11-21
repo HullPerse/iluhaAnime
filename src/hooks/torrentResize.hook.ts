@@ -4,11 +4,11 @@ import { TORRENT_LIST_MAX_HEIGHT, TORRENT_MIN_HEIGHT } from "@/config/torrent/to
 import { useBottomResize } from "@/hooks/folderResize.hook";
 import { maxFolderHeight } from "@/lib/ui/folder.utils";
 import { playerVisibility } from "@/lib/player/playerVisibility.utils";
-import { useCell } from "@hullperse/hp_utils/react";
+import { useRecordValue } from "@/hooks/settingsRecord.hook";
 import { settingsAtoms } from "@/store/settings.store";
 
 export function useTorrentCardResize(infoHash: string, rootRef: RefObject<HTMLElement | null>) {
-  const savedHeight = useCell(settingsAtoms.playerTorrentHeights)[infoHash];
+  const savedHeight = useRecordValue(settingsAtoms.playerTorrentHeights, infoHash);
   const viewportMax = maxFolderHeight();
   const appliedHeight = savedHeight !== undefined ? Math.min(savedHeight, viewportMax) : undefined;
 

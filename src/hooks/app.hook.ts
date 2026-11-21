@@ -1,7 +1,7 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/system/notifications.config";
@@ -100,26 +100,42 @@ export function useApp() {
   const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
   const anilistPollIntervalMin = useCell(settingsAtoms.anilistPollIntervalMin);
 
-  const tabs = markOfflineTabs(
-    visibleTabs({
-      collectionTabEnabled,
+  const tabs = useMemo(
+    () =>
+      markOfflineTabs(
+        visibleTabs({
+          collectionTabEnabled,
+          anilistTabEnabled,
+          searchTabEnabled,
+          torrentTabEnabled,
+          playerTabEnabled,
+          streamTabEnabled,
+          mangaTabEnabled,
+          newsTabEnabled,
+          gameTabUnlocked,
+        }).map((tab) => ({
+          ...tab,
+          label: t(tab.key),
+        })),
+        isOnline
+      ).map((tab) => ({
+        ...tab,
+        disabledReason: tab.disabled ? t("tabs.offlineUnavailable") : undefined,
+      })),
+    [
       anilistTabEnabled,
-      searchTabEnabled,
-      torrentTabEnabled,
-      playerTabEnabled,
-      streamTabEnabled,
+      collectionTabEnabled,
+      gameTabUnlocked,
+      isOnline,
       mangaTabEnabled,
       newsTabEnabled,
-      gameTabUnlocked,
-    }).map((tab) => ({
-      ...tab,
-      label: t(tab.key),
-    })),
-    isOnline
-  ).map((tab) => ({
-    ...tab,
-    disabledReason: tab.disabled ? t("tabs.offlineUnavailable") : undefined,
-  }));
+      playerTabEnabled,
+      searchTabEnabled,
+      streamTabEnabled,
+      t,
+      torrentTabEnabled,
+    ]
+  );
   const { data: update } = useUpdateCheck();
   const updatePromptOpen = useCell(updateAtoms.promptOpen);
 

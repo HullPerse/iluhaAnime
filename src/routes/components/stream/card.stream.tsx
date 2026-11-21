@@ -105,6 +105,5 @@ export const StreamCard = memo(
     previous.anime.mediaType === next.anime.mediaType &&
     previous.anime.rating === next.anime.rating &&
     previous.progress === next.progress &&
-    previous.tabIndex === next.tabIndex &&
-    previous.onFocus === next.onFocus
+    previous.tabIndex === next.tabIndex
 );

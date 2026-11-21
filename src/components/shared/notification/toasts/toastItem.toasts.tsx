@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
@@ -18,7 +18,7 @@ const COUNTDOWN_TICK_MS = 100;
 const FOCUS_RING =
   "outline-none focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-offset-[-2px] focus-visible:outline-text";
 
-export function ToastItem({
+function ToastItemView({
   item,
   onHide,
   onBodyClick,
@@ -186,3 +186,11 @@ export function ToastItem({
     </div>
   );
 }
+
+export const ToastItem = memo(
+  ToastItemView,
+  (previous, next) =>
+    previous.item === next.item &&
+    previous.isClosing === next.isClosing &&
+    previous.onBodyClick === next.onBodyClick
+);

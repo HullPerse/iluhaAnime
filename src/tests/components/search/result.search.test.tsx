@@ -52,7 +52,7 @@ const renderRow = (
       <SearchResultItem
         item={item}
         source={source}
-        loadingMagnet={{}}
+        busy={false}
         onCopyMagnet={vi.fn()}
         onOpenMagnet={vi.fn()}
         onDownload={vi.fn()}

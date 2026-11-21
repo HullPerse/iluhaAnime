@@ -1,6 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Search } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
@@ -89,20 +89,25 @@ function SearchDefault() {
       end: tag.end,
     }));
   }, [didYouMean, searchParams, submittedQuery]);
+  const openLink = useCallback(async (item: Anime) => {
+    const [, error] = await attempt(openUrl(item.link));
+    if (error) console.warn("openUrl failed", error);
+  }, []);
+  const openDetails = useCallback(
+    (item: Anime) => setSelectedTorrent({ item, source: resultSource ?? source }),
+    [resultSource, source, setSelectedTorrent]
+  );
   const renderResult = (item: Anime, index: number) => (
     <SearchResultItem
       key={`${item.link}-${index}`}
       item={item}
       source={resultSource ?? source}
-      loadingMagnet={loadingMagnet}
-      onCopyMagnet={(i) => copyMagnetFor(i)}
-      onOpenMagnet={(i) => openMagnetFor(i)}
-      onDownload={(i) => downloadMagnetFor(i)}
-      onOpenLink={async (i) => {
-        const [, error] = await attempt(openUrl(i.link));
-        if (error) return console.warn("openUrl failed", error);
-      }}
-      onOpenDetails={(i) => setSelectedTorrent({ item: i, source: resultSource ?? source })}
+      busy={loadingMagnet[item.link] ?? false}
+      onCopyMagnet={copyMagnetFor}
+      onOpenMagnet={openMagnetFor}
+      onDownload={downloadMagnetFor}
+      onOpenLink={openLink}
+      onOpenDetails={openDetails}
     />
   );
 

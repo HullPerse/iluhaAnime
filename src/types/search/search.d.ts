@@ -373,7 +373,7 @@ export interface ModalFiltersProps {
 export interface ResultSearchProps {
   item: Anime;
   source: string;
-  loadingMagnet: Record<string, boolean>;
+  busy: boolean;
   onCopyMagnet: (item: Anime) => void;
   onOpenMagnet: (item: Anime) => void;
   onDownload: (item: Anime) => void;

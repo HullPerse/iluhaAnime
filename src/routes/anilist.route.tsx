@@ -398,34 +398,43 @@ function AnilistRoute() {
       globalSort,
       grouped: grouped !== null,
     });
+  const localFilterSignature = useMemo(() => JSON.stringify(localFilter), [localFilter]);
+  const sourceKey = useMemo(
+    () =>
+      `${buildAnilistSourceKey({
+        currentList,
+        sort,
+        searchTerms: deferredSearchTerms,
+        global,
+        filters: searchFilters,
+      })}|${localFilterSignature}`,
+    [currentList, sort, deferredSearchTerms, global, searchFilters, localFilterSignature]
+  );
+  const [pageSourceKey, setPageSourceKey] = useState<string>(sourceKey);
+  // Show page 1 on the first frame of a new source instead of resetting the
+  // page in render, which forced a second synchronous render of the route.
+  const pageForKey = pageSourceKey === sourceKey ? page : 1;
+  useEffect(() => {
+    if (pageSourceKey === sourceKey) return;
+    setPageSourceKey(sourceKey);
+    setPage(1);
+  }, [pageSourceKey, sourceKey]);
+
   const { total, from, to, lastPage } = usePagination(
     displayEntries.length,
     pageSize,
-    page,
+    pageForKey,
     setPage
   );
 
   const pagedEntries = useMemo(
-    () => paginate(displayEntries, page, pageSize),
-    [displayEntries, page, pageSize]
+    () => paginate(displayEntries, pageForKey, pageSize),
+    [displayEntries, pageForKey, pageSize]
   );
 
   useEffect(() => {
     setPage((p) => Math.min(p, lastPage));
   }, [lastPage]);
-
-  const sourceKey = `${buildAnilistSourceKey({
-    currentList,
-    sort,
-    searchTerms: deferredSearchTerms,
-    global,
-    filters: searchFilters,
-  })}|${JSON.stringify(localFilter)}`;
-  const [lastSourceKey, setLastSourceKey] = useState<string>(sourceKey);
-  if (lastSourceKey !== sourceKey) {
-    setLastSourceKey(sourceKey);
-    setPage(1);
-  }
 
   useEffect(() => {
     const current = searchAtoms.anilistSearchQuery.get();
@@ -559,7 +568,7 @@ function AnilistRoute() {
           filteredCount: filteredEntries.length,
           activeCount: activeEntries.length,
           total,
-          page,
+          page: pageForKey,
           lastPage,
           from,
           to,

@@ -1,5 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { EyeOff } from "lucide-react";
+import { memo, useCallback } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -7,7 +8,7 @@ import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent/torrent";
 
 import TorrentFilesPlayerSection from "@/routes/components/player/torrent.player";
 
-export function DraggableTorrent({
+function DraggableTorrentView({
   item,
   files,
   isExpanded,
@@ -19,10 +20,12 @@ export function DraggableTorrent({
   files: TorrentFileInfo[] | undefined;
   isExpanded: boolean;
   torrentLoading: boolean;
-  onToggleExpand: () => void;
-  onHide?: () => void;
+  onToggleExpand: (id: number) => void;
+  onHide?: (infoHash: string) => void;
 }) {
   const { t } = useI18n();
+  const handleToggleExpand = useCallback(() => onToggleExpand(item.id), [item.id, onToggleExpand]);
+  const handleHide = useCallback(() => onHide?.(item.info_hash), [item.info_hash, onHide]);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `torrent-${item.info_hash}`,
     data: {
@@ -57,7 +60,7 @@ export function DraggableTorrent({
             title={t("player.visibility.hide")}
             onClick={(e) => {
               e.stopPropagation();
-              onHide();
+              handleHide();
             }}
           >
             <EyeOff className="size-3" />
@@ -69,9 +72,11 @@ export function DraggableTorrent({
         files={files}
         isExpanded={isExpanded}
         torrentLoading={torrentLoading}
-        onToggleExpand={onToggleExpand}
+        onToggleExpand={handleToggleExpand}
         hideHeader
       />
     </div>
   );
 }
+
+export const DraggableTorrent = memo(DraggableTorrentView);

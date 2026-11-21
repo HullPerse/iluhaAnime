@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
-import { useState } from "react";
+import { memo, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { Button } from "@/components/ui/button.component";
@@ -20,17 +20,16 @@ import { removeResolvedCover } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ResultSearchProps as Props } from "@/types/search/search";
 
-export default function SearchResultItem({
+function SearchResultItem({
   item,
   source,
-  loadingMagnet,
+  busy,
   onCopyMagnet,
   onOpenMagnet,
   onDownload,
   onOpenLink,
   onOpenDetails,
 }: Props) {
-  const busy = loadingMagnet[item.link] ?? false;
   const colors = getLanguageColors();
   const { t } = useI18n();
   const sourceInfo = SOURCE_INFOS.find((info) => info.value === source);
@@ -188,3 +187,5 @@ export default function SearchResultItem({
     </article>
   );
 }
+
+export default memo(SearchResultItem);

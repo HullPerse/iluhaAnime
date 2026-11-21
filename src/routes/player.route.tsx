@@ -65,6 +65,9 @@ const ROUTE_KEYBINDS: ResolvedHotkeyDef<PlayerRouteAction>[] = [
   { id: "toggleQueue", chord: "KeyQ", repeat: "once", keybindId: "player.toggle.queue" },
 ];
 
+const hidePlayerFolder = (path: string): void => playerVisibility.hidePlayerFolder(path);
+const hidePlayerTorrent = (infoHash: string): void => playerVisibility.hidePlayerTorrent(infoHash);
+
 function PlayerRoute() {
   const { t } = useI18n();
   const { data } = useTorrents();
@@ -526,8 +529,8 @@ function PlayerRoute() {
                   folderTrees={visibleFolderTrees}
                   torrents={categoryTorrents}
                   torrentFilesMap={torrentFilesMap}
-                  onHideFolder={(path) => playerVisibility.hidePlayerFolder(path)}
-                  onHideTorrent={(infoHash) => playerVisibility.hidePlayerTorrent(infoHash)}
+                  onHideFolder={hidePlayerFolder}
+                  onHideTorrent={hidePlayerTorrent}
                 />
               ))}
           </section>
@@ -540,7 +543,7 @@ function PlayerRoute() {
                 key={tree.path}
                 tree={tree}
                 onRemove={handleRemoveFolder}
-                onHide={(path) => playerVisibility.hidePlayerFolder(path)}
+                onHide={hidePlayerFolder}
               />
             ))}
           </section>
@@ -554,8 +557,8 @@ function PlayerRoute() {
               files={torrentFilesMap[item.id]}
               isExpanded={expanded.has(item.id)}
               torrentLoading={torrentLoading.has(item.id)}
-              onToggleExpand={() => toggleExpanded(item.id)}
-              onHide={() => playerVisibility.hidePlayerTorrent(item.info_hash)}
+              onToggleExpand={toggleExpanded}
+              onHide={hidePlayerTorrent}
             />
           ))}
         <QueueStrip />

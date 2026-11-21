@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useTorrentInAppPlayer } from "@/hooks/player/inAppPlayer.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
@@ -8,7 +10,7 @@ import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent/torrent";
 import TorrentFilesSection from "@/routes/components/torrent/file.torrent";
 import { TorrentPendingState } from "@/routes/components/torrent/sections/pending.sections";
 
-export function TorrentCategoryEntry({
+function TorrentCategoryEntryView({
   tor,
   torrentFilesMap,
 }: {
@@ -52,3 +54,9 @@ export function TorrentCategoryEntry({
     />
   );
 }
+
+export const TorrentCategoryEntry = memo(
+  TorrentCategoryEntryView,
+  (prev, next) =>
+    prev.tor === next.tor && prev.torrentFilesMap[prev.tor.id] === next.torrentFilesMap[next.tor.id]
+);

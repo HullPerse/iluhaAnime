@@ -28,8 +28,8 @@ export default function NotificationToasts() {
     const seen = seenRef.current ?? new Set<number>();
     if (!inApp) {
       for (const item of items) seen.add(item.id);
-      setQueue([]);
-      setClosing(new Set());
+      setQueue((prev) => (prev.length === 0 ? prev : []));
+      setClosing((prev) => (prev.size === 0 ? prev : new Set()));
       return;
     }
     const fresh = items.filter((item) => !item.progress && !item.silent && !seen.has(item.id));
@@ -40,7 +40,10 @@ export default function NotificationToasts() {
       const visible = new Set(items.filter((item) => !item.progress).map((item) => item.id));
       const kept = prev.filter((id) => visible.has(id));
       const freshIds = fresh.map((item) => item.id).filter((id) => !kept.includes(id));
-      return [...freshIds, ...kept].slice(0, TOAST_DEFAULTS.maxVisible);
+      const next = [...freshIds, ...kept].slice(0, TOAST_DEFAULTS.maxVisible);
+      return next.length === prev.length && next.every((id, index) => id === prev[index])
+        ? prev
+        : next;
     });
   }, [items, inApp]);
 
@@ -92,12 +95,7 @@ export default function NotificationToasts() {
             key={id}
             item={item}
             isClosing={closing.has(id)}
-            onHide={() => {
-              setClosing((prev) => new Set(prev).add(id));
-              if (!animateToasts) {
-                handleToastHidden(id);
-              }
-            }}
+            onHide={handleToastHidden}
             onBodyClick={handleBodyClick}
             onHidden={handleToastHidden}
           />

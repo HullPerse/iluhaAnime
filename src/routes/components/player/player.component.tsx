@@ -91,9 +91,6 @@ import PlayerSidePanel from "@/routes/components/player/side.player";
 
 const STREAM_TRACK_RESTORE_TIMEOUT_MS = 3000;
 
-// The presence and stream-pin hooks follow timePos, which changes up to ten
-// times per second. Keeping them in a null-rendering leaf stops that tick from
-// reconciling the whole player shell.
 function PlayerRuntime({
   stream,
   loadingFile,
@@ -216,8 +213,6 @@ function PlayerComponent() {
 
   const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch, retrySession } =
     usePlayerSession({ videoRef, syncMarginsRef, resumeRef, initialWatchRef });
-  // Do not call the file initialized until both the first frame exists and the
-  // restored timing/tracks are applied. `playback-restart` can arrive first.
   const markFileReady = useCallback(
     (ready: boolean) => {
       fileReadyRef.current = ready;
@@ -322,7 +317,6 @@ function PlayerComponent() {
     },
     onEndFile: (reason, eventPath) => {
       setFinished(false);
-      // mpv reports a failed open as end-file/error, not always as `error`.
       if (reason === "error") {
         streamRoute.failNow();
         return;
@@ -355,8 +349,6 @@ function PlayerComponent() {
       resetPlayback();
     },
     onError: () => {
-      // A stream can recover on its other route (direct against a lagging VPN),
-      // so the guard decides whether this is fatal before the error screen.
       streamRoute.failNow();
     },
     onDroppedFrames: (data) => {
@@ -367,8 +359,6 @@ function PlayerComponent() {
   useEffect(() => {
     if (!loadingFile) return;
     const task = scheduleTask("timeout", LOADING_TIMEOUT_MS, () => {
-      // The timeout is a missing-`playback-restart` failsafe, not permission to
-      // reveal a half-restored file. Never drop the overlay before file-ready.
       if (fileReadyRef.current) setLoadingFile(false);
     });
     return () => task.cancel();
@@ -376,8 +366,6 @@ function PlayerComponent() {
 
   useEffect(() => {
     if (!streamTracksPending) return;
-    // A stream without a usable track list must not hold the player forever.
-    // Normal streams restore in milliseconds; this only covers the broken case.
     const task = scheduleTask("timeout", STREAM_TRACK_RESTORE_TIMEOUT_MS, restoreStreamTracks);
     return () => task.cancel();
   }, [restoreStreamTracks, streamTracksPending]);

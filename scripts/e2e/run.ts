@@ -1,11 +1,3 @@
-// Live E2E entry point. Drives the real Tauri app over CDP.
-//
-// Prerequisites: `bun run dev` must already be serving 1420 (the harness does
-// not start it), and nothing else may occupy CDP port 9222.
-//
-// Run: bun run test:e2e
-// Options via env: E2E_PLAYER_FILE=<video>, E2E_ONLY=boot,collection
-
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -118,7 +110,6 @@ async function main(): Promise<number> {
     const page = await mainPage(browser);
     collector.attach(page);
     await waitForReady(page);
-    // Reload so the boot scenario captures a cold mount with listeners live.
     await page.reload();
     await waitForReady(page);
     for (const scenario of scenarios) {

@@ -44,12 +44,6 @@ export function usePlayerDiscordPresence(): void {
     );
   }, [enabled, parseTitles, path, hasFile, paused, eofReached, duration, timePos, stream, t]);
 
-  // Publishing goes through an explicit diff instead of a debounce. Discord
-  // renders the timestamp itself, so a stable anchor stays in sync while the
-  // video plays; the card only has to be re-sent when it changes (play/pause,
-  // a new episode) or when the timeline jumps (seek, speed, duration). Waiting
-  // for a progress interval here made a pause land in Discord 15 s late, with
-  // the old clock still running in the profile.
   const lastSentRef = useRef<DiscordActivity | null>(null);
 
   useEffect(() => {

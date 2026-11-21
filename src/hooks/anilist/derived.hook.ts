@@ -134,8 +134,6 @@ export function useAnilistEntries({
     () => filterEntries(activeEntries, filterTerms, global, filters, localFilter),
     [activeEntries, filterTerms, global, filters, localFilter]
   );
-  // The grouped scroll view renders its own sorted groups, so the active-list
-  // display pipeline would be discarded work on large collections.
   const sortedEntries = useMemo(
     () => (grouped ? filteredEntries : sortEntries(filteredEntries, sort.dir, sort.key)),
     [filteredEntries, grouped, sort.dir, sort.key]

@@ -240,8 +240,6 @@ export default function AlbumCards() {
     (visible: readonly CollectionItem[]) => {
       const urls = cardImageUrls(visible);
       setRemoteImageScope(urls);
-      // The infinite grid can hold many loaded pages; prefetch only what the
-      // virtualizer actually renders instead of every card fetched so far.
       if (infinite && view === "grid") {
         prefetchRemoteImages(urls, imageProxy).catch(() => undefined);
       }

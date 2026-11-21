@@ -25,8 +25,6 @@ function FFMPEG({
   const [removing, setRemoving] = useState<boolean>(false);
   const removingRef = useRef<boolean>(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
-  // FFmpeg found on PATH belongs to the system, so there is no bundled copy to
-  // delete; the panel switches to that label instead of failing silently.
   const [systemFfmpeg, setSystemFfmpeg] = useState<boolean>(false);
   const { t } = useI18n();
   const aliveRef = useRef<boolean>(true);

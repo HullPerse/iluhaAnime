@@ -24,13 +24,6 @@ import { addNotification } from "@/store/notification.store";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { PlaylistWatch, WatchState } from "@/types/player/videoPlayer";
 
-/**
- * One mpv instance belongs to the player window, not to a React mount.
- * StrictMode runs the session effect twice in development, and a window reload
- * mounts it again, while the plugin's `init` is already idempotent. Caching the
- * one-time setup keeps the second mount from applying the initial options twice
- * and taking the pending open request twice (a duplicate `loadfile`).
- */
 let sessionStart: Promise<void> | null = null;
 let destroyTask: ScheduledTask | null = null;
 
@@ -121,8 +114,6 @@ export function usePlayerSession({
     };
 
     start().catch((error: unknown) => {
-      // A failed init must not leave a resolved/rejected cache behind: the next
-      // mount (or a retry) has to run the setup again.
       sessionStart = null;
       if (disposed) return;
       setFailed(true);
@@ -133,8 +124,6 @@ export function usePlayerSession({
       disposed = true;
       destroyTask = scheduleTask("timeout", 0, () => {
         destroyTask = null;
-        // The instance is torn down with the window, so the next real mount
-        // has to initialize a fresh session instead of reusing this cache.
         sessionStart = null;
         ignore(destroyPlayer());
       });

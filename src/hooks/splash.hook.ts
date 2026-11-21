@@ -216,9 +216,6 @@ export function useSplashStages(
       if (disposed) return;
       if (!indexed)
         reportBackgroundError("splash.index.timeout", new Error("anime index warmup timed out"));
-      // Last gated stage: settle without the pacing nap. There is nothing left
-      // to animate before the shell takes over, and the nap only delayed the
-      // first interactive frame.
       settle("index", indexed ? "done" : "degraded");
       tryFinish();
     };

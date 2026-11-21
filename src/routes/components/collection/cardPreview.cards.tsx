@@ -68,8 +68,6 @@ export default function CardPreview({
         back={<CardBack rarity={card.rarity} />}
       />
 
-      {/* The gallery resolves after the modal opens. Reserve its strip so the
-          centered dialog does not grow and shift the card when it arrives. */}
       <div className="cards-detail-gallery-slot">
         {slides.length > 1 && (
           <div className="cards-detail-gallery">

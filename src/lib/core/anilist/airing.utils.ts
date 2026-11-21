@@ -81,8 +81,6 @@ export function collectAiringRows(lists: AniListCollection[], statusFilter: stri
   return rows;
 }
 
-/// Rows for the current season come from a different source than the user's
-/// lists, so they carry no list status and are deduplicated by media id.
 export function seasonAiringRows(media: AniMedia[]): AiringRow[] {
   const rows: AiringRow[] = [];
   const seen = new Set<number>();

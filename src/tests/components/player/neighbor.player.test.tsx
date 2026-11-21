@@ -1,5 +1,5 @@
 import { mockInvoke as invokeMock } from "@/tests/mocks";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -112,7 +112,7 @@ describe("NeighborFileButton", () => {
       />
     );
     fireEvent.focus(screen.getByRole("button", { name: "Следующий файл" }));
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await act(async () => {});
     expect(invokeMock).not.toHaveBeenCalled();
     expect(screen.queryByText("c.mkv")).toBeNull();
   });

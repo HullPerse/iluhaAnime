@@ -169,13 +169,11 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
   }, [src, t, viaCache]);
 }
 
-/** Cache files are named `<hash>.<format>`, so the suffix is the real format. */
 function fileExtensionOf(path: string): string {
   const extension = path.split(".").pop()?.toLowerCase() ?? "";
   return /^[a-z0-9]{1,5}$/u.test(extension) ? extension : "png";
 }
 
-/** Uses the source name without its (possibly lying) suffix plus the real one. */
 function exportNameOf(url: string, extension: string): string {
   const segment = url.split("?")[0]?.split("/").pop()?.trim() ?? "";
   const stem = segment.replace(/\.[a-z0-9]{1,5}$/iu, "") || "image";

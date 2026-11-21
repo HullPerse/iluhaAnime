@@ -33,7 +33,6 @@ interface PlayerSample extends TreeSample {
 
 interface PlayerMeasurement {
   media: MediaFile;
-  /** True when the open reused the hidden prewarmed window instead of building one. */
   prewarmed: boolean;
   openedMs: number;
   playbackStartedMs: number;
@@ -79,9 +78,6 @@ async function timePos(page: Page): Promise<number> {
   return (await prop<number>(page, "time-pos", "double")) ?? 0;
 }
 
-// The local-file handler restores the saved position and track selection
-// before it marks the file ready. Starting playback earlier lets the handler
-// pause the file again after the test has already pressed play.
 async function waitForFileReady(player: Page): Promise<void> {
   await player
     .locator('[data-player-video][data-player-ready="true"]')
@@ -175,9 +171,6 @@ async function pauseAndVerify(player: Page): Promise<void> {
   }
 }
 
-// The player exposes seeking through `player_command`; `time-pos` is not a
-// writable property in the command allow-list, and the real UI seeks the same
-// way (`runMpvCommand("seek", [seconds, ...])`).
 async function seek(player: Page, target: number): Promise<void> {
   await invoke(player, "player_command", {
     name: "seek",
@@ -320,13 +313,9 @@ export const playerMedia: Scenario = {
         }
         const again = await invoke<boolean>(page, "player_release_prewarm");
         if (again) throw new Error("release reported a window that did not exist");
-        // With E2E_PREWARM=1 the first open below measures the warm path that
-        // the settings toggle enables; otherwise it measures a cold open.
         if (process.env.E2E_PREWARM === "1") {
           await invoke(page, "player_prewarm");
           await findPlayerPage(browser, 30_000);
-          // The settings toggle warms the window when the tab opens; a user
-          // spends at least this long browsing before clicking a file.
           await sleep(2000);
         }
       });
@@ -345,10 +334,6 @@ export const playerMedia: Scenario = {
 
         await step(`open ${label}`, async () => {
           await take(`before:${label}`);
-          // The first open reuses the startup-prewarmed window when it exists,
-          // so the report has one warm baseline next to the cold opens. Every
-          // later open starts from a closed window on purpose: it measures the
-          // worst case a user sees after closing the player.
           const reuse = index === 0;
           opened = await openMedia(browser, page, candidate.file, reuse);
           measurement.prewarmed = opened.prewarmed;
@@ -414,9 +399,6 @@ export const playerMedia: Scenario = {
         await startPlayback(opened.page);
         const before = await timePos(opened.page);
 
-        // `player_restart` tears the instance down and creates a new one with
-        // the same initial options a fresh mount would pass. The page itself
-        // survives, so every probe below runs against the rebuilt instance.
         await invoke(opened.page, "player_restart", { initialOptions: { volume: 55 } });
         await waitFor(
           () => prop<number>(opened.page, "volume", "double"),
@@ -429,7 +411,6 @@ export const playerMedia: Scenario = {
           throw new Error(`restart left the previous file loaded: ${idlePath}`);
         }
 
-        // A rebuilt instance must accept a load and report the new file.
         await invoke(opened.page, "player_load", {
           files: [media.path],
           resume: before,

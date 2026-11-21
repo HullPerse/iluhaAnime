@@ -1,8 +1,3 @@
-// Baseline measurement for hill-climbing (maximize relevance) before any
-// implementation change. Prints Top-1 / MRR with the current RANKING params,
-// then runs a coordinate-ascent hill climb and prints the resulting metric.
-//
-// Run: bun scripts/rank-hillclimb-baseline.ts
 
 import { buildLearningMaps, countersOf } from "../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../src/config/anilist/ranking.config";

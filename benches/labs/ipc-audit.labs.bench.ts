@@ -1,32 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// IPC audit pins per functionality: how many transport calls each hot
-// scenario makes and how many bytes flow each way. Companions
-// ipc-chatter (suggest/torrent ticks/files fan-out); this file covers the
-// scenarios ipc-chatter misses: collection tab open, anilist detail open,
-// torrent search submit, player open, suggest keystroke, host stats polling,
-// tmdb rate polling. Scenarios call production command names and arg shapes
-// directly (see collection.api.ts, anilist.api.ts, torrent.api.ts,
-// playback.utils.ts, system.api.ts, tmdb.api.ts); importing the classes
-// would pull transport.api.ts, whose module-level import.meta.env does not
-// exist under the labs node worker. The counting transport replicates the
-// production dedup shape (concurrent identical calls collapse via
-// inflightFetch). Labs has no real Tauri here, so this pins frontend
-// chattiness, not backend cost.
-// Budget (measured 2026-10-11, Ryzen 7 5800X/node 26; run c2d1b75-dirty-3,
-// clock drifted 3.24-4.34 GHz so us timings float run to run, invoke pins
-// are exact): collection open pins exactly 3 invokes (5.3us); anilist
-// detail open pins exactly 3 invokes (full+recommendations+franchise,
-// 5.2us; characters seed from full, brief is a separate surface); bundled
-// detail pins exactly 2 invokes (full+franchise, 3.3us); wizard save
-// with an anilist id pins exactly 4 invokes (cover+characters+staff+upsert,
-// 7.1us); torrent search submit pins exactly 3 invokes (5.2us); player open
-// pins exactly 3 invokes (4.8us); suggest keystroke pins exactly 1 invoke
-// (44B req, 1305B resp for 8 rows, 3.6us); 30 host stats ticks pin
-// 30 invokes (no dedup, sequential polls, 42.8us); 6 tmdb rate polls pin
-// 6 invokes (8.4us); anilist poll tick pins exactly 3 invokes
-// (auth+minimal lists+notifications, once per 30min default, 4.9us).
-// Regression threshold is labs minDelta 5% on
-// bytes; invoke counts are exact pins.
 
 import type { ApiTransport } from "../../src/types/core/transport";
 import { inflightFetch } from "@hullperse/hp_utils/lruCache";

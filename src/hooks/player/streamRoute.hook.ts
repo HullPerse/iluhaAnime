@@ -14,15 +14,10 @@ import { playbackAtoms, streamSession } from "@/store/player.store";
 import { getAnimelibProxyUrl } from "@/store/settings.store";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
-/** How often the guard looks at a load that has not produced a frame yet. */
 const CHECK_MS = 500;
-/** A load with no first frame and no download gets this long before a retry. */
 const STALL_MS = 12_000;
-/** Even a downloading load is retried after this long without a first frame. */
 const STALL_LIMIT_MS = 25_000;
-/** Below this mpv is not really receiving data, whatever the elapsed time. */
 const SLOW_BYTES_PER_SECOND = 32 * 1024;
-/** Two retries: the other route first, then the original route once more. */
 const MAX_RETRIES = 2;
 const RETRY_COOLDOWN_MS = 1_000;
 
@@ -125,8 +120,6 @@ export function useStreamRouteGuard({
     if (state.attempts === 0) {
       nextProxy = alternateProxyUrl(state.baseProxy, getAnimelibProxyUrl());
     }
-    // The original route is retried once by itself, because a CDN hiccup often
-    // clears in a couple of seconds while the other route can be much slower.
     if (nextProxy === undefined) nextProxy = state.baseProxy;
 
     const resume = streamRetryPosition(current, playbackAtoms.timePos.get());
@@ -184,12 +177,9 @@ export function useStreamRouteGuard({
     const state = stateRef.current;
     const current = sessionRef.current;
     if (!current) return;
-    // A seek in the previous file also emits playback-restart, so only the file
-    // that belongs to this session counts.
     if (playbackAtoms.path.get() !== current.mediaUrl) return;
     state.playing = true;
     state.gaveUp = false;
-    // The route that produced a frame is the one to start with next time.
     rememberStreamRoute(current.variantId, current.mediaUrl, current.proxyUrl);
   }, []);
 

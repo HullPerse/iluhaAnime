@@ -42,9 +42,6 @@
     return typeof value === "string" && allowed.includes(value);
   }
 
-  // The settings store persists `{ f, store, sv, ts, data }` under
-  // `iluha.v1.settings`. The old app wrote either `{ state }` or a flat object
-  // under `settings`; both are still read so an upgrade keeps the first paint.
   function readStoredSettings() {
     const envelope = readJson("iluha.v1.settings");
     if (isRecord(envelope) && isRecord(envelope.data)) return envelope.data;

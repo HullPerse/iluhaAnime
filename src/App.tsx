@@ -70,12 +70,15 @@ const TAB_WARM: Partial<Record<TabId, (client: QueryClient) => Promise<unknown>>
   stream: (client) => prefetchStreamConstants(client),
 };
 
-// Kept out of App so a torrent progress event re-renders this leaf instead of
-// the whole shell and the active tab.
 function TorrentRuntime() {
   const queryClient = useQueryClient();
-  const pendingTorrent = useCell(torrentAtoms.pendingTorrent);
-  const preparingTorrent = useCell(torrentAtoms.preparingTorrent);
+  const preparation = useCell(torrentAtoms.preparation);
+  const preparationPhase = preparation.phase;
+  const pendingTorrent =
+    preparationPhase.phase === "pending" || preparationPhase.phase === "confirming"
+      ? preparationPhase.pending
+      : null;
+  const preparingTorrent = preparationPhase.phase === "preparing";
   const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
   const torrentsQuery = useTorrents();
   useTorrentRealtime(torrentsQuery);

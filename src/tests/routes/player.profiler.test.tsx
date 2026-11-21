@@ -28,8 +28,6 @@ vi.mock("@tauri-apps/api/window", () => ({
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mockDialogOpen }));
 
-// This probe is deliberately not memoized: if PlayerComponent re-renders, the
-// header re-renders and the count grows.
 vi.mock("@/routes/components/player/media/header.player", () => ({
   default: () => {
     headerProbe.renders += 1;

@@ -114,8 +114,6 @@ describe("usePlayerPrewarm", () => {
     const view = renderAt("search", true);
 
     view.rerender({ activeTab: "player", prewarm: true });
-    // The release runs first and finds no window yet; once the create
-    // resolves, the leftover prewarm must be released a second time.
     view.rerender({ activeTab: "anilist", prewarm: true });
     finishPrewarm();
 

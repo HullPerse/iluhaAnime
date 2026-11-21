@@ -1,9 +1,4 @@
 #!/usr/bin/env bun
-/**
- * Validates all data-driven config modules by importing them.
- * Each migrated config parses its JSON with zod at module load, so an
- * invalid data file throws here and fails the check.
- */
 import { CONFIG_REGISTRY } from "../src/config/registry.config";
 import "../src/config/anilist/anilistFilters.config";
 import "../src/config/anilist/status.config";

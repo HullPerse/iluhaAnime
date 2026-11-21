@@ -23,8 +23,6 @@ export default function GiftFlow({
   const gift = useCardsMutations().createGift;
   const [link, setLink] = useState<string>("");
   const [copyError, setCopyError] = useState<boolean>(false);
-  // The card has already left the collection by the time the link is shown,
-  // so leaving this screen must close the detail instead of revealing it.
   const created = link !== "";
 
   const create = () => {

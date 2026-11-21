@@ -89,8 +89,6 @@ const INITIAL_PLAYBACK: PlaybackData = {
 const SEEK_TARGET_TOLERANCE = 0.4;
 const SEEK_TARGET_CONFIRMATIONS = 2;
 const SEEK_TARGET_RESET_MS = 2500;
-// Watch metadata and mpv often disagree by a frame or two. Keeping the
-// metadata value in that window avoids a visible jolt when duration arrives.
 const DURATION_HINT_TOLERANCE = 1.5;
 
 const DEFAULT_PLAYER_DATA: PlayerData = {
@@ -189,8 +187,6 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
   const seededTracks = (tracks: MpvTrack[]): MpvTrack[] => {
     if (!trackSeed) return tracks;
     const { audioTrack, audioTrackKey, subtitleTrack, subtitleTrackKey } = trackSeed;
-    // If the stored id is absent (for example external sidecar ids moved),
-    // leave mpv's choice alone instead of showing every row unselected.
     const audioId = resolveTrackId(tracks, "audio", audioTrack, audioTrackKey);
     const subId = resolveTrackId(tracks, "sub", subtitleTrack === "no" ? undefined : subtitleTrack, subtitleTrackKey);
     const audioExists =
@@ -402,8 +398,6 @@ export const streamSession = playback.streamSession;
 export const streamRequest = playback.streamRequest;
 export const beginStreamRequest = playback.beginStreamRequest;
 
-/// Duration used for timeline bounds. mpv's duration wins once it is known;
-/// until then the watch-database hint keeps seeking and the timeline usable.
 export function effectivePlaybackDuration(): number {
   const live = playbackAtoms.duration.get();
   return live > 0 ? live : playbackAtoms.durationHint.get();

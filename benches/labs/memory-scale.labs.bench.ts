@@ -1,20 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Memory/scale bench: bytes per item are the numbers that make system
-// requirements predictable, so this file reports heap/iter at several input
-// scales for the hot structures. labs measures per-iteration heap
-// allocation, so each scenario returns a checksum and the heap column is
-// the memory metric. Constant bytes/item at growing input means the
-// footprint is linear and quotable.
-// Scale runs (Ryzen 7 5800X/node 26, 2026-10-11) feed
-// benches/README.md "System requirements evidence".
-// Measured: parse cold 125 files 9.02ms / 3.52MB, 500 files 43.13ms /
-// 18.28MB, 2000 files 145.99ms / 6.23MB - about 73-86us per file, flat
-// across scales; warm 2000 files 1.91ms / 1.17MB - about 0.96us per file
-// when resident in the 8000-entry LRU. Cold is roughly 80x warm. Per-run
-// heap includes the retained LRU cache plus transient allocations, so it
-// does not scale linearly below cache capacity. Torrent tree 148 files
-// 163us / 141KB, 6k files 3.69ms / 1.87MB, 60k files 53.14ms / 18.61MB -
-// about 300B per file. Regression threshold is labs minDelta 5%.
 
 import { parseMediaPath, clearMediaParseCache } from "@hullperse/hp_utils/media/parse";
 import { buildTorrentTree } from "../../src/lib/torrent/torrentTree.utils";

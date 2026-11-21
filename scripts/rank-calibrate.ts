@@ -1,14 +1,3 @@
-// Hill climbing calibration for ranking feedback weights on REAL app data.
-//
-// Runs coordinate ascent hill climbing to MAXIMIZE Top-1/MRR on the real
-// anime index + learning stats from app_data.sqlite3, using the same
-// getSearchSuggestions pipeline the UI calls.
-//
-// This is the production calibration path: bench ranks a synthetic fixture,
-// this script ranks real candidates. Re-run when more select/ignore data
-// accumulates (DECISIONS.md: P3 calibration waits for real data).
-//
-// Run: bun scripts/rank-calibrate.ts [--db <path>] [--set <json>] [--limit 8] [--pool 60]
 
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
@@ -180,7 +169,6 @@ function rankWith(params: Params): Metric {
   return { top1: top1 / evalSet.queries.length, mrr: mrr / evalSet.queries.length, found: found / evalSet.queries.length };
 }
 
-// Coordinate ascent hill climbing: maximize metric(params).
 function hillClimb(start: Params): { params: Params; metric: Metric; steps: number; ms: number } {
   const step = {
     selectedWeight: 5,

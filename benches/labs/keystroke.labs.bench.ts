@@ -7,12 +7,6 @@ import {
   suggestSpelling,
 } from "../../src/lib/core/anilist/suggestions.utils";
 
-// Keystroke latency of the suggest pipeline at a 2000-title index.
-// Budget: one typed word (five prefixes) stays under one 16ms frame at 2000
-// titles; the single-char case is the worst path and runs only with @slow.
-// Each bench returns a checksum so labs can detect dead code elimination.
-// Fixtures are deterministic: a seeded LCG, no Math.random.
-
 const WORDS = [
   "frieren",
   "sousou",

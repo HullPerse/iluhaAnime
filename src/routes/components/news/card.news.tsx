@@ -38,7 +38,6 @@ export default function CardNews({
     return type.previewUrl;
   };
 
-  // const cover = item.attachments.find((attachment) => attachment.kind === "image");
   const cover = getCover();
 
   return (

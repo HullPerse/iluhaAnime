@@ -1,6 +1,3 @@
-// Torrent scenario: creates a torrent from a fixture folder through the real
-// backend command, then asserts the row appears in the torrent list.
-
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 

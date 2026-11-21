@@ -1,11 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Hotkey chord parsing, registry building, and key dispatch. Dispatch
-// runs on every keydown, so the per-event cost is the number to pin.
-// KeyboardEvent is unavailable under node, so dispatch is measured at
-// the registry Map level with precomputed chord key strings.
-// Budget (avg/iter, Ryzen 7 5800X/node 26, 2026-10-08): parse 9.2ms,
-// registry build 33us, dispatch hits 271us, misses 183us. Regression
-// threshold is labs minDelta 5%.
 
 import { chordKey, parseChord } from "../../src/lib/core/hotkeys/chordHotkeys.utils";
 import { createHotkeyRegistry } from "../../src/lib/core/hotkeys/registryHotkeys.utils";

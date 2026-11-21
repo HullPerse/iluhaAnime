@@ -40,8 +40,6 @@ function resolveValue(persisted: unknown, fallback: unknown): unknown {
   if (Array.isArray(fallback)) return Array.isArray(persisted) ? [...persisted] : [...fallback];
   if (isPlainObject(fallback)) {
     if (!isPlainObject(persisted)) return cloneDefault(fallback);
-    // Empty defaults are open dictionaries (source proxies, keybinds, heights),
-    // so their keys exist only in the persisted state.
     if (Object.keys(fallback).length === 0) return cloneOpenRecord(persisted);
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(fallback)) out[key] = resolveValue(persisted[key], fallback[key]);

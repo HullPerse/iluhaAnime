@@ -3,6 +3,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { gameApi } from "@/api/game.api";
 import { GAME_DISPLAY } from "@/config/player/display.config";
 import { GAME_KEY_BY_CODE } from "@/config/settings/keypad.config";
+import {
+  beginGameStart,
+  gameRuntimeOf,
+  gameSessionCrashed,
+  gameStartFailed,
+  gameStartSucceeded,
+  initialGameSessionState,
+  isGameStartCurrent,
+  stopGameSession,
+  type GameSessionState,
+} from "@/lib/game/session.utils";
 import { createGameAudio } from "@/lib/player/audio.utils";
 import type { GameAudio } from "@/types/player/audio";
 import { decodeGameFrame, expandFrame, tryParseHexColor } from "@/lib/core/player/frame.utils";
@@ -12,11 +23,7 @@ import { createAnimationLoop } from "@hullperse/hp_utils/interval";
 import type { AnimationLoopTask } from "@/types/core/interval";
 import { attempt, attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import type { GameFrame, GamePalette, GameRomInfo, GameTelemetry } from "@/types/core/game";
-import type {
-  GameSessionHandle,
-  GameSessionOptions,
-  GameSessionRuntime,
-} from "@/types/core/gameSession";
+import type { GameSessionHandle, GameSessionOptions } from "@/types/core/gameSession";
 
 const PALETTE = {
   on: tryParseHexColor(GAME_DISPLAY.pixel, [255, 255, 255, 255]),
@@ -38,12 +45,12 @@ function sessionColors(palette: GamePalette | null): readonly Rgba[] {
   ];
 }
 
-const IDLE_RUNTIME: GameSessionRuntime = { status: "idle", info: null, error: null };
 const IDLE_TELEMETRY: GameTelemetry = { fps: 0, hires: false, waitingKey: false, halted: false };
 const NO_KEYS: ReadonlySet<number> = new Set();
 
 interface ActiveSession {
   session: number;
+  token: number;
   cyclesPerSecond: number;
   audio: GameAudio;
   colors: readonly Rgba[];
@@ -58,6 +65,15 @@ interface ActiveSession {
   timerCarryMs: number;
   image: ImageData | null;
   context: CanvasRenderingContext2D | null;
+}
+
+function stopNativeSession(session: number): void {
+  attempt(gameApi.stop(session))
+    .then(([, error]) => {
+      if (error) reportBackgroundError("game.stop", error);
+      return null;
+    })
+    .catch((error: unknown) => reportBackgroundError("srchooksgamesession", error));
 }
 
 function paintFrame(
@@ -84,7 +100,15 @@ function paintFrame(
 }
 
 export function useGameSession(options: GameSessionOptions): GameSessionHandle {
-  const [runtime, setRuntime] = useState<GameSessionRuntime>(IDLE_RUNTIME);
+  const [machine, setMachine] = useState<GameSessionState>(initialGameSessionState);
+  const stateRef = useRef<GameSessionState>(machine);
+  const commit = useCallback((next: GameSessionState) => {
+    if (next === stateRef.current) return;
+    stateRef.current = next;
+    setMachine(next);
+  }, []);
+  const runtime = gameRuntimeOf(machine);
+
   const [telemetry, setTelemetry] = useState<GameTelemetry>(IDLE_TELEMETRY);
   const [pressedKeys, setPressedKeys] = useState<ReadonlySet<number>>(NO_KEYS);
   const activeRef = useRef<ActiveSession | null>(null);
@@ -122,22 +146,17 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     active.releaseKeypad();
     active.audio.dispose();
     setPressedKeys(NO_KEYS);
-    attempt(gameApi.stop(active.session))
-      .then(([, error]) => {
-        if (error) reportBackgroundError("game.stop", error);
-        return null;
-      })
-      .catch((error: unknown) => reportBackgroundError("srchooksgamesession", error));
+    stopNativeSession(active.session);
   }, []);
 
   const fail = useCallback(
-    (message: string) => {
-      const active = activeRef.current;
-      if (active) release(active);
-      setRuntime({ status: "error", info: null, error: message });
+    (active: ActiveSession, message: string) => {
+      if (activeRef.current !== active) return;
+      release(active);
+      commit(gameSessionCrashed(stateRef.current, active.token, message));
       setTelemetry(IDLE_TELEMETRY);
     },
-    [release]
+    [commit, release]
   );
 
   const pump = useCallback(
@@ -169,18 +188,18 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
           active.inFlight = false;
           if (activeRef.current !== active) return null;
           if (error) {
-            fail(error.message);
+            fail(active, error.message);
             return null;
           }
           const [frame, decodeError] = attemptSync(() => decodeGameFrame(buffer));
           if (decodeError) {
-            fail(decodeError.message);
+            fail(active, decodeError.message);
             return null;
           }
           const canvas = canvasTarget.current.current;
           const [, paintError] = attemptSync(() => paintFrame(active, frame, canvas));
           if (paintError) {
-            fail(paintError.message);
+            fail(active, paintError.message);
             return null;
           }
           if (frame.audio) {
@@ -210,22 +229,22 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
     async (rom: GameRomInfo) => {
       const previous = activeRef.current;
       if (previous) release(previous);
-      setRuntime({ status: "starting", info: null, error: null });
+
+      const begun = beginGameStart(stateRef.current);
+      commit(begun.state);
       setTelemetry(IDLE_TELEMETRY);
+
       const [info, error] = await attempt(gameApi.start(rom.id));
       if (error) {
-        fail(error.message);
+        commit(gameStartFailed(stateRef.current, begun.token, error.message));
         return;
       }
-      if (!mountedRef.current) {
-        attempt(gameApi.stop(info.session))
-          .then(([, stopError]) => {
-            if (stopError) reportBackgroundError("game.stop", stopError);
-            return null;
-          })
-          .catch((error: unknown) => reportBackgroundError("srchooksgamesession", error));
+
+      if (!mountedRef.current || !isGameStartCurrent(stateRef.current, begun.token)) {
+        stopNativeSession(info.session);
         return;
       }
+
       const canvas = canvasTarget.current.current;
       if (canvas) {
         canvas.width = info.cols;
@@ -233,6 +252,7 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       }
       const active: ActiveSession = {
         session: info.session,
+        token: begun.token,
         cyclesPerSecond: info.cyclesPerSecond,
         audio: createGameAudio(info.palette === null ? "beep" : "wavetable"),
         colors: sessionColors(info.palette),
@@ -258,18 +278,17 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       active.audio.setVolume(volumeRef.current);
       active.loop = createAnimationLoop((now) => pump(active, now));
       activeRef.current = active;
-      setRuntime({ status: "running", info, error: null });
+      commit(gameStartSucceeded(stateRef.current, begun.token, info));
     },
-    [fail, pump, release, sendKey]
+    [commit, pump, release, sendKey]
   );
 
   const stop = useCallback(() => {
+    commit(stopGameSession(stateRef.current));
     const active = activeRef.current;
-    if (!active) return;
-    release(active);
-    setRuntime(IDLE_RUNTIME);
+    if (active) release(active);
     setTelemetry(IDLE_TELEMETRY);
-  }, [release]);
+  }, [commit, release]);
 
   const pressKey = useCallback(
     (key: number, pressed: boolean) => {
@@ -286,6 +305,7 @@ export function useGameSession(options: GameSessionOptions): GameSessionHandle {
       mountedRef.current = false;
       const active = activeRef.current;
       if (active) release(active);
+      stateRef.current = stopGameSession(stateRef.current);
     };
   }, [release]);
 

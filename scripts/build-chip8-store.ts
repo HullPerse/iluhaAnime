@@ -1,23 +1,3 @@
-/**
- * Builds the embedded ROM store index from chip8Archive (CC0-1.0).
- *
- * Source: https://github.com/JohnEarnest/chip8Archive, pinned to one commit so
- * every recorded SHA-1 keeps matching the bytes the app later downloads from
- * raw.githubusercontent.com. Per-program archive options (tickrate, quirk
- * flags, palette colours) are captured as metadata: the game session applies
- * the recorded quirks, pace and palette on top of its platform defaults (see
- * src-tauri/src/game/store.rs). Quirk flags recorded as 0/1 are normalised to
- * booleans. The archive `howto` text is trimmed and kept so the UI can show
- * each ROM's controls (store list and game screen); entries without it stay
- * hint-free.
- *
- * Usage:
- *   bun scripts/build-chip8-store.ts                 # fetch (cached), build
- *   bun scripts/build-chip8-store.ts --force         # refetch files and the commit
- *   bun scripts/build-chip8-store.ts --commit <sha>  # build from an explicit commit
- *
- * Output: src-tauri/data/chip8-store-v2.json (embedded via include_str!)
- */
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -27,7 +7,6 @@ const RAW = `https://raw.githubusercontent.com/${REPO}`;
 const COMMITS_API = `https://api.github.com/repos/${REPO}/commits/master`;
 const CACHE_DIR = join("node_modules", ".cache", "iluha-chip8-store");
 const OUTPUT = join("src-tauri", "data", "chip8-store-v2.json");
-// Keep in sync with MAX_PROGRAM_BYTES in src-tauri/src/game/chip8.rs.
 const MAX_PROGRAM_BYTES = 65024;
 const HEX_COLOR = /^#[\da-f]{6}$/iu;
 const PLATFORMS = ["chip8", "schip", "xochip"] as const;
@@ -74,7 +53,6 @@ interface StoreEntry {
 
 const force = process.argv.includes("--force");
 
-/** Build scripts report progress; oxlint only tolerates warn and error on the console. */
 function log(message: string) {
   process.stdout.write(`${message}\n`);
 }
@@ -125,7 +103,6 @@ function compactOptions(options: Record<string, unknown> | undefined): CompactOp
   return Object.keys(compact).length > 0 ? compact : undefined;
 }
 
-/** Trims the archive controls text; blank or absent becomes undefined. */
 function normalizeHowto(value: string | undefined): string | undefined {
   const trimmed = value?.trim() ?? "";
   return trimmed.length > 0 ? trimmed : undefined;

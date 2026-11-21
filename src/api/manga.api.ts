@@ -121,9 +121,7 @@ async function drainPageQueue(key: string, queue: { tasks: PageTask[]; running: 
     if (!task) break;
     try {
       await task.run();
-    } catch {
-      // Each request's own promise already reports its error to React Query.
-    }
+    } catch {}
   }
   queue.running = false;
   if (queue.tasks.length === 0 && pageQueues.get(key) === queue) pageQueues.delete(key);

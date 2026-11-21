@@ -266,9 +266,6 @@ function maxSiteId(items: AniSiteNotification[]): number {
 
 let summarySequence = 0;
 
-/// One popup for a poll that produced several AniList notifications. The
-/// individual items already went into the panel with `silent`, so this item is
-/// popup-only: it is not persisted and never appears in the panel itself.
 export function notifyAniListSummary(count: number, t: TFunc, system: boolean): void {
   if (count <= 0) return;
   summarySequence += 1;

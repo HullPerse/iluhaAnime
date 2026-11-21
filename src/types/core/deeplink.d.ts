@@ -41,9 +41,7 @@ export interface CardGiftDeepLink {
   readonly giftId: string;
   readonly kind: CardKind;
   readonly entityId: number;
-  // The whole card travels in the link. Older links resolve to one stack.
   readonly cards: CardGiftStack[];
-  // New links carry enough card metadata to show the face before claiming.
   readonly preview?: CardGiftPreview;
 }
 

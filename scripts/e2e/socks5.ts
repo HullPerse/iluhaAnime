@@ -1,9 +1,3 @@
-// Minimal SOCKS5 CONNECT proxy for live diagnostics.
-//
-// It accepts a no-auth greeting, opens the requested TCP target, and relays
-// bytes. Domain targets are resolved by this proxy, which lets the e2e test
-// prove that the app used remote DNS (socks5h) instead of resolving locally.
-
 import { lookup } from "node:dns";
 import { createServer, connect, type Socket } from "node:net";
 

@@ -51,8 +51,6 @@ vi.mock("@tauri-apps/plugin-updater", () => ({
   check: mockUpdaterCheck,
 }));
 
-// App modules can resolve the real Tauri package even when the test-side
-// import is mocked. The real invoke/convertFileSrc read from this global.
 const tauriCallbacks = new Map<number, (event: unknown) => void>();
 let tauriCallbackId = 1;
 

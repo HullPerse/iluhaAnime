@@ -403,8 +403,6 @@ export function prefetchRemoteImages(
       pending.push(existing);
       continue;
     }
-    // Queue the whole burst before pumping so prefetch fills batches of eight
-    // instead of starting one single-image batch per URL.
     pending.push(fetchCachedImage(raw, proxy, "low", true));
   }
   pumpRemoteQueue();

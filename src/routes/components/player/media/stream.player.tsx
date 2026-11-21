@@ -34,8 +34,6 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
   let status = "";
   if (stream.switching) status = t("player.stream.switching");
   else if (pausedForCache === true) {
-    // The speed is what tells a lagging VPN from a dead route; a bare
-    // "buffering" label leaves the user guessing why the episode stopped.
     const speed = cacheSpeed ?? 0;
     status =
       speed > 0

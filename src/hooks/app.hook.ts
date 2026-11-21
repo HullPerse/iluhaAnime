@@ -556,7 +556,6 @@ export function useApp() {
           silent: true,
         }),
       ]);
-      // One popup per poll: the individual rows went into the panel silently.
       notifyAniListSummary(releases.added + site.added, t, true);
       return releases.ok;
     },

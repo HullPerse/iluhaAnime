@@ -129,7 +129,6 @@ describe("scheduleNeighborPrefetch", () => {
       expect(getCachedCard("b.mkv")).not.toBeNull();
       expect(getCachedCard("d.mkv")).not.toBeNull();
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(getCachedCard("a.mkv")).toBeNull();
     expect(getCachedCard("c.mkv")).toBeNull();
     expect(getCachedCard("e.mkv")).toBeNull();

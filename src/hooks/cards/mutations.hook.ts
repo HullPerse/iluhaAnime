@@ -83,8 +83,6 @@ export function useCardsMutations() {
     },
   });
 
-  // The reveal owns this invalidation: it runs when the opening closes so the
-  // wallet, counters and NEW stamps do not update before the cards are seen.
   // oxlint-disable-next-line react-doctor/query-mutation-missing-invalidation
   const openPack = useMutation({
     mutationFn: (packId: string) => cardsApi.openPack(packId, anilistProxy()),
@@ -93,8 +91,6 @@ export function useCardsMutations() {
     },
   });
 
-  // Claiming keeps the same rule as opening: the reveal owns invalidation so
-  // the wallet and collection do not change while the choice is on screen.
   // oxlint-disable-next-line react-doctor/query-mutation-missing-invalidation
   const claimPack = useMutation({
     mutationFn: (vars: { packId: string; slot: number }) =>

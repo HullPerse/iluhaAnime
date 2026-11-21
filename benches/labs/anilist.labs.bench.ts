@@ -1,10 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// AniList title resolution and score-format parsing over a synthetic
-// catalog. Hot path: every search result, card, and notification resolves
-// titles per render.
-// Budget (avg/iter, Ryzen 7 5800X/node 26, 2026-10-17): resolve 49us,
-// rotating 50us, titles x50 detail 1.66us, fields 96us, score formats 420us.
-// Regression threshold is labs minDelta 5%.
 
 import {
   parseScoreFormat,
@@ -50,8 +44,6 @@ const DETAIL_MEDIA = {
   title_native: "葬送のフリーレン",
 };
 
-// Detail-screen corpus: index 0 is the main media, 1..49 model relation rows
-// whose english/native titles are often missing, so fallbacks run.
 function makeDetailCorpus(): AnimeTitleFields[] {
   const out: AnimeTitleFields[] = [animeTitleFields(DETAIL_MEDIA)];
   for (let i = 1; i < 50; i++) {

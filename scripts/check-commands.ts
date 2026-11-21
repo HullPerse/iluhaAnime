@@ -1,15 +1,4 @@
 #!/usr/bin/env bun
-/**
- * Diffs the TypeScript command union against the Rust `generate_handler!` list.
- *
- * TypeScript cannot catch this class of bug: `ApiTransport.call` takes a
- * `string`, so a command that is called but never registered typechecks fine
- * and fails at runtime with `Command <name> not found`. That regression broke
- * the player twice (`player_shader_path`, `player_apply_batch`).
- *
- * Exit 1 when a command is called from TypeScript but missing from Rust.
- * Exit 0 with a report when Rust registers commands the union does not name.
- */
 
 import { readFileSync } from "node:fs";
 

@@ -1,11 +1,5 @@
 import { bench, group } from "@pmndrs/labs";
 
-// Decomposition bench for F-R1: where do the 28-34ms per keystroke go.
-// Budget: decomposition only, no pass/fail threshold; the numbers decide
-// whether the suggest pipeline needs surgery. Each bench returns a checksum
-// so labs can detect dead code elimination. Fixtures are deterministic
-// (modulo arithmetic, no RNG), copied from suggest-pipeline.labs.bench.ts.
-
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
 import { parseOperatorTerms } from "../../src/lib/search/searchScore.utils";
 import {
@@ -64,8 +58,6 @@ const HISTORY = ["naruto shippuden", "one piece", "attack on titan"];
 const QUERIES = ["friren", "naruto ship", "attack", "one", "steins"];
 const OPERATOR_QUERIES = ["^friren", "naruto !piece", "'attack", "steins$"];
 
-// Pre-normalized once, outside the measured closure: this isolates the
-// per-pair scoring cost from the WeakMap cache behaviour.
 const NORM_TITLES: string[][] = INDEX.map((anime) =>
   [anime.title, ...anime.aliases].map(normalizeSearchText)
 );

@@ -180,8 +180,6 @@ group("did-you-mean @didyoumean @slow", () => {
     };
   });
 
-  // After: prewarm builds the index in 500-word idle slices, so the first
-  // real lookup finds it ready instead of paying the full cold cost.
   bench("after: prewarm pump N=8k in 500-word idle slices", function* prewarmPump8k() {
     return yield () => {
       const index = new LazySpellIndex(WORDS_8K);

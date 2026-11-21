@@ -1,9 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Migrated from scripts/bench-highlight.ts (median-of-5 perf script, no
-// baseline comparison). Same corpora, labs statistics and DCE-safe returns.
-// Budget (avg/iter, Ryzen 7 5800X/node 26, 2026-10-08): normalize 47us,
-// short 67ms, long 2.0ms, accented 3.2ms, merge 14ms, didyoumean 38ms.
-// Regression threshold is labs minDelta 5%.
 
 import {
   findSubsequenceRanges,

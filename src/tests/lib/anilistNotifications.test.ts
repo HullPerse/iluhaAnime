@@ -405,8 +405,6 @@ describe("new episode notifications", () => {
     getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
     await pollAniListReleases(t, notDisposed, { system: false });
     expect(notificationAtoms.items.get()).toHaveLength(1);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
   });
 

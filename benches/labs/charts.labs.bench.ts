@@ -1,11 +1,3 @@
-// Hover lookup and segment math for the in-house charts module.
-// Budget (avg/iter, Ryzen 7 5800X/node 26, 2026-10-24): nearest 32 marks
-// 997us hybrid vs 916us pure linear, nearest 400 marks 201us hybrid vs 179us
-// pure binary. Per hover event that is 15 to 17 ns, so the hybrid is kept:
-// linear under 32 marks, binary above. Ratio segments 1.07ms per 20k runs,
-// band layout 11.06ms, bar lengths 1.39ms, ticks 16.43ms. Regression
-// threshold is labs minDelta 5%.
-
 import { bench, group } from "@pmndrs/labs";
 
 import { barLength, nearestIndex, ratioSegments } from "../../src/lib/core/player/geometry.utils";

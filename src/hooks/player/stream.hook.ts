@@ -36,11 +36,9 @@ function fallbackQuality(): string {
   return settingsAtoms.streamDefaultQuality.get();
 }
 
-/** A continuous buffer stall worth reacting to, and how often it is checked. */
 const AUTO_QUALITY_STALL_MS = 12_000;
 const AUTO_QUALITY_CHECK_MS = 1_000;
 
-/** The stream identity that keeps its "already downgraded" budget. */
 function logicalStreamKey(session: StreamOpen): string {
   return `${session.sourceId}:${session.mediaId}:${session.episodeId}:${session.variantId}`;
 }
@@ -135,8 +133,6 @@ export function usePlayerStream(): PlayerStream {
         resume: currentPosition(),
         paused: playbackAtoms.paused.get(),
       }));
-      // Preferences are not part of the switch: the dropdown must settle as
-      // soon as the session changed, not after two more IPC writes.
       if (opened) {
         if (!automatic) manualQualityRef.current.add(logicalStreamKey(current));
         ignore(rememberPrefs(current, { quality: label }));
@@ -162,9 +158,6 @@ export function usePlayerStream(): PlayerStream {
         return {
           ...current,
           variantId: nextVariantId,
-          // The route depends on the target player, not on the one that is
-          // playing: a Kodik voice-over plays from its CDN directly, an
-          // AnimeLib one keeps the catalog proxy.
           proxyUrl: playbackProxyUrl(nextVariantId, getAnimelibProxyUrl()),
           quality: source.label,
           mediaUrl: source.url,
@@ -186,13 +179,9 @@ export function usePlayerStream(): PlayerStream {
   useEffect(() => {
     if (lastStallKeyRef.current === stallKey) return;
     lastStallKeyRef.current = stallKey;
-    // A stall from the previous voice-over must not count toward the new one.
     stalledSinceRef.current = null;
   }, [stallKey]);
 
-  // One automatic step down per voice-over: a slow connection gets a playable
-  // quality instead of an endless buffering screen, while a manual pick is
-  // never overridden and the user is told about the change.
   useEffect(() => {
     const { cancel } = createInterval(() => {
       const current = streamSession.get();

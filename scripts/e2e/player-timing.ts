@@ -1,20 +1,3 @@
-// Live player latency benchmark: drives the real player window over CDP and
-// times what a click actually costs. Local files cover a cold open, a warm
-// file change inside the running window, a playlist move and audio/subtitle
-// switches; AnimeLib covers the catalog chain, a cold stream open, a quality
-// switch, a voice-over switch and a next-episode switch.
-//
-// The app must already run with CDP exposed (real profile, so a stored
-// AnimeLib token is used):
-//   $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"
-//   bun run tauri dev
-// Then: bun scripts/e2e/player-timing.ts
-//
-// Env:
-//   BENCH_RUNS=3          repeats per measured step
-//   BENCH_TIMEOUT=45000   per-probe timeout
-//   BENCH_SKIP_STREAM=1   local files only
-//   BENCH_SKIP_LOCAL=1    streams only
 
 import type { Browser, Page } from "playwright-core";
 
@@ -27,7 +10,6 @@ const SKIP_LOCAL = process.env.BENCH_SKIP_LOCAL === "1";
 const WARM = process.env.BENCH_WARM === "1";
 const STREAM_QUERY = process.env.BENCH_STREAM_QUERY ?? "Frieren";
 
-/** The main window, never the player: both share the same dev-server origin. */
 async function mainWindow(browser: Browser): Promise<Page> {
   const started = now();
   while (now() - started < 120_000) {
@@ -47,7 +29,6 @@ function qualityRank(label: string): number {
   return digits.length > 0 ? Number(digits) : 0;
 }
 
-/** mpv answers backslash paths, sometimes with the extended-length prefix. */
 function samePath(observed: string | null, expected: string): boolean {
   if (!observed) return false;
   const normalize = (value: string) =>
@@ -108,7 +89,6 @@ async function timed<T>(run: () => Promise<T>): Promise<{ value: T; ms: number }
   return { value, ms: now() - started };
 }
 
-/** Milliseconds from `started` until `probe` answers true, or -1 on timeout. */
 async function until(
   started: number,
   probe: () => Promise<boolean>,
@@ -216,7 +196,6 @@ async function tracksInUi(page: Page): Promise<boolean> {
   return page.evaluate((selector) => document.querySelectorAll(selector).length >= 2, DROPDOWN);
 }
 
-/** Label snapshot used to see the track UI react to an mpv property switch. */
 async function trackLabels(page: Page): Promise<DropdownLabels> {
   return { labels: await dropdownLabels(page) };
 }
@@ -226,7 +205,6 @@ async function labelsChanged(page: Page, before: DropdownLabels): Promise<boolea
   return after.some((label, index) => label !== before.labels[index]);
 }
 
-/** Audio/subtitle track ids mpv accepts, probed with the same IPC the UI uses. */
 async function trackIds(player: Page, property: "aid" | "sid", max = 16): Promise<number[]> {
   const ids: number[] = [];
   for (let id = 1; id <= max; id++) {
@@ -538,14 +516,12 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
       continue;
     }
 
-    // Playlist move inside the running window: the next episode is already queued.
     try {
       await playlistNext(player, LOCAL_PLAYLIST[1] ?? "", `локальный: смена файла в очереди (${run})`);
     } catch (error) {
       failures.push(`playlist-next ${run}: ${String(error)}`);
     }
 
-    // Warm file changes: a BDRip and a remux replace the file in the same window.
     for (const [file, name] of [
       [BDRIP, "BDRip HEVC 2.6 ГБ"],
       [REMUX, "REMUX 29 ГБ"],
@@ -557,7 +533,6 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
       }
     }
 
-    // Audio and subtitle switches on the multi-track remux.
     try {
       const audioIds = await trackIds(player, "aid");
       const subIds = await trackIds(player, "sid");
@@ -599,8 +574,6 @@ async function collectStreamChains(main: Page): Promise<Chain[]> {
 }
 
 async function streamRuns(browser: Browser, main: Page): Promise<void> {
-  // Two different titles: the first keeps the catalog cold, the second reuses
-  // whatever the client caches, so the chain numbers cover both.
   const started = now();
   const chains = await collectStreamChains(main);
   record("каталог: два тайтла подряд", "итого на поиск двух тайтлов", now() - started);
@@ -635,7 +608,6 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
       continue;
     }
 
-    // Quality switch: same session, another already resolved URL.
     const other =
       chain.sources.find((row) => row.label === "1080p" && row.label !== primary.label) ??
       chain.sources.find((row) => row.label !== primary.label);
@@ -657,7 +629,6 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
       }
     }
 
-    // Voice-over switch: another row resolves first, then the media loads.
     if (chain.variants.length > 1) {
       const otherVariant = nativeFirst(chain.variants).find(
         (row) => variantKey(row) !== variantKey(chain.variant)
@@ -695,7 +666,6 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
       }
     }
 
-    // Next episode: episodes, players and sources, then the media.
     try {
       const episodes = await timed(() =>
         invoke<AnimeLibEpisode[]>(main, "anime_lib_episodes", {
@@ -746,10 +716,6 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
   }
 }
 
-/**
- * The path every catalog click takes: the hidden player window is already up
- * (`player_prewarm`), so the click pays for the media, not for a WebView.
- */
 async function warmRuns(browser: Browser, main: Page): Promise<void> {
   for (let run = 1; run <= RUNS; run++) {
     const label = `тёплый старт (prewarm → клик, ${run}/${RUNS})`;

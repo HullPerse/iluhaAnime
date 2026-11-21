@@ -1,11 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Cost of the incremental-build gate itself. The stage wrapper is only worth it
-// while fingerprinting a full tree stays far below the stage it can skip: the
-// frontend stage is seconds, the release Rust stage is minutes.
-// Budget (avg/iter, this machine, 2026-11-01): 1k 395us, 5k 2.0ms, 10k 4.1ms,
-// diff 10k vs 5k 660us. The repo is ~1.8k tracked build inputs, so one gate
-// pass is ~1ms against a 33s `cargo check` and a multi-minute release build.
-// Regression threshold is the labs minDelta 5%.
 
 import {
   diffFingerprintEntries,

@@ -1,6 +1,7 @@
 import { defineConfig } from "oxlint";
 import core from "ultracite/oxlint/core";
 import jsPlugins from "ultracite/oxlint/js-plugins";
+import landmines from "ultracite/oxlint/landmines";
 import react from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import tanstackJsPlugins from "ultracite/oxlint/tanstack/js-plugins";
@@ -166,13 +167,24 @@ const selectedJsPlugins = {
 };
 
 export default defineConfig({
-  extends: [core, react, tanstack, selectedJsPlugins, tanstackJsPlugins],
+  extends: [core, react, tanstack, selectedJsPlugins, tanstackJsPlugins, landmines],
   ignorePatterns: [...(core.ignorePatterns ?? []), "src-tauri/**", "md/**"],
+  jsPlugins: [...(selectedJsPlugins.jsPlugins ?? []), ...(landmines.jsPlugins ?? [])],
   options: {
     typeAware: true,
     typeCheck: true,
   },
   rules: {
+    "landmines-testing/no-fixed-sleep": "error",
+    "landmines-testing/no-flake-masking": ["error", { allow: { "vite.config.ts": 1 } }],
+    "landmines-testing/no-test-doubles": "off",
+    "landmines-testing/strict-msw": "off",
+    "landmines-testing/no-unsignaled-poll": "off",
+    "landmines-style/no-comments": ["warn", { allow: ["WARNING", "SAFETY"] }],
+    "landmines-structure/colocated-tests": "off",
+    "landmines-structure/test-file-names": "off",
+    "landmines-structure/package-exports": "off",
+    "landmines-types/no-explicit-return-types": "off",
     complexity: "error",
     "max-depth": ["error", 3],
     curly: "off",
@@ -249,15 +261,12 @@ export default defineConfig({
       },
     },
     {
-      // E2E and benchmark harnesses keep nested scenario loops for readability.
       files: ["scripts/**", "benches/**"],
       rules: {
         "max-depth": "off",
       },
     },
     {
-      // VK's video_ext player breaks inside a sandboxed frame in WebView2, so the frame stays
-      // unrestricted and the reader offers an explicit copy to open on the site instead.
       files: ["src/components/shared/lightbox/vkEmbed.media.tsx"],
       rules: {
         "react/iframe-missing-sandbox": "off",

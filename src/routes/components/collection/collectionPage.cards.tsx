@@ -36,8 +36,6 @@ export default function CollectionPageCards({
 }) {
   const { t } = useI18n();
   const collection = useCardsAnimeCollection(animeId, collectionKind);
-  // The measured element only exists once the page renders, so the column
-  // measurement has to wait for the data instead of running on mount.
   const { ref: binderRef, columns } = useBinderColumns(undefined, collection.data !== undefined);
   const pageSize = columns * 3;
   const [page, setPage] = useState(0);

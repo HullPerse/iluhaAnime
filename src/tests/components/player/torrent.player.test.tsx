@@ -126,9 +126,7 @@ describe("TorrentFilesPlayerSection pending torrent", () => {
 
   it("keeps the refresh and open-folder actions available", async () => {
     renderSection({ files: [] });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
+    await act(async () => {});
 
     fireEvent.click(screen.getByTitle("Открыть в папке"));
     expect(mockOpenPath).toHaveBeenCalledWith(SAVE_DIR);

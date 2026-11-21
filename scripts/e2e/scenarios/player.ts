@@ -1,7 +1,3 @@
-// Player scenario: opens a file through the real player_open command and waits
-// for a playback snapshot. The mpv surface is a native child window, so this
-// asserts DOM and state, not pixels.
-
 import { spawnSync } from "node:child_process";
 import { mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -14,8 +10,6 @@ import { fixtureRoot, type Scenario } from "../harness";
 const MEDIA_DIR = join(fixtureRoot(), "media");
 const FIXTURE_VIDEO = join(MEDIA_DIR, "sample.mp4");
 
-// The settings panel is a portal, so the mode combobox is the stable marker of
-// whether it is open: the header button toggles it.
 const MODE_SELECT = /Режим плеера|Player mode/;
 const CABINET_SELECT = /Корпус|Cabinet/;
 
@@ -116,7 +110,6 @@ export const player: Scenario = {
 
     await step("playback state renders", async () => {
       const playerPage = await findPlayerPage(browser, 10_000);
-      // The timecode is plain text like "0:00 / 0:01", so match its shape.
       const state = playerPage.locator("text=/0:00 / 0:01/").first();
       const found = await state
         .waitFor({ timeout: 30_000 })

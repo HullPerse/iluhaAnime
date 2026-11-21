@@ -42,9 +42,6 @@ function anilistProfileOf(card: CollectionItem, fallbackName: string): AniListOv
   return null;
 }
 
-// One finish can exist at several rarities. Keep the rarity of the card that
-// was opened, otherwise a holo pull resolves to its junk/common row and the
-// finish gate hides the holo effect in the preview.
 function pickOwnedCard(
   owned: readonly CollectionItem[],
   pickedVariant: CardVariant,
@@ -56,8 +53,6 @@ function pickOwnedCard(
   return sameRarity ?? owned.find((entry) => entry.variant === pickedVariant) ?? item;
 }
 
-// Anime cards carry no collection title, so their source line asks AniList
-// for the adaptation source (original, manga, light novel, ...).
 function sourceLine(
   card: CollectionItem,
   sourceMaterial: string | null,

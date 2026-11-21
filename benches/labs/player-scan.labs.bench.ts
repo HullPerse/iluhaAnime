@@ -23,8 +23,6 @@ function makeEntries(count: number, sep: "/" | "\\"): VideoFileEntry[] {
   return entries;
 }
 
-// Legacy buildTree logic kept for regression comparison: normalizes the whole
-// path per entry and strips a leading slash with a regex.
 function buildTreeLegacy(entries: VideoFileEntry[], rootPath: string) {
   const normalizedRoot = rootPath.replaceAll("\\", "/").replace(/\/$/, "");
   const prefix = `${normalizedRoot}/`;

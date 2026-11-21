@@ -10,11 +10,8 @@ import type {
 import { settingsAtoms } from "@/store/settings.store";
 import type { CardDragState } from "@/types/ui/collection";
 
-/// Degrees of rotation per dragged pixel.
 const SPIN_SENSITIVITY = 0.5;
-/// Half the front is still readable, so the vertical spin stops short of upside down.
 const SPIN_LIMIT_X = 82;
-/// Hover tilt, matching the previous "full" tilt the face used to do on its own.
 const HOVER_TILT_X = 8;
 const HOVER_TILT_Y = 12;
 
@@ -22,7 +19,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-/// The shortest signed angle, so releasing a spun card settles back the short way.
 function normalizeAngle(degrees: number): number {
   const wrapped = degrees % 360;
   if (wrapped > 180) return wrapped - 360;
@@ -54,16 +50,12 @@ export default function CardSpin({
     []
   );
 
-  // One transform owns the card: hover tilt and drag spin both write the same
-  // pair of variables, so grabbing a tilted corner continues instead of snapping.
   const applyRotation = (rotateX: number, rotateY: number) => {
     rotationRef.current = { x: rotateX, y: rotateY };
     const rotator = rotatorRef.current;
     if (rotator === null) return;
     rotator.style.setProperty("--cards-spin-x", `${rotateX.toFixed(2)}deg`);
     rotator.style.setProperty("--cards-spin-y", `${rotateY.toFixed(2)}deg`);
-    // The finishes read the same unitless angles the grid tilt writes, so the
-    // foil and holo follow the card while it is being spun by hand.
     rotator.style.setProperty("--cards-tilt-deg-x", rotateX.toFixed(2));
     rotator.style.setProperty("--cards-tilt-deg-y", rotateY.toFixed(2));
     rotator.style.setProperty(
@@ -102,8 +94,6 @@ export default function CardSpin({
     return { x: -offsetY * HOVER_TILT_X, y: offsetX * HOVER_TILT_Y };
   };
 
-  // WAAPI bridges the release angle to the target, so the return plays for any
-  // angle, including several full turns.
   const settleRotation = (targetX: number, targetY: number) => {
     const rotator = rotatorRef.current;
     if (rotator === null) return;

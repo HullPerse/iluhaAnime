@@ -12,7 +12,6 @@ const MAX_BUTTON_LABEL_CHARS = 32;
 const MAX_URL_CHARS = 512;
 const WATCHING_TYPE = 3;
 
-/** A timestamp anchor that moves further than this is a seek, not clock jitter. */
 const PRESENCE_TIMESTAMP_TOLERANCE_MS = 1_500;
 
 interface PlayerCard {

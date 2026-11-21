@@ -23,13 +23,9 @@ export default function CardFacts({
 }) {
   const { t } = useI18n();
   const title = card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
-  // The same finish may be owned at several rarities; the switch should list
-  // each finish once.
   const variantChoices = variants.filter(
     (entry, index) => variants.findIndex((other) => other.variant === entry.variant) === index
   );
-  // Dates describe the card, not the finish, so switching the variant never
-  // changes the "obtained" age shown here.
   const cardFirstAt = variants.reduce(
     (earliest, entry) => Math.min(earliest, entry.firstObtainedAt),
     card.firstObtainedAt

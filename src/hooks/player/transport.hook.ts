@@ -68,8 +68,6 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
       ignore(streamNext.goNext());
       return;
     }
-    // Silence the current file before mpv swaps it. The new file is restored
-    // paused, so no default audio plays while state is applied.
     setPlaybackPaused(true);
     ignore(setPaused(true));
     ignore(nextFile());

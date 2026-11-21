@@ -1,18 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Direct bench of the persist envelope and the share payload, three ways:
-// the hand-rolled guards the code had, an uncompiled zod/mini schema, and the
-// compiled schema the persistor now uses. The envelope runs ~10 times per app
-// start and the share payload only on a clicked link, so the question is
-// whether the schema costs anything at those volumes, not the per-call delta.
-// Budget (avg/iter, Ryzen 7 5800X/node 26.3.0, 2026-10-10) for 2000/500
-// iterations: plain JSON.parse 1.49ms, envelope manual 1.58ms, envelope
-// compiled 1.94ms, envelope uncompiled 2.85ms, share 12 items manual 2.92ms,
-// share compiled 3.52ms, share uncompiled 5.38ms. Before the trim (record walk
-// plus per-field checks in schema) it was envelope compiled 3.03ms and share
-// compiled 4.46ms, so the trim cut 36 percent off the envelope and 21 percent
-// off the share payload. Remaining overhead per call is about 0.18us per
-// envelope (roughly 10 per app start, under 2us total) and 1.2us per clicked
-// share link. Both are noise. Regression threshold is labs minDelta 5%.
 import * as z from "zod/mini";
 
 import { attemptSync } from "@hullperse/hp_utils/attempt";

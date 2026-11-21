@@ -45,7 +45,6 @@ function readMemory(now: number): RouteMemory {
 function writeMemory(memory: RouteMemory): void {
   const store = storage();
   if (!store) return;
-  // A disabled or full storage must never break playback.
   attemptSync(() => store.setItem(STORAGE_KEY, JSON.stringify(memory)));
 }
 
@@ -54,7 +53,6 @@ function hostOf(mediaUrl: string): string {
   return host ?? "";
 }
 
-/** One route decision per player and media host. */
 function routeMemoryKey(variantId: string, mediaUrl: string): string {
   return `${variantId.split(":")[0] ?? ""}|${hostOf(mediaUrl)}`;
 }

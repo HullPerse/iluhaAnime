@@ -1,32 +1,3 @@
-/**
- * Builds the compact country-range table used to flag peers by country.
- *
- * Source: DB-IP Lite country database (CC-BY-4.0, https://db-ip.com), fetched through
- * the `@ip-location-db/dbip-country` mirror because it ships the ranges as plain numbers
- * instead of text addresses. Attribution is required by the license, so keep this
- * header and `src-tauri/src/torrent/geoip.rs` in sync when the data is regenerated.
- *
- * Usage:
- *   bun scripts/build-geoip.ts             # fetch (cached), build, gzip
- *   bun scripts/build-geoip.ts --force     # ignore the download cache
- *   bun scripts/build-geoip.ts --v4 a.csv --v6 b.csv --out path.bin.gz
- *
- * Output format (little endian), documented in the Rust reader as well:
- *   0   "ILG1"
- *   4   u8   version = 1
- *   5   u16  country count
- *   7   u32  v4 range count
- *   11  u32  v6 range count
- *   15  country table, `count` * 2 ASCII bytes
- *   then v4 range starts as varint deltas from the previous start (first from 0)
- *   then v4 country indices, one byte per range
- *   then v6 range starts as varint deltas
- *   then v6 country indices, one byte per range
- *
- * Ranges are made contiguous by inserting `XX` ("unknown") for every hole, and the table
- * always ends at the last address of the space, so a lookup is just "the last range whose
- * start is <= address" - no end bound has to be stored at all.
- */
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -58,7 +29,6 @@ function argValue(name: string): string | undefined {
 
 const force = process.argv.includes("--force");
 
-/** Build scripts report progress; oxlint only tolerates warn and error on the console. */
 function log(message: string) {
   process.stdout.write(`${message}\n`);
 }
@@ -112,7 +82,6 @@ async function parseCsv(path: string, max: bigint): Promise<Range[]> {
   return ranges;
 }
 
-/** Merges neighbours, then fills every hole so the table is searchable by start alone. */
 function seal(ranges: Range[], max: bigint): Range[] {
   const merged: Range[] = [];
   for (const range of ranges) {

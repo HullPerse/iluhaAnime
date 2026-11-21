@@ -1,6 +1,5 @@
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
-/** A position below one second is a fresh start, not a resume. */
 const MIN_RESUME_SECONDS = 1;
 
 /**

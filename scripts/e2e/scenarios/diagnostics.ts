@@ -1,10 +1,3 @@
-// Live diagnostics scenario: calls the real backend for every catalog probe.
-//
-// The direct pass runs with the isolated e2e profile (no app proxy). The proxy
-// pass uses a local SOCKS5 stand and configures the usual `socks5://` form, so
-// it also verifies that the backend normalizes it to remote-DNS `socks5h`.
-// JSON/Markdown reports are written under the e2e report directory.
-
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 

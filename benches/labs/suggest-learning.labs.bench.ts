@@ -1,13 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// End-to-end suggestion pipeline with learning that actually matches the
-// fixture. `suggest-pipeline` keys its stats on strings that never equal a
-// normalized title, so the feedback path was never measured there. This file
-// keys counters on real normalized titles and history entries, at 0% / 1% /
-// 10% learning density, cold (fresh index reference) and warm.
-//
-// Budget (Ryzen 7 5800X / node 26): warm 5k at 10% learning <= 40 ms per 5
-// queries; learning adds <= 10% over the same index with no counters; cold is
-// <= 3x warm. Regression threshold is labs minDelta 5%.
 
 import { buildLearningMaps } from "../../src/lib/core/anilist/learning.utils";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";

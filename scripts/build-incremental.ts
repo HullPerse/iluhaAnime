@@ -1,17 +1,4 @@
 #!/usr/bin/env bun
-/**
- * Runs only the build stages whose inputs changed.
- *
- * The Windows release build spends most of its time in Cargo and linking, while
- * the frontend stage is seconds. Rebuilding both because one moved is wasted
- * work; this wrapper fingerprints each stage's inputs and skips the untouched
- * one, printing what it skipped and why.
- *
- *   bun scripts/build-incremental.ts            frontend build + cargo check
- *   bun scripts/build-incremental.ts --plan     report decisions, run nothing
- *   bun scripts/build-incremental.ts --force    ignore stored fingerprints
- *   bun scripts/build-incremental.ts --release  cargo build --release
- */
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -51,19 +38,10 @@ interface StageState {
 
 type StageStateMap = Record<string, StageState>;
 
-/**
- * `cargo check` and `cargo build --release` read the same sources but produce
- * different artefacts, so each mode keeps its own state. Sharing one key would
- * let a check run make the next release build look up to date.
- */
 function stateKey(stage: StageDefinition, release: boolean): string {
   return stage.name === "rust" && release ? "rust:release" : stage.name;
 }
 
-/**
- * The stage command is an input too: changing what a stage runs must invalidate
- * the state that was recorded by the previous command.
- */
 function commandEntry(command: string[]): FingerprintEntry {
   const text = command.join(" ");
   let checksum = 0;
@@ -86,7 +64,6 @@ const frontendStage: StageDefinition = {
     "oxlint.config.ts",
     "oxfmt.config.ts",
   ],
-  // `bun run build` is the real stage: typecheck plus the Rolldown bundle.
   command: ["bun", "run", "build"],
 };
 
@@ -104,10 +81,6 @@ const rustStage: StageDefinition = {
     "src-tauri/build.rs",
     "src-tauri/tauri.conf.json",
   ],
-  // `vendor/` is deliberately absent: it holds the pinned dependency sources
-  // that Cargo.lock already identifies, and walking it would cost more than the
-  // check it gates.
-  // Resolved at runtime so --release only swaps the build command.
   command: ["cargo", "check", "--manifest-path", "src-tauri/Cargo.toml"],
 };
 

@@ -159,7 +159,6 @@ export function buildCardGiftLink(gift: CardGiftDeepLink): string {
   const cardsLink = `${base}${encodeBase64(gift.cards)}`;
   if (gift.preview === undefined) return cardsLink;
   const previewLink = `${base}${encodeBase64({ cards: gift.cards, preview: gift.preview })}`;
-  // Keep sharing working when a long studio collage would push the link over the cap.
   return previewLink.length <= GIFT_MAX_CHARS ? previewLink : cardsLink;
 }
 
@@ -181,7 +180,6 @@ export function parseCardGiftLink(raw: string): CardGiftDeepLink | null {
     const decoded = decodePayload(payload);
     return decoded ? { ...common, ...decoded } : null;
   }
-  // Older links carried one rarity/variant and an optional frozen value.
   if (parts.length !== 5 && parts.length !== 6) return null;
   const [giftId, kind, entityIdRaw, rarity, variant, valueRaw] = parts;
   const common = parseCommon(giftId, kind, entityIdRaw);

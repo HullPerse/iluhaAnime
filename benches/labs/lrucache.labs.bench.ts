@@ -1,10 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Direct bench of the shared LRU cache against a plain Map baseline.
-// The cache backs media parsing and other hot lookups; this pins its
-// overhead independent of any single caller.
-// Budget (avg/iter, Ryzen 7 5800X/node 26, 2026-10-08): fill+hit 1.2ms,
-// miss-heavy 2.1ms, eviction churn 13.5ms, Map baseline 377us.
-// Regression threshold is labs minDelta 5%.
 
 import { createLruCache } from "@hullperse/hp_utils/lruCache";
 

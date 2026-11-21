@@ -5,24 +5,20 @@
  * affect unrelated sites on shared Cloudflare/DDoS-Guard addresses.
  */
 export const ZAPRET_HOSTLIST = [
-  // AniList / Collection
   "graphql.anilist.co",
   "anilist.co",
   "www.anilist.co",
   "s4.anilist.co",
 
-  // Shikimori / Daily
   "shikimori.io",
   "shikimori.one",
   "shikimori.tv",
   "api.tenrai.org",
 
-  // AnimeThemes / Daily openings
   "graphql.animethemes.moe",
   "v.animethemes.moe",
   "animethemes.moe",
 
-  // AnimeLib / Kodik / Stream
   "animelib.org",
   "api.cdnlibs.org",
   "static.cdnlibs.org",
@@ -33,7 +29,6 @@ export const ZAPRET_HOSTLIST = [
   "kodikplayer.com",
   "cloud2.solodcdn.com",
 
-  // Torrents
   "nyaa.si",
   "sukebei.nyaa.si",
   "animetosho.org",
@@ -43,7 +38,6 @@ export const ZAPRET_HOSTLIST = [
   "www.erai-raws.info",
   "ddl.erai-raws.info",
 
-  // Torrent images / screenshots
   "img.rutracker.org",
   "static.rutracker.cc",
   "i.kek.sh",
@@ -53,7 +47,6 @@ export const ZAPRET_HOSTLIST = [
   "i5.imageban.ru",
   "www.kinopoisk.ru",
 
-  // News / embedded video
   "www.youtube.com",
   "youtube.com",
   "www.youtube-nocookie.com",
@@ -66,7 +59,6 @@ export const ZAPRET_HOSTLIST = [
   "vkvideo.ru",
   "iv.okcdn.ru",
 
-  // Updates / model and ffmpeg downloads
   "github.com",
   "objects.githubusercontent.com",
   "release-assets.githubusercontent.com",
@@ -74,7 +66,6 @@ export const ZAPRET_HOSTLIST = [
   "gh-proxy.com",
   "www.gyan.dev",
 
-  // Fallback trackers
   "tracker.opentrackr.org",
   "open.demonii.com",
   "exodus.desync.com",
@@ -103,7 +94,6 @@ export const ZAPRET_SAFE_IPS = [
 export const ZAPRET_ALL_IPS = [
   ...ZAPRET_SAFE_IPS,
 
-  // Cloudflare
   "104.26.14.71",
   "104.26.15.71",
   "172.67.71.232",
@@ -128,7 +118,6 @@ export const ZAPRET_ALL_IPS = [
   "172.64.147.104",
   "172.64.154.60",
 
-  // DDoS-Guard
   "186.2.163.197",
   "190.115.16.86",
   "190.115.16.74",
@@ -136,7 +125,6 @@ export const ZAPRET_ALL_IPS = [
   "185.178.208.159",
   "186.2.163.20",
 
-  // Other direct/shared hosts
   "185.199.108.133",
   "185.199.109.133",
   "185.199.110.133",

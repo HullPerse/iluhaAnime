@@ -4,7 +4,6 @@ import type { ApiTransport } from "@/types/core/transport";
 import type { UnifiedIndexApiConfig, UnifiedIndexEntryInput } from "@/types/api/unifiedIndex";
 import { tauriTransport } from "@/api/transport.api";
 
-/** Typed client for the unified index commands that search and ranking use. */
 class UnifiedIndexApi {
   private readonly transport: ApiTransport;
 

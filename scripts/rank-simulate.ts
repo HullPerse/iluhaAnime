@@ -1,16 +1,3 @@
-// SIMULATED calibration harness for the feedback formula.
-//
-// This does NOT use real user clicks. It generates a rank-biased click stream
-// over a self-labeled hard set: for every anime title that has sequels or
-// movies (a "family"), a six-character prefix of the base title is expected to
-// resolve to that base. The labels are a judgement call, not user preference.
-//
-// The point is to check mechanics and sensitivity: does a select lift a title,
-// does an ignore sink it, do caps and the half-life converge, and how do the
-// old and new formulas compare on the same action stream. Production constants
-// are never changed by this script.
-//
-// Run: bun scripts/rank-simulate.ts [--db <path>] [--rounds 12] [--json]
 
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
@@ -35,8 +22,6 @@ const setPath = argument("set") ?? "benches/rank-eval-queries.json";
 const rounds = Math.max(1, Number(argument("rounds") ?? 12));
 const jsonOnly = process.argv.includes("--json");
 const LIMIT = 8;
-// All candidates, so the no-learning arm stays stable and the comparison
-// isolates the formula instead of the 60-row recall window.
 const POOL = 2000;
 const DAY_MS = 86_400_000;
 const BASE_MS = Date.now();
@@ -61,7 +46,6 @@ interface Row {
   use: number;
   selected: number;
   ignored: number;
-  /** Seconds, matching the SQLite row shape. */
   lastUsedAt: number;
 }
 
@@ -143,10 +127,6 @@ function feedbackFor(counters: RankingCounters | null, nowMs: number, variant: V
   return feedbackWith(counters, nowMs, PARAMS[variant] ?? BASE_PARAMS);
 }
 
-// ---------------------------------------------------------------------------
-// Data
-// ---------------------------------------------------------------------------
-
 const db = new DatabaseSync(dbPath, { readOnly: true });
 const evalSet = JSON.parse(readFileSync(setPath, "utf-8")) as EvalSet;
 const animeRows = db
@@ -215,10 +195,6 @@ function buildHardQueries(index: SearchAnimeSuggestion[]): SimQuery[] {
 }
 
 const hardQueries = buildHardQueries(animeIndex);
-
-// ---------------------------------------------------------------------------
-// Simulation
-// ---------------------------------------------------------------------------
 
 const rows = new Map<string, Row>();
 const random = mulberry32(7);
@@ -347,8 +323,6 @@ for (let round = 0; round <= rounds; round++) {
       animeIndex,
       history: [],
       limit: POOL,
-      // Empty maps: candidates carry pure match + popularity, so every variant
-      // starts from the same base and the no-learning arm is stable.
       symSpell: false,
     });
     perQuery.push({ candidates, hard: hardSet.has(query), query });
@@ -369,7 +343,6 @@ for (let round = 0; round <= rounds; round++) {
 
   if (round === rounds) break;
 
-  // Rank-biased click stream on the production (new formula) ranking.
   for (const entry of perQuery) {
     const shown = rankVariant(entry.candidates, maps, nowMs, "new").slice(0, LIMIT);
     const expectedIndex = shown.findIndex((candidate) =>
@@ -397,10 +370,6 @@ for (let round = 0; round <= rounds; round++) {
     if (shown[0]) record(shown[0].value, "ignore", nowMs);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Report
-// ---------------------------------------------------------------------------
 
 const final = reports.at(-1);
 if (!final) throw new Error("no simulation report was produced");

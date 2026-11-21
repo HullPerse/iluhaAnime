@@ -1,13 +1,5 @@
 import { invokeTyped } from "@/lib/core/system/invoke.utils";
 
-/**
- * Startup marks for the webview half of the boot timeline.
- *
- * The native side cannot see first paint, so the shell records its own phases
- * and reports them once, after the first screen is interactive. Values are
- * relative to the webview performance origin, matching `performance.now()`.
- */
-
 interface StartupMark {
   label: string;
   ms: number;

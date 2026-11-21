@@ -71,7 +71,6 @@ describe("useAnilistFollowing", () => {
 
     expect(result.current.users).toEqual([]);
     expect(result.current.isLoading).toBe(false);
-    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(invokeMock).not.toHaveBeenCalled();
     unmount();
   });

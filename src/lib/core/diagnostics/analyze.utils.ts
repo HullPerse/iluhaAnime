@@ -122,8 +122,6 @@ function speedFinding(
 ): DiagnosticFinding | null {
   if (base.directLatencyMs === null || base.proxyLatencyMs === null) return null;
   if (fasterBy(base.directLatencyMs, base.proxyLatencyMs)) {
-    // A configured proxy is already in use for this source; telling the user
-    // that it is faster than the direct path is noise, not an action item.
     if (proxyConfigured) return null;
     return makeFinding(base, "proxy-faster", "proxy_faster", "info", "openProxy", "medium");
   }

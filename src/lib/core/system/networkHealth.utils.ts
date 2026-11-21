@@ -3,10 +3,6 @@ import { createSignalStore } from "@hullperse/hp_utils/signal";
 
 const store = createSignalStore();
 
-/**
- * One failed request is usually a server hiccup, so two transport failures
- * inside half a minute are needed before the banner calls the network dead.
- */
 const FAILURE_WINDOW_MS = 30_000;
 const FAILURE_THRESHOLD = 2;
 

@@ -1,12 +1,3 @@
-/**
- * Checks that every daily-pool title has enough frame screenshots and a usable
- * AniThemes video for OP/audio. The pool is shipped separately from the
- * metadata snapshot, so a title can parse fine but fail again at runtime.
- *
- * Usage:
- *   bun scripts/check-daily-pool.ts
- *   bun scripts/check-daily-pool.ts --limit 32 --allow-failures
- */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -292,7 +283,6 @@ async function checkEntry(entry: PoolEntry, themes: ThemeCheck): Promise<CheckRe
     const modes: CheckMode[] = [];
     if (frames.frames >= MIN_FRAMES) modes.push("frames");
     if (themes.hasOp && themes.hasTheme) modes.push("op");
-    // Audio-only plays an opening, so an ending alone is not enough.
     if (themes.hasOp) modes.push("audio");
     return {
       mediaId: entry.mediaId,

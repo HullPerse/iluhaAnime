@@ -83,8 +83,6 @@ export function useCardsCollectionInfinite(
       initialPageParam: 1,
       getNextPageParam: (lastPage) =>
         lastPage.page * lastPage.pageSize < lastPage.total ? lastPage.page + 1 : undefined,
-      // Re-sorting keeps the current rows on screen instead of blanking the grid
-      // and snapping back to the top of an empty list.
       placeholderData: keepPreviousData,
       enabled,
     }

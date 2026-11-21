@@ -1,29 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Vim keyboard mode. Three hot paths, one bench each:
-//   open   -> scanHintTargets over the whole document (per `F`)
-//   key    -> reduceHintKey over every open badge (per keystroke)
-//   frame  -> measureBadgeLayouts over every open badge (per scroll/resize/mutation)
-//   frame  -> resolveBadgeCollisions over every layout (per frame, after measure)
-// The mode only runs in a browser, but the passes themselves are plain JS:
-// element lookup and rect reads are replaced with deterministic fakes here,
-// so these numbers are the JavaScript overhead of the traversal, label and
-// matching passes. Browser layout cost is NOT included and must be checked
-// in a live run.
-// Budget (median/iter, Ryzen 7 5800X/node 26, 2026-10-12, one measurement):
-//   assign labels 380            29 us
-//   scan 380 hintable            40 us
-//   scan 3000 candidates         86 us   <- fakes, no layout reads
-//   match label miss (380)      1.5 us / keystroke
-//   match label hit (380)       6.8 ns
-//   measure 380 layouts          25 us   <- fakes, no layout reads
-//   resolve 380 collisions      102 us   <- fakes, after measure, per frame
-//   compare 380 layouts         4.6 us
-//   command table build         2.6 us
-//   dispatch hit               4.9 ns / lookup
-//   scroll step                1.1 ns
-// Every JS pass is far inside a 16.7 ms frame; the browser-side
-// getBoundingClientRect cost of the scan and the measure is NOT measured
-// here and needs a live run. Regression threshold is labs minDelta 5%.
 
 import { VIM_LABEL_ALPHABET } from "../../src/config/settings/vim.config";
 import { createVimCommandTable } from "../../src/lib/core/hotkeys/engineHotkeys.utils";
@@ -39,11 +14,7 @@ import {
 import type { HintBadge } from "../../src/types/core/hintsHotkeys";
 import { scrollAmount } from "../../src/lib/ui/scroll.utils";
 
-// The scanner reads the viewport through `window`; node has none.
 (globalThis as { window?: unknown }).window = { innerWidth: 1920, innerHeight: 1080 };
-// The focus-target check uses element constructors; the labs runtime has
-// none, and the fakes are plain objects (never instances), so one shared
-// stub keeps the scan benches on the plain-button path.
 class LabsDomStub {
   readonly stub = true as const;
 }
@@ -77,9 +48,6 @@ function fakeElement(index: number): HTMLElement {
 }
 
 function fakeRoot(elements: HTMLElement[]): ParentNode {
-  // scanHintTargets asks for content roots, sticky boxes and then candidates.
-  // The fakes only stand in for candidates; returning them for every selector
-  // makes a fake element a content root, and the rank pass calls contains().
   const querySelectorAll = (selector: string): HTMLElement[] =>
     selector.includes("button") ? elements : [];
   return { querySelectorAll } as unknown as ParentNode;
@@ -107,7 +75,6 @@ const ELEMENTS_FULL = makeElements(CAPACITY);
 const ELEMENTS_OVER = makeElements(3000);
 const BADGES = makeBadges(CAPACITY);
 const LAYOUTS = measureBadgeLayouts(BADGES, null, () => "");
-// "z" is not in the alphabet, so this is the worst case for label matching.
 const MISS = "z";
 
 const TABLE = createVimCommandTable();

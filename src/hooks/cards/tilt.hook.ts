@@ -42,8 +42,6 @@ export function useCardTilt(enabled: boolean) {
       target.style.setProperty("--cards-tilt-y", `${(x * maxY).toFixed(1)}deg`);
       target.style.setProperty("--cards-tilt-shift-x", `${(35 + (x + 0.5) * 30).toFixed(1)}%`);
       target.style.setProperty("--cards-tilt-shift-y", `${(35 + (y + 0.5) * 30).toFixed(1)}%`);
-      // Unitless angles let the finishes do real math in CSS: the foil band
-      // slides with rotateY and holo hue shifts with it, like a real surface.
       target.style.setProperty("--cards-tilt-deg-x", (-y * maxX).toFixed(2));
       target.style.setProperty("--cards-tilt-deg-y", (x * maxY).toFixed(2));
       target.style.setProperty(
@@ -55,8 +53,6 @@ export function useCardTilt(enabled: boolean) {
   );
 
   const leave = (event: ReactPointerEvent<HTMLElement>) => {
-    // A throttled trailing move would otherwise re-apply the last tilt after
-    // the pointer is already gone, which leaves the card stuck rotated.
     move.cancel();
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-card-face]");
     if (target !== null) {

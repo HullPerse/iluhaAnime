@@ -1,23 +1,3 @@
-/**
- * Builds the single-file country flag sprite shown next to peer addresses.
- *
- * Art: flag-icons (MIT) rendered to 16x12 PNGs by https://flagcdn.com, one request per
- * country. Every code the GeoIP table can emit gets a cell, so a peer never loses its flag
- * to a missing sprite entry - the build fails instead when a code has no art.
- *
- * The source flags are 8-bit PNGs (RGBA in some cases, palette in others, never interlaced),
- * so the sheet is assembled with the small codec below rather than a native image
- * dependency: decode each flag to RGBA, blit it into the grid, encode the grid back to PNG.
- *
- * Usage:
- *   bun scripts/build-flags.ts              # fetch (cached), build both outputs
- *   bun scripts/build-flags.ts --force      # ignore the download cache
- *   bun scripts/build-flags.ts --geoip path # read the country list from elsewhere
- *
- * Outputs:
- *   public/images/flags.sprite.png          the spritesheet
- *   src/config/settings/flags.config.ts      country code -> cell offset + sheet size
- */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -34,7 +14,6 @@ const COLUMNS = 16;
 
 const force = process.argv.includes("--force");
 
-/** Build scripts report progress; oxlint only tolerates warn and error on the console. */
 function log(message: string) {
   process.stdout.write(`${message}\n`);
 }
@@ -46,8 +25,6 @@ function argValue(name: string): string | undefined {
   if (!value || value.startsWith("--")) throw new Error(`--${name} needs a value`);
   return value;
 }
-
-/* ------------------------------------------------------------------ PNG codec */
 
 const SIGNATURE = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -107,7 +84,6 @@ function readChunks(bytes: Uint8Array): ChunkInfo[] {
   return out;
 }
 
-/** Paeth predictor, straight from the PNG spec. */
 function paeth(left: number, up: number, upLeft: number): number {
   const estimate = left + up - upLeft;
   const toLeft = Math.abs(estimate - left);
@@ -156,7 +132,6 @@ interface Raster {
   width: number;
 }
 
-/** Writes one source pixel as RGBA, resolving palette entries and their transparency. */
 function expandPixel(
   line: Uint8Array,
   rgba: Uint8Array,
@@ -181,7 +156,6 @@ function expandPixel(
   rgba[target + 3] = colour === 6 ? line[source + 3] : 255;
 }
 
-/** Decodes the 8-bit, non-interlaced greyscale-free PNGs the flag CDN serves. */
 function decodePng(bytes: Uint8Array): Raster {
   if (!SIGNATURE.every((byte, index) => bytes[index] === byte)) {
     throw new Error("not a PNG");
@@ -196,7 +170,6 @@ function decodePng(bytes: Uint8Array): Raster {
   if (depth !== 8 || compression !== 0 || filtering !== 0 || interlace !== 0) {
     throw new Error(`unsupported PNG: depth ${depth} interlace ${interlace}`);
   }
-  // 0 greyscale and 4 greyscale+alpha are never served by the CDN, only 2/3/6 are handled.
   const channels = colour === 6 ? 4 : colour === 2 ? 3 : colour === 3 ? 1 : 0;
   if (channels === 0) throw new Error(`unsupported PNG colour type ${colour}`);
 
@@ -236,7 +209,6 @@ function decodePng(bytes: Uint8Array): Raster {
   return { width, height, rgba };
 }
 
-/** Flat flag art compresses much better under Sub/Up/Paeth than under no filter at all. */
 function encodePng({ width, height, rgba }: Raster): Uint8Array {
   const stride = width * 4;
   const candidates = [0, 1, 2, 4].map((kind) => {
@@ -275,8 +247,6 @@ function encodePng({ width, height, rgba }: Raster): Uint8Array {
   ]);
 }
 
-/* ------------------------------------------------------------------- sources */
-
 async function download(code: string): Promise<Uint8Array> {
   await mkdir(CACHE_DIR, { recursive: true });
   const path = join(CACHE_DIR, `${code}.png`);
@@ -291,7 +261,6 @@ async function download(code: string): Promise<Uint8Array> {
   return bytes;
 }
 
-/** Country codes the GeoIP table can produce, read straight out of its header. */
 async function geoipCountries(path: string): Promise<string[]> {
   if (!existsSync(path)) throw new Error(`${path} is missing, run \`bun run data:geoip\``);
   const raw = gunzipSync(await readFile(path));
@@ -304,11 +273,8 @@ async function geoipCountries(path: string): Promise<string[]> {
     const at = 15 + index * 2;
     codes.push(String.fromCodePoint(raw[at], raw[at + 1]).toLowerCase());
   }
-  // XX is the table's "no country" bucket, not a place to put on a map.
   return [...new Set(codes.filter((code) => code !== "xx"))].sort();
 }
-
-/* --------------------------------------------------------------------- build */
 
 async function main() {
   const codes = await geoipCountries(argValue("geoip") ?? DEFAULT_GEOIP);
@@ -353,7 +319,6 @@ async function main() {
   if (missing.length > 0) throw new Error(`no sprite cell for ${missing.join(" ")}`);
 
   const png = encodePng({ width: sheetWidth, height: sheetHeight, rgba: sheet });
-  // A third-party decoder has to accept the sheet; a broken encoder must not ship as an asset.
   const back = decodePng(png);
   if (back.width !== sheetWidth || back.height !== sheetHeight)
     throw new Error("sheet did not round-trip");

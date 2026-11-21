@@ -1,14 +1,3 @@
-// Live E2E harness lifecycle: isolate data, launch the real Tauri app with a
-// CDP endpoint, drive scenarios, write a report.
-//
-// Safety properties, deliberately:
-// - data goes to %APPDATA%\iluhaAnime.e2e (identifier override), wiped per run
-// - the Rust build uses a dedicated target dir so it never locks the dev build
-// - release builds never register the iluhaanime:// scheme (debug_assertions),
-//   so a dev harness run does not touch the Windows registry
-// - only processes whose exe lives in target-e2e are killed, never the user's
-//   installed app or a running dev instance
-
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -50,10 +39,6 @@ function e2eTargetDir(): string {
   return join(repoRoot(), "src-tauri", "target-e2e");
 }
 
-// Reports, screenshots and generated fixtures deliberately live under the e2e
-// target dir: Vite only ignores `**/src-tauri/**`, so anything written inside
-// the watched tree (a screenshot per step, a torrent fixture, the repro zip)
-// makes the dev server fire a full page reload in the middle of a run.
 export function outRoot(): string {
   return join(e2eTargetDir(), "harness", "out");
 }
@@ -67,18 +52,11 @@ function appDataDir(): string {
   return join(base, E2E_IDENTIFIER);
 }
 
-// WebView2 keeps localStorage, IndexedDB and cache in its own profile under
-// the local app data dir. Without wiping it, a search query or a persisted UI
-// atom from one run leaks into the next one, which makes scenarios depend on
-// execution history.
 function webViewDataDir(): string {
   const base = process.env.LOCALAPPDATA ?? join(e2eTargetDir(), "localappdata");
   return join(base, E2E_IDENTIFIER);
 }
 
-// Never build these through execSync: shell quoting mangles the inner quotes,
-// PowerShell silently fails, and the stale WebView2 (the real CDP port owner)
-// survives into the next run.
 function powershell(script: string): string {
   const result = spawnSync("powershell", ["-NoProfile", "-Command", script], {
     encoding: "utf-8",
@@ -90,10 +68,6 @@ function powershell(script: string): string {
   return result.stdout ?? "";
 }
 
-// Only processes this harness can own are touched: the app exe built into
-// target-e2e, and a WebView2 whose profile belongs to the e2e identifier.
-// Nothing is killed purely for holding the port, because that port is shared
-// with any other CDP user on the machine.
 export function killE2eProcesses(): void {
   powershell(
     "Get-CimInstance Win32_Process -Filter \"Name='iluhaAnime.exe'\" | " +
@@ -112,9 +86,6 @@ interface PortOwner {
   detail: string;
 }
 
-// Split in two calls on purpose: one embedded PowerShell script with nested
-// quoting and backticks turned out to be unparseable, and the pieces are
-// independently easier to read.
 function portOwnerPids(port: number): number[] {
   const script =
     `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | ` +
@@ -148,10 +119,6 @@ function portOwners(port: number): PortOwner[] {
   return portOwnerPids(port).map((pid) => ({ pid: String(pid), detail: describeProcess(pid) }));
 }
 
-// The WebView2 child owns the CDP port and can outlive the app exe by a second
-// or two, so the port is polled rather than assumed free. Killing our own
-// processes first is unconditional and scoped by construction, so it is safe to
-// repeat; the port afterwards belongs to whoever we did not kill.
 export async function ensureCdpFree(timeoutMs = 30_000): Promise<void> {
   const port = cdpPort();
   killE2eProcesses();
@@ -172,10 +139,6 @@ export async function ensureCdpFree(timeoutMs = 30_000): Promise<void> {
   }
 }
 
-// The torrent session binds a fixed UDP port, so a second instance of the app
-// cannot start one. The user's dev app is not ours to kill, but a run that
-// collides with it produces a socket error deep inside librqbit, which says
-// nothing about the real cause. Print the collision instead.
 export function warnAboutForeignApp(): void {
   const script =
     "Get-CimInstance Win32_Process -Filter \"Name='iluhaAnime.exe'\" | " +
@@ -200,9 +163,6 @@ export function warnAboutForeignApp(): void {
 }
 
 export async function ensureVite(): Promise<ChildProcess | null> {
-  // 127.0.0.1 on purpose: hosts resolves localhost to ::1 first and Vite is
-  // pinned to IPv4 (host: 127.0.0.1, strictPort), so localhost fails in fetch
-  // even though WebView2 falls back to IPv4 correctly.
   const up = async (): Promise<boolean> => {
     try {
       const response = await fetch("http://127.0.0.1:1420", { method: "HEAD" });
@@ -214,8 +174,6 @@ export async function ensureVite(): Promise<ChildProcess | null> {
   if (await up()) return null;
 
   console.log("[e2e] starting frontend dev server (nothing on 1420)");
-  // Detached so the whole tree can be signalled later: `bun run dev` is only a
-  // wrapper, and killing it alone leaves the real vite process orphaned on 1420.
   const child = spawn("bun", ["run", "dev"], {
     cwd: repoRoot(),
     stdio: ["ignore", "pipe", "pipe"],
@@ -233,8 +191,6 @@ export async function ensureVite(): Promise<ChildProcess | null> {
   throw new Error("frontend dev server did not come up on 1420 in 180s");
 }
 
-// Kills the dev-server tree, not just the bun wrapper, so the next run does not
-// find a stale server that answers the probe but serves a broken module graph.
 export function stopVite(child: ChildProcess | null): void {
   stopProcessTree(child);
 }
@@ -262,11 +218,6 @@ export function wipeData(): void {
   seedSessionConfig();
 }
 
-// The torrent session binds a UDP port derived from its persisted
-// `session_config.json`, so a second instance of the app on the machine
-// collides with it and `create_torrent_from_folder` fails deep inside librqbit
-// with a socket error. The e2e app owns its own app-data dir, so it gets its
-// own listen port and no longer has to compete with a running dev build.
 const E2E_LISTEN_PORT = 51413;
 
 function seedSessionConfig(): void {

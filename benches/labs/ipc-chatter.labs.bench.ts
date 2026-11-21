@@ -1,26 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// IPC chattiness alongside timing benches: how many transport calls each
-// hot scenario makes and how many bytes flow each way. Api classes are
-// verbatim forwards, so scenarios call the same command names and arg
-// shapes directly (see collection.api.ts searchUnifiedIndex and
-// torrent.api.ts listTorrents); importing the classes would pull
-// transport.api.ts, whose module-level import.meta.env does not exist
-// under the labs node worker. The counting transport replicates the
-// production dedup shape (concurrent identical calls collapse via
-// inflightFetch), except the 4KB prod dedup bypass, which never triggers
-// on these small args. Labs has no real Tauri here, so this pins
-// frontend chattiness, not backend cost.
-// Budget (measured 2026-10-08, Ryzen 7 5800X/node 26): suggest 5 queries
-// pin exactly 5 invokes (222B req, 6.5KB resp for 8 rows); 30 serial
-// ticks pin 30 invokes; 8 concurrent ticks pin 1 invoke (dedup); one
-// 50-row torrent list is 26.4KB response (793KB per 30 ticks); a page of
-// 20 torrents fetches files per id - 20 invokes / 56KB per cycle, no dedup
-// possible because every id is a distinct key; the batched command sends
-// one invoke with the same 56KB (batching cuts call count, not bytes).
-// Concurrent equals serial in bytes; the cost is the per-cycle fan-out,
-// not the shape.
-// Regression threshold is labs minDelta 5% on bytes; invoke counts are
-// exact pins.
 
 import type { ApiTransport } from "../../src/types/core/transport";
 import { inflightFetch } from "@hullperse/hp_utils/lruCache";

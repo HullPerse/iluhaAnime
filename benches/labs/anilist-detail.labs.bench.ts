@@ -1,10 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Detail-screen render path: per-row score formatting (friendsScores.detail
-// controls.detail, quickadd.detail call parseScoreFormat per render) and the
-// SimilarSection filter-sort-slice memo over recs + relations + franchise.
-// Budget (avg/iter, Ryzen 7 5800X/node 26, 2026-10-17): score rows x25
-// 1.08us, similar filter-sort 3.00us; this file is noise-flagged (±5-15%).
-// Regression threshold is labs minDelta 5%.
 
 import {
   formatScore,

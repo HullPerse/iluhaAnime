@@ -52,7 +52,6 @@ export default function GameAudio({
   useDailyRewardNotice(result, t);
 
   const remaining = Math.max(0, initial.maxAttempts - attempts);
-  // Three looks at the same 15-second excerpt: blackout, mosaic, plain clip.
   const stage = audioStage(attempts, initial.maxAttempts);
   const shownStage = shownAudioStage(stage, viewStage);
   const stageLabel =

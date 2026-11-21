@@ -1,13 +1,3 @@
-/**
- * Builds the daily answer pool from AniList.
- *
- * The pool is a shipped snapshot: the runtime never calls AniList to pick the
- * answer. Tiers are assigned by popularity rank so easy days stay recognizable
- * while hard days reach well below the blockbusters. A frame or theme source
- * failure at runtime still rerolls to the next candidate in the tier.
- *
- * Usage: bun scripts/build-daily-pool.ts
- */
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -114,7 +104,6 @@ async function fetchPage(page: number): Promise<Media[]> {
   throw new Error(`AniList page ${page}: rate limited`);
 }
 
-/** Samples `count` items evenly so a tier covers its whole popularity range. */
 function spread<T>(items: T[], count: number): T[] {
   if (items.length <= count) return items;
   return Array.from(

@@ -1,13 +1,3 @@
-// Settings + repro bundle scenario.
-//
-// The native save dialog cannot be stubbed from the page: in this Tauri
-// version every function on `window.__TAURI_INTERNALS__` (including `invoke`)
-// is a non-writable, non-configurable own property, so replacing it is a
-// silent no-op and the real modal dialog would block the run. The button is
-// still verified in the UI (present and enabled, which is the state the
-// disabled TMDB button used to break), and the bundle itself is produced by
-// driving the real `collect_repro_bundle` command over real IPC.
-
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -56,7 +46,6 @@ function readZipEntry(path: string, entry: string): string {
   ).trim();
 }
 
-// Same shape the app sends: version, counts, settings snapshot.
 function frontendPayload(): string {
   return JSON.stringify({
     counts: { animeIndex: 0, history: 0, queryStats: 0 },
@@ -93,8 +82,6 @@ export const repro: Scenario = {
   name: "repro",
   async run({ page, step }) {
     await step("settings summary is open", async () => {
-      // The summary rail is hidden below the `lg` breakpoint, and the e2e
-      // window opens narrower than that on this display.
       await page.setViewportSize({ width: 1280, height: 800 });
       await clickTabByAnyOf(page, TAB.settings);
       const summary = page.locator(`text=/summary|${RU_SUMMARY}/i`).first();

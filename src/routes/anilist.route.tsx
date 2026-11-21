@@ -245,8 +245,6 @@ function AnilistRoute() {
     });
     setCurrentList("");
     setViewedFriend(null);
-    // The credential is deleted before any fallible step of the command, so a
-    // failure here still leaves the session signed out; only log it.
     const [, error] = await attempt(anilistApi.logout());
     if (error) reportBackgroundError("anilist.logout", error);
   }, [queryClient]);
@@ -411,8 +409,6 @@ function AnilistRoute() {
     [currentList, sort, deferredSearchTerms, global, searchFilters, localFilterSignature]
   );
   const [pageSourceKey, setPageSourceKey] = useState<string>(sourceKey);
-  // Show page 1 on the first frame of a new source instead of resetting the
-  // page in render, which forced a second synchronous render of the route.
   const pageForKey = pageSourceKey === sourceKey ? page : 1;
   useEffect(() => {
     if (pageSourceKey === sourceKey) return;

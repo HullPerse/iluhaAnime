@@ -90,8 +90,6 @@ export default function AlbumToolbar({
     { value: "all", label: t("collection.filters.all") },
     ...CARD_RARITIES.map((value) => ({ value, label: t(cardRarityLabelKeys[value]) })),
   ];
-  // Normal cards are the default finish; the filter exists to isolate the
-  // finishes that carry an effect.
   const variantOptions: { value: "all" | CardVariant; label: string }[] = [
     { value: "all", label: t("collection.filters.all") },
     ...CARD_VARIANTS.filter((value) => value !== "normal").map((value) => ({

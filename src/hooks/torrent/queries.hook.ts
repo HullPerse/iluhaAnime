@@ -108,8 +108,6 @@ export function useTorrentFilesMap(
   requestRefresh: (ids: number[]) => void;
 } {
   const queryClient = useQueryClient();
-  // The torrent list is rebuilt on every progress event. Keying the effects by
-  // the id string keeps a new array identity from restarting the poll loop.
   const idsKey = ids.join(",");
   const stableIds = useMemo(
     () => (idsKey.length > 0 ? idsKey.split(",").map(Number) : []),
@@ -142,8 +140,6 @@ export function useTorrentFilesMap(
     if (enabledIds) return enabledFilterKey.length > 0 ? enabledFilterKey.split(",") : [];
     return stableIds.map(String).sort();
   }, [enabledFilterKey, enabledIds, hasPollScope, refetchMs, scopedPollKey, stableIds]);
-  // A caller that polls only active rows still needs every row once, so the
-  // collapsed/completed cards have a file list without an individual request.
   const initialIdKeys = useMemo(() => {
     if (refetchMs === false) return [];
     if (!hasPollScope) return pollingIdKeys;

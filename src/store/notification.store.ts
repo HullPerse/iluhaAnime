@@ -100,9 +100,6 @@ export function createNotificationSignalStore(
   const rawItems = store.atom("items", persistedItems);
   const rawDismissed = store.atom("dismissed", persistedDismissed);
   const unreadCount = store.atom("unreadCount", unreadCountOf(persistedItems));
-  // Every mutation has to go through these wrappers: the mirror is what the
-  // persist subscriber serializes, so a raw atom write would silently skip
-  // saving the change (notifications would disappear after a restart).
   const items: Cell<NotificationItem[]> = {
     id: rawItems.id,
     get: rawItems.get,

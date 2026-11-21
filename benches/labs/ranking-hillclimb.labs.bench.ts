@@ -1,16 +1,5 @@
 import { bench, group } from "@pmndrs/labs";
 
-// Hill climbing (maximize relevance) vs gradient descent (minimize batch cost).
-// BASELINE ONLY - no implementation change yet. These benches measure the
-// current behavior so a later hill-climbing / gradient-descent pass can be
-// accepted only on a real, measured improvement.
-//
-// Budget (Ryzen 7 5800X / node 26): one hill-climbing pass over 7 ranking
-// parameters on a deterministic 48-query eval set must finish well under a
-// labs block; sub-5% deltas are noise on this host.
-// Regression threshold is labs minDelta 5%.
-// Checksums returned so labs can detect dead code elimination.
-
 import { buildLearningMaps, countersOf } from "../../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../../src/config/anilist/ranking.config";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
@@ -57,10 +46,6 @@ const BASE_PARAMS: Params = {
   halflifeHours: RANKING.FEEDBACK_HALFLIFE_HOURS,
 };
 
-// Deterministic eval fixture: 48 queries, each expecting one title.
-// Half are "easy" (expected already has the highest base score) and half are
-// "hard" (expected has a lower base score and can only reach #1 through the
-// feedback bonus, so the metric is a real function of the params).
 function hardCase(
   query: string,
   expected: string
@@ -215,7 +200,6 @@ for (let i = 0; i < TITLES.length; i++) {
   else EVAL.push(hardCase(query, title));
 }
 
-// Inject counters into candidates so measure() can build learning maps.
 for (const c of EVAL) {
   for (const [index, cand] of c.candidates.entries()) {
     cand._counters = index === 0 ? c.counters : { selectedCount: 0, useCount: 0, ignoredCount: 0 };
@@ -291,7 +275,6 @@ function measure(params: Params): Metric {
   return { top1: top1 / EVAL.length, mrr: mrr / EVAL.length, found: found / EVAL.length };
 }
 
-// Coordinate ascent hill climbing: maximize metric(params).
 function hillClimb(start: Params): { params: Params; metric: Metric; steps: number; ms: number } {
   const step = {
     selectedWeight: 15,

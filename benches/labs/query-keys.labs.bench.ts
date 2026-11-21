@@ -1,10 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Query-key building plus JSON serialization, which is what TanStack
-// Query pays per key (hashing). Representative call mix across search,
-// torrent, collection, and player surfaces.
-// Budget (avg/iter, Ryzen 7 5800X/node 26, 2026-10-08): build 38us,
-// build+stringify 265us, wide 1.6ms. Regression threshold is labs
-// minDelta 5%.
 
 import { queryKeys } from "../../src/lib/core/hotkeys/keys.utils";
 

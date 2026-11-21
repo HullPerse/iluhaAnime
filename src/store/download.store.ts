@@ -12,6 +12,19 @@ import { showError } from "@/lib/core/ui/notification.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { cacheAtoms, setLastSaveDir } from "@/store/cache.store";
 import {
+  beginConfirmation,
+  beginDirectPreparation,
+  beginNextPreparation,
+  cancelPreparation,
+  confirmationSettled,
+  enqueuePreparation,
+  initialPreparationState,
+  isConfirming,
+  isPreparing,
+  preparationFailed,
+  preparationSucceeded,
+} from "@/lib/torrent/preparation.utils";
+import {
   clearPreviousTorrentIfNeeded,
   hasConflictingSelection,
   pickSaveDir,
@@ -20,53 +33,283 @@ import {
   startDownloadForPending,
 } from "@/store/download/download.helpers";
 import type { TorrentData, TorrentSignalStore } from "@/types/core/download";
+import type { PreparationState } from "@/types/torrent/preparation";
+import type { PickerTorrent, TorrentOrigin } from "@/types/torrent/torrent";
+
+type TorrentInfoResult = Awaited<ReturnType<typeof torrentApi.getTorrentInfo>>;
+
+interface PreparationInfo {
+  seeders?: number;
+  origin?: TorrentOrigin;
+}
+
+interface CachedMetadata {
+  name: string;
+  files: PickerTorrent["files"];
+  conflictingFiles: string[];
+  hasCommonFolder: boolean;
+}
+
+type PreparationInput =
+  | { kind: "magnet"; magnet: string; info?: PreparationInfo }
+  | { kind: "file"; path: string; info?: PreparationInfo }
+  | { kind: "bytes"; bytes: number[]; info?: PreparationInfo };
 
 function createTorrentSignalStore(): TorrentSignalStore {
   const store = createSignalStore();
   const initial: TorrentData = {
     limits: { download: null, upload: null },
     metadataCache: new Map(),
-    pendingTorrent: null,
-    prepareQueue: [],
-    preparingTorrent: false,
+    preparation: initialPreparationState(),
     opInFlight: {},
     lastActiveAt: {},
   };
   const atoms = buildSignalAtoms(store, initial);
-  let prepareEpoch = 0;
-  const isCurrent = (token: number) => token === prepareEpoch;
+
+  const preparation = () => atoms.preparation.get();
+  const setPreparation = (next: PreparationState) => atoms.preparation.set(next);
+
+  function pendingFromResult(
+    base: { magnet?: string; fileBytes?: number[] },
+    info: PreparationInfo | undefined,
+    result: TorrentInfoResult
+  ): PickerTorrent {
+    return {
+      ...base,
+      id: result.id,
+      name: result.name,
+      files: result.files,
+      conflictingFiles: result.conflicting_files,
+      hasCommonFolder: result.has_common_folder,
+      seeders: info?.seeders,
+      origin: info?.origin,
+    };
+  }
+
+  function pendingFromCache(
+    base: { magnet?: string; fileBytes?: number[] },
+    info: PreparationInfo | undefined,
+    cached: CachedMetadata
+  ): PickerTorrent {
+    return {
+      ...base,
+      id: 0,
+      name: cached.name,
+      files: cached.files,
+      conflictingFiles: cached.conflictingFiles,
+      hasCommonFolder: cached.hasCommonFolder,
+      seeders: info?.seeders,
+      origin: info?.origin,
+    };
+  }
+
+  function rememberMetadata(key: string, result: TorrentInfoResult): void {
+    const cache = new Map(atoms.metadataCache.get());
+    cache.set(key, {
+      name: result.name,
+      files: result.files,
+      conflictingFiles: result.conflicting_files,
+      hasCommonFolder: result.has_common_folder,
+      savedAt: Date.now(),
+    });
+    atoms.metadataCache.set(cache);
+  }
+
+  function failPreparation(token: number): void {
+    const current = preparation();
+    if (!isPreparing(current, token)) return;
+    setPreparation(preparationFailed(current, token));
+    prepareNextInQueue();
+  }
+
+  function prepareNextInQueue(): void {
+    const begun = beginNextPreparation(preparation());
+    if (!begun) return;
+    setPreparation(begun.state);
+    const input: PreparationInput =
+      begun.source.kind === "magnet"
+        ? { kind: "magnet", magnet: begun.source.value }
+        : { kind: "file", path: begun.source.value };
+    ignore(prepareInput(begun.token, input));
+  }
+
+  async function resolveSaveDir(token: number): Promise<string | null> {
+    if (!isPreparing(preparation(), token)) return null;
+    const existing = cacheAtoms.lastSaveDir.get();
+    if (existing) return existing;
+
+    const dir = await pickSaveDir();
+    if (!isPreparing(preparation(), token)) return null;
+    if (!dir) {
+      failPreparation(token);
+      return null;
+    }
+    setLastSaveDir(dir);
+    return dir;
+  }
+
+  async function prepareMagnet(
+    token: number,
+    input: { magnet: string; info?: PreparationInfo },
+    saveDir: string
+  ): Promise<void> {
+    const cached = atoms.metadataCache.get().get(input.magnet);
+    if (cached) {
+      setPreparation(
+        preparationSucceeded(
+          preparation(),
+          token,
+          pendingFromCache({ magnet: input.magnet }, input.info, cached)
+        )
+      );
+      return;
+    }
+
+    const [result, error] = await attempt(torrentApi.getTorrentInfo(input.magnet, saveDir));
+    if (!isPreparing(preparation(), token)) return;
+    if (error) {
+      showError(tr("download.error.get.info"), error.message);
+      failPreparation(token);
+      return;
+    }
+    if (!result) {
+      failPreparation(token);
+      return;
+    }
+    rememberMetadata(input.magnet, result);
+    setPreparation(
+      preparationSucceeded(
+        preparation(),
+        token,
+        pendingFromResult({ magnet: input.magnet }, input.info, result)
+      )
+    );
+  }
+
+  async function prepareFile(
+    token: number,
+    input: { path: string; info?: PreparationInfo },
+    saveDir: string
+  ): Promise<void> {
+    const [fileBytes, readError] = await attempt(systemApi.readFileBytes(input.path));
+    if (!isPreparing(preparation(), token)) return;
+    if (readError) {
+      showError(tr("download.error.read.file"), readError.message);
+      failPreparation(token);
+      return;
+    }
+    if (!fileBytes) {
+      failPreparation(token);
+      return;
+    }
+
+    const cached = atoms.metadataCache.get().get(input.path);
+    if (cached) {
+      setPreparation(
+        preparationSucceeded(
+          preparation(),
+          token,
+          pendingFromCache({ fileBytes }, input.info, cached)
+        )
+      );
+      return;
+    }
+
+    const [result, error] = await attempt(torrentApi.getTorrentInfoFromFile(fileBytes, saveDir));
+    if (!isPreparing(preparation(), token)) return;
+    if (error) {
+      showError(tr("download.error.get.info"), error.message);
+      failPreparation(token);
+      return;
+    }
+    if (!result) {
+      failPreparation(token);
+      return;
+    }
+    rememberMetadata(input.path, result);
+    setPreparation(
+      preparationSucceeded(
+        preparation(),
+        token,
+        pendingFromResult({ fileBytes }, input.info, result)
+      )
+    );
+  }
+
+  async function prepareBytes(
+    token: number,
+    input: { bytes: number[]; info?: PreparationInfo },
+    saveDir: string
+  ): Promise<void> {
+    const [result, error] = await attempt(
+      torrentApi.getTorrentInfoFromFile(input.bytes, saveDir)
+    );
+    if (!isPreparing(preparation(), token)) return;
+    if (error) {
+      showError(tr("download.error.get.info"), error.message);
+      failPreparation(token);
+      return;
+    }
+    if (!result) {
+      failPreparation(token);
+      return;
+    }
+    setPreparation(
+      preparationSucceeded(
+        preparation(),
+        token,
+        pendingFromResult({ fileBytes: input.bytes }, input.info, result)
+      )
+    );
+  }
+
+  async function prepareInput(token: number, input: PreparationInput): Promise<void> {
+    const saveDir = await resolveSaveDir(token);
+    if (saveDir === null) return;
+    if (input.kind === "magnet") {
+      await prepareMagnet(token, input, saveDir);
+      return;
+    }
+    if (input.kind === "file") {
+      await prepareFile(token, input, saveDir);
+      return;
+    }
+    await prepareBytes(token, input, saveDir);
+  }
 
   const handle: TorrentSignalStore = {
     atoms,
     cancelDownload: async () => {
-      prepareEpoch += 1;
-      const pending = atoms.pendingTorrent.get();
-      if (!pending) {
-        atoms.preparingTorrent.set(false);
-        atoms.pendingTorrent.set(null);
-        handle.prepareNextInQueue();
-        return;
-      }
-      if (pending.id) {
-        const [, error] = await attempt(torrentApi.removeTorrent(pending.id, false));
+      const cancelled = cancelPreparation(preparation());
+      setPreparation(cancelled.state);
+      if (cancelled.pending?.id) {
+        const [, error] = await attempt(torrentApi.removeTorrent(cancelled.pending.id, false));
         if (error) showError(tr("download.error.cancel"), error.message);
       }
-      atoms.preparingTorrent.set(false);
-      atoms.pendingTorrent.set(null);
-      handle.prepareNextInQueue();
+      prepareNextInQueue();
     },
     confirmDownload: async (selectedIndices, saveDir, subFolder, sequential) => {
-      const pending = atoms.pendingTorrent.get();
-      if (!pending) return;
+      const confirmation = beginConfirmation(preparation());
+      if (!confirmation) return;
+      setPreparation(confirmation.state);
+      const { pending, token } = confirmation;
+      const stillConfirming = () => isConfirming(preparation(), token);
+
       if (hasConflictingSelection(pending, selectedIndices)) {
         const overwrite = await confirm(tr("download.confirm.overwrite"));
-        if (!overwrite) return;
+        if (!stillConfirming()) return;
+        if (!overwrite) {
+          setPreparation(confirmationSettled(preparation(), token, false));
+          return;
+        }
       }
+
       setLastSaveDir(saveDir);
       await clearPreviousTorrentIfNeeded(pending.id);
+      if (!stillConfirming()) return;
+
       const onlyFiles = resolveOnlyFiles(pending.files, selectedIndices);
       const requiredBytes = requiredBytesForSelection(pending, selectedIndices);
-
       const id = await startDownloadForPending(
         pending,
         saveDir,
@@ -75,15 +318,33 @@ function createTorrentSignalStore(): TorrentSignalStore {
         sequential ?? false,
         requiredBytes
       );
-      if (id === undefined) return;
+
+      if (!stillConfirming()) {
+        if (id !== undefined) {
+          const [, rollbackError] = await attempt(torrentApi.removeTorrent(id, false));
+          if (rollbackError) reportBackgroundError("torrent.confirm.rollback", rollbackError);
+        }
+        return;
+      }
+      if (id === undefined) {
+        setPreparation(confirmationSettled(preparation(), token, false));
+        return;
+      }
+
       if (pending.origin) {
         const [, sourceError] = await attempt(
           torrentApi.setTorrentSource(id, pending.origin, undefined)
         );
         if (sourceError) reportBackgroundError("torrent.origin.save", sourceError);
+        if (!stillConfirming()) {
+          const [, rollbackError] = await attempt(torrentApi.removeTorrent(id, false));
+          if (rollbackError) reportBackgroundError("torrent.confirm.rollback", rollbackError);
+          return;
+        }
       }
-      atoms.pendingTorrent.set(null);
-      handle.prepareNextInQueue();
+
+      setPreparation(confirmationSettled(preparation(), token, true));
+      prepareNextInQueue();
     },
     getTorrentLimits: (id) =>
       withFallback(torrentApi.getTorrentLimits(id), {
@@ -91,193 +352,29 @@ function createTorrentSignalStore(): TorrentSignalStore {
         uploadBps: null,
       }),
     queueTorrentFiles: (filePaths) => {
-      if (filePaths.length === 0) return;
-      atoms.prepareQueue.set([
-        ...atoms.prepareQueue.get(),
-        ...filePaths.map((value) => ({ kind: "file" as const, value })),
-      ]);
-      handle.prepareNextInQueue();
+      const next = enqueuePreparation(preparation(), filePaths);
+      if (next === preparation()) return;
+      setPreparation(next);
+      prepareNextInQueue();
     },
-    prepareNextInQueue: () => {
-      if (atoms.preparingTorrent.get() || atoms.pendingTorrent.get()) return;
-      const queue = atoms.prepareQueue.get();
-      const next = queue[0];
-      if (!next) return;
-      atoms.prepareQueue.set(queue.slice(1));
-      if (next.kind === "magnet") ignore(handle.prepareTorrentDownload(next.value));
-      else ignore(handle.prepareTorrentDownloadFromFile(next.value));
-    },
+    prepareNextInQueue,
     prepareTorrentDownload: async (magnet, info) => {
-      if (atoms.preparingTorrent.get()) return;
-      const token = ++prepareEpoch;
-      let saveDir = cacheAtoms.lastSaveDir.get();
-      if (!saveDir) {
-        const dir = await pickSaveDir();
-        if (!dir || !isCurrent(token)) return;
-        saveDir = dir;
-        setLastSaveDir(saveDir);
-      }
-      if (!isCurrent(token)) return;
-
-      atoms.preparingTorrent.set(true);
-
-      const cached = atoms.metadataCache.get().get(magnet);
-      if (cached) {
-        if (!isCurrent(token)) return;
-        atoms.preparingTorrent.set(false);
-        atoms.pendingTorrent.set({
-          magnet,
-          id: 0,
-          name: cached.name,
-          files: cached.files,
-          conflictingFiles: cached.conflictingFiles,
-          hasCommonFolder: cached.hasCommonFolder,
-          seeders: info?.seeders,
-          origin: info?.origin,
-        });
-        return;
-      }
-
-      const [result, error] = await attempt(torrentApi.getTorrentInfo(magnet, saveDir));
-      if (!isCurrent(token)) return;
-      if (error) showError(tr("download.error.get.info"), error.message);
-
-      if (!result) {
-        atoms.preparingTorrent.set(false);
-        handle.prepareNextInQueue();
-        return;
-      }
-
-      const cache = new Map(atoms.metadataCache.get());
-      cache.set(magnet, {
-        name: result.name,
-        files: result.files,
-        conflictingFiles: result.conflicting_files,
-        hasCommonFolder: result.has_common_folder,
-        savedAt: Date.now(),
-      });
-      atoms.metadataCache.set(cache);
-      atoms.preparingTorrent.set(false);
-      atoms.pendingTorrent.set({
-        magnet,
-        id: result.id,
-        name: result.name,
-        files: result.files,
-        conflictingFiles: result.conflicting_files,
-        hasCommonFolder: result.has_common_folder,
-        seeders: info?.seeders,
-        origin: info?.origin,
-      });
+      const begun = beginDirectPreparation(preparation());
+      if (!begun) return;
+      setPreparation(begun.state);
+      await prepareInput(begun.token, { kind: "magnet", magnet, info });
     },
     prepareTorrentDownloadFromFile: async (filePath, info) => {
-      if (atoms.preparingTorrent.get()) return;
-      const token = ++prepareEpoch;
-      let saveDir = cacheAtoms.lastSaveDir.get();
-      if (!saveDir) {
-        const dir = await pickSaveDir();
-        if (!dir || !isCurrent(token)) return;
-        saveDir = dir;
-        setLastSaveDir(saveDir);
-      }
-      if (!isCurrent(token)) return;
-
-      atoms.preparingTorrent.set(true);
-
-      const [fileBytes, error] = await attempt(systemApi.readFileBytes(filePath));
-      if (!isCurrent(token)) return;
-      if (error) showError(tr("download.error.read.file"), error.message);
-
-      if (!fileBytes) {
-        atoms.preparingTorrent.set(false);
-        handle.prepareNextInQueue();
-        return;
-      }
-
-      const cached = atoms.metadataCache.get().get(filePath);
-      if (cached) {
-        if (!isCurrent(token)) return;
-        atoms.preparingTorrent.set(false);
-        atoms.pendingTorrent.set({
-          fileBytes,
-          id: 0,
-          name: cached.name,
-          files: cached.files,
-          conflictingFiles: cached.conflictingFiles,
-          hasCommonFolder: cached.hasCommonFolder,
-          seeders: info?.seeders,
-          origin: info?.origin,
-        });
-        return;
-      }
-
-      const [result, infoError] = await attempt(
-        torrentApi.getTorrentInfoFromFile(fileBytes, saveDir)
-      );
-      if (!isCurrent(token)) return;
-      if (infoError) showError(tr("download.error.get.info"), infoError.message);
-
-      if (!result) {
-        atoms.preparingTorrent.set(false);
-        handle.prepareNextInQueue();
-        return;
-      }
-
-      const cache = new Map(atoms.metadataCache.get());
-      cache.set(filePath, {
-        name: result.name,
-        files: result.files,
-        conflictingFiles: result.conflicting_files,
-        hasCommonFolder: result.has_common_folder,
-        savedAt: Date.now(),
-      });
-      atoms.metadataCache.set(cache);
-      atoms.preparingTorrent.set(false);
-      atoms.pendingTorrent.set({
-        fileBytes,
-        id: result.id,
-        name: result.name,
-        files: result.files,
-        conflictingFiles: result.conflicting_files,
-        hasCommonFolder: result.has_common_folder,
-        seeders: info?.seeders,
-        origin: info?.origin,
-      });
+      const begun = beginDirectPreparation(preparation());
+      if (!begun) return;
+      setPreparation(begun.state);
+      await prepareInput(begun.token, { kind: "file", path: filePath, info });
     },
     prepareTorrentDownloadFromBytes: async (fileBytes, info) => {
-      if (atoms.preparingTorrent.get()) return;
-      const token = ++prepareEpoch;
-      let saveDir = cacheAtoms.lastSaveDir.get();
-      if (!saveDir) {
-        const dir = await pickSaveDir();
-        if (!dir || !isCurrent(token)) return;
-        saveDir = dir;
-        setLastSaveDir(saveDir);
-      }
-      if (!isCurrent(token)) return;
-
-      atoms.preparingTorrent.set(true);
-
-      const [result, error] = await attempt(torrentApi.getTorrentInfoFromFile(fileBytes, saveDir));
-      if (!isCurrent(token)) return;
-      if (error) showError(tr("download.error.get.info"), error.message);
-
-      if (!result) {
-        atoms.preparingTorrent.set(false);
-        handle.prepareNextInQueue();
-        return;
-      }
-
-      atoms.preparingTorrent.set(false);
-      atoms.pendingTorrent.set({
-        fileBytes,
-        id: result.id,
-        name: result.name,
-        files: result.files,
-        conflictingFiles: result.conflicting_files,
-        hasCommonFolder: result.has_common_folder,
-        seeders: info?.seeders,
-        origin: info?.origin,
-      });
+      const begun = beginDirectPreparation(preparation());
+      if (!begun) return;
+      setPreparation(begun.state);
+      await prepareInput(begun.token, { kind: "bytes", bytes: fileBytes, info });
     },
     setSpeedLimits: async (limits) => {
       atoms.limits.set(limits);

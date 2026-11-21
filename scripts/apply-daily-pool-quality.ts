@@ -1,10 +1,3 @@
-/**
- * Applies the checked modes from one or more quality reports to the daily
- * pool. Entries with no usable mode stay in the pool but are never picked.
- *
- * Usage:
- *   bun scripts/apply-daily-pool-quality.ts report-1.json report-2.json
- */
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 

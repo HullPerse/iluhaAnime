@@ -18,8 +18,6 @@ export default function AniListProfileModal({
   const top = screens.at(-1) ?? initialScreen;
   const push = (screen: AniListOverlayScreen) => setScreens((prev) => [...prev, screen]);
   const back = () => setScreens((prev) => prev.slice(0, -1));
-  // Card profiles are read-only: the album does not load the AniList lists or
-  // favourites needed for the person favourite button.
   const context: AniListOverlayContext = {
     isLoggedIn: false,
     onOpenAnime,

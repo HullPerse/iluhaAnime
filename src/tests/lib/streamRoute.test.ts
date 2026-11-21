@@ -35,7 +35,6 @@ describe("alternateProxyUrl", () => {
   });
 
   test("a proxied stream falls back to the direct route", () => {
-    // A dead VPN is exactly when the other route saves the episode.
     expect(alternateProxyUrl(proxy, proxy)).toBeNull();
   });
 

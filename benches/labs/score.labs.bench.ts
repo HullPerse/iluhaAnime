@@ -72,7 +72,6 @@ group("score @pilot @search @quick", () => {
       const nq = normalizeSearchText(q);
       for (const nc of NORM_CANDIDATES) {
         checksum += fuzzyMatchScorePreNormalized(nq, nc) ?? 0;
-        // deliberate O(len²) work per pair to simulate a bad rewrite
         for (let a = 0; a < nq.length; a++) {
           for (let b = a + 1; b <= nq.length; b++) {
             checksum ^= Math.trunc(a * 31 + b * 17 + nc.length);

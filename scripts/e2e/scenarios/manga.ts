@@ -4,8 +4,6 @@ import { clickTabByAnyOf, invokeRetryOnBusy, sleep, TAB, waitForReady } from "..
 import type { Scenario } from "../harness";
 
 const SETTINGS_KEY = "iluha.v1.settings";
-// Keep in sync with SCHEMA_VERSIONS.settings in
-// src/config/persistence/schemaVersions.config.ts.
 const SETTINGS_SCHEMA_VERSION = 63;
 
 const NAV_LABELS = ["Библиотека", "Поиск", "История", "Источники"] as const;

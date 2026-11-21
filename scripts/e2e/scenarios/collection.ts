@@ -1,10 +1,3 @@
-// Collection scenario: enables the card tab in the isolated e2e profile and
-// walks the current surface (packs, album, shop, daily game, gifts).
-//
-// It runs signed out, so cards cannot be seeded: packs and rewards require an
-// AniList account. The scenario therefore checks the empty states and the
-// surfaces that do not need an account.
-
 import type { Page } from "playwright-core";
 
 import { clickTabByAnyOf, sleep, TAB, waitForReady } from "../cdp";
@@ -42,7 +35,6 @@ async function expectVisible(page: Page, text: string, timeout = 15_000): Promis
 
 async function clickTab(page: Page, name: string): Promise<void> {
   const tab = page.getByRole("tab", { name }).first();
-  // The active tab is disabled on purpose, so selecting it again is a no-op.
   if ((await tab.getAttribute("aria-selected")) === "true") return;
   await tab.click({ timeout: 10_000 });
 }

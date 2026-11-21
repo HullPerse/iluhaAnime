@@ -1,3 +1,5 @@
+import type { PreparationState } from "@/types/torrent/preparation";
+
 export interface Anime {
   title: string;
   magnet: string;
@@ -212,17 +214,10 @@ interface CachedTorrentMeta {
   savedAt: number;
 }
 
-interface PendingTorrentSource {
-  kind: "magnet" | "file";
-  value: string;
-}
-
 export interface TorrentStore {
   lastActiveAt: Record<number, number>;
   limits: SpeedLimits;
-  pendingTorrent: PickerTorrent | null;
-  preparingTorrent: boolean;
-  prepareQueue: PendingTorrentSource[];
+  preparation: PreparationState;
   metadataCache: Map<string, CachedTorrentMeta>;
   opInFlight: Record<number, "pause" | "resume" | "remove">;
 

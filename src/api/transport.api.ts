@@ -27,7 +27,6 @@ function recordInvoke(command: string, args?: Record<string, unknown>): void {
   stats.set(command, entry);
 }
 
-/** Cheap upper-bound walk so a 5000-element byte array never gets stringified. */
 function exceedsJsonBudget(value: unknown, limit: number): boolean {
   let size = 0;
   const visit = (item: unknown, depth: number): void => {

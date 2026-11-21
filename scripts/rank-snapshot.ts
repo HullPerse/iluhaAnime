@@ -1,11 +1,3 @@
-// Read-only snapshot of the real learning data in the app database.
-// Answers "what does the ranking model actually see": row counts per
-// kind/scope, non-zero counters, history size, and the in-memory projection
-// that `buildLearningMaps` produces at startup.
-//
-// Run: bun scripts/rank-snapshot.ts [--db <path>]
-// The database is opened READONLY, so it is safe while the app runs.
-
 import { statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 

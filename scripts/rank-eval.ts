@@ -1,18 +1,3 @@
-// Offline quality evaluation for the suggestion ranking.
-// Reads a hand-checked (or draft) query set, rebuilds the anime index and the
-// learning projection from the real app database, and reports Top-1 / Top-3 /
-// MRR@N. The database is opened READONLY; the engine itself is the same pure
-// function the UI calls.
-//
-// Run: bun scripts/rank-eval.ts [--db <path>] [--set <json>] [--limit 8] [--pool 60] [--json]
-//
-// Reports the new feedback formula and the replaced TS formula on the same
-// candidate pool, per category and overall. The old arm is harness-only.
-//
-// Query set shape:
-// { "queries": [{ "query": "frieren", "expectedTitle": "Sousou no Frieren",
-//                 "expectedAliases": ["Frieren: Beyond Journey's End"] }] }
-
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
@@ -129,11 +114,6 @@ interface FormulaMetrics {
 const now = Date.now();
 const pool = Math.max(limit, Number(argument("pool") ?? 60));
 
-/**
- * The old TS formula (deleted in the ranking extraction), reproduced here only
- * for the A/B arm. It is applied to the same candidate pool as the new model,
- * so the comparison isolates the formula, not recall.
- */
 function oldTsBoost(
   stat: { count: number; lastUsedAt: number; selectedCount: number; ignoredCount?: number },
   at: number

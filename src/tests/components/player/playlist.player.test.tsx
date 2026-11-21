@@ -166,7 +166,7 @@ describe("PlaylistBody mutations", () => {
     await vi.waitFor(() => {
       expect(entriesCalls()).toBe(1);
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await act(async () => {});
     expect(entriesCalls()).toBe(1);
   });
 

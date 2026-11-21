@@ -1,9 +1,3 @@
-// Live playlist extension: a file that appears in a watched folder while the
-// app player is open must land in the live mpv playlist at its sorted
-// position, without disturbing the currently playing file. This exercises the
-// same plan/execute/verify path as the torrent branch (only the trigger and
-// the desired-list builder differ, and both are unit-tested).
-
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -84,8 +78,6 @@ export const livePlaylist: Scenario = {
   name: "livePlaylist",
   async run({ browser, page, step }) {
     await step("fixture videos ready", async () => {
-      // The late file must be created by this run. Leaving it behind makes the
-      // next run overwrite an existing path, which is a different watcher path.
       rmSync(EP02, { force: true });
       for (const target of [EP01, EP03]) {
         let exists = true;

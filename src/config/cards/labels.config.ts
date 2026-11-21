@@ -6,7 +6,6 @@ export const CARD_KINDS = ["anime", "manga", "character", "staff", "studio"] as 
 export const CARD_RARITIES = ["junk", "common", "rare", "epic", "legendary"] as const;
 export const CARD_VARIANTS = ["normal", "foil", "holo", "cursed"] as const;
 export const CARD_SORTS = ["recent", "value", "rarity", "variant", "title", "kind"] as const;
-// The collection shelf groups anime, so it has no per-card finish to sort by.
 export const COLLECTION_SORTS = [
   "recent",
   "value",
@@ -80,8 +79,6 @@ export function cardSourceLabelKey(source: string): TranslationKey {
   return cardSourceLabelKeys[source] ?? "collection.source.other";
 }
 
-/// AniList MediaSource values. Unknown/new values fall back to a humanized
-/// enum name in the card detail instead of an empty line.
 export const animeSourceLabelKeys: Record<string, TranslationKey> = {
   ORIGINAL: "anilist.filters.source.original",
   MANGA: "anilist.filters.source.manga",

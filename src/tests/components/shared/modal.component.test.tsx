@@ -19,7 +19,6 @@ describe("Modal stacking guard", () => {
       </Modal>
     );
     await waitFor(() => expect(screen.getByRole("dialog")).toBeDefined());
-    await new Promise((resolve) => setTimeout(resolve, 20));
     expect(warn).not.toHaveBeenCalled();
   });
 

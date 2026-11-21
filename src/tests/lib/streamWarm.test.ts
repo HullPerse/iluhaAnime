@@ -54,7 +54,6 @@ describe("warmStreamUrl", () => {
       await warmStreamUrl(`https://cdn.example/${index}.m3u8`, {}, null);
     }
 
-    // The oldest entry was evicted, so it is worth warming again.
     await warmStreamUrl("https://cdn.example/0.m3u8", {}, null);
 
     expect(warm).toHaveBeenCalledTimes(31);

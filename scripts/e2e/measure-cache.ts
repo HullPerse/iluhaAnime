@@ -38,7 +38,6 @@ async function main() {
     await invoke(page, "player_open_stream", { stream });
     const player = await findPlayerPage(browser, 45000);
 
-    // wait for duration
     let duration = 0;
     const deadline = Date.now() + 45000;
     while (Date.now() < deadline) {
@@ -48,7 +47,6 @@ async function main() {
     }
     console.log("duration", duration);
 
-    // wait 5s for cache to grow
     await sleep(5000);
 
     const prop = async (name: string, format: string) => {
@@ -73,7 +71,6 @@ async function main() {
       console.log("ahead span", cacheEnd - readerPts);
     }
 
-    // working set of app process
     const { execSync } = await import("node:child_process");
     const ws = execSync('powershell -Command "(Get-Process iluhaAnime).WorkingSet64"', { encoding: "utf-8" }).trim();
     console.log("workingSetBytes", ws);

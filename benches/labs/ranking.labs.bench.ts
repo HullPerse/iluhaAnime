@@ -1,14 +1,4 @@
 import { bench, group } from "@pmndrs/labs";
-// Micro benches for the extracted ranking model. The A/B arms reimplement the
-// two formulas this work replaced (the old TS additive boost and the old SQL
-// multiplier) so the cost of the new model is measured against the code it
-// replaced, in the same process and on the same data.
-//
-// Budget (Ryzen 7 5800X / node 26, clock-drifted host): feedbackScore <= 30 ns
-// per call; the replaced tier formulas are cheaper per call (~1 ns) but both
-// are noise next to a keystroke. buildLearningMaps(10k) under 15 ms; 100
-// applyLearningAction calls on a 500-entry projection under 15 ms. Regression
-// threshold is labs minDelta 5%.
 
 import { feedbackScore } from "../../src/lib/core/ui/feedback.utils";
 import {

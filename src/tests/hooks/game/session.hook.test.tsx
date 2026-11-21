@@ -53,6 +53,14 @@ const START: GameStartInfo = {
   palette: null,
 };
 
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let settle!: (value: T) => void;
+  const promise = new Promise<T>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: settle };
+}
+
 const ON = parseHexColor(GAME_DISPLAY.pixel);
 const OFF = parseHexColor(GAME_DISPLAY.background);
 
@@ -399,6 +407,77 @@ describe("useGameSession", () => {
     expect(image.data[12]).toBe(0x00);
 
     act(() => result.current.stop());
+  });
+
+  it("stops a start that resolves after a newer game was selected", async () => {
+    const firstStart = deferred<GameStartInfo>();
+    const secondStart = deferred<GameStartInfo>();
+    let starts = 0;
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (command === "game_start") {
+        starts += 1;
+        return starts === 1 ? firstStart.promise : secondStart.promise;
+      }
+      return null;
+    });
+    const { result } = renderSession();
+    const other: GameRomInfo = { ...ROM, id: "rom:test-2" };
+
+    let firstRun!: Promise<void>;
+    act(() => {
+      firstRun = result.current.start(ROM);
+    });
+    await vi.waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("game_start", { id: ROM.id }));
+
+    let secondRun!: Promise<void>;
+    act(() => {
+      secondRun = result.current.start(other);
+    });
+    await vi.waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("game_start", { id: other.id })
+    );
+
+    firstStart.resolve({ ...START, session: 7 });
+    await act(async () => {
+      await firstRun;
+    });
+    expect(mockInvoke).toHaveBeenCalledWith("game_stop", { session: 7 });
+    expect(result.current.runtime.status).toBe("starting");
+
+    secondStart.resolve({ ...START, id: other.id, session: 8 });
+    await act(async () => {
+      await secondRun;
+    });
+    expect(result.current.runtime).toMatchObject({ status: "running", info: { session: 8 } });
+
+    act(() => result.current.stop());
+  });
+
+  it("stops a session that finishes starting after stop was pressed", async () => {
+    const starting = deferred<GameStartInfo>();
+    mockInvoke.mockImplementation(async (command: unknown) => {
+      if (command === "game_start") return starting.promise;
+      return null;
+    });
+    const { result } = renderSession();
+
+    let run!: Promise<void>;
+    act(() => {
+      run = result.current.start(ROM);
+    });
+    await vi.waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("game_start", { id: ROM.id }));
+
+    act(() => result.current.stop());
+    expect(result.current.runtime.status).toBe("idle");
+
+    starting.resolve(START);
+    await act(async () => {
+      await run;
+    });
+
+    expect(mockInvoke).toHaveBeenCalledWith("game_stop", { session: 7 });
+    expect(result.current.runtime.status).toBe("idle");
+    expect(audio.dispose).not.toHaveBeenCalled();
   });
 
   it("releases the backend session on unmount", async () => {

@@ -29,9 +29,6 @@ const PREPARE_TIMEOUT_MS = 90_000;
 const OP_PREPARE_TIMEOUT_MS = 260_000;
 const REVEAL_TIMEOUT_MS = 160_000;
 
-/// A win mints the reward pack on the backend, but the packs tab and the tab
-/// badges keep their own caches. Invalidating them here makes the new pack
-/// appear on the next packs visit instead of after the five-minute stale time.
 function invalidateDailyResult(
   queryClient: QueryClient,
   day: string,
@@ -85,10 +82,6 @@ export function usePrepareDailyGame(day: string) {
   });
 }
 
-/// Silent warm-up: the card screen starts the download before the player
-/// clicks, so the mutation on click usually finds a ready clip.
-/// The win screen asks for the frames that were never reached. The backend
-/// downloads only the missing slots and returns the full set.
 export function useRevealDailyFrames(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -107,8 +100,6 @@ export function useRevealDailyFrames(day: string) {
   });
 }
 
-/// Silent warm-up: the card screen starts the download before the player
-/// clicks, so the mutation on click usually finds a ready clip.
 export function useWarmDailyOp(day: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -119,8 +110,6 @@ export function useWarmDailyOp(day: string) {
   });
 }
 
-/// Same warm-up for the audio card: hovering it starts the download, so the
-/// click usually joins a running request instead of starting a cold one.
 export function useWarmDailyAudio(day: string) {
   const queryClient = useQueryClient();
   return useMutation({

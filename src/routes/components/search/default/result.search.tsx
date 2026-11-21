@@ -53,7 +53,6 @@ function SearchResultItem({
   const queryClient = useQueryClient();
   const refreshCover = () => {
     removeResolvedCover(cover.coverKey);
-    // A refresh means a real new lookup, not the cached candidate list.
     resetCoverSearchCache();
     ignore(
       queryClient.invalidateQueries({ queryKey: queryKeys.coverResolveScope(cover.coverKey) })

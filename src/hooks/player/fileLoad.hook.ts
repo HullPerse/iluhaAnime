@@ -148,14 +148,9 @@ export function usePlayerFileLoad({
     playbackAtoms.durationHint.set(0);
     seedTrackSelection({});
     if (streamSession.get() !== null) {
-      // Stream track preferences are applied by useStreamTrackPrefs after the
-      // track list arrives; that hook marks the file ready.
       syncMarginsRef.current(true);
       return;
     }
-    // Drop the previous local file's duration so the timeline never shows a
-    // stale value between file-loaded and the watch hint. A pinned stream
-    // keeps its last duration instead.
     playbackAtoms.duration.set(0);
     const reload = hwdecReloadRef.current;
     const initialWatch = initialWatchRef.current;
@@ -165,8 +160,6 @@ export function usePlayerFileLoad({
     const hintedDuration = watchDuration(entry);
     playbackAtoms.durationHint.set(hintedDuration);
     const state = fileStatePatch(entry, playbackAtoms.speed.get() || 1);
-    // Seed the visible track rows before mpv emits its own list, so the UI
-    // starts on the persisted choice instead of flashing the default track.
     seedTrackSelection({
       audioTrack: entry?.audioTrack,
       audioTrackKey: entry?.audioTrackKey,

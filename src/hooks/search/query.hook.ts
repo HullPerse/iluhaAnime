@@ -219,10 +219,6 @@ export function useSearchQuery(): SearchQueryController {
     );
   };
 
-  // The session query checks all three sources in one request, so waiting for it
-  // to refetch kept the signed-in button on screen until the slowest network
-  // check (up to the 8 s timeout) answered. The local cache is the truth here:
-  // deleting the credential is what signs out.
   const runLogout = async (key: keyof SearchSessionsData, logout: () => Promise<void>) => {
     setSession(key, false);
     const [, error] = await attempt(logout());
@@ -231,8 +227,6 @@ export function useSearchQuery(): SearchQueryController {
       reportBackgroundError(`search.logout.${key}`, error);
       return;
     }
-    // A session check that started before the click can land while the command
-    // was running and restore the old answer.
     setSession(key, false);
   };
 

@@ -1,11 +1,3 @@
-// Measures the real Tauri IPC round-trip time inside the running app WebView.
-// The app must already run with CDP exposed:
-//   $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"
-//   bun run tauri dev
-// Then: bun scripts/e2e/measure-ipc.ts (or bun run bench:ipc).
-// The timing loop runs inside one page.evaluate so CDP transport cost is
-// excluded; what remains is serialization plus the Rust dispatch.
-
 import { connectCdp, mainPage, waitForReady } from "./cdp";
 
 const WARMUP = 50;

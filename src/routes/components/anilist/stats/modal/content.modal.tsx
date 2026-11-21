@@ -11,6 +11,7 @@ import { CalendarGrid } from "@/routes/components/anilist/stats/modal/calendarGr
 import { CalendarHeader } from "@/routes/components/anilist/stats/modal/calendarHeader.modal";
 import { DayEntriesList } from "@/routes/components/anilist/stats/modal/dayEntries.modal";
 import { StatsReleases } from "@/routes/components/anilist/stats/modal/releases.modal";
+import { WeekBoard } from "@/routes/components/anilist/stats/modal/weekBoard.modal";
 
 export function StatsModalContent({
   tab,
@@ -27,11 +28,14 @@ export function StatsModalContent({
   daysInMonth,
   calendarCells,
   calendarMode,
+  calendarView,
+  weekDays,
   isCurrentMonth,
   seasonError,
   seasonLoading,
   today,
   onCalendarMode,
+  onCalendarView,
   onOpenDetail,
   onSelectDay,
   onDrill,
@@ -83,6 +87,24 @@ export function StatsModalContent({
             {t(seasonLabels[season.season] ?? "anilist.season.FALL")} {season.year}
           </span>
         )}
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            variant={calendarView === "month" ? "outline" : "default"}
+            className="h-5 px-1.5 text-xs"
+            aria-pressed={calendarView === "month"}
+            onClick={() => onCalendarView("month")}
+          >
+            {t("anilist.stats.calendar.view.month")}
+          </Button>
+          <Button
+            variant={calendarView === "week" ? "outline" : "default"}
+            className="h-5 px-1.5 text-xs"
+            aria-pressed={calendarView === "week"}
+            onClick={() => onCalendarView("week")}
+          >
+            {t("anilist.stats.calendar.view.week")}
+          </Button>
+        </div>
       </div>
       {calendarMode === "season" && seasonLoading ? (
         <TabLoader className="min-h-24 p-4" />
@@ -95,6 +117,8 @@ export function StatsModalContent({
             {t("anilist.activity.retry")}
           </Button>
         </div>
+      ) : calendarView === "week" ? (
+        <WeekBoard weekDays={weekDays} onEntryClick={onOpenDetail} />
       ) : (
         <>
           <CalendarHeader month={month} year={year} onPrev={onPrevMonth} onNext={onNextMonth} />

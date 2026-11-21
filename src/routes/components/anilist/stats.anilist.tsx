@@ -13,16 +13,23 @@ import {
   buildAiringEntries,
   buildCalendarCells,
   buildSeasonAiringEntries,
+  buildWeekDays,
 } from "@/lib/anilist/statsCalendar.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { ActivityDetailBundle, AniListCollection, AniMedia } from "@/types/anilist/anilist";
 import type { AnilistScoreFormat } from "@/types/anilist/anilistScore";
-import type { StatsCalendarMode, StatsTab } from "@/types/anilist/stats.anilist";
+import type { StatsCalendarMode, StatsCalendarView, StatsTab } from "@/types/anilist/stats.anilist";
 import type { StatsDrillData } from "@/types/core/overview.stats";
 
 import { InlineDetail } from "@/routes/components/anilist/detail/inline.detail";
 import { StatsModalContent } from "@/routes/components/anilist/stats/modal/content.modal";
 import { TabButtons } from "@/routes/components/anilist/stats/modal/tabs.modal";
+
+function calendarModalWidth(tab: StatsTab, view: StatsCalendarView): string {
+  if (tab === "overview") return "w-7xl";
+  if (tab === "calendar" && view === "week") return "w-5xl";
+  return "w-3xl";
+}
 
 export default function StatsModal({
   lists,
@@ -46,6 +53,7 @@ export default function StatsModal({
   const [month, setMonth] = useState<number>(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<null | number>(null);
   const [calendarMode, setCalendarMode] = useState<StatsCalendarMode>("list");
+  const [calendarView, setCalendarView] = useState<StatsCalendarView>("month");
   const adult = useCell(settingsAtoms.anilistAdultContent);
   const lastTabRef = useRef<StatsTab>(tab);
   const season = currentAnimeSeason();
@@ -103,6 +111,7 @@ export default function StatsModal({
     () => buildCalendarCells(allEntries, year, month),
     [allEntries, year, month]
   );
+  const weekDays = useMemo(() => buildWeekDays(allEntries), [allEntries]);
   const drillRows = useMemo(
     () => (drill == null ? [] : buildMediaRows(drill.ids, lists)),
     [drill, lists]
@@ -110,6 +119,12 @@ export default function StatsModal({
   const changeCalendarMode = (next: StatsCalendarMode) => {
     if (next === calendarMode) return;
     setCalendarMode(next);
+    setSelectedDay(null);
+    setDrill(null);
+  };
+  const changeCalendarView = (next: StatsCalendarView) => {
+    if (next === calendarView) return;
+    setCalendarView(next);
     setSelectedDay(null);
     setDrill(null);
   };
@@ -145,7 +160,9 @@ export default function StatsModal({
       header={dayTitle ?? drillTitle ?? t("anilist.stats.title")}
       onClose={onClose}
       onBack={backAction}
-      className={dayTitle != null || drillTitle != null || tab !== "overview" ? "w-3xl" : "w-7xl"}
+      className={
+        dayTitle != null || drillTitle != null ? "w-3xl" : calendarModalWidth(tab, calendarView)
+      }
     >
       <TabButtons tab={tab} onTab={setTab} />
       <StatsModalContent
@@ -163,11 +180,14 @@ export default function StatsModal({
         daysInMonth={daysInMonth}
         calendarCells={calendarCells}
         calendarMode={calendarMode}
+        calendarView={calendarView}
+        weekDays={weekDays}
         isCurrentMonth={isCurrentMonth}
         seasonError={seasonQuery.isError}
         seasonLoading={seasonQuery.isLoading}
         today={today}
         onCalendarMode={changeCalendarMode}
+        onCalendarView={changeCalendarView}
         onOpenDetail={setDetailId}
         onSelectDay={setSelectedDay}
         onDrill={(data) => {

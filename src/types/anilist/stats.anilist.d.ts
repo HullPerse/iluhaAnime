@@ -7,6 +7,8 @@ export type StatsTab = "overview" | "calendar" | "released";
 
 export type StatsCalendarMode = "list" | "season";
 
+export type StatsCalendarView = "month" | "week";
+
 export interface AiringEntry {
   id: number;
   title: string;
@@ -17,6 +19,11 @@ export interface AiringEntry {
 
 export interface CalendarCell {
   date: number;
+  entries: AiringEntry[];
+}
+
+export interface CalendarWeekDay {
+  dayStartMs: number;
   entries: AiringEntry[];
 }
 
@@ -35,11 +42,14 @@ export interface StatsModalContentProps {
   daysInMonth: number;
   calendarCells: CalendarCell[];
   calendarMode: StatsCalendarMode;
+  calendarView: StatsCalendarView;
+  weekDays: CalendarWeekDay[];
   isCurrentMonth: boolean;
   seasonError: boolean;
   seasonLoading: boolean;
   today: number;
   onCalendarMode: (mode: StatsCalendarMode) => void;
+  onCalendarView: (view: StatsCalendarView) => void;
   onOpenDetail: (id: number) => void;
   onRetrySeason: () => void;
   onSelectDay: (day: number | null) => void;
